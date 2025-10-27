@@ -42,7 +42,7 @@ export function handleAddMission(mutableState: JaiaContextType) {
  * Makes a call to remove a mission and its assignment
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including missionID of mission to delete
+ * @param {JaiaAction} action Includes missionID of mission to delete
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaAction) {
@@ -58,7 +58,7 @@ export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaA
  * Makes a call to duplicate a mission
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including missionID of mission to duplicate
+ * @param {JaiaAction} action Includes missionID of mission to duplicate
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDuplicateMission(mutableState: JaiaContextType, action: JaiaAction) {
@@ -98,7 +98,7 @@ export function handleDeleteAllMissions(mutableState: JaiaContextType) {
  * Makes a call to assign a Bot to a mission
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including botID and missionID to assign
+ * @param {JaiaAction} action Includes botID and missionID to assign
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleAssignMission(mutableState: JaiaContextType, action: JaiaAction) {
@@ -127,7 +127,7 @@ export function handleAutoAssignMissions(mutableState: JaiaContextType) {
  * Makes a call update the mission speeds
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including missionSpeeds
+ * @param {JaiaAction} action Includes missionSpeeds
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action: JaiaAction) {
@@ -140,7 +140,7 @@ export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action:
  * Loads a mission set from local storage
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including missionSetName
+ * @param {JaiaAction} action Includes missionSetName
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
@@ -155,6 +155,13 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
     return mutableState;
 }
 
+/**
+ * Makes map and grid plan changes based on survey state change
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Includes grid planning state
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
     gridPlan.setState(action.gridPlanningState);
     mutableState.gridPlanningState = action.gridPlanningState;
@@ -190,6 +197,8 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             handleMapModeChange(MapModes.DEFAULT);
             mutableState.mapMode = MapModes.DEFAULT;
             mutableState.visiblePanel = ButtonNames.NONE;
+            mutableState.missions = missionSet.getMissions();
+            mutableState.missionIDInEditMode = UNASSIGNED_ID;
             missionLayer.updateFeatures();
             break;
     }

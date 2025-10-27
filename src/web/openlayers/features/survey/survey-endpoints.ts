@@ -9,6 +9,13 @@ import { GeographicCoordinate } from "../../../types/protobuf-types";
 import surveyStartIcon from "../../../style/icons/survey-start.svg";
 import surveyEndIcon from "../../../style/icons/survey-end.svg";
 
+/**
+ * Creates a point on the map to indicate the start or end of a survey
+ *
+ * @param {GeographicCoordinate} location Lat/lon of start or end point
+ * @param {Boolean} isStart Whether or not this location is the survey start
+ * @returns {Feature} Survey start or end point to display on map
+ */
 export function generateSurveyEndpoint(location: GeographicCoordinate, isStart: boolean) {
     if (!location) {
         return new Feature();
@@ -23,6 +30,12 @@ export function generateSurveyEndpoint(location: GeographicCoordinate, isStart: 
     return feature;
 }
 
+/**
+ * Creates the style to be applied to the start/end points of a survey
+ *
+ * @param {boolean} isStart Determines which icon to use
+ * @returns {Style} Style to be applied to a survey endpoint
+ */
 function generateSurveyEndpointStyle(isStart: boolean) {
     let icon = surveyEndIcon;
     if (isStart) {

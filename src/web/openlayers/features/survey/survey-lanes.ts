@@ -15,6 +15,13 @@ import waypointDiveIcon from "../../../style/icons/waypoint-dive.svg";
 import waypointDriftIcon from "../../../style/icons/waypoint-drift.svg";
 import { MapFeatureTypes } from "../../../types/openlayers-types";
 
+/**
+ * Creates a line from the start of the drag to the last drag position
+ *
+ * @param {GeographicCoordinate} startLocation Lat/lon of drag start
+ * @param {GeographicCoordinate} endLocation  Lat/lon of last drag position
+ * @returns {Feature} Line between start + end drag positions
+ */
 export function generateSurveyLane(
     startLocation: GeographicCoordinate,
     endLocation: GeographicCoordinate,
@@ -35,6 +42,14 @@ export function generateSurveyLane(
     return feature;
 }
 
+/**
+ * Creates a survey waypoint icon to be placed along the survey lane
+ *
+ * @param {GeographicCoordinate} location Lat/lon of waypoint
+ * @param {number} waypointNum Positon of waypoint in lane (to be displayed on icon)
+ * @param {number} laneNum Used to calculate z-index of survey points
+ * @returns {Feature} Waypoint icon to display on the survey lane
+ */
 export function generateSurveyPoint(
     location: GeographicCoordinate,
     waypointNum: number,
@@ -56,6 +71,11 @@ export function generateSurveyPoint(
     return feature;
 }
 
+/**
+ * Creates style for survey lanes
+ *
+ * @returns {Style[]} Array of styles applied to the survey lanes
+ */
 function generateSurveyLaneStyle() {
     const underlayStyle = new Style({
         stroke: new Stroke({
@@ -76,6 +96,13 @@ function generateSurveyLaneStyle() {
     return [underlayStyle, overlayStyle];
 }
 
+/**
+ * Creates the style to be applied to a survey waypoint
+ *
+ * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
+ * @param {number} laneNum Used to get task type for rendering waypoint icon
+ * @returns {Style} Style to be applied to a survey waypoint
+ */
 function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
     const mission = gridPlan.getMissions().get(laneNum);
 

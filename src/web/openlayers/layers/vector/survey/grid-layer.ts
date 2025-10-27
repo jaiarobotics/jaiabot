@@ -20,7 +20,6 @@ import { layersZIndexes } from "../../zindex";
 import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/survey-lanes";
 import { generateSurveyEndpoint } from "../../../features/survey/survey-endpoints";
 import { GeographicCoordinate } from "../../../../types/protobuf-types";
-import { Coordinate } from "ol/coordinate";
 
 const units: Units = "meters";
 const options = { units: units };
@@ -31,7 +30,6 @@ class GridLayer extends JaiaVectorLayer {
     private drawSource: VectorSource;
     private layerSource: VectorSource;
     private centerLine: TurfFeature<TurfLineString>;
-    private startLocation4326: Coordinate;
 
     constructor() {
         super(LayerTitles.GRID_LAYER, layersZIndexes.get(LayerTitles.GRID_LAYER));
@@ -53,6 +51,11 @@ class GridLayer extends JaiaVectorLayer {
         return this.centerLine;
     }
 
+    /**
+     * Configures the draw interaction for dragging a survey grid on the map
+     *
+     * @returns {Draw} The custom draw interaction
+     */
     createDrawInteraction() {
         this.draw = new Draw({
             source: this.drawSource,
@@ -67,22 +70,17 @@ class GridLayer extends JaiaVectorLayer {
         });
 
         this.draw.on("drawstart", (event: DrawEvent) => {
-            const feature = event.feature as Feature<LineString>;
-
-            if (!touches.getIsPanning()) {
-                const startLocation3857 = feature.getGeometry().getFirstCoordinate();
-                this.startLocation4326 = toLonLat([startLocation3857[0], startLocation3857[1]]);
+            if (touches.getIsPanning()) {
+                return;
             }
+
+            const feature = event.feature as Feature<LineString>;
+            const startLocation3857 = feature.getGeometry().getFirstCoordinate();
+            const startLocation4326 = toLonLat([startLocation3857[0], startLocation3857[1]]);
 
             event.feature.getGeometry().on("change", (event: BaseEvent) => {
                 if (touches.getIsPanning()) {
                     return;
-                }
-
-                // No start location results from drawstarts that included two fingers
-                if (!this.startLocation4326) {
-                    const startLocation3857 = feature.getGeometry().getLastCoordinate();
-                    this.startLocation4326 = toLonLat([startLocation3857[0], startLocation3857[1]]);
                 }
 
                 const currentLocation3857 = feature.getGeometry().getLastCoordinate();
@@ -90,19 +88,24 @@ class GridLayer extends JaiaVectorLayer {
                     currentLocation3857[0],
                     currentLocation3857[1],
                 ]);
-                this.centerLine = turf.lineString([this.startLocation4326, currentLocation4326]);
+                this.centerLine = turf.lineString([startLocation4326, currentLocation4326]);
                 this.createGrid();
             });
         });
 
         this.draw.on("drawend", (event: DrawEvent) => {
             this.drawSource.clear();
-            this.startLocation4326 = undefined;
         });
 
         return this.draw;
     }
 
+    /**
+     * We need a custom dragpan interaction to stop the drag event
+     * from propagating to the draw interaction
+     *
+     * @returns {DragPan} The custom dragpan interaction
+     */
     createDragPanInteraction() {
         this.dragPan = new DragPan({
             condition: (evt) => {
@@ -116,6 +119,13 @@ class GridLayer extends JaiaVectorLayer {
         return this.dragPan;
     }
 
+    /**
+     * Utilizes the data from the drag to produce a grid of lanes and points based
+     * on the size parameters set by the operator
+     *
+     * @param {boolean} saveLanes Whether or not to store the lanes in an array
+     * @returns {TurfFeature<TurfLineString>[]} The lanes of the grid
+     */
     createGrid(saveLanes?: boolean) {
         if (!this.centerLine) {
             return;
@@ -162,6 +172,13 @@ class GridLayer extends JaiaVectorLayer {
         return lanes;
     }
 
+    /**
+     * Generates the waypoints along the survey lanes
+     *
+     * @param {TurfFeature<LineString>} lane Which lane to add the points along
+     * @param {number} laneNum Used to assign a z-index to the points
+     * @returns {Position[][]} Array of points
+     */
     createGridPoints(lane: TurfFeature<TurfLineString>, laneNum: number) {
         const points: Position[] = [];
         const lineDist = turf.length(lane, options);
@@ -183,11 +200,27 @@ class GridLayer extends JaiaVectorLayer {
         return points;
     }
 
+    /**
+     * Adds the start and end survey points to the map
+     *
+     * @returns {void}
+     */
     createGridEndPoints() {
         this.layerSource.addFeature(generateSurveyEndpoint(gridPlan.getMissionStart(), true));
         this.layerSource.addFeature(generateSurveyEndpoint(gridPlan.getMissionEnd(), false));
     }
 
+    /**
+     * Trims the lanes to the final waypoint and (optionally) saves the lanes into
+     * missions to be processed by the rest of the app
+     *
+     * @param {boolean} modifyDataModel Stores the missions in the data model
+     * @returns {void}
+     *
+     * @notes
+     * finalizeGrid(true) only needs to be called once. Multiple calls will
+     * result in duplicate missions.
+     */
     finalizeGrid(modifyDataModel?: boolean) {
         const lanes = this.createGrid(true);
         this.layerSource.clear();
@@ -215,10 +248,14 @@ class GridLayer extends JaiaVectorLayer {
         }
     }
 
+    /**
+     * Clears the layer and the drag line to prepare for a new drag
+     *
+     * @returns {void}
+     */
     reset() {
         this.getVectorLayer().getSource().clear();
         this.centerLine = undefined;
-        this.startLocation4326 = undefined;
     }
 }
 
