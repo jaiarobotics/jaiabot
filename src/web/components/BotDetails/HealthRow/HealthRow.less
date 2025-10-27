@@ -1,0 +1,19 @@
+@import "../../../style/stylesheets/vars.less";
+
+.health-row {
+    padding: 8px 0 0 0;
+}
+
+.health-state-ok {
+    color: @good-color;
+}
+
+.health-row .error,
+.health-state-failed {
+    color: @error-color;
+}
+
+.health-row .warning,
+.health-state-degraded {
+    color: @warning-color;
+}
