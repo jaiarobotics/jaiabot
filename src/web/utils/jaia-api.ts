@@ -1,20 +1,12 @@
-/* eslint-disable quote-props */
-require("es6-promise").polyfill();
-require("isomorphic-fetch");
-
 import { GeoJSON } from "ol/format";
 import { Command, Engineering, CommandForHub, TaskPacket } from "../types/protobuf-types";
 import { randomBase57, convertHTMLStrDateToISO } from "../shared/Utilities";
 import { FeatureCollection, Geometry } from "geojson";
-import { Feature } from "ol";
 
 export interface JaiaError {
     code?: number;
     message?: string;
 }
-
-export type BotPathPoint = [utime: number, lon: number, lat: number];
-export type BotPaths = { [key: string]: BotPathPoint[] };
 
 export type TaskPackets = { included: TaskPacket[]; excluded: TaskPacket[] };
 
@@ -133,16 +125,6 @@ export class JaiaAPI {
      */
     getStatusHubs() {
         return this.get("jaia/v0/status-hubs");
-    }
-
-    getBotPaths(since_utime?: number): Promise<JaiaResponse<BotPaths>> {
-        var url = "jaia/v0/bot-paths";
-
-        if (since_utime) {
-            url += `?since-utime=${since_utime}`;
-        }
-
-        return this.get(url);
     }
 
     /**
