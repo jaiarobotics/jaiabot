@@ -132,4 +132,4 @@ stop_camera_command {
     type: STOP_VIDEO
 }
 
-camera_type: $camera_type
+camera_available: $camera_available

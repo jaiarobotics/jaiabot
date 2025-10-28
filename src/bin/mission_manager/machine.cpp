@@ -554,7 +554,7 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
     // Then we can adjust pressure accordingly
     this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
 
-    if (cfg().camera_avaialble() && cfg().has_start_camera_command())
+    if (cfg().camera_available() && cfg().has_start_camera_command())
     {
         auto start_camera_command = cfg().start_camera_command();
         time_t timestamp;
@@ -986,7 +986,7 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::Unpowered
     typename StateBase::my_context c)
     : StateBase(c)
 {
-    if (cfg().camera_avaialble() && cfg().has_stop_camera_command())
+    if (cfg().camera_available() && cfg().has_stop_camera_command())
     {
         interprocess().publish<jaiabot::groups::camera>(cfg().stop_camera_command());
     }

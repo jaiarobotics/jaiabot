@@ -106,6 +106,6 @@ if modes:
     for mode in modes.split(","):
         jaia_camera_positions.append(CameraPositions(mode))
 
-camera_avaialble = False
+camera_available = False
 if CameraPositions.NO_CAMERA.value not in jaia_camera_positions:
-    camera_avaialble = True
+    camera_available = True

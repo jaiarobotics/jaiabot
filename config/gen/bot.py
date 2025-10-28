@@ -363,7 +363,7 @@ elif common.app == 'jaiabot_mission_manager':
                                      fleet_id=fleet_index,
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
                                      subnet_mask=common.comms.subnet_mask,
-                                     camera_avaialble=common.camera_avaialble))
+                                     camera_available=common.camera_available))
 
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
