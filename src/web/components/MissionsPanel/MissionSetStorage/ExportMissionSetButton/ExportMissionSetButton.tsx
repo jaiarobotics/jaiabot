@@ -1,20 +1,19 @@
 import { useState } from "react";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 import { DialogActions } from "../../../../types/context-types";
-import { listSavedMissionSets } from "../mission-set-storage";
-import { DisabledCodes } from "./save-messages";
-import { SaveMissionSetDialog } from "./SaveMissionSetDialog";
-import { saveToLocalStorage } from "../mission-set-storage";
+import { DisabledCodes } from "./export-messages";
+import { ExportMissionSetDialog } from "./ExportMissionSetDialog";
+import { exportMissionSetToFile } from "../mission-set-storage";
 
 interface Props {
     saveName: string;
 }
 
 /**
- * Produces the save mission set button.
+ * Produces the export mission set button.
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
-export default function SaveMissionSetButton(props: Props) {
+export default function ExportMissionSetButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -23,14 +22,13 @@ export default function SaveMissionSetButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Mission Set conditions
      */
     const getDisabledCode = () => {
-        if (missionSet.getMissions().size == 0) return DisabledCodes.NO_MISSIONS;
-        if (props.saveName == "") return DisabledCodes.NO_NAME;
-        if (listSavedMissionSets().includes(props.saveName)) return DisabledCodes.OVERWRITE;
+        if (missionSet.getMissions().size === 0) return DisabledCodes.NO_MISSIONS;
+        if (props.saveName === "") return DisabledCodes.NO_NAME;
         return DisabledCodes.NONE;
     };
 
     /**
-     * Displays dialog if a warning condition exist or saves the mission set
+     * Displays dialog if a warning condition exist or exports the mission set
      *
      * @returns {void}
      */
@@ -47,21 +45,20 @@ export default function SaveMissionSetButton(props: Props) {
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
-     *
      */
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            saveToLocalStorage(props.saveName);
+            exportMissionSetToFile(props.saveName);
         }
     };
 
     return (
         <div>
-            <button aria-label={"save-mission-set"} onClick={() => onButtonClick()}>
-                Save
+            <button aria-label={"export-mission-set"} onClick={() => onButtonClick()}>
+                Export
             </button>
-            <SaveMissionSetDialog
+            <ExportMissionSetDialog
                 isVisible={isDialogVisible}
                 disabledCode={getDisabledCode()}
                 saveName={props.saveName}
