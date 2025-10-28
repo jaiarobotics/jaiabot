@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Icon from "@mdi/react";
-import { mdiArrowRight } from "@mdi/js";
+import { mdiArrowRight, mdiDelete } from "@mdi/js";
 import { FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import TileLayer from "ol/layer/Tile";
 import { TileImage } from "ol/source";
@@ -9,6 +9,8 @@ import { layers } from "../../../openlayers/layers/layers";
 import { offlineMapDownloader } from "../../../openlayers/layers/offline/offline-layer-downloader";
 import { LayerTitles } from "../../../types/openlayers-types";
 import "./OfflineMaps.less";
+import { offlineLayerManager } from "../../../openlayers/layers/offline/offline-layer-manager";
+import { jaiaAPI } from "../../../utils/jaia-api";
 
 const ONLINE_TILE_LAYERS: LayerTitles[] = [
     LayerTitles.OSM_LAYER,
@@ -64,7 +66,15 @@ export default function OfflineMaps() {
                     <TileDownloadStatus />
                 </div>
             </div>
-            <div className="offline-layers-container"></div>
+            <div className="offline-layers-container">
+                <div className="heading-container">
+                    <div className="heading">Offline Layers</div>
+                    <div className="disk-space">Available:</div>
+                </div>
+            </div>
+            <ul>
+                <OfflineLayerList />
+            </ul>
         </div>
     );
 }
@@ -91,5 +101,32 @@ function TileDownloadStatus() {
             </div>
             <button onClick={() => offlineMapDownloader.clear()}>Cancel</button>
         </div>
+    );
+}
+
+function OfflineLayerList() {
+    if (!offlineLayerManager.getMapsDirectory()?.maps) {
+        return;
+    }
+
+    const deleteLayerFromHub = async (layerName: string) => {
+        await jaiaAPI.deleteOfflineMap(layerName);
+        offlineLayerManager.refresh();
+    };
+
+    return (
+        <ul>
+            {offlineLayerManager.getMapsDirectory().maps.map((tileset) => {
+                return (
+                    <li key={tileset.name}>
+                        <div className="name">{tileset.name}</div>
+                        <div className="size">{tileset.size}</div>
+                        <div onClick={() => deleteLayerFromHub(tileset.name)}>
+                            <Icon path={mdiDelete} />
+                        </div>
+                    </li>
+                );
+            })}
+        </ul>
     );
 }

@@ -47,7 +47,7 @@ class OfflineLayerManager {
     }
 
     async refresh() {
-        jaiaAPI.getHubMaps().then((mapsDirectory) => {
+        jaiaAPI.getOfflineMaps().then((mapsDirectory) => {
             const existingOfflineLayers: { [title: string]: TileLayer<XYZ> } = Object.fromEntries(
                 this.layerGroup.getLayersArray().map((layer) => [layer.get("title"), layer]),
             );
