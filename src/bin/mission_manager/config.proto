@@ -243,4 +243,5 @@ message MissionManager
 
     optional jaiabot.protobuf.CameraCommand start_camera_command = 90;
     optional jaiabot.protobuf.CameraCommand stop_camera_command = 91;
+    optional bool camera_avaialble = 92 [default = false];
 }
