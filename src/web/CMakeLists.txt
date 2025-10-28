@@ -71,8 +71,4 @@ if(build_jdv)
   add_subdirectory(jdv)
 endif()
 
-option(install_jcc_apache "Install jcc Apache site" ON)
-if(install_jcc_apache)
-  install(FILES jcc.conf DESTINATION /etc/apache2/sites-available)
-endif()
 
