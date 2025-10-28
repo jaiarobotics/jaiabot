@@ -7,6 +7,8 @@ export const noaaENCLayer = new TileLayer({
     },
     source: new TileArcGISRest({
         url: "https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer",
+        attributions: "Map data: NOAA ENC® Charts",
+        crossOrigin: "anonymous",
         wrapX: false,
     }),
     visible: false,

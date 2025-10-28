@@ -1,9 +1,14 @@
 import TileLayer from "ol/layer/Tile";
-import OSM from "ol/source/OSM";
+import { XYZ } from "ol/source";
 
 export const OSMLayer = new TileLayer({
     properties: {
         title: "open-street-map-layer",
     },
-    source: new OSM({ wrapX: false }),
+    source: new XYZ({
+        url: "https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        attributions: "Map data: © OpenStreetMap contributors",
+        attributionsCollapsible: false,
+        wrapX: false,
+    }),
 });
