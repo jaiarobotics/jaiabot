@@ -219,6 +219,18 @@ export default function LayerSwitcherMenu() {
                     </AccordionDetails>
                 </Accordion>
             </ThemeProvider>
+            <ThemeProvider theme={accordionTheme}>
+                <Accordion
+                    className="accordion-container"
+                    expanded={jaiaContext.mapLayerAccordionStates.offline}
+                    onChange={() => handleAccordionClick(MapLayerAccordionNames.OFFLINE)}
+                >
+                    <AccordionSummary className="accordion-summary" expandIcon={<ExpandMoreIcon />}>
+                        <Typography>Offline</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails className="layer-group"></AccordionDetails>
+                </Accordion>
+            </ThemeProvider>
         </div>
     );
 }

@@ -38,6 +38,7 @@ export const defaultMapLayerAccordionStates = {
     bathymetry: false,
     measurements: false,
     mission: false,
+    offline: false,
 };
 
 /**

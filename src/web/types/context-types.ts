@@ -130,6 +130,7 @@ export const enum MapLayerAccordionNames {
     BATHYMETRY = "bathymetry",
     MEASUREMENTS = "measurements",
     MISSION = "mission",
+    OFFLINE = "offline",
 }
 
 export interface MapLayerAccordionStates {
@@ -137,6 +138,7 @@ export interface MapLayerAccordionStates {
     bathymetry: boolean;
     measurements: boolean;
     mission: boolean;
+    offline: boolean;
 }
 
 export const enum ButtonTypes {
