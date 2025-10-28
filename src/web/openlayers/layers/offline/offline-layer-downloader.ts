@@ -3,6 +3,7 @@ import { View } from "ol";
 import { TileImage } from "ol/source";
 
 import { jaiaAPI } from "../../../utils/jaia-api";
+import { offlineLayerManager } from "./offline-layer-manager";
 
 interface TileDescriptior {
     layerName: string;
@@ -46,6 +47,21 @@ class OfflineMapDownloader {
         this.tileDescriptors = [];
     }
 
+    async add(view: View, layer: TileLayer<TileImage>) {
+        for (const tile of tileGenerator(view, layer)) {
+            this.tileDescriptors.push(tile);
+        }
+        this.startDownloading();
+    }
+
+    getTileCount(view: View, layer: TileLayer<TileImage>) {
+        let tileCount = 0;
+        for (const tile of tileGenerator(view, layer)) {
+            tileCount += 1;
+        }
+        return tileCount;
+    }
+
     private async startDownloading() {
         if (this.isRunning) {
             return;
@@ -59,7 +75,17 @@ class OfflineMapDownloader {
             if (tiles.length == 0) break;
 
             this.notify();
+
+            const tileJobs = tiles.map((tile) => this.donwloadTile(tile));
+
+            await Promise.allSettled(tileJobs)
+                .then((results) => {
+                    this.completedTiles += results.length;
+                })
+                .catch((error) => console.error(error));
         }
+        this.isRunning = false;
+        this.notify();
     }
 
     private async donwloadTile(tile: TileDescriptior) {
@@ -69,9 +95,20 @@ class OfflineMapDownloader {
         );
         if (!existingTile) {
             const tileBlob = await fetch(tile.url).then((response) => response.blob());
+            jaiaAPI.putOfflineTile(tile.layerName, tile.zoom, tile.x, tile.y, tileBlob).then(() => {
+                const mapsDirectory = offlineLayerManager.getMapsDirectory();
+                const tileSetNames = mapsDirectory?.maps?.map((tileSet) => tileSet.name) ?? [];
+                if (!(tile.layerName in tileSetNames)) {
+                    offlineLayerManager.refresh();
+                }
+            });
         }
+        // Number of tiles
+        return 1;
     }
 }
+
+export const offlineMapDownloader = new OfflineMapDownloader();
 
 /**
  * A generator function that creates TileDescriptors containing
@@ -106,7 +143,7 @@ function* tileGenerator(view: View, layer: TileLayer<TileImage>) {
                     projection,
                 );
                 yield {
-                    layer_name: layer.get("title"),
+                    layerName: layer.get("title"),
                     zoom: z,
                     x: x,
                     y: y,

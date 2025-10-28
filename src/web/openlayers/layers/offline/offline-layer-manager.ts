@@ -27,6 +27,10 @@ class OfflineLayerManager {
         }, REFRESH_INTERVAL);
     }
 
+    getMapsDirectory() {
+        return this.mapsDirectory;
+    }
+
     subscribe(hook: () => void, id: string) {
         this.observers[id] = hook;
         hook();
