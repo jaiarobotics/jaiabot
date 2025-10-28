@@ -29,6 +29,18 @@ class OfflineMapDownloader {
         this.observers = {};
     }
 
+    getTileDescriptors() {
+        return this.tileDescriptors;
+    }
+
+    getIsRunning() {
+        return this.isRunning;
+    }
+
+    getCompletedTiles() {
+        return this.completedTiles;
+    }
+
     subscribe(hook: (offlineMapDownloader: OfflineMapDownloader) => void, hookLabel: string) {
         this.observers[hookLabel] = hook;
     }

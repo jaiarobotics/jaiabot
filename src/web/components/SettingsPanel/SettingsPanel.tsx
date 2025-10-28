@@ -6,13 +6,14 @@ import { ThemeProvider } from "@emotion/react";
 
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
 import ScanForBot from "./ScanForBot/ScanForBot";
+import Engineering from "./Engineering/Engineering";
+import OfflineMaps from "./OfflineMaps/OfflineMaps";
 import QueryBotStatus from "./QueryBotStatus/QueryBotStatus";
 import LayerSwitcherMenu from "./LayerSwitcherMenu/LayerSwitcherMenu";
 import { trackPod } from "../../openlayers/controls/track-pod";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 
 import "./SettingsPanel.less";
-import Engineering from "./Engineering/Engineering";
 
 /**
  * Contains general configurations for the JCC and Jaia System
@@ -93,6 +94,18 @@ export default function SettingsPanel() {
                             <Engineering />
                             <QueryBotStatus />
                             <ScanForBot />
+                        </AccordionDetails>
+                    </Accordion>
+
+                    <Accordion className="accordion-container">
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            className="accordion-summary"
+                        >
+                            <Typography>Offline Maps</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <OfflineMaps />
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
