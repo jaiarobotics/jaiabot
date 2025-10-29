@@ -19,7 +19,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial DESTINATION ${project_SHARE_DI
 
 # Building the JaiaBot Goby message python modules into the pyjaiaprotobuf python package
 set(pyjaiaprotobuf_outdir ${project_SHARE_DIR}/jaiabot/python/pyjaiaprotobuf)
-add_custom_command(OUTPUT ${pyjaiaprotobuf_outdir}/dccl/option_extensions_pb2.py
+add_custom_command(OUTPUT ${pyjaiaprotobuf_outdir}/src/jaiabot/messages/jaia_dccl_pb2.py
   COMMAND ${CMAKE_COMMAND} -E env DCCL_DIR=${DCCL_INCLUDE_DIR}/dccl GOBY_DIR=${GOBY_INCLUDE_DIR}/goby ./build_messages.sh
   ARGS ${CMAKE_SOURCE_DIR} ${pyjaiaprotobuf_outdir}
   DEPENDS jaiabot_messages
@@ -28,7 +28,7 @@ add_custom_command(OUTPUT ${pyjaiaprotobuf_outdir}/dccl/option_extensions_pb2.py
   )
 add_custom_target(pyjaiaprotobuf
   ALL
-  DEPENDS ${pyjaiaprotobuf_outdir}/dccl/option_extensions_pb2.py jaiabot_messages
+  DEPENDS ${pyjaiaprotobuf_outdir}/src/jaiabot/messages/jaia_dccl_pb2.py
   )
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
