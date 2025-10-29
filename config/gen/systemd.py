@@ -430,6 +430,10 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DATA_VISION',
      'runs_on': [Type.HUB],
      'runs_on_cloudhub': CloudHubType.SECONDARY},
+    {'service': 'jcc.conf',
+     'template': 'jcc.conf.in',
+     'runs_on': [Type.HUB],
+     'runs_on_cloudhub': CloudHubType.SECONDARY},
 
     ## ALL BOT Services ##
 
@@ -768,11 +772,11 @@ for app in jaiabot_apps:
                 service = 'jaiabot_' + service
 
         # special case for goby_coroner - need a list of everything we're running
-        if app['exe'] == 'goby_coroner':
+        if app.get('exe') == 'goby_coroner':
             macros['extra_flags'] = '--expected_name ' + ' --expected_name '.join(all_goby_apps)
             
         if not 'bin_dir' in macros:
-            if macros['exe'][0:4] == 'goby':
+            if (macros.get('exe') or '').startswith('goby'):
                 macros['bin_dir'] = macros['goby_bin_dir']
             else:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
@@ -782,14 +786,23 @@ for app in jaiabot_apps:
         with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:        
             out=Template(file.read()).substitute(macros)    
         outfilename = args.systemd_dir + '/' + service + '.service'
+
+        enable = args.enable
+        disable = args.disable
+
+        if app['template'] == 'jcc.conf.in':
+            outfilename = '/etc/apache2/sites-available/' + service
+            enable = False
+            disable = False
+
         print('Writing ' + outfilename)
         outfile = open(outfilename, 'w')
         outfile.write(out)
         outfile.close()
-        if args.enable:
+        if enable:
             print('Enabling ' + service)
             subprocess.run('systemctl enable ' + service, check=True, shell=True)
-        if args.disable:
+        if disable:
             print('Disabling ' + service)
             subprocess.run('systemctl disable ' + service, check=True, shell=True)
             
