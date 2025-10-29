@@ -15,8 +15,10 @@ import { view } from "../../../openlayers/views/view";
 import { layers } from "../../../openlayers/layers/layers";
 import { offlineLayerManager } from "../../../openlayers/layers/offline/offline-layer-manager";
 import { LayerTitles } from "../../../types/openlayers-types";
+import { DialogActions } from "../../../types/context-types";
 import { jaiaAPI } from "../../../utils/jaia-api";
 import { openFileDialog } from "../../../utils/file";
+import { DownloadTilesDialog } from "./DownloadTilesDialog";
 import "./OfflineMaps.less";
 
 interface UploadProps {
@@ -39,6 +41,8 @@ export default function OfflineMaps() {
     const [isUploadingGeoTIFF, setIsUploadingGeoTIFF] = useState(false);
     const [geoTIFFBytesUploaded, setGeoTIFFBytesUploaded] = useState(0);
     const [geoTIFFTotalBytes, setGeoTIFFTotalBytes] = useState(0);
+    const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [estimatedDownloadSize, setEstimatedDownloadSize] = useState("");
 
     const getOnlineTileLayerMenuItems = () => {
         return ONLINE_TILE_LAYERS.map((layerTitle) => (
@@ -48,12 +52,20 @@ export default function OfflineMaps() {
         ));
     };
 
-    const importOnlineTileLayer = () => {
+    const handleDownloadTileLayerClick = () => {
         const layer = layers.getLayer(selectedOnlineLayerName) as TileLayer<TileImage>;
         const tileCount = offlineLayerManager.getTileCount(view, layer);
         const esimatedSize = tileCount * ESTIMATED_TILE_SIZE;
-        // Need alert
-        offlineLayerManager.add(view, layer);
+        setIsDialogVisible(true);
+        setEstimatedDownloadSize(bytesString(esimatedSize));
+    };
+
+    const onDownloadDialogClose = (dialogAction: DialogActions) => {
+        setIsDialogVisible(false);
+        if (dialogAction === DialogActions.CONFIRMED) {
+            const layer = layers.getLayer(selectedOnlineLayerName) as TileLayer<TileImage>;
+            offlineLayerManager.add(view, layer);
+        }
     };
 
     const clickedUploadGeoTiFF = async () => {
@@ -123,7 +135,7 @@ export default function OfflineMaps() {
                                 {getOnlineTileLayerMenuItems()}
                             </Select>
                         </FormControl>
-                        <div onClick={() => importOnlineTileLayer()}>
+                        <div onClick={() => handleDownloadTileLayerClick()}>
                             <Icon path={mdiArrowRight} />
                         </div>
                     </div>
@@ -141,6 +153,11 @@ export default function OfflineMaps() {
                     <OfflineLayerList />
                 </ul>
             </div>
+            <DownloadTilesDialog
+                isVisible={isDialogVisible}
+                onClose={onDownloadDialogClose}
+                estimatedSize={estimatedDownloadSize}
+            />
         </div>
     );
 }
@@ -162,7 +179,7 @@ function TileDownloadStatus() {
     return (
         <div className="progress-section">
             <div>
-                <p>{`Importing ${tile.layerName}`}</p>
+                <p>{`Downloading ${tile.layerName}`}</p>
                 <p>{`${offlineLayerManager.getCompletedTiles()} / ${totalTileCount} (${percent}%)`}</p>
             </div>
             <button onClick={() => offlineLayerManager.clear()}>Cancel</button>
