@@ -46,6 +46,14 @@ class OfflineLayerManager {
         return this.layers;
     }
 
+    getLayer(title: string) {
+        for (const layer of this.layers.getArray()) {
+            if (layer.get("title") === title) {
+                return layer;
+            }
+        }
+    }
+
     clear() {
         this.tileDescriptors = [];
     }
@@ -114,11 +122,10 @@ class OfflineLayerManager {
     }
 
     async createOfflineLayers() {
-        const layerTitles = this.layers.getArray().map((layer) => layer.get("title"));
         const res = await jaiaAPI.getOfflineMaps();
         if (res.maps) {
             for (const tileSet of res.maps) {
-                if (tileSet.name in layerTitles) {
+                if (this.getLayer(tileSet.name)) {
                     continue;
                 }
                 const layer = new TileLayer({

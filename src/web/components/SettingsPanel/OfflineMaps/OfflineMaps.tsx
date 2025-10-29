@@ -65,6 +65,9 @@ export default function OfflineMaps() {
     };
 
     const uploadGeoTIFF = async (geoTIFF: File) => {
+        if (offlineLayerManager.getLayer(geoTIFF.name)) {
+            return;
+        }
         const reader = geoTIFF.stream().getReader();
         setIsUploadingGeoTIFF(true);
         setGeoTIFFTotalBytes(geoTIFF.size);
@@ -82,7 +85,11 @@ export default function OfflineMaps() {
             setGeoTIFFBytesUploaded(bytesUploaded);
             chunkIndex += 1;
         }
-        setIsUploadingGeoTIFF(false);
+        setTimeout(() => {
+            // After the geoTIFF upload, the server extracts a tileset of PNGs from the geoTIFF
+            offlineLayerManager.createOfflineLayers();
+            setIsUploadingGeoTIFF(false);
+        }, 30_000);
     };
 
     return (
@@ -163,16 +170,18 @@ function TileDownloadStatus() {
 
 function GeoTIFFUploadStatus(props: UploadProps) {
     if (props.isUploading) {
-        const geoTIFFUploadPercent = (props.bytesUploaded / props.totalBytes) * 100;
+        const uploadPercent = (props.bytesUploaded / props.totalBytes) * 100;
+        const text =
+            uploadPercent === 100 ? "Extracting..." : `Uploading: ${uploadPercent.toFixed(0)}%`;
         return (
             <div className="geotiff-progress-container">
                 <CircularProgress
                     variant="determinate"
-                    value={geoTIFFUploadPercent}
+                    value={uploadPercent}
                     size={36}
                     style={{ verticalAlign: "middle", marginLeft: "12px", marginRight: "12px" }}
                 />
-                <div>{`Uploading: ${geoTIFFUploadPercent.toFixed(0)}%`}</div>
+                <div>{text}</div>
             </div>
         );
     }

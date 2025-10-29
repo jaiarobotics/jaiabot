@@ -242,6 +242,13 @@ function OfflineLayersAccordionDetails(props: Props) {
         return defaultCheckedStates;
     };
 
+    if (
+        !offlineLayerManager.getLayers().getArray() ||
+        offlineLayerManager.getLayers().getArray().length === 0
+    ) {
+        return;
+    }
+
     const [checkedStates, setCheckedStates] = useState(refreshCheckedStates());
 
     const handleLayerClick = (title: string) => {
@@ -253,10 +260,6 @@ function OfflineLayersAccordionDetails(props: Props) {
             }
         }
     };
-
-    if (!offlineLayerManager.getLayers().getArray()) {
-        return;
-    }
 
     return (
         <AccordionDetails className="layer-group">
