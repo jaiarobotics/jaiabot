@@ -1,16 +1,29 @@
 import { useState } from "react";
 import Icon from "@mdi/react";
 import { mdiArrowRight, mdiDelete } from "@mdi/js";
-import { FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from "@mui/material";
+import {
+    CircularProgress,
+    FormControl,
+    InputLabel,
+    MenuItem,
+    Select,
+    SelectChangeEvent,
+} from "@mui/material";
 import TileLayer from "ol/layer/Tile";
 import { TileImage } from "ol/source";
 import { view } from "../../../openlayers/views/view";
 import { layers } from "../../../openlayers/layers/layers";
-import { offlineMapDownloader } from "../../../openlayers/layers/offline/offline-layer-downloader";
-import { LayerTitles } from "../../../types/openlayers-types";
-import "./OfflineMaps.less";
 import { offlineLayerManager } from "../../../openlayers/layers/offline/offline-layer-manager";
+import { LayerTitles } from "../../../types/openlayers-types";
 import { jaiaAPI } from "../../../utils/jaia-api";
+import { openFileDialog } from "../../../utils/file";
+import "./OfflineMaps.less";
+
+interface UploadProps {
+    isUploading: boolean;
+    bytesUploaded: number;
+    totalBytes: number;
+}
 
 const ONLINE_TILE_LAYERS: LayerTitles[] = [
     LayerTitles.OSM_LAYER,
@@ -22,7 +35,10 @@ const ONLINE_TILE_LAYERS: LayerTitles[] = [
 const ESTIMATED_TILE_SIZE = 11_000;
 
 export default function OfflineMaps() {
-    const [selectedOnlineLayerName, setSelectedOnlineLayerName] = useState(null);
+    const [selectedOnlineLayerName, setSelectedOnlineLayerName] = useState(LayerTitles.NONE);
+    const [isUploadingGeoTIFF, setIsUploadingGeoTIFF] = useState(false);
+    const [geoTIFFBytesUploaded, setGeoTIFFBytesUploaded] = useState(0);
+    const [geoTIFFTotalBytes, setGeoTIFFTotalBytes] = useState(0);
 
     const getOnlineTileLayerMenuItems = () => {
         return ONLINE_TILE_LAYERS.map((layerTitle) => (
@@ -34,15 +50,56 @@ export default function OfflineMaps() {
 
     const importOnlineTileLayer = () => {
         const layer = layers.getLayer(selectedOnlineLayerName) as TileLayer<TileImage>;
-        const tileCount = offlineMapDownloader.getTileCount(view, layer);
+        const tileCount = offlineLayerManager.getTileCount(view, layer);
         const esimatedSize = tileCount * ESTIMATED_TILE_SIZE;
         // Need alert
-        offlineMapDownloader.add(view, layer);
+        offlineLayerManager.add(view, layer);
+    };
+
+    const clickedUploadGeoTiFF = async () => {
+        openFileDialog(".tif", false).then((fileList) => {
+            if (fileList.length) {
+                uploadGeoTIFF(fileList.item(0));
+            }
+        });
+    };
+
+    const uploadGeoTIFF = async (geoTIFF: File) => {
+        const reader = geoTIFF.stream().getReader();
+        setIsUploadingGeoTIFF(true);
+        setGeoTIFFTotalBytes(geoTIFF.size);
+        let bytesUploaded = 0;
+        let chunkIndex = 0;
+
+        while (true) {
+            const result = await reader.read();
+            if (result.done) {
+                await jaiaAPI.putOfflineGeoTiffChunk(geoTIFF.name, chunkIndex, new Uint8Array());
+                break;
+            }
+            await jaiaAPI.putOfflineGeoTiffChunk(geoTIFF.name, chunkIndex, result.value);
+            bytesUploaded += result.value.length;
+            setGeoTIFFBytesUploaded(bytesUploaded);
+            chunkIndex += 1;
+        }
+        setIsUploadingGeoTIFF(false);
     };
 
     return (
         <div className="offline-maps-container">
-            <div className="geotiff-container"></div>
+            <div className="geotiff-container">
+                <div className="geotiff-select-container">
+                    <div className="heading">Upload GeoTIFF to Hub</div>
+                    <div onClick={() => clickedUploadGeoTiFF()}>
+                        <Icon path={mdiArrowRight} />
+                    </div>
+                </div>
+                <GeoTIFFUploadStatus
+                    isUploading={isUploadingGeoTIFF}
+                    bytesUploaded={geoTIFFBytesUploaded}
+                    totalBytes={geoTIFFTotalBytes}
+                />
+            </div>
             <div className="save-tiles-container">
                 <div className="heading">Save Map to Hub</div>
                 <div className="layer-selection-container">
@@ -52,7 +109,7 @@ export default function OfflineMaps() {
                             <Select
                                 value={selectedOnlineLayerName}
                                 onChange={(evt: SelectChangeEvent) =>
-                                    setSelectedOnlineLayerName(evt.target.value)
+                                    setSelectedOnlineLayerName(evt.target.value as LayerTitles)
                                 }
                                 label="Layer"
                             >
@@ -71,62 +128,90 @@ export default function OfflineMaps() {
                     <div className="heading">Offline Layers</div>
                     <div className="disk-space">Available:</div>
                 </div>
+                <ul>
+                    <OfflineLayerList />
+                </ul>
             </div>
-            <ul>
-                <OfflineLayerList />
-            </ul>
         </div>
     );
 }
 
 function TileDownloadStatus() {
-    const tile = offlineMapDownloader.getTileDescriptors().at(0);
+    const tile = offlineLayerManager.getTileDescriptors().at(0);
     if (!tile) {
         return null;
     }
 
-    if (!offlineMapDownloader.getIsRunning()) {
+    if (!offlineLayerManager.getIsRunning()) {
         return null;
     }
 
-    const remainingTileCount = offlineMapDownloader.getTileDescriptors().length;
-    const totalTileCount = offlineMapDownloader.getCompletedTiles() + remainingTileCount;
-    const percent = Math.round((100 * offlineMapDownloader.getCompletedTiles()) / totalTileCount);
+    const remainingTileCount = offlineLayerManager.getTileDescriptors().length;
+    const totalTileCount = offlineLayerManager.getCompletedTiles() + remainingTileCount;
+    const percent = Math.round((100 * offlineLayerManager.getCompletedTiles()) / totalTileCount);
 
     return (
         <div className="progress-section">
             <div>
                 <p>{`Importing ${tile.layerName}`}</p>
-                <p>{`${offlineMapDownloader.getCompletedTiles()} / ${totalTileCount} (${percent}%)`}</p>
+                <p>{`${offlineLayerManager.getCompletedTiles()} / ${totalTileCount} (${percent}%)`}</p>
             </div>
-            <button onClick={() => offlineMapDownloader.clear()}>Cancel</button>
+            <button onClick={() => offlineLayerManager.clear()}>Cancel</button>
         </div>
     );
 }
 
-function OfflineLayerList() {
-    if (!offlineLayerManager.getMapsDirectory()?.maps) {
-        return;
+function GeoTIFFUploadStatus(props: UploadProps) {
+    if (props.isUploading) {
+        const geoTIFFUploadPercent = (props.bytesUploaded / props.totalBytes) * 100;
+        return (
+            <div className="geotiff-progress-container">
+                <CircularProgress
+                    variant="determinate"
+                    value={geoTIFFUploadPercent}
+                    size={36}
+                    style={{ verticalAlign: "middle", marginLeft: "12px", marginRight: "12px" }}
+                />
+                <div>{`Uploading: ${geoTIFFUploadPercent.toFixed(0)}%`}</div>
+            </div>
+        );
     }
 
-    const deleteLayerFromHub = async (layerName: string) => {
-        await jaiaAPI.deleteOfflineMap(layerName);
-        offlineLayerManager.refresh();
-    };
+    return;
+}
 
+function OfflineLayerList() {
     return (
         <ul>
-            {offlineLayerManager.getMapsDirectory().maps.map((tileset) => {
-                return (
-                    <li key={tileset.name}>
-                        <div className="name">{tileset.name}</div>
-                        <div className="size">{tileset.size}</div>
-                        <div onClick={() => deleteLayerFromHub(tileset.name)}>
-                            <Icon path={mdiDelete} />
-                        </div>
-                    </li>
-                );
-            })}
+            {offlineLayerManager
+                .getLayers()
+                .getArray()
+                .map((layer) => {
+                    const title = layer.get("title");
+                    return (
+                        <li key={title}>
+                            <div className="name">{title}</div>
+                            <div className="size">{bytesString(layer.get("size"))}</div>
+                            <div onClick={() => offlineLayerManager.delete(title)}>
+                                <Icon path={mdiDelete} />
+                            </div>
+                        </li>
+                    );
+                })}
         </ul>
     );
+}
+
+/**
+ * Return a human-readable data size value (i.e. "10.2 GB" or "356.2 MB")
+ *
+ * @param {number} bytes Number of bytes.
+ * @returns {string} Human-readable, localized description.
+ */
+function bytesString(bytes: number) {
+    if (bytes < 1e9) {
+        return (bytes / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " MB";
+    } else {
+        return (bytes / 1e9).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " GB";
+    }
 }

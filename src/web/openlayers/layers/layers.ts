@@ -1,4 +1,7 @@
+import TileLayer from "ol/layer/Tile";
+import { XYZ } from "ol/source";
 import { Layer } from "ol/layer";
+import { TileImage } from "ol/source";
 // Tile layers
 import { OSMLayer } from "./tile/osm-layer";
 import { arcGISSatelliteLayer } from "./tile/arc-gis-sattelite-layer";
@@ -18,7 +21,6 @@ import { LayerTitles } from "../../types/openlayers-types";
 
 class Layers {
     private layers: Map<LayerTitles, Layer>;
-
     constructor() {
         this.layers = new Map<LayerTitles, Layer>();
         // Tile layers

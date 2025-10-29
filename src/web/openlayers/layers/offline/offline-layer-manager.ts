@@ -1,77 +1,186 @@
-import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/Tile";
-import { XYZ } from "ol/source";
+import { XYZ, TileImage } from "ol/source";
+import { Collection, View } from "ol";
+import { map } from "../../maps/map";
+import { jaiaAPI } from "../../../utils/jaia-api";
 
-import { jaiaAPI, MapsDirectory } from "../../../utils/jaia-api";
-import { Collection } from "ol";
+interface TileDescriptior {
+    layerName: string;
+    zoom: number;
+    x: number;
+    y: number;
+    url: string;
+}
 
-const REFRESH_INTERVAL = 2000;
 const Z_INDEX = 20;
+const MAX_ZOOM = 19;
+const CONCURRENT_TILES_COUNT = 4;
 
 class OfflineLayerManager {
-    private layerGroup: LayerGroup;
-    private mapsDirectory: MapsDirectory;
-    private observers: { [key: string]: () => void };
+    private tileDescriptors: TileDescriptior[];
+    private isRunning: boolean;
+    private completedTiles: number;
+    private layers: Collection<TileLayer<TileImage>>;
 
     constructor() {
-        this.layerGroup = new LayerGroup({
-            properties: {
-                title: "Offline Layers",
-            },
-            layers: [],
-        });
-        this.mapsDirectory = null;
-        this.observers = {};
-        setInterval(() => {
-            this.refresh();
-        }, REFRESH_INTERVAL);
+        this.tileDescriptors = [];
+        this.isRunning = false;
+        this.completedTiles = 0;
+        this.layers = new Collection<TileLayer<TileImage>>();
+        this.createOfflineLayers();
     }
 
-    getMapsDirectory() {
-        return this.mapsDirectory;
+    getTileDescriptors() {
+        return this.tileDescriptors;
     }
 
-    subscribe(hook: () => void, id: string) {
-        this.observers[id] = hook;
-        hook();
+    getIsRunning() {
+        return this.isRunning;
     }
 
-    unsubscribe(id: string) {
-        delete this.observers[id];
+    getCompletedTiles() {
+        return this.completedTiles;
     }
 
-    notify() {
-        Object.values(this.observers).forEach((observer) => {
-            observer();
-        });
+    getLayers() {
+        return this.layers;
     }
 
-    async refresh() {
-        jaiaAPI.getOfflineMaps().then((mapsDirectory) => {
-            const existingOfflineLayers: { [title: string]: TileLayer<XYZ> } = Object.fromEntries(
-                this.layerGroup.getLayersArray().map((layer) => [layer.get("title"), layer]),
-            );
-            const layers =
-                mapsDirectory?.maps?.map((map) => {
-                    if (map.name in existingOfflineLayers) {
-                        return existingOfflineLayers[map.name];
-                    }
-                    return new TileLayer({
-                        properties: {
-                            title: map.name,
-                        },
-                        zIndex: Z_INDEX,
-                        visible: false,
-                        source: new XYZ({
-                            url: `/maps/${map.name}/{z}/{x}/{y}`,
-                        }),
-                    });
-                }) ?? [];
-            this.layerGroup.setLayers(new Collection(layers));
-            this.mapsDirectory = mapsDirectory;
-            this.notify();
-        });
+    clear() {
+        this.tileDescriptors = [];
+    }
+
+    async add(view: View, layer: TileLayer<TileImage>) {
+        for (const tile of tileGenerator(view, layer)) {
+            this.tileDescriptors.push(tile);
+        }
+        this.startDownloading();
+    }
+
+    async delete(layerName: string) {
+        await jaiaAPI.deleteOfflineMap(layerName);
+        const layersArray = this.layers.getArray();
+        for (let i = 0; i < layersArray.length; i++) {
+            if (layersArray[i].get("title") === layerName) {
+                map.removeLayer(layersArray[i]);
+                this.layers.removeAt(i);
+            }
+        }
+    }
+
+    getTileCount(view: View, layer: TileLayer<TileImage>) {
+        let tileCount = 0;
+        for (const tile of tileGenerator(view, layer)) {
+            tileCount += 1;
+        }
+        return tileCount;
+    }
+
+    private async startDownloading() {
+        if (this.isRunning) {
+            return;
+        }
+
+        this.isRunning = true;
+        this.completedTiles = 0;
+
+        while (true) {
+            const tiles = this.tileDescriptors.splice(0, CONCURRENT_TILES_COUNT);
+            if (tiles.length == 0) break;
+
+            const tileJobs = tiles.map((tile) => this.donwloadTile(tile));
+
+            const res = await Promise.allSettled(tileJobs)
+                .then((results) => {
+                    this.completedTiles += results.length;
+                })
+                .catch((error) => console.error(error));
+        }
+        this.createOfflineLayers();
+        this.isRunning = false;
+    }
+
+    private async donwloadTile(tile: TileDescriptior) {
+        const existingTile = await fetch(
+            `/maps/${tile.layerName}/${tile.zoom}/${tile.x}/${tile.y}`,
+            { method: "HEAD" },
+        );
+        if (!existingTile.ok) {
+            const tileBlob = await fetch(tile.url).then((response) => response.blob());
+            jaiaAPI.putOfflineTile(tile.layerName, tile.zoom, tile.x, tile.y, tileBlob);
+        }
+        // Number of tiles
+        return 1;
+    }
+
+    async createOfflineLayers() {
+        const layerTitles = this.layers.getArray().map((layer) => layer.get("title"));
+        const res = await jaiaAPI.getOfflineMaps();
+        if (res.maps) {
+            for (const tileSet of res.maps) {
+                if (tileSet.name in layerTitles) {
+                    continue;
+                }
+                const layer = new TileLayer({
+                    properties: {
+                        title: tileSet.name,
+                        size: tileSet.size,
+                    },
+                    zIndex: Z_INDEX,
+                    visible: false,
+                    source: new XYZ({
+                        url: `/maps/${tileSet.name}/{z}/{x}/{y}`,
+                    }),
+                });
+                this.layers.push(layer);
+                map.addLayer(layer);
+            }
+        }
     }
 }
 
 export const offlineLayerManager = new OfflineLayerManager();
+
+/**
+ * A generator function that creates TileDescriptors containing
+ * URLs to download each tile up to the max zoom level
+ *
+ * @param {View} view Contains the extent and projection for identifying tile area
+ * @param {TileLayer<TileImage>} layer Contains the source for getting tile data
+ * @returns {Generator<TileDescriptor>} A generator of TileDescriptors which can be used to download the tiles
+ */
+function* tileGenerator(view: View, layer: TileLayer<TileImage>) {
+    const extent = view.calculateExtent();
+    const projection = view.getProjection();
+    const source = layer.getSource();
+    const tileGrid = source.getTileGridForProjection(view.getProjection());
+
+    for (let z = 0; z <= MAX_ZOOM; z++) {
+        const corner1 = tileGrid.getTileCoordForCoordAndZ([extent[0], extent[1]], z);
+        const corner2 = tileGrid.getTileCoordForCoordAndZ([extent[2], extent[3]], z);
+
+        const xRange = [corner1[1], corner2[1]].sort();
+        const yRange = [corner1[2], corner2[2]].sort();
+
+        for (let x = xRange[0]; x <= xRange[1]; x++) {
+            for (let y = yRange[0]; y <= yRange[1]; y++) {
+                const tileCoordAdjusted = source.getTileCoordForTileUrlFunction(
+                    [z, x, y],
+                    projection,
+                );
+                const url = source.tileUrlFunction(
+                    tileCoordAdjusted,
+                    window.devicePixelRatio,
+                    projection,
+                );
+                yield {
+                    layerName: layer.get("title"),
+                    zoom: z,
+                    x: x,
+                    y: y,
+                    url: url,
+                };
+            }
+        }
+    }
+}
