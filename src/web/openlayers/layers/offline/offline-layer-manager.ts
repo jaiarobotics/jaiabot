@@ -21,6 +21,7 @@ class OfflineLayerManager {
     private isRunning: boolean;
     private completedTiles: number;
     private layers: Collection<TileLayer<TileImage>>;
+    private availableDiskBytes: number;
 
     constructor() {
         this.tileDescriptors = [];
@@ -28,6 +29,7 @@ class OfflineLayerManager {
         this.completedTiles = 0;
         this.layers = new Collection<TileLayer<TileImage>>();
         this.createOfflineLayers();
+        this.availableDiskBytes = 0;
     }
 
     getTileDescriptors() {
@@ -52,6 +54,14 @@ class OfflineLayerManager {
                 return layer;
             }
         }
+    }
+
+    getAvailableDiskBytes() {
+        return this.availableDiskBytes;
+    }
+
+    setAvailableDiskBytes(bytes: number) {
+        this.availableDiskBytes = bytes;
     }
 
     clear() {
@@ -123,6 +133,9 @@ class OfflineLayerManager {
 
     async createOfflineLayers() {
         const res = await jaiaAPI.getOfflineMaps();
+        if (res.available_disk_bytes) {
+            this.setAvailableDiskBytes(res.available_disk_bytes);
+        }
         if (res.maps) {
             for (const tileSet of res.maps) {
                 if (this.getLayer(tileSet.name)) {

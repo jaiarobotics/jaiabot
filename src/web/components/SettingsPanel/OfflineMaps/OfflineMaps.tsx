@@ -133,7 +133,9 @@ export default function OfflineMaps() {
             <div className="offline-layers-container">
                 <div className="heading-container">
                     <div className="heading">Offline Layers</div>
-                    <div className="disk-space">Available:</div>
+                    <div className="disk-space">
+                        Available: {bytesString(offlineLayerManager.getAvailableDiskBytes())}
+                    </div>
                 </div>
                 <ul>
                     <OfflineLayerList />
@@ -218,6 +220,9 @@ function OfflineLayerList() {
  * @returns {string} Human-readable, localized description.
  */
 function bytesString(bytes: number) {
+    if (isNaN(bytes)) {
+        return "";
+    }
     if (bytes < 1e9) {
         return (bytes / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " MB";
     } else {
