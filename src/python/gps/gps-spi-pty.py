@@ -23,6 +23,7 @@ import signal
 import argparse
 import tty
 from typing import Tuple
+import io
 
 import spidev
 import systemd.daemon
@@ -48,7 +49,7 @@ def read_spi_response(spi, timeout_ms=100):
     
     while (time.time() - start) < (timeout_ms / 1000.0):
         # Clock out 0xFF to read data
-        chunk = spi.xfer2([0xFF] * 64)  # Increased from 32
+        chunk = spi.xfer2([0xFF] * 64)
         
         # Filter out 0xFF padding (idle bytes from module)
         for byte in chunk:
@@ -124,7 +125,7 @@ def wait_for_ack(spi, msg_class, msg_id, timeout_ms=500):
                 acked_cls = packet[6]
                 acked_id = packet[7]
                 msg_name = msg_names.get((acked_cls, acked_id), f"class={acked_cls:#04x} id={acked_id:#04x}")
-                print(f"  ✓ ACK received for {msg_name}")
+                print(f"  ACK received for {msg_name}")
                 if acked_cls == msg_class and acked_id == msg_id:
                     return True
             
@@ -133,7 +134,7 @@ def wait_for_ack(spi, msg_class, msg_id, timeout_ms=500):
                 nacked_cls = packet[6]
                 nacked_id = packet[7]
                 msg_name = msg_names.get((nacked_cls, nacked_id), f"class={nacked_cls:#04x} id={nacked_id:#04x}")
-                print(f"  ✗ NAK received for {msg_name}")
+                print(f"  NAK received for {msg_name}")
                 if nacked_cls == msg_class and nacked_id == msg_id:
                     return False
     
@@ -229,7 +230,7 @@ def cfg_nav5_sea():
 
 # ------------- PTY helpers -------------
 
-def setup_pty(symlink_path: str) -> Tuple[int, int, "io.BufferedWriter", str]:
+def setup_pty(symlink_path: str) -> Tuple[int, int, io.BufferedWriter, str]:
     master_fd, slave_fd = pty.openpty()
     try:
         os.remove(symlink_path)
@@ -281,9 +282,9 @@ def connect_spi(bus: int, dev: int, max_hz: int, meas_ms: int) -> spidev.SpiDev:
         print("Warning: NAV-SAT enable not acknowledged")
 
     # Set Sea dynamic model
-    print("Setting CFG-NAV5...")
+    print("Setting CFG-NAV to Sea...")
     if not send_ubx_command(spi, cfg_nav5_sea()):
-        print("Warning: CFG-NAV5 not acknowledged")
+        print("Warning: CFG-NAV Sea not acknowledged")
 
     print("Configuration complete!")
     return spi
@@ -340,7 +341,7 @@ def main():
     parser.add_argument("pty_path", help="Path to create the PTY symlink, for example /dev/ttyGPS0")
     parser.add_argument("--bus", type=int, default=1, help="SPI bus number, default 1")
     parser.add_argument("--dev", type=int, default=1, help="SPI device number, default 1")
-    parser.add_argument("--hz", type=int, default=1_000_000, help="SPI clock fixed at 1 MHz")
+    parser.add_argument("--hz", type=int, default=1_000_000, help="SPI clock Hz, default 1 MHz")
     parser.add_argument("--meas-ms", type=int, default=200, help="Measurement period in ms. 200 -> 5 Hz")
     parser.add_argument("--read-size", type=int, default=512, help="Bytes to read per tick")
     parser.add_argument("--tick-ms", type=int, default=50, help="Read period in ms")
