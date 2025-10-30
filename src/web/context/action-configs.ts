@@ -72,10 +72,6 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.AUTO_ASSIGN_MISSIONS, { handler: handleAutoAssignMissions, tracked: true }],
     [JaiaActions.CHANGE_MISSION_SPEEDS, { handler: handleChangeMissionSpeeds, tracked: true }],
     [JaiaActions.LOAD_MISSION_SET, { handler: handleLoadMissionSet, tracked: true }],
-    [
-        JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
-        { handler: handleChangeGridPlanningState, tracked: false },
-    ],
 
     // Waypoint & Task Actions
     [JaiaActions.ADD_WAYPOINT, { handler: handleAddWaypoint, tracked: true }],
@@ -86,6 +82,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: true }],
 
     // Survey Actions
+    [
+        JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
+        { handler: handleChangeGridPlanningState, tracked: false },
+    ],
     [JaiaActions.SURVEY_SELECT_TASK, { handler: handleSelectTask, tracked: false }],
     [
         JaiaActions.SURVEY_CHANGE_TASK_PARAMETER,

@@ -64,8 +64,11 @@ export default function SurveyPlanner(props: Props) {
         });
         for (const [id, mission] of gridPlan.getMissions()) {
             const waypoints = mission.getWaypoints();
-            for (const waypoint of waypoints) {
-                waypoint.getTask().setType(evt.target.value as TaskType);
+            for (let i = 0; i < waypoints.length; i++) {
+                if (i === 0 || i === waypoints.length - 1) {
+                    continue;
+                }
+                waypoints[i].getTask().setType(evt.target.value as TaskType);
             }
         }
         gridLayer.finalizeGrid();
