@@ -25,3 +25,20 @@ export function timestampToISOString(tMicroseconds: number) {
 
     return new Date(tMicroseconds / 1000).toISOString();
 }
+
+/**
+ * Return a human-readable data size value (i.e. "10.2 GB" or "356.2 MB")
+ *
+ * @param {number} bytes Number of bytes.
+ * @returns {string} Human-readable, localized description.
+ */
+export function bytesString(bytes: number) {
+    if (isNaN(bytes)) {
+        return "";
+    }
+    if (bytes < 1e9) {
+        return (bytes / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " MB";
+    } else {
+        return (bytes / 1e9).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " GB";
+    }
+}

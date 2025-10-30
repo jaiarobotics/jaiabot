@@ -2,17 +2,17 @@ import TileLayer from "ol/layer/Tile";
 import { XYZ, TileImage } from "ol/source";
 import { Collection, View } from "ol";
 import { map } from "../../maps/map";
+import { view } from "../../views/view";
 import { jaiaAPI } from "../../../utils/jaia-api";
 
 interface TileDescriptior {
-    layerName: string;
+    layerTitle: string;
     zoom: number;
     x: number;
     y: number;
     url: string;
 }
 
-const Z_INDEX = 20;
 const MAX_ZOOM = 19;
 const CONCURRENT_TILES_COUNT = 4;
 
@@ -28,8 +28,8 @@ class OfflineLayerManager {
         this.isRunning = false;
         this.completedTiles = 0;
         this.layers = new Collection<TileLayer<TileImage>>();
-        this.createOfflineLayers();
         this.availableDiskBytes = 0;
+        this.createOfflineLayers();
     }
 
     getTileDescriptors() {
@@ -64,29 +64,52 @@ class OfflineLayerManager {
         this.availableDiskBytes = bytes;
     }
 
+    /**
+     * Stops the download of map tiles
+     *
+     * @returns {void}
+     */
     clear() {
         this.tileDescriptors = [];
     }
 
-    async add(view: View, layer: TileLayer<TileImage>) {
+    /**
+     * Collects the layer's tiles from the viewport and begins the download
+     *
+     * @param {TileLayer<TileImage>} layer Which layer to save to Hub
+     * @returns {void}
+     */
+    async add(layer: TileLayer<TileImage>) {
         for (const tile of tileGenerator(view, layer)) {
             this.tileDescriptors.push(tile);
         }
         this.startDownloading();
     }
 
-    async delete(layerName: string) {
-        await jaiaAPI.deleteOfflineMap(layerName);
+    /**
+     * Removes a saved layer from the Hub
+     *
+     * @param {string} layerTitle Which layer to remove from Hub
+     * @returns {void}
+     */
+    async delete(layerTitle: string) {
+        await jaiaAPI.deleteOfflineMap(layerTitle);
         const layersArray = this.layers.getArray();
         for (let i = 0; i < layersArray.length; i++) {
-            if (layersArray[i].get("title") === layerName) {
+            if (layersArray[i].get("title") === layerTitle) {
                 map.removeLayer(layersArray[i]);
                 this.layers.removeAt(i);
             }
         }
     }
 
-    getTileCount(view: View, layer: TileLayer<TileImage>) {
+    /**
+     * Calculates the number of tiles to be downloaded in the viewport
+     *
+     * @param {string} layerTitle Layer of interest
+     * @returns {void}
+     */
+    getTileCount(layer: TileLayer<TileImage>) {
         let tileCount = 0;
         for (const tile of tileGenerator(view, layer)) {
             tileCount += 1;
@@ -94,6 +117,11 @@ class OfflineLayerManager {
         return tileCount;
     }
 
+    /**
+     * Distributes the tile downloading work
+     *
+     * @returns {void}
+     */
     private async startDownloading() {
         if (this.isRunning) {
             return;
@@ -118,19 +146,30 @@ class OfflineLayerManager {
         this.isRunning = false;
     }
 
+    /**
+     * Stores the tile on the Hub's tile server
+     *
+     * @param {TileDescriptior} tile Contains data for tile storage
+     * @returns {number} Number of tiles downloaded
+     */
     private async donwloadTile(tile: TileDescriptior) {
         const existingTile = await fetch(
-            `/maps/${tile.layerName}/${tile.zoom}/${tile.x}/${tile.y}`,
+            `/maps/${tile.layerTitle}/${tile.zoom}/${tile.x}/${tile.y}`,
             { method: "HEAD" },
         );
         if (!existingTile.ok) {
             const tileBlob = await fetch(tile.url).then((response) => response.blob());
-            jaiaAPI.putOfflineTile(tile.layerName, tile.zoom, tile.x, tile.y, tileBlob);
+            jaiaAPI.putOfflineTile(tile.layerTitle, tile.zoom, tile.x, tile.y, tileBlob);
         }
         // Number of tiles
         return 1;
     }
 
+    /**
+     * Takes the tile data from the server and converts it into a layer for use in the JCC
+     *
+     * @returns {void}
+     */
     async createOfflineLayers() {
         const res = await jaiaAPI.getOfflineMaps();
         if (res.available_disk_bytes) {
@@ -146,7 +185,6 @@ class OfflineLayerManager {
                         title: tileSet.name,
                         size: tileSet.size,
                     },
-                    zIndex: Z_INDEX,
                     visible: false,
                     source: new XYZ({
                         url: `/maps/${tileSet.name}/{z}/{x}/{y}`,
@@ -194,7 +232,7 @@ function* tileGenerator(view: View, layer: TileLayer<TileImage>) {
                     projection,
                 );
                 yield {
-                    layerName: layer.get("title"),
+                    layerTitle: layer.get("title"),
                     zoom: z,
                     x: x,
                     y: y,

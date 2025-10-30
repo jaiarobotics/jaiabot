@@ -11,12 +11,12 @@ import {
 } from "@mui/material";
 import TileLayer from "ol/layer/Tile";
 import { TileImage } from "ol/source";
-import { view } from "../../../openlayers/views/view";
 import { layers } from "../../../openlayers/layers/layers";
 import { offlineLayerManager } from "../../../openlayers/layers/offline/offline-layer-manager";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { DialogActions } from "../../../types/context-types";
 import { jaiaAPI } from "../../../utils/jaia-api";
+import { bytesString } from "../../../utils/conversions";
 import { openFileDialog } from "../../../utils/file";
 import { DownloadTilesDialog } from "./DownloadTilesDialog";
 import "./OfflineMaps.less";
@@ -32,18 +32,29 @@ const ONLINE_TILE_LAYERS: LayerTitles[] = [
     LayerTitles.ARC_GIS_SATELLITE_LAYER,
     LayerTitles.NOAA_ENC_LAYER,
 ];
+
 // We estimate about 11 kB per tile, which is approximately correct for larger tile file sizes (such as satellite imagery).
 // Other layers may be significantly less, such as Open Street Maps or NOAA ENC tiles.
 const ESTIMATED_TILE_SIZE = 11_000;
+const EXTRACTION_DELAY = 30_000; // ms
 
+/**
+ *  Renders the section for managing offline maps in the JCC
+ */
 export default function OfflineMaps() {
-    const [selectedOnlineLayerName, setSelectedOnlineLayerName] = useState(LayerTitles.NONE);
+    const [selectedOnlineLayerTitle, setSelectedOnlineLayerTitle] = useState(LayerTitles.NONE);
     const [isUploadingGeoTIFF, setIsUploadingGeoTIFF] = useState(false);
     const [geoTIFFBytesUploaded, setGeoTIFFBytesUploaded] = useState(0);
     const [geoTIFFTotalBytes, setGeoTIFFTotalBytes] = useState(0);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [estimatedDownloadSize, setEstimatedDownloadSize] = useState("");
 
+    /**
+     * Loops through the base maps (ONLINE_TILE_LAYERS) to
+     * create the options for selecting which layer to download
+     *
+     * @returns {MenuItem[]} Array of layers to select for download
+     */
     const getOnlineTileLayerMenuItems = () => {
         return ONLINE_TILE_LAYERS.map((layerTitle) => (
             <MenuItem value={layerTitle} key={layerTitle}>
@@ -52,22 +63,38 @@ export default function OfflineMaps() {
         ));
     };
 
+    /**
+     * Triggers the confirmation dialog before proceeding with layer download
+     *
+     * @returns {void}
+     */
     const handleDownloadTileLayerClick = () => {
-        const layer = layers.getLayer(selectedOnlineLayerName) as TileLayer<TileImage>;
-        const tileCount = offlineLayerManager.getTileCount(view, layer);
+        const layer = layers.getLayer(selectedOnlineLayerTitle) as TileLayer<TileImage>;
+        const tileCount = offlineLayerManager.getTileCount(layer);
         const esimatedSize = tileCount * ESTIMATED_TILE_SIZE;
         setIsDialogVisible(true);
         setEstimatedDownloadSize(bytesString(esimatedSize));
     };
 
+    /**
+     * Starts the layer download if the operator clicks confirm
+     *
+     * @param {DialogActions} dialogAction Action taken on the dialog
+     * @returns {void}
+     */
     const onDownloadDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            const layer = layers.getLayer(selectedOnlineLayerName) as TileLayer<TileImage>;
-            offlineLayerManager.add(view, layer);
+            const layer = layers.getLayer(selectedOnlineLayerTitle) as TileLayer<TileImage>;
+            offlineLayerManager.add(layer);
         }
     };
 
+    /**
+     * Opens the file explorer for geoTIFF selection
+     *
+     * @returns {void}
+     */
     const clickedUploadGeoTiFF = async () => {
         openFileDialog(".tif", false).then((fileList) => {
             if (fileList.length) {
@@ -76,6 +103,12 @@ export default function OfflineMaps() {
         });
     };
 
+    /**
+     * Uploads the geoTIFF to the Hub's map tile server
+     *
+     * @param {File} geoTIFF File opened by operator
+     * @returns {void}
+     */
     const uploadGeoTIFF = async (geoTIFF: File) => {
         if (offlineLayerManager.getLayer(geoTIFF.name)) {
             return;
@@ -101,7 +134,7 @@ export default function OfflineMaps() {
             // After the geoTIFF upload, the server extracts a tileset of PNGs from the geoTIFF
             offlineLayerManager.createOfflineLayers();
             setIsUploadingGeoTIFF(false);
-        }, 30_000);
+        }, EXTRACTION_DELAY);
     };
 
     return (
@@ -126,9 +159,9 @@ export default function OfflineMaps() {
                         <FormControl style={{ width: "200px" }}>
                             <InputLabel>Layer</InputLabel>
                             <Select
-                                value={selectedOnlineLayerName}
+                                value={selectedOnlineLayerTitle}
                                 onChange={(evt: SelectChangeEvent) =>
-                                    setSelectedOnlineLayerName(evt.target.value as LayerTitles)
+                                    setSelectedOnlineLayerTitle(evt.target.value as LayerTitles)
                                 }
                                 label="Layer"
                             >
@@ -162,6 +195,9 @@ export default function OfflineMaps() {
     );
 }
 
+/**
+ * Creates the section to display the progress of the layer download
+ */
 function TileDownloadStatus() {
     const tile = offlineLayerManager.getTileDescriptors().at(0);
     if (!tile) {
@@ -179,7 +215,7 @@ function TileDownloadStatus() {
     return (
         <div className="progress-section">
             <div>
-                <p>{`Downloading ${tile.layerName}`}</p>
+                <p>{`Downloading ${tile.layerTitle}`}</p>
                 <p>{`${offlineLayerManager.getCompletedTiles()} / ${totalTileCount} (${percent}%)`}</p>
             </div>
             <button onClick={() => offlineLayerManager.clear()}>Cancel</button>
@@ -187,6 +223,9 @@ function TileDownloadStatus() {
     );
 }
 
+/**
+ * Creates the section to display the progress of the geoTIFF upload
+ */
 function GeoTIFFUploadStatus(props: UploadProps) {
     if (props.isUploading) {
         const uploadPercent = (props.bytesUploaded / props.totalBytes) * 100;
@@ -208,6 +247,9 @@ function GeoTIFFUploadStatus(props: UploadProps) {
     return;
 }
 
+/**
+ * Creates the section to display the layers stored on the Hub
+ */
 function OfflineLayerList() {
     return (
         <ul>
@@ -218,7 +260,7 @@ function OfflineLayerList() {
                     const title = layer.get("title");
                     return (
                         <li key={title}>
-                            <div className="name">{title}</div>
+                            <div className="title">{title}</div>
                             <div className="size">{bytesString(layer.get("size"))}</div>
                             <div onClick={() => offlineLayerManager.delete(title)}>
                                 <Icon path={mdiDelete} />
@@ -228,21 +270,4 @@ function OfflineLayerList() {
                 })}
         </ul>
     );
-}
-
-/**
- * Return a human-readable data size value (i.e. "10.2 GB" or "356.2 MB")
- *
- * @param {number} bytes Number of bytes.
- * @returns {string} Human-readable, localized description.
- */
-function bytesString(bytes: number) {
-    if (isNaN(bytes)) {
-        return "";
-    }
-    if (bytes < 1e9) {
-        return (bytes / 1e6).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " MB";
-    } else {
-        return (bytes / 1e9).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " GB";
-    }
 }

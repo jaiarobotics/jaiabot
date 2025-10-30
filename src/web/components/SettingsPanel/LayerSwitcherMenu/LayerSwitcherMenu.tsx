@@ -37,10 +37,10 @@ export default function LayerSwitcherMenu() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     /**
-     * Creates a map of layer names to their current visibility.
+     * Creates a map of layer titles to their current visibility.
      * Used to initialize the State of the LayerSwitcherMenu component.
      *
-     * @returns {Map<LayerTitles, boolean>} A map of layer names to visibility
+     * @returns {Map<LayerTitles, boolean>} A map of layer titles to visibility
      */
     const getDefaultLayerCheckedStates = () => {
         const defaultLayerCheckedStates = new Map<LayerTitles, boolean>();
@@ -55,7 +55,7 @@ export default function LayerSwitcherMenu() {
     /**
      * Retrieves the visible base map layer to use as the default when the LayerSwitcherMenu mounts
      *
-     * @returns {LayerTitles} Name of visible base map layer
+     * @returns {LayerTitles} Title of visible base map layer
      */
     const getDefaultBaseMapLayerCheckedState = () => {
         for (const baseMapTitle of BASE_MAPS) {
@@ -87,7 +87,7 @@ export default function LayerSwitcherMenu() {
      * We need to utilize both for the best user experience. If not, there will be a lag in the
      * checkbox when clicking on a layer.
      *
-     * @param {LayerTitles} layerTitle Name of the layer selected
+     * @param {LayerTitles} layerTitle Title of the layer selected
      * @returns {void}
      */
     const handleLayerClick = (layerTitle: LayerTitles) => {
@@ -104,7 +104,7 @@ export default function LayerSwitcherMenu() {
      * Only one base map can be selected at a time so we need to manage its checked
      * state separately
      *
-     * @param {LayerTitles} layerTitle Name of the base map selected
+     * @param {LayerTitles} layerTitle Title of the base map selected
      * @returns {void}
      */
     const handleBaseMapClick = (layerTitle: LayerTitles) => {
@@ -233,7 +233,15 @@ export default function LayerSwitcherMenu() {
     );
 }
 
+/**
+ * Renders the list of offline layers that the operator can toggle on/off
+ */
 function OfflineLayersAccordionDetails(props: Props) {
+    /**
+     * Creats a map of layer titles to their visibility
+     *
+     * @returns {Map<string, boolean>} Map of layer titles to visibility
+     */
     const refreshCheckedStates = () => {
         const defaultCheckedStates = new Map<string, boolean>();
         for (const layer of offlineLayerManager.getLayers().getArray()) {
@@ -251,6 +259,12 @@ function OfflineLayersAccordionDetails(props: Props) {
 
     const [checkedStates, setCheckedStates] = useState(refreshCheckedStates());
 
+    /**
+     * Toggles the layer visibility
+     *
+     * @param {string} title Identifies the layer
+     * @returns {void}
+     */
     const handleLayerClick = (title: string) => {
         for (const layer of offlineLayerManager.getLayers().getArray()) {
             if (layer.get("title") === title) {
