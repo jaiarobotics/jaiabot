@@ -82,11 +82,15 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.DELETE_WAYPOINT, { handler: handleDeleteWaypoint, tracked: true }],
     [JaiaActions.MOVE_WAYPOINT, { handler: handleMoveWaypoint, tracked: true }],
     [JaiaActions.SELECT_TASK, { handler: handleSelectTask, tracked: true }],
-    [JaiaActions.CHANGE_TASK_PARAMETER, { handler: handleChangeTaskParameter, tracked: false }],
+    [JaiaActions.CHANGE_TASK_PARAMETER, { handler: handleChangeTaskParameter, tracked: true }],
     [JaiaActions.TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: true }],
 
     // Survey Actions
     [JaiaActions.SURVEY_SELECT_TASK, { handler: handleSelectTask, tracked: false }],
+    [
+        JaiaActions.SURVEY_CHANGE_TASK_PARAMETER,
+        { handler: handleChangeTaskParameter, tracked: false },
+    ],
     [JaiaActions.SURVEY_TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: false }],
 
     // Rally Point Actions
