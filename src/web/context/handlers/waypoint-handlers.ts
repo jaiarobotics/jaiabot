@@ -115,12 +115,7 @@ export function handleChangeTaskParameter(mutableState: JaiaContextType, action:
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleToggleBottomDive(mutableState: JaiaContextType, action: JaiaAction) {
-    if (action.task.getIsBottomDive()) {
-        action.task.setIsBottomDive(false);
-    } else {
-        action.task.setIsBottomDive(true);
-    }
-
+    action.task.setIsBottomDive(!action.task.getIsBottomDive());
     return mutableState;
 }
 

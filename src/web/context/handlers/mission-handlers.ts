@@ -190,7 +190,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
                     waypoints[i].setTask(cloneDeep(gridPlan.getSurveyTask()));
                 }
             }
-            missionSet.setMissions(gridPlan.getMissions());
+            missionSet.setMissions(cloneDeep(gridPlan.getMissions()));
             missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
             missionSet.setNextMissionID(gridPlan.getMissions().size + 1);
 

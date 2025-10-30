@@ -87,7 +87,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
 
     // Survey Actions
     [JaiaActions.SURVEY_SELECT_TASK, { handler: handleSelectTask, tracked: false }],
-    [JaiaActions.SURVEY_TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: true }],
+    [JaiaActions.SURVEY_TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: false }],
 
     // Rally Point Actions
     [JaiaActions.ADD_RALLY_POINT, { handler: handleAddRallyPoint, tracked: false }],

@@ -15,7 +15,7 @@ import JaiaVectorLayer from "../jaia-vector-layer";
 import Mission from "../../../../data/mission_set/mission";
 import { touches } from "../../../controls/touches";
 import { gridPlan } from "../../../../data/survey_planner/grid-plan";
-import { LayerTitles } from "../../../../types/openlayers-types";
+import { LayerTitles, SurveyEndpoints } from "../../../../types/openlayers-types";
 import { layersZIndexes } from "../../zindex";
 import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/survey-lanes";
 import { generateSurveyEndpoint } from "../../../features/survey/survey-endpoints";
@@ -126,7 +126,7 @@ class GridLayer extends JaiaVectorLayer {
      * @param {boolean} saveLanes Whether or not to store the lanes in an array
      * @returns {TurfFeature<TurfLineString>[]} The lanes of the grid
      */
-    createGrid(saveLanes?: boolean) {
+    createGrid(saveLanes: boolean = false) {
         if (!this.centerLine) {
             return;
         }
@@ -136,6 +136,8 @@ class GridLayer extends JaiaVectorLayer {
         this.layerSource.clear();
 
         let distFromCenter = 0;
+        // For grids with even number of lanes, the first two lanes will
+        // be one half of the lane spacing distance from the center line
         if (gridPlan.getNumOfLanes() % 2 === 0) {
             distFromCenter = gridPlan.getLaneSpacing() / 2;
         }
@@ -206,8 +208,12 @@ class GridLayer extends JaiaVectorLayer {
      * @returns {void}
      */
     createGridEndPoints() {
-        this.layerSource.addFeature(generateSurveyEndpoint(gridPlan.getMissionStart(), true));
-        this.layerSource.addFeature(generateSurveyEndpoint(gridPlan.getMissionEnd(), false));
+        this.layerSource.addFeature(
+            generateSurveyEndpoint(gridPlan.getMissionStart(), SurveyEndpoints.START),
+        );
+        this.layerSource.addFeature(
+            generateSurveyEndpoint(gridPlan.getMissionEnd(), SurveyEndpoints.END),
+        );
     }
 
     /**
@@ -221,7 +227,7 @@ class GridLayer extends JaiaVectorLayer {
      * finalizeGrid(true) only needs to be called once. Multiple calls will
      * result in duplicate missions.
      */
-    finalizeGrid(modifyDataModel?: boolean) {
+    finalizeGrid(modifyDataModel: boolean = false) {
         const lanes = this.createGrid(true);
         this.layerSource.clear();
         this.createGridEndPoints();

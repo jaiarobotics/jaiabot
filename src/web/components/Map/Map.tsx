@@ -15,7 +15,7 @@ import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
+import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -125,7 +125,7 @@ export default function Map() {
                 gridLayer
                     .getVectorLayer()
                     .getSource()
-                    .addFeature(generateSurveyEndpoint(location, true));
+                    .addFeature(generateSurveyEndpoint(location, SurveyEndpoints.START));
                 nextState = GridPlanningStates.ACCEPTING_MISSION_END_LOCATION;
                 break;
             case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
@@ -133,7 +133,7 @@ export default function Map() {
                 gridLayer
                     .getVectorLayer()
                     .getSource()
-                    .addFeature(generateSurveyEndpoint(location, false));
+                    .addFeature(generateSurveyEndpoint(location, SurveyEndpoints.END));
                 nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
                 break;
             case GridPlanningStates.ACCEPTING_GRID_DRAWING:

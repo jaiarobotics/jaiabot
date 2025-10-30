@@ -12,6 +12,7 @@ import { view } from "../views/view";
 import { Cursors } from "../../utils/style";
 import { LayerTitles, MapModes } from "../../types/openlayers-types";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { gridPlan } from "../../data/survey_planner/grid-plan";
 
 interface MapSettings {
     visibleLayers: LayerTitles[];
@@ -72,6 +73,7 @@ export function handleMapModeChange(mapMode: MapModes) {
         map.removeInteraction(gridLayer.getDraw());
         map.removeInteraction(gridLayer.getDragPan());
         gridLayer.reset();
+        gridPlan.reset();
     }
 
     jaiaGlobal.setMapMode(mapMode);

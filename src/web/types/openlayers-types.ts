@@ -31,3 +31,8 @@ export enum MapModes {
     MEASURE = "MEASURE",
     SURVEY_PLANNING = "SURVEY_PLANNING",
 }
+
+export enum SurveyEndpoints {
+    START = 1,
+    END = 2,
+}
