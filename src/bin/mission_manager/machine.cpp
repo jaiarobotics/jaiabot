@@ -607,6 +607,10 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
     this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
     this->machine().calculate_start_of_dive_depth(this->machine().latest_pitch()); // Calculate and set the depth of our pressure sensor at the start of our dive according to the vehicle's pitch and waterline 
 
+    glog.is_warn() && glog << "Start of Dive Pitch: " << this->machine().latest_pitch().value() << " degrees" <<std::endl;
+    glog.is_warn() && glog << "Start of Dive Depth: " << this->machine().start_of_dive_depth() << " meters" <<std::endl;
+
+    // Start the timeout for detecting the bottom
     goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
     // duration granularity is seconds
     int detect_bottom_logic_timeout_seconds = cfg().detect_bottom_logic_init_timeout();
@@ -1073,6 +1077,9 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::PoweredAsce
 
     powered_ascent_motor_off_timeout_ = start_timeout + powered_ascent_motor_off_duration_;
 
+    //context<Dive>().set_current_depth(context<Dive>().dive_packet().depth_achieved());
+    last_depth_ = context<Dive>().dive_packet().depth_achieved_with_units();
+
     loop(EvLoop());
 }
 
@@ -1200,6 +1207,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
     // if we've moved eps meters in depth, reset the timer for determining if we
     // are stuck underwater
     // Also make sure we are moving towards surface
+    glog.is_warn() && glog << "PoweredAscent::depth ev.depth: " << ev.depth.value() << "\n last_depth_: " << last_depth_.value() << std::endl;
     if (std::abs((ev.depth - last_depth_).value()) > cfg().dive_depth_eps() &&
         (ev.depth < last_depth_))
     {

@@ -393,7 +393,7 @@ struct MissionManagerStateMachine
 
     void calculate_start_of_dive_depth(const boost::units::quantity<boost::units::degree::plane_angle>& pitch)
     {
-        start_of_dive_depth_ = cfg().pressure_sensor_to_waterline() * sin(pitch * M_PI / 180.0); // m
+        start_of_dive_depth_ = cfg().pressure_sensor_to_waterline() * sin(pitch); // m
     }    
     const double& start_of_dive_depth() { return start_of_dive_depth_; }
 
@@ -1652,8 +1652,7 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
 
     void set_current_depth(const boost::units::quantity<boost::units::si::length>& current_depth)
     {
-        boost::units::quantity<boost::units::si::length> pressure_sensor_to_tail = cfg().pressure_sensor_to_tail() * boost::units::si::meters; 
-        current_depth_ = current_depth + pressure_sensor_to_tail;
+        current_depth_ = current_depth;
     }
 
     const boost::units::quantity<boost::units::si::length> current_depth()
