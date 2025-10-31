@@ -8,7 +8,7 @@ import TaskParameters from "../WaypointPanel/TaskParameters/TaskParameters";
 import Task from "../../data/tasks/task";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
-import { formatNumericalInput, formatTaskMenuItem } from "../../utils/input";
+import { formatNumericalInput, snakeCaseToTitleCase } from "../../utils/input";
 import { TaskType } from "../../types/protobuf-types";
 import { selectTheme } from "../../utils/style";
 import "./SurveyPlanner.less";
@@ -234,13 +234,13 @@ function TaskConfigs(props: Props) {
                             onChange={(evt: SelectChangeEvent) => props.handleTaskSelection(evt)}
                         >
                             <MenuItem value={TaskType.NONE}>
-                                {formatTaskMenuItem(TaskType.NONE)}
+                                {snakeCaseToTitleCase(TaskType.NONE)}
                             </MenuItem>
                             <MenuItem value={TaskType.DIVE}>
-                                {formatTaskMenuItem(TaskType.DIVE)}
+                                {snakeCaseToTitleCase(TaskType.DIVE)}
                             </MenuItem>
                             <MenuItem value={TaskType.SURFACE_DRIFT}>
-                                {formatTaskMenuItem(TaskType.SURFACE_DRIFT)}
+                                {snakeCaseToTitleCase(TaskType.SURFACE_DRIFT)}
                             </MenuItem>
                         </Select>
                     </FormControl>

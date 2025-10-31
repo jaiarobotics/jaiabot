@@ -1,10 +1,11 @@
+import { cloneDeep } from "lodash";
 import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
 import { JaiaContextType, JaiaHistoryType } from "../../types/context-types";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { cloneDeep } from "lodash";
+import { snakeCaseToTitleCase } from "../../utils/input";
 
 /**
  * Pulls previous state from history and updates current state and data model
@@ -55,23 +56,9 @@ export function handleClickedRedo(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActions) {
-    const description = getActionDescription(actionType);
+    const description = snakeCaseToTitleCase(actionType);
     const snapshot = captureSnapshot(mutableState);
     mutableState.stateHistory.push(snapshot, description);
-}
-
-/**
- * Provides more readable version of an action type
- *
- * @param {JaiaActions} action type of action to translate
- * @returns {string} Pretty version of type
- */
-function getActionDescription(action: JaiaActions) {
-    return action
-        .toLowerCase()
-        .split("_")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
 }
 
 /**

@@ -62,24 +62,15 @@ export function validateCoordinate(lat: string, lon: string) {
 }
 
 /**
- * Converts a TaskType to a UI friendly string
+ * Converts snake_case to Title Case
  *
- * @param {TaskType} taskType Task name to be formatted
- * @returns {string} Name of the task
+ * @param {string} text snake_case contents
+ * @returns {string} Pretty version of type (Title Case)
  */
-export function formatTaskMenuItem(taskType: TaskType) {
-    switch (taskType) {
-        case TaskType.NONE:
-            return "None";
-        case TaskType.DIVE:
-            return "Dive";
-        case TaskType.SURFACE_DRIFT:
-            return "Surface Drift";
-        case TaskType.STATION_KEEP:
-            return "Station Keep";
-        case TaskType.CONSTANT_HEADING:
-            return "Constant Heading";
-        default:
-            return "";
-    }
+export function snakeCaseToTitleCase(text: string) {
+    return text
+        .toLowerCase()
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
 }

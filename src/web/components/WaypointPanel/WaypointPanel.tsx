@@ -11,7 +11,7 @@ import Waypoint from "../../data/waypoints/waypoint";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { formatTaskMenuItem, validateCoordinate } from "../../utils/input";
+import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 
 import { CoordinateTypes } from "../../types/jaia-system-types";
 import { PanelActions } from "../../types/context-types";
@@ -294,19 +294,19 @@ export default function WaypointPanel() {
                         disabled={isDisabled}
                     >
                         <MenuItem value={TaskType.NONE}>
-                            {formatTaskMenuItem(TaskType.NONE)}
+                            {snakeCaseToTitleCase(TaskType.NONE)}
                         </MenuItem>
                         <MenuItem value={TaskType.DIVE}>
-                            {formatTaskMenuItem(TaskType.DIVE)}
+                            {snakeCaseToTitleCase(TaskType.DIVE)}
                         </MenuItem>
                         <MenuItem value={TaskType.SURFACE_DRIFT}>
-                            {formatTaskMenuItem(TaskType.SURFACE_DRIFT)}
+                            {snakeCaseToTitleCase(TaskType.SURFACE_DRIFT)}
                         </MenuItem>
                         <MenuItem value={TaskType.CONSTANT_HEADING}>
-                            {formatTaskMenuItem(TaskType.CONSTANT_HEADING)}
+                            {snakeCaseToTitleCase(TaskType.CONSTANT_HEADING)}
                         </MenuItem>
                         <MenuItem value={TaskType.STATION_KEEP}>
-                            {formatTaskMenuItem(TaskType.STATION_KEEP)}
+                            {snakeCaseToTitleCase(TaskType.STATION_KEEP)}
                         </MenuItem>
                     </Select>
                 </FormControl>
