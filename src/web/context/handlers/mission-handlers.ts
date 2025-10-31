@@ -1,12 +1,17 @@
 import { cloneDeep } from "lodash";
 
+import Task from "../../data/tasks/task";
 import Mission from "../../data/mission_set/mission";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { JaiaAction, JaiaContextType } from "../../types/context-types";
+import { MapModes } from "../../types/openlayers-types";
+import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { updateMissionSetFromSnapshot } from "../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import { syncOpenLayers } from "./handler-utils";
@@ -38,7 +43,7 @@ export function handleAddMission(mutableState: JaiaContextType) {
  * Makes a call to remove a mission and its assignment
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including missionID of mission to delete
+ * @param {JaiaAction} action Includes missionID of mission to delete
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaAction) {
@@ -54,7 +59,7 @@ export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaA
  * Makes a call to duplicate a mission
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including missionID of mission to duplicate
+ * @param {JaiaAction} action Includes missionID of mission to duplicate
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDuplicateMission(mutableState: JaiaContextType, action: JaiaAction) {
@@ -94,7 +99,7 @@ export function handleDeleteAllMissions(mutableState: JaiaContextType) {
  * Makes a call to assign a Bot to a mission
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including botID and missionID to assign
+ * @param {JaiaAction} action Includes botID and missionID to assign
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleAssignMission(mutableState: JaiaContextType, action: JaiaAction) {
@@ -123,7 +128,7 @@ export function handleAutoAssignMissions(mutableState: JaiaContextType) {
  * Makes a call update the mission speeds
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including missionSpeeds
+ * @param {JaiaAction} action Includes missionSpeeds
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action: JaiaAction) {
@@ -147,5 +152,56 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
     );
 
     missionLayer.updateFeatures();
+    return mutableState;
+}
+
+/**
+ * Makes map and grid plan changes based on survey state change
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Includes grid planning state
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
+    gridPlan.setState(action.gridPlanningState);
+    mutableState.gridPlanningState = action.gridPlanningState;
+
+    switch (action.gridPlanningState) {
+        case GridPlanningStates.ACCEPTING_GRID_DRAWING:
+            // Insert behind pinchzoom + pinchrotate to prevent drag from capturing actions
+            map.getInteractions().insertAt(3, gridLayer.createDrawInteraction());
+            map.getInteractions().insertAt(4, gridLayer.createDragPanInteraction());
+            break;
+
+        case GridPlanningStates.ACCEPTING_TASK:
+            map.removeInteraction(gridLayer.getDraw());
+            map.removeInteraction(gridLayer.getDragPan());
+            gridPlan.setSurveyTask(new Task());
+            gridLayer.finalizeGrid(true);
+            break;
+
+        case GridPlanningStates.APPROVED:
+            for (const [missionID, mission] of gridPlan.getMissions()) {
+                const waypoints = mission.getWaypoints();
+                for (let i = 0; i < waypoints.length; i++) {
+                    if (i === 0 || i === waypoints.length - 1) {
+                        continue;
+                    }
+                    waypoints[i].setTask(cloneDeep(gridPlan.getSurveyTask()));
+                }
+            }
+            missionSet.setMissions(cloneDeep(gridPlan.getMissions()));
+            missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+            missionSet.setNextMissionID(gridPlan.getMissions().size + 1);
+            missionsManager.autoAssign();
+
+            handleMapModeChange(MapModes.DEFAULT);
+            mutableState.mapMode = MapModes.DEFAULT;
+            mutableState.visiblePanel = ButtonNames.NONE;
+            mutableState.missions = missionSet.getMissions();
+            mutableState.missionIDInEditMode = UNASSIGNED_ID;
+            missionLayer.updateFeatures();
+            break;
+    }
     return mutableState;
 }

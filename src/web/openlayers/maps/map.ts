@@ -4,12 +4,15 @@ import { Coordinate } from "ol/coordinate";
 
 // Jaia
 import { layers } from "../layers/layers";
+import { gridLayer } from "../layers/vector/survey/grid-layer";
 import { measureLayer } from "../layers/vector/measure-layer";
+import { touches } from "../controls/touches";
 import { controls } from "../controls/controls";
 import { view } from "../views/view";
 import { Cursors } from "../../utils/style";
 import { LayerTitles, MapModes } from "../../types/openlayers-types";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { gridPlan } from "../../data/survey_planner/grid-plan";
 
 interface MapSettings {
     visibleLayers: LayerTitles[];
@@ -64,6 +67,13 @@ export function handleMapModeChange(mapMode: MapModes) {
     if (mapMode !== MapModes.MEASURE) {
         map.removeInteraction(measureLayer.getDraw());
         measureLayer.clearDrawInteraction();
+    }
+
+    if (mapMode !== MapModes.SURVEY_PLANNING) {
+        map.removeInteraction(gridLayer.getDraw());
+        map.removeInteraction(gridLayer.getDragPan());
+        gridLayer.reset();
+        gridPlan.reset();
     }
 
     jaiaGlobal.setMapMode(mapMode);
@@ -122,4 +132,19 @@ map.getView().on("change:resolution", () => {
 map.getView().on("change:rotation", () => {
     mapSettings.rotation = map.getView().getRotation();
     saveSettings();
+});
+
+// Track touch events for drag conditions
+const viewport = map.getViewport();
+viewport.addEventListener("touchstart", (evt) => touches.updateFingers(evt.touches.length), {
+    passive: true,
+});
+viewport.addEventListener("touchmove", (evt) => touches.updateFingers(evt.touches.length), {
+    passive: true,
+});
+viewport.addEventListener("touchend", (evt) => touches.updateFingers(evt.touches.length), {
+    passive: true,
+});
+viewport.addEventListener("touchcancel", (evt) => touches.updateFingers(evt.touches.length), {
+    passive: true,
 });

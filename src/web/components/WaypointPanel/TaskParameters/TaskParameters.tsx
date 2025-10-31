@@ -48,6 +48,7 @@ export default function TaskParameters(props: Props) {
 
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PARAMETER,
+            task: props.task,
             taskParameterPair: { key, value },
         });
     };
@@ -59,7 +60,7 @@ export default function TaskParameters(props: Props) {
      * @return {void}
      */
     const handleBottomDiveClick = () => {
-        jaiaDispatch({ type: JaiaActions.TOGGLE_BOTTOM_DIVE });
+        jaiaDispatch({ type: JaiaActions.TOGGLE_BOTTOM_DIVE, task: props.task });
     };
 
     switch (props.task?.getType()) {

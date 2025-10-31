@@ -11,14 +11,18 @@ import { toLonLat } from "ol/proj";
 
 import { map } from "../../openlayers/maps/map";
 import { view } from "../../openlayers/views/view";
+import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
+import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
+import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
+import { UNASSIGNED_ID } from "../../utils/constants";
+
+import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { missionSet } from "../../data/mission_set/mission-set";
+import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 
 import "./Map.less";
-import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { UNASSIGNED_ID } from "../../utils/constants";
-import { missionSet } from "../../data/mission_set/mission-set";
 
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -43,6 +47,9 @@ export default function Map() {
                 return;
             case MapModes.MEASURE:
                 // Measurement clicks handled by measure layer (src/web/openlayers/layers)
+                return;
+            case MapModes.SURVEY_PLANNING:
+                handleSurveyPlanningClick(event.coordinate);
                 return;
         }
 
@@ -98,6 +105,49 @@ export default function Map() {
         jaiaDispatch({
             type: JaiaActions.ADD_RALLY_POINT,
             location: { lon: lonLat[0], lat: lonLat[1] },
+        });
+    };
+
+    /**
+     * Adds start and end survey locations to map
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
+    const handleSurveyPlanningClick = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        const location = { lon: lonLat[0], lat: lonLat[1] };
+        let nextState: GridPlanningStates;
+
+        switch (gridPlan.getState()) {
+            case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
+                gridPlan.setMissionStart(location);
+                gridLayer
+                    .getVectorLayer()
+                    .getSource()
+                    .addFeature(generateSurveyEndpoint(location, SurveyEndpoints.START));
+                nextState = GridPlanningStates.ACCEPTING_MISSION_END_LOCATION;
+                break;
+            case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
+                gridPlan.setMissionEnd(location);
+                gridLayer
+                    .getVectorLayer()
+                    .getSource()
+                    .addFeature(generateSurveyEndpoint(location, SurveyEndpoints.END));
+                nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
+                break;
+            case GridPlanningStates.ACCEPTING_GRID_DRAWING:
+                // No state change on accidental clicks
+                nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
+                break;
+            case GridPlanningStates.ACCEPTING_TASK:
+                // State change comes from survey panel not a map interaction
+                nextState = GridPlanningStates.ACCEPTING_TASK;
+                break;
+        }
+        jaiaDispatch({
+            type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
+            gridPlanningState: nextState,
         });
     };
 

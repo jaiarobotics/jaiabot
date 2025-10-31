@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 
+import { gridPlan } from "../data/survey_planner/grid-plan";
 import { ButtonNames } from "../types/context-types";
 import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 
@@ -16,6 +17,7 @@ import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
 import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
+import SurveyPlanner from "../components/SurveyPlanner/SurveyPlanner";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
 import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
@@ -96,6 +98,8 @@ function Panel() {
             return <SettingsPanel />;
         case ButtonNames.MEASURE_TOOL:
             return <MeasurePanel />;
+        case ButtonNames.SURVEY_TOOL:
+            return <SurveyPlanner gridPlanDetails={gridPlan.getGridPlanDetails()} />;
         default:
             return <div></div>;
     }

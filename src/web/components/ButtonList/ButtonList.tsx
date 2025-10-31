@@ -21,6 +21,7 @@ import {
     mdiViewList,
     mdiArrowULeftTop,
     mdiArrowURightTop,
+    mdiSquareEditOutline,
 } from "@mdi/js";
 
 import JaiaLogo from "../../style/icons/jaia-logo.svg";
@@ -161,6 +162,13 @@ export default function ButtonList(props: Props) {
                     <Icon path={mdiViewList} size={MDI_BUTTON_SIZE} title="Missions Panel" />
                 </Button>
                 <RallyButton />
+                <Button
+                    className={getSelectedClassName(ButtonNames.SURVEY_TOOL)}
+                    aria-label="survey-tool"
+                    onClick={() => handleButtonClick(ButtonTypes.MAP_MODE, ButtonNames.SURVEY_TOOL)}
+                >
+                    <Icon path={mdiSquareEditOutline} size={MDI_BUTTON_SIZE} title="Survey Tool" />
+                </Button>
                 <Button
                     className={getSelectedClassName(ButtonNames.DATA_OFFLOAD_PANEL)}
                     aria-label="data-offload-panel"

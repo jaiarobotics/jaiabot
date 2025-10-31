@@ -14,6 +14,36 @@ export enum MapIconColors {
 // Disable animations from MUI accordions because of lag experienced by operators
 export const accordionTheme = createTheme({ transitions: { create: () => "none" } });
 
+// Style MUI select menu
+export const selectTheme = createTheme({
+    components: {
+        MuiOutlinedInput: {
+            styleOverrides: {
+                root: {
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "white",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "white",
+                    },
+                    color: "white",
+                },
+                notchedOutline: {
+                    borderColor: "white",
+                    padding: "0px",
+                },
+            },
+        },
+        MuiSelect: {
+            styleOverrides: {
+                icon: {
+                    fill: "white",
+                },
+            },
+        },
+    },
+});
+
 export enum Cursors {
     DEFAULT = "default",
     CROSSHAIR = "crosshair",

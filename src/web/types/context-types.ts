@@ -1,11 +1,12 @@
 import { JaiaActions } from "../context/jaia-actions";
+import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
+import { GridPlanningStates } from "../data/survey_planner/grid-plan";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
-import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
+import Task from "../data/tasks/task";
 import HistoryBuffer from "../utils/history-buffer";
-
 import {
     SelectedNode,
     SelectedWaypoint,
@@ -22,8 +23,9 @@ export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
-    stateHistory: HistoryBuffer<JaiaHistoryType>;
+    gridMissions: Map<number, Mission>;
     taskPackets: TaskPacket[];
+    stateHistory: HistoryBuffer<JaiaHistoryType>;
 
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
@@ -37,7 +39,9 @@ export interface JaiaContextType {
     missionAccordionStates: { [missionID: number]: boolean };
     missionIDInEditMode: number;
     missionSpeeds: Speeds;
+
     mapMode: MapModes;
+    gridPlanningState: GridPlanningStates;
 }
 
 // Type used for actions dispatched to the context provider
@@ -53,6 +57,7 @@ export interface JaiaAction {
 
     waypoint?: Waypoint;
     location?: GeographicCoordinate;
+    task?: Task;
     taskType?: TaskType;
     taskParameterPair?: TaskParameterPair;
 
@@ -68,6 +73,7 @@ export interface JaiaAction {
     missionSpeeds?: Speeds;
     missionSetName?: string;
     missionSetSnapshot?: MissionSetSnapshot;
+    gridPlanningState?: GridPlanningStates;
 }
 
 // Snapshot of app state for storing history
@@ -160,6 +166,7 @@ export const enum ButtonNames {
     MISSIONS_PANEL = "missions_panel",
     RALLY_PANEL = "rally_panel",
     SETTINGS_PANEL = "settings_panel",
+    SURVEY_TOOL = "survey_tool",
     START_ALL_MISSIONS = "start_all_missions",
     TASK_PACKET_PANEL = "task_packet_panel",
     WAYPOINT_PANEL = "waypoint_panel",

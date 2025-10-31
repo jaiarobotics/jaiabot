@@ -1,5 +1,6 @@
 import { NO_CONSTRAINT } from "./constants";
 import { MAX_LAT, MIN_LAT, MAX_LON, MIN_LON } from "./constants";
+import { TaskType } from "../types/protobuf-types";
 
 /**
  * Removes leading zero from numerical input. For example,
@@ -58,4 +59,18 @@ export function validateCoordinate(lat: string, lon: string) {
     }
 
     return [lat, lon];
+}
+
+/**
+ * Converts snake_case to Title Case
+ *
+ * @param {string} text snake_case contents
+ * @returns {string} Pretty version of type (Title Case)
+ */
+export function snakeCaseToTitleCase(text: string) {
+    return text
+        .toLowerCase()
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
 }

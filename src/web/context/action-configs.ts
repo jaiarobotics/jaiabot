@@ -11,6 +11,7 @@ import {
     handleAutoAssignMissions,
     handleChangeMissionSpeeds,
     handleLoadMissionSet,
+    handleChangeGridPlanningState,
 } from "./handlers/mission-handlers";
 import {
     handleAddWaypoint,
@@ -79,6 +80,18 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.SELECT_TASK, { handler: handleSelectTask, tracked: true }],
     [JaiaActions.CHANGE_TASK_PARAMETER, { handler: handleChangeTaskParameter, tracked: true }],
     [JaiaActions.TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: true }],
+
+    // Survey Actions
+    [
+        JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
+        { handler: handleChangeGridPlanningState, tracked: false },
+    ],
+    [JaiaActions.SURVEY_SELECT_TASK, { handler: handleSelectTask, tracked: false }],
+    [
+        JaiaActions.SURVEY_CHANGE_TASK_PARAMETER,
+        { handler: handleChangeTaskParameter, tracked: false },
+    ],
+    [JaiaActions.SURVEY_TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: false }],
 
     // Rally Point Actions
     [JaiaActions.ADD_RALLY_POINT, { handler: handleAddRallyPoint, tracked: false }],

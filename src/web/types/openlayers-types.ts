@@ -8,6 +8,7 @@ export enum LayerTitles {
     HUB_LAYER = "hub-layer",
     HUB_COMMS_LAYER = "hub-comms-layer",
     MISSION_LAYER = "mission-layer",
+    GRID_LAYER = "grid-layer",
     DIVE_LAYER = "dive-layer",
     DRIFT_LAYER = "drift-layer",
     CONTOUR_LAYER = "contour-layer",
@@ -30,4 +31,10 @@ export enum MapModes {
     DEFAULT = "DEFAULT",
     RALLY = "RALLY",
     MEASURE = "MEASURE",
+    SURVEY_PLANNING = "SURVEY_PLANNING",
+}
+
+export enum SurveyEndpoints {
+    START = 1,
+    END = 2,
 }

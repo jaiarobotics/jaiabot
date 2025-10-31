@@ -10,11 +10,15 @@ import { hubs } from "../../data/hubs/hubs";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { taskPackets } from "../../data/task_packets/task-packets";
+import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
+
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapModes } from "../../types/openlayers-types";
-import { captureSnapshot } from "./history-handlers";
-import { UNASSIGNED_ID, MAX_HISTORY } from "../../utils/constants";
+
 import HistoryBuffer from "../../utils/history-buffer";
+import { captureSnapshot } from "./history-handlers";
+
+import { UNASSIGNED_ID, MAX_HISTORY } from "../../utils/constants";
 
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
@@ -53,6 +57,7 @@ export function handleInit(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missionSet.getMissions();
+    mutableState.gridMissions = gridPlan.getMissions();
     mutableState.taskPackets = taskPackets.getTaskPackets();
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
@@ -67,7 +72,9 @@ export function handleInit(mutableState: JaiaContextType) {
     mutableState.missionAccordionStates = {};
     mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionSpeeds = missionSet.getMissionSpeeds();
+
     mutableState.mapMode = MapModes.DEFAULT;
+    mutableState.gridPlanningState = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
 
     const initialState = captureSnapshot(mutableState);
     mutableState.stateHistory = new HistoryBuffer<JaiaHistoryType>(initialState, MAX_HISTORY);
