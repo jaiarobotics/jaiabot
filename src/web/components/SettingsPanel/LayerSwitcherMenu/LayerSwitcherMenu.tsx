@@ -243,19 +243,12 @@ function OfflineLayersAccordionDetails(props: Props) {
      * @returns {Map<string, boolean>} Map of layer titles to visibility
      */
     const refreshCheckedStates = () => {
-        const defaultCheckedStates = new Map<string, boolean>();
+        const checkedStates = new Map<string, boolean>();
         for (const layer of offlineLayerManager.getLayers().getArray()) {
-            defaultCheckedStates.set(layer.get("title"), layer.getVisible());
+            checkedStates.set(layer.get("title"), layer.getVisible());
         }
-        return defaultCheckedStates;
+        return checkedStates;
     };
-
-    if (
-        !offlineLayerManager.getLayers().getArray() ||
-        offlineLayerManager.getLayers().getArray().length === 0
-    ) {
-        return;
-    }
 
     const [checkedStates, setCheckedStates] = useState(refreshCheckedStates());
 
@@ -286,7 +279,7 @@ function OfflineLayersAccordionDetails(props: Props) {
                         <div className="layer-container" key={title}>
                             <Checkbox
                                 onClick={() => handleLayerClick(title)}
-                                checked={checkedStates.get(title)}
+                                checked={checkedStates.get(title) ?? false}
                                 sx={props.style}
                                 data-testid={`${title}-checkbox`}
                             />
