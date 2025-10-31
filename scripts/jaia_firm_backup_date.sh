@@ -1,41 +1,73 @@
 #!/bin/bash
 
-timekeeper_dir="/etc/jaiabot/timekeeper"
+timekeeper_dir="/home/jaia/timekeeper"
+timekeeper_file="${timekeeper_dir}/time.txt"
 
-# Check if the directory exists
+# Flags to prevent redundant system clock sets
+gps_time_set=0
+ntp_time_set=0
+
+# Create directory if missing
 if [ ! -d "${timekeeper_dir}" ]; then
-  echo "timekeeper directory does not exist. Creating directory..."
-  # Create the directory
-  mkdir "${timekeeper_dir}"
-  echo "timekeeper directory created successfully."
-else
-  echo "timekeeper directory already exists."
+  mkdir -p "${timekeeper_dir}"
+  echo "Created ${timekeeper_dir}"
 fi
 
-timekeeper_file="/etc/jaiabot/timekeeper/time.txt"
-
-# Check if the file exists
+# Restore saved time at boot (for fast startup)
 if [ -e "${timekeeper_file}" ]; then
-    echo "timekeeper file exists!"
-    read -r time < $timekeeper_file && sudo date -s "$time"
+  read -r saved_time < "$timekeeper_file"
+  echo "Restoring time from file: $saved_time"
+  sudo date -s "$saved_time"
 else
-    echo "timekeeper file does not exist."
+  echo "No saved time file found."
 fi
 
 while true; do
+  # Check NTP status
+  ntp_status=$(timedatectl show --property=NTPSynchronized --value)
 
-    # Check NTP synchronization status
-    ntp_status=$(timedatectl show --property=NTPSynchronized --value)
-
-    if [[ $ntp_status == "yes" ]]; then
-        sudo date > $timekeeper_file
-        echo "Setting updated date to $timekeeper_file"
-    else
-        echo "NTP synchronization not active. Cannot set date to file."
+  if [[ $ntp_status == "yes" ]]; then
+    if [[ $ntp_time_set -eq 0 ]]; then
+      echo "NTP synchronized — marking ntp_time_set=1"
+      ntp_time_set=1
     fi
+    # Save time from NTP
+    sudo date > "$timekeeper_file"
+    echo "Saved NTP time to $timekeeper_file"
+  else
+    echo "NTP not syncronized, skipping ntp check."
+    # NTP not synced — try GPS if gpsd is active
+    if systemctl is-active --quiet gpsd; then
+      gps_time_iso=$(timeout 10 gpspipe -w -n 50 2>/dev/null | \
+        grep '"class":"TPV"' | grep '"mode":[23]' | \
+        sed -n 's/.*"time":"\([^"]*\)".*/\1/p' | tail -n1)
 
-    sleep 60 # wait for 60 seconds before checking again
+      if [[ -n "$gps_time_iso" ]]; then
+        gps_time_fmt=$(echo "$gps_time_iso" | sed 's/T/ /; s/Z/ UTC/')
+        echo "Got GPS time: $gps_time_fmt"
 
+        # Set the system clock from GPS only once, and only if NTP hasn’t already set it
+        if [[ $gps_time_set -eq 0 && $ntp_time_set -eq 0 ]]; then
+          echo "Setting system clock from GPS once..."
+          sudo timedatectl set-time "$gps_time_fmt"
+          gps_time_set=1
+        fi
+
+        # Always write GPS time to backup file
+        echo "$gps_time_fmt" | sudo tee "$timekeeper_file" >/dev/null
+        echo "Saved GPS time to $timekeeper_file"
+      else
+        echo "No valid GPS time yet."
+      fi
+    else
+      echo "Gpsd not active, skipping GPS time check."
+    fi
+  fi
+
+  # Adjust sleep time: check faster until time is set by GPS or NTP
+  if [[ $gps_time_set -eq 0 && $ntp_time_set -eq 0 ]]; then
+    sleep 10
+  else
+    sleep 60
+  fi
 done
-
-
