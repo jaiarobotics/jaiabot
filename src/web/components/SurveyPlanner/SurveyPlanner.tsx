@@ -62,15 +62,7 @@ export default function SurveyPlanner(props: Props) {
             task: gridPlan.getSurveyTask(),
             taskType: evt.target.value,
         });
-        for (const [id, mission] of gridPlan.getMissions()) {
-            const waypoints = mission.getWaypoints();
-            for (let i = 0; i < waypoints.length; i++) {
-                if (i === 0 || i === waypoints.length - 1) {
-                    continue;
-                }
-                waypoints[i].getTask().setType(evt.target.value as TaskType);
-            }
-        }
+        gridPlan.getSurveyTask().setType(evt.target.value as TaskType);
         gridLayer.finalizeGrid();
     };
 

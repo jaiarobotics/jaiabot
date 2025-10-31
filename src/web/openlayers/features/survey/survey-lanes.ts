@@ -104,18 +104,14 @@ function generateSurveyLaneStyle() {
  * @returns {Style} Style to be applied to a survey waypoint
  */
 function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
-    const mission = gridPlan.getMissions().get(laneNum);
-
     let imageSrc = waypointIcon;
-    if (mission && mission.getWaypoint(waypointNum)) {
-        switch (mission.getWaypoint(waypointNum).getTask().getType()) {
-            case TaskType.DIVE:
-                imageSrc = waypointDiveIcon;
-                break;
-            case TaskType.SURFACE_DRIFT:
-                imageSrc = waypointDriftIcon;
-                break;
-        }
+    switch (gridPlan.getSurveyTask().getType()) {
+        case TaskType.DIVE:
+            imageSrc = waypointDiveIcon;
+            break;
+        case TaskType.SURFACE_DRIFT:
+            imageSrc = waypointDriftIcon;
+            break;
     }
 
     return new Style({
