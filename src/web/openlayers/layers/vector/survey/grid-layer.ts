@@ -135,15 +135,18 @@ class GridLayer extends JaiaVectorLayer {
 
         this.layerSource.clear();
 
-        let distFromCenter = 0;
-        // For grids with even number of lanes, the first two lanes will
-        // be one half of the lane spacing distance from the center line
-        if (gridPlan.getNumOfLanes() % 2 === 0) {
-            distFromCenter = gridPlan.getLaneSpacing() / 2;
-        }
+        const centerLineCoords = this.centerLine.geometry.coordinates;
+        const rhumbbearing = turf.rhumbBearing(centerLineCoords[0], centerLineCoords[1]) + 90;
+        // Builds lanes left to right
+        let distance = (((gridPlan.getNumOfLanes() - 1) * gridPlan.getLaneSpacing()) / 2) * -1;
 
         for (let i = 0; i < gridPlan.getNumOfLanes(); i++) {
-            const offsetLine = turf.lineOffset(this.centerLine, distFromCenter, options);
+            const offsetLine = turf.transformTranslate(
+                this.centerLine,
+                distance,
+                rhumbbearing,
+                options,
+            );
             const coordinates = offsetLine.geometry.coordinates;
             const startLocation = { lat: coordinates[0][1], lon: coordinates[0][0] };
             const endLocation = { lat: coordinates[1][1], lon: coordinates[1][0] };
@@ -151,19 +154,7 @@ class GridLayer extends JaiaVectorLayer {
             this.layerSource.addFeature(laneFeature);
             this.createGridPoints(offsetLine, i + 1);
 
-            // For grids with even number of lanes, increase distance every two lanes
-            // from the start
-            if (gridPlan.getNumOfLanes() % 2 === 0 && i % 2 === 1) {
-                distFromCenter = Math.abs(distFromCenter) + gridPlan.getLaneSpacing();
-            }
-
-            // For grids with odd number of lanes, increase distance every two lanes
-            // after creation of the middle lane
-            if (gridPlan.getNumOfLanes() % 2 !== 0 && i % 2 === 0) {
-                distFromCenter = Math.abs(distFromCenter) + gridPlan.getLaneSpacing();
-            }
-
-            distFromCenter *= -1;
+            distance += gridPlan.getLaneSpacing();
 
             if (saveLanes) {
                 lanes.push(offsetLine);
@@ -229,6 +220,7 @@ class GridLayer extends JaiaVectorLayer {
      */
     finalizeGrid(modifyDataModel: boolean = false) {
         const lanes = this.createGrid(true);
+        this.sortLanes(lanes);
         this.layerSource.clear();
         this.createGridEndPoints();
 
@@ -262,6 +254,25 @@ class GridLayer extends JaiaVectorLayer {
     reset() {
         this.getVectorLayer().getSource().clear();
         this.centerLine = undefined;
+    }
+
+    /**
+     * Modies the order of the lanes to move outward from the mission start location.
+     *
+     * @param {TurfFeature<TurfLineString>[]} lanes Array of lanes constructed left to right
+     * @returns {void}
+     */
+    sortLanes(lanes: TurfFeature<TurfLineString>[]) {
+        const startCoord = [gridPlan.getMissionStart().lon, gridPlan.getMissionStart().lat];
+        const distToFirstLane = turf.distance(lanes[0].geometry.coordinates[0], startCoord);
+        const distToLastLane = turf.distance(
+            lanes[lanes.length - 1].geometry.coordinates[0],
+            startCoord,
+        );
+
+        if (distToFirstLane > distToLastLane) {
+            lanes.reverse();
+        }
     }
 }
 
