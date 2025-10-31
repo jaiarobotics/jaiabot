@@ -3,6 +3,7 @@ import { useContext, useState } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import { layers } from "../../../openlayers/layers/layers";
+import { offlineLayerManager } from "../../../openlayers/layers/offline/offline-layer-manager";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { MapLayerAccordionNames } from "../../../types/context-types";
 import { accordionTheme } from "../../../utils/style";
@@ -18,6 +19,10 @@ import { grey } from "@mui/material/colors";
 
 import "./LayerSwitcherMenu.less";
 
+interface Props {
+    style: { [key: string]: {} };
+}
+
 const BASE_MAPS = [
     LayerTitles.OSM_LAYER,
     LayerTitles.ARC_GIS_SATELLITE_LAYER,
@@ -32,20 +37,16 @@ export default function LayerSwitcherMenu() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     /**
-     * Creates a map of layer names to their current visibility.
+     * Creates a map of layer titles to their current visibility.
      * Used to initialize the State of the LayerSwitcherMenu component.
      *
-     * @returns {Map<LayerTitles, boolean>} A map of layer names to visibility
+     * @returns {Map<LayerTitles, boolean>} A map of layer titles to visibility
      */
     const getDefaultLayerCheckedStates = () => {
         const defaultLayerCheckedStates = new Map<LayerTitles, boolean>();
 
-        for (const [layerTitle, layer] of layers.getLayers().entries()) {
-            if (layer.getVisible()) {
-                defaultLayerCheckedStates.set(layerTitle, true);
-            } else {
-                defaultLayerCheckedStates.set(layerTitle, false);
-            }
+        for (const [layerTitle, layer] of layers.getLayers()) {
+            defaultLayerCheckedStates.set(layerTitle, layer.getVisible());
         }
 
         return defaultLayerCheckedStates;
@@ -54,7 +55,7 @@ export default function LayerSwitcherMenu() {
     /**
      * Retrieves the visible base map layer to use as the default when the LayerSwitcherMenu mounts
      *
-     * @returns {LayerTitles} Name of visible base map layer
+     * @returns {LayerTitles} Title of visible base map layer
      */
     const getDefaultBaseMapLayerCheckedState = () => {
         for (const baseMapTitle of BASE_MAPS) {
@@ -86,7 +87,7 @@ export default function LayerSwitcherMenu() {
      * We need to utilize both for the best user experience. If not, there will be a lag in the
      * checkbox when clicking on a layer.
      *
-     * @param {LayerTitles} layerTitle Name of the layer selected
+     * @param {LayerTitles} layerTitle Title of the layer selected
      * @returns {void}
      */
     const handleLayerClick = (layerTitle: LayerTitles) => {
@@ -103,7 +104,7 @@ export default function LayerSwitcherMenu() {
      * Only one base map can be selected at a time so we need to manage its checked
      * state separately
      *
-     * @param {LayerTitles} layerTitle Name of the base map selected
+     * @param {LayerTitles} layerTitle Title of the base map selected
      * @returns {void}
      */
     const handleBaseMapClick = (layerTitle: LayerTitles) => {
@@ -131,7 +132,7 @@ export default function LayerSwitcherMenu() {
     };
 
     if (jaiaContext === null) {
-        return <div></div>;
+        return;
     }
 
     return (
@@ -177,9 +178,7 @@ export default function LayerSwitcherMenu() {
                         </div>
                     </AccordionDetails>
                 </Accordion>
-            </ThemeProvider>
 
-            <ThemeProvider theme={accordionTheme}>
                 <Accordion
                     className="accordion-container"
                     expanded={jaiaContext.mapLayerAccordionStates.mission}
@@ -218,7 +217,76 @@ export default function LayerSwitcherMenu() {
                         </div>
                     </AccordionDetails>
                 </Accordion>
+
+                <Accordion
+                    className="accordion-container"
+                    expanded={jaiaContext.mapLayerAccordionStates.offline}
+                    onChange={() => handleAccordionClick(MapLayerAccordionNames.OFFLINE)}
+                >
+                    <AccordionSummary className="accordion-summary" expandIcon={<ExpandMoreIcon />}>
+                        <Typography>Offline</Typography>
+                    </AccordionSummary>
+                    <OfflineLayersAccordionDetails style={getCheckboxStyle()} />
+                </Accordion>
             </ThemeProvider>
         </div>
+    );
+}
+
+/**
+ * Renders the list of offline layers that the operator can toggle on/off
+ */
+function OfflineLayersAccordionDetails(props: Props) {
+    /**
+     * Creats a map of layer titles to their visibility
+     *
+     * @returns {Map<string, boolean>} Map of layer titles to visibility
+     */
+    const refreshCheckedStates = () => {
+        const checkedStates = new Map<string, boolean>();
+        for (const layer of offlineLayerManager.getLayers().getArray()) {
+            checkedStates.set(layer.get("title"), layer.getVisible());
+        }
+        return checkedStates;
+    };
+
+    const [checkedStates, setCheckedStates] = useState(refreshCheckedStates());
+
+    /**
+     * Toggles the layer visibility
+     *
+     * @param {string} title Identifies the layer
+     * @returns {void}
+     */
+    const handleLayerClick = (title: string) => {
+        for (const layer of offlineLayerManager.getLayers().getArray()) {
+            if (layer.get("title") === title) {
+                const updatedVisible = !layer.getVisible();
+                layer.setVisible(updatedVisible);
+                setCheckedStates(refreshCheckedStates());
+            }
+        }
+    };
+
+    return (
+        <AccordionDetails className="layer-group">
+            {offlineLayerManager
+                .getLayers()
+                .getArray()
+                .map((layer) => {
+                    const title = layer.get("title");
+                    return (
+                        <div className="layer-container" key={title}>
+                            <Checkbox
+                                onClick={() => handleLayerClick(title)}
+                                checked={checkedStates.get(title) ?? false}
+                                sx={props.style}
+                                data-testid={`${title}-checkbox`}
+                            />
+                            <p>{title}</p>
+                        </div>
+                    );
+                })}
+        </AccordionDetails>
     );
 }

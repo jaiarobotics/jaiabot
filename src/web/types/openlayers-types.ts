@@ -1,4 +1,6 @@
 export enum LayerTitles {
+    // Empty string needed for MUI Select default
+    NONE = "",
     OSM_LAYER = "open-street-maps-layer",
     ARC_GIS_SATELLITE_LAYER = "arg-gis-satellite-layer",
     NOAA_ENC_LAYER = "noaa-enc-layer",

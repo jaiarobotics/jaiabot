@@ -19,7 +19,6 @@ import { LayerTitles } from "../../types/openlayers-types";
 
 class Layers {
     private layers: Map<LayerTitles, Layer>;
-
     constructor() {
         this.layers = new Map<LayerTitles, Layer>();
         // Tile layers

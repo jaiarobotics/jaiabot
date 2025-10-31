@@ -1,4 +1,5 @@
 import { JaiaActions } from "../context/jaia-actions";
+import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import { GridPlanningStates } from "../data/survey_planner/grid-plan";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
@@ -71,6 +72,7 @@ export interface JaiaAction {
     command?: Command;
     missionSpeeds?: Speeds;
     missionSetName?: string;
+    missionSetSnapshot?: MissionSetSnapshot;
     gridPlanningState?: GridPlanningStates;
 }
 
@@ -136,6 +138,7 @@ export const enum MapLayerAccordionNames {
     BATHYMETRY = "bathymetry",
     MEASUREMENTS = "measurements",
     MISSION = "mission",
+    OFFLINE = "offline",
 }
 
 export interface MapLayerAccordionStates {
@@ -143,6 +146,7 @@ export interface MapLayerAccordionStates {
     bathymetry: boolean;
     measurements: boolean;
     mission: boolean;
+    offline: boolean;
 }
 
 export const enum ButtonTypes {

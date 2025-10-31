@@ -95,6 +95,9 @@ export function handleClickedMapLayersAccordion(mutableState: JaiaContextType, a
         case MapLayerAccordionNames.MISSION:
             mapLayerAccordionStates.mission = !mapLayerAccordionStates.mission;
             break;
+        case MapLayerAccordionNames.OFFLINE:
+            mapLayerAccordionStates.offline = !mapLayerAccordionStates.offline;
+            break;
     }
     return mutableState;
 }

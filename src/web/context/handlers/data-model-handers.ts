@@ -20,13 +20,13 @@ import { captureSnapshot } from "./history-handlers";
 
 import { UNASSIGNED_ID, MAX_HISTORY } from "../../utils/constants";
 
-export const defaultHubAccordionStates: HubAccordionStates = {
+const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
     links: false,
 };
 
-export const defaultBotAccordionStates: BotAccordionStates = {
+const defaultBotAccordionStates: BotAccordionStates = {
     quickLook: false,
     commands: false,
     advancedCommands: false,
@@ -37,11 +37,12 @@ export const defaultBotAccordionStates: BotAccordionStates = {
     sensor: false,
 };
 
-export const defaultMapLayerAccordionStates = {
+const defaultMapLayerAccordionStates = {
     baseMaps: false,
     bathymetry: false,
     measurements: false,
     mission: false,
+    offline: false,
 };
 
 /**
