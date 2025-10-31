@@ -1,7 +1,4 @@
-import TileLayer from "ol/layer/Tile";
-import { XYZ } from "ol/source";
 import { Layer } from "ol/layer";
-import { TileImage } from "ol/source";
 // Tile layers
 import { OSMLayer } from "./tile/osm-layer";
 import { arcGISSatelliteLayer } from "./tile/arc-gis-sattelite-layer";
