@@ -7,6 +7,7 @@ export const TEXT_OFFSET_RADIUS = 11;
 export const NO_COMMS_STATUS_AGE = 30; // seconds
 export const DATA_MODEL_POLL_TIME = 500; // milliseconds
 export const TASK_PACKET_POLL_TIME = 1000; // milliseconds
+export const METADATA_POLL_TIME = 10000; // milliseconds
 export const INITAL_ZOOM_DURATION = 3000; // milliseconds
 export const INITIAL_ZOOM = 15; // OpenLayers zoom level
 export const SCROLL_DELAY = 30; // milliseconds
