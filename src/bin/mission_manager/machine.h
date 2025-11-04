@@ -25,11 +25,13 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "machine_common.h"
 #include <fstream>
+#include <cmath>
 #include <goby/util/seawater.h>
 #include <google/protobuf/util/json_util.h>
 
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/utils/mission_manager_utils.h"
 using jaiabot::protobuf::EchoCommand;
 using jaiabot::protobuf::IMUCommand;
 
