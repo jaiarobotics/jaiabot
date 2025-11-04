@@ -6,7 +6,7 @@ Type=notify
 User=root
 Group=root
 ExecStart=$jaiabot_bin_dir/$exe $args
-NotfyAccess=all
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target
