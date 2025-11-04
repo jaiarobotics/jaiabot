@@ -556,7 +556,7 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
         time_t timestamp;
         time(&timestamp);
         start_camera_command.set_datetime(ctime(&timestamp));
-        glog.is_warn() && glog << "Setting datetime: " << start_camera_command.datetime() << std::endl;
+        glog.is_debug1() && glog << "Setting datetime: " << start_camera_command.datetime() << std::endl;
         interprocess().publish<jaiabot::groups::camera>(start_camera_command);
     }
 
@@ -611,10 +611,12 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
     // This makes sure we capture the pressure before the dive begins
     // Then we can adjust pressure accordingly
     this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
-    this->machine().calculate_start_of_dive_depth(this->machine().latest_pitch()); // Calculate and set the depth of our pressure sensor at the start of our dive according to the vehicle's pitch and waterline 
 
-    glog.is_warn() && glog << "Start of Dive Pitch: " << this->machine().latest_pitch().value() << " degrees" <<std::endl;
-    glog.is_warn() && glog << "Start of Dive Depth: " << this->machine().start_of_dive_depth() << " meters" <<std::endl;
+    // Calculate and set the depth of our pressure sensor at the start of our dive according to the vehicle's pitch and waterline 
+    this->machine().calculate_start_of_dive_depth(this->machine().latest_pitch()); 
+
+    glog.is_debug1() && glog << "Start of Dive Pitch: " << this->machine().latest_pitch().value() << " degrees" <<std::endl;
+    glog.is_debug1() && glog << "Start of Dive Depth: " << this->machine().start_of_dive_depth() << " meters" <<std::endl;
 
     // Start the timeout for detecting the bottom
     goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
@@ -1034,8 +1036,8 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
              << "\n cfg().dive_surface_eps: " << cfg().dive_depth_eps() << "\n"
              << std::endl;
 
-    // within surface eps of the surface (or any negative value)
-    if (ev.depth < cfg().dive_surface_eps_with_units())
+    // Nose of the bot is within surface eps of the surface (or any negative value)
+    if ((ev.sensor_depth - cfg.pressure_sensor_to_waterline()) < cfg().dive_surface_eps_with_units())
     {
         post_event(EvSurfaced());
         dive_uascent_debug.set_surfaced(true);
