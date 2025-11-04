@@ -541,6 +541,35 @@ message DivePacket
         },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
+
+    message SubsurfaceCurrentVector
+    {
+        required double velocity = 1 [
+            (dccl.field) = {
+                min: 0
+                max: 10
+                precision: 1
+                units { derived_dimensions: "velocity" }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
+
+        required double heading = 2 [
+            (dccl.field) = {
+                min: 0
+                max: 360
+                precision: 0
+                units {
+                    derived_dimensions: "plane_angle"
+                    system: "angle::degree"
+                }
+            },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
+    }
+
+    optional SubsurfaceCurrentVector subsurface_current = 21
+        [(jaia.field).rest_api.presence = GUARANTEED]; 
 }
 
 message TaskPacket
