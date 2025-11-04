@@ -178,6 +178,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "2.y"
+        - "bug/only-enable-jcc-once"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -185,6 +186,7 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "2.y"
+        - "bug/only-enable-jcc-once"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -221,6 +223,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "2.y"
+        - "bug/only-enable-jcc-once"
 
 ## Begin actual config
 version: 2.1
