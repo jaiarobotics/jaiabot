@@ -6,6 +6,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 # require minimum C++ version
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-fmax-errors=5)
 
 # determine version of jaiabot
 include(JaiaVersions)
