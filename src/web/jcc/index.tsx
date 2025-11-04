@@ -26,11 +26,11 @@ const statusInterval = setInterval(async () => {
             console.error(`Response status: ${response.status}`);
         } else {
             const json = await response.json();
+            updateBots(json.bots);
+            updateHubs(json.hubs);
             if (json.messages.error) {
                 handleStatusError(json.messages.error);
             } else {
-                updateBots(json.bots);
-                updateHubs(json.hubs);
                 updateOpenLayers();
                 updateDisconnectedWarning(false);
             }
