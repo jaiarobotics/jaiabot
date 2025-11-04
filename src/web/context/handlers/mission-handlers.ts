@@ -10,7 +10,7 @@ import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapModes } from "../../types/openlayers-types";
+import { MapModes, SurveyEndpoints } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { updateMissionSetFromSnapshot } from "../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
@@ -178,6 +178,16 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             map.removeInteraction(gridLayer.getDragPan());
             gridPlan.setSurveyTask(new Task());
             gridLayer.finalizeGrid(true);
+            break;
+
+        case GridPlanningStates.ACCEPTING_START_TASK:
+            gridPlan.setStartTask(new Task());
+            gridLayer.highlightEndpoint(SurveyEndpoints.START);
+            break;
+
+        case GridPlanningStates.ACCEPTING_END_TASK:
+            gridPlan.setEndTask(cloneDeep(gridPlan.getSurveyTask()));
+            gridLayer.finalizeGrid();
             break;
 
         case GridPlanningStates.APPROVED:

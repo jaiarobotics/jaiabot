@@ -18,7 +18,10 @@ import { gridPlan } from "../../../../data/survey_planner/grid-plan";
 import { LayerTitles, SurveyEndpoints } from "../../../../types/openlayers-types";
 import { layersZIndexes } from "../../zindex";
 import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/survey-lanes";
-import { generateSurveyEndpoint } from "../../../features/survey/survey-endpoints";
+import {
+    generateSurveyEndpoint,
+    generateSurveyEndpointCircle,
+} from "../../../features/survey/survey-endpoints";
 import { GeographicCoordinate } from "../../../../types/protobuf-types";
 
 const units: Units = "meters";
@@ -30,11 +33,13 @@ class GridLayer extends JaiaVectorLayer {
     private drawSource: VectorSource;
     private layerSource: VectorSource;
     private centerLine: TurfFeature<TurfLineString>;
+    private endpointCircle: Feature;
 
     constructor() {
         super(LayerTitles.GRID_LAYER, layersZIndexes.get(LayerTitles.GRID_LAYER));
         this.drawSource = new VectorSource();
         this.layerSource = this.getVectorLayer().getSource();
+        this.endpointCircle = new Feature();
     }
 
     override updateFeatures() {}
@@ -244,6 +249,14 @@ class GridLayer extends JaiaVectorLayer {
                 gridPlan.getMissions().set(mission.getMissionID(), mission);
             }
         }
+    }
+
+    highlightEndpoint(endpoint: SurveyEndpoints) {
+        this.layerSource.removeFeature(this.endpointCircle);
+        if (endpoint === SurveyEndpoints.START) {
+            this.endpointCircle = generateSurveyEndpointCircle(gridPlan.getMissionStart());
+        }
+        this.layerSource.addFeature(this.endpointCircle);
     }
 
     /**

@@ -8,12 +8,15 @@ import { view } from "../../views/view";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
 import { TaskType } from "../../../types/protobuf-types";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
-import { gridPlan } from "../../../data/survey_planner/grid-plan";
+import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
 
 import waypointIcon from "../../../style/icons/waypoint.svg";
 import waypointDiveIcon from "../../../style/icons/waypoint-dive.svg";
 import waypointDriftIcon from "../../../style/icons/waypoint-drift.svg";
 import { MapFeatureTypes } from "../../../types/openlayers-types";
+
+const FIRST_MISSION_ID = 1;
+const MISSION_ENDPOINTS = 2;
 
 /**
  * Creates a line from the start of the drag to the last drag position
@@ -88,7 +91,7 @@ function generateSurveyLaneStyle() {
     const overlayStyle = new Style({
         stroke: new Stroke({
             width: 2,
-            color: OpenLayersColors.EDIT,
+            color: getSurveyLaneColor(),
         }),
         zIndex: 1,
     });
@@ -118,7 +121,7 @@ function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
         image: new Icon({
             src: imageSrc,
             anchor: [0.5, 1],
-            color: OpenLayersColors.EDIT,
+            color: getSurveyPointColor(waypointNum),
         }),
         stroke: new Stroke({
             color: OpenLayersColors.OUTLINE,
@@ -136,4 +139,26 @@ function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
         // lanes converge due to zoom level changes
         zIndex: waypointNum + 100 * laneNum,
     });
+}
+
+function getSurveyPointColor(waypointNum: number) {
+    if (gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK) {
+        const firstMission = gridPlan.getMissions().get(FIRST_MISSION_ID);
+        if (
+            firstMission &&
+            waypointNum === firstMission.getWaypoints().length - MISSION_ENDPOINTS
+        ) {
+            return OpenLayersColors.EDIT;
+        } else {
+            return OpenLayersColors.DEFAULT;
+        }
+    }
+    return OpenLayersColors.EDIT;
+}
+
+function getSurveyLaneColor() {
+    if (gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK) {
+        return OpenLayersColors.DEFAULT;
+    }
+    return OpenLayersColors.EDIT;
 }

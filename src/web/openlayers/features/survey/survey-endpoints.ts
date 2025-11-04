@@ -1,8 +1,8 @@
-import { Point } from "ol/geom";
+import { Circle, Point } from "ol/geom";
 import { Feature } from "ol";
 import { fromLonLat } from "ol/proj";
 import { Coordinate } from "ol/coordinate";
-import { Icon, Style } from "ol/style";
+import { Fill, Icon, Stroke, Style } from "ol/style";
 import { view } from "../../views/view";
 import { SurveyEndpoints } from "../../../types/openlayers-types";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
@@ -50,4 +50,29 @@ function generateSurveyEndpointStyle(endpoint: SurveyEndpoints) {
             scale: 0.6,
         }),
     });
+}
+
+export function generateSurveyEndpointCircle(location: GeographicCoordinate) {
+    if (!location) {
+        return new Feature();
+    }
+
+    const coordinate: Coordinate = [location.lon, location.lat];
+    const feature = new Feature({
+        geometry: new Circle(fromLonLat(coordinate, view.getProjection()), 20),
+    });
+    feature.setStyle(generateSurveyCircleStyle());
+    return feature;
+}
+
+function generateSurveyCircleStyle() {
+    const style = new Style({
+        stroke: new Stroke({
+            color: "rgb(255,215,0)",
+        }),
+        fill: new Fill({
+            color: "rgba(255,215,0,0.5)",
+        }),
+    });
+    return style;
 }

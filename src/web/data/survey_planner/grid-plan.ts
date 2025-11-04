@@ -7,7 +7,9 @@ export enum GridPlanningStates {
     ACCEPTING_MISSION_END_LOCATION = 2,
     ACCEPTING_GRID_DRAWING = 3,
     ACCEPTING_TASK = 4,
-    APPROVED = 5,
+    ACCEPTING_START_TASK = 5,
+    ACCEPTING_END_TASK = 6,
+    APPROVED = 7,
 }
 
 export interface GridPlanDetails {
@@ -25,6 +27,8 @@ export class GridPlan {
     private laneSpacing: number;
     private pointSpacing: number;
     private surveyTask: Task;
+    private startTask: Task;
+    private endTask: Task;
     private state: GridPlanningStates;
     private missions: Map<number, Mission>;
 
@@ -34,6 +38,8 @@ export class GridPlan {
         this.laneSpacing = 10;
         this.pointSpacing = 10;
         this.surveyTask = new Task();
+        this.startTask = new Task();
+        this.endTask = new Task();
         this.missions = new Map<number, Mission>();
     }
 
@@ -100,6 +106,22 @@ export class GridPlan {
 
     setSurveyTask(surveyTask: Task) {
         this.surveyTask = surveyTask;
+    }
+
+    getStartTask() {
+        return this.startTask;
+    }
+
+    setStartTask(startTask: Task) {
+        this.startTask = startTask;
+    }
+
+    getEndTask() {
+        return this.endTask;
+    }
+
+    setEndTask(endTask: Task) {
+        this.endTask = endTask;
     }
 
     getState() {
