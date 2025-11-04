@@ -75,6 +75,11 @@ STATECHART_EVENT(EvMissionInfeasible)
 STATECHART_EVENT(EvDeployed)
 STATECHART_EVENT(EvWaypointReached)
 
+struct EvBotStatusReceived : boost::statechart::event<EvBotStatusReceived>
+{
+    jaiabot::protobuf::BotStatus status;
+};
+
 struct EvPerformTask : boost::statechart::event<EvPerformTask>
 {
     EvPerformTask() : has_task(false) {}
@@ -873,11 +878,86 @@ struct InMission
 
     bool is_echo_recording() const { return is_echo_recording_; }
 
+    // Check heading uncertainty to current goal
+    // If exceeded, post EvHeadingUncertaintyExceeded
+    // If recovered, post EvHeadingUncertaintyResolved
+    void check_heading_uncertainty(const EvBotStatusReceived& ev)
+    {
+        const double DEGREES = M_PI / 180.0;
+
+        if (current_goal() == boost::none)
+            return;
+
+        const auto& current_goal_ = current_goal().get();
+
+        const auto lateral_r95 = ev.status.lateral_r95();
+        if (lateral_r95 > cfg().ok_lateral_r95())
+        {
+            const auto bot_xy = this->machine().geodesy().convert({ev.status.location().lat_with_units(), ev.status.location().lon_with_units()});
+            const auto goal_xy = this->machine().geodesy().convert({current_goal_.location().lat_with_units(), current_goal_.location().lon_with_units()});
+            const auto dx = (goal_xy.x - bot_xy.x).value();
+            const auto dy = (goal_xy.y - bot_xy.y).value();
+            const auto distance_to_goal = std::sqrt(dx * dx + dy * dy);
+
+            double heading_uncertainty_radians;
+            if (lateral_r95 >= distance_to_goal)
+            {
+                heading_uncertainty_radians = M_PI; // 180 degrees
+            }
+            else {
+                heading_uncertainty_radians = std::asin(lateral_r95 / distance_to_goal);
+            }
+
+            // goby::glog.is_warn() && goby::glog << group("goal") << "Distance to goal index " << goal_index_
+            //                    << " is " << distance_to_goal
+            //                    << " meters." << std::endl;
+            // goby::glog.is_warn() && goby::glog << group("goal") << "Lateral uncertainty " << goal_index_
+            //                    << " is " << lateral_r95
+            //                    << " meters." << std::endl;
+            // goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty to goal index " << goal_index_
+            //                    << " is " << heading_uncertainty_radians / DEGREES
+            //                    << " degrees." << std::endl;
+
+            if (heading_uncertainty_radians > cfg().max_allowed_heading_uncertainty() * DEGREES)
+            {
+                goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty = " 
+                                << heading_uncertainty_radians / DEGREES << "deg > "
+                                << cfg().max_allowed_heading_uncertainty() << " deg."
+                                << std::endl;
+
+                this->post_event(EvHeadingUncertaintyExceeded());
+                last_bad_heading_uncertainty = goby::time::SteadyClock::now();
+                return;
+            }
+        }
+
+        // We've been good for some time
+        if (last_bad_heading_uncertainty == goby::time::SteadyClock::time_point::min())
+            return;
+
+        // lateral uncertainty is ok
+        const auto& heading_uncertainty_recovery_time = goby::time::convert_duration<goby::time::SteadyClock::duration>(cfg().heading_uncertainty_recovery_time_with_units());
+        const auto& elapsed_time = goby::time::SteadyClock::now() - last_bad_heading_uncertainty;
+
+        if (elapsed_time > heading_uncertainty_recovery_time) {
+
+            goby::glog.is_warn() && goby::glog << group("goal") << "Heading uncertainty to goal index "
+                            << goal_index_ << " has recovered." << std::endl;
+
+            this->post_event(EvHeadingUncertaintyResolved());
+            last_bad_heading_uncertainty = goby::time::SteadyClock::time_point::min();
+        }
+        else {
+            goby::glog.is_warn() && goby::glog << group("goal") << "Insufficient recovery time: " << elapsed_time.count() / 1e6 << " sec" << std::endl;
+        }
+    }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
         boost::statechart::transition<EvRecovered, PostDeployment>,
         boost::statechart::transition<EvAbort, inmission::underway::Abort>,
-        boost::statechart::transition<EvStop, inmission::underway::recovery::Stopped>>;
+        boost::statechart::transition<EvStop, inmission::underway::recovery::Stopped>,
+        boost::statechart::in_state_reaction<EvBotStatusReceived, InMission, &InMission::check_heading_uncertainty>>;
 
   private:
     int goal_index_{0};
@@ -885,6 +965,7 @@ struct InMission
     bool mission_complete_{false};
     bool use_heading_constant_pid_{false};
     bool is_echo_recording_{false};
+    goby::time::SteadyClock::time_point last_bad_heading_uncertainty = goby::time::SteadyClock::time_point::min();
 };
 
 namespace inmission
