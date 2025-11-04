@@ -33,6 +33,7 @@
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
+#include "jaiabot/messages/arduino.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -284,6 +285,19 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
+            glog.is_debug2() && glog << "Received Arduino Response " << arduino_response.ShortDebugString() << std::endl;
+
+            if (arduino_response.has_motor())
+            {
+                statechart::EvMotorStopped ev;
+                ev.is_motor_stopped = arduino_response.motor() == 1500;
+                machine_->process_event(ev);
+            }
+        });
+
     interprocess().subscribe<jaiabot::groups::imu>(
         [this](const jaiabot::protobuf::IMUData& imu_data)
         {
@@ -297,6 +311,7 @@ jaiabot::apps::MissionManager::MissionManager()
                     auto pitch = imu_data.euler_angles().pitch_with_units();
                     statechart::EvVehiclePitch ev;
                     ev.pitch = pitch;
+                    machine_->set_latest_pitch(pitch);
                     machine_->process_event(ev);
                     fwd_progress_data_.latest_pitch = pitch;
                 }

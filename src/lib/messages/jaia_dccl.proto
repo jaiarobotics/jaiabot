@@ -142,11 +142,11 @@ message CommandForHub
 message BotStatus
 {
     /*
-    Actual maximum size of message: 46 bytes / 368 bits
+    Actual maximum size of message: 48 bytes / 384 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................359
-        padding to full byte...................1
+        body.................................369
+        padding to full byte...................7
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -200,7 +200,17 @@ message BotStatus
     optional GeographicCoordinate location = 10
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional double depth = 11 [
+    optional double sensor_depth = 11 [
+        (dccl.field) = {
+            min: -1
+            max: 100
+            precision: 1
+            units: { derived_dimensions: "length" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    optional double depth = 12 [
         (dccl.field) = {
             min: -1
             max: 100

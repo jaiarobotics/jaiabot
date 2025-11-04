@@ -425,13 +425,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     // subscribe for pressure adjusted measurements (pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
         [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
-            if (pa.has_calculated_depth())
+            if (pa.has_sensor_depth())
             {
                 latest_node_status_.mutable_global_fix()->set_depth_with_units(
-                    pa.calculated_depth_with_units());
+                    pa.sensor_depth_with_units());
                 latest_node_status_.mutable_local_fix()->set_z_with_units(
                     -latest_node_status_.global_fix().depth_with_units());
-                latest_bot_status_.set_depth_with_units(pa.calculated_depth_with_units());
+                latest_bot_status_.set_sensor_depth_with_units(pa.sensor_depth_with_units());
+                latest_bot_status_.set_depth_with_units(pa.depth_with_units());
 
                 // Check to see if we are in dive states so we publish node status at the
                 // same rate we are receiving depth values
