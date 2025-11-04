@@ -527,6 +527,13 @@ struct MissionManagerStateMachine
     }
     const std::string& data_offload_exclude() { return data_offload_exclude_; }
 
+    void set_current_bot_status(const jaiabot::protobuf::BotStatus& bot_status)
+    {
+        current_bot_status_ = bot_status;
+    }
+    const jaiabot::protobuf::BotStatus& current_bot_status() { return current_bot_status_; }
+
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -564,6 +571,7 @@ struct MissionManagerStateMachine
     std::string data_time_string_{""};
     int32_t hub_id_{0};
     std::string data_offload_exclude_{""};
+    jaiabot::protobuf::BotStatus current_bot_status_;
 };
 
 struct PreDeployment
