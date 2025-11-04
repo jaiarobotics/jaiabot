@@ -353,6 +353,18 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
+        // Subscribe to bot_status
+    interprocess().subscribe<jaiabot::groups::bot_status>(
+        [this](const jaiabot::protobuf::BotStatus& bot_status)
+        {
+            glog.is_debug2() && glog << "Received BotStatus " << bot_status.ShortDebugString()
+                                     << std::endl;
+
+            statechart::EvBotStatusReceived ev;
+            ev.status = bot_status;
+            machine_->process_event(ev);
+        });
+
     // subscribe for engineering commands
     interprocess().subscribe<jaiabot::groups::engineering_command>(
         [this](const jaiabot::protobuf::Engineering& command)
