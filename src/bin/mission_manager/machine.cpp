@@ -1037,7 +1037,7 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
              << std::endl;
 
     // Nose of the bot is within surface eps of the surface (or any negative value)
-    if ((ev.sensor_depth - cfg.pressure_sensor_to_waterline()) < cfg().dive_surface_eps_with_units())
+    if ((ev.sensor_depth.value() - cfg().pressure_sensor_to_waterline()) < cfg().dive_surface_eps())
     {
         post_event(EvSurfaced());
         dive_uascent_debug.set_surfaced(true);
