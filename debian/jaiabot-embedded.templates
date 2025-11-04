@@ -131,3 +131,8 @@ Choices: xbee, wifi, iridium
 Default: xbee
 Description: Which comms links to activate?
 
+Template: jaiabot-embedded/camera_positions
+Type: multiselect
+Choices: aft, fore, outward, none
+Default: none
+Description: Which camera positions?

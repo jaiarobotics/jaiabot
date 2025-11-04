@@ -2,6 +2,7 @@
 
 #include <goby/middleware/log/groups.h>
 #include <goby/middleware/protobuf/logger.pb.h>
+#include <ctime>
 
 #include "machine.h"
 #include "mission_manager.h"
@@ -553,9 +554,14 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
     // Then we can adjust pressure accordingly
     this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
 
-    if (cfg().has_start_camera_command())
+    if (cfg().camera_available() && cfg().has_start_camera_command())
     {
-        interprocess().publish<jaiabot::groups::camera>(cfg().start_camera_command());
+        auto start_camera_command = cfg().start_camera_command();
+        time_t timestamp;
+        time(&timestamp);
+        start_camera_command.set_datetime(ctime(&timestamp));
+        glog.is_warn() && glog << "Setting datetime: " << start_camera_command.datetime() << std::endl;
+        interprocess().publish<jaiabot::groups::camera>(start_camera_command);
     }
 
     loop(EvLoop());
@@ -980,7 +986,7 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::Unpowered
     typename StateBase::my_context c)
     : StateBase(c)
 {
-    if (cfg().has_stop_camera_command())
+    if (cfg().camera_available() && cfg().has_stop_camera_command())
     {
         interprocess().publish<jaiabot::groups::camera>(cfg().stop_camera_command());
     }
