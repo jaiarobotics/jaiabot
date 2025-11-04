@@ -29,6 +29,7 @@ import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/moos/protobuf/moos_gateway_config.proto";
 import "goby/middleware/protobuf/udp_config.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/simulator.proto";
 
 package jaiabot.config;
 
@@ -56,13 +57,7 @@ message Simulator
 
     optional jaiabot.protobuf.GeographicCoordinate start_location = 26;
 
-    // Default is to use the hdop value so bot does not need to reacquire gps
-    optional double gps_hdop_rand_max = 27 [default = 1.3];
-
     optional bool is_bot_sim = 28 [default = true];
-
-    // Default is to use the pdop value so bot does not need to reacquire gps
-    optional double gps_pdop_rand_max = 29 [default = 2.2];
 
     optional double heading_rand_max = 30 [default = 0];
 
@@ -116,6 +111,8 @@ message Simulator
     optional string hub_gpsd_device = 43;
 
     optional ArduinoSimThread arduino_config = 60;
+
+    optional jaiabot.protobuf.GPSNoise gps_noise = 70;
 }
 
 message ArduinoSimThread

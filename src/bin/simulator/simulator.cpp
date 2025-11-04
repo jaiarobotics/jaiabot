@@ -53,6 +53,9 @@
 #include "jaiabot/messages/simulator.pb.h"
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include "GPSNoiseGenerator.h"
+
+using jaiabot::protobuf::GPSNoise;
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -107,6 +110,10 @@ class SimulatorTranslation : public goby::moos::Translator
     std::default_random_engine generator_;
     std::normal_distribution<double> temperature_distribution_;
     std::normal_distribution<double> salinity_distribution_;
+
+    // GPS noise generator
+    GPSNoiseGenerator gps_noise_generator_{sim_cfg_.gps_noise()};
+
     goby::time::SteadyClock::time_point sky_last_updated_{std::chrono::seconds(0)};
     int time_out_sky_{200};
 
@@ -171,6 +178,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
       salinity_distribution_(0, sim_cfg_.salinity_stdev())
 
 {
+
     if (sim_cfg_.is_bot_sim())
     {
         interprocess().subscribe<goby::middleware::groups::datum_update>(
@@ -212,6 +220,10 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         goby().interprocess().subscribe<groups::simulator_command>(
             [this](const jaiabot::protobuf::SimulatorCommand& command)
             {
+
+                glog.is_warn() && glog << "Received simulator command: " << command.ShortDebugString()
+                                       << std::endl;
+
                 switch (command.command_case())
                 {
                     case jaiabot::protobuf::SimulatorCommand::kGpsDropout:
@@ -227,6 +239,10 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                             goby::time::SteadyClock::now() +
                             goby::time::convert_duration<goby::time::SteadyClock::duration>(
                                 command.stop_forward_progress().duration_with_units());
+                        break;
+
+                    case jaiabot::protobuf::SimulatorCommand::kGpsNoise:
+                        gps_noise_generator_.set_noise_params(command.gps_noise());
                         break;
 
                     case jaiabot::protobuf::SimulatorCommand::COMMAND_NOT_SET:
@@ -299,8 +315,9 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
     auto& moos_buffer = moos().buffer();
 
-    auto x = moos_buffer["NAV_X"].GetDouble() * si::meters;
-    auto y = moos_buffer["NAV_Y"].GetDouble() * si::meters;
+    auto lateral_noise = gps_noise_generator_.generate();
+    auto x = (moos_buffer["NAV_X"].GetDouble() + lateral_noise.first) * si::meters;
+    auto y = (moos_buffer["NAV_Y"].GetDouble() + lateral_noise.second) * si::meters;
     auto depth = moos_buffer["NAV_DEPTH"].GetDouble() * si::meters;
 
     // very simple vertical depth simulation assuming perfect controller
@@ -381,10 +398,10 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
         double hdop =
             is_dropout ? sim_cfg_.gps_hdop_dropout()
-                       : static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.gps_hdop_rand_max();
+                       : gps_noise_generator_.hdop;
         double pdop =
             is_dropout ? sim_cfg_.gps_pdop_dropout()
-                       : static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.gps_pdop_rand_max();
+                       : gps_noise_generator_.pdop;
 
         sky.set_hdop(hdop);
         sky.set_pdop(pdop);

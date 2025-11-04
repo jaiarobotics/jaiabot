@@ -25,6 +25,19 @@ import "dccl/option_extensions.proto";
 
 package jaiabot.protobuf;
 
+message GPSNoise 
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional double lateral_r95 = 1
+        [(dccl.field) = { units { derived_dimensions: "length" } }, default = 5.0];
+    
+    // phi for AR(1) process modeling temporal correlation
+    optional double lateral_phi = 4 [default = 0.999];
+}
+
 message SimulatorCommand
 {
     option (dccl.msg) = {
@@ -46,5 +59,6 @@ message SimulatorCommand
     {
         GPSDropOut gps_dropout = 1;
         StopForwardProgress stop_forward_progress = 2;
+        GPSNoise gps_noise = 3;
     }
 }
