@@ -996,47 +996,8 @@ struct ReacquireGPS
     ReacquireGPS(typename StateBase::my_context c);
     ~ReacquireGPS(){};
 
-    void gps(const EvVehicleGPS& ev)
-    {
-        if ((ev.hdop <= this->machine().transit_hdop_req()) &&
-            (ev.pdop <= this->machine().transit_pdop_req()))
-        {
-            // Increment gps fix checks until we are > the threshold for confirming gps fix
-            if (gps_fix_check_incr_ < (this->machine().transit_gps_fix_checks() - 1))
-            {
-                goby::glog.is_debug2() &&
-                    goby::glog << "GPS has a good fix, but has not "
-                                  "reached threshold for total checks"
-                                  " "
-                               << gps_fix_check_incr_ << " < "
-                               << (this->machine().transit_gps_fix_checks() - 1) << std::endl;
-                // Increment until we reach total gps fix checks
-                gps_fix_check_incr_++;
-            }
-            else
-            {
-                goby::glog.is_debug2() &&
-                    goby::glog << "GPS has a good fix, Post EvGPSFix, hdop is " << ev.hdop
-                               << " <= " << this->machine().transit_hdop_req() << ", pdop is "
-                               << ev.pdop << " <= " << this->machine().transit_pdop_req()
-                               << " Reset incr for gps degraded fix" << std::endl;
-
-                // Post Event for gps fix
-                this->post_event(statechart::EvGPSFix());
-            }
-        }
-        else
-        {
-            // Reset gps fix incrementor
-            gps_fix_check_incr_ = 0;
-        }
-    }
-
     using reactions = boost::mpl::list<
-        boost::statechart::transition<EvGPSFix,
-                                      boost::statechart::deep_history<underway::Abort // default
-                                                                      >>,
-        boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPS, &ReacquireGPS::gps>>;
+        boost::statechart::transition<EvHeadingUncertaintyResolved, boost::statechart::deep_history<underway::Abort>>>;
 
   private:
     int gps_fix_check_incr_{0};
@@ -1152,50 +1113,9 @@ struct IvPSensorPauseCommon : boost::statechart::state<Derived, Parent>,
 
     ~IvPSensorPauseCommon(){};
 
-    void gps(const EvVehicleGPS& ev)
-    {
-        if ((ev.hdop <= this->machine().transit_hdop_req()) &&
-            (ev.pdop <= this->machine().transit_pdop_req()))
-        {
-            // Reset Counter For Degraded Checks
-            gps_degraded_fix_check_incr_ = 0;
-        }
-        else
-        {
-            // Increment degraded checks until we are > the threshold for confirming degraded gps
-            if (gps_degraded_fix_check_incr_ <
-                (this->machine().transit_gps_degraded_fix_checks() - 1))
-            {
-                goby::glog.is_debug2() &&
-                    goby::glog << "GPS has a degraded fix, but has not "
-                                  "reached threshold for total checks: "
-                                  " "
-                               << gps_degraded_fix_check_incr_ << " < "
-                               << (this->machine().transit_gps_degraded_fix_checks() - 1)
-                               << std::endl;
-
-                // Increment until we reach total gps degraded fix checks
-                gps_degraded_fix_check_incr_++;
-            }
-            else
-            {
-                goby::glog.is_debug2() &&
-                    goby::glog << "GPS has a degraded fix, Post EvGPSNoFix, hdop is " << ev.hdop
-                               << " > " << this->machine().transit_hdop_req() << ", pdop is "
-                               << ev.pdop << " > " << this->machine().transit_pdop_req()
-                               << " Reset incr for gps fix" << std::endl;
-
-                // Post Event for no gps fix
-                this->post_event(statechart::EvGPSNoFix());
-            }
-        }
-    }
-
     using common_reactions =
-        boost::mpl::list<boost::statechart::in_state_reaction<EvVehicleGPS, IvPSensorPauseCommon,
-                                                              &IvPSensorPauseCommon::gps>,
-                         boost::statechart::transition<EvGPSNoFix, pause::ReacquireGPS>,
-                         boost::statechart::transition<EvIMURestart, pause::IMURestart>>;
+                    boost::mpl::list<boost::statechart::transition<EvIMURestart, pause::IMURestart>,
+                         boost::statechart::transition<EvHeadingUncertaintyExceeded, pause::ReacquireGPS>>;
 
   private:
     int gps_degraded_fix_check_incr_{0};
