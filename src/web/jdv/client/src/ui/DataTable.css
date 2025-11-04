@@ -1,42 +1,42 @@
 .dataTable {
-  margin: 10pt 0 0 0;
-  overflow-x: scroll;              /* scroll entire table if content too wide */
-  border: 1px solid #ddd;        /* optional border around panel */
-  border-radius: 6px;
-  padding: 4pt;
+    margin: 10pt 0 0 0;
+    overflow-x: scroll; /* scroll entire table if content too wide */
+    border: 1px solid #ddd; /* optional border around panel */
+    border-radius: 6px;
+    padding: 4pt;
 }
 
 .dataTable > table {
-  width: max-content;            /* allow wide content */
-  min-width: 100%;               /* but don't shrink below panel width */
-  border-collapse: collapse;
-  table-layout: auto;
+    width: max-content; /* allow wide content */
+    min-width: 100%; /* but don't shrink below panel width */
+    border-collapse: collapse;
+    table-layout: auto;
 }
 
 .dataTable td {
-  padding: 6pt 10pt;
-  white-space: nowrap;
-  overflow: visible;
-  vertical-align: top;
-  box-sizing: border-box;
+    padding: 6pt 10pt;
+    white-space: nowrap;
+    overflow: visible;
+    vertical-align: top;
+    box-sizing: border-box;
 }
 
 /* Key column smaller */
 .dataTable td:first-child {
-  width: 25%;
-  font-weight: 600;
-  border-right: 1px solid #ccc;  /* divider between key and value */
-  padding-right: 15pt;
+    width: 25%;
+    font-weight: 600;
+    border-right: 1px solid #ccc; /* divider between key and value */
+    padding-right: 15pt;
 }
 
 /* Value column larger */
 .dataTable td:last-child {
-  width: 75%;
-  padding-left: 15pt;
+    width: 75%;
+    padding-left: 15pt;
 }
 
 .dataTable th {
-  text-align: left;
-  background-color: aliceblue;
-  padding: 6pt 10pt;
+    text-align: left;
+    background-color: aliceblue;
+    padding: 6pt 10pt;
 }
