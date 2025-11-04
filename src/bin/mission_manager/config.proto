@@ -243,4 +243,8 @@ message MissionManager
 
     optional jaiabot.protobuf.CameraCommand start_camera_command = 90;
     optional jaiabot.protobuf.CameraCommand stop_camera_command = 91;
+
+    optional double max_allowed_heading_uncertainty = 92 [default = 20.0, (dccl.field).units = { derived_dimensions: "plane_angle" system: "angle::degree" }]; // Max heading uncertainty before we consider GPS degraded
+    optional double ok_lateral_r95 = 93 [default = 10.0, (dccl.field).units = { base_dimensions: "L" }]; // Precision is always good enough if R95 is less than this value
+    optional double heading_uncertainty_recovery_time = 94 [default = 30.0, (dccl.field).units = { base_dimensions: "T" }]; // Time the lateral precision must be good before we consider the heading uncertainty resolved
 }
