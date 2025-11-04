@@ -126,11 +126,12 @@ subnet_mask: $subnet_mask
 
 start_camera_command {
     id: 1
-    type: START_IMAGES
-    image_capture_interval: 2 # seconds
+    type: START_VIDEO
 }
 
 stop_camera_command {
     id: 2
-    type: STOP_IMAGES
+    type: STOP_VIDEO
 }
+
+camera_available: $camera_available
