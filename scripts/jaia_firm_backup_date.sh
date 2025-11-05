@@ -73,8 +73,6 @@ while true; do
     current_time=$(date +%s)
     elapsed=$((current_time - start_time))
 
-    echo $elapsed
-
     if [[ $elapsed -gt $timeout_duration && $setting_time_timeout -eq 0 ]]; then
       echo "Timeout: Moving on..."
 
