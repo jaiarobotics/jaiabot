@@ -25,12 +25,14 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "machine_common.h"
 #include <fstream>
+#include <cmath>
 #include <goby/util/seawater.h>
 #include <google/protobuf/util/json_util.h>
 #include <cmath>
 
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/utils/mission_manager_utils.h"
 using jaiabot::protobuf::EchoCommand;
 using jaiabot::protobuf::IMUCommand;
 
@@ -1854,7 +1856,7 @@ struct PoweredAscent
 
 struct ReacquireGPS
     : boost::statechart::state<ReacquireGPS, Dive>,
-      Notify<PoweredAscent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS,
+      Notify<ReacquireGPS, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS,
              protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<ReacquireGPS, Dive>;
