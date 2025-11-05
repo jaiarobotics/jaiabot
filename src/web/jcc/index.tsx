@@ -26,12 +26,12 @@ const statusInterval = setInterval(async () => {
             console.error(`Response status: ${response.status}`);
         } else {
             const json = await response.json();
-            if (json.messages.error) {
-                handleStatusError(json.messages.error);
+            updateBots(json.bots);
+            updateHubs(json.hubs);
+            updateOpenLayers();
+            if (json.messages.error && json.messages.error === HUB_CONNECTION_ERROR) {
+                updateDisconnectedWarning(true);
             } else {
-                updateBots(json.bots);
-                updateHubs(json.hubs);
-                updateOpenLayers();
                 updateDisconnectedWarning(false);
             }
         }
@@ -55,18 +55,6 @@ const taskPacketInterval = setInterval(async () => {
         console.error(error);
     }
 }, TASK_PACKET_POLL_TIME);
-
-/**
- * Displays the warning coming from the server
- *
- * @param {string} error Error message from the web server
- * @returns {void}
- */
-function handleStatusError(error: string) {
-    if (error === HUB_CONNECTION_ERROR) {
-        updateDisconnectedWarning(true);
-    }
-}
 
 /**
  * Moves Bot data from the server to the client-side data model
