@@ -6,6 +6,7 @@ timekeeper_file="${timekeeper_dir}/time.txt"
 # Flags to prevent redundant system clock sets
 gps_time_set=0
 ntp_time_set=0
+setting_time_timeout=0
 
 # Create directory if missing
 if [ ! -d "${timekeeper_dir}" ]; then
@@ -22,17 +23,10 @@ else
   echo "No saved time file found."
 fi
 
-SECONDS=0
-timeout=120
+start_time=$(date +%s)
+timeout_duration=120
 
 while true; do
-
-  if (( SECONDS >= timeout )); then
-    echo "Timeout: Moving on..."
-    systemd-notify --ready
-    SECONDS=0
-  fi
-
   # Check NTP status
   ntp_status=$(timedatectl show --property=NTPSynchronized --value)
 
@@ -76,6 +70,36 @@ while true; do
 
   # Adjust sleep time: check faster until time is set by GPS or NTP
   if [[ $gps_time_set -eq 0 && $ntp_time_set -eq 0 ]]; then
+    current_time=$(date +%s)
+    elapsed=$((current_time - start_time))
+
+    echo $elapsed
+
+    if [[ $elapsed -gt $timeout_duration && $setting_time_timeout -eq 0 ]]; then
+      echo "Timeout: Moving on..."
+
+      gps_time_iso=$(timeout 10 gpspipe -w -n 50 2>/dev/null | \
+        grep '"class":"TPV"' | grep '"ept":' | \
+        sed -n 's/.*"time":"\([^"]*\)".*/\1/p' | tail -n1)
+
+      if [[ -n "$gps_time_iso" ]]; then
+        gps_time_fmt=$(echo "$gps_time_iso" | sed 's/T/ /; s/Z/ UTC/')
+        echo "Got GPS time: $gps_time_fmt"
+
+        echo "Setting system clock from GPS once..."
+        timedatectl set-time "$gps_time_fmt"
+
+        # Always write GPS time to backup file
+        echo "$gps_time_fmt" | tee "$timekeeper_file" >/dev/null
+        echo "Saved GPS time to $timekeeper_file"
+
+        gps_time_set=1
+      fi
+
+      systemd-notify --ready
+      setting_time_timeout=1
+    fi
+
     sleep 10
   else
     echo "Time set: Moving on..."
