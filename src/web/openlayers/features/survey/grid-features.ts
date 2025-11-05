@@ -132,6 +132,12 @@ function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
     });
 }
 
+/**
+ * Gets the path to the survey point icon
+ *
+ * @param {number} waypointNum Identifies which task to render on the waypoint
+ * @returns {string} Path to survey point icon
+ */
 function getSurveyPointSrc(waypointNum: number) {
     if (
         gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK &&
@@ -142,6 +148,12 @@ function getSurveyPointSrc(waypointNum: number) {
     return getSrc(gridPlan.getSurveyTask().getType());
 }
 
+/**
+ * Selects the correct survey point icon based on the provided task
+ *
+ * @param {TaskType} taskType Determine which icon to render
+ * @returns {string} Path to survey icon
+ */
 function getSrc(taskType: TaskType) {
     switch (taskType) {
         case TaskType.DIVE:
@@ -155,6 +167,13 @@ function getSrc(taskType: TaskType) {
     }
 }
 
+/**
+ * Provides the correct survey point color based on location
+ * in grid and state
+ *
+ * @param {number} waypointNum Used to identify last point in grid
+ * @returns {string} Color to be applied to survey point
+ */
 function getSurveyPointColor(waypointNum: number) {
     if (gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK) {
         if (isFinalGridPoint(waypointNum)) {
@@ -166,6 +185,11 @@ function getSurveyPointColor(waypointNum: number) {
     return OpenLayersColors.EDIT;
 }
 
+/**
+ * Changes line color based on survey planning state
+ *
+ * @returns {string} Color to be applied to survey linestring
+ */
 function getSurveyLaneColor() {
     if (gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK) {
         return OpenLayersColors.DEFAULT;
@@ -173,6 +197,12 @@ function getSurveyLaneColor() {
     return OpenLayersColors.EDIT;
 }
 
+/**
+ * Checks whether the waypoint is the final point in the grid
+ *
+ * @param {number} waypointNum Which waypoint to evaluate
+ * @returns {boolean} True if the waypoint num is the last point in the grid
+ */
 function isFinalGridPoint(waypointNum: number) {
     const firstMission = gridPlan.getMissions().get(FIRST_MISSION_ID);
     if (firstMission && waypointNum === firstMission.getWaypoints().length - MISSION_ENDPOINTS) {
