@@ -538,12 +538,6 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
             drift_packet.start_location(), 
             drift_packet.estimated_drift().speed(), 
             drift_packet.estimated_drift().heading());
-
-        // Convert dive start and end locations to Cartesian meters
-        auto dive_start_xy = machine().geodesy().convert(
-            {dive_packet.start_location().lat_with_units(), dive_packet.start_location().lon_with_units()});
-        auto dive_end_xy = machine().geodesy().convert(
-            {dive_end_location.lat_with_units(), dive_end_location.lon_with_units()});
         
         // Calculate subsurface displacement (from dive start to dive end)
         auto subsurface_displacement = jaiabot::utils::haversine(

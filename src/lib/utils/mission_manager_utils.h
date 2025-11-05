@@ -17,7 +17,7 @@ struct PolarCoordinate
 };
 
 // Calculate new geographic position from a starting point, distance, and heading
-// distance: meters, heading: compass degrees (0=North, 90=East)
+// distance: meters, heading: compass degrees (0=North)
 inline jaiabot::protobuf::GeographicCoordinate calculate_position_from_offset(
     const goby::util::UTMGeodesy& geodesy,
     const jaiabot::protobuf::GeographicCoordinate& start_location,
@@ -53,7 +53,7 @@ inline jaiabot::protobuf::GeographicCoordinate calculate_position_from_offset(
 }
 
 // Converts a cartesian coordinate (x, y) to a polar coordinate (r, θ)
-// Output: heading in compass degrees (0° = North, 90° = East, 180° = South, 270° = West)
+// Output: heading in compass degrees (0° = North)
 inline PolarCoordinate convert_cartesian_to_polar(double start_x, double start_y, double end_x, double end_y)
 {
     double delta_x = end_x - start_x;
@@ -95,6 +95,7 @@ inline jaiabot::protobuf::GeographicCoordinate find_dive_end_location(
     return calculate_position_from_offset(geodesy, drift_start_location, gps_acquire_distance, opposite_heading);
 }
 
+// Function from GeeksForGeeks: https://www.geeksforgeeks.org/dsa/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
 inline float haversine(float lat1, float lon1,
     float lat2, float lon2)
 {
@@ -119,7 +120,6 @@ inline float haversine(float lat1, float lon1,
     return rad * c * 1000.0; // Convert to meters
 }
 
-// Function to calculate the initial bearing in degrees
 inline float calculateBearing(float lat1_deg, float lon1_deg, float lat2_deg, float lon2_deg) {
     // Convert latitudes and longitudes from degrees to radians
     float lat1_rad = lat1_deg * M_PI / 180.0;

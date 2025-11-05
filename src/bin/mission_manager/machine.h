@@ -1856,7 +1856,7 @@ struct PoweredAscent
 
 struct ReacquireGPS
     : boost::statechart::state<ReacquireGPS, Dive>,
-      Notify<PoweredAscent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS,
+      Notify<ReacquireGPS, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS,
              protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<ReacquireGPS, Dive>;
