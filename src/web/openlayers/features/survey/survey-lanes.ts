@@ -14,9 +14,9 @@ import waypointIcon from "../../../style/icons/waypoint.svg";
 import waypointDiveIcon from "../../../style/icons/waypoint-dive.svg";
 import waypointDriftIcon from "../../../style/icons/waypoint-drift.svg";
 import { MapFeatureTypes } from "../../../types/openlayers-types";
+import { MISSION_ENDPOINTS } from "../../../utils/constants";
 
 const FIRST_MISSION_ID = 1;
-const MISSION_ENDPOINTS = 2;
 
 /**
  * Creates a line from the start of the drag to the last drag position
