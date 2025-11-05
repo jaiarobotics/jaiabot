@@ -1085,7 +1085,6 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::PoweredAsce
 
     powered_ascent_motor_off_timeout_ = start_timeout + powered_ascent_motor_off_duration_;
 
-    //context<Dive>().set_current_depth(context<Dive>().dive_packet().depth_achieved());
     last_depth_ = context<Dive>().dive_packet().depth_achieved_with_units();
 
     loop(EvLoop());
