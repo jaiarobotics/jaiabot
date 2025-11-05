@@ -10,6 +10,8 @@ import { GeographicCoordinate } from "../../../types/protobuf-types";
 import surveyStartIcon from "../../../style/icons/survey-start.svg";
 import surveyEndIcon from "../../../style/icons/survey-end.svg";
 
+const CIRCLE_RADIUS = 20;
+
 /**
  * Creates a point on the map to indicate the start or end of a survey
  *
@@ -52,6 +54,12 @@ function generateSurveyEndpointStyle(endpoint: SurveyEndpoints) {
     });
 }
 
+/**
+ * Creates a circle around a location to highlight it on the map
+ *
+ * @param {GeographicCoordinate} location Center of circle
+ * @returns {Feature} Circle around location
+ */
 export function generateSurveyEndpointCircle(location: GeographicCoordinate) {
     if (!location) {
         return new Feature();
@@ -59,12 +67,17 @@ export function generateSurveyEndpointCircle(location: GeographicCoordinate) {
 
     const coordinate: Coordinate = [location.lon, location.lat];
     const feature = new Feature({
-        geometry: new Circle(fromLonLat(coordinate, view.getProjection()), 20),
+        geometry: new Circle(fromLonLat(coordinate, view.getProjection()), CIRCLE_RADIUS),
     });
     feature.setStyle(generateSurveyCircleStyle());
     return feature;
 }
 
+/**
+ * Creates the style for highlighting a point on the map
+ *
+ * @returns {Style} Colors a feature yellow
+ */
 function generateSurveyCircleStyle() {
     const style = new Style({
         stroke: new Stroke({

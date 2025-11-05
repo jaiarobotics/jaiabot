@@ -259,9 +259,14 @@ function GridConfigs(props: Props) {
 }
 
 /**
- * Renders the fourth panel in the series of building a grid-survey mission set
+ * Renders the task setting windows in the series of building a grid-survey mission set
  */
 function TaskConfigs(props: Props) {
+    /**
+     * Gets the task to to be modifed based on the task position
+     *
+     * @returns {Task} Task to be modified
+     */
     const getTask = () => {
         switch (props.taskPosition) {
             case TaskPosition.START:
@@ -273,6 +278,11 @@ function TaskConfigs(props: Props) {
         }
     };
 
+    /**
+     * Gets the label for the task selection menu
+     *
+     * @returns {string} Label for the task selection menu
+     */
     const getTitle = () => {
         switch (props.taskPosition) {
             case TaskPosition.START:
@@ -284,6 +294,11 @@ function TaskConfigs(props: Props) {
         }
     };
 
+    /**
+     * Creates the list of task types for the dropdown menu
+     *
+     * @returns {MenuItem[]} List of task types
+     */
     const getMenuItems = () => {
         const menuItems = [
             <MenuItem value={TaskType.NONE}>{snakeCaseToTitleCase(TaskType.NONE)}</MenuItem>,
@@ -302,6 +317,11 @@ function TaskConfigs(props: Props) {
         return menuItems;
     };
 
+    /**
+     * Returns the task parameters section when a task is selected
+     *
+     * @returns {React.Element} Task parameters section
+     */
     const getTaskParametersContainer = () => {
         if (getTask().getType() === TaskType.NONE) {
             return;

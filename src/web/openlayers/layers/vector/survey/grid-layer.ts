@@ -33,13 +33,11 @@ class GridLayer extends JaiaVectorLayer {
     private drawSource: VectorSource;
     private layerSource: VectorSource;
     private centerLine: TurfFeature<TurfLineString>;
-    private endpointCircle: Feature;
 
     constructor() {
         super(LayerTitles.GRID_LAYER, layersZIndexes.get(LayerTitles.GRID_LAYER));
         this.drawSource = new VectorSource();
         this.layerSource = this.getVectorLayer().getSource();
-        this.endpointCircle = new Feature();
     }
 
     override updateFeatures() {}
@@ -213,6 +211,15 @@ class GridLayer extends JaiaVectorLayer {
     }
 
     /**
+     * Adds a yellow circle around the mission start point
+     *
+     * @returns {void}
+     */
+    highlightStartpoint() {
+        this.layerSource.addFeature(generateSurveyEndpointCircle(gridPlan.getMissionStart()));
+    }
+
+    /**
      * Trims the lanes to the final waypoint and (optionally) saves the lanes into
      * missions to be processed by the rest of the app
      *
@@ -249,14 +256,6 @@ class GridLayer extends JaiaVectorLayer {
                 gridPlan.getMissions().set(mission.getMissionID(), mission);
             }
         }
-    }
-
-    highlightEndpoint(endpoint: SurveyEndpoints) {
-        this.layerSource.removeFeature(this.endpointCircle);
-        if (endpoint === SurveyEndpoints.START) {
-            this.endpointCircle = generateSurveyEndpointCircle(gridPlan.getMissionStart());
-        }
-        this.layerSource.addFeature(this.endpointCircle);
     }
 
     /**
