@@ -538,11 +538,6 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
             drift_packet.estimated_drift().speed(), 
             drift_packet.estimated_drift().heading());
 
-        // glog.is_debug1() && glog << "Dive start: " << dive_packet.start_location().lat() << ", " 
-        //                          << dive_packet.start_location().lon() << std::endl;
-        // glog.is_debug1() && glog << "Dive end: " << dive_end_location.lat() << ", " 
-        //                          << dive_end_location.lon() << std::endl;
-
         // Convert dive start and end locations to Cartesian meters
         auto dive_start_xy = machine().geodesy().convert(
             {dive_packet.start_location().lat_with_units(), dive_packet.start_location().lon_with_units()});
@@ -564,17 +559,6 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
         auto* subsurface_current = context<Task>().task_packet().mutable_dive()->mutable_subsurface_current();
         subsurface_current->set_velocity(subsurface_velocity);
         subsurface_current->set_heading(subsurface_heading);
-
-        // glog.is_warn() && glog << std::setprecision(10) 
-        //                          << "Dive start: " << dive_packet.start_location().lat() << ", " 
-        //                          << dive_packet.start_location().lon() << std::endl;
-        // glog.is_warn() && glog << std::setprecision(10)
-        //                          << "Dive end: " << dive_end_location.lat() << ", " 
-        //                          << dive_end_location.lon() << std::endl;
-        // glog.is_warn() && glog << "Dive hold time: " << current_dive().hold_time() << " seconds, " 
-        //                          << "Dive distance: " << subsurface_displacement << " meters" << std::endl;
-        // glog.is_warn() && glog << "Subsurface current: " << subsurface_velocity << " m/s at " 
-        //                          << subsurface_heading << " degrees" << std::endl;
     }
 
     // Is echo recording?
