@@ -2,9 +2,11 @@
 Description=Backup the date to a file when we have a valid date time ntp
 
 [Service]
+Type=notify
 User=root
 Group=root
 ExecStart=$jaiabot_bin_dir/$exe $args
+NotifyAccess=all
 
 [Install]
 WantedBy=multi-user.target

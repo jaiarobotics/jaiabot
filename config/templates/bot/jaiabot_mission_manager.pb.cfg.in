@@ -61,6 +61,8 @@ dive_surface_eps: 0.75 # (optional) (default=0.75) Meters
 hard_bottom_type_acceleration: 100 # (optional) (default=100)
 min_subsurface_current_vector_hold_time: 10 # (optional) (default=10)
 min_subsurface_current_vector_drift_time: 15 # (optional) (default=15)
+pressure_sensor_to_waterline: 0.4572 # (optional) (default=0.4572) Meters
+pressure_sensor_to_tail: 0.3683 # (optional) (default=0.3683) Meters
 
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)
@@ -126,11 +128,12 @@ subnet_mask: $subnet_mask
 
 start_camera_command {
     id: 1
-    type: START_IMAGES
-    image_capture_interval: 2 # seconds
+    type: START_VIDEO
 }
 
 stop_camera_command {
     id: 2
-    type: STOP_IMAGES
+    type: STOP_VIDEO
 }
+
+camera_available: $camera_available
