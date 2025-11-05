@@ -7,14 +7,15 @@ import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 import { view } from "../../views/view";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
 import { TaskType } from "../../../types/protobuf-types";
+import { MapFeatureTypes } from "../../../types/openlayers-types";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
 import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
+import { MISSION_ENDPOINTS } from "../../../utils/constants";
 
 import waypointIcon from "../../../style/icons/waypoint.svg";
 import waypointDiveIcon from "../../../style/icons/waypoint-dive.svg";
 import waypointDriftIcon from "../../../style/icons/waypoint-drift.svg";
-import { MapFeatureTypes } from "../../../types/openlayers-types";
-import { MISSION_ENDPOINTS } from "../../../utils/constants";
+import waypointConstantHeadingIcon from "../../../style/icons/waypoint-constant-heading.svg";
 
 const FIRST_MISSION_ID = 1;
 
@@ -107,19 +108,9 @@ function generateSurveyLaneStyle() {
  * @returns {Style} Style to be applied to a survey waypoint
  */
 function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
-    let imageSrc = waypointIcon;
-    switch (gridPlan.getSurveyTask().getType()) {
-        case TaskType.DIVE:
-            imageSrc = waypointDiveIcon;
-            break;
-        case TaskType.SURFACE_DRIFT:
-            imageSrc = waypointDriftIcon;
-            break;
-    }
-
     return new Style({
         image: new Icon({
-            src: imageSrc,
+            src: getSurveyPointSrc(waypointNum),
             anchor: [0.5, 1],
             color: getSurveyPointColor(waypointNum),
         }),
@@ -141,13 +132,32 @@ function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
     });
 }
 
+function getSurveyPointSrc(waypointNum: number) {
+    if (
+        gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK &&
+        isFinalGridPoint(waypointNum)
+    ) {
+        return getSrc(gridPlan.getEndTask().getType());
+    }
+    return getSrc(gridPlan.getSurveyTask().getType());
+}
+
+function getSrc(taskType: TaskType) {
+    switch (taskType) {
+        case TaskType.DIVE:
+            return waypointDiveIcon;
+        case TaskType.SURFACE_DRIFT:
+            return waypointDriftIcon;
+        case TaskType.CONSTANT_HEADING:
+            return waypointConstantHeadingIcon;
+        case TaskType.NONE:
+            return waypointIcon;
+    }
+}
+
 function getSurveyPointColor(waypointNum: number) {
     if (gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK) {
-        const firstMission = gridPlan.getMissions().get(FIRST_MISSION_ID);
-        if (
-            firstMission &&
-            waypointNum === firstMission.getWaypoints().length - MISSION_ENDPOINTS
-        ) {
+        if (isFinalGridPoint(waypointNum)) {
             return OpenLayersColors.EDIT;
         } else {
             return OpenLayersColors.DEFAULT;
@@ -161,4 +171,12 @@ function getSurveyLaneColor() {
         return OpenLayersColors.DEFAULT;
     }
     return OpenLayersColors.EDIT;
+}
+
+function isFinalGridPoint(waypointNum: number) {
+    const firstMission = gridPlan.getMissions().get(FIRST_MISSION_ID);
+    if (firstMission && waypointNum === firstMission.getWaypoints().length - MISSION_ENDPOINTS) {
+        return true;
+    }
+    return false;
 }
