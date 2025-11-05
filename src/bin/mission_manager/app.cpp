@@ -257,10 +257,13 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
         {
-            current_tpv_ = tpv;
-
-            // TODO make sure this meets gps requirements
-            machine_->set_gps_tpv(current_tpv_);
+            if (tpv.has_mode() &&
+                (tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D ||
+                 tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode3D))
+            {
+                current_tpv_ = tpv;
+                machine_->set_gps_tpv(current_tpv_);
+            }
         });
 
     // subscribe for GPS data (to reacquire gps)
@@ -276,12 +279,6 @@ jaiabot::apps::MissionManager::MissionManager()
                 ev.hdop = sky.hdop();
                 ev.pdop = sky.pdop();
                 machine_->process_event(ev);
-
-                // Publish TPV that meets our mission requirements
-                if (current_tpv_.IsInitialized())
-                {
-                    machine_->set_gps_tpv(current_tpv_);
-                }
             }
         });
 
