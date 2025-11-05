@@ -17,7 +17,7 @@ import { touches } from "../../../controls/touches";
 import { gridPlan } from "../../../../data/survey_planner/grid-plan";
 import { LayerTitles, SurveyEndpoints } from "../../../../types/openlayers-types";
 import { layersZIndexes } from "../../zindex";
-import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/survey-lanes";
+import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/grid-features";
 import {
     generateSurveyEndpoint,
     generateSurveyEndpointCircle,
