@@ -101,11 +101,14 @@ class CameraPositions(Enum):
      NO_CAMERA = "none"
 
 jaia_camera_positions=[]
-modes=os.environ['jaia_camera_positions']
-if modes:
-    for mode in modes.split(","):
-        jaia_camera_positions.append(CameraPositions(mode))
+try:
+    modes=os.environ['jaia_camera_positions']
+    if modes:
+        for mode in modes.split(","):
+            jaia_camera_positions.append(CameraPositions(mode))
 
-camera_available = False
-if CameraPositions.NO_CAMERA.value not in jaia_camera_positions:
-    camera_available = True
+    camera_available = False
+    if CameraPositions.NO_CAMERA.value not in jaia_camera_positions:
+        camera_available = True
+except KeyError:
+    camera_available = False
