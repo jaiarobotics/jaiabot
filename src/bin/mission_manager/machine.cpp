@@ -523,7 +523,9 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
     }
     
     // Calculate subsurface current if we have drift data
-    if (current_dive().hold_time() > 10 && context<Task>().task_packet().has_drift() && context<Task>().task_packet().drift().drift_duration() > 15)
+    // MUST have one hold, hold must be greater than 10 seconds, and drift must be greater than 15 seconds
+    // Minimums are configurable in the jaiabot/src/bin/mission_managerconfig.proto file
+    if (dive_packet().measurement_size() == 1 && current_dive().hold_time() >= cfg().min_subsurface_current_vector_hold_time() && context<Task>().task_packet().has_drift() && context<Task>().task_packet().drift().drift_duration() >= cfg().min_subsurface_current_vector_drift_time())
     {
         auto& dive_packet = context<Task>().task_packet().dive();
         auto& drift_packet = context<Task>().task_packet().drift();
@@ -559,9 +561,9 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
             dive_end_location.lat_with_units().value(), dive_end_location.lon_with_units().value());
 
         // Set the subsurface current in the dive packet
-        auto* subsurface = context<Task>().task_packet().mutable_dive()->mutable_subsurface_current();
-        subsurface->set_velocity(subsurface_velocity);
-        subsurface->set_heading(subsurface_heading);
+        auto* subsurface_current = context<Task>().task_packet().mutable_dive()->mutable_subsurface_current();
+        subsurface_current->set_velocity(subsurface_velocity);
+        subsurface_current->set_heading(subsurface_heading);
 
         // glog.is_warn() && glog << std::setprecision(10) 
         //                          << "Dive start: " << dive_packet.start_location().lat() << ", " 

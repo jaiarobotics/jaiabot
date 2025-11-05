@@ -243,4 +243,7 @@ message MissionManager
 
     optional jaiabot.protobuf.CameraCommand start_camera_command = 90;
     optional jaiabot.protobuf.CameraCommand stop_camera_command = 91;
+
+    optional int32 min_subsurface_current_vector_hold_time = 92 [default = 10];
+    optional int32 min_subsurface_current_vector_drift_time = 93 [default = 15];
 }

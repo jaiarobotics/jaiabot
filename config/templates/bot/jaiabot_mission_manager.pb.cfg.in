@@ -59,6 +59,8 @@ pitch_angle_checks: 3 # (optional) (default=3) Number of pitch data
 pitch_angle_min_check_time: 1 # (optional) (default=1) Seconds
 dive_surface_eps: 0.75 # (optional) (default=0.75) Meters
 hard_bottom_type_acceleration: 100 # (optional) (default=100)
+min_subsurface_current_vector_hold_time: 10 # (optional) (default=10)
+min_subsurface_current_vector_drift_time: 15 # (optional) (default=15)
 
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)
