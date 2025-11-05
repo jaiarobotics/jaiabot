@@ -120,30 +120,20 @@ inline float haversine(float lat1, float lon1,
     return rad * c * 1000.0; // Convert to meters
 }
 
-inline float calculateBearing(float lat1_deg, float lon1_deg, float lat2_deg, float lon2_deg) {
-    // Convert latitudes and longitudes from degrees to radians
-    float lat1_rad = lat1_deg * M_PI / 180.0;
-    float lon1_rad = lon1_deg * M_PI / 180.0;   
-    float lat2_rad = lat2_deg * M_PI / 180.0;
-    float lon2_rad = lon2_deg * M_PI / 180.0;
-
-    // Calculate the difference in longitude
-    float dLon_rad = lon2_rad - lon1_rad;
-
-    // Calculate the components for atan2
-    float y = std::sin(dLon_rad) * std::cos(lat2_rad);
-    float x = std::cos(lat1_rad) * std::sin(lat2_rad) - std::sin(lat1_rad) * std::cos(lat2_rad) * std::cos(dLon_rad);
-
-    // Calculate the bearing in radians
-    float bearing_rad = std::atan2(y, x);
-
-    // Convert bearing to degrees
-    float bearing_deg = bearing_rad * 180.0 / M_PI;
-
-    // Normalize the bearing to be within 0-360 degrees
-    float normalized_bearing = std::fmod((bearing_deg + 360.0), 360.0);
-
-    return normalized_bearing;
+inline float calculateHeading(double sx, double sy, double ex, double ey) {    
+    auto dx = ex - sx, dy = ey - sy;
+    
+    // atan2(dy, dx) returns math angle in radians from -π to π (-180° to 180°)
+    // Math angle: 0° = East, 90° = North (counterclockwise from positive X-axis)
+    // Convert to compass heading: 0° = North, 90° = East (clockwise from North)
+    double math_angle_rad = std::atan2(dy, dx);
+    double heading_rad = M_PI / 2.0 - math_angle_rad;
+    
+    if (heading_rad < 0)
+        heading_rad = heading_rad + (2.0 * M_PI);
+    
+    // Convert to degrees
+    return heading_rad * 180.0 / M_PI;
 }
 
 } // namespace utils

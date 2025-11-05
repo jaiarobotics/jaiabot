@@ -537,7 +537,7 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
             dive_packet.duration_to_acquire_gps(), 
             drift_packet.start_location(), 
             drift_packet.estimated_drift().speed(), 
-            drift_packet.estimated_drift().heading());
+            drift_packet.estimated_drift().heading()); 
         
         // Calculate subsurface displacement (from dive start to dive end)
         auto subsurface_displacement = jaiabot::utils::haversine(
@@ -545,10 +545,14 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
             dive_end_location.lat_with_units().value(), dive_end_location.lon_with_units().value());
         
         // Calculate subsurface velocity and heading
+        auto start_xy = this->machine().geodesy().convert(
+            {dive_packet.start_location().lat_with_units(), dive_packet.start_location().lon_with_units()}),
+        end_xy = this->machine().geodesy().convert(
+            {dive_end_location.lat_with_units(), dive_end_location.lon_with_units()});
+            
         float subsurface_velocity = subsurface_displacement / current_dive().hold_time();
-        float subsurface_heading = jaiabot::utils::calculateBearing(
-            dive_packet.start_location().lat_with_units().value(), dive_packet.start_location().lon_with_units().value(),
-            dive_end_location.lat_with_units().value(), dive_end_location.lon_with_units().value());
+        float subsurface_heading = jaiabot::utils::calculateHeading(
+            start_xy.x.value(), start_xy.y.value(), end_xy.x.value(), end_xy.y.value());
 
         // Set the subsurface current in the dive packet
         auto* subsurface_current = context<Task>().task_packet().mutable_dive()->mutable_subsurface_current();
