@@ -591,13 +591,6 @@ jaiabot_apps = [
      'exec_start_pre': '/usr/bin/reset-bio-payload-board.sh',
      'runs_on': [BOT_TYPE.BIO],
      'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_driver_camera',
-     'description': 'JaiaBot Driver Camera',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA',
-     'runs_on': [BOT_TYPE.BIO],
-     'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service'},
 ]
 
 if jaia_imu_type.value == 'bno085':
