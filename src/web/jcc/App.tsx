@@ -20,8 +20,8 @@ import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import SurveyPlanner from "../components/SurveyPlanner/SurveyPlanner";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
 import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
-import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
 import SimulationBanner from "../components/SimulationBanner/SimulationBanner";
+import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
 
 import "./App.less";
 
