@@ -38,3 +38,8 @@ export enum SurveyEndpoints {
     START = 1,
     END = 2,
 }
+
+export enum LineType {
+    SOLID = 1,
+    DASHED = 2,
+}

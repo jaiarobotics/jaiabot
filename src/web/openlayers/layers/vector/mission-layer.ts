@@ -1,7 +1,7 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { TaskType } from "../../../types/protobuf-types";
-import { LayerTitles } from "../../../types/openlayers-types";
+import { LayerTitles, LineType } from "../../../types/openlayers-types";
 
 import { layersZIndexes } from "../zindex";
 import {
@@ -43,7 +43,12 @@ class MissionLayer extends JaiaVectorLayer {
             }
 
             source.addFeature(
-                generateWaypointLineFeature(lineStartLocation, waypoint.getLocation(), missionID),
+                generateWaypointLineFeature(
+                    lineStartLocation,
+                    waypoint.getLocation(),
+                    LineType.SOLID,
+                    missionID,
+                ),
             );
         }
 
@@ -56,6 +61,7 @@ class MissionLayer extends JaiaVectorLayer {
                 generateWaypointLineFeature(
                     waypoint.getLocation(),
                     constantHeadingParamsToLocation(waypoint),
+                    LineType.DASHED,
                     missionID,
                 ),
             );
