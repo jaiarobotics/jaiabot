@@ -12,6 +12,7 @@ import { toLonLat } from "ol/proj";
 import { map } from "../../openlayers/maps/map";
 import { view } from "../../openlayers/views/view";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
+import { styleControlButtons } from "../../openlayers/controls/controls";
 import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 import { NodeTypes } from "../../types/jaia-system-types";
@@ -32,6 +33,7 @@ export default function Map() {
         map.on("click", (event: MapBrowserEvent<PointerEvent>) => {
             handleMapClick(event);
         });
+        styleControlButtons();
     }, []);
 
     /**
