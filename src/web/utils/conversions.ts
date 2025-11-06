@@ -1,3 +1,12 @@
+import * as turf from "@turf/turf";
+import { Units } from "@turf/helpers";
+
+import Waypoint from "../data/waypoints/waypoint";
+import { GeographicCoordinate } from "../types/protobuf-types";
+
+const units: Units = "kilometers";
+const options = { units: units };
+
 /**
  * Takes in a number in microseconds and returns the value in seconds
  *
@@ -41,4 +50,41 @@ export function bytesString(bytes: number) {
     } else {
         return (bytes / 1e9).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " GB";
     }
+}
+
+/**
+ * Uses the constant heading parameters and waypoint location to generate
+ * a projected end location
+ *
+ * @param {Waypoint} waypoint Contains the start location + task params
+ * @returns {GeographicCoordinate} Projected end point after constant heading
+ */
+export function constantHeadingParamsToLocation(waypoint: Waypoint) {
+    const origin = [waypoint.getLocation().lon, waypoint.getLocation().lat];
+    const params = waypoint.getTask().getConstantHeadingParameters();
+    // Seconds * meters per second = meters / 1000 = kilometers
+    const distance = (params.constant_heading_time * params.constant_heading_speed) / 1000;
+    const endPoint = turf.destination(origin, distance, params.constant_heading, options);
+    const coords = endPoint.geometry.coordinates;
+    return { lat: coords[1], lon: coords[0] };
+}
+
+/**
+ * Uses the requested end location to calculate the constant heading parameters
+ * of a waypoint
+ *
+ * @param {Waypoint} waypoint Contains the start location + current task params
+ * @param {GeographicCoordinate} location Requested end location of constant heading
+ * @returns {ConstantHeadingParameters} Copy of parameters with updated heading
+ */
+export function locationToConstantHeadingParams(
+    waypoint: Waypoint,
+    location: GeographicCoordinate,
+) {
+    const params = { ...waypoint.getTask().getConstantHeadingParameters() };
+    const startCoord = [waypoint.getLocation().lon, waypoint.getLocation().lat];
+    const endCoord = [location.lon, location.lat];
+    const bearing = turf.rhumbBearing(startCoord, endCoord);
+    params.constant_heading = bearing;
+    return params;
 }
