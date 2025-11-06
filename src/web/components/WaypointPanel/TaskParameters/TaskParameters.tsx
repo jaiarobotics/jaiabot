@@ -214,6 +214,10 @@ function ConstantHeading(props: SubProps) {
     const constantHeadingParameters = props.task.getConstantHeadingParameters();
     return (
         <div className="task-parameters">
+            <div className="select-on-map">
+                <div>Select on Map</div>
+                <JaiaToggle onClick={() => console.log("clicked")} checked={() => false} />
+            </div>
             <div>Heading</div>
             <input
                 name={TaskParameterKeys.HEADING}
