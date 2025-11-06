@@ -28,6 +28,11 @@ const rotateSVG = `
     </svg>
 `;
 
+/**
+ * Applies the jaia-button style to the map control buttons and attaches a MDI icon
+ *
+ * @returns {void}
+ */
 export function styleControlButtons() {
     const buttons = document.querySelectorAll(".ol-zoom-in, .ol-zoom-out, .ol-rotate-reset");
     buttons.forEach((button) => {
