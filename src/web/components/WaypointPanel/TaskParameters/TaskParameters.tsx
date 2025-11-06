@@ -42,7 +42,7 @@ export default function TaskParameters(props: Props) {
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PARAMETER,
             task: props.task,
-            taskParameterPair: [{ key, value }],
+            taskParameterPairs: [{ key, value }],
         });
     };
 
@@ -218,6 +218,7 @@ function ConstantHeading(props: Props) {
                 <JaiaToggle
                     onClick={props.handleSelectOnMapClick}
                     checked={() => props.mapMode === MapModes.CONSTANT_HEADING_SELECT}
+                    disabled={() => props.isDisabled}
                 />
             </div>
             <div>Heading</div>

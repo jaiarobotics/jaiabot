@@ -137,6 +137,7 @@ export function handleToggleConstantHeadingSelect(
     let updatedMapMode = MapModes.DEFAULT;
     if (jaiaGlobal.getMapMode() !== MapModes.CONSTANT_HEADING_SELECT) {
         updatedMapMode = MapModes.CONSTANT_HEADING_SELECT;
+        jaiaGlobal.getSelectedWaypoint().isMoveable = false;
     }
     handleMapModeChange(updatedMapMode);
     mutableState.mapMode = updatedMapMode;
