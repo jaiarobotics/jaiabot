@@ -1,13 +1,14 @@
 import React, { useContext } from "react";
 
 import JaiaToggle from "../../JaiaToggle/JaiaToggle";
-import { JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
 import Task from "../../../data/tasks/task";
 
 import { TaskParameterKeys } from "../../../types/jaia-system-types";
 import { TaskType } from "../../../types/protobuf-types";
+import { MapModes } from "../../../types/openlayers-types";
 import { formatNumericalInput } from "../../../utils/input";
 
 import "./TaskParameters.less";
@@ -15,25 +16,17 @@ import "./TaskParameters.less";
 interface Props {
     task: Task;
     isDisabled: boolean;
-}
-
-interface SubProps {
-    task: Task;
-    isDisabled: boolean;
-    onChange: (evt: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-interface DiveParameterProps {
-    task: Task;
-    isDisabled: boolean;
-    handleBottomDiveClick: () => void;
+    mapMode?: MapModes;
     onChange?: (evt: React.ChangeEvent<HTMLInputElement>) => void;
+    handleBottomDiveClick?: () => void;
+    handleSelectOnMapClick?: () => void;
 }
 
 /**
  * Renders input fields for the provided task
  */
 export default function TaskParameters(props: Props) {
+    const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     /**
@@ -49,7 +42,7 @@ export default function TaskParameters(props: Props) {
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PARAMETER,
             task: props.task,
-            taskParameterPair: { key, value },
+            taskParameterPair: [{ key, value }],
         });
     };
 
@@ -61,6 +54,10 @@ export default function TaskParameters(props: Props) {
      */
     const handleBottomDiveClick = () => {
         jaiaDispatch({ type: JaiaActions.TOGGLE_BOTTOM_DIVE, task: props.task });
+    };
+
+    const handleSelectOnMapClick = () => {
+        jaiaDispatch({ type: JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT });
     };
 
     switch (props.task?.getType()) {
@@ -86,7 +83,9 @@ export default function TaskParameters(props: Props) {
                 <ConstantHeading
                     task={props.task}
                     isDisabled={props.isDisabled}
+                    mapMode={jaiaContext.mapMode}
                     onChange={onParameterChange}
+                    handleSelectOnMapClick={handleSelectOnMapClick}
                 />
             );
         default:
@@ -97,7 +96,7 @@ export default function TaskParameters(props: Props) {
 /**
  * Renders input fields for a dive task
  */
-function DiveParameters(props: DiveParameterProps) {
+function DiveParameters(props: Props) {
     const diveParameters = props.task.getDiveParameters();
 
     if (props.task.getIsBottomDive()) {
@@ -189,7 +188,7 @@ function DiveParameters(props: DiveParameterProps) {
 /**
  * Renders input fields for a drift task
  */
-function DriftParameters(props: SubProps) {
+function DriftParameters(props: Props) {
     return (
         <div className="task-parameters">
             <div>Drift Time</div>
@@ -210,13 +209,16 @@ function DriftParameters(props: SubProps) {
 /**
  * Renders input fields for a constant heading task
  */
-function ConstantHeading(props: SubProps) {
+function ConstantHeading(props: Props) {
     const constantHeadingParameters = props.task.getConstantHeadingParameters();
     return (
         <div className="task-parameters">
             <div className="select-on-map">
                 <div>Select on Map</div>
-                <JaiaToggle onClick={() => console.log("clicked")} checked={() => false} />
+                <JaiaToggle
+                    onClick={props.handleSelectOnMapClick}
+                    checked={() => props.mapMode === MapModes.CONSTANT_HEADING_SELECT}
+                />
             </div>
             <div>Heading</div>
             <input
@@ -269,7 +271,7 @@ function ConstantHeading(props: SubProps) {
 /**
  * Renders the bottom dive toggle and its labeL
  */
-function BottomDiveToggle(props: DiveParameterProps) {
+function BottomDiveToggle(props: Props) {
     return (
         <div className="bottom-dive-toggle-container">
             <p>Bottom Dive</p>

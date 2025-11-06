@@ -85,6 +85,9 @@ export function locationToConstantHeadingParams(
     const startCoord = [waypoint.getLocation().lon, waypoint.getLocation().lat];
     const endCoord = [location.lon, location.lat];
     const bearing = turf.rhumbBearing(startCoord, endCoord);
+    // Convert km to m
+    const distance = turf.distance(startCoord, endCoord, options) * 1000;
     params.constant_heading = bearing;
+    params.constant_heading_time = distance / params.constant_heading_speed;
     return params;
 }

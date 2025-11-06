@@ -3,9 +3,11 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { handleMapModeChange } from "../../openlayers/maps/map";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { MapModes } from "../../types/openlayers-types";
 
 /**
  * Makes call to add waypoint if mission is in edit mode
@@ -104,7 +106,10 @@ export function handleSelectTask(mutableState: JaiaContextType, action: JaiaActi
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleChangeTaskParameter(mutableState: JaiaContextType, action: JaiaAction) {
-    action.task.setParameter(action.taskParameterPair);
+    for (const taskParameterPair of action.taskParameterPairs) {
+        action.task.setParameter(taskParameterPair);
+    }
+    missionLayer.updateFeatures();
     return mutableState;
 }
 
@@ -116,6 +121,25 @@ export function handleChangeTaskParameter(mutableState: JaiaContextType, action:
  */
 export function handleToggleBottomDive(mutableState: JaiaContextType, action: JaiaAction) {
     action.task.setIsBottomDive(!action.task.getIsBottomDive());
+    return mutableState;
+}
+
+/**
+ * Updates the map mode when the constant heading select on map toggle is clicked
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleToggleConstantHeadingSelect(
+    mutableState: JaiaContextType,
+    action: JaiaAction,
+) {
+    let updatedMapMode = MapModes.DEFAULT;
+    if (jaiaGlobal.getMapMode() !== MapModes.CONSTANT_HEADING_SELECT) {
+        updatedMapMode = MapModes.CONSTANT_HEADING_SELECT;
+    }
+    handleMapModeChange(updatedMapMode);
+    mutableState.mapMode = updatedMapMode;
     return mutableState;
 }
 

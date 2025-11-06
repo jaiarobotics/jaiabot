@@ -100,6 +100,7 @@ export default class Task {
                 this.driftParameters.drift_time = value;
                 break;
             case TaskParameterKeys.HEADING:
+                value = (value + this.MAX_HEADING_CONSTRAINT) % this.MAX_HEADING_CONSTRAINT;
                 value = clampInput(value, this.ZERO_LOWER_BOUND, this.MAX_HEADING_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading = value;
                 break;

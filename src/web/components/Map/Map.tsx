@@ -15,9 +15,10 @@ import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { styleControlButtons } from "../../openlayers/controls/controls";
 import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
-import { NodeTypes } from "../../types/jaia-system-types";
+import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { locationToConstantHeadingParams } from "../../utils/conversions";
 
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
@@ -52,6 +53,9 @@ export default function Map() {
                 return;
             case MapModes.SURVEY_PLANNING:
                 handleSurveyPlanningClick(event.coordinate);
+                return;
+            case MapModes.CONSTANT_HEADING_SELECT:
+                handleConstantHeadingSelectClick(event.coordinate);
                 return;
         }
 
@@ -150,6 +154,37 @@ export default function Map() {
         jaiaDispatch({
             type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
             gridPlanningState: nextState,
+        });
+    };
+
+    /**
+     * Triggers the calls to update the constant heading projection
+     * based on the click location
+     *
+     * @param coordinate Location of click on map
+     * @returns {void}
+     */
+    const handleConstantHeadingSelectClick = (coordinate: Coordinate) => {
+        const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+        const mission = missionSet.getMission(selectedWaypoint.missionID);
+        const waypoint = mission.getWaypoint(selectedWaypoint.waypointNum);
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        const location = { lon: lonLat[0], lat: lonLat[1] };
+        const params = locationToConstantHeadingParams(waypoint, location);
+        const taskParameterPairs = [
+            {
+                key: TaskParameterKeys.HEADING,
+                value: params.constant_heading,
+            },
+            {
+                key: TaskParameterKeys.CONSTANT_HEADING_TIME,
+                value: params.constant_heading_time,
+            },
+        ];
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_TASK_PARAMETER,
+            task: waypoint.getTask(),
+            taskParameterPairs: taskParameterPairs,
         });
     };
 

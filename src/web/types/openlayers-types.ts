@@ -32,6 +32,7 @@ export enum MapModes {
     RALLY = "RALLY",
     MEASURE = "MEASURE",
     SURVEY_PLANNING = "SURVEY_PLANNING",
+    CONSTANT_HEADING_SELECT = "CONSTANT_HEADING_SELECT",
 }
 
 export enum SurveyEndpoints {
