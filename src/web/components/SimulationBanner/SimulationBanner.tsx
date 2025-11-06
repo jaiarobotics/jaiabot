@@ -25,6 +25,8 @@ export default function SimulationBanner() {
     };
 
     useEffect(() => {
+        // Start at time 0
+        fetchSimulationMode();
         const interval = setInterval(fetchSimulationMode, METADATA_POLL_TIME);
         return () => clearInterval(interval);
     }, []);
