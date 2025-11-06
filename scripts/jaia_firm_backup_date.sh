@@ -14,25 +14,17 @@ if [ ! -d "${timekeeper_dir}" ]; then
   echo "Created ${timekeeper_dir}"
 fi
 
-# Restore saved time at boot (for fast startup)
-if [ -e "${timekeeper_file}" ]; then
-  read -r saved_time < "$timekeeper_file"
-  echo "Restoring time from file: $saved_time"
-  date -s "$saved_time"
-else
-  echo "No saved time file found."
-fi
-
 start_time=$(date +%s)
 timeout_duration=120
 
 while true; do
   # Check NTP status
   ntp_status=$(timedatectl show --property=NTPSynchronized --value)
+  has_ntp_peer=$(ntpq -p 2>/dev/null | grep -q '^\*' && echo "yes" || echo "no")
 
-  if [[ $ntp_status == "yes" ]]; then
+  if [[ $ntp_status == "yes" ]] || [[ $has_ntp_peer == "yes" ]]; then
     if [[ $ntp_time_set -eq 0 ]]; then
-      echo "NTP synchronized — marking ntp_time_set=1"
+      echo "NTP synchronized or has active peer"
       ntp_time_set=1
     fi
     # Save time from NTP
@@ -92,6 +84,25 @@ while true; do
         echo "Saved GPS time to $timekeeper_file"
 
         gps_time_set=1
+      else
+        # Only restore saved time if it would move the clock FORWARD
+        if [ -e "${timekeeper_file}" ]; then
+          read -r saved_time < "$timekeeper_file"
+          saved_epoch=$(date -d "$saved_time" +%s 2>/dev/null)
+          current_epoch=$(date +%s)
+          
+          # If saved time is in the future relative to current system time, use it
+          # This ensures we're at least as recent as the last known good time
+          if [[ $saved_epoch -gt 0 ]] && [[ $saved_epoch -gt $current_epoch ]]; then
+            echo "Current time ($current_epoch) is behind saved time ($saved_epoch)"
+            echo "Restoring time from file: $saved_time"
+            date -s "$saved_time"
+          else
+            echo "Current system time is already ahead of saved time - no restore needed"
+          fi
+        else
+          echo "No saved time file found."
+        fi
       fi
 
       systemd-notify --ready
