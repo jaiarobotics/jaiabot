@@ -15,7 +15,7 @@ const Plotly = require("plotly.js-dist");
 import { downloadCSV } from "../tools/DownloadCSV";
 import { bisect } from "../tools/bisect";
 import { ISODateToMicros, microsToDate } from "../tools/date";
-import { Plot } from "../model/Plot";
+import { Plot, Plot_get_hovertext } from "../model/Plot";
 import { PlotProfiles } from "../model/PlotProfiles";
 
 import PathSelector from "./PathSelector";
@@ -242,7 +242,8 @@ export function Plots(props: PlotsProps) {
             if (shouldUseAllData) {
                 update.x.push(series._utime_.map((t_micros) => microsToDate(t_micros)));
                 update.y.push(series.series_y);
-                update.hovertext.push(series.hovertext);
+
+                update.hovertext.push(Plot_get_hovertext(series));
                 update.customdata.push(series._utime_);
 
                 const auto_mode = "lines+markers";
@@ -305,12 +306,11 @@ export function Plots(props: PlotsProps) {
                 }
             }
 
-            let hovertext = y_values.map((y) => series.hovertext?.[y]);
             const auto_mode = inside_index_step > 1 ? "lines" : "lines+markers"; // Use lines and markers to indicate that we've got full resolution
 
             update.x.push(x_values);
             update.y.push(y_values);
-            update.hovertext.push(hovertext);
+            update.hovertext.push(Plot_get_hovertext(series));
             update.customdata.push(customdata);
             update.mode.push(plotMode == "auto" ? auto_mode : plotMode);
         }
