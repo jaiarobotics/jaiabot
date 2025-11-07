@@ -125,6 +125,35 @@ message IMUData
 
     optional string imu_type = 11;
 
+    optional Acceleration acceleration = 12;
+
+    message MagneticField {
+        optional double x = 1
+            [(dccl.field) = {
+                units {
+                    prefix: "micro"
+                    system: "si::tesla"
+                }
+            }];
+        optional double y = 2
+            [(dccl.field) = {
+                units {
+                    prefix: "micro"
+                    system: "si::tesla"
+                }
+            }];
+        optional double z = 3
+            [(dccl.field) = {
+                units {
+                    prefix: "micro"
+                    system: "si::tesla"
+                }
+            }];
+    }
+
+    optional MagneticField magnetic_field = 13;
+    optional Acceleration linear_acceleration_world = 14;
+
 }
 
 message IMUIssue

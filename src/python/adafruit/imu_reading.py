@@ -24,14 +24,16 @@ class CalibrationState(Enum):
 
 @dataclass
 class IMUReading:
-    orientation: Orientation
-    linear_acceleration: Vector3
-    linear_acceleration_world: Vector3
-    gravity: Vector3
-    accuracies: Accuracies
-    calibration_state: CalibrationState
-    quaternion: Quaternion
-    angular_velocity: Vector3
+    orientation: Orientation = None
+    linear_acceleration: Vector3 = None
+    linear_acceleration_world: Vector3 = None
+    gravity: Vector3 = None
+    accuracies: Accuracies = None
+    calibration_state: CalibrationState = None
+    quaternion: Quaternion = None
+    angular_velocity: Vector3 = None
+    magnetic_field: Vector3 = None
+    acceleration: Vector3 = None
 
 
     def convertToIMUData(self):
@@ -50,23 +52,30 @@ class IMUReading:
         else:
             imu_data.bot_rolled_over = False
 
-        imu_data.linear_acceleration.x = self.linear_acceleration.x
-        imu_data.linear_acceleration.y = self.linear_acceleration.y
-        imu_data.linear_acceleration.z = self.linear_acceleration.z
+        def copy_wxyz(src: Vector3 | Quaternion, dest: any):
+            if src is None:
+                return
+            try:
+                dest.w = src.w
+            except AttributeError:
+                pass
+            dest.x = src.x
+            dest.y = src.y
+            dest.z = src.z
 
-        imu_data.gravity.x = self.gravity.x
-        imu_data.gravity.y = self.gravity.y
-        imu_data.gravity.z = self.gravity.z
+        # Raw-ish values
+        copy_wxyz(self.magnetic_field, imu_data.magnetic_field)
+        copy_wxyz(self.acceleration, imu_data.acceleration)
+        copy_wxyz(self.angular_velocity, imu_data.angular_velocity)
 
-        if self.angular_velocity is not None:
-            imu_data.angular_velocity.x = self.angular_velocity.x
-            imu_data.angular_velocity.y = self.angular_velocity.y
-            imu_data.angular_velocity.z = self.angular_velocity.z
+        # Computed by IMU hardware
+        copy_wxyz(self.linear_acceleration, imu_data.linear_acceleration)
+        copy_wxyz(self.gravity, imu_data.gravity)
+        copy_wxyz(self.quaternion, imu_data.quaternion)
 
-        imu_data.quaternion.w = self.quaternion.w
-        imu_data.quaternion.x = self.quaternion.x
-        imu_data.quaternion.y = self.quaternion.y
-        imu_data.quaternion.z = self.quaternion.z
+        # Computed by using the quaternion on linear_acceleration
+        copy_wxyz(self.linear_acceleration_world, imu_data.linear_acceleration_world)
+
 
         if self.accuracies is not None:
             imu_data.accuracies.gyroscope = self.accuracies.gyroscope
