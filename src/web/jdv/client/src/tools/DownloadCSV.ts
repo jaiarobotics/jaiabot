@@ -1,6 +1,11 @@
 import { Plot } from "../model/Plot";
 
 export function downloadCSV(plots: Plot[], tRange: number[]) {
+    if (plots.length == 0) {
+        console.error("No plots to download");
+        return;
+    }
+
     var csvText = "";
     const plotNames = plots.map((plot) => {
         return plot.title;
@@ -8,6 +13,12 @@ export function downloadCSV(plots: Plot[], tRange: number[]) {
 
     // Header row
     csvText = "Time,_utime_," + plotNames.join(",") + "\n";
+
+    // Make sure tRange is within the bounds of all plots
+    const plot_min_utime = Math.min(...plots.map((plot) => plot._utime_[0]));
+    const plot_max_utime = Math.max(...plots.map((plot) => plot._utime_[plot._utime_.length - 1]));
+    tRange[0] = Math.max(tRange[0], plot_min_utime);
+    tRange[1] = Math.min(tRange[1], plot_max_utime);
 
     var t = tRange[0];
     const STEP = 1e6; // microseconds
