@@ -42,6 +42,11 @@ export function TaskPacketPanel(props: Props) {
             depth_achieved: { value: dive.depth_achieved.toFixed(2), units: "m" },
             dive_rate: { value: dive.dive_rate.toFixed(2), units: "m/s" },
             bottom_dive: { value: dive.bottom_dive ? "Yes" : "No", units: "" },
+            ...(dive.bottom_dive != false && {
+                bottom_type: {
+                    value: dive.bottom_type === "HARD" ? "HARD" : "SOFT", units: "" ,
+                }
+            }),
             ...(dive.subsurface_current?.velocity != null && {
                 subsurface_velocity: {
                     value: dive.subsurface_current.velocity.toFixed(2),
@@ -53,9 +58,9 @@ export function TaskPacketPanel(props: Props) {
                     units: "deg",
                 },
             }),
-            ...(lastMeasurement?.mean_depth != null && {
-                average_depth: { value: lastMeasurement.mean_depth.toFixed(2), units: "m" },
-            } && dive.measurement.length <= 1),
+            ...( lastMeasurement?.mean_depth != null && dive.measurement?.length === 1 && {
+                average_depth: { value: lastMeasurement.mean_depth.toFixed(2), units: "m" }
+            }),
             start_time: { value: startTime.toLocaleString(), units: "" },
             end_time: { value: endTime.toLocaleString(), units: "" },
         };
