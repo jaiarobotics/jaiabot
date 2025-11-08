@@ -49,14 +49,13 @@ export function TaskPacketPanel(props: Props) {
                 },
             }),
             ...(dive.subsurface_current?.heading != null && {
-                subsurface_heading: {
-                    value: dive.subsurface_current.heading.toFixed(2),
+                subsurface_heading: { value: dive.subsurface_current.heading.toFixed(2),
                     units: "deg",
                 },
             }),
             ...(lastMeasurement?.mean_depth != null && {
                 average_depth: { value: lastMeasurement.mean_depth.toFixed(2), units: "m" },
-            }),
+            } && dive.measurement.length <= 1),
             start_time: { value: startTime.toLocaleString(), units: "" },
             end_time: { value: endTime.toLocaleString(), units: "" },
         };
