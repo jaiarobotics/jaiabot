@@ -64,6 +64,7 @@ parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsy
 parser.add_argument('--pressure_sensor_type', choices=['bar02', 'bar30', 'none'], help='If set, configure services for pressure sensor')
 parser.add_argument('--rf_encryption_password', default ='', help='Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex')
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
+parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 
 args=parser.parse_args()
 
@@ -253,6 +254,8 @@ if cloudhub_type == CloudHubType.PRIMARY:
     cloudhub_type_str='primary'
 elif cloudhub_type == CloudHubType.SECONDARY:
     cloudhub_type_str='secondary'
+
+camera_positions_in_use = args.camera_positions
     
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
@@ -277,6 +280,7 @@ subprocess.run('bash -ic "' +
                f'export jaia_rf_encryption_password={args.rf_encryption_password}; ' +
                'export jaia_comms_mode=' + ','.join(link for link in comms_links_in_use) + '; ' +
                'export jaia_cloudhub_type=' + cloudhub_type_str + '; ' +
+               'export jaia_camera_positions=' + ','.join(position for position in camera_positions_in_use) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -428,6 +432,10 @@ jaiabot_apps = [
      'description': 'jaiabot_data_vision visualize log data',
      'template': 'jaiabot_data_vision.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DATA_VISION',
+     'runs_on': [Type.HUB],
+     'runs_on_cloudhub': CloudHubType.SECONDARY},
+    {'service': 'jcc.conf',
+     'template': 'jcc.conf.in',
      'runs_on': [Type.HUB],
      'runs_on_cloudhub': CloudHubType.SECONDARY},
 
@@ -583,13 +591,6 @@ jaiabot_apps = [
      'exec_start_pre': '/usr/bin/reset-bio-payload-board.sh',
      'runs_on': [BOT_TYPE.BIO],
      'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_driver_camera',
-     'description': 'JaiaBot Driver Camera',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA',
-     'runs_on': [BOT_TYPE.BIO],
-     'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service'},
 ]
 
 if jaia_imu_type.value == 'bno085':
@@ -670,6 +671,18 @@ if jaia_temperature_sensor_type.value == 'tsys01':
         'restart': 'on-failure'},
     ]
     jaiabot_apps.extend(jaiabot_apps_tsys01)
+
+if 'none' not in camera_positions_in_use:
+    jaiabot_apps_camera = [
+        {'exe': 'jaiabot_driver_camera',
+        'description': 'JaiaBot Driver Camera',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA',
+        'runs_on': [Type.BOT],
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service'},
+    ]
+    jaiabot_apps.extend(jaiabot_apps_camera)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
@@ -768,11 +781,11 @@ for app in jaiabot_apps:
                 service = 'jaiabot_' + service
 
         # special case for goby_coroner - need a list of everything we're running
-        if app['exe'] == 'goby_coroner':
+        if app.get('exe') == 'goby_coroner':
             macros['extra_flags'] = '--expected_name ' + ' --expected_name '.join(all_goby_apps)
             
         if not 'bin_dir' in macros:
-            if macros['exe'][0:4] == 'goby':
+            if (macros.get('exe') or '').startswith('goby'):
                 macros['bin_dir'] = macros['goby_bin_dir']
             else:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
@@ -782,14 +795,23 @@ for app in jaiabot_apps:
         with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:        
             out=Template(file.read()).substitute(macros)    
         outfilename = args.systemd_dir + '/' + service + '.service'
+
+        enable = args.enable
+        disable = args.disable
+
+        if app['template'] == 'jcc.conf.in':
+            outfilename = '/etc/apache2/sites-available/' + service
+            enable = False
+            disable = False
+
         print('Writing ' + outfilename)
         outfile = open(outfilename, 'w')
         outfile.write(out)
         outfile.close()
-        if args.enable:
+        if enable:
             print('Enabling ' + service)
             subprocess.run('systemctl enable ' + service, check=True, shell=True)
-        if args.disable:
+        if disable:
             print('Disabling ' + service)
             subprocess.run('systemctl disable ' + service, check=True, shell=True)
             

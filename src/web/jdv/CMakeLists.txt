@@ -19,6 +19,8 @@ file(GLOB jdv_other_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT
 add_custom_command(OUTPUT ${jdv_client_outdir}/bundle.js
   COMMAND npx webpack
   ARGS --mode production --env TARGET_DIR=${jdv_client_outdir} --stats errors-only
+  COMMAND touch
+  ARGS ${jdv_client_outdir}/bundle.js
   WORKING_DIRECTORY ${intermediate_web_dir}/jdv/client
   COMMENT "Building jdv"
   DEPENDS npm_dependencies ${jdv_src_files}
