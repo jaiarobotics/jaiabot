@@ -2,18 +2,22 @@
 
 timekeeper_dir="/etc/jaiabot/timekeeper"
 timekeeper_file="${timekeeper_dir}/time.txt"
+ready_flag="${timekeeper_dir}/READY"
 
 # Flags to prevent redundant system clock sets
 gps_time_set=0
 ntp_time_set=0
 setting_time_timeout=0
-systemd_notified=0
+ready_flag_created=0
 
 # Create directory if missing
 if [ ! -d "${timekeeper_dir}" ]; then
   mkdir -p "${timekeeper_dir}"
   echo "Created ${timekeeper_dir}"
 fi
+
+# Remove ready flag at the start
+rm -f "$ready_flag"
 
 start_time=$(date +%s)
 timeout_duration=120
@@ -33,10 +37,10 @@ while true; do
     date > "$timekeeper_file"
     echo "Saved NTP time to $timekeeper_file"
 
-    if [[ $systemd_notified -eq 0 ]]; then
-      echo "Send Systemd Notification Ready"
-      systemd-notify --ready
-      systemd_notified=1
+    if [[ $ready_flag_created -eq 0 ]]; then
+      echo "Ready Flag Created"
+      touch "$ready_flag"
+      ready_flag_created=1
     fi
     sleep 60
     continue
@@ -91,10 +95,10 @@ while true; do
         echo "$gps_time_fmt" > "$timekeeper_file"
         echo "Saved GPS time to $timekeeper_file"
         
-        if [[ $systemd_notified -eq 0 ]]; then
-          echo "Send Systemd Notification Ready"
-          systemd-notify --ready
-          systemd_notified=1
+        if [[ $ready_flag_created -eq 0 ]]; then
+          echo "Ready Flag Created"
+          touch "$ready_flag"
+          ready_flag_created=1
         fi
         sleep 60
         continue
@@ -137,10 +141,10 @@ while true; do
       echo "$gps_time_fmt" > "$timekeeper_file"
       echo "Saved degraded GPS time to $timekeeper_file"
       
-      if [[ $systemd_notified -eq 0 ]]; then
-        echo "Send Systemd Notification Ready"
-        systemd-notify --ready
-        systemd_notified=1
+      if [[ $ready_flag_created -eq 0 ]]; then
+        echo "Ready Flag Created"
+        touch "$ready_flag"
+        ready_flag_created=1
       fi
       sleep 60
       continue
@@ -170,10 +174,10 @@ while true; do
         echo "No saved time file found - continuing with system time"
       fi
       
-      if [[ $systemd_notified -eq 0 ]]; then
-        echo "Send Systemd Notification Ready (degraded mode)"
-        systemd-notify --ready
-        systemd_notified=1
+      if [[ $ready_flag_created -eq 0 ]]; then
+        echo "Ready Flag Created (Degraded Mode)"
+        touch "$ready_flag"
+        ready_flag_created=1
       fi
 
       sleep 60

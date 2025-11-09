@@ -1,13 +1,13 @@
 [Unit]
 Description=Backup the date to a file when we have a valid date time ntp
+Before=jaiabot.service
 
 [Service]
-Type=notify
+Type=simple
 User=root
 Group=root
 ExecStart=$jaiabot_bin_dir/$exe $args
-NotifyAccess=all
-TimeoutSec=180
+TimeoutStopSec=15
 
 [Install]
 WantedBy=multi-user.target

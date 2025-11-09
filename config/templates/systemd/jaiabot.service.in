@@ -7,21 +7,29 @@ After=network-online.target
 Requires=var-log.mount
 After=var-log.mount
 
-Requires=jaia_firm_backup_date_sh.service
+# Start backup alongside us, but do not kill jaiabot if backup crashes
+Wants=jaia_firm_backup_date_sh.service
 After=jaia_firm_backup_date_sh.service
 
 [Service]
 User=$user
 Group=$group
 
-
 Type=oneshot
 RemainAfterExit=true
-
 
 EnvironmentFile=$env_file
 # make the log directory first so that we don't end up with it root only read/write
 ExecStartPre=/bin/bash -c "/bin/mkdir -p `$gen log_file`"
+
+# make sure the ready file has been created for accurate log time
+ExecStartPre=/bin/bash -c '\
+  echo "Waiting for /etc/jaiabot/timekeeper/READY..."; \
+  sleep 1; \
+  while [ ! -f /etc/jaiabot/timekeeper/READY ]; do \
+    sleep 5; \
+  done; \
+  echo "READY file detected. Continuing startup.";'
 
 ExecStart=/bin/echo "Starting Jaia"
 
