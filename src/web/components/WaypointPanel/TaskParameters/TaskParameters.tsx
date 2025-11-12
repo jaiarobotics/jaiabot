@@ -89,7 +89,7 @@ export default function TaskParameters(props: Props) {
                 />
             );
         default:
-            return <div></div>;
+            return;
     }
 }
 

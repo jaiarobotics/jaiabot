@@ -5,7 +5,7 @@ import { UNASSIGNED_ID } from "../../../utils/constants";
 import { Speeds } from "../../../types/protobuf-types";
 
 export interface MissionSetSnapshot {
-    missions: [number, Mission][];
+    missions: Mission[];
     nextMissionID: number;
     missionIDInEditMode: number | null;
     missionSpeeds: Speeds;
@@ -38,13 +38,13 @@ export function saveToLocalStorage(name: string) {
 export function loadSnapshotFromLocalStorage(saveName: string) {
     const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
     const targetSet = allMissionSets[saveName] || {};
-    const missionsArray = Array.isArray(targetSet.missions)
-        ? targetSet.missions.map(
-              ([id, missionJSON]: [number, string]) =>
-                  [id, Mission.fromJSON(missionJSON)] as [number, Mission],
-          )
-        : [];
 
+    let missionsArray: Mission[] = [];
+    if (Array.isArray(targetSet.missions)) {
+        missionsArray = targetSet.missions.map(
+            (missionJSON: string) => Mission.fromJSON(missionJSON) as Mission,
+        );
+    }
     return {
         missions: missionsArray,
         nextMissionID: targetSet.nextMissionID ?? 0,
@@ -70,7 +70,7 @@ export function updateMissionSetFromSnapshot(missionSetSnapshot: MissionSetSnaps
 
     // Rebuild mission set from snapshot
     if (Array.isArray(missionSetSnapshot.missions)) {
-        missionSetSnapshot.missions.forEach(([id, mission]) => {
+        missionSetSnapshot.missions.forEach((mission) => {
             missionSet.addMission(mission);
         });
     }
@@ -163,8 +163,7 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
                 }
                 const missionsArray = Array.isArray(targetSet.missions)
                     ? targetSet.missions.map(
-                          ([id, missionJSON]: [number, any]) =>
-                              [id, Mission.fromJSON(missionJSON)] as [number, Mission],
+                          (missionJSON: string) => Mission.fromJSON(missionJSON) as Mission,
                       )
                     : [];
                 const snapshot: MissionSetSnapshot = {
@@ -191,7 +190,7 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
  */
 function getMissionSetSnapshot() {
     const currentMissionSet = {
-        missions: Array.from(missionSet.getMissions().entries()),
+        missions: Array.from(missionSet.getMissions().values()),
         nextMissionID: missionSet.getNextMissionID(),
         missionIDInEditMode: missionSet.getMissionIDInEditMode(),
         missionSpeeds: missionSet.getMissionSpeeds(),

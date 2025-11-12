@@ -17,8 +17,11 @@ import { touches } from "../../../controls/touches";
 import { gridPlan } from "../../../../data/survey_planner/grid-plan";
 import { LayerTitles, SurveyEndpoints } from "../../../../types/openlayers-types";
 import { layersZIndexes } from "../../zindex";
-import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/survey-lanes";
-import { generateSurveyEndpoint } from "../../../features/survey/survey-endpoints";
+import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/grid-features";
+import {
+    generateSurveyEndpoint,
+    generateSurveyEndpointCircle,
+} from "../../../features/survey/survey-endpoints";
 import { GeographicCoordinate } from "../../../../types/protobuf-types";
 
 const units: Units = "meters";
@@ -205,6 +208,15 @@ class GridLayer extends JaiaVectorLayer {
         this.layerSource.addFeature(
             generateSurveyEndpoint(gridPlan.getMissionEnd(), SurveyEndpoints.END),
         );
+    }
+
+    /**
+     * Adds a yellow circle around the mission start point
+     *
+     * @returns {void}
+     */
+    highlightStartpoint() {
+        this.layerSource.addFeature(generateSurveyEndpointCircle(gridPlan.getMissionStart()));
     }
 
     /**
