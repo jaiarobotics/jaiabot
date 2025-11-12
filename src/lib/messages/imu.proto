@@ -152,7 +152,28 @@ message IMUData
     }
 
     optional MagneticField magnetic_field = 13;
-    optional Acceleration linear_acceleration_world = 14;
+
+    message AccelerationWorld {
+        optional double north = 1
+            [(dccl.field) = {units {
+                derived_dimensions: "acceleration"
+                system: "si"
+                }}
+            ];
+        optional double east = 2
+            [(dccl.field) = {units {
+                derived_dimensions: "acceleration"
+                system: "si"
+                }}
+            ];
+        optional double down = 3
+            [(dccl.field) = {units {
+                derived_dimensions: "acceleration"
+                system: "si"
+                }}
+            ];
+    }
+    optional AccelerationWorld linear_acceleration_world = 14;
 
 }
 

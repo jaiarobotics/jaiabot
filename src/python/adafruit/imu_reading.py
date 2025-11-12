@@ -74,8 +74,9 @@ class IMUReading:
         copy_wxyz(self.quaternion, imu_data.quaternion)
 
         # Computed by using the quaternion on linear_acceleration
-        copy_wxyz(self.linear_acceleration_world, imu_data.linear_acceleration_world)
-
+        imu_data.linear_acceleration_world.north = self.linear_acceleration_world.x
+        imu_data.linear_acceleration_world.east = self.linear_acceleration_world.y
+        imu_data.linear_acceleration_world.down = self.linear_acceleration_world.z
 
         if self.accuracies is not None:
             imu_data.accuracies.gyroscope = self.accuracies.gyroscope
