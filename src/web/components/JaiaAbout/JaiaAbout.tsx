@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { jaiaAPI } from "../../utils/jaia-api";
-import { Metadata } from "../../shared/PortalStatus";
+import { Metadata } from "../../types/protobuf-types";
 
 import JaiaLogo from "../../style/icons/jaia-logo.svg";
 import "./JaiaAbout.less";
