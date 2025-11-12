@@ -7,13 +7,17 @@ import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 import { view } from "../../views/view";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
 import { TaskType } from "../../../types/protobuf-types";
+import { MapFeatureTypes } from "../../../types/openlayers-types";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
-import { gridPlan } from "../../../data/survey_planner/grid-plan";
+import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
+import { MISSION_ENDPOINTS } from "../../../utils/constants";
 
 import waypointIcon from "../../../style/icons/waypoint.svg";
 import waypointDiveIcon from "../../../style/icons/waypoint-dive.svg";
 import waypointDriftIcon from "../../../style/icons/waypoint-drift.svg";
-import { MapFeatureTypes } from "../../../types/openlayers-types";
+import waypointConstantHeadingIcon from "../../../style/icons/waypoint-constant-heading.svg";
+
+const FIRST_MISSION_ID = 1;
 
 /**
  * Creates a line from the start of the drag to the last drag position
@@ -88,7 +92,7 @@ function generateSurveyLaneStyle() {
     const overlayStyle = new Style({
         stroke: new Stroke({
             width: 2,
-            color: OpenLayersColors.EDIT,
+            color: getSurveyLaneColor(),
         }),
         zIndex: 1,
     });
@@ -104,21 +108,11 @@ function generateSurveyLaneStyle() {
  * @returns {Style} Style to be applied to a survey waypoint
  */
 function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
-    let imageSrc = waypointIcon;
-    switch (gridPlan.getSurveyTask().getType()) {
-        case TaskType.DIVE:
-            imageSrc = waypointDiveIcon;
-            break;
-        case TaskType.SURFACE_DRIFT:
-            imageSrc = waypointDriftIcon;
-            break;
-    }
-
     return new Style({
         image: new Icon({
-            src: imageSrc,
+            src: getSurveyPointSrc(waypointNum),
             anchor: [0.5, 1],
-            color: OpenLayersColors.EDIT,
+            color: getSurveyPointColor(waypointNum),
         }),
         stroke: new Stroke({
             color: OpenLayersColors.OUTLINE,
@@ -136,4 +130,83 @@ function generateSurveyPointStyle(waypointNum: number, laneNum: number) {
         // lanes converge due to zoom level changes
         zIndex: waypointNum + 100 * laneNum,
     });
+}
+
+/**
+ * Gets the path to the survey point icon
+ *
+ * @param {number} waypointNum Identifies which task to render on the waypoint
+ * @returns {string} Path to survey point icon
+ */
+function getSurveyPointSrc(waypointNum: number) {
+    if (
+        gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK &&
+        isFinalGridPoint(waypointNum)
+    ) {
+        return getSrc(gridPlan.getEndTask().getType());
+    }
+    return getSrc(gridPlan.getSurveyTask().getType());
+}
+
+/**
+ * Selects the correct survey point icon based on the provided task
+ *
+ * @param {TaskType} taskType Determine which icon to render
+ * @returns {string} Path to survey icon
+ */
+function getSrc(taskType: TaskType) {
+    switch (taskType) {
+        case TaskType.DIVE:
+            return waypointDiveIcon;
+        case TaskType.SURFACE_DRIFT:
+            return waypointDriftIcon;
+        case TaskType.CONSTANT_HEADING:
+            return waypointConstantHeadingIcon;
+        case TaskType.NONE:
+            return waypointIcon;
+    }
+}
+
+/**
+ * Provides the correct survey point color based on location
+ * in grid and state
+ *
+ * @param {number} waypointNum Used to identify last point in grid
+ * @returns {string} Color to be applied to survey point
+ */
+function getSurveyPointColor(waypointNum: number) {
+    if (gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK) {
+        if (isFinalGridPoint(waypointNum)) {
+            return OpenLayersColors.EDIT;
+        } else {
+            return OpenLayersColors.DEFAULT;
+        }
+    }
+    return OpenLayersColors.EDIT;
+}
+
+/**
+ * Changes line color based on survey planning state
+ *
+ * @returns {string} Color to be applied to survey linestring
+ */
+function getSurveyLaneColor() {
+    if (gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK) {
+        return OpenLayersColors.DEFAULT;
+    }
+    return OpenLayersColors.EDIT;
+}
+
+/**
+ * Checks whether the waypoint is the final point in the grid
+ *
+ * @param {number} waypointNum Which waypoint to evaluate
+ * @returns {boolean} True if the waypoint num is the last point in the grid
+ */
+function isFinalGridPoint(waypointNum: number) {
+    const firstMission = gridPlan.getMissions().get(FIRST_MISSION_ID);
+    if (firstMission && waypointNum === firstMission.getWaypoints().length - MISSION_ENDPOINTS) {
+        return true;
+    }
+    return false;
 }

@@ -27,3 +27,4 @@ export const HUB_COMMS_OUTER_RADIUS = 500; // meters
 export const MDI_BUTTON_SIZE = 1.3;
 export const KILOMETER_FACTOR = 1000;
 export const MAX_HISTORY = 15;
+export const MISSION_ENDPOINTS = 2;

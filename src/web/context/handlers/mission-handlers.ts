@@ -10,9 +10,9 @@ import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapModes } from "../../types/openlayers-types";
+import { MapModes, SurveyEndpoints } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
-import { UNASSIGNED_ID } from "../../utils/constants";
+import { UNASSIGNED_ID, MISSION_ENDPOINTS } from "../../utils/constants";
 import { updateMissionSetFromSnapshot } from "../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import { syncOpenLayers } from "./handler-utils";
 
@@ -180,14 +180,31 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             gridLayer.finalizeGrid(true);
             break;
 
+        case GridPlanningStates.ACCEPTING_START_TASK:
+            gridPlan.setStartTask(new Task());
+            gridLayer.highlightStartpoint();
+            break;
+
+        case GridPlanningStates.ACCEPTING_END_TASK:
+            gridPlan.setEndTask(cloneDeep(gridPlan.getSurveyTask()));
+            gridLayer.finalizeGrid();
+            break;
+
         case GridPlanningStates.APPROVED:
             for (const [missionID, mission] of gridPlan.getMissions()) {
                 const waypoints = mission.getWaypoints();
                 for (let i = 0; i < waypoints.length; i++) {
-                    if (i === 0 || i === waypoints.length - 1) {
+                    if (i === 0) {
+                        waypoints[i].setTask(cloneDeep(gridPlan.getStartTask()));
+                    } else if (i === waypoints.length - 1) {
+                        // End mission task
                         continue;
+                    } else if (i === waypoints.length - MISSION_ENDPOINTS) {
+                        // End survey task
+                        waypoints[i].setTask(cloneDeep(gridPlan.getEndTask()));
+                    } else {
+                        waypoints[i].setTask(cloneDeep(gridPlan.getSurveyTask()));
                     }
-                    waypoints[i].setTask(cloneDeep(gridPlan.getSurveyTask()));
                 }
             }
             missionSet.setMissions(cloneDeep(gridPlan.getMissions()));

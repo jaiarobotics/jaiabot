@@ -119,7 +119,7 @@ export default function Map() {
     const handleSurveyPlanningClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
-        let nextState: GridPlanningStates;
+        let nextState = gridPlan.getState();
 
         switch (gridPlan.getState()) {
             case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
@@ -139,13 +139,13 @@ export default function Map() {
                 nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
                 break;
             case GridPlanningStates.ACCEPTING_GRID_DRAWING:
-                // No state change on accidental clicks
-                nextState = GridPlanningStates.ACCEPTING_GRID_DRAWING;
-                break;
+                return;
             case GridPlanningStates.ACCEPTING_TASK:
-                // State change comes from survey panel not a map interaction
-                nextState = GridPlanningStates.ACCEPTING_TASK;
-                break;
+                return;
+            case GridPlanningStates.ACCEPTING_START_TASK:
+                return;
+            case GridPlanningStates.ACCEPTING_END_TASK:
+                return;
         }
         jaiaDispatch({
             type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
