@@ -159,7 +159,7 @@ export default function Map() {
 
     /**
      * Triggers the calls to update the constant heading projection
-     * based on the click location
+     * based on click location
      *
      * @param coordinate Location of click on map
      * @returns {void}

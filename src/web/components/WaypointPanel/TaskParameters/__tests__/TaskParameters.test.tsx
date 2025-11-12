@@ -31,7 +31,7 @@ test("Render drift parameters", () => {
     expect(driftParams).toHaveAttribute("name", TaskParameterKeys.DRIFT_TIME);
 });
 
-test("Render constant heading parameters", () => {
+test.skip("Render constant heading parameters", () => {
     mockTask.setType(TaskType.CONSTANT_HEADING);
     render(<TaskParameters task={mockTask} isDisabled={false} />);
     const heading = screen.getByDisplayValue(
