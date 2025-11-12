@@ -6,6 +6,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { snakeCaseToTitleCase } from "../../utils/input";
+import { gridPlan } from "../../data/survey_planner/grid-plan";
 
 /**
  * Pulls previous state from history and updates current state and data model
@@ -70,8 +71,10 @@ export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActio
  * @notes Uses cloneDeep so history is isolated from future state changes
  */
 export function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
+    console.log("Saving State Snapshot");
     const snapshot: JaiaHistoryType = {
         missions: state.missions,
+        gridMissions: state.gridMissions,
         selectedNode: state.selectedNode,
         selectedWaypoint: state.selectedWaypoint,
         selectedRallyPoint: state.selectedRallyPoint,
@@ -88,6 +91,11 @@ export function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
         nextMissionID: missionSet.getNextMissionID(),
         missionSetName: missionSet.getName(),
         missionAssignments: missionsManager.getMissionAssignments(),
+        gridMissionStart: gridPlan.getMissionStart(),
+        gridMissionEnd: gridPlan.getMissionEnd(),
+        gridPlanDetails: gridPlan.getGridPlanDetails(),
+        gridStartTask: gridPlan.getStartTask(),
+        gridEndTask: gridPlan.getEndTask(),
     };
 
     return cloneDeep(snapshot);
@@ -104,6 +112,7 @@ export function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
  * @notes Uses cloneDeep so history is isolated from future state changes
  */
 function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaHistoryType) {
+    console.log("Restoring State Snapshot");
     // Clone snapshot to isolate from history
     const snapshotCopy = cloneDeep(snapshot);
     // Restore state from snapshot
@@ -134,4 +143,15 @@ function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
     jaiaGlobal.setSelectedWaypoint(snapshot.selectedWaypoint);
     jaiaGlobal.setSelectedNode(snapshot.selectedNode);
     jaiaGlobal.setSelectedTaskPacket(snapshot.selectedTaskPacket);
+
+    // Update Survey Plan
+    gridPlan.setMissions(snapshot.gridMissions);
+    gridPlan.setMissionStart(snapshot.gridMissionStart);
+    gridPlan.setMissionEnd(snapshot.gridMissionEnd);
+    gridPlan.setState(snapshot.gridPlanDetails.state);
+    gridPlan.setNumOfLanes(snapshot.gridPlanDetails.numOfLanes);
+    gridPlan.setPointSpacing(snapshot.gridPlanDetails.pointSpacing);
+    gridPlan.setSurveyTask(snapshot.gridPlanDetails.surveyTask);
+    gridPlan.setStartTask(snapshot.gridStartTask);
+    gridPlan.setEndTask(snapshot.gridEndTask);
 }

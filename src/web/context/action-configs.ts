@@ -82,6 +82,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: true }],
 
     // Survey Actions
+    [JaiaActions.SURVEY_APPROVED, { handler: handleChangeGridPlanningState, tracked: true }],
     [
         JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
         { handler: handleChangeGridPlanningState, tracked: false },

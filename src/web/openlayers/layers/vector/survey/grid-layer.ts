@@ -40,7 +40,9 @@ class GridLayer extends JaiaVectorLayer {
         this.layerSource = this.getVectorLayer().getSource();
     }
 
-    override updateFeatures() {}
+    override updateFeatures() {
+        this.finalizeGrid();
+    }
 
     getDraw() {
         return this.draw;

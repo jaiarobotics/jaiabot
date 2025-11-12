@@ -1,6 +1,6 @@
 import { JaiaActions } from "../context/jaia-actions";
 import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
-import { GridPlanningStates } from "../data/survey_planner/grid-plan";
+import { GridPlanningStates, GridPlanDetails } from "../data/survey_planner/grid-plan";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
@@ -80,6 +80,7 @@ export interface JaiaAction {
 export interface JaiaHistoryType {
     // Items from JaiaContext
     missions: Map<number, Mission>;
+    gridMissions: Map<number, Mission>;
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
     selectedRallyPoint: SelectedRallyPoint;
@@ -97,6 +98,11 @@ export interface JaiaHistoryType {
     nextMissionID: number;
     missionSetName: string;
     missionAssignments: Map<number, number>;
+    gridMissionStart: GeographicCoordinate;
+    gridMissionEnd: GeographicCoordinate;
+    gridPlanDetails: GridPlanDetails;
+    gridStartTask: Task;
+    gridEndTask: Task;
 }
 
 export const enum HubAccordionNames {
