@@ -1,29 +1,41 @@
 import { FormControl, Select, MenuItem, SelectChangeEvent, ThemeProvider } from "@mui/material";
+
+import Icon from "@mdi/react";
+import { mdiArrowRight } from "@mdi/js";
+
 import { ChangeEvent, useContext, useState } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
 import TaskParameters from "../WaypointPanel/TaskParameters/TaskParameters";
 
-import Task from "../../data/tasks/task";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
+import Task from "../../data/tasks/task";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { formatNumericalInput, snakeCaseToTitleCase } from "../../utils/input";
-import { TaskType } from "../../types/protobuf-types";
 import { selectTheme } from "../../utils/style";
+import { TaskType } from "../../types/protobuf-types";
+
 import "./SurveyPlanner.less";
 
 interface Props {
     gridPlanDetails?: GridPlanDetails;
     handleSetTaskClick?: () => void;
-    handleTaskSelection?: (evt: SelectChangeEvent) => void;
-    handleSaveSurveyTaskClick?: () => void;
+    handleTaskSelection?: (evt: SelectChangeEvent, task: Task) => void;
+    handleMenuNavClick?: (nextState: GridPlanningStates) => void;
+    taskPosition?: TaskPosition;
 }
 
 enum GridInputs {
     NUM_OF_LANES = 1,
     LANE_SPACING = 2,
     POINT_SPACING = 3,
+}
+
+enum TaskPosition {
+    START = 1,
+    END = 2,
+    SURVEY = 3,
 }
 
 /**
@@ -56,14 +68,20 @@ export default function SurveyPlanner(props: Props) {
      * @param {SelectChangeEvent} evt Contains which task is selected
      * @returns {void}
      */
-    const handleTaskSelection = (evt: SelectChangeEvent) => {
+    const handleTaskSelection = (evt: SelectChangeEvent, task: Task) => {
         jaiaDispatch({
             type: JaiaActions.SURVEY_SELECT_TASK,
-            task: gridPlan.getSurveyTask(),
+            task: task,
             taskType: evt.target.value,
         });
-        gridPlan.getSurveyTask().setType(evt.target.value as TaskType);
-        gridLayer.finalizeGrid();
+
+        if (task === gridPlan.getSurveyTask()) {
+            gridPlan.getSurveyTask().setType(evt.target.value as TaskType);
+            gridLayer.finalizeGrid();
+        } else if (task === gridPlan.getEndTask()) {
+            gridPlan.getEndTask().setType(evt.target.value as TaskType);
+            gridLayer.finalizeGrid();
+        }
     };
 
     /**
@@ -71,10 +89,10 @@ export default function SurveyPlanner(props: Props) {
      *
      * @returns {void}
      */
-    const handleSaveSurveyTaskClick = () => {
+    const handleMenuNavClick = (nextState: GridPlanningStates) => {
         jaiaDispatch({
             type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
-            gridPlanningState: GridPlanningStates.APPROVED,
+            gridPlanningState: nextState,
         });
     };
 
@@ -94,7 +112,28 @@ export default function SurveyPlanner(props: Props) {
             return (
                 <TaskConfigs
                     handleTaskSelection={handleTaskSelection}
-                    handleSaveSurveyTaskClick={handleSaveSurveyTaskClick}
+                    handleMenuNavClick={() =>
+                        handleMenuNavClick(GridPlanningStates.ACCEPTING_START_TASK)
+                    }
+                    taskPosition={TaskPosition.SURVEY}
+                />
+            );
+        case GridPlanningStates.ACCEPTING_START_TASK:
+            return (
+                <TaskConfigs
+                    handleTaskSelection={handleTaskSelection}
+                    handleMenuNavClick={() =>
+                        handleMenuNavClick(GridPlanningStates.ACCEPTING_END_TASK)
+                    }
+                    taskPosition={TaskPosition.START}
+                />
+            );
+        case GridPlanningStates.ACCEPTING_END_TASK:
+            return (
+                <TaskConfigs
+                    handleTaskSelection={handleTaskSelection}
+                    handleMenuNavClick={() => handleMenuNavClick(GridPlanningStates.APPROVED)}
+                    taskPosition={TaskPosition.END}
                 />
             );
         case GridPlanningStates.APPROVED:
@@ -211,46 +250,118 @@ function GridConfigs(props: Props) {
                 </div>
             </div>
             <div className="button-row">
-                <button onClick={() => props.handleSetTaskClick()}>Set Task</button>
+                <div onClick={() => props.handleSetTaskClick()}>
+                    <Icon path={mdiArrowRight} title="Continue Survey Planning" />
+                </div>
             </div>
         </div>
     );
 }
 
 /**
- * Renders the fourth panel in the series of building a grid-survey mission set
+ * Renders the task setting windows in the series of building a grid-survey mission set
  */
 function TaskConfigs(props: Props) {
+    /**
+     * Gets the task to to be modifed based on the task position
+     *
+     * @returns {Task} Task to be modified
+     */
+    const getTask = () => {
+        switch (props.taskPosition) {
+            case TaskPosition.START:
+                return gridPlan.getStartTask();
+            case TaskPosition.END:
+                return gridPlan.getEndTask();
+            case TaskPosition.SURVEY:
+                return gridPlan.getSurveyTask();
+        }
+    };
+
+    /**
+     * Gets the label for the task selection menu
+     *
+     * @returns {string} Label for the task selection menu
+     */
+    const getTitle = () => {
+        switch (props.taskPosition) {
+            case TaskPosition.START:
+                return "Start Task:";
+            case TaskPosition.END:
+                return "End Task:";
+            case TaskPosition.SURVEY:
+                return "Survey Task:";
+        }
+    };
+
+    /**
+     * Creates the list of task types for the dropdown menu
+     *
+     * @returns {MenuItem[]} List of task types
+     */
+    const getMenuItems = () => {
+        const menuItems = [
+            <MenuItem value={TaskType.NONE}>{snakeCaseToTitleCase(TaskType.NONE)}</MenuItem>,
+            <MenuItem value={TaskType.DIVE}>{snakeCaseToTitleCase(TaskType.DIVE)}</MenuItem>,
+            <MenuItem value={TaskType.SURFACE_DRIFT}>
+                {snakeCaseToTitleCase(TaskType.SURFACE_DRIFT)}
+            </MenuItem>,
+        ];
+        if (props.taskPosition !== TaskPosition.SURVEY) {
+            menuItems.push(
+                <MenuItem value={TaskType.CONSTANT_HEADING}>
+                    {snakeCaseToTitleCase(TaskType.CONSTANT_HEADING)}
+                </MenuItem>,
+            );
+        }
+        return menuItems;
+    };
+
+    /**
+     * Returns the task parameters section when a task is selected
+     *
+     * @returns {React.Element} Task parameters section
+     */
+    const getTaskParametersContainer = () => {
+        if (getTask().getType() === TaskType.NONE) {
+            return;
+        }
+
+        return (
+            <div className="task-parameters-container">
+                <TaskParameters task={getTask()} isDisabled={false} />
+            </div>
+        );
+    };
+
     return (
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
             <div className="progress-line"></div>
             <div className="task-selection-container">
-                <div>Survey Task:</div>
+                <div>{getTitle()}</div>
                 <ThemeProvider theme={selectTheme}>
                     <FormControl sx={{ minWidth: 120 }} size="small">
                         <Select
-                            value={gridPlan.getSurveyTask().getType()}
-                            onChange={(evt: SelectChangeEvent) => props.handleTaskSelection(evt)}
+                            value={getTask().getType()}
+                            onChange={(evt: SelectChangeEvent) =>
+                                props.handleTaskSelection(evt, getTask())
+                            }
                         >
-                            <MenuItem value={TaskType.NONE}>
-                                {snakeCaseToTitleCase(TaskType.NONE)}
-                            </MenuItem>
-                            <MenuItem value={TaskType.DIVE}>
-                                {snakeCaseToTitleCase(TaskType.DIVE)}
-                            </MenuItem>
-                            <MenuItem value={TaskType.SURFACE_DRIFT}>
-                                {snakeCaseToTitleCase(TaskType.SURFACE_DRIFT)}
-                            </MenuItem>
+                            {getMenuItems()}
                         </Select>
                     </FormControl>
                 </ThemeProvider>
             </div>
-            <div className="task-parameters-container">
-                <TaskParameters task={gridPlan.getSurveyTask()} isDisabled={false} />
-            </div>
+            {getTaskParametersContainer()}
             <div className="button-row">
-                <button onClick={() => props.handleSaveSurveyTaskClick()}>Save</button>
+                <div
+                    onClick={() =>
+                        props.handleMenuNavClick(GridPlanningStates.ACCEPTING_START_TASK)
+                    }
+                >
+                    <Icon path={mdiArrowRight} title="Continue Survey Planning" />
+                </div>
             </div>
         </div>
     );

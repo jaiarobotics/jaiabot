@@ -1,8 +1,9 @@
 .survey {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: max-content;
+    row-gap: 15px;
+    justify-content: center;
+    justify-items: center;
     width: 300px;
     color: #fff;
 }
@@ -43,8 +44,12 @@
 .survey .button-row {
     width: 100%;
     display: flex;
-    justify-content: center;
-    margin-bottom: 12px;
+    justify-content: right;
+    margin: 6px 0 12px 0;
+}
+
+.button-row div {
+    width: 30px;
 }
 
 .survey button {
@@ -63,5 +68,13 @@
 }
 
 .survey .task-parameters-container {
-    margin-top: 6px;
+    width: 100%;
+    margin: 6px 0;
+    border: 1px solid #fff;
+    border-radius: 3px;
+    padding: 12px;
+}
+
+.survey .task-parameters-container div:first-child {
+    justify-self: center;
 }
