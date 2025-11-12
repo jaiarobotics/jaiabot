@@ -251,7 +251,7 @@ function GridConfigs(props: Props) {
             </div>
             <div className="button-row">
                 <div onClick={() => props.handleSetTaskClick()}>
-                    <Icon path={mdiArrowRight} />
+                    <Icon path={mdiArrowRight} title="Continue Survey Planning" />
                 </div>
             </div>
         </div>
@@ -360,7 +360,7 @@ function TaskConfigs(props: Props) {
                         props.handleMenuNavClick(GridPlanningStates.ACCEPTING_START_TASK)
                     }
                 >
-                    <Icon path={mdiArrowRight} />
+                    <Icon path={mdiArrowRight} title="Continue Survey Planning" />
                 </div>
             </div>
         </div>
