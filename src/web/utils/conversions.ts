@@ -1,8 +1,8 @@
 import * as turf from "@turf/turf";
 import { Units } from "@turf/helpers";
 
-import Waypoint from "../data/waypoints/waypoint";
 import { GeographicCoordinate } from "../types/protobuf-types";
+import Task from "../data/tasks/task";
 
 const units: Units = "kilometers";
 const options = { units: units };
@@ -56,12 +56,13 @@ export function bytesString(bytes: number) {
  * Uses the constant heading parameters and waypoint location to generate
  * a projected end location
  *
- * @param {Waypoint} waypoint Contains the start location + task params
+ * @param {GeographicLocation} startLocation Where the constant heading begins
+ * @param {Task} task Contains the constant heading parameters
  * @returns {GeographicCoordinate} Projected end point after constant heading
  */
-export function constantHeadingParamsToLocation(waypoint: Waypoint) {
-    const origin = [waypoint.getLocation().lon, waypoint.getLocation().lat];
-    const params = waypoint.getTask().getConstantHeadingParameters();
+export function constantHeadingParamsToLocation(startLocation: GeographicCoordinate, task: Task) {
+    const origin = [startLocation.lon, startLocation.lat];
+    const params = task.getConstantHeadingParameters();
     // Seconds * meters per second = meters / 1000 = kilometers
     const distance = (params.constant_heading_time * params.constant_heading_speed) / 1000;
     const endPoint = turf.destination(origin, distance, params.constant_heading, options);
@@ -73,21 +74,23 @@ export function constantHeadingParamsToLocation(waypoint: Waypoint) {
  * Uses the requested end location to calculate the constant heading parameters
  * of a waypoint
  *
- * @param {Waypoint} waypoint Contains the start location + current task params
- * @param {GeographicCoordinate} location Requested end location of constant heading
+ * @param {GeographicCoordinate} startLocation Start location of constant heading
+ * @param {GeographicCoordinate} endLocation Requested end location of constant heading
+ * @param {Task} task Holds the current constant heading params
  * @returns {ConstantHeadingParameters} Copy of parameters with updated heading
  */
 export function locationToConstantHeadingParams(
-    waypoint: Waypoint,
-    location: GeographicCoordinate,
+    startLocation: GeographicCoordinate,
+    endLocation: GeographicCoordinate,
+    task: Task,
 ) {
-    const params = { ...waypoint.getTask().getConstantHeadingParameters() };
-    const startCoord = [waypoint.getLocation().lon, waypoint.getLocation().lat];
-    const endCoord = [location.lon, location.lat];
+    const params = { ...task.getConstantHeadingParameters() };
+    const startCoord = [startLocation.lon, startLocation.lat];
+    const endCoord = [endLocation.lon, endLocation.lat];
     const bearing = turf.rhumbBearing(startCoord, endCoord);
     // Convert km to m
     const distance = turf.distance(startCoord, endCoord, options) * 1000;
-    params.constant_heading = bearing;
+    params.constant_heading = (bearing + 360) % 360;
     params.constant_heading_time = distance / params.constant_heading_speed;
     return params;
 }

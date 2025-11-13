@@ -32,8 +32,9 @@ export default class Task {
 
     private isBottomDive: boolean;
     private isEnablePAM: boolean;
+    private isSurveyTask: boolean;
 
-    constructor() {
+    constructor(isSurveyTask: boolean = false) {
         this.type = TaskType.NONE;
         const defaults = jaiaGlobal.getDefaultTaskParameters();
         this.setDiveParameters(defaults.dive);
@@ -41,6 +42,7 @@ export default class Task {
         this.setConstantHeadingParameters(defaults.constantHeading);
         this.isBottomDive = false;
         this.isEnablePAM = false;
+        this.isSurveyTask = isSurveyTask;
     }
 
     getType() {
@@ -182,6 +184,14 @@ export default class Task {
 
     setIsEnablePAM(isEnablePAM: boolean) {
         this.isEnablePAM = isEnablePAM;
+    }
+
+    getIsSurveyTask() {
+        return this.isSurveyTask;
+    }
+
+    setIsSurveyTask(isSurveyTask: boolean) {
+        this.isSurveyTask = isSurveyTask;
     }
 
     /**

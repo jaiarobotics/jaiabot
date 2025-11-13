@@ -8,6 +8,8 @@ import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { MapModes } from "../../types/openlayers-types";
+import { TaskType } from "../../types/protobuf-types";
+import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 
 /**
  * Makes call to add waypoint if mission is in edit mode
@@ -109,6 +111,11 @@ export function handleChangeTaskParameter(mutableState: JaiaContextType, action:
     for (const taskParameterPair of action.taskParameterPairs) {
         action.task.setParameter(taskParameterPair);
     }
+
+    if (action.task.getIsSurveyTask() && action.task.getType() === TaskType.CONSTANT_HEADING) {
+        gridLayer.handleConstantHeadingChange();
+    }
+
     missionLayer.updateFeatures();
     return mutableState;
 }
@@ -134,11 +141,23 @@ export function handleToggleConstantHeadingSelect(
     mutableState: JaiaContextType,
     action: JaiaAction,
 ) {
+    const currentMapMode = jaiaGlobal.getMapMode();
     let updatedMapMode = MapModes.DEFAULT;
-    if (jaiaGlobal.getMapMode() !== MapModes.CONSTANT_HEADING_SELECT) {
+
+    if (
+        action.task.getIsSurveyTask() &&
+        currentMapMode !== MapModes.SURVEY_CONSTANT_HEADING_SELECT
+    ) {
+        updatedMapMode = MapModes.SURVEY_CONSTANT_HEADING_SELECT;
+    } else if (action.task.getIsSurveyTask()) {
+        updatedMapMode = MapModes.SURVEY_PLANNING;
+    }
+
+    if (!action.task.getIsSurveyTask() && currentMapMode !== MapModes.CONSTANT_HEADING_SELECT) {
         updatedMapMode = MapModes.CONSTANT_HEADING_SELECT;
         jaiaGlobal.getSelectedWaypoint().isMoveable = false;
     }
+
     handleMapModeChange(updatedMapMode);
     mutableState.mapMode = updatedMapMode;
     return mutableState;

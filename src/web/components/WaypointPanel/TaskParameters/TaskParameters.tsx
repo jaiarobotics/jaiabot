@@ -57,7 +57,7 @@ export default function TaskParameters(props: Props) {
     };
 
     const handleSelectOnMapClick = () => {
-        jaiaDispatch({ type: JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT });
+        jaiaDispatch({ type: JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT, task: props.task });
     };
 
     switch (props.task?.getType()) {
@@ -217,7 +217,10 @@ function ConstantHeading(props: Props) {
                 <div>Select on Map</div>
                 <JaiaToggle
                     onClick={props.handleSelectOnMapClick}
-                    checked={() => props.mapMode === MapModes.CONSTANT_HEADING_SELECT}
+                    checked={() =>
+                        props.mapMode === MapModes.CONSTANT_HEADING_SELECT ||
+                        props.mapMode === MapModes.SURVEY_CONSTANT_HEADING_SELECT
+                    }
                     disabled={() => props.isDisabled}
                 />
             </div>

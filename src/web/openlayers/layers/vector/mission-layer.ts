@@ -39,7 +39,10 @@ class MissionLayer extends JaiaVectorLayer {
 
             // Start connecting line at end of constant heading
             if (previousWaypoint.getTask().getType() === TaskType.CONSTANT_HEADING) {
-                lineStartLocation = constantHeadingParamsToLocation(previousWaypoint);
+                lineStartLocation = constantHeadingParamsToLocation(
+                    previousWaypoint.getLocation(),
+                    previousWaypoint.getTask(),
+                );
             }
 
             source.addFeature(
@@ -60,7 +63,7 @@ class MissionLayer extends JaiaVectorLayer {
             source.addFeature(
                 generateWaypointLineFeature(
                     waypoint.getLocation(),
-                    constantHeadingParamsToLocation(waypoint),
+                    constantHeadingParamsToLocation(waypoint.getLocation(), waypoint.getTask()),
                     LineType.DASHED,
                     missionID,
                 ),

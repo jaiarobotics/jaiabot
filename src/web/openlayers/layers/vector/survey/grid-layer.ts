@@ -15,7 +15,7 @@ import JaiaVectorLayer from "../jaia-vector-layer";
 import Mission from "../../../../data/mission_set/mission";
 import { touches } from "../../../controls/touches";
 import { gridPlan } from "../../../../data/survey_planner/grid-plan";
-import { LayerTitles, SurveyEndpoints } from "../../../../types/openlayers-types";
+import { LayerTitles, LineType, SurveyEndpoints } from "../../../../types/openlayers-types";
 import { layersZIndexes } from "../../zindex";
 import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/grid-features";
 import {
@@ -23,6 +23,10 @@ import {
     generateSurveyEndpointCircle,
 } from "../../../features/survey/survey-endpoints";
 import { GeographicCoordinate } from "../../../../types/protobuf-types";
+import {
+    constantHeadingParamsToLocation,
+    locationToConstantHeadingParams,
+} from "../../../../utils/conversions";
 
 const units: Units = "meters";
 const options = { units: units };
@@ -175,21 +179,27 @@ class GridLayer extends JaiaVectorLayer {
      * @param {number} laneNum Used to assign a z-index to the points
      * @returns {Position[][]} Array of points
      */
-    createGridPoints(lane: TurfFeature<TurfLineString>, laneNum: number) {
+    createGridPoints(
+        lane: TurfFeature<TurfLineString>,
+        laneNum: number,
+        showPoints: boolean = true,
+    ) {
         const points: Position[] = [];
         const lineDist = turf.length(lane, options);
         let pointNum = 1;
         for (let dist = 0; dist < lineDist; dist += gridPlan.getPointSpacing()) {
             const coordinates = turf.along(lane, dist, options).geometry.coordinates;
-            const waypointFeature = generateSurveyPoint(
-                {
-                    lat: coordinates[1],
-                    lon: coordinates[0],
-                },
-                pointNum,
-                laneNum,
-            );
-            this.layerSource.addFeature(waypointFeature);
+            if (showPoints) {
+                const waypointFeature = generateSurveyPoint(
+                    {
+                        lat: coordinates[1],
+                        lon: coordinates[0],
+                    },
+                    pointNum,
+                    laneNum,
+                );
+                this.layerSource.addFeature(waypointFeature);
+            }
             points.push(coordinates);
             pointNum++;
         }
@@ -284,6 +294,36 @@ class GridLayer extends JaiaVectorLayer {
 
         if (distToFirstLane > distToLastLane) {
             lanes.reverse();
+        }
+    }
+
+    handleConstantHeadingChange(endLocation?: GeographicCoordinate) {
+        this.finalizeGrid();
+
+        if (endLocation) {
+            const points = this.createGridPoints(this.centerLine, 0, false);
+            const finalCenterPoint = points[points.length - 1];
+            const startLocation = { lat: finalCenterPoint[1], lon: finalCenterPoint[0] };
+            const params = locationToConstantHeadingParams(
+                startLocation,
+                endLocation,
+                gridPlan.getEndTask(),
+            );
+            gridPlan.getEndTask().setConstantHeadingParameters(params);
+        }
+
+        for (const [missionID, mission] of gridPlan.getMissions()) {
+            const finalWaypoint = mission.getWaypoint(mission.getWaypoints().length - 1);
+            const endConstantHeading = constantHeadingParamsToLocation(
+                finalWaypoint.getLocation(),
+                gridPlan.getEndTask(),
+            );
+            const constantHeadingLine = generateSurveyLane(
+                finalWaypoint.getLocation(),
+                endConstantHeading,
+                LineType.DASHED,
+            );
+            this.layerSource.addFeature(constantHeadingLine);
         }
     }
 }

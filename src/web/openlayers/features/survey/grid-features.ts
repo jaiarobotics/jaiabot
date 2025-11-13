@@ -7,7 +7,7 @@ import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 import { view } from "../../views/view";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
 import { TaskType } from "../../../types/protobuf-types";
-import { MapFeatureTypes } from "../../../types/openlayers-types";
+import { LineType, MapFeatureTypes } from "../../../types/openlayers-types";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
 import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
 import { MISSION_ENDPOINTS } from "../../../utils/constants";
@@ -29,6 +29,7 @@ const FIRST_MISSION_ID = 1;
 export function generateSurveyLane(
     startLocation: GeographicCoordinate,
     endLocation: GeographicCoordinate,
+    lineType: LineType = LineType.SOLID,
 ) {
     if (!startLocation || !endLocation) {
         return new Feature();
@@ -42,7 +43,7 @@ export function generateSurveyLane(
     const feature = new Feature({
         geometry: new LineString([startCoordinate, endCoordinate]),
     });
-    feature.setStyle(generateSurveyLaneStyle());
+    feature.setStyle(generateSurveyLaneStyle(lineType));
     return feature;
 }
 
@@ -80,11 +81,13 @@ export function generateSurveyPoint(
  *
  * @returns {Style[]} Array of styles applied to the survey lanes
  */
-function generateSurveyLaneStyle() {
+function generateSurveyLaneStyle(lineType: LineType) {
+    const lineDash = lineType === LineType.DASHED ? [6, 12] : null;
     const underlayStyle = new Style({
         stroke: new Stroke({
             width: 4,
             color: OpenLayersColors.OUTLINE,
+            lineDash: lineDash,
         }),
         zIndex: 1,
     });
@@ -93,6 +96,7 @@ function generateSurveyLaneStyle() {
         stroke: new Stroke({
             width: 2,
             color: getSurveyLaneColor(),
+            lineDash: lineDash,
         }),
         zIndex: 1,
     });

@@ -54,6 +54,9 @@ export default function Map() {
             case MapModes.SURVEY_PLANNING:
                 handleSurveyPlanningClick(event.coordinate);
                 return;
+            case MapModes.SURVEY_CONSTANT_HEADING_SELECT:
+                handleSurveyConstantHeadingSelect(event.coordinate);
+                return;
             case MapModes.CONSTANT_HEADING_SELECT:
                 handleConstantHeadingSelectClick(event.coordinate);
                 return;
@@ -157,6 +160,28 @@ export default function Map() {
         });
     };
 
+    const handleSurveyConstantHeadingSelect = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        const endLocation = { lon: lonLat[0], lat: lonLat[1] };
+        gridLayer.handleConstantHeadingChange(endLocation);
+        const params = gridPlan.getEndTask().getConstantHeadingParameters();
+        const taskParameterPairs = [
+            {
+                key: TaskParameterKeys.HEADING,
+                value: params.constant_heading,
+            },
+            {
+                key: TaskParameterKeys.CONSTANT_HEADING_TIME,
+                value: params.constant_heading_time,
+            },
+        ];
+        jaiaDispatch({
+            type: JaiaActions.SURVEY_CHANGE_TASK_PARAMETER,
+            task: gridPlan.getEndTask(),
+            taskParameterPairs: taskParameterPairs,
+        });
+    };
+
     /**
      * Triggers the calls to update the constant heading projection
      * based on click location
@@ -169,8 +194,12 @@ export default function Map() {
         const mission = missionSet.getMission(selectedWaypoint.missionID);
         const waypoint = mission.getWaypoint(selectedWaypoint.waypointNum);
         const lonLat = toLonLat(coordinate, view.getProjection());
-        const location = { lon: lonLat[0], lat: lonLat[1] };
-        const params = locationToConstantHeadingParams(waypoint, location);
+        const endLocation = { lon: lonLat[0], lat: lonLat[1] };
+        const params = locationToConstantHeadingParams(
+            waypoint.getLocation(),
+            endLocation,
+            waypoint.getTask(),
+        );
         const taskParameterPairs = [
             {
                 key: TaskParameterKeys.HEADING,

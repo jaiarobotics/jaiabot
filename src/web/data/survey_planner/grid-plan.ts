@@ -37,9 +37,9 @@ export class GridPlan {
         this.numOfLanes = 5;
         this.laneSpacing = 10;
         this.pointSpacing = 10;
-        this.surveyTask = new Task();
-        this.startTask = new Task();
-        this.endTask = new Task();
+        this.surveyTask = new Task(true);
+        this.startTask = new Task(true);
+        this.endTask = new Task(true);
         this.missions = new Map<number, Mission>();
     }
 
