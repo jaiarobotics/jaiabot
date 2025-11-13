@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+import { jaiaStateHistory } from "../../data/history/history";
 
 import RallyButton from "../__buttons__/RallyButton/RallyButton";
 import ActivateAllButton from "../__buttons__/ActivateAllButton/ActivateAllButton";
@@ -95,14 +96,14 @@ export default function ButtonList(props: Props) {
      * @returns {void}
      */
     const getUndoClassName = () =>
-        jaiaContext.stateHistory.canUndo() ? "jaia-button" : "jaia-button disabled";
+        jaiaStateHistory.canUndo() ? "jaia-button" : "jaia-button disabled";
     /**
      * Provides the class name to style the redo button
      *
      * @returns {void}
      */
     const getRedoClassName = () =>
-        jaiaContext.stateHistory.canRedo() ? "jaia-button" : "jaia-button disabled";
+        jaiaStateHistory.canRedo() ? "jaia-button" : "jaia-button disabled";
 
     if (props.buttonListType === ButtonListTypes.TOP) {
         return (
@@ -113,22 +114,22 @@ export default function ButtonList(props: Props) {
                 <DataOffloadAllButton bots={jaiaContext.bots} />
                 <Button
                     className={getUndoClassName()}
-                    disabled={!jaiaContext.stateHistory.canUndo()}
+                    disabled={!jaiaStateHistory.canUndo()}
                     onClick={() => handleUndoClick()}
                 >
                     <Icon
                         path={mdiArrowULeftTop}
-                        title={"Undo " + jaiaContext.stateHistory.peekUndoDescription()}
+                        title={"Undo " + jaiaStateHistory.peekUndoDescription()}
                     />
                 </Button>
                 <Button
                     className={getRedoClassName()}
-                    disabled={!jaiaContext.stateHistory.canRedo()}
+                    disabled={!jaiaStateHistory.canRedo()}
                     onClick={() => handleRedoClick()}
                 >
                     <Icon
                         path={mdiArrowURightTop}
-                        title={"Redo " + jaiaContext.stateHistory.peekRedoDescription()}
+                        title={"Redo " + jaiaStateHistory.peekRedoDescription()}
                     />
                 </Button>
                 <Button

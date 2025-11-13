@@ -6,7 +6,6 @@ import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
 import Task from "../data/tasks/task";
-import HistoryBuffer from "../utils/history-buffer";
 import {
     SelectedNode,
     SelectedWaypoint,
@@ -25,7 +24,7 @@ export interface JaiaContextType {
     missions: Map<number, Mission>;
     gridMissions: Map<number, Mission>;
     taskPackets: TaskPacket[];
-    stateHistory: HistoryBuffer<JaiaHistoryType>;
+    //stateHistory: HistoryBuffer<JaiaContextType>;
 
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
@@ -41,7 +40,16 @@ export interface JaiaContextType {
     missionSpeeds: Speeds;
 
     mapMode: MapModes;
-    gridPlanningState: GridPlanningStates;
+    // gridPlanningState: GridPlanningStates;
+    //TODO Added for JAIA-2145
+    nextMissionID: number;
+    missionSetName: string;
+    missionAssignments: Map<number, number>;
+    gridMissionStart: GeographicCoordinate;
+    gridMissionEnd: GeographicCoordinate;
+    gridPlanDetails: GridPlanDetails;
+    gridStartTask: Task;
+    gridEndTask: Task;
 }
 
 // Type used for actions dispatched to the context provider
@@ -76,6 +84,7 @@ export interface JaiaAction {
     gridPlanningState?: GridPlanningStates;
 }
 
+/** TODO Remove
 // Snapshot of app state for storing history
 export interface JaiaHistoryType {
     // Items from JaiaContext
@@ -104,6 +113,7 @@ export interface JaiaHistoryType {
     gridStartTask: Task;
     gridEndTask: Task;
 }
+*/
 
 export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",

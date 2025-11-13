@@ -1,9 +1,9 @@
+import { cloneDeep } from "lodash";
 import {
     JaiaContextType,
     ButtonNames,
     HubAccordionStates,
     BotAccordionStates,
-    JaiaHistoryType,
 } from "../../types/context-types";
 import { bots } from "../../data/bots/bots";
 import { hubs } from "../../data/hubs/hubs";
@@ -15,10 +15,10 @@ import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-pla
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapModes } from "../../types/openlayers-types";
 
-import HistoryBuffer from "../../utils/history-buffer";
-import { captureSnapshot } from "./history-handlers";
+import { jaiaStateHistory } from "../../data/history/history";
 
 import { UNASSIGNED_ID, MAX_HISTORY } from "../../utils/constants";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
@@ -54,30 +54,41 @@ const defaultMapLayerAccordionStates = {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleInit(mutableState: JaiaContextType) {
-    mutableState.bots = bots.getBots();
-    mutableState.hubs = hubs.getHubs();
-    mutableState.missions = missionSet.getMissions();
-    mutableState.gridMissions = gridPlan.getMissions();
-    mutableState.taskPackets = taskPackets.getTaskPackets();
+    const completeInit: JaiaContextType = {
+        bots: bots.getBots(),
+        hubs: hubs.getHubs(),
+        missions: missionSet.getMissions(),
+        gridMissions: gridPlan.getMissions(),
+        taskPackets: taskPackets.getTaskPackets(),
 
-    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
-    mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
-    mutableState.visibleDetails = NodeTypes.NONE;
-    mutableState.visiblePanel = ButtonNames.NONE;
-    mutableState.hubAccordionStates = defaultHubAccordionStates;
-    mutableState.botAccordionStates = defaultBotAccordionStates;
-    mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
-    mutableState.missionAccordionStates = {};
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    mutableState.missionSpeeds = missionSet.getMissionSpeeds();
+        selectedNode: jaiaGlobal.getSelectedNode(),
+        selectedWaypoint: jaiaGlobal.getSelectedWaypoint(),
+        selectedTaskPacket: jaiaGlobal.getSelectedTaskPacket(),
+        selectedRallyPoint: { id: UNASSIGNED_ID },
+        visibleDetails: NodeTypes.NONE,
+        visiblePanel: ButtonNames.NONE,
+        hubAccordionStates: defaultHubAccordionStates,
+        botAccordionStates: defaultBotAccordionStates,
+        mapLayerAccordionStates: defaultMapLayerAccordionStates,
+        missionAccordionStates: {},
+        missionIDInEditMode: missionSet.getMissionIDInEditMode(),
+        missionSpeeds: missionSet.getMissionSpeeds(),
 
-    mutableState.mapMode = MapModes.DEFAULT;
-    mutableState.gridPlanningState = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
+        mapMode: MapModes.DEFAULT,
 
-    const initialState = captureSnapshot(mutableState);
-    mutableState.stateHistory = new HistoryBuffer<JaiaHistoryType>(initialState, MAX_HISTORY);
+        nextMissionID: missionSet.getNextMissionID(),
+        missionSetName: missionSet.getName(),
+        missionAssignments: missionsManager.getMissionAssignments(),
+        gridMissionStart: gridPlan.getMissionStart(),
+        gridMissionEnd: gridPlan.getMissionEnd(),
+        gridPlanDetails: gridPlan.getGridPlanDetails(),
+        gridStartTask: gridPlan.getStartTask(),
+        gridEndTask: gridPlan.getEndTask(),
+    };
+
+    Object.assign(mutableState, completeInit);
+    const initialState = cloneDeep(mutableState);
+    jaiaStateHistory.reset(initialState);
 
     return mutableState;
 }

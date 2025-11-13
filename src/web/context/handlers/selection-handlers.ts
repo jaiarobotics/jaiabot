@@ -101,9 +101,11 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
         resetSelectedWaypoint(mutableState);
     }
 
-    if (mutableState.gridPlanningState !== GridPlanningStates.ACCEPTING_MISSION_START_LOCATION) {
+    if (
+        mutableState.gridPlanDetails.state !== GridPlanningStates.ACCEPTING_MISSION_START_LOCATION
+    ) {
         gridPlan.reset();
-        mutableState.gridPlanningState = gridPlan.getState();
+        mutableState.gridPlanDetails.state = gridPlan.getState();
     }
 
     handleMapModeChange(mapMode);
