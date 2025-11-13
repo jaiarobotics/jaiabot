@@ -142,6 +142,12 @@ export class GridPlan {
         this.missions = missions;
     }
 
+    /**
+     * Provides the task that is being modified in the survey planning
+     * process based on state
+     *
+     * @returns {Task} Which task the user is modifying
+     */
     getPlanningTask() {
         if (this.state === GridPlanningStates.ACCEPTING_TASK) {
             return this.surveyTask;
