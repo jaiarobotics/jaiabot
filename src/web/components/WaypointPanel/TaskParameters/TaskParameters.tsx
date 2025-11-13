@@ -56,6 +56,11 @@ export default function TaskParameters(props: Props) {
         jaiaDispatch({ type: JaiaActions.TOGGLE_BOTTOM_DIVE, task: props.task });
     };
 
+    /**
+     * Dispatches action to update the constant heading select on map toggle
+     *
+     * @return {void}
+     */
     const handleSelectOnMapClick = () => {
         jaiaDispatch({ type: JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT, task: props.task });
     };
@@ -211,16 +216,29 @@ function DriftParameters(props: Props) {
  */
 function ConstantHeading(props: Props) {
     const constantHeadingParameters = props.task.getConstantHeadingParameters();
+
+    /**
+     * Evaluates the map mode to determine the checked state of the toggle
+     *
+     * @returns {boolean} The checked state of the toggle
+     */
+    const isSelectOnMapToggleChecked = () => {
+        if (
+            props.mapMode === MapModes.CONSTANT_HEADING_SELECT ||
+            props.mapMode === MapModes.SURVEY_CONSTANT_HEADING_SELECT
+        ) {
+            return true;
+        }
+        return false;
+    };
+
     return (
         <div className="task-parameters">
             <div className="select-on-map">
                 <div>Select on Map</div>
                 <JaiaToggle
                     onClick={props.handleSelectOnMapClick}
-                    checked={() =>
-                        props.mapMode === MapModes.CONSTANT_HEADING_SELECT ||
-                        props.mapMode === MapModes.SURVEY_CONSTANT_HEADING_SELECT
-                    }
+                    checked={isSelectOnMapToggleChecked}
                     disabled={() => props.isDisabled}
                 />
             </div>

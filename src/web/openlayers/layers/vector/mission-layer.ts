@@ -2,14 +2,13 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { TaskType } from "../../../types/protobuf-types";
 import { LayerTitles, LineType } from "../../../types/openlayers-types";
-
+import { constantHeadingParamsToLocation } from "../../../utils/conversions";
 import { layersZIndexes } from "../zindex";
 import {
     generateWaypointFeature,
     generateWaypointLineFeature,
     generateMissionFlagFeature,
 } from "../../features/waypoint-feature";
-import { constantHeadingParamsToLocation } from "../../../utils/conversions";
 
 class MissionLayer extends JaiaVectorLayer {
     constructor() {

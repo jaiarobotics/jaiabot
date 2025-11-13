@@ -99,7 +99,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.SURVEY_TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: false }],
     [
         JaiaActions.SURVEY_TOGGLE_CONSTANT_HEADING_SELECT,
-        { handler: handleToggleConstantHeadingSelect, tracked: true },
+        { handler: handleToggleConstantHeadingSelect, tracked: false },
     ],
 
     // Rally Point Actions

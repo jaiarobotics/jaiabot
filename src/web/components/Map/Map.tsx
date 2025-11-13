@@ -201,6 +201,7 @@ export default function Map() {
                 value: params.constant_heading_time,
             },
         ];
+
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PARAMETER,
             task: task,

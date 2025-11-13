@@ -58,6 +58,11 @@ class GridLayer extends JaiaVectorLayer {
         return this.centerLine;
     }
 
+    /**
+     * Provides the location where the final waypoint would reside on the center line of the grid
+     *
+     * @returns {GeographicCoordinate} Location of final waypoint on the center line of the grid
+     */
     getFinalPointCenterLine() {
         const lineDist = turf.length(this.centerLine, options);
         let lastPoint = [0, 0];
@@ -188,14 +193,11 @@ class GridLayer extends JaiaVectorLayer {
      * @param {number} laneNum Used to assign a z-index to the points
      * @returns {Position[][]} Array of points
      */
-    createGridPoints(
-        lane: TurfFeature<TurfLineString>,
-        laneNum: number,
-        showPoints: boolean = true,
-    ) {
+    createGridPoints(lane: TurfFeature<TurfLineString>, laneNum: number) {
         const points: Position[] = [];
         const lineDist = turf.length(lane, options);
         let pointNum = 1;
+
         for (let dist = 0; dist < lineDist; dist += gridPlan.getPointSpacing()) {
             const coordinates = turf.along(lane, dist, options).geometry.coordinates;
             const waypointFeature = generateSurveyPoint(
@@ -210,20 +212,13 @@ class GridLayer extends JaiaVectorLayer {
             points.push(coordinates);
             pointNum++;
         }
+
         if (gridPlan.getEndTask().getType() === TaskType.CONSTANT_HEADING) {
-            const finalPoint = points[points.length - 1];
-            const startLocation = { lat: finalPoint[1], lon: finalPoint[0] };
-            const endLocation = constantHeadingParamsToLocation(
-                startLocation,
-                gridPlan.getEndTask(),
-            );
-            const constantHeadingLine = generateSurveyLane(
-                startLocation,
-                endLocation,
-                LineType.DASHED,
-            );
-            this.layerSource.addFeature(constantHeadingLine);
+            const point = points[points.length - 1];
+            const startLocation = { lat: point[1], lon: point[0] };
+            this.createConstantHeadingProjection(startLocation);
         }
+
         return points;
     }
 
@@ -242,14 +237,23 @@ class GridLayer extends JaiaVectorLayer {
         );
 
         if (gridPlan.getStartTask().getType() === TaskType.CONSTANT_HEADING) {
-            const endLocation = constantHeadingParamsToLocation(
-                gridPlan.getMissionStart(),
-                gridPlan.getStartTask(),
-            );
-            this.layerSource.addFeature(
-                generateSurveyLane(gridPlan.getMissionStart(), endLocation, LineType.DASHED),
-            );
+            this.createConstantHeadingProjection(gridPlan.getMissionStart());
         }
+    }
+
+    /**
+     * Produces the projected constant heading line on the map
+     *
+     * @param {GeographicCoordinate} startLocation Beginning of constant heading projection
+     * @returns {void}
+     */
+    createConstantHeadingProjection(startLocation: GeographicCoordinate) {
+        const endLocation = constantHeadingParamsToLocation(
+            startLocation,
+            gridPlan.getPlanningTask(),
+        );
+        const constantHeadingLine = generateSurveyLane(startLocation, endLocation, LineType.DASHED);
+        this.layerSource.addFeature(constantHeadingLine);
     }
 
     /**
