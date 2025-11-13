@@ -14,7 +14,7 @@ import { Stroke, Style } from "ol/style";
 import JaiaVectorLayer from "../jaia-vector-layer";
 import Mission from "../../../../data/mission_set/mission";
 import { touches } from "../../../controls/touches";
-import { gridPlan } from "../../../../data/survey_planner/grid-plan";
+import { gridPlan, GridPlanningStates } from "../../../../data/survey_planner/grid-plan";
 import { LayerTitles, LineType, SurveyEndpoints } from "../../../../types/openlayers-types";
 import { layersZIndexes } from "../../zindex";
 import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/grid-features";
@@ -22,7 +22,7 @@ import {
     generateSurveyEndpoint,
     generateSurveyEndpointCircle,
 } from "../../../features/survey/survey-endpoints";
-import { GeographicCoordinate } from "../../../../types/protobuf-types";
+import { GeographicCoordinate, TaskType } from "../../../../types/protobuf-types";
 import {
     constantHeadingParamsToLocation,
     locationToConstantHeadingParams,
@@ -56,6 +56,15 @@ class GridLayer extends JaiaVectorLayer {
 
     getCenterLine() {
         return this.centerLine;
+    }
+
+    getFinalPointCenterLine() {
+        const lineDist = turf.length(this.centerLine, options);
+        let lastPoint = [0, 0];
+        for (let dist = 0; dist < lineDist; dist += gridPlan.getPointSpacing()) {
+            lastPoint = turf.along(this.centerLine, dist, options).geometry.coordinates;
+        }
+        return { lat: lastPoint[1], lon: lastPoint[0] };
     }
 
     /**
@@ -189,19 +198,31 @@ class GridLayer extends JaiaVectorLayer {
         let pointNum = 1;
         for (let dist = 0; dist < lineDist; dist += gridPlan.getPointSpacing()) {
             const coordinates = turf.along(lane, dist, options).geometry.coordinates;
-            if (showPoints) {
-                const waypointFeature = generateSurveyPoint(
-                    {
-                        lat: coordinates[1],
-                        lon: coordinates[0],
-                    },
-                    pointNum,
-                    laneNum,
-                );
-                this.layerSource.addFeature(waypointFeature);
-            }
+            const waypointFeature = generateSurveyPoint(
+                {
+                    lat: coordinates[1],
+                    lon: coordinates[0],
+                },
+                pointNum,
+                laneNum,
+            );
+            this.layerSource.addFeature(waypointFeature);
             points.push(coordinates);
             pointNum++;
+        }
+        if (gridPlan.getEndTask().getType() === TaskType.CONSTANT_HEADING) {
+            const finalPoint = points[points.length - 1];
+            const startLocation = { lat: finalPoint[1], lon: finalPoint[0] };
+            const endLocation = constantHeadingParamsToLocation(
+                startLocation,
+                gridPlan.getEndTask(),
+            );
+            const constantHeadingLine = generateSurveyLane(
+                startLocation,
+                endLocation,
+                LineType.DASHED,
+            );
+            this.layerSource.addFeature(constantHeadingLine);
         }
         return points;
     }
@@ -215,9 +236,20 @@ class GridLayer extends JaiaVectorLayer {
         this.layerSource.addFeature(
             generateSurveyEndpoint(gridPlan.getMissionStart(), SurveyEndpoints.START),
         );
+
         this.layerSource.addFeature(
             generateSurveyEndpoint(gridPlan.getMissionEnd(), SurveyEndpoints.END),
         );
+
+        if (gridPlan.getStartTask().getType() === TaskType.CONSTANT_HEADING) {
+            const endLocation = constantHeadingParamsToLocation(
+                gridPlan.getMissionStart(),
+                gridPlan.getStartTask(),
+            );
+            this.layerSource.addFeature(
+                generateSurveyLane(gridPlan.getMissionStart(), endLocation, LineType.DASHED),
+            );
+        }
     }
 
     /**
@@ -294,36 +326,6 @@ class GridLayer extends JaiaVectorLayer {
 
         if (distToFirstLane > distToLastLane) {
             lanes.reverse();
-        }
-    }
-
-    handleConstantHeadingChange(endLocation?: GeographicCoordinate) {
-        this.finalizeGrid();
-
-        if (endLocation) {
-            const points = this.createGridPoints(this.centerLine, 0, false);
-            const finalCenterPoint = points[points.length - 1];
-            const startLocation = { lat: finalCenterPoint[1], lon: finalCenterPoint[0] };
-            const params = locationToConstantHeadingParams(
-                startLocation,
-                endLocation,
-                gridPlan.getEndTask(),
-            );
-            gridPlan.getEndTask().setConstantHeadingParameters(params);
-        }
-
-        for (const [missionID, mission] of gridPlan.getMissions()) {
-            const finalWaypoint = mission.getWaypoint(mission.getWaypoints().length - 1);
-            const endConstantHeading = constantHeadingParamsToLocation(
-                finalWaypoint.getLocation(),
-                gridPlan.getEndTask(),
-            );
-            const constantHeadingLine = generateSurveyLane(
-                finalWaypoint.getLocation(),
-                endConstantHeading,
-                LineType.DASHED,
-            );
-            this.layerSource.addFeature(constantHeadingLine);
         }
     }
 }

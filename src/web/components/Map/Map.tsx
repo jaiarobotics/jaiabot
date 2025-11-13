@@ -55,7 +55,7 @@ export default function Map() {
                 handleSurveyPlanningClick(event.coordinate);
                 return;
             case MapModes.SURVEY_CONSTANT_HEADING_SELECT:
-                handleSurveyConstantHeadingSelect(event.coordinate);
+                handleConstantHeadingSelectClick(event.coordinate);
                 return;
             case MapModes.CONSTANT_HEADING_SELECT:
                 handleConstantHeadingSelectClick(event.coordinate);
@@ -160,28 +160,6 @@ export default function Map() {
         });
     };
 
-    const handleSurveyConstantHeadingSelect = (coordinate: Coordinate) => {
-        const lonLat = toLonLat(coordinate, view.getProjection());
-        const endLocation = { lon: lonLat[0], lat: lonLat[1] };
-        gridLayer.handleConstantHeadingChange(endLocation);
-        const params = gridPlan.getEndTask().getConstantHeadingParameters();
-        const taskParameterPairs = [
-            {
-                key: TaskParameterKeys.HEADING,
-                value: params.constant_heading,
-            },
-            {
-                key: TaskParameterKeys.CONSTANT_HEADING_TIME,
-                value: params.constant_heading_time,
-            },
-        ];
-        jaiaDispatch({
-            type: JaiaActions.SURVEY_CHANGE_TASK_PARAMETER,
-            task: gridPlan.getEndTask(),
-            taskParameterPairs: taskParameterPairs,
-        });
-    };
-
     /**
      * Triggers the calls to update the constant heading projection
      * based on click location
@@ -190,16 +168,29 @@ export default function Map() {
      * @returns {void}
      */
     const handleConstantHeadingSelectClick = (coordinate: Coordinate) => {
-        const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-        const mission = missionSet.getMission(selectedWaypoint.missionID);
-        const waypoint = mission.getWaypoint(selectedWaypoint.waypointNum);
+        let startLocation;
+        let task;
+
+        if (jaiaGlobal.getMapMode() === MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+            if (gridPlan.getState() === GridPlanningStates.ACCEPTING_START_TASK) {
+                startLocation = gridPlan.getMissionStart();
+            } else {
+                startLocation = gridLayer.getFinalPointCenterLine();
+            }
+            task = gridPlan.getPlanningTask();
+        } else {
+            const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+            const mission = missionSet.getMission(selectedWaypoint.missionID);
+            const waypoint = mission.getWaypoint(selectedWaypoint.waypointNum);
+            startLocation = waypoint.getLocation();
+            task = waypoint.getTask();
+        }
+
         const lonLat = toLonLat(coordinate, view.getProjection());
         const endLocation = { lon: lonLat[0], lat: lonLat[1] };
-        const params = locationToConstantHeadingParams(
-            waypoint.getLocation(),
-            endLocation,
-            waypoint.getTask(),
-        );
+
+        const params = locationToConstantHeadingParams(startLocation, endLocation, task);
+
         const taskParameterPairs = [
             {
                 key: TaskParameterKeys.HEADING,
@@ -212,7 +203,7 @@ export default function Map() {
         ];
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PARAMETER,
-            task: waypoint.getTask(),
+            task: task,
             taskParameterPairs: taskParameterPairs,
         });
     };

@@ -112,11 +112,12 @@ export function handleChangeTaskParameter(mutableState: JaiaContextType, action:
         action.task.setParameter(taskParameterPair);
     }
 
-    if (action.task.getIsSurveyTask() && action.task.getType() === TaskType.CONSTANT_HEADING) {
-        gridLayer.handleConstantHeadingChange();
+    if (jaiaGlobal.getMapMode() === MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+        gridLayer.finalizeGrid();
+    } else {
+        missionLayer.updateFeatures();
     }
 
-    missionLayer.updateFeatures();
     return mutableState;
 }
 

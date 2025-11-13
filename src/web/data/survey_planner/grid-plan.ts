@@ -45,7 +45,9 @@ export class GridPlan {
 
     reset() {
         this.state = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
-        this.surveyTask = new Task();
+        this.surveyTask = new Task(true);
+        this.startTask = new Task(true);
+        this.endTask = new Task(true);
         this.missions = new Map<number, Mission>();
     }
 
@@ -138,6 +140,18 @@ export class GridPlan {
 
     setMissions(missions: Map<number, Mission>) {
         this.missions = missions;
+    }
+
+    getPlanningTask() {
+        if (this.state === GridPlanningStates.ACCEPTING_TASK) {
+            return this.surveyTask;
+        }
+        if (this.state === GridPlanningStates.ACCEPTING_START_TASK) {
+            return this.startTask;
+        }
+        if (this.state === GridPlanningStates.ACCEPTING_END_TASK) {
+            return this.endTask;
+        }
     }
 }
 
