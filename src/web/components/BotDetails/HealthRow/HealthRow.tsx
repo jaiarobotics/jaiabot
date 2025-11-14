@@ -25,13 +25,13 @@ export default function HealthRow() {
 
     switch (selectedNode.type) {
         case NodeTypes.BOT:
-            const bot = jaiaContext.bots.get(selectedNode.id);
+            const bot = jaiaContext.bots.getBot(selectedNode.id);
             healthState = bot.getHealthState();
             errors = bot.getErrors();
             warnings = bot.getWarnings();
             break;
         case NodeTypes.HUB:
-            const hub = jaiaContext.hubs.get(selectedNode.id);
+            const hub = jaiaContext.hubs.getHub(selectedNode.id);
             healthState = hub.getHealthState();
             errors = hub.getErrors();
             warnings = hub.getWarnings();

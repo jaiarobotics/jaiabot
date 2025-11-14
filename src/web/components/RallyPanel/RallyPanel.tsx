@@ -42,7 +42,7 @@ export default function RallyPanel() {
             <div className="jaia-panel-title">Rally {jaiaContext.selectedRallyPoint.id}</div>
             <div className="rally-buttons-container">
                 <GoToRallyButton
-                    bots={jaiaContext.bots}
+                    bots={jaiaContext.bots.getBots()}
                     selectedRallyPoint={jaiaContext.selectedRallyPoint}
                     missionSpeeds={jaiaContext.missionSet.getMissionSpeeds()}
                 />

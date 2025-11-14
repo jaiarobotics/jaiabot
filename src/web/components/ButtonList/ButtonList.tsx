@@ -108,13 +108,13 @@ export default function ButtonList(props: Props) {
     if (props.buttonListType === ButtonListTypes.TOP) {
         return (
             <div className="button-list top">
-                <ActivateAllButton bots={jaiaContext.bots} />
-                <StopAllBotsButton bots={jaiaContext.bots} />
+                <ActivateAllButton bots={jaiaContext.bots.getBots()} />
+                <StopAllBotsButton bots={jaiaContext.bots.getBots()} />
                 <StartAllMissionsButton
-                    bots={jaiaContext.bots}
+                    bots={jaiaContext.bots.getBots()}
                     missions={jaiaContext.missionSet.getMissions()}
                 />
-                <DataOffloadAllButton bots={jaiaContext.bots} />
+                <DataOffloadAllButton bots={jaiaContext.bots.getBots()} />
                 <Button
                     className={getUndoClassName()}
                     disabled={!jaiaStateHistory.canUndo()}

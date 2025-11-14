@@ -4,9 +4,10 @@ import { MissionsManager } from "../data/missions_manager/missions-manager";
 import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import { GridPlan, GridPlanningStates } from "../data/survey_planner/grid-plan";
 import { JaiaGlobal } from "../data/jaia_global/jaia-global";
-import Bot from "../data/bots/bot";
-import Hub from "../data/hubs/hub";
+import { Bots } from "../data/bots/bots";
+import { Hubs } from "../data/hubs/hubs";
 import Waypoint from "../data/waypoints/waypoint";
+import { TaskPackets } from "../data/task_packets/task-packets";
 import Task from "../data/tasks/task";
 import {
     SelectedNode,
@@ -18,16 +19,17 @@ import {
 } from "./jaia-system-types";
 import { MapModes } from "./openlayers-types";
 import { TaskPacket, Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
+import HubSensors from "../data/hubs/hub-sensors";
 
 // Type used to captue the JCC context
 export interface JaiaContextType {
-    bots: Map<number, Bot>;
-    hubs: Map<number, Hub>;
+    bots: Bots;
+    hubs: Hubs;
+    taskPackets: TaskPackets;
     missionSet: MissionSet;
     gridPlan: GridPlan;
     jaiaGlobal: JaiaGlobal;
     missionsManager: MissionsManager;
-    taskPackets: TaskPacket[];
 
     selectedRallyPoint: SelectedRallyPoint;
     visibleDetails: NodeTypes;
@@ -36,8 +38,6 @@ export interface JaiaContextType {
     botAccordionStates: BotAccordionStates;
     mapLayerAccordionStates: MapLayerAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
-
-    mapMode: MapModes;
 }
 
 // Type used for actions dispatched to the context provider

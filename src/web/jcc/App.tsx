@@ -91,7 +91,7 @@ function Panel() {
             return (
                 <TaskPacketPanel
                     selectedTaskPacket={jaiaContext.jaiaGlobal.getSelectedTaskPacket()}
-                    taskPackets={jaiaContext.taskPackets}
+                    taskPackets={jaiaContext.taskPackets.getTaskPackets()}
                 />
             );
         case ButtonNames.DATA_OFFLOAD_PANEL:
@@ -117,7 +117,7 @@ function RemoteControl() {
         return <div></div>;
     }
     if (jaiaContext.jaiaGlobal.getSelectedNode().type === NodeTypes.BOT) {
-        const selectedBot = jaiaContext.bots.get(jaiaContext.jaiaGlobal.getSelectedNode().id);
+        const selectedBot = jaiaContext.bots.getBot(jaiaContext.jaiaGlobal.getSelectedNode().id);
         if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
             return <RemoteControlPanel botID={selectedBot.getBotID()} />;
         }

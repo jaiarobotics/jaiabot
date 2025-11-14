@@ -19,8 +19,8 @@ export default function NodeList() {
         return <div></div>;
     }
 
-    const hubs = Array.from(jaiaContext.hubs.values());
-    const bots = Array.from(jaiaContext.bots.values());
+    const hubs = Array.from(jaiaContext.hubs.getHubs().values());
+    const bots = Array.from(jaiaContext.bots.getBots().values());
 
     /**
      * Dispatches the CLICKED_NODE action to JaiaContext for further handling

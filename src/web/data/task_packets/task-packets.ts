@@ -1,6 +1,6 @@
 import { TaskPacket } from "../../types/protobuf-types";
 
-class TaskPackets {
+export class TaskPackets {
     private taskPackets: TaskPacket[];
 
     constructor() {

@@ -17,7 +17,7 @@ import { syncOpenLayers } from "./handler-utils";
 export function handleAddRallyPoint(mutableState: JaiaContextType, action: JaiaAction) {
     rallyLayer.addRallyPoint(action.location);
     handleMapModeChange(MapModes.DEFAULT);
-    mutableState.mapMode = jaiaGlobal.getMapMode();
+
     return mutableState;
 }
 

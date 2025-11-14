@@ -55,14 +55,14 @@ const defaultMapLayerAccordionStates = {
  */
 export function handleInit(mutableState: JaiaContextType) {
     const completeInit: JaiaContextType = {
-        bots: bots.getBots(),
-        hubs: hubs.getHubs(),
+        bots: bots,
+        hubs: hubs,
         missionSet: missionSet,
         gridPlan: gridPlan,
         jaiaGlobal: jaiaGlobal,
         missionsManager: missionsManager,
 
-        taskPackets: taskPackets.getTaskPackets(),
+        taskPackets: taskPackets,
         selectedRallyPoint: { id: UNASSIGNED_ID },
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
@@ -70,7 +70,6 @@ export function handleInit(mutableState: JaiaContextType) {
         botAccordionStates: defaultBotAccordionStates,
         mapLayerAccordionStates: defaultMapLayerAccordionStates,
         missionAccordionStates: {},
-        mapMode: MapModes.DEFAULT,
     };
 
     Object.assign(mutableState, completeInit);
@@ -87,8 +86,5 @@ export function handleInit(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handlePollDataModel(mutableState: JaiaContextType) {
-    mutableState.bots = bots.getBots();
-    mutableState.hubs = hubs.getHubs();
-    mutableState.taskPackets = taskPackets.getTaskPackets();
     return mutableState;
 }

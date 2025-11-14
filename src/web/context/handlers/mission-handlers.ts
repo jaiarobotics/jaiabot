@@ -206,7 +206,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             missionsManager.autoAssign();
 
             handleMapModeChange(MapModes.DEFAULT);
-            mutableState.mapMode = MapModes.DEFAULT;
+            jaiaGlobal.setMapMode(MapModes.DEFAULT);
             mutableState.visiblePanel = ButtonNames.NONE;
             missionLayer.updateFeatures();
             break;

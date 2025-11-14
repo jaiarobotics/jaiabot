@@ -106,7 +106,6 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
     }
 
     handleMapModeChange(mapMode);
-    mutableState.mapMode = mapMode;
     mutableState.visiblePanel = visiblePanel;
     return mutableState;
 }
