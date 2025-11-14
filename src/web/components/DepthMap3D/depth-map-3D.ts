@@ -1,6 +1,7 @@
 import colors from "./colors.json";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { DEPTH_MAP_3D_NAME } from "../../utils/constants";
+import "./DepthMap3D.less";
 
 const Plotly = require("plotly.js-dist");
 

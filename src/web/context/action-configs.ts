@@ -109,6 +109,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         JaiaActions.CLOSED_TASK_PACKET_PANEL,
         { handler: handleClosedTaskPacketPanel, tracked: false },
     ],
+    [JaiaActions.CLOSED_3D_DEPTH_MAP, { handler: handleClosedTaskPacketPanel, tracked: false }],
 
     // Accordion Actions
     [JaiaActions.CLICKED_HUB_ACCORDION, { handler: handleClickedHubAccordion, tracked: false }],
