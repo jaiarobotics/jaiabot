@@ -1,5 +1,5 @@
-import { ChangeEvent, useContext, useEffect, useState } from "react";
 import cloneDeep from "lodash/cloneDeep";
+import { ChangeEvent, useContext, useEffect, useState } from "react";
 
 import TaskParameters from "./TaskParameters/TaskParameters";
 
@@ -7,10 +7,11 @@ import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import JaiaToggle from "../JaiaToggle/JaiaToggle";
 
-import Waypoint from "../../data/waypoints/waypoint";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { compareSelectedWaypoints } from "../../utils/comparisons";
 import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 
 import { CoordinateTypes } from "../../types/jaia-system-types";
@@ -23,7 +24,7 @@ import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/m
 
 import "./WaypointPanel.less";
 
-let originalWaypoint: Waypoint;
+let baseSelectedWaypoint = { ...jaiaGlobal.getSelectedWaypoint() };
 
 /**
  * Displays information about the selected waypoint such as location and task selection
@@ -51,11 +52,21 @@ export default function WaypointPanel() {
 
     const [latInput, setLatInput] = useState(getWaypoint().getLocation().lat.toString());
     const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
+    const [baseWaypoint, setBaseWaypoint] = useState(null);
     const isDisabled = jaiaContext.missionIDInEditMode !== jaiaContext.selectedWaypoint.missionID;
 
     useEffect(() => {
-        originalWaypoint = cloneDeep(getWaypoint());
-    }, []);
+        // Initial assignment on panel's first render
+        if (baseWaypoint === null) {
+            setBaseWaypoint(cloneDeep(getWaypoint()));
+        }
+
+        // Handles subsequent waypoint switches
+        if (!compareSelectedWaypoints(baseSelectedWaypoint, jaiaContext.selectedWaypoint)) {
+            baseSelectedWaypoint = { ...jaiaContext.selectedWaypoint };
+            setBaseWaypoint(cloneDeep(getWaypoint()));
+        }
+    });
 
     /**
      * Compares the lat stored in state and context. If the value in context
@@ -208,17 +219,18 @@ export default function WaypointPanel() {
      * @returns {void}
      */
     const handleClosePanelClick = (panelAction: PanelActions) => {
-        let waypoint: Waypoint;
-
         if (panelAction === PanelActions.CANCEL) {
-            waypoint = originalWaypoint;
+            jaiaDispatch({
+                type: JaiaActions.CLOSED_WAYPOINT_PANEL,
+                panelAction: panelAction,
+                waypoint: baseWaypoint,
+            });
+        } else {
+            jaiaDispatch({
+                type: JaiaActions.CLOSED_WAYPOINT_PANEL,
+                panelAction: panelAction,
+            });
         }
-
-        jaiaDispatch({
-            type: JaiaActions.CLOSED_WAYPOINT_PANEL,
-            panelAction: panelAction,
-            waypoint: waypoint,
-        });
     };
 
     return (
