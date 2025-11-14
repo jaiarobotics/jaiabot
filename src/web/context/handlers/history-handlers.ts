@@ -90,15 +90,11 @@ function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaContextTyp
  * @returns {void}
  */
 function updateDataFromSnapshot(snapshot: JaiaContextType) {
-    // Update missionSet
+    // Update data model
     Object.assign(missionSet, snapshot.missionSet);
     Object.assign(gridPlan, snapshot.gridPlan);
+    Object.assign(jaiaGlobal, snapshot.jaiaGlobal);
 
     // Update missionsManager
     missionsManager.setAssignments(snapshot.missionAssignments);
-
-    // Update jaiaGlobal
-    jaiaGlobal.setSelectedWaypoint(snapshot.selectedWaypoint);
-    jaiaGlobal.setSelectedNode(snapshot.selectedNode);
-    jaiaGlobal.setSelectedTaskPacket(snapshot.selectedTaskPacket);
 }

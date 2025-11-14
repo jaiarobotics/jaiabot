@@ -30,7 +30,6 @@ export function handleAddMission(mutableState: JaiaContextType) {
     const newMission = new Mission();
     const newMissionID = missionSet.addMission(newMission);
 
-    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
@@ -68,7 +67,6 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     const missionCopy = cloneDeep(missionSet.getMission(action.missionID));
     const newMissionID = missionSet.addMission(missionCopy);
 
-    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();

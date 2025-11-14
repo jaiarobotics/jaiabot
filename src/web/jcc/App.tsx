@@ -90,7 +90,7 @@ function Panel() {
         case ButtonNames.TASK_PACKET_PANEL:
             return (
                 <TaskPacketPanel
-                    selectedTaskPacket={jaiaContext.selectedTaskPacket}
+                    selectedTaskPacket={jaiaContext.jaiaGlobal.getSelectedTaskPacket()}
                     taskPackets={jaiaContext.taskPackets}
                 />
             );
@@ -116,8 +116,8 @@ function RemoteControl() {
     if (jaiaContext === null) {
         return <div></div>;
     }
-    if (jaiaContext.selectedNode.type === NodeTypes.BOT) {
-        const selectedBot = jaiaContext.bots.get(jaiaContext.selectedNode.id);
+    if (jaiaContext.jaiaGlobal.getSelectedNode().type === NodeTypes.BOT) {
+        const selectedBot = jaiaContext.bots.get(jaiaContext.jaiaGlobal.getSelectedNode().id);
         if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
             return <RemoteControlPanel botID={selectedBot.getBotID()} />;
         }

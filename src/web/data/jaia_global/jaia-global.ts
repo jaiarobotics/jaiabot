@@ -24,7 +24,7 @@ const defaultTaskParameters: TaskParameters = {
     },
 };
 
-class JaiaGlobal {
+export class JaiaGlobal {
     private selectedNode: SelectedNode;
     private selectedWaypoint: SelectedWaypoint;
     private selectedTaskPacket: SelectedTaskPacket;
@@ -95,4 +95,4 @@ class JaiaGlobal {
     }
 }
 
-export const jaiaGlobal = new JaiaGlobal();
+export let jaiaGlobal = new JaiaGlobal();

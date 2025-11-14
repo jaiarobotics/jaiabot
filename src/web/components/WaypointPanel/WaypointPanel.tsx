@@ -45,14 +45,16 @@ export default function WaypointPanel() {
      * @returns {Waypoint} Waypoint object with access to modifiers
      */
     const getWaypoint = () => {
-        const mission = jaiaContext.missionSet.getMission(jaiaContext.selectedWaypoint.missionID);
-        return mission.getWaypoint(jaiaContext.selectedWaypoint.waypointNum);
+        const selectedWaypoint = jaiaContext.jaiaGlobal.getSelectedWaypoint();
+        const mission = jaiaContext.missionSet.getMission(selectedWaypoint.missionID);
+        return mission.getWaypoint(jaiaContext.jaiaGlobal.getSelectedWaypoint().waypointNum);
     };
 
     const [latInput, setLatInput] = useState(getWaypoint().getLocation().lat.toString());
     const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
     const isDisabled =
-        jaiaContext.missionSet.getMissionIDInEditMode() !== jaiaContext.selectedWaypoint.missionID;
+        jaiaContext.missionSet.getMissionIDInEditMode() !==
+        jaiaContext.jaiaGlobal.getSelectedWaypoint().missionID;
 
     useEffect(() => {
         originalWaypoint = cloneDeep(getWaypoint());
@@ -110,7 +112,9 @@ export default function WaypointPanel() {
      * @returns {string} Bot ID or empty string
      */
     const formatBotID = () => {
-        const botID = missionsManager.getBotID(jaiaContext.selectedWaypoint.missionID);
+        const botID = missionsManager.getBotID(
+            jaiaContext.jaiaGlobal.getSelectedWaypoint().missionID,
+        );
 
         if (botID === UNASSIGNED_ID) {
             return "";
@@ -138,7 +142,7 @@ export default function WaypointPanel() {
     const handleEditModeClick = () => {
         jaiaDispatch({
             type: JaiaActions.CLICKED_EDIT_MISSION,
-            missionID: jaiaContext.selectedWaypoint.missionID,
+            missionID: jaiaContext.jaiaGlobal.getSelectedWaypoint().missionID,
         });
     };
 
@@ -227,7 +231,7 @@ export default function WaypointPanel() {
             <div className="waypoint-panel">
                 <div className="label">Wpt:</div>
                 <div className="waypoint-input-container">
-                    <div>{jaiaContext.selectedWaypoint.waypointNum}</div>
+                    <div>{jaiaContext.jaiaGlobal.getSelectedWaypoint().waypointNum}</div>
                     <Button
                         className={`jaia-button delete-waypoint ${isDisabled ? "disabled" : ""}`}
                         onClick={() => handleDeleteWaypointClick()}
@@ -247,7 +251,7 @@ export default function WaypointPanel() {
                     <JaiaToggle
                         checked={() =>
                             jaiaContext.missionSet.getMissionIDInEditMode() ===
-                            jaiaContext.selectedWaypoint.missionID
+                            jaiaContext.jaiaGlobal.getSelectedWaypoint().missionID
                         }
                         onClick={() => handleEditModeClick()}
                     />
@@ -257,7 +261,7 @@ export default function WaypointPanel() {
                 <div className="toggle-row">
                     <div className="label">Tap to Move:</div>
                     <JaiaToggle
-                        checked={() => jaiaContext.selectedWaypoint.isMoveable}
+                        checked={() => jaiaContext.jaiaGlobal.getSelectedWaypoint().isMoveable}
                         disabled={() => isDisabled}
                         onClick={() => handleTapToMoveClick()}
                     />

@@ -27,7 +27,6 @@ export function handleClickedNode(mutableState: JaiaContextType, action: JaiaAct
     jaiaGlobal.setSelectedNode(action.clickedNode);
     const selectedNode = jaiaGlobal.getSelectedNode();
 
-    mutableState.selectedNode = selectedNode;
     mutableState.visibleDetails = selectedNode.type;
 
     syncOpenLayers();
@@ -42,8 +41,9 @@ export function handleClickedNode(mutableState: JaiaContextType, action: JaiaAct
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedTapToMove(mutableState: JaiaContextType) {
-    mutableState.selectedWaypoint.isMoveable = !mutableState.selectedWaypoint.isMoveable;
-    jaiaGlobal.setSelectedWaypoint(mutableState.selectedWaypoint);
+    const muteableWaypoint = jaiaGlobal.getSelectedWaypoint();
+    muteableWaypoint.isMoveable = !muteableWaypoint.isMoveable;
+    jaiaGlobal.setSelectedWaypoint(muteableWaypoint);
     return mutableState;
 }
 
@@ -97,7 +97,7 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
     }
 
     // Resets
-    if (mutableState.selectedWaypoint.waypointNum !== UNASSIGNED_ID) {
+    if (jaiaGlobal.getSelectedWaypoint().waypointNum !== UNASSIGNED_ID) {
         resetSelectedWaypoint(mutableState);
     }
 
@@ -121,7 +121,6 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
 export function handleClickedWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setSelectedWaypoint(action.clickedWaypoint);
 
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visiblePanel = ButtonNames.WAYPOINT_PANEL;
 
     missionLayer.updateFeatures();
@@ -141,8 +140,7 @@ export function handleClickedEditMission(mutableState: JaiaContextType, action: 
         missionSet.setMissionIDInEditMode(action.missionID);
     } else {
         missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-        mutableState.selectedWaypoint.isMoveable = false;
-        jaiaGlobal.setSelectedWaypoint(mutableState.selectedWaypoint);
+        jaiaGlobal.getSelectedWaypoint().isMoveable = false;
     }
 
     missionLayer.updateFeatures();
@@ -184,7 +182,6 @@ export function handleClickedTaskPacket(mutableState: JaiaContextType, action: J
     }
 
     jaiaGlobal.setSelectedTaskPacket(action.clickedTaskPacket);
-    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     mutableState.visiblePanel = ButtonNames.TASK_PACKET_PANEL;
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();

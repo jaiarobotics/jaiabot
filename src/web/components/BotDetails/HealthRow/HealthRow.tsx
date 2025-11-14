@@ -17,7 +17,7 @@ export default function HealthRow() {
         return <div></div>;
     }
 
-    const selectedNode = jaiaContext.selectedNode;
+    const selectedNode = jaiaContext.jaiaGlobal.getSelectedNode();
 
     let healthState = HealthState.HEALTH__DEGRADED;
     let errors: Error[] = [];

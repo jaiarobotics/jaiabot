@@ -1,7 +1,8 @@
 import { JaiaActions } from "../context/jaia-actions";
 import { MissionSet } from "../data/mission_set/mission-set";
 import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
-import { GridPlan, GridPlanningStates, GridPlanDetails } from "../data/survey_planner/grid-plan";
+import { GridPlan, GridPlanningStates } from "../data/survey_planner/grid-plan";
+import { JaiaGlobal } from "../data/jaia_global/jaia-global";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
 import Waypoint from "../data/waypoints/waypoint";
@@ -23,13 +24,10 @@ export interface JaiaContextType {
     hubs: Map<number, Hub>;
     missionSet: MissionSet;
     gridPlan: GridPlan;
+    jaiaGlobal: JaiaGlobal;
     taskPackets: TaskPacket[];
-    //stateHistory: HistoryBuffer<JaiaContextType>;
 
-    selectedNode: SelectedNode;
-    selectedWaypoint: SelectedWaypoint;
     selectedRallyPoint: SelectedRallyPoint;
-    selectedTaskPacket: SelectedTaskPacket;
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
     hubAccordionStates: HubAccordionStates;

@@ -60,7 +60,7 @@ export default function NodeList() {
 
         const nodeTypeClass = nodeType === NodeTypes.BOT ? "bot-item" : "hub-item";
         const faultLevelClass = "faultLevel" + faultLevel.get(healthState);
-        const selectedNode = jaiaContext.selectedNode;
+        const selectedNode = jaiaContext.jaiaGlobal.getSelectedNode();
         const selectedClass =
             selectedNode.type === nodeType && selectedNode.id === nodeID ? "selected" : "";
 

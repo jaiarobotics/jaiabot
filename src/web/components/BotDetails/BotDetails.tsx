@@ -60,7 +60,7 @@ export default function BotDetails() {
 
     const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
-    const botID = jaiaContext.selectedNode.id;
+    const botID = jaiaContext.jaiaGlobal.getSelectedNode().id;
     const bot = jaiaContext.bots.get(botID);
 
     const missionID = missionsManager.getMissionID(botID);

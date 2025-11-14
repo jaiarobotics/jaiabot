@@ -59,11 +59,9 @@ export function handleInit(mutableState: JaiaContextType) {
         hubs: hubs.getHubs(),
         missionSet: missionSet,
         gridPlan: gridPlan,
+        jaiaGlobal: jaiaGlobal,
         taskPackets: taskPackets.getTaskPackets(),
 
-        selectedNode: jaiaGlobal.getSelectedNode(),
-        selectedWaypoint: jaiaGlobal.getSelectedWaypoint(),
-        selectedTaskPacket: jaiaGlobal.getSelectedTaskPacket(),
         selectedRallyPoint: { id: UNASSIGNED_ID },
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,

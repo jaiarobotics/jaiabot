@@ -55,7 +55,6 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
         isMoveable: false,
     });
 
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visiblePanel = ButtonNames.NONE;
 
     missionLayer.updateFeatures();
@@ -72,7 +71,10 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  */
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
-    mission.moveWaypoint(mutableState.selectedWaypoint.waypointNum, action.location);
+    mission.moveWaypoint(
+        mutableState.jaiaGlobal.getSelectedWaypoint().waypointNum,
+        action.location,
+    );
 
     missionLayer.updateFeatures();
 
@@ -131,5 +133,4 @@ export function resetSelectedWaypoint(mutableState: JaiaContextType) {
         missionID: UNASSIGNED_ID,
         isMoveable: false,
     });
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
 }
