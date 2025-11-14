@@ -24,6 +24,7 @@ import SimulationBanner from "../components/SimulationBanner/SimulationBanner";
 import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
 
 import "./App.less";
+import { DEPTH_MAP_3D_NAME } from "../utils/constants";
 
 /**
  * The root of the JCC interface
@@ -42,6 +43,7 @@ export default function App() {
                 <SimulationBanner />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>
+            <div id={DEPTH_MAP_3D_NAME}></div>
         </div>
     );
 }
