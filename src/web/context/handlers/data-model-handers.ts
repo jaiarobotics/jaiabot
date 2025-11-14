@@ -58,7 +58,7 @@ export function handleInit(mutableState: JaiaContextType) {
         bots: bots.getBots(),
         hubs: hubs.getHubs(),
         missionSet: missionSet,
-        gridMissions: gridPlan.getMissions(),
+        gridPlan: gridPlan,
         taskPackets: taskPackets.getTaskPackets(),
 
         selectedNode: jaiaGlobal.getSelectedNode(),
@@ -75,11 +75,6 @@ export function handleInit(mutableState: JaiaContextType) {
         mapMode: MapModes.DEFAULT,
 
         missionAssignments: missionsManager.getMissionAssignments(),
-        gridMissionStart: gridPlan.getMissionStart(),
-        gridMissionEnd: gridPlan.getMissionEnd(),
-        gridPlanDetails: gridPlan.getGridPlanDetails(),
-        gridStartTask: gridPlan.getStartTask(),
-        gridEndTask: gridPlan.getEndTask(),
     };
 
     Object.assign(mutableState, completeInit);

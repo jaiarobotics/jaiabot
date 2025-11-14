@@ -92,6 +92,7 @@ function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaContextTyp
 function updateDataFromSnapshot(snapshot: JaiaContextType) {
     // Update missionSet
     Object.assign(missionSet, snapshot.missionSet);
+    Object.assign(gridPlan, snapshot.gridPlan);
 
     // Update missionsManager
     missionsManager.setAssignments(snapshot.missionAssignments);
@@ -100,15 +101,4 @@ function updateDataFromSnapshot(snapshot: JaiaContextType) {
     jaiaGlobal.setSelectedWaypoint(snapshot.selectedWaypoint);
     jaiaGlobal.setSelectedNode(snapshot.selectedNode);
     jaiaGlobal.setSelectedTaskPacket(snapshot.selectedTaskPacket);
-
-    // Update Survey Plan
-    gridPlan.setMissions(snapshot.gridMissions);
-    gridPlan.setMissionStart(snapshot.gridMissionStart);
-    gridPlan.setMissionEnd(snapshot.gridMissionEnd);
-    gridPlan.setState(snapshot.gridPlanDetails.state);
-    gridPlan.setNumOfLanes(snapshot.gridPlanDetails.numOfLanes);
-    gridPlan.setPointSpacing(snapshot.gridPlanDetails.pointSpacing);
-    gridPlan.setSurveyTask(snapshot.gridPlanDetails.surveyTask);
-    gridPlan.setStartTask(snapshot.gridStartTask);
-    gridPlan.setEndTask(snapshot.gridEndTask);
 }

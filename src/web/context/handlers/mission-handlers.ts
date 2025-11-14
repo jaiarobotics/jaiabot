@@ -160,7 +160,6 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
  */
 export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
     gridPlan.setState(action.gridPlanningState);
-    mutableState.gridPlanDetails.state = action.gridPlanningState;
 
     switch (action.gridPlanningState) {
         case GridPlanningStates.ACCEPTING_GRID_DRAWING:

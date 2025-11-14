@@ -102,7 +102,7 @@ export default function SurveyPlanner(props: Props) {
             });
     };
 
-    switch (jaiaContext.gridPlanDetails.state) {
+    switch (jaiaContext.gridPlan.getState()) {
         case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
             return <RequestStartMissionLocation />;
         case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:

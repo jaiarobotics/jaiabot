@@ -1,10 +1,9 @@
 import { JaiaActions } from "../context/jaia-actions";
-import { MissionSet, missionSet } from "../data/mission_set/mission-set";
+import { MissionSet } from "../data/mission_set/mission-set";
 import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
-import { GridPlanningStates, GridPlanDetails } from "../data/survey_planner/grid-plan";
+import { GridPlan, GridPlanningStates, GridPlanDetails } from "../data/survey_planner/grid-plan";
 import Bot from "../data/bots/bot";
 import Hub from "../data/hubs/hub";
-import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
 import Task from "../data/tasks/task";
 import {
@@ -23,7 +22,7 @@ export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
     missionSet: MissionSet;
-    gridMissions: Map<number, Mission>;
+    gridPlan: GridPlan;
     taskPackets: TaskPacket[];
     //stateHistory: HistoryBuffer<JaiaContextType>;
 
@@ -40,11 +39,6 @@ export interface JaiaContextType {
 
     mapMode: MapModes;
     missionAssignments: Map<number, number>;
-    gridMissionStart: GeographicCoordinate;
-    gridMissionEnd: GeographicCoordinate;
-    gridPlanDetails: GridPlanDetails;
-    gridStartTask: Task;
-    gridEndTask: Task;
 }
 
 // Type used for actions dispatched to the context provider
@@ -78,37 +72,6 @@ export interface JaiaAction {
     missionSetSnapshot?: MissionSetSnapshot;
     gridPlanningState?: GridPlanningStates;
 }
-
-/** TODO Remove
-// Snapshot of app state for storing history
-export interface JaiaHistoryType {
-    // Items from JaiaContext
-    missions: Map<number, Mission>;
-    gridMissions: Map<number, Mission>;
-    selectedNode: SelectedNode;
-    selectedWaypoint: SelectedWaypoint;
-    selectedRallyPoint: SelectedRallyPoint;
-    selectedTaskPacket: SelectedTaskPacket;
-    visibleDetails: NodeTypes;
-    visiblePanel: ButtonNames;
-    hubAccordionStates: HubAccordionStates;
-    botAccordionStates: BotAccordionStates;
-    mapLayerAccordionStates: MapLayerAccordionStates;
-    missionAccordionStates: { [missionID: number]: boolean };
-    missionIDInEditMode: number;
-    missionSpeeds: Speeds;
-    mapMode: MapModes;
-    // Items not tracked in JaiaContext needed for snapshot
-    nextMissionID: number;
-    missionSetName: string;
-    missionAssignments: Map<number, number>;
-    gridMissionStart: GeographicCoordinate;
-    gridMissionEnd: GeographicCoordinate;
-    gridPlanDetails: GridPlanDetails;
-    gridStartTask: Task;
-    gridEndTask: Task;
-}
-*/
 
 export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",

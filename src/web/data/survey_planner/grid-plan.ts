@@ -141,4 +141,4 @@ export class GridPlan {
     }
 }
 
-export const gridPlan = new GridPlan();
+export let gridPlan = new GridPlan();
