@@ -1,4 +1,3 @@
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { rallyLayer } from "../../openlayers/layers/vector/rally-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";

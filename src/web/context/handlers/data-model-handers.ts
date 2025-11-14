@@ -10,14 +10,13 @@ import { hubs } from "../../data/hubs/hubs";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { taskPackets } from "../../data/task_packets/task-packets";
-import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { gridPlan } from "../../data/survey_planner/grid-plan";
 
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapModes } from "../../types/openlayers-types";
 
 import { jaiaStateHistory } from "../../data/history/history";
 
-import { UNASSIGNED_ID, MAX_HISTORY } from "../../utils/constants";
+import { UNASSIGNED_ID } from "../../utils/constants";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 const defaultHubAccordionStates: HubAccordionStates = {

@@ -17,9 +17,7 @@ import {
     NodeTypes,
     TaskParameterPair,
 } from "./jaia-system-types";
-import { MapModes } from "./openlayers-types";
-import { TaskPacket, Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
-import HubSensors from "../data/hubs/hub-sensors";
+import { Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
 
 // Type used to captue the JCC context
 export interface JaiaContextType {
