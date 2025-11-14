@@ -14,6 +14,9 @@ interface Props {
     onClose: () => void;
 }
 
+/**
+ * Renders a window displaying the depth map in 3D
+ */
 export default function DepthMap3D() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [windowPosition, setWindowPosition] = useState("center");
@@ -22,6 +25,11 @@ export default function DepthMap3D() {
         buildDepthMap();
     }, [windowPosition]);
 
+    /**
+     * Dispatches the action to close the 3D depth map window
+     *
+     * @returns {void}
+     */
     const onClose = () => {
         jaiaDispatch({ type: JaiaActions.CLICKED_BUTTON });
     };
@@ -34,7 +42,16 @@ export default function DepthMap3D() {
     );
 }
 
+/**
+ * Renders the menu bar at the top of the depth map window
+ */
 function MenuBar(props: Props) {
+    /**
+     * Positions the 3D depth map left, right, or center on the JCC
+     *
+     * @param {string} windowPosition Where to place the 3D depth map
+     * @returns {void}
+     */
     const handleClick = (windowPosition: string) => {
         Plotly.purge(DEPTH_MAP_3D_NAME);
         props.setWindowPosition(windowPosition);

@@ -5,11 +5,21 @@ import "./DepthMap3D.less";
 
 const Plotly = require("plotly.js-dist");
 
+/**
+ * Processes the colors to be used in the depth map
+ *
+ * @returns {number[]} Colors to be used in the depth map
+ */
 export function getColorScale() {
     const n = Math.max(2, colors.length);
     return colors.map((rgb, index) => [index / (n - 1), `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`]);
 }
 
+/**
+ * Passes the dive data from the Bots to plotly for a 3D rendering
+ *
+ * @returns {boolean} True if the plot is generated, false otherwise
+ */
 export function buildDepthMap() {
     const root = document.getElementById(DEPTH_MAP_3D_NAME);
 

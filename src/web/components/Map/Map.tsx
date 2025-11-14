@@ -227,6 +227,11 @@ export default function Map() {
         });
     };
 
+    /**
+     * Dispatches action to display the 3D depth map
+     *
+     * @returns {void}
+     */
     const handleDepthContourClick = () => {
         jaiaDispatch({
             type: JaiaActions.CLICKED_BUTTON,
