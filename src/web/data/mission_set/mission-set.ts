@@ -95,4 +95,4 @@ export class MissionSet {
     }
 }
 
-export let missionSet = new MissionSet();
+export const missionSet = new MissionSet();

@@ -95,4 +95,4 @@ export class JaiaGlobal {
     }
 }
 
-export let jaiaGlobal = new JaiaGlobal();
+export const jaiaGlobal = new JaiaGlobal();
