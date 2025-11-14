@@ -60,8 +60,9 @@ export function handleInit(mutableState: JaiaContextType) {
         missionSet: missionSet,
         gridPlan: gridPlan,
         jaiaGlobal: jaiaGlobal,
-        taskPackets: taskPackets.getTaskPackets(),
+        missionsManager: missionsManager,
 
+        taskPackets: taskPackets.getTaskPackets(),
         selectedRallyPoint: { id: UNASSIGNED_ID },
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
@@ -69,10 +70,7 @@ export function handleInit(mutableState: JaiaContextType) {
         botAccordionStates: defaultBotAccordionStates,
         mapLayerAccordionStates: defaultMapLayerAccordionStates,
         missionAccordionStates: {},
-
         mapMode: MapModes.DEFAULT,
-
-        missionAssignments: missionsManager.getMissionAssignments(),
     };
 
     Object.assign(mutableState, completeInit);

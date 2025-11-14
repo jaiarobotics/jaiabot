@@ -94,7 +94,5 @@ function updateDataFromSnapshot(snapshot: JaiaContextType) {
     Object.assign(missionSet, snapshot.missionSet);
     Object.assign(gridPlan, snapshot.gridPlan);
     Object.assign(jaiaGlobal, snapshot.jaiaGlobal);
-
-    // Update missionsManager
-    missionsManager.setAssignments(snapshot.missionAssignments);
+    Object.assign(missionsManager, snapshot.missionsManager);
 }

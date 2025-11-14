@@ -1,5 +1,6 @@
 import { JaiaActions } from "../context/jaia-actions";
 import { MissionSet } from "../data/mission_set/mission-set";
+import { MissionsManager } from "../data/missions_manager/missions-manager";
 import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import { GridPlan, GridPlanningStates } from "../data/survey_planner/grid-plan";
 import { JaiaGlobal } from "../data/jaia_global/jaia-global";
@@ -25,6 +26,7 @@ export interface JaiaContextType {
     missionSet: MissionSet;
     gridPlan: GridPlan;
     jaiaGlobal: JaiaGlobal;
+    missionsManager: MissionsManager;
     taskPackets: TaskPacket[];
 
     selectedRallyPoint: SelectedRallyPoint;
@@ -36,7 +38,6 @@ export interface JaiaContextType {
     missionAccordionStates: { [missionID: number]: boolean };
 
     mapMode: MapModes;
-    missionAssignments: Map<number, number>;
 }
 
 // Type used for actions dispatched to the context provider
