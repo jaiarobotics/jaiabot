@@ -27,7 +27,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         const newMissionID = missionSet.addMission(newMission);
         newMission.addWaypoint(action.location);
         missionsManager.assign(selectedNode.id, newMissionID);
-        mutableState.missionIDInEditMode = newMissionID;
+
         mutableState.missionAccordionStates[newMissionID] = true;
     } else if (missionIDInEditMode !== UNASSIGNED_ID) {
         // Add waypoint to mission in edit mode

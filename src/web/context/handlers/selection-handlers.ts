@@ -148,8 +148,6 @@ export function handleClickedEditMission(mutableState: JaiaContextType, action: 
         jaiaGlobal.setSelectedWaypoint(mutableState.selectedWaypoint);
     }
 
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
-
     missionLayer.updateFeatures();
 
     return mutableState;

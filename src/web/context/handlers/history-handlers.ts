@@ -74,7 +74,6 @@ export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActio
  * @notes Uses cloneDeep so history is isolated from future state changes
  */
 function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaContextType) {
-    console.log("Restoring State Snapshot");
     // Clone snapshot to isolate from history
     const snapshotCopy = cloneDeep(snapshot);
     // Restore state from snapshot
@@ -92,11 +91,7 @@ function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaContextTyp
  */
 function updateDataFromSnapshot(snapshot: JaiaContextType) {
     // Update missionSet
-    missionSet.setMissions(snapshot.missions);
-    missionSet.setMissionIDInEditMode(snapshot.missionIDInEditMode);
-    missionSet.setMissionSpeeds(snapshot.missionSpeeds);
-    missionSet.setNextMissionID(snapshot.nextMissionID);
-    missionSet.setName(snapshot.missionSetName);
+    Object.assign(missionSet, snapshot.missionSet);
 
     // Update missionsManager
     missionsManager.setAssignments(snapshot.missionAssignments);

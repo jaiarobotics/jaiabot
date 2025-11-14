@@ -54,7 +54,7 @@ export default function DeleteMissionButton(props: Props) {
             return DisabledCodes.NO_MISSION;
         }
 
-        if (jaiaContext.missions.size === 0) {
+        if (jaiaContext.missionSet.getMissions().size === 0) {
             return DisabledCodes.NO_MISSION;
         }
 

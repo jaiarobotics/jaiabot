@@ -64,7 +64,7 @@ export default function BotDetails() {
     const bot = jaiaContext.bots.get(botID);
 
     const missionID = missionsManager.getMissionID(botID);
-    const mission = jaiaContext.missions.get(missionID);
+    const mission = jaiaContext.missionSet.getMission(missionID);
 
     if (!bot) {
         return <div></div>;

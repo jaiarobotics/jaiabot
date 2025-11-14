@@ -45,13 +45,14 @@ export default function WaypointPanel() {
      * @returns {Waypoint} Waypoint object with access to modifiers
      */
     const getWaypoint = () => {
-        const mission = jaiaContext.missions.get(jaiaContext.selectedWaypoint.missionID);
+        const mission = jaiaContext.missionSet.getMission(jaiaContext.selectedWaypoint.missionID);
         return mission.getWaypoint(jaiaContext.selectedWaypoint.waypointNum);
     };
 
     const [latInput, setLatInput] = useState(getWaypoint().getLocation().lat.toString());
     const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
-    const isDisabled = jaiaContext.missionIDInEditMode !== jaiaContext.selectedWaypoint.missionID;
+    const isDisabled =
+        jaiaContext.missionSet.getMissionIDInEditMode() !== jaiaContext.selectedWaypoint.missionID;
 
     useEffect(() => {
         originalWaypoint = cloneDeep(getWaypoint());
@@ -245,7 +246,7 @@ export default function WaypointPanel() {
                     <div className="label">Edit Mission:</div>
                     <JaiaToggle
                         checked={() =>
-                            jaiaContext.missionIDInEditMode ===
+                            jaiaContext.missionSet.getMissionIDInEditMode() ===
                             jaiaContext.selectedWaypoint.missionID
                         }
                         onClick={() => handleEditModeClick()}

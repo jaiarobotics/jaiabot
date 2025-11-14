@@ -1,4 +1,5 @@
 import { JaiaActions } from "../context/jaia-actions";
+import { MissionSet, missionSet } from "../data/mission_set/mission-set";
 import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import { GridPlanningStates, GridPlanDetails } from "../data/survey_planner/grid-plan";
 import Bot from "../data/bots/bot";
@@ -21,7 +22,7 @@ import { TaskPacket, Speeds, Command, GeographicCoordinate, TaskType } from "./p
 export interface JaiaContextType {
     bots: Map<number, Bot>;
     hubs: Map<number, Hub>;
-    missions: Map<number, Mission>;
+    missionSet: MissionSet;
     gridMissions: Map<number, Mission>;
     taskPackets: TaskPacket[];
     //stateHistory: HistoryBuffer<JaiaContextType>;
@@ -36,14 +37,8 @@ export interface JaiaContextType {
     botAccordionStates: BotAccordionStates;
     mapLayerAccordionStates: MapLayerAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
-    missionIDInEditMode: number;
-    missionSpeeds: Speeds;
 
     mapMode: MapModes;
-    // gridPlanningState: GridPlanningStates;
-    //TODO Added for JAIA-2145
-    nextMissionID: number;
-    missionSetName: string;
     missionAssignments: Map<number, number>;
     gridMissionStart: GeographicCoordinate;
     gridMissionEnd: GeographicCoordinate;

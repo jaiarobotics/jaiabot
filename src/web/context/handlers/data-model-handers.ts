@@ -57,7 +57,7 @@ export function handleInit(mutableState: JaiaContextType) {
     const completeInit: JaiaContextType = {
         bots: bots.getBots(),
         hubs: hubs.getHubs(),
-        missions: missionSet.getMissions(),
+        missionSet: missionSet,
         gridMissions: gridPlan.getMissions(),
         taskPackets: taskPackets.getTaskPackets(),
 
@@ -71,13 +71,9 @@ export function handleInit(mutableState: JaiaContextType) {
         botAccordionStates: defaultBotAccordionStates,
         mapLayerAccordionStates: defaultMapLayerAccordionStates,
         missionAccordionStates: {},
-        missionIDInEditMode: missionSet.getMissionIDInEditMode(),
-        missionSpeeds: missionSet.getMissionSpeeds(),
 
         mapMode: MapModes.DEFAULT,
 
-        nextMissionID: missionSet.getNextMissionID(),
-        missionSetName: missionSet.getName(),
         missionAssignments: missionsManager.getMissionAssignments(),
         gridMissionStart: gridPlan.getMissionStart(),
         gridMissionEnd: gridPlan.getMissionEnd(),

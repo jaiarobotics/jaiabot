@@ -44,7 +44,7 @@ export default function RallyPanel() {
                 <GoToRallyButton
                     bots={jaiaContext.bots}
                     selectedRallyPoint={jaiaContext.selectedRallyPoint}
-                    missionSpeeds={jaiaContext.missionSpeeds}
+                    missionSpeeds={jaiaContext.missionSet.getMissionSpeeds()}
                 />
                 <Button className="jaia-button" onClick={() => handleDeleteRallyPoint()}>
                     <Icon path={mdiDelete} />

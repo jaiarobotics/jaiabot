@@ -10,7 +10,7 @@ import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapModes, SurveyEndpoints } from "../../types/openlayers-types";
+import { MapModes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID, MISSION_ENDPOINTS } from "../../utils/constants";
 import { updateMissionSetFromSnapshot } from "../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
@@ -31,7 +31,6 @@ export function handleAddMission(mutableState: JaiaContextType) {
     const newMissionID = missionSet.addMission(newMission);
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
@@ -70,7 +69,6 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     const newMissionID = missionSet.addMission(missionCopy);
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
@@ -133,7 +131,6 @@ export function handleAutoAssignMissions(mutableState: JaiaContextType) {
  */
 export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action: JaiaAction) {
     missionSet.setMissionSpeeds(action.missionSpeeds);
-    mutableState.missionSpeeds = action.missionSpeeds;
     return mutableState;
 }
 
@@ -146,9 +143,8 @@ export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action:
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
     updateMissionSetFromSnapshot(action.missionSetSnapshot);
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates = Object.fromEntries(
-        Array.from(mutableState.missions.keys(), (key) => [key, false]),
+        Array.from(missionSet.getMissions().keys(), (key) => [key, false]),
     );
 
     missionLayer.updateFeatures();
@@ -215,8 +211,6 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             handleMapModeChange(MapModes.DEFAULT);
             mutableState.mapMode = MapModes.DEFAULT;
             mutableState.visiblePanel = ButtonNames.NONE;
-            mutableState.missions = missionSet.getMissions();
-            mutableState.missionIDInEditMode = UNASSIGNED_ID;
             missionLayer.updateFeatures();
             break;
     }
