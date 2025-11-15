@@ -25,3 +25,5 @@ class ContourLayer extends JaiaVectorLayer {
 }
 
 export const contourLayer = new ContourLayer();
+
+contourLayer.getVectorLayer().setOpacity(0.9);
