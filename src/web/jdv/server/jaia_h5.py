@@ -303,7 +303,7 @@ class JaiaH5FileSet:
         l.info(f'Loading from files: {self.h5Filenames}')
         series_list = []
 
-        paths = [path.lstrip('/') for path in paths.split(',')]
+        paths = [path.lstrip('/') for path in paths] # h5py doesn't like initial slashes
 
         # Get the series from the logs
         for path in paths:

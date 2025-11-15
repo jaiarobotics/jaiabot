@@ -94,7 +94,7 @@ def getAllSeriesDescriptors():
 @app.route('/series', methods=['GET'])
 def getSeries():
     log_names = parseFilenames(request.args.get('log'))
-    series_names = request.args.get('path')
+    series_names = request.args.get('path').split(',')
     series = jaialogStore.getSeries(log_names, series_names)
     return JSONResponse(series)
 
