@@ -30,7 +30,7 @@ export function DataTable(props: DataTableProps) {
                 })?.index;
 
                 const value = plot.series_y[index];
-                const enumDescription = plot.hovertext?.[value];
+                const enumDescription = plot.hovertext_map?.[value];
 
                 var valueString = "";
                 if (enumDescription != null) {

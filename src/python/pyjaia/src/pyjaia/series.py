@@ -24,13 +24,13 @@ class Series:
     name: str
     utime: List[float]
     y_values: List[float]
-    hovertext: dict
+    hovertext_map: dict
 
     def __init__(self, name: str = None) -> None:
         self.name = name or ''
         self.utime = []
         self.y_values = []
-        self.hovertext = {}
+        self.hovertext_map = {}
 
     @staticmethod
     def loadFromH5File(log: h5py.File=None, path: str=None, scheme: int=1, invalid_values: Set[Any]=None, name="Untitled") -> "Series":
@@ -61,7 +61,7 @@ class Series:
 
         series.utime = []
         series.y_values = []
-        series.hovertext = {}
+        series.hovertext_map = {}
 
         # If this path contains a semi-colon-delimited integer, we want to use a fuzzy search in case that part is different in this log file
         #   For example, the path 
@@ -99,7 +99,7 @@ class Series:
 
             series.utime, schemes, series.y_values = zip(*s)
 
-            series.hovertext = h5_get_enum_map(log[path]) or {}
+            series.hovertext_map = h5_get_enum_map(log[path]) or {}
 
         return series
 
@@ -107,7 +107,7 @@ class Series:
         r = copy.copy(self)
         r.utime += list(other_series.utime)
         r.y_values += list(other_series.y_values)
-        r.hovertext.update(other_series.hovertext)
+        r.hovertext_map.update(other_series.hovertext_map)
         return r
 
     def clear(self):
@@ -119,7 +119,7 @@ class Series:
         series.name = self.name
         series.utime = []
         series.y_values = []
-        series.hovertext = []
+        series.hovertext_map = []
 
         return series
 
@@ -211,7 +211,7 @@ class Series:
     def slice(self, timeRange: TimeRange):
         seriesSlice = Series()
         seriesSlice.name = self.name
-        seriesSlice.hovertext = self.hovertext
+        seriesSlice.hovertext_map = self.hovertext_map
 
         for index, utime in enumerate(self.utime):
             if utime >= timeRange.start and utime < timeRange.end:
@@ -225,7 +225,7 @@ class Series:
         '''Returns a new Series object using this Series\' data, sampled at a constant frequency and suitable for an Fourier-type transform'''
         newSeries = Series()
         newSeries.name = self.name
-        newSeries.hovertext = self.hovertext
+        newSeries.hovertext_map = self.hovertext_map
 
         if len(self.utime) == 0:
             return newSeries

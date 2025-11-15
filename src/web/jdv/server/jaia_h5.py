@@ -335,7 +335,7 @@ class JaiaH5FileSet:
                 'y_axis_title': y_axis_title,
                 '_utime_': series.utime,
                 'series_y': series.y_values,
-                'hovertext': series.hovertext
+                'hovertext_map': series.hovertext_map,
             })
 
         return series_list
