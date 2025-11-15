@@ -15,19 +15,9 @@ import "./TaskParameters.less";
 interface Props {
     task: Task;
     isDisabled: boolean;
-}
-
-interface SubProps {
-    task: Task;
-    isDisabled: boolean;
-    onChange: (evt: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-interface DiveParameterProps {
-    task: Task;
-    isDisabled: boolean;
-    handleBottomDiveClick: () => void;
     onChange?: (evt: React.ChangeEvent<HTMLInputElement>) => void;
+    handleBottomDiveClick?: () => void;
+    handleUseHydrophoneClick?: () => void;
 }
 
 /**
@@ -63,6 +53,8 @@ export default function TaskParameters(props: Props) {
         jaiaDispatch({ type: JaiaActions.TOGGLE_BOTTOM_DIVE, task: props.task });
     };
 
+    const handleUseHydrophoneClick = () => {};
+
     switch (props.task?.getType()) {
         case TaskType.DIVE:
             return (
@@ -71,6 +63,7 @@ export default function TaskParameters(props: Props) {
                     isDisabled={props.isDisabled}
                     onChange={onParameterChange}
                     handleBottomDiveClick={handleBottomDiveClick}
+                    handleUseHydrophoneClick={handleUseHydrophoneClick}
                 />
             );
         case TaskType.SURFACE_DRIFT:
@@ -79,6 +72,7 @@ export default function TaskParameters(props: Props) {
                     task={props.task}
                     isDisabled={props.isDisabled}
                     onChange={onParameterChange}
+                    handleUseHydrophoneClick={handleUseHydrophoneClick}
                 />
             );
         case TaskType.CONSTANT_HEADING:
@@ -97,12 +91,17 @@ export default function TaskParameters(props: Props) {
 /**
  * Renders input fields for a dive task
  */
-function DiveParameters(props: DiveParameterProps) {
+function DiveParameters(props: Props) {
     const diveParameters = props.task.getDiveParameters();
 
     if (props.task.getIsBottomDive()) {
         return (
             <div className="dive-parameters">
+                <UseHydrophoneToggle
+                    task={props.task}
+                    isDisabled={props.isDisabled}
+                    handleUseHydrophoneClick={props.handleUseHydrophoneClick}
+                />
                 <BottomDiveToggle
                     task={props.task}
                     isDisabled={props.isDisabled}
@@ -126,6 +125,11 @@ function DiveParameters(props: DiveParameterProps) {
     } else {
         return (
             <div className="dive-parameters">
+                <UseHydrophoneToggle
+                    task={props.task}
+                    isDisabled={props.isDisabled}
+                    handleUseHydrophoneClick={props.handleUseHydrophoneClick}
+                />
                 <BottomDiveToggle
                     task={props.task}
                     isDisabled={props.isDisabled}
@@ -189,20 +193,27 @@ function DiveParameters(props: DiveParameterProps) {
 /**
  * Renders input fields for a drift task
  */
-function DriftParameters(props: SubProps) {
+function DriftParameters(props: Props) {
     return (
-        <div className="task-parameters">
-            <div>Drift Time</div>
-            <input
-                name={TaskParameterKeys.DRIFT_TIME}
-                type="number"
-                value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
-                className="jaia-input"
-                autoComplete="off"
-                disabled={props.isDisabled}
-                onChange={(evt) => props.onChange(evt)}
+        <div className="drift-parameters">
+            <UseHydrophoneToggle
+                task={props.task}
+                isDisabled={props.isDisabled}
+                handleUseHydrophoneClick={props.handleUseHydrophoneClick}
             />
-            <div className="units">s</div>
+            <div className="task-parameters">
+                <div>Drift Time</div>
+                <input
+                    name={TaskParameterKeys.DRIFT_TIME}
+                    type="number"
+                    value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
+                    className="jaia-input"
+                    autoComplete="off"
+                    disabled={props.isDisabled}
+                    onChange={(evt) => props.onChange(evt)}
+                />
+                <div className="units">s</div>
+            </div>
         </div>
     );
 }
@@ -210,7 +221,7 @@ function DriftParameters(props: SubProps) {
 /**
  * Renders input fields for a constant heading task
  */
-function ConstantHeading(props: SubProps) {
+function ConstantHeading(props: Props) {
     const constantHeadingParameters = props.task.getConstantHeadingParameters();
     return (
         <div className="task-parameters">
@@ -263,15 +274,31 @@ function ConstantHeading(props: SubProps) {
 }
 
 /**
- * Renders the bottom dive toggle and its labeL
+ * Renders the bottom dive toggle and its label
  */
-function BottomDiveToggle(props: DiveParameterProps) {
+function BottomDiveToggle(props: Props) {
     return (
-        <div className="bottom-dive-toggle-container">
+        <div className="task-toggle-container">
             <p>Bottom Dive</p>
             <JaiaToggle
                 checked={() => props.task.getIsBottomDive()}
                 onClick={() => props.handleBottomDiveClick()}
+                disabled={() => props.isDisabled}
+            />
+        </div>
+    );
+}
+
+/**
+ * Renders the hydrophone toggle and its label
+ */
+function UseHydrophoneToggle(props: Props) {
+    return (
+        <div className="task-toggle-container">
+            <p>Hydrophone</p>
+            <JaiaToggle
+                checked={() => props.task.getUseHydrophone()}
+                onClick={() => props.handleUseHydrophoneClick()}
                 disabled={() => props.isDisabled}
             />
         </div>
