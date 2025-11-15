@@ -212,7 +212,7 @@ export function Plots(props: PlotsProps) {
 
         if (plots.length == 0) return;
 
-        const MAX_DATA_POINTS = 400;
+        const MAX_DATA_POINTS = 200;
 
         let update: any = {
             x: [],
@@ -222,91 +222,58 @@ export function Plots(props: PlotsProps) {
             customdata: [],
         };
 
-        const getIndexRange = (series: Plot, t_start: number, t_end: number, increment: number) => {
-            const start_index_raw = bisect(series._utime_, (t) => t_start - t)?.index ?? 0;
-            const end_index_raw =
-                bisect(series._utime_, (t) => t_end - t)?.index ?? series._utime_.length;
-            return [
-                start_index_raw - (start_index_raw % increment),
-                Math.min(
-                    end_index_raw - (end_index_raw % increment) + increment,
-                    series._utime_.length,
-                ),
-            ];
+        const getIndexRange = (series: Plot, t_start: number, t_end: number) => {
+            /**
+             * Find the indices of the data points that are within the given time range.
+             * Uses binary search to find the indices efficiently.
+             * Returns [start_index, end_index] where start_index is the index of the first point >= t_start
+             * and end_index is the index of the first point > t_end.
+             * If no points are found, returns [0, 0] or [length, length] as appropriate.
+             */
+            const start_bisection = bisect(series._utime_, (t) => t_start - t);
+            const end_bisection = bisect(series._utime_, (t) => t_end - t);
+
+            const start_index = start_bisection?.index ?? 0;
+            const end_index_raw = (end_bisection?.index ?? series._utime_.length) + 2;
+            const end_index = Math.min(end_index_raw, series._utime_.length);
+
+            return [start_index, end_index];
         };
 
         for (let [plot_index, series] of plots.entries()) {
-            update.x.push(series._utime_.map((t_micros) => microsToDate(t_micros)));
-            update.y.push(series.series_y);
+            // If we are zoomed in enough, use lines+markers to show that we have full resolution
+            const utime = series._utime_;
+            const num_points = utime.length;
+            const min_utime = utime[0];
+            const max_utime = utime[num_points - 1];
+            const series_duration = max_utime - min_utime;
+            const visible_duration = Math.min(
+                visibleTimeRange[1] - visibleTimeRange[0],
+                series_duration,
+            );
 
-            update.hovertext.push(Plot_get_hovertext(series));
-            update.customdata.push(series._utime_);
+            const visible_index_range = getIndexRange(
+                series,
+                visibleTimeRange[0],
+                visibleTimeRange[1],
+            );
+            let update_utime = series._utime_;
+            let update_y = series.series_y;
+            let update_mode = "lines";
 
-            const auto_mode = "lines";
-            update.mode.push(auto_mode);
+            if (visible_index_range[1] - visible_index_range[0] < MAX_DATA_POINTS) {
+                // Use only the points in the visible range, because Plotly can't handle too many points efficiently if markers are enabled
+                update_utime = series._utime_.slice(visible_index_range[0], visible_index_range[1]);
+                update_y = series.series_y.slice(visible_index_range[0], visible_index_range[1]);
+                update_mode = "lines+markers";
+            }
 
-            // // Plotly optimization:  only use the data within the plot time range, and only use a maximum number of data points.
-            // // This greatly improves GUI responsiveness.
-            // const utime = series._utime_;
-            // const num_points = utime.length;
-            // const min_utime = utime[0];
-            // const max_utime = utime[num_points - 1];
-            // const series_duration = max_utime - min_utime;
-            // const visible_duration = Math.min(
-            //     visibleTimeRange[1] - visibleTimeRange[0],
-            //     series_duration,
-            // );
-
-            // const num_visible_points_estimate = Math.ceil(
-            //     (num_points * visible_duration) / series_duration,
-            // );
-
-            // const inside_index_step = Math.ceil(num_visible_points_estimate / MAX_DATA_POINTS);
-            // const [inside_index_min, inside_index_max] = getIndexRange(
-            //     series,
-            //     visibleTimeRange[0],
-            //     visibleTimeRange[1],
-            //     inside_index_step,
-            // );
-
-            // const outside_index_step = inside_index_step * 4;
-            // const outside_time_min = visibleTimeRange[0] - visible_duration;
-            // const outside_time_max = visibleTimeRange[1] + visible_duration;
-            // const [outside_index_min, outside_index_max] = getIndexRange(
-            //     series,
-            //     outside_time_min,
-            //     outside_time_max,
-            //     outside_index_step,
-            // );
-
-            // let x_values = [];
-            // let customdata = [];
-            // let y_values = [];
-
-            // let data_index = outside_index_min;
-
-            // while (data_index < outside_index_max) {
-            //     customdata.push(series._utime_[data_index]);
-            //     x_values.push(microsToDate(series._utime_[data_index]));
-            //     y_values.push(series.series_y[data_index]);
-
-            //     if (
-            //         data_index + inside_index_step > inside_index_min &&
-            //         data_index < inside_index_max
-            //     ) {
-            //         data_index += inside_index_step;
-            //     } else {
-            //         data_index += outside_index_step;
-            //     }
-            // }
-
-            // const auto_mode = inside_index_step > 1 ? "lines" : "lines+markers"; // Use lines and markers to indicate that we've got full resolution
-
-            // update.x.push(x_values);
-            // update.y.push(y_values);
-            // update.hovertext.push(Plot_get_hovertext(series));
-            // update.customdata.push(customdata);
-            // update.mode.push(plotMode == "auto" ? auto_mode : plotMode);
+            // Push the update data for this series
+            update.x.push(update_utime.map((t_micros) => microsToDate(t_micros)));
+            update.customdata.push(update_utime);
+            update.y.push(update_y);
+            update.hovertext.push(Plot_get_hovertext(update_y, series.hovertext));
+            update.mode.push(update_mode);
         }
         Plotly.restyle("plot", update);
     };

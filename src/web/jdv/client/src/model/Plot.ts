@@ -7,10 +7,13 @@ export interface Plot {
     path: string;
 }
 
-export function Plot_get_hovertext(plot: Plot) {
-    if (!plot.hovertext) {
+export function Plot_get_hovertext(
+    y: number[],
+    hovertext_map: { [key: number]: string },
+): (string | number)[] {
+    if (!hovertext_map) {
         return null;
     }
 
-    return plot.series_y.map((y_value) => plot.hovertext[y_value] ?? y_value);
+    return y.map((y_value) => hovertext_map[y_value] ?? y_value);
 }
