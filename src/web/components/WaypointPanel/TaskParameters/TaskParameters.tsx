@@ -5,6 +5,7 @@ import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
 import Task from "../../../data/tasks/task";
+import { bots } from "../../../data/bots/bots";
 
 import { TaskParameterKeys } from "../../../types/jaia-system-types";
 import { TaskType } from "../../../types/protobuf-types";
@@ -53,7 +54,15 @@ export default function TaskParameters(props: Props) {
         jaiaDispatch({ type: JaiaActions.TOGGLE_BOTTOM_DIVE, task: props.task });
     };
 
-    const handleUseHydrophoneClick = () => {};
+    /**
+     * Dispatches action to update the hydrophone toggle and the
+     * task parameters
+     *
+     * @return {void}
+     */
+    const handleUseHydrophoneClick = () => {
+        jaiaDispatch({ type: JaiaActions.TOGGLE_HYDROPHONE, task: props.task });
+    };
 
     switch (props.task?.getType()) {
         case TaskType.DIVE:
@@ -293,14 +302,17 @@ function BottomDiveToggle(props: Props) {
  * Renders the hydrophone toggle and its label
  */
 function UseHydrophoneToggle(props: Props) {
-    return (
-        <div className="task-toggle-container">
-            <p>Hydrophone</p>
-            <JaiaToggle
-                checked={() => props.task.getUseHydrophone()}
-                onClick={() => props.handleUseHydrophoneClick()}
-                disabled={() => props.isDisabled}
-            />
-        </div>
-    );
+    if (bots.includesPAM()) {
+        return (
+            <div className="task-toggle-container">
+                <p>Hydrophone</p>
+                <JaiaToggle
+                    checked={() => props.task.getUseHydrophone()}
+                    onClick={() => props.handleUseHydrophoneClick()}
+                    disabled={() => props.isDisabled}
+                />
+            </div>
+        );
+    }
+    return;
 }

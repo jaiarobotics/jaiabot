@@ -120,6 +120,17 @@ export function handleToggleBottomDive(mutableState: JaiaContextType, action: Ja
 }
 
 /**
+ * Makes call to update the task parameters based on the toggle state
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleToggleHydrophone(mutableState: JaiaContextType, action: JaiaAction) {
+    action.task.setUseHydrophone(!action.task.getUseHydrophone());
+    return mutableState;
+}
+
+/**
  * Sets the selected waypoint to its default settings
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
