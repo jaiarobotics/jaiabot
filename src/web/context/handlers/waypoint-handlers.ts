@@ -2,7 +2,10 @@ import Mission from "../../data/mission_set/mission";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { MapModes } from "../../types/openlayers-types";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
@@ -127,6 +130,14 @@ export function handleToggleBottomDive(mutableState: JaiaContextType, action: Ja
  */
 export function handleToggleHydrophone(mutableState: JaiaContextType, action: JaiaAction) {
     action.task.setUseHydrophone(!action.task.getUseHydrophone());
+    missionLayer.updateFeatures();
+    // Refresh the grid to show icon updates
+    if (
+        mutableState.mapMode === MapModes.SURVEY_PLANNING &&
+        mutableState.gridPlanningState !== GridPlanningStates.ACCEPTING_START_TASK
+    ) {
+        gridLayer.finalizeGrid();
+    }
     return mutableState;
 }
 
