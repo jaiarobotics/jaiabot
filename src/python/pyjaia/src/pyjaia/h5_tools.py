@@ -25,6 +25,16 @@ def h5_get_files(filenames):
     return h5Files
 
 
+def h5_get_string_series(string_dataset: h5py.Dataset, length_dataset: h5py.Dataset) -> List[str]:
+    """Gets a string series from datasets in a Jaia HDF5 log file
+
+    Args:
+        string_dataset (h5py.Dataset): Dataset containing the characters (2-dimensional array dataset)
+        length_dataset (h5py.Dataset): Dataset containing the length of each string (1-dimensional array dataset)
+    """
+    return [ string_dataset[index][:length_dataset[index]].tobytes().decode('utf8') for index in range(len(length_dataset)) ]
+
+
 def h5_get_string(string_dataset: h5py.Dataset, length_dataset: h5py.Dataset, index: int):
     """Gets a string from datasets in a Jaia HDF5 log file
 

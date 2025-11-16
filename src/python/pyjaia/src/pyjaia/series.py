@@ -6,6 +6,8 @@ import bisect
 from typing import *
 from datetime import *
 import re
+import numpy as np
+import h5py
 
 from .time_range import *
 from .h5_tools import *
@@ -25,20 +27,22 @@ class Series:
     utime: List[float]
     y_values: List[float]
     hovertext_map: dict
+    hovertext: List[str]
 
     def __init__(self, name: str = None) -> None:
         self.name = name or ''
         self.utime = []
         self.y_values = []
-        self.hovertext_map = {}
+        self.hovertext_map = None
+        self.hovertext = None
 
     @staticmethod
-    def loadFromH5File(log: h5py.File=None, path: str=None, scheme: int=1, invalid_values: Set[Any]=None, name="Untitled") -> "Series":
+    def loadFromH5File(log: h5py.File, path: str, scheme: int=1, invalid_values: Set[Any]=None, name="Untitled") -> "Series":
         """Load a Series object from a Jaia HDF5 log and a path.
 
         Args:
-            log (h5py.File, optional): An HDF5 File object to load data from. Defaults to None.
-            path (str, optional): Path to the Jaia dataset to load. Defaults to None.
+            log (h5py.File): An HDF5 File object to load data from.
+            path (str): Path to the Jaia dataset to load.
             scheme (int, optional): The Goby transport scheme to filter out. Defaults to 1.
             invalid_values (Set[Any], optional): A set of values to consider "invalid" and replace with None. Defaults to set().
             name (str, optional): Name of the Series object. Defaults to "Untitled".
@@ -82,24 +86,33 @@ class Series:
             logging.info(f'  {matchedPath}')
             path = matchedPath
 
+        try:
+            _utime__array = log[get_root_item_path(path, '_utime_')]
+            _scheme__array = log[get_root_item_path(path, '_scheme_')]
+        except KeyError as e:
+            msg = f'Could not load _utime_ or _scheme_ arrays for path {path} in file {log.filename}: {e}'
+            logging.warning(msg)
+            raise Exception(msg)
 
-        if log:
-            try:
-                _utime__array = log[get_root_item_path(path, '_utime_')]
-                _scheme__array = log[get_root_item_path(path, '_scheme_')]
-            except KeyError as e:
-                msg = f'Could not load _utime_ or _scheme_ arrays for path {path} in file {log.filename}: {e}'
-                logging.warning(msg)
-                raise Exception(msg)
+        path_array = log[path]
 
-            path_array = log[path]
+        # Check to see if this is a string dataset
+        is_string = len(path_array.shape) > 1 and path + '_size' in log
 
-            s = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), h5_get_series(path_array))
-            s = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, s)
+        data_array = h5_get_string_series(path_array, log[path + '_size']) if is_string else h5_get_series(path_array)
 
-            series.utime, schemes, series.y_values = zip(*s)
+        s = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), data_array)
+        s = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, s)
 
+        if is_string:
+            series.utime, _, string_array = zip(*s)
+            series.y_values = [0.0] * len(series.utime)
+            series.hovertext = list(string_array)
+            series.hovertext_map = None
+        else:
+            series.utime, _, series.y_values = zip(*s)
             series.hovertext_map = h5_get_enum_map(log[path]) or {}
+            series.hovertext = None
 
         return series
 
@@ -107,7 +120,10 @@ class Series:
         r = copy.copy(self)
         r.utime += list(other_series.utime)
         r.y_values += list(other_series.y_values)
-        r.hovertext_map.update(other_series.hovertext_map)
+        if other_series.hovertext is not None:
+            r.hovertext = (r.hovertext or []) + list(other_series.hovertext)
+        elif other_series.hovertext_map is not None:
+            r.hovertext_map = (r.hovertext_map or {}).update(other_series.hovertext_map)
         return r
 
     def clear(self):

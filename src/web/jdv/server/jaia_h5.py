@@ -316,7 +316,8 @@ class JaiaH5FileSet:
             for log in self.h5Files:
                 l.info(f'  Loading from: {log.filename}')
                 try:
-                    series = series.extend(Series.loadFromH5File(log=log, path=path, scheme=1, invalid_values=invalid_values))
+                    new_series = Series.loadFromH5File(log=log, path=path, scheme=1, invalid_values=invalid_values)
+                    series = series.extend(new_series)
                 except Exception as e:
                     l.warn(e)
                     continue
@@ -336,7 +337,10 @@ class JaiaH5FileSet:
                 '_utime_': series.utime,
                 'series_y': series.y_values,
                 'hovertext_map': series.hovertext_map,
+                'hovertext': series.hovertext,
             })
+
+        logging.info(f'==> Loaded series: {series_list}')
 
         return series_list
 
