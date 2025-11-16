@@ -3,7 +3,7 @@ import { Log } from "./Log";
 import download from "downloadjs";
 import { Plot } from "./Plot";
 import { GeoJSONFeatureCollection } from "ol/format/GeoJSON";
-import { CustomAlert } from "../shared/CustomAlert";
+import { SeriesDescriptor } from "./SeriesDescriptor";
 
 export type ActiveGoals = {
     [key: string]: {
@@ -43,49 +43,6 @@ function downloadURL(url: string, filename: string = "filename", mimeType: strin
 interface GetLogsResponse {
     availableSpace: number;
     logs: Log[];
-}
-
-/**
- * Descriptor for a data series
- *
- */
-export interface SeriesDescriptor {
-    /**
-     * Human-readable name of the series
-     * */
-    name: string;
-
-    /**
-     * HDF path of the series
-     */
-    path: string;
-
-    /**
-     * Description of the series
-     */
-    description: string;
-
-    /**
-     * Units of the series
-     */
-    units: string;
-
-    /**
-     * Frequency the series is sampled at
-     */
-    frequency: number;
-}
-
-export function SeriesDescriptor_matchesString(
-    seriesDescriptor: SeriesDescriptor,
-    query: string,
-): boolean {
-    const lowerQuery = query.toLowerCase();
-    return (
-        seriesDescriptor.name.toLowerCase().includes(lowerQuery) ||
-        seriesDescriptor.path.toLowerCase().includes(lowerQuery) ||
-        seriesDescriptor.description?.toLowerCase()?.includes(lowerQuery)
-    );
 }
 
 export class LogApi {
@@ -170,15 +127,6 @@ export class LogApi {
         url.searchParams.append("path", paths.join(","));
 
         return this.getJSON(url.toString()) as Promise<Plot[]>;
-    }
-
-    /**
-     * Get a list of all the available logs
-     *
-     * @returns {Promise<Log[]>} Promise of an array of Log objects
-     */
-    static getLogs(): Promise<Log[]> {
-        return this.getJSON("/logs") as Promise<Log[]>;
     }
 
     // Gets all of the logs and associated metadata for each
