@@ -1,5 +1,5 @@
 import React from "react";
-import { Plot } from "../model/Plot";
+import { Plot, Plot_get_hovertext_by_index } from "../model/Plot";
 import { bisect } from "../tools/bisect";
 import "./DataTable.css";
 
@@ -30,7 +30,7 @@ export function DataTable(props: DataTableProps) {
                 })?.index;
 
                 const value = plot.series_y[index];
-                const enumDescription = plot.hovertext_map?.[value];
+                const enumDescription = Plot_get_hovertext_by_index(plot, index);
 
                 var valueString = "";
                 if (enumDescription != null) {

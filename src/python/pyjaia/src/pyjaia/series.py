@@ -97,7 +97,7 @@ class Series:
         path_array = log[path]
 
         # Check to see if this is a string dataset
-        is_string = len(path_array.shape) > 1 and path + '_size' in log
+        is_string = len(path_array.shape) == 2 and path + '_size' in log
 
         data_array = h5_get_string_series(path_array, log[path + '_size']) if is_string else h5_get_series(path_array)
 
