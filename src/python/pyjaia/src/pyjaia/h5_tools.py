@@ -83,7 +83,7 @@ def h5_get_series(dataset: h5py.Dataset):
         list[int | float | None]: The h5 dataset filtering out the "invalid" values as a list of numbers.
     """
     if len(dataset.shape) > 1: # Multi-dimensional arrays (usually strings) not supported yet
-        raise Exception('This field is multi-dimensional.  It may be a string field.')
+        raise Exception(f'==> {dataset.name} is multi-dimensional.  It may be a string field.')
 
     dtype: numpy.dtype = dataset.dtype
 

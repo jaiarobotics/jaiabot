@@ -3,6 +3,7 @@ from pathlib import Path
 from objects import jaialog_get_object_list
 from pyjaia.series import *
 from pyjaia.h5_tools import *
+from pyjaia.logtools import JaiaLogH5
 from threading import Lock
 import path_descriptors
 
@@ -25,7 +26,7 @@ conversionLock = Lock()
 
 class JaiaH5FileSet:
     h5Filenames: List[str]
-    h5Files: List[h5py.File] = None
+    h5Files: List[JaiaLogH5] = None
 
     def __init__(self, filenames: List[Union[str, Path]], shouldConvertGoby=False) -> None:
         self.h5Filenames = filenames
@@ -42,15 +43,15 @@ class JaiaH5FileSet:
 
         # Get duration of the first log, if the h5 file exists
         try:
-            start = h5File[UTIME_PATH][0]
-            end = h5File[UTIME_PATH][-1]
+            start = h5File.log[UTIME_PATH][0]
+            end = h5File.log[UTIME_PATH][-1]
             return int(end - start)
         except (OSError, KeyError) as e:
             l.debug(e)
             return None
 
     def _getH5Files(self, shouldConvertGoby: bool):
-        h5Files: List[h5py.File] = []
+        h5Files: List[JaiaLogH5] = []
 
         with conversionLock:
             for h5FileName in self.h5Filenames:
@@ -58,7 +59,7 @@ class JaiaH5FileSet:
 
                 if h5Path.is_file():
                     try:
-                        h5Files.append(h5py.File(h5FileName))
+                        h5Files.append(JaiaLogH5(h5FileName))
                     except (BlockingIOError, OSError) as e:
                         l.debug(f'While trying to open {h5FileName}, exception occured: {e}')
                     continue
@@ -88,7 +89,7 @@ class JaiaH5FileSet:
 
                 # Add the generated or existing h5 file
                 try:
-                    h5Files.append(h5py.File(h5FileName))
+                    h5Files.append(JaiaLogH5(h5FileName))
                 except (OSError) as e:
                     l.debug(f'{e}: while opening {h5FileName}')
                     continue
@@ -109,7 +110,7 @@ class JaiaH5FileSet:
 
         for h5_file in self.h5Files:
             try:
-                fields = fields.union(h5_file[root_path].keys())
+                fields = fields.union(h5_file.log[root_path].keys())
             except AttributeError:
                 # If this path is a dataset, it has no "keys()"
                 pass
@@ -157,7 +158,7 @@ class JaiaH5FileSet:
             seriesDescriptors.add(series_descriptor)
 
         for h5_file in self.h5Files:
-            h5_file.visititems(visit_path)
+            h5_file.log.visititems(visit_path)
 
         return list(seriesDescriptors)
 
@@ -168,7 +169,7 @@ class JaiaH5FileSet:
 
         for log_file in self.h5Files:
             # Search for Command items
-            for path in log_file.keys():
+            for path in log_file.log.keys():
 
                 HUB_COMMAND_RE = re.compile(r'jaiabot::hub_command.*')
                 m = HUB_COMMAND_RE.match(path)
@@ -177,7 +178,7 @@ class JaiaH5FileSet:
 
                     
                     command_path = hub_command_path + '/jaiabot.protobuf.Command'
-                    commands = jaialog_get_object_list(log_file[command_path], repeated_members={"goal"})
+                    commands = jaialog_get_object_list(log_file.log[command_path], repeated_members={"goal"})
 
                     try:
                         bot_id = commands[0]['bot_id']
@@ -201,20 +202,20 @@ class JaiaH5FileSet:
         for log in self.h5Files:
             # Get Bot id from the filename
             bot_id_pattern = re.compile(r'bot(\d+)')
-            bot_id = re.findall(bot_id_pattern, log.filename)
+            bot_id = re.findall(bot_id_pattern, log.log.filename)
             bot_id_string = str(bot_id[0])
 
-            lat_series = Series.loadFromH5File(log=log, path=NodeStatus_lat_path)
-            lon_series = Series.loadFromH5File(log=log, path=NodeStatus_lon_path)
-            heading_series = Series.loadFromH5File(log=log, path=NodeStatus_heading_path)
-            course_over_ground_series = Series.loadFromH5File(log=log, path=NodeStatus_course_over_ground_path)
+            lat_series = log.read_series(path=NodeStatus_lat_path)
+            lon_series = log.read_series(path=NodeStatus_lon_path)
+            heading_series = log.read_series(path=NodeStatus_heading_path)
+            course_over_ground_series = log.read_series(path=NodeStatus_course_over_ground_path)
 
             thisSeries = []
 
             try:
-                desired_heading_series = Series.loadFromH5File(log=log, path=DesiredSetpoints_heading_path)
+                desired_heading_series = log.read_series(path=DesiredSetpoints_heading_path)
             except Exception as e:
-                l.debug(f'Could not load desired heading series from {log.filename}: {e}')
+                l.debug(f'Could not load desired heading series from {log.log.filename}: {e}')
 
             for i, lat in enumerate(lat_series.y_values):
                 most_recent_desired_heading = desired_heading_series.getValueAtTime(lat_series.utime[i])
@@ -246,9 +247,9 @@ class JaiaH5FileSet:
                 m = BOT_STATUS_RE.match(name)
 
                 if m is not None:
-                    _utime_ = h5_get_series(log_file[name + '/_utime_'])
-                    bot_ids = h5_get_series(log_file[name + '/bot_id'])
-                    active_goals = h5_get_series(log_file[name + '/active_goal'])
+                    _utime_ = h5_get_series(log_file.log[name + '/_utime_'])
+                    bot_ids = h5_get_series(log_file.log[name + '/bot_id'])
+                    active_goals = h5_get_series(log_file.log[name + '/active_goal'])
 
                     last_active_goal = None
                     for i in range(len(_utime_)):
@@ -264,7 +265,7 @@ class JaiaH5FileSet:
                             
                             last_active_goal = active_goals[i]
 
-            log_file.visititems(visit_path)
+            log_file.log.visititems(visit_path)
 
         return results
 
@@ -277,14 +278,14 @@ class JaiaH5FileSet:
         for log_file in self.h5Files:
             
             # Search for Command items
-            for path in log_file.keys():
+            for path in log_file.log.keys():
 
                 m = TASK_PACKET_RE.match(path)
                 if m is not None:
                     task_packet_group_path = path
 
                     task_packet_path = task_packet_group_path + '/jaiabot.protobuf.TaskPacket'
-                    task_packets = jaialog_get_object_list(log_file[task_packet_path], repeated_members={"measurement"})
+                    task_packets = jaialog_get_object_list(log_file.log[task_packet_path], repeated_members={"measurement"})
 
                     results += task_packets
 
@@ -314,12 +315,12 @@ class JaiaH5FileSet:
             series = Series()
 
             for log in self.h5Files:
-                l.info(f'  Loading from: {log.filename}')
+                l.info(f'  Loading from: {log.log.filename}')
                 try:
-                    new_series = Series.loadFromH5File(log=log, path=path, scheme=1, invalid_values=invalid_values)
+                    new_series = log.read_series(path=path, scheme=1, invalid_values=invalid_values)
                     series = series.extend(new_series)
                 except Exception as e:
-                    l.warn(e)
+                    l.warning(e, exc_info=True)
                     continue
 
             series.sort()
@@ -339,8 +340,6 @@ class JaiaH5FileSet:
                 'hovertext_map': series.hovertext_map,
                 'hovertext': series.hovertext,
             })
-
-        logging.info(f'==> Loaded series: {series_list}')
 
         return series_list
 

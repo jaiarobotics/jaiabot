@@ -23,98 +23,11 @@ def floatRange(start: float, end: float, delta: float):
 
 @dataclass
 class Series:
-    name: str
-    utime: List[float]
-    y_values: List[float]
-    hovertext_map: dict
-    hovertext: List[str]
-
-    def __init__(self, name: str = None) -> None:
-        self.name = name or ''
-        self.utime = []
-        self.y_values = []
-        self.hovertext_map = None
-        self.hovertext = None
-
-    @staticmethod
-    def loadFromH5File(log: h5py.File, path: str, scheme: int=1, invalid_values: Set[Any]=None, name="Untitled") -> "Series":
-        """Load a Series object from a Jaia HDF5 log and a path.
-
-        Args:
-            log (h5py.File): An HDF5 File object to load data from.
-            path (str): Path to the Jaia dataset to load.
-            scheme (int, optional): The Goby transport scheme to filter out. Defaults to 1.
-            invalid_values (Set[Any], optional): A set of values to consider "invalid" and replace with None. Defaults to set().
-            name (str, optional): Name of the Series object. Defaults to "Untitled".
-
-        Raises:
-            Exception: When we cannot load the dataset array, or its _utime_ or _scheme_ arrays.
-
-        Returns:
-            Series: The Series object representing this data series.
-
-        Note:
-            If `path` contains a post-semicolon component, it will match any string beyond that point in the component.
-                For example:
-                    `jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state` will match the path
-                    `jaiabot::bot_status;1/jaiabot.protobuf.BotStatus/mission_state`
-        """
-        invalid_values = invalid_values or set()
-
-        series = Series(name)
-
-        series.utime = []
-        series.y_values = []
-        series.hovertext_map = {}
-
-        # If this path contains a semi-colon-delimited integer, we want to use a fuzzy search in case that part is different in this log file
-        #   For example, the path 
-        #   "jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state" should match the path
-        #   "jaiabot::bot_status;1/jaiabot.protobuf.BotStatus/mission_state"
-        match = re.search(r';.+?/', path)
-        if match:
-            pathRegExString = path.replace(match.group(0), r';.+?/')
-            pathRegEx = re.compile(pathRegExString)
-            matchedPath = log.visit(lambda name: name if pathRegEx.match(name) else None)
-            if matchedPath is None:
-                msg = f'RegEx {pathRegExString}, (from {path}) did not match any series in file {log.filename}'
-                logging.warning(msg)
-                raise Exception(msg)
-            
-            logging.info(f'Used a fuzzy search for')
-            logging.info(f'  {path} and found')
-            logging.info(f'  {matchedPath}')
-            path = matchedPath
-
-        try:
-            _utime__array = log[get_root_item_path(path, '_utime_')]
-            _scheme__array = log[get_root_item_path(path, '_scheme_')]
-        except KeyError as e:
-            msg = f'Could not load _utime_ or _scheme_ arrays for path {path} in file {log.filename}: {e}'
-            logging.warning(msg)
-            raise Exception(msg)
-
-        path_array = log[path]
-
-        # Check to see if this is a string dataset
-        is_string = len(path_array.shape) == 2 and path + '_size' in log
-
-        data_array = h5_get_string_series(path_array, log[path + '_size']) if is_string else h5_get_series(path_array)
-
-        s = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), data_array)
-        s = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, s)
-
-        if is_string:
-            series.utime, _, string_array = zip(*s)
-            series.y_values = [0.0] * len(series.utime)
-            series.hovertext = list(string_array)
-            series.hovertext_map = None
-        else:
-            series.utime, _, series.y_values = zip(*s)
-            series.hovertext_map = h5_get_enum_map(log[path]) or {}
-            series.hovertext = None
-
-        return series
+    name: str = 'Unititled'
+    utime: List[float] = field(default_factory=list)
+    y_values: List[float] = field(default_factory=list)
+    hovertext_map: dict = None
+    hovertext: List[str] = None
 
     def extend(self, other_series: 'Series'):
         r = copy.copy(self)
