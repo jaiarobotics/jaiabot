@@ -207,6 +207,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
                     }
                 }
             }
+            gridPlan.fitLanesToBots();
             missionSet.setMissions(cloneDeep(gridPlan.getMissions()));
             missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
             missionSet.setNextMissionID(gridPlan.getMissions().size + 1);

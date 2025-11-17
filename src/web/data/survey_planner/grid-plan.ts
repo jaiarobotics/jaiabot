@@ -1,6 +1,6 @@
+import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
-import { missionSet } from "../mission_set/mission-set";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
 export enum GridPlanningStates {
@@ -162,6 +162,7 @@ export class GridPlan {
         }
 
         let lanesCovered = 0;
+        let missionID = 1;
         while (lanesCovered < this.numOfLanes) {
             let updatedLanesPerBot = lanesPerBot;
             if (extraLanes > 0) {
@@ -169,23 +170,28 @@ export class GridPlan {
                 extraLanes -= 1;
             }
 
-            const baseMission = missionSet.getMission(lanesCovered + 1);
+            const baseMission = new Mission();
+            baseMission.setMissionID(missionID);
 
             for (let i = lanesCovered; i < lanesCovered + updatedLanesPerBot; i++) {
-                const mission = missionSet.getMission(i + 1);
+                const mission = this.missions.get(i + 1);
                 // Remove mission end location if not last lane in group
-                if (i + 1 < updatedLanesPerBot) {
+                if (i + 1 < lanesCovered + updatedLanesPerBot) {
                     mission.getWaypoints().pop();
                 }
+
                 // Remove mission start location if not first lane in group
                 if (i !== lanesCovered) {
                     mission.getWaypoints().shift();
-                    baseMission.addWaypoints([...mission.getWaypoints()]);
                 }
-                missionSet.deleteMission(mission.getMissionID());
+
+                baseMission.addWaypoints(cloneDeep(mission.getWaypoints()));
+                this.missions.delete(mission.getMissionID());
             }
 
+            this.missions.set(baseMission.getMissionID(), baseMission);
             lanesCovered += updatedLanesPerBot;
+            missionID += 1;
         }
     }
 }

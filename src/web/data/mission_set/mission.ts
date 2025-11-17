@@ -67,8 +67,8 @@ export default class Mission {
         this.waypoints.push(waypoint);
     }
 
-    addWaypoints(waypoint: Waypoint[]) {
-        this.waypoints = this.waypoints;
+    addWaypoints(waypoints: Waypoint[]) {
+        this.waypoints.push(...waypoints);
     }
 
     deleteWaypoint(waypointNum: number) {
