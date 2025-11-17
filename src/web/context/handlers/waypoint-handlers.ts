@@ -144,13 +144,12 @@ export function handleToggleConstantHeadingSelect(
     const currentMapMode = jaiaGlobal.getMapMode();
     let updatedMapMode = MapModes.DEFAULT;
 
-    if (
-        action.task.getIsSurveyTask() &&
-        currentMapMode !== MapModes.SURVEY_CONSTANT_HEADING_SELECT
-    ) {
-        updatedMapMode = MapModes.SURVEY_CONSTANT_HEADING_SELECT;
-    } else if (action.task.getIsSurveyTask()) {
-        updatedMapMode = MapModes.SURVEY_PLANNING;
+    if (action.task.getIsSurveyTask()) {
+        if (currentMapMode !== MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+            updatedMapMode = MapModes.SURVEY_CONSTANT_HEADING_SELECT;
+        } else {
+            updatedMapMode = MapModes.SURVEY_PLANNING;
+        }
     }
 
     if (!action.task.getIsSurveyTask() && currentMapMode !== MapModes.CONSTANT_HEADING_SELECT) {
