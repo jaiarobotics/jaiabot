@@ -28,8 +28,9 @@ interface Props {
 
 enum GridInputs {
     NUM_OF_LANES = 1,
-    LANE_SPACING = 2,
-    POINT_SPACING = 3,
+    NUM_OF_BOTS = 2,
+    LANE_SPACING = 3,
+    POINT_SPACING = 4,
 }
 
 enum TaskPosition {
@@ -172,6 +173,7 @@ function RequestEndMissionLocation() {
  */
 function GridConfigs(props: Props) {
     const [numOfLanes, setNumOfLanes] = useState(props.gridPlanDetails.numOfLanes);
+    const [numOfBots, setNumOfBots] = useState(props.gridPlanDetails.numOfBots);
     const [pointSpacing, setPointSpacing] = useState(props.gridPlanDetails.pointSpacing);
     const [laneSpacing, setLaneSpacing] = useState(props.gridPlanDetails.laneSpacing);
 
@@ -193,6 +195,10 @@ function GridConfigs(props: Props) {
             case GridInputs.NUM_OF_LANES:
                 setNumOfLanes(input);
                 gridPlan.setNumOfLanes(input);
+                break;
+            case GridInputs.NUM_OF_BOTS:
+                setNumOfBots(input);
+                gridPlan.setNumOfBots(input);
                 break;
             case GridInputs.LANE_SPACING:
                 setLaneSpacing(input);
@@ -223,6 +229,14 @@ function GridConfigs(props: Props) {
                     value={formatNumericalInput(numOfLanes)}
                     onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                         handleInputChange(evt.target.value, GridInputs.NUM_OF_LANES)
+                    }
+                />
+                <div>Number of Bots:</div>
+                <input
+                    type="number"
+                    value={formatNumericalInput(numOfBots)}
+                    onChange={(evt: ChangeEvent<HTMLInputElement>) =>
+                        handleInputChange(evt.target.value, GridInputs.NUM_OF_BOTS)
                     }
                 />
                 <div>Lane Spacing:</div>

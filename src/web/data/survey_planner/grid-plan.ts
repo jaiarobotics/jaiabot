@@ -15,6 +15,7 @@ export enum GridPlanningStates {
 
 export interface GridPlanDetails {
     numOfLanes: number;
+    numOfBots: number;
     laneSpacing: number;
     pointSpacing: number;
     surveyTask: Task;
@@ -55,6 +56,7 @@ export class GridPlan {
     getGridPlanDetails() {
         const gridPlanDetails: GridPlanDetails = {
             numOfLanes: this.numOfLanes,
+            numOfBots: this.numOfBots,
             laneSpacing: this.laneSpacing,
             pointSpacing: this.pointSpacing,
             surveyTask: this.surveyTask,
