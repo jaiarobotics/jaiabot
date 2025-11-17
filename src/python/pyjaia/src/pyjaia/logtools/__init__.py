@@ -289,22 +289,29 @@ class JaiaLogH5:
                 l.warning(color_text(f'Field {field.name} is repeated.  This is not supported yet.', 'red'))
                 continue
 
-            if field.type not in SCALAR_TYPES:
-                l.warning(color_text(f'Field {field.name} is not a scalar type.  This is not supported yet.', 'red'))
-                continue
-
             field_path = path + '/' + field.name
 
-            try:
-                field_data = self.read_array(field_path, is_string=(field.type == FieldDescriptor.TYPE_STRING))
-            except KeyError:
-                l.warning(color_text(f'Could not find dataset for field {field.name} in protobuf {protobuf_message_name.DESCRIPTOR.name}', 'yellow'))
-                continue
+            if field.type in SCALAR_TYPES:
+                try:
+                    field_data = self.read_array(field_path, is_string=(field.type == FieldDescriptor.TYPE_STRING))
+                except KeyError:
+                    l.warning(color_text(f'Could not find dataset for field {field.name} in protobuf {protobuf_message_name.DESCRIPTOR.name}', 'yellow'))
+                    continue
 
-            for index, value in enumerate(field_data):
-                if index >= len(objects):
-                    objects.append(protobuf_message_name())
-                if value is not None:
-                    setattr(objects[index], field.name, value)
+                for index, value in enumerate(field_data):
+                    if index >= len(objects):
+                        objects.append(protobuf_message_name())
+                    if value is not None:
+                        setattr(objects[index], field.name, value)
+            elif field.type == FieldDescriptor.TYPE_MESSAGE:
+                nested_objects = self.read_protobuf_objects(field_path, protobuf_message_name=field.message_type._concrete_class)
+                l.warning(color_text(f'Loaded {len(nested_objects)} nested objects for field {field.name}', 'green'))
+                for index, nested_object in enumerate(nested_objects):
+                    if index >= len(objects):
+                        objects.append(protobuf_message_name())
+                    getattr(objects[index], field.name).CopyFrom(nested_object)
+            else:
+                l.warning(color_text(f'Field {field.name} has unsupported type {field.type}', 'red'))
+                continue
         
         return objects
