@@ -2,7 +2,6 @@ from typing import List, Union, AbstractSet, Dict
 from pathlib import Path
 from objects import jaialog_get_object_list
 from pyjaia.series import *
-from pyjaia.h5_tools import *
 from pyjaia.logtools import JaiaLogH5
 from threading import Lock
 import path_descriptors
@@ -247,9 +246,9 @@ class JaiaH5FileSet:
                 m = BOT_STATUS_RE.match(name)
 
                 if m is not None:
-                    _utime_ = h5_get_series(log_file.log[name + '/_utime_'])
-                    bot_ids = h5_get_series(log_file.log[name + '/bot_id'])
-                    active_goals = h5_get_series(log_file.log[name + '/active_goal'])
+                    _utime_: list[int] = log_file.read_array(name + '/_utime_')
+                    bot_ids: list[int] = log_file.read_array(name + '/bot_id')
+                    active_goals: list[int] = log_file.read_array(name + '/active_goal')
 
                     last_active_goal = None
                     for i in range(len(_utime_)):

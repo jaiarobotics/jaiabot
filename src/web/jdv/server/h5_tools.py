@@ -1,18 +1,6 @@
 import h5py
 from typing import *
 import math
-import numpy
-
-
-INT32_MAX = (2 << 30) - 1
-UINT32_MAX = (2 << 31) - 1
-
-
-def get_root_item_path(path, root_item=''):
-    '''Get the path to a root_item associated with that path'''
-    components = path.strip('/').split('/')
-    components = components[:2] + [root_item]
-    return '/'.join(components)
 
 
 def h5_get_files(filenames):
@@ -23,16 +11,6 @@ def h5_get_files(filenames):
         except OSError:
             continue
     return h5Files
-
-
-def h5_get_string_series(string_dataset: h5py.Dataset, length_dataset: h5py.Dataset) -> List[str]:
-    """Gets a string series from datasets in a Jaia HDF5 log file
-
-    Args:
-        string_dataset (h5py.Dataset): Dataset containing the characters (2-dimensional array dataset)
-        length_dataset (h5py.Dataset): Dataset containing the length of each string (1-dimensional array dataset)
-    """
-    return [ string_dataset[index][:length_dataset[index]].tobytes().decode('utf8') for index in range(len(length_dataset)) ]
 
 
 def h5_get_string(string_dataset: h5py.Dataset, length_dataset: h5py.Dataset, index: int):
@@ -68,51 +46,6 @@ def h5_get_float(dataset, index):
         return None
     else:
         return float(f)
-
-
-def h5_get_series(dataset: h5py.Dataset):
-    """Get a filtered representation of an h5 dataset as an array of `int` or `float`
-
-    Args:
-        dataset (h5py.Dataset): The h5 dataset to be filtered.
-
-    Raises:
-        Exception: If the field is multi-dimensional, usually a string field.
-
-    Returns:
-        list[int | float | None]: The h5 dataset filtering out the "invalid" values as a list of numbers.
-    """
-    if len(dataset.shape) > 1: # Multi-dimensional arrays (usually strings) not supported yet
-        raise Exception(f'==> {dataset.name} is multi-dimensional.  It may be a string field.')
-
-    dtype: numpy.dtype = dataset.dtype
-
-    def from_float(x):
-        x = float(x)
-        if math.isnan(x):
-            return None
-        return x
-
-    def from_int32(x):
-        if x == INT32_MAX:
-            return None
-        return int(x)
-
-    def from_uint32(x):
-        if x == UINT32_MAX:
-            return None
-        return int(x)
-
-    dtype_proc = {
-        'f': from_float,
-        'i': from_int32,
-        'u': from_uint32
-    }
-
-    map_proc = dtype_proc[dtype.kind]
-    filtered_list = [map_proc(x) for x in dataset]
-
-    return filtered_list
 
 
 def h5_get_enum_map(dataset: h5py.Dataset):

@@ -1,9 +1,8 @@
 import h5py
 from pyjaia.series import Series
-from pyjaia.h5_tools import *
 from google.protobuf.message import Message
-from google.protobuf.descriptor import Descriptor, FieldDescriptor
-from typing import Set, Any
+from google.protobuf.descriptor import FieldDescriptor
+from typing import Set, Any, TypeVar, List
 import re
 import logging
 import numpy as np
@@ -26,6 +25,41 @@ def color_text(self: str, color: str) -> str:
         'reset': '\033[0m'
     }
     return color_codes.get(color, '') + self + color_codes['reset']
+
+
+def get_root_item_path(path: str, desired_relative_path=''):
+    """Gets the path to a field under the root item of a given path.
+
+    Args:
+        path (str): Path to get the root item path for.
+        desired_relative_path (str, optional): The desired path relative to the root path. Defaults to '', which gets the class's root path.
+
+    Returns:
+        str: Desired absolute path.
+    """
+    components = path.strip('/').split('/')
+    components = components[:2] + [desired_relative_path]
+    return '/'.join(components)
+
+
+def get_enum_map(dataset: h5py.Dataset):
+    """Get the enum map (enum_value -> enum_name dict) for an h5 dataset
+
+    Args:
+        dataset (h5py.Dataset): The dataset (hopefully an enum dataset)
+
+    Returns:
+        dict[int, str]: A dictionary mapping enum values to their corresponding user-readable enum names, or None if this is not an enum dataset
+    """
+    # Get the enum value names
+    try:
+        enum_names: List[str] = dataset.attrs['enum_names']
+        enum_values: List[int] = dataset.attrs['enum_values']
+        enum_dict = { int(enum_values[index]): enum_names[index] for index in range(0, len(enum_values))}
+        return enum_dict
+
+    except KeyError:
+        return None
 
 
 def paths_match(path1: str, path2: str) -> bool:
@@ -109,6 +143,9 @@ def filter_dataset_to_list(dataset: h5py.Dataset) -> List[int | float | None]:
     Args:
         dataset (h5py.Dataset): The dataset to filter.
     """
+    INT32_MAX = (2 << 30) - 1
+    UINT32_MAX = (2 << 31) - 1
+
     NONE_VALUES = {
         float('nan'),
         INT32_MAX,
@@ -133,9 +170,15 @@ class JaiaLogH5:
     log: h5py.File
     log_path: str
 
-    def __init__(self, log_path: str):
-        self.log_path = log_path
-        self.log = h5py.File(log_path, "r")
+    def __init__(self, log_or_path: h5py.File | str):
+        if isinstance(log_or_path, h5py.File):
+            self.log = log_or_path
+            self.log_path = log_or_path.filename
+        elif isinstance(log_or_path, str):
+            self.log_path = log_or_path
+            self.log = h5py.File(log_or_path, "r")
+        else:
+            raise TypeError(color_text(f'log_or_path must be of type h5py.File or str, not {type(log_or_path)}', 'red'))
 
 
     def get_path(self, path: str) -> str:
@@ -225,21 +268,16 @@ class JaiaLogH5:
         path = self.get_path(path)
         l.info(color_text(f'Loading series from path {path} in file {self.log.filename}', 'green'))
 
-        # Load the _utime_ and _scheme_ arrays            
-        try:
-            _utime__array = self.log[get_root_item_path(path, '_utime_')]
-            _scheme__array = self.log[get_root_item_path(path, '_scheme_')]
-        except KeyError as e:
-            raise KeyError(color_text(f'Could not load _utime_ or _scheme_ arrays for path {path} in file {self.log.filename}: {e}', 'red'))
-
         path_array = self.log[path]
 
         # Check to see if this is a string dataset
         is_string = len(path_array.shape) == 2 and path + '_size' in self.log
 
-        data_array = h5_get_string_series(path_array, self.log[path + '_size']) if is_string else h5_get_series(path_array)
-
-        s = zip(h5_get_series(_utime__array), h5_get_series(_scheme__array), data_array)
+        # Load the arrays
+        _utime__array = self.read_array(get_root_item_path(path, '_utime_'))
+        _scheme__array = self.read_array(get_root_item_path(path, '_scheme_'))
+        data_array = self.read_array(path, is_string=is_string)
+        s = zip(_utime__array, _scheme__array, data_array)
         s = filter(lambda pt: pt[1] == scheme and pt[2] not in invalid_values, s)
 
         if is_string:
@@ -249,7 +287,7 @@ class JaiaLogH5:
             series.hovertext_map = None
         else:
             series.utime, _, series.y_values = zip(*s)
-            series.hovertext_map = h5_get_enum_map(self.log[path]) or {}
+            series.hovertext_map = get_enum_map(self.log[path]) or {}
             series.hovertext = None
 
         return series
@@ -285,9 +323,9 @@ class JaiaLogH5:
         for field in descriptor.fields:
             field: FieldDescriptor
 
-            if field.label == FieldDescriptor.LABEL_REPEATED:
-                l.warning(color_text(f'Field {field.name} is repeated.  This is not supported yet.', 'red'))
-                continue
+            # if field.label == FieldDescriptor.LABEL_REPEATED:
+            #     l.warning(color_text(f'Field {field.name} is repeated.  This is not supported yet.', 'red'))
+            #     continue
 
             field_path = path + '/' + field.name
 
@@ -302,14 +340,22 @@ class JaiaLogH5:
                     if index >= len(objects):
                         objects.append(protobuf_message_name())
                     if value is not None:
-                        setattr(objects[index], field.name, value)
+                        if field.label == FieldDescriptor.LABEL_REPEATED:
+                            getattr(objects[index], field.name).extend(filter(lambda x: x is not None, value))
+                        else:
+                            setattr(objects[index], field.name, value)
+
             elif field.type == FieldDescriptor.TYPE_MESSAGE:
+                if field.label == FieldDescriptor.LABEL_REPEATED:
+                    l.warning(color_text(f'Field {field.name} is a repeated message field.  This is not supported yet.', 'red'))
+                    continue
+
                 nested_objects = self.read_protobuf_objects(field_path, protobuf_message_name=field.message_type._concrete_class)
-                l.warning(color_text(f'Loaded {len(nested_objects)} nested objects for field {field.name}', 'green'))
                 for index, nested_object in enumerate(nested_objects):
                     if index >= len(objects):
                         objects.append(protobuf_message_name())
                     getattr(objects[index], field.name).CopyFrom(nested_object)
+
             else:
                 l.warning(color_text(f'Field {field.name} has unsupported type {field.type}', 'red'))
                 continue

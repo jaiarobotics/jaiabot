@@ -5,12 +5,8 @@ import copy
 import bisect
 from typing import *
 from datetime import *
-import re
-import numpy as np
-import h5py
 
 from .time_range import *
-from .h5_tools import *
 
 
 def floatRange(start: float, end: float, delta: float):

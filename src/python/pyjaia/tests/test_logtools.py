@@ -32,7 +32,7 @@ def test_read_array():
 
 
 if __name__ == '__main__':
-    # test_read_array()
-    # test_read_series()
+    test_read_array()
+    test_read_series()
     test_read_objects()
     print('All tests passed!')
