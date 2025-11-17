@@ -10,7 +10,7 @@ import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapModes, SurveyEndpoints } from "../../types/openlayers-types";
+import { MapModes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID, MISSION_ENDPOINTS } from "../../utils/constants";
 import { updateMissionSetFromSnapshot } from "../../components/MissionsPanel/MissionSetStorage/mission-set-storage";

@@ -1,5 +1,6 @@
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
+import { missionSet } from "../mission_set/mission-set";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
 export enum GridPlanningStates {
@@ -24,6 +25,7 @@ export class GridPlan {
     private missionStart: GeographicCoordinate;
     private missionEnd: GeographicCoordinate;
     private numOfLanes: number;
+    private numOfBots: number;
     private laneSpacing: number;
     private pointSpacing: number;
     private surveyTask: Task;
@@ -37,6 +39,7 @@ export class GridPlan {
         this.numOfLanes = 5;
         this.laneSpacing = 10;
         this.pointSpacing = 10;
+        this.numOfBots = 1;
         this.surveyTask = new Task();
         this.startTask = new Task();
         this.endTask = new Task();
@@ -82,6 +85,14 @@ export class GridPlan {
 
     setNumOfLanes(numOfLanes: number) {
         this.numOfLanes = numOfLanes;
+    }
+
+    getNumOfBots() {
+        return this.numOfBots;
+    }
+
+    setNumOfBots(numOfBots: number) {
+        this.numOfBots = numOfBots;
     }
 
     getLaneSpacing() {
@@ -138,6 +149,42 @@ export class GridPlan {
 
     setMissions(missions: Map<number, Mission>) {
         this.missions = missions;
+    }
+
+    fitLanesToBots() {
+        const lanesPerBot = Math.floor(this.numOfLanes / this.numOfBots);
+        let extraLanes = this.numOfLanes % this.numOfBots;
+
+        if (lanesPerBot === 1 && extraLanes === 0) {
+            return;
+        }
+
+        let lanesCovered = 0;
+        while (lanesCovered < this.numOfLanes) {
+            let updatedLanesPerBot = lanesPerBot;
+            if (extraLanes > 0) {
+                updatedLanesPerBot += 1;
+                extraLanes -= 1;
+            }
+
+            const baseMission = missionSet.getMission(lanesCovered + 1);
+
+            for (let i = lanesCovered; i < lanesCovered + updatedLanesPerBot; i++) {
+                const mission = missionSet.getMission(i + 1);
+                // Remove mission end location if not last lane in group
+                if (i + 1 < updatedLanesPerBot) {
+                    mission.getWaypoints().pop();
+                }
+                // Remove mission start location if not first lane in group
+                if (i !== lanesCovered) {
+                    mission.getWaypoints().shift();
+                    baseMission.addWaypoints([...mission.getWaypoints()]);
+                }
+                missionSet.deleteMission(mission.getMissionID());
+            }
+
+            lanesCovered += updatedLanesPerBot;
+        }
     }
 }
 
