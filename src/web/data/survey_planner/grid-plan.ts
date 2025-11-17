@@ -153,6 +153,14 @@ export class GridPlan {
         this.missions = missions;
     }
 
+    /**
+     * When the number of lanes exceeds the number of Bots, the extra lanes
+     * will be shared among the Bots. Bots can be assigned multiple adjacent lanes.
+     * Each additional lane does not require the Bot to transit to the
+     * mission start + end points.
+     *
+     * @returns {void}
+     */
     fitLanesToBots() {
         const lanesPerBot = Math.floor(this.numOfLanes / this.numOfBots);
         let extraLanes = this.numOfLanes % this.numOfBots;
