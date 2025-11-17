@@ -103,7 +103,10 @@ def getObjects():
     log_names = parseFilenames(request.args.get('log'))
     path = request.args.get('path')
     assert path is not None, "Missing path parameter"
-    return JSONResponse(jaialogStore.getObjects(log_names, path))
+    try:
+        return JSONResponse(jaialogStore.getObjects(log_names, path))
+    except KeyError:
+        return JSONResponse([])
 
 
 @app.route('/map', methods=['GET'])

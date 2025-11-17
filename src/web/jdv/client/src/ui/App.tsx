@@ -1,4 +1,4 @@
-import { mdiDownload, mdiUpload, mdiTrashCan, mdiRuler } from "@mdi/js";
+import { mdiDownload, mdiUpload, mdiTrashCan, mdiRuler, mdiInformation } from "@mdi/js";
 import Icon from "@mdi/react";
 import React from "react";
 
@@ -15,9 +15,9 @@ import { Draw } from "ol/interaction";
 import "../styles/styles.css";
 import { CustomAlert, CustomAlertProps } from "../shared/CustomAlert";
 
-import { bisect } from "../tools/bisect";
-
 import { DeviceMetadata } from "../shared/JAIAProtobuf";
+import { Button } from "@mui/base";
+import { InformationDialog } from "./InformationDialog";
 
 function exceptionCatcher(exception: Error) {
     CustomAlert.presentAlert({
@@ -56,6 +56,9 @@ interface State {
 
     // Custom Alert shown, if any
     customAlert?: React.JSX.Element;
+
+    // Showing the information dialog?
+    isInformationDialogVisible: boolean;
 }
 
 export class App extends React.Component {
@@ -82,6 +85,7 @@ export class App extends React.Component {
             visibleTimeRange: [0, 2 ** 60], // Include every data point
             isBusy: false,
             customAlert: null,
+            isInformationDialogVisible: false,
         };
 
         CustomAlert.setPresenter((props: CustomAlertProps | null) => {
@@ -108,6 +112,16 @@ export class App extends React.Component {
             </div>
         ) : null;
 
+        console.log("Rendering App with state:", this.state);
+        const logs_are_displayed = this.state.chosenLogs.length > 0;
+
+        const information_dialog = this.state.isInformationDialogVisible ? (
+            <InformationDialog
+                logFiles={this.state.chosenLogs}
+                onClose={() => this.setState({ isInformationDialogVisible: false })}
+            />
+        ) : null;
+
         return (
             <div className="vertical flexbox maximized">
                 <div className="vertical flexbox top_pane padded">
@@ -121,6 +135,17 @@ export class App extends React.Component {
                     <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>
                         Select Log(s)
                     </button>
+                    <Button
+                        className="plotButton"
+                        style={{ display: logs_are_displayed ? "inline-block" : "none" }}
+                        onClick={() => {
+                            this.setState({
+                                isInformationDialogVisible: !this.state.isInformationDialogVisible,
+                            });
+                        }}
+                    >
+                        <Icon path={mdiInformation} size={1}></Icon>
+                    </Button>
                     {this.chosenLogsListElement()}
                 </div>
 
@@ -217,6 +242,8 @@ export class App extends React.Component {
                 ></TimeSlider>
 
                 {log_selector}
+                {information_dialog}
+
                 {busyOverlay}
 
                 {this.state.customAlert}
