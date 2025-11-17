@@ -2,6 +2,7 @@
 
 from pyjaia.logtools import *
 from jaiabot.messages.jaia_dccl_pb2 import BotStatus
+from jaiabot.messages.metadata_pb2 import DeviceMetadata
 from google.protobuf.json_format import MessageToDict
 
 
@@ -13,7 +14,7 @@ def test_read_series():
 
 def test_read_objects():
     log = JaiaLogH5('test.h5')
-    objects = log.read_protobuf_objects('jaiabot::bot_status;15/jaiabot.protobuf.BotStatus', protobuf_message_name=BotStatus)
+    objects = log.read_protobuf_objects('jaiabot::metadata/jaiabot.protobuf.DeviceMetadata', protobuf_message_instance=DeviceMetadata)
     # for object in objects:
     #     print(MessageToDict(object, preserving_proto_field_name=True))
 
@@ -21,7 +22,7 @@ def test_read_objects():
 
     print(f'Loaded {len(objects)} objects')
     assert len(objects) > 0
-    assert isinstance(objects[0], BotStatus)
+    assert isinstance(objects[0], DeviceMetadata)
 
 
 def test_read_array():

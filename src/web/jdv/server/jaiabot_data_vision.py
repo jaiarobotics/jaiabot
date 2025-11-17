@@ -98,6 +98,14 @@ def getSeries():
     series = jaialogStore.getSeries(log_names, series_names)
     return JSONResponse(series)
 
+@app.route('/objects', methods=['GET'])
+def getObjects():
+    log_names = parseFilenames(request.args.get('log'))
+    path = request.args.get('path')
+    assert path is not None, "Missing path parameter"
+    return JSONResponse(jaialogStore.getObjects(log_names, path))
+
+
 @app.route('/map', methods=['GET'])
 def getMap():
     log_names = parseFilenames(request.args.get('log'))

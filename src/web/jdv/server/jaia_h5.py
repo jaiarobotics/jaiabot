@@ -1,3 +1,4 @@
+import importlib
 from typing import List, Union, AbstractSet, Dict
 from pathlib import Path
 from objects import jaialog_get_object_list
@@ -12,7 +13,12 @@ import os
 import re
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
+import google.protobuf.message
+from google.protobuf.json_format import MessageToDict
 
+# Import the available message types for the getObjects function
+from jaiabot.messages.jaia_dccl_pb2 import *
+from jaiabot.messages.metadata_pb2 import *
 
 l = logging.getLogger('jaia_h5')
 
@@ -341,6 +347,33 @@ class JaiaH5FileSet:
             })
 
         return series_list
+
+
+    def getObjects(self, path: str):
+        """Get the objects stored at a path in the h5 files.
+
+        Args:
+            path (str): The path to get the objects from.
+        """
+        objects = []
+
+        try:
+            message_fully_qualified_class_name = path.strip('/').split('/')[1]
+            assert message_fully_qualified_class_name.startswith('jaiabot.protobuf'), f'Expected message class name to start with "jaiabot.protobuf", got "{message_fully_qualified_class_name}"'
+
+            _, class_name = message_fully_qualified_class_name.rsplit('.', 1)
+            assert class_name in globals(), f'Expected message class name to be one of {list(globals().keys())}, got "{class_name}"'
+
+        except (IndexError, AssertionError) as e:
+            l.error(f'Error parsing message class name from path "{path}": {e}')
+            return []        
+
+        MessageClass = globals()[class_name]
+
+        for log in self.h5Files:
+            objects += log.read_protobuf_objects(path, ProtobufMessage=MessageClass)
+
+        return [MessageToDict(obj) for obj in objects]
 
 
 # Testing

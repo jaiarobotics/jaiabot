@@ -1,8 +1,9 @@
+import pathlib
 import h5py
 from pyjaia.series import Series
 from google.protobuf.message import Message
-from google.protobuf.descriptor import FieldDescriptor
-from typing import Set, Any, TypeVar, List
+from google.protobuf.descriptor import FieldDescriptor, Descriptor
+from typing import Callable, Set, Any, TypeVar, List
 import re
 import logging
 import numpy as np
@@ -170,12 +171,12 @@ class JaiaLogH5:
     log: h5py.File
     log_path: str
 
-    def __init__(self, log_or_path: h5py.File | str):
+    def __init__(self, log_or_path: h5py.File | str | pathlib.Path):
         if isinstance(log_or_path, h5py.File):
             self.log = log_or_path
             self.log_path = log_or_path.filename
-        elif isinstance(log_or_path, str):
-            self.log_path = log_or_path
+        elif isinstance(log_or_path, str) or isinstance(log_or_path, pathlib.Path):
+            self.log_path = str(log_or_path)
             self.log = h5py.File(log_or_path, "r")
         else:
             raise TypeError(color_text(f'log_or_path must be of type h5py.File or str, not {type(log_or_path)}', 'red'))
@@ -292,7 +293,7 @@ class JaiaLogH5:
 
         return series
 
-    def read_protobuf_objects(self, path: str, protobuf_message_name: Message) -> List[T]:
+    def read_protobuf_objects(self, path: str, ProtobufMessage: Callable[[], T]) -> List[T]:
         """Load a list of objects from a path.
 
         Args:
@@ -304,7 +305,7 @@ class JaiaLogH5:
 
         objects: List[T] = []
 
-        descriptor = protobuf_message_name.DESCRIPTOR
+        descriptor: Descriptor = ProtobufMessage.DESCRIPTOR
 
         SCALAR_TYPES: Set = {
             FieldDescriptor.TYPE_DOUBLE, 
@@ -317,7 +318,8 @@ class JaiaLogH5:
             FieldDescriptor.TYPE_FIXED32,
             FieldDescriptor.TYPE_BOOL,
             FieldDescriptor.TYPE_BYTES,
-            FieldDescriptor.TYPE_ENUM
+            FieldDescriptor.TYPE_ENUM,
+            FieldDescriptor.TYPE_STRING,
         }
 
         for field in descriptor.fields:
@@ -333,12 +335,12 @@ class JaiaLogH5:
                 try:
                     field_data = self.read_array(field_path, is_string=(field.type == FieldDescriptor.TYPE_STRING))
                 except KeyError:
-                    l.warning(color_text(f'Could not find dataset for field {field.name} in protobuf {protobuf_message_name.DESCRIPTOR.name}', 'yellow'))
+                    l.warning(color_text(f'Could not find dataset for field {field.name} in protobuf {ProtobufMessage.DESCRIPTOR.name}', 'yellow'))
                     continue
 
                 for index, value in enumerate(field_data):
                     if index >= len(objects):
-                        objects.append(protobuf_message_name())
+                        objects.append(ProtobufMessage())
                     if value is not None:
                         if field.label == FieldDescriptor.LABEL_REPEATED:
                             getattr(objects[index], field.name).extend(filter(lambda x: x is not None, value))
@@ -350,10 +352,10 @@ class JaiaLogH5:
                     l.warning(color_text(f'Field {field.name} is a repeated message field.  This is not supported yet.', 'red'))
                     continue
 
-                nested_objects = self.read_protobuf_objects(field_path, protobuf_message_name=field.message_type._concrete_class)
+                nested_objects = self.read_protobuf_objects(field_path, ProtobufMessage=field.message_type._concrete_class)
                 for index, nested_object in enumerate(nested_objects):
                     if index >= len(objects):
-                        objects.append(protobuf_message_name())
+                        objects.append(ProtobufMessage())
                     getattr(objects[index], field.name).CopyFrom(nested_object)
 
             else:
