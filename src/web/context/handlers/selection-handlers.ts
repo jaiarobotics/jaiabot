@@ -25,9 +25,7 @@ import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-pla
  */
 export function handleClickedNode(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setSelectedNode(action.clickedNode);
-    const selectedNode = jaiaGlobal.getSelectedNode();
-
-    mutableState.visibleDetails = selectedNode.type;
+    mutableState.visibleDetails = action.clickedNode.type;
 
     syncOpenLayers();
 
@@ -41,9 +39,8 @@ export function handleClickedNode(mutableState: JaiaContextType, action: JaiaAct
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedTapToMove(mutableState: JaiaContextType) {
-    const muteableWaypoint = jaiaGlobal.getSelectedWaypoint();
-    muteableWaypoint.isMoveable = !muteableWaypoint.isMoveable;
-    jaiaGlobal.setSelectedWaypoint(muteableWaypoint);
+    const mutableWaypoint = jaiaGlobal.getSelectedWaypoint();
+    mutableWaypoint.isMoveable = !mutableWaypoint.isMoveable;
     return mutableState;
 }
 
