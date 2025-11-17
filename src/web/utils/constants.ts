@@ -30,3 +30,4 @@ export const MDI_BUTTON_SIZE = 1.3;
 export const KILOMETER_FACTOR = 1000;
 export const MAX_HISTORY = 15;
 export const MISSION_ENDPOINTS = 2;
+export const DEPTH_MAP_3D_NAME = "depth-map-3d";
