@@ -11,9 +11,11 @@ import TaskParameters from "../WaypointPanel/TaskParameters/TaskParameters";
 
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import Task from "../../data/tasks/task";
+import { bots } from "../../data/bots/bots";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { formatNumericalInput, snakeCaseToTitleCase } from "../../utils/input";
 import { selectTheme } from "../../utils/style";
+import { DEFAULT_LANES, INIT_LANES } from "../../utils/constants";
 import { TaskType } from "../../types/protobuf-types";
 
 import "./SurveyPlanner.less";
@@ -177,7 +179,29 @@ function RequestEndMissionLocation() {
  * Renders the third panel in the series of building a grid-survey mission set
  */
 function GridConfigs(props: Props) {
-    const [numOfLanes, setNumOfLanes] = useState(props.gridPlanDetails.numOfLanes);
+    /**
+     * Determines the number of lanes to show on first render.
+     * The last user input will be used unless no input has been provided yet.
+     * In that case, we use the number of Bots or DEFAULT_LANES if no Bots connected.
+     *
+     * @returns {number} Number of lanes to show on first render
+     */
+    const initNumOfLanes = () => {
+        const numOfBots = bots.getBots().size;
+        if (gridPlan.getNumOfLanes() === INIT_LANES && bots.getBots().size > 0) {
+            gridPlan.setNumOfLanes(numOfBots);
+            return numOfBots;
+        }
+
+        if (gridPlan.getNumOfLanes() === INIT_LANES) {
+            gridPlan.setNumOfLanes(DEFAULT_LANES);
+            return DEFAULT_LANES;
+        }
+
+        return gridPlan.getNumOfLanes();
+    };
+
+    const [numOfLanes, setNumOfLanes] = useState(initNumOfLanes());
     const [pointSpacing, setPointSpacing] = useState(props.gridPlanDetails.pointSpacing);
     const [laneSpacing, setLaneSpacing] = useState(props.gridPlanDetails.laneSpacing);
 
