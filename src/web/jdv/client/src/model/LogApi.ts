@@ -239,6 +239,21 @@ export class LogApi {
     }
 
     /**
+     * Gets a list of objects corresponding to a set of log files and a path
+     *
+     * @param {string[]} logs Array of log names
+     * @param {string} path HDF path to return
+     * @returns {Promise<any[]>} Promise of an array of objects
+     */
+    static async getObjects<T>(logs: string[], path: string) {
+        var url = new URL("objects", window.location.origin);
+        url.searchParams.append("log", logs.join(","));
+        url.searchParams.append("path", path);
+
+        return (await this.getJSON(url.toString())) as T[];
+    }
+
+    /**
      * Deletes a log
      *
      * @param {string} logName Name of the log to delete

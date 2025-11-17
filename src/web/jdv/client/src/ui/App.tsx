@@ -17,6 +17,8 @@ import { CustomAlert, CustomAlertProps } from "../shared/CustomAlert";
 
 import { bisect } from "../tools/bisect";
 
+import { DeviceMetadata } from "../shared/JAIAProtobuf";
+
 function exceptionCatcher(exception: Error) {
     CustomAlert.presentAlert({
         title: exception.name,
@@ -283,6 +285,15 @@ export class App extends React.Component {
     componentDidUpdate(prevProps: AppProps, prevState: State) {
         if (this.state.chosenLogs !== prevState.chosenLogs) {
             if (this.state.chosenLogs.length > 0) {
+                // Get the metadata for the selected logs
+                LogApi.getObjects<DeviceMetadata>(
+                    this.state.chosenLogs,
+                    "jaiabot::metadata/jaiabot.protobuf.DeviceMetadata",
+                ).then((metadata) => {
+                    console.log("Metadata for selected logs:");
+                    console.log(metadata);
+                });
+
                 // Get map data
                 const getMapJob = LogApi.getMapData(this.state.chosenLogs).then(
                     (botIdToMapSeries) => {

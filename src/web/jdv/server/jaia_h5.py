@@ -362,7 +362,7 @@ class JaiaH5FileSet:
             assert message_fully_qualified_class_name.startswith('jaiabot.protobuf'), f'Expected message class name to start with "jaiabot.protobuf", got "{message_fully_qualified_class_name}"'
 
             _, class_name = message_fully_qualified_class_name.rsplit('.', 1)
-            assert class_name in globals(), f'Expected message class name to be one of {list(globals().keys())}, got "{class_name}"'
+            assert class_name in globals(), f'Invalid class name: "{class_name}".  Did you forget to import it?'
 
         except (IndexError, AssertionError) as e:
             l.error(f'Error parsing message class name from path "{path}": {e}')
@@ -373,7 +373,7 @@ class JaiaH5FileSet:
         for log in self.h5Files:
             objects += log.read_protobuf_objects(path, ProtobufMessage=MessageClass)
 
-        return [MessageToDict(obj) for obj in objects]
+        return [MessageToDict(obj, preserving_proto_field_name=True) for obj in objects]
 
 
 # Testing
