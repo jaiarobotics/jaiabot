@@ -215,6 +215,63 @@ export default function LayerSwitcherMenu() {
                             />
                             <p>Missions</p>
                         </div>
+                        <div className="layer-container">
+                            <Checkbox
+                                onClick={() => handleLayerClick(LayerTitles.RALLY_LAYER)}
+                                checked={layerCheckedStates.get(LayerTitles.RALLY_LAYER)}
+                                sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.RALLY_LAYER}-checkbox`}
+                            />
+                            <p>Rally Points</p>
+                        </div>
+                        <div className="layer-container">
+                            <Checkbox
+                                onClick={() => handleLayerClick(LayerTitles.HUB_COMMS_LAYER)}
+                                checked={layerCheckedStates.get(LayerTitles.HUB_COMMS_LAYER)}
+                                sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.HUB_COMMS_LAYER}-checkbox`}
+                            />
+                            <p>Hub Range</p>
+                        </div>
+                    </AccordionDetails>
+                </Accordion>
+
+                <Accordion
+                    className="accordion-container"
+                    expanded={jaiaContext.mapLayerAccordionStates.measurements}
+                    onChange={() => handleAccordionClick(MapLayerAccordionNames.MEASUREMENTS)}
+                >
+                    <AccordionSummary className="accordion-summary" expandIcon={<ExpandMoreIcon />}>
+                        <Typography>Measurements</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails className="layer-group">
+                        <div className="layer-container">
+                            <Checkbox
+                                onClick={() => handleLayerClick(LayerTitles.DIVE_LAYER)}
+                                checked={layerCheckedStates.get(LayerTitles.DIVE_LAYER)}
+                                sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.DIVE_LAYER}-checkbox`}
+                            />
+                            <p>Dive Packets</p>
+                        </div>
+                        <div className="layer-container">
+                            <Checkbox
+                                onClick={() => handleLayerClick(LayerTitles.DRIFT_LAYER)}
+                                checked={layerCheckedStates.get(LayerTitles.DRIFT_LAYER)}
+                                sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.DRIFT_LAYER}-checkbox`}
+                            />
+                            <p>Drift Packets</p>
+                        </div>
+                        <div className="layer-container">
+                            <Checkbox
+                                onClick={() => handleLayerClick(LayerTitles.CONTOUR_LAYER)}
+                                checked={layerCheckedStates.get(LayerTitles.CONTOUR_LAYER)}
+                                sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.CONTOUR_LAYER}-checkbox`}
+                            />
+                            <p>Depth Contours</p>
+                        </div>
                     </AccordionDetails>
                 </Accordion>
 

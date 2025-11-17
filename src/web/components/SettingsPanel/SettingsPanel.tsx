@@ -63,16 +63,6 @@ export default function SettingsPanel() {
                             expandIcon={<ExpandMoreIcon />}
                             className="accordion-summary"
                         >
-                            <Typography>Task Packets</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails></AccordionDetails>
-                    </Accordion>
-
-                    <Accordion className="accordion-container">
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            className="accordion-summary"
-                        >
                             <Typography>Map Layers</Typography>
                         </AccordionSummary>
                         <AccordionDetails>
