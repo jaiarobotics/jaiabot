@@ -193,6 +193,7 @@ function GridConfigs(props: Props) {
             return DEFAULT_LANES;
         }
 
+        gridPlan.calculateMaxPointsPerLane();
         return gridPlan.getNumOfLanes();
     };
     const [numOfLanes, setNumOfLanes] = useState(initNumOfLanes());
@@ -218,10 +219,12 @@ function GridConfigs(props: Props) {
             case GridInputs.NUM_OF_LANES:
                 setNumOfLanes(input);
                 gridPlan.setNumOfLanes(input);
+                gridPlan.calculateMaxPointsPerLane();
                 break;
             case GridInputs.NUM_OF_BOTS:
                 setNumOfBots(input);
                 gridPlan.setNumOfBots(input);
+                gridPlan.calculateMaxPointsPerLane();
                 break;
             case GridInputs.LANE_SPACING:
                 setLaneSpacing(input);

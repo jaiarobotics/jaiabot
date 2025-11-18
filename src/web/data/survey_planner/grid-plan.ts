@@ -1,7 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
-import { INIT_LANES } from "../../utils/constants";
+import { INIT_LANES, MAX_WAYPOINTS } from "../../utils/constants";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
 export enum GridPlanningStates {
@@ -35,6 +35,7 @@ export class GridPlan {
     private endTask: Task;
     private state: GridPlanningStates;
     private missions: Map<number, Mission>;
+    private maxWaypointsPerLane: number;
 
     constructor() {
         this.state = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
@@ -46,6 +47,7 @@ export class GridPlan {
         this.startTask = new Task();
         this.endTask = new Task();
         this.missions = new Map<number, Mission>();
+        this.maxWaypointsPerLane = MAX_WAYPOINTS;
     }
 
     reset() {
@@ -152,6 +154,20 @@ export class GridPlan {
 
     setMissions(missions: Map<number, Mission>) {
         this.missions = missions;
+    }
+
+    getMaxWaypointsPerLane() {
+        return this.maxWaypointsPerLane;
+    }
+
+    /**
+     * Sets the max waypoints per lane based on the number of lanes per Bot
+     *
+     * @returns {void}
+     */
+    calculateMaxPointsPerLane() {
+        const lanesPerBot = Math.ceil(this.getNumOfLanes() / this.getNumOfBots());
+        this.maxWaypointsPerLane = Math.floor(MAX_WAYPOINTS / lanesPerBot);
     }
 
     /**
