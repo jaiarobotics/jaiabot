@@ -16,7 +16,7 @@ class Quaternion:
 
 
     @staticmethod
-    def from_xyzw(x: float, y: float, z: float, w: float):
+    def from_wxyz(w: float, x: float, y: float, z: float):
         return Quaternion(w, x, y, z)
 
 

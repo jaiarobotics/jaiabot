@@ -75,7 +75,7 @@ class AdafruitBNO085(IMU):
 
             reading = IMUReading()
 
-            reading.quaternion = Quaternion.from_xyzw(*self.sensor.quaternion)
+            reading.quaternion = Quaternion.from_wxyz(*self.sensor.quaternion)
 
             reading.angular_velocity = Vector3(*self.sensor.gyro)
 
