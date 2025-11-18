@@ -23,7 +23,6 @@ import {
     generateSurveyEndpointCircle,
 } from "../../../features/survey/survey-endpoints";
 import { GeographicCoordinate } from "../../../../types/protobuf-types";
-import { MAX_WAYPOINTS } from "../../../../utils/constants";
 
 const units: Units = "meters";
 const options = { units: units };

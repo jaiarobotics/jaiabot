@@ -59,6 +59,12 @@ export default function SurveyPlanner(props: Props) {
         if (!gridLayer.getCenterLine()) {
             return;
         }
+
+        // Center line is not long enough for waypoints
+        if (gridLayer.createGridPoints(gridLayer.getCenterLine(), 1).length === 0) {
+            return;
+        }
+
         jaiaDispatch({
             type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
             gridPlanningState: GridPlanningStates.ACCEPTING_TASK,
