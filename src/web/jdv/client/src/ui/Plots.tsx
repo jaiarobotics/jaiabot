@@ -385,7 +385,7 @@ export function Plots(props: PlotsProps) {
                         <option value="lines+markers">Lines & Markers</option>
                         <option value="auto">Auto</option>
                     </select>
-                </div>                
+                </div>  
                 <div>
                     <label>Downsample Data:</label>
                     <Switch
