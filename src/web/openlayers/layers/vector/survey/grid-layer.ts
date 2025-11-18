@@ -41,24 +41,7 @@ class GridLayer extends JaiaVectorLayer {
     }
 
     override updateFeatures() {
-        const lanes = this.createGrid(true);
-        if (!lanes) {
-            return;
-        }
-
-        this.sortLanes(lanes);
-        this.layerSource.clear();
-        this.createGridEndPoints();
-
-        for (let i = 0; i < lanes.length; i++) {
-            const points = this.createGridPoints(lanes[i], i + 1);
-            const startPoint = points[0];
-            const endPoint = points[points.length - 1];
-            const laneStart: GeographicCoordinate = { lat: startPoint[1], lon: startPoint[0] };
-            const laneEnd: GeographicCoordinate = { lat: endPoint[1], lon: endPoint[0] };
-            const surveyLane = generateSurveyLane(laneStart, laneEnd);
-            this.layerSource.addFeature(surveyLane);
-        }
+        this.finalizeGrid();
     }
 
     getDraw() {
@@ -251,6 +234,10 @@ class GridLayer extends JaiaVectorLayer {
      */
     finalizeGrid(modifyDataModel: boolean = false) {
         const lanes = this.createGrid(true);
+        if (!lanes) {
+            return;
+        }
+
         this.sortLanes(lanes);
         this.layerSource.clear();
         this.createGridEndPoints();
