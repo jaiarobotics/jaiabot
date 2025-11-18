@@ -91,6 +91,7 @@ export default function TaskPacketPanel(props: Props) {
                         <div className="label">End Time:</div>
                         <div>{endTime}</div>
                     </div>
+                    <VisibilityButtons />
                     <button onClick={() => handleCloseClick()}>Close</button>
                 </div>
             );
@@ -122,8 +123,18 @@ export default function TaskPacketPanel(props: Props) {
                         <div className="label">End Time:</div>
                         <div>{endTime}</div>
                     </div>
+                    <VisibilityButtons />
                     <button onClick={() => handleCloseClick()}>Close</button>
                 </div>
             );
     }
+}
+
+function VisibilityButtons() {
+    return (
+        <div className="visibility-buttons">
+            <button>Exclude</button>
+            <button>Include</button>
+        </div>
+    );
 }
