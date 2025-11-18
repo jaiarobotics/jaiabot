@@ -58,7 +58,7 @@ export function handleInit(mutableState: JaiaContextType) {
     mutableState.hubs = hubs.getHubs();
     mutableState.missions = missionSet.getMissions();
     mutableState.gridMissions = gridPlan.getMissions();
-    mutableState.taskPackets = taskPackets.getTaskPackets();
+    mutableState.taskPackets = taskPackets;
 
     mutableState.selectedNode = jaiaGlobal.getSelectedNode();
     mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
@@ -91,6 +91,6 @@ export function handleInit(mutableState: JaiaContextType) {
 export function handlePollDataModel(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
-    mutableState.taskPackets = taskPackets.getTaskPackets();
+    // mutableState.taskPackets = taskPackets.getTaskPackets();
     return mutableState;
 }

@@ -1,6 +1,7 @@
 import { useContext, useEffect } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+import { TaskPackets } from "../../data/task_packets/task-packets";
 import { TaskPacket } from "../../types/protobuf-types";
 import { PanelActions, TaskPacketVisibility } from "../../types/context-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
@@ -11,7 +12,7 @@ import "./TaskPacketPanel.less";
 
 interface Props {
     selectedTaskPacket?: SelectedTaskPacket;
-    taskPackets?: TaskPacket[];
+    taskPackets?: TaskPackets;
     taskPacketID?: string;
 }
 
@@ -25,7 +26,10 @@ export default function TaskPacketPanel(props: Props) {
      * @returns {TaskPacket}
      */
     const getTaskPacket = () => {
-        for (const taskPacket of props.taskPackets) {
+        const allTaskPackets = props.taskPackets
+            .getIncludedTaskPackets()
+            .concat(props.taskPackets.getExcludedTaskPackets());
+        for (const taskPacket of allTaskPackets) {
             if (
                 taskPacket.start_time === props.selectedTaskPacket.startTime &&
                 taskPacket.bot_id === props.selectedTaskPacket.botID

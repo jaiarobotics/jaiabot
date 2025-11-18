@@ -6,6 +6,7 @@ import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
 import Task from "../data/tasks/task";
+import { TaskPackets } from "../data/task_packets/task-packets";
 import HistoryBuffer from "../utils/history-buffer";
 import {
     SelectedNode,
@@ -24,7 +25,7 @@ export interface JaiaContextType {
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
     gridMissions: Map<number, Mission>;
-    taskPackets: TaskPacket[];
+    taskPackets: TaskPackets;
     stateHistory: HistoryBuffer<JaiaHistoryType>;
 
     selectedNode: SelectedNode;

@@ -20,8 +20,8 @@ export default function DataOffloadPanel() {
      * @returns {void}
      */
     const handleDownloadKMZ = async () => {
-        const kmzFilename = getKMZFilename(taskPackets.getTaskPackets());
-        downloadFile(kmzFilename, await getKMZ(taskPackets.getTaskPackets()));
+        const kmzFilename = getKMZFilename(taskPackets.getIncludedTaskPackets());
+        downloadFile(kmzFilename, await getKMZ(taskPackets.getIncludedTaskPackets()));
     };
 
     /**
@@ -30,8 +30,8 @@ export default function DataOffloadPanel() {
      * @returns {void}
      */
     const handleDownloadCSV = async () => {
-        const csvFilename = getCSVFilename(taskPackets.getTaskPackets());
-        downloadFile(csvFilename, await getCSV(taskPackets.getTaskPackets()), "text/csv");
+        const csvFilename = getCSVFilename(taskPackets.getIncludedTaskPackets());
+        downloadFile(csvFilename, await getCSV(taskPackets.getIncludedTaskPackets()), "text/csv");
     };
 
     return (

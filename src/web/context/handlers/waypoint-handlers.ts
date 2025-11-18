@@ -132,10 +132,10 @@ export function handleChangeTaskPacketVisibility(
     action: JaiaAction,
 ) {
     if (action.taskPacketVisibility === TaskPacketVisibility.EXCLUDE) {
-        mutableState.visiblePanel = ButtonNames.NONE;
         jaiaAPI.postTaskPacketInclude(action.taskPacketID, false).then((response) => {
             jaiaAPI.getTaskPackets().then((response) => {
-                taskPackets.setTaskPackets(response.result.included);
+                taskPackets.setIncludedTaskPackets(response.result.included);
+                taskPackets.setExcludedTaskPackets(response.result.excluded);
                 syncTaskLayers();
             });
         });
