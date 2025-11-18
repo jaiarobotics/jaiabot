@@ -26,19 +26,21 @@ parser.add_argument('-d', dest='dump_html_flag', action='store_true', help='Dump
 
 args = parser.parse_args()
 
-logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
+logging.basicConfig(format='%(levelname)10s %(name)25s %(message)s', level=args.logging_level)
 log = logging.getLogger('jaiabot_imu')
 log.setLevel(args.logging_level)
 
-
 def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
+    port_log = logging.getLogger('jaiabot_imu.port_loop')
+    port_log.info('Starting IMU port loop')
+
     # Create socket
     port = args.port
     if port is None:
-        log.error(f'Must specify port number')
+        port_log.error(f'Must specify port number')
         exit(1)
 
-    log.info(f'Socket mode: listening on port {port}.')
+    port_log.info(f'Socket mode: listening on port {port}.')
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', port))
@@ -51,14 +53,16 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
             # Deserialize the message
             command = IMUCommand()
             command.ParseFromString(data)
-            log.debug(f'Received command:\n{command}')
+            port_log.debug(f'Received command:\n{command}')
 
             # Execute the command
             if command.type == IMUCommand.TAKE_READING:
+                port_log.debug(f'Taking IMU reading')
                 reading = imu.takeReading()
+                port_log.debug(f'IMU reading taken:\n{reading}')
 
                 if reading is None:
-                    log.warning('takeReading() returned None')
+                    port_log.warning('takeReading() returned None')
                 else:
                     imuData = reading.convertToIMUData()
                     wave_analyzer.addIMUData(imuData)
@@ -72,6 +76,7 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
                     imuData.imu_type = args.device_type
 
                     #log.warning(imuData)
+                    port_log.debug(f'Sending IMU data:\n{imuData}')
                     sock.sendto(imuData.SerializeToString(), addr)
 
             elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
