@@ -73,7 +73,7 @@ export default function TaskPacketPanel(props: Props) {
             return (
                 <div className="task-packet-panel-container">
                     <div className="task-packet-panel">
-                        <div className="label">Bot ID:</div>
+                        <div className="label">Bot</div>
                         <div>{taskPacket.bot_id}</div>
                         <div className="line-break"></div>
                         <div className="label">Depth Achieved:</div>
