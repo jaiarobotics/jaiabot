@@ -12,6 +12,7 @@ export enum LayerTitles {
     DIVE_LAYER = "dive-layer",
     DRIFT_LAYER = "drift-layer",
     CONTOUR_LAYER = "contour-layer",
+    EXCLUDED_TASK_PACKETS_LAYER = "excluded-task-packets-layer",
     RALLY_LAYER = "rally-layer",
     MEASURE_LAYER = "measure-layer",
 }
