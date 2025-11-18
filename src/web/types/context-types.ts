@@ -60,6 +60,8 @@ export interface JaiaAction {
     task?: Task;
     taskType?: TaskType;
     taskParameterPair?: TaskParameterPair;
+    taskPacketID?: string;
+    taskPacketVisibility?: TaskPacketVisibility;
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
@@ -182,4 +184,9 @@ export enum PanelActions {
     CANCEL = 1,
     DONE = 2,
     CLOSE = 3,
+}
+
+export enum TaskPacketVisibility {
+    EXCLUDE = 1,
+    INCLUDE = 2,
 }

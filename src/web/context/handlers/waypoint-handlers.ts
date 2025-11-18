@@ -2,10 +2,18 @@ import Mission from "../../data/mission_set/mission";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { taskPackets } from "../../data/task_packets/task-packets";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
+import {
+    JaiaContextType,
+    JaiaAction,
+    ButtonNames,
+    TaskPacketVisibility,
+} from "../../types/context-types";
+import { jaiaAPI } from "../../utils/jaia-api";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { syncTaskLayers } from "./handler-utils";
 
 /**
  * Makes call to add waypoint if mission is in edit mode
@@ -116,6 +124,22 @@ export function handleChangeTaskParameter(mutableState: JaiaContextType, action:
  */
 export function handleToggleBottomDive(mutableState: JaiaContextType, action: JaiaAction) {
     action.task.setIsBottomDive(!action.task.getIsBottomDive());
+    return mutableState;
+}
+
+export function handleChangeTaskPacketVisibility(
+    mutableState: JaiaContextType,
+    action: JaiaAction,
+) {
+    if (action.taskPacketVisibility === TaskPacketVisibility.EXCLUDE) {
+        mutableState.visiblePanel = ButtonNames.NONE;
+        jaiaAPI.postTaskPacketInclude(action.taskPacketID, false).then((response) => {
+            jaiaAPI.getTaskPackets().then((response) => {
+                taskPackets.setTaskPackets(response.result.included);
+                syncTaskLayers();
+            });
+        });
+    }
     return mutableState;
 }
 

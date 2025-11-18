@@ -20,6 +20,7 @@ import {
     handleSelectTask,
     handleChangeTaskParameter,
     handleToggleBottomDive,
+    handleChangeTaskPacketVisibility,
 } from "./handlers/waypoint-handlers";
 import {
     handleAddRallyPoint,
@@ -80,6 +81,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.SELECT_TASK, { handler: handleSelectTask, tracked: true }],
     [JaiaActions.CHANGE_TASK_PARAMETER, { handler: handleChangeTaskParameter, tracked: true }],
     [JaiaActions.TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: true }],
+    [
+        JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
+        { handler: handleChangeTaskPacketVisibility, tracked: true },
+    ],
 
     // Survey Actions
     [

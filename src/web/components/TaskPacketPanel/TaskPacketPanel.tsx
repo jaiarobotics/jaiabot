@@ -2,7 +2,7 @@ import { useContext, useEffect } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { TaskPacket } from "../../types/protobuf-types";
-import { PanelActions } from "../../types/context-types";
+import { PanelActions, TaskPacketVisibility } from "../../types/context-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { SelectedTaskPacket } from "../../types/jaia-system-types";
 import { jaiaAPI } from "../../utils/jaia-api";
@@ -138,8 +138,14 @@ export default function TaskPacketPanel(props: Props) {
 }
 
 function VisibilityButtons(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+
     const excludeTaskPacket = () => {
-        jaiaAPI.postTaskPacketInclude(props.taskPacketID, false);
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
+            taskPacketVisibility: TaskPacketVisibility.EXCLUDE,
+            taskPacketID: props.taskPacketID,
+        });
     };
 
     const includeTaskPacket = () => {
