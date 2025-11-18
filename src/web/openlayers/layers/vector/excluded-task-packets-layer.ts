@@ -14,6 +14,7 @@ class ExcludedTaskPacketsLayer extends JaiaVectorLayer {
             layersZIndexes.get(LayerTitles.EXCLUDED_TASK_PACKETS_LAYER),
         );
         this.getVectorLayer().setOpacity(LAYER_OPACITY);
+        this.getVectorLayer().setVisible(false);
     }
 
     /**
