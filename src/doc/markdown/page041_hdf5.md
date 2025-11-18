@@ -44,6 +44,18 @@
     * optional double y
     * optional double z
   * optional string imu_type
+  * optional Acceleration acceleration
+    * optional double x
+    * optional double y
+    * optional double z
+  * optional MagneticField magnetic_field
+    * optional double x
+    * optional double y
+    * optional double z
+  * optional AccelerationWorld linear_acceleration_world
+    * optional double north
+    * optional double east
+    * optional double down
 * IMUIssue
   * required SolutionType solution
     * STOP_BOT = 0
@@ -316,6 +328,26 @@
     * optional GeographicCoordinate end_location
     * optional double significant_wave_height
 
+### Group: contact_update
+
+* ContactUpdate
+  * optional int32 contact
+  * required GeographicCoordinate location
+    * required double lat
+    * required double lon
+  * optional double speed_over_ground
+  * optional double heading_or_cog
+
+### Group: hub2hub_data
+
+* Hub2HubData
+  * required uint32 hub_id
+  * required uint64 time
+  * oneof contents
+    * BotStatus bot_status
+    * TaskPacket task_packet
+    * Command command_for_bot
+
 ### Group: engineering_command
 
 * Engineering
@@ -373,8 +405,37 @@
     * optional bool start_echo
     * optional bool stop_echo
     * optional EchoState echo_state
+      * BOOTING = 0
+      * OCTOSPI = 1
+      * SD_INIT = 2
+      * SD_MOUNT = 3
+      * SD_CREATE = 4
+      * PSSI_EN = 5
+      * READY = 6
+      * START = 7
+      * STOP = 8
+      * RUNNING = 9
   * optional uint32 flag
   * optional Bounds bounds
+    * optional SurfaceBounds strb
+      * optional int32 upper
+      * optional int32 lower
+      * optional int32 center
+    * optional SurfaceBounds port
+      * optional int32 upper
+      * optional int32 lower
+      * optional int32 center
+    * optional SurfaceBounds rudder
+      * optional int32 upper
+      * optional int32 lower
+      * optional int32 center
+    * optional MotorBounds motor
+      * optional int32 forwardStart
+      * optional int32 reverseStart
+      * optional int32 max_reverse
+      * optional int32 throttle_zero_net_buoyancy
+      * optional int32 throttle_dive
+      * optional int32 throttle_ascent
   * optional Link link
     * LINK_UNKNOWN = -1
     * LINK_XBEE = 0
