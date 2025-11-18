@@ -158,7 +158,7 @@ export function Plots(props: PlotsProps) {
                 xaxis: "x",
                 yaxis: yaxis,
                 hovertext: [],
-                type: "scatter",
+                type: "scattergl",
                 mode: "lines+markers",
             };
 
