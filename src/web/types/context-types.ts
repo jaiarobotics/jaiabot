@@ -38,6 +38,9 @@ export interface JaiaContextType {
     missionAccordionStates: { [missionID: number]: boolean };
 }
 
+// Snapshot of context excluding polled fields
+export interface JaisSnapshot extends Omit<JaiaContextType, "bots" | "hubs" | "taskPackets"> {}
+
 // Type used for actions dispatched to the context provider
 export interface JaiaAction {
     type: JaiaActions;
