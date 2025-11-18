@@ -68,8 +68,10 @@ export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActio
  * @returns {JaisSnapshot} cloned subset of current state
  */
 export function captureSnapshot(context: JaiaContextType): JaisSnapshot {
-    const { bots, hubs, taskPackets, ...undoable } = context;
-    return cloneDeep(undoable);
+    // get everything from context except bots, hubs & taskPackets
+    const { bots, hubs, taskPackets, ...snapshot } = context;
+    // clone snapshot to isolate it from updates
+    return cloneDeep(snapshot);
 }
 
 /**
