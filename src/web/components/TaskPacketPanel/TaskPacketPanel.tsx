@@ -144,22 +144,18 @@ export default function TaskPacketPanel(props: Props) {
 function VisibilityButtons(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    const excludeTaskPacket = () => {
+    const handleClick = (taskPacketVisibility: TaskPacketVisibility) => {
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
-            taskPacketVisibility: TaskPacketVisibility.EXCLUDE,
+            taskPacketVisibility: taskPacketVisibility,
             taskPacketID: props.taskPacketID,
         });
     };
 
-    const includeTaskPacket = () => {
-        jaiaAPI.postTaskPacketInclude(props.taskPacketID, true);
-    };
-
     return (
         <div className="visibility-buttons">
-            <button onClick={() => excludeTaskPacket()}>Exclude</button>
-            <button onClick={() => includeTaskPacket()}>Include</button>
+            <button onClick={() => handleClick(TaskPacketVisibility.EXCLUDE)}>Exclude</button>
+            <button onClick={() => handleClick(TaskPacketVisibility.INCLUDE)}>Include</button>
         </div>
     );
 }

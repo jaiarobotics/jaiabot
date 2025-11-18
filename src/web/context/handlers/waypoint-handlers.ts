@@ -131,15 +131,14 @@ export function handleChangeTaskPacketVisibility(
     mutableState: JaiaContextType,
     action: JaiaAction,
 ) {
-    if (action.taskPacketVisibility === TaskPacketVisibility.EXCLUDE) {
-        jaiaAPI.postTaskPacketInclude(action.taskPacketID, false).then((response) => {
-            jaiaAPI.getTaskPackets().then((response) => {
-                taskPackets.setIncludedTaskPackets(response.result.included);
-                taskPackets.setExcludedTaskPackets(response.result.excluded);
-                syncTaskLayers();
-            });
+    const include = action.taskPacketVisibility === TaskPacketVisibility.INCLUDE;
+    jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then((response) => {
+        jaiaAPI.getTaskPackets().then((response) => {
+            taskPackets.setIncludedTaskPackets(response.result.included);
+            taskPackets.setExcludedTaskPackets(response.result.excluded);
+            syncTaskLayers();
         });
-    }
+    });
     return mutableState;
 }
 
