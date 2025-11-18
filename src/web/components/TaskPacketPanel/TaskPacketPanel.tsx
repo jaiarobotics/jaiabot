@@ -5,12 +5,14 @@ import { TaskPacket } from "../../types/protobuf-types";
 import { PanelActions } from "../../types/context-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { SelectedTaskPacket } from "../../types/jaia-system-types";
+import { jaiaAPI } from "../../utils/jaia-api";
 
 import "./TaskPacketPanel.less";
 
 interface Props {
-    selectedTaskPacket: SelectedTaskPacket;
-    taskPackets: TaskPacket[];
+    selectedTaskPacket?: SelectedTaskPacket;
+    taskPackets?: TaskPacket[];
+    taskPacketID?: string;
 }
 
 /**
@@ -31,6 +33,11 @@ export default function TaskPacketPanel(props: Props) {
                 return taskPacket;
             }
         }
+    };
+
+    const getTaskPacketID = (taskPacket: TaskPacket) => {
+        const startTimeSeconds = Math.round(taskPacket.start_time / 1e6);
+        return `${taskPacket.bot_id}_${startTimeSeconds}`;
     };
 
     /**
@@ -91,7 +98,7 @@ export default function TaskPacketPanel(props: Props) {
                         <div className="label">End Time:</div>
                         <div>{endTime}</div>
                     </div>
-                    <VisibilityButtons />
+                    <VisibilityButtons taskPacketID={getTaskPacketID(taskPacket)} />
                     <button onClick={() => handleCloseClick()}>Close</button>
                 </div>
             );
@@ -123,18 +130,26 @@ export default function TaskPacketPanel(props: Props) {
                         <div className="label">End Time:</div>
                         <div>{endTime}</div>
                     </div>
-                    <VisibilityButtons />
+                    <VisibilityButtons taskPacketID={getTaskPacketID(taskPacket)} />
                     <button onClick={() => handleCloseClick()}>Close</button>
                 </div>
             );
     }
 }
 
-function VisibilityButtons() {
+function VisibilityButtons(props: Props) {
+    const excludeTaskPacket = () => {
+        jaiaAPI.postTaskPacketInclude(props.taskPacketID, false);
+    };
+
+    const includeTaskPacket = () => {
+        jaiaAPI.postTaskPacketInclude(props.taskPacketID, true);
+    };
+
     return (
         <div className="visibility-buttons">
-            <button>Exclude</button>
-            <button>Include</button>
+            <button onClick={() => excludeTaskPacket()}>Exclude</button>
+            <button onClick={() => includeTaskPacket()}>Include</button>
         </div>
     );
 }
