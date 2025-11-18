@@ -386,6 +386,9 @@ export function Plots(props: PlotsProps) {
                         <option value="auto">Auto</option>
                     </select>
                 </div>
+                {/* 
+                TODO: Fully test large datasets to ensure we do not want to downsample data.
+                
                 <div>
                     <label>Downsample Data:</label>
                     <Switch
@@ -393,6 +396,7 @@ export function Plots(props: PlotsProps) {
                         onChange={(_, checked) => setShouldUseAllData(!checked)}
                     />
                 </div>
+                */}
             </div>
         );
     } else {
