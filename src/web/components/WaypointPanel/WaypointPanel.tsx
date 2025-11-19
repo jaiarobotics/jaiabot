@@ -11,10 +11,9 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { compareSelectedWaypoints } from "../../utils/comparisons";
 import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 
-import { CoordinateTypes } from "../../types/jaia-system-types";
+import { CoordinateTypes, SelectedWaypoint } from "../../types/jaia-system-types";
 import { PanelActions } from "../../types/context-types";
 import { TaskType } from "../../types/protobuf-types";
 
@@ -333,4 +332,21 @@ export default function WaypointPanel() {
             </div>
         </div>
     );
+}
+
+/**
+ * Checks to see if two waypoints are the same
+ *
+ * @param {SelectedWaypoint} waypointA Waypoint data used in comparison
+ * @param {SelectedWaypoint} waypointB Waypoint data used in comparison
+ * @returns {boolean} True if the waypoints match, false if they do not
+ */
+function compareSelectedWaypoints(waypointA: SelectedWaypoint, waypointB: SelectedWaypoint) {
+    if (
+        waypointA.missionID === waypointB.missionID &&
+        waypointA.waypointNum === waypointB.waypointNum
+    ) {
+        return true;
+    }
+    return false;
 }
