@@ -25,6 +25,8 @@ export enum MapFeatureTypes {
     RALLY_POINT = "RALLY_POINT",
     DIVE = "DIVE",
     DRIFT = "DRIFT",
+    // Type name comes from server side
+    DEPTH_CONTOUR = "depth-contour",
 }
 
 export enum MapModes {
@@ -32,9 +34,16 @@ export enum MapModes {
     RALLY = "RALLY",
     MEASURE = "MEASURE",
     SURVEY_PLANNING = "SURVEY_PLANNING",
+    SURVEY_CONSTANT_HEADING_SELECT = "SURVEY_CONSTANT_HEADING_SELECT",
+    CONSTANT_HEADING_SELECT = "CONSTANT_HEADING_SELECT",
 }
 
 export enum SurveyEndpoints {
     START = 1,
     END = 2,
+}
+
+export enum LineType {
+    SOLID = 1,
+    DASHED = 2,
 }

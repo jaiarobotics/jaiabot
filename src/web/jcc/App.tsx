@@ -13,6 +13,7 @@ import BotDetails from "../components/BotDetails/BotDetails";
 import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
 import RallyPanel from "../components/RallyPanel/RallyPanel";
+import DepthMap3D from "../components/DepthMap3D/DepthMap3D";
 import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
 import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
@@ -102,6 +103,8 @@ function Panel() {
             return <MeasurePanel />;
         case ButtonNames.SURVEY_TOOL:
             return <SurveyPlanner gridPlanDetails={gridPlan.getGridPlanDetails()} />;
+        case ButtonNames.DEPTH_MAP_3D:
+            return <DepthMap3D />;
         default:
             return <div></div>;
     }

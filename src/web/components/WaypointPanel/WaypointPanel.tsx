@@ -16,6 +16,7 @@ import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 import { CoordinateTypes, SelectedWaypoint } from "../../types/jaia-system-types";
 import { PanelActions } from "../../types/context-types";
 import { TaskType } from "../../types/protobuf-types";
+import { MapModes } from "../../types/openlayers-types";
 
 import Icon from "@mdi/react";
 import { mdiDelete } from "@mdi/js";
@@ -163,6 +164,19 @@ export default function WaypointPanel() {
     };
 
     /**
+     * Adds the additonal condition of disabling tap to move if
+     * the operator can select a constant heading locaiton
+     *
+     * @returns {boolean} True if tap to move should be disabled
+     */
+    const isTapToMoveDisabled = () => {
+        if (jaiaContext.mapMode === MapModes.CONSTANT_HEADING_SELECT) {
+            return true;
+        }
+        return isDisabled;
+    };
+
+    /**
      * Dispatches action to select a task. This will lead to the task
      * parameters appearing.
      *
@@ -270,7 +284,7 @@ export default function WaypointPanel() {
                     <div className="label">Tap to Move:</div>
                     <JaiaToggle
                         checked={() => jaiaContext.selectedWaypoint.isMoveable}
-                        disabled={() => isDisabled}
+                        disabled={() => isTapToMoveDisabled()}
                         onClick={() => handleTapToMoveClick()}
                     />
                 </div>

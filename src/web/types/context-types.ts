@@ -59,7 +59,7 @@ export interface JaiaAction {
     location?: GeographicCoordinate;
     task?: Task;
     taskType?: TaskType;
-    taskParameterPair?: TaskParameterPair;
+    taskParameterPairs?: TaskParameterPair[];
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
@@ -170,6 +170,7 @@ export const enum ButtonNames {
     START_ALL_MISSIONS = "start_all_missions",
     TASK_PACKET_PANEL = "task_packet_panel",
     WAYPOINT_PANEL = "waypoint_panel",
+    DEPTH_MAP_3D = "depth_map_3d",
 }
 
 export enum DialogActions {

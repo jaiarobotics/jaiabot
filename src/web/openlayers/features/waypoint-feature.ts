@@ -11,7 +11,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapFeatureTypes } from "../../types/openlayers-types";
+import { LineType, MapFeatureTypes } from "../../types/openlayers-types";
 import { GeographicCoordinate, MissionState, TaskType } from "../../types/protobuf-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
@@ -91,12 +91,14 @@ function generateWaypointStyle(waypointNum: number, missionID: number) {
  *
  * @param {GeographicCoordinate} startLocation Lat/lon of previous waypoint
  * @param {GeographicCoordinate} endLocation  Lat/lon of next waypoint
+ * @param {LineType} lineType Solid or dashed line
  * @param {number} missionID Used to determine color of the line segment
  * @returns {Feature} Line segment that connects two waypoints
  */
 export function generateWaypointLineFeature(
     startLocation: GeographicCoordinate,
     endLocation: GeographicCoordinate,
+    lineType: LineType,
     missionID: number,
 ) {
     if (!startLocation || !endLocation) {
@@ -111,7 +113,9 @@ export function generateWaypointLineFeature(
     const feature = new Feature({
         geometry: new LineString([startCoordinate, endCoordinate]),
     });
-    feature.setStyle(generateWaypointLineStyle(startCoordinate, endCoordinate, missionID));
+    feature.setStyle(
+        generateWaypointLineStyle(startCoordinate, endCoordinate, lineType, missionID),
+    );
     return feature;
 }
 
@@ -120,18 +124,22 @@ export function generateWaypointLineFeature(
  *
  * @param {GeographicCoordinate} startCoordinate Used in midpoint calculation for arrow
  * @param {GeographicCoordinate} endCoordinate Used in midpoint calculation for arrow
+ * @param {LineType} lineType Solid or dashed line
  * @param {number} missionID Used to determine color of the line segment
  * @returns {Style[]} Array of styles applied to line segment connecting waypoints
  */
 function generateWaypointLineStyle(
     startCoordinate: Coordinate,
     endCoordinate: Coordinate,
+    lineType: LineType,
     missionID: number,
 ) {
+    const lineDash = lineType === LineType.DASHED ? [6, 12] : null;
     const underlayStyle = new Style({
         stroke: new Stroke({
             width: 4,
             color: OpenLayersColors.OUTLINE,
+            lineDash: lineDash,
         }),
         zIndex: getWaypointZIndex(missionID),
     });
@@ -140,6 +148,7 @@ function generateWaypointLineStyle(
         stroke: new Stroke({
             width: 2,
             color: getWaypointColor(missionID),
+            lineDash: lineDash,
         }),
         zIndex: getWaypointZIndex(missionID),
     });
