@@ -1,5 +1,7 @@
 export const UNASSIGNED_ID = -1;
 export const NO_CONSTRAINT = -1;
+export const INIT_LANES = -1;
+export const DEFAULT_LANES = 5;
 export const DEFAULT_HUB_ID = 1;
 export const DETAILS_DECIMALS = 2;
 export const LAT_LON_DECIMALS = 5;
@@ -28,3 +30,4 @@ export const MDI_BUTTON_SIZE = 1.3;
 export const KILOMETER_FACTOR = 1000;
 export const MAX_HISTORY = 15;
 export const MISSION_ENDPOINTS = 2;
+export const DEPTH_MAP_3D_NAME = "depth-map-3d";

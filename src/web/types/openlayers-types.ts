@@ -25,6 +25,8 @@ export enum MapFeatureTypes {
     RALLY_POINT = "RALLY_POINT",
     DIVE = "DIVE",
     DRIFT = "DRIFT",
+    // Type name comes from server side
+    DEPTH_CONTOUR = "depth-contour",
 }
 
 export enum MapModes {

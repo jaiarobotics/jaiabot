@@ -16,6 +16,7 @@ import { styleControlButtons } from "../../openlayers/controls/controls";
 import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
+import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { locationToConstantHeadingParams } from "../../utils/conversions";
@@ -84,6 +85,8 @@ export default function Map() {
                 case MapFeatureTypes.DRIFT:
                     handleTaskPacketClick(feature, MapFeatureTypes.DRIFT);
                     return;
+                case MapFeatureTypes.DEPTH_CONTOUR:
+                    handleDepthContourClick();
                 default:
                     return;
             }
@@ -279,6 +282,19 @@ export default function Map() {
                 startTime: feature.get("startTime"),
                 type: type,
             },
+        });
+    };
+
+    /**
+     * Dispatches action to display the 3D depth map
+     *
+     * @returns {void}
+     */
+    const handleDepthContourClick = () => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_BUTTON,
+            buttonType: ButtonTypes.PANEL,
+            buttonName: ButtonNames.DEPTH_MAP_3D,
         });
     };
 
