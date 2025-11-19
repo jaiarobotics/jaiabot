@@ -181,13 +181,13 @@ export class GridPlan {
     fitLanesToBots() {
         const lanesPerBot = Math.floor(this.numOfLanes / this.numOfBots);
         let extraLanes = this.numOfLanes % this.numOfBots;
+        let lanesCovered = 0;
+        let missionID = 1;
 
         if (lanesPerBot === 1 && extraLanes === 0) {
             return;
         }
 
-        let lanesCovered = 0;
-        let missionID = 1;
         while (lanesCovered < this.numOfLanes) {
             let updatedLanesPerBot = lanesPerBot;
             if (extraLanes > 0) {
