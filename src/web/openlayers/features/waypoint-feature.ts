@@ -5,6 +5,7 @@ import { LineString, Point } from "ol/geom";
 import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 
 import { view } from "../views/view";
+import Task from "../../data/tasks/task";
 import { bots } from "../../data/bots/bots";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
@@ -23,6 +24,8 @@ import waypointDiveIcon from "../../style/icons/waypoint-dive.svg";
 import waypointDriftIcon from "../../style/icons/waypoint-drift.svg";
 import waypointConstantHeadingIcon from "../../style/icons/waypoint-constant-heading.svg";
 import waypointStationKeepIcon from "../../style/icons/waypoint-station-keep.svg";
+import waypointDiveListenIcon from "../../style/icons/waypoint-dive-listen.svg";
+import waypointDriftListenIcon from "../../style/icons/waypoint-drift-listen.svg";
 import missionFlagIcon from "../../style/icons/mission-flag.svg";
 
 /**
@@ -62,11 +65,11 @@ export function generateWaypointFeature(
  * @returns {Style} Style to be applied to a waypoint feature
  */
 function generateWaypointStyle(waypointNum: number, missionID: number) {
-    const taskType = missionSet.getMission(missionID).getWaypoint(waypointNum).getTask().getType();
+    const task = missionSet.getMission(missionID).getWaypoint(waypointNum).getTask();
 
     return new Style({
         image: new Icon({
-            src: getWaypointSrc(taskType),
+            src: getWaypointSrc(task),
             anchor: [0.5, 1],
             color: getWaypointColor(missionID, waypointNum),
         }),
@@ -218,14 +221,20 @@ function generateMissionFlagStyle(missionID: number) {
 /**
  * Provides the SVG to match the waypoint task
  *
- * @param {TaskType} taskType Determines the waypoint SVG
+ * @param {Task} taskType Determines the waypoint SVG
  * @returns {string} SVG import
  */
-function getWaypointSrc(taskType: TaskType) {
-    switch (taskType) {
+export function getWaypointSrc(task: Task) {
+    switch (task.getType()) {
         case TaskType.DIVE:
+            if (task.getUseHydrophone()) {
+                return waypointDiveListenIcon;
+            }
             return waypointDiveIcon;
         case TaskType.SURFACE_DRIFT:
+            if (task.getUseHydrophone()) {
+                return waypointDriftListenIcon;
+            }
             return waypointDriftIcon;
         case TaskType.CONSTANT_HEADING:
             return waypointConstantHeadingIcon;

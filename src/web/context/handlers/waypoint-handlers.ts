@@ -2,6 +2,7 @@ import Mission from "../../data/mission_set/mission";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
@@ -128,6 +129,25 @@ export function handleChangeTaskParameter(mutableState: JaiaContextType, action:
  */
 export function handleToggleBottomDive(mutableState: JaiaContextType, action: JaiaAction) {
     action.task.setIsBottomDive(!action.task.getIsBottomDive());
+    return mutableState;
+}
+
+/**
+ * Makes call to update the task parameters based on the toggle state
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleToggleHydrophone(mutableState: JaiaContextType, action: JaiaAction) {
+    action.task.setUseHydrophone(!action.task.getUseHydrophone());
+    missionLayer.updateFeatures();
+    // Refresh the grid to show icon updates
+    if (
+        mutableState.mapMode === MapModes.SURVEY_PLANNING &&
+        mutableState.gridPlanningState !== GridPlanningStates.ACCEPTING_START_TASK
+    ) {
+        gridLayer.finalizeGrid();
+    }
     return mutableState;
 }
 

@@ -20,6 +20,7 @@ import {
     handleSelectTask,
     handleChangeTaskParameter,
     handleToggleBottomDive,
+    handleToggleHydrophone,
     handleToggleConstantHeadingSelect,
 } from "./handlers/waypoint-handlers";
 import {
@@ -81,6 +82,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.SELECT_TASK, { handler: handleSelectTask, tracked: true }],
     [JaiaActions.CHANGE_TASK_PARAMETER, { handler: handleChangeTaskParameter, tracked: true }],
     [JaiaActions.TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: true }],
+    [JaiaActions.TOGGLE_HYDROPHONE, { handler: handleToggleHydrophone, tracked: true }],
     [
         JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT,
         { handler: handleToggleConstantHeadingSelect, tracked: true },

@@ -31,7 +31,7 @@ export default class Task {
     MAX_SPEED_CONSTRAINT = 3;
 
     private isBottomDive: boolean;
-    private isEnablePAM: boolean;
+    private useHydrophone: boolean;
     private isSurveyTask: boolean;
 
     constructor(isSurveyTask: boolean = false) {
@@ -41,7 +41,7 @@ export default class Task {
         this.setDriftParameters(defaults.drift);
         this.setConstantHeadingParameters(defaults.constantHeading);
         this.isBottomDive = false;
-        this.isEnablePAM = false;
+        this.useHydrophone = false;
         this.isSurveyTask = isSurveyTask;
     }
 
@@ -178,12 +178,12 @@ export default class Task {
         this.isBottomDive = isBottomDive;
     }
 
-    getIsEnablePAM() {
-        return this.isEnablePAM;
+    getUseHydrophone() {
+        return this.useHydrophone;
     }
 
-    setIsEnablePAM(isEnablePAM: boolean) {
-        this.isEnablePAM = isEnablePAM;
+    setUseHydrophone(useHydrophone: boolean) {
+        this.useHydrophone = useHydrophone;
     }
 
     getIsSurveyTask() {
@@ -218,6 +218,7 @@ export default class Task {
                 break;
         }
 
+        missionTask.start_echo = this.useHydrophone;
         return missionTask;
     }
 }
