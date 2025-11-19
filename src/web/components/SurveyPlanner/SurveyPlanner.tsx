@@ -77,13 +77,8 @@ export default function SurveyPlanner(props: Props) {
             taskType: evt.target.value,
         });
 
-        if (task === gridPlan.getSurveyTask()) {
-            gridPlan.getSurveyTask().setType(evt.target.value as TaskType);
-            gridLayer.finalizeGrid();
-        } else if (task === gridPlan.getEndTask()) {
-            gridPlan.getEndTask().setType(evt.target.value as TaskType);
-            gridLayer.finalizeGrid();
-        }
+        gridPlan.getPlanningTask().setType(evt.target.value as TaskType);
+        gridLayer.finalizeGrid();
     };
 
     /**

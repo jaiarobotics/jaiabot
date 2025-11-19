@@ -142,8 +142,10 @@ export function handleClickedEditMission(mutableState: JaiaContextType, action: 
         missionSet.setMissionIDInEditMode(action.missionID);
     } else {
         missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-        mutableState.selectedWaypoint.isMoveable = false;
-        jaiaGlobal.setSelectedWaypoint(mutableState.selectedWaypoint);
+        jaiaGlobal.getSelectedWaypoint().isMoveable = false;
+        jaiaGlobal.setMapMode(MapModes.DEFAULT);
+        mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+        mutableState.mapMode = jaiaGlobal.getMapMode();
     }
 
     mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();

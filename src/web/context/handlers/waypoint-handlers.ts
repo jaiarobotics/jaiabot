@@ -2,10 +2,13 @@ import Mission from "../../data/mission_set/mission";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { handleMapModeChange } from "../../openlayers/maps/map";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { MapModes } from "../../types/openlayers-types";
 
 /**
  * Makes call to add waypoint if mission is in edit mode
@@ -104,7 +107,16 @@ export function handleSelectTask(mutableState: JaiaContextType, action: JaiaActi
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleChangeTaskParameter(mutableState: JaiaContextType, action: JaiaAction) {
-    action.task.setParameter(action.taskParameterPair);
+    for (const taskParameterPair of action.taskParameterPairs) {
+        action.task.setParameter(taskParameterPair);
+    }
+
+    if (jaiaGlobal.getMapMode() === MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+        gridLayer.finalizeGrid();
+    } else {
+        missionLayer.updateFeatures();
+    }
+
     return mutableState;
 }
 
@@ -116,6 +128,37 @@ export function handleChangeTaskParameter(mutableState: JaiaContextType, action:
  */
 export function handleToggleBottomDive(mutableState: JaiaContextType, action: JaiaAction) {
     action.task.setIsBottomDive(!action.task.getIsBottomDive());
+    return mutableState;
+}
+
+/**
+ * Updates the map mode when the constant heading select on map toggle is clicked
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleToggleConstantHeadingSelect(
+    mutableState: JaiaContextType,
+    action: JaiaAction,
+) {
+    const currentMapMode = jaiaGlobal.getMapMode();
+    let updatedMapMode = MapModes.DEFAULT;
+
+    if (action.task.getIsSurveyTask()) {
+        if (currentMapMode !== MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+            updatedMapMode = MapModes.SURVEY_CONSTANT_HEADING_SELECT;
+        } else {
+            updatedMapMode = MapModes.SURVEY_PLANNING;
+        }
+    }
+
+    if (!action.task.getIsSurveyTask() && currentMapMode !== MapModes.CONSTANT_HEADING_SELECT) {
+        updatedMapMode = MapModes.CONSTANT_HEADING_SELECT;
+        jaiaGlobal.getSelectedWaypoint().isMoveable = false;
+    }
+
+    handleMapModeChange(updatedMapMode);
+    mutableState.mapMode = updatedMapMode;
     return mutableState;
 }
 

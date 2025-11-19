@@ -59,7 +59,7 @@ export interface JaiaAction {
     location?: GeographicCoordinate;
     task?: Task;
     taskType?: TaskType;
-    taskParameterPair?: TaskParameterPair;
+    taskParameterPairs?: TaskParameterPair[];
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;

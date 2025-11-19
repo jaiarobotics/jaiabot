@@ -134,4 +134,5 @@ function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
     jaiaGlobal.setSelectedWaypoint(snapshot.selectedWaypoint);
     jaiaGlobal.setSelectedNode(snapshot.selectedNode);
     jaiaGlobal.setSelectedTaskPacket(snapshot.selectedTaskPacket);
+    jaiaGlobal.setMapMode(snapshot.mapMode);
 }

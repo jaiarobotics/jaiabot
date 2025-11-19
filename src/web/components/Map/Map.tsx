@@ -15,10 +15,11 @@ import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { styleControlButtons } from "../../openlayers/controls/controls";
 import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
-import { NodeTypes } from "../../types/jaia-system-types";
+import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
 import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { locationToConstantHeadingParams } from "../../utils/conversions";
 
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
@@ -44,7 +45,8 @@ export default function Map() {
      * @returns {void}
      */
     const handleMapClick = (event: MapBrowserEvent<PointerEvent>) => {
-        switch (jaiaGlobal.getMapMode()) {
+        const mapMode = jaiaGlobal.getMapMode();
+        switch (mapMode) {
             case MapModes.RALLY:
                 handleAddRallyPoint(event.coordinate);
                 return;
@@ -53,6 +55,12 @@ export default function Map() {
                 return;
             case MapModes.SURVEY_PLANNING:
                 handleSurveyPlanningClick(event.coordinate);
+                return;
+            case MapModes.SURVEY_CONSTANT_HEADING_SELECT:
+                handleConstantHeadingSelectClick(event.coordinate, mapMode);
+                return;
+            case MapModes.CONSTANT_HEADING_SELECT:
+                handleConstantHeadingSelectClick(event.coordinate, mapMode);
                 return;
         }
 
@@ -153,6 +161,56 @@ export default function Map() {
         jaiaDispatch({
             type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
             gridPlanningState: nextState,
+        });
+    };
+
+    /**
+     * Triggers the calls to update the constant heading projection
+     * based on click location
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @param {MapModes} mapMode Impacts where to start constant heading line
+     * @returns {void}
+     */
+    const handleConstantHeadingSelectClick = (coordinate: Coordinate, mapMode: MapModes) => {
+        let startLocation;
+        let task;
+
+        if (mapMode === MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+            if (gridPlan.getState() === GridPlanningStates.ACCEPTING_START_TASK) {
+                startLocation = gridPlan.getMissionStart();
+            } else {
+                startLocation = gridLayer.getFinalPointCenterLine();
+            }
+            task = gridPlan.getPlanningTask();
+        } else {
+            const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+            const mission = missionSet.getMission(selectedWaypoint.missionID);
+            const waypoint = mission.getWaypoint(selectedWaypoint.waypointNum);
+            startLocation = waypoint.getLocation();
+            task = waypoint.getTask();
+        }
+
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        const endLocation = { lon: lonLat[0], lat: lonLat[1] };
+
+        const params = locationToConstantHeadingParams(startLocation, endLocation, task);
+
+        const taskParameterPairs = [
+            {
+                key: TaskParameterKeys.HEADING,
+                value: params.constant_heading,
+            },
+            {
+                key: TaskParameterKeys.CONSTANT_HEADING_TIME,
+                value: params.constant_heading_time,
+            },
+        ];
+
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_TASK_PARAMETER,
+            task: task,
+            taskParameterPairs: taskParameterPairs,
         });
     };
 
