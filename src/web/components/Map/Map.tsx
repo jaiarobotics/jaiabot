@@ -44,7 +44,8 @@ export default function Map() {
      * @returns {void}
      */
     const handleMapClick = (event: MapBrowserEvent<PointerEvent>) => {
-        switch (jaiaGlobal.getMapMode()) {
+        const mapMode = jaiaGlobal.getMapMode();
+        switch (mapMode) {
             case MapModes.RALLY:
                 handleAddRallyPoint(event.coordinate);
                 return;
@@ -55,10 +56,10 @@ export default function Map() {
                 handleSurveyPlanningClick(event.coordinate);
                 return;
             case MapModes.SURVEY_CONSTANT_HEADING_SELECT:
-                handleConstantHeadingSelectClick(event.coordinate);
+                handleConstantHeadingSelectClick(event.coordinate, mapMode);
                 return;
             case MapModes.CONSTANT_HEADING_SELECT:
-                handleConstantHeadingSelectClick(event.coordinate);
+                handleConstantHeadingSelectClick(event.coordinate, mapMode);
                 return;
         }
 
@@ -164,14 +165,15 @@ export default function Map() {
      * Triggers the calls to update the constant heading projection
      * based on click location
      *
-     * @param coordinate Location of click on map
+     * @param {Coordinate} coordinate Location of click on map
+     * @param {MapModes} mapMode Impacts where to start constant heading line
      * @returns {void}
      */
-    const handleConstantHeadingSelectClick = (coordinate: Coordinate) => {
+    const handleConstantHeadingSelectClick = (coordinate: Coordinate, mapMode: MapModes) => {
         let startLocation;
         let task;
 
-        if (jaiaGlobal.getMapMode() === MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+        if (mapMode === MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
             if (gridPlan.getState() === GridPlanningStates.ACCEPTING_START_TASK) {
                 startLocation = gridPlan.getMissionStart();
             } else {
