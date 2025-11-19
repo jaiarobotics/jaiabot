@@ -1,5 +1,5 @@
 import HistoryBuffer from "../history-buffer";
-import { UNASSIGNED_ID } from "../constants";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
 const maxBuffer = 5;
 test("exercise histroy buffer", () => {
