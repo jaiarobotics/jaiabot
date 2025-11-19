@@ -37,9 +37,7 @@ export function handleClosedWaypointPanel(mutableState: JaiaContextType, action:
     if (action.panelAction === PanelActions.CANCEL) {
         const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
         // Reset waypoint to state when first selected
-        mission
-            .getWaypoints()
-            .splice(jaiaGlobal.getSelectedWaypoint().waypointNum - 1, 1, action.waypoint);
+        mission.getWaypoints()[jaiaGlobal.getSelectedWaypoint().waypointNum - 1] = action.waypoint;
         missionLayer.updateFeatures();
     }
     resetSelectedWaypoint(mutableState);

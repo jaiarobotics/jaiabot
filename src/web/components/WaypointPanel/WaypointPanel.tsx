@@ -23,7 +23,8 @@ import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/m
 
 import "./WaypointPanel.less";
 
-let baseSelectedWaypoint = { ...jaiaGlobal.getSelectedWaypoint() };
+// Stored outside of component to prevent unnecessary resetting of variable
+let originalSelectedWaypoint = { ...jaiaGlobal.getSelectedWaypoint() };
 
 /**
  * Displays information about the selected waypoint such as location and task selection
@@ -51,19 +52,20 @@ export default function WaypointPanel() {
 
     const [latInput, setLatInput] = useState(getWaypoint().getLocation().lat.toString());
     const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
-    const [baseWaypoint, setBaseWaypoint] = useState(null);
+    // Use state to initalize to null on first render + prevent unnecessary updates
+    const [originalWaypoint, setOriginalWaypoint] = useState(null);
     const isDisabled = jaiaContext.missionIDInEditMode !== jaiaContext.selectedWaypoint.missionID;
 
     useEffect(() => {
         // Initial assignment on panel's first render
-        if (baseWaypoint === null) {
-            setBaseWaypoint(cloneDeep(getWaypoint()));
+        if (originalWaypoint === null) {
+            setOriginalWaypoint(cloneDeep(getWaypoint()));
         }
 
         // Handles subsequent waypoint switches
-        if (!compareSelectedWaypoints(baseSelectedWaypoint, jaiaContext.selectedWaypoint)) {
-            baseSelectedWaypoint = { ...jaiaContext.selectedWaypoint };
-            setBaseWaypoint(cloneDeep(getWaypoint()));
+        if (!compareSelectedWaypoints(originalSelectedWaypoint, jaiaContext.selectedWaypoint)) {
+            originalSelectedWaypoint = { ...jaiaContext.selectedWaypoint };
+            setOriginalWaypoint(cloneDeep(getWaypoint()));
         }
     });
 
@@ -222,7 +224,7 @@ export default function WaypointPanel() {
             jaiaDispatch({
                 type: JaiaActions.CLOSED_WAYPOINT_PANEL,
                 panelAction: panelAction,
-                waypoint: baseWaypoint,
+                waypoint: originalWaypoint,
             });
         } else {
             jaiaDispatch({
