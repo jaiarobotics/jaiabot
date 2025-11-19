@@ -32,8 +32,9 @@ export default class Task {
 
     private isBottomDive: boolean;
     private useHydrophone: boolean;
+    private isSurveyTask: boolean;
 
-    constructor() {
+    constructor(isSurveyTask: boolean = false) {
         this.type = TaskType.NONE;
         const defaults = jaiaGlobal.getDefaultTaskParameters();
         this.setDiveParameters(defaults.dive);
@@ -41,6 +42,7 @@ export default class Task {
         this.setConstantHeadingParameters(defaults.constantHeading);
         this.isBottomDive = false;
         this.useHydrophone = false;
+        this.isSurveyTask = isSurveyTask;
     }
 
     getType() {
@@ -100,6 +102,7 @@ export default class Task {
                 this.driftParameters.drift_time = value;
                 break;
             case TaskParameterKeys.HEADING:
+                value = (value + this.MAX_HEADING_CONSTRAINT) % this.MAX_HEADING_CONSTRAINT;
                 value = clampInput(value, this.ZERO_LOWER_BOUND, this.MAX_HEADING_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading = value;
                 break;
@@ -181,6 +184,14 @@ export default class Task {
 
     setUseHydrophone(useHydrophone: boolean) {
         this.useHydrophone = useHydrophone;
+    }
+
+    getIsSurveyTask() {
+        return this.isSurveyTask;
+    }
+
+    setIsSurveyTask(isSurveyTask: boolean) {
+        this.isSurveyTask = isSurveyTask;
     }
 
     /**

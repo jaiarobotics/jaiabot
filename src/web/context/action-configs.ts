@@ -21,6 +21,7 @@ import {
     handleChangeTaskParameter,
     handleToggleBottomDive,
     handleToggleHydrophone,
+    handleToggleConstantHeadingSelect,
 } from "./handlers/waypoint-handlers";
 import {
     handleAddRallyPoint,
@@ -82,6 +83,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.CHANGE_TASK_PARAMETER, { handler: handleChangeTaskParameter, tracked: true }],
     [JaiaActions.TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: true }],
     [JaiaActions.TOGGLE_HYDROPHONE, { handler: handleToggleHydrophone, tracked: true }],
+    [
+        JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT,
+        { handler: handleToggleConstantHeadingSelect, tracked: true },
+    ],
 
     // Survey Actions
     [
@@ -94,6 +99,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         { handler: handleChangeTaskParameter, tracked: false },
     ],
     [JaiaActions.SURVEY_TOGGLE_BOTTOM_DIVE, { handler: handleToggleBottomDive, tracked: false }],
+    [
+        JaiaActions.SURVEY_TOGGLE_CONSTANT_HEADING_SELECT,
+        { handler: handleToggleConstantHeadingSelect, tracked: false },
+    ],
 
     // Rally Point Actions
     [JaiaActions.ADD_RALLY_POINT, { handler: handleAddRallyPoint, tracked: false }],

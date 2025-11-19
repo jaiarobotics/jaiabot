@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 
 import JaiaToggle from "../../JaiaToggle/JaiaToggle";
-import { JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
 import Task from "../../../data/tasks/task";
@@ -9,6 +9,7 @@ import { bots } from "../../../data/bots/bots";
 
 import { TaskParameterKeys } from "../../../types/jaia-system-types";
 import { TaskType } from "../../../types/protobuf-types";
+import { MapModes } from "../../../types/openlayers-types";
 import { formatNumericalInput } from "../../../utils/input";
 
 import "./TaskParameters.less";
@@ -16,15 +17,18 @@ import "./TaskParameters.less";
 interface Props {
     task: Task;
     isDisabled: boolean;
+    mapMode?: MapModes;
     onChange?: (evt: React.ChangeEvent<HTMLInputElement>) => void;
     handleBottomDiveClick?: () => void;
     handleUseHydrophoneClick?: () => void;
+    handleSelectOnMapClick?: () => void;
 }
 
 /**
  * Renders input fields for the provided task
  */
 export default function TaskParameters(props: Props) {
+    const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     /**
@@ -40,7 +44,7 @@ export default function TaskParameters(props: Props) {
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PARAMETER,
             task: props.task,
-            taskParameterPair: { key, value },
+            taskParameterPairs: [{ key, value }],
         });
     };
 
@@ -62,6 +66,15 @@ export default function TaskParameters(props: Props) {
      */
     const handleUseHydrophoneClick = () => {
         jaiaDispatch({ type: JaiaActions.TOGGLE_HYDROPHONE, task: props.task });
+    };
+
+    /**
+     * Dispatches action to update the constant heading select on map toggle
+     *
+     * @return {void}
+     */
+    const handleSelectOnMapClick = () => {
+        jaiaDispatch({ type: JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT, task: props.task });
     };
 
     switch (props.task?.getType()) {
@@ -89,7 +102,9 @@ export default function TaskParameters(props: Props) {
                 <ConstantHeading
                     task={props.task}
                     isDisabled={props.isDisabled}
+                    mapMode={jaiaContext.mapMode}
                     onChange={onParameterChange}
+                    handleSelectOnMapClick={handleSelectOnMapClick}
                 />
             );
         default:
@@ -232,8 +247,32 @@ function DriftParameters(props: Props) {
  */
 function ConstantHeading(props: Props) {
     const constantHeadingParameters = props.task.getConstantHeadingParameters();
+
+    /**
+     * Evaluates the map mode to determine the checked state of the toggle
+     *
+     * @returns {boolean} The checked state of the toggle
+     */
+    const isSelectOnMapToggleChecked = () => {
+        if (
+            props.mapMode === MapModes.CONSTANT_HEADING_SELECT ||
+            props.mapMode === MapModes.SURVEY_CONSTANT_HEADING_SELECT
+        ) {
+            return true;
+        }
+        return false;
+    };
+
     return (
         <div className="task-parameters">
+            <div className="select-on-map">
+                <div>Select on Map</div>
+                <JaiaToggle
+                    onClick={props.handleSelectOnMapClick}
+                    checked={isSelectOnMapToggleChecked}
+                    disabled={() => props.isDisabled}
+                />
+            </div>
             <div>Heading</div>
             <input
                 name={TaskParameterKeys.HEADING}

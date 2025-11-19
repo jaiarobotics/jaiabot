@@ -1,10 +1,16 @@
-import { Zoom, Rotate, ScaleLine, Attribution } from "ol/control";
+import { Zoom, Rotate, ScaleLine, Attribution, MousePosition } from "ol/control";
+import { createStringXY } from "ol/coordinate";
 import { mdiMinus, mdiPlus, mdiRotate3dVariant } from "@mdi/js";
+import { EQUIRECTANGULAR, LAT_LON_DECIMALS } from "../../utils/constants";
 
 export const controls = [
     new Zoom(),
     new Rotate(),
     new ScaleLine({ units: "metric" }),
+    new MousePosition({
+        coordinateFormat: createStringXY(LAT_LON_DECIMALS),
+        projection: EQUIRECTANGULAR,
+    }),
     new Attribution({
         collapsible: false,
     }),
