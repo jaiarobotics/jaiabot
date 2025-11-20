@@ -31,16 +31,18 @@ export default class Task {
     MAX_SPEED_CONSTRAINT = 3;
 
     private isBottomDive: boolean;
-    private isEnablePAM: boolean;
+    private useHydrophone: boolean;
+    private isSurveyTask: boolean;
 
-    constructor() {
+    constructor(isSurveyTask: boolean = false) {
         this.type = TaskType.NONE;
         const defaults = jaiaGlobal.getDefaultTaskParameters();
         this.setDiveParameters(defaults.dive);
         this.setDriftParameters(defaults.drift);
         this.setConstantHeadingParameters(defaults.constantHeading);
         this.isBottomDive = false;
-        this.isEnablePAM = false;
+        this.useHydrophone = false;
+        this.isSurveyTask = isSurveyTask;
     }
 
     getType() {
@@ -100,6 +102,7 @@ export default class Task {
                 this.driftParameters.drift_time = value;
                 break;
             case TaskParameterKeys.HEADING:
+                value = (value + this.MAX_HEADING_CONSTRAINT) % this.MAX_HEADING_CONSTRAINT;
                 value = clampInput(value, this.ZERO_LOWER_BOUND, this.MAX_HEADING_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading = value;
                 break;
@@ -175,12 +178,20 @@ export default class Task {
         this.isBottomDive = isBottomDive;
     }
 
-    getIsEnablePAM() {
-        return this.isEnablePAM;
+    getUseHydrophone() {
+        return this.useHydrophone;
     }
 
-    setIsEnablePAM(isEnablePAM: boolean) {
-        this.isEnablePAM = isEnablePAM;
+    setUseHydrophone(useHydrophone: boolean) {
+        this.useHydrophone = useHydrophone;
+    }
+
+    getIsSurveyTask() {
+        return this.isSurveyTask;
+    }
+
+    setIsSurveyTask(isSurveyTask: boolean) {
+        this.isSurveyTask = isSurveyTask;
     }
 
     /**
@@ -207,6 +218,7 @@ export default class Task {
                 break;
         }
 
+        missionTask.start_echo = this.useHydrophone;
         return missionTask;
     }
 }

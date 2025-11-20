@@ -1,6 +1,8 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { missionSet } from "../../../data/mission_set/mission-set";
-import { LayerTitles } from "../../../types/openlayers-types";
+import { TaskType } from "../../../types/protobuf-types";
+import { LayerTitles, LineType } from "../../../types/openlayers-types";
+import { constantHeadingParamsToLocation } from "../../../utils/conversions";
 import { layersZIndexes } from "../zindex";
 import {
     generateWaypointFeature,
@@ -20,7 +22,7 @@ class MissionLayer extends JaiaVectorLayer {
      * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
      * @returns {void}
      */
-    addWaypoint(missionID: number, waypointNum: number) {
+    buildMission(missionID: number, waypointNum: number) {
         const mission = missionSet.getMission(missionID);
         const waypoint = mission.getWaypoint(waypointNum);
         const source = this.getVectorLayer().getSource();
@@ -32,10 +34,21 @@ class MissionLayer extends JaiaVectorLayer {
         // Add connecting line
         else {
             const previousWaypoint = mission.getWaypoint(waypointNum - 1);
+            let lineStartLocation = previousWaypoint.getLocation();
+
+            // Start connecting line at end of constant heading
+            if (previousWaypoint.getTask().getType() === TaskType.CONSTANT_HEADING) {
+                lineStartLocation = constantHeadingParamsToLocation(
+                    previousWaypoint.getLocation(),
+                    previousWaypoint.getTask(),
+                );
+            }
+
             source.addFeature(
                 generateWaypointLineFeature(
-                    previousWaypoint.getLocation(),
+                    lineStartLocation,
                     waypoint.getLocation(),
+                    LineType.SOLID,
                     missionID,
                 ),
             );
@@ -43,6 +56,18 @@ class MissionLayer extends JaiaVectorLayer {
 
         // Add waypoint
         source.addFeature(generateWaypointFeature(waypoint.getLocation(), waypointNum, missionID));
+
+        // Add projected constant heading track
+        if (waypoint.getTask().getType() === TaskType.CONSTANT_HEADING) {
+            source.addFeature(
+                generateWaypointLineFeature(
+                    waypoint.getLocation(),
+                    constantHeadingParamsToLocation(waypoint.getLocation(), waypoint.getTask()),
+                    LineType.DASHED,
+                    missionID,
+                ),
+            );
+        }
     }
 
     /**
@@ -55,7 +80,7 @@ class MissionLayer extends JaiaVectorLayer {
 
         for (let [missionID, mission] of missionSet.getMissions()) {
             for (let [index, waypoint] of mission.getWaypoints().entries()) {
-                this.addWaypoint(missionID, index + 1);
+                this.buildMission(missionID, index + 1);
             }
         }
     }

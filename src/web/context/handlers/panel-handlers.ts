@@ -26,7 +26,7 @@ export function handleClosedDetails(mutableState: JaiaContextType) {
  * cancel, the waypoint data reverts to its state when the panel opened.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including panelAction and waypoint to close
+ * @param {JaiaAction} action Includes panelAction and waypoint in reverted state (optional)
  * @returns {JaiaContextType} Updated mutable state object
  *
  * @notes
@@ -35,11 +35,9 @@ export function handleClosedDetails(mutableState: JaiaContextType) {
  */
 export function handleClosedWaypointPanel(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.panelAction === PanelActions.CANCEL) {
-        const originalWaypoint = Object.setPrototypeOf(action.waypoint, Waypoint.prototype);
-        const waypoints = missionSet
-            .getMission(jaiaGlobal.getSelectedWaypoint().missionID)
-            .getWaypoints();
-        waypoints[jaiaGlobal.getSelectedWaypoint().waypointNum - 1] = originalWaypoint;
+        const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
+        // Reset waypoint to state when first selected
+        mission.getWaypoints()[jaiaGlobal.getSelectedWaypoint().waypointNum - 1] = action.waypoint;
         missionLayer.updateFeatures();
     }
     resetSelectedWaypoint(mutableState);

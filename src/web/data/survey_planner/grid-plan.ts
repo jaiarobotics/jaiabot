@@ -43,16 +43,18 @@ export class GridPlan {
         this.laneSpacing = 10;
         this.pointSpacing = 10;
         this.numOfBots = 1;
-        this.surveyTask = new Task();
-        this.startTask = new Task();
-        this.endTask = new Task();
+        this.surveyTask = new Task(true);
+        this.startTask = new Task(true);
+        this.endTask = new Task(true);
         this.missions = new Map<number, Mission>();
         this.maxWaypointsPerLane = MAX_WAYPOINTS;
     }
 
     reset() {
         this.state = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
-        this.surveyTask = new Task();
+        this.surveyTask = new Task(true);
+        this.startTask = new Task(true);
+        this.endTask = new Task(true);
         this.missions = new Map<number, Mission>();
     }
 
@@ -217,6 +219,24 @@ export class GridPlan {
             this.missions.set(baseMission.getMissionID(), baseMission);
             lanesCovered += updatedLanesPerBot;
             missionID += 1;
+        }
+    }
+
+    /**
+     * Provides the task that is being modified in the survey planning
+     * process based on state
+     *
+     * @returns {Task} Which task the user is modifying
+     */
+    getPlanningTask() {
+        if (this.state === GridPlanningStates.ACCEPTING_TASK) {
+            return this.surveyTask;
+        }
+        if (this.state === GridPlanningStates.ACCEPTING_START_TASK) {
+            return this.startTask;
+        }
+        if (this.state === GridPlanningStates.ACCEPTING_END_TASK) {
+            return this.endTask;
         }
     }
 }
