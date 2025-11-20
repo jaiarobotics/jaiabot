@@ -13,9 +13,8 @@ import { Stroke, Style } from "ol/style";
 
 import JaiaVectorLayer from "./jaia-vector-layer";
 import Mission from "../../../data/mission_set/mission";
+import { gridPlan } from "../../../data/survey_planner/grid-plan";
 import { touches } from "../../controls/touches";
-import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
-import { LayerTitles, LineType, SurveyEndpoints } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import { generateSurveyLane, generateSurveyPoint } from "../../features/survey/grid-features";
 import {
@@ -23,10 +22,8 @@ import {
     generateSurveyEndpointCircle,
 } from "../../features/survey/survey-endpoints";
 import { GeographicCoordinate, TaskType } from "../../../types/protobuf-types";
-import {
-    constantHeadingParamsToLocation,
-    locationToConstantHeadingParams,
-} from "../../../utils/conversions";
+import { LayerTitles, LineType, SurveyEndpoints } from "../../../types/openlayers-types";
+import { constantHeadingParamsToLocation } from "../../../utils/conversions";
 
 const units: Units = "meters";
 const options = { units: units };

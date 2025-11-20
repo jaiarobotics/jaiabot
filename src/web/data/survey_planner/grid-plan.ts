@@ -23,6 +23,8 @@ export interface GridPlanDetails {
     state: GridPlanningStates;
 }
 
+const ENDPOINTS = 2;
+
 export class GridPlan {
     private missionStart: GeographicCoordinate;
     private missionEnd: GeographicCoordinate;
@@ -169,7 +171,7 @@ export class GridPlan {
      */
     calculateMaxPointsPerLane() {
         const lanesPerBot = Math.ceil(this.getNumOfLanes() / this.getNumOfBots());
-        this.maxWaypointsPerLane = Math.floor(MAX_WAYPOINTS / lanesPerBot);
+        this.maxWaypointsPerLane = Math.floor(MAX_WAYPOINTS / lanesPerBot) - ENDPOINTS;
     }
 
     /**
