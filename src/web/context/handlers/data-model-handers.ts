@@ -91,6 +91,5 @@ export function handleInit(mutableState: JaiaContextType) {
 export function handlePollDataModel(mutableState: JaiaContextType) {
     mutableState.bots = bots.getBots();
     mutableState.hubs = hubs.getHubs();
-    // mutableState.taskPackets = taskPackets.getTaskPackets();
     return mutableState;
 }
