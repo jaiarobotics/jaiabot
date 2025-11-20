@@ -15,7 +15,7 @@ import "./JaiaAbout.less";
  * Displays company and version information in the JCC
  */
 export default function JaiaAbout() {
-    const jaiaDisaptch = useContext(JaiaDispatchContext);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [version, setVersion] = useState("---");
 
     useEffect(() => {
@@ -46,7 +46,7 @@ export default function JaiaAbout() {
      * @returns {void}
      */
     const handleCloseClick = () => {
-        jaiaDisaptch({ type: JaiaActions.CLICKED_BUTTON });
+        jaiaDispatch({ type: JaiaActions.CLICKED_BUTTON });
     };
 
     return (
