@@ -3,7 +3,10 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { taskPackets } from "../../data/task_packets/task-packets";
+import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { handleMapModeChange } from "../../openlayers/maps/map";
 import { NodeTypes } from "../../types/jaia-system-types";
 import {
     JaiaContextType,
@@ -11,6 +14,7 @@ import {
     ButtonNames,
     TaskPacketVisibility,
 } from "../../types/context-types";
+import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncTaskLayers } from "./handler-utils";
@@ -112,7 +116,16 @@ export function handleSelectTask(mutableState: JaiaContextType, action: JaiaActi
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleChangeTaskParameter(mutableState: JaiaContextType, action: JaiaAction) {
-    action.task.setParameter(action.taskParameterPair);
+    for (const taskParameterPair of action.taskParameterPairs) {
+        action.task.setParameter(taskParameterPair);
+    }
+
+    if (jaiaGlobal.getMapMode() === MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+        gridLayer.finalizeGrid();
+    } else {
+        missionLayer.updateFeatures();
+    }
+
     return mutableState;
 }
 
@@ -124,6 +137,58 @@ export function handleChangeTaskParameter(mutableState: JaiaContextType, action:
  */
 export function handleToggleBottomDive(mutableState: JaiaContextType, action: JaiaAction) {
     action.task.setIsBottomDive(!action.task.getIsBottomDive());
+    return mutableState;
+}
+
+/**
+ * Makes call to update the useHydrophone property based on the toggle state
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides access to the task
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleToggleHydrophone(mutableState: JaiaContextType, action: JaiaAction) {
+    action.task.setUseHydrophone(!action.task.getUseHydrophone());
+    missionLayer.updateFeatures();
+    // Refresh the grid to show icon updates
+    if (
+        mutableState.mapMode === MapModes.SURVEY_PLANNING &&
+        mutableState.gridPlanningState !== GridPlanningStates.ACCEPTING_START_TASK
+    ) {
+        gridLayer.finalizeGrid();
+    }
+    return mutableState;
+}
+
+/**
+ * Updates the map mode when the constant heading select on map toggle is clicked
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides access to the task
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleToggleConstantHeadingSelect(
+    mutableState: JaiaContextType,
+    action: JaiaAction,
+) {
+    const currentMapMode = jaiaGlobal.getMapMode();
+    let updatedMapMode = MapModes.DEFAULT;
+
+    if (action.task.getIsSurveyTask()) {
+        if (currentMapMode !== MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+            updatedMapMode = MapModes.SURVEY_CONSTANT_HEADING_SELECT;
+        } else {
+            updatedMapMode = MapModes.SURVEY_PLANNING;
+        }
+    }
+
+    if (!action.task.getIsSurveyTask() && currentMapMode !== MapModes.CONSTANT_HEADING_SELECT) {
+        updatedMapMode = MapModes.CONSTANT_HEADING_SELECT;
+        jaiaGlobal.getSelectedWaypoint().isMoveable = false;
+    }
+
+    handleMapModeChange(updatedMapMode);
+    mutableState.mapMode = updatedMapMode;
     return mutableState;
 }
 

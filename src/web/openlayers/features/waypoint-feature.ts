@@ -5,13 +5,14 @@ import { LineString, Point } from "ol/geom";
 import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 
 import { view } from "../views/view";
+import Task from "../../data/tasks/task";
 import { bots } from "../../data/bots/bots";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapFeatureTypes } from "../../types/openlayers-types";
+import { LineType, MapFeatureTypes } from "../../types/openlayers-types";
 import { GeographicCoordinate, MissionState, TaskType } from "../../types/protobuf-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
@@ -23,6 +24,8 @@ import waypointDiveIcon from "../../style/icons/waypoint-dive.svg";
 import waypointDriftIcon from "../../style/icons/waypoint-drift.svg";
 import waypointConstantHeadingIcon from "../../style/icons/waypoint-constant-heading.svg";
 import waypointStationKeepIcon from "../../style/icons/waypoint-station-keep.svg";
+import waypointDiveListenIcon from "../../style/icons/waypoint-dive-listen.svg";
+import waypointDriftListenIcon from "../../style/icons/waypoint-drift-listen.svg";
 import missionFlagIcon from "../../style/icons/mission-flag.svg";
 
 /**
@@ -62,11 +65,11 @@ export function generateWaypointFeature(
  * @returns {Style} Style to be applied to a waypoint feature
  */
 function generateWaypointStyle(waypointNum: number, missionID: number) {
-    const taskType = missionSet.getMission(missionID).getWaypoint(waypointNum).getTask().getType();
+    const task = missionSet.getMission(missionID).getWaypoint(waypointNum).getTask();
 
     return new Style({
         image: new Icon({
-            src: getWaypointSrc(taskType),
+            src: getWaypointSrc(task),
             anchor: [0.5, 1],
             color: getWaypointColor(missionID, waypointNum),
         }),
@@ -91,12 +94,14 @@ function generateWaypointStyle(waypointNum: number, missionID: number) {
  *
  * @param {GeographicCoordinate} startLocation Lat/lon of previous waypoint
  * @param {GeographicCoordinate} endLocation  Lat/lon of next waypoint
+ * @param {LineType} lineType Solid or dashed line
  * @param {number} missionID Used to determine color of the line segment
  * @returns {Feature} Line segment that connects two waypoints
  */
 export function generateWaypointLineFeature(
     startLocation: GeographicCoordinate,
     endLocation: GeographicCoordinate,
+    lineType: LineType,
     missionID: number,
 ) {
     if (!startLocation || !endLocation) {
@@ -111,7 +116,9 @@ export function generateWaypointLineFeature(
     const feature = new Feature({
         geometry: new LineString([startCoordinate, endCoordinate]),
     });
-    feature.setStyle(generateWaypointLineStyle(startCoordinate, endCoordinate, missionID));
+    feature.setStyle(
+        generateWaypointLineStyle(startCoordinate, endCoordinate, lineType, missionID),
+    );
     return feature;
 }
 
@@ -120,18 +127,22 @@ export function generateWaypointLineFeature(
  *
  * @param {GeographicCoordinate} startCoordinate Used in midpoint calculation for arrow
  * @param {GeographicCoordinate} endCoordinate Used in midpoint calculation for arrow
+ * @param {LineType} lineType Solid or dashed line
  * @param {number} missionID Used to determine color of the line segment
  * @returns {Style[]} Array of styles applied to line segment connecting waypoints
  */
 function generateWaypointLineStyle(
     startCoordinate: Coordinate,
     endCoordinate: Coordinate,
+    lineType: LineType,
     missionID: number,
 ) {
+    const lineDash = lineType === LineType.DASHED ? [6, 12] : null;
     const underlayStyle = new Style({
         stroke: new Stroke({
             width: 4,
             color: OpenLayersColors.OUTLINE,
+            lineDash: lineDash,
         }),
         zIndex: getWaypointZIndex(missionID),
     });
@@ -140,6 +151,7 @@ function generateWaypointLineStyle(
         stroke: new Stroke({
             width: 2,
             color: getWaypointColor(missionID),
+            lineDash: lineDash,
         }),
         zIndex: getWaypointZIndex(missionID),
     });
@@ -209,14 +221,20 @@ function generateMissionFlagStyle(missionID: number) {
 /**
  * Provides the SVG to match the waypoint task
  *
- * @param {TaskType} taskType Determines the waypoint SVG
+ * @param {Task} taskType Determines the waypoint SVG
  * @returns {string} SVG import
  */
-function getWaypointSrc(taskType: TaskType) {
-    switch (taskType) {
+export function getWaypointSrc(task: Task) {
+    switch (task.getType()) {
         case TaskType.DIVE:
+            if (task.getUseHydrophone()) {
+                return waypointDiveListenIcon;
+            }
             return waypointDiveIcon;
         case TaskType.SURFACE_DRIFT:
+            if (task.getUseHydrophone()) {
+                return waypointDriftListenIcon;
+            }
             return waypointDriftIcon;
         case TaskType.CONSTANT_HEADING:
             return waypointConstantHeadingIcon;
