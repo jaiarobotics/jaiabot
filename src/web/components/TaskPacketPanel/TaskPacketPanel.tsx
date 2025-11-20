@@ -1,4 +1,4 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { TaskPackets } from "../../data/task_packets/task-packets";
@@ -6,7 +6,6 @@ import { TaskPacket } from "../../types/protobuf-types";
 import { PanelActions, TaskPacketVisibility } from "../../types/context-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { SelectedTaskPacket } from "../../types/jaia-system-types";
-import { jaiaAPI } from "../../utils/jaia-api";
 
 import "./TaskPacketPanel.less";
 
@@ -39,6 +38,15 @@ export default function TaskPacketPanel(props: Props) {
         }
     };
 
+    // Call getTaskPacket once on initial render
+    const taskPacket = useMemo(() => getTaskPacket(), []);
+
+    /**
+     * Gets the ID used by the server for querying task packet data
+     *
+     * @param {TaskPacket} taskPacket Selected task packet
+     * @returns {string} "botid_startTimeSeconds"
+     */
     const getTaskPacketID = (taskPacket: TaskPacket) => {
         const startTimeSeconds = Math.round(taskPacket.start_time / 1e6);
         return `${taskPacket.bot_id}_${startTimeSeconds}`;
@@ -75,7 +83,6 @@ export default function TaskPacketPanel(props: Props) {
         });
     };
 
-    const taskPacket = getTaskPacket();
     const startTime = formatDate(taskPacket.start_time);
     const endTime = formatDate(taskPacket.end_time);
 
@@ -141,9 +148,18 @@ export default function TaskPacketPanel(props: Props) {
     }
 }
 
+/**
+ * Renders the exclude + include buttons for task packets
+ */
 function VisibilityButtons(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
+    /**
+     * Dispatches action to remove or bring back task packet
+     *
+     * @param {TaskPacketVisibility} taskPacketVisibility Name of the clicked button
+     * @returns {void}
+     */
     const handleClick = (taskPacketVisibility: TaskPacketVisibility) => {
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,

@@ -127,6 +127,12 @@ export function handleToggleBottomDive(mutableState: JaiaContextType, action: Ja
     return mutableState;
 }
 
+/**
+ * Makes api calls to exclude + include task packets
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleChangeTaskPacketVisibility(
     mutableState: JaiaContextType,
     action: JaiaAction,
