@@ -8,7 +8,7 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
-import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapModes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";

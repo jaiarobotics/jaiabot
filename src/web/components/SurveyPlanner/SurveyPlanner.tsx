@@ -9,7 +9,7 @@ import { JaiaActions } from "../../context/jaia-actions";
 
 import TaskParameters from "../WaypointPanel/TaskParameters/TaskParameters";
 
-import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import Task from "../../data/tasks/task";
 import { bots } from "../../data/bots/bots";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";

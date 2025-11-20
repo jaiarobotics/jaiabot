@@ -3,7 +3,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
-import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { NodeTypes } from "../../types/jaia-system-types";
