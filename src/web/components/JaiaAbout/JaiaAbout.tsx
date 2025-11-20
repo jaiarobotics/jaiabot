@@ -1,7 +1,12 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 
 import { jaiaAPI } from "../../utils/jaia-api";
 import { Metadata } from "../../types/protobuf-types";
+
+import Icon from "@mdi/react";
+import { mdiClose } from "@mdi/js";
 
 import JaiaLogo from "../../style/icons/jaia-logo.svg";
 import "./JaiaAbout.less";
@@ -10,7 +15,8 @@ import "./JaiaAbout.less";
  * Displays company and version information in the JCC
  */
 export default function JaiaAbout() {
-    const [version, setVersion] = useState("");
+    const jaiaDisaptch = useContext(JaiaDispatchContext);
+    const [version, setVersion] = useState("---");
 
     useEffect(() => {
         jaiaAPI.getMetadata().then((metadata: Metadata) => formatVersion(metadata));
@@ -34,8 +40,20 @@ export default function JaiaAbout() {
         }
     };
 
+    /**
+     * Sets the visible panel to NONE
+     *
+     * @returns {void}
+     */
+    const handleCloseClick = () => {
+        jaiaDisaptch({ type: JaiaActions.CLICKED_BUTTON });
+    };
+
     return (
         <div className="jaia-about">
+            <button onClick={() => handleCloseClick()}>
+                <Icon path={mdiClose} size={1} />
+            </button>
             <img src={JaiaLogo}></img>
             <div className="jaia-about-row">
                 <div className="label">Website:</div>
