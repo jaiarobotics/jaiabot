@@ -1,6 +1,5 @@
 export const UNASSIGNED_ID = -1;
 export const NO_CONSTRAINT = -1;
-export const INIT_LANES = -1;
 export const DEFAULT_LANES = 5;
 export const DEFAULT_HUB_ID = 1;
 export const DETAILS_DECIMALS = 2;

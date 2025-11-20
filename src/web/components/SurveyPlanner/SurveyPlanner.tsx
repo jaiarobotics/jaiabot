@@ -15,7 +15,7 @@ import { bots } from "../../data/bots/bots";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { formatNumericalInput, snakeCaseToTitleCase } from "../../utils/input";
 import { selectTheme } from "../../utils/style";
-import { DEFAULT_LANES, INIT_LANES } from "../../utils/constants";
+import { DEFAULT_LANES, UNASSIGNED_ID } from "../../utils/constants";
 import { TaskType } from "../../types/protobuf-types";
 
 import "./SurveyPlanner.less";
@@ -176,29 +176,36 @@ function RequestEndMissionLocation() {
  */
 function GridConfigs(props: Props) {
     /**
-     * Determines the number of lanes to show on first render.
+     * Determines the number of lanes + Bots to show on first render.
      * The last user input will be used unless no input has been provided yet.
      * In that case, we use the number of Bots or DEFAULT_LANES if no Bots connected.
      *
      * @returns {number} Number of lanes to show on first render
      */
-    const initNumOfLanes = () => {
+    const initParams = (gridInput: GridInputs) => {
         const numOfBots = bots.getBots().size;
-        if (gridPlan.getNumOfLanes() === INIT_LANES && bots.getBots().size > 0) {
+        if (gridPlan.getNumOfLanes() === UNASSIGNED_ID && bots.getBots().size > 0) {
             gridPlan.setNumOfLanes(numOfBots);
+            gridPlan.setNumOfBots(numOfBots);
             return numOfBots;
         }
 
-        if (gridPlan.getNumOfLanes() === INIT_LANES) {
+        if (gridPlan.getNumOfLanes() === UNASSIGNED_ID) {
             gridPlan.setNumOfLanes(DEFAULT_LANES);
+            gridPlan.setNumOfBots(DEFAULT_LANES);
             return DEFAULT_LANES;
         }
 
         gridPlan.calculateMaxPointsPerLane();
-        return gridPlan.getNumOfLanes();
+
+        if (gridInput === GridInputs.NUM_OF_LANES) {
+            return gridPlan.getNumOfLanes();
+        }
+        return gridPlan.getNumOfBots();
     };
-    const [numOfLanes, setNumOfLanes] = useState(initNumOfLanes());
-    const [numOfBots, setNumOfBots] = useState(props.gridPlanDetails.numOfBots);
+
+    const [numOfLanes, setNumOfLanes] = useState(initParams(GridInputs.NUM_OF_LANES));
+    const [numOfBots, setNumOfBots] = useState(initParams(GridInputs.NUM_OF_BOTS));
     const [pointSpacing, setPointSpacing] = useState(props.gridPlanDetails.pointSpacing);
     const [laneSpacing, setLaneSpacing] = useState(props.gridPlanDetails.laneSpacing);
 

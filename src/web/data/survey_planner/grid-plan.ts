@@ -1,7 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
-import { INIT_LANES, MAX_WAYPOINTS } from "../../utils/constants";
+import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
 export enum GridPlanningStates {
@@ -39,10 +39,10 @@ export class GridPlan {
 
     constructor() {
         this.state = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
-        this.numOfLanes = INIT_LANES;
+        this.numOfLanes = UNASSIGNED_ID;
+        this.numOfBots = UNASSIGNED_ID;
         this.laneSpacing = 10;
         this.pointSpacing = 10;
-        this.numOfBots = 1;
         this.surveyTask = new Task(true);
         this.startTask = new Task(true);
         this.endTask = new Task(true);
