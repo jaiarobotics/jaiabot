@@ -91,6 +91,6 @@ export function locationToConstantHeadingParams(
     // Convert km to m
     const distance = turf.distance(startCoord, endCoord, options) * 1000;
     params.constant_heading = (bearing + 360) % 360;
-    params.constant_heading_time = Math.floor(distance / params.constant_heading_speed);
+    params.constant_heading_time = Math.round(distance / params.constant_heading_speed);
     return params;
 }
