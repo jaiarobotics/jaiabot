@@ -104,6 +104,22 @@ export class MissionSet {
     }
 
     /**
+     * Captures a snapshot of the current missionSet
+     *
+     * @returns {object} snapshot of current missionSet data
+     */
+    captureMissionSetSnapshot() {
+        const currentMissionSet = {
+            missions: Array.from(missionSet.getMissions().values()),
+            nextMissionID: missionSet.getNextMissionID(),
+            missionIDInEditMode: missionSet.getMissionIDInEditMode(),
+            missionSpeeds: missionSet.getMissionSpeeds(),
+            name: missionSet.getName(),
+        };
+        return currentMissionSet;
+    }
+
+    /**
      * Replaces the current mission set with one from a saved snapshot
      *
      * @param {MissionSetSnapshot} missionSetSnapshot Snapshot of mission set
@@ -128,21 +144,6 @@ export class MissionSet {
         missionSet.setName(missionSetSnapshot.name);
         missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
         missionSet.setMissionSpeeds(missionSetSnapshot.missionSpeeds);
-    }
-    /**
-     * Captures a snapshot of the current missionSet
-     *
-     * @returns {object} snapshot of current missionSet data
-     */
-    getMissionSetSnapshot() {
-        const currentMissionSet = {
-            missions: Array.from(missionSet.getMissions().values()),
-            nextMissionID: missionSet.getNextMissionID(),
-            missionIDInEditMode: missionSet.getMissionIDInEditMode(),
-            missionSpeeds: missionSet.getMissionSpeeds(),
-            name: missionSet.getName(),
-        };
-        return currentMissionSet;
     }
 }
 

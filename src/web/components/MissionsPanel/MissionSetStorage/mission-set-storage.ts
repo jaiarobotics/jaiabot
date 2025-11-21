@@ -11,7 +11,7 @@ export function saveToLocalStorage(name: string) {
     missionSet.setName(name);
     // Read the saved mission sets from  local storage (or start fresh)
     const missionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    missionSets[name] = missionSet.getMissionSetSnapshot();
+    missionSets[name] = missionSet.captureMissionSetSnapshot();
     localStorage.setItem("missionSets", JSON.stringify(missionSets));
 }
 
@@ -80,7 +80,7 @@ export function listSavedMissionSets() {
  */
 export function exportMissionSetToFile(name: string) {
     missionSet.setName(name);
-    const data = JSON.stringify(missionSet.getMissionSetSnapshot());
+    const data = JSON.stringify(missionSet.captureMissionSetSnapshot());
     const fileName = `${name}.json`;
     const blob = new Blob([data], { type: "application/json" });
 
