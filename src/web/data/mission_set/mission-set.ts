@@ -110,11 +110,11 @@ export class MissionSet {
      */
     captureMissionSetSnapshot() {
         const currentMissionSet = {
-            missions: Array.from(missionSet.getMissions().values()),
-            nextMissionID: missionSet.getNextMissionID(),
-            missionIDInEditMode: missionSet.getMissionIDInEditMode(),
-            missionSpeeds: missionSet.getMissionSpeeds(),
-            name: missionSet.getName(),
+            missions: Array.from(this.getMissions().values()),
+            nextMissionID: this.getNextMissionID(),
+            missionIDInEditMode: this.getMissionIDInEditMode(),
+            missionSpeeds: this.getMissionSpeeds(),
+            name: this.getName(),
         };
         return currentMissionSet;
     }
@@ -125,25 +125,23 @@ export class MissionSet {
      * @param {MissionSetSnapshot} missionSetSnapshot Snapshot of mission set
      * @returns {void}
      *
-     * @notes
-     * This is called by the reducer/action handler
      */
 
     restoreMissionSetFromSnapshot(missionSetSnapshot: MissionSetSnapshot) {
         // Clear current mission set and reset mission assignments
-        missionSet.deleteAllMissions();
+        this.deleteAllMissions();
         missionsManager.unassignAll();
 
         // Rebuild mission set from snapshot
         if (Array.isArray(missionSetSnapshot.missions)) {
             missionSetSnapshot.missions.forEach((mission) => {
-                missionSet.addMission(mission);
+                this.addMission(mission);
             });
         }
 
-        missionSet.setName(missionSetSnapshot.name);
-        missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-        missionSet.setMissionSpeeds(missionSetSnapshot.missionSpeeds);
+        this.setName(missionSetSnapshot.name);
+        this.setMissionIDInEditMode(UNASSIGNED_ID);
+        this.setMissionSpeeds(missionSetSnapshot.missionSpeeds);
     }
 }
 
