@@ -7,7 +7,7 @@ import { DEFAULT_HUB_ID } from "../../utils/constants";
 import { jaiaAPI } from "../../utils/jaia-api";
 
 /**
- * Updates the toggle state based on map mode
+ * Changes the map mode to update the toggle state
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object

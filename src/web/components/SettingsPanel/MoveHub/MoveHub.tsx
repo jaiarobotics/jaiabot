@@ -10,10 +10,20 @@ import { validateCoordinate } from "../../../utils/input";
 
 import "./MoveHub.less";
 
+/**
+ * Renders the section that allows an operator to change the location of
+ * the Hub in simulation
+ */
 export default function MoveHub() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
+    /**
+     * Provides the latitude and longitude of the Hub in string form
+     *
+     * @param {CoordinateTypes} coordType Whether to return lat or lon
+     * @returns {string} Latitude or longitude point (0 if not available)
+     */
     const getHubLocation = (coordType: CoordinateTypes) => {
         const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
 
@@ -38,6 +48,12 @@ export default function MoveHub() {
         }
     });
 
+    /**
+     * Dispatches action to update the map mode and
+     * change the state of the toggle
+     *
+     * @returns {void}
+     */
     const handleSelectOnMapClick = () => {
         jaiaDispatch({ type: JaiaActions.TOGGLE_SELECT_HUB_LOCATION });
     };
@@ -68,7 +84,7 @@ export default function MoveHub() {
         }
 
         // Turn off select on map to prevent the Hub's current location from
-        // overwriting the user's changes to the input
+        // overwriting the operator's changes to the input
         if (jaiaContext.mapMode === MapModes.HUB_LOCATION_SELECT) {
             jaiaDispatch({ type: JaiaActions.TOGGLE_SELECT_HUB_LOCATION });
         }

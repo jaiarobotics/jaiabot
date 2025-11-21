@@ -216,6 +216,12 @@ export default function Map() {
         });
     };
 
+    /**
+     * Dispatches action to update the Hub's position to the click location
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
     const handleHubLocationSelectClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
