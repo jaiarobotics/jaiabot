@@ -1,42 +1,24 @@
+import { JaisSnapshot } from "../../types/context-types";
+import { MAX_HISTORY } from "../../utils/constants";
 export default class HistoryBuffer<T> {
-    private buffer: Array<{ value: T; description: string }>;
-    private initialValue: T;
-    private index: number;
-    private head: number;
-    private size: number;
+    private buffer: T[];
 
     /** Creates a history buffer
      *
-     * @param {T} initialValue Initial state of history buffer
      * @param {number} capacity Maximum number of entries in history buffer
      */
-    constructor(
-        initialValue: T,
-        private readonly capacity: number = 10,
-    ) {
-        this.buffer = new Array(capacity);
-        this.initialValue = initialValue;
-        const entry = { value: initialValue, description: "Initial State" };
-        this.buffer[0] = entry;
-        this.index = 0;
-        this.head = 0;
-        this.size = 1;
+    constructor(private readonly capacity: number = 10) {
+        this.buffer = new Array<T>();
     }
 
     /**
      * Clears the entire history
      *
-     * @param {T} initialValue New initial value, will use original if not provided
-     * @returns {T} current value of history buffer (initialValue)
      */
-    reset(initialValue?: T) {
-        this.initialValue = initialValue ?? this.initialValue;
-        const entry = { value: this.initialValue, description: "Initial State" };
-        this.buffer[0] = entry;
-        this.index = 0;
-        this.head = 0;
-        this.size = 1;
-        return this.getPresent();
+    reset() {
+        while (this.buffer.length > 0) {
+            this.buffer.pop();
+        }
     }
     /**
      * Push a new value onto the history buffer
@@ -47,29 +29,11 @@ export default class HistoryBuffer<T> {
      * @notes
      * Provided value should be cloned if mutable to prevent corruption of history
      */
-    push(value: T, description: string) {
-        const entry = { value, description };
-
-        // Trim redo path if we've undone some entries
-        const tail = (this.head + this.size - 1) % this.capacity;
-        if (this.index !== tail) {
-            this.size =
-                (this.index - this.head + 1 + this.capacity) % this.capacity || this.capacity;
+    push(value: T) {
+        if ((this.buffer.length = this.capacity)) {
+            this.buffer.shift();
         }
-
-        if (this.size < this.capacity) {
-            // Buffer not full yet
-            const pos = (this.head + this.size) % this.capacity;
-            this.buffer[pos] = entry;
-            this.index = pos;
-            this.size++;
-        } else {
-            // Buffer full, overwrite oldest
-            this.head = (this.head + 1) % this.capacity;
-            const pos = (this.head + this.size - 1) % this.capacity;
-            this.buffer[pos] = entry;
-            this.index = pos;
-        }
+        this.buffer.push(value);
     }
 
     /**
@@ -82,74 +46,13 @@ export default class HistoryBuffer<T> {
      */
     undo() {
         if (this.canUndo()) {
-            this.index = (this.index - 1 + this.capacity) % this.capacity;
-            return this.getPresent();
+            return this.buffer.pop();
         }
     }
 
-    /**
-     * Move forward in history and return the next value
-     *
-     * @returns {T} Next state
-     *
-     * @notes
-     * Returned value should be cloned if mutable to prevent corruption of history
-     */
-    redo() {
-        if (this.canRedo()) {
-            this.index = (this.index + 1) % this.capacity;
-            return this.getPresent();
-        }
-    }
-
-    /**
-     * Returns current state
-     *
-     * @returns {T} Current state
-     *
-     * @notes
-     * Returned value should be cloned if mutable to prevent corruption of history
-     */
-    getPresent() {
-        return this.buffer[this.index].value;
-    }
-
-    /**
-     * Provides description of the last action for undo button tooltip
-     *
-     * @returns {string} Description of action to be undone
-     */
-    peekUndoDescription() {
-        return this.canUndo() ? this.buffer[this.index].description : "";
-    }
-
-    /**
-     * Provides description of the next action for redo button tooltip
-     *
-     * @returns {string} Description of action to be redone
-     */
-    peekRedoDescription() {
-        if (!this.canRedo()) return "";
-        const nextIndex = (this.index + 1) % this.capacity;
-        return this.buffer[nextIndex]?.description;
-    }
-
-    /**
-     * Checks if there is anything to undo
-     *
-     * @returns {boolean} True if undo can be performed
-     */
     canUndo() {
-        return this.index !== this.head;
-    }
-
-    /**
-     * Checks if there is anything to redo
-     *
-     * @returns {boolean} True if redo can be performed
-     */
-    canRedo() {
-        const tail = (this.head + this.size - 1) % this.capacity;
-        return this.index !== tail;
+        return this.buffer.length > 0;
     }
 }
+
+export const historyBuffer = new HistoryBuffer<JaisSnapshot>(MAX_HISTORY);

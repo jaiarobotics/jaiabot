@@ -48,7 +48,7 @@ import {
     handleClickedRallyPoint,
     handleClickedTaskPacket,
 } from "./handlers/selection-handlers";
-import { handleClickedUndo, handleClickedRedo } from "./handlers/history-handlers";
+import { handleClickedUndo } from "./handlers/history-handlers";
 
 // Standard profile for action handling functions
 type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType; // Configuration for handling JaiaActions
@@ -134,5 +134,4 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
 
     // History Actions
     [JaiaActions.CLICKED_UNDO, { handler: handleClickedUndo, tracked: false }],
-    [JaiaActions.CLICKED_REDO, { handler: handleClickedRedo, tracked: false }],
 ]);

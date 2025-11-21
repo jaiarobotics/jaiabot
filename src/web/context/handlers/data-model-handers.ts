@@ -12,8 +12,6 @@ import { taskPackets } from "../../data/task_packets/task-packets";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
 
 import { NodeTypes } from "../../types/jaia-system-types";
-import { captureSnapshot } from "./history-handlers";
-import { jaiaStateHistory } from "../../data/history/history";
 
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -71,8 +69,6 @@ export function handleInit(mutableState: JaiaContextType) {
     };
 
     Object.assign(mutableState, completeInit);
-    const initialState = captureSnapshot(mutableState);
-    jaiaStateHistory.reset(initialState);
 
     return mutableState;
 }

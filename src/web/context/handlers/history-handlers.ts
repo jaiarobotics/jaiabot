@@ -2,7 +2,7 @@ import { cloneDeep } from "lodash";
 import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
 import { JaiaContextType, JaisSnapshot } from "../../types/context-types";
-import { jaiaStateHistory } from "../../data/history/history";
+import { historyBuffer } from "../../data/history/history-buffer";
 import { snakeCaseToTitleCase } from "../../utils/input";
 import { restoreDeepMerge } from "../../data/history/restore-deep-merge";
 
@@ -14,7 +14,7 @@ import { restoreDeepMerge } from "../../data/history/restore-deep-merge";
  */
 export function handleClickedUndo(mutableState: JaiaContextType) {
     // Get the previous snapshot from history
-    const snapshot = jaiaStateHistory.undo();
+    const snapshot = historyBuffer.undo();
     if (!snapshot) {
         console.warn("No undo available");
         return mutableState;
@@ -22,27 +22,6 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
 
     // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
-    syncOpenLayers();
-    return mutableState;
-}
-
-/**
- * Pulls next state from history and updates current state and data model
- *
- * @param {JaiaContextType} mutableState current state to be updated
- * @returns {JaiaContextType} Updated mutable state object
- */
-export function handleClickedRedo(mutableState: JaiaContextType) {
-    // Get the next snapshot from history
-    const snapshot = jaiaStateHistory.redo();
-    if (!snapshot) {
-        console.warn("No redo available");
-        return mutableState;
-    }
-
-    // Restore snapshot into mutableState
-    mutableState = restoreSnapshot(mutableState, snapshot);
-
     syncOpenLayers();
     return mutableState;
 }
@@ -57,7 +36,7 @@ export function handleClickedRedo(mutableState: JaiaContextType) {
 export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActions) {
     const description = snakeCaseToTitleCase(actionType);
     const snapshot = captureSnapshot(mutableState);
-    jaiaStateHistory.push(snapshot, description);
+    historyBuffer.push(snapshot);
 }
 
 /**

@@ -30,13 +30,13 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         return state;
     }
 
-    // Call the handler
-    mutableState = config.handler(mutableState, action);
-
     // If this is a tracked action, save the history
     if (config.tracked) {
         saveHistory(mutableState, action.type);
     }
+
+    // Call the handler
+    mutableState = config.handler(mutableState, action);
 
     return mutableState;
 }
