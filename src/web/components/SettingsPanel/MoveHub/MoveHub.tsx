@@ -1,11 +1,11 @@
-import { useContext, useState, ChangeEvent } from "react";
+import { useContext, useState, ChangeEvent, useEffect } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
 import JaiaToggle from "../../JaiaToggle/JaiaToggle";
 import { MapModes } from "../../../types/openlayers-types";
 import { CoordinateTypes } from "../../../types/jaia-system-types";
-import { DEFAULT_HUB_ID } from "../../../utils/constants";
+import { DEFAULT_HUB_ID, LAT_LON_DECIMALS } from "../../../utils/constants";
 import { validateCoordinate } from "../../../utils/input";
 
 import "./MoveHub.less";
@@ -19,9 +19,9 @@ export default function MoveHub() {
 
         if (hub && hub.getLocation()) {
             if (coordType === CoordinateTypes.LAT) {
-                return hub.getLocation().lat.toString();
+                return hub.getLocation().lat.toFixed(LAT_LON_DECIMALS);
             } else {
-                return hub.getLocation().lon.toString();
+                return hub.getLocation().lon.toFixed(LAT_LON_DECIMALS);
             }
         }
 
@@ -30,6 +30,13 @@ export default function MoveHub() {
 
     const [latInput, setLatInput] = useState(getHubLocation(CoordinateTypes.LAT));
     const [lonInput, setLonInput] = useState(getHubLocation(CoordinateTypes.LON));
+
+    useEffect(() => {
+        if (jaiaContext.mapMode === MapModes.HUB_LOCATION_SELECT) {
+            setLatInput(getHubLocation(CoordinateTypes.LAT));
+            setLonInput(getHubLocation(CoordinateTypes.LON));
+        }
+    });
 
     const handleSelectOnMapClick = () => {
         jaiaDispatch({ type: JaiaActions.TOGGLE_SELECT_HUB_LOCATION });
@@ -58,6 +65,12 @@ export default function MoveHub() {
 
         if (isNaN(Number(value))) {
             return;
+        }
+
+        // Turn off select on map to prevent the Hub's current location from
+        // overwriting the user's changes to the input
+        if (jaiaContext.mapMode === MapModes.HUB_LOCATION_SELECT) {
+            jaiaDispatch({ type: JaiaActions.TOGGLE_SELECT_HUB_LOCATION });
         }
 
         const updatedLatLon = validateCoordinate(lat, lon);
