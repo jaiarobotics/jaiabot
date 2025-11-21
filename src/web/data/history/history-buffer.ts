@@ -30,7 +30,7 @@ export default class HistoryBuffer<T> {
      * Provided value should be cloned if mutable to prevent corruption of history
      */
     push(value: T) {
-        if ((this.buffer.length = this.capacity)) {
+        if (this.buffer.length === this.capacity) {
             this.buffer.shift();
         }
         this.buffer.push(value);
