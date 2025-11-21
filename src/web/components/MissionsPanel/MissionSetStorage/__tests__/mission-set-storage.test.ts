@@ -12,7 +12,6 @@ import { TaskType } from "../../../../types/protobuf-types";
 import { TaskParameterKeys } from "../../../../types/jaia-system-types";
 import {
     saveToLocalStorage,
-    updateMissionSetFromSnapshot,
     deleteFromLocalStorage,
     listSavedMissionSets,
     loadSnapshotFromLocalStorage,
@@ -57,7 +56,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         const missionSetSnapshot = loadSnapshotFromLocalStorage("Test-Mission-Set");
 
         // Update the mission set data
-        updateMissionSetFromSnapshot(missionSetSnapshot);
+        missionSet.restoreMissionSetFromSnapshot(missionSetSnapshot);
 
         // Verfiy we got what we expected
         expect(missionSet.getMissions().size).toEqual(2);
@@ -116,7 +115,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         let missionSetSnapshot = loadSnapshotFromLocalStorage("Test-Mission-Set-A");
 
         // Update the mission set data
-        updateMissionSetFromSnapshot(missionSetSnapshot);
+        missionSet.restoreMissionSetFromSnapshot(missionSetSnapshot);
 
         expect(missionSet.getMissions().size).toEqual(2);
 

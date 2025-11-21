@@ -3,7 +3,6 @@ import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
 import { JaiaContextType, JaisSnapshot } from "../../types/context-types";
 import { historyBuffer } from "../../data/history/history-buffer";
-import { snakeCaseToTitleCase } from "../../utils/input";
 import { restoreDeepMerge } from "../../data/history/restore-deep-merge";
 
 /**
@@ -34,7 +33,6 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
  * @returns {void}
  */
 export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActions) {
-    const description = snakeCaseToTitleCase(actionType);
     const snapshot = captureSnapshot(mutableState);
     historyBuffer.push(snapshot);
 }

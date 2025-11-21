@@ -1,6 +1,15 @@
 import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds } from "../../types/protobuf-types";
+import { missionsManager } from "../missions_manager/missions-manager";
+
+export interface MissionSetSnapshot {
+    missions: Mission[];
+    nextMissionID: number;
+    missionIDInEditMode: number | null;
+    missionSpeeds: Speeds;
+    name: string;
+}
 
 export class MissionSet {
     private missions: Map<number, Mission>;
@@ -92,6 +101,48 @@ export class MissionSet {
         this.missions.clear();
         this.setMissionIDInEditMode(UNASSIGNED_ID);
         this.setNextMissionID(1);
+    }
+
+    /**
+     * Replaces the current mission set with one from a saved snapshot
+     *
+     * @param {MissionSetSnapshot} missionSetSnapshot Snapshot of mission set
+     * @returns {void}
+     *
+     * @notes
+     * This is called by the reducer/action handler
+     */
+
+    restoreMissionSetFromSnapshot(missionSetSnapshot: MissionSetSnapshot) {
+        // Clear current mission set and reset mission assignments
+        missionSet.deleteAllMissions();
+        missionsManager.unassignAll();
+
+        // Rebuild mission set from snapshot
+        if (Array.isArray(missionSetSnapshot.missions)) {
+            missionSetSnapshot.missions.forEach((mission) => {
+                missionSet.addMission(mission);
+            });
+        }
+
+        missionSet.setName(missionSetSnapshot.name);
+        missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+        missionSet.setMissionSpeeds(missionSetSnapshot.missionSpeeds);
+    }
+    /**
+     * Captures a snapshot of the current missionSet
+     *
+     * @returns {object} snapshot of current missionSet data
+     */
+    getMissionSetSnapshot() {
+        const currentMissionSet = {
+            missions: Array.from(missionSet.getMissions().values()),
+            nextMissionID: missionSet.getNextMissionID(),
+            missionIDInEditMode: missionSet.getMissionIDInEditMode(),
+            missionSpeeds: missionSet.getMissionSpeeds(),
+            name: missionSet.getName(),
+        };
+        return currentMissionSet;
     }
 }
 

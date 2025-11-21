@@ -13,7 +13,6 @@ import { NodeTypes } from "../../types/jaia-system-types";
 import { MapModes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID, MISSION_ENDPOINTS } from "../../utils/constants";
-import { updateMissionSetFromSnapshot } from "../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import { syncOpenLayers } from "./handler-utils";
 
 /**
@@ -140,7 +139,7 @@ export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action:
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    updateMissionSetFromSnapshot(action.missionSetSnapshot);
+    missionSet.restoreMissionSetFromSnapshot(action.missionSetSnapshot);
     mutableState.missionAccordionStates = Object.fromEntries(
         Array.from(missionSet.getMissions().keys(), (key) => [key, false]),
     );

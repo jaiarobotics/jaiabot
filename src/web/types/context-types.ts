@@ -1,7 +1,7 @@
 import { JaiaActions } from "../context/jaia-actions";
 import { MissionSet } from "../data/mission_set/mission-set";
 import { MissionsManager } from "../data/missions_manager/missions-manager";
-import { MissionSetSnapshot } from "../components/MissionsPanel/MissionSetStorage/mission-set-storage";
+import { MissionSetSnapshot } from "../data/mission_set/mission-set";
 import { GridPlan, GridPlanningStates } from "../data/survey_planner/grid-plan";
 import { JaiaGlobal } from "../data/jaia_global/jaia-global";
 import { Bots } from "../data/bots/bots";
