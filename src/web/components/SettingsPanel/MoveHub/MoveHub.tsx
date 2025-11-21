@@ -3,6 +3,7 @@ import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
 import JaiaToggle from "../../JaiaToggle/JaiaToggle";
+import { MapModes } from "../../../types/openlayers-types";
 import { CoordinateTypes } from "../../../types/jaia-system-types";
 import { DEFAULT_HUB_ID } from "../../../utils/constants";
 import { validateCoordinate } from "../../../utils/input";
@@ -29,6 +30,10 @@ export default function MoveHub() {
 
     const [latInput, setLatInput] = useState(getHubLocation(CoordinateTypes.LAT));
     const [lonInput, setLonInput] = useState(getHubLocation(CoordinateTypes.LON));
+
+    const handleSelectOnMapClick = () => {
+        jaiaDispatch({ type: JaiaActions.TOGGLE_SELECT_HUB_LOCATION });
+    };
 
     /**
      * Updates the local copy of the coordinate on each key stroke. If the
@@ -69,7 +74,10 @@ export default function MoveHub() {
             <div className="heading">Move Hub</div>
             <div className="toggle-container">
                 <div>Select on Map:</div>
-                <JaiaToggle checked={() => true} onClick={() => {}} />
+                <JaiaToggle
+                    checked={() => jaiaContext.mapMode === MapModes.HUB_LOCATION_SELECT}
+                    onClick={() => handleSelectOnMapClick()}
+                />
             </div>
             <div className="location-input-container">
                 <div>Lat:</div>
