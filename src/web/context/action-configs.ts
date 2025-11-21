@@ -51,7 +51,7 @@ import {
     handleClickedTaskPacket,
 } from "./handlers/selection-handlers";
 import { handleClickedUndo, handleClickedRedo } from "./handlers/history-handlers";
-import { handleToggleSelectHubLocation } from "./simulation-handlers";
+import { handleMoveHub, handleToggleSelectHubLocation } from "./handlers/simulation-handlers";
 
 // Standard profile for action handling functions
 type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType; // Configuration for handling JaiaActions
@@ -152,4 +152,5 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         JaiaActions.TOGGLE_SELECT_HUB_LOCATION,
         { handler: handleToggleSelectHubLocation, tracked: false },
     ],
+    [JaiaActions.MOVE_HUB, { handler: handleMoveHub, tracked: false }],
 ]);

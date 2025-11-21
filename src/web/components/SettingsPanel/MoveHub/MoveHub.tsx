@@ -63,10 +63,10 @@ export default function MoveHub() {
         const updatedLatLon = validateCoordinate(lat, lon);
         setLatInput(updatedLatLon[0]);
         setLonInput(updatedLatLon[1]);
-        // jaiaDispatch({
-        //     type: JaiaActions.MOVE_WAYPOINT,
-        //     location: { lat: Number(updatedLatLon[0]), lon: Number(updatedLatLon[1]) },
-        // });
+        jaiaDispatch({
+            type: JaiaActions.MOVE_HUB,
+            location: { lat: Number(updatedLatLon[0]), lon: Number(updatedLatLon[1]) },
+        });
     };
 
     return (
