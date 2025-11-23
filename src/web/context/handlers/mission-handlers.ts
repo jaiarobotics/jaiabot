@@ -190,6 +190,10 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             gridLayer.finalizeGrid();
             break;
 
+        case GridPlanningStates.OFFERING_SRP:
+            gridLayer.finalizeGrid();
+            break;
+
         case GridPlanningStates.APPROVED:
             for (const [missionID, mission] of gridPlan.getMissions()) {
                 const waypoints = mission.getWaypoints();

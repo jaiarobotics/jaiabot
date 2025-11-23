@@ -10,7 +10,9 @@ export enum GridPlanningStates {
     ACCEPTING_TASK = 4,
     ACCEPTING_START_TASK = 5,
     ACCEPTING_END_TASK = 6,
-    APPROVED = 7,
+    OFFERING_SRP = 7,
+    ACCEPTING_SRP = 8,
+    APPROVED = 9,
 }
 
 export interface GridPlanDetails {
