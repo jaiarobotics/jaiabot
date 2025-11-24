@@ -149,7 +149,7 @@ void jaiabot::apps::AdaFruitBNO085Publisher::loop()
     // Send a command to start the data stream
     auto command = jaiabot::protobuf::IMUCommand();
     command.set_type(jaiabot::protobuf::IMUCommand::CONFIGURE);
-    command.set_sample_rate(10.0);
+    command.set_sample_rate(cfg().sample_rate());
     send_command(command);
 }
 
