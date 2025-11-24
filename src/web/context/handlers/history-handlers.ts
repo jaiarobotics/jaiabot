@@ -54,7 +54,7 @@ export function captureSnapshot(context: JaiaContextType) {
         missionsManagerSnapshot: missionsManager.captureSnapshot(),
         jaiaContextDataSnapshot: captureContextData(context),
     }; // clone snapshot to isolate it from updates
-    return cloneDeep(snapshot);
+    return snapshot;
 }
 
 function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaSnapshot) {
