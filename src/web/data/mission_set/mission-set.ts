@@ -1,8 +1,6 @@
 import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds } from "../../types/protobuf-types";
-import { missionsManager } from "../missions_manager/missions-manager";
-import { snapshot } from "node:test";
 
 export interface MissionSetSnapshot {
     missions: [number, Mission][];
