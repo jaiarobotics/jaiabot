@@ -9,7 +9,7 @@ message IMUCommand
 {
     enum IMUCommandType
     {
-        TAKE_READING = 0;
+        CONFIGURE = 0;
         START_WAVE_HEIGHT_SAMPLING = 1;
         STOP_WAVE_HEIGHT_SAMPLING = 2;
         START_BOTTOM_TYPE_SAMPLING = 3;
@@ -18,6 +18,15 @@ message IMUCommand
     }
 
     required IMUCommandType type = 1;
+
+    /// Sample rate for data collection in Hz
+    optional double sample_rate = 2
+        [(dccl.field) = {units {
+            derived_dimensions: "frequency"
+            system: "si"
+            }, min: 0.1 max: 60 precision: 1},
+            default = 10
+        ];
 }
 
 enum IMUCalibrationState

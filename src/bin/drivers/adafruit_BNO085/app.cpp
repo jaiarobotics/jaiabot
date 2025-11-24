@@ -61,6 +61,7 @@ class AdaFruitBNO085Publisher
 
   private:
     void loop() override;
+    void send_command(const jaiabot::protobuf::IMUCommand& command);
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
@@ -84,10 +85,8 @@ int main(int argc, char* argv[])
 
 // Main thread
 
-double loop_freq = 10;
-
 jaiabot::apps::AdaFruitBNO085Publisher::AdaFruitBNO085Publisher()
-    : zeromq::MultiThreadApplication<config::AdaFruitBNO085Publisher>(loop_freq * si::hertz)
+    : zeromq::MultiThreadApplication<config::AdaFruitBNO085Publisher>(1 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
@@ -132,26 +131,26 @@ jaiabot::apps::AdaFruitBNO085Publisher::AdaFruitBNO085Publisher()
     interprocess().subscribe<jaiabot::groups::imu>(
         [this](const protobuf::IMUCommand& imu_command)
         {
-            auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-            io_data->set_data(imu_command.SerializeAsString());
-            interthread().publish<imu_udp_out>(io_data);
-
-            glog.is_debug1() && glog << "Sending IMUCommand: " << imu_command.ShortDebugString()
-                                     << endl;
+            send_command(imu_command);
         });
+
+}
+
+void jaiabot::apps::AdaFruitBNO085Publisher::send_command(const jaiabot::protobuf::IMUCommand& command)
+{
+    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+    io_data->set_data(command.SerializeAsString());
+    interthread().publish<imu_udp_out>(io_data);
+    glog.is_debug2() && glog << "Sending command: " << command.ShortDebugString() << endl;
 }
 
 void jaiabot::apps::AdaFruitBNO085Publisher::loop()
 {
-    // Just send an empty packet
-    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+    // Send a command to start the data stream
     auto command = jaiabot::protobuf::IMUCommand();
-    command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
-
-    io_data->set_data(command.SerializeAsString());
-    interthread().publish<imu_udp_out>(io_data);
-
-    glog.is_debug2() && glog << "Requesting IMUData from python driver" << endl;
+    command.set_type(jaiabot::protobuf::IMUCommand::CONFIGURE);
+    command.set_sample_rate(10.0);
+    send_command(command);
 }
 
 void jaiabot::apps::AdaFruitBNO085Publisher::health(
