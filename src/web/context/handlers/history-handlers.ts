@@ -5,6 +5,7 @@ import { JaiaContextType, JaisSnapshot as JaiaSnapshot } from "../../types/conte
 import { historyManager } from "../../data/history/histroy-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { gridPlan } from "../../data/survey_planner/grid-plan";
 
 /**
  * Pulls previous state from history and updates current state and data model
@@ -47,6 +48,7 @@ export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActio
 export function captureSnapshot(context: JaiaContextType): JaiaSnapshot {
     const snapshot: JaiaSnapshot = {
         missionSetSnapshot: missionSet.captureSnapshot(),
+        gridPlanSnapshot: gridPlan.captureSnapshot(),
         missionsManager: missionsManager.captureSnapshot(),
     }; // clone snapshot to isolate it from updates
     return cloneDeep(snapshot);
@@ -54,6 +56,7 @@ export function captureSnapshot(context: JaiaContextType): JaiaSnapshot {
 
 function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaSnapshot) {
     missionSet.restoreFromSnapshot(snapshot.missionSetSnapshot);
+    gridPlan.restoreFromSnapshot(snapshot.gridPlanSnapshot);
     missionsManager.restoreFromSnapshot(snapshot.missionsManager);
     return mutableState;
 }

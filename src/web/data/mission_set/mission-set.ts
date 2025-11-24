@@ -1,6 +1,7 @@
 import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds } from "../../types/protobuf-types";
+import cloneDeep from "lodash/cloneDeep";
 
 export interface MissionSetSnapshot {
     missions: [number, Mission][];
@@ -115,7 +116,7 @@ export class MissionSet {
             missionSpeeds: this.missionSpeeds,
             name: this.name,
         } as MissionSetSnapshot;
-        return currentMissionSet;
+        return cloneDeep(currentMissionSet);
     }
 
     /**

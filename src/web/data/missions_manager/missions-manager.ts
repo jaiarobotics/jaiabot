@@ -3,6 +3,7 @@ import { missionSet } from "../mission_set/mission-set";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
+import cloneDeep from "lodash/cloneDeep";
 
 export interface MissionsManagerSnapshot {
     botsToMissions: Map<number, number>;
@@ -131,7 +132,7 @@ export class MissionsManager {
     }
 
     /**
-     * Captures a snapshot of the current missionsManager
+     * Captures a snapshot of the current assignments
      *
      * @returns {MissionsManagerSnapshot} snapshot of current missionsManager
      */
@@ -140,13 +141,13 @@ export class MissionsManager {
             botsToMissions: this.botsToMissions,
             missionsToBots: this.missionsToBots,
         } as MissionsManagerSnapshot;
-        return currentAssignments;
+        return cloneDeep(currentAssignments);
     }
 
     /**
-     * Replaces the current missionsManager set with one from a saved snapshot
+     * Replaces the current assignments with those from a saved snapshot
      *
-     * @param {MissionsManagerSnapshot} snapshot Snapshot of missionsManager
+     * @param {MissionsManagerSnapshot} snapshot Snapshot of assignments
      * @returns {void}
      *
      */

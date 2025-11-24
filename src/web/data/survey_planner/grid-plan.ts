@@ -2,6 +2,7 @@ import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
 import { INIT_LANES } from "../../utils/constants";
 import { GeographicCoordinate } from "../../types/protobuf-types";
+import cloneDeep from "lodash/cloneDeep";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,
@@ -19,6 +20,19 @@ export interface GridPlanDetails {
     pointSpacing: number;
     surveyTask: Task;
     state: GridPlanningStates;
+}
+
+export interface GridPanSnapshot {
+    missionStart: GeographicCoordinate;
+    missionEnd: GeographicCoordinate;
+    numOfLanes: number;
+    laneSpacing: number;
+    pointSpacing: number;
+    surveyTask: Task;
+    startTask: Task;
+    endTask: Task;
+    state: GridPlanningStates;
+    missions: Map<number, Mission>;
 }
 
 export class GridPlan {
@@ -139,6 +153,51 @@ export class GridPlan {
 
     setMissions(missions: Map<number, Mission>) {
         this.missions = missions;
+    }
+
+    /**
+     * Captures a snapshot of the current Grid Plan
+     *
+     * @returns {GridPanSnapshot} snapshot of current Grid Plan
+     */
+    captureSnapshot() {
+        const currentGridPlan = {
+            missionStart: this.missionStart,
+            missionEnd: this.missionEnd,
+            numOfLanes: this.numOfLanes,
+            laneSpacing: this.laneSpacing,
+            pointSpacing: this.pointSpacing,
+            surveyTask: this.surveyTask,
+            startTask: this.startTask,
+            endTask: this.endTask,
+            state: this.state,
+            missions: this.missions,
+        } as GridPanSnapshot;
+        return cloneDeep(currentGridPlan);
+    }
+
+    /**
+     * Replaces the current missionsManager set with one from a saved snapshot
+     *
+     * @param {GridPanSnapshot} snapshot Snapshot of missionsManager
+     * @returns {void}
+     *
+     */
+
+    restoreFromSnapshot(snapshot: GridPanSnapshot) {
+        this.missions.clear();
+        for (const [k, v] of snapshot.missions) {
+            this.missions.set(k, v);
+        }
+        this.missionStart = snapshot.missionStart;
+        this.missionEnd = snapshot.missionEnd;
+        this.numOfLanes = snapshot.numOfLanes;
+        this.laneSpacing = snapshot.laneSpacing;
+        this.pointSpacing = snapshot.pointSpacing;
+        this.surveyTask = snapshot.surveyTask;
+        this.startTask = snapshot.startTask;
+        this.endTask = snapshot.endTask;
+        this.state = snapshot.state;
     }
 }
 

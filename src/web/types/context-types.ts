@@ -5,7 +5,7 @@ import {
     MissionsManagerSnapshot,
 } from "../data/missions_manager/missions-manager";
 import { MissionSetSnapshot } from "../data/mission_set/mission-set";
-import { GridPlan, GridPlanningStates } from "../data/survey_planner/grid-plan";
+import { GridPlan, GridPlanningStates, GridPanSnapshot } from "../data/survey_planner/grid-plan";
 import { JaiaGlobal } from "../data/jaia_global/jaia-global";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
@@ -44,6 +44,7 @@ export interface JaiaContextType {
 // Snapshot of context excluding polled fields
 export interface JaisSnapshot {
     missionSetSnapshot: MissionSetSnapshot;
+    gridPlanSnapshot: GridPanSnapshot;
     missionsManager: MissionsManagerSnapshot;
 }
 
