@@ -11,7 +11,6 @@ import {
     handleAutoAssignMissions,
     handleChangeMissionSpeeds,
     handleLoadMissionSet,
-    handleChangeGridPlanningState,
 } from "./handlers/mission-handlers";
 import {
     handleAddWaypoint,
@@ -50,6 +49,7 @@ import {
     handleClickedRallyPoint,
     handleClickedTaskPacket,
 } from "./handlers/selection-handlers";
+import { handleChangeGridPlanningState } from "./handlers/survey-handlers";
 import { handleClickedUndo, handleClickedRedo } from "./handlers/history-handlers";
 
 // Standard profile for action handling functions
