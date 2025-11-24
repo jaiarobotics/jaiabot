@@ -139,7 +139,22 @@ export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action:
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    missionSet.restoreMissionSetFromSnapshot(action.missionSetSnapshot);
+    // Clear current mission set and reset mission assignments
+    missionSet.deleteAllMissions();
+    missionsManager.unassignAll();
+
+    // Rebuild mission set from json snapshot
+    if (Array.isArray(action.missionSetSnapshot.missions)) {
+        action.missionSetSnapshot.missions.forEach(([_, serializedMission]: [number, any]) => {
+            const mission = Mission.fromJSON(serializedMission);
+            missionSet.addMission(mission);
+        });
+    }
+
+    // Restore other fields via setters
+    missionSet.setName(action.missionSetSnapshot.name);
+    missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+    missionSet.setMissionSpeeds(action.missionSetSnapshot.missionSpeeds);
     mutableState.missionAccordionStates = Object.fromEntries(
         Array.from(missionSet.getMissions().keys(), (key) => [key, false]),
     );

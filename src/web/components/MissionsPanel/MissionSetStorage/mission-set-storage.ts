@@ -27,15 +27,18 @@ export function saveToLocalStorage(name: string) {
 export function loadSnapshotFromLocalStorage(saveName: string) {
     const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
     const targetSet = allMissionSets[saveName] || {};
-
-    let missionsArray: Mission[] = [];
+    const missions: [number, Mission][] = [];
     if (Array.isArray(targetSet.missions)) {
-        missionsArray = targetSet.missions.map(
-            (missionJSON: string) => Mission.fromJSON(missionJSON) as Mission,
+        missions.push(
+            ...targetSet.missions.map(([key, serializedMission]: [any, any]) => [
+                Number(key),
+                Mission.fromJSON(serializedMission),
+            ]),
         );
     }
+
     return {
-        missions: missionsArray,
+        missions: missions,
         nextMissionID: targetSet.nextMissionID ?? 0,
         missionIDInEditMode: targetSet.missionIDInEditMode ?? null,
         missionSpeeds: targetSet.missionSpeeds ?? {},
@@ -124,11 +127,15 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
                     resolve(null);
                     return;
                 }
-                const missionsArray = Array.isArray(targetSet.missions)
-                    ? targetSet.missions.map(
-                          (missionJSON: string) => Mission.fromJSON(missionJSON) as Mission,
-                      )
-                    : [];
+                const missionsArray: [number, Mission][] = [];
+                if (Array.isArray(targetSet.missions)) {
+                    missionsArray.push(
+                        ...targetSet.missions.map(([_, serializedMission]: [any, any]) => [
+                            0, // ignore original key
+                            Mission.fromJSON(serializedMission),
+                        ]),
+                    );
+                }
                 const snapshot: MissionSetSnapshot = {
                     missions: missionsArray,
                     nextMissionID: targetSet.nextMissionID ?? 0,

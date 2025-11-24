@@ -2,9 +2,10 @@ import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds } from "../../types/protobuf-types";
 import { missionsManager } from "../missions_manager/missions-manager";
+import { snapshot } from "node:test";
 
 export interface MissionSetSnapshot {
-    missions: Mission[];
+    missions: [number, Mission][];
     nextMissionID: number;
     missionIDInEditMode: number | null;
     missionSpeeds: Speeds;
@@ -106,15 +107,15 @@ export class MissionSet {
     /**
      * Captures a snapshot of the current missionSet
      *
-     * @returns {object} snapshot of current missionSet data
+     * @returns {object} snapshot of current missionSet
      */
     captureMissionSetSnapshot() {
         const currentMissionSet = {
-            missions: Array.from(this.getMissions().values()),
-            nextMissionID: this.getNextMissionID(),
-            missionIDInEditMode: this.getMissionIDInEditMode(),
-            missionSpeeds: this.getMissionSpeeds(),
-            name: this.getName(),
+            missions: Array.from(this.missions),
+            nextMissionID: this.nextMissionID,
+            missionIDInEditMode: this.missionIDInEditMode,
+            missionSpeeds: this.missionSpeeds,
+            name: this.name,
         } as MissionSetSnapshot;
         return currentMissionSet;
     }
@@ -122,26 +123,25 @@ export class MissionSet {
     /**
      * Replaces the current mission set with one from a saved snapshot
      *
-     * @param {MissionSetSnapshot} missionSetSnapshot Snapshot of mission set
+     * @param {MissionSetSnapshot} snapshot Snapshot of mission set
      * @returns {void}
      *
      */
 
-    restoreMissionSetFromSnapshot(missionSetSnapshot: MissionSetSnapshot) {
-        // Clear current mission set and reset mission assignments
+    restoreMissionSetFromSnapshot(snapshot: MissionSetSnapshot) {
+        // Clear current mission set
         this.deleteAllMissions();
-        missionsManager.unassignAll();
 
         // Rebuild mission set from snapshot
-        if (Array.isArray(missionSetSnapshot.missions)) {
-            missionSetSnapshot.missions.forEach((mission) => {
-                this.addMission(mission);
+        if (Array.isArray(snapshot.missions)) {
+            snapshot.missions.forEach(([id, mission]) => {
+                this.missions.set(id, mission);
             });
         }
-
-        this.setName(missionSetSnapshot.name);
-        this.setMissionIDInEditMode(UNASSIGNED_ID);
-        this.setMissionSpeeds(missionSetSnapshot.missionSpeeds);
+        this.nextMissionID = snapshot.nextMissionID;
+        this.missionIDInEditMode = UNASSIGNED_ID;
+        this.missionSpeeds = snapshot.missionSpeeds;
+        this.name = snapshot.name;
     }
 }
 
