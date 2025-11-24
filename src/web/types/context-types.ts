@@ -6,7 +6,7 @@ import {
 } from "../data/missions_manager/missions-manager";
 import { MissionSetSnapshot } from "../data/mission_set/mission-set";
 import { GridPlan, GridPlanningStates, GridPanSnapshot } from "../data/survey_planner/grid-plan";
-import { JaiaGlobal } from "../data/jaia_global/jaia-global";
+import { JaiaGlobal, JaigGlobalSnapshot } from "../data/jaia_global/jaia-global";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
 import Waypoint from "../data/waypoints/waypoint";
@@ -41,11 +41,24 @@ export interface JaiaContextType {
     missionAccordionStates: { [missionID: number]: boolean };
 }
 
+// snapshot of contect data not held in data model
+export interface JaiaContextDataSnapshot {
+    selectedRallyPoint: SelectedRallyPoint;
+    visibleDetails: NodeTypes;
+    visiblePanel: ButtonNames;
+    hubAccordionStates: HubAccordionStates;
+    botAccordionStates: BotAccordionStates;
+    mapLayerAccordionStates: MapLayerAccordionStates;
+    missionAccordionStates: { [missionID: number]: boolean };
+}
+
 // Snapshot of context excluding polled fields
-export interface JaisSnapshot {
+export interface JaiaSnapshot {
     missionSetSnapshot: MissionSetSnapshot;
     gridPlanSnapshot: GridPanSnapshot;
-    missionsManager: MissionsManagerSnapshot;
+    jaiaGlobalSnapshot: JaigGlobalSnapshot;
+    missionsManagerSnapshot: MissionsManagerSnapshot;
+    jaiaContextDataSnapshot: JaiaContextDataSnapshot;
 }
 
 // Type used for actions dispatched to the context provider

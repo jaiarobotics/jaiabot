@@ -1,11 +1,12 @@
 import { cloneDeep } from "lodash";
 import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
-import { JaiaContextType, JaisSnapshot as JaiaSnapshot } from "../../types/context-types";
+import { JaiaContextType, JaiaSnapshot, JaiaContextDataSnapshot } from "../../types/context-types";
 import { historyManager } from "../../data/history/histroy-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 
 /**
  * Pulls previous state from history and updates current state and data model
@@ -45,11 +46,13 @@ export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActio
  * @param {JaiaContextType} context current state of application
  * @returns {JaiaSnapshot} cloned subset of current state
  */
-export function captureSnapshot(context: JaiaContextType): JaiaSnapshot {
+export function captureSnapshot(context: JaiaContextType) {
     const snapshot: JaiaSnapshot = {
         missionSetSnapshot: missionSet.captureSnapshot(),
         gridPlanSnapshot: gridPlan.captureSnapshot(),
-        missionsManager: missionsManager.captureSnapshot(),
+        jaiaGlobalSnapshot: jaiaGlobal.captureSnapshot(),
+        missionsManagerSnapshot: missionsManager.captureSnapshot(),
+        jaiaContextDataSnapshot: captureContextData(context),
     }; // clone snapshot to isolate it from updates
     return cloneDeep(snapshot);
 }
@@ -57,6 +60,31 @@ export function captureSnapshot(context: JaiaContextType): JaiaSnapshot {
 function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaSnapshot) {
     missionSet.restoreFromSnapshot(snapshot.missionSetSnapshot);
     gridPlan.restoreFromSnapshot(snapshot.gridPlanSnapshot);
-    missionsManager.restoreFromSnapshot(snapshot.missionsManager);
+    jaiaGlobal.restoreFromSnapshot(snapshot.jaiaGlobalSnapshot);
+    missionsManager.restoreFromSnapshot(snapshot.missionsManagerSnapshot);
+    restoreCotextData(mutableState, snapshot.jaiaContextDataSnapshot);
     return mutableState;
+}
+
+function captureContextData(context: JaiaContextType) {
+    const snapshot: JaiaContextDataSnapshot = {
+        selectedRallyPoint: context.selectedRallyPoint,
+        visibleDetails: context.visibleDetails,
+        visiblePanel: context.visiblePanel,
+        hubAccordionStates: context.hubAccordionStates,
+        botAccordionStates: context.botAccordionStates,
+        mapLayerAccordionStates: context.mapLayerAccordionStates,
+        missionAccordionStates: context.missionAccordionStates,
+    };
+    return cloneDeep(snapshot);
+}
+
+function restoreCotextData(mutableState: JaiaContextType, snapshot: JaiaContextDataSnapshot) {
+    mutableState.selectedRallyPoint = snapshot.selectedRallyPoint;
+    mutableState.visibleDetails = snapshot.visibleDetails;
+    mutableState.visiblePanel = snapshot.visiblePanel;
+    mutableState.hubAccordionStates = snapshot.hubAccordionStates;
+    mutableState.botAccordionStates = snapshot.botAccordionStates;
+    mutableState.mapLayerAccordionStates = snapshot.mapLayerAccordionStates;
+    mutableState.missionAccordionStates = snapshot.missionAccordionStates;
 }

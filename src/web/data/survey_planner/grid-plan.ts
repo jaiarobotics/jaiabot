@@ -177,9 +177,9 @@ export class GridPlan {
     }
 
     /**
-     * Replaces the current missionsManager set with one from a saved snapshot
+     * Replaces the current Grid Plan set with one from a saved snapshot
      *
-     * @param {GridPanSnapshot} snapshot Snapshot of missionsManager
+     * @param {GridPanSnapshot} snapshot Snapshot of Grid Plan
      * @returns {void}
      *
      */
