@@ -17,7 +17,9 @@ dependencies = [
     'scipy', 
     'numpy', 
     'cmocean',
-    'turfpy'
+    'turfpy',
+    'h5py',
+    'plotly',
 ]
 
 [project.urls]
