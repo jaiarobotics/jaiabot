@@ -11,6 +11,7 @@ import StartAllMissionsButton from "../__buttons__/StartAllMissionsButton/StartA
 
 import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { ButtonListTypes } from "../../types/jaia-system-types";
+import { MDI_BUTTON_SIZE } from "../../utils/constants";
 
 import Icon from "@mdi/react";
 import { Button } from "@mui/material";
@@ -23,9 +24,7 @@ import {
     mdiSquareEditOutline,
 } from "@mdi/js";
 
-import JaiaLogo from "../../style/icons/jaia-logo.svg";
-import { MDI_BUTTON_SIZE } from "../../utils/constants";
-
+import JaiaLogo from "../../jcc/public/favicon.png";
 import "./ButtonList.less";
 
 interface Props {
@@ -106,6 +105,7 @@ export default function ButtonList(props: Props) {
                 </Button>
                 <Button
                     className={getSelectedClassName(ButtonNames.JAIA_ABOUT_PANEL)}
+                    id="jaia-about"
                     aria-label="jaia-about-panel"
                     onClick={() =>
                         handleButtonClick(ButtonTypes.PANEL, ButtonNames.JAIA_ABOUT_PANEL)

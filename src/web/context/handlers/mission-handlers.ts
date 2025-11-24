@@ -183,12 +183,12 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
         case GridPlanningStates.ACCEPTING_TASK:
             map.removeInteraction(gridLayer.getDraw());
             map.removeInteraction(gridLayer.getDragPan());
-            gridPlan.setSurveyTask(new Task());
+            gridPlan.setSurveyTask(new Task(true));
             gridLayer.finalizeGrid(true);
             break;
 
         case GridPlanningStates.ACCEPTING_START_TASK:
-            gridPlan.setStartTask(new Task());
+            gridPlan.setStartTask(new Task(true));
             gridLayer.highlightStartpoint();
             break;
 

@@ -5,17 +5,12 @@ import { LineString, Point } from "ol/geom";
 import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 
 import { view } from "../../views/view";
+import { getWaypointSrc } from "../waypoint-feature";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
-import { TaskType } from "../../../types/protobuf-types";
-import { MapFeatureTypes } from "../../../types/openlayers-types";
+import { LineType, MapFeatureTypes } from "../../../types/openlayers-types";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
 import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
 import { MISSION_ENDPOINTS } from "../../../utils/constants";
-
-import waypointIcon from "../../../style/icons/waypoint.svg";
-import waypointDiveIcon from "../../../style/icons/waypoint-dive.svg";
-import waypointDriftIcon from "../../../style/icons/waypoint-drift.svg";
-import waypointConstantHeadingIcon from "../../../style/icons/waypoint-constant-heading.svg";
 
 const FIRST_MISSION_ID = 1;
 
@@ -29,6 +24,7 @@ const FIRST_MISSION_ID = 1;
 export function generateSurveyLane(
     startLocation: GeographicCoordinate,
     endLocation: GeographicCoordinate,
+    lineType: LineType = LineType.SOLID,
 ) {
     if (!startLocation || !endLocation) {
         return new Feature();
@@ -42,7 +38,7 @@ export function generateSurveyLane(
     const feature = new Feature({
         geometry: new LineString([startCoordinate, endCoordinate]),
     });
-    feature.setStyle(generateSurveyLaneStyle());
+    feature.setStyle(generateSurveyLaneStyle(lineType));
     return feature;
 }
 
@@ -80,11 +76,13 @@ export function generateSurveyPoint(
  *
  * @returns {Style[]} Array of styles applied to the survey lanes
  */
-function generateSurveyLaneStyle() {
+function generateSurveyLaneStyle(lineType: LineType) {
+    const lineDash = lineType === LineType.DASHED ? [6, 12] : null;
     const underlayStyle = new Style({
         stroke: new Stroke({
             width: 4,
             color: OpenLayersColors.OUTLINE,
+            lineDash: lineDash,
         }),
         zIndex: 1,
     });
@@ -93,6 +91,7 @@ function generateSurveyLaneStyle() {
         stroke: new Stroke({
             width: 2,
             color: getSurveyLaneColor(),
+            lineDash: lineDash,
         }),
         zIndex: 1,
     });
@@ -143,28 +142,9 @@ function getSurveyPointSrc(waypointNum: number) {
         gridPlan.getState() === GridPlanningStates.ACCEPTING_END_TASK &&
         isFinalGridPoint(waypointNum)
     ) {
-        return getSrc(gridPlan.getEndTask().getType());
+        return getWaypointSrc(gridPlan.getEndTask());
     }
-    return getSrc(gridPlan.getSurveyTask().getType());
-}
-
-/**
- * Selects the correct survey point icon based on the provided task
- *
- * @param {TaskType} taskType Determine which icon to render
- * @returns {string} Path to survey icon
- */
-function getSrc(taskType: TaskType) {
-    switch (taskType) {
-        case TaskType.DIVE:
-            return waypointDiveIcon;
-        case TaskType.SURFACE_DRIFT:
-            return waypointDriftIcon;
-        case TaskType.CONSTANT_HEADING:
-            return waypointConstantHeadingIcon;
-        case TaskType.NONE:
-            return waypointIcon;
-    }
+    return getWaypointSrc(gridPlan.getSurveyTask());
 }
 
 /**

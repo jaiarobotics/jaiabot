@@ -69,7 +69,10 @@ export function handleMapModeChange(mapMode: MapModes) {
         measureLayer.clearDrawInteraction();
     }
 
-    if (mapMode !== MapModes.SURVEY_PLANNING) {
+    if (
+        mapMode !== MapModes.SURVEY_PLANNING &&
+        mapMode !== MapModes.SURVEY_CONSTANT_HEADING_SELECT
+    ) {
         map.removeInteraction(gridLayer.getDraw());
         map.removeInteraction(gridLayer.getDragPan());
         gridLayer.reset();

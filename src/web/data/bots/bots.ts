@@ -1,5 +1,6 @@
 import { PortalBotStatus } from "../../shared/PortalStatus";
 import { MissionStatus } from "../../types/jaia-system-types";
+import { BotType } from "../../types/protobuf-types";
 
 import Bot from "./bot";
 
@@ -181,6 +182,15 @@ export class Bots {
         if (botStatus.temperature) {
             bot.getBotSensors().getTemperatureSensor().setTemperature(botStatus.temperature);
         }
+    }
+
+    includesPAM() {
+        for (const [botID, bot] of this.bots) {
+            if (bot.getBotType() === BotType.ECHO) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

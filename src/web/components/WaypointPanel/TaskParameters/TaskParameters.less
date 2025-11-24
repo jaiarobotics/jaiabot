@@ -15,13 +15,21 @@
     text-align: right;
 }
 
-.dive-parameters {
+.task-parameters .select-on-map {
+    grid-column: 1 / 4;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.dive-parameters,
+.drift-parameters {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.bottom-dive-toggle-container {
+.task-toggle-container {
     display: grid;
     grid-template-columns: max-content 1fr;
     align-items: center;
