@@ -1,7 +1,7 @@
 import { FormControl, Select, MenuItem, SelectChangeEvent, ThemeProvider } from "@mui/material";
 
 import Icon from "@mdi/react";
-import { mdiArrowRight } from "@mdi/js";
+import { mdiArrowLeft, mdiArrowRight } from "@mdi/js";
 
 import { ChangeEvent, useContext, useState } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
@@ -136,7 +136,7 @@ export default function SurveyPlanner(props: Props) {
         case GridPlanningStates.OFFERING_SRP:
             return <OfferSRP handleMenuNavClick={handleMenuNavClick} />;
         case GridPlanningStates.ACCEPTING_SRP:
-            return <SRPConfig />;
+            return <SRPConfig handleMenuNavClick={handleMenuNavClick} />;
         case GridPlanningStates.APPROVED:
             return;
     }
@@ -415,11 +415,28 @@ function OfferSRP(props: Props) {
     );
 }
 
-function SRPConfig() {
+function SRPConfig(props: Props) {
     return (
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
             <div className="progress-line"></div>
+            <div className="task-parameters-container">
+                <TaskParameters task={gridPlan.getSRPTask()} isDisabled={false} />
+            </div>
+            <div className="button-row double-arrow">
+                <div
+                    className="arrow"
+                    onClick={() => props.handleMenuNavClick(GridPlanningStates.OFFERING_SRP)}
+                >
+                    <Icon path={mdiArrowLeft} title="Continue Survey Planning" />
+                </div>
+                <div
+                    className="arrow"
+                    onClick={() => props.handleMenuNavClick(GridPlanningStates.APPROVED)}
+                >
+                    <Icon path={mdiArrowRight} title="Continue Survey Planning" />
+                </div>
+            </div>
         </div>
     );
 }

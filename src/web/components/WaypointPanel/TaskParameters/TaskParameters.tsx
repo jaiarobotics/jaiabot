@@ -41,6 +41,20 @@ export default function TaskParameters(props: Props) {
         const key = evt.target.name;
         const value = evt.target.value;
 
+        if (props.task.getIsSurveyTask()) {
+            jaiaDispatch({
+                type: JaiaActions.SURVEY_CHANGE_TASK_PARAMETER,
+                task: props.task,
+                taskParameterPairs: [{ key, value }],
+            });
+        } else {
+            jaiaDispatch({
+                type: JaiaActions.CHANGE_TASK_PARAMETER,
+                task: props.task,
+                taskParameterPairs: [{ key, value }],
+            });
+        }
+
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PARAMETER,
             task: props.task,
@@ -55,7 +69,11 @@ export default function TaskParameters(props: Props) {
      * @return {void}
      */
     const handleBottomDiveClick = () => {
-        jaiaDispatch({ type: JaiaActions.TOGGLE_BOTTOM_DIVE, task: props.task });
+        if (props.task.getIsSurveyTask()) {
+            jaiaDispatch({ type: JaiaActions.SURVEY_TOGGLE_BOTTOM_DIVE, task: props.task });
+        } else {
+            jaiaDispatch({ type: JaiaActions.TOGGLE_BOTTOM_DIVE, task: props.task });
+        }
     };
 
     /**
@@ -74,7 +92,14 @@ export default function TaskParameters(props: Props) {
      * @return {void}
      */
     const handleSelectOnMapClick = () => {
-        jaiaDispatch({ type: JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT, task: props.task });
+        if (props.task.getIsSurveyTask()) {
+            jaiaDispatch({
+                type: JaiaActions.SURVEY_TOGGLE_CONSTANT_HEADING_SELECT,
+                task: props.task,
+            });
+        } else {
+            jaiaDispatch({ type: JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT, task: props.task });
+        }
     };
 
     switch (props.task?.getType()) {

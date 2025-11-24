@@ -15,7 +15,7 @@ import JaiaVectorLayer from "../jaia-vector-layer";
 import Task from "../../../../data/tasks/task";
 import Mission from "../../../../data/mission_set/mission";
 import { touches } from "../../../controls/touches";
-import { gridPlan } from "../../../../data/survey_planner/grid-plan";
+import { gridPlan, GridPlanningStates } from "../../../../data/survey_planner/grid-plan";
 import { LayerTitles, LineType, SurveyEndpoints } from "../../../../types/openlayers-types";
 import { layersZIndexes } from "../../zindex";
 import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/grid-features";
@@ -215,6 +215,12 @@ class GridLayer extends JaiaVectorLayer {
             const point = points[points.length - 1];
             const startLocation = { lat: point[1], lon: point[0] };
             this.createConstantHeadingProjection(startLocation, gridPlan.getEndTask());
+        }
+
+        if (gridPlan.getState() === GridPlanningStates.ACCEPTING_SRP) {
+            const point = points[points.length - 1];
+            const startLocation = { lat: point[1], lon: point[0] };
+            this.createConstantHeadingProjection(startLocation, gridPlan.getSRPTask());
         }
 
         return points;

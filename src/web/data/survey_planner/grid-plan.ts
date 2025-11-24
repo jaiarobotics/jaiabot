@@ -32,6 +32,7 @@ export class GridPlan {
     private surveyTask: Task;
     private startTask: Task;
     private endTask: Task;
+    private srpTask: Task;
     private state: GridPlanningStates;
     private missions: Map<number, Mission>;
 
@@ -43,6 +44,7 @@ export class GridPlan {
         this.surveyTask = new Task(true);
         this.startTask = new Task(true);
         this.endTask = new Task(true);
+        this.srpTask = new Task(true);
         this.missions = new Map<number, Mission>();
     }
 
@@ -51,6 +53,7 @@ export class GridPlan {
         this.surveyTask = new Task(true);
         this.startTask = new Task(true);
         this.endTask = new Task(true);
+        this.srpTask = new Task(true);
         this.missions = new Map<number, Mission>();
     }
 
@@ -129,6 +132,14 @@ export class GridPlan {
         this.endTask = endTask;
     }
 
+    getSRPTask() {
+        return this.srpTask;
+    }
+
+    setSRPTask(srpTask: Task) {
+        this.srpTask = srpTask;
+    }
+
     getState() {
         return this.state;
     }
@@ -160,6 +171,9 @@ export class GridPlan {
         }
         if (this.state === GridPlanningStates.ACCEPTING_END_TASK) {
             return this.endTask;
+        }
+        if (this.state === GridPlanningStates.ACCEPTING_SRP) {
+            return this.srpTask;
         }
     }
 }

@@ -10,7 +10,8 @@ import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapModes, SurveyEndpoints } from "../../types/openlayers-types";
+import { TaskType } from "../../types/protobuf-types";
+import { MapModes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID, MISSION_ENDPOINTS } from "../../utils/constants";
 import { updateMissionSetFromSnapshot } from "../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
@@ -192,6 +193,14 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 
         case GridPlanningStates.OFFERING_SRP:
             gridLayer.finalizeGrid();
+            gridPlan.getSRPTask().setType(TaskType.NONE);
+            mutableState.mapMode = MapModes.SURVEY_PLANNING;
+            handleMapModeChange(MapModes.SURVEY_PLANNING);
+            break;
+
+        case GridPlanningStates.ACCEPTING_SRP:
+            // Update constant heading parameters
+            gridPlan.getSRPTask().setType(TaskType.CONSTANT_HEADING);
             break;
 
         case GridPlanningStates.APPROVED:
