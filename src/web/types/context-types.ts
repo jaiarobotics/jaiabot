@@ -39,7 +39,9 @@ export interface JaiaContextType {
 }
 
 // Snapshot of context excluding polled fields
-export interface JaisSnapshot extends Omit<JaiaContextType, "bots" | "hubs" | "taskPackets"> {}
+export interface JaisSnapshot {
+    missionSetSnapshot: MissionSetSnapshot;
+}
 
 // Type used for actions dispatched to the context provider
 export interface JaiaAction {

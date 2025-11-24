@@ -1,9 +1,9 @@
 import { cloneDeep } from "lodash";
 import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
-import { JaiaContextType, JaisSnapshot } from "../../types/context-types";
-import { historyBuffer } from "../../data/history/history-buffer";
-import { restoreDeepMerge } from "../../data/history/restore-deep-merge";
+import { JaiaContextType, JaisSnapshot as JaiaSnapshot } from "../../types/context-types";
+import { historyManager } from "../../data/history/histroy-manager";
+import { missionSet } from "../../data/mission_set/mission-set";
 
 /**
  * Pulls previous state from history and updates current state and data model
@@ -13,7 +13,7 @@ import { restoreDeepMerge } from "../../data/history/restore-deep-merge";
  */
 export function handleClickedUndo(mutableState: JaiaContextType) {
     // Get the previous snapshot from history
-    const snapshot = historyBuffer.undo();
+    const snapshot = historyManager.pop();
     if (!snapshot) {
         console.warn("No undo available");
         return mutableState;
@@ -34,35 +34,23 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
  */
 export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActions) {
     const snapshot = captureSnapshot(mutableState);
-    historyBuffer.push(snapshot);
+    historyManager.push(snapshot);
 }
 
 /**
- * Creates a snapshot of the undoable part of the context
- * Excludes fields that are polled live (bots, hubs, taskPackets)
+ * Creates a snapshot of the context state
  *
  * @param {JaiaContextType} context current state of application
- * @returns {JaisSnapshot} cloned subset of current state
+ * @returns {JaiaSnapshot} cloned subset of current state
  */
-export function captureSnapshot(context: JaiaContextType): JaisSnapshot {
-    // get everything from context except bots, hubs & taskPackets
-    const { bots, hubs, taskPackets, ...snapshot } = context;
-    // clone snapshot to isolate it from updates
+export function captureSnapshot(context: JaiaContextType): JaiaSnapshot {
+    const snapshot: JaiaSnapshot = {
+        missionSetSnapshot: missionSet.captureMissionSetSnapshot(),
+    }; // clone snapshot to isolate it from updates
     return cloneDeep(snapshot);
 }
 
-/**
- * Restores the application state from a snapshot stored in history
- *
- * @param {JaiaContextType} mutableState Current state to be updated
- * @param {JaisSnapshot} snapshot Snapshot of state from history
- * @returns {JaiaContextType} Updated state with values from history
- *
- * @notes Uses restoreDeepMerge so object data is updated in place
- *        preserving references
- */
-function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaisSnapshot) {
-    // Restore state from snapshot
-    restoreDeepMerge(mutableState, snapshot);
+function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaSnapshot) {
+    missionSet.restoreMissionSetFromSnapshot(snapshot.missionSetSnapshot);
     return mutableState;
 }

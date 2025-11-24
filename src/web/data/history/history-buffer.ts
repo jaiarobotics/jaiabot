@@ -1,5 +1,3 @@
-import { JaisSnapshot } from "../../types/context-types";
-import { MAX_HISTORY } from "../../utils/constants";
 export default class HistoryBuffer<T> {
     private buffer: T[];
 
@@ -44,15 +42,13 @@ export default class HistoryBuffer<T> {
      * @notes
      * Returned value should be cloned if mutable to prevent corruption of history
      */
-    undo() {
-        if (this.canUndo()) {
+    pop() {
+        if (this.canPop()) {
             return this.buffer.pop();
         }
     }
 
-    canUndo() {
+    canPop() {
         return this.buffer.length > 0;
     }
 }
-
-export const historyBuffer = new HistoryBuffer<JaisSnapshot>(MAX_HISTORY);

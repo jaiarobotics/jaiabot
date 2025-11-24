@@ -115,7 +115,7 @@ export class MissionSet {
             missionIDInEditMode: this.getMissionIDInEditMode(),
             missionSpeeds: this.getMissionSpeeds(),
             name: this.getName(),
-        };
+        } as MissionSetSnapshot;
         return currentMissionSet;
     }
 
