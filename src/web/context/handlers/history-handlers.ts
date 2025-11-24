@@ -13,7 +13,7 @@ import { missionSet } from "../../data/mission_set/mission-set";
  */
 export function handleClickedUndo(mutableState: JaiaContextType) {
     // Get the previous snapshot from history
-    const snapshot = historyManager.pop();
+    const snapshot = historyManager.undo();
     if (!snapshot) {
         console.warn("No undo available");
         return mutableState;
@@ -34,7 +34,7 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
  */
 export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActions) {
     const snapshot = captureSnapshot(mutableState);
-    historyManager.push(snapshot);
+    historyManager.pushUndo(snapshot);
 }
 
 /**
@@ -52,5 +52,7 @@ export function captureSnapshot(context: JaiaContextType): JaiaSnapshot {
 
 function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaSnapshot) {
     missionSet.restoreMissionSetFromSnapshot(snapshot.missionSetSnapshot);
+    //TODO Need to make sure missionsManager is updated to a good state whenever
+    // misisons sets are restored, probably need to unassssign to be safe
     return mutableState;
 }

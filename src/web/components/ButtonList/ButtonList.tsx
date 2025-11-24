@@ -85,7 +85,7 @@ export default function ButtonList(props: Props) {
      * @returns {void}
      */
     const getUndoClassName = () =>
-        historyManager.canPop() ? "jaia-button" : "jaia-button disabled";
+        historyManager.canUndo() ? "jaia-button" : "jaia-button disabled";
 
     if (props.buttonListType === ButtonListTypes.TOP) {
         return (
@@ -99,7 +99,7 @@ export default function ButtonList(props: Props) {
                 <DataOffloadAllButton bots={jaiaContext.bots.getBots()} />
                 <Button
                     className={getUndoClassName()}
-                    disabled={!historyManager.canPop()}
+                    disabled={!historyManager.canUndo()}
                     onClick={() => handleUndoClick()}
                 >
                     <Icon path={mdiArrowULeftTop} title={"Undo "} />

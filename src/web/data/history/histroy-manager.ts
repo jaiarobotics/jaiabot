@@ -1,5 +1,22 @@
 import { JaisSnapshot } from "../../types/context-types";
 import { MAX_HISTORY } from "../../utils/constants";
 import HistoryBuffer from "./history-buffer";
+import cloneDeep from "lodash/cloneDeep";
 
-export const historyManager = new HistoryBuffer<JaisSnapshot>(MAX_HISTORY);
+export class HistoryManager {
+    private undoBuffer = new HistoryBuffer<JaisSnapshot>(MAX_HISTORY);
+
+    pushUndo(snapshot: JaisSnapshot) {
+        this.undoBuffer.push(cloneDeep(snapshot));
+    }
+
+    canUndo() {
+        return this.undoBuffer.canPop();
+    }
+
+    undo() {
+        return this.undoBuffer.pop();
+    }
+}
+
+export const historyManager = new HistoryManager();
