@@ -296,6 +296,13 @@ function ConstantHeading(props: Props) {
         return false;
     };
 
+    /**
+     * Renders the safety depth input parameter when configuring SRP.
+     * The elements are returned individually to fit the grid pattern.
+     *
+     * @param {TaskParameterElements} element Which element to render
+     * @returns {HTMLElement} The request HTML element or void if not for SRP
+     */
     const getSafetyDepthElement = (element: TaskParameterElements) => {
         if (gridPlan.getState() !== GridPlanningStates.ACCEPTING_SRP) {
             return;

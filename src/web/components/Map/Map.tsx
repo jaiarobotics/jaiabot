@@ -207,7 +207,10 @@ export default function Map() {
             },
         ];
 
-        if (mapMode === MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+        if (
+            mapMode === MapModes.SURVEY_PLANNING ||
+            mapMode === MapModes.SURVEY_CONSTANT_HEADING_SELECT
+        ) {
             jaiaDispatch({
                 type: JaiaActions.SURVEY_CHANGE_TASK_PARAMETER,
                 task: task,

@@ -391,6 +391,9 @@ function TaskConfigs(props: Props) {
     );
 }
 
+/**
+ * Renders the window to add or decline safety return parameters
+ */
 function OfferSRP(props: Props) {
     return (
         <div className="jaia-panel survey">
@@ -415,6 +418,9 @@ function OfferSRP(props: Props) {
     );
 }
 
+/**
+ * Renders the window to modify safety return parameters to the survey mission set
+ */
 function SRPConfig(props: Props) {
     return (
         <div className="jaia-panel survey">
