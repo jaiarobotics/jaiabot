@@ -1,4 +1,5 @@
 import {
+    BottomDepthSafetyParams,
     GeographicCoordinate,
     Goal,
     MissionPlan,
@@ -14,6 +15,7 @@ export default class Mission {
     private waypoints: Waypoint[];
     private speeds: Speeds;
     private repeats: number;
+    private bottomDepthSafetyParams: BottomDepthSafetyParams;
 
     constructor() {
         // missionID assigned by missions singleton
@@ -52,6 +54,14 @@ export default class Mission {
 
     setRepeats(repeats: number) {
         this.repeats = repeats;
+    }
+
+    getBottomDepthSafetyParams() {
+        return this.bottomDepthSafetyParams;
+    }
+
+    setBottomDepthSafetyParams(bottomDepthSafetyParams: BottomDepthSafetyParams) {
+        this.bottomDepthSafetyParams = bottomDepthSafetyParams;
     }
 
     getWaypoint(waypointNum: number) {
@@ -103,6 +113,10 @@ export default class Mission {
             speeds: this.speeds,
             repeats: this.repeats,
         };
+
+        if (this.bottomDepthSafetyParams) {
+            missionPlan.bottomDepthSafetyParams = this.bottomDepthSafetyParams;
+        }
 
         return missionPlan;
     }

@@ -10,7 +10,7 @@ import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { TaskType } from "../../types/protobuf-types";
+import { BottomDepthSafetyParams, TaskType } from "../../types/protobuf-types";
 import { MapModes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID, MISSION_ENDPOINTS } from "../../utils/constants";
@@ -218,6 +218,20 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
                     } else {
                         waypoints[i].setTask(cloneDeep(gridPlan.getSurveyTask()));
                     }
+                }
+                if (gridPlan.getSRPTask().getType() === TaskType.CONSTANT_HEADING) {
+                    const constantHeadingParams = gridPlan
+                        .getSRPTask()
+                        .getConstantHeadingParameters();
+                    const bottomDepthSafetyParams: BottomDepthSafetyParams = {
+                        constant_heading: constantHeadingParams.constant_heading.toString(),
+                        constant_heading_speed:
+                            constantHeadingParams.constant_heading_speed.toString(),
+                        constant_heading_time:
+                            constantHeadingParams.constant_heading_time.toString(),
+                        safety_depth: "-1",
+                    };
+                    mission.setBottomDepthSafetyParams(bottomDepthSafetyParams);
                 }
             }
             missionSet.setMissions(cloneDeep(gridPlan.getMissions()));
