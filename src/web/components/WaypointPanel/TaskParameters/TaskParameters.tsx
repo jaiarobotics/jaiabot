@@ -6,6 +6,7 @@ import { JaiaActions } from "../../../context/jaia-actions";
 
 import Task from "../../../data/tasks/task";
 import { bots } from "../../../data/bots/bots";
+import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
 
 import { TaskParameterKeys } from "../../../types/jaia-system-types";
 import { TaskType } from "../../../types/protobuf-types";
@@ -13,6 +14,12 @@ import { MapModes } from "../../../types/openlayers-types";
 import { formatNumericalInput } from "../../../utils/input";
 
 import "./TaskParameters.less";
+
+enum TaskParameterElements {
+    TITLE = 1,
+    INPUT = 2,
+    UNITS = 3,
+}
 
 interface Props {
     task: Task;
@@ -132,6 +139,7 @@ export default function TaskParameters(props: Props) {
                     handleSelectOnMapClick={handleSelectOnMapClick}
                 />
             );
+
         default:
             return;
     }
@@ -288,8 +296,37 @@ function ConstantHeading(props: Props) {
         return false;
     };
 
+    const getSafetyDepthElement = (element: TaskParameterElements) => {
+        if (gridPlan.getState() !== GridPlanningStates.ACCEPTING_SRP) {
+            return;
+        }
+
+        switch (element) {
+            case TaskParameterElements.TITLE:
+                return <div>Safety Depth</div>;
+            case TaskParameterElements.INPUT:
+                return (
+                    <input
+                        name={TaskParameterKeys.SAFETY_DEPTH}
+                        type="number"
+                        value={formatNumericalInput(props.task.getSafetyDepth())}
+                        className="jaia-input srp"
+                        autoComplete="off"
+                        disabled={props.isDisabled}
+                        onChange={(evt) => props.onChange(evt)}
+                    />
+                );
+            case TaskParameterElements.UNITS:
+                return <div className="units">m</div>;
+        }
+    };
+
     return (
         <div className="task-parameters">
+            {getSafetyDepthElement(TaskParameterElements.TITLE)}
+            {getSafetyDepthElement(TaskParameterElements.INPUT)}
+            {getSafetyDepthElement(TaskParameterElements.UNITS)}
+
             <div className="select-on-map">
                 <div>Select on Map</div>
                 <JaiaToggle
@@ -298,6 +335,7 @@ function ConstantHeading(props: Props) {
                     disabled={() => props.isDisabled}
                 />
             </div>
+
             <div>Heading</div>
             <input
                 name={TaskParameterKeys.HEADING}

@@ -56,6 +56,7 @@ export enum TaskParameterKeys {
     HEADING = "HEADING",
     CONSTANT_HEADING_TIME = "CONSTANT_HEADING_TIME",
     SPEED = "SPEED",
+    SAFETY_DEPTH = "SAFETY_DEPTH",
 }
 
 export interface TaskParameterPair {

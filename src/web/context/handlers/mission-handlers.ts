@@ -229,7 +229,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
                             constantHeadingParams.constant_heading_speed.toString(),
                         constant_heading_time:
                             constantHeadingParams.constant_heading_time.toString(),
-                        safety_depth: "-1",
+                        safety_depth: gridPlan.getSRPTask().getSafetyDepth().toString(),
                     };
                     mission.setBottomDepthSafetyParams(bottomDepthSafetyParams);
                 }
