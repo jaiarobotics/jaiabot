@@ -12,9 +12,10 @@ import { toLonLat } from "ol/proj";
 import { Stroke, Style } from "ol/style";
 
 import JaiaVectorLayer from "../jaia-vector-layer";
+import Task from "../../../../data/tasks/task";
 import Mission from "../../../../data/mission_set/mission";
 import { touches } from "../../../controls/touches";
-import { gridPlan, GridPlanningStates } from "../../../../data/survey_planner/grid-plan";
+import { gridPlan } from "../../../../data/survey_planner/grid-plan";
 import { LayerTitles, LineType, SurveyEndpoints } from "../../../../types/openlayers-types";
 import { layersZIndexes } from "../../zindex";
 import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/grid-features";
@@ -23,10 +24,7 @@ import {
     generateSurveyEndpointCircle,
 } from "../../../features/survey/survey-endpoints";
 import { GeographicCoordinate, TaskType } from "../../../../types/protobuf-types";
-import {
-    constantHeadingParamsToLocation,
-    locationToConstantHeadingParams,
-} from "../../../../utils/conversions";
+import { constantHeadingParamsToLocation } from "../../../../utils/conversions";
 
 const units: Units = "meters";
 const options = { units: units };
@@ -216,7 +214,7 @@ class GridLayer extends JaiaVectorLayer {
         if (gridPlan.getEndTask().getType() === TaskType.CONSTANT_HEADING) {
             const point = points[points.length - 1];
             const startLocation = { lat: point[1], lon: point[0] };
-            this.createConstantHeadingProjection(startLocation);
+            this.createConstantHeadingProjection(startLocation, gridPlan.getEndTask());
         }
 
         return points;
@@ -237,7 +235,10 @@ class GridLayer extends JaiaVectorLayer {
         );
 
         if (gridPlan.getStartTask().getType() === TaskType.CONSTANT_HEADING) {
-            this.createConstantHeadingProjection(gridPlan.getMissionStart());
+            this.createConstantHeadingProjection(
+                gridPlan.getMissionStart(),
+                gridPlan.getStartTask(),
+            );
         }
     }
 
@@ -247,11 +248,8 @@ class GridLayer extends JaiaVectorLayer {
      * @param {GeographicCoordinate} startLocation Beginning of constant heading projection
      * @returns {void}
      */
-    createConstantHeadingProjection(startLocation: GeographicCoordinate) {
-        const endLocation = constantHeadingParamsToLocation(
-            startLocation,
-            gridPlan.getPlanningTask(),
-        );
+    createConstantHeadingProjection(startLocation: GeographicCoordinate, task: Task) {
+        const endLocation = constantHeadingParamsToLocation(startLocation, task);
         const constantHeadingLine = generateSurveyLane(startLocation, endLocation, LineType.DASHED);
         this.layerSource.addFeature(constantHeadingLine);
     }
