@@ -105,9 +105,9 @@ export class MissionSet {
     /**
      * Captures a snapshot of the current missionSet
      *
-     * @returns {object} snapshot of current missionSet
+     * @returns {MissionSetSnapshot} snapshot of current missionSet
      */
-    captureMissionSetSnapshot() {
+    captureSnapshot() {
         const currentMissionSet = {
             missions: Array.from(this.missions),
             nextMissionID: this.nextMissionID,
@@ -126,7 +126,7 @@ export class MissionSet {
      *
      */
 
-    restoreMissionSetFromSnapshot(snapshot: MissionSetSnapshot) {
+    restoreFromSnapshot(snapshot: MissionSetSnapshot) {
         // Clear current mission set
         this.deleteAllMissions();
 

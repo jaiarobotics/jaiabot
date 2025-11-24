@@ -4,6 +4,11 @@ import { UNASSIGNED_ID } from "../../utils/constants";
 
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
 
+export interface MissionsManagerSnapshot {
+    botsToMissions: Map<number, number>;
+    missionsToBots: Map<number, number>;
+}
+
 export class MissionsManager {
     private botsToMissions: Map<number, number>;
     private missionsToBots: Map<number, number>;
@@ -123,6 +128,39 @@ export class MissionsManager {
     clear() {
         this.botsToMissions.clear();
         this.missionsToBots.clear();
+    }
+
+    /**
+     * Captures a snapshot of the current missionsManager
+     *
+     * @returns {MissionsManagerSnapshot} snapshot of current missionsManager
+     */
+    captureSnapshot() {
+        const currentAssignments = {
+            botsToMissions: this.botsToMissions,
+            missionsToBots: this.missionsToBots,
+        } as MissionsManagerSnapshot;
+        return currentAssignments;
+    }
+
+    /**
+     * Replaces the current missionsManager set with one from a saved snapshot
+     *
+     * @param {MissionsManagerSnapshot} snapshot Snapshot of missionsManager
+     * @returns {void}
+     *
+     */
+
+    restoreFromSnapshot(snapshot: MissionsManagerSnapshot) {
+        // Clear current assignments
+        this.clear();
+
+        for (const [k, v] of snapshot.botsToMissions) {
+            this.botsToMissions.set(k, v);
+        }
+        for (const [k, v] of snapshot.missionsToBots) {
+            this.missionsToBots.set(k, v);
+        }
     }
 }
 

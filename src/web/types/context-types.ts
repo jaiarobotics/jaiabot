@@ -1,6 +1,9 @@
 import { JaiaActions } from "../context/jaia-actions";
 import { MissionSet } from "../data/mission_set/mission-set";
-import { MissionsManager } from "../data/missions_manager/missions-manager";
+import {
+    MissionsManager,
+    MissionsManagerSnapshot,
+} from "../data/missions_manager/missions-manager";
 import { MissionSetSnapshot } from "../data/mission_set/mission-set";
 import { GridPlan, GridPlanningStates } from "../data/survey_planner/grid-plan";
 import { JaiaGlobal } from "../data/jaia_global/jaia-global";
@@ -41,6 +44,7 @@ export interface JaiaContextType {
 // Snapshot of context excluding polled fields
 export interface JaisSnapshot {
     missionSetSnapshot: MissionSetSnapshot;
+    missionsManager: MissionsManagerSnapshot;
 }
 
 // Type used for actions dispatched to the context provider

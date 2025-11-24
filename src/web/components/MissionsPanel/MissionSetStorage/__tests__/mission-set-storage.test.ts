@@ -56,7 +56,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         const missionSetSnapshot = loadSnapshotFromLocalStorage("Test-Mission-Set");
 
         // Update the mission set data
-        missionSet.restoreMissionSetFromSnapshot(missionSetSnapshot);
+        missionSet.restoreFromSnapshot(missionSetSnapshot);
 
         // Verfiy we got what we expected
         expect(missionSet.getMissions().size).toEqual(2);
@@ -115,7 +115,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         let missionSetSnapshot = loadSnapshotFromLocalStorage("Test-Mission-Set-A");
 
         // Update the mission set data
-        missionSet.restoreMissionSetFromSnapshot(missionSetSnapshot);
+        missionSet.restoreFromSnapshot(missionSetSnapshot);
 
         expect(missionSet.getMissions().size).toEqual(2);
 

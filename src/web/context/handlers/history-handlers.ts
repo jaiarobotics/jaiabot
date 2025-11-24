@@ -4,6 +4,7 @@ import { syncOpenLayers } from "./handler-utils";
 import { JaiaContextType, JaisSnapshot as JaiaSnapshot } from "../../types/context-types";
 import { historyManager } from "../../data/history/histroy-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 /**
  * Pulls previous state from history and updates current state and data model
@@ -45,14 +46,14 @@ export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActio
  */
 export function captureSnapshot(context: JaiaContextType): JaiaSnapshot {
     const snapshot: JaiaSnapshot = {
-        missionSetSnapshot: missionSet.captureMissionSetSnapshot(),
+        missionSetSnapshot: missionSet.captureSnapshot(),
+        missionsManager: missionsManager.captureSnapshot(),
     }; // clone snapshot to isolate it from updates
     return cloneDeep(snapshot);
 }
 
 function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaSnapshot) {
-    missionSet.restoreMissionSetFromSnapshot(snapshot.missionSetSnapshot);
-    //TODO Need to make sure missionsManager is updated to a good state whenever
-    // misisons sets are restored, probably need to unassssign to be safe
+    missionSet.restoreFromSnapshot(snapshot.missionSetSnapshot);
+    missionsManager.restoreFromSnapshot(snapshot.missionsManager);
     return mutableState;
 }
