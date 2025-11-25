@@ -205,10 +205,7 @@ export class GridPlan {
      */
 
     restoreFromSnapshot(snapshot: GridPanSnapshot) {
-        this.missions.clear();
-        for (const [k, v] of snapshot.missions) {
-            this.missions.set(k, v);
-        }
+        this.missions = snapshot.missions;
         this.missionStart = snapshot.missionStart;
         this.missionEnd = snapshot.missionEnd;
         this.numOfLanes = snapshot.numOfLanes;

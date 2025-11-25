@@ -153,15 +153,9 @@ export class MissionsManager {
      */
 
     restoreFromSnapshot(snapshot: MissionsManagerSnapshot) {
-        // Clear current assignments
-        this.clear();
-
-        for (const [k, v] of snapshot.botsToMissions) {
-            this.botsToMissions.set(k, v);
-        }
-        for (const [k, v] of snapshot.missionsToBots) {
-            this.missionsToBots.set(k, v);
-        }
+        // Copy Maps from snapshot
+        this.botsToMissions = snapshot.botsToMissions;
+        this.missionsToBots = snapshot.missionsToBots;
     }
 }
 

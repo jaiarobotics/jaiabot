@@ -109,14 +109,14 @@ export class JaiaGlobal {
      * @returns {JaiaGlobalSnapshot} snapshot of current Grid Plan
      */
     captureSnapshot() {
-        const currentGlobals = {
+        const snapshot = {
             selectedNode: this.selectedNode,
             selectedWaypoint: this.selectedWaypoint,
             selectedTaskPacket: this.selectedTaskPacket,
             mapMode: this.mapMode,
             defaultTaskParameters: this.defaultTaskParameters,
         } as JaiaGlobalSnapshot;
-        return cloneDeep(currentGlobals);
+        return cloneDeep(snapshot);
     }
 
     /**
