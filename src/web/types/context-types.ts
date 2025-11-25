@@ -6,7 +6,7 @@ import {
 } from "../data/missions_manager/missions-manager";
 import { MissionSetSnapshot } from "../data/mission_set/mission-set";
 import { GridPlan, GridPlanningStates, GridPanSnapshot } from "../data/survey_planner/grid-plan";
-import { JaiaGlobal, JaigGlobalSnapshot } from "../data/jaia_global/jaia-global";
+import { JaiaGlobal, JaiaGlobalSnapshot } from "../data/jaia_global/jaia-global";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
 import Waypoint from "../data/waypoints/waypoint";
@@ -56,7 +56,7 @@ export interface JaiaContextDataSnapshot {
 export interface JaiaSnapshot {
     missionSetSnapshot: MissionSetSnapshot;
     gridPlanSnapshot: GridPanSnapshot;
-    jaiaGlobalSnapshot: JaigGlobalSnapshot;
+    jaiaGlobalSnapshot: JaiaGlobalSnapshot;
     missionsManagerSnapshot: MissionsManagerSnapshot;
     jaiaContextDataSnapshot: JaiaContextDataSnapshot;
 }

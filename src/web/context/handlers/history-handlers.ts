@@ -45,6 +45,8 @@ export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActio
  *
  * @param {JaiaContextType} context current state of application
  * @returns {JaiaSnapshot} cloned subset of current state
+ *
+ * @note All capture functions returned cloned snapshots
  */
 export function captureSnapshot(context: JaiaContextType) {
     const snapshot: JaiaSnapshot = {
@@ -53,19 +55,32 @@ export function captureSnapshot(context: JaiaContextType) {
         jaiaGlobalSnapshot: jaiaGlobal.captureSnapshot(),
         missionsManagerSnapshot: missionsManager.captureSnapshot(),
         jaiaContextDataSnapshot: captureContextData(context),
-    }; // clone snapshot to isolate it from updates
+    };
     return snapshot;
 }
 
-function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaSnapshot) {
+/**
+ * Restores the state to a snapshot
+ *
+ * @param {JaiaContextType} context current state of application
+ * @param {JaiaSnapshot} snapshot cloned subset of current state
+ * @returns {void}
+ */
+function restoreSnapshot(context: JaiaContextType, snapshot: JaiaSnapshot) {
     missionSet.restoreFromSnapshot(snapshot.missionSetSnapshot);
     gridPlan.restoreFromSnapshot(snapshot.gridPlanSnapshot);
     jaiaGlobal.restoreFromSnapshot(snapshot.jaiaGlobalSnapshot);
     missionsManager.restoreFromSnapshot(snapshot.missionsManagerSnapshot);
-    restoreCotextData(mutableState, snapshot.jaiaContextDataSnapshot);
-    return mutableState;
+    restoreCotextData(context, snapshot.jaiaContextDataSnapshot);
+    return context;
 }
 
+/**
+ * Captures a snapshot of context data that is not part of the data model
+ *
+ * @param {JaiaContextType} context current state of application
+ * @returns {JaiaSnapshot} snapshot cloned subset of current state
+ */
 function captureContextData(context: JaiaContextType) {
     const snapshot: JaiaContextDataSnapshot = {
         selectedRallyPoint: context.selectedRallyPoint,
@@ -79,6 +94,13 @@ function captureContextData(context: JaiaContextType) {
     return cloneDeep(snapshot);
 }
 
+/**
+ * Restores the state to a snapshot
+ *
+ * @param {JaiaContextType} context current state of application
+ * @param {JaiaSnapshot} snapshot cloned subset of current state
+ * @returns {void}
+ */
 function restoreCotextData(mutableState: JaiaContextType, snapshot: JaiaContextDataSnapshot) {
     mutableState.selectedRallyPoint = snapshot.selectedRallyPoint;
     mutableState.visibleDetails = snapshot.visibleDetails;
