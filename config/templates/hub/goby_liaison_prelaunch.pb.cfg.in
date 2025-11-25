@@ -138,7 +138,7 @@ add_commander_tab: false
     ansible_playbook {
         file: "check-vpn-status.yml" 
         name: "Check for VPN Status"
-        section: "VPN"
+        section: "Security"
         role: USER
         output_var {
             name: "jaiabot_vpn_active_state"
@@ -154,7 +154,7 @@ add_commander_tab: false
     ansible_playbook {
         file: "change-vpn-state.yml" 
         name: "Change VPN State"
-        section: "VPN"
+        section: "Security"
         role: USER
         input_var {
             name: "state"
@@ -167,6 +167,22 @@ add_commander_tab: false
         $limit
     }
 
+    ansible_playbook {
+        file: "update-dccl-password.yml" 
+        name: "Update Communications End-to-End Encryption Password"
+        section: "Security"
+        role: USER
+        input_var {
+            name: "action"
+            display_name: "Action"
+            value: "generate_new_password"
+            value: "copy_hub_password_to_all"
+            value: "clear_password"
+        }
+        $limit
+    }
+
+    
     ansible_playbook {
         file: "reboot-bots.yml" 
         name: "Reboot Bots"
@@ -204,6 +220,7 @@ add_commander_tab: false
     ansible_playbook {
         file: "change-comms-links.yml" 
         name: "Change Communications Links in use"
+        section: "Communications"
         role: USER
         input_var {
             name: "comms_link"
