@@ -1,8 +1,8 @@
+import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
 import { INIT_LANES } from "../../utils/constants";
 import { GeographicCoordinate } from "../../types/protobuf-types";
-import cloneDeep from "lodash/cloneDeep";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,
@@ -176,12 +176,12 @@ export class GridPlan {
     }
 
     /**
-     * Captures a snapshot of the current Grid Plan
+     * Captures a snapshot of the current GridPlan
      *
-     * @returns {GridPanSnapshot} snapshot of current Grid Plan
+     * @returns {GridPanSnapshot} Snapshot of current GridPlan
      */
     captureSnapshot() {
-        const currentGridPlan = {
+        const snapshot: GridPanSnapshot = {
             missionStart: this.missionStart,
             missionEnd: this.missionEnd,
             numOfLanes: this.numOfLanes,
@@ -192,18 +192,16 @@ export class GridPlan {
             endTask: this.endTask,
             state: this.state,
             missions: this.missions,
-        } as GridPanSnapshot;
-        return cloneDeep(currentGridPlan);
+        };
+        return cloneDeep(snapshot);
     }
 
     /**
-     * Replaces the current Grid Plan set with one from a saved snapshot
+     * Replaces the current properties with those from the saved snapshot
      *
-     * @param {GridPanSnapshot} snapshot Snapshot of Grid Plan
+     * @param {GridPanSnapshot} snapshot Snapshot of GridPlan
      * @returns {void}
-     *
      */
-
     restoreFromSnapshot(snapshot: GridPanSnapshot) {
         this.missions = snapshot.missions;
         this.missionStart = snapshot.missionStart;

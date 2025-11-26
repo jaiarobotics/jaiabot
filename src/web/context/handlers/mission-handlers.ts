@@ -145,20 +145,19 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
 
     // Rebuild mission set from json snapshot
     if (Array.isArray(action.missionSetSnapshot.missions)) {
-        action.missionSetSnapshot.missions.forEach(([_, serializedMission]: [number, any]) => {
-            const mission = Mission.fromJSON(serializedMission);
-            missionSet.addMission(mission);
-        });
+        action.missionSetSnapshot.missions.forEach(
+            ([missonID, serializedMission]: [number, any]) => {
+                const mission = Mission.fromJSON(serializedMission);
+                missionSet.addMission(mission);
+            },
+        );
     }
 
     // Restore other fields via setters
     missionSet.setName(action.missionSetSnapshot.name);
     missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
     missionSet.setMissionSpeeds(action.missionSetSnapshot.missionSpeeds);
-    mutableState.missionAccordionStates = Object.fromEntries(
-        Array.from(missionSet.getMissions().keys(), (key) => [key, false]),
-    );
-
+    mutableState.missionAccordionStates = {};
     missionLayer.updateFeatures();
     return mutableState;
 }

@@ -11,7 +11,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 /**
  * Pulls previous state from history and updates current state and data model
  *
- * @param {JaiaContextType} mutableState current state to be updated
+ * @param {JaiaContextType} mutableState Current state to be updated
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedUndo(mutableState: JaiaContextType) {
@@ -31,7 +31,7 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
 /**
  * Saves a snapshot of the updated App state to the history buffer
  *
- * @param {JaiaContextType} mutableState updated state to be captured
+ * @param {JaiaContextType} mutableState Updated state to be captured
  * @param {JaiaActions} actionType Type of action that created the updated state
  * @returns {void}
  */
@@ -43,17 +43,18 @@ export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActio
 /**
  * Creates a snapshot of the context state
  *
- * @param {JaiaContextType} context current state of application
- * @returns {JaiaSnapshot} cloned subset of current state
+ * @param {JaiaContextType} context Current state of application
+ * @returns {JaiaSnapshot} Cloned subset of current state
  *
- * @note All capture functions returned cloned snapshots
+ * @notes
+ * All capture functions returned cloned snapshots
  */
 export function captureSnapshot(context: JaiaContextType) {
     const snapshot: JaiaSnapshot = {
         missionSetSnapshot: missionSet.captureSnapshot(),
+        missionsManagerSnapshot: missionsManager.captureSnapshot(),
         gridPlanSnapshot: gridPlan.captureSnapshot(),
         jaiaGlobalSnapshot: jaiaGlobal.captureSnapshot(),
-        missionsManagerSnapshot: missionsManager.captureSnapshot(),
         jaiaContextDataSnapshot: captureContextData(context),
     };
     return snapshot;
@@ -62,15 +63,15 @@ export function captureSnapshot(context: JaiaContextType) {
 /**
  * Restores the state to a snapshot
  *
- * @param {JaiaContextType} context current state of application
- * @param {JaiaSnapshot} snapshot cloned subset of current state
+ * @param {JaiaContextType} context Current state of application
+ * @param {JaiaSnapshot} snapshot Cloned subset of current state
  * @returns {void}
  */
 function restoreSnapshot(context: JaiaContextType, snapshot: JaiaSnapshot) {
     missionSet.restoreFromSnapshot(snapshot.missionSetSnapshot);
+    missionsManager.restoreFromSnapshot(snapshot.missionsManagerSnapshot);
     gridPlan.restoreFromSnapshot(snapshot.gridPlanSnapshot);
     jaiaGlobal.restoreFromSnapshot(snapshot.jaiaGlobalSnapshot);
-    missionsManager.restoreFromSnapshot(snapshot.missionsManagerSnapshot);
     restoreCotextData(context, snapshot.jaiaContextDataSnapshot);
     return context;
 }
@@ -78,8 +79,8 @@ function restoreSnapshot(context: JaiaContextType, snapshot: JaiaSnapshot) {
 /**
  * Captures a snapshot of context data that is not part of the data model
  *
- * @param {JaiaContextType} context current state of application
- * @returns {JaiaSnapshot} snapshot cloned subset of current state
+ * @param {JaiaContextType} context Current state of application
+ * @returns {JaiaSnapshot} Snapshot cloned subset of current state
  */
 function captureContextData(context: JaiaContextType) {
     const snapshot: JaiaContextDataSnapshot = {
@@ -95,10 +96,10 @@ function captureContextData(context: JaiaContextType) {
 }
 
 /**
- * Restores the state to a snapshot
+ * Restores the state to the snapshot
  *
- * @param {JaiaContextType} context current state of application
- * @param {JaiaSnapshot} snapshot cloned subset of current state
+ * @param {JaiaContextType} context Current state of application
+ * @param {JaiaSnapshot} snapshot Cloned subset of current state
  * @returns {void}
  */
 function restoreCotextData(mutableState: JaiaContextType, snapshot: JaiaContextDataSnapshot) {

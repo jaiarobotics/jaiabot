@@ -17,6 +17,7 @@ import Icon from "@mdi/react";
 import { Button } from "@mui/material";
 import {
     mdiCog,
+    mdiHelp,
     mdiProgressDownload,
     mdiRuler,
     mdiViewList,
@@ -58,7 +59,7 @@ export default function ButtonList(props: Props) {
     };
 
     /**
-     * Dispatches action to Undo history
+     * Dispatches action to undo history
      *
      * @returns {void}
      */
@@ -102,6 +103,13 @@ export default function ButtonList(props: Props) {
                     onClick={() => handleUndoClick()}
                 >
                     <Icon path={mdiArrowULeftTop} title={"Undo "} />
+                </Button>
+                <Button
+                    className={getSelectedClassName(ButtonNames.HELP_PANEL)}
+                    aria-label="help-window"
+                    onClick={() => handleButtonClick(ButtonTypes.PANEL, ButtonNames.HELP_PANEL)}
+                >
+                    <Icon path={mdiHelp} size={MDI_BUTTON_SIZE} />
                 </Button>
                 <Button
                     className={getSelectedClassName(ButtonNames.JAIA_ABOUT_PANEL)}

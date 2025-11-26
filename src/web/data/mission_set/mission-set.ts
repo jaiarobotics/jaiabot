@@ -1,12 +1,12 @@
+import cloneDeep from "lodash/cloneDeep";
 import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds } from "../../types/protobuf-types";
-import cloneDeep from "lodash/cloneDeep";
 
 export interface MissionSetSnapshot {
     missions: [number, Mission][];
     nextMissionID: number;
-    missionIDInEditMode: number | null;
+    missionIDInEditMode: number;
     missionSpeeds: Speeds;
     name: string;
 }
@@ -104,29 +104,27 @@ export class MissionSet {
     }
 
     /**
-     * Captures a snapshot of the current missionSet
+     * Captures a snapshot of the MissionSet
      *
-     * @returns {MissionSetSnapshot} snapshot of current missionSet
+     * @returns {MissionSetSnapshot} snapshot of the MissionSet
      */
     captureSnapshot() {
-        const currentMissionSet = {
+        const currentMissionSet: MissionSetSnapshot = {
             missions: Array.from(this.missions),
             nextMissionID: this.nextMissionID,
             missionIDInEditMode: this.missionIDInEditMode,
             missionSpeeds: this.missionSpeeds,
             name: this.name,
-        } as MissionSetSnapshot;
+        };
         return cloneDeep(currentMissionSet);
     }
 
     /**
-     * Replaces the current mission set with one from a saved snapshot
+     * Replaces the current properties with those from the saved snapshot
      *
-     * @param {MissionSetSnapshot} snapshot Snapshot of mission set
+     * @param {MissionSetSnapshot} snapshot Snapshot of MissionSet
      * @returns {void}
-     *
      */
-
     restoreFromSnapshot(snapshot: MissionSetSnapshot) {
         // Clear current mission set
         this.deleteAllMissions();
@@ -138,7 +136,7 @@ export class MissionSet {
             });
         }
         this.nextMissionID = snapshot.nextMissionID;
-        this.missionIDInEditMode = UNASSIGNED_ID;
+        this.missionIDInEditMode = snapshot.missionIDInEditMode;
         this.missionSpeeds = snapshot.missionSpeeds;
         this.name = snapshot.name;
     }

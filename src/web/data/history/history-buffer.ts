@@ -12,6 +12,7 @@ export default class HistoryBuffer<T> {
     /**
      * Clears the entire history
      *
+     * @returns {void}
      */
     reset() {
         while (this.buffer.length > 0) {
@@ -38,9 +39,6 @@ export default class HistoryBuffer<T> {
      * Move back in history and return the previous value
      *
      * @returns {T} Previous state
-     *
-     * @notes
-     * Returned value should be cloned if mutable to prevent corruption of history
      */
     pop() {
         if (this.canPop()) {
@@ -48,6 +46,11 @@ export default class HistoryBuffer<T> {
         }
     }
 
+    /**
+     * Checks the length of the array to avoid any errors prior to popping
+     *
+     * @returns {boolean} Whether or not the array length is greater than 0
+     */
     canPop() {
         return this.buffer.length > 0;
     }

@@ -1,3 +1,4 @@
+import cloneDeep from "lodash/cloneDeep";
 import {
     NodeTypes,
     SelectedNode,
@@ -7,7 +8,6 @@ import {
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import cloneDeep from "lodash/cloneDeep";
 
 export interface JaiaGlobalSnapshot {
     selectedNode: SelectedNode;
@@ -104,27 +104,26 @@ export class JaiaGlobal {
     }
 
     /**
-     * Captures a snapshot of JaiaGlobal
+     * Captures snapshot of JaiaGlobal
      *
-     * @returns {JaiaGlobalSnapshot} snapshot of current Grid Plan
+     * @returns {JaiaGlobalSnapshot} Snapshot of JaiaGlobal
      */
     captureSnapshot() {
-        const snapshot = {
+        const snapshot: JaiaGlobalSnapshot = {
             selectedNode: this.selectedNode,
             selectedWaypoint: this.selectedWaypoint,
             selectedTaskPacket: this.selectedTaskPacket,
             mapMode: this.mapMode,
             defaultTaskParameters: this.defaultTaskParameters,
-        } as JaiaGlobalSnapshot;
+        };
         return cloneDeep(snapshot);
     }
 
     /**
-     * Replaces the current globals with those from a saved snapshot
+     * Replaces the current properties with those from the saved snapshot
      *
      * @param {JaiaGlobalSnapshot} snapshot Snapshot of JaiaGlobal
      * @returns {void}
-     *
      */
 
     restoreFromSnapshot(snapshot: JaiaGlobalSnapshot) {

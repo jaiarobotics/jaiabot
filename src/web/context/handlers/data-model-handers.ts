@@ -10,11 +10,9 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
-
-import { NodeTypes } from "../../types/jaia-system-types";
-
-import { UNASSIGNED_ID } from "../../utils/constants";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { NodeTypes } from "../../types/jaia-system-types";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
@@ -57,7 +55,6 @@ export function handleInit(mutableState: JaiaContextType) {
         gridPlan: gridPlan,
         jaiaGlobal: jaiaGlobal,
         missionsManager: missionsManager,
-
         taskPackets: taskPackets,
         selectedRallyPoint: { id: UNASSIGNED_ID },
         visibleDetails: NodeTypes.NONE,
@@ -69,12 +66,11 @@ export function handleInit(mutableState: JaiaContextType) {
     };
 
     Object.assign(mutableState, completeInit);
-
     return mutableState;
 }
 
 /**
- * Saves the latest data from incoming Bot and Hub status messages to state
+ * Triggers an app update as new status data is received from the server
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object

@@ -1,5 +1,6 @@
 import Mission from "../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
 /**
  * Saves the current mission set to local storage
@@ -30,20 +31,21 @@ export function loadSnapshotFromLocalStorage(saveName: string) {
     const missions: [number, Mission][] = [];
     if (Array.isArray(targetSet.missions)) {
         missions.push(
-            ...targetSet.missions.map(([key, serializedMission]: [any, any]) => [
-                Number(key),
+            ...targetSet.missions.map(([missionID, serializedMission]: [any, any]) => [
+                Number(missionID),
                 Mission.fromJSON(serializedMission),
             ]),
         );
     }
 
-    return {
+    const snapshot: MissionSetSnapshot = {
         missions: missions,
         nextMissionID: targetSet.nextMissionID ?? 0,
-        missionIDInEditMode: targetSet.missionIDInEditMode ?? null,
+        missionIDInEditMode: targetSet.missionIDInEditMode ?? UNASSIGNED_ID,
         missionSpeeds: targetSet.missionSpeeds ?? {},
         name: targetSet.name ?? "",
-    } as MissionSetSnapshot;
+    };
+    return snapshot;
 }
 
 /**
@@ -130,16 +132,16 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
                 const missionsArray: [number, Mission][] = [];
                 if (Array.isArray(targetSet.missions)) {
                     missionsArray.push(
-                        ...targetSet.missions.map(([_, serializedMission]: [any, any]) => [
-                            0, // ignore original key
+                        ...targetSet.missions.map(([missionID, serializedMission]: [any, any]) => [
+                            0, // Ignore original key
                             Mission.fromJSON(serializedMission),
                         ]),
                     );
                 }
                 const snapshot: MissionSetSnapshot = {
                     missions: missionsArray,
-                    nextMissionID: targetSet.nextMissionID ?? 0,
-                    missionIDInEditMode: targetSet.missionIDInEditMode ?? null,
+                    nextMissionID: targetSet.nextMissionID ?? 1,
+                    missionIDInEditMode: targetSet.missionIDInEditMode ?? UNASSIGNED_ID,
                     missionSpeeds: targetSet.missionSpeeds ?? {},
                     name: targetSet.name ?? "",
                 };
