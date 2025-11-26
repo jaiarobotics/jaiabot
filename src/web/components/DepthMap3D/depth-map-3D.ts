@@ -28,7 +28,7 @@ export function buildDepthMap() {
     }
 
     const bottomDivePackets = taskPackets
-        .getTaskPackets()
+        .getIncludedTaskPackets()
         .map((taskPackets) => taskPackets.dive)
         .filter((dive) => dive.bottom_dive);
 

@@ -1,18 +1,29 @@
 import { TaskPacket } from "../../types/protobuf-types";
 
-class TaskPackets {
+export class TaskPackets {
     private taskPackets: TaskPacket[];
+    private includedTaskPackets: TaskPacket[];
+    private excludedTaskPackets: TaskPacket[];
 
     constructor() {
-        this.taskPackets = [];
+        this.includedTaskPackets = [];
+        this.excludedTaskPackets = [];
     }
 
-    getTaskPackets() {
-        return this.taskPackets;
+    getIncludedTaskPackets() {
+        return this.includedTaskPackets;
     }
 
-    setTaskPackets(taskPackets: TaskPacket[]) {
-        this.taskPackets = taskPackets;
+    setIncludedTaskPackets(taskPackets: TaskPacket[]) {
+        this.includedTaskPackets = taskPackets;
+    }
+
+    getExcludedTaskPackets() {
+        return this.excludedTaskPackets;
+    }
+
+    setExcludedTaskPackets(taskPackets: TaskPacket[]) {
+        this.excludedTaskPackets = taskPackets;
     }
 }
 

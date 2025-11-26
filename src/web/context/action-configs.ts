@@ -19,6 +19,7 @@ import {
     handleMoveWaypoint,
     handleSelectTask,
     handleChangeTaskParameter,
+    handleChangeTaskPacketVisibility,
     handleToggleBottomDive,
     handleToggleHydrophone,
     handleToggleConstantHeadingSelect,
@@ -86,6 +87,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [
         JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT,
         { handler: handleToggleConstantHeadingSelect, tracked: true },
+    ],
+    [
+        JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
+        { handler: handleChangeTaskPacketVisibility, tracked: true },
     ],
 
     // Survey Actions

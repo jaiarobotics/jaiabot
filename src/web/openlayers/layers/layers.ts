@@ -12,6 +12,7 @@ import { rallyLayer } from "./vector/rally-layer";
 import { diveLayer } from "./vector/dive-layer";
 import { driftLayer } from "./vector/drift-layer";
 import { contourLayer } from "./vector/contour-layer";
+import { excludedTaskPacketsLayer } from "./vector/excluded-task-packets-layer";
 import { measureLayer } from "./vector/measure-layer";
 import { hubCommsLayer } from "./vector/hub-comms-layer";
 
@@ -34,6 +35,10 @@ class Layers {
         this.layers.set(LayerTitles.DIVE_LAYER, diveLayer.getVectorLayer());
         this.layers.set(LayerTitles.DRIFT_LAYER, driftLayer.getVectorLayer());
         this.layers.set(LayerTitles.CONTOUR_LAYER, contourLayer.getVectorLayer());
+        this.layers.set(
+            LayerTitles.EXCLUDED_TASK_PACKETS_LAYER,
+            excludedTaskPacketsLayer.getVectorLayer(),
+        );
         this.layers.set(LayerTitles.MEASURE_LAYER, measureLayer.getVectorLayer());
         this.layers.set(LayerTitles.HUB_COMMS_LAYER, hubCommsLayer.getVectorLayer());
     }
