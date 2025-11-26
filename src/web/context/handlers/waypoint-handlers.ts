@@ -3,13 +3,13 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
-import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
-import { UNASSIGNED_ID } from "../../utils/constants";
 import { MapModes } from "../../types/openlayers-types";
+import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
+import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 
 /**
  * Makes call to add waypoint if mission is in edit mode
@@ -36,7 +36,9 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     } else if (missionIDInEditMode !== UNASSIGNED_ID) {
         // Add waypoint to mission in edit mode
         const mission = missionSet.getMission(missionIDInEditMode);
-        mission.addWaypoint(action.location);
+        if (mission.getWaypoints().length < MAX_WAYPOINTS) {
+            mission.addWaypoint(action.location);
+        }
     }
 
     missionLayer.updateFeatures();
