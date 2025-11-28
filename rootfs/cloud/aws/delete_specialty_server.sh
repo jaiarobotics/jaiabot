@@ -5,14 +5,18 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
+if [ -z "$AWS_DEFAULT_REGION" ]; then
+    REGION=us-west-2
+    export AWS_DEFAULT_REGION=$REGION
+fi
+    
+
 set -e -u
 
-REGION=us-west-2
-export AWS_DEFAULT_REGION=$REGION
 
 SERVER_TYPE="$1"
 
-echo "⚠️  WARNING: This script will permanently delete all AWS resources tagged as 'jaia_server_type=${SERVER_TYPE}'."
+echo "⚠️  WARNING: This script will permanently delete all AWS resources tagged as 'jaia_server_type=${SERVER_TYPE}' in region $AWS_DEFAULT_REGION."
 echo "This includes:"
 echo "  - Terminating all EC2 instances"
 echo "  - Disassociating (but NOT releasing) Elastic IP"
