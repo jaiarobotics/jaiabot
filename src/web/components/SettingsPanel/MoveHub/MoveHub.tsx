@@ -61,6 +61,7 @@ export default function MoveHub() {
     /**
      * Updates the local copy of the coordinate on each key stroke. If the
      * coordinate is a number, the data model and OpenLayers will be updated.
+     * If not, only the input field will change.
      *
      * @param {ChangeEvent} evt Contains the coord type + value
      * @returns {void}
