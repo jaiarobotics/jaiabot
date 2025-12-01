@@ -150,7 +150,7 @@ function RequestStartMissionLocation() {
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
             <div className="progress-line"></div>
-            <div className="survey-text-page">Tap map for start location</div>
+            <div className="survey-text-row">Tap map for start location</div>
         </div>
     );
 }
@@ -163,7 +163,7 @@ function RequestEndMissionLocation() {
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
             <div className="progress-line"></div>
-            <div className="survey-text-page">Tap map for end location</div>
+            <div className="survey-text-row">Tap map for end location</div>
         </div>
     );
 }
@@ -238,7 +238,7 @@ function GridConfigs(props: Props) {
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
             <div className="progress-line"></div>
-            <div className="survey-location-page">Drag to create the grid</div>
+            <div className="survey-text-row">Drag to create the grid</div>
             <div className="input-grid">
                 <div>Number of Lanes:</div>
                 <input
