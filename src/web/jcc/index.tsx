@@ -87,6 +87,7 @@ function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
     for (let botID of botIDs) {
         bots.setBot(botStatuses[botID]);
     }
+    bots.setTick(bots.getTick() + 1);
 }
 
 /**

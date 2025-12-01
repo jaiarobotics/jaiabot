@@ -12,13 +12,23 @@ import Bot from "./bot";
  */
 class Bots {
     private bots: Map<number, Bot>;
+    private tick: number;
 
     constructor() {
         this.bots = new Map<number, Bot>();
+        this.tick = 0;
     }
 
     getBots() {
         return this.bots;
+    }
+
+    getTick() {
+        return this.tick;
+    }
+
+    setTick(tick: number) {
+        this.tick = tick;
     }
 
     getBot(botID: number) {

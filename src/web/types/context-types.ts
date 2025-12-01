@@ -43,6 +43,7 @@ export interface JaiaContextType {
 
     mapMode: MapModes;
     gridPlanningState: GridPlanningStates;
+    previousTick: number;
 }
 
 // Type used for actions dispatched to the context provider

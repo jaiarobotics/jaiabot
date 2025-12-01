@@ -5,6 +5,7 @@ import { JaiaAction, JaiaContextType } from "../types/context-types";
 import { JaiaActions } from "./jaia-actions";
 import { actionConfigs } from "./action-configs";
 import { saveHistory } from "./handlers/history-handlers";
+import { bots } from "../data/bots/bots";
 
 interface JaiaContextProviderProps {
     children: ReactNode;
@@ -21,8 +22,6 @@ export const JaiaDispatchContext = createContext(null);
  * @returns {JaiaContextType} The updated state object
  */
 function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
-    let mutableState = { ...state };
-
     // Get handler info from config map
     const config = actionConfigs.get(action.type);
     if (!config) {
@@ -30,8 +29,19 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         return state;
     }
 
+    // Do not allow polling to cause a rerender
+    // if we have not received a new status message
+    if (action.type === JaiaActions.POLL_DATA_MODEL) {
+        if (bots.getTick() === state.previousTick) {
+            return state;
+        }
+    }
+
+    let mutableState = { ...state };
+    mutableState.previousTick = bots.getTick();
+
     // Call the handler
-    mutableState = config.handler(mutableState, action);
+    config.handler(mutableState, action);
 
     // If this is a tracked action, save the history
     if (config.tracked) {
