@@ -52,7 +52,7 @@ def atlas_ezo_py_udp_port(node_id):
     else:
         return 20002
     
-def imu_port(node_id):
+def udp_gateway_port(node_id):
     if is_simulation():
         return 20400 + node_id
     else:

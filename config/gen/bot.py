@@ -110,8 +110,7 @@ verbosities = \
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_atlas_scientific_ezo_ec_driver':       { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_echo_driver':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'jaiabot_adafruit_BNO055_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'jaiabot_adafruit_BNO085_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'jaiabot_udp_gateway':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_terminate':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -227,7 +226,7 @@ if common.is_vfleet:
     liaison_bind_addr='0::0'
 
 # IMU config
-imu_port = common.udp.imu_port(node_id)
+udp_gateway_port = common.udp.udp_gateway_port(node_id)
 imu_detection_solution='REPORT_IMU'
 
 if is_simulation():
@@ -311,18 +310,12 @@ elif common.app == 'jaiabot_tsys01_temperature_sensor_driver':
                                      interprocess_block = interprocess_common,
                                      bind_port=common.udp.tsys01_cpp_udp_port(),
                                      remote_port=common.udp.tsys01_py_udp_port()))
-elif common.app == 'jaiabot_adafruit_BNO055_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO055_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     adafruit_bno055_report_in_simulation=is_simulation(),
-                                     imu_port=imu_port))
-elif common.app == 'jaiabot_adafruit_BNO085_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO085_driver.pb.cfg.in',
+elif common.app == 'jaiabot_udp_gateway':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_udp_gateway.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      adafruit_bno085_report_in_simulation=is_simulation(),
-                                     imu_port=imu_port))
+                                     udp_gateway_port=udp_gateway_port))
 elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_atlas_scientific_ezo_ec_driver.pb.cfg.in',
                                      app_block=app_common,
@@ -448,5 +441,5 @@ else:
                                      bot_id=bot_index,
                                      jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds,
                                      jaia_arduino_dev_location=jaia_arduino_dev_location,
-                                     imu_port=imu_port,
+                                     udp_gateway_port=udp_gateway_port,
                                      imu_type=imu_type))

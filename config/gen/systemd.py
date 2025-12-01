@@ -591,16 +591,19 @@ jaiabot_apps = [
      'exec_start_pre': '/usr/bin/reset-bio-payload-board.sh',
      'runs_on': [BOT_TYPE.BIO],
      'wanted_by': 'jaiabot_health.service'},
+
+     ## UDP Gateway Services ##
+    {'exe': 'jaiabot_udp_gateway',
+    'description': 'JaiaBot UDP Gateway',
+    'template': 'goby-app.service.in',
+    'error_on_fail': 'ERROR__FAILED__JAIABOT_UDP_GATEWAY',
+    'runs_on': [Type.BOT],
+    'wanted_by': 'jaiabot_health.service'},
+
 ]
 
 if jaia_imu_type.value == 'bno085':
     jaiabot_apps_imu = [
-        {'exe': 'jaiabot_adafruit_BNO085_driver',
-        'description': 'JaiaBot BNO085 IMU Sensor Driver',
-        'template': 'goby-app.service.in',
-        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER',
-        'runs_on': [Type.BOT],
-        'wanted_by': 'jaiabot_health.service'},
         {'exe': 'jaiabot_imu.py',
         'description': 'JaiaBot BNO085 IMU Python Driver',
         'template': 'py-app.service.in',
@@ -615,12 +618,6 @@ if jaia_imu_type.value == 'bno085':
     jaiabot_apps.extend(jaiabot_apps_imu)
 else:
     jaiabot_apps_imu = [
-        {'exe': 'jaiabot_adafruit_BNO055_driver',
-        'description': 'JaiaBot BNO055 IMU Sensor Driver',
-        'template': 'goby-app.service.in',
-        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
-        'runs_on': [Type.BOT],
-        'wanted_by': 'jaiabot_health.service'},
         {'exe': 'jaiabot_imu.py',
         'description': 'JaiaBot BNO055 IMU Python Driver',
         'template': 'py-app.service.in',

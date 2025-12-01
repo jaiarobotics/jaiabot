@@ -9,13 +9,14 @@ from imu import *
 from pyjaia.waves.acceleration_analyzer import AccelerationAnalyzer
 from threading import Thread
 from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
+from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 from google.protobuf import text_format
 import datetime
 
 
 parser = argparse.ArgumentParser(description='Read orientation, linear acceleration, and gravity from an AdaFruit BNO sensor, and publish them over UDP port')
 parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085'], required=True, help='Device type')
-parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
+parser.add_argument('-p', dest='udp_gateway_port', type=int, default=20000, help='The jaiabot_udp_gateway port to send IMU data to (default: 20000)')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
 
@@ -24,7 +25,19 @@ parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simu
 
 parser.add_argument('-d', dest='dump_html_flag', action='store_true', help='Dump SWH analysis as html file in /var/log/jaiabot')
 
-args = parser.parse_args()
+
+class Args:
+    device_type: str
+    udp_gateway_port: int
+    logging_level: str
+    interactive: bool
+    wave_height: float
+    wave_period: float
+    dump_html_flag: bool
+
+
+args: Args = parser.parse_args()
+
 
 logging.basicConfig(format='%(levelname)10s %(name)25s %(message)s', level=args.logging_level)
 log = logging.getLogger('jaiabot_imu')
@@ -35,21 +48,48 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
     port_log.info('Starting IMU port loop')
 
     # Create socket
-    port = args.port
-    if port is None:
-        port_log.error(f'Must specify port number')
-        exit(1)
-
-    port_log.info(f'Socket mode: listening on port {port}.')
-
+    udp_gateway_port = args.udp_gateway_port
+    port_log.info(f'Communicating with jaiabot_udp_gateway on port {udp_gateway_port}.')
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind(('', port))
+    sock.bind(('', 0))
+    sock.settimeout(1) # Set a timeout so we can periodically send some IMUData to announce we're alive
+
+
+    def take_reading_and_send_data():
+        port_log.debug(f'Taking IMU reading')
+        reading = imu.takeReading()
+        port_log.debug(f'IMU reading taken:\n{reading}')
+
+        if reading is None:
+            port_log.warning('takeReading() returned None')
+        else:
+            imu_data = reading.convertToIMUData()
+            wave_analyzer.addIMUData(imu_data)
+
+            if wave_analyzer._sampling_for_wave_height:
+                imu_data.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
+
+            if wave_analyzer._sampling_for_bottom_characterization:
+                imu_data.max_acceleration = wave_analyzer.getMaximumAcceleration()
+
+            imu_data.imu_type = args.device_type
+
+        address = ('localhost', udp_gateway_port)
+        port_log.debug(f'Sending IMU data to {address}:\n{imu_data}')
+        sock.sendto(imu_data.SerializeToString(), address)
+
 
     while True:
 
-        data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+        try:
+            data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+        except socket.timeout:
+            # Periodically send an empty IMUData message to announce we're alive
+            take_reading_and_send_data()
+            continue
 
         try:
+
             # Deserialize the message
             command = IMUCommand()
             command.ParseFromString(data)
@@ -57,27 +97,7 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
 
             # Execute the command
             if command.type == IMUCommand.TAKE_READING:
-                port_log.debug(f'Taking IMU reading')
-                reading = imu.takeReading()
-                port_log.debug(f'IMU reading taken:\n{reading}')
-
-                if reading is None:
-                    port_log.warning('takeReading() returned None')
-                else:
-                    imuData = reading.convertToIMUData()
-                    wave_analyzer.addIMUData(imuData)
-
-                    if wave_analyzer._sampling_for_wave_height:
-                        imuData.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
-
-                    if wave_analyzer._sampling_for_bottom_characterization:
-                        imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
-
-                    imuData.imu_type = args.device_type
-
-                    #log.warning(imuData)
-                    port_log.debug(f'Sending IMU data:\n{imuData}')
-                    sock.sendto(imuData.SerializeToString(), addr)
+                take_reading_and_send_data()
 
             elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
                 wave_analyzer.startSamplingForWaveHeight()
@@ -96,10 +116,13 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
 
 def do_interactive_loop():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.settimeout(5)
-    sock.bind(('', 0)) # Port zero picks an available port
+    sock.bind(('', args.udp_gateway_port)) # Port zero picks an available port
 
-    destinationAddress = ('localhost', args.port)
+    log.warning(f'Listening for IMU data on port {args.udp_gateway_port}')
+    _, imu_address = sock.recvfrom(1024) # Just wait for any data to arrive, so we know where to send commands
+
+    sock.settimeout(5)
+
 
     while True:
         print('''
@@ -133,7 +156,7 @@ def do_interactive_loop():
             # Start sampling for wave height
             imuCommand = IMUCommand()
             imuCommand.type = IMUCommand.START_WAVE_HEIGHT_SAMPLING
-            sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+            sock.sendto(imuCommand.SerializeToString(), imu_address)
 
             while True:
                 current_time = datetime.datetime.now()
@@ -144,7 +167,7 @@ def do_interactive_loop():
                 # Send command to take a reading
                 imuCommand = IMUCommand()
                 imuCommand.type = IMUCommand.TAKE_READING
-                sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+                sock.sendto(imuCommand.SerializeToString(), imu_address)
 
                 try:
                     # Wait for reading to come back...
@@ -162,7 +185,7 @@ def do_interactive_loop():
             # Start sampling for wave height
             imuCommand = IMUCommand()
             imuCommand.type = IMUCommand.STOP_WAVE_HEIGHT_SAMPLING
-            sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+            sock.sendto(imuCommand.SerializeToString(), imu_address)
 
             print('Results:')
             print(imuData)
@@ -188,7 +211,7 @@ def do_interactive_loop():
             print(f'ERROR:  Unknown command "{choice}"\n')
             continue
 
-        sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+        sock.sendto(imuCommand.SerializeToString(), imu_address)
         print(f'  SENT:\n{text_format.MessageToString(imuCommand, as_one_line=True)}')
         print()
 
