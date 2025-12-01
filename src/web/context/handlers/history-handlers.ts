@@ -12,6 +12,7 @@ import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
 
 /**
  * Pulls previous state from history and updates current state and data model
@@ -30,10 +31,11 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
     // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
 
-    // Close Survey Panel if left open by Undo
+    // Close survey panel if left open by undo
     if (mutableState.visiblePanel === ButtonNames.SURVEY_TOOL) {
         mutableState.visiblePanel = ButtonNames.NONE;
     }
+    gridLayer.getVectorLayer().getSource().clear();
 
     syncOpenLayers();
     return mutableState;

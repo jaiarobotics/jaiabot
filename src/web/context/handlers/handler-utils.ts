@@ -12,5 +12,4 @@ export function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
-    gridLayer.updateFeatures();
 }
