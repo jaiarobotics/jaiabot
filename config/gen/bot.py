@@ -314,7 +314,7 @@ elif common.app == 'jaiabot_udp_gateway':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_udp_gateway.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     adafruit_bno085_report_in_simulation=is_simulation(),
+                                     imu_data_report_in_simulation=is_simulation(),
                                      udp_gateway_port=udp_gateway_port))
 elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_atlas_scientific_ezo_ec_driver.pb.cfg.in',

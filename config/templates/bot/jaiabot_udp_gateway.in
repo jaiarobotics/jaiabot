@@ -7,4 +7,4 @@ udp_config {
     remote_port: $udp_gateway_port
 }
 
-adafruit_bno085_report_in_simulation: $adafruit_bno085_report_in_simulation
+imu_data_report_in_simulation: $imu_data_report_in_simulation

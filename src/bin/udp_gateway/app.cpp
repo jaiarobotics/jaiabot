@@ -31,7 +31,7 @@
 #include <goby/zeromq/application/multi_thread.h>
 #include <iostream>
 
-#include "config.pb.h"
+#include "bin/udp_gateway/config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/udp_gateway.pb.h"
@@ -73,7 +73,7 @@ class UDPGateway
 
   private:
     dccl::Codec dccl_;
-    goby::time::SteadyClock::time_point last_adafruit_BNO085_report_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_imu_data_time_{std::chrono::seconds(0)};
     bool helm_ivp_in_mission_{false};
     goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
         goby::time::SteadyClock::now()};
@@ -163,7 +163,7 @@ void jaiabot::apps::UDPGateway::received_imu_data(const jaiabot::protobuf::IMUDa
     glog.is_debug2() && glog << "Received IMUData: " << imu_data.ShortDebugString()
                              << endl;
     interprocess().publish<groups::imu>(imu_data);
-    last_adafruit_BNO085_report_time_ = goby::time::SteadyClock::now();
+    last_imu_data_time_ = goby::time::SteadyClock::now();
 }
 
 
@@ -199,8 +199,8 @@ void jaiabot::apps::UDPGateway::health(
     health.set_name(this->app_name());
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
-    //Check to see if the adafruit_BNO085 is responding
-    if (cfg().adafruit_bno085_report_in_simulation())
+    //Check to see if the IMU is responding
+    if (cfg().imu_data_report_in_simulation())
     {
         if (helm_ivp_in_mission_)
         {
@@ -223,14 +223,14 @@ void jaiabot::apps::UDPGateway::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
-    if (last_adafruit_BNO085_report_time_ +
-            std::chrono::seconds(cfg().adafruit_bno085_report_timeout_seconds()) <
+    if (last_imu_data_time_ +
+            std::chrono::seconds(cfg().imu_data_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
-        glog.is_warn() && glog << "Timeout on adafruit_BNO085" << std::endl;
+        glog.is_warn() && glog << "Timeout on IMU data" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_ADAFRUIT_BNO085_DRIVER);
+            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_IMU);
 
         // Wait a certain amount of time before publishing issue
         if (last_imu_trigger_issue_time_ +
