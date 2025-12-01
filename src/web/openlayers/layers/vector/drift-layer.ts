@@ -17,7 +17,7 @@ class DriftLayer extends JaiaVectorLayer {
     override updateFeatures() {
         let source = this.getVectorLayer().getSource();
         source.clear();
-        for (let taskPacket of taskPackets.getTaskPackets()) {
+        for (let taskPacket of taskPackets.getIncludedTaskPackets()) {
             if (taskPacket.drift) {
                 const driftFeature = generateDriftFeature(taskPacket);
                 source.addFeature(driftFeature);

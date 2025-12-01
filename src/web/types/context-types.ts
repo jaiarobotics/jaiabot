@@ -6,6 +6,7 @@ import Hub from "../data/hubs/hub";
 import Mission from "../data/mission_set/mission";
 import Waypoint from "../data/waypoints/waypoint";
 import Task from "../data/tasks/task";
+import { TaskPackets } from "../data/task_packets/task-packets";
 import HistoryBuffer from "../utils/history-buffer";
 import {
     SelectedNode,
@@ -24,7 +25,7 @@ export interface JaiaContextType {
     hubs: Map<number, Hub>;
     missions: Map<number, Mission>;
     gridMissions: Map<number, Mission>;
-    taskPackets: TaskPacket[];
+    taskPackets: TaskPackets;
     stateHistory: HistoryBuffer<JaiaHistoryType>;
 
     selectedNode: SelectedNode;
@@ -60,6 +61,8 @@ export interface JaiaAction {
     task?: Task;
     taskType?: TaskType;
     taskParameterPairs?: TaskParameterPair[];
+    taskPacketID?: string;
+    taskPacketVisibility?: TaskPacketVisibility;
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
@@ -182,4 +185,9 @@ export enum PanelActions {
     CANCEL = 1,
     DONE = 2,
     CLOSE = 3,
+}
+
+export enum TaskPacketVisibility {
+    EXCLUDE = 1,
+    INCLUDE = 2,
 }

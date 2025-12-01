@@ -1,6 +1,9 @@
 import { botLayer } from "../../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
+import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
+import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
 
 /**
  * Repaints the map layers using the latest data
@@ -11,4 +14,10 @@ export function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
+}
+
+export function syncTaskLayers() {
+    diveLayer.updateFeatures();
+    driftLayer.updateFeatures();
+    contourLayer.updateFeatures();
 }

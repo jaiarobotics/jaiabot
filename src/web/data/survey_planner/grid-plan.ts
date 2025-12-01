@@ -1,6 +1,7 @@
+import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
-import { INIT_LANES } from "../../utils/constants";
+import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
 export enum GridPlanningStates {
@@ -15,16 +16,20 @@ export enum GridPlanningStates {
 
 export interface GridPlanDetails {
     numOfLanes: number;
+    numOfBots: number;
     laneSpacing: number;
     pointSpacing: number;
     surveyTask: Task;
     state: GridPlanningStates;
 }
 
+const ENDPOINTS = 2;
+
 export class GridPlan {
     private missionStart: GeographicCoordinate;
     private missionEnd: GeographicCoordinate;
     private numOfLanes: number;
+    private numOfBots: number;
     private laneSpacing: number;
     private pointSpacing: number;
     private surveyTask: Task;
@@ -32,16 +37,19 @@ export class GridPlan {
     private endTask: Task;
     private state: GridPlanningStates;
     private missions: Map<number, Mission>;
+    private maxWaypointsPerLane: number;
 
     constructor() {
         this.state = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
-        this.numOfLanes = INIT_LANES;
+        this.numOfLanes = UNASSIGNED_ID;
+        this.numOfBots = UNASSIGNED_ID;
         this.laneSpacing = 10;
         this.pointSpacing = 10;
         this.surveyTask = new Task(true);
         this.startTask = new Task(true);
         this.endTask = new Task(true);
         this.missions = new Map<number, Mission>();
+        this.maxWaypointsPerLane = MAX_WAYPOINTS;
     }
 
     reset() {
@@ -55,6 +63,7 @@ export class GridPlan {
     getGridPlanDetails() {
         const gridPlanDetails: GridPlanDetails = {
             numOfLanes: this.numOfLanes,
+            numOfBots: this.numOfBots,
             laneSpacing: this.laneSpacing,
             pointSpacing: this.pointSpacing,
             surveyTask: this.surveyTask,
@@ -85,6 +94,14 @@ export class GridPlan {
 
     setNumOfLanes(numOfLanes: number) {
         this.numOfLanes = numOfLanes;
+    }
+
+    getNumOfBots() {
+        return this.numOfBots;
+    }
+
+    setNumOfBots(numOfBots: number) {
+        this.numOfBots = numOfBots;
     }
 
     getLaneSpacing() {
@@ -141,6 +158,70 @@ export class GridPlan {
 
     setMissions(missions: Map<number, Mission>) {
         this.missions = missions;
+    }
+
+    getMaxWaypointsPerLane() {
+        return this.maxWaypointsPerLane;
+    }
+
+    /**
+     * Sets the max waypoints per lane based on the number of lanes per Bot
+     *
+     * @returns {void}
+     */
+    calculateMaxPointsPerLane() {
+        const lanesPerBot = Math.ceil(this.getNumOfLanes() / this.getNumOfBots());
+        this.maxWaypointsPerLane = Math.floor(MAX_WAYPOINTS / lanesPerBot) - ENDPOINTS;
+    }
+
+    /**
+     * When the number of lanes exceeds the number of Bots, the extra lanes
+     * will be shared among the Bots. Bots can be assigned multiple adjacent lanes.
+     * Each additional lane does not require the Bot to transit to the
+     * mission start + end points.
+     *
+     * @returns {void}
+     */
+    fitLanesToBots() {
+        const lanesPerBot = Math.floor(this.numOfLanes / this.numOfBots);
+        let extraLanes = this.numOfLanes % this.numOfBots;
+        let lanesCovered = 0;
+        let missionID = 1;
+
+        if (lanesPerBot === 1 && extraLanes === 0) {
+            return;
+        }
+
+        while (lanesCovered < this.numOfLanes) {
+            let updatedLanesPerBot = lanesPerBot;
+            if (extraLanes > 0) {
+                updatedLanesPerBot += 1;
+                extraLanes -= 1;
+            }
+
+            const baseMission = new Mission();
+            baseMission.setMissionID(missionID);
+
+            for (let i = lanesCovered; i < lanesCovered + updatedLanesPerBot; i++) {
+                const mission = this.missions.get(i + 1);
+                // Remove mission end location if not last lane in group
+                if (i + 1 < lanesCovered + updatedLanesPerBot) {
+                    mission.getWaypoints().pop();
+                }
+
+                // Remove mission start location if not first lane in group
+                if (i !== lanesCovered) {
+                    mission.getWaypoints().shift();
+                }
+
+                baseMission.addWaypoints(cloneDeep(mission.getWaypoints()));
+                this.missions.delete(mission.getMissionID());
+            }
+
+            this.missions.set(baseMission.getMissionID(), baseMission);
+            lanesCovered += updatedLanesPerBot;
+            missionID += 1;
+        }
     }
 
     /**
