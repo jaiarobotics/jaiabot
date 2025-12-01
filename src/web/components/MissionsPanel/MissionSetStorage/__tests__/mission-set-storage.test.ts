@@ -16,6 +16,7 @@ import {
     listSavedMissionSets,
     loadSnapshotFromLocalStorage,
 } from "../mission-set-storage";
+import { UNASSIGNED_ID } from "../../../../utils/constants";
 
 describe("Exercise functions to save and load missions from localStorage", () => {
     beforeEach(() => {
@@ -143,7 +144,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         // Verify defaults
         expect(missionSetSnapshot.missions).toEqual([]);
         expect(missionSetSnapshot.nextMissionID).toBe(0);
-        expect(missionSetSnapshot.missionIDInEditMode).toBeNull();
+        expect(missionSetSnapshot.missionIDInEditMode).toEqual(UNASSIGNED_ID);
         expect(missionSetSnapshot.missionSpeeds).toEqual({});
         expect(missionSetSnapshot.name).toBe("");
     });
