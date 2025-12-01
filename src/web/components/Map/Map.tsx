@@ -64,6 +64,7 @@ export default function Map() {
                 return;
             case MapModes.HUB_LOCATION_SELECT:
                 handleHubLocationSelectClick(event.coordinate);
+                return;
         }
 
         const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature);
