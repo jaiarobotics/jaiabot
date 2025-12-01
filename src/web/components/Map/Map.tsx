@@ -62,6 +62,9 @@ export default function Map() {
             case MapModes.CONSTANT_HEADING_SELECT:
                 handleConstantHeadingSelectClick(event.coordinate, mapMode);
                 return;
+            case MapModes.HUB_LOCATION_SELECT:
+                handleHubLocationSelectClick(event.coordinate);
+                return;
         }
 
         const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature);
@@ -212,6 +215,18 @@ export default function Map() {
             task: task,
             taskParameterPairs: taskParameterPairs,
         });
+    };
+
+    /**
+     * Dispatches action to update the Hub's position to the click location
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
+    const handleHubLocationSelectClick = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        const location = { lon: lonLat[0], lat: lonLat[1] };
+        jaiaDispatch({ type: JaiaActions.MOVE_HUB, location: location });
     };
 
     /**

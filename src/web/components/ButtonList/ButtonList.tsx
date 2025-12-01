@@ -88,6 +88,7 @@ export default function ButtonList(props: Props) {
         }
         return "jaia-button";
     };
+
     /**
      * Provides the class name to style the undo button
      *
@@ -95,6 +96,7 @@ export default function ButtonList(props: Props) {
      */
     const getUndoClassName = () =>
         jaiaContext.stateHistory.canUndo() ? "jaia-button" : "jaia-button disabled";
+
     /**
      * Provides the class name to style the redo button
      *
