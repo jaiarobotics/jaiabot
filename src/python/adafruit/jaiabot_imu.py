@@ -118,8 +118,9 @@ def do_interactive_loop():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', args.udp_gateway_port)) # Port zero picks an available port
 
-    log.warning(f'Listening for IMU data on port {args.udp_gateway_port}')
+    print(f'Listening for IMU data on port {args.udp_gateway_port}...')
     _, imu_address = sock.recvfrom(1024) # Just wait for any data to arrive, so we know where to send commands
+    print(f'Received initial contact from IMU at address {imu_address}')
 
     sock.settimeout(5)
 
