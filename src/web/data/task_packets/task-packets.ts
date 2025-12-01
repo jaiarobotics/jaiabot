@@ -1,9 +1,9 @@
 import { TaskPacket } from "../../types/protobuf-types";
 
 export class TaskPackets {
-    private taskPackets: TaskPacket[];
     private includedTaskPackets: TaskPacket[];
     private excludedTaskPackets: TaskPacket[];
+    private version: number;
 
     constructor() {
         this.includedTaskPackets = [];
@@ -24,6 +24,14 @@ export class TaskPackets {
 
     setExcludedTaskPackets(taskPackets: TaskPacket[]) {
         this.excludedTaskPackets = taskPackets;
+    }
+
+    getVersion() {
+        return this.version;
+    }
+
+    setVersion(version: number) {
+        this.version = version;
     }
 }
 

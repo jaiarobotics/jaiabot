@@ -18,6 +18,7 @@ import { DATA_MODEL_POLL_TIME, TASK_PACKET_POLL_TIME } from "../utils/constants"
 // Sample status messages twice as fast as produced by Bots and Hubs to reduce potential data age issues
 const STATUS_URL = "/jaia/v0/status";
 const TASK_PACKET_URL = "/jaia/v0/task-packets";
+const TASK_PACKET_VERSION_URL = "/jaia/v0/task-packets-version";
 const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
 let statusRequestInFlight = false;
@@ -56,14 +57,18 @@ const taskPacketInterval = setInterval(async () => {
     }
     try {
         taskPacketRequestInFlight = true;
-        const response = await fetch(TASK_PACKET_URL);
-        if (!response.ok) {
-            console.error(`Response status: ${response.status}`);
+        const versionRes = await fetch(TASK_PACKET_VERSION_URL);
+        if (!versionRes.ok) {
+            console.error(`Response status: ${versionRes.status}`);
         } else {
-            const json = await response.json();
-            taskPackets.setIncludedTaskPackets(json.result.included);
-            taskPackets.setExcludedTaskPackets(json.result.excluded);
-            updateTaskLayers();
+            const version = await versionRes.json();
+            if (version !== taskPackets.getVersion()) {
+                const taskPacketRes = await fetch(TASK_PACKET_URL);
+                const json = await taskPacketRes.json();
+                taskPackets.setIncludedTaskPackets(json.result.included);
+                updateTaskLayers();
+                taskPackets.setVersion(version);
+            }
         }
     } catch (error) {
         console.error(error);
