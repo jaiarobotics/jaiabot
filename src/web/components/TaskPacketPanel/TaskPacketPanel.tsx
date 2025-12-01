@@ -1,16 +1,18 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+import { TaskPackets } from "../../data/task_packets/task-packets";
 import { TaskPacket } from "../../types/protobuf-types";
-import { PanelActions } from "../../types/context-types";
+import { PanelActions, TaskPacketVisibility } from "../../types/context-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { SelectedTaskPacket } from "../../types/jaia-system-types";
 
 import "./TaskPacketPanel.less";
 
 interface Props {
-    selectedTaskPacket: SelectedTaskPacket;
-    taskPackets: TaskPacket[];
+    selectedTaskPacket?: SelectedTaskPacket;
+    taskPackets?: TaskPackets;
+    taskPacketID?: string;
 }
 
 /**
@@ -23,7 +25,10 @@ export default function TaskPacketPanel(props: Props) {
      * @returns {TaskPacket}
      */
     const getTaskPacket = () => {
-        for (const taskPacket of props.taskPackets) {
+        const allTaskPackets = props.taskPackets
+            .getIncludedTaskPackets()
+            .concat(props.taskPackets.getExcludedTaskPackets());
+        for (const taskPacket of allTaskPackets) {
             if (
                 taskPacket.start_time === props.selectedTaskPacket.startTime &&
                 taskPacket.bot_id === props.selectedTaskPacket.botID
@@ -31,6 +36,20 @@ export default function TaskPacketPanel(props: Props) {
                 return taskPacket;
             }
         }
+    };
+
+    // Call getTaskPacket once on initial render
+    const taskPacket = useMemo(() => getTaskPacket(), []);
+
+    /**
+     * Gets the ID used by the server for querying task packet data
+     *
+     * @param {TaskPacket} taskPacket Selected task packet
+     * @returns {string} "botid_startTimeSeconds"
+     */
+    const getTaskPacketID = (taskPacket: TaskPacket) => {
+        const startTimeSeconds = Math.round(taskPacket.start_time / 1e6);
+        return `${taskPacket.bot_id}_${startTimeSeconds}`;
     };
 
     /**
@@ -64,7 +83,6 @@ export default function TaskPacketPanel(props: Props) {
         });
     };
 
-    const taskPacket = getTaskPacket();
     const startTime = formatDate(taskPacket.start_time);
     const endTime = formatDate(taskPacket.end_time);
 
@@ -73,7 +91,7 @@ export default function TaskPacketPanel(props: Props) {
             return (
                 <div className="task-packet-panel-container">
                     <div className="task-packet-panel">
-                        <div className="label">Bot ID:</div>
+                        <div className="label">Bot</div>
                         <div>{taskPacket.bot_id}</div>
                         <div className="line-break"></div>
                         <div className="label">Depth Achieved:</div>
@@ -91,6 +109,7 @@ export default function TaskPacketPanel(props: Props) {
                         <div className="label">End Time:</div>
                         <div>{endTime}</div>
                     </div>
+                    <VisibilityButtons taskPacketID={getTaskPacketID(taskPacket)} />
                     <button onClick={() => handleCloseClick()}>Close</button>
                 </div>
             );
@@ -122,8 +141,37 @@ export default function TaskPacketPanel(props: Props) {
                         <div className="label">End Time:</div>
                         <div>{endTime}</div>
                     </div>
+                    <VisibilityButtons taskPacketID={getTaskPacketID(taskPacket)} />
                     <button onClick={() => handleCloseClick()}>Close</button>
                 </div>
             );
     }
+}
+
+/**
+ * Renders the exclude + include buttons for task packets
+ */
+function VisibilityButtons(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+
+    /**
+     * Dispatches action to remove or bring back task packet
+     *
+     * @param {TaskPacketVisibility} taskPacketVisibility Name of the clicked button
+     * @returns {void}
+     */
+    const handleClick = (taskPacketVisibility: TaskPacketVisibility) => {
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
+            taskPacketVisibility: taskPacketVisibility,
+            taskPacketID: props.taskPacketID,
+        });
+    };
+
+    return (
+        <div className="visibility-buttons">
+            <button onClick={() => handleClick(TaskPacketVisibility.EXCLUDE)}>Exclude</button>
+            <button onClick={() => handleClick(TaskPacketVisibility.INCLUDE)}>Include</button>
+        </div>
+    );
 }
