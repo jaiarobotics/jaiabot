@@ -20,8 +20,15 @@ const STATUS_URL = "/jaia/v0/status";
 const TASK_PACKET_URL = "/jaia/v0/task-packets";
 const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
+let statusRequestInFlight = false;
+let taskPacketRequestInFlight = false;
+
 const statusInterval = setInterval(async () => {
+    if (statusRequestInFlight) {
+        return;
+    }
     try {
+        statusRequestInFlight = true;
         const response = await fetch(STATUS_URL);
         if (!response.ok) {
             console.error(`Response status: ${response.status}`);
@@ -40,10 +47,15 @@ const statusInterval = setInterval(async () => {
         updateDisconnectedWarning(true);
         console.error(error);
     }
+    statusRequestInFlight = false;
 }, DATA_MODEL_POLL_TIME);
 
 const taskPacketInterval = setInterval(async () => {
+    if (taskPacketRequestInFlight) {
+        return;
+    }
     try {
+        taskPacketRequestInFlight = true;
         const response = await fetch(TASK_PACKET_URL);
         if (!response.ok) {
             console.error(`Response status: ${response.status}`);
@@ -56,6 +68,7 @@ const taskPacketInterval = setInterval(async () => {
     } catch (error) {
         console.error(error);
     }
+    taskPacketRequestInFlight = false;
 }, TASK_PACKET_POLL_TIME);
 
 /**
