@@ -1,7 +1,12 @@
 import { cloneDeep } from "lodash";
 import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
-import { JaiaContextType, JaiaSnapshot, JaiaContextDataSnapshot } from "../../types/context-types";
+import {
+    JaiaContextType,
+    JaiaSnapshot,
+    JaiaContextDataSnapshot,
+    ButtonNames,
+} from "../../types/context-types";
 import { historyManager } from "../../data/history/histroy-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -24,6 +29,12 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
 
     // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
+
+    // Close Survey Panel if left open by Undo
+    if (mutableState.visiblePanel === ButtonNames.SURVEY_TOOL) {
+        mutableState.visiblePanel = ButtonNames.NONE;
+    }
+
     syncOpenLayers();
     return mutableState;
 }
