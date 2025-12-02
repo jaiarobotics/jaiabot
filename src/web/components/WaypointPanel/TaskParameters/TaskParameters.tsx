@@ -61,12 +61,6 @@ export default function TaskParameters(props: Props) {
                 taskParameterPairs: [{ key, value }],
             });
         }
-
-        jaiaDispatch({
-            type: JaiaActions.CHANGE_TASK_PARAMETER,
-            task: props.task,
-            taskParameterPairs: [{ key, value }],
-        });
     };
 
     /**
