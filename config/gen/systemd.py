@@ -814,6 +814,10 @@ for app in jaiabot_apps:
         if disable:
             print('Disabling ' + service)
             subprocess.run('systemctl disable ' + service, check=True, shell=True)
+        if app['template'] == 'jcc.conf.in':
+            print('Enabling ' + service)
+            subprocess.run('a2ensite ' + service, check=True, shell=True)
+            subprocess.run('systemctl reload apache2', check=True, shell=True)
             
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
 def is_firm_run(firm):
