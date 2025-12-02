@@ -16,10 +16,8 @@ class Quaternion:
 
 
     @staticmethod
-    def from_tuple(t: tuple):
-        if None in t:
-            return Quaternion(1, 0, 0, 0)
-        return Quaternion(*t)
+    def from_xyzw(x: float, y: float, z: float, w: float):
+        return Quaternion(w, x, y, z)
 
 
     # Quaternion * Quaternion (multiplication)

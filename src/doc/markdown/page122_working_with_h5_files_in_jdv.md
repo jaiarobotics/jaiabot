@@ -67,7 +67,8 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 
 
 ### **Pressure Data**
-- ***Depth*** - *The depth of the vehicle, adjusting for surface pressure* <br>
+- ***Depth*** - *The depth of the vehicle's tail, adjusting for surface pressure and the distance from the pressure sensor to the tail.* <br>
+- ***Sensor Depth*** - *The depth the vehicle's pressure sensor, adjusting for surface pressure.* <br>
 - ***Pressure*** - *The current pressure experienced by the vehicle, minus the pressure at the surface* <br>
 - ***Raw Pressure*** - *The pressure reading as it comes from the Bar 30 pressure sensor* <br>
 - *Measured via a **Blue Robotics Bar30***
@@ -77,7 +78,8 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 ##### **Data Paths**
 | Data Field     | Unit | Frequency | JDV Path                                         | HDF5 Log Path                                                                       |
 |----------------|------|-----------|--------------------------------------------------|-------------------------------------------------------------------------------------|
-|**Depth**       |*m*   |*10 Hz*    |`jaiabot::pressure_adjusted` ➜ `calculated_depth` |`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/calculated_depth` |
+|**Depth**       |*m*   |*10 Hz*    |`jaiabot::pressure_adjusted` ➜ `depth` |`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/depth` |
+|**Sensor Depth**|*m*   |*10 Hz*    |`jaiabot::pressure_adjusted` ➜ `sensor_depth` |`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/sensor_depth` |
 |**Pressure**    |*mbar*|*10 Hz*    |`jaiabot::pressure_adjusted` ➜ `pressure_adjusted`|`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/pressure_adjusted`|
 |**Raw Pressure**|*mbar*|*10 Hz*    |`jaiabot::pressure_adjusted` ➜ `pressure_raw`     |`/jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData/pressure_raw`     |
 

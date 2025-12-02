@@ -2,6 +2,18 @@
 
 set -e
 
-rsync -zaP -r ../ b2f2:python/
+if [ -z "$1" ]; then
+  echo "Usage: $0 <remote-host>"
+  exit 1
+fi
 
-ssh b2f2 'cd python/adafruit; ./remote_test.sh'
+REMOTE=$1
+
+if [[ $2 == "clean" ]]; then
+    echo "Cleaning remote host"
+    ssh $REMOTE "rm -rf ~/python/*"
+fi
+
+rsync -zaP -r --exclude="venv/" --exclude="*.pyc" --exclude="*.egg-info" ../ $REMOTE:python/
+
+ssh $REMOTE "cd python/adafruit; ./remote_test.sh"
