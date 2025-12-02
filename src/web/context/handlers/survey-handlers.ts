@@ -91,6 +91,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             missionSet.setMissions(cloneDeep(gridPlan.getMissions()));
             missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
             missionSet.setNextMissionID(gridPlan.getMissions().size + 1);
+            missionsManager.clear();
             missionsManager.autoAssign();
 
             handleMapModeChange(MapModes.DEFAULT);

@@ -15,6 +15,8 @@ interface Props {
     taskPacketID?: string;
 }
 
+const DECIMALS = 2;
+
 /**
  * Displays task packet data to the operator in a tabular format
  */
@@ -95,10 +97,10 @@ export default function TaskPacketPanel(props: Props) {
                         <div>{taskPacket.bot_id}</div>
                         <div className="line-break"></div>
                         <div className="label">Depth Achieved:</div>
-                        <div>{taskPacket.dive.depth_achieved} m</div>
+                        <div>{taskPacket.dive.depth_achieved.toFixed(DECIMALS)} m</div>
                         <div className="line-break"></div>
                         <div className="label">Dive Rate:</div>
-                        <div>{taskPacket.dive.dive_rate} m/s</div>
+                        <div>{taskPacket.dive.dive_rate.toFixed(DECIMALS)} m/s</div>
                         <div className="line-break"></div>
                         <div className="label">Bottom Dive:</div>
                         <div>{taskPacket.dive.bottom_dive ? "Yes" : "No"}</div>
@@ -122,18 +124,18 @@ export default function TaskPacketPanel(props: Props) {
                         <div>{taskPacket.bot_id}</div>
                         <div className="line-break"></div>
                         <div className="label">Duration:</div>
-                        <div>{taskPacket.drift.drift_duration} s</div>
+                        <div>{taskPacket.drift.drift_duration.toFixed(DECIMALS)} s</div>
                         <div className="line-break"></div>
                         <div className="label">Speed:</div>
-                        <div>{taskPacket.drift.estimated_drift.speed} m/s</div>
+                        <div>{taskPacket.drift.estimated_drift.speed.toFixed(DECIMALS)} m/s</div>
                         <div className="line-break"></div>
                         <div className="label">Direction:</div>
-                        <div>{taskPacket.drift.estimated_drift.heading} deg</div>
+                        <div>{taskPacket.drift.estimated_drift.heading.toFixed(DECIMALS)} deg</div>
                         <div className="line-break"></div>
                         <div className="label">
                             Sig Wave Height<br></br>Beta:
                         </div>
-                        <div>{taskPacket.drift.significant_wave_height} m</div>
+                        <div>{taskPacket.drift.significant_wave_height.toFixed(DECIMALS)} m</div>
                         <div className="line-break"></div>
                         <div className="label">Start Time:</div>
                         <div>{startTime}</div>
