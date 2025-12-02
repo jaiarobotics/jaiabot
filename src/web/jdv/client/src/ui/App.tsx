@@ -243,12 +243,15 @@ export class App extends React.Component {
 
             const logs_are_displayed = this.state.chosenLogs.length > 0;
 
-            const information_dialog = this.state.isInformationDialogVisible ? (
-                <InformationDialog
-                    logFileName={this.state.chosenLogName}
-                    onClose={() => this.setState({ isInformationDialogVisible: false })}
-                />
-            ) : null;
+            // Check that we're retrieving the metadata ONLY for the log file associated with the info button we clicked
+            const information_dialog =
+                this.state.isInformationDialogVisible &&
+                chosenLogName === this.state.chosenLogName ? (
+                    <InformationDialog
+                        logFileName={this.state.chosenLogName}
+                        onClose={() => this.setState({ isInformationDialogVisible: false })}
+                    />
+                ) : null;
 
             return (
                 <div
