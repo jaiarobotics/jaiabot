@@ -337,13 +337,13 @@ export class App extends React.Component {
         if (this.state.chosenLogs !== prevState.chosenLogs) {
             if (this.state.chosenLogs.length > 0) {
                 // Get the metadata for the selected logs
-                LogApi.getObjects<DeviceMetadata>(
-                    this.state.chosenLogs,
-                    "jaiabot::metadata/jaiabot.protobuf.DeviceMetadata",
-                ).then((metadata) => {
-                    console.log("Metadata for selected logs:");
-                    console.log(metadata);
-                });
+                // LogApi.getObjects<DeviceMetadata>(
+                //     this.state.chosenLogs,
+                //     "jaiabot::metadata/jaiabot.protobuf.DeviceMetadata",
+                // ).then((metadata) => {
+                //     console.log("Metadata for selected logs:");
+                //     console.log(metadata);
+                // });
 
                 // Get map data
                 const getMapJob = LogApi.getMapData(this.state.chosenLogs).then(
