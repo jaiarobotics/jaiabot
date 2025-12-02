@@ -34,7 +34,7 @@ export function DiveInputs(props: DiveInputsProps) {
             <div>Max Depth</div>
             <input
                 name="max_depth"
-                type="number"
+                type="search"
                 value={formatNumericalInput(props.rcDiveParameters.max_depth)}
                 className="jaia-input"
                 autoComplete="off"
@@ -45,7 +45,7 @@ export function DiveInputs(props: DiveInputsProps) {
             <div>Depth Interval</div>
             <input
                 name="depth_interval"
-                type="number"
+                type="search"
                 value={formatNumericalInput(props.rcDiveParameters.depth_interval)}
                 className="jaia-input"
                 autoComplete="off"
@@ -56,7 +56,7 @@ export function DiveInputs(props: DiveInputsProps) {
             <div>Hold Time</div>
             <input
                 name="hold_time"
-                type="number"
+                type="search"
                 value={formatNumericalInput(props.rcDiveParameters.hold_time)}
                 className="jaia-input"
                 autoComplete="off"
@@ -67,7 +67,7 @@ export function DiveInputs(props: DiveInputsProps) {
             <div>Drift Time</div>
             <input
                 name="drift_time"
-                type="number"
+                type="search"
                 value={formatNumericalInput(props.rcDiveParameters.drift_time)}
                 className="jaia-input"
                 autoComplete="off"
