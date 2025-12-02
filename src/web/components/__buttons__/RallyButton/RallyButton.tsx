@@ -24,7 +24,7 @@ export default function RallyButton() {
      * @returns {string} Class name that applies the correct style
      */
     const getClassName = () => {
-        return `jaia-button ${jaiaContext.mapMode === MapModes.RALLY ? "selected" : ""}`;
+        return `jaia-button ${jaiaContext.jaiaGlobal.getMapMode() === MapModes.RALLY ? "selected" : ""}`;
     };
 
     /**

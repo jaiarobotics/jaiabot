@@ -25,7 +25,7 @@ export default function MoveHub() {
      * @returns {string} Latitude or longitude point (0 if not available)
      */
     const getHubLocation = (coordType: CoordinateTypes) => {
-        const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
+        const hub = jaiaContext.hubs.getHub(DEFAULT_HUB_ID);
 
         if (hub && hub.getLocation()) {
             if (coordType === CoordinateTypes.LAT) {
@@ -42,7 +42,7 @@ export default function MoveHub() {
     const [lonInput, setLonInput] = useState(getHubLocation(CoordinateTypes.LON));
 
     useEffect(() => {
-        if (jaiaContext.mapMode === MapModes.HUB_LOCATION_SELECT) {
+        if (jaiaContext.jaiaGlobal.getMapMode() === MapModes.HUB_LOCATION_SELECT) {
             setLatInput(getHubLocation(CoordinateTypes.LAT));
             setLonInput(getHubLocation(CoordinateTypes.LON));
         }
@@ -86,7 +86,7 @@ export default function MoveHub() {
 
         // Turn off select on map to prevent the Hub's current location from
         // overwriting the operator's changes to the input
-        if (jaiaContext.mapMode === MapModes.HUB_LOCATION_SELECT) {
+        if (jaiaContext.jaiaGlobal.getMapMode() === MapModes.HUB_LOCATION_SELECT) {
             jaiaDispatch({ type: JaiaActions.TOGGLE_SELECT_HUB_LOCATION });
         }
 
@@ -105,7 +105,9 @@ export default function MoveHub() {
             <div className="toggle-container">
                 <div>Select on Map:</div>
                 <JaiaToggle
-                    checked={() => jaiaContext.mapMode === MapModes.HUB_LOCATION_SELECT}
+                    checked={() =>
+                        jaiaContext.jaiaGlobal.getMapMode() === MapModes.HUB_LOCATION_SELECT
+                    }
                     onClick={() => handleSelectOnMapClick()}
                 />
             </div>

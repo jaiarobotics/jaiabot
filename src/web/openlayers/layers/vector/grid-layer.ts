@@ -41,7 +41,9 @@ class GridLayer extends JaiaVectorLayer {
         this.layerSource = this.getVectorLayer().getSource();
     }
 
-    override updateFeatures() {}
+    override updateFeatures() {
+        this.finalizeGrid();
+    }
 
     getDraw() {
         return this.draw;
@@ -279,6 +281,10 @@ class GridLayer extends JaiaVectorLayer {
      */
     finalizeGrid(modifyDataModel: boolean = false) {
         const lanes = this.createGrid(true);
+        if (!lanes) {
+            return;
+        }
+
         this.sortLanes(lanes);
         this.layerSource.clear();
         this.createGridEndPoints();

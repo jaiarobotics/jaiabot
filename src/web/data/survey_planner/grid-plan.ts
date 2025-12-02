@@ -23,6 +23,19 @@ export interface GridPlanDetails {
     state: GridPlanningStates;
 }
 
+export interface GridPanSnapshot {
+    missionStart: GeographicCoordinate;
+    missionEnd: GeographicCoordinate;
+    numOfLanes: number;
+    laneSpacing: number;
+    pointSpacing: number;
+    surveyTask: Task;
+    startTask: Task;
+    endTask: Task;
+    state: GridPlanningStates;
+    missions: Map<number, Mission>;
+}
+
 const ENDPOINTS = 2;
 
 export class GridPlan {
@@ -240,6 +253,46 @@ export class GridPlan {
         if (this.state === GridPlanningStates.ACCEPTING_END_TASK) {
             return this.endTask;
         }
+    }
+
+    /**
+     * Captures a snapshot of the current GridPlan
+     *
+     * @returns {GridPanSnapshot} Snapshot of current GridPlan
+     */
+    captureSnapshot() {
+        const snapshot: GridPanSnapshot = {
+            missionStart: this.missionStart,
+            missionEnd: this.missionEnd,
+            numOfLanes: this.numOfLanes,
+            laneSpacing: this.laneSpacing,
+            pointSpacing: this.pointSpacing,
+            surveyTask: this.surveyTask,
+            startTask: this.startTask,
+            endTask: this.endTask,
+            state: this.state,
+            missions: this.missions,
+        };
+        return cloneDeep(snapshot);
+    }
+
+    /**
+     * Replaces the current properties with those from the saved snapshot
+     *
+     * @param {GridPanSnapshot} snapshot Snapshot of GridPlan
+     * @returns {void}
+     */
+    restoreFromSnapshot(snapshot: GridPanSnapshot) {
+        this.missions = snapshot.missions;
+        this.missionStart = snapshot.missionStart;
+        this.missionEnd = snapshot.missionEnd;
+        this.numOfLanes = snapshot.numOfLanes;
+        this.laneSpacing = snapshot.laneSpacing;
+        this.pointSpacing = snapshot.pointSpacing;
+        this.surveyTask = snapshot.surveyTask;
+        this.startTask = snapshot.startTask;
+        this.endTask = snapshot.endTask;
+        this.state = snapshot.state;
     }
 }
 

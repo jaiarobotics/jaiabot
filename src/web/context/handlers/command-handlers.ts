@@ -48,6 +48,5 @@ function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Co
     const missionID = missionsManager.getMissionID(bot.getBotID());
     if (missionSet.getMissionIDInEditMode() === missionID) {
         missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-        mutableState.missionIDInEditMode = UNASSIGNED_ID;
     }
 }

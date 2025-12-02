@@ -12,11 +12,11 @@ import { TaskType } from "../../../../types/protobuf-types";
 import { TaskParameterKeys } from "../../../../types/jaia-system-types";
 import {
     saveToLocalStorage,
-    updateMissionSetFromSnapshot,
     deleteFromLocalStorage,
     listSavedMissionSets,
     loadSnapshotFromLocalStorage,
 } from "../mission-set-storage";
+import { UNASSIGNED_ID } from "../../../../utils/constants";
 
 describe("Exercise functions to save and load missions from localStorage", () => {
     beforeEach(() => {
@@ -57,7 +57,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         const missionSetSnapshot = loadSnapshotFromLocalStorage("Test-Mission-Set");
 
         // Update the mission set data
-        updateMissionSetFromSnapshot(missionSetSnapshot);
+        missionSet.restoreFromSnapshot(missionSetSnapshot);
 
         // Verfiy we got what we expected
         expect(missionSet.getMissions().size).toEqual(2);
@@ -116,7 +116,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         let missionSetSnapshot = loadSnapshotFromLocalStorage("Test-Mission-Set-A");
 
         // Update the mission set data
-        updateMissionSetFromSnapshot(missionSetSnapshot);
+        missionSet.restoreFromSnapshot(missionSetSnapshot);
 
         expect(missionSet.getMissions().size).toEqual(2);
 
@@ -144,7 +144,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         // Verify defaults
         expect(missionSetSnapshot.missions).toEqual([]);
         expect(missionSetSnapshot.nextMissionID).toBe(0);
-        expect(missionSetSnapshot.missionIDInEditMode).toBeNull();
+        expect(missionSetSnapshot.missionIDInEditMode).toEqual(UNASSIGNED_ID);
         expect(missionSetSnapshot.missionSpeeds).toEqual({});
         expect(missionSetSnapshot.name).toBe("");
     });

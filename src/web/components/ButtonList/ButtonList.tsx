@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
+import { historyManager } from "../../data/history/histroy-manager";
 
 import RallyButton from "../__buttons__/RallyButton/RallyButton";
 import ActivateAllButton from "../__buttons__/ActivateAllButton/ActivateAllButton";
@@ -21,7 +22,6 @@ import {
     mdiRuler,
     mdiViewList,
     mdiArrowULeftTop,
-    mdiArrowURightTop,
     mdiSquareEditOutline,
 } from "@mdi/js";
 
@@ -59,21 +59,12 @@ export default function ButtonList(props: Props) {
     };
 
     /**
-     * Dispatches action to Undo history
+     * Dispatches action to undo history
      *
      * @returns {void}
      */
     const handleUndoClick = () => {
         jaiaDisaptch({ type: JaiaActions.CLICKED_UNDO });
-    };
-
-    /**
-     * Dispatches action to Redo history
-     *
-     * @returns {void}
-     */
-    const handleRedoClick = () => {
-        jaiaDisaptch({ type: JaiaActions.CLICKED_REDO });
     };
 
     /**
@@ -95,42 +86,24 @@ export default function ButtonList(props: Props) {
      * @returns {void}
      */
     const getUndoClassName = () =>
-        jaiaContext.stateHistory.canUndo() ? "jaia-button" : "jaia-button disabled";
-
-    /**
-     * Provides the class name to style the redo button
-     *
-     * @returns {void}
-     */
-    const getRedoClassName = () =>
-        jaiaContext.stateHistory.canRedo() ? "jaia-button" : "jaia-button disabled";
+        historyManager.canUndo() ? "jaia-button" : "jaia-button disabled";
 
     if (props.buttonListType === ButtonListTypes.TOP) {
         return (
             <div className="button-list top">
-                <ActivateAllButton bots={jaiaContext.bots} />
-                <StopAllBotsButton bots={jaiaContext.bots} />
-                <StartAllMissionsButton bots={jaiaContext.bots} missions={jaiaContext.missions} />
-                <DataOffloadAllButton bots={jaiaContext.bots} />
+                <ActivateAllButton bots={jaiaContext.bots.getBots()} />
+                <StopAllBotsButton bots={jaiaContext.bots.getBots()} />
+                <StartAllMissionsButton
+                    bots={jaiaContext.bots.getBots()}
+                    missions={jaiaContext.missionSet.getMissions()}
+                />
+                <DataOffloadAllButton bots={jaiaContext.bots.getBots()} />
                 <Button
                     className={getUndoClassName()}
-                    disabled={!jaiaContext.stateHistory.canUndo()}
+                    disabled={!historyManager.canUndo()}
                     onClick={() => handleUndoClick()}
                 >
-                    <Icon
-                        path={mdiArrowULeftTop}
-                        title={"Undo " + jaiaContext.stateHistory.peekUndoDescription()}
-                    />
-                </Button>
-                <Button
-                    className={getRedoClassName()}
-                    disabled={!jaiaContext.stateHistory.canRedo()}
-                    onClick={() => handleRedoClick()}
-                >
-                    <Icon
-                        path={mdiArrowURightTop}
-                        title={"Redo " + jaiaContext.stateHistory.peekRedoDescription()}
-                    />
+                    <Icon path={mdiArrowULeftTop} title={"Undo "} />
                 </Button>
                 <Button
                     className={getSelectedClassName(ButtonNames.HELP_PANEL)}

@@ -94,13 +94,19 @@ export default function SurveyPlanner(props: Props) {
      * @returns {void}
      */
     const handleMenuNavClick = (nextState: GridPlanningStates) => {
-        jaiaDispatch({
-            type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
-            gridPlanningState: nextState,
-        });
+        if (nextState === GridPlanningStates.APPROVED) {
+            jaiaDispatch({
+                type: JaiaActions.SURVEY_APPROVED,
+                gridPlanningState: nextState,
+            });
+        } else
+            jaiaDispatch({
+                type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
+                gridPlanningState: nextState,
+            });
     };
 
-    switch (jaiaContext.gridPlanningState) {
+    switch (jaiaContext.gridPlan.getState()) {
         case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
             return <RequestStartMissionLocation />;
         case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
@@ -349,15 +355,19 @@ function TaskConfigs(props: Props) {
      */
     const getMenuItems = () => {
         const menuItems = [
-            <MenuItem value={TaskType.NONE}>{snakeCaseToTitleCase(TaskType.NONE)}</MenuItem>,
-            <MenuItem value={TaskType.DIVE}>{snakeCaseToTitleCase(TaskType.DIVE)}</MenuItem>,
-            <MenuItem value={TaskType.SURFACE_DRIFT}>
+            <MenuItem value={TaskType.NONE} key={TaskType.NONE}>
+                {snakeCaseToTitleCase(TaskType.NONE)}
+            </MenuItem>,
+            <MenuItem value={TaskType.DIVE} key={TaskType.DIVE}>
+                {snakeCaseToTitleCase(TaskType.DIVE)}
+            </MenuItem>,
+            <MenuItem value={TaskType.SURFACE_DRIFT} key={TaskType.SURFACE_DRIFT}>
                 {snakeCaseToTitleCase(TaskType.SURFACE_DRIFT)}
             </MenuItem>,
         ];
         if (props.taskPosition !== TaskPosition.SURVEY) {
             menuItems.push(
-                <MenuItem value={TaskType.CONSTANT_HEADING}>
+                <MenuItem value={TaskType.CONSTANT_HEADING} key={TaskType.CONSTANT_HEADING}>
                     {snakeCaseToTitleCase(TaskType.CONSTANT_HEADING)}
                 </MenuItem>,
             );

@@ -50,7 +50,7 @@ export default function QueryBotStatus() {
      * @returns {<MenuItem />[]} Array of dropdown options for the select menu
      */
     const generateBotMenuItems = () => {
-        return Array.from(jaiaContext.bots.values()).map((bot) => {
+        return Array.from(jaiaContext.bots.getBots().values()).map((bot) => {
             const botID = bot.getBotID();
             return (
                 <MenuItem key={botID} value={botID}>

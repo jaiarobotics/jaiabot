@@ -13,7 +13,6 @@ import { NodeTypes } from "../../types/jaia-system-types";
 import { MapModes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID, MISSION_ENDPOINTS } from "../../utils/constants";
-import { updateMissionSetFromSnapshot } from "../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import { syncOpenLayers } from "./handler-utils";
 
 /**
@@ -30,8 +29,6 @@ export function handleAddMission(mutableState: JaiaContextType) {
     const newMission = new Mission();
     const newMissionID = missionSet.addMission(newMission);
 
-    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
@@ -69,8 +66,6 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     const missionCopy = cloneDeep(missionSet.getMission(action.missionID));
     const newMissionID = missionSet.addMission(missionCopy);
 
-    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
@@ -133,7 +128,6 @@ export function handleAutoAssignMissions(mutableState: JaiaContextType) {
  */
 export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action: JaiaAction) {
     missionSet.setMissionSpeeds(action.missionSpeeds);
-    mutableState.missionSpeeds = action.missionSpeeds;
     return mutableState;
 }
 
@@ -145,12 +139,25 @@ export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action:
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    updateMissionSetFromSnapshot(action.missionSetSnapshot);
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    mutableState.missionAccordionStates = Object.fromEntries(
-        Array.from(mutableState.missions.keys(), (key) => [key, false]),
-    );
+    // Clear current mission set and reset mission assignments
+    missionSet.deleteAllMissions();
+    missionsManager.unassignAll();
 
+    // Rebuild mission set from json snapshot
+    if (Array.isArray(action.missionSetSnapshot.missions)) {
+        action.missionSetSnapshot.missions.forEach(
+            ([missonID, serializedMission]: [number, any]) => {
+                const mission = Mission.fromJSON(serializedMission);
+                missionSet.addMission(mission);
+            },
+        );
+    }
+
+    // Restore other fields via setters
+    missionSet.setName(action.missionSetSnapshot.name);
+    missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+    missionSet.setMissionSpeeds(action.missionSetSnapshot.missionSpeeds);
+    mutableState.missionAccordionStates = {};
     missionLayer.updateFeatures();
     return mutableState;
 }
@@ -164,7 +171,6 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
  */
 export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
     gridPlan.setState(action.gridPlanningState);
-    mutableState.gridPlanningState = action.gridPlanningState;
 
     switch (action.gridPlanningState) {
         case GridPlanningStates.ACCEPTING_GRID_DRAWING:
@@ -214,10 +220,8 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             missionsManager.autoAssign();
 
             handleMapModeChange(MapModes.DEFAULT);
-            mutableState.mapMode = MapModes.DEFAULT;
+            jaiaGlobal.setMapMode(MapModes.DEFAULT);
             mutableState.visiblePanel = ButtonNames.NONE;
-            mutableState.missions = missionSet.getMissions();
-            mutableState.missionIDInEditMode = UNASSIGNED_ID;
             missionLayer.updateFeatures();
             break;
     }

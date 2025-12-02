@@ -102,7 +102,7 @@ export default function TaskParameters(props: Props) {
                 <ConstantHeading
                     task={props.task}
                     isDisabled={props.isDisabled}
-                    mapMode={jaiaContext.mapMode}
+                    mapMode={jaiaContext.jaiaGlobal.getMapMode()}
                     onChange={onParameterChange}
                     handleSelectOnMapClick={handleSelectOnMapClick}
                 />

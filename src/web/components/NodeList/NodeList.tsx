@@ -19,8 +19,8 @@ export default function NodeList() {
         return <div></div>;
     }
 
-    const hubs = Array.from(jaiaContext.hubs.values());
-    const bots = Array.from(jaiaContext.bots.values());
+    const hubs = Array.from(jaiaContext.hubs.getHubs().values());
+    const bots = Array.from(jaiaContext.bots.getBots().values());
 
     /**
      * Dispatches the CLICKED_NODE action to JaiaContext for further handling
@@ -60,7 +60,7 @@ export default function NodeList() {
 
         const nodeTypeClass = nodeType === NodeTypes.BOT ? "bot-item" : "hub-item";
         const faultLevelClass = "faultLevel" + faultLevel.get(healthState);
-        const selectedNode = jaiaContext.selectedNode;
+        const selectedNode = jaiaContext.jaiaGlobal.getSelectedNode();
         const selectedClass =
             selectedNode.type === nodeType && selectedNode.id === nodeID ? "selected" : "";
 

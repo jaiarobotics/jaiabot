@@ -18,7 +18,6 @@ export function handleToggleSelectHubLocation(mutableState: JaiaContextType) {
         updatedMapMode = MapModes.HUB_LOCATION_SELECT;
     }
     handleMapModeChange(updatedMapMode);
-    mutableState.mapMode = updatedMapMode;
     return mutableState;
 }
 

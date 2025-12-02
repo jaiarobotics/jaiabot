@@ -75,7 +75,7 @@ export default function MissionAssignMenu(props: Props) {
                 value={getMenuValue().toString()}
             >
                 <MenuItem value={UNASSIGNED_ID}>Unassigned</MenuItem>
-                {Array.from(jaiaContext.bots.values()).map((bot) =>
+                {Array.from(jaiaContext.bots.getBots().values()).map((bot) =>
                     generateMenuItems(bot.getBotID()),
                 )}
             </Select>
