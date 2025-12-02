@@ -29,7 +29,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         return state;
     }
 
-    // Do not allow polling to cause a rerender
+    // Do not allow polling to cause a re-render
     // if we have not received a new status message
     if (action.type === JaiaActions.POLL_DATA_MODEL) {
         if (bots.getTick() === state.previousTick) {
