@@ -168,13 +168,28 @@ button {
 }
 
 #logList {
-    display: inline;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+#logListRow {
+    background-color: lightgray;
+    align-items: center;
+    justify-content: center;
 }
 
 .logHeaderRow {
     display: flex;
+    align-items: center;
     padding: 8pt;
     background-color: lightgray;
+}
+
+.logHeaderRow a {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
 }
 
 .popup {

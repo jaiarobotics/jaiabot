@@ -125,8 +125,11 @@ export class App extends React.Component {
                     </div>
                 </div>
 
-                <div>
-                    <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>
+                <div className="flexbox horizontal" style={{ alignItems: "center" }}>
+                    <button
+                        className="padded logButton"
+                        onClick={self.selectLogButtonPressed.bind(self)}
+                    >
                         Select Log(s)
                     </button>
                     {this.chosenLogsListElement()}
@@ -248,13 +251,23 @@ export class App extends React.Component {
             ) : null;
 
             return (
-                <div>
-                    <a href={href} key={chosenLogName} style={{ padding: "10pt" }}>
-                        {chosenLogName}
-                    </a>
+                <div
+                    key={chosenLogName}
+                    className="logHeaderRow rounded shadowed padded"
+                    id="logListRow"
+                    style={{ margin: "4pt" }}
+                >
+                    <a href={href}>{chosenLogName}</a>
                     <Button
                         className="plotButton"
-                        style={{ display: logs_are_displayed ? "inline-block" : "none" }}
+                        style={{
+                            display: logs_are_displayed ? "flex" : "none",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: 0,
+                            marginLeft: "4pt",
+                            verticalAlign: "middle",
+                        }}
                         onClick={() => {
                             this.setState({
                                 chosenLogName: chosenLogName,
@@ -262,7 +275,7 @@ export class App extends React.Component {
                             });
                         }}
                     >
-                        <Icon path={mdiInformation} size={1}></Icon>
+                        <Icon path={mdiInformation} size={0.75}></Icon>
                     </Button>
 
                     {information_dialog}
