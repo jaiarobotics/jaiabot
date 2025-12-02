@@ -135,7 +135,7 @@ export default function Engineering() {
      * @returns {void}
      */
     const handleUpdateAllBotsClick = () => {
-        for (const botID of jaiaContext.bots.keys()) {
+        for (const botID of jaiaContext.bots.getBots().keys()) {
             handleUpdateSelectedBotClick(botID);
         }
     };
@@ -183,7 +183,7 @@ export default function Engineering() {
                         onChange={(evt: SelectChangeEvent) => handleMenuSelection(evt)}
                         value={selectedBotID}
                     >
-                        {Array.from(jaiaContext.bots.values()).map((bot) => {
+                        {Array.from(jaiaContext.bots.getBots().values()).map((bot) => {
                             const botID = bot.getBotID();
                             return (
                                 <MenuItem key={botID} value={botID}>
@@ -201,10 +201,10 @@ export default function Engineering() {
                 Query Selected Status
             </button>
             <BotRequirementsTable
-                engineering={jaiaContext.bots.get(Number(selectedBotID))?.getEngineering()}
+                engineering={jaiaContext.bots.getBot(Number(selectedBotID))?.getEngineering()}
             />
             <PIDGainsTable
-                engineering={jaiaContext.bots.get(Number(selectedBotID))?.getEngineering()}
+                engineering={jaiaContext.bots.getBot(Number(selectedBotID))?.getEngineering()}
             />
             <button
                 className="engineering-button"

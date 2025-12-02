@@ -7,7 +7,7 @@ import Hub from "./hub";
  * @notes Users of the class can rely on the map returned by
  *        getHubs to be ordered by Hub ID
  */
-class Hubs {
+export class Hubs {
     private hubs: Map<number, Hub>;
 
     constructor() {

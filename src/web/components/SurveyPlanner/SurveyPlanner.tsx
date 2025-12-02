@@ -1,7 +1,7 @@
 import { FormControl, Select, MenuItem, SelectChangeEvent, ThemeProvider } from "@mui/material";
 
 import Icon from "@mdi/react";
-import { mdiArrowRight } from "@mdi/js";
+import { mdiArrowLeft, mdiArrowRight } from "@mdi/js";
 
 import { ChangeEvent, useContext, useState } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
@@ -94,13 +94,19 @@ export default function SurveyPlanner(props: Props) {
      * @returns {void}
      */
     const handleMenuNavClick = (nextState: GridPlanningStates) => {
-        jaiaDispatch({
-            type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
-            gridPlanningState: nextState,
-        });
+        if (nextState === GridPlanningStates.APPROVED) {
+            jaiaDispatch({
+                type: JaiaActions.SURVEY_APPROVED,
+                gridPlanningState: nextState,
+            });
+        } else
+            jaiaDispatch({
+                type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
+                gridPlanningState: nextState,
+            });
     };
 
-    switch (jaiaContext.gridPlanningState) {
+    switch (jaiaContext.gridPlan.getState()) {
         case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
             return <RequestStartMissionLocation />;
         case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
@@ -136,10 +142,14 @@ export default function SurveyPlanner(props: Props) {
             return (
                 <TaskConfigs
                     handleTaskSelection={handleTaskSelection}
-                    handleMenuNavClick={() => handleMenuNavClick(GridPlanningStates.APPROVED)}
+                    handleMenuNavClick={() => handleMenuNavClick(GridPlanningStates.OFFERING_SRP)}
                     taskPosition={TaskPosition.END}
                 />
             );
+        case GridPlanningStates.OFFERING_SRP:
+            return <OfferSRP handleMenuNavClick={handleMenuNavClick} />;
+        case GridPlanningStates.ACCEPTING_SRP:
+            return <SRPConfig handleMenuNavClick={handleMenuNavClick} />;
         case GridPlanningStates.APPROVED:
             return;
     }
@@ -153,7 +163,7 @@ function RequestStartMissionLocation() {
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
             <div className="progress-line"></div>
-            <div className="survey-location-page">Tap map for start location</div>
+            <div className="survey-text-row">Tap map for start location</div>
         </div>
     );
 }
@@ -166,7 +176,7 @@ function RequestEndMissionLocation() {
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
             <div className="progress-line"></div>
-            <div className="survey-location-page">Tap map for end location</div>
+            <div className="survey-text-row">Tap map for end location</div>
         </div>
     );
 }
@@ -255,7 +265,7 @@ function GridConfigs(props: Props) {
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
             <div className="progress-line"></div>
-            <div className="survey-location-page">Drag to create the grid</div>
+            <div className="survey-text-row">Drag to create the grid</div>
             <div className="input-grid">
                 <div>Number of Lanes:</div>
                 <input
@@ -298,7 +308,7 @@ function GridConfigs(props: Props) {
                 </div>
             </div>
             <div className="button-row">
-                <div onClick={() => props.handleSetTaskClick()}>
+                <div className="arrow" onClick={() => props.handleSetTaskClick()}>
                     <Icon path={mdiArrowRight} title="Continue Survey Planning" />
                 </div>
             </div>
@@ -349,15 +359,19 @@ function TaskConfigs(props: Props) {
      */
     const getMenuItems = () => {
         const menuItems = [
-            <MenuItem value={TaskType.NONE}>{snakeCaseToTitleCase(TaskType.NONE)}</MenuItem>,
-            <MenuItem value={TaskType.DIVE}>{snakeCaseToTitleCase(TaskType.DIVE)}</MenuItem>,
-            <MenuItem value={TaskType.SURFACE_DRIFT}>
+            <MenuItem value={TaskType.NONE} key={TaskType.NONE}>
+                {snakeCaseToTitleCase(TaskType.NONE)}
+            </MenuItem>,
+            <MenuItem value={TaskType.DIVE} key={TaskType.DIVE}>
+                {snakeCaseToTitleCase(TaskType.DIVE)}
+            </MenuItem>,
+            <MenuItem value={TaskType.SURFACE_DRIFT} key={TaskType.SURFACE_DRIFT}>
                 {snakeCaseToTitleCase(TaskType.SURFACE_DRIFT)}
             </MenuItem>,
         ];
         if (props.taskPosition !== TaskPosition.SURVEY) {
             menuItems.push(
-                <MenuItem value={TaskType.CONSTANT_HEADING}>
+                <MenuItem value={TaskType.CONSTANT_HEADING} key={TaskType.CONSTANT_HEADING}>
                     {snakeCaseToTitleCase(TaskType.CONSTANT_HEADING)}
                 </MenuItem>,
             );
@@ -404,9 +418,66 @@ function TaskConfigs(props: Props) {
             {getTaskParametersContainer()}
             <div className="button-row">
                 <div
+                    className="arrow"
                     onClick={() =>
                         props.handleMenuNavClick(GridPlanningStates.ACCEPTING_START_TASK)
                     }
+                >
+                    <Icon path={mdiArrowRight} title="Continue Survey Planning" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Renders the window to add or decline safety return parameters
+ */
+function OfferSRP(props: Props) {
+    return (
+        <div className="jaia-panel survey">
+            <div className="jaia-panel-title">Survey Planner</div>
+            <div className="progress-line"></div>
+            <div className="survey-text-page">Set safety return parameters?</div>
+            <div className="button-row double">
+                <button
+                    className="text"
+                    onClick={() => props.handleMenuNavClick(GridPlanningStates.APPROVED)}
+                >
+                    No
+                </button>
+                <button
+                    className="text"
+                    onClick={() => props.handleMenuNavClick(GridPlanningStates.ACCEPTING_SRP)}
+                >
+                    Yes
+                </button>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Renders the window to modify safety return parameters to the survey mission set
+ */
+function SRPConfig(props: Props) {
+    return (
+        <div className="jaia-panel survey">
+            <div className="jaia-panel-title">Survey Planner</div>
+            <div className="progress-line"></div>
+            <div className="task-parameters-container">
+                <TaskParameters task={gridPlan.getSRPTask()} isDisabled={false} />
+            </div>
+            <div className="button-row double-arrow">
+                <div
+                    className="arrow"
+                    onClick={() => props.handleMenuNavClick(GridPlanningStates.OFFERING_SRP)}
+                >
+                    <Icon path={mdiArrowLeft} title="Continue Survey Planning" />
+                </div>
+                <div
+                    className="arrow"
+                    onClick={() => props.handleMenuNavClick(GridPlanningStates.APPROVED)}
                 >
                     <Icon path={mdiArrowRight} title="Continue Survey Planning" />
                 </div>

@@ -11,7 +11,9 @@ export enum GridPlanningStates {
     ACCEPTING_TASK = 4,
     ACCEPTING_START_TASK = 5,
     ACCEPTING_END_TASK = 6,
-    APPROVED = 7,
+    OFFERING_SRP = 7,
+    ACCEPTING_SRP = 8,
+    APPROVED = 9,
 }
 
 export interface GridPlanDetails {
@@ -21,6 +23,19 @@ export interface GridPlanDetails {
     pointSpacing: number;
     surveyTask: Task;
     state: GridPlanningStates;
+}
+
+export interface GridPanSnapshot {
+    missionStart: GeographicCoordinate;
+    missionEnd: GeographicCoordinate;
+    numOfLanes: number;
+    laneSpacing: number;
+    pointSpacing: number;
+    surveyTask: Task;
+    startTask: Task;
+    endTask: Task;
+    state: GridPlanningStates;
+    missions: Map<number, Mission>;
 }
 
 const ENDPOINTS = 2;
@@ -35,6 +50,7 @@ export class GridPlan {
     private surveyTask: Task;
     private startTask: Task;
     private endTask: Task;
+    private srpTask: Task;
     private state: GridPlanningStates;
     private missions: Map<number, Mission>;
     private maxWaypointsPerLane: number;
@@ -48,6 +64,7 @@ export class GridPlan {
         this.surveyTask = new Task(true);
         this.startTask = new Task(true);
         this.endTask = new Task(true);
+        this.srpTask = new Task(true);
         this.missions = new Map<number, Mission>();
         this.maxWaypointsPerLane = MAX_WAYPOINTS;
     }
@@ -57,6 +74,7 @@ export class GridPlan {
         this.surveyTask = new Task(true);
         this.startTask = new Task(true);
         this.endTask = new Task(true);
+        this.srpTask = new Task(true);
         this.missions = new Map<number, Mission>();
     }
 
@@ -142,6 +160,14 @@ export class GridPlan {
 
     setEndTask(endTask: Task) {
         this.endTask = endTask;
+    }
+
+    getSRPTask() {
+        return this.srpTask;
+    }
+
+    setSRPTask(srpTask: Task) {
+        this.srpTask = srpTask;
     }
 
     getState() {
@@ -240,6 +266,49 @@ export class GridPlan {
         if (this.state === GridPlanningStates.ACCEPTING_END_TASK) {
             return this.endTask;
         }
+        if (this.state === GridPlanningStates.ACCEPTING_SRP) {
+            return this.srpTask;
+        }
+    }
+
+    /**
+     * Captures a snapshot of the current GridPlan
+     *
+     * @returns {GridPanSnapshot} Snapshot of current GridPlan
+     */
+    captureSnapshot() {
+        const snapshot: GridPanSnapshot = {
+            missionStart: this.missionStart,
+            missionEnd: this.missionEnd,
+            numOfLanes: this.numOfLanes,
+            laneSpacing: this.laneSpacing,
+            pointSpacing: this.pointSpacing,
+            surveyTask: this.surveyTask,
+            startTask: this.startTask,
+            endTask: this.endTask,
+            state: this.state,
+            missions: this.missions,
+        };
+        return cloneDeep(snapshot);
+    }
+
+    /**
+     * Replaces the current properties with those from the saved snapshot
+     *
+     * @param {GridPanSnapshot} snapshot Snapshot of GridPlan
+     * @returns {void}
+     */
+    restoreFromSnapshot(snapshot: GridPanSnapshot) {
+        this.missions = snapshot.missions;
+        this.missionStart = snapshot.missionStart;
+        this.missionEnd = snapshot.missionEnd;
+        this.numOfLanes = snapshot.numOfLanes;
+        this.laneSpacing = snapshot.laneSpacing;
+        this.pointSpacing = snapshot.pointSpacing;
+        this.surveyTask = snapshot.surveyTask;
+        this.startTask = snapshot.startTask;
+        this.endTask = snapshot.endTask;
+        this.state = snapshot.state;
     }
 }
 

@@ -31,7 +31,7 @@ export default function ScanForBot() {
      * @returns {void}
      */
     const sendScanForBot = async (botID: number) => {
-        const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
+        const hub = jaiaContext.hubs.getHub(DEFAULT_HUB_ID);
 
         if (!hub || botID === 0) {
             return;
@@ -55,7 +55,7 @@ export default function ScanForBot() {
      * @returns {<MenuItem />[]} Array of dropdown option for the select menu
      */
     const generateBotMenuItems = () => {
-        return Array.from(jaiaContext.bots.values()).map((bot) => {
+        return Array.from(jaiaContext.bots.getBots().values()).map((bot) => {
             const botID = bot.getBotID();
             return (
                 <MenuItem key={botID} value={botID}>

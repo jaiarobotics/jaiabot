@@ -17,6 +17,7 @@ export default class Task {
     private diveParameters: DiveParameters;
     private driftParameters: DriftParameters;
     private constantHeadingParameters: ConstantHeadingParameters;
+    private safetyDepth: number;
 
     // Parameter Constraints //
     ZERO_LOWER_BOUND = 0;
@@ -40,6 +41,7 @@ export default class Task {
         this.setDiveParameters(defaults.dive);
         this.setDriftParameters(defaults.drift);
         this.setConstantHeadingParameters(defaults.constantHeading);
+        this.safetyDepth = this.ZERO_LOWER_BOUND;
         this.isBottomDive = false;
         this.useHydrophone = false;
         this.isSurveyTask = isSurveyTask;
@@ -102,7 +104,6 @@ export default class Task {
                 this.driftParameters.drift_time = value;
                 break;
             case TaskParameterKeys.HEADING:
-                value = (value + this.MAX_HEADING_CONSTRAINT) % this.MAX_HEADING_CONSTRAINT;
                 value = clampInput(value, this.ZERO_LOWER_BOUND, this.MAX_HEADING_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading = value;
                 break;
@@ -113,6 +114,10 @@ export default class Task {
             case TaskParameterKeys.SPEED:
                 value = clampInput(value, this.MIN_SPEED_CONSTRAINT, this.MAX_SPEED_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading_speed = value;
+                break;
+            case TaskParameterKeys.SAFETY_DEPTH:
+                value = clampInput(value, this.ZERO_LOWER_BOUND, NO_CONSTRAINT);
+                this.safetyDepth = value;
                 break;
         }
 
@@ -149,6 +154,10 @@ export default class Task {
 
     setConstantHeadingParameters(constantHeadingParameters: ConstantHeadingParameters) {
         this.constantHeadingParameters = { ...constantHeadingParameters };
+    }
+
+    getSafetyDepth() {
+        return this.safetyDepth;
     }
 
     getIsBottomDive() {

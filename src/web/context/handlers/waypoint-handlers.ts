@@ -39,7 +39,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         const newMissionID = missionSet.addMission(newMission);
         newMission.addWaypoint(action.location);
         missionsManager.assign(selectedNode.id, newMissionID);
-        mutableState.missionIDInEditMode = newMissionID;
+
         mutableState.missionAccordionStates[newMissionID] = true;
     } else if (missionIDInEditMode !== UNASSIGNED_ID) {
         // Add waypoint to mission in edit mode
@@ -69,7 +69,6 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
         isMoveable: false,
     });
 
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visiblePanel = ButtonNames.NONE;
 
     missionLayer.updateFeatures();
@@ -86,7 +85,10 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  */
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
-    mission.moveWaypoint(mutableState.selectedWaypoint.waypointNum, action.location);
+    mission.moveWaypoint(
+        mutableState.jaiaGlobal.getSelectedWaypoint().waypointNum,
+        action.location,
+    );
 
     missionLayer.updateFeatures();
 
@@ -122,7 +124,7 @@ export function handleChangeTaskParameter(mutableState: JaiaContextType, action:
         action.task.setParameter(taskParameterPair);
     }
 
-    if (jaiaGlobal.getMapMode() === MapModes.SURVEY_CONSTANT_HEADING_SELECT) {
+    if (action.task.getIsSurveyTask()) {
         gridLayer.finalizeGrid();
     } else {
         missionLayer.updateFeatures();
@@ -154,8 +156,8 @@ export function handleToggleHydrophone(mutableState: JaiaContextType, action: Ja
     missionLayer.updateFeatures();
     // Refresh the grid to show icon updates
     if (
-        mutableState.mapMode === MapModes.SURVEY_PLANNING &&
-        mutableState.gridPlanningState !== GridPlanningStates.ACCEPTING_START_TASK
+        jaiaGlobal.getMapMode() === MapModes.SURVEY_PLANNING &&
+        mutableState.gridPlan.getState() !== GridPlanningStates.ACCEPTING_START_TASK
     ) {
         gridLayer.finalizeGrid();
     }
@@ -190,7 +192,7 @@ export function handleToggleConstantHeadingSelect(
     }
 
     handleMapModeChange(updatedMapMode);
-    mutableState.mapMode = updatedMapMode;
+    mutableState.jaiaGlobal.setMapMode(updatedMapMode);
     return mutableState;
 }
 
@@ -227,5 +229,4 @@ export function resetSelectedWaypoint(mutableState: JaiaContextType) {
         missionID: UNASSIGNED_ID,
         isMoveable: false,
     });
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
 }

@@ -4,6 +4,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
 import { ThemeProvider } from "@emotion/react";
 
+import MoveHub from "./MoveHub/MoveHub";
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
 import ScanForBot from "./ScanForBot/ScanForBot";
 import Engineering from "./Engineering/Engineering";
@@ -96,6 +97,17 @@ export default function SettingsPanel() {
                         </AccordionSummary>
                         <AccordionDetails>
                             <OfflineMaps />
+                        </AccordionDetails>
+                    </Accordion>
+                    <Accordion className="accordion-container">
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            className="accordion-summary"
+                        >
+                            <Typography>Simulation</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <MoveHub />
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>

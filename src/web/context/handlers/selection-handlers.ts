@@ -25,10 +25,7 @@ import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-pla
  */
 export function handleClickedNode(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setSelectedNode(action.clickedNode);
-    const selectedNode = jaiaGlobal.getSelectedNode();
-
-    mutableState.selectedNode = selectedNode;
-    mutableState.visibleDetails = selectedNode.type;
+    mutableState.visibleDetails = action.clickedNode.type;
 
     syncOpenLayers();
 
@@ -42,8 +39,8 @@ export function handleClickedNode(mutableState: JaiaContextType, action: JaiaAct
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedTapToMove(mutableState: JaiaContextType) {
-    mutableState.selectedWaypoint.isMoveable = !mutableState.selectedWaypoint.isMoveable;
-    jaiaGlobal.setSelectedWaypoint(mutableState.selectedWaypoint);
+    const mutableWaypoint = jaiaGlobal.getSelectedWaypoint();
+    mutableWaypoint.isMoveable = !mutableWaypoint.isMoveable;
     return mutableState;
 }
 
@@ -97,17 +94,15 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
     }
 
     // Resets
-    if (mutableState.selectedWaypoint.waypointNum !== UNASSIGNED_ID) {
+    if (jaiaGlobal.getSelectedWaypoint().waypointNum !== UNASSIGNED_ID) {
         resetSelectedWaypoint(mutableState);
     }
 
-    if (mutableState.gridPlanningState !== GridPlanningStates.ACCEPTING_MISSION_START_LOCATION) {
+    if (gridPlan.getState() !== GridPlanningStates.ACCEPTING_MISSION_START_LOCATION) {
         gridPlan.reset();
-        mutableState.gridPlanningState = gridPlan.getState();
     }
 
     handleMapModeChange(mapMode);
-    mutableState.mapMode = mapMode;
     mutableState.visiblePanel = visiblePanel;
     return mutableState;
 }
@@ -122,7 +117,6 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
 export function handleClickedWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setSelectedWaypoint(action.clickedWaypoint);
 
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
     mutableState.visiblePanel = ButtonNames.WAYPOINT_PANEL;
 
     missionLayer.updateFeatures();
@@ -143,12 +137,7 @@ export function handleClickedEditMission(mutableState: JaiaContextType, action: 
     } else {
         missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
         jaiaGlobal.getSelectedWaypoint().isMoveable = false;
-        jaiaGlobal.setMapMode(MapModes.DEFAULT);
-        mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-        mutableState.mapMode = jaiaGlobal.getMapMode();
     }
-
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
 
     missionLayer.updateFeatures();
 
@@ -189,7 +178,6 @@ export function handleClickedTaskPacket(mutableState: JaiaContextType, action: J
     }
 
     jaiaGlobal.setSelectedTaskPacket(action.clickedTaskPacket);
-    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     mutableState.visiblePanel = ButtonNames.TASK_PACKET_PANEL;
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
