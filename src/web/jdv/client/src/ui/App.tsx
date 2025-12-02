@@ -39,6 +39,7 @@ interface AppProps {}
 interface State {
     isSelectingLogs: boolean;
     chosenLogs: string[];
+    chosenLogName: string;
     plots: Plot[];
     layerSwitcherVisible: boolean;
     measureResultVisible: boolean;
@@ -72,6 +73,7 @@ export class App extends React.Component {
         this.state = {
             isSelectingLogs: false,
             chosenLogs: [],
+            chosenLogName: "",
             plots: [],
             plotMode: null,
             layerSwitcherVisible: false,
@@ -113,14 +115,6 @@ export class App extends React.Component {
         ) : null;
 
         console.log("Rendering App with state:", this.state);
-        const logs_are_displayed = this.state.chosenLogs.length > 0;
-
-        const information_dialog = this.state.isInformationDialogVisible ? (
-            <InformationDialog
-                logFiles={this.state.chosenLogs}
-                onClose={() => this.setState({ isInformationDialogVisible: false })}
-            />
-        ) : null;
 
         return (
             <div className="vertical flexbox maximized">
@@ -135,17 +129,6 @@ export class App extends React.Component {
                     <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>
                         Select Log(s)
                     </button>
-                    <Button
-                        className="plotButton"
-                        style={{ display: logs_are_displayed ? "inline-block" : "none" }}
-                        onClick={() => {
-                            this.setState({
-                                isInformationDialogVisible: !this.state.isInformationDialogVisible,
-                            });
-                        }}
-                    >
-                        <Icon path={mdiInformation} size={1}></Icon>
-                    </Button>
                     {this.chosenLogsListElement()}
                 </div>
 
@@ -242,7 +225,6 @@ export class App extends React.Component {
                 ></TimeSlider>
 
                 {log_selector}
-                {information_dialog}
 
                 {busyOverlay}
 
@@ -255,10 +237,36 @@ export class App extends React.Component {
         const chosenLogsElements = this.state.chosenLogs.map((chosenLogPath) => {
             const chosenLogName = chosenLogPath.split("/").at(-1);
             const href = `/h5?file=${chosenLogPath}`;
+
+            const logs_are_displayed = this.state.chosenLogs.length > 0;
+
+            const information_dialog = this.state.isInformationDialogVisible ? (
+                <InformationDialog
+                    logFileName={this.state.chosenLogName}
+                    onClose={() => this.setState({ isInformationDialogVisible: false })}
+                />
+            ) : null;
+
             return (
-                <a href={href} key={chosenLogName} style={{ padding: "10pt" }}>
-                    {chosenLogName}
-                </a>
+                <div>
+                    <a href={href} key={chosenLogName} style={{ padding: "10pt" }}>
+                        {chosenLogName}
+                    </a>
+                    <Button
+                        className="plotButton"
+                        style={{ display: logs_are_displayed ? "inline-block" : "none" }}
+                        onClick={() => {
+                            this.setState({
+                                chosenLogName: chosenLogName,
+                                isInformationDialogVisible: !this.state.isInformationDialogVisible,
+                            });
+                        }}
+                    >
+                        <Icon path={mdiInformation} size={1}></Icon>
+                    </Button>
+
+                    {information_dialog}
+                </div>
             );
         });
 

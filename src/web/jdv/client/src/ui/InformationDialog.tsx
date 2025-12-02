@@ -5,7 +5,7 @@ import { DeviceMetadata } from "../shared/JAIAProtobuf";
 import { set } from "lodash";
 
 interface Props {
-    logFiles: string[];
+    logFileName: string;
     onClose: () => void;
 }
 
@@ -15,10 +15,10 @@ export function InformationDialog(props: Props) {
     const [dialogText, setDialogText] = React.useState("Loading metadata...");
 
     useEffect(() => {
-        LogApi.getObjects<DeviceMetadata>(props.logFiles, METADATA_PATH)
+        LogApi.getObjects<DeviceMetadata>([props.logFileName], METADATA_PATH)
             .then((metadata) => {
                 if (metadata.length === 0) {
-                    setDialogText("No metadata found in the selected logs.");
+                    setDialogText("No metadata found in the selected log file.");
                     return;
                 } else {
                     setDialogText(JSON.stringify(metadata[0], null, 2));
