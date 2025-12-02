@@ -272,6 +272,19 @@ export default function LayerSwitcherMenu() {
                             />
                             <p>Depth Contours</p>
                         </div>
+                        <div className="layer-container">
+                            <Checkbox
+                                onClick={() =>
+                                    handleLayerClick(LayerTitles.EXCLUDED_TASK_PACKETS_LAYER)
+                                }
+                                checked={layerCheckedStates.get(
+                                    LayerTitles.EXCLUDED_TASK_PACKETS_LAYER,
+                                )}
+                                sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.EXCLUDED_TASK_PACKETS_LAYER}-checkbox`}
+                            />
+                            <p>Excluded Task Packets</p>
+                        </div>
                     </AccordionDetails>
                 </Accordion>
 

@@ -2,14 +2,22 @@ import Mission from "../../data/mission_set/mission";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { taskPackets } from "../../data/task_packets/task-packets";
 import { GridPlanningStates } from "../../data/survey_planner/grid-plan";
-import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
-import { UNASSIGNED_ID } from "../../utils/constants";
+import {
+    JaiaContextType,
+    JaiaAction,
+    ButtonNames,
+    TaskPacketVisibility,
+} from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
+import { jaiaAPI } from "../../utils/jaia-api";
+import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
+import { syncTaskLayers } from "./handler-utils";
 
 /**
  * Makes call to add waypoint if mission is in edit mode
@@ -36,7 +44,9 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     } else if (missionIDInEditMode !== UNASSIGNED_ID) {
         // Add waypoint to mission in edit mode
         const mission = missionSet.getMission(missionIDInEditMode);
-        mission.addWaypoint(action.location);
+        if (mission.getWaypoints().length < MAX_WAYPOINTS) {
+            mission.addWaypoint(action.location);
+        }
     }
 
     missionLayer.updateFeatures();
@@ -135,9 +145,10 @@ export function handleToggleBottomDive(mutableState: JaiaContextType, action: Ja
 }
 
 /**
- * Makes call to update the task parameters based on the toggle state
+ * Makes call to update the useHydrophone property based on the toggle state
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides access to the task
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleToggleHydrophone(mutableState: JaiaContextType, action: JaiaAction) {
@@ -157,6 +168,7 @@ export function handleToggleHydrophone(mutableState: JaiaContextType, action: Ja
  * Updates the map mode when the constant heading select on map toggle is clicked
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides access to the task
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleToggleConstantHeadingSelect(
@@ -181,6 +193,27 @@ export function handleToggleConstantHeadingSelect(
 
     handleMapModeChange(updatedMapMode);
     mutableState.jaiaGlobal.setMapMode(updatedMapMode);
+    return mutableState;
+}
+
+/**
+ * Makes api calls to exclude + include task packets
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleChangeTaskPacketVisibility(
+    mutableState: JaiaContextType,
+    action: JaiaAction,
+) {
+    const include = action.taskPacketVisibility === TaskPacketVisibility.INCLUDE;
+    jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then((response) => {
+        jaiaAPI.getTaskPackets().then((response) => {
+            taskPackets.setIncludedTaskPackets(response.result.included);
+            taskPackets.setExcludedTaskPackets(response.result.excluded);
+            syncTaskLayers();
+        });
+    });
     return mutableState;
 }
 

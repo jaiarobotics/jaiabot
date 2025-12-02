@@ -92,7 +92,7 @@ function Panel() {
             return (
                 <TaskPacketPanel
                     selectedTaskPacket={jaiaContext.jaiaGlobal.getSelectedTaskPacket()}
-                    taskPackets={jaiaContext.taskPackets.getTaskPackets()}
+                    taskPackets={jaiaContext.taskPackets}
                 />
             );
         case ButtonNames.DATA_OFFLOAD_PANEL:

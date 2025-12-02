@@ -12,6 +12,7 @@ export enum LayerTitles {
     DIVE_LAYER = "dive-layer",
     DRIFT_LAYER = "drift-layer",
     CONTOUR_LAYER = "contour-layer",
+    EXCLUDED_TASK_PACKETS_LAYER = "excluded-task-packets-layer",
     RALLY_LAYER = "rally-layer",
     MEASURE_LAYER = "measure-layer",
 }
@@ -36,6 +37,7 @@ export enum MapModes {
     SURVEY_PLANNING = "SURVEY_PLANNING",
     SURVEY_CONSTANT_HEADING_SELECT = "SURVEY_CONSTANT_HEADING_SELECT",
     CONSTANT_HEADING_SELECT = "CONSTANT_HEADING_SELECT",
+    HUB_LOCATION_SELECT = "HUB_LOCATION_SELECT",
 }
 
 export enum SurveyEndpoints {

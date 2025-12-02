@@ -1,17 +1,16 @@
 import { JaiaActions } from "../context/jaia-actions";
-import { MissionSet } from "../data/mission_set/mission-set";
+import { MissionSet, MissionSetSnapshot } from "../data/mission_set/mission-set";
 import {
     MissionsManager,
     MissionsManagerSnapshot,
 } from "../data/missions_manager/missions-manager";
-import { MissionSetSnapshot } from "../data/mission_set/mission-set";
 import { GridPlan, GridPlanningStates, GridPanSnapshot } from "../data/survey_planner/grid-plan";
 import { JaiaGlobal, JaiaGlobalSnapshot } from "../data/jaia_global/jaia-global";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
-import Waypoint from "../data/waypoints/waypoint";
 import { TaskPackets } from "../data/task_packets/task-packets";
 import Task from "../data/tasks/task";
+import Waypoint from "../data/waypoints/waypoint";
 import {
     SelectedNode,
     SelectedWaypoint,
@@ -77,6 +76,8 @@ export interface JaiaAction {
     task?: Task;
     taskType?: TaskType;
     taskParameterPairs?: TaskParameterPair[];
+    taskPacketID?: string;
+    taskPacketVisibility?: TaskPacketVisibility;
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
@@ -176,4 +177,9 @@ export enum PanelActions {
     CANCEL = 1,
     DONE = 2,
     CLOSE = 3,
+}
+
+export enum TaskPacketVisibility {
+    EXCLUDE = 1,
+    INCLUDE = 2,
 }
