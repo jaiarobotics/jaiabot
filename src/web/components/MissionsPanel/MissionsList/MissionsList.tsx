@@ -98,7 +98,7 @@ export default function MissionsList() {
 
     return (
         <div id="missions-list" data-testid="missions-list">
-            {Array.from(jaiaContext.missions.values()).map((mission) => {
+            {Array.from(jaiaContext.missionSet.getMissions().values()).map((mission) => {
                 return (
                     <ThemeProvider theme={accordionTheme} key={mission.getMissionID()}>
                         <Accordion
@@ -136,7 +136,8 @@ export default function MissionsList() {
                                 />
                                 <JaiaToggle
                                     checked={() =>
-                                        jaiaContext.missionIDInEditMode === mission.getMissionID()
+                                        jaiaContext.missionSet.getMissionIDInEditMode() ===
+                                        mission.getMissionID()
                                     }
                                     onClick={() => handleToggleEditClick(mission.getMissionID())}
                                     label="Edit"

@@ -58,13 +58,13 @@ export default function BotDetails() {
         addDropdownListener("accordion-container", "bot-details-accordions-container");
     });
 
-    const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
+    const hub = jaiaContext.hubs.getHub(DEFAULT_HUB_ID);
 
-    const botID = jaiaContext.selectedNode.id;
-    const bot = jaiaContext.bots.get(botID);
+    const botID = jaiaContext.jaiaGlobal.getSelectedNode().id;
+    const bot = jaiaContext.bots.getBot(botID);
 
     const missionID = missionsManager.getMissionID(botID);
-    const mission = jaiaContext.missions.get(missionID);
+    const mission = jaiaContext.missionSet.getMission(missionID);
 
     if (!bot) {
         return <div></div>;

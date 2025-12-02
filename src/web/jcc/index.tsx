@@ -12,6 +12,7 @@ import { diveLayer } from "../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
+import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { DATA_MODEL_POLL_TIME, TASK_PACKET_POLL_TIME } from "../utils/constants";
 
 // Sample status messages twice as fast as produced by Bots and Hubs to reduce potential data age issues
@@ -48,7 +49,8 @@ const taskPacketInterval = setInterval(async () => {
             console.error(`Response status: ${response.status}`);
         } else {
             const json = await response.json();
-            taskPackets.setTaskPackets(json.result.included);
+            taskPackets.setIncludedTaskPackets(json.result.included);
+            taskPackets.setExcludedTaskPackets(json.result.excluded);
             updateTaskLayers();
         }
     } catch (error) {
@@ -104,6 +106,7 @@ function updateTaskLayers() {
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
     contourLayer.updateFeatures();
+    excludedTaskPacketsLayer.updateFeatures();
 }
 
 /**

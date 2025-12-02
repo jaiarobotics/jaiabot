@@ -1,10 +1,15 @@
+import cloneDeep from "lodash/cloneDeep";
 import { bots } from "../bots/bots";
 import { missionSet } from "../mission_set/mission-set";
 import { UNASSIGNED_ID } from "../../utils/constants";
-
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
 
-class MissionsManager {
+export interface MissionsManagerSnapshot {
+    botsToMissions: Map<number, number>;
+    missionsToBots: Map<number, number>;
+}
+
+export class MissionsManager {
     private botsToMissions: Map<number, number>;
     private missionsToBots: Map<number, number>;
 
@@ -126,27 +131,28 @@ class MissionsManager {
     }
 
     /**
-     * Provides the map of missions to Bots
+     * Captures a snapshot of the current assignments
      *
-     * @returns {Map<number, number>} Maps missions to Bots
+     * @returns {MissionsManagerSnapshot} Snapshot of current MissionsManager
      */
-    getMissionAssignments() {
-        return this.missionsToBots;
+    captureSnapshot() {
+        const snapshot: MissionsManagerSnapshot = {
+            botsToMissions: this.botsToMissions,
+            missionsToBots: this.missionsToBots,
+        };
+        return cloneDeep(snapshot);
     }
 
     /**
-     * Updates the missionToBots and botsToMissions maps
+     * Replaces the current assignments with those from the saved snapshot
      *
-     * @param {Map<number, number>} missionAssignments New assignment information
+     * @param {MissionsManagerSnapshot} snapshot Snapshot of assignments
      * @returns {void}
      */
-    setAssignments(missionAssignments: Map<number, number>) {
-        this.missionsToBots = missionAssignments;
-        // rebuild botsToMissions from missionsToBots
-        this.botsToMissions.clear();
-        this.missionsToBots.forEach((botID, missionID) => {
-            this.botsToMissions.set(botID, missionID);
-        });
+    restoreFromSnapshot(snapshot: MissionsManagerSnapshot) {
+        // Copy maps from snapshot
+        this.botsToMissions = snapshot.botsToMissions;
+        this.missionsToBots = snapshot.missionsToBots;
     }
 }
 

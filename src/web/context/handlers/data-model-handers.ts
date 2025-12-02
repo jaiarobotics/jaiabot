@@ -3,22 +3,16 @@ import {
     ButtonNames,
     HubAccordionStates,
     BotAccordionStates,
-    JaiaHistoryType,
 } from "../../types/context-types";
 import { bots } from "../../data/bots/bots";
 import { hubs } from "../../data/hubs/hubs";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { taskPackets } from "../../data/task_packets/task-packets";
-import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
-
+import { gridPlan } from "../../data/survey_planner/grid-plan";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapModes } from "../../types/openlayers-types";
-
-import HistoryBuffer from "../../utils/history-buffer";
-import { captureSnapshot } from "./history-handlers";
-
-import { UNASSIGNED_ID, MAX_HISTORY } from "../../utils/constants";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
@@ -54,43 +48,33 @@ const defaultMapLayerAccordionStates = {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleInit(mutableState: JaiaContextType) {
-    mutableState.bots = bots.getBots();
-    mutableState.hubs = hubs.getHubs();
-    mutableState.missions = missionSet.getMissions();
-    mutableState.gridMissions = gridPlan.getMissions();
-    mutableState.taskPackets = taskPackets.getTaskPackets();
+    const completeInit: JaiaContextType = {
+        bots: bots,
+        hubs: hubs,
+        missionSet: missionSet,
+        gridPlan: gridPlan,
+        jaiaGlobal: jaiaGlobal,
+        missionsManager: missionsManager,
+        taskPackets: taskPackets,
+        selectedRallyPoint: { id: UNASSIGNED_ID },
+        visibleDetails: NodeTypes.NONE,
+        visiblePanel: ButtonNames.NONE,
+        hubAccordionStates: defaultHubAccordionStates,
+        botAccordionStates: defaultBotAccordionStates,
+        mapLayerAccordionStates: defaultMapLayerAccordionStates,
+        missionAccordionStates: {},
+    };
 
-    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
-    mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
-    mutableState.visibleDetails = NodeTypes.NONE;
-    mutableState.visiblePanel = ButtonNames.NONE;
-    mutableState.hubAccordionStates = defaultHubAccordionStates;
-    mutableState.botAccordionStates = defaultBotAccordionStates;
-    mutableState.mapLayerAccordionStates = defaultMapLayerAccordionStates;
-    mutableState.missionAccordionStates = {};
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    mutableState.missionSpeeds = missionSet.getMissionSpeeds();
-
-    mutableState.mapMode = MapModes.DEFAULT;
-    mutableState.gridPlanningState = GridPlanningStates.ACCEPTING_MISSION_START_LOCATION;
-
-    const initialState = captureSnapshot(mutableState);
-    mutableState.stateHistory = new HistoryBuffer<JaiaHistoryType>(initialState, MAX_HISTORY);
-
+    Object.assign(mutableState, completeInit);
     return mutableState;
 }
 
 /**
- * Saves the latest data from incoming Bot and Hub status messages to state
+ * Triggers an app update as new status data is received from the server
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handlePollDataModel(mutableState: JaiaContextType) {
-    mutableState.bots = bots.getBots();
-    mutableState.hubs = hubs.getHubs();
-    mutableState.taskPackets = taskPackets.getTaskPackets();
     return mutableState;
 }

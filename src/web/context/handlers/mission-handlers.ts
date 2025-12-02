@@ -9,7 +9,6 @@ import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { updateMissionSetFromSnapshot } from "../../components/MissionsPanel/MissionSetStorage/mission-set-storage";
 import { syncOpenLayers } from "./handler-utils";
 
 /**
@@ -26,8 +25,6 @@ export function handleAddMission(mutableState: JaiaContextType) {
     const newMission = new Mission();
     const newMissionID = missionSet.addMission(newMission);
 
-    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
@@ -65,8 +62,6 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     const missionCopy = cloneDeep(missionSet.getMission(action.missionID));
     const newMissionID = missionSet.addMission(missionCopy);
 
-    mutableState.selectedNode = jaiaGlobal.getSelectedNode();
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
     mutableState.missionAccordionStates[newMissionID] = true;
 
     syncOpenLayers();
@@ -129,7 +124,6 @@ export function handleAutoAssignMissions(mutableState: JaiaContextType) {
  */
 export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action: JaiaAction) {
     missionSet.setMissionSpeeds(action.missionSpeeds);
-    mutableState.missionSpeeds = action.missionSpeeds;
     return mutableState;
 }
 
@@ -141,12 +135,25 @@ export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action:
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    updateMissionSetFromSnapshot(action.missionSetSnapshot);
-    mutableState.missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    mutableState.missionAccordionStates = Object.fromEntries(
-        Array.from(mutableState.missions.keys(), (key) => [key, false]),
-    );
+    // Clear current mission set and reset mission assignments
+    missionSet.deleteAllMissions();
+    missionsManager.unassignAll();
 
+    // Rebuild mission set from json snapshot
+    if (Array.isArray(action.missionSetSnapshot.missions)) {
+        action.missionSetSnapshot.missions.forEach(
+            ([missonID, serializedMission]: [number, any]) => {
+                const mission = Mission.fromJSON(serializedMission);
+                missionSet.addMission(mission);
+            },
+        );
+    }
+
+    // Restore other fields via setters
+    missionSet.setName(action.missionSetSnapshot.name);
+    missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+    missionSet.setMissionSpeeds(action.missionSetSnapshot.missionSpeeds);
+    mutableState.missionAccordionStates = {};
     missionLayer.updateFeatures();
     return mutableState;
 }

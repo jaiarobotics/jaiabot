@@ -1,21 +1,28 @@
 import { cloneDeep } from "lodash";
 import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
-import { JaiaContextType, JaiaHistoryType } from "../../types/context-types";
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import {
+    JaiaContextType,
+    JaiaSnapshot,
+    JaiaContextDataSnapshot,
+    ButtonNames,
+} from "../../types/context-types";
+import { historyManager } from "../../data/history/histroy-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { snakeCaseToTitleCase } from "../../utils/input";
+import { gridPlan } from "../../data/survey_planner/grid-plan";
+import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 
 /**
  * Pulls previous state from history and updates current state and data model
  *
- * @param {JaiaContextType} mutableState current state to be updated
+ * @param {JaiaContextType} mutableState Current state to be updated
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedUndo(mutableState: JaiaContextType) {
     // Get the previous snapshot from history
-    const snapshot = mutableState.stateHistory.undo();
+    const snapshot = historyManager.undo();
     if (!snapshot) {
         console.warn("No undo available");
         return mutableState;
@@ -23,26 +30,12 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
 
     // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
-    syncOpenLayers();
-    return mutableState;
-}
 
-/**
- * Pulls next state from history and updates current state and data model
- *
- * @param {JaiaContextType} mutableState current state to be updated
- * @returns {JaiaContextType} Updated mutable state object
- */
-export function handleClickedRedo(mutableState: JaiaContextType) {
-    // Get the next snapshot from history
-    const snapshot = mutableState.stateHistory.redo();
-    if (!snapshot) {
-        console.warn("No redo available");
-        return mutableState;
+    // Close survey panel if left open by undo
+    if (mutableState.visiblePanel === ButtonNames.SURVEY_TOOL) {
+        mutableState.visiblePanel = ButtonNames.NONE;
     }
-
-    // Restore snapshot into mutableState
-    mutableState = restoreSnapshot(mutableState, snapshot);
+    gridLayer.getVectorLayer().getSource().clear();
 
     syncOpenLayers();
     return mutableState;
@@ -51,88 +44,83 @@ export function handleClickedRedo(mutableState: JaiaContextType) {
 /**
  * Saves a snapshot of the updated App state to the history buffer
  *
- * @param {JaiaContextType} mutableState updated state to be captured
+ * @param {JaiaContextType} mutableState Updated state to be captured
  * @param {JaiaActions} actionType Type of action that created the updated state
- * @returns {JaiaContextType} Updated mutable state object
+ * @returns {void}
  */
 export function saveHistory(mutableState: JaiaContextType, actionType: JaiaActions) {
-    const description = snakeCaseToTitleCase(actionType);
     const snapshot = captureSnapshot(mutableState);
-    mutableState.stateHistory.push(snapshot, description);
+    historyManager.pushUndo(snapshot);
 }
 
 /**
- * Captures a snapshot of the current state and other data to store in history buffer
+ * Creates a snapshot of the context state
  *
- * @param {JaiaContextType} state current state
- * @returns {JaiaHistoryType} Snapshot of state data to put on buffer
+ * @param {JaiaContextType} context Current state of application
+ * @returns {JaiaSnapshot} Cloned subset of current state
  *
- * @notes Uses cloneDeep so history is isolated from future state changes
+ * @notes
+ * All capture functions returned cloned snapshots
  */
-export function captureSnapshot(state: JaiaContextType): JaiaHistoryType {
-    const snapshot: JaiaHistoryType = {
-        missions: state.missions,
-        selectedNode: state.selectedNode,
-        selectedWaypoint: state.selectedWaypoint,
-        selectedRallyPoint: state.selectedRallyPoint,
-        selectedTaskPacket: state.selectedTaskPacket,
-        visibleDetails: state.visibleDetails,
-        visiblePanel: state.visiblePanel,
-        hubAccordionStates: state.hubAccordionStates,
-        botAccordionStates: state.botAccordionStates,
-        mapLayerAccordionStates: state.mapLayerAccordionStates,
-        missionAccordionStates: state.missionAccordionStates,
-        missionIDInEditMode: state.missionIDInEditMode,
-        missionSpeeds: state.missionSpeeds,
-        mapMode: state.mapMode,
-        nextMissionID: missionSet.getNextMissionID(),
-        missionSetName: missionSet.getName(),
-        missionAssignments: missionsManager.getMissionAssignments(),
+export function captureSnapshot(context: JaiaContextType) {
+    const snapshot: JaiaSnapshot = {
+        missionSetSnapshot: missionSet.captureSnapshot(),
+        missionsManagerSnapshot: missionsManager.captureSnapshot(),
+        gridPlanSnapshot: gridPlan.captureSnapshot(),
+        jaiaGlobalSnapshot: jaiaGlobal.captureSnapshot(),
+        jaiaContextDataSnapshot: captureContextData(context),
     };
+    return snapshot;
+}
 
+/**
+ * Restores the state to a snapshot
+ *
+ * @param {JaiaContextType} context Current state of application
+ * @param {JaiaSnapshot} snapshot Cloned subset of current state
+ * @returns {void}
+ */
+function restoreSnapshot(context: JaiaContextType, snapshot: JaiaSnapshot) {
+    missionSet.restoreFromSnapshot(snapshot.missionSetSnapshot);
+    missionsManager.restoreFromSnapshot(snapshot.missionsManagerSnapshot);
+    gridPlan.restoreFromSnapshot(snapshot.gridPlanSnapshot);
+    jaiaGlobal.restoreFromSnapshot(snapshot.jaiaGlobalSnapshot);
+    restoreCotextData(context, snapshot.jaiaContextDataSnapshot);
+    return context;
+}
+
+/**
+ * Captures a snapshot of context data that is not part of the data model
+ *
+ * @param {JaiaContextType} context Current state of application
+ * @returns {JaiaSnapshot} Snapshot cloned subset of current state
+ */
+function captureContextData(context: JaiaContextType) {
+    const snapshot: JaiaContextDataSnapshot = {
+        selectedRallyPoint: context.selectedRallyPoint,
+        visibleDetails: context.visibleDetails,
+        visiblePanel: context.visiblePanel,
+        hubAccordionStates: context.hubAccordionStates,
+        botAccordionStates: context.botAccordionStates,
+        mapLayerAccordionStates: context.mapLayerAccordionStates,
+        missionAccordionStates: context.missionAccordionStates,
+    };
     return cloneDeep(snapshot);
 }
 
 /**
- * Restores the application state from a snapshot stored in history
- * and makes a call to update the data model from the snapshot
+ * Restores the state to the snapshot
  *
- * @param {JaiaContextType} mutableState Current state to be updated
- * @param {JaiaHistoryType} snapshot Snapshot of state from history
- * @returns {JaiaContextType} Updated state with values from history
- *
- * @notes Uses cloneDeep so history is isolated from future state changes
- */
-function restoreSnapshot(mutableState: JaiaContextType, snapshot: JaiaHistoryType) {
-    // Clone snapshot to isolate from history
-    const snapshotCopy = cloneDeep(snapshot);
-    // Restore state from snapshot
-    Object.assign(mutableState, snapshotCopy);
-    // Sync data model with restored state
-    updateDataFromSnapshot(snapshotCopy);
-    return mutableState;
-}
-
-/**
- * Syncs the data model with values from a history snapshot
- *
- * @param {JaiaHistoryType} snapshot Snapshot of state from history
+ * @param {JaiaContextType} context Current state of application
+ * @param {JaiaSnapshot} snapshot Cloned subset of current state
  * @returns {void}
  */
-function updateDataFromSnapshot(snapshot: JaiaHistoryType) {
-    // Update missionSet
-    missionSet.setMissions(snapshot.missions);
-    missionSet.setMissionIDInEditMode(snapshot.missionIDInEditMode);
-    missionSet.setMissionSpeeds(snapshot.missionSpeeds);
-    missionSet.setNextMissionID(snapshot.nextMissionID);
-    missionSet.setName(snapshot.missionSetName);
-
-    // Update missionsManager
-    missionsManager.setAssignments(snapshot.missionAssignments);
-
-    // Update jaiaGlobal
-    jaiaGlobal.setSelectedWaypoint(snapshot.selectedWaypoint);
-    jaiaGlobal.setSelectedNode(snapshot.selectedNode);
-    jaiaGlobal.setSelectedTaskPacket(snapshot.selectedTaskPacket);
-    jaiaGlobal.setMapMode(snapshot.mapMode);
+function restoreCotextData(mutableState: JaiaContextType, snapshot: JaiaContextDataSnapshot) {
+    mutableState.selectedRallyPoint = snapshot.selectedRallyPoint;
+    mutableState.visibleDetails = snapshot.visibleDetails;
+    mutableState.visiblePanel = snapshot.visiblePanel;
+    mutableState.hubAccordionStates = snapshot.hubAccordionStates;
+    mutableState.botAccordionStates = snapshot.botAccordionStates;
+    mutableState.mapLayerAccordionStates = snapshot.mapLayerAccordionStates;
+    mutableState.missionAccordionStates = snapshot.missionAccordionStates;
 }

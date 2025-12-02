@@ -11,20 +11,20 @@ import { LineString } from "ol/geom";
 import { toLonLat } from "ol/proj";
 import { Stroke, Style } from "ol/style";
 
-import JaiaVectorLayer from "../jaia-vector-layer";
-import Task from "../../../../data/tasks/task";
-import Mission from "../../../../data/mission_set/mission";
-import { touches } from "../../../controls/touches";
-import { gridPlan, GridPlanningStates } from "../../../../data/survey_planner/grid-plan";
-import { LayerTitles, LineType, SurveyEndpoints } from "../../../../types/openlayers-types";
-import { layersZIndexes } from "../../zindex";
-import { generateSurveyLane, generateSurveyPoint } from "../../../features/survey/grid-features";
+import JaiaVectorLayer from "./jaia-vector-layer";
+import Mission from "../../../data/mission_set/mission";
+import Task from "../../../data/tasks/task";
+import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
+import { touches } from "../../controls/touches";
+import { layersZIndexes } from "../zindex";
+import { generateSurveyLane, generateSurveyPoint } from "../../features/survey/grid-features";
 import {
     generateSurveyEndpoint,
     generateSurveyEndpointCircle,
-} from "../../../features/survey/survey-endpoints";
-import { GeographicCoordinate, TaskType } from "../../../../types/protobuf-types";
-import { constantHeadingParamsToLocation } from "../../../../utils/conversions";
+} from "../../features/survey/survey-endpoints";
+import { GeographicCoordinate, TaskType } from "../../../types/protobuf-types";
+import { LayerTitles, LineType, SurveyEndpoints } from "../../../types/openlayers-types";
+import { constantHeadingParamsToLocation } from "../../../utils/conversions";
 
 const units: Units = "meters";
 const options = { units: units };
@@ -42,7 +42,9 @@ class GridLayer extends JaiaVectorLayer {
         this.layerSource = this.getVectorLayer().getSource();
     }
 
-    override updateFeatures() {}
+    override updateFeatures() {
+        this.finalizeGrid();
+    }
 
     getDraw() {
         return this.draw;
@@ -209,6 +211,10 @@ class GridLayer extends JaiaVectorLayer {
             this.layerSource.addFeature(waypointFeature);
             points.push(coordinates);
             pointNum++;
+
+            if (points.length >= gridPlan.getMaxWaypointsPerLane()) {
+                return points;
+            }
         }
 
         if (gridPlan.getEndTask().getType() === TaskType.CONSTANT_HEADING) {
@@ -282,6 +288,10 @@ class GridLayer extends JaiaVectorLayer {
      */
     finalizeGrid(modifyDataModel: boolean = false) {
         const lanes = this.createGrid(true);
+        if (!lanes) {
+            return;
+        }
+
         this.sortLanes(lanes);
         this.layerSource.clear();
         this.createGridEndPoints();

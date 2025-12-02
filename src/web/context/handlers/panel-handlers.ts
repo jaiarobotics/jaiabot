@@ -64,7 +64,6 @@ export function handleClosedTaskPacketPanel(mutableState: JaiaContextType, actio
         startTime: 0,
         type: MapFeatureTypes.NONE,
     });
-    mutableState.selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
     return mutableState;

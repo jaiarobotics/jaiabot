@@ -1,16 +1,6 @@
 import Mission from "../../../data/mission_set/mission";
-import { missionSet } from "../../../data/mission_set/mission-set";
-import { missionsManager } from "../../../data/missions_manager/missions-manager";
+import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { UNASSIGNED_ID } from "../../../utils/constants";
-import { Speeds } from "../../../types/protobuf-types";
-
-export interface MissionSetSnapshot {
-    missions: Mission[];
-    nextMissionID: number;
-    missionIDInEditMode: number | null;
-    missionSpeeds: Speeds;
-    name: string;
-}
 
 /**
  * Saves the current mission set to local storage
@@ -22,7 +12,7 @@ export function saveToLocalStorage(name: string) {
     missionSet.setName(name);
     // Read the saved mission sets from  local storage (or start fresh)
     const missionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    missionSets[name] = getMissionSetSnapshot();
+    missionSets[name] = missionSet.captureSnapshot();
     localStorage.setItem("missionSets", JSON.stringify(missionSets));
 }
 
@@ -38,46 +28,24 @@ export function saveToLocalStorage(name: string) {
 export function loadSnapshotFromLocalStorage(saveName: string) {
     const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
     const targetSet = allMissionSets[saveName] || {};
-
-    let missionsArray: Mission[] = [];
+    const missions: [number, Mission][] = [];
     if (Array.isArray(targetSet.missions)) {
-        missionsArray = targetSet.missions.map(
-            (missionJSON: string) => Mission.fromJSON(missionJSON) as Mission,
+        missions.push(
+            ...targetSet.missions.map(([missionID, serializedMission]: [any, any]) => [
+                Number(missionID),
+                Mission.fromJSON(serializedMission),
+            ]),
         );
     }
-    return {
-        missions: missionsArray,
+
+    const snapshot: MissionSetSnapshot = {
+        missions: missions,
         nextMissionID: targetSet.nextMissionID ?? 0,
-        missionIDInEditMode: targetSet.missionIDInEditMode ?? null,
+        missionIDInEditMode: targetSet.missionIDInEditMode ?? UNASSIGNED_ID,
         missionSpeeds: targetSet.missionSpeeds ?? {},
         name: targetSet.name ?? "",
-    } as MissionSetSnapshot;
-}
-
-/**
- * Replaces the current mission set with those from a saved snapshot
- *
- * @param {MissionSetSnapshot} missionSetSnapshot Snapshot of mission set
- * @returns {void}
- *
- * @notes
- * This is called by the reducer/action handler
- */
-export function updateMissionSetFromSnapshot(missionSetSnapshot: MissionSetSnapshot) {
-    // Clear current mission set and reset mission assignments
-    missionSet.deleteAllMissions();
-    missionsManager.unassignAll();
-
-    // Rebuild mission set from snapshot
-    if (Array.isArray(missionSetSnapshot.missions)) {
-        missionSetSnapshot.missions.forEach((mission) => {
-            missionSet.addMission(mission);
-        });
-    }
-
-    missionSet.setName(missionSetSnapshot.name);
-    missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-    missionSet.setMissionSpeeds(missionSetSnapshot.missionSpeeds);
+    };
+    return snapshot;
 }
 
 /**
@@ -117,7 +85,7 @@ export function listSavedMissionSets() {
  */
 export function exportMissionSetToFile(name: string) {
     missionSet.setName(name);
-    const data = JSON.stringify(getMissionSetSnapshot());
+    const data = JSON.stringify(missionSet.captureSnapshot());
     const fileName = `${name}.json`;
     const blob = new Blob([data], { type: "application/json" });
 
@@ -161,15 +129,19 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
                     resolve(null);
                     return;
                 }
-                const missionsArray = Array.isArray(targetSet.missions)
-                    ? targetSet.missions.map(
-                          (missionJSON: string) => Mission.fromJSON(missionJSON) as Mission,
-                      )
-                    : [];
+                const missionsArray: [number, Mission][] = [];
+                if (Array.isArray(targetSet.missions)) {
+                    missionsArray.push(
+                        ...targetSet.missions.map(([missionID, serializedMission]: [any, any]) => [
+                            0, // Ignore original key
+                            Mission.fromJSON(serializedMission),
+                        ]),
+                    );
+                }
                 const snapshot: MissionSetSnapshot = {
                     missions: missionsArray,
-                    nextMissionID: targetSet.nextMissionID ?? 0,
-                    missionIDInEditMode: targetSet.missionIDInEditMode ?? null,
+                    nextMissionID: targetSet.nextMissionID ?? 1,
+                    missionIDInEditMode: targetSet.missionIDInEditMode ?? UNASSIGNED_ID,
                     missionSpeeds: targetSet.missionSpeeds ?? {},
                     name: targetSet.name ?? "",
                 };
@@ -181,20 +153,4 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
         };
         input.click();
     });
-}
-
-/**
- * Captures a snapshot of the current missionSet
- *
- * @returns {object} snapshot of current missionSet data
- */
-function getMissionSetSnapshot() {
-    const currentMissionSet = {
-        missions: Array.from(missionSet.getMissions().values()),
-        nextMissionID: missionSet.getNextMissionID(),
-        missionIDInEditMode: missionSet.getMissionIDInEditMode(),
-        missionSpeeds: missionSet.getMissionSpeeds(),
-        name: missionSet.getName(),
-    };
-    return currentMissionSet;
 }

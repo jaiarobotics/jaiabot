@@ -5,6 +5,10 @@
     top: @panel-top;
     right: @panel-right;
 
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
     padding: 6px;
 
     max-height: @panel-max-height;
@@ -48,5 +52,16 @@
     color: @cc-text-color-light;
 
     display: flex;
-    justify-self: center;
+    justify-content: center;
+}
+
+.visibility-buttons {
+    display: flex;
+    justify-content: space-around;
+}
+
+.visibility-buttons button {
+    border: 1px solid #fff;
+    border-radius: 3px;
+    padding: 6px 18px;
 }

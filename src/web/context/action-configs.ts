@@ -18,6 +18,7 @@ import {
     handleMoveWaypoint,
     handleSelectTask,
     handleChangeTaskParameter,
+    handleChangeTaskPacketVisibility,
     handleToggleBottomDive,
     handleToggleHydrophone,
     handleToggleConstantHeadingSelect,
@@ -49,8 +50,9 @@ import {
     handleClickedRallyPoint,
     handleClickedTaskPacket,
 } from "./handlers/selection-handlers";
+import { handleClickedUndo } from "./handlers/history-handlers";
 import { handleChangeGridPlanningState } from "./handlers/survey-handlers";
-import { handleClickedUndo, handleClickedRedo } from "./handlers/history-handlers";
+import { handleMoveHub, handleToggleSelectHubLocation } from "./handlers/simulation-handlers";
 
 // Standard profile for action handling functions
 type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType; // Configuration for handling JaiaActions
@@ -87,8 +89,13 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         JaiaActions.TOGGLE_CONSTANT_HEADING_SELECT,
         { handler: handleToggleConstantHeadingSelect, tracked: true },
     ],
+    [
+        JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
+        { handler: handleChangeTaskPacketVisibility, tracked: true },
+    ],
 
     // Survey Actions
+    [JaiaActions.SURVEY_APPROVED, { handler: handleChangeGridPlanningState, tracked: true }],
     [
         JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
         { handler: handleChangeGridPlanningState, tracked: false },
@@ -144,5 +151,11 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
 
     // History Actions
     [JaiaActions.CLICKED_UNDO, { handler: handleClickedUndo, tracked: false }],
-    [JaiaActions.CLICKED_REDO, { handler: handleClickedRedo, tracked: false }],
+
+    // Simulation Actions
+    [
+        JaiaActions.TOGGLE_SELECT_HUB_LOCATION,
+        { handler: handleToggleSelectHubLocation, tracked: false },
+    ],
+    [JaiaActions.MOVE_HUB, { handler: handleMoveHub, tracked: false }],
 ]);

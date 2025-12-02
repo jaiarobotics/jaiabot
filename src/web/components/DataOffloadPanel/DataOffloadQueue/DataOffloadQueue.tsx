@@ -18,7 +18,7 @@ export default function DataOffloadQueue() {
         return;
     }
 
-    const hub = jaiaContext.hubs.get(DEFAULT_HUB_ID);
+    const hub = jaiaContext.hubs.getHub(DEFAULT_HUB_ID);
     if (!hub) {
         return;
     }

@@ -9,13 +9,13 @@ import { JaiaActions } from "../../context/jaia-actions";
 
 import TaskParameters from "../WaypointPanel/TaskParameters/TaskParameters";
 
-import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import Task from "../../data/tasks/task";
 import { bots } from "../../data/bots/bots";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { formatNumericalInput, snakeCaseToTitleCase } from "../../utils/input";
 import { selectTheme } from "../../utils/style";
-import { DEFAULT_LANES, INIT_LANES } from "../../utils/constants";
+import { DEFAULT_LANES, UNASSIGNED_ID } from "../../utils/constants";
 import { TaskType } from "../../types/protobuf-types";
 
 import "./SurveyPlanner.less";
@@ -30,8 +30,9 @@ interface Props {
 
 enum GridInputs {
     NUM_OF_LANES = 1,
-    LANE_SPACING = 2,
-    POINT_SPACING = 3,
+    NUM_OF_BOTS = 2,
+    LANE_SPACING = 3,
+    POINT_SPACING = 4,
 }
 
 enum TaskPosition {
@@ -58,6 +59,12 @@ export default function SurveyPlanner(props: Props) {
         if (!gridLayer.getCenterLine()) {
             return;
         }
+
+        // Center line is not long enough for waypoints
+        if (gridLayer.createGridPoints(gridLayer.getCenterLine(), 1).length === 0) {
+            return;
+        }
+
         jaiaDispatch({
             type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
             gridPlanningState: GridPlanningStates.ACCEPTING_TASK,
@@ -87,13 +94,19 @@ export default function SurveyPlanner(props: Props) {
      * @returns {void}
      */
     const handleMenuNavClick = (nextState: GridPlanningStates) => {
-        jaiaDispatch({
-            type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
-            gridPlanningState: nextState,
-        });
+        if (nextState === GridPlanningStates.APPROVED) {
+            jaiaDispatch({
+                type: JaiaActions.SURVEY_APPROVED,
+                gridPlanningState: nextState,
+            });
+        } else
+            jaiaDispatch({
+                type: JaiaActions.SURVEY_CHANGE_PLANNING_STATE,
+                gridPlanningState: nextState,
+            });
     };
 
-    switch (jaiaContext.gridPlanningState) {
+    switch (jaiaContext.gridPlan.getState()) {
         case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
             return <RequestStartMissionLocation />;
         case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
@@ -173,28 +186,36 @@ function RequestEndMissionLocation() {
  */
 function GridConfigs(props: Props) {
     /**
-     * Determines the number of lanes to show on first render.
+     * Determines the number of lanes + Bots to show on first render.
      * The last user input will be used unless no input has been provided yet.
      * In that case, we use the number of Bots or DEFAULT_LANES if no Bots connected.
      *
      * @returns {number} Number of lanes to show on first render
      */
-    const initNumOfLanes = () => {
+    const initParams = (gridInput: GridInputs) => {
         const numOfBots = bots.getBots().size;
-        if (gridPlan.getNumOfLanes() === INIT_LANES && bots.getBots().size > 0) {
+        if (gridPlan.getNumOfLanes() === UNASSIGNED_ID && bots.getBots().size > 0) {
             gridPlan.setNumOfLanes(numOfBots);
+            gridPlan.setNumOfBots(numOfBots);
             return numOfBots;
         }
 
-        if (gridPlan.getNumOfLanes() === INIT_LANES) {
+        if (gridPlan.getNumOfLanes() === UNASSIGNED_ID) {
             gridPlan.setNumOfLanes(DEFAULT_LANES);
+            gridPlan.setNumOfBots(DEFAULT_LANES);
             return DEFAULT_LANES;
         }
 
-        return gridPlan.getNumOfLanes();
+        gridPlan.calculateMaxPointsPerLane();
+
+        if (gridInput === GridInputs.NUM_OF_LANES) {
+            return gridPlan.getNumOfLanes();
+        }
+        return gridPlan.getNumOfBots();
     };
 
-    const [numOfLanes, setNumOfLanes] = useState(initNumOfLanes());
+    const [numOfLanes, setNumOfLanes] = useState(initParams(GridInputs.NUM_OF_LANES));
+    const [numOfBots, setNumOfBots] = useState(initParams(GridInputs.NUM_OF_BOTS));
     const [pointSpacing, setPointSpacing] = useState(props.gridPlanDetails.pointSpacing);
     const [laneSpacing, setLaneSpacing] = useState(props.gridPlanDetails.laneSpacing);
 
@@ -216,6 +237,12 @@ function GridConfigs(props: Props) {
             case GridInputs.NUM_OF_LANES:
                 setNumOfLanes(input);
                 gridPlan.setNumOfLanes(input);
+                gridPlan.calculateMaxPointsPerLane();
+                break;
+            case GridInputs.NUM_OF_BOTS:
+                setNumOfBots(input);
+                gridPlan.setNumOfBots(input);
+                gridPlan.calculateMaxPointsPerLane();
                 break;
             case GridInputs.LANE_SPACING:
                 setLaneSpacing(input);
@@ -246,6 +273,14 @@ function GridConfigs(props: Props) {
                     value={formatNumericalInput(numOfLanes)}
                     onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                         handleInputChange(evt.target.value, GridInputs.NUM_OF_LANES)
+                    }
+                />
+                <div>Number of Bots:</div>
+                <input
+                    type="number"
+                    value={formatNumericalInput(numOfBots)}
+                    onChange={(evt: ChangeEvent<HTMLInputElement>) =>
+                        handleInputChange(evt.target.value, GridInputs.NUM_OF_BOTS)
                     }
                 />
                 <div>Lane Spacing:</div>
@@ -324,15 +359,19 @@ function TaskConfigs(props: Props) {
      */
     const getMenuItems = () => {
         const menuItems = [
-            <MenuItem value={TaskType.NONE}>{snakeCaseToTitleCase(TaskType.NONE)}</MenuItem>,
-            <MenuItem value={TaskType.DIVE}>{snakeCaseToTitleCase(TaskType.DIVE)}</MenuItem>,
-            <MenuItem value={TaskType.SURFACE_DRIFT}>
+            <MenuItem value={TaskType.NONE} key={TaskType.NONE}>
+                {snakeCaseToTitleCase(TaskType.NONE)}
+            </MenuItem>,
+            <MenuItem value={TaskType.DIVE} key={TaskType.DIVE}>
+                {snakeCaseToTitleCase(TaskType.DIVE)}
+            </MenuItem>,
+            <MenuItem value={TaskType.SURFACE_DRIFT} key={TaskType.SURFACE_DRIFT}>
                 {snakeCaseToTitleCase(TaskType.SURFACE_DRIFT)}
             </MenuItem>,
         ];
         if (props.taskPosition !== TaskPosition.SURVEY) {
             menuItems.push(
-                <MenuItem value={TaskType.CONSTANT_HEADING}>
+                <MenuItem value={TaskType.CONSTANT_HEADING} key={TaskType.CONSTANT_HEADING}>
                     {snakeCaseToTitleCase(TaskType.CONSTANT_HEADING)}
                 </MenuItem>,
             );

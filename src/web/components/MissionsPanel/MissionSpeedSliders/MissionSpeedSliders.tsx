@@ -34,7 +34,7 @@ export default function MissionSpeedSliders() {
      * @returns {void}
      */
     const handleSpeedChange = (speedType: SpeedTypes, speed: number) => {
-        const updatedSpeeds = { ...jaiaContext.missionSpeeds };
+        const updatedSpeeds = { ...jaiaContext.missionSet.getMissionSpeeds() };
 
         switch (speedType) {
             case SpeedTypes.TRANSIT:
@@ -58,7 +58,7 @@ export default function MissionSpeedSliders() {
                 <div>Transit</div>
                 <Slider
                     aria-label="Transit Speed"
-                    value={jaiaContext.missionSpeeds.transit}
+                    value={jaiaContext.missionSet.getMissionSpeeds().transit}
                     step={0.5}
                     marks
                     min={MIN_SPEED}
@@ -67,12 +67,12 @@ export default function MissionSpeedSliders() {
                         handleSpeedChange(SpeedTypes.TRANSIT, Number(evt.target.value))
                     }
                 />
-                <div>{jaiaContext.missionSpeeds.transit}</div>
+                <div>{jaiaContext.missionSet.getMissionSpeeds().transit}</div>
 
                 <div>Station Keep</div>
                 <Slider
                     aria-label="Station Keep Speed"
-                    value={jaiaContext.missionSpeeds.stationkeep_outer}
+                    value={jaiaContext.missionSet.getMissionSpeeds().stationkeep_outer}
                     step={0.5}
                     marks
                     min={MIN_SPEED}
@@ -81,7 +81,7 @@ export default function MissionSpeedSliders() {
                         handleSpeedChange(SpeedTypes.STATION_KEEP, Number(evt.target.value))
                     }
                 />
-                <div>{jaiaContext.missionSpeeds.stationkeep_outer}</div>
+                <div>{jaiaContext.missionSet.getMissionSpeeds().stationkeep_outer}</div>
             </div>
         </ThemeProvider>
     );

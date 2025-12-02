@@ -77,6 +77,10 @@ export default class Mission {
         this.waypoints.push(waypoint);
     }
 
+    addWaypoints(waypoints: Waypoint[]) {
+        this.waypoints.push(...waypoints);
+    }
+
     deleteWaypoint(waypointNum: number) {
         // Remove last waypoint in constant time
         if (waypointNum === this.waypoints.length) {

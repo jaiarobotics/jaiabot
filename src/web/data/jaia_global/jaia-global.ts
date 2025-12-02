@@ -1,3 +1,4 @@
+import cloneDeep from "lodash/cloneDeep";
 import {
     NodeTypes,
     SelectedNode,
@@ -7,6 +8,14 @@ import {
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
+
+export interface JaiaGlobalSnapshot {
+    selectedNode: SelectedNode;
+    selectedWaypoint: SelectedWaypoint;
+    selectedTaskPacket: SelectedTaskPacket;
+    mapMode: MapModes;
+    defaultTaskParameters: TaskParameters;
+}
 
 const defaultTaskParameters: TaskParameters = {
     dive: {
@@ -24,7 +33,7 @@ const defaultTaskParameters: TaskParameters = {
     },
 };
 
-class JaiaGlobal {
+export class JaiaGlobal {
     private selectedNode: SelectedNode;
     private selectedWaypoint: SelectedWaypoint;
     private selectedTaskPacket: SelectedTaskPacket;
@@ -92,6 +101,37 @@ class JaiaGlobal {
 
     setDefaultTaskParameters(defaultTaskParameters: TaskParameters) {
         this.defaultTaskParameters = defaultTaskParameters;
+    }
+
+    /**
+     * Captures snapshot of JaiaGlobal
+     *
+     * @returns {JaiaGlobalSnapshot} Snapshot of JaiaGlobal
+     */
+    captureSnapshot() {
+        const snapshot: JaiaGlobalSnapshot = {
+            selectedNode: this.selectedNode,
+            selectedWaypoint: this.selectedWaypoint,
+            selectedTaskPacket: this.selectedTaskPacket,
+            mapMode: this.mapMode,
+            defaultTaskParameters: this.defaultTaskParameters,
+        };
+        return cloneDeep(snapshot);
+    }
+
+    /**
+     * Replaces the current properties with those from the saved snapshot
+     *
+     * @param {JaiaGlobalSnapshot} snapshot Snapshot of JaiaGlobal
+     * @returns {void}
+     */
+
+    restoreFromSnapshot(snapshot: JaiaGlobalSnapshot) {
+        this.selectedNode = snapshot.selectedNode;
+        this.selectedWaypoint = snapshot.selectedWaypoint;
+        this.selectedTaskPacket = snapshot.selectedTaskPacket;
+        this.mapMode = snapshot.mapMode;
+        this.defaultTaskParameters = snapshot.defaultTaskParameters;
     }
 }
 

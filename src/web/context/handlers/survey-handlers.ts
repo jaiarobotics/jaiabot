@@ -4,7 +4,7 @@ import Task from "../../data/tasks/task";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
-import { gridLayer } from "../../openlayers/layers/vector/survey/grid-layer";
+import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { MISSION_ENDPOINTS, UNASSIGNED_ID } from "../../utils/constants";
@@ -21,7 +21,6 @@ import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-ty
  */
 export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
     gridPlan.setState(action.gridPlanningState);
-    mutableState.gridPlanningState = action.gridPlanningState;
 
     switch (action.gridPlanningState) {
         case GridPlanningStates.ACCEPTING_GRID_DRAWING:
@@ -50,7 +49,6 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
         case GridPlanningStates.OFFERING_SRP:
             gridLayer.finalizeGrid();
             gridPlan.getSRPTask().setType(TaskType.NONE);
-            mutableState.mapMode = MapModes.SURVEY_PLANNING;
             handleMapModeChange(MapModes.SURVEY_PLANNING);
             break;
 
@@ -96,10 +94,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             missionsManager.autoAssign();
 
             handleMapModeChange(MapModes.DEFAULT);
-            mutableState.mapMode = MapModes.DEFAULT;
             mutableState.visiblePanel = ButtonNames.NONE;
-            mutableState.missions = missionSet.getMissions();
-            mutableState.missionIDInEditMode = UNASSIGNED_ID;
             missionLayer.updateFeatures();
             break;
     }

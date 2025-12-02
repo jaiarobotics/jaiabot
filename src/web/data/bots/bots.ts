@@ -10,7 +10,7 @@ import Bot from "./bot";
  * @notes Users of the class can rely on the map returned by
  *        getBots to be ordered by Bot ID
  */
-class Bots {
+export class Bots {
     private bots: Map<number, Bot>;
 
     constructor() {
