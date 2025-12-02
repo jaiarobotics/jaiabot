@@ -66,7 +66,7 @@ class UDPGateway
                            goby::middleware::protobuf::HealthState& health_state);
 
     void send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command);
-    void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope);
+    void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
 
     void received_imu_data(const jaiabot::protobuf::IMUData& imu_data);
     void received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope);
@@ -77,6 +77,9 @@ class UDPGateway
     bool helm_ivp_in_mission_{false};
     goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
         goby::time::SteadyClock::now()};
+
+    // Keep track of the source of the last IMU UDP packet
+    goby::middleware::protobuf::UDPEndPoint imu_udp_src_;
 };
 
 } // namespace apps
@@ -90,14 +93,15 @@ int main(int argc, char* argv[])
 
 // Main thread
 
-double loop_freq = 10;
+double loop_freq = 1.0; // Hz
 
 jaiabot::apps::UDPGateway::UDPGateway()
     : zeromq::MultiThreadApplication<config::UDPGateway>(loop_freq * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
-    using UDPThread = goby::middleware::io::UDPPointToPointThread<udp_gateway_in, udp_gateway_out>;
+    using UDPThread =
+        goby::middleware::io::UDPOneToManyThread<udp_gateway_in, udp_gateway_out>;
     launch_thread<UDPThread>(cfg().udp_config());
 
 
@@ -107,7 +111,10 @@ jaiabot::apps::UDPGateway::UDPGateway()
         [this](const goby::middleware::protobuf::IOData& data)
         {
             // Deserialize from the UDP packet
-            
+            glog.is_debug1() && glog << "Received UDP packet of size "
+                                     << data.data().size() << " bytes"
+                                     << endl;
+
             jaiabot::protobuf::UDPGatewayEnvelope envelope;
             if (!envelope.ParseFromString(data.data()))
             {
@@ -116,7 +123,25 @@ jaiabot::apps::UDPGateway::UDPGateway()
                 return;
             }
 
-            received_envelope(envelope);
+            // Process the contents of the envelope
+            switch(envelope.payload_case())
+            {
+                case jaiabot::protobuf::UDPGatewayEnvelope::kImuData:
+                {
+                    received_imu_data(envelope.imu_data());
+                    imu_udp_src_ = data.udp_src();
+                    glog.is_debug1() && glog << "IMUData came from "
+                                             << imu_udp_src_.ShortDebugString()
+                                             << endl;
+                    break;
+                }
+                default:
+                {
+                    glog.is_warn() && glog << "Received unknown payload in UDPGatewayEnvelope"
+                                        << endl;
+                    break;
+                }
+            }
 
         });
 
@@ -145,12 +170,20 @@ jaiabot::apps::UDPGateway::UDPGateway()
 
 
 
-void jaiabot::apps::UDPGateway::send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope) {
+void jaiabot::apps::UDPGateway::send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst) {
+    if (!udp_dst.has_addr() || !udp_dst.has_port()) {
+        glog.is_warn() && glog << "UDP destination is not set, cannot send UDPGatewayEnvelope"
+                               << endl;
+        return;
+    }
+
     auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
+    io_data->mutable_udp_dest()->set_addr(udp_dst.addr());
+    io_data->mutable_udp_dest()->set_port(udp_dst.port());
     io_data->set_data(envelope.SerializeAsString());
     interthread().publish<udp_gateway_out>(io_data);
 
-    glog.is_debug2() && glog << "Sent UDPGatewayEnvelope: " << envelope.ShortDebugString()
+    glog.is_debug1() && glog << "Sent UDPGatewayEnvelope: " << envelope.ShortDebugString()
                              << endl;
 }
 
@@ -158,42 +191,25 @@ void jaiabot::apps::UDPGateway::send_envelope(const jaiabot::protobuf::UDPGatewa
 void jaiabot::apps::UDPGateway::send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command) {
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
     *envelope.mutable_imu_command() = imu_command;
-    send_envelope(envelope);
+    send_envelope(envelope, imu_udp_src_);
 }
 
 
 void jaiabot::apps::UDPGateway::received_imu_data(const jaiabot::protobuf::IMUData& imu_data) {
-    glog.is_verbose() && glog << "Received IMUData: " << imu_data.ShortDebugString()
-                             << endl;
+    glog.is_verbose() && glog << "Received IMUData" << endl;
     interprocess().publish<groups::imu>(imu_data);
     last_imu_data_time_ = goby::time::SteadyClock::now();
 }
 
 
-void jaiabot::apps::UDPGateway::received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope) {
-    switch(envelope.payload_case())
-    {
-        case jaiabot::protobuf::UDPGatewayEnvelope::kImuData:
-        {
-            received_imu_data(envelope.imu_data());
-            break;
-        }
-        default:
-        {
-            glog.is_warn() && glog << "Received unknown payload in UDPGatewayEnvelope"
-                                   << endl;
-            break;
-        }
-    }
-}
-
-
 void jaiabot::apps::UDPGateway::loop()
 {
-    // auto command = jaiabot::protobuf::IMUCommand();
-    // command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
-    // send_imu_command(command);
+    auto command = jaiabot::protobuf::IMUCommand();
+    command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
+    send_imu_command(command);
 }
+
+// Health checks
 
 void jaiabot::apps::UDPGateway::health(
     goby::middleware::protobuf::ThreadHealth& health)

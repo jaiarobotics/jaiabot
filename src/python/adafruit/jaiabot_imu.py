@@ -45,6 +45,7 @@ log.setLevel(args.logging_level)
 
 def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
     port_log = logging.getLogger('jaiabot_imu.port_loop')
+    port_log.setLevel(args.logging_level)
     port_log.info('Starting IMU port loop')
 
     # Create socket
@@ -75,8 +76,12 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
             imu_data.imu_type = args.device_type
 
         address = ('localhost', udp_gateway_port)
-        port_log.debug(f'Sending IMU data to {address}:\n{imu_data}')
-        sock.sendto(imu_data.SerializeToString(), address)
+
+        envelope = UDPGatewayEnvelope()
+        envelope.imu_data.CopyFrom(imu_data)
+
+        port_log.debug(f'Sending UDPGatewayEnvelope to jaiabot_udp_gateway at {address}:\n{envelope}')
+        sock.sendto(envelope.SerializeToString(), address)
 
 
     while True:
