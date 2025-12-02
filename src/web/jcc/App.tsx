@@ -30,8 +30,21 @@ import "./App.less";
  * The root of the JCC interface
  */
 export default function App() {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    /**
+     * Places the JCC in full-screen mode on mobile devices
+     *
+     * @returns {void}
+     */
+    const handleJCCClick = () => {
+        if (!document.fullscreenElement && isMobile) {
+            document.documentElement.requestFullscreen();
+        }
+    };
+
     return (
-        <div id="jcc">
+        <div id="jcc" onClick={() => handleJCCClick()}>
             <JaiaContextProvider>
                 <Map />
                 <NodeList />
