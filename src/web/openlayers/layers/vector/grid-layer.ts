@@ -13,7 +13,8 @@ import { Stroke, Style } from "ol/style";
 
 import JaiaVectorLayer from "./jaia-vector-layer";
 import Mission from "../../../data/mission_set/mission";
-import { gridPlan } from "../../../data/survey_planner/grid-plan";
+import Task from "../../../data/tasks/task";
+import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
 import { touches } from "../../controls/touches";
 import { layersZIndexes } from "../zindex";
 import { generateSurveyLane, generateSurveyPoint } from "../../features/survey/grid-features";
@@ -219,7 +220,13 @@ class GridLayer extends JaiaVectorLayer {
         if (gridPlan.getEndTask().getType() === TaskType.CONSTANT_HEADING) {
             const point = points[points.length - 1];
             const startLocation = { lat: point[1], lon: point[0] };
-            this.createConstantHeadingProjection(startLocation);
+            this.createConstantHeadingProjection(startLocation, gridPlan.getEndTask());
+        }
+
+        if (gridPlan.getState() === GridPlanningStates.ACCEPTING_SRP) {
+            const point = points[points.length - 1];
+            const startLocation = { lat: point[1], lon: point[0] };
+            this.createConstantHeadingProjection(startLocation, gridPlan.getSRPTask());
         }
 
         return points;
@@ -240,7 +247,10 @@ class GridLayer extends JaiaVectorLayer {
         );
 
         if (gridPlan.getStartTask().getType() === TaskType.CONSTANT_HEADING) {
-            this.createConstantHeadingProjection(gridPlan.getMissionStart());
+            this.createConstantHeadingProjection(
+                gridPlan.getMissionStart(),
+                gridPlan.getStartTask(),
+            );
         }
     }
 
@@ -250,11 +260,8 @@ class GridLayer extends JaiaVectorLayer {
      * @param {GeographicCoordinate} startLocation Beginning of constant heading projection
      * @returns {void}
      */
-    createConstantHeadingProjection(startLocation: GeographicCoordinate) {
-        const endLocation = constantHeadingParamsToLocation(
-            startLocation,
-            gridPlan.getPlanningTask(),
-        );
+    createConstantHeadingProjection(startLocation: GeographicCoordinate, task: Task) {
+        const endLocation = constantHeadingParamsToLocation(startLocation, task);
         const constantHeadingLine = generateSurveyLane(startLocation, endLocation, LineType.DASHED);
         this.layerSource.addFeature(constantHeadingLine);
     }

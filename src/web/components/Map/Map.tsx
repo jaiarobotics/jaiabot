@@ -210,11 +210,22 @@ export default function Map() {
             },
         ];
 
-        jaiaDispatch({
-            type: JaiaActions.CHANGE_TASK_PARAMETER,
-            task: task,
-            taskParameterPairs: taskParameterPairs,
-        });
+        if (
+            mapMode === MapModes.SURVEY_PLANNING ||
+            mapMode === MapModes.SURVEY_CONSTANT_HEADING_SELECT
+        ) {
+            jaiaDispatch({
+                type: JaiaActions.SURVEY_CHANGE_TASK_PARAMETER,
+                task: task,
+                taskParameterPairs: taskParameterPairs,
+            });
+        } else {
+            jaiaDispatch({
+                type: JaiaActions.CHANGE_TASK_PARAMETER,
+                task: task,
+                taskParameterPairs: taskParameterPairs,
+            });
+        }
     };
 
     /**
