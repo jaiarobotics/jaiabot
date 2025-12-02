@@ -100,6 +100,9 @@ jaiabot::apps::UDPGateway::UDPGateway()
     using UDPThread = goby::middleware::io::UDPPointToPointThread<udp_gateway_in, udp_gateway_out>;
     launch_thread<UDPThread>(cfg().udp_config());
 
+
+    glog.is_verbose() && glog << "Config : " << cfg().ShortDebugString() << endl;
+
     interthread().subscribe<udp_gateway_in>(
         [this](const goby::middleware::protobuf::IOData& data)
         {
@@ -160,7 +163,7 @@ void jaiabot::apps::UDPGateway::send_imu_command(const jaiabot::protobuf::IMUCom
 
 
 void jaiabot::apps::UDPGateway::received_imu_data(const jaiabot::protobuf::IMUData& imu_data) {
-    glog.is_debug2() && glog << "Received IMUData: " << imu_data.ShortDebugString()
+    glog.is_verbose() && glog << "Received IMUData: " << imu_data.ShortDebugString()
                              << endl;
     interprocess().publish<groups::imu>(imu_data);
     last_imu_data_time_ = goby::time::SteadyClock::now();
@@ -187,9 +190,9 @@ void jaiabot::apps::UDPGateway::received_envelope(const jaiabot::protobuf::UDPGa
 
 void jaiabot::apps::UDPGateway::loop()
 {
-    auto command = jaiabot::protobuf::IMUCommand();
-    command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
-    send_imu_command(command);
+    // auto command = jaiabot::protobuf::IMUCommand();
+    // command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
+    // send_imu_command(command);
 }
 
 void jaiabot::apps::UDPGateway::health(
