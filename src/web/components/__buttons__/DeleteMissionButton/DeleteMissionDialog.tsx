@@ -83,7 +83,7 @@ function ButtonRow(props: ButtonRowProps) {
                     className="dialog-button"
                     onClick={() => props.onClose(DialogActions.CONFIRMED)}
                 >
-                    {props.deleteAll ? "Delete All Missions" : "Delete Mission"}
+                    {props.deleteAll ? "Delete All" : "Delete Mission"}
                 </button>
             </div>
         );
