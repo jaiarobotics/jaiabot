@@ -1,7 +1,6 @@
 import CircularProgress from "@mui/joy/CircularProgress";
 import { useContext } from "react";
 import { JaiaContext } from "../../../context/JaiaContext";
-import { DEFAULT_HUB_ID } from "../../../utils/constants";
 import "./DataOffloadQueue.less";
 
 interface Props {
@@ -18,7 +17,7 @@ export default function DataOffloadQueue() {
         return;
     }
 
-    const hub = jaiaContext.hubs.getHub(DEFAULT_HUB_ID);
+    const hub = jaiaContext.hubs.getHubs().values().next()?.value;
     if (!hub) {
         return;
     }
@@ -29,7 +28,7 @@ export default function DataOffloadQueue() {
      * @returns {QueueItem[]} QueueItem elements for Bots pending data offload
      */
     const renderBotsPending = () => {
-        const botsPending = hub.getBotOffload().bots_pending;
+        const botsPending: number[] = hub.getBotOffload().bots_pending;
         if (botsPending) {
             return botsPending.map((botID) => (
                 <QueueItem botID={botID} offloadPercentage={0} key={botID} />

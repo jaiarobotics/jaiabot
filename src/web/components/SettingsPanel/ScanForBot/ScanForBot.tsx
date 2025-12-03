@@ -1,7 +1,6 @@
 import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { JaiaContext } from "../../../context/JaiaContext";
-import { DEFAULT_HUB_ID } from "../../../utils/constants";
 import { sendHubCommand } from "../../../utils/commands";
 import { CommandForHub, HubCommandType } from "../../../types/protobuf-types";
 import { success } from "../../../utils/notifications";
@@ -31,7 +30,7 @@ export default function ScanForBot() {
      * @returns {void}
      */
     const sendScanForBot = async (botID: number) => {
-        const hub = jaiaContext.hubs.getHub(DEFAULT_HUB_ID);
+        const hub = jaiaContext.hubs.getHubs().values().next()?.value;
 
         if (!hub || botID === 0) {
             return;

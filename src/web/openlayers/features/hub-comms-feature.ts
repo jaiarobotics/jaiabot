@@ -6,7 +6,6 @@ import { Coordinate } from "ol/coordinate";
 
 import { hubs } from "../../data/hubs/hubs";
 import { view } from "../views/view";
-import { DEFAULT_HUB_ID } from "../../utils/constants";
 import { degreesToRadians } from "../../utils/conversions";
 import { HUB_COMMS_INNER_RADIUS, HUB_COMMS_OUTER_RADIUS } from "../../utils/constants";
 import { OpenLayersColors } from "../../style/openlayers/colors";
@@ -23,7 +22,7 @@ export enum CommsRangeTypes {
  * @returns {Feature} Circle outline around Hub or empty feature if no Hub location
  */
 export function generateHubCommsFeature(commsRangeType: CommsRangeTypes) {
-    const hub = hubs.getHub(DEFAULT_HUB_ID);
+    const hub = hubs.getHubs().values().next()?.value;
     if (!hub || !hub.getLocation()) {
         return new Feature();
     }
