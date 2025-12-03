@@ -2,6 +2,7 @@ syntax="proto2";
 import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/sensor/salinity.proto";
 import "jaiabot/messages/sensor/pressure_temperature.proto";
+import "jaiabot/messages/tsys01.proto";
 
 package jaiabot.protobuf;
 
@@ -16,6 +17,8 @@ message UDPGatewayEnvelope
         SalinityData salinity_data = 3;
 
         PressureTemperatureData pressure_temperature_data = 4;
+
+        TSYS01Data tsys01_data = 5;
     }
 
 }

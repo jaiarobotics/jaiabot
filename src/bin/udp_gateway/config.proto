@@ -40,9 +40,11 @@ message UDPGateway
 
     required goby.middleware.protobuf.UDPOneToManyConfig udp_config = 3;
 
+    // Timeouts for sensors
     optional int32 imu_data_report_timeout_seconds = 10 [default = 30];
     optional int32 salinity_data_report_timeout_seconds = 14 [default = 60];
     optional int32 pressure_temperature_data_report_timeout_seconds = 15 [default = 60];
+    optional int32 tsys01_data_report_timeout_seconds = 16 [default = 40];
 
     optional bool in_simulation = 11 [default = true];
 

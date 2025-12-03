@@ -98,6 +98,9 @@ class UDPGateway
     goby::middleware::protobuf::UDPEndPoint pressure_temperature_udp_src_;
     jaiabot::protobuf::PressureTemperatureData process_pressure_temperature_data(const jaiabot::protobuf::PressureTemperatureData& pressure_temperature_data);
 
+    // TSYS01 data tracking
+    goby::time::SteadyClock::time_point last_tsys01_data_time_{std::chrono::seconds(0)};
+
 };
 
 } // namespace apps
@@ -168,6 +171,13 @@ jaiabot::apps::UDPGateway::UDPGateway()
                     interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_temperature_data);
                     last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
                     pressure_temperature_udp_src_ = data.udp_src();
+                    break;
+                }
+                case jaiabot::protobuf::UDPGatewayEnvelope::kTsys01Data:
+                {
+                    interprocess().publish<groups::tsys01>(envelope.tsys01_data());
+                    last_tsys01_data_time_ = goby::time::SteadyClock::now();
+                    glog.is_debug1() && glog << "Received TSYS01Data" << endl;
                     break;
                 }
                 default:
@@ -375,6 +385,18 @@ void jaiabot::apps::UDPGateway::check_last_report(
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(
                 protobuf::WARNING__NOT_RESPONDING__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER);
+    }
+
+    // TSYS01 data timeout check
+    if (last_tsys01_data_time_ +
+            std::chrono::seconds(cfg().tsys01_data_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on TSYS01 temperature sensor" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(
+                protobuf::WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER);
     }
 
 }

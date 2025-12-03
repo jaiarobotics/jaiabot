@@ -14,3 +14,6 @@ jaiabot_udp_gateway <(../../gen/bot.py jaiabot_udp_gateway) -vv -zz
 
 # Start Pressure sensor simulator
 [kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/pressure_sensor/jaiabot_pressure_sensor.py $(../../gen/bot.py jaiabot_pressure_sensor.py) -l DEBUG
+
+# Start TSYS01 temperature sensor simulator
+[kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/tsys01_temperature_sensor/jaiabot_tsys01.py $(../../gen/bot.py jaiabot_tsys01.py) -t sim
