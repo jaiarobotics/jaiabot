@@ -42,14 +42,8 @@ jaiabot_health <(../../gen/bot.py jaiabot_health)
 
 # Need to confirm the below lines included from engineering launch, but commented to match standard
 
-# Pressure sensor
-jaiabot_bluerobotics_pressure_sensor_driver <(../../gen/bot.py jaiabot_bluerobotics_pressure_sensor_driver)
-
-# IMU sensor
+# UDP gateway
 jaiabot_udp_gateway <(../../gen/bot.py jaiabot_udp_gateway)
-
-# Salinity sensor
-jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientific_ezo_ec_driver)
 
 # Camera
 [kill=SIGTERM] socat -d -d pty,raw,echo=0,link=/tmp/bot${jaia_bot_index}_camera_0 pty,raw,echo=0,link=/tmp/bot${jaia_bot_index}_camera_1

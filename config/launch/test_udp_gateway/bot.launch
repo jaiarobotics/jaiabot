@@ -11,3 +11,6 @@ jaiabot_udp_gateway <(../../gen/bot.py jaiabot_udp_gateway) -vv -zz
 
 # Start Salinity sensor simulator
 [kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/atlas_scientific_ezo_ec/jaiabot_as-ezo-ec.py $(../../gen/bot.py jaiabot_as-ezo-ec.py) -l DEBUG
+
+# Start Pressure sensor simulator
+[kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/pressure_sensor/jaiabot_pressure_sensor.py $(../../gen/bot.py jaiabot_pressure_sensor.py) -l DEBUG

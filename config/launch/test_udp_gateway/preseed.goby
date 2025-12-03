@@ -1,3 +1,4 @@
 export jaia_mode=simulation
 export jaia_comms_mode=wifi
+export jaia_warp=1
 source "./../../preseed.goby"

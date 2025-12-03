@@ -28,6 +28,7 @@
 #include <dccl/codec.h>
 #include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/util/constants.h>
+#include <goby/util/seawater/units.h>
 #include <goby/zeromq/application/multi_thread.h>
 #include <iostream>
 
@@ -95,6 +96,7 @@ class UDPGateway
     // PressureTemperature data tracking
     goby::time::SteadyClock::time_point last_pressure_temperature_data_time_{std::chrono::seconds(0)};
     goby::middleware::protobuf::UDPEndPoint pressure_temperature_udp_src_;
+    jaiabot::protobuf::PressureTemperatureData process_pressure_temperature_data(const jaiabot::protobuf::PressureTemperatureData& pressure_temperature_data);
 
 };
 
@@ -109,7 +111,7 @@ int main(int argc, char* argv[])
 
 // Main thread
 
-double loop_freq = 1.0; // Hz
+double loop_freq = 10.0; // Hz
 
 jaiabot::apps::UDPGateway::UDPGateway()
     : zeromq::MultiThreadApplication<config::UDPGateway>(loop_freq * si::hertz)
@@ -127,7 +129,7 @@ jaiabot::apps::UDPGateway::UDPGateway()
         [this](const goby::middleware::protobuf::IOData& data)
         {
             // Deserialize from the UDP packet
-            glog.is_debug1() && glog << "Received UDP packet of size "
+            glog.is_debug2() && glog << "Received UDP packet of size "
                                      << data.data().size() << " bytes"
                                      << endl;
 
@@ -147,15 +149,12 @@ jaiabot::apps::UDPGateway::UDPGateway()
                     interprocess().publish<groups::imu>(envelope.imu_data());
                     last_imu_data_time_ = goby::time::SteadyClock::now();
                     imu_udp_src_ = data.udp_src();
-                    glog.is_debug1() && glog << "IMUData came from "
-                                             << imu_udp_src_.ShortDebugString()
-                                             << endl;
+                    glog.is_debug1() && glog << "Received IMUData" << endl;
                     break;
                 }
                 case jaiabot::protobuf::UDPGatewayEnvelope::kSalinityData:
                 {
-                    glog.is_debug1() && glog << "Received SalinityData in UDPGatewayEnvelope, forwarding to interprocess"
-                                             << endl;
+                    glog.is_debug1() && glog << "Received SalinityData" << endl;
                     auto salinity_data = process_salinity_data(envelope.salinity_data());
                     interprocess().publish<groups::salinity>(envelope.salinity_data());
                     last_salinity_data_time_ = goby::time::SteadyClock::now();
@@ -164,9 +163,9 @@ jaiabot::apps::UDPGateway::UDPGateway()
                 }
                 case jaiabot::protobuf::UDPGatewayEnvelope::kPressureTemperatureData:
                 {
-                    glog.is_debug1() && glog << "Received PressureTemperatureData in UDPGatewayEnvelope, forwarding to interprocess"
-                                             << endl;
-                    interprocess().publish<jaiabot::groups::pressure_temperature>(envelope.pressure_temperature_data());
+                    glog.is_debug1() && glog << "Received PressureTemperatureData" << endl;
+                    auto pressure_temperature_data = process_pressure_temperature_data(envelope.pressure_temperature_data());
+                    interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_temperature_data);
                     last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
                     pressure_temperature_udp_src_ = data.udp_src();
                     break;
@@ -277,6 +276,27 @@ jaiabot::protobuf::SalinityData jaiabot::apps::UDPGateway::process_salinity_data
     return processed_data;
 }
 
+jaiabot::protobuf::PressureTemperatureData jaiabot::apps::UDPGateway::process_pressure_temperature_data(const jaiabot::protobuf::PressureTemperatureData& pressure_temperature_data) {
+    jaiabot::protobuf::PressureTemperatureData processed_data = pressure_temperature_data;
+
+    if (processed_data.has_pressure_raw())
+    {
+        double pressure_raw = processed_data.pressure_raw();
+        processed_data.set_pressure_raw_with_units(pressure_raw * si::milli *
+                                                                goby::util::seawater::bar);
+    }
+
+    // TODO: Shouldn't this already have units from the DCCL field metadata?
+    if (processed_data.has_temperature())
+    {
+        double temperature = processed_data.temperature();
+        processed_data.set_temperature_with_units(
+            temperature * boost::units::absolute<boost::units::celsius::temperature>());
+    }
+
+    return processed_data;
+}
+
 // Health checks
 
 void jaiabot::apps::UDPGateway::health(
@@ -286,13 +306,13 @@ void jaiabot::apps::UDPGateway::health(
     health.set_name(this->app_name());
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
-    //Check to see if the IMU is responding
+    //Check to see if the sensors are reporting
     if (cfg().in_simulation())
     {
         if (helm_ivp_in_mission_)
         {
             glog.is_debug1() &&
-                glog << "Simulation Sensor Check (TODO: add simulation for this sensor)"
+                glog << "Simulation Sensor Check (TODO: add simulation for sensors)"
                      << std::endl;
             //TODO: add simulation for this sensor
             //check_last_report(health, health_state);
@@ -310,6 +330,8 @@ void jaiabot::apps::UDPGateway::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
+
+    // IMU timeout check
     if (last_imu_data_time_ +
             std::chrono::seconds(cfg().imu_data_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
@@ -331,6 +353,7 @@ void jaiabot::apps::UDPGateway::check_last_report(
         }
     }
 
+    // Salinity data timeout check
     if (last_salinity_data_time_ +
         std::chrono::seconds(cfg().salinity_data_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
@@ -340,6 +363,18 @@ void jaiabot::apps::UDPGateway::check_last_report(
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(
                 protobuf::WARNING__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
+    }
+
+    // Pressure temperature data timeout check
+    if (last_pressure_temperature_data_time_ +
+        std::chrono::seconds(cfg().pressure_temperature_data_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on pressure temperature data" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(
+                protobuf::WARNING__NOT_RESPONDING__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER);
     }
 
 }
