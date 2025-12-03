@@ -59,8 +59,7 @@ test("Delete all missions", async () => {
     const button = screen.getByRole("button", { name: "delete-all-missions" });
     await userEvent.click(button);
     expect(screen.getByText("Confirm"));
-    // Includes button text and helper text that appears when hovering over button
-    expect(screen.getAllByText("Delete All Missions").length).toBe(2);
+    expect(screen.getAllByText("Delete All").length).toBe(1);
     expect(screen.getByText("Cancel"));
 });
 
@@ -104,7 +103,7 @@ test("Click Delete Mission confirmation button", async () => {
     expect(missionSet.getMissions().size).toBe(0);
 });
 
-test("Click Delete All Missions confirmation button", async () => {
+test("Click Delete All confirmation button", async () => {
     const mockMission = new Mission();
     const missionID = missionSet.addMission(mockMission);
 
@@ -116,7 +115,7 @@ test("Click Delete All Missions confirmation button", async () => {
     const button = screen.getByRole("button", { name: "delete-all-missions" });
     await userEvent.click(button);
     expect(screen.queryByText("Confirm")).toBeVisible();
-    await userEvent.click(screen.getAllByText("Delete All Missions")[1]);
+    await userEvent.click(screen.getByText("Delete All"));
     expect(screen.queryByText("Confirm")).toBeNull();
     expect(missionSet.getMissions().size).toBe(0);
 });

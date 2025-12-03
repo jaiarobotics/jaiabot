@@ -3,7 +3,7 @@ import { FormControl, Select, MenuItem, SelectChangeEvent, ThemeProvider } from 
 import Icon from "@mdi/react";
 import { mdiArrowLeft, mdiArrowRight } from "@mdi/js";
 
-import { ChangeEvent, useContext, useState } from "react";
+import { ChangeEvent, useContext, useEffect, useState } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
@@ -461,6 +461,11 @@ function OfferSRP(props: Props) {
  * Renders the window to modify safety return parameters to the survey mission set
  */
 function SRPConfig(props: Props) {
+    useEffect(() => {
+        // Show constant heading lines on init
+        gridLayer.finalizeGrid();
+    }, []);
+
     return (
         <div className="jaia-panel survey">
             <div className="jaia-panel-title">Survey Planner</div>
