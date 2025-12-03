@@ -40,8 +40,6 @@ namespace si = boost::units::si;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
 
-#define earthRadiusKm 6371.0
-
 namespace jaiabot
 {
 namespace apps
