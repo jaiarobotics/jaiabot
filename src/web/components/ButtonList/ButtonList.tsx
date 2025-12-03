@@ -25,7 +25,6 @@ import {
     mdiSquareEditOutline,
 } from "@mdi/js";
 
-import JaiaLogo from "../../jcc/public/favicon.png";
 import "./ButtonList.less";
 
 interface Props {
@@ -120,7 +119,7 @@ export default function ButtonList(props: Props) {
                         handleButtonClick(ButtonTypes.PANEL, ButtonNames.JAIA_ABOUT_PANEL)
                     }
                 >
-                    <img src={JaiaLogo} title="About" />
+                    <img src="/favicon.png" title="About" />
                 </Button>
             </div>
         );

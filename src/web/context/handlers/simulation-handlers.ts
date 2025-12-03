@@ -3,7 +3,6 @@ import { handleMapModeChange } from "../../openlayers/maps/map";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
 import { CommandForHub, HubCommandType } from "../../types/protobuf-types";
-import { DEFAULT_HUB_ID } from "../../utils/constants";
 import { jaiaAPI } from "../../utils/jaia-api";
 
 /**
@@ -30,7 +29,7 @@ export function handleToggleSelectHubLocation(mutableState: JaiaContextType) {
  */
 export function handleMoveHub(mutableState: JaiaContextType, action: JaiaAction) {
     const hubCommand: CommandForHub = {
-        hub_id: DEFAULT_HUB_ID,
+        hub_id: 1,
         type: HubCommandType.SET_HUB_LOCATION,
         hub_location: action.location,
     };
