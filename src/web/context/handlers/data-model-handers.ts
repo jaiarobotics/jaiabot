@@ -63,6 +63,7 @@ export function handleInit(mutableState: JaiaContextType) {
         botAccordionStates: defaultBotAccordionStates,
         mapLayerAccordionStates: defaultMapLayerAccordionStates,
         missionAccordionStates: {},
+        previousTick: bots.getTick(),
     };
 
     Object.assign(mutableState, completeInit);
