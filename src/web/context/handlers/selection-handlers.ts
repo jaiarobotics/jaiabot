@@ -25,7 +25,7 @@ import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-pla
  */
 export function handleClickedNode(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setSelectedNode(action.clickedNode);
-    mutableState.visibleDetails = action.clickedNode.type;
+    mutableState.visibleDetails = jaiaGlobal.getSelectedNode().type;
 
     syncOpenLayers();
 
