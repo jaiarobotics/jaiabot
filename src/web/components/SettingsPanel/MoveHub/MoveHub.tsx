@@ -5,7 +5,7 @@ import { JaiaActions } from "../../../context/jaia-actions";
 import JaiaToggle from "../../JaiaToggle/JaiaToggle";
 import { MapModes } from "../../../types/openlayers-types";
 import { CoordinateTypes } from "../../../types/jaia-system-types";
-import { DEFAULT_HUB_ID, LAT_LON_DECIMALS } from "../../../utils/constants";
+import { LAT_LON_DECIMALS } from "../../../utils/constants";
 import { validateCoordinate } from "../../../utils/input";
 
 import "./MoveHub.less";
@@ -25,7 +25,7 @@ export default function MoveHub() {
      * @returns {string} Latitude or longitude point (0 if not available)
      */
     const getHubLocation = (coordType: CoordinateTypes) => {
-        const hub = jaiaContext.hubs.getHub(DEFAULT_HUB_ID);
+        const hub = jaiaContext.hubs.getHubs().values().next()?.value;
 
         if (hub && hub.getLocation()) {
             if (coordType === CoordinateTypes.LAT) {

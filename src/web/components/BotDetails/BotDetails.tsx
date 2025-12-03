@@ -31,7 +31,6 @@ import {
     isBotLogging,
 } from "./bot-details";
 
-import { DEFAULT_HUB_ID } from "../../utils/constants";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 import {
     formatLatitude,
@@ -58,7 +57,7 @@ export default function BotDetails() {
         addDropdownListener("accordion-container", "bot-details-accordions-container");
     });
 
-    const hub = jaiaContext.hubs.getHub(DEFAULT_HUB_ID);
+    const hub = jaiaContext.hubs.getHubs().values().next()?.value;
 
     const botID = jaiaContext.jaiaGlobal.getSelectedNode().id;
     const bot = jaiaContext.bots.getBot(botID);
@@ -66,8 +65,8 @@ export default function BotDetails() {
     const missionID = missionsManager.getMissionID(botID);
     const mission = jaiaContext.missionSet.getMission(missionID);
 
-    if (!bot) {
-        return <div></div>;
+    if (!bot || !hub) {
+        return;
     }
 
     const missionStatus: MissionStatus = bot.getMissionStatus();

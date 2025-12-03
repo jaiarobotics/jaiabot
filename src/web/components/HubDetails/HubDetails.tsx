@@ -11,7 +11,6 @@ import {
     formatLatitude,
     formatLongitude,
 } from "../../shared/Utilities";
-import { DEFAULT_HUB_ID } from "../../utils/constants";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 import { getIPPrefix } from "../../shared/IPPrefix";
 import { HubAccordionNames } from "../../types/context-types";
@@ -40,10 +39,10 @@ export default function HubDetails() {
         addDropdownListener("accordion-container", "hub-details-accordions-container");
     }, []);
 
-    const hub = jaiaContext.hubs.getHub(DEFAULT_HUB_ID);
+    const hub = jaiaContext.hubs.getHubs().values().next()?.value;
 
     if (!hub) {
-        return <div></div>;
+        return;
     }
 
     /**
