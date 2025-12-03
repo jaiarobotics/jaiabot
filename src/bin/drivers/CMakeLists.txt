@@ -1,5 +1,4 @@
 add_subdirectory(bluerobotics_pressure_sensor)
-add_subdirectory(atlas_scientific_ezo_ec)
 add_subdirectory(arduino)
 add_subdirectory(echo)
 add_subdirectory(camera)

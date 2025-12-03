@@ -203,6 +203,8 @@ if args.pressure_sensor_type == 'bar02':
 else:
     jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BAR30
 
+UDP_GATEWAY_PORT = 20000
+
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
 
@@ -556,7 +558,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Salinity Sensor Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'atlas_scientific_ezo_ec',
-     'args': '20002',
+     'args': f'-p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
      'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,
@@ -608,7 +610,7 @@ if jaia_imu_type.value == 'bno085':
         'description': 'JaiaBot BNO085 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO085.value} -p 20000',
+        'args': f'-t {IMU_TYPE.BNO085.value} -p {UDP_GATEWAY_PORT}',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,
@@ -622,7 +624,7 @@ else:
         'description': 'JaiaBot BNO055 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO055.value} -p 20000',
+        'args': f'-t {IMU_TYPE.BNO055.value} -p {UDP_GATEWAY_PORT}',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,

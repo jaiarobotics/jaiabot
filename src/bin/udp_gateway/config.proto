@@ -41,7 +41,11 @@ message UDPGateway
     required goby.middleware.protobuf.UDPOneToManyConfig udp_config = 3;
 
     optional int32 imu_data_report_timeout_seconds = 10 [default = 30];
-    optional bool imu_data_report_in_simulation = 11 [default = true];
+    optional int32 salinity_data_report_timeout_seconds = 14 [default = 60];
+    optional int32 pressure_temperature_data_report_timeout_seconds = 15 [default = 60];
+
+    optional bool in_simulation = 11 [default = true];
+
     optional jaiabot.protobuf.IMUIssue.SolutionType imu_issue_solution = 12 [default = REBOOT_BNO085_IMU];
     optional int32 imu_trigger_issue_timeout_seconds = 13 [default = 30];
 }

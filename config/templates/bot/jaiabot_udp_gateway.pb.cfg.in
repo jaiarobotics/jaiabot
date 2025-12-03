@@ -5,4 +5,4 @@ udp_config {
     bind_port: $udp_gateway_port
 }
 
-imu_data_report_in_simulation: $imu_data_report_in_simulation
+in_simulation: $in_simulation

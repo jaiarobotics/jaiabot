@@ -37,6 +37,9 @@
 #include "jaiabot/messages/udp_gateway.pb.h"
 #include "jaiabot/messages/moos.pb.h"
 
+#include "jaiabot/utils/derived_salinity.h"
+#include "jaiabot/utils/specific_conductivity.h"
+
 using goby::glog;
 using namespace std;
 
@@ -66,20 +69,33 @@ class UDPGateway
                            goby::middleware::protobuf::HealthState& health_state);
 
     void send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command);
-    void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
 
-    void received_imu_data(const jaiabot::protobuf::IMUData& imu_data);
+    void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
     void received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope);
 
   private:
     dccl::Codec dccl_;
-    goby::time::SteadyClock::time_point last_imu_data_time_{std::chrono::seconds(0)};
     bool helm_ivp_in_mission_{false};
     goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
         goby::time::SteadyClock::now()};
 
-    // Keep track of the source of the last IMU UDP packet
+    // IMU data tracking
+    goby::time::SteadyClock::time_point last_imu_data_time_{std::chrono::seconds(0)};
     goby::middleware::protobuf::UDPEndPoint imu_udp_src_;
+
+    // Salinity data tracking
+    goby::time::SteadyClock::time_point last_salinity_data_time_{std::chrono::seconds(0)};
+    goby::middleware::protobuf::UDPEndPoint salinity_udp_src_;
+
+    // For processing salinity data
+    jaiabot::protobuf::PressureTemperatureData last_pressure_temperature_data_;
+    jaiabot::protobuf::PressureAdjustedData last_pressure_adjusted_data_;
+    jaiabot::protobuf::SalinityData process_salinity_data(const jaiabot::protobuf::SalinityData& salinity_data);
+
+    // PressureTemperature data tracking
+    goby::time::SteadyClock::time_point last_pressure_temperature_data_time_{std::chrono::seconds(0)};
+    goby::middleware::protobuf::UDPEndPoint pressure_temperature_udp_src_;
+
 };
 
 } // namespace apps
@@ -128,11 +144,31 @@ jaiabot::apps::UDPGateway::UDPGateway()
             {
                 case jaiabot::protobuf::UDPGatewayEnvelope::kImuData:
                 {
-                    received_imu_data(envelope.imu_data());
+                    interprocess().publish<groups::imu>(envelope.imu_data());
+                    last_imu_data_time_ = goby::time::SteadyClock::now();
                     imu_udp_src_ = data.udp_src();
                     glog.is_debug1() && glog << "IMUData came from "
                                              << imu_udp_src_.ShortDebugString()
                                              << endl;
+                    break;
+                }
+                case jaiabot::protobuf::UDPGatewayEnvelope::kSalinityData:
+                {
+                    glog.is_debug1() && glog << "Received SalinityData in UDPGatewayEnvelope, forwarding to interprocess"
+                                             << endl;
+                    auto salinity_data = process_salinity_data(envelope.salinity_data());
+                    interprocess().publish<groups::salinity>(envelope.salinity_data());
+                    last_salinity_data_time_ = goby::time::SteadyClock::now();
+                    salinity_udp_src_ = data.udp_src();
+                    break;
+                }
+                case jaiabot::protobuf::UDPGatewayEnvelope::kPressureTemperatureData:
+                {
+                    glog.is_debug1() && glog << "Received PressureTemperatureData in UDPGatewayEnvelope, forwarding to interprocess"
+                                             << endl;
+                    interprocess().publish<jaiabot::groups::pressure_temperature>(envelope.pressure_temperature_data());
+                    last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
+                    pressure_temperature_udp_src_ = data.udp_src();
                     break;
                 }
                 default:
@@ -166,6 +202,19 @@ jaiabot::apps::UDPGateway::UDPGateway()
         {
             send_imu_command(imu_command);
         });
+
+    interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
+        [this](const jaiabot::protobuf::PressureAdjustedData& pressure_adjusted_data)
+        {
+            last_pressure_adjusted_data_ = pressure_adjusted_data;
+        });
+    
+    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
+        [this](const jaiabot::protobuf::PressureTemperatureData& pressure_temperature_data)
+        {
+            last_pressure_temperature_data_ = pressure_temperature_data;
+        });
+    
 }
 
 
@@ -195,18 +244,37 @@ void jaiabot::apps::UDPGateway::send_imu_command(const jaiabot::protobuf::IMUCom
 }
 
 
-void jaiabot::apps::UDPGateway::received_imu_data(const jaiabot::protobuf::IMUData& imu_data) {
-    glog.is_verbose() && glog << "Received IMUData" << endl;
-    interprocess().publish<groups::imu>(imu_data);
-    last_imu_data_time_ = goby::time::SteadyClock::now();
-}
-
-
 void jaiabot::apps::UDPGateway::loop()
 {
     auto command = jaiabot::protobuf::IMUCommand();
     command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
     send_imu_command(command);
+}
+
+jaiabot::protobuf::SalinityData jaiabot::apps::UDPGateway::process_salinity_data(const jaiabot::protobuf::SalinityData& salinity_data) {
+    jaiabot::protobuf::SalinityData processed_data = salinity_data;
+
+    // TODO: Move these calculations to the jaiabot_fusion app?
+    if (last_pressure_temperature_data_.has_temperature())
+    {
+        const double specific_conductivity = calculate_specific_conductivity(
+            salinity_data.conductivity_raw(), last_pressure_temperature_data_.temperature());
+        processed_data.set_conductivity(specific_conductivity);
+    }
+
+    if (last_pressure_temperature_data_.has_temperature() &&
+        last_pressure_adjusted_data_.has_pressure_adjusted())
+    {
+        const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
+        const double salinity = calculate_derived_salinity(
+            salinity_data.conductivity_raw(), last_pressure_temperature_data_.temperature(),
+            last_pressure_adjusted_data_.pressure_adjusted() +
+                ATMOSPHERIC_PRESSURE_DECIBARS);
+        processed_data.set_salinity(salinity);
+    }
+    // Up to here
+
+    return processed_data;
 }
 
 // Health checks
@@ -219,7 +287,7 @@ void jaiabot::apps::UDPGateway::health(
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
     //Check to see if the IMU is responding
-    if (cfg().imu_data_report_in_simulation())
+    if (cfg().in_simulation())
     {
         if (helm_ivp_in_mission_)
         {
@@ -262,4 +330,16 @@ void jaiabot::apps::UDPGateway::check_last_report(
             last_imu_trigger_issue_time_ = goby::time::SteadyClock::now();
         }
     }
+
+    if (last_salinity_data_time_ +
+        std::chrono::seconds(cfg().salinity_data_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on salinity data" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(
+                protobuf::WARNING__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
+    }
+
 }
