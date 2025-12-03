@@ -38,6 +38,7 @@ export interface JaiaContextType {
     botAccordionStates: BotAccordionStates;
     mapLayerAccordionStates: MapLayerAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
+    previousTick: number;
 }
 
 // snapshot of contect data not held in data model
