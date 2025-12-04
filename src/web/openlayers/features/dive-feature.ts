@@ -84,7 +84,7 @@ function getColor(taskPacket: TaskPacket) {
         selectedTaskPacket.startTime === taskPacket.start_time &&
         selectedTaskPacket.type === MapFeatureTypes.DIVE
     ) {
-        return OpenLayersColors.EDIT;
+        return OpenLayersColors.TARGET;
     }
 
     return OpenLayersColors.DEFAULT;
