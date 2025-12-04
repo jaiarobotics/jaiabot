@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { TaskPackets } from "../../data/task_packets/task-packets";
@@ -21,6 +21,17 @@ const DECIMALS = 2;
  * Displays task packet data to the operator in a tabular format
  */
 export default function TaskPacketPanel(props: Props) {
+    const [selectCount, setSelectCount] = useState(0);
+
+    useEffect(() => {
+        if (
+            `${taskPacket.bot_id}_${taskPacket.start_time}` !==
+            `${props.selectedTaskPacket.botID}_${props.selectedTaskPacket.startTime}`
+        ) {
+            setSelectCount(selectCount + 1);
+        }
+    });
+
     /**
      * Retrieves the data associated with the selected task packet
      *
@@ -40,8 +51,8 @@ export default function TaskPacketPanel(props: Props) {
         }
     };
 
-    // Call getTaskPacket once on initial render
-    const taskPacket = useMemo(() => getTaskPacket(), []);
+    // Call getTaskPacket on initial render and task packet selection changes
+    const taskPacket = useMemo(() => getTaskPacket(), [selectCount]);
 
     /**
      * Gets the ID used by the server for querying task packet data
