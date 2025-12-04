@@ -322,12 +322,6 @@ function shouldColorTargetWaypoint(missionID: number, waypointNum: number) {
     }
 
     const bot = bots.getBot(botID);
-    if (
-        bot.getMissionStatus().missionState !== MissionState.IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
-    ) {
-        return false;
-    }
-
     const targetWaypoint = bot.getMissionStatus().targetWaypoint;
     if (targetWaypoint && targetWaypoint === waypointNum) {
         return true;

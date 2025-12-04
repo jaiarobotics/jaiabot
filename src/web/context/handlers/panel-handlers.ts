@@ -3,6 +3,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
+import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
@@ -66,6 +67,7 @@ export function handleClosedTaskPacketPanel(mutableState: JaiaContextType, actio
     });
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
+    excludedTaskPacketsLayer.updateFeatures();
     return mutableState;
 }
 

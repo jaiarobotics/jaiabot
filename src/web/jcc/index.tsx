@@ -66,6 +66,7 @@ const taskPacketInterval = setInterval(async () => {
                 const taskPacketRes = await fetch(TASK_PACKET_URL);
                 const json = await taskPacketRes.json();
                 taskPackets.setIncludedTaskPackets(json.result.included);
+                taskPackets.setExcludedTaskPackets(json.result.excluded);
                 updateTaskLayers();
                 taskPackets.setVersion(version);
             }

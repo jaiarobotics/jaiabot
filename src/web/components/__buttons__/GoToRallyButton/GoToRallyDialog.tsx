@@ -61,7 +61,7 @@ export function GoToRallyDialog(props: DialogProps) {
     const generateSubMessage = (disabledCode: DisabledCodes) => {
         const botIDs = props.botReadyStates.get(disabledCode);
 
-        if (botIDs.length === 0) {
+        if (!botIDs || botIDs.length === 0) {
             return "";
         }
 

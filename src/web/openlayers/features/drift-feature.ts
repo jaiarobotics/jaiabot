@@ -11,6 +11,7 @@ import { MapFeatureTypes } from "../../types/openlayers-types";
 import { DriftPacket, TaskPacket } from "../../types/protobuf-types";
 import { degreesToRadians } from "../../utils/conversions";
 import { DRIFT_INTENSITY_INTERVAL, MAX_DRIFT_INTENSITY } from "../../utils/constants";
+import { OpenLayersColors } from "../../style/openlayers/colors";
 
 import driftMarker1 from "../../style/icons/drift-arrows/drift-arrow-1.svg";
 import driftMarker2 from "../../style/icons/drift-arrows/drift-arrow-2.svg";
@@ -18,13 +19,6 @@ import driftMarker3 from "../../style/icons/drift-arrows/drift-arrow-3.svg";
 import driftMarker4 from "../../style/icons/drift-arrows/drift-arrow-4.svg";
 import driftMarker5 from "../../style/icons/drift-arrows/drift-arrow-5.svg";
 import driftMarker6 from "../../style/icons/drift-arrows/drift-arrow-6.svg";
-
-enum TaskPacketColors {
-    LIGHT = "white",
-    DARK = "black",
-}
-
-let taskPacketColor = TaskPacketColors.LIGHT;
 
 /**
  * Creates a drift icon to be placed on the map
@@ -111,13 +105,8 @@ function getColor(taskPacket: TaskPacket) {
         selectedTaskPacket.startTime === taskPacket.start_time &&
         selectedTaskPacket.type === MapFeatureTypes.DRIFT
     ) {
-        if (taskPacketColor === TaskPacketColors.LIGHT) {
-            taskPacketColor = TaskPacketColors.DARK;
-        } else {
-            taskPacketColor = TaskPacketColors.LIGHT;
-        }
-        return taskPacketColor;
+        return OpenLayersColors.TARGET;
     }
 
-    return TaskPacketColors.LIGHT;
+    return OpenLayersColors.DEFAULT;
 }

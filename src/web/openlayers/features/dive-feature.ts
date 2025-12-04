@@ -8,15 +8,9 @@ import { view } from "../views/view";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { DivePacket, TaskPacket } from "../../types/protobuf-types";
+import { OpenLayersColors } from "../../style/openlayers/colors";
 
 import diveMarker from "../../style/icons/dive-marker.svg";
-
-enum TaskPacketColors {
-    LIGHT = "white",
-    DARK = "black",
-}
-
-let taskPacketColor = TaskPacketColors.LIGHT;
 
 /**
  * Creates a dive icon to be placed on the map
@@ -90,13 +84,8 @@ function getColor(taskPacket: TaskPacket) {
         selectedTaskPacket.startTime === taskPacket.start_time &&
         selectedTaskPacket.type === MapFeatureTypes.DIVE
     ) {
-        if (taskPacketColor === TaskPacketColors.LIGHT) {
-            taskPacketColor = TaskPacketColors.DARK;
-        } else {
-            taskPacketColor = TaskPacketColors.LIGHT;
-        }
-        return taskPacketColor;
+        return OpenLayersColors.TARGET;
     }
 
-    return TaskPacketColors.LIGHT;
+    return OpenLayersColors.DEFAULT;
 }
