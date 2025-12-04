@@ -555,17 +555,11 @@ jaiabot_apps = [
 
     ## ECHO Services ##
 
-    {'exe': 'jaiabot_echo_driver',
-     'description': 'JaiaBot Echo Driver',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_ECHO_DRIVER',
-     'runs_on': [BOT_TYPE.ECHO],
-     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_echo.py',
      'description': 'JaiaBot MAI Echo Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'echo',
-     'args': '20003',
+     'args': f'-p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ECHO',
      'runs_on': [BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,

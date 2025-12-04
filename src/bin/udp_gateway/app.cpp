@@ -37,6 +37,7 @@
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/udp_gateway.pb.h"
 #include "jaiabot/messages/moos.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
 
 #include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/utils/specific_conductivity.h"
@@ -70,6 +71,7 @@ class UDPGateway
                            goby::middleware::protobuf::HealthState& health_state);
 
     void send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command);
+    void send_echo_command(const jaiabot::protobuf::EchoCommand& echo_command);
 
     void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
     void received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope);
@@ -100,6 +102,13 @@ class UDPGateway
 
     // TSYS01 data tracking
     goby::time::SteadyClock::time_point last_tsys01_data_time_{std::chrono::seconds(0)};
+
+    // Echo data tracking
+    jaiabot::protobuf::EchoData latest_echo_data_;
+    goby::time::SteadyClock::time_point last_echo_data_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_echo_trigger_issue_time_{
+        goby::time::SteadyClock::now()};
+    goby::middleware::protobuf::UDPEndPoint echo_udp_src_;
 
 };
 
@@ -180,6 +189,14 @@ jaiabot::apps::UDPGateway::UDPGateway()
                     glog.is_debug1() && glog << "Received TSYS01Data" << endl;
                     break;
                 }
+                case jaiabot::protobuf::UDPGatewayEnvelope::kEchoData:
+                {
+                    interprocess().publish<groups::echo>(envelope.echo_data());
+                    last_echo_data_time_ = goby::time::SteadyClock::now();
+                    echo_udp_src_ = data.udp_src();
+                    glog.is_debug1() && glog << "Received EchoData" << endl;
+                    break;
+                }
                 default:
                 {
                     glog.is_warn() && glog << "Received unknown payload in UDPGatewayEnvelope"
@@ -190,6 +207,7 @@ jaiabot::apps::UDPGateway::UDPGateway()
 
         });
 
+    // TODO: Perhaps get the mission state from BotStatus or NodeStatus instead.  MOOSMessages come in with VERY high bandwidth.
     interprocess().subscribe<jaiabot::groups::moos>(
         [this](const protobuf::MOOSMessage& moos_msg)
         {
@@ -212,6 +230,12 @@ jaiabot::apps::UDPGateway::UDPGateway()
             send_imu_command(imu_command);
         });
 
+    interprocess().subscribe<jaiabot::groups::echo>(
+        [this](const protobuf::EchoCommand& echo_command) {
+            send_echo_command(echo_command);
+        });
+
+    // TODO: Move this data processing to jaiabot_fusion?
     interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
         [this](const jaiabot::protobuf::PressureAdjustedData& pressure_adjusted_data)
         {
@@ -224,6 +248,16 @@ jaiabot::apps::UDPGateway::UDPGateway()
             last_pressure_temperature_data_ = pressure_temperature_data;
         });
     
+    // TODO: Move this to jaiabot_engineering?
+    interprocess().subscribe<jaiabot::groups::engineering_command>(
+        [this](const jaiabot::protobuf::Engineering& command) {
+            // Publish only when we get a query for status
+            if (command.query_engineering_status())
+            {
+                interprocess().publish<jaiabot::groups::engineering_status>(latest_echo_data_);
+            }
+        });
+
 }
 
 
@@ -250,6 +284,13 @@ void jaiabot::apps::UDPGateway::send_imu_command(const jaiabot::protobuf::IMUCom
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
     *envelope.mutable_imu_command() = imu_command;
     send_envelope(envelope, imu_udp_src_);
+}
+
+
+void jaiabot::apps::UDPGateway::send_echo_command(const jaiabot::protobuf::EchoCommand& echo_command) {
+    auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
+    *envelope.mutable_echo_command() = echo_command;
+    send_envelope(envelope, echo_udp_src_);
 }
 
 
@@ -397,6 +438,27 @@ void jaiabot::apps::UDPGateway::check_last_report(
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(
                 protobuf::WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER);
+    }
+
+    // Echo data timeout check
+    if (last_echo_data_time_ + std::chrono::seconds(cfg().echo_data_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on echo" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_ECHO_DRIVER);
+
+        // Wait a certain amount of time before publishing issue
+        if (last_echo_trigger_issue_time_ +
+                std::chrono::seconds(cfg().echo_trigger_issue_timeout_seconds()) <
+            goby::time::SteadyClock::now())
+        {
+            jaiabot::protobuf::EchoIssue echo_issue;
+            echo_issue.set_solution(cfg().echo_issue_solution());
+            interprocess().publish<jaiabot::groups::echo>(echo_issue);
+            last_echo_trigger_issue_time_ = goby::time::SteadyClock::now();
+        }
     }
 
 }

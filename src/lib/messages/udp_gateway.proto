@@ -3,6 +3,7 @@ import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/sensor/salinity.proto";
 import "jaiabot/messages/sensor/pressure_temperature.proto";
 import "jaiabot/messages/tsys01.proto";
+import "jaiabot/messages/echo.proto";
 
 package jaiabot.protobuf;
 
@@ -19,6 +20,9 @@ message UDPGatewayEnvelope
         PressureTemperatureData pressure_temperature_data = 4;
 
         TSYS01Data tsys01_data = 5;
+
+        EchoCommand echo_command = 6;
+        EchoData echo_data = 7;
     }
 
 }
