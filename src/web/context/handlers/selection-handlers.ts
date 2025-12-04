@@ -2,6 +2,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
+import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { rallyLayer } from "../../openlayers/layers/vector/rally-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
@@ -181,5 +182,6 @@ export function handleClickedTaskPacket(mutableState: JaiaContextType, action: J
     mutableState.visiblePanel = ButtonNames.TASK_PACKET_PANEL;
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
+    excludedTaskPacketsLayer.updateFeatures();
     return mutableState;
 }
