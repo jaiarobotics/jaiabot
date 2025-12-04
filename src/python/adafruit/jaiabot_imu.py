@@ -18,7 +18,7 @@ parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085'
 parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
-
+parser.add_argument('-r', '--data_rate', metavar="data_rate", choices=[10, 20, 25, 50, 75, 100], default=10, type=int, help='Data Rate, default is 10 Hz')
 parser.add_argument('-wh', dest='wave_height', default=1, type=float, help='Simulated wave height (meters)')
 parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simulated wave period (seconds)')
 
@@ -47,13 +47,14 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
     sock.bind(('', port))
 
     sample_rate_hz = 10.0
-    sample_period = 1 / sample_rate_hz
+    if args.data_rate != 10.0:
+        sample_rate_hz = args.data_rate
+    sample_period = 1.0 / sample_rate_hz
+    next_send_time = time.perf_counter() 
 
     client_address = None
 
-    while True:
-        sleep(sample_period)
-        
+    while True:        
         # Take a reading and publish it
         if client_address is not None:
             port_log.debug(f'client_address: {client_address}')
@@ -84,6 +85,7 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
             data, client_address = sock.recvfrom(1024) # buffer size is 1024 bytes
             port_log.debug(f'Received command from {client_address}:\n{data}')
         except BlockingIOError:
+            port_log.debug('No command received')
             continue
 
         try:
@@ -110,6 +112,11 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
 
         except Exception as e:
             traceback.print_exc()
+
+        next_send_time += sample_period
+        sleep_time = max(0, next_send_time - time.perf_counter())
+        time.sleep(sleep_time)
+
 
 
 def do_interactive_loop():
