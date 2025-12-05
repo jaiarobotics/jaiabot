@@ -4,6 +4,7 @@ import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 import { gridPlan } from "../data/survey_planner/grid-plan";
 import { ButtonNames } from "../types/context-types";
 import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
+import { isControllingClient } from "../utils/commands";
 
 import Map from "../components/Map/Map";
 import NodeList from "../components/NodeList/NodeList";
@@ -22,6 +23,7 @@ import SurveyPlanner from "../components/SurveyPlanner/SurveyPlanner";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
 import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 import SimulationBanner from "../components/SimulationBanner/SimulationBanner";
+import TakeControlButton from "../components/__buttons__/TakeControl/TakeControlButton/TakeControlButton";
 import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
 
 import "./App.less";
@@ -54,6 +56,7 @@ export default function App() {
                 <Panel />
                 <RemoteControl />
                 <SimulationBanner />
+                <TakeControl />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>
         </div>
@@ -76,7 +79,7 @@ function Details() {
         case NodeTypes.BOT:
             return <BotDetails />;
         default:
-            return <div></div>;
+            return;
     }
 }
 
@@ -87,7 +90,7 @@ function Panel() {
     const jaiaContext = useContext(JaiaContext);
 
     if (jaiaContext === null) {
-        return <div></div>;
+        return;
     }
 
     switch (jaiaContext.visiblePanel) {
@@ -119,7 +122,7 @@ function Panel() {
         case ButtonNames.DEPTH_MAP_3D:
             return <DepthMap3D />;
         default:
-            return <div></div>;
+            return;
     }
 }
 
@@ -130,12 +133,28 @@ function RemoteControl() {
     const jaiaContext = useContext(JaiaContext);
 
     if (jaiaContext === null) {
-        return <div></div>;
+        return;
     }
     if (jaiaContext.jaiaGlobal.getSelectedNode().type === NodeTypes.BOT) {
         const selectedBot = jaiaContext.bots.getBot(jaiaContext.jaiaGlobal.getSelectedNode().id);
         if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
             return <RemoteControlPanel botID={selectedBot.getBotID()} />;
         }
+    }
+}
+
+/**
+ * Controls the rendering of the TakeControlButton
+ */
+function TakeControl() {
+    // Use context to participate in re-render cycles
+    const jaiaContext = useContext(JaiaContext);
+
+    if (jaiaContext === null) {
+        return;
+    }
+
+    if (!isControllingClient()) {
+        return <TakeControlButton />;
     }
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
+import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { DataOffloadAllDialog } from "./DataOffloadAllDialog";
 import { DisabledCodes } from "../disabled-codes";
 
@@ -65,12 +65,12 @@ export default function DataOffloadAllButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = async () => {
+    const handleClick = () => {
         if (props.bots.size === 0) {
             return;
         }
 
-        const hasControl = await isControllingClient();
+        const hasControl = isControllingClient();
 
         if (!hasControl) {
             setIsTakeControlVisible(true);

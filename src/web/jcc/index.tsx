@@ -14,6 +14,7 @@ import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { DATA_MODEL_POLL_TIME, TASK_PACKET_POLL_TIME } from "../utils/constants";
+import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 
 // Sample status messages twice as fast as produced by Bots and Hubs to reduce potential data age issues
 const STATUS_URL = "/jaia/v0/status";
@@ -37,6 +38,7 @@ const statusInterval = setInterval(async () => {
             const json = await response.json();
             updateBots(json.bots);
             updateHubs(json.hubs);
+            updateJaiaGlobal(json.controllingClientId);
             updateOpenLayers();
             if (json.messages.error && json.messages.error === HUB_CONNECTION_ERROR) {
                 updateDisconnectedWarning(true);
@@ -102,6 +104,16 @@ function updateHubs(hubStatuses: { [hubId: string]: PortalHubStatus }) {
     for (let hubID of hubIDs) {
         hubs.setHub(hubStatuses[hubID]);
     }
+}
+
+/**
+ * Move the controlling client ID from the server to the client-side data model
+ *
+ * @param {string} controllingClientID ID from the server
+ * @returns {void}
+ */
+function updateJaiaGlobal(controllingClientID: string) {
+    jaiaGlobal.setControllingClientID(controllingClientID);
 }
 
 /**

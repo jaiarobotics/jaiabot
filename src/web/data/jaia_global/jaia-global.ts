@@ -39,6 +39,7 @@ export class JaiaGlobal {
     private selectedTaskPacket: SelectedTaskPacket;
     private mapMode: MapModes;
     private defaultTaskParameters: TaskParameters;
+    private controllingClientID: string;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
@@ -101,6 +102,14 @@ export class JaiaGlobal {
 
     setDefaultTaskParameters(defaultTaskParameters: TaskParameters) {
         this.defaultTaskParameters = defaultTaskParameters;
+    }
+
+    getControllingClientID() {
+        return this.controllingClientID;
+    }
+
+    setControllingClientID(controllingClientID: string) {
+        this.controllingClientID = controllingClientID;
     }
 
     /**

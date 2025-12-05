@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
-import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
+import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { GoToRallyDialog } from "./GoToRallyDialog";
 import { DisabledCodes } from "../disabled-codes";
 
@@ -82,8 +82,8 @@ export default function GoToRallyButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = async () => {
-        const hasControl = await isControllingClient();
+    const handleClick = () => {
+        const hasControl = isControllingClient();
 
         if (!hasControl) {
             setIsTakeControlVisible(true);

@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 
-import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
+import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { RemoteControlDialog } from "./RemoteControlDialog";
 import { DisabledCodes } from "../disabled-codes";
 
@@ -80,8 +80,8 @@ export default function RemoteControlButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = async () => {
-        const hasControl = await isControllingClient();
+    const handleClick = () => {
+        const hasControl = isControllingClient();
 
         if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
             setIsTakeControlVisible(true);

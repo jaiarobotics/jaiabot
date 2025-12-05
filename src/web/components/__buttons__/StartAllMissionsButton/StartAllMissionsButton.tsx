@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
-import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
+import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { StartAllMissionsDialog } from "./StartAllMissionsDialog";
 import { DisabledCodes } from "../disabled-codes";
 
@@ -83,12 +83,12 @@ export default function StartAllMissionsButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = async () => {
+    const handleClick = () => {
         if (props.bots.size === 0) {
             return;
         }
 
-        const hasControl = await isControllingClient();
+        const hasControl = isControllingClient();
 
         if (!hasControl) {
             setIsTakeControlVisible(true);
