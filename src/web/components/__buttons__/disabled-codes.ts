@@ -7,4 +7,5 @@ export enum DisabledCodes {
     DOWNLOAD_QUEUE = 6,
     NO_MISSION = 7,
     LOW_BATTERY = 8,
+    STARTING_UP = 9,
 }

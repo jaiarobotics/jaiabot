@@ -90,6 +90,9 @@ export function ActivateAllDialog(props: DialogProps) {
             case DisabledCodes.MISSION_STATE:
                 subMessage += `because ${botIDs.length > 1 ? "they are activated." : "it is activated."}`;
                 break;
+            case DisabledCodes.STARTING_UP:
+                subMessage += `because ${botIDs.length > 1 ? "they are completing the startup process." : "it is completing the startup process."}`;
+                break;
         }
 
         return subMessage;

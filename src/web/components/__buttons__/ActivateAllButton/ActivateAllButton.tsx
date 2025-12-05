@@ -13,7 +13,7 @@ import Bot from "../../../data/bots/bot";
 import { isCommsDropped } from "../button-utils";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { Command, CommandType } from "../../../types/protobuf-types";
+import { Command, CommandType, MissionState } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
 
 interface Props {
@@ -46,6 +46,10 @@ export default function ActivateAllButton(props: Props) {
         for (const [botID, bot] of props.bots.entries()) {
             if (isCommsDropped(bot.getStatusAge())) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
+            } else if (
+                bot.getMissionStatus().missionState === MissionState.PRE_DEPLOYMENT__STARTING_UP
+            ) {
+                updatedBotReadyStates.get(DisabledCodes.STARTING_UP).push(botID);
             } else if (
                 !isCommandAvailable(CommandType.ACTIVATE, bot.getMissionStatus().missionState)
             ) {
@@ -137,6 +141,7 @@ function initBotReadyStates() {
         [DisabledCodes.NONE, []],
         [DisabledCodes.NO_COMMS, []],
         [DisabledCodes.MISSION_STATE, []],
+        [DisabledCodes.STARTING_UP, []],
     ];
     return botReadyStates;
 }
