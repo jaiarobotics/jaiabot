@@ -25,11 +25,14 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "machine_common.h"
 #include <fstream>
+#include <cmath>
 #include <goby/util/seawater.h>
 #include <google/protobuf/util/json_util.h>
+#include <cmath>
 
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/utils/mission_manager_utils.h"
 using jaiabot::protobuf::EchoCommand;
 using jaiabot::protobuf::IMUCommand;
 
@@ -113,8 +116,9 @@ STATECHART_EVENT(EvBottomDepthAbort)
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
 {
-    EvVehicleDepth(boost::units::quantity<boost::units::si::length> d) : depth(d) {}
-    boost::units::quantity<boost::units::si::length> depth;
+    EvVehicleDepth(boost::units::quantity<boost::units::si::length> d, boost::units::quantity<boost::units::si::length> s) : sensor_depth(d), depth(s) {}
+    boost::units::quantity<boost::units::si::length> sensor_depth; // Depth of the pressure sensor
+    boost::units::quantity<boost::units::si::length> depth; // Depth of the stern of the vehicle
 };
 
 struct EvMeasurement : boost::statechart::event<EvMeasurement>
@@ -134,6 +138,11 @@ struct EvVehicleGPS : boost::statechart::event<EvVehicleGPS>
 struct EvVehiclePitch : boost::statechart::event<EvVehiclePitch>
 {
     boost::units::quantity<boost::units::degree::plane_angle> pitch;
+};
+
+struct EvMotorStopped : boost::statechart::event<EvMotorStopped>
+{
+    bool is_motor_stopped;
 };
 
 STATECHART_EVENT(EvResumeMovement)
@@ -313,10 +322,10 @@ struct MissionManagerStateMachine
         {
             // use recovery location for datum
             auto lat_origin = plan.recovery().recover_at_final_goal()
-                                  ? plan.goal(plan.goal_size() - 1).location().lat_with_units()
+                                  ? plan.goal(0).location().lat_with_units()
                                   : plan.recovery().location().lat_with_units();
             auto lon_origin = plan.recovery().recover_at_final_goal()
-                                  ? plan.goal(plan.goal_size() - 1).location().lon_with_units()
+                                  ? plan.goal(0).location().lon_with_units()
                                   : plan.recovery().location().lon_with_units();
 
             // set the local datum origin to the first goal
@@ -366,20 +375,29 @@ struct MissionManagerStateMachine
 
         pa.set_pressure_adjusted(pressure_adjusted);
 
-        // Calculate Depth From Pressure Adjusted
-        auto depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat());
-        post_event(statechart::EvVehicleDepth(depth));
+        // Calculate Depth From Pressure Adjusted (current pressure - start of dive pressure), then add the depth of the pressure sensor at the start of 
+        // the dive (calculated using vehicle pitch and estimated waterline), and the distance from the pressure sensor to the tail.
+        auto sensor_depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat()) + (start_of_dive_depth_ * boost::units::si::meters);
+        auto depth = goby::util::seawater::depth(pa.pressure_adjusted_with_units(), latest_lat()) + (start_of_dive_depth_ * boost::units::si::meters) + (cfg().pressure_sensor_to_tail() * boost::units::si::meters);
+        post_event(statechart::EvVehicleDepth(sensor_depth, depth));
 
-        pa.set_calculated_depth_with_units(depth);
+        pa.set_sensor_depth_with_units(sensor_depth);
+        pa.set_depth_with_units(depth);
 
         interprocess().publish<jaiabot::groups::pressure_adjusted>(pa);
     }
 
-    void set_start_of_dive_pressure(double start_of_dive_pressure)
+    void set_start_of_dive_pressure(const double& start_of_dive_pressure)
     {
         start_of_dive_pressure_ = start_of_dive_pressure;
     }
     const double& start_of_dive_pressure() { return start_of_dive_pressure_; }
+
+    void calculate_start_of_dive_depth(const boost::units::quantity<boost::units::degree::plane_angle>& pitch)
+    {
+        start_of_dive_depth_ = cfg().pressure_sensor_to_waterline() * sin(pitch); // m
+    }    
+    const double& start_of_dive_depth() { return start_of_dive_depth_; }
 
     void set_current_pressure(const double& current_pressure)
     {
@@ -468,6 +486,12 @@ struct MissionManagerStateMachine
         return latest_lat_;
     }
 
+    void set_latest_pitch(const boost::units::quantity<boost::units::degree::plane_angle>& latest_pitch)
+    {
+        latest_pitch_ = latest_pitch;
+    }
+    const boost::units::quantity<boost::units::degree::plane_angle>& latest_pitch() { return latest_pitch_; }
+
     void set_latest_max_acceleration(
         const boost::units::quantity<boost::units::si::acceleration>& latest_max_acceleration)
     {
@@ -543,12 +567,14 @@ struct MissionManagerStateMachine
     uint32_t transit_gps_degraded_fix_checks_{cfg().total_gps_degraded_fix_checks()};
     uint32_t after_dive_gps_fix_checks_{cfg().total_after_dive_gps_fix_checks()};
     double start_of_dive_pressure_{0};
+    double start_of_dive_depth_{0};
     double current_pressure_{0};
     // if we don't get latitude information, we'll compute depth based on mid-latitude
     // (45 degrees), which will introduce up to 0.27% error at 500 meters depth
     // at the equator or the poles
     boost::units::quantity<boost::units::degree::plane_angle> latest_lat_{
         45 * boost::units::degree::degrees};
+    boost::units::quantity<boost::units::degree::plane_angle> latest_pitch_{0 * boost::units::degree::degrees};
     bool rf_disable_{false};
     // IMUData.max_acceleration, to characterize the bottom type
     boost::units::quantity<boost::units::si::acceleration> latest_max_acceleration_{
@@ -1643,11 +1669,19 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
 
     const bool has_bot_performed_a_hold() { return bot_performed_hold_; }
 
+    void set_bot_performed_powered_ascent_after_bottom(const bool& bot_performed_powered_ascent_after_bottom)
+    {
+        bot_performed_powered_ascent_after_bottom_ = bot_performed_powered_ascent_after_bottom;
+    }
+
+    const bool has_bot_performed_powered_ascent_after_bottom() { return bot_performed_powered_ascent_after_bottom_; }
+
   private:
     std::deque<boost::units::quantity<boost::units::si::length>> dive_depths_;
     goby::time::MicroTime dive_duration_{0 * boost::units::si::seconds};
     boost::units::quantity<boost::units::si::length> current_depth_{0};
     bool bot_performed_hold_{false};
+    bool bot_performed_powered_ascent_after_bottom_{false};
 };
 namespace dive
 {
@@ -1660,12 +1694,12 @@ struct DivePrep : boost::statechart::state<DivePrep, Dive>,
     ~DivePrep();
 
     void loop(const EvLoop&);
-    void pitch(const EvVehiclePitch& ev);
+    void motor_stopped(const EvMotorStopped& ev);
 
     using reactions = boost::mpl::list<
         boost::statechart::in_state_reaction<EvLoop, DivePrep, &DivePrep::loop>,
         boost::statechart::transition<EvDivePrepComplete, PoweredDescent>,
-        boost::statechart::in_state_reaction<EvVehiclePitch, DivePrep, &DivePrep::pitch>>;
+        boost::statechart::in_state_reaction<EvMotorStopped, DivePrep, &DivePrep::motor_stopped>>;
 
   private:
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
@@ -1822,7 +1856,7 @@ struct PoweredAscent
 
 struct ReacquireGPS
     : boost::statechart::state<ReacquireGPS, Dive>,
-      Notify<PoweredAscent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS,
+      Notify<ReacquireGPS, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS,
              protobuf::SETPOINT_STOP>
 {
     using StateBase = boost::statechart::state<ReacquireGPS, Dive>;

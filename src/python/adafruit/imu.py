@@ -6,9 +6,6 @@ import logging
 from imu_reading import *
 
 
-log = logging.getLogger('imu')
-
-
 class IMU:
     def setup(self):
         pass

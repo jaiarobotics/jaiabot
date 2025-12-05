@@ -31,12 +31,39 @@ export function TaskPacketPanel(props: Props) {
         const dive = task_packet.dive;
         const startTime = new Date(task_packet.start_time / 1000);
         const endTime = new Date(task_packet.end_time / 1000);
+        const lastMeasurement =
+            dive.measurement && dive.measurement.length > 0
+                ? dive.measurement[dive.measurement.length - 1]
+                : null;
+
         taskPacketData = {
             // Snake case used for string parsing in task packet panel
             bot_id: { value: task_packet.bot_id.toString(), units: "" },
             depth_achieved: { value: dive.depth_achieved.toFixed(2), units: "m" },
             dive_rate: { value: dive.dive_rate.toFixed(2), units: "m/s" },
             bottom_dive: { value: dive.bottom_dive ? "Yes" : "No", units: "" },
+            ...(dive.bottom_dive != false && {
+                bottom_type: {
+                    value: dive.bottom_type === "HARD" ? "HARD" : "SOFT",
+                    units: "",
+                },
+            }),
+            ...(dive.subsurface_current?.velocity != null && {
+                subsurface_velocity: {
+                    value: dive.subsurface_current.velocity.toFixed(2),
+                    units: "m/s",
+                },
+            }),
+            ...(dive.subsurface_current?.heading != null && {
+                subsurface_heading: {
+                    value: dive.subsurface_current.heading.toFixed(2),
+                    units: "deg",
+                },
+            }),
+            ...(lastMeasurement?.mean_depth != null &&
+                dive.measurement?.length === 1 && {
+                    average_depth: { value: lastMeasurement.mean_depth.toFixed(2), units: "m" },
+                }),
             start_time: { value: startTime.toLocaleString(), units: "" },
             end_time: { value: endTime.toLocaleString(), units: "" },
         };

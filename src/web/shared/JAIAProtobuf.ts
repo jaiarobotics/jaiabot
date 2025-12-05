@@ -1051,6 +1051,11 @@ export enum BottomType {
     SOFT = "SOFT",
 }
 
+export interface SubsurfaceCurrentVector {
+    velocity?: number;
+    heading?: number;
+}
+
 export interface DivePacket {
     dive_rate?: number;
     unpowered_rise_rate?: number;
@@ -1063,6 +1068,7 @@ export interface DivePacket {
     reached_min_depth?: boolean;
     bottom_type?: BottomType;
     max_acceleration?: number;
+    subsurface_current?: SubsurfaceCurrentVector;
 }
 
 export interface TaskPacket {

@@ -1,8 +1,8 @@
 import React, { ReactElement } from "react";
 
-import { Log } from "./Log";
-import { LogApi } from "./LogApi";
-import { CustomAlert } from "./shared/CustomAlert";
+import { Log } from "../model/Log";
+import { LogApi } from "../model/LogApi";
+import { CustomAlert } from "../shared/CustomAlert";
 
 function getNavigatorLanguage() {
     return navigator.languages?.[0] ?? navigator.language ?? "en";

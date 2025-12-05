@@ -1,0 +1,55 @@
+<virtualhost *:80>
+    ServerName hub
+
+    Alias /updates /var/www/html/updates
+    Alias /reboot-check /var/www/html/reboot-check
+
+    WSGIDaemonProcess rest_api user=jaia group=jaia threads=5 \
+        python-home=$jaiabot_share_dir/jaiabot/python/venv \
+        home=$jaiabot_share_dir/jaiabot/web/rest_api
+    WSGIDaemonProcess jcc user=jaia group=jaia threads=5 \
+        python-home=$jaiabot_share_dir/jaiabot/python/venv \
+        home=$jaiabot_share_dir/jaiabot/web/server
+    WSGIScriptAlias /jaia/v0 $jaiabot_share_dir/jaiabot/web/server/app.wsgi/jaia/v0 process-group=jcc
+    WSGIScriptAlias /jaia $jaiabot_share_dir/jaiabot/web/rest_api/app.wsgi/jaia process-group=rest_api
+    WSGIScriptAlias / $jaiabot_share_dir/jaiabot/web/server/app.wsgi process-group=jcc
+
+    <directory $jaiabot_share_dir/jaiabot/web/rest_api>
+        WSGIApplicationGroup %{GLOBAL}
+        WSGIScriptReloading On
+        AllowOverride None
+        Require all granted  
+    </directory>
+
+    <directory $jaiabot_share_dir/jaiabot/web/server>
+        WSGIApplicationGroup %{GLOBAL}
+        WSGIScriptReloading On
+        AllowOverride None
+        Require all granted  
+    </directory>
+</virtualhost>
+
+# sudo a2enmod ssl
+# sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
+# Common Name must be "fleet<N>.jaia.tech" (replacing <N> with actual number)
+# sudo systemctl restart apache2
+
+# <virtualhost *:443>
+#     ServerName fleet<N>.jaia.tech
+
+#     WSGIDaemonProcess rest_api_https user=jaia group=jaia threads=5 python-path=$jaiabot_share_dir/jaiabot/python/pyjaiaprotobuf home=$jaiabot_share_dir/jaiabot/web/rest_api
+#     WSGIScriptAlias / $jaiabot_share_dir/jaiabot/web/rest_api/app.wsgi/ process-group=rest_api_https
+ 
+#     <directory $jaiabot_share_dir/jaiabot/web/rest_api>
+#         Allow from all
+#         WSGIApplicationGroup %{GLOBAL}
+#         WSGIScriptReloading On
+#         AllowOverride None
+#         Require all granted  
+#     </directory>
+	
+#     SSLEngine on
+#     SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
+#     SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
+
+# </virtualhost>

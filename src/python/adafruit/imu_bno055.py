@@ -49,7 +49,7 @@ class AdafruitBNO055(IMU):
             linear_acceleration = filter(linear_acceleration)
             gravity = filter(gravity)
 
-            quaternion = Quaternion.from_tuple(quaternion)
+            quaternion = Quaternion.from_xyzw(*quaternion)
             orientation = quaternion.to_euler_angles()
             orientation.heading = (orientation.heading + 90) % 360 # Even after consulting the docs, we're still off by 90 degrees!
             linear_acceleration = Vector3(*linear_acceleration)
