@@ -82,8 +82,8 @@ export default function GoToRallyButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = async () => {
-        const hasControl = await isControllingClient();
+    const handleClick = () => {
+        const hasControl = isControllingClient();
 
         if (!hasControl) {
             setIsTakeControlVisible(true);

@@ -6,6 +6,7 @@ import {
     Engineering,
     MissionState,
 } from "../types/protobuf-types";
+import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 
 /**
  * commandStates is a map of command types to regular expressions
@@ -92,10 +93,8 @@ export function sendEngineeringCommand(command: Engineering) {
  *
  * @returns {boolean} True if the client is in control, otherwise false
  */
-export async function isControllingClient() {
-    const status = await jaiaAPI.getStatus();
-    const controllingID = status.controllingClientId;
-
+export function isControllingClient() {
+    const controllingID = jaiaGlobal.getControllingClientID();
     if (controllingID === jaiaAPI.getClientId() || controllingID === null) {
         return true;
     }

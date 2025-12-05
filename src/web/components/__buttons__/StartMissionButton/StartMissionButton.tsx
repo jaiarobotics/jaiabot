@@ -92,8 +92,8 @@ export default function StartMissionButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = async () => {
-        const hasControl = await isControllingClient();
+    const handleClick = () => {
+        const hasControl = isControllingClient();
 
         if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
             setIsTakeControlVisible(true);

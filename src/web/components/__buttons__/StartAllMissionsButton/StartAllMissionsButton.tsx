@@ -83,12 +83,12 @@ export default function StartAllMissionsButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = async () => {
+    const handleClick = () => {
         if (props.bots.size === 0) {
             return;
         }
 
-        const hasControl = await isControllingClient();
+        const hasControl = isControllingClient();
 
         if (!hasControl) {
             setIsTakeControlVisible(true);
