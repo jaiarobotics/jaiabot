@@ -150,6 +150,10 @@ function TakeControl() {
     // Use context to participate in re-render cycles
     const jaiaContext = useContext(JaiaContext);
 
+    if (jaiaContext === null) {
+        return;
+    }
+
     if (!isControllingClient()) {
         return <TakeControlButton />;
     }
