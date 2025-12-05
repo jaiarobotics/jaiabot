@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
-import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
+import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { StopAllBotsDialog } from "./StopAllBotsDialog";
 import { DisabledCodes } from "../disabled-codes";
 

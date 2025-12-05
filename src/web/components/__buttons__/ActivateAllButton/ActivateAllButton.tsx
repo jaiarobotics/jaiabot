@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import TakeControlDialog from "../../TakeControlDialog/TakeControlDialog";
+import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { ActivateAllDialog } from "./ActivateAllDialog";
 import { DisabledCodes } from "../disabled-codes";
 

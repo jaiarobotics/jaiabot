@@ -1,4 +1,4 @@
-import { jaiaAPI } from "../../utils/jaia-api";
+import { jaiaAPI } from "../../../../utils/jaia-api";
 
 interface Props {
     isVisible: boolean;
