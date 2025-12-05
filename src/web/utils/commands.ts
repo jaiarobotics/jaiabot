@@ -93,7 +93,7 @@ export function sendEngineeringCommand(command: Engineering) {
  *
  * @returns {boolean} True if the client is in control, otherwise false
  */
-export function isControllingClient(clientID?: string) {
+export function isControllingClient() {
     const controllingID = jaiaGlobal.getControllingClientID();
     if (controllingID === jaiaAPI.getClientId() || controllingID === null) {
         return true;
