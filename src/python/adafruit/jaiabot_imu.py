@@ -86,7 +86,7 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
             port_log.debug(f'Received command from {client_address}:\n{data}')
         except BlockingIOError:
             port_log.debug('No command received')
-            continue
+            pass
 
         try:
             # Deserialize the message
