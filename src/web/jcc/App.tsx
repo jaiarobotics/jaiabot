@@ -4,6 +4,7 @@ import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 import { gridPlan } from "../data/survey_planner/grid-plan";
 import { ButtonNames } from "../types/context-types";
 import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
+import { isControllingClient } from "../utils/commands";
 
 import Map from "../components/Map/Map";
 import NodeList from "../components/NodeList/NodeList";
@@ -55,8 +56,8 @@ export default function App() {
                 <Panel />
                 <RemoteControl />
                 <SimulationBanner />
+                <TakeControl />
             </JaiaContextProvider>
-            <TakeControlButton />
             <div id="connection-warning">Connection to Hub Dropped</div>
         </div>
     );
@@ -150,5 +151,9 @@ function TakeControl() {
 
     if (jaiaContext === null) {
         return;
+    }
+
+    if (!isControllingClient(jaiaContext.jaiaGlobal.getControllingClientID())) {
+        return <TakeControlButton />;
     }
 }
