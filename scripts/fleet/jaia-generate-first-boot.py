@@ -7,7 +7,7 @@ import os
 def set_pythonpath():
     script_path = os.path.abspath(__file__)
     script_dir = os.path.dirname(script_path)
-    python_path = os.path.join(script_dir, "../share/jaiabot/python/pyjaiaprotobuf")
+    python_path = os.path.join(script_dir, "../share/jaiabot/python/pyjaiaprotobuf/src")
 
     # Resolve to an absolute path and add to sys.path if valid
     if python_path:

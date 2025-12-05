@@ -41,6 +41,11 @@ CLIENT_VPN_WIREGUARD_PUBKEY=$(echo $CLIENT_VPN_WIREGUARD_PRIVATEKEY | wg pubkey)
 export AWS_DEFAULT_REGION=$REGION
 ACCOUNT_ID=$(run ".Account" aws sts get-caller-identity)
 
+ARN_PREFIX="arn:aws"
+if [[ $REGION == *"us-gov"* ]]; then
+  ARN_PREFIX="arn:aws-us-gov"
+fi
+
 # Create a VPC
 VPC_ID=$(run ".Vpc.VpcId" aws ec2 create-vpc --cidr-block "$VPC_CIDR_BLOCK" --amazon-provided-ipv6-cidr-block)
 echo ">>>>>> Created VPC with ID: $VPC_ID"
@@ -57,6 +62,7 @@ sed -i "s/{{REGION}}/${REGION}/g" ${POLICY_FILE}
 sed -i "s/{{ACCOUNT_ID}}/${ACCOUNT_ID}/g" ${POLICY_FILE}
 sed -i "s/{{VPC_ID}}/${VPC_ID}/g" ${POLICY_FILE}
 sed -i "s/{{CLOUDHUB_DATA_BUCKET}}/${CLOUDHUB_DATA_BUCKET}/g" ${POLICY_FILE}
+sed -i "s/{{ARN_PREFIX}}/${ARN_PREFIX}/g" ${POLICY_FILE}
 
 role_name="JaiaCloudHubFleet${FLEET_ID}__Role"
 policy_name="JaiaCloudHubFleet${FLEET_ID}__Policy"
