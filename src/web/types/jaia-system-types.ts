@@ -3,7 +3,6 @@ import {
     ConstantHeadingParameters,
     DiveParameters,
     DriftParameters,
-    GeographicCoordinate,
     MissionState,
 } from "./protobuf-types";
 
