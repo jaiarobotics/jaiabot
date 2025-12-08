@@ -1,10 +1,10 @@
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
+import { rallyPoints } from "../../data/rally_points/rally-points";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
-import { rallyLayer } from "../../openlayers/layers/vector/rally-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { MapModes } from "../../types/openlayers-types";
 import { JaiaContextType, JaiaAction, ButtonNames, ButtonTypes } from "../../types/context-types";
@@ -153,10 +153,7 @@ export function handleClickedEditMission(mutableState: JaiaContextType, action: 
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedRallyPoint(mutableState: JaiaContextType, action: JaiaAction) {
-    mutableState.selectedRallyPoint = {
-        id: action.rallyID,
-        location: rallyLayer.getRallyLocation(action.rallyID),
-    };
+    rallyPoints.setSelectedRallyPointID(action.rallyID);
     mutableState.visiblePanel = ButtonNames.RALLY_PANEL;
     return mutableState;
 }

@@ -1,5 +1,6 @@
 import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { rallyLayer } from "../../openlayers/layers/vector/rally-layer";
+import RallyPoint from "../../data/rally_points/rally-point";
+import { rallyPoints } from "../../data/rally_points/rally-points";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { MapModes } from "../../types/openlayers-types";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
@@ -7,28 +8,32 @@ import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers } from "./handler-utils";
 
 /**
- * Makes call to update the rally point layer
+ * Makes call to add a rally point to the data model
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action including location Where to add the rally point
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleAddRallyPoint(mutableState: JaiaContextType, action: JaiaAction) {
-    rallyLayer.addRallyPoint(action.location);
+    rallyPoints.setSelectedRallyPointID(UNASSIGNED_ID);
+    const newRallyPoint = new RallyPoint();
+    newRallyPoint.setLocation(action.location);
+    rallyPoints.addRallyPoint(newRallyPoint);
     handleMapModeChange(MapModes.DEFAULT);
+
+    //TODO rallyLayer update features
 
     return mutableState;
 }
 
 /**
- * Makes call to delete a rally point from the rally layer
+ * Makes call to delete a rally point from the data model
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDeleteRallyPoint(mutableState: JaiaContextType) {
-    rallyLayer.deleteRallyPoint(mutableState.selectedRallyPoint.id);
-    mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
+    rallyPoints.deleteRallyPoint(rallyPoints.getSelectedRallyPointID());
     mutableState.visiblePanel = ButtonNames.NONE;
     return mutableState;
 }
@@ -41,7 +46,7 @@ export function handleDeleteRallyPoint(mutableState: JaiaContextType) {
  */
 export function handleSendRallyMission(mutableState: JaiaContextType) {
     missionsManager.unassignAll();
-    mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
+    rallyPoints.setSelectedRallyPointID(UNASSIGNED_ID);
     mutableState.visiblePanel = ButtonNames.NONE;
 
     syncOpenLayers();

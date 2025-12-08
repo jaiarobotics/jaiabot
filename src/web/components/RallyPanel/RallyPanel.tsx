@@ -37,13 +37,21 @@ export default function RallyPanel() {
         jaiaDispatch({ type: JaiaActions.DELETE_RALLY_POINT });
     };
 
+    const getSelectedRallyPoint = () => {
+        return jaiaContext.rallyPoints.getRallyPoint(
+            jaiaContext.rallyPoints.getSelectedRallyPointID(),
+        );
+    };
+
     return (
         <div className="jaia-panel">
-            <div className="jaia-panel-title">Rally {jaiaContext.selectedRallyPoint.id}</div>
+            <div className="jaia-panel-title">
+                Rally {jaiaContext.rallyPoints.getSelectedRallyPointID()}
+            </div>
             <div className="rally-buttons-container">
                 <GoToRallyButton
                     bots={jaiaContext.bots.getBots()}
-                    selectedRallyPoint={jaiaContext.selectedRallyPoint}
+                    rallyPoint={getSelectedRallyPoint()}
                     missionSpeeds={jaiaContext.missionSet.getMissionSpeeds()}
                 />
                 <Button className="jaia-button" onClick={() => handleDeleteRallyPoint()}>

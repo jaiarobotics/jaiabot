@@ -11,6 +11,7 @@ import { historyManager } from "../../data/history/histroy-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
+import { rallyPoints } from "../../data/rally_points/rally-points";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 
@@ -67,6 +68,7 @@ export function captureSnapshot(context: JaiaContextType) {
         missionSetSnapshot: missionSet.captureSnapshot(),
         missionsManagerSnapshot: missionsManager.captureSnapshot(),
         gridPlanSnapshot: gridPlan.captureSnapshot(),
+        rallyPointsSnapshot: rallyPoints.captureSnapshot(),
         jaiaGlobalSnapshot: jaiaGlobal.captureSnapshot(),
         jaiaContextDataSnapshot: captureContextData(context),
     };
@@ -97,7 +99,6 @@ function restoreSnapshot(context: JaiaContextType, snapshot: JaiaSnapshot) {
  */
 function captureContextData(context: JaiaContextType) {
     const snapshot: JaiaContextDataSnapshot = {
-        selectedRallyPoint: context.selectedRallyPoint,
         visibleDetails: context.visibleDetails,
         visiblePanel: context.visiblePanel,
         hubAccordionStates: context.hubAccordionStates,
@@ -116,7 +117,6 @@ function captureContextData(context: JaiaContextType) {
  * @returns {void}
  */
 function restoreCotextData(mutableState: JaiaContextType, snapshot: JaiaContextDataSnapshot) {
-    mutableState.selectedRallyPoint = snapshot.selectedRallyPoint;
     mutableState.visibleDetails = snapshot.visibleDetails;
     mutableState.visiblePanel = snapshot.visiblePanel;
     mutableState.hubAccordionStates = snapshot.hubAccordionStates;

@@ -24,11 +24,6 @@ export interface SelectedWaypoint {
     isMoveable: boolean;
 }
 
-export interface SelectedRallyPoint {
-    id: number;
-    location?: GeographicCoordinate;
-}
-
 export interface SelectedTaskPacket {
     botID: number;
     startTime: number;

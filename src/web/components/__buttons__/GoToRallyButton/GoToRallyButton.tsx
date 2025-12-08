@@ -1,6 +1,8 @@
 import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
+import { rallyPoints } from "../../../data/rally_points/rally-points";
+import RallyPoint from "../../../data/rally_points/rally-point";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { GoToRallyDialog } from "./GoToRallyDialog";
@@ -13,7 +15,6 @@ import { mdiPlay } from "@mdi/js";
 import Bot from "../../../data/bots/bot";
 import { DialogActions } from "../../../types/context-types";
 
-import { SelectedRallyPoint } from "../../../types/jaia-system-types";
 import {
     Command,
     CommandType,
@@ -28,7 +29,7 @@ import { isCommsDropped, isCritiallyLowBattery } from "../button-utils";
 
 interface Props {
     bots: Map<number, Bot>;
-    selectedRallyPoint: SelectedRallyPoint;
+    rallyPoint: RallyPoint;
     missionSpeeds: Speeds;
 }
 
@@ -124,13 +125,14 @@ export default function GoToRallyButton(props: Props) {
      * @returns {Command} Single point mission command
      */
     const getRallyCommand = (botID: number) => {
+        const rallyPoint = props.rallyPoint;
         const rallyCommand: Command = {
             bot_id: botID,
             type: CommandType.MISSION_PLAN,
             plan: {
                 start: MissionStart.START_IMMEDIATELY,
                 movement: MovementType.TRANSIT,
-                goal: [{ location: props.selectedRallyPoint.location }],
+                goal: [{ location: rallyPoint.getLocation() }],
                 recovery: {
                     recover_at_final_goal: true,
                 },

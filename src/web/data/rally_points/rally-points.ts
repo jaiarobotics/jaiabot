@@ -27,6 +27,10 @@ export class RallyPoints {
         this.rallyPoints = rallyPoints;
     }
 
+    getRallyPoint(rallyPointID: number) {
+        return this.rallyPoints.get(rallyPointID);
+    }
+
     getNextRallyPointID() {
         return this.nextRallyPointID;
     }
@@ -74,3 +78,5 @@ export class RallyPoints {
         this.selectedRallyPointID = snapshot.selectedRallyPointID;
     }
 }
+
+export const rallyPoints = new RallyPoints();
