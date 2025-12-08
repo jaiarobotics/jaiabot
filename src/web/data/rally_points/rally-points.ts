@@ -43,6 +43,22 @@ export class RallyPoints {
         this.selectedRallyPointID = selectedRallyPointID;
     }
 
+    addRallyPoint(rallyPoint: RallyPoint) {
+        const rallyPointID = this.nextRallyPointID;
+        rallyPoint.setRallyPointID(rallyPointID);
+        this.rallyPoints.set(rallyPointID, rallyPoint);
+        this.nextRallyPointID++;
+        // TODO Might want to set Selected RallyPoint
+        return rallyPointID;
+    }
+
+    deleteRallyPoint(rallyPointID: number) {
+        this.rallyPoints.delete(rallyPointID);
+        if (rallyPointID === this.selectedRallyPointID) {
+            this.selectedRallyPointID = UNASSIGNED_ID;
+        }
+    }
+
     captureSnapshot() {
         const currentRallyPoints: RallyPointsSnapshot = {
             rallyPoints: this.rallyPoints,
