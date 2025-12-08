@@ -287,7 +287,7 @@ export default class CommandControl extends React.Component {
     state: State;
 
     api = jaiaAPI;
-    mapDivId = `map-${Math.round(Math.random() * 100000000)}`;
+    mapDivId = "map";
     botLayers: BotLayers;
     hubLayers: HubLayers;
     contactLayers: ContactLayers;
