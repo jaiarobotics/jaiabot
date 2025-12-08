@@ -632,21 +632,6 @@ if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
     ] 
     jaiabot_apps.extend(jaiabot_apps_motor_harness_type)
 
-if jaia_temperature_sensor_type.value == 'tsys01':
-    jaiabot_apps_tsys01 = [
-        {'exe': 'jaiabot_tsys01.py',
-        'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'tsys01_temperature_sensor',
-        'args': '-p 20000',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
-        'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'},
-    ]
-    jaiabot_apps.extend(jaiabot_apps_tsys01)
-
 if 'none' not in camera_positions_in_use:
     jaiabot_apps_camera = [
         {'exe': 'jaiabot_driver_camera',

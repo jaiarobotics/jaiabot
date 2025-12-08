@@ -17,16 +17,10 @@ start_location {
     lon: -71.273018
 }
 
-pressure_udp_config { 
+udp_gateway_config { 
     bind_port: 0
     remote_address: "127.0.0.1"
-    remote_port: $pressure_udp_port
-}
-
-salinity_udp_config { 
-    bind_port: 0
-    remote_address: "127.0.0.1"
-    remote_port: $salinity_udp_port
+    remote_port: $udp_gateway_port
 }
 
 

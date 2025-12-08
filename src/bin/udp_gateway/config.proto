@@ -48,8 +48,13 @@ message UDPGateway
 
     optional int32 salinity_data_report_timeout_seconds = 14 [default = 60];
     optional int32 pressure_temperature_data_report_timeout_seconds = 15 [default = 60];
+
+    // TSYS01
+    optional bool tsys01_enabled = 20 [default = false];
     optional int32 tsys01_data_report_timeout_seconds = 16 [default = 40];
 
+    // Echo
+    optional bool echo_enabled = 21 [default = true];
     optional int32 echo_data_report_timeout_seconds = 17 [default = 20];
     optional jaiabot.protobuf.EchoIssue.SolutionType echo_issue_solution = 18 [default = REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY];
     optional int32 echo_trigger_issue_timeout_seconds = 19 [default = 20];

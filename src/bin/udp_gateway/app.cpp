@@ -296,6 +296,12 @@ void jaiabot::apps::UDPGateway::send_echo_command(const jaiabot::protobuf::EchoC
 
 void jaiabot::apps::UDPGateway::loop()
 {
+    if (!imu_udp_src_.has_addr() || !imu_udp_src_.has_port()) {
+        glog.is_debug2() && glog << "IMU UDP source not known yet, cannot send TAKE_READING command"
+                                 << std::endl;
+        return;
+    }
+
     auto command = jaiabot::protobuf::IMUCommand();
     command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
     send_imu_command(command);
@@ -356,6 +362,8 @@ void jaiabot::apps::UDPGateway::health(
     health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
     health.set_name(this->app_name());
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    glog.is_warn() && glog << "Performing health check" << std::endl;
 
     //Check to see if the sensors are reporting
     if (cfg().in_simulation())
@@ -429,8 +437,7 @@ void jaiabot::apps::UDPGateway::check_last_report(
     }
 
     // TSYS01 data timeout check
-    if (last_tsys01_data_time_ +
-            std::chrono::seconds(cfg().tsys01_data_report_timeout_seconds()) <
+    if (cfg().tsys01_enabled() && last_tsys01_data_time_ + std::chrono::seconds(cfg().tsys01_data_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on TSYS01 temperature sensor" << std::endl;
@@ -441,7 +448,7 @@ void jaiabot::apps::UDPGateway::check_last_report(
     }
 
     // Echo data timeout check
-    if (last_echo_data_time_ + std::chrono::seconds(cfg().echo_data_report_timeout_seconds()) <
+    if (cfg().echo_enabled() && last_echo_data_time_ + std::chrono::seconds(cfg().echo_data_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on echo" << std::endl;
