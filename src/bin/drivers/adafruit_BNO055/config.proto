@@ -44,4 +44,5 @@ message AdaFruitBNO055Publisher
     optional bool adafruit_bno055_report_in_simulation = 11 [default = true];
     optional jaiabot.protobuf.IMUIssue.SolutionType imu_issue_solution = 12 [default = RESTART_IMU_PY];
     optional int32 imu_trigger_issue_timeout_seconds = 13 [default = 30];
+    optional double sample_rate = 14 [default = 10.0];
 }
