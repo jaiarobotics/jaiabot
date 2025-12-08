@@ -5,8 +5,15 @@ set -e
 # Kill all descendants if we exit or are killed
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
+JAIA_DIR="$(pwd)/../../../"
+
 # Install the dependency packages
 ../install_dependencies.sh ../
+
+# Set up pre-commit hooks
+pushd ${JAIA_DIR}/scripts/git-hooks/init/pre-commit/ > /dev/null
+    ./set-pre-commit-hook.sh
+popd > /dev/null
 
 WEB_APPS_DIR="$(pwd)/../../../build/web_dev/"
 JDV_DIR="${WEB_APPS_DIR}/jdv"

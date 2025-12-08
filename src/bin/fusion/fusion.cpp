@@ -41,7 +41,6 @@
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
-#include "jaiabot/messages/modem_message_extensions.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "wmm/WMM.h"
@@ -426,13 +425,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     // subscribe for pressure adjusted measurements (pressure -> depth)
     interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
         [this](const jaiabot::protobuf::PressureAdjustedData& pa) {
-            if (pa.has_calculated_depth())
+            if (pa.has_sensor_depth())
             {
                 latest_node_status_.mutable_global_fix()->set_depth_with_units(
-                    pa.calculated_depth_with_units());
+                    pa.sensor_depth_with_units());
                 latest_node_status_.mutable_local_fix()->set_z_with_units(
                     -latest_node_status_.global_fix().depth_with_units());
-                latest_bot_status_.set_depth_with_units(pa.calculated_depth_with_units());
+                latest_bot_status_.set_sensor_depth_with_units(pa.sensor_depth_with_units());
+                latest_bot_status_.set_depth_with_units(pa.depth_with_units());
 
                 // Check to see if we are in dive states so we publish node status at the
                 // same rate we are receiving depth values
@@ -581,26 +581,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 latest_bot_status_.set_pdop(sky.pdop());
             }
         });
-
-    // check for hub ID change and publish request for all intervehicle subscribers to (re)subscribe
-    // as the new hub may not have our subscriptions
-    interprocess().subscribe<goby::middleware::intervehicle::groups::modem_receive>(
-        [this](
-            const goby::middleware::intervehicle::protobuf::ModemTransmissionWithLinkID& rx_msg) {
-            if (rx_msg.data().HasExtension(jaiabot::protobuf::transmission))
-            {
-                const auto& hub_info =
-                    rx_msg.data().GetExtension(jaiabot::protobuf::transmission).hub();
-
-                glog.is_debug1() && glog << hub_info.ShortDebugString() << std::endl;
-
-                if (hub_info.changed())
-                {
-                    interprocess().publish<jaiabot::groups::intervehicle_subscribe_request>(
-                        hub_info);
-                }
-            }
-        });
+ 
     // subscribe for commands from mission manager
     interprocess()
         .subscribe<jaiabot::groups::desired_setpoints, jaiabot::protobuf::DesiredSetpoints>(

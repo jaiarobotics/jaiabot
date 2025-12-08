@@ -4,10 +4,11 @@ platforms:
     interfaces:
       - application: goby_liaison
         file: jaiabot_liaison_interface.yml        
-      - @GOBY_INTERFACES_DIR@/goby_opencpn_interface_interface.yml
-      - @GOBY_INTERFACES_DIR@/goby_geov_interface_interface.yml
       - jaiabot_hub_manager_interface.yml
       - jaiabot_web_portal_interface.yml
+      - jaiabot_metadata_interface.yml
+      - @GOBY_INTERFACES_DIR@/goby_coroner_interface.yml
+      - jaiabot_health_interface.yml
   - name: bot
     interfaces:
       - application: goby_moos_gateway
@@ -18,6 +19,15 @@ platforms:
         file: jaiabot_liaison_interface.yml
       - jaiabot_simulator_interface.yml
       - jaiabot_fusion_interface.yml
-      - jaiabot_bluerobotics_pressure_sensor_driver_interface.yml
       - jaiabot_mission_manager_interface.yml
       - @GOBY_INTERFACES_DIR@/goby_gps_interface.yml
+      - jaiabot_metadata_interface.yml
+      - jaiabot_sensors_interface.yml
+      - jaiabot_pid_control_interface.yml
+      - jaiabot_engineering_interface.yml
+      - @GOBY_INTERFACES_DIR@/goby_coroner_interface.yml
+      - jaiabot_health_interface.yml
+      - jaiabot_bluerobotics_pressure_sensor_driver_interface.yml
+      - jaiabot_adafruit_BNO055_driver_interface.yml
+      - jaiabot_atlas_scientific_ezo_ec_driver_interface.yml
+      - jaiabot_driver_camera_interface.yml

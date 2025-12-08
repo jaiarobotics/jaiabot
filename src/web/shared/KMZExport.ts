@@ -71,6 +71,8 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
                     Unpowered-Rise-Rate: ${dive.unpowered_rise_rate?.toFixed(2)} m/s<br />
                     Powered-Rise-Rate: ${dive.powered_rise_rate?.toFixed(2)} m/s<br />
                     Bottom-Type: ${dive.bottom_type} <br />
+                    Subsurface-Current-Velocity: ${dive.subsurface_current?.velocity?.toFixed(2)} m/s<br />
+                    Subsurface-Current-Heading: ${dive.subsurface_current?.heading?.toFixed(2)} deg<br />
                     ${depthMeasurementString}
                 </description>
                 <Point>

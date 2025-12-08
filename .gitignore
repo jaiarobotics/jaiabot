@@ -1,4 +1,23 @@
 build/*
 config/launch/simulation/all.launch
+config/launch/simulation/preseed.goby
 __pycache__
 .vscode
+*.egg-info/
+
+# === private files ===
+
+*.key
+*.rsa
+
+# SSL
+*.cer
+*.crt
+*.der
+*.pem
+*.p12
+
+# SSH keys
+id_ecdsa
+id_ed25519
+id_rsa

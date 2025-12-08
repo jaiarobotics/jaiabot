@@ -86,7 +86,7 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_SENSORS = 40
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA = 41
+    ERROR__FAILED__JAIABOT_COMMS_MANAGER = 41
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
@@ -142,6 +142,10 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_ECHO_DRIVER = 124
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 125
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_CAMERA = 126
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_COMMS_MANAGER = 127
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
@@ -328,8 +332,7 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_sensor
-    
-    
+
     // from jaiabot_sensors
     WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_DO = 800
         [(jaia.ev).rest_api.presence = GUARANTEED];
@@ -339,7 +342,7 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__INIT_FAILED__TURNER__C_FLUOR = 803
         [(jaia.ev).rest_api.presence = GUARANTEED];
-        
+
     WARNING__MISSING_DATA__ATLAS_OEM_EC_DATA = 804
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__MISSING_DATA__ATLAS_OEM_PH_DATA = 805

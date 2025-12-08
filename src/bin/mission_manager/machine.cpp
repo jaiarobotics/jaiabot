@@ -2,6 +2,7 @@
 
 #include <goby/middleware/log/groups.h>
 #include <goby/middleware/protobuf/logger.pb.h>
+#include <ctime>
 
 #include "machine.h"
 #include "mission_manager.h"
@@ -422,6 +423,7 @@ jaiabot::statechart::inmission::underway::Task::~Task()
                 task_packet_, intervehicle::default_publisher<protobuf::TaskPacket>);
         }
     }
+
 }
 
 // Task::Dive
@@ -452,11 +454,13 @@ jaiabot::statechart::inmission::underway::task::Dive::Dive(typename StateBase::m
     imu_command.set_type(IMUCommand::START_BOTTOM_TYPE_SAMPLING);
     this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 
+    boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
     // Is this an echo task?
-    bool start_echo_sensor = context<Task>().current_task()->start_echo();
+    bool start_echo_sensor = current_task ? current_task->start_echo() : false;
 
     if (start_echo_sensor)
     {
+        context<InMission>().set_is_echo_recording(start_echo_sensor);
         // Start echo recording
         auto echo_command = EchoCommand();
         echo_command.set_type(EchoCommand::CMD_START);
@@ -496,8 +500,68 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
     imu_command.set_type(IMUCommand::STOP_BOTTOM_TYPE_SAMPLING);
     this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 
-    // Is this an echo task?
-    bool stop_echo_sensor = context<Task>().current_task()->start_echo();
+    //This logic sets the bottom type based on whether a powered ascent happens, the default is hard as set in jaia_dccl.proto
+    if (dive_packet().has_bottom_dive())
+    {
+        if (context<Dive>().has_bot_performed_powered_ascent_after_bottom())
+        {
+            glog.is_debug1() && glog << "PoweredAscent::depth Setting bottom type to SOFT"
+                                     << "\n"
+                                     << std::endl;
+            // Set the bottom_type Soft
+            dive_packet().set_bottom_type(
+                protobuf::DivePacket::BottomType::DivePacket_BottomType_SOFT);
+        }
+        else
+        {
+            glog.is_debug1() && glog << "Dive::~Dive Setting bottom type to HARD" << "\n"
+                                     << std::endl;
+            // Set the bottom_type Hard
+            dive_packet().set_bottom_type(
+                protobuf::DivePacket::BottomType::DivePacket_BottomType_HARD);
+        }
+        
+    }
+    
+    // Calculate subsurface current if we have drift data
+    // MUST have one hold, hold must be greater than 10 seconds, and drift must be greater than 15 seconds
+    // Minimums are configurable in the jaiabot/src/bin/mission_managerconfig.proto file
+    if (dive_packet().measurement_size() == 1 && current_dive().hold_time() >= cfg().min_subsurface_current_vector_hold_time() && context<Task>().task_packet().has_drift() && context<Task>().task_packet().drift().drift_duration() >= cfg().min_subsurface_current_vector_drift_time())
+    {
+        auto& dive_packet = context<Task>().task_packet().dive();
+        auto& drift_packet = context<Task>().task_packet().drift();
+
+        // Calculate where the dive actually ended (accounting for drift during GPS reacquisition)
+        auto dive_end_location = jaiabot::utils::find_dive_end_location(
+            machine().geodesy(),
+            dive_packet.duration_to_acquire_gps(), 
+            drift_packet.start_location(), 
+            drift_packet.estimated_drift().speed(), 
+            drift_packet.estimated_drift().heading()); 
+        
+        // Calculate subsurface displacement (from dive start to dive end)
+        auto subsurface_displacement = jaiabot::utils::haversine(
+            dive_packet.start_location().lat_with_units().value(), dive_packet.start_location().lon_with_units().value(),
+            dive_end_location.lat_with_units().value(), dive_end_location.lon_with_units().value());
+        
+        // Calculate subsurface velocity and heading
+        auto start_xy = this->machine().geodesy().convert(
+            {dive_packet.start_location().lat_with_units(), dive_packet.start_location().lon_with_units()}),
+        end_xy = this->machine().geodesy().convert(
+            {dive_end_location.lat_with_units(), dive_end_location.lon_with_units()});
+            
+        float subsurface_velocity = subsurface_displacement / current_dive().hold_time();
+        float subsurface_heading = jaiabot::utils::calculateHeading(
+            start_xy.x.value(), start_xy.y.value(), end_xy.x.value(), end_xy.y.value());
+
+        // Set the subsurface current in the dive packet
+        auto* subsurface_current = context<Task>().task_packet().mutable_dive()->mutable_subsurface_current();
+        subsurface_current->set_velocity(subsurface_velocity);
+        subsurface_current->set_heading(subsurface_heading);
+    }
+
+    // Is echo recording?
+    bool stop_echo_sensor = context<InMission>().is_echo_recording();
 
     if (stop_echo_sensor)
     {
@@ -505,7 +569,7 @@ jaiabot::statechart::inmission::underway::task::Dive::~Dive()
         auto echo_command = EchoCommand();
         echo_command.set_type(EchoCommand::CMD_STOP);
         this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
-    }
+    }   
 }
 
 // Task::Dive::DivePrep
@@ -523,13 +587,14 @@ jaiabot::statechart::inmission::underway::task::dive::DivePrep::DivePrep(
 
     dive_prep_timeout_ = start_timeout + dive_prep_duration;
 
-    // This makes sure we capture the pressure before the dive begins
-    // Then we can adjust pressure accordingly
-    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
-
-    if (cfg().has_start_camera_command())
+    if (cfg().camera_available() && cfg().has_start_camera_command())
     {
-        interprocess().publish<jaiabot::groups::camera>(cfg().start_camera_command());
+        auto start_camera_command = cfg().start_camera_command();
+        time_t timestamp;
+        time(&timestamp);
+        start_camera_command.set_datetime(ctime(&timestamp));
+        glog.is_debug1() && glog << "Setting datetime: " << start_camera_command.datetime() << std::endl;
+        interprocess().publish<jaiabot::groups::camera>(start_camera_command);
     }
 
     loop(EvLoop());
@@ -565,35 +630,13 @@ void jaiabot::statechart::inmission::underway::task::dive::DivePrep::loop(const 
     }
 }
 
-/**
- * @brief Check the pitch to determine if the bot is in it's veritical position.
- * It it is then we should exit DivePrep and begin our powered descent.
- * 
- * @param EvVehiclePitch 
- */
-void jaiabot::statechart::inmission::underway::task::dive::DivePrep::pitch(const EvVehiclePitch& ev)
+void jaiabot::statechart::inmission::underway::task::dive::DivePrep::motor_stopped(const EvMotorStopped& ev)
 {
-    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
-
-    // If we are vertical then change to powered descent state
-    if (std::abs(ev.pitch.value()) > cfg().pitch_to_determine_dive_prep_vertical())
+    if (ev.is_motor_stopped) 
     {
-        // Check to see if we have reached the number of checks and the min check time
-        // has been reach to determine if a bot is vertical
-        if ((pitch_angle_check_incr_ >= (cfg().pitch_angle_checks() - 1)) &&
-            ((now - last_pitch_dive_time_) >=
-             static_cast<decltype(now)>(cfg().pitch_angle_min_check_time_with_units())))
-        {
-            glog.is_warn() && glog << "DivePrep::pitch Bot is vertical!"
-                                   << "\npost_event(EvDivePrepComplete());" << std::endl;
-            post_event(EvDivePrepComplete());
-        }
-        pitch_angle_check_incr_++;
-    }
-    else
-    {
-        last_pitch_dive_time_ = now;
-        pitch_angle_check_incr_ = 0;
+        glog.is_debug2() && glog << "DivePrep::motor_stopped Motor is stopped!"
+                                 << "\npost_event(EvDivePrepComplete());" << std::endl;
+        post_event(EvDivePrepComplete());
     }
 }
 
@@ -602,6 +645,17 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::PoweredDes
     typename StateBase::my_context c)
     : StateBase(c)
 {
+    // This makes sure we capture the pressure before the dive begins
+    // Then we can adjust pressure accordingly
+    this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
+
+    // Calculate and set the depth of our pressure sensor at the start of our dive according to the vehicle's pitch and waterline 
+    this->machine().calculate_start_of_dive_depth(this->machine().latest_pitch()); 
+
+    glog.is_debug1() && glog << "Start of Dive Pitch: " << this->machine().latest_pitch().value() << " degrees" <<std::endl;
+    glog.is_debug1() && glog << "Start of Dive Depth: " << this->machine().start_of_dive_depth() << " meters" <<std::endl;
+
+    // Start the timeout for detecting the bottom
     goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
     // duration granularity is seconds
     int detect_bottom_logic_timeout_seconds = cfg().detect_bottom_logic_init_timeout();
@@ -760,20 +814,21 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
             context<Dive>().dive_packet().set_max_acceleration_with_units(
                 this->machine().latest_max_acceleration());
 
-            // Determine Hard/Soft
-            if (this->machine().latest_max_acceleration().value() >=
-                cfg().hard_bottom_type_acceleration())
-            {
-                // Set the bottom_type Hard
-                context<Dive>().dive_packet().set_bottom_type(
-                    protobuf::DivePacket::BottomType::DivePacket_BottomType_HARD);
-            }
-            else
-            {
-                // Set the bottom_type Soft
-                context<Dive>().dive_packet().set_bottom_type(
-                    protobuf::DivePacket::BottomType::DivePacket_BottomType_SOFT);
-            }
+            //Commenting out max acceperation hard/soft determination for bottom type to switch to ascent-based logic
+            // // Determine Hard/Soft
+            // if (this->machine().latest_max_acceleration().value() >=
+            //     cfg().hard_bottom_type_acceleration())
+            // {
+            //     // Set the bottom_type Hard
+            //     context<Dive>().dive_packet().set_bottom_type(
+            //         protobuf::DivePacket::BottomType::DivePacket_BottomType_HARD);
+            // }
+            // else
+            // {
+            //     // Set the bottom_type Soft
+            //     context<Dive>().dive_packet().set_bottom_type(
+            //         protobuf::DivePacket::BottomType::DivePacket_BottomType_SOFT);
+            // }
 
             // used to correct dive rate calculation
             duration_correction_ = (now - last_depth_change_time_);
@@ -953,7 +1008,7 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::Unpowered
     typename StateBase::my_context c)
     : StateBase(c)
 {
-    if (cfg().has_stop_camera_command())
+    if (cfg().camera_available() && cfg().has_stop_camera_command())
     {
         interprocess().publish<jaiabot::groups::camera>(cfg().stop_camera_command());
     }
@@ -1018,8 +1073,8 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
              << "\n cfg().dive_surface_eps: " << cfg().dive_depth_eps() << "\n"
              << std::endl;
 
-    // within surface eps of the surface (or any negative value)
-    if (ev.depth < cfg().dive_surface_eps_with_units())
+    // Nose of the bot is within surface eps of the surface (or any negative value)
+    if ((ev.sensor_depth.value() - cfg().pressure_sensor_to_waterline()) < cfg().dive_surface_eps())
     {
         post_event(EvSurfaced());
         dive_uascent_debug.set_surfaced(true);
@@ -1067,6 +1122,8 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::PoweredAsce
 
     powered_ascent_motor_off_timeout_ = start_timeout + powered_ascent_motor_off_duration_;
 
+    last_depth_ = context<Dive>().dive_packet().depth_achieved_with_units();
+
     loop(EvLoop());
 }
 
@@ -1086,6 +1143,7 @@ jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::~PoweredAsc
 
     context<Dive>().dive_packet().set_powered_rise_rate_with_units(rise_rate *
                                                                    boost::units::si::velocity());
+    if( !context<Dive>().has_bot_performed_powered_ascent_after_bottom()) context<Dive>().set_bot_performed_powered_ascent_after_bottom(true);
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(const EvLoop&)
@@ -1095,7 +1153,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::loop(c
 
     // ***************************************************
     // this logic turns the motor off and on
-    // while in powered descent to help assist the vehicle
+    // while in powered ascent to help assist the vehicle
     // to get out of muddy bottoms
     // ***************************************************
 
@@ -1193,6 +1251,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
     // if we've moved eps meters in depth, reset the timer for determining if we
     // are stuck underwater
     // Also make sure we are moving towards surface
+    glog.is_warn() && glog << "PoweredAscent::depth ev.depth: " << ev.depth.value() << "\n last_depth_: " << last_depth_.value() << std::endl;
     if (std::abs((ev.depth - last_depth_).value()) > cfg().dive_depth_eps() &&
         (ev.depth < last_depth_))
     {

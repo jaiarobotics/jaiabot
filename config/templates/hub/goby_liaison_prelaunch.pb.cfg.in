@@ -47,7 +47,7 @@ add_commander_tab: false
             display_name: "Hub ID for offline/hub cache updates"
             static_value: "$this_hub_index"
         }
-        
+        $limit        
     }
     ansible_playbook {
         file: "check-version.yml" 
@@ -67,7 +67,8 @@ add_commander_tab: false
         output_var {
             name: "jaiabot_upgrade_available"
             display_name: "Minor Upgrade available?"
-        }        
+        }
+        $limit
     }
 
     # Can't be run on hub, or else we remove the code and config running goby_liaison_prelaunch...
@@ -91,6 +92,7 @@ add_commander_tab: false
             name: "jaiabot_current_version"
             display_name: "Current JaiaBot Version"
         }
+        $limit
     }
     ansible_playbook {
         file: "upgrade-all.yml" 
@@ -101,6 +103,7 @@ add_commander_tab: false
             name: "jaiabot_current_version"
             display_name: "Current JaiaBot Version"
         }
+        $limit
     }
 
     ansible_playbook {
@@ -128,6 +131,7 @@ add_commander_tab: false
         }
         
         causes_hub_reboot: true
+        $limit
     }
 
     
@@ -144,6 +148,7 @@ add_commander_tab: false
             name: "jaiabot_vpn_enable_state"
             display_name: "Check VPN Enable State?"
         }
+        $limit
     }
 
     ansible_playbook {
@@ -159,6 +164,7 @@ add_commander_tab: false
             value: "enable"
             value: "disable"
         }
+        $limit
     }
 
     ansible_playbook {
@@ -173,6 +179,7 @@ add_commander_tab: false
         name: "Reboot Bots"
         section: "Reboot"
         role: USER
+        $limit
     }
     ansible_playbook {
         file: "reboot-hubs.yml" 
@@ -180,6 +187,7 @@ add_commander_tab: false
         section: "Reboot"
         role: USER
         causes_hub_reboot: true
+        $limit
     }    
 
     ansible_playbook {
@@ -188,6 +196,7 @@ add_commander_tab: false
         section: "Factory"
         role: ADVANCED
         confirmation_required: true
+        $limit
     }    
 
     ansible_playbook {
@@ -196,6 +205,7 @@ add_commander_tab: false
         section: "Factory"
         role: DEVELOPER
         confirmation_required: true
+        $limit
     }
 
     ansible_playbook {
@@ -208,8 +218,13 @@ add_commander_tab: false
             display_name: "Comms Links"
             value: "xbee"
             value: "wifi"
+            value: "iridium"
             value: "xbee,wifi"
+            value: "xbee,iridium"
+            value: "wifi,iridium"
+            value: "xbee,iridium,wifi"
         }
+        $limit
     }
     
 
