@@ -86,6 +86,7 @@ function restoreSnapshot(context: JaiaContextType, snapshot: JaiaSnapshot) {
     missionSet.restoreFromSnapshot(snapshot.missionSetSnapshot);
     missionsManager.restoreFromSnapshot(snapshot.missionsManagerSnapshot);
     gridPlan.restoreFromSnapshot(snapshot.gridPlanSnapshot);
+    rallyPoints.restoreFromSnapshot(snapshot.rallyPointsSnapshot);
     jaiaGlobal.restoreFromSnapshot(snapshot.jaiaGlobalSnapshot);
     restoreCotextData(context, snapshot.jaiaContextDataSnapshot);
     return context;

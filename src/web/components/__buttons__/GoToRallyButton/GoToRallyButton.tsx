@@ -1,7 +1,6 @@
 import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
-import { rallyPoints } from "../../../data/rally_points/rally-points";
 import RallyPoint from "../../../data/rally_points/rally-point";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
@@ -125,14 +124,14 @@ export default function GoToRallyButton(props: Props) {
      * @returns {Command} Single point mission command
      */
     const getRallyCommand = (botID: number) => {
-        const rallyPoint = props.rallyPoint;
+        const rallyPointLocation = props.rallyPoint.getLocation();
         const rallyCommand: Command = {
             bot_id: botID,
             type: CommandType.MISSION_PLAN,
             plan: {
                 start: MissionStart.START_IMMEDIATELY,
                 movement: MovementType.TRANSIT,
-                goal: [{ location: rallyPoint.getLocation() }],
+                goal: [{ location: rallyPointLocation }],
                 recovery: {
                     recover_at_final_goal: true,
                 },
