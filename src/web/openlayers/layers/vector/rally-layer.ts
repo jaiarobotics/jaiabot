@@ -19,7 +19,7 @@ class RallyLayer extends JaiaVectorLayer {
     }
 
     /**
-     * Reconstructs rally popint layer
+     * Reconstructs rally point layer
      *
      * @returns {void}
      */
