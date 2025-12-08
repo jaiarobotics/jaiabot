@@ -1,6 +1,7 @@
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import RallyPoint from "../../data/rally_points/rally-point";
 import { rallyPoints } from "../../data/rally_points/rally-points";
+import { rallyLayer } from "../../openlayers/layers/vector/rally-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { MapModes } from "../../types/openlayers-types";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
@@ -20,8 +21,7 @@ export function handleAddRallyPoint(mutableState: JaiaContextType, action: JaiaA
     newRallyPoint.setLocation(action.location);
     rallyPoints.addRallyPoint(newRallyPoint);
     handleMapModeChange(MapModes.DEFAULT);
-
-    //TODO rallyLayer update features
+    rallyLayer.updateFeatures();
 
     return mutableState;
 }
@@ -35,6 +35,7 @@ export function handleAddRallyPoint(mutableState: JaiaContextType, action: JaiaA
 export function handleDeleteRallyPoint(mutableState: JaiaContextType) {
     rallyPoints.deleteRallyPoint(rallyPoints.getSelectedRallyPointID());
     mutableState.visiblePanel = ButtonNames.NONE;
+    rallyLayer.updateFeatures();
     return mutableState;
 }
 
