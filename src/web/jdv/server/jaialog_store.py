@@ -2,7 +2,6 @@ import glob
 from typing import Iterable
 import h5py
 import logging
-import json
 import re
 import datetime
 import os
@@ -21,7 +20,6 @@ from dataclasses_json import dataclass_json
 
 # JAIA message types as python dataclasses
 from jaia_messages import *
-import path_descriptors
 
 
 def itemsmatching(file: h5py.File, regular_expression: re.Pattern):
@@ -242,6 +240,23 @@ class JaialogStore:
         h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
 
         return h5_files.getSeries(paths)
+
+
+    def getObjects(self, log_names: List[str], path: str):
+        """Gets a list of objects from a list of log names.
+
+        Args:
+            log_names (List[str]): List of log names.
+            path (str): Path to the dataset to load.
+        """
+        
+        if log_names is None or path is None:
+            return []
+
+        h5_paths = [f'{self.LOG_DIR}/{name}.h5' for name in log_names]
+        h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
+
+        return h5_files.getObjects(path)
 
 
     def getMap(self, log_names: List[str]):
