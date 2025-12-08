@@ -173,9 +173,8 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         }
 
         if (absPosition > RCZones.HIGH) {
-            if (rcOverdrive) {
-                magnitude = 3;
-            } else {
+            magnitude = 3;
+            if (analogStickType === AnalogStickTypes.LEFT && !rcOverdrive) {
                 magnitude = 2;
             }
         }
