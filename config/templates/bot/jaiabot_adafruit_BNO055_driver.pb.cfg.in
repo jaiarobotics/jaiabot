@@ -8,3 +8,4 @@ udp_config {
 }
 
 adafruit_bno055_report_in_simulation: $adafruit_bno055_report_in_simulation
+sample_rate: 10
