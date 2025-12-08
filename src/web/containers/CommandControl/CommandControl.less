@@ -5,7 +5,10 @@
     color: if(luminance(@col) > 45, black, white);
 }
 
-html,
+html {
+    touch-action: pan-y;
+}
+
 body {
     overflow: hidden;
     background: @overlay-background;
