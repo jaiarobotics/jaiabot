@@ -86,6 +86,10 @@ export default class Task {
         const key = taskParameterPair.key;
         let value = taskParameterPair.value;
 
+        if (!value) {
+            value = this.ZERO_LOWER_BOUND;
+        }
+
         switch (key) {
             case TaskParameterKeys.MAX_DEPTH:
                 value = clampInput(value, this.ZERO_LOWER_BOUND, this.MAX_DEPTH_CONSTRAINT);
