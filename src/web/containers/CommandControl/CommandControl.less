@@ -5,12 +5,14 @@
     color: if(luminance(@col) > 45, black, white);
 }
 
+html,
 body {
     overflow: hidden;
     background: @overlay-background;
     font-size: 16pt;
     margin: 0;
     font-family: @global-font-family !important;
+    touch-action: pan-y;
 }
 *,
 *::before,
@@ -31,6 +33,10 @@ td {
     font-size: inherit;
     line-height: inherit;
     color: inherit;
+}
+
+#map {
+    touch-action: none;
 }
 
 #jcc_container {
@@ -599,6 +605,7 @@ td {
         }
         .ol-viewport {
             overflow: visible !important;
+            touch-action: none;
         }
         .map-control {
             overflow: visible;
