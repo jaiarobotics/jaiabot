@@ -91,14 +91,8 @@ class UDPGateway
     goby::time::SteadyClock::time_point last_salinity_data_time_{std::chrono::seconds(0)};
     goby::middleware::protobuf::UDPEndPoint salinity_udp_src_;
 
-    // For processing salinity data
-    jaiabot::protobuf::PressureTemperatureData last_pressure_temperature_data_;
-    jaiabot::protobuf::PressureAdjustedData last_pressure_adjusted_data_;
-    jaiabot::protobuf::SalinityData process_salinity_data(const jaiabot::protobuf::SalinityData& salinity_data);
-
     // PressureTemperature data tracking
     goby::time::SteadyClock::time_point last_pressure_temperature_data_time_{std::chrono::seconds(0)};
-    goby::middleware::protobuf::UDPEndPoint pressure_temperature_udp_src_;
 
     // TSYS01 data tracking
     goby::time::SteadyClock::time_point last_tsys01_data_time_{std::chrono::seconds(0)};
@@ -168,19 +162,6 @@ jaiabot::apps::UDPGateway::UDPGateway()
             send_echo_command(echo_command);
         });
 
-    // TODO: Move this data processing to jaiabot_fusion?
-    interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
-        [this](const jaiabot::protobuf::PressureAdjustedData& pressure_adjusted_data)
-        {
-            last_pressure_adjusted_data_ = pressure_adjusted_data;
-        });
-    
-    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
-        [this](const jaiabot::protobuf::PressureTemperatureData& pressure_temperature_data)
-        {
-            last_pressure_temperature_data_ = pressure_temperature_data;
-        });
-    
     // TODO: Move this to jaiabot_engineering?
     interprocess().subscribe<jaiabot::groups::engineering_command>(
         [this](const jaiabot::protobuf::Engineering& command) {
@@ -210,8 +191,7 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
         case jaiabot::protobuf::UDPGatewayEnvelope::kSalinityData:
         {
             glog.is_debug1() && glog << "Received SalinityData" << endl;
-            auto salinity_data = process_salinity_data(envelope.salinity_data());
-            interprocess().publish<groups::salinity>(envelope.salinity_data());
+            interprocess().publish<groups::raw_salinity>(envelope.salinity_data());
             last_salinity_data_time_ = goby::time::SteadyClock::now();
             salinity_udp_src_ = udp_src;
             break;
@@ -221,7 +201,6 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             glog.is_debug1() && glog << "Received PressureTemperatureData" << endl;
             interprocess().publish<jaiabot::groups::pressure_temperature>(envelope.pressure_temperature_data());
             last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
-            pressure_temperature_udp_src_ = udp_src;
             break;
         }
         case jaiabot::protobuf::UDPGatewayEnvelope::kTsys01Data:
@@ -292,32 +271,6 @@ void jaiabot::apps::UDPGateway::loop()
     auto command = jaiabot::protobuf::IMUCommand();
     command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
     send_imu_command(command);
-}
-
-jaiabot::protobuf::SalinityData jaiabot::apps::UDPGateway::process_salinity_data(const jaiabot::protobuf::SalinityData& salinity_data) {
-    jaiabot::protobuf::SalinityData processed_data = salinity_data;
-
-    // TODO: Move these calculations to the jaiabot_fusion app?
-    if (last_pressure_temperature_data_.has_temperature())
-    {
-        const double specific_conductivity = calculate_specific_conductivity(
-            salinity_data.conductivity_raw(), last_pressure_temperature_data_.temperature());
-        processed_data.set_conductivity(specific_conductivity);
-    }
-
-    if (last_pressure_temperature_data_.has_temperature() &&
-        last_pressure_adjusted_data_.has_pressure_adjusted())
-    {
-        const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
-        const double salinity = calculate_derived_salinity(
-            salinity_data.conductivity_raw(), last_pressure_temperature_data_.temperature(),
-            last_pressure_adjusted_data_.pressure_adjusted() +
-                ATMOSPHERIC_PRESSURE_DECIBARS);
-        processed_data.set_salinity(salinity);
-    }
-    // Up to here
-
-    return processed_data;
 }
 
 // Health checks
