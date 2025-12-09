@@ -162,16 +162,6 @@ jaiabot::apps::UDPGateway::UDPGateway()
             send_echo_command(echo_command);
         });
 
-    // TODO: Move this to jaiabot_engineering?
-    interprocess().subscribe<jaiabot::groups::engineering_command>(
-        [this](const jaiabot::protobuf::Engineering& command) {
-            // Publish only when we get a query for status
-            if (command.query_engineering_status())
-            {
-                interprocess().publish<jaiabot::groups::engineering_status>(latest_echo_data_);
-            }
-        });
-
 }
 
 
