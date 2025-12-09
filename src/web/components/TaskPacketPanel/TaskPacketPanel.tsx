@@ -96,8 +96,11 @@ export default function TaskPacketPanel(props: Props) {
     const startTime = formatDate(taskPacket.start_time);
     const endTime = formatDate(taskPacket.end_time);
 
-    switch (taskPacket.type) {
-        case TaskType.DIVE:
+    switch (props.selectedTaskPacket.type) {
+        case MapFeatureTypes.DIVE:
+            if (!taskPacket.dive) {
+                return;
+            }
             return (
                 <div className="task-packet-panel-container">
                     <div className="task-packet-panel">
@@ -124,7 +127,10 @@ export default function TaskPacketPanel(props: Props) {
                 </div>
             );
 
-        case TaskType.SURFACE_DRIFT:
+        case MapFeatureTypes.DRIFT:
+            if (!taskPacket.drift) {
+                return;
+            }
             return (
                 <div className="task-packet-panel-container">
                     <div className="task-packet-panel">
@@ -195,17 +201,6 @@ function VisibilityButtons(props: Props) {
  * @returns {boolean} True if the operator clicked a new task packet, false otherwise
  */
 function isNewTaskPacket(taskPacket: TaskPacket, selectedTaskPacket: SelectedTaskPacket) {
-    if (taskPacket.type === TaskType.DIVE && selectedTaskPacket.type !== MapFeatureTypes.DIVE) {
-        return true;
-    }
-
-    if (
-        taskPacket.type === TaskType.SURFACE_DRIFT &&
-        selectedTaskPacket.type !== MapFeatureTypes.DRIFT
-    ) {
-        return true;
-    }
-
     if (
         `${taskPacket.bot_id}_${taskPacket.start_time}` !==
         `${selectedTaskPacket.botID}_${selectedTaskPacket.startTime}`
