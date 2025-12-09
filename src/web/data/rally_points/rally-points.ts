@@ -52,7 +52,6 @@ export class RallyPoints {
         rallyPoint.setRallyPointID(rallyPointID);
         this.rallyPoints.set(rallyPointID, rallyPoint);
         this.nextRallyPointID++;
-        // TODO Might want to set Selected RallyPoint
         return rallyPointID;
     }
 
