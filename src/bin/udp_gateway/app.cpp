@@ -38,6 +38,7 @@
 #include "jaiabot/messages/udp_gateway.pb.h"
 #include "jaiabot/messages/moos.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 
 #include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/utils/specific_conductivity.h"
@@ -205,23 +206,6 @@ jaiabot::apps::UDPGateway::UDPGateway()
 
         });
 
-    // TODO: Perhaps get the mission state from BotStatus or NodeStatus instead.  MOOSMessages come in with VERY high bandwidth.
-    interprocess().subscribe<jaiabot::groups::moos>(
-        [this](const protobuf::MOOSMessage& moos_msg)
-        {
-            if (moos_msg.key() == "JAIABOT_MISSION_STATE")
-            {
-                if (moos_msg.svalue() == "IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT")
-                {
-                    helm_ivp_in_mission_ = true;
-                }
-                else
-                {
-                    helm_ivp_in_mission_ = false;
-                }
-            }
-        });
-
     interprocess().subscribe<jaiabot::groups::imu>(
         [this](const protobuf::IMUCommand& imu_command)
         {
@@ -343,21 +327,7 @@ void jaiabot::apps::UDPGateway::health(
     glog.is_warn() && glog << "Performing health check" << std::endl;
 
     //Check to see if the sensors are reporting
-    if (cfg().in_simulation())
-    {
-        if (helm_ivp_in_mission_)
-        {
-            glog.is_debug1() &&
-                glog << "Simulation Sensor Check (TODO: add simulation for sensors)"
-                     << std::endl;
-            //TODO: add simulation for this sensor
-            //check_last_report(health, health_state);
-        }
-    }
-    else
-    {
-        check_last_report(health, health_state);
-    }
+    check_last_report(health, health_state);
 
     health.set_state(health_state);
 }
@@ -368,24 +338,28 @@ void jaiabot::apps::UDPGateway::check_last_report(
 {
 
     // IMU timeout check
-    if (last_imu_data_time_ +
-            std::chrono::seconds(cfg().imu_data_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
-    {
-        glog.is_warn() && glog << "Timeout on IMU data" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_IMU);
-
-        // Wait a certain amount of time before publishing issue
-        if (last_imu_trigger_issue_time_ +
-                std::chrono::seconds(cfg().imu_trigger_issue_timeout_seconds()) <
+    // We don't simulate the IMU driver, so skip this check in sim mode.
+    // The jaiabot_simulator app currently publishes IMU data directly.
+    if (!cfg().in_simulation()) { 
+        if (last_imu_data_time_ +
+                std::chrono::seconds(cfg().imu_data_report_timeout_seconds()) <
             goby::time::SteadyClock::now())
         {
-            jaiabot::protobuf::IMUIssue imu_issue;
-            imu_issue.set_solution(cfg().imu_issue_solution());
-            interprocess().publish<jaiabot::groups::imu>(imu_issue);
-            last_imu_trigger_issue_time_ = goby::time::SteadyClock::now();
+            glog.is_warn() && glog << "Timeout on IMU data" << std::endl;
+            health_state = goby::middleware::protobuf::HEALTH__FAILED;
+            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+                ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_IMU);
+
+            // Wait a certain amount of time before publishing issue
+            if (last_imu_trigger_issue_time_ +
+                    std::chrono::seconds(cfg().imu_trigger_issue_timeout_seconds()) <
+                goby::time::SteadyClock::now())
+            {
+                jaiabot::protobuf::IMUIssue imu_issue;
+                imu_issue.set_solution(cfg().imu_issue_solution());
+                interprocess().publish<jaiabot::groups::imu>(imu_issue);
+                last_imu_trigger_issue_time_ = goby::time::SteadyClock::now();
+            }
         }
     }
 
