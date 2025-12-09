@@ -98,6 +98,8 @@ export default function TaskPacketPanel(props: Props) {
 
     switch (props.selectedTaskPacket.type) {
         case MapFeatureTypes.DIVE:
+            // Handle transition between state and memo updates
+            // when switching between task packets
             if (!taskPacket.dive) {
                 return;
             }
@@ -128,6 +130,8 @@ export default function TaskPacketPanel(props: Props) {
             );
 
         case MapFeatureTypes.DRIFT:
+            // Handle transition between state and memo updates
+            // when switching between task packets
             if (!taskPacket.drift) {
                 return;
             }
