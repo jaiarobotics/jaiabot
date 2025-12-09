@@ -135,5 +135,72 @@ The *Rough Calibration* involves performing a *Dry*, then *Low*, then *High*, ca
 ##### **Materials**
 ## **Dissolved Oxygen**
 ##### **Background**
+- The standard model of dissolved oxygen probe and sensor used on JaiaBots are the <a href=https://atlas-scientific.com/embedded-solutions/do-oem-circuit/>Atlas Scientific Dissolved Oxygen OEM Circuit</a> and <a href=https://atlas-scientific.com/probes/industrial-dissolved-oxygen-probe/>Atlas Scientific Industrial Dissolved Oxygen Probe</a>.
+  - This calibration procedure is designed for this combination of sensor and probe. Other combinations have not been tested.
+- This combination of probe and sensor is expected to hold its calibration for about 1 year
+  - The calibration should be verified before data is collected.
+- The electrolyte solution and membrane should be replaced if there is visible damage to the sensing tip, or after every 1-2 years of use.
+- The recommended calibration procedure involves a 2-point calibration.
+  - The sensor is calibrated to a *Low* and *High* value.
+
 ##### **Materials**
+- JaiaBot-BIO
+- Hub
+- Computer
+- Zero dissolved oxygen solution
+  - Recommended: <a href=https://atlas-scientific.com/calibration-solutions/zero-dissolved-oxygen-calibration-solution-set/>Atlas Scientific Zero Dissolved Oxygen Calibration Set</a>
+- Rinse bottle
+- DO calibration cap (3/4 NPT thread cap)
+  - This is included with your JaiaBot if it has a dissolved oxygen sensor
+  - Extras can be purchased or built using PVC components from any hardware store
+
+##### **Important Tips**
+- When the probe is placed in solution, the entire probe tip should be completely submerged
+- Ensure no bubbles are trapped on the sensing membrane at the tip of the probe when taking readings
+- The probe tip and sensing membrane should be rinsed with fresh water whenever it is removed from solution
+
+##### **Procedure**
+*Overview:*
+<br>
+The calibration procedure for the Atlas Scientific Dissolved Oxygen Probe and Sensor involves calibrating the set to a *High* value (readings in-air), and then to a *Low* value (readings in zero dissolved oxygen solution). The readings in air may begin to climb over time - this is normal. The expected reading in air after a calibration is about 9.19 mg/L. Adding more *High* calibrations will being the readings back to normal and make in-water readings even more accurate. 
+
+**Start:**
+1. Turn on your JaiaBot-BIO and Hub<br>
+  a.  Wait for both to fully boot up
+2. Navigate to the JaiaBot's Liaison page<br>
+  a. *10.23.fleet_number.100 + bot_id:30000*<br>
+  b. e.g. for Fleet 35 Bot 5: *10.23.35.105:30000*
+3. Click the *Scope* link<br>
+  a. Look for the *jaiabot::dissolved_oxygen* field and expand it
+4. Open the *Commander* link in a new tab/window<br>
+  a. Click the *Message* dropdown, then select *jaiabot.sensor.protobug.SensorRequest*<br>
+  b. Click the *calibration_type* dropdown, then select *START_DO_CALIBRATION*<br>
+  c. In the *time* field, input 1<br>
+  d. Click *Send*, then in the pop-up window click *Send* again
+5. Click the *calibration_type* dropdown, then select *CLEAR_DO_CALIBRATION*
+6. Click *Send*, then in the pop-up window click *Send* again
+7. Rinse the dissolved oxygen probe with tap water
+
+**High:**
+1. Watch the dissolved oxygen readings on the *Scope* page until they level out
+2. Once the readings have leveled out, send the calibration command<br>
+  a. Click the *calibration_type* dropdown, then click *CALIBRATE_DO_HIGH*<br>
+  b. In the commander page, click *Send*, the in the pop-up window click *Send* again
+
+**Low:** 
+1. Fill a calibration cap with *Zero Dissolved Oxygen* solution
+2. Place the dissolved oxyegn sensor into the solution
+3. Watch the dissolved oxygen readings on the *Scope* page until they level out
+4. Once the dissolved oxygen readings level out at or near 0, send the calibration command<br>
+  a. Click the *calibration_type* dropdown, then select *CALIBRATE_DO_LOW*<br>
+  b. In the *Commander* page, click *Send*, then in the pop-up window click *Send* again
+
+**Finish:**
+1. Test the calibration by putting the probe in solution, watcing the readings in real time, then repeating in open air<br>
+  - Readings should level out at 0 and ~9.19<br>
+  - A *Low* and/or *High* calibration can be repeated to further improve the calibration
+2. Once the calibration has been tested successfully:<br>
+  a. Click the *calibration_type* dropdown, then select *STOP_CALIBRATION*<br>
+  b. In the *Commander* page, click *Send* then in the pop-up window click *Send* again
+3. Reinstall the calibration cap on the probe until the bot is ready for use
 
