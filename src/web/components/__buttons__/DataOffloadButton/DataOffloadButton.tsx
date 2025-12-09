@@ -53,8 +53,10 @@ export default function DataOffloadButton(props: Props) {
         const missionState = props.bot.getMissionStatus().missionState;
 
         if (
-            !isCommandAvailable(CommandType.RECOVERED, missionState) &&
-            !isCommandAvailable(CommandType.RETRY_DATA_OFFLOAD, missionState)
+            !(
+                isCommandAvailable(CommandType.RECOVERED, missionState) ||
+                isCommandAvailable(CommandType.RETRY_DATA_OFFLOAD, missionState)
+            )
         ) {
             return DisabledCodes.MISSION_STATE;
         }
