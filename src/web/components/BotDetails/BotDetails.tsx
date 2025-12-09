@@ -160,8 +160,9 @@ export default function BotDetails() {
                                         <tr>
                                             <td>Battery</td>
                                             <td>
-                                                {bot.getBatteryPercent()?.toFixed(DETAILS_DECIMALS)}{" "}
-                                                %
+                                                {bot
+                                                    .getBatteryPercent()
+                                                    ?.toFixed(DETAILS_DECIMALS) + "%"}
                                             </td>
                                         </tr>
                                         <tr>
@@ -197,7 +198,7 @@ export default function BotDetails() {
                                         </tr>
                                         <tr>
                                             <td>Wi-Fi Link Quality</td>
-                                            <td>{bot.getWifiLinkQuality() + " %"}</td>
+                                            <td>{bot.getWifiLinkQuality() + "%"}</td>
                                         </tr>
                                         <tr>
                                             <td>Data Logging</td>

@@ -216,7 +216,7 @@ export default function HubDetails() {
                                         <td>Wi-Fi Link Quality</td>
                                         <td>
                                             {hub.getLinuxHardwareStatus()?.wifi
-                                                ?.link_quality_percentage + " %"}
+                                                ?.link_quality_percentage + "%"}
                                         </td>
                                     </tr>
                                 </tbody>

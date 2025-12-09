@@ -10,7 +10,7 @@ import { mdiDownload } from "@mdi/js";
 
 import Bot from "../../../data/bots/bot";
 import { DialogActions } from "../../../types/context-types";
-import { Command, CommandType } from "../../../types/protobuf-types";
+import { Command, CommandType, MissionState } from "../../../types/protobuf-types";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 
@@ -50,7 +50,14 @@ export default function DataOffloadButton(props: Props) {
      * After data offload refactor, return DisabledCodes.DOWNLOAD_QUEUE if bot is already in queue
      */
     const getDisabledCode = () => {
-        if (!isCommandAvailable(CommandType.RECOVERED, props.bot.getMissionStatus().missionState)) {
+        const missionState = props.bot.getMissionStatus().missionState;
+
+        if (
+            !(
+                isCommandAvailable(CommandType.RECOVERED, missionState) ||
+                isCommandAvailable(CommandType.RETRY_DATA_OFFLOAD, missionState)
+            )
+        ) {
             return DisabledCodes.MISSION_STATE;
         }
 
@@ -88,10 +95,15 @@ export default function DataOffloadButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
+        let commandType = CommandType.RECOVERED;
+        if (props.bot.getMissionStatus().missionState === MissionState.POST_DEPLOYMENT__FAILED) {
+            commandType = CommandType.RETRY_DATA_OFFLOAD;
+        }
+
         if (dialogAction === DialogActions.CONFIRMED) {
             const dataOffloadCommand: Command = {
                 bot_id: props.bot.getBotID(),
-                type: CommandType.RECOVERED,
+                type: commandType,
             };
             sendBotCommand(dataOffloadCommand);
         }
