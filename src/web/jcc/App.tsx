@@ -5,6 +5,7 @@ import { gridPlan } from "../data/survey_planner/grid-plan";
 import { ButtonNames } from "../types/context-types";
 import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 import { isControllingClient } from "../utils/commands";
+import { JCC_CONTAINER } from "../utils/constants";
 
 import Map from "../components/Map/Map";
 import NodeList from "../components/NodeList/NodeList";
@@ -46,7 +47,7 @@ export default function App() {
     };
 
     return (
-        <div id="jcc" onClick={() => handleJCCClick()}>
+        <div id={JCC_CONTAINER} onClick={() => handleJCCClick()}>
             <JaiaContextProvider>
                 <Map />
                 <NodeList />

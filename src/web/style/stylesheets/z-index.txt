@@ -1,2 +1,3 @@
-Jaia Panels: 100
-RC Panel   : 101
+Jaia Panels : 100
+RC Panel    : 101
+Jaia Dialogs: 102

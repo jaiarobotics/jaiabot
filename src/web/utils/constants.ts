@@ -30,3 +30,4 @@ export const MAX_HISTORY = 15;
 export const MISSION_ENDPOINTS = 2;
 export const DEPTH_MAP_3D_NAME = "depth-map-3d";
 export const MAX_WAYPOINTS = 80;
+export const JCC_CONTAINER = "jcc";
