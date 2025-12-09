@@ -75,7 +75,7 @@ class UDPGateway
     void send_echo_command(const jaiabot::protobuf::EchoCommand& echo_command);
 
     void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
-    void received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope);
+    void process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_src);
 
   private:
     dccl::Codec dccl_;
@@ -153,56 +153,7 @@ jaiabot::apps::UDPGateway::UDPGateway()
                 return;
             }
 
-            // Process the contents of the envelope
-            switch(envelope.payload_case())
-            {
-                case jaiabot::protobuf::UDPGatewayEnvelope::kImuData:
-                {
-                    interprocess().publish<groups::imu>(envelope.imu_data());
-                    last_imu_data_time_ = goby::time::SteadyClock::now();
-                    imu_udp_src_ = data.udp_src();
-                    glog.is_debug1() && glog << "Received IMUData" << endl;
-                    break;
-                }
-                case jaiabot::protobuf::UDPGatewayEnvelope::kSalinityData:
-                {
-                    glog.is_debug1() && glog << "Received SalinityData" << endl;
-                    auto salinity_data = process_salinity_data(envelope.salinity_data());
-                    interprocess().publish<groups::salinity>(envelope.salinity_data());
-                    last_salinity_data_time_ = goby::time::SteadyClock::now();
-                    salinity_udp_src_ = data.udp_src();
-                    break;
-                }
-                case jaiabot::protobuf::UDPGatewayEnvelope::kPressureTemperatureData:
-                {
-                    glog.is_debug1() && glog << "Received PressureTemperatureData" << endl;
-                    interprocess().publish<jaiabot::groups::pressure_temperature>(envelope.pressure_temperature_data());
-                    last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
-                    pressure_temperature_udp_src_ = data.udp_src();
-                    break;
-                }
-                case jaiabot::protobuf::UDPGatewayEnvelope::kTsys01Data:
-                {
-                    interprocess().publish<groups::tsys01>(envelope.tsys01_data());
-                    last_tsys01_data_time_ = goby::time::SteadyClock::now();
-                    glog.is_debug1() && glog << "Received TSYS01Data" << endl;
-                    break;
-                }
-                case jaiabot::protobuf::UDPGatewayEnvelope::kEchoData:
-                {
-                    interprocess().publish<groups::echo>(envelope.echo_data());
-                    last_echo_data_time_ = goby::time::SteadyClock::now();
-                    echo_udp_src_ = data.udp_src();
-                    glog.is_debug1() && glog << "Received EchoData" << endl;
-                    break;
-                }
-                default:
-                {
-                    glog.is_warn() && glog << "Received unknown payload in UDPGatewayEnvelope"
-                                        << endl;
-                    break;
-                }
-            }
+            process_received_envelope(envelope, data.udp_src());
 
         });
 
@@ -242,6 +193,60 @@ jaiabot::apps::UDPGateway::UDPGateway()
 
 }
 
+
+void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_src)
+{
+    // Process the contents of the envelope
+    switch(envelope.payload_case())
+    {
+        case jaiabot::protobuf::UDPGatewayEnvelope::kImuData:
+        {
+            interprocess().publish<groups::imu>(envelope.imu_data());
+            last_imu_data_time_ = goby::time::SteadyClock::now();
+            imu_udp_src_ = udp_src;
+            glog.is_debug1() && glog << "Received IMUData" << endl;
+            break;
+        }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kSalinityData:
+        {
+            glog.is_debug1() && glog << "Received SalinityData" << endl;
+            auto salinity_data = process_salinity_data(envelope.salinity_data());
+            interprocess().publish<groups::salinity>(envelope.salinity_data());
+            last_salinity_data_time_ = goby::time::SteadyClock::now();
+            salinity_udp_src_ = udp_src;
+            break;
+        }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kPressureTemperatureData:
+        {
+            glog.is_debug1() && glog << "Received PressureTemperatureData" << endl;
+            interprocess().publish<jaiabot::groups::pressure_temperature>(envelope.pressure_temperature_data());
+            last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
+            pressure_temperature_udp_src_ = udp_src;
+            break;
+        }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kTsys01Data:
+        {
+            interprocess().publish<groups::tsys01>(envelope.tsys01_data());
+            last_tsys01_data_time_ = goby::time::SteadyClock::now();
+            glog.is_debug1() && glog << "Received TSYS01Data" << endl;
+            break;
+        }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kEchoData:
+        {
+            interprocess().publish<groups::echo>(envelope.echo_data());
+            last_echo_data_time_ = goby::time::SteadyClock::now();
+            echo_udp_src_ = udp_src;
+            glog.is_debug1() && glog << "Received EchoData" << endl;
+            break;
+        }
+        default:
+        {
+            glog.is_warn() && glog << "Received unknown payload in UDPGatewayEnvelope"
+                                << endl;
+            break;
+        }
+    }
+}
 
 
 void jaiabot::apps::UDPGateway::send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst) {
@@ -323,8 +328,6 @@ void jaiabot::apps::UDPGateway::health(
     health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
     health.set_name(this->app_name());
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
-
-    glog.is_warn() && glog << "Performing health check" << std::endl;
 
     //Check to see if the sensors are reporting
     check_last_report(health, health_state);
