@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 
+import JaiaToggle from "../JaiaToggle/JaiaToggle";
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Dashboard } from "./Dashboard/Dashboard";
@@ -62,6 +63,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         ...defaultParams.dive,
         ...defaultParams.drift,
     });
+    const [rcOverdrive, setRCOverdrive] = useState(false);
 
     // Include useEffect dependencies to prevent interval data from going stale
     useEffect(() => {
@@ -172,6 +174,9 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
 
         if (absPosition > RCZones.HIGH) {
             magnitude = 3;
+            if (analogStickType === AnalogStickTypes.LEFT && !rcOverdrive) {
+                magnitude = 2;
+            }
         }
 
         if (isNegative && analogStickType === AnalogStickTypes.LEFT) {
@@ -197,6 +202,15 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
      */
     const handleMenuSelection = (event: SelectChangeEvent) => {
         setControlType(event.target.value as ControlTypes);
+    };
+
+    /**
+     * Updates the toggle state to adapt the speed settings
+     *
+     * @returns {void}
+     */
+    const handleOverdriveToggleClick = () => {
+        setRCOverdrive(!rcOverdrive);
     };
 
     /**
@@ -312,6 +326,13 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         />
     );
 
+    const RCOverdrive = (
+        <div className="overdrive-container">
+            <div>Overdrive:</div>
+            <JaiaToggle checked={() => rcOverdrive} onClick={handleOverdriveToggleClick} />
+        </div>
+    );
+
     switch (controlType) {
         case ControlTypes.SINGLE:
             return (
@@ -324,7 +345,10 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         onAnalogStickStop={onAnalogStickStop}
                     />
                     <div className="rc-dashboard">
-                        {RCSelectMenu}
+                        <div className="selection-controls">
+                            {RCSelectMenu}
+                            {RCOverdrive}
+                        </div>
                         {RCDashboard}
                     </div>
                 </div>
@@ -340,7 +364,10 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         onAnalogStickStop={onAnalogStickStop}
                     />
                     <div className="rc-dashboard">
-                        {RCSelectMenu}
+                        <div className="selection-controls">
+                            {RCSelectMenu}
+                            {RCOverdrive}
+                        </div>
                         {RCDashboard}
                     </div>
                     <AnalogStick
