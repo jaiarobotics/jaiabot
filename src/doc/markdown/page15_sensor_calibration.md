@@ -132,7 +132,97 @@ The *Rough Calibration* involves performing a *Dry*, then *Low*, then *High*, ca
 
 ## **pH**
 ##### **Background**
+- The standard model of pH probe and sensor used on JaiaBots are the <a href=https://atlas-scientific.coms/embedded-solutions/ph-oem-circuit/>Atlas Scientific pH OEM Circuit</a> and <a href=https://atlas-scientific.com/probes/industrial-ph-probe/>Atlas Scientific Industrial pH Probe - with Temp.</a>
+  - This calibration procedure is based for this combination of sensor and probe. Other combinations have not been tested
+- This combination of probe and sensor is expected to hold its calibration for approximately 1 year
+  - If it is known that the probe is operating in a strong acidic or basic environment, calibration should be performed more often (monthly in extreme cases)
+  - The calibration should be verified before any important data is collected
+- The recommended calibration procedure involved a 3-point calibration procedure 
+  - Calibrating to a *Low*, *Mid*, and *High* value
+
 ##### **Materials**
+- JaiaBot-BIO
+- Hub
+- Computer
+- Low-, Mid-, and High-pH calibration solution
+  - Recommended: <a href=https://atlas-scientific.com/calibration-solutions/ph-4-00-7-00-10-00-calibration-solutions/>Atlas Scientific pH 4.00, 7.00, 10.00 Calibration Solutions</a>
+- Rinse bottle
+-Calibration cap(s) 
+-Bench top pH probe (optional)
+
+##### **Important Tips**
+- When the probe ie placed in solution, the sensing area on the tip should be completely submerged
+- Ensure no bubbles are trapped on the tip of the probe when taking readings
+- The probe and sensing area should be rinsed with fresh water whenever it is removed from solution
+- When inputting the pH of the solution, be sure to consult the temperature compensation chart on the bottle
+  - The value you use during calibration should be the value on the bottle compensated to the actual temperature of the solution
+  - Failure to do so can result in an incorrect calibration and lead to false readings in the field
+- The tip of the pH probe is extremely sensitive to impact and friction, so the utmost care should be used when going through this calibration
+- Note that performing a *Mid Calibration* will also clear all previous calibration data - if re-calibration is needed after the initial calibration, keep this in mind
+
+##### **Procedure**
+*Overview:*
+<br>
+
+The *pH Probe Calibration* involves performing a *Mid*, then *Low*, then *High* calibration. This can be followed by a secondary *Low-* and/or *High-Calibration* to further improve the calibration if needed. 
+
+**Start:**
+1. Turn on your JaiaBot-BIO and Hub<br> 
+  a. Wait for both to fully boot up
+2. Navigate to the JaiaBot's Liaison page<br>
+  a. *10.23.fleet_number.100 + bot_id:30000<br>
+  b. e.g. for Fleet 35 Bot 5: *10.23.35.105:30000*
+3. Click the *Scope* link<br>
+  a. Look for the *jaiabot::pH* field and expand it
+4. Open the *Commander* link in a new tab/window<br>
+  a. Click the *Message* dropdown, then select *jaiabot.sensor.protobuf.SensorRequest*<br>
+  b. Click the *calibration_type* dropdown, then select *START_PH_CALIBRATION*<br>
+  c. Click the *time* field and input 1<br>
+  d. Click *Send*, then in the pop-up window click *Send* again
+5. Click the *calibration_type* dropdown, then select *CLEAR_PH_CALIBRATION*
+6. Click *Send*, then in the pop-up window click *Send* again
+7. Rinse the pH probe with tap water<br>
+  a. *Do not dry the probe tip*
+
+**Mid Calibration:**
+1. Fill a calibration cap with the *Mid pH Calibration Solution*
+2. Place the pH sensor into the cap
+3. Watch the pH readings on the *Scope* page until they level out
+4. Once the pH readings level out, send the calibration command<br>
+  a. Click the *calibration_type* dropdown, then select *CALIBRATE_PH_MID*<br>
+  b. Click the *calibration_value* field, then input the pH of the solution compensated to its current temperature<br>
+  c. In the *Commander* page, click *Send*, then in the pop-up window click *Send* again
+5. You should notice the pH readings change at this point
+
+**Low Calibration:**
+1. Fill a calibration cap with the *Low pH Calibration Solution*
+2. Place the pH sensor into the cap
+3. Watch the pH readings on the *Scope* page until they level out
+4. Once the pH readings level out, send the calibration command<br>
+  a. Click the *calibration_type* dropdown, then select *CALIBRATE_PH_LOW*<br>
+  b. Click the *calibration_value* field, then input the pH of the solution compensated to its current temperature<br>
+  c. In the *Commander* page, click *Send*, then in the pop-up window click *Send* again
+5. You should notice the pH readings change at this point
+
+**High Calibration:**
+1. Fill a calibration cap with the *High pH Calibration Solution*
+2. Place the pH sensor into the cap
+3. Watch the pH readings on the *Scope* page until they level out
+4. Once the pH readings level out, send the calibration command<br>
+  a. Click the *calibration_type* dropdown, then select *CALIBRATE_PH_HIGH*<br>
+  b. Click the *calibration_value* field, then input the pH of the solution compensated to its current temperature<br>
+  c. In the *Commander* page, click *Send*, then in the pop-up window click *Send* again
+5. You should notice the pH readings change at this point
+
+**Finish:**
+1. Test the calibration by putting the probe in each solution and watching the readings in real time<br>
+  a. Readings should be within +/- 0.2 pH units of the temperature compensated expected pH of the solution<br>
+  b. If the readings fall outside of this range, a *Low* and/or *High* calibration can be performed again to further improve the accuracy of the calibration
+2. Once the calibration is tested successfully:<br>
+  a. Click the *calibration_type* dropdown, then select *STOP_CALIBRATION*<br>
+  b. In the *Commander* page, click *Send*, then in the pop-up window click *Send* again
+
+  
 ## **Dissolved Oxygen**
 ##### **Background**
 - The standard model of dissolved oxygen probe and sensor used on JaiaBots are the <a href=https://atlas-scientific.com/embedded-solutions/do-oem-circuit/>Atlas Scientific Dissolved Oxygen OEM Circuit</a> and <a href=https://atlas-scientific.com/probes/industrial-dissolved-oxygen-probe/>Atlas Scientific Industrial Dissolved Oxygen Probe</a>.
