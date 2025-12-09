@@ -37,6 +37,11 @@ export default function RallyPanel() {
         jaiaDispatch({ type: JaiaActions.DELETE_RALLY_POINT });
     };
 
+    /**
+     * Uses the rally point ID to obtain rally object with full set of data
+     *
+     * @returns {RallyPoint} Rally object with full set of dat
+     */
     const getSelectedRallyPoint = () => {
         return jaiaContext.rallyPoints.getRallyPoint(
             jaiaContext.rallyPoints.getSelectedRallyPointID(),
