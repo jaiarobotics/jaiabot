@@ -112,8 +112,8 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     ],
 
     // Rally Point Actions
-    [JaiaActions.ADD_RALLY_POINT, { handler: handleAddRallyPoint, tracked: false }],
-    [JaiaActions.DELETE_RALLY_POINT, { handler: handleDeleteRallyPoint, tracked: false }],
+    [JaiaActions.ADD_RALLY_POINT, { handler: handleAddRallyPoint, tracked: true }],
+    [JaiaActions.DELETE_RALLY_POINT, { handler: handleDeleteRallyPoint, tracked: true }],
     [JaiaActions.SEND_RALLY_MISSION, { handler: handleSendRallyMission, tracked: false }],
 
     // Command Action

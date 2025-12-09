@@ -5,6 +5,7 @@ import {
     MissionsManagerSnapshot,
 } from "../data/missions_manager/missions-manager";
 import { GridPlan, GridPlanningStates, GridPanSnapshot } from "../data/survey_planner/grid-plan";
+import { RallyPoints, RallyPointsSnapshot } from "../data/rally_points/rally-points";
 import { JaiaGlobal, JaiaGlobalSnapshot } from "../data/jaia_global/jaia-global";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
@@ -14,7 +15,6 @@ import Waypoint from "../data/waypoints/waypoint";
 import {
     SelectedNode,
     SelectedWaypoint,
-    SelectedRallyPoint,
     SelectedTaskPacket,
     NodeTypes,
     TaskParameterPair,
@@ -28,10 +28,10 @@ export interface JaiaContextType {
     taskPackets: TaskPackets;
     missionSet: MissionSet;
     gridPlan: GridPlan;
+    rallyPoints: RallyPoints;
     jaiaGlobal: JaiaGlobal;
     missionsManager: MissionsManager;
 
-    selectedRallyPoint: SelectedRallyPoint;
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
     hubAccordionStates: HubAccordionStates;
@@ -43,7 +43,6 @@ export interface JaiaContextType {
 
 // snapshot of contect data not held in data model
 export interface JaiaContextDataSnapshot {
-    selectedRallyPoint: SelectedRallyPoint;
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
     hubAccordionStates: HubAccordionStates;
@@ -56,6 +55,7 @@ export interface JaiaContextDataSnapshot {
 export interface JaiaSnapshot {
     missionSetSnapshot: MissionSetSnapshot;
     gridPlanSnapshot: GridPanSnapshot;
+    rallyPointsSnapshot: RallyPointsSnapshot;
     jaiaGlobalSnapshot: JaiaGlobalSnapshot;
     missionsManagerSnapshot: MissionsManagerSnapshot;
     jaiaContextDataSnapshot: JaiaContextDataSnapshot;
