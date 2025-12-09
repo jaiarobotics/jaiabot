@@ -1,6 +1,7 @@
 import { botLayer } from "../../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { rallyLayer } from "../../openlayers/layers/vector/rally-layer";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
@@ -14,6 +15,7 @@ export function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
+    rallyLayer.updateFeatures();
 }
 
 export function syncTaskLayers() {

@@ -1,6 +1,6 @@
-import Waypoint from "../../data/waypoints/waypoint";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
+import { rallyPoints } from "../../data/rally_points/rally-points";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
@@ -79,6 +79,6 @@ export function handleClosedTaskPacketPanel(mutableState: JaiaContextType, actio
  */
 export function handleClosedRallyPanel(mutableState: JaiaContextType) {
     mutableState.visiblePanel = ButtonNames.NONE;
-    mutableState.selectedRallyPoint = { id: UNASSIGNED_ID };
+    rallyPoints.setSelectedRallyPointID(UNASSIGNED_ID);
     return mutableState;
 }

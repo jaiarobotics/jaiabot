@@ -11,7 +11,9 @@ import { historyManager } from "../../data/history/histroy-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
+import { rallyPoints } from "../../data/rally_points/rally-points";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { handleMapModeChange } from "../../openlayers/maps/map";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 
 /**
@@ -35,7 +37,12 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
     if (mutableState.visiblePanel === ButtonNames.SURVEY_TOOL) {
         mutableState.visiblePanel = ButtonNames.NONE;
     }
+
+    // Clear the grid layer to remove left over features after undo
     gridLayer.getVectorLayer().getSource().clear();
+
+    // Reset the MapMode based on restored state
+    handleMapModeChange(mutableState.jaiaGlobal.getMapMode());
 
     syncOpenLayers();
     return mutableState;
@@ -67,6 +74,7 @@ export function captureSnapshot(context: JaiaContextType) {
         missionSetSnapshot: missionSet.captureSnapshot(),
         missionsManagerSnapshot: missionsManager.captureSnapshot(),
         gridPlanSnapshot: gridPlan.captureSnapshot(),
+        rallyPointsSnapshot: rallyPoints.captureSnapshot(),
         jaiaGlobalSnapshot: jaiaGlobal.captureSnapshot(),
         jaiaContextDataSnapshot: captureContextData(context),
     };
@@ -84,6 +92,7 @@ function restoreSnapshot(context: JaiaContextType, snapshot: JaiaSnapshot) {
     missionSet.restoreFromSnapshot(snapshot.missionSetSnapshot);
     missionsManager.restoreFromSnapshot(snapshot.missionsManagerSnapshot);
     gridPlan.restoreFromSnapshot(snapshot.gridPlanSnapshot);
+    rallyPoints.restoreFromSnapshot(snapshot.rallyPointsSnapshot);
     jaiaGlobal.restoreFromSnapshot(snapshot.jaiaGlobalSnapshot);
     restoreCotextData(context, snapshot.jaiaContextDataSnapshot);
     return context;
@@ -97,7 +106,6 @@ function restoreSnapshot(context: JaiaContextType, snapshot: JaiaSnapshot) {
  */
 function captureContextData(context: JaiaContextType) {
     const snapshot: JaiaContextDataSnapshot = {
-        selectedRallyPoint: context.selectedRallyPoint,
         visibleDetails: context.visibleDetails,
         visiblePanel: context.visiblePanel,
         hubAccordionStates: context.hubAccordionStates,
@@ -116,7 +124,6 @@ function captureContextData(context: JaiaContextType) {
  * @returns {void}
  */
 function restoreCotextData(mutableState: JaiaContextType, snapshot: JaiaContextDataSnapshot) {
-    mutableState.selectedRallyPoint = snapshot.selectedRallyPoint;
     mutableState.visibleDetails = snapshot.visibleDetails;
     mutableState.visiblePanel = snapshot.visiblePanel;
     mutableState.hubAccordionStates = snapshot.hubAccordionStates;
