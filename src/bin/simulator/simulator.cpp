@@ -400,9 +400,8 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         // convert pressure from decibars to millibars to mimic output of BARXX sensor
         auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
         auto pressure_temperature_data = envelope.mutable_pressure_temperature_data();
-        pressure_temperature_data->set_pressure_raw(
-            quantity<decltype(si::milli * bar)>(pressure).value());
-        pressure_temperature_data->set_temperature(temperature);
+        pressure_temperature_data->set_pressure_raw_with_units(pressure);
+        pressure_temperature_data->set_temperature_with_units(temperature * boost::units::absolute<boost::units::celsius::temperature>()); // I tried, but could not get boost.units to work with Celsius here.
         pressure_temperature_data->set_sensor_type(jaiabot::protobuf::PressureSensorType::BAR30);
 
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();

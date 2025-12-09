@@ -147,7 +147,7 @@ while True:
 
     # Create and send the protobuf message
     pressure_temperature_data = PressureTemperatureData()
-    pressure_temperature_data.pressure_raw = p_mbar
+    pressure_temperature_data.pressure_raw = p_mbar * 0.01  # convert mbar to dbar
     pressure_temperature_data.temperature = t_celsius
     pressure_temperature_data.sensor_type = sensor.sensor_type
 

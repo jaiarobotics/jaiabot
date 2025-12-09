@@ -98,7 +98,6 @@ class UDPGateway
     // PressureTemperature data tracking
     goby::time::SteadyClock::time_point last_pressure_temperature_data_time_{std::chrono::seconds(0)};
     goby::middleware::protobuf::UDPEndPoint pressure_temperature_udp_src_;
-    jaiabot::protobuf::PressureTemperatureData process_pressure_temperature_data(const jaiabot::protobuf::PressureTemperatureData& pressure_temperature_data);
 
     // TSYS01 data tracking
     goby::time::SteadyClock::time_point last_tsys01_data_time_{std::chrono::seconds(0)};
@@ -176,8 +175,7 @@ jaiabot::apps::UDPGateway::UDPGateway()
                 case jaiabot::protobuf::UDPGatewayEnvelope::kPressureTemperatureData:
                 {
                     glog.is_debug1() && glog << "Received PressureTemperatureData" << endl;
-                    auto pressure_temperature_data = process_pressure_temperature_data(envelope.pressure_temperature_data());
-                    interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_temperature_data);
+                    interprocess().publish<jaiabot::groups::pressure_temperature>(envelope.pressure_temperature_data());
                     last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
                     pressure_temperature_udp_src_ = data.udp_src();
                     break;
@@ -329,27 +327,6 @@ jaiabot::protobuf::SalinityData jaiabot::apps::UDPGateway::process_salinity_data
         processed_data.set_salinity(salinity);
     }
     // Up to here
-
-    return processed_data;
-}
-
-jaiabot::protobuf::PressureTemperatureData jaiabot::apps::UDPGateway::process_pressure_temperature_data(const jaiabot::protobuf::PressureTemperatureData& pressure_temperature_data) {
-    jaiabot::protobuf::PressureTemperatureData processed_data = pressure_temperature_data;
-
-    if (processed_data.has_pressure_raw())
-    {
-        double pressure_raw = processed_data.pressure_raw();
-        processed_data.set_pressure_raw_with_units(pressure_raw * si::milli *
-                                                                goby::util::seawater::bar);
-    }
-
-    // TODO: Shouldn't this already have units from the DCCL field metadata?
-    if (processed_data.has_temperature())
-    {
-        double temperature = processed_data.temperature();
-        processed_data.set_temperature_with_units(
-            temperature * boost::units::absolute<boost::units::celsius::temperature>());
-    }
 
     return processed_data;
 }
