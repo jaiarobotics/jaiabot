@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { TaskPackets } from "../../data/task_packets/task-packets";
-import { TaskPacket } from "../../types/protobuf-types";
+import { TaskPacket, TaskType } from "../../types/protobuf-types";
 import { PanelActions, TaskPacketVisibility } from "../../types/context-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { SelectedTaskPacket } from "../../types/jaia-system-types";
@@ -24,10 +24,7 @@ export default function TaskPacketPanel(props: Props) {
     const [selectCount, setSelectCount] = useState(0);
 
     useEffect(() => {
-        if (
-            `${taskPacket.bot_id}_${taskPacket.start_time}` !==
-            `${props.selectedTaskPacket.botID}_${props.selectedTaskPacket.startTime}`
-        ) {
+        if (isNewTaskPacket(taskPacket, props.selectedTaskPacket)) {
             setSelectCount(selectCount + 1);
         }
     });
@@ -99,8 +96,8 @@ export default function TaskPacketPanel(props: Props) {
     const startTime = formatDate(taskPacket.start_time);
     const endTime = formatDate(taskPacket.end_time);
 
-    switch (props.selectedTaskPacket.type) {
-        case MapFeatureTypes.DIVE:
+    switch (taskPacket.type) {
+        case TaskType.DIVE:
             return (
                 <div className="task-packet-panel-container">
                     <div className="task-packet-panel">
@@ -127,7 +124,7 @@ export default function TaskPacketPanel(props: Props) {
                 </div>
             );
 
-        case MapFeatureTypes.DRIFT:
+        case TaskType.SURFACE_DRIFT:
             return (
                 <div className="task-packet-panel-container">
                     <div className="task-packet-panel">
@@ -187,4 +184,33 @@ function VisibilityButtons(props: Props) {
             <button onClick={() => handleClick(TaskPacketVisibility.INCLUDE)}>Include</button>
         </div>
     );
+}
+
+/**
+ * Detects a change between the previously clicked task packet and the
+ * latest clicked task packet
+ *
+ * @param {TaskPacket} taskPacket Task packet displaying in TaskPacketPanel
+ * @param {SelectedTaskPacket} selectedTaskPacket Task packet clicked by operator
+ * @returns {boolean} True if the operator clicked a new task packet, false otherwise
+ */
+function isNewTaskPacket(taskPacket: TaskPacket, selectedTaskPacket: SelectedTaskPacket) {
+    if (taskPacket.type === TaskType.DIVE && selectedTaskPacket.type !== MapFeatureTypes.DIVE) {
+        return true;
+    }
+
+    if (
+        taskPacket.type === TaskType.SURFACE_DRIFT &&
+        selectedTaskPacket.type !== MapFeatureTypes.DRIFT
+    ) {
+        return true;
+    }
+
+    if (
+        `${taskPacket.bot_id}_${taskPacket.start_time}` !==
+        `${selectedTaskPacket.botID}_${selectedTaskPacket.startTime}`
+    ) {
+        return true;
+    }
+    return false;
 }
