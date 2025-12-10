@@ -3,10 +3,6 @@ set -e
 
 # disable default apache2 site if enabled
 a2dissite 000-default || true
-# enable JCC site in apache2
-if [ -f /etc/apache2/sites-available/jcc.conf ] && [ ! -f /etc/apache2/sites-enabled/jcc.conf ]; then
-    a2ensite jcc
-fi
 
 #DEBHELPER#
 

@@ -1,4 +1,4 @@
-import { mdiDownload, mdiUpload, mdiTrashCan, mdiRuler } from "@mdi/js";
+import { mdiDownload, mdiUpload, mdiTrashCan, mdiRuler, mdiInformation } from "@mdi/js";
 import Icon from "@mdi/react";
 import React from "react";
 
@@ -15,7 +15,9 @@ import { Draw } from "ol/interaction";
 import "../styles/styles.css";
 import { CustomAlert, CustomAlertProps } from "../shared/CustomAlert";
 
-import { bisect } from "../tools/bisect";
+import { DeviceMetadata } from "../shared/JAIAProtobuf";
+import { Button } from "@mui/base";
+import { InformationDialog } from "./InformationDialog";
 
 function exceptionCatcher(exception: Error) {
     CustomAlert.presentAlert({
@@ -37,6 +39,7 @@ interface AppProps {}
 interface State {
     isSelectingLogs: boolean;
     chosenLogs: string[];
+    chosenLogName: string;
     plots: Plot[];
     layerSwitcherVisible: boolean;
     measureResultVisible: boolean;
@@ -54,6 +57,9 @@ interface State {
 
     // Custom Alert shown, if any
     customAlert?: React.JSX.Element;
+
+    // Showing the information dialog?
+    isInformationDialogVisible: boolean;
 }
 
 export class App extends React.Component {
@@ -67,6 +73,7 @@ export class App extends React.Component {
         this.state = {
             isSelectingLogs: false,
             chosenLogs: [],
+            chosenLogName: "",
             plots: [],
             plotMode: null,
             layerSwitcherVisible: false,
@@ -80,6 +87,7 @@ export class App extends React.Component {
             visibleTimeRange: [0, 2 ** 60], // Include every data point
             isBusy: false,
             customAlert: null,
+            isInformationDialogVisible: false,
         };
 
         CustomAlert.setPresenter((props: CustomAlertProps | null) => {
@@ -106,6 +114,8 @@ export class App extends React.Component {
             </div>
         ) : null;
 
+        console.log("Rendering App with state:", this.state);
+
         return (
             <div className="vertical flexbox maximized">
                 <div className="vertical flexbox top_pane padded">
@@ -115,8 +125,11 @@ export class App extends React.Component {
                     </div>
                 </div>
 
-                <div>
-                    <button className="padded" onClick={self.selectLogButtonPressed.bind(self)}>
+                <div className="flexbox horizontal" style={{ alignItems: "center" }}>
+                    <button
+                        className="padded logButton"
+                        onClick={self.selectLogButtonPressed.bind(self)}
+                    >
                         Select Log(s)
                     </button>
                     {this.chosenLogsListElement()}
@@ -215,6 +228,7 @@ export class App extends React.Component {
                 ></TimeSlider>
 
                 {log_selector}
+
                 {busyOverlay}
 
                 {this.state.customAlert}
@@ -226,10 +240,49 @@ export class App extends React.Component {
         const chosenLogsElements = this.state.chosenLogs.map((chosenLogPath) => {
             const chosenLogName = chosenLogPath.split("/").at(-1);
             const href = `/h5?file=${chosenLogPath}`;
+
+            const logs_are_displayed = this.state.chosenLogs.length > 0;
+
+            // Check that we're retrieving the metadata ONLY for the log file associated with the info button we clicked
+            const information_dialog =
+                this.state.isInformationDialogVisible &&
+                chosenLogName === this.state.chosenLogName ? (
+                    <InformationDialog
+                        logFileName={this.state.chosenLogName}
+                        onClose={() => this.setState({ isInformationDialogVisible: false })}
+                    />
+                ) : null;
+
             return (
-                <a href={href} key={chosenLogName} style={{ padding: "10pt" }}>
-                    {chosenLogName}
-                </a>
+                <div
+                    key={chosenLogName}
+                    className="logHeaderRow rounded shadowed padded"
+                    id="logListRow"
+                    style={{ margin: "4pt" }}
+                >
+                    <a href={href}>{chosenLogName}</a>
+                    <Button
+                        className="plotButton"
+                        style={{
+                            display: logs_are_displayed ? "flex" : "none",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: 0,
+                            marginLeft: "4pt",
+                            verticalAlign: "middle",
+                        }}
+                        onClick={() => {
+                            this.setState({
+                                chosenLogName: chosenLogName,
+                                isInformationDialogVisible: !this.state.isInformationDialogVisible,
+                            });
+                        }}
+                    >
+                        <Icon path={mdiInformation} size={0.75}></Icon>
+                    </Button>
+
+                    {information_dialog}
+                </div>
             );
         });
 

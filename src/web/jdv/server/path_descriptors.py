@@ -13,7 +13,7 @@ class PathDescriptor:
     frequency: float | None = None
     description: str | None = None
     path_regex: str | None = None  # Optional regex to match paths
-    invalid_values: set = None # Set of values to treat as invalid
+    invalid_values: set | None = None # Set of values to treat as invalid
 
 
 path_descriptors = [
@@ -310,7 +310,7 @@ def get_title_from_path(path: str):
     return '/'.join(components)
 
 
-def get_by_path(path: str) -> PathDescriptor | None:
+def get_by_path(path: str) -> PathDescriptor:
     for descriptor in path_descriptors:
         if descriptor.path_regex is not None and re.match(descriptor.path_regex, path):
             return descriptor

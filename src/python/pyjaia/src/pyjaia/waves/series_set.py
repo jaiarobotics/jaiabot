@@ -1,8 +1,8 @@
 import h5py
 from pyjaia.series import *
+from pyjaia.logtools import JaiaLogH5
 from copy import *
 from datetime import timedelta
-from pyjaia.h5_tools import *
 
 
 class SeriesSet:
@@ -23,7 +23,7 @@ class SeriesSet:
 
 
     @staticmethod
-    def loadFromH5File(h5File: h5py.File):
+    def loadFromH5File(log_or_path: h5py.File | str):
         """Reads a SeriesSet from an h5 file.
 
         Args:
@@ -34,16 +34,18 @@ class SeriesSet:
         """
         seriesSet = SeriesSet()
 
-        # Get the full series
-        seriesSet.missionState = Series.loadFromH5File(h5File, 'jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state')
-        
-        seriesSet.acc_x = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/x', invalid_values=[None], name='acc.x')
-        seriesSet.acc_y = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/y', invalid_values=[None], name='acc.y')
-        seriesSet.acc_z = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/z', invalid_values=[None], name='acc.z')
+        h5File = JaiaLogH5(log_or_path)
 
-        seriesSet.grav_x = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/x', invalid_values=[None], name='grav.x')
-        seriesSet.grav_y = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/y', invalid_values=[None], name='grav.y')
-        seriesSet.grav_z = Series.loadFromH5File(h5File, '/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/z', invalid_values=[None], name='grav.z')
+        # Get the full series
+        seriesSet.missionState = h5File.read_series('jaiabot::bot_status;0/jaiabot.protobuf.BotStatus/mission_state')
+        
+        seriesSet.acc_x = h5File.read_series('/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/x', invalid_values=[None], name='acc.x')
+        seriesSet.acc_y = h5File.read_series('/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/y', invalid_values=[None], name='acc.y')
+        seriesSet.acc_z = h5File.read_series('/jaiabot::imu/jaiabot.protobuf.IMUData/linear_acceleration/z', invalid_values=[None], name='acc.z')
+
+        seriesSet.grav_x = h5File.read_series('/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/x', invalid_values=[None], name='grav.x')
+        seriesSet.grav_y = h5File.read_series('/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/y', invalid_values=[None], name='grav.y')
+        seriesSet.grav_z = h5File.read_series('/jaiabot::imu/jaiabot.protobuf.IMUData/gravity/z', invalid_values=[None], name='grav.z')
 
         seriesSet.calculateVerticalAccelerations()
         

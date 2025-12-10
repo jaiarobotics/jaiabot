@@ -35,7 +35,11 @@ def getBottomDives(taskPackets: List[Dict]):
         if 'dive' in taskPacket:
             dive = taskPacket['dive']
             if 'bottom_dive' in dive and dive['bottom_dive'] == 1:
-                bottomDives.append(BottomDive(dive['start_location']['lon'], dive['start_location']['lat'], dive['depth_achieved']))
+                try:
+                    bottomDives.append(BottomDive(dive['start_location']['lon'], dive['start_location']['lat'], dive['depth_achieved']))
+                except KeyError as e:
+                    logging.warning(f"Missing key in dive data: {e}, {dive=}", exc_info=True)
+                    continue
 
     return bottomDives
 

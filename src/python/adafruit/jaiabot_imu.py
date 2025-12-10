@@ -18,7 +18,7 @@ parser.add_argument('-t', dest='device_type', choices=['sim', 'bno055', 'bno085'
 parser.add_argument('-p', dest='port', type=int, default=20000, help='Port to publish orientation data')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-i', dest='interactive', action='store_true', help='Menu-based interactive IMU tester')
-
+parser.add_argument('-r', '--data_rate', metavar="data_rate", choices=[10, 20, 25, 50, 75, 100], default=10, type=int, help='Data Rate, default is 10 Hz')
 parser.add_argument('-wh', dest='wave_height', default=1, type=float, help='Simulated wave height (meters)')
 parser.add_argument('-wp', dest='wave_period', default=5, type=float, help='Simulated wave period (seconds)')
 
@@ -43,11 +43,50 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
     port_log.info(f'Socket mode: listening on port {port}.')
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setblocking(False)
     sock.bind(('', port))
 
-    while True:
+    sample_rate_hz = 10.0
+    if args.data_rate != 10.0:
+        sample_rate_hz = args.data_rate
+    sample_period = 1.0 / sample_rate_hz
+    next_send_time = time.perf_counter() 
 
-        data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+    client_address = None
+
+    while True:        
+        # Take a reading and publish it
+        if client_address is not None:
+            port_log.debug(f'client_address: {client_address}')
+            port_log.debug(f'taking reading')
+            reading = imu.takeReading()
+            port_log.debug(f'IMU reading taken:\n{reading}')
+
+            if reading is None:
+                port_log.warning('takeReading() returned None')
+            else:
+                imuData = reading.convertToIMUData()
+                wave_analyzer.addIMUData(imuData)
+
+                if wave_analyzer._sampling_for_wave_height:
+                    imuData.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
+
+                if wave_analyzer._sampling_for_bottom_characterization:
+                    imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
+
+                imuData.imu_type = args.device_type
+
+                #log.warning(imuData)
+                port_log.debug(f'Sending IMU data:\n{imuData}')
+                port_log.debug(f'Sending IMU data to {client_address}')
+                sock.sendto(imuData.SerializeToString(), client_address)
+
+        try:
+            data, client_address = sock.recvfrom(1024) # buffer size is 1024 bytes
+            port_log.debug(f'Received command from {client_address}:\n{data}')
+        except BlockingIOError:
+            port_log.debug('No command received')
+            pass
 
         try:
             # Deserialize the message
@@ -56,29 +95,10 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
             port_log.debug(f'Received command:\n{command}')
 
             # Execute the command
-            if command.type == IMUCommand.TAKE_READING:
-                port_log.debug(f'Taking IMU reading')
-                reading = imu.takeReading()
-                port_log.debug(f'IMU reading taken:\n{reading}')
-
-                if reading is None:
-                    port_log.warning('takeReading() returned None')
-                else:
-                    imuData = reading.convertToIMUData()
-                    wave_analyzer.addIMUData(imuData)
-
-                    if wave_analyzer._sampling_for_wave_height:
-                        imuData.significant_wave_height = wave_analyzer.getSignificantWaveHeight()
-
-                    if wave_analyzer._sampling_for_bottom_characterization:
-                        imuData.max_acceleration = wave_analyzer.getMaximumAcceleration()
-
-                    imuData.imu_type = args.device_type
-
-                    #log.warning(imuData)
-                    port_log.debug(f'Sending IMU data:\n{imuData}')
-                    sock.sendto(imuData.SerializeToString(), addr)
-
+            if command.type == IMUCommand.CONFIGURE:
+                sample_rate_hz = command.sample_rate
+                sample_period = 1 / sample_rate_hz
+                port_log.info(f'Configured sample rate: {sample_rate_hz} Hz')
             elif command.type == IMUCommand.START_WAVE_HEIGHT_SAMPLING:
                 wave_analyzer.startSamplingForWaveHeight()
             elif command.type == IMUCommand.STOP_WAVE_HEIGHT_SAMPLING:
@@ -93,13 +113,27 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
         except Exception as e:
             traceback.print_exc()
 
+        next_send_time += sample_period
+        sleep_time = max(0, next_send_time - time.perf_counter())
+        time.sleep(sleep_time)
+
+
 
 def do_interactive_loop():
+    interactive_log = logging.getLogger('jaiabot_imu.interactive_loop')
+    interactive_log.info('Starting IMU interactive loop')
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.settimeout(5)
+    sock.setblocking(False)
     sock.bind(('', 0)) # Port zero picks an available port
 
     destinationAddress = ('localhost', args.port)
+
+    # Configure for 1 Hz sampling
+    command = IMUCommand()
+    command.type = IMUCommand.CONFIGURE
+    command.sample_rate = 1.0
+    sock.sendto(command.SerializeToString(), destinationAddress)
 
     while True:
         print('''
@@ -107,7 +141,7 @@ def do_interactive_loop():
     ====
               
     Raw commands:
-    [Enter]    Sample the IMU
+    [Enter]    Print a reading
     [w]        Start sampling for wave height
     [e]        Stop sampling for wave height
     [s]        Start sampling for bottom type
@@ -121,89 +155,95 @@ def do_interactive_loop():
         choice = input('Command >> ').lower()
         print()
 
-        if choice == 'x':
-            exit()
-        elif choice == 'h':
-            sample_duration = float(input('Sample for how long (seconds)?'))
-            sample_frequency = float(input('Sample at what frequency (Hz)?'))
-            sample_period = 1 / sample_frequency
+        match choice:
+            case '':
+                # Just take a reading
+                # Drain all but the last packet
+                last_packet = None
+                while True:
+                    try:
+                        data, addr = sock.recvfrom(65535)
+                        interactive_log.debug(f'Received datagram from {addr}')
+                        last_packet = (data, addr)
+                    except BlockingIOError:
+                        break
 
-            start_time = datetime.datetime.now()
-
-            # Start sampling for wave height
-            imuCommand = IMUCommand()
-            imuCommand.type = IMUCommand.START_WAVE_HEIGHT_SAMPLING
-            sock.sendto(imuCommand.SerializeToString(), destinationAddress)
-
-            while True:
-                current_time = datetime.datetime.now()
-                sample_time = (current_time - start_time).total_seconds()
-                if sample_time > sample_duration:
-                    break
-                
-                # Send command to take a reading
-                imuCommand = IMUCommand()
-                imuCommand.type = IMUCommand.TAKE_READING
-                sock.sendto(imuCommand.SerializeToString(), destinationAddress)
-
-                try:
-                    # Wait for reading to come back...
-                    data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-
-                    # Deserialize the message
-                    imuData = IMUData()
-                    imuData.ParseFromString(data)
-                    print(f'Took a reading ({sample_time:6.1f}/{sample_duration:6.1f} seconds)', end='\r')
-                except Exception as e:
-                    traceback.print_exc()
-
-                sleep(sample_period)
-
-            # Start sampling for wave height
-            imuCommand = IMUCommand()
-            imuCommand.type = IMUCommand.STOP_WAVE_HEIGHT_SAMPLING
-            sock.sendto(imuCommand.SerializeToString(), destinationAddress)
-
-            print('Results:')
-            print(imuData)
-
-
-
-            continue
-
-
-        commandTypeMap = {
-            'w': IMUCommand.START_WAVE_HEIGHT_SAMPLING,
-            'e': IMUCommand.STOP_WAVE_HEIGHT_SAMPLING,
-            's': IMUCommand.START_BOTTOM_TYPE_SAMPLING,
-            'd': IMUCommand.STOP_BOTTOM_TYPE_SAMPLING,
-            '': IMUCommand.TAKE_READING
-        }
-
-        imuCommand = IMUCommand()
-
-        try:
-            imuCommand.type = commandTypeMap[choice]
-        except KeyError:
-            print(f'ERROR:  Unknown command "{choice}"\n')
-            continue
-
-        sock.sendto(imuCommand.SerializeToString(), destinationAddress)
-        print(f'  SENT:\n{text_format.MessageToString(imuCommand, as_one_line=True)}')
-        print()
-
-        if imuCommand.type == IMUCommand.TAKE_READING:
-            try:
-                # Wait for reading to come back...
-                data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+                if last_packet is None:
+                    interactive_log.info('No data received')
+                    continue
 
                 # Deserialize the message
                 imuData = IMUData()
-                imuData.ParseFromString(data)
-                print(f'RECEIVED:\n{imuData}')
-                print()
-            except Exception as e:
-                traceback.print_exc()
+                imuData.ParseFromString(last_packet[0])
+                interactive_log.info(f'RECEIVED:\n{imuData}')
+            case 'h':
+                sample_duration = float(input('Sample for how long (seconds)?'))
+                sample_frequency = float(input('Sample at what frequency (Hz)?'))
+                sample_period = 1 / sample_frequency
+
+                start_time = datetime.datetime.now()
+
+                # Start sampling for wave height
+                imuCommand = IMUCommand()
+                imuCommand.type = IMUCommand.START_WAVE_HEIGHT_SAMPLING
+                sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+
+                while True:
+                    current_time = datetime.datetime.now()
+                    sample_time = (current_time - start_time).total_seconds()
+                    if sample_time > sample_duration:
+                        break
+                    
+                    # Send command to take a reading
+                    imuCommand = IMUCommand()
+                    imuCommand.type = IMUCommand.TAKE_READING
+                    sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+
+                    try:
+                        # Wait for reading to come back...
+                        data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
+
+                        # Deserialize the message
+                        imuData = IMUData()
+                        imuData.ParseFromString(data)
+                        print(f'Took a reading ({sample_time:6.1f}/{sample_duration:6.1f} seconds)', end='\r')
+                    except Exception as e:
+                        traceback.print_exc()
+
+                    sleep(sample_period)
+
+                # Start sampling for wave height
+                imuCommand = IMUCommand()
+                imuCommand.type = IMUCommand.STOP_WAVE_HEIGHT_SAMPLING
+                sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+
+                print('Results:')
+                print(imuData)
+            case 'w':
+                imuCommand = IMUCommand()
+                imuCommand.type = IMUCommand.START_WAVE_HEIGHT_SAMPLING
+                sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+                print('Started sampling for wave height')
+            case 'e':
+                imuCommand = IMUCommand()
+                imuCommand.type = IMUCommand.STOP_WAVE_HEIGHT_SAMPLING
+                sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+                print('Stopped sampling for wave height')
+            case 's':
+                imuCommand = IMUCommand()
+                imuCommand.type = IMUCommand.START_BOTTOM_TYPE_SAMPLING
+                sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+                print('Started sampling for bottom type')
+            case 'd':
+                imuCommand = IMUCommand()
+                imuCommand.type = IMUCommand.STOP_BOTTOM_TYPE_SAMPLING
+                sock.sendto(imuCommand.SerializeToString(), destinationAddress)
+                print('Stopped sampling for bottom type')
+            case 'x':
+                exit()
+            case _:
+                pass
+
 
 
 if __name__ == '__main__':
