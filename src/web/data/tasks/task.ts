@@ -1,6 +1,14 @@
 import { jaiaGlobal } from "../jaia_global/jaia-global";
 import { clampInput } from "../../utils/input";
-import { NO_CONSTRAINT } from "../../utils/constants";
+import {
+    NO_CONSTRAINT,
+    TASK_ZERO_LOWER_BOUND,
+    TASK_MAX_DEPTH_CONSTRAINT,
+    TASK_MAX_HOLD_TIME_CONSTRAINT,
+    TASK_MAX_HEADING_CONSTRAINT,
+    TASK_MAX_SPEED_CONSTRAINT,
+    TASK_MIN_SPEED_CONSTRAINT,
+} from "../../utils/constants";
 import { TaskParameterKeys, TaskParameterPair } from "../../types/jaia-system-types";
 import {
     ConstantHeadingParameters,
@@ -19,18 +27,6 @@ export default class Task {
     private constantHeadingParameters: ConstantHeadingParameters;
     private safetyDepth: number;
 
-    // Parameter Constraints //
-    TASK_ZERO_LOWER_BOUND = 0;
-
-    // Dive
-    TASK_MAX_DEPTH_CONSTRAINT = 50;
-    TASK_MAX_HOLD_TIME_CONSTRAINT = 120;
-
-    // Constant Heading
-    TASK_MAX_HEADING_CONSTRAINT = 360;
-    TASK_MIN_SPEED_CONSTRAINT = 1;
-    TASK_MAX_SPEED_CONSTRAINT = 3;
-
     private isBottomDive: boolean;
     private useHydrophone: boolean;
     private isSurveyTask: boolean;
@@ -41,7 +37,7 @@ export default class Task {
         this.setDiveParameters(defaults.dive);
         this.setDriftParameters(defaults.drift);
         this.setConstantHeadingParameters(defaults.constantHeading);
-        this.safetyDepth = this.TASK_ZERO_LOWER_BOUND;
+        this.safetyDepth = TASK_ZERO_LOWER_BOUND;
         this.isBottomDive = false;
         this.useHydrophone = false;
         this.isSurveyTask = isSurveyTask;
@@ -87,60 +83,40 @@ export default class Task {
         let value = taskParameterPair.value;
 
         if (!value) {
-            value = this.TASK_ZERO_LOWER_BOUND;
+            value = TASK_ZERO_LOWER_BOUND;
         }
 
         switch (key) {
             case TaskParameterKeys.MAX_DEPTH:
-                value = clampInput(
-                    value,
-                    this.TASK_ZERO_LOWER_BOUND,
-                    this.TASK_MAX_DEPTH_CONSTRAINT,
-                );
+                value = clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_DEPTH_CONSTRAINT);
                 this.diveParameters.max_depth = value;
                 break;
             case TaskParameterKeys.DEPTH_INTERVAL:
-                value = clampInput(
-                    value,
-                    this.TASK_ZERO_LOWER_BOUND,
-                    this.TASK_MAX_DEPTH_CONSTRAINT,
-                );
+                value = clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_DEPTH_CONSTRAINT);
                 this.diveParameters.depth_interval = value;
                 break;
             case TaskParameterKeys.HOLD_TIME:
-                value = clampInput(
-                    value,
-                    this.TASK_ZERO_LOWER_BOUND,
-                    this.TASK_MAX_HOLD_TIME_CONSTRAINT,
-                );
+                value = clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_HOLD_TIME_CONSTRAINT);
                 this.diveParameters.hold_time = value;
                 break;
             case TaskParameterKeys.DRIFT_TIME:
-                value = clampInput(value, this.TASK_ZERO_LOWER_BOUND, NO_CONSTRAINT);
+                value = clampInput(value, TASK_ZERO_LOWER_BOUND, NO_CONSTRAINT);
                 this.driftParameters.drift_time = value;
                 break;
             case TaskParameterKeys.HEADING:
-                value = clampInput(
-                    value,
-                    this.TASK_ZERO_LOWER_BOUND,
-                    this.TASK_MAX_HEADING_CONSTRAINT,
-                );
+                value = clampInput(value, TASK_ZERO_LOWER_BOUND, TASK_MAX_HEADING_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading = value;
                 break;
             case TaskParameterKeys.CONSTANT_HEADING_TIME:
-                value = clampInput(value, this.TASK_ZERO_LOWER_BOUND, NO_CONSTRAINT);
+                value = clampInput(value, TASK_ZERO_LOWER_BOUND, NO_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading_time = value;
                 break;
             case TaskParameterKeys.SPEED:
-                value = clampInput(
-                    value,
-                    this.TASK_MIN_SPEED_CONSTRAINT,
-                    this.TASK_MAX_SPEED_CONSTRAINT,
-                );
+                value = clampInput(value, TASK_MIN_SPEED_CONSTRAINT, TASK_MAX_SPEED_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading_speed = value;
                 break;
             case TaskParameterKeys.SAFETY_DEPTH:
-                value = clampInput(value, this.TASK_ZERO_LOWER_BOUND, NO_CONSTRAINT);
+                value = clampInput(value, TASK_ZERO_LOWER_BOUND, NO_CONSTRAINT);
                 this.safetyDepth = value;
                 break;
         }
@@ -200,8 +176,8 @@ export default class Task {
     setIsBottomDive(isBottomDive: boolean) {
         if (isBottomDive) {
             this.setDiveParameters({
-                max_depth: this.TASK_MAX_DEPTH_CONSTRAINT,
-                depth_interval: this.TASK_MAX_DEPTH_CONSTRAINT,
+                max_depth: TASK_MAX_DEPTH_CONSTRAINT,
+                depth_interval: TASK_MAX_DEPTH_CONSTRAINT,
                 hold_time: 0,
             });
         } else {
