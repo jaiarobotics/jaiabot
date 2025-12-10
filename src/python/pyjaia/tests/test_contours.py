@@ -17,7 +17,7 @@ def test_contours():
     pprint(result)
     assert len(result['features']) == 0
 
-    # Dives in a straight line, should joggle and produce contours
+    # Dives in a straight line with varying depths - joggle will enable triangulation and contour generation
     taskPackets = [
         {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
         {'dive': {'bottom_dive': 1, 'start_location': {'lon': 11, 'lat': 10}, 'depth_achieved': 10}},
