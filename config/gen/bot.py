@@ -12,7 +12,6 @@ import common, common.bot, common.comms, common.sim, common.udp
 from pathlib import Path
 
 jaia_electronics_stack='0'
-jaia_imu_type='bno055'
 jaia_arduino_type='spi'
 
 if "jaia_electronics_stack" in os.environ:
@@ -35,8 +34,7 @@ else:
     helm_comms_tick=4
     total_after_dive_gps_fix_checks=15
 
-if "jaia_imu_type" in os.environ:
-    jaia_imu_type = os.environ["jaia_imu_type"]
+jaia_imu_type=os.environ.get("jaia_imu_type", "bno085")
 
 if "jaia_imu_install_type" in os.environ:
     imu_install_type = os.environ["jaia_imu_install_type"]
@@ -110,7 +108,6 @@ verbosities = \
   'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_atlas_scientific_ezo_ec_driver':       { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_echo_driver':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'jaiabot_adafruit_BNO055_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_adafruit_BNO085_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
@@ -311,12 +308,6 @@ elif common.app == 'jaiabot_tsys01_temperature_sensor_driver':
                                      interprocess_block = interprocess_common,
                                      bind_port=common.udp.tsys01_cpp_udp_port(),
                                      remote_port=common.udp.tsys01_py_udp_port()))
-elif common.app == 'jaiabot_adafruit_BNO055_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO055_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     adafruit_bno055_report_in_simulation=is_simulation(),
-                                     imu_port=imu_port))
 elif common.app == 'jaiabot_adafruit_BNO085_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO085_driver.pb.cfg.in',
                                      app_block=app_common,

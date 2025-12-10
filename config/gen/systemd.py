@@ -54,7 +54,7 @@ parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
 parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
-parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
+parser.add_argument('--imu_type', choices=['bno085', 'none'], help='If set, configure services for imu type')
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'none'], help='If set, configure services for bot type')
@@ -74,7 +74,6 @@ class ARDUINO_TYPE(Enum):
     NONE = 'none'
 
 class IMU_TYPE(Enum):
-    BNO055 = 'bno055'
     BNO085 = 'bno085'
     NONE = 'none'
 
@@ -133,9 +132,7 @@ elif args.arduino_type == 'usb':
 else:
     jaia_arduino_type = ARDUINO_TYPE.NONE
 
-if args.imu_type == 'bno055':
-    jaia_imu_type = IMU_TYPE.BNO055
-elif args.imu_type == 'bno085':
+if args.imu_type == 'bno085':
     jaia_imu_type = IMU_TYPE.BNO085
 else:
     jaia_imu_type = IMU_TYPE.NONE
@@ -615,22 +612,6 @@ if jaia_imu_type.value == 'bno085':
     jaiabot_apps.extend(jaiabot_apps_imu)
 else:
     jaiabot_apps_imu = [
-        {'exe': 'jaiabot_adafruit_BNO055_driver',
-        'description': 'JaiaBot BNO055 IMU Sensor Driver',
-        'template': 'goby-app.service.in',
-        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
-        'runs_on': [Type.BOT],
-        'wanted_by': 'jaiabot_health.service'},
-        {'exe': 'jaiabot_imu.py',
-        'description': 'JaiaBot BNO055 IMU Python Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO055.value} -p 20000',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-        'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'},
     ]
     jaiabot_apps.extend(jaiabot_apps_imu)
 

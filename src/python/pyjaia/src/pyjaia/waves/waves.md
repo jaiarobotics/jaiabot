@@ -67,10 +67,6 @@ We then step through the samples of $e(t)$, measuring the trough-to-peak heights
 
 ## Notes ##
 
-### Glitches ###
-
-The `AdaFruit BNO055` IMU produces glitching.  Therefore, I make an attempt to remove as much glitching as possible, while keeping as much valid data as possible.  This is the algorithm to remove glitchy IMU data from the time series before processing.
-
 #### First pass ####
 
 1. Discard reading if the magnitude of the gravity vector ($g$) is outside of the range $[8,50]ms^{-2}$
