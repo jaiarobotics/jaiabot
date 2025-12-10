@@ -10,6 +10,7 @@ binho-host-adapter==0.1.6
 cmocean==4.0.3
 digi-xbee==1.5.0
 turfpy==0.0.7
+pytest==9.0.2
 ./pyjaia
 ./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x

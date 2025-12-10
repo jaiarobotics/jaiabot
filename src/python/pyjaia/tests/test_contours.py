@@ -1,27 +1,58 @@
 #!/usr/bin/env python3
 
 import pyjaia
-import json
-import os
 from pprint import *
 
 
-if __name__ == '__main__':
+def test_contours():
+    # Multiple dives reaching the same depth
     taskPackets = [
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 1}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 11, 'lat': 10}, 'depth_achieved': 1.1}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 12, 'lat': 10}, 'depth_achieved': 2}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 13, 'lat': 10}, 'depth_achieved': 3}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 14, 'lat': 10}, 'depth_achieved': 3}},
-
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 11}, 'depth_achieved': 1}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 11, 'lat': 11}, 'depth_achieved': 1.1}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 12, 'lat': 11}, 'depth_achieved': 2}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 13, 'lat': 11}, 'depth_achieved': 3}},
-        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 14, 'lat': 11}, 'depth_achieved': 3}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 11, 'lat': 10}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 12, 'lat': 11}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 13, 'lat': 11}, 'depth_achieved': 5}},
     ]
 
+    result = pyjaia.contours.taskPacketsToColorMap(taskPackets)
+    pprint(result)
+    assert len(result['features']) == 0
+
+    # Dives in a straight line, should joggle and produce contours
+    taskPackets = [
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 11, 'lat': 10}, 'depth_achieved': 10}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 12, 'lat': 10}, 'depth_achieved': 15}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 13, 'lat': 10}, 'depth_achieved': 20}},
+    ]
 
     result = pyjaia.contours.taskPacketsToColorMap(taskPackets)
-    json.dump(result, open(os.path.expanduser('~/test_contours.geojson'), 'w'))
+    pprint(result)
+    assert len(result['features']) > 0
 
+    # A bunch of dives in the same location with increasing depth
+    taskPackets = [
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 6}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 7}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 8}},
+    ]
+
+    result = pyjaia.contours.taskPacketsToColorMap(taskPackets)
+    pprint(result)
+    assert len(result['features']) > 0
+
+    # A bunch of dives in the same location with same depth
+    taskPackets = [
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
+    ]
+
+    result = pyjaia.contours.taskPacketsToColorMap(taskPackets)
+    pprint(result)
+    assert len(result['features']) == 0
+
+
+if __name__ == '__main__':
+    test_contours()

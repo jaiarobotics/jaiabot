@@ -140,7 +140,7 @@ def getSimplices(bottomDives: List[BottomDive]):
     meshPoints = [[d.lon, d.lat] for d in bottomDives]
 
     try:
-        tri = Delaunay(np.array(meshPoints), qhull_options="Qbb Qc Qz Q12")
+        tri = Delaunay(np.array(meshPoints), qhull_options="QJ0.1 Qbb Qc Q12")
         return tri.simplices
     except Exception as e:
         logging.warning(f'While doing Delaunay triangulation: {e}')
@@ -274,9 +274,14 @@ def taskPacketsToColorMap(taskPackets: List[Dict]):
         dict[str, any]: A GeoJSON dictionary representing a depth color map for the bottom dives contained in `taskPackets`.
     """
     bottomDives = getBottomDives(taskPackets)
+    if len(bottomDives) < 3:
+        return geojson([]) # Not enough bottom dives to make contours
+
+    contourValues = getContourValues(bottomDives)
+    if len(contourValues) == 0:
+        return geojson([]) # No contours to display
 
     simplices = getSimplices(bottomDives)
-    contourValues = getContourValues(bottomDives)
 
     polygons: List[Dict] = []
 
