@@ -92,14 +92,14 @@ export function Plot_get_plot_to_use(
 ): Plot {
     const total_duration = plot._utime_[plot._utime_.length - 1] - plot._utime_[0];
     const actual_visible_duration = Math.min(visible_duration, total_duration); // Avoid division by zero
-    const esimated_points_in_view =
+    const estimated_points_in_view =
         (actual_visible_duration / total_duration) * plot._utime_.length;
 
     console.debug(
-        `Plot ${plot.title} has total duration ${total_duration}s, visible duration ${actual_visible_duration}s, estimated points in view ${esimated_points_in_view}, max points ${max_points}`,
+        `Plot ${plot.title} has total duration ${total_duration}s, visible duration ${actual_visible_duration}s, estimated points in view ${estimated_points_in_view}, max points ${max_points}`,
     );
 
-    if (esimated_points_in_view > max_points) {
+    if (estimated_points_in_view > max_points) {
         // Use downsampled plot
         if (plot.downsampled_plot) {
             return Plot_get_plot_to_use(plot.downsampled_plot, visible_duration, max_points);
