@@ -54,13 +54,13 @@ export function Plot_generate_downsampled_plots(plot: Plot, max_points: number) 
     const N = plot._utime_.length;
     let last_y = 0;
     for (let i = 0; i < N; i += 2) {
-        let best_index: number = null;
+        let best_index: number = i;
         let largest_abs_delta = 0;
 
         // Find the point with the largest delta in this segment
-        for (let j = i; j < Math.min(i + 2, N); j++) {
+        for (let j = i; j < i + 2; j++) {
             let abs_delta = Math.abs(plot.series_y[j] - last_y);
-            if (best_index === null || abs_delta > largest_abs_delta) {
+            if (abs_delta > largest_abs_delta) {
                 best_index = j;
                 largest_abs_delta = abs_delta;
             }
