@@ -4,6 +4,9 @@ import {
     MissionSetSnapshot,
     MISSION_SET_VERSION,
 } from "../../../data/mission_set/mission-set";
+import Waypoint from "../../../data/waypoints/waypoint";
+import Task from "../../../data/tasks/task";
+import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
 
 /**
@@ -146,28 +149,14 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
                 // Check version of file to parse
                 if (parsed.version === MISSION_SET_VERSION && parsed.snapshot) {
                     targetSet = parsed.snapshot;
+                    const snapshot = extractMissionSetSnapshot(targetSet);
+                    resolve(snapshot);
                 } else {
                     console.log("Legacy Mission file detected");
                     // TODO translate to mission set
+                    resolve(null);
                     return;
                 }
-                const missionsArray: [number, Mission][] = [];
-                if (Array.isArray(targetSet.missions)) {
-                    missionsArray.push(
-                        ...targetSet.missions.map(([missionID, serializedMission]: [any, any]) => [
-                            0, // Ignore original key
-                            Mission.fromJSON(serializedMission),
-                        ]),
-                    );
-                }
-                const snapshot: MissionSetSnapshot = {
-                    missions: missionsArray,
-                    nextMissionID: targetSet.nextMissionID ?? 1,
-                    missionIDInEditMode: targetSet.missionIDInEditMode ?? UNASSIGNED_ID,
-                    missionSpeeds: targetSet.missionSpeeds ?? {},
-                    name: targetSet.name ?? "",
-                };
-                resolve(snapshot);
             } catch (error) {
                 console.error("Error reading or parsing mission set file:", error);
                 resolve(null);
@@ -175,4 +164,67 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
         };
         input.click();
     });
+}
+
+/**
+ * Extracts a mission set from a raw snapshot
+ *
+ * @param {any} rawMissionSet raw mission set data parsed from file
+ * @param {number} version optional version number for future use
+ * @returns {MissionSetSnapshot} Snapshot of mission set
+ *
+ * @notes
+ * This is the default extrator and is called when a file of
+ * the current mission set version is detected.  Changes to format
+ * when versions change may affect this function
+ */
+
+function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
+    const missionsArray: [number, Mission][] = [];
+    if (Array.isArray(rawMissionSet.missions)) {
+        missionsArray.push(
+            ...rawMissionSet.missions.map(([missionID, serializedMission]: [any, any]) => [
+                0, // Ignore original key
+                Mission.fromJSON(serializedMission),
+            ]),
+        );
+    }
+    const snapshot: MissionSetSnapshot = {
+        missions: missionsArray,
+        nextMissionID: rawMissionSet.nextMissionID ?? 1,
+        missionIDInEditMode: rawMissionSet.missionIDInEditMode ?? UNASSIGNED_ID,
+        missionSpeeds: rawMissionSet.missionSpeeds ?? {},
+        name: rawMissionSet.name ?? "",
+    };
+
+    return snapshot;
+}
+
+/**
+ * Extracts a mission set data from a raw legacy mission file (Jaia 2.3 or earlier)
+ *
+ * @param {any} rawMissionSet raw mission data parsed from legacy file
+ * @param {number} version optional version number for future use
+ * @returns {MissionSetSnapshot} Snapshot of mission set
+ *
+ * @notes
+ * This extrator and is called when a file does not have a version defined.
+ * Assumes it is a legacy file.
+ */
+
+function extractLegacyMissionData(rawMission: any) {
+    for (const run of Object.values(rawMission.runs as Record<string, any>)) {
+        const mission = new Mission();
+        mission.setMissionID(run.id);
+        for (const goal of run.command.plan.goal) {
+            const waypoint = new Waypoint();
+            waypoint.setLocation(goal.location);
+            const task = new Task();
+            task.setType(goal.task.type);
+            // TODO translate task parameters
+        }
+    }
+
+    let snapshot: MissionSetSnapshot;
+    return snapshot;
 }
