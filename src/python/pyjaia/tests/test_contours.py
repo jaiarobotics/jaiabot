@@ -14,10 +14,9 @@ def test_contours():
     ]
 
     result = pyjaia.contours.taskPacketsToColorMap(taskPackets)
-    pprint(result)
     assert len(result['features']) == 0
 
-    # Dives in a straight line with varying depths - joggle will enable triangulation and contour generation
+    # Dives in a straight line with varying depths, should get no contours
     taskPackets = [
         {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
         {'dive': {'bottom_dive': 1, 'start_location': {'lon': 11, 'lat': 10}, 'depth_achieved': 10}},
@@ -26,10 +25,9 @@ def test_contours():
     ]
 
     result = pyjaia.contours.taskPacketsToColorMap(taskPackets)
-    pprint(result)
-    assert len(result['features']) > 0
+    assert len(result['features']) == 0
 
-    # A bunch of dives in the same location with increasing depth
+    # A bunch of dives in the same location with increasing depth, should get no contours
     taskPackets = [
         {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
         {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 6}},
@@ -38,8 +36,7 @@ def test_contours():
     ]
 
     result = pyjaia.contours.taskPacketsToColorMap(taskPackets)
-    pprint(result)
-    assert len(result['features']) > 0
+    assert len(result['features']) == 0
 
     # A bunch of dives in the same location with same depth
     taskPackets = [
@@ -50,8 +47,29 @@ def test_contours():
     ]
 
     result = pyjaia.contours.taskPacketsToColorMap(taskPackets)
-    pprint(result)
     assert len(result['features']) == 0
+
+    # A pair of duplicate dives
+    taskPackets = [
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 11, 'lat': 10}, 'depth_achieved': 6}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 11, 'lat': 10}, 'depth_achieved': 6}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 11}, 'depth_achieved': 7}},
+    ]
+
+    result = pyjaia.contours.taskPacketsToColorMap(taskPackets)
+    assert len(result['features']) > 0
+
+    # A pair of duplicate dives, with different depths
+    taskPackets = [
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 10}, 'depth_achieved': 5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 11, 'lat': 10}, 'depth_achieved': 6}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 11, 'lat': 10}, 'depth_achieved': 6.5}},
+        {'dive': {'bottom_dive': 1, 'start_location': {'lon': 10, 'lat': 11}, 'depth_achieved': 7}},
+    ]
+
+    result = pyjaia.contours.taskPacketsToColorMap(taskPackets)
+    assert len(result['features']) > 0
 
 
 if __name__ == '__main__':
