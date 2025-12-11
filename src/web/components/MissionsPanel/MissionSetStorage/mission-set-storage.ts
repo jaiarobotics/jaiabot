@@ -1,5 +1,9 @@
 import Mission from "../../../data/mission_set/mission";
-import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
+import {
+    missionSet,
+    MissionSetSnapshot,
+    MISSION_SET_VERSION,
+} from "../../../data/mission_set/mission-set";
 import { UNASSIGNED_ID } from "../../../utils/constants";
 
 /**
@@ -85,7 +89,14 @@ export function listSavedMissionSets() {
  */
 export function exportMissionSetToFile(name: string) {
     missionSet.setName(name);
-    const data = JSON.stringify(missionSet.captureSnapshot());
+
+    // Capture mission set snapshot and version
+    const snapshot = missionSet.captureSnapshot();
+    const data = JSON.stringify({
+        version: MISSION_SET_VERSION,
+        snapshot: snapshot,
+    });
+
     const fileName = `${name}.json`;
     const blob = new Blob([data], { type: "application/json" });
 
@@ -124,9 +135,20 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
                 return;
             }
             try {
-                const targetSet = JSON.parse(await file.text());
-                if (!targetSet) {
+                const parsed = JSON.parse(await file.text());
+                if (!parsed) {
                     resolve(null);
+                    return;
+                }
+
+                let targetSet: any;
+
+                // Check version of file to parse
+                if (parsed.version === MISSION_SET_VERSION && parsed.snapshot) {
+                    targetSet = parsed.snapshot;
+                } else {
+                    console.log("Legacy Mission file detected");
+                    // TODO translate to mission set
                     return;
                 }
                 const missionsArray: [number, Mission][] = [];
