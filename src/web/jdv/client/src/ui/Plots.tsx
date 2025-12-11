@@ -213,7 +213,7 @@ export function Plots(props: PlotsProps) {
     useEffect(createPlots, [props.chosenLogs, props.plots]);
 
     const refreshPlotData = () => {
-        console.log("Refreshing plot data");
+        console.debug("Refreshing plot data");
 
         const { plots, visibleTimeRange } = props;
 
