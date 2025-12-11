@@ -91,6 +91,10 @@ export function Plot_get_plot_to_use(
     max_points: number,
 ): Plot {
     const total_duration = plot._utime_[plot._utime_.length - 1] - plot._utime_[0];
+    if (total_duration === 0) {
+        // Downsampling is not meaningful for single-timestamp data
+        return plot;
+    }
     const actual_visible_duration = Math.min(visible_duration, total_duration); // Avoid division by zero
     const estimated_points_in_view =
         (actual_visible_duration / total_duration) * plot._utime_.length;
