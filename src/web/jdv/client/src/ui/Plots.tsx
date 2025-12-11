@@ -261,7 +261,7 @@ export function Plots(props: PlotsProps) {
 
             update.x.push(x_values);
             update.y.push(y_values);
-            update.hovertext.push(Plot_get_hovertext(series));
+            update.hovertext.push(Plot_get_hovertext(plot_to_use));
             update.customdata.push(customdata);
             update.mode.push(auto_mode);
         }
