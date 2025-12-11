@@ -50,7 +50,6 @@ interface State {
     tMin: number | null; // Minimum time for these logs
     tMax: number | null; // Maximum time for these logs
     visibleTimeRange: number[]; // Time range visible on plots and map
-    plotMode: string | null; // Mode for lines and/or markers (null means automatic depending on zoom level)
 
     // Modal busy indicator
     isBusy: boolean;
@@ -75,7 +74,6 @@ export class App extends React.Component {
             chosenLogs: [],
             chosenLogName: "",
             plots: [],
-            plotMode: null,
             layerSwitcherVisible: false,
             measureResultVisible: false,
             measureMagnitude: "",
@@ -142,7 +140,6 @@ export class App extends React.Component {
                         t={this.state.t}
                         delegate={this}
                         visibleTimeRange={this.state.visibleTimeRange}
-                        plotMode={this.state.plotMode}
                     />
 
                     <div id="mapPane" className="rounded clipped shadowed margin">
@@ -483,10 +480,6 @@ export class App extends React.Component {
 
     setPlots(plots: Plot[]) {
         this.setState({ plots });
-    }
-
-    setPlotMode(plotMode: string | null) {
-        this.setState({ plotMode });
     }
 
     setVisibleTimeRange(timeRange?: number[]) {

@@ -15,7 +15,12 @@ const Plotly = require("plotly.js-dist");
 import { downloadCSV } from "../tools/DownloadCSV";
 import { bisect } from "../tools/bisect";
 import { ISODateToMicros, microsToDate } from "../tools/date";
-import { Plot, Plot_get_hovertext } from "../model/Plot";
+import {
+    Plot,
+    Plot_generate_downsampled_plots,
+    Plot_get_hovertext,
+    Plot_get_plot_to_use,
+} from "../model/Plot";
 import { PlotProfiles } from "../model/PlotProfiles";
 
 import PathSelector from "./PathSelector";
@@ -29,7 +34,6 @@ import "./Plots.css";
 
 export interface PlotsDelegate {
     setPlots: (plots: Plot[]) => void;
-    setPlotMode: (plotMode: string | null) => void;
     setPaths: (paths: string[]) => void;
     setTime: (t_micros: number | null) => void;
     setVisibleTimeRange: (timeRange: number[] | null) => void;
@@ -41,13 +45,11 @@ export interface PlotsProps {
     plots: Plot[];
     t: number;
     visibleTimeRange: number[];
-    plotMode: string | null;
 }
 
 export function Plots(props: PlotsProps) {
     const [isPathSelectorDisplayed, setIsPathSelectorDisplayed] = React.useState(false);
     const [isOpenPlotSetDisplayed, setIsOpenPlotSetDisplayed] = React.useState(false);
-    const [shouldUseAllData, setShouldUseAllData] = React.useState(true);
 
     function deletePlotClicked(plotIndex: number) {
         let { plots } = props;
@@ -158,7 +160,7 @@ export function Plots(props: PlotsProps) {
                 xaxis: "x",
                 yaxis: yaxis,
                 hovertext: [],
-                type: "scatter",
+                type: "scattergl",
                 mode: "lines+markers",
             };
 
@@ -211,7 +213,9 @@ export function Plots(props: PlotsProps) {
     useEffect(createPlots, [props.chosenLogs, props.plots]);
 
     const refreshPlotData = () => {
-        const { plots, visibleTimeRange, plotMode } = props;
+        console.log("Refreshing plot data");
+
+        const { plots, visibleTimeRange } = props;
 
         if (plots.length == 0) return;
 
@@ -225,105 +229,46 @@ export function Plots(props: PlotsProps) {
             customdata: [],
         };
 
-        const getIndexRange = (series: Plot, t_start: number, t_end: number, increment: number) => {
-            const start_index_raw = bisect(series._utime_, (t) => t_start - t)?.index ?? 0;
-            const end_index_raw =
+        const getIndexRange = (series: Plot, t_start: number, t_end: number) => {
+            const start_index = bisect(series._utime_, (t) => t_start - t)?.index ?? 0;
+            const end_index =
                 bisect(series._utime_, (t) => t_end - t)?.index ?? series._utime_.length;
-            return [
-                start_index_raw - (start_index_raw % increment),
-                Math.min(
-                    end_index_raw - (end_index_raw % increment) + increment,
-                    series._utime_.length,
-                ),
-            ];
+            return [start_index, Math.min(end_index + 2, series._utime_.length)];
         };
 
         for (let [plot_index, series] of plots.entries()) {
-            if (shouldUseAllData) {
-                update.x.push(series._utime_.map((t_micros) => microsToDate(t_micros)));
-                update.y.push(series.series_y);
+            const visible_duration = visibleTimeRange
+                ? visibleTimeRange[1] - visibleTimeRange[0]
+                : series._utime_[series._utime_.length - 1] - series._utime_[0];
 
-                update.hovertext.push(Plot_get_hovertext(series));
-                update.customdata.push(series._utime_);
+            Plot_generate_downsampled_plots(series, MAX_DATA_POINTS);
+            const plot_to_use = Plot_get_plot_to_use(series, visible_duration, MAX_DATA_POINTS);
 
-                const auto_mode = "lines+markers";
-                update.mode.push(plotMode == "auto" ? auto_mode : plotMode);
-                continue;
-            }
+            // Use lines+markers for the full series, to indicate full resolution
+            const auto_mode = plot_to_use == series ? "lines+markers" : "lines";
 
-            // Plotly optimization:  only use the data within the plot time range, and only use a maximum number of data points.
-            // This greatly improves GUI responsiveness.
-            const utime = series._utime_;
-            const num_points = utime.length;
-            const min_utime = utime[0];
-            const max_utime = utime[num_points - 1];
-            const series_duration = max_utime - min_utime;
-            const visible_duration = Math.min(
-                visibleTimeRange[1] - visibleTimeRange[0],
-                series_duration,
+            const [start_index, end_index] = getIndexRange(
+                plot_to_use,
+                visibleTimeRange ? visibleTimeRange[0] : Number.MIN_SAFE_INTEGER,
+                visibleTimeRange ? visibleTimeRange[1] : Number.MAX_SAFE_INTEGER,
             );
 
-            const num_visible_points_estimate = Math.ceil(
-                (num_points * visible_duration) / series_duration,
-            );
-
-            const inside_index_step = Math.ceil(num_visible_points_estimate / MAX_DATA_POINTS);
-            const [inside_index_min, inside_index_max] = getIndexRange(
-                series,
-                visibleTimeRange[0],
-                visibleTimeRange[1],
-                inside_index_step,
-            );
-
-            const outside_index_step = inside_index_step * 4;
-            const outside_time_min = visibleTimeRange[0] - visible_duration;
-            const outside_time_max = visibleTimeRange[1] + visible_duration;
-            const [outside_index_min, outside_index_max] = getIndexRange(
-                series,
-                outside_time_min,
-                outside_time_max,
-                outside_index_step,
-            );
-
-            let x_values = [];
-            let customdata = [];
-            let y_values = [];
-
-            let data_index = outside_index_min;
-
-            while (data_index < outside_index_max) {
-                customdata.push(series._utime_[data_index]);
-                x_values.push(microsToDate(series._utime_[data_index]));
-                y_values.push(series.series_y[data_index]);
-
-                if (
-                    data_index + inside_index_step > inside_index_min &&
-                    data_index < inside_index_max
-                ) {
-                    data_index += inside_index_step;
-                } else {
-                    data_index += outside_index_step;
-                }
-            }
-
-            const auto_mode = inside_index_step > 1 ? "lines" : "lines+markers"; // Use lines and markers to indicate that we've got full resolution
+            const x_values = plot_to_use._utime_
+                .slice(start_index, end_index)
+                .map((t) => microsToDate(t));
+            const y_values = plot_to_use.series_y.slice(start_index, end_index);
+            const customdata = plot_to_use._utime_.slice(start_index, end_index);
 
             update.x.push(x_values);
             update.y.push(y_values);
             update.hovertext.push(Plot_get_hovertext(series));
             update.customdata.push(customdata);
-            update.mode.push(plotMode == "auto" ? auto_mode : plotMode);
+            update.mode.push(auto_mode);
         }
         Plotly.restyle("plot", update);
     };
 
-    useEffect(refreshPlotData, [
-        props.chosenLogs,
-        props.plots,
-        props.visibleTimeRange,
-        props.plotMode,
-        shouldUseAllData,
-    ]);
+    useEffect(refreshPlotData, [props.chosenLogs, props.plots, props.visibleTimeRange]);
 
     var actionBar: JSX.Element | null;
 
@@ -371,28 +316,6 @@ export function Plots(props: PlotsProps) {
                 >
                     <Icon path={mdiTrashCan} size={1} style={{ verticalAlign: "middle" }}></Icon>
                 </button>
-                <div>
-                    <label>Chart Style:</label>
-                    <select
-                        name="mode"
-                        id="modeSelect"
-                        onChange={(e) => {
-                            props.delegate.setPlotMode(e.target.value);
-                        }}
-                    >
-                        <option value="lines">Lines</option>
-                        <option value="markers">Markers</option>
-                        <option value="lines+markers">Lines & Markers</option>
-                        <option value="auto">Auto</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Downsample Data:</label>
-                    <Switch
-                        checked={!shouldUseAllData}
-                        onChange={(_, checked) => setShouldUseAllData(!checked)}
-                    />
-                </div>
             </div>
         );
     } else {
