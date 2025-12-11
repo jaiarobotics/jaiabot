@@ -60,7 +60,6 @@ def get_enum_map(dataset: h5py.Dataset):
         return enum_dict
 
     except KeyError:
-        l.warning(f"No enum attributes found for dataset at path {dataset.name}")
         return None
 
 

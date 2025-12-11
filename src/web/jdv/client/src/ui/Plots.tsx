@@ -18,7 +18,7 @@ import { ISODateToMicros, microsToDate } from "../tools/date";
 import {
     Plot,
     Plot_generate_downsampled_plots,
-    Plot_get_hovertext,
+    Plot_get_hovertext_by_range,
     Plot_get_plot_to_use,
 } from "../model/Plot";
 import { PlotProfiles } from "../model/PlotProfiles";
@@ -253,15 +253,27 @@ export function Plots(props: PlotsProps) {
                 visibleTimeRange ? visibleTimeRange[1] : Number.MAX_SAFE_INTEGER,
             );
 
-            const x_values = plot_to_use._utime_
-                .slice(start_index, end_index)
-                .map((t) => microsToDate(t));
-            const y_values = plot_to_use.series_y.slice(start_index, end_index);
-            const customdata = plot_to_use._utime_.slice(start_index, end_index);
+            // Add margin of 100% on each side if not at the edges
+            const total_points = plot_to_use._utime_.length;
+            const index_range = end_index - start_index;
+            const margin = index_range; // 100% margin
+
+            const adjusted_start_index = Math.max(0, start_index - margin);
+            const adjusted_end_index = Math.min(total_points, end_index + margin);
+
+            const utime = plot_to_use._utime_.slice(adjusted_start_index, adjusted_end_index);
+            const x_values = utime.map((t) => microsToDate(t));
+            const y_values = plot_to_use.series_y.slice(adjusted_start_index, adjusted_end_index);
+            const customdata = plot_to_use._utime_.slice(adjusted_start_index, adjusted_end_index);
+            const hovertext = Plot_get_hovertext_by_range(
+                plot_to_use,
+                adjusted_start_index,
+                adjusted_end_index,
+            );
 
             update.x.push(x_values);
             update.y.push(y_values);
-            update.hovertext.push(Plot_get_hovertext(plot_to_use));
+            update.hovertext.push(hovertext);
             update.customdata.push(customdata);
             update.mode.push(auto_mode);
         }

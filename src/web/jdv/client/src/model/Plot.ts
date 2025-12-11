@@ -26,6 +26,15 @@ export function Plot_get_hovertext_by_index(plot: Plot, index: number) {
     } else return null;
 }
 
+export function Plot_get_hovertext_by_range(plot: Plot, start_index: number, end_index: number) {
+    if (plot.hovertext) {
+        return plot.hovertext.slice(start_index, end_index);
+    } else if (plot.hovertext_map) {
+        const y_values = plot.series_y.slice(start_index, end_index);
+        return y_values.map((y_value) => plot.hovertext_map[y_value] ?? String(y_value));
+    } else return null;
+}
+
 export function Plot_generate_downsampled_plots(plot: Plot, max_points: number) {
     if (plot.downsampled_plot) {
         // Already downsampled
