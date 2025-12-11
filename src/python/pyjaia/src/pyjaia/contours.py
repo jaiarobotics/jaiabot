@@ -144,11 +144,19 @@ def getSimplices(bottomDives: List[BottomDive]):
     meshPoints = [[d.lon, d.lat] for d in bottomDives]
 
     try:
-        tri = Delaunay(np.array(meshPoints), qhull_options="Qbb Qc Qz Q12")
+        # Qt -> triangulate the points (no non-simplicial facets such as squares)
+        # Qz -> add a point at infinity to allow unique triangulation of co-spherical points 
+        #    (a single triangle is co-spherical, so this helps)
+        # Qbb -> scale the input to avoid precision errors
+        # Qc -> keep coplanar points together
+        # Q12 -> allow wide facets and wide dupridge
+        tri = Delaunay(np.array(meshPoints), qhull_options="Qt Qz Qbb Qc Q12")
         return tri.simplices
     except Exception as e:
-        logging.warning(f'While doing Delaunay triangulation: {e}')
-        logging.warning('Do you have co-linear mesh points?')
+        # If the above options cannot produce a triangulation, log and return no simplices
+        # This typically only happens when all points are colinear, in which case no contours can be generated anyway
+        logging.warning('Could not compute Delaunay triangulation for bottom dives, likely due to colinear points.')
+        logging.debug(f'While doing Delaunay triangulation: {e}')
         return []
 
 
@@ -278,9 +286,14 @@ def taskPacketsToColorMap(taskPackets: List[Dict]):
         dict[str, any]: A GeoJSON dictionary representing a depth color map for the bottom dives contained in `taskPackets`.
     """
     bottomDives = getBottomDives(taskPackets)
+    if len(bottomDives) < 3:
+        return geojson([]) # Not enough bottom dives to make contours
+
+    contourValues = getContourValues(bottomDives)
+    if len(contourValues) == 0:
+        return geojson([]) # No contours to display
 
     simplices = getSimplices(bottomDives)
-    contourValues = getContourValues(bottomDives)
 
     polygons: List[Dict] = []
 
