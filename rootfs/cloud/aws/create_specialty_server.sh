@@ -132,12 +132,16 @@ if [[ $CREATE_NUM_DAILY_BACKUPS -gt 0 ]]; then
     else
         echo "No existing policies found for tag Name=${SERVER_NAME}"
     fi
-
+    
     # Create new policy
     ACCOUNT_ID=$(run ".Account" aws sts get-caller-identity)
+    DLM_ROLE=arn:aws:iam::${ACCOUNT_ID}:role/service-role/AWSDataLifecycleManagerDefaultRole
+    if [[ $REGION == *"us-gov"* ]]; then
+        DLM_ROLE=arn:aws-us-gov:iam::${ACCOUNT_ID}:role/AWSDataLifecycleManagerDefaultRole
+    fi
     NEW_POLICY_ID=$(run ".PolicyId" aws dlm create-lifecycle-policy \
         --region "$REGION" \
-        --execution-role-arn arn:aws:iam::${ACCOUNT_ID}:role/service-role/AWSDataLifecycleManagerDefaultRole \
+        --execution-role-arn ${DLM_ROLE} \
         --description "Daily snapshots for ${SERVER_TYPE}" \
         --state ENABLED \
         --tags "Name=${SERVER_NAME}" \
