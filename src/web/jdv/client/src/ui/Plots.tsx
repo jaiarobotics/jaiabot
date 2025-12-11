@@ -245,7 +245,7 @@ export function Plots(props: PlotsProps) {
             const plot_to_use = Plot_get_plot_to_use(series, visible_duration, MAX_DATA_POINTS);
 
             // Use lines+markers for the full series, to indicate full resolution
-            const auto_mode = plot_to_use == series ? "lines+markers" : "lines";
+            const auto_mode = plot_to_use === series ? "lines+markers" : "lines";
 
             const [start_index, end_index] = getIndexRange(
                 plot_to_use,
