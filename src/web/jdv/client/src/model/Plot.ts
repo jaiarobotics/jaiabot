@@ -9,6 +9,12 @@ export interface Plot {
     downsampled_plot?: Plot;
 }
 
+/**
+ * Returns an array of hovertext strings for the given Plot object.
+ *
+ * @param {Plot} plot
+ * @returns {string[] | null} An array of hovertext strings, or null if no hovertext is available.
+ */
 export function Plot_get_hovertext(plot: Plot) {
     if (plot.hovertext) {
         return plot.hovertext;
@@ -17,6 +23,13 @@ export function Plot_get_hovertext(plot: Plot) {
     } else return null;
 }
 
+/**
+ * Returns the hovertext value for a give Plot at a given index.
+ *
+ * @param {Plot} plot
+ * @param {number} index
+ * @returns {string | null} The hovertext string at the given index, or null if no hovertext is available.
+ */
 export function Plot_get_hovertext_by_index(plot: Plot, index: number) {
     if (plot.hovertext) {
         return plot.hovertext[index] ?? null;
@@ -26,6 +39,14 @@ export function Plot_get_hovertext_by_index(plot: Plot, index: number) {
     } else return null;
 }
 
+/**
+ * Returns an array of hovertext values for a subrange of a Plot object's data.
+ *
+ * @param {Plot} plot
+ * @param {number} start_index
+ * @param {number} end_index
+ * @returns {string[] | null} An array of hovertext strings for the specified range, or null if no hovertext is available.
+ */
 export function Plot_get_hovertext_by_range(plot: Plot, start_index: number, end_index: number) {
     if (plot.hovertext) {
         return plot.hovertext.slice(start_index, end_index);
@@ -35,6 +56,17 @@ export function Plot_get_hovertext_by_range(plot: Plot, start_index: number, end
     } else return null;
 }
 
+/**
+ * Recursively generates downsampled Plot objects for a given plot and max_points value.
+ * It downsamples the plots by 2x, using an algorithm similar to a min/max bucket downsample,
+ * to preserve peaks and valleys at all zoom levels.  The 2x downsampled plot is placed in
+ * `plot.downsampled_plot`, and the 2x downsample of that plot is placed in its
+ * `plot.downsampled_plot` field, etc., until the last downsampled plot has fewer than
+ * `max_points` data points in it.
+ *
+ * @param {Plot} plot
+ * @param {number} max_points The maximum number of data points for the last downsampled Plot object.
+ */
 export function Plot_generate_downsampled_plots(plot: Plot, max_points: number) {
     if (plot.downsampled_plot) {
         // Already downsampled
@@ -94,6 +126,16 @@ export function Plot_generate_downsampled_plots(plot: Plot, max_points: number) 
     plot.downsampled_plot = new_plot;
 }
 
+/**
+ * Return the appropriate Plot object to use for a given visible_duration in time units
+ * (microseconds), such that the resulting time window probably has fewer than max_points data points.
+ * If the series has a very irregular sampling rate, this is only an estimate.
+ *
+ * @param {Plot} plot The Plot object to evaluate.
+ * @param {number} visible_duration Duration of the visible time window in microseconds.
+ * @param {number} max_points Maximum allowed data points in the visible time window.
+ * @returns {Plot} The Plot object to use (either the original or a downsampled version).
+ */
 export function Plot_get_plot_to_use(
     plot: Plot,
     visible_duration: number,
