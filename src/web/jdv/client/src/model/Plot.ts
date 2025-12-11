@@ -58,7 +58,7 @@ export function Plot_generate_downsampled_plots(plot: Plot, max_points: number) 
         let largest_abs_delta = 0;
 
         // Find the point with the largest delta in this segment
-        for (let j = i; j < i + 2; j++) {
+        for (let j = i; j < Math.min(i + 2, N); j++) {
             let abs_delta = Math.abs(plot.series_y[j] - last_y);
             if (best_index === null || abs_delta > largest_abs_delta) {
                 best_index = j;
