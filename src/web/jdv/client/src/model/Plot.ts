@@ -6,7 +6,12 @@ export interface Plot {
     hovertext_map?: { [key: number]: string };
     hovertext?: string[];
     path: string;
+
+    // Added later
+    is_full_series?: boolean;
     downsampled_plot?: Plot;
+    ymin_index?: number;
+    ymax_index?: number;
 }
 
 /**
@@ -67,7 +72,11 @@ export function Plot_get_hovertext_by_range(plot: Plot, start_index: number, end
  * @param {Plot} plot
  * @param {number} max_points The maximum number of data points for the last downsampled Plot object.
  */
-export function Plot_generate_downsampled_plots(plot: Plot, max_points: number) {
+export function Plot_generate_downsampled_plots(
+    plot: Plot,
+    max_points: number,
+    is_full_series: boolean = true,
+): void {
     if (plot.downsampled_plot) {
         // Already downsampled
         return;
@@ -77,6 +86,8 @@ export function Plot_generate_downsampled_plots(plot: Plot, max_points: number) 
         // No need to downsample
         return;
     }
+
+    plot.is_full_series = is_full_series;
 
     let new_plot: Plot = {
         title: plot.title,
@@ -100,7 +111,9 @@ export function Plot_generate_downsampled_plots(plot: Plot, max_points: number) 
 
         // Find the point with the largest delta in this segment
         for (let j = i; j < i + 2; j++) {
-            let abs_delta = Math.abs(plot.series_y[j] - last_y);
+            let y = plot.series_y[j];
+
+            let abs_delta = Math.abs(y - last_y);
             if (abs_delta > largest_abs_delta) {
                 best_index = j;
                 largest_abs_delta = abs_delta;
@@ -122,7 +135,7 @@ export function Plot_generate_downsampled_plots(plot: Plot, max_points: number) 
     console.debug(`Downsampled plot ${plot.title} from ${N} to ${new_plot._utime_.length} points`);
 
     // Recursively downsample until we are under the max points
-    Plot_generate_downsampled_plots(new_plot, max_points);
+    Plot_generate_downsampled_plots(new_plot, max_points, (is_full_series = false));
     plot.downsampled_plot = new_plot;
 }
 
@@ -172,4 +185,31 @@ export function Plot_get_plot_to_use(
         // Use full resolution plot
         return plot;
     }
+}
+
+/**
+ * Calculate the indices of the min and max series_y values for a Plot object.
+ *
+ * @param {Plot} plot
+ * @returns {{ ymin_index: number; ymax_index: number }}
+ */
+export function Plot_calculate_yminmax_indices(plot: Plot) {
+    let ymin_index = 0;
+    let ymax_index = 0;
+    let ymin = Number.MAX_VALUE;
+    let ymax = Number.MIN_VALUE;
+
+    plot.series_y.forEach((y, i) => {
+        if (y < ymin) {
+            ymin = y;
+            ymin_index = i;
+        }
+        if (y > ymax) {
+            ymax = y;
+            ymax_index = i;
+        }
+    });
+
+    plot.ymin_index = ymin_index;
+    plot.ymax_index = ymax_index;
 }

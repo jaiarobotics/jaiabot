@@ -17,6 +17,7 @@ import { bisect } from "../tools/bisect";
 import { ISODateToMicros, microsToDate } from "../tools/date";
 import {
     Plot,
+    Plot_calculate_yminmax_indices,
     Plot_generate_downsampled_plots,
     Plot_get_hovertext_by_range,
     Plot_get_plot_to_use,
@@ -226,7 +227,8 @@ export function Plots(props: PlotsProps) {
 
         if (plots.length == 0) return;
 
-        const MAX_DATA_POINTS = 400;
+        // Maximum number of points to show in the visible range (plus scrub margins).
+        const MAX_VISIBLE_POINTS = 600;
 
         let update: any = {
             x: [],
@@ -244,15 +246,28 @@ export function Plots(props: PlotsProps) {
         };
 
         for (let [plot_index, series] of plots.entries()) {
+            if (series._utime_.length == 0) {
+                // No data points
+                update.x.push([]);
+                update.y.push([]);
+                update.hovertext.push([]);
+                update.customdata.push([]);
+                update.mode.push("lines");
+                continue;
+            }
+
+            const series_total_duration =
+                series._utime_[series._utime_.length - 1] - series._utime_[0];
+
             const visible_duration = visibleTimeRange
                 ? visibleTimeRange[1] - visibleTimeRange[0]
-                : series._utime_[series._utime_.length - 1] - series._utime_[0];
+                : series_total_duration;
 
-            Plot_generate_downsampled_plots(series, MAX_DATA_POINTS);
-            const plot_to_use = Plot_get_plot_to_use(series, visible_duration, MAX_DATA_POINTS);
+            Plot_generate_downsampled_plots(series, MAX_VISIBLE_POINTS);
+            const plot_to_use = Plot_get_plot_to_use(series, visible_duration, MAX_VISIBLE_POINTS);
 
             // Use lines+markers for the full series, to indicate full resolution
-            const auto_mode = plot_to_use === series ? "lines+markers" : "lines";
+            const auto_mode = plot_to_use.is_full_series ? "lines+markers" : "lines";
 
             const [start_index, end_index] = getIndexRange(
                 plot_to_use,
@@ -277,6 +292,38 @@ export function Plots(props: PlotsProps) {
                 adjusted_start_index,
                 adjusted_end_index,
             );
+
+            // Add ymin and ymax padding points for better autoscaling
+            const insert_data_point = (src_index: number) => {
+                let dst_index: number;
+
+                if (src_index < adjusted_start_index) {
+                    dst_index = 0;
+                } else if (src_index >= adjusted_end_index) {
+                    dst_index = x_values.length;
+                } else {
+                    return;
+                }
+
+                console.log(
+                    "adjusted_start_index:",
+                    adjusted_start_index,
+                    "adjusted_end_index:",
+                    adjusted_end_index,
+                );
+                console.log("Inserting data point at src index", src_index, "dst index", dst_index);
+
+                x_values.splice(dst_index, 0, microsToDate(plot_to_use._utime_[src_index]));
+                y_values.splice(dst_index, 0, plot_to_use.series_y[src_index]);
+                customdata.splice(dst_index, 0, plot_to_use._utime_[src_index]);
+                hovertext?.splice(dst_index, 0, "");
+            };
+
+            console.log(plot_to_use.ymin_index, plot_to_use.ymax_index);
+
+            Plot_calculate_yminmax_indices(plot_to_use);
+            insert_data_point(plot_to_use.ymin_index);
+            insert_data_point(plot_to_use.ymax_index);
 
             update.x.push(x_values);
             update.y.push(y_values);
