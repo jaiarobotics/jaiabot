@@ -141,6 +141,10 @@ export function Plot_get_plot_to_use(
     visible_duration: number,
     max_points: number,
 ): Plot {
+    if (!plot._utime_ || plot._utime_.length === 0) {
+        // No data points, return the plot as is
+        return plot;
+    }
     const total_duration = plot._utime_[plot._utime_.length - 1] - plot._utime_[0];
     if (total_duration === 0) {
         // Downsampling is not meaningful for single-timestamp data
