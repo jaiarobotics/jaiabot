@@ -11,7 +11,7 @@ set -e -u
 
 FLEET_TAG_VALUE="$1"
 
-echo "⚠️  WARNING: This script will permanently delete all AWS resources tagged as 'jaia_fleet=$FLEET_TAG_VALUE' in region $AWS_DEFAULT_REGION."
+echo -e "⚠️  WARNING: This script will permanently delete all AWS resources tagged as 'jaia_fleet=$FLEET_TAG_VALUE' in region \033[1m$AWS_DEFAULT_REGION.\033[0m"
 echo "This includes:"
 echo "  - Terminating all EC2 instances"
 echo "  - Disassociating and releasing Elastic IPs"

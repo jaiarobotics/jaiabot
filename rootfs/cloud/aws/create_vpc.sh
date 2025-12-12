@@ -14,6 +14,9 @@ set -a
 source $1
 set +a
 
+source ${SCRIPT_PATH}/../../../scripts/common-versions.env
+REPO_VERSION=${jaia_version_release_branch}
+
 IP_PY=$(realpath "${SCRIPT_PATH}/../../../scripts/jaia-ip.py")
 JCC_HUB_IP=$(${IP_PY} addr --node hub --net cloudhub_vpn --fleet_id ${FLEET_ID} --node_id ${JCC_HUB_ID} --ipv6)
 
@@ -44,6 +47,26 @@ ACCOUNT_ID=$(run ".Account" aws sts get-caller-identity)
 ARN_PREFIX="arn:aws"
 if [[ $REGION == *"us-gov"* ]]; then
   ARN_PREFIX="arn:aws-us-gov"
+fi
+
+# Check that the VPC doesn't already exist
+VPC_ID=$(run ".Vpcs[0].VpcId" aws ec2 describe-vpcs --filters "Name=tag:jaia_fleet,Values=${FLEET_ID}")
+
+if [ "$VPC_ID" = "null" ] || [ -z "$VPC_ID" ]; then
+    echo ">>>>>> Checked that VPC does not already exist for Fleet ${FLEET_ID}"
+else
+  echo "VPC exists for Fleet ${FLEET_ID}: $VPC_ID. You must delete it before running this script."
+  exit 1
+fi
+
+
+# Create the bucket if it doesn't exist
+if run "" aws s3api head-bucket --bucket "$CLOUDHUB_DATA_BUCKET"; then
+    echo ">>>>>> Bucket $CLOUDHUB_DATA_BUCKET already exists, no need to create"
+else
+    echo ">>>>>> Bucket $CLOUDHUB_DATA_BUCKET does not exist, creating..."
+
+    run "" aws s3api create-bucket --bucket "$CLOUDHUB_DATA_BUCKET" --region "$REGION" --create-bucket-configuration LocationConstraint="$REGION"
 fi
 
 # Create a VPC
@@ -186,6 +209,7 @@ USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.c
 cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
 jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID}
 USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
+
 
 # Append SSH keys to user data script so they get installed
 cat <<EOFF >> ${USER_DATA_SCRIPT}
