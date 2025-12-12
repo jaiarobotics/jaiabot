@@ -6,6 +6,7 @@ import {
 } from "../../../data/mission_set/mission-set";
 import Waypoint from "../../../data/waypoints/waypoint";
 import Task from "../../../data/tasks/task";
+import { TaskType } from "../../../types/protobuf-types";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
 
@@ -153,8 +154,8 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
                     resolve(snapshot);
                 } else {
                     console.log("Legacy Mission file detected");
-                    // TODO translate to mission set
-                    resolve(null);
+                    const snapshot = extractLegacyMissionData(parsed);
+                    resolve(snapshot);
                     return;
                 }
             } catch (error) {
@@ -167,7 +168,7 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
 }
 
 /**
- * Extracts a mission set from a raw snapshot
+ * Extracts a mission set from a raw snapshot data
  *
  * @param {any} rawMissionSet raw mission set data parsed from file
  * @param {number} version optional version number for future use
@@ -193,7 +194,7 @@ function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
         missions: missionsArray,
         nextMissionID: rawMissionSet.nextMissionID ?? 1,
         missionIDInEditMode: rawMissionSet.missionIDInEditMode ?? UNASSIGNED_ID,
-        missionSpeeds: rawMissionSet.missionSpeeds ?? {},
+        missionSpeeds: rawMissionSet.missionSpeeds ?? { transit: 2, stationkeep_outer: 2 },
         name: rawMissionSet.name ?? "",
     };
 
@@ -213,18 +214,60 @@ function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
  */
 
 function extractLegacyMissionData(rawMission: any) {
+    const snapshot: MissionSetSnapshot = {
+        missions: [],
+        nextMissionID: 1,
+        missionIDInEditMode: UNASSIGNED_ID,
+        missionSpeeds: { transit: 2, stationkeep_outer: 2 },
+        name: "",
+    };
+
+    // Build missions from runs
     for (const run of Object.values(rawMission.runs as Record<string, any>)) {
         const mission = new Mission();
         mission.setMissionID(run.id);
+        // Build Waypoints from goals
         for (const goal of run.command.plan.goal) {
             const waypoint = new Waypoint();
             waypoint.setLocation(goal.location);
             const task = new Task();
             task.setType(goal.task.type);
-            // TODO translate task parameters
+            switch (goal.task.type) {
+                case TaskType.DIVE:
+                    task.setDiveParameters({
+                        max_depth: goal.task.dive?.max_depth,
+                        depth_interval: goal.task.dive?.depth_interval,
+                        hold_time: goal.task.dive?.hold_time,
+                        bottom_dive: goal.task.dive?.bottom_dive,
+                    });
+                    task.setDriftParameters({
+                        drift_time: goal.task.surface_drift?.drift_time,
+                    });
+                    break;
+                case TaskType.SURFACE_DRIFT:
+                    task.setDriftParameters({
+                        drift_time: goal.task.surface_drift?.drift_time,
+                    });
+                    break;
+                case TaskType.CONSTANT_HEADING:
+                    task.setConstantHeadingParameters({
+                        constant_heading: goal.task.constant_heading?.constant_heading,
+                        constant_heading_speed: goal.task.constant_heading?.constant_heading_speed,
+                        constant_heading_time: goal.task.constant_heading?.constant_heading_time,
+                    });
+                    break;
+                case TaskType.STATION_KEEP:
+                    // TODO Not sure how to set Station Keep parameter station_keep_time
+                    // Check with Twomey if I cant find it
+                    break;
+            }
+            waypoint.setTask(task);
+            mission.addWaypoints([waypoint]);
         }
+        snapshot.missions.push([run.id, mission]);
     }
 
-    let snapshot: MissionSetSnapshot;
+    // TODO Debug paying close attention to mission names,
+    // mission IDs etc
     return snapshot;
 }
