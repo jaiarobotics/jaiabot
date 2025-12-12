@@ -195,17 +195,22 @@ export function Plots(props: PlotsProps) {
 
             // Zooming into plots
             plot_div_element.on("plotly_relayout", function (eventdata: Plotly.PlotRelayoutEvent) {
+                console.debug("Relayout event:", eventdata);
+
                 // When autorange, zoom out to the whole set of points
                 if (eventdata["xaxis.autorange"]) {
                     props.delegate.setVisibleTimeRange(null);
                     return;
                 }
 
-                const t0 = ISODateToMicros(String(eventdata["xaxis.range[0]"])) ?? 0;
-                const t1 =
-                    ISODateToMicros(String(eventdata["xaxis.range[1]"])) ?? Number.MAX_SAFE_INTEGER;
+                if (eventdata["xaxis.range[0]"] && eventdata["xaxis.range[1]"]) {
+                    const t0 = ISODateToMicros(String(eventdata["xaxis.range[0]"])) ?? 0;
+                    const t1 =
+                        ISODateToMicros(String(eventdata["xaxis.range[1]"])) ??
+                        Number.MAX_SAFE_INTEGER;
 
-                props.delegate.setVisibleTimeRange([t0, t1]);
+                    props.delegate.setVisibleTimeRange([t0, t1]);
+                }
             });
         });
     };
@@ -216,6 +221,8 @@ export function Plots(props: PlotsProps) {
         console.debug("Refreshing plot data");
 
         const { plots, visibleTimeRange } = props;
+
+        console.debug(`Time range: ${visibleTimeRange}`);
 
         if (plots.length == 0) return;
 

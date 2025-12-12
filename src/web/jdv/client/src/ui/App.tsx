@@ -112,7 +112,7 @@ export class App extends React.Component {
             </div>
         ) : null;
 
-        console.log("Rendering App with state:", this.state);
+        console.debug("Rendering App with state:", this.state);
 
         return (
             <div className="vertical flexbox maximized">
