@@ -42,6 +42,12 @@ CLIENT_VPN_WIREGUARD_PRIVATEKEY=$(wg genkey)
 CLIENT_VPN_WIREGUARD_PUBKEY=$(echo $CLIENT_VPN_WIREGUARD_PRIVATEKEY | wg pubkey)
 
 export AWS_DEFAULT_REGION=$REGION
+
+aws configure list-profiles | grep -q $AWS_PROFILE || (
+    echo -e "ERROR: Failed to find required AWS profile \033[1m${AWS_PROFILE}\033[0m. Add this profile to \033[1m$HOME/.aws/credentials\033[0m using the instructions at https://docs.aws.amazon.com/cli/latest/userguide/cli-authentication-user.html. Your user must also be in the JaiaCloudCreation IAM group."
+    exit 1)
+
+
 ACCOUNT_ID=$(run ".Account" aws sts get-caller-identity)
 
 ARN_PREFIX="arn:aws"
