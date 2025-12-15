@@ -27,7 +27,7 @@ const TASK_PACKET_URL = "/jaia/v0/task-packets";
 const TASK_PACKET_VERSION_URL = "/jaia/v0/task-packets-version";
 const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
-const MICROSECONDS_FACTOR = 1e6;
+const DISCONNECT_THRESHOLD = NO_COMMS_STATUS_AGE * 1e6;
 
 let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
@@ -177,14 +177,13 @@ function handleBotSoundEffects(prevStatusAge: number, newStatusAge: number) {
         return;
     }
 
-    const disconnectThreshold = NO_COMMS_STATUS_AGE * MICROSECONDS_FACTOR;
-    const isBotDisconnected = newStatusAge > disconnectThreshold;
+    const isBotDisconnected = newStatusAge > DISCONNECT_THRESHOLD;
 
-    if (isBotDisconnected && prevStatusAge < disconnectThreshold) {
+    if (isBotDisconnected && prevStatusAge < DISCONNECT_THRESHOLD) {
         SoundEffects.botDisconnect.play();
     }
 
-    if (!isBotDisconnected && prevStatusAge >= disconnectThreshold) {
+    if (!isBotDisconnected && prevStatusAge >= DISCONNECT_THRESHOLD) {
         SoundEffects.botReconnect.play();
     }
 }
