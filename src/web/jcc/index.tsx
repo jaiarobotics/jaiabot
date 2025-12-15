@@ -166,9 +166,9 @@ function updateDisconnectedWarning(isDisconnected: boolean) {
 }
 
 /**
- * Plays disconnect and reconnect sounds based on the Bot's status age
+ * Plays disconnect and reconnect sounds based on Bot's status age
  *
- * @param {number} prevStatusAge Used to mark first moment of comms change
+ * @param {number} prevStatusAge Used to mark first moment of comms connect/disconnect
  * @param {number} newStatusAge Used to check for Bot connection status
  * @returns {void}
  */
