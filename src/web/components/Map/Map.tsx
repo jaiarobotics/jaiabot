@@ -18,7 +18,7 @@ import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-
 import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
 import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
-import { UNASSIGNED_ID } from "../../utils/constants";
+import { MAP_FEATURE_HIT_TOLERANCE, UNASSIGNED_ID } from "../../utils/constants";
 import { locationToConstantHeadingParams } from "../../utils/conversions";
 
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -67,7 +67,9 @@ export default function Map() {
                 return;
         }
 
-        const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature);
+        const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature, {
+            hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
+        });
         if (feature && feature.get("type")) {
             switch (feature.get("type")) {
                 case MapFeatureTypes.BOT:

@@ -261,11 +261,7 @@ function getWaypointColor(missionID: number, waypointNum?: number) {
         return OpenLayersColors.EDIT;
     }
 
-    const selectedNode = jaiaGlobal.getSelectedNode();
-    if (
-        selectedNode.type === NodeTypes.BOT &&
-        missionsManager.getMissionID(selectedNode.id) === missionID
-    ) {
+    if (isAssignedToSelectedBot(missionID)) {
         return OpenLayersColors.SELECT;
     }
 
@@ -278,12 +274,17 @@ function getWaypointColor(missionID: number, waypointNum?: number) {
  * @param {number} missionID Used to determine zIndex for waypoints and lines
  * @param {number} waypointNum Used to determine zIndex for waypoints, leave unassigned for lines
  * @returns {number} zIndex to be applied to waypoint and lines
+ *
+ * @assumptions
+ * Less than 1000 missions
+ * Less than 100 waypoints per mission
  */
 function getWaypointZIndex(missionID: number, waypointNum?: number) {
     let waypointZIndex = 0;
     // Provide proper mission stacking
     if (missionID === missionSet.getMissionIDInEditMode()) {
-        // Assume there are less than 1000 missions
+        waypointZIndex = 1100;
+    } else if (isAssignedToSelectedBot(missionID)) {
         waypointZIndex = 1000;
     } else {
         waypointZIndex = missionID;
@@ -295,7 +296,6 @@ function getWaypointZIndex(missionID: number, waypointNum?: number) {
             waypointNum === jaiaGlobal.getSelectedWaypoint().waypointNum &&
             missionID === missionSet.getMissionIDInEditMode()
         ) {
-            // Assume there are less than 100 waypoints
             waypointZIndex = waypointZIndex + 100;
         }
     }
@@ -327,5 +327,23 @@ function shouldColorTargetWaypoint(missionID: number, waypointNum: number) {
         return true;
     }
 
+    return false;
+}
+
+/**
+ * Informs whether or not the waypoint is part of the mission assigned to the
+ * selected Bot
+ *
+ * @param {number} missionID Identifies the mission containing the waypoint
+ * @returns {boolean} True if waypoint is part of mission assigned to selected Bot
+ */
+function isAssignedToSelectedBot(missionID: number) {
+    const selectedNode = jaiaGlobal.getSelectedNode();
+    if (
+        selectedNode.type === NodeTypes.BOT &&
+        missionsManager.getMissionID(selectedNode.id) === missionID
+    ) {
+        return true;
+    }
     return false;
 }
