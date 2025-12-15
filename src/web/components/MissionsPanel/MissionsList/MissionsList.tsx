@@ -141,6 +141,7 @@ export default function MissionsList() {
                                         label="Repeats"
                                         size="small"
                                         className="mission-repeats"
+                                        autoComplete="off"
                                         value={mission.getRepeats()}
                                         onChange={(event) =>
                                             handleRepeatsChange(
