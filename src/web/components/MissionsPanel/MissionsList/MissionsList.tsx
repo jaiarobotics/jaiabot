@@ -68,6 +68,25 @@ export default function MissionsList() {
     };
 
     /**
+     * Dispatches action to update the number of repeats for a mission
+     *
+     * @param {string} repeats Desired number of mission repeats
+     * @param {number} missionID Identifies which mission to update
+     * @returns {void}
+     */
+    const handleRepeatsChange = (repeats: string, missionID: number) => {
+        let numOfRepeats = Number(repeats);
+        if (isNaN(numOfRepeats)) {
+            numOfRepeats = 1;
+        }
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_MISSION_REPEATS,
+            missionRepeats: numOfRepeats,
+            missionID: missionID,
+        });
+    };
+
+    /**
      * Triggered when the operator clicks the duplicate mission button
      *
      * @param {number} missionID ID of the mission to be duplicated
@@ -120,9 +139,15 @@ export default function MissionsList() {
                                     <MissionAssignMenu missionID={mission.getMissionID()} />
                                     <TextField
                                         label="Repeats"
-                                        defaultValue="1"
                                         size="small"
                                         className="mission-repeats"
+                                        value={mission.getRepeats()}
+                                        onChange={(event) =>
+                                            handleRepeatsChange(
+                                                event.target.value,
+                                                mission.getMissionID(),
+                                            )
+                                        }
                                     />
                                 </div>
                                 <div className="mission-accordion-row">

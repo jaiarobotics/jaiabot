@@ -128,6 +128,18 @@ export function handleChangeMissionSpeeds(mutableState: JaiaContextType, action:
 }
 
 /**
+ * Makes a call update the mission repeats
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Includes mission ID and number of repeats
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleChangeMissionRepeats(mutableState: JaiaContextType, action: JaiaAction) {
+    missionSet.getMission(action.missionID).setRepeats(action.missionRepeats);
+    return mutableState;
+}
+
+/**
  * Loads a mission set from local storage
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
