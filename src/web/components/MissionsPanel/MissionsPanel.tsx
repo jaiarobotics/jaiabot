@@ -35,18 +35,6 @@ export default function MissionsPanel() {
     };
 
     /**
-     * @notes
-     * To be implemented
-     */
-    const handleLoadMissionsClick = () => {};
-
-    /**
-     * @notes
-     * To be implemented
-     */
-    const handleSaveMissionsClick = () => {};
-
-    /**
      * Dispatches the action to assign available Bots to open missions when an operator selects the magic wand button
      *
      * @returns {void}
