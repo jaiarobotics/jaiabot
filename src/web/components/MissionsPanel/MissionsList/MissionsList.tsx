@@ -21,6 +21,7 @@ import {
     AccordionDetails,
     AccordionSummary,
     Button,
+    TextField,
     ThemeProvider,
 } from "@mui/material";
 
@@ -115,35 +116,47 @@ export default function MissionsList() {
                                 <MissionAccordionTitle missionID={mission.getMissionID()} />
                             </AccordionSummary>
                             <AccordionDetails className="mission-accordion-details">
-                                <MissionAssignMenu missionID={mission.getMissionID()} />
-                                <Button
-                                    className="jaia-button"
-                                    aria-label="duplicate-mission"
-                                    data-testid={`duplicate-mission-${mission.getMissionID()}`}
-                                    onClick={() =>
-                                        handleDuplicateMissionClick(mission.getMissionID())
-                                    }
-                                >
-                                    <Icon
-                                        path={mdiContentDuplicate}
-                                        size={MDI_BUTTON_SIZE}
-                                        title="Duplicate Mission"
+                                <div className="mission-accordion-row">
+                                    <MissionAssignMenu missionID={mission.getMissionID()} />
+                                    <TextField
+                                        label="Repeats"
+                                        defaultValue="1"
+                                        size="small"
+                                        className="mission-repeats"
                                     />
-                                </Button>
-                                <DeleteMissionButton
-                                    deleteAll={false}
-                                    missionID={mission.getMissionID()}
-                                />
-                                <JaiaToggle
-                                    checked={() =>
-                                        jaiaContext.missionSet.getMissionIDInEditMode() ===
-                                        mission.getMissionID()
-                                    }
-                                    onClick={() => handleToggleEditClick(mission.getMissionID())}
-                                    label="Edit"
-                                    title="ToggleEditMode"
-                                    testLabel={`Edit Mission ${mission.getMissionID()}`}
-                                />
+                                </div>
+                                <div className="mission-accordion-row">
+                                    <Button
+                                        className="jaia-button"
+                                        aria-label="duplicate-mission"
+                                        data-testid={`duplicate-mission-${mission.getMissionID()}`}
+                                        onClick={() =>
+                                            handleDuplicateMissionClick(mission.getMissionID())
+                                        }
+                                    >
+                                        <Icon
+                                            path={mdiContentDuplicate}
+                                            size={MDI_BUTTON_SIZE}
+                                            title="Duplicate Mission"
+                                        />
+                                    </Button>
+                                    <DeleteMissionButton
+                                        deleteAll={false}
+                                        missionID={mission.getMissionID()}
+                                    />
+                                    <JaiaToggle
+                                        checked={() =>
+                                            jaiaContext.missionSet.getMissionIDInEditMode() ===
+                                            mission.getMissionID()
+                                        }
+                                        onClick={() =>
+                                            handleToggleEditClick(mission.getMissionID())
+                                        }
+                                        label="Edit"
+                                        title="ToggleEditMode"
+                                        testLabel={`Edit Mission ${mission.getMissionID()}`}
+                                    />
+                                </div>
                             </AccordionDetails>
                         </Accordion>
                     </ThemeProvider>
