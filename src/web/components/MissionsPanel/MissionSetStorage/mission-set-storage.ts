@@ -237,8 +237,8 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
                         max_depth: goal.task.dive?.max_depth,
                         depth_interval: goal.task.dive?.depth_interval,
                         hold_time: goal.task.dive?.hold_time,
-                        bottom_dive: goal.task.dive?.bottom_dive,
                     });
+                    task.setIsBottomDive(goal.task.dive.bottom_dive);
                     task.setDriftParameters({
                         drift_time: goal.task.surface_drift?.drift_time,
                     });
