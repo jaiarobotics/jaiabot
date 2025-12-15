@@ -13,6 +13,7 @@ import { Cursors } from "../../utils/style";
 import { LayerTitles, MapModes } from "../../types/openlayers-types";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
+import { OSM_MAX_ZOOM } from "../../utils/constants";
 
 interface MapSettings {
     visibleLayers: LayerTitles[];
@@ -127,7 +128,7 @@ map.getView().on("change:center", () => {
 
 // Persist map zoom
 map.getView().on("change:resolution", () => {
-    mapSettings.zoomLevel = map.getView().getZoom();
+    mapSettings.zoomLevel = Math.min(map.getView().getZoom(), OSM_MAX_ZOOM);
     saveSettings();
 });
 
