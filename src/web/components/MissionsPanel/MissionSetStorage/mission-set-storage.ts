@@ -10,6 +10,16 @@ import { TaskType } from "../../../types/protobuf-types";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
 
+export enum LoadResultType {
+    CURRENT_FORMAT = "CURRENT_FORMAT",
+    OLD_FORMAT = "OLD_FORMAT",
+    INVALID_FORMAT = "INVALID_FORMAT",
+}
+export interface LoadSnapshotResult {
+    snapshot: MissionSetSnapshot | null;
+    resultType: LoadResultType;
+}
+
 /**
  * Saves the current mission set to local storage
  *
@@ -126,7 +136,7 @@ export function exportMissionSetToFile(name: string) {
  * @notes
  * Called by UI code, snapshot is sent to the reducer/action handler
  */
-export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null> {
+export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
     return new Promise((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
@@ -135,36 +145,57 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
         input.onchange = async (event: Event) => {
             const file = (event.target as HTMLInputElement)?.files?.[0];
             if (!file) {
+                // User canceled file dialog, nothing to do
                 resolve(null);
                 return;
             }
+
             try {
+                const loadSnapshotResult: LoadSnapshotResult = {
+                    snapshot: null,
+                    resultType: LoadResultType.INVALID_FORMAT,
+                };
+
                 const parsed = JSON.parse(await file.text());
                 if (!parsed) {
+                    // File could not valid JSON
                     resolve(null);
                     return;
                 }
 
-                let targetSet: any;
-
                 // Check version of file to parse
-                if (parsed.version === MISSION_SET_VERSION && parsed.snapshot) {
-                    targetSet = parsed.snapshot;
-                    const snapshot = extractMissionSetSnapshot(targetSet);
-                    resolve(snapshot);
-                } else {
+                if (isCurrentMissionFile(parsed)) {
+                    loadSnapshotResult.snapshot = extractMissionSetSnapshot(parsed.snapshot);
+                    loadSnapshotResult.resultType = LoadResultType.CURRENT_FORMAT;
+                    resolve(loadSnapshotResult);
+                }
+
+                if (isLegacyMissionFile(parsed)) {
                     console.log("Legacy Mission file detected");
-                    const snapshot = extractLegacyMissionData(parsed);
-                    resolve(snapshot);
+                    loadSnapshotResult.snapshot = extractLegacyMissionData(parsed);
+                    loadSnapshotResult.resultType = LoadResultType.OLD_FORMAT;
+                    resolve(loadSnapshotResult);
                     return;
                 }
             } catch (error) {
                 console.error("Error reading or parsing mission set file:", error);
-                resolve(null);
+                resolve({ snapshot: null, resultType: LoadResultType.INVALID_FORMAT });
             }
         };
         input.click();
     });
+}
+function isCurrentMissionFile(value: any): boolean {
+    return (
+        value &&
+        typeof value === "object" &&
+        value.version === MISSION_SET_VERSION &&
+        value.snapshot !== undefined
+    );
+}
+
+function isLegacyMissionFile(value: any): boolean {
+    return value && typeof value === "object" && value.runs !== undefined;
 }
 
 /**

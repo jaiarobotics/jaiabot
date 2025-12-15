@@ -3,7 +3,7 @@ import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
 import { ImportMissionSetDialog } from "./ImportMissionSetDialog";
-import { loadSnapshotFromFile } from "../mission-set-storage";
+import { LoadResultType, loadSnapshotFromFile } from "../mission-set-storage";
 
 interface Props {
     onClose: () => void;
@@ -35,13 +35,17 @@ export default function ImportMissionSetButton(props: Props) {
     const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            const missionSetSnapshot = await loadSnapshotFromFile();
-            if (missionSetSnapshot) {
+            const loadResults = await loadSnapshotFromFile();
+            if (loadResults.snapshot) {
                 jaiaDispatch({
                     type: JaiaActions.LOAD_MISSION_SET,
-                    missionSetSnapshot: missionSetSnapshot,
+                    missionSetSnapshot: loadResults.snapshot,
                 });
+                if (loadResults.resultType === LoadResultType.OLD_FORMAT) {
+                    // TODO Secondary dialog asking to export to new format
+                }
             } else {
+                // TODO Secondary dialog warning user file could not be imported
                 console.warn("No valid mission set file selected");
             }
 
