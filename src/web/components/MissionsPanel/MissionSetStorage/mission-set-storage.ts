@@ -170,14 +170,14 @@ export async function loadSnapshotFromFile(): Promise<MissionSetSnapshot | null>
 /**
  * Extracts a mission set from a raw snapshot data
  *
- * @param {any} rawMissionSet raw mission set data parsed from file
+ * @param {any} rawMissionSet Raw mission set data parsed from file
  * @param {number} version optional version number for future use
  * @returns {MissionSetSnapshot} Snapshot of mission set
  *
  * @notes
- * This is the default extrator and is called when a file of
- * the current mission set version is detected.  Changes to format
- * when versions change may affect this function
+ * This is the default extrator and is called when a file
+ * contains a mission set version. Changes to the MissionSet interface
+ * may affect this function.
  */
 
 function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
@@ -204,16 +204,15 @@ function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
 /**
  * Extracts a mission set data from a raw legacy mission file (Jaia 2.3 or earlier)
  *
- * @param {any} rawMissionSet raw mission data parsed from legacy file
- * @param {number} version optional version number for future use
+ * @param {LegacyMissionInterface} rawMissionSet Raw mission data parsed from legacy file
  * @returns {MissionSetSnapshot} Snapshot of mission set
  *
  * @notes
- * This extrator and is called when a file does not have a version defined.
- * Assumes it is a legacy file.
+ * This extrator is called when a file does not have a version defined.
+ * It is assumed to be a legacy file.
  */
 
-function extractLegacyMissionData(rawMission: any) {
+function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
     const snapshot: MissionSetSnapshot = {
         missions: [],
         nextMissionID: 1,
@@ -223,10 +222,10 @@ function extractLegacyMissionData(rawMission: any) {
     };
 
     // Build missions from runs
-    for (const run of Object.values(rawMission.runs as Record<string, any>)) {
+    for (const run of Object.values(rawMission.runs)) {
         const mission = new Mission();
-        mission.setMissionID(run.id);
-        // Build Waypoints from goals
+        mission.setMissionID(Number(run.id));
+        // Build waypoints from goals
         for (const goal of run.command.plan.goal) {
             const waypoint = new Waypoint();
             waypoint.setLocation(goal.location);
@@ -264,7 +263,7 @@ function extractLegacyMissionData(rawMission: any) {
             waypoint.setTask(task);
             mission.addWaypoints([waypoint]);
         }
-        snapshot.missions.push([run.id, mission]);
+        snapshot.missions.push([Number(run.id), mission]);
     }
 
     // TODO Debug paying close attention to mission names,
