@@ -133,7 +133,15 @@ export default function TaskParameters(props: Props) {
                     handleSelectOnMapClick={handleSelectOnMapClick}
                 />
             );
-
+        case TaskType.STATION_KEEP:
+            return (
+                <StationKeepParameters
+                    task={props.task}
+                    isDisabled={props.isDisabled}
+                    onChange={onParameterChange}
+                    handleUseHydrophoneClick={handleUseHydrophoneClick}
+                />
+            );
         default:
             return;
     }
@@ -381,6 +389,36 @@ function ConstantHeading(props: Props) {
                 ).toFixed(0)}
             </div>
             <div className="units">m</div>
+        </div>
+    );
+}
+
+/**
+ * Renders input fields for a station keep task
+ */
+function StationKeepParameters(props: Props) {
+    return (
+        <div className="station-keep-parameters">
+            <UseHydrophoneToggle
+                task={props.task}
+                isDisabled={props.isDisabled}
+                handleUseHydrophoneClick={props.handleUseHydrophoneClick}
+            />
+            <div className="task-parameters">
+                <div>Time</div>
+                <input
+                    name={TaskParameterKeys.STATION_KEEP_TIME}
+                    type="number"
+                    value={formatNumericalInput(
+                        props.task.getStationKeepParameters().station_keep_time,
+                    )}
+                    className="jaia-input"
+                    autoComplete="off"
+                    disabled={props.isDisabled}
+                    onChange={(evt) => props.onChange(evt)}
+                />
+                <div className="units">s</div>
+            </div>
         </div>
     );
 }
