@@ -5,6 +5,7 @@ import { rallyLayer } from "../../openlayers/layers/vector/rally-layer";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
+import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
 
 /**
  * Repaints the map layers using the latest data
@@ -22,4 +23,5 @@ export function syncTaskLayers() {
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
     contourLayer.updateFeatures();
+    excludedTaskPacketsLayer.updateFeatures();
 }
