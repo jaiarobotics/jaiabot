@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { TaskPackets } from "../../data/task_packets/task-packets";
-import { TaskPacket, TaskType } from "../../types/protobuf-types";
+import { TaskPacket } from "../../types/protobuf-types";
 import { PanelActions, TaskPacketVisibility } from "../../types/context-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { SelectedTaskPacket } from "../../types/jaia-system-types";
@@ -21,35 +21,27 @@ const DECIMALS = 2;
  * Displays task packet data to the operator in a tabular format
  */
 export default function TaskPacketPanel(props: Props) {
-    const [selectCount, setSelectCount] = useState(0);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+    const [prevSelected, setPrevSelected] = useState({ ...props.selectedTaskPacket });
 
-    useEffect(() => {
-        if (isNewTaskPacket(taskPacket, props.selectedTaskPacket)) {
-            setSelectCount(selectCount + 1);
-        }
-    });
-
-    /**
-     * Retrieves the data associated with the selected task packet
-     *
-     * @returns {TaskPacket}
-     */
     const getTaskPacket = () => {
-        const allTaskPackets = props.taskPackets
-            .getIncludedTaskPackets()
-            .concat(props.taskPackets.getExcludedTaskPackets());
-        for (const taskPacket of allTaskPackets) {
-            if (
-                taskPacket.start_time === props.selectedTaskPacket.startTime &&
-                taskPacket.bot_id === props.selectedTaskPacket.botID
-            ) {
-                return taskPacket;
-            }
-        }
+        return props.taskPackets.getTaskPacket(
+            props.selectedTaskPacket.botID,
+            props.selectedTaskPacket.startTime,
+        );
     };
 
-    // Call getTaskPacket on initial render and task packet selection changes
-    const taskPacket = useMemo(() => getTaskPacket(), [selectCount]);
+    const taskPacket = useMemo(() => getTaskPacket(), [prevSelected]);
+
+    useEffect(() => {
+        if (
+            prevSelected.botID !== props.selectedTaskPacket.botID ||
+            prevSelected.startTime !== props.selectedTaskPacket.startTime ||
+            prevSelected.type !== props.selectedTaskPacket.type
+        ) {
+            setPrevSelected({ ...props.selectedTaskPacket });
+        }
+    });
 
     /**
      * Gets the ID used by the server for querying task packet data
@@ -73,14 +65,6 @@ export default function TaskPacketPanel(props: Props) {
         return `${date.getHours()}:${date.getMinutes()} ${date.getMonth()}/${date.getDay()}/${date.getFullYear()}`;
     };
 
-    const jaiaDispatch = useContext(JaiaDispatchContext);
-
-    useEffect(() => {
-        return () => {
-            jaiaDispatch({ type: JaiaActions.CLOSED_TASK_PACKET_PANEL });
-        };
-    }, []);
-
     /**
      * Dispatches action to close panel
      *
@@ -98,8 +82,6 @@ export default function TaskPacketPanel(props: Props) {
 
     switch (props.selectedTaskPacket.type) {
         case MapFeatureTypes.DIVE:
-            // Handle transition between state and memo updates
-            // when switching between task packets
             if (!taskPacket.dive) {
                 return;
             }
@@ -130,9 +112,7 @@ export default function TaskPacketPanel(props: Props) {
             );
 
         case MapFeatureTypes.DRIFT:
-            // Handle transition between state and memo updates
-            // when switching between task packets
-            if (!taskPacket.drift) {
+            if (!taskPacket.drift.estimated_drift) {
                 return;
             }
             return (
@@ -194,22 +174,4 @@ function VisibilityButtons(props: Props) {
             <button onClick={() => handleClick(TaskPacketVisibility.INCLUDE)}>Include</button>
         </div>
     );
-}
-
-/**
- * Detects a change between the previously clicked task packet and the
- * latest clicked task packet
- *
- * @param {TaskPacket} taskPacket Task packet displaying in TaskPacketPanel
- * @param {SelectedTaskPacket} selectedTaskPacket Task packet clicked by operator
- * @returns {boolean} True if the operator clicked a new task packet, false otherwise
- */
-function isNewTaskPacket(taskPacket: TaskPacket, selectedTaskPacket: SelectedTaskPacket) {
-    if (
-        `${taskPacket.bot_id}_${taskPacket.start_time}` !==
-        `${selectedTaskPacket.botID}_${selectedTaskPacket.startTime}`
-    ) {
-        return true;
-    }
-    return false;
 }

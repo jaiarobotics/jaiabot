@@ -112,6 +112,22 @@ export class JaiaGlobal {
         this.controllingClientID = controllingClientID;
     }
 
+    resetSelectedWaypoint() {
+        this.selectedWaypoint = {
+            waypointNum: UNASSIGNED_ID,
+            missionID: UNASSIGNED_ID,
+            isMoveable: false,
+        };
+    }
+
+    resetSelectedTaskPacket() {
+        this.selectedTaskPacket = {
+            botID: UNASSIGNED_ID,
+            startTime: 0,
+            type: MapFeatureTypes.NONE,
+        };
+    }
+
     /**
      * Captures snapshot of JaiaGlobal
      *
