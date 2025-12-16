@@ -122,8 +122,6 @@ target_interval = 1.0 / args.data_rate
 next_send_time = time.perf_counter()  
 
 while True:
-    loop_start = time.perf_counter()
-
     # Read data from sensor
     try:
         p_mbar, t_celsius = sensor.read()
@@ -149,9 +147,6 @@ while True:
         sock.sendto(pressure_temperature_data.SerializeToString(), addr)
     except Exception as e:
         log.error(f"Failed to send data: {e}")
-
-    # Measure loop duration
-    loop_duration = time.perf_counter() - loop_start
 
     # Adjust next send time dynamically
     next_send_time += target_interval

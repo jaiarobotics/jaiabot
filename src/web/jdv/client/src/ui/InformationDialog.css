@@ -1,0 +1,15 @@
+#informationDialog {
+    background-color: whitesmoke;
+}
+
+#informationDialogText {
+    padding: 1em;
+    white-space: normal;
+    overflow-y: scroll;
+    overflow-x: visible;
+    max-height: 40vh;
+    max-width: 60vw;
+    font-family: "fixedsys", "Courier New", monospace;
+    font-size: 0.9em;
+    white-space: pre;
+}

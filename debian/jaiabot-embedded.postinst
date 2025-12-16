@@ -232,6 +232,12 @@ fi
 
 echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' jaiabot-embedded)" > /etc/jaiabot/software_version
 
+if [ ! -f /etc/apt/apt.conf.d/99disable-auto-upgrades ]; then
+    echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/99disable-auto-upgrades
+    echo 'APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99disable-auto-upgrades
+    systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
+fi
+
 #DEBHELPER#
 
 exit 0
