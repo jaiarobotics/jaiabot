@@ -76,7 +76,7 @@ def main():
     parser.add_argument('--no-enable-client-vpn', help="If set, do not create a client vpn configuration on this machine", action="store_true")
     parser.add_argument('--no-update-client-etc-hosts', help="If set, do not add a local entry for the new CloudHub in this machine's /etc/hosts", action="store_true")    
     args = parser.parse_args()
-
+    
     loglevel = args.loglevel
     if args.quiet:
         loglevel = 'error'
@@ -121,7 +121,9 @@ def main():
     with open(vpc_conffile, 'w') as f:
         debug='false'
         if loglevel in ['info', 'debug']:
-            debug='true'            
+            debug='true'
+
+        fleet_cfg_full_path=pathlib.Path(args.fleetcfg).resolve()
         f.write(f"DEBUG={debug}\n")
         f.write(f"JAIA_CUSTOMER_NAME={args.customer}\n")
         f.write(f'INSTANCE_TYPE="{args.instance_type}"\n')
@@ -132,7 +134,7 @@ def main():
         f.write(f'DISK_SIZE_GB={args.disk_size_gb}\n')
         f.write('CLOUDHUB_DATA_BUCKET="jaia--cloudhub-data--fleet${FLEET_ID}"\n')
         f.write(f'JCC_HUB_ID={cloudhub_id}\n')
-        f.write(f'FLEET_CONFIG={args.fleetcfg}\n')
+        f.write(f'FLEET_CONFIG={fleet_cfg_full_path}\n')
 
         enable_client_vpn='true'
         if args.no_enable_client_vpn:
