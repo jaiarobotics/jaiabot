@@ -30,7 +30,7 @@ export function buildDepthMap() {
     const bottomDivePackets = taskPackets
         .getIncludedTaskPackets()
         .map((taskPackets) => taskPackets.dive)
-        .filter((dive) => dive.bottom_dive);
+        .filter((dive) => dive?.bottom_dive);
 
     if (bottomDivePackets.length === 0) {
         return false;

@@ -80,6 +80,8 @@ export default function TaskPacketPanel(props: Props) {
     const startTime = formatDate(taskPacket.start_time);
     const endTime = formatDate(taskPacket.end_time);
 
+    // We use the guards because props.selectedTaskPacket is one step
+    // ahead of the taskPacket variable when a task icon is clicked
     switch (props.selectedTaskPacket.type) {
         case MapFeatureTypes.DIVE:
             if (!taskPacket.dive) {
@@ -112,7 +114,7 @@ export default function TaskPacketPanel(props: Props) {
             );
 
         case MapFeatureTypes.DRIFT:
-            if (!taskPacket.drift.estimated_drift) {
+            if (!taskPacket.drift || !taskPacket.drift.estimated_drift) {
                 return;
             }
             return (
