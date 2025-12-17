@@ -7,7 +7,6 @@ import math
 import json
 import ipaddress
 import pathlib
-import sys
 
 subnet_mask=0xFF00
 
@@ -132,7 +131,6 @@ def iridium_sbd_type():
         # If the hub doesn't have /etc/jaiabot/iridium.json, gracefully
         # do not configure Iridium
         if not iridium_json.exists():
-            sys.stderr.write('Warning: "comms_mode: iridium" is set but "/etc/jaiabot/iridium.json" does not exist. Continuing without Iridium comms.\n')
             return None
         
         with(open(iridium_json) as f):            
