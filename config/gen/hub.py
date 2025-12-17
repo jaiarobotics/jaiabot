@@ -122,8 +122,8 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                              ack_timeout=ack_timeout,
                                              ipv6='')
 
-if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
-
+sbd_type=common.comms.iridium_sbd_type()
+if common.CommsMode.IRIDIUM in common.jaia_comms_modes and sbd_type is not None:
     if is_simulation():
         iridium_mt_server_address='127.0.0.1'
         iridium_mt_server_port=10800
@@ -134,7 +134,6 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
         iridium_mt_server_address=result.stdout.decode().strip()
         iridium_mt_server_port=10800+fleet_index
 
-    sbd_type=common.comms.iridium_sbd_type()
     rockblock=''
     directip=''
     if sbd_type == "SBD_DIRECTIP":

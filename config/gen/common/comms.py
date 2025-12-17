@@ -6,6 +6,8 @@ import netifaces
 import math
 import json
 import ipaddress
+import pathlib
+import sys
 
 subnet_mask=0xFF00
 
@@ -90,6 +92,8 @@ def wifi_mac_slots(node_id):
 # Iridium #
 ###########
 
+iridium_json=pathlib.Path('/etc/jaiabot/iridium.json')
+
 def iridium_mac_slots(node_id):
     # SBD is rate 0 in the Goby driver
     sbd_rate=0
@@ -112,7 +116,7 @@ def iridium_modem_imei_mapping():
             mapping += 'modem_id_to_imei { modem_id: ' + str(modem_id) + ' imei: "' + f'{bot_id:015d}' + '" }\n'
         
     if is_runtime():
-        with(open('/etc/jaiabot/iridium.json') as f):            
+        with(open(iridium_json) as f):            
             j = json.load(f)
             for bot in j["bot"]:
                 mapping += 'modem_id_to_imei { modem_id: ' + str(base_modem_id(bot["id"] + 1)) + ' imei: "' + bot["imei"] + '" }\n'
@@ -125,7 +129,13 @@ def iridium_sbd_type():
         return "SBD_DIRECTIP"
 
     if is_runtime():
-        with(open('/etc/jaiabot/iridium.json') as f):            
+        # If the hub doesn't have /etc/jaiabot/iridium.json, gracefully
+        # do not configure Iridium
+        if not iridium_json.exists():
+            sys.stderr.write('Warning: "comms_mode: iridium" is set but "/etc/jaiabot/iridium.json" does not exist. Continuing without Iridium comms.\n')
+            return None
+        
+        with(open(iridium_json) as f):            
             j = json.load(f)
             return j["sbdType"]
 
@@ -135,7 +145,7 @@ def iridium_rockblock_credentials():
         return ("user", "pass")
 
     if is_runtime():
-        with(open('/etc/jaiabot/iridium.json') as f):            
+        with(open(iridium_json) as f):            
             j = json.load(f)
             return (j["rockblock"]["username"], j["rockblock"]["password"])
 
