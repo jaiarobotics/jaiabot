@@ -72,6 +72,7 @@ def do_port_loop(echo: Echo):
             elif command.type == EchoCommand.CMD_STOP:
                 echo.stopDevice()
         except socket.timeout:
+            # No data received within timeout interval, just send status
             pass
         except Exception as e:
             traceback.print_exc()
