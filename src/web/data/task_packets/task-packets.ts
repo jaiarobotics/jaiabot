@@ -33,6 +33,15 @@ export class TaskPackets {
     setVersion(version: number) {
         this.version = version;
     }
+
+    getTaskPacket(botID: number, startTime: number) {
+        const allTaskPackets = this.includedTaskPackets.concat(this.excludedTaskPackets);
+        for (const taskPacket of allTaskPackets) {
+            if (taskPacket.start_time === startTime && taskPacket.bot_id === botID) {
+                return taskPacket;
+            }
+        }
+    }
 }
 
 export const taskPackets = new TaskPackets();

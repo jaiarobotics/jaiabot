@@ -216,17 +216,3 @@ export function handleChangeTaskPacketVisibility(
     });
     return mutableState;
 }
-
-/**
- * Sets the selected waypoint to its default settings
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @returns {void}
- */
-export function resetSelectedWaypoint(mutableState: JaiaContextType) {
-    jaiaGlobal.setSelectedWaypoint({
-        waypointNum: UNASSIGNED_ID,
-        missionID: UNASSIGNED_ID,
-        isMoveable: false,
-    });
-}

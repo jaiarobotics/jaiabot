@@ -83,6 +83,7 @@ export class MissionSet {
         const missionID = this.getNextMissionID();
         this.missions.set(missionID, mission);
         mission.setMissionID(missionID);
+        mission.setSpeeds(this.missionSpeeds);
         this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
         return missionID;

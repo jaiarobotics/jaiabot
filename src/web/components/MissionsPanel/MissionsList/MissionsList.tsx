@@ -21,6 +21,7 @@ import {
     AccordionDetails,
     AccordionSummary,
     Button,
+    TextField,
     ThemeProvider,
 } from "@mui/material";
 
@@ -64,6 +65,25 @@ export default function MissionsList() {
             return jaiaContext.missionAccordionStates[missionID];
         }
         return false;
+    };
+
+    /**
+     * Dispatches action to update the number of repeats for a mission
+     *
+     * @param {string} repeats Desired number of mission repeats
+     * @param {number} missionID Identifies which mission to update
+     * @returns {void}
+     */
+    const handleRepeatsChange = (repeats: string, missionID: number) => {
+        let numOfRepeats = Number(repeats);
+        if (isNaN(numOfRepeats)) {
+            numOfRepeats = 1;
+        }
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_MISSION_REPEATS,
+            missionRepeats: numOfRepeats,
+            missionID: missionID,
+        });
     };
 
     /**
@@ -115,35 +135,54 @@ export default function MissionsList() {
                                 <MissionAccordionTitle missionID={mission.getMissionID()} />
                             </AccordionSummary>
                             <AccordionDetails className="mission-accordion-details">
-                                <MissionAssignMenu missionID={mission.getMissionID()} />
-                                <Button
-                                    className="jaia-button"
-                                    aria-label="duplicate-mission"
-                                    data-testid={`duplicate-mission-${mission.getMissionID()}`}
-                                    onClick={() =>
-                                        handleDuplicateMissionClick(mission.getMissionID())
-                                    }
-                                >
-                                    <Icon
-                                        path={mdiContentDuplicate}
-                                        size={MDI_BUTTON_SIZE}
-                                        title="Duplicate Mission"
+                                <div className="mission-accordion-row">
+                                    <MissionAssignMenu missionID={mission.getMissionID()} />
+                                    <TextField
+                                        label="Repeats"
+                                        size="small"
+                                        className="mission-repeats"
+                                        autoComplete="off"
+                                        value={mission.getRepeats()}
+                                        onChange={(event) =>
+                                            handleRepeatsChange(
+                                                event.target.value,
+                                                mission.getMissionID(),
+                                            )
+                                        }
                                     />
-                                </Button>
-                                <DeleteMissionButton
-                                    deleteAll={false}
-                                    missionID={mission.getMissionID()}
-                                />
-                                <JaiaToggle
-                                    checked={() =>
-                                        jaiaContext.missionSet.getMissionIDInEditMode() ===
-                                        mission.getMissionID()
-                                    }
-                                    onClick={() => handleToggleEditClick(mission.getMissionID())}
-                                    label="Edit"
-                                    title="ToggleEditMode"
-                                    testLabel={`Edit Mission ${mission.getMissionID()}`}
-                                />
+                                </div>
+                                <div className="mission-accordion-row">
+                                    <Button
+                                        className="jaia-button"
+                                        aria-label="duplicate-mission"
+                                        data-testid={`duplicate-mission-${mission.getMissionID()}`}
+                                        onClick={() =>
+                                            handleDuplicateMissionClick(mission.getMissionID())
+                                        }
+                                    >
+                                        <Icon
+                                            path={mdiContentDuplicate}
+                                            size={MDI_BUTTON_SIZE}
+                                            title="Duplicate Mission"
+                                        />
+                                    </Button>
+                                    <DeleteMissionButton
+                                        deleteAll={false}
+                                        missionID={mission.getMissionID()}
+                                    />
+                                    <JaiaToggle
+                                        checked={() =>
+                                            jaiaContext.missionSet.getMissionIDInEditMode() ===
+                                            mission.getMissionID()
+                                        }
+                                        onClick={() =>
+                                            handleToggleEditClick(mission.getMissionID())
+                                        }
+                                        label="Edit"
+                                        title="ToggleEditMode"
+                                        testLabel={`Edit Mission ${mission.getMissionID()}`}
+                                    />
+                                </div>
                             </AccordionDetails>
                         </Accordion>
                     </ThemeProvider>

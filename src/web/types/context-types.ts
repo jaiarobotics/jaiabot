@@ -90,6 +90,7 @@ export interface JaiaAction {
 
     command?: Command;
     missionSpeeds?: Speeds;
+    missionRepeats?: number;
     missionSetName?: string;
     missionSetSnapshot?: MissionSetSnapshot;
     gridPlanningState?: GridPlanningStates;
