@@ -39,8 +39,6 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER = 16
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_UDP_GATEWAY = 17
-        [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_DRIVER_ARDUINO = 18
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_ENGINEERING = 19
@@ -85,6 +83,8 @@ enum Error
     ERROR__FAILED__JAIABOT_SENSORS = 40
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_COMMS_MANAGER = 41
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_UDP_GATEWAY = 42
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
