@@ -7,6 +7,7 @@ import {
     mdiDownload,
     mdiTrashCan,
     mdiClose,
+    mdiInformation,
 } from "@mdi/js";
 import Icon from "@mdi/react";
 
@@ -29,8 +30,6 @@ import { OpenPlotSet } from "./OpenPlotSet";
 import { DataTable } from "./DataTable";
 import { CustomAlert } from "../shared/CustomAlert";
 
-import { Switch } from "@mui/material";
-
 import "./Plots.css";
 
 export interface PlotsDelegate {
@@ -51,6 +50,7 @@ export interface PlotsProps {
 export function Plots(props: PlotsProps) {
     const [isPathSelectorDisplayed, setIsPathSelectorDisplayed] = React.useState(false);
     const [isOpenPlotSetDisplayed, setIsOpenPlotSetDisplayed] = React.useState(false);
+    const [isPlotInfoDisplayed, setIsPlotInfoDisplayed] = React.useState(false);
 
     function deletePlotClicked(plotIndex: number) {
         let { plots } = props;
@@ -382,11 +382,63 @@ export function Plots(props: PlotsProps) {
                 >
                     <Icon path={mdiTrashCan} size={1} style={{ verticalAlign: "middle" }}></Icon>
                 </button>
+                <button
+                    title="Plot Info"
+                    className="plotButton"
+                    onClick={() => {
+                        setIsPlotInfoDisplayed(!isPlotInfoDisplayed);
+                    }}
+                >
+                    <Icon path={mdiInformation} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                </button>
             </div>
         );
     } else {
         actionBar = null;
     }
+
+    // Plot Info Dialog
+    const plotInfo = isPlotInfoDisplayed ? (
+        <div className="centered dialog" id="plotInfoDialog">
+            <div className="horizontal flexbox" id="plotInfoDialogHeader">
+                <h3 style={{ flex: 1 }}>Notes</h3>
+                <button className="plotButton" onClick={() => setIsPlotInfoDisplayed(false)}>
+                    <Icon path={mdiClose} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                </button>
+            </div>
+            <div className="text" style={{ bottom: "10pt" }}>
+                <h4>Plot Downsampling</h4>
+                <p>
+                    The displayed plot data is recursively downsampled to improve performance when
+                    viewing large datasets. When zoomed out, fewer data points are shown to provide
+                    an overview of the data. As you zoom in, more data points are displayed to
+                    reveal finer details.
+                </p>
+                <h4>Full-Resolution Display</h4>
+                <p>
+                    When the plot is zoomed in far enough that all data points can be displayed
+                    without downsampling, the plot will switch to showing the full-resolution data.
+                    In this mode, both lines and markers are used to represent the data points,
+                    providing a clear view of the exact values.
+                </p>
+                <h4>Peak Preservation</h4>
+                <p>
+                    This downsampling process preserves significant features of the data, such as
+                    peaks and valleys, ensuring that important trends remain visible at all zoom
+                    levels. When downsampled, only lines are used to represent the data points.
+                </p>
+                <h4>Data Export</h4>
+                <p>
+                    The downsampling algorithm only affects the visual representation of the data
+                    and does not modify the underlying dataset. When exporting data as CSV, for
+                    example, the data is downsampled using a separate algorithm that ensures all
+                    data points within the selected time range are included in the export, at
+                    1-second intervals.
+                </p>
+            </div>
+        </div>
+    ) : null;
+    //////////////////////
 
     var pathSelector: JSX.Element | null;
     if (isPathSelectorDisplayed) {
@@ -456,7 +508,7 @@ export function Plots(props: PlotsProps) {
     return (
         <div className="plotcontainer rounded shadowed margin padding">
             <h2>Plots</h2>
-            {actionBar} {pathSelector}
+            {actionBar} {plotInfo} {pathSelector}
             <div className="horizontal flexbox">
                 <div id="plot" key="plot" className="plot">
                     {noSelectedSeriesMessage}
