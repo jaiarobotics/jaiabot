@@ -60,5 +60,4 @@ message UDPGateway
     optional int32 echo_trigger_issue_timeout_seconds = 19 [default = 20];
 
     optional bool in_simulation = 11 [default = true];
-
 }

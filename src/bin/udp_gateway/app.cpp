@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
 
 // Main thread
 
-double loop_freq = 10.0; // Hz
+double loop_freq = 1.0; // Hz
 
 jaiabot::apps::UDPGateway::UDPGateway()
     : zeromq::MultiThreadApplication<config::UDPGateway>(loop_freq * si::hertz)
@@ -252,15 +252,6 @@ void jaiabot::apps::UDPGateway::send_echo_command(const jaiabot::protobuf::EchoC
 
 void jaiabot::apps::UDPGateway::loop()
 {
-    if (!imu_udp_src_.has_addr() || !imu_udp_src_.has_port()) {
-        glog.is_debug2() && glog << "IMU UDP source not known yet, cannot send TAKE_READING command"
-                                 << std::endl;
-        return;
-    }
-
-    auto command = jaiabot::protobuf::IMUCommand();
-    command.set_type(jaiabot::protobuf::IMUCommand::TAKE_READING);
-    send_imu_command(command);
 }
 
 // Health checks

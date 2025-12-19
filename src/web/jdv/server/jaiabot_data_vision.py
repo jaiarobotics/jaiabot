@@ -94,9 +94,20 @@ def getAllSeriesDescriptors():
 @app.route('/series', methods=['GET'])
 def getSeries():
     log_names = parseFilenames(request.args.get('log'))
-    series_names = request.args.get('path')
+    series_names = request.args.get('path').split(',')
     series = jaialogStore.getSeries(log_names, series_names)
     return JSONResponse(series)
+
+@app.route('/objects', methods=['GET'])
+def getObjects():
+    log_names = parseFilenames(request.args.get('log'))
+    path = request.args.get('path')
+    assert path is not None, "Missing path parameter"
+    try:
+        return JSONResponse(jaialogStore.getObjects(log_names, path))
+    except KeyError:
+        return JSONResponse([])
+
 
 @app.route('/map', methods=['GET'])
 def getMap():
