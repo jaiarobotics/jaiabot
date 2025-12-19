@@ -44,17 +44,13 @@ def do_port_loop(echo: Echo):
 
 
     def send_state():
-        echoData = EchoData()
-
         echo_state = echo.getState()
 
         log.debug(f'State: {echo_state}')
         if echo_state != None:
-            echoData.echo_state = echo_state
-            envelope = UDPGatewayEnvelope()
-            envelope.echo_data.CopyFrom(echoData)
+            envelope = UDPGatewayEnvelope(echo_data=EchoData(echo_state=echo_state))
             sock.sendto(envelope.SerializeToString(), udp_gateway_address)
-            log.debug(f'Sent EchoData:\n{echoData} to {udp_gateway_address}')
+            log.debug(f'Sent EchoData:\n{envelope.echo_data} to {udp_gateway_address}')
         else:
             log.warning("State is None")
 
@@ -64,8 +60,8 @@ def do_port_loop(echo: Echo):
             data, _ = sock.recvfrom(1024) # buffer size is 1024 bytes
 
             # Deserialize the message
-            command = EchoCommand()
-            command.ParseFromString(data)
+            envelope = UDPGatewayEnvelope().FromString(data)
+            command = envelope.echo_command
             log.debug(f'Received command:\n{command}')
 
             # Execute the command
