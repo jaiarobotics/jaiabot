@@ -11,7 +11,7 @@ interface Props {
 
 /**
  * Produces the import mission set button.
- * It manages the alert/confirm dialog that appears when clicking on the button.
+ * It manages the alert/confirm dialog that displays warnings to the user
  */
 export default function ImportMissionSetButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -21,7 +21,7 @@ export default function ImportMissionSetButton(props: Props) {
     );
 
     /**
-     * Displays dialog before importing the mission set
+     * Displays initial warning dialog before importing the mission set
      *
      * @returns {void}
      */
@@ -32,9 +32,15 @@ export default function ImportMissionSetButton(props: Props) {
 
     /**
      * Closes the dialog and dispatches an event with the mission set snapshot
+     * if the user confirms they want to import
+     *
+     * ReOpens the dialog with secondary warnings if the user selects a
+     * file from an old format or an invalid format.
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
+     *
+     * @notes the onClose from the parent is only called on the initial confirmation
      */
     const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);

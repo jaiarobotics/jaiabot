@@ -33,8 +33,13 @@ const getDialogWarningText = (type: DialogWarningType) => {
 };
 
 /**
- * Produces the dialog box that appears when clicking on the import mission set button.
- * This dialog will be an alert.
+ * Produces the seconday dialog box for warnings based on warning type
+ * DialogWarningType.CLEAR_MISSIONS: Warns user the current misison set will be overwritten
+ *      Buttons will be Cancel & Confirm
+ * DialogWarningType.OLD_FORMAT: Notifies user the file is old format and suggests re-exporting
+ *      Button will be Close
+ * DialogWarningType.INVALID_FORMAT: Notifies user the file was invalid
+ *      Button will be Close
  */
 export function ImportMissionSetDialog(props: DialogProps) {
     if (!props.isVisible) {
@@ -54,7 +59,8 @@ export function ImportMissionSetDialog(props: DialogProps) {
 
 /**
  * Produces the buttons for the dialog box.
- * The buttons will be Cancel and Import.
+ * The buttons will be Cancel and Import if it is a commit dialog or
+ * Close if it is not
  */
 function ButtonRow(props: ButtonRowProps) {
     if (props.commit) {
