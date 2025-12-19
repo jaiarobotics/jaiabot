@@ -7,6 +7,7 @@ import {
     DiveParameters,
     DriftParameters,
     MissionTask,
+    StationKeepParameters,
     TaskType,
 } from "../../types/protobuf-types";
 
@@ -17,6 +18,7 @@ export default class Task {
     private diveParameters: DiveParameters;
     private driftParameters: DriftParameters;
     private constantHeadingParameters: ConstantHeadingParameters;
+    private stationKeepParameters: StationKeepParameters;
     private safetyDepth: number;
 
     // Parameter Constraints //
@@ -41,6 +43,7 @@ export default class Task {
         this.setDiveParameters(defaults.dive);
         this.setDriftParameters(defaults.drift);
         this.setConstantHeadingParameters(defaults.constantHeading);
+        this.setStationKeepParameters(defaults.stationKeep);
         this.safetyDepth = this.ZERO_LOWER_BOUND;
         this.isBottomDive = false;
         this.useHydrophone = false;
@@ -70,6 +73,9 @@ export default class Task {
                 break;
             case TaskType.CONSTANT_HEADING:
                 this.setConstantHeadingParameters(defaults.constantHeading);
+                break;
+            case TaskType.STATION_KEEP:
+                this.setStationKeepParameters(defaults.stationKeep);
                 break;
         }
 
@@ -119,6 +125,10 @@ export default class Task {
                 value = clampInput(value, this.MIN_SPEED_CONSTRAINT, this.MAX_SPEED_CONSTRAINT);
                 this.constantHeadingParameters.constant_heading_speed = value;
                 break;
+            case TaskParameterKeys.STATION_KEEP_TIME:
+                value = clampInput(value, this.ZERO_LOWER_BOUND, NO_CONSTRAINT);
+                this.stationKeepParameters.station_keep_time = value;
+                break;
             case TaskParameterKeys.SAFETY_DEPTH:
                 value = clampInput(value, this.ZERO_LOWER_BOUND, NO_CONSTRAINT);
                 this.safetyDepth = value;
@@ -130,9 +140,10 @@ export default class Task {
 
     private updateDefaultTaskParameters() {
         jaiaGlobal.setDefaultTaskParameters({
-            dive: this.getDiveParameters(),
-            drift: this.getDriftParameters(),
-            constantHeading: this.getConstantHeadingParameters(),
+            dive: this.diveParameters,
+            drift: this.driftParameters,
+            constantHeading: this.constantHeadingParameters,
+            stationKeep: this.stationKeepParameters,
         });
     }
 
@@ -158,6 +169,14 @@ export default class Task {
 
     setConstantHeadingParameters(constantHeadingParameters: ConstantHeadingParameters) {
         this.constantHeadingParameters = { ...constantHeadingParameters };
+    }
+
+    getStationKeepParameters() {
+        return this.stationKeepParameters;
+    }
+
+    setStationKeepParameters(stationKeepParameters: StationKeepParameters) {
+        this.stationKeepParameters = { ...stationKeepParameters };
     }
 
     getSafetyDepth() {
@@ -221,16 +240,18 @@ export default class Task {
         switch (this.type) {
             case TaskType.DIVE:
                 missionTask.dive = this.getDiveParameters();
-                missionTask.surface_drift = this.getDriftParameters();
+                missionTask.surface_drift = this.driftParameters;
                 break;
             case TaskType.SURFACE_DRIFT:
-                missionTask.surface_drift = this.getDriftParameters();
+                missionTask.surface_drift = this.driftParameters;
                 break;
             case TaskType.CONSTANT_HEADING:
-                missionTask.constant_heading = this.getConstantHeadingParameters();
+                missionTask.constant_heading = this.constantHeadingParameters;
+                break;
+            case TaskType.STATION_KEEP:
+                missionTask.station_keep = this.stationKeepParameters;
                 break;
         }
-
         missionTask.start_echo = this.useHydrophone;
         return missionTask;
     }

@@ -31,6 +31,9 @@ const defaultTaskParameters: TaskParameters = {
         constant_heading_time: 30,
         constant_heading_speed: 2,
     },
+    stationKeep: {
+        station_keep_time: 0,
+    },
 };
 
 export class JaiaGlobal {
@@ -110,6 +113,22 @@ export class JaiaGlobal {
 
     setControllingClientID(controllingClientID: string) {
         this.controllingClientID = controllingClientID;
+    }
+
+    resetSelectedWaypoint() {
+        this.selectedWaypoint = {
+            waypointNum: UNASSIGNED_ID,
+            missionID: UNASSIGNED_ID,
+            isMoveable: false,
+        };
+    }
+
+    resetSelectedTaskPacket() {
+        this.selectedTaskPacket = {
+            botID: UNASSIGNED_ID,
+            startTime: 0,
+            type: MapFeatureTypes.NONE,
+        };
     }
 
     /**

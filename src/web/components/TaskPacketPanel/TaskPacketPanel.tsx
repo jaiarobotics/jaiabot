@@ -21,38 +21,27 @@ const DECIMALS = 2;
  * Displays task packet data to the operator in a tabular format
  */
 export default function TaskPacketPanel(props: Props) {
-    const [selectCount, setSelectCount] = useState(0);
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+    const [prevSelected, setPrevSelected] = useState({ ...props.selectedTaskPacket });
+
+    const getTaskPacket = () => {
+        return props.taskPackets.getTaskPacket(
+            props.selectedTaskPacket.botID,
+            props.selectedTaskPacket.startTime,
+        );
+    };
+
+    const taskPacket = useMemo(() => getTaskPacket(), [prevSelected]);
 
     useEffect(() => {
         if (
-            `${taskPacket.bot_id}_${taskPacket.start_time}` !==
-            `${props.selectedTaskPacket.botID}_${props.selectedTaskPacket.startTime}`
+            prevSelected.botID !== props.selectedTaskPacket.botID ||
+            prevSelected.startTime !== props.selectedTaskPacket.startTime ||
+            prevSelected.type !== props.selectedTaskPacket.type
         ) {
-            setSelectCount(selectCount + 1);
+            setPrevSelected({ ...props.selectedTaskPacket });
         }
     });
-
-    /**
-     * Retrieves the data associated with the selected task packet
-     *
-     * @returns {TaskPacket}
-     */
-    const getTaskPacket = () => {
-        const allTaskPackets = props.taskPackets
-            .getIncludedTaskPackets()
-            .concat(props.taskPackets.getExcludedTaskPackets());
-        for (const taskPacket of allTaskPackets) {
-            if (
-                taskPacket.start_time === props.selectedTaskPacket.startTime &&
-                taskPacket.bot_id === props.selectedTaskPacket.botID
-            ) {
-                return taskPacket;
-            }
-        }
-    };
-
-    // Call getTaskPacket on initial render and task packet selection changes
-    const taskPacket = useMemo(() => getTaskPacket(), [selectCount]);
 
     /**
      * Gets the ID used by the server for querying task packet data
@@ -76,14 +65,6 @@ export default function TaskPacketPanel(props: Props) {
         return `${date.getHours()}:${date.getMinutes()} ${date.getMonth()}/${date.getDay()}/${date.getFullYear()}`;
     };
 
-    const jaiaDispatch = useContext(JaiaDispatchContext);
-
-    useEffect(() => {
-        return () => {
-            jaiaDispatch({ type: JaiaActions.CLOSED_TASK_PACKET_PANEL });
-        };
-    }, []);
-
     /**
      * Dispatches action to close panel
      *
@@ -99,8 +80,13 @@ export default function TaskPacketPanel(props: Props) {
     const startTime = formatDate(taskPacket.start_time);
     const endTime = formatDate(taskPacket.end_time);
 
+    // We use the guards because props.selectedTaskPacket is one step
+    // ahead of the taskPacket variable when a task icon is clicked
     switch (props.selectedTaskPacket.type) {
         case MapFeatureTypes.DIVE:
+            if (!taskPacket.dive) {
+                return;
+            }
             return (
                 <div className="task-packet-panel-container">
                     <div className="task-packet-panel">
@@ -108,10 +94,10 @@ export default function TaskPacketPanel(props: Props) {
                         <div>{taskPacket.bot_id}</div>
                         <div className="line-break"></div>
                         <div className="label">Depth Achieved:</div>
-                        <div>{taskPacket.dive.depth_achieved.toFixed(DECIMALS)} m</div>
+                        <div>{taskPacket.dive.depth_achieved.toFixed(DECIMALS) ?? ""} m</div>
                         <div className="line-break"></div>
                         <div className="label">Dive Rate:</div>
-                        <div>{taskPacket.dive.dive_rate.toFixed(DECIMALS)} m/s</div>
+                        <div>{taskPacket.dive.dive_rate.toFixed(DECIMALS) ?? ""} m/s</div>
                         <div className="line-break"></div>
                         <div className="label">Bottom Dive:</div>
                         <div>{taskPacket.dive.bottom_dive ? "Yes" : "No"}</div>
@@ -128,6 +114,9 @@ export default function TaskPacketPanel(props: Props) {
             );
 
         case MapFeatureTypes.DRIFT:
+            if (!taskPacket.drift || !taskPacket.drift.estimated_drift) {
+                return;
+            }
             return (
                 <div className="task-packet-panel-container">
                     <div className="task-packet-panel">
@@ -135,18 +124,24 @@ export default function TaskPacketPanel(props: Props) {
                         <div>{taskPacket.bot_id}</div>
                         <div className="line-break"></div>
                         <div className="label">Duration:</div>
-                        <div>{taskPacket.drift.drift_duration.toFixed(DECIMALS)} s</div>
+                        <div>{taskPacket.drift.drift_duration.toFixed(DECIMALS) ?? ""} s</div>
                         <div className="line-break"></div>
                         <div className="label">Speed:</div>
-                        <div>{taskPacket.drift.estimated_drift.speed.toFixed(DECIMALS)} m/s</div>
+                        <div>
+                            {taskPacket.drift.estimated_drift.speed.toFixed(DECIMALS) ?? ""} m/s
+                        </div>
                         <div className="line-break"></div>
                         <div className="label">Direction:</div>
-                        <div>{taskPacket.drift.estimated_drift.heading.toFixed(DECIMALS)} deg</div>
+                        <div>
+                            {taskPacket.drift.estimated_drift.heading.toFixed(DECIMALS) ?? ""} deg
+                        </div>
                         <div className="line-break"></div>
                         <div className="label">
                             Sig Wave Height<br></br>Beta:
                         </div>
-                        <div>{taskPacket.drift.significant_wave_height.toFixed(DECIMALS)} m</div>
+                        <div>
+                            {taskPacket.drift.significant_wave_height.toFixed(DECIMALS) ?? ""} m
+                        </div>
                         <div className="line-break"></div>
                         <div className="label">Start Time:</div>
                         <div>{startTime}</div>

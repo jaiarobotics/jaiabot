@@ -4,6 +4,7 @@ import {
     DiveParameters,
     DriftParameters,
     MissionState,
+    StationKeepParameters,
 } from "./protobuf-types";
 
 export enum NodeTypes {
@@ -40,6 +41,7 @@ export interface TaskParameters {
     dive: DiveParameters;
     drift: DriftParameters;
     constantHeading: ConstantHeadingParameters;
+    stationKeep: StationKeepParameters;
 }
 
 export enum TaskParameterKeys {
@@ -50,6 +52,7 @@ export enum TaskParameterKeys {
     HEADING = "HEADING",
     CONSTANT_HEADING_TIME = "CONSTANT_HEADING_TIME",
     SPEED = "SPEED",
+    STATION_KEEP_TIME = "STATION_KEEP_TIME",
     SAFETY_DEPTH = "SAFETY_DEPTH",
 }
 

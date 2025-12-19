@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { listSavedMissionSets } from "./mission-set-storage";
@@ -7,6 +8,7 @@ import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
 import ImportMissionSetButton from "./ImportMissionSetButton/ImportMissionSetButton";
 import ExportMissionSetButton from "./ExportMissionSetButton/ExportMissionSetButton";
+import { JCC_CONTAINER } from "../../../utils/constants";
 
 import "./MissionSetStorage.less";
 
@@ -63,7 +65,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
         return <div></div>;
     }
 
-    return (
+    return createPortal(
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}>
                 <div className="jaia-dialog mission-set-storage">
@@ -106,7 +108,8 @@ export function MissionSetStorageDialog(props: DialogProps) {
                     <button onClick={() => handleCloseButtonClick()}>Close</button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.getElementById(JCC_CONTAINER),
     );
 }
 
