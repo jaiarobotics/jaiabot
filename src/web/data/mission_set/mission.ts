@@ -18,7 +18,8 @@ export default class Mission {
     private bottomDepthSafetyParams: BottomDepthSafetyParams;
 
     constructor() {
-        // missionID assigned by missions singleton
+        // missionID assigned by missionSet singleton
+        // speeds set by missionSet singleton
         this.waypoints = [];
         this.repeats = 1;
     }
