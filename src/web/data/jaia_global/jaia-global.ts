@@ -31,6 +31,9 @@ const defaultTaskParameters: TaskParameters = {
         constant_heading_time: 30,
         constant_heading_speed: 2,
     },
+    stationKeep: {
+        station_keep_time: 0,
+    },
 };
 
 export class JaiaGlobal {
