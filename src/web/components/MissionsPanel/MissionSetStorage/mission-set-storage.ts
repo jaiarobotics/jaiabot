@@ -287,8 +287,9 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
                     });
                     break;
                 case TaskType.STATION_KEEP:
-                    // TODO Not sure how to set Station Keep parameter station_keep_time
-                    // Check with Twomey if I cant find it
+                    task.setStationKeepParameters({
+                        station_keep_time: goal.task.station_keep?.station_keep_time,
+                    });
                     break;
             }
             waypoint.setTask(task);
@@ -297,7 +298,5 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
         snapshot.missions.push([Number(run.id), mission]);
     }
 
-    // TODO Debug paying close attention to mission names,
-    // mission IDs etc
     return snapshot;
 }
