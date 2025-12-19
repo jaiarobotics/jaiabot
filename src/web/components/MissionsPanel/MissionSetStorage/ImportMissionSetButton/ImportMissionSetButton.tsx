@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
-import { ImportMissionSetDialog } from "./ImportMissionSetDialog";
+import { ImportMissionSetDialog, DialogWarningType } from "./ImportMissionSetDialog";
 import { LoadResultType, loadSnapshotFromFile } from "../mission-set-storage";
 
 interface Props {
@@ -16,6 +16,9 @@ interface Props {
 export default function ImportMissionSetButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [dialogWarningType, setDialogWarningType] = useState<DialogWarningType>(
+        DialogWarningType.CLEAR_MISSIONS,
+    );
 
     /**
      * Displays dialog before importing the mission set
@@ -23,6 +26,7 @@ export default function ImportMissionSetButton(props: Props) {
      * @returns {void}
      */
     const onButtonClick = () => {
+        setDialogWarningType(DialogWarningType.CLEAR_MISSIONS);
         setIsDialogVisible(true);
     };
 
@@ -42,11 +46,15 @@ export default function ImportMissionSetButton(props: Props) {
                     missionSetSnapshot: loadResults.snapshot,
                 });
                 if (loadResults.resultType === LoadResultType.OLD_FORMAT) {
-                    // TODO Secondary dialog asking to export to new format
+                    setDialogWarningType(DialogWarningType.OLD_FORMAT);
+                    setIsDialogVisible(true);
+                    return;
                 }
             } else {
-                // TODO Secondary dialog warning user file could not be imported
+                setDialogWarningType(DialogWarningType.INVALID_FORMAT);
+                setIsDialogVisible(true);
                 console.warn("No valid mission set file selected");
+                return;
             }
 
             props.onClose();
@@ -58,7 +66,11 @@ export default function ImportMissionSetButton(props: Props) {
             <button aria-label={"import-mission-set"} onClick={() => onButtonClick()}>
                 Import
             </button>
-            <ImportMissionSetDialog isVisible={isDialogVisible} onClose={onDialogClose} />
+            <ImportMissionSetDialog
+                isVisible={isDialogVisible}
+                warningType={dialogWarningType}
+                onClose={onDialogClose}
+            />
         </div>
     );
 }
