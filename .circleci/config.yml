@@ -25,7 +25,6 @@ environment-template-noble: &environment-template-noble
   DISTRO_RELEASE_VERSION: "ubuntu24.04"
 
 ## Pre-declare Docker containers
-
 docker-base-noble: &docker-base-noble
   - image: gobysoft/jaiabot-ubuntu-amd64:24.04.1
     auth:
