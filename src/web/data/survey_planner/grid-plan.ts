@@ -2,7 +2,7 @@ import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
 import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { BottomDepthSafetyParams, GeographicCoordinate } from "../../types/protobuf-types";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,
@@ -247,6 +247,25 @@ export class GridPlan {
             this.missions.set(baseMission.getMissionID(), baseMission);
             lanesCovered += updatedLanesPerBot;
             missionID += 1;
+        }
+    }
+
+    /**
+     * Attaches the safety return parameters to each mission
+     * in the grid plan mission set
+     *
+     * @returns {void}
+     */
+    applySafetyReturnParameters() {
+        for (const mission of this.missions.values()) {
+            const constantHeadingParams = this.srpTask.getConstantHeadingParameters();
+            const bottomDepthSafetyParams: BottomDepthSafetyParams = {
+                constant_heading: constantHeadingParams.constant_heading.toString(),
+                constant_heading_speed: constantHeadingParams.constant_heading_speed.toString(),
+                constant_heading_time: constantHeadingParams.constant_heading_time.toString(),
+                safety_depth: gridPlan.getSRPTask().getSafetyDepth().toString(),
+            };
+            mission.setBottomDepthSafetyParams(bottomDepthSafetyParams);
         }
     }
 
