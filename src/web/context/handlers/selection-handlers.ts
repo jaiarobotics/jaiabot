@@ -9,8 +9,7 @@ import { handleMapModeChange } from "../../openlayers/maps/map";
 import { MapModes } from "../../types/openlayers-types";
 import { JaiaContextType, JaiaAction, ButtonNames, ButtonTypes } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { syncOpenLayers } from "./handler-utils";
-import { resetSelectedWaypoint } from "./waypoint-handlers";
+import { syncOpenLayers, syncTaskLayers } from "./handler-utils";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 
 /**
@@ -96,7 +95,12 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
 
     // Resets
     if (jaiaGlobal.getSelectedWaypoint().waypointNum !== UNASSIGNED_ID) {
-        resetSelectedWaypoint(mutableState);
+        jaiaGlobal.resetSelectedWaypoint();
+    }
+
+    if (jaiaGlobal.getSelectedTaskPacket().botID !== UNASSIGNED_ID) {
+        jaiaGlobal.resetSelectedTaskPacket();
+        syncTaskLayers();
     }
 
     if (gridPlan.getState() !== GridPlanningStates.ACCEPTING_MISSION_START_LOCATION) {
