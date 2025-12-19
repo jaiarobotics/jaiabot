@@ -9,7 +9,7 @@ import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType, PanelActions } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { resetSelectedWaypoint } from "./waypoint-handlers";
+import { syncTaskLayers } from "./handler-utils";
 
 /**
  * Closes the Bot or Hub details panel
@@ -41,7 +41,7 @@ export function handleClosedWaypointPanel(mutableState: JaiaContextType, action:
         mission.getWaypoints()[jaiaGlobal.getSelectedWaypoint().waypointNum - 1] = action.waypoint;
         missionLayer.updateFeatures();
     }
-    resetSelectedWaypoint(mutableState);
+    jaiaGlobal.resetSelectedWaypoint();
     mutableState.visiblePanel = ButtonNames.NONE;
     return mutableState;
 }
@@ -54,20 +54,9 @@ export function handleClosedWaypointPanel(mutableState: JaiaContextType, action:
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClosedTaskPacketPanel(mutableState: JaiaContextType, action: JaiaAction) {
-    if (action.panelAction === PanelActions.CLOSE) {
-        mutableState.visiblePanel = ButtonNames.NONE;
-        // useEffect in TaskPacketPanel will be triggered to conduct remaining cleanup
-        return mutableState;
-    }
-
-    jaiaGlobal.setSelectedTaskPacket({
-        botID: UNASSIGNED_ID,
-        startTime: 0,
-        type: MapFeatureTypes.NONE,
-    });
-    diveLayer.updateFeatures();
-    driftLayer.updateFeatures();
-    excludedTaskPacketsLayer.updateFeatures();
+    mutableState.visiblePanel = ButtonNames.NONE;
+    jaiaGlobal.resetSelectedTaskPacket();
+    syncTaskLayers();
     return mutableState;
 }
 
