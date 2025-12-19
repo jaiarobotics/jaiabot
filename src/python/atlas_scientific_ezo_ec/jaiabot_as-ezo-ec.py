@@ -10,7 +10,7 @@ from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 parser = argparse.ArgumentParser(description=\
     '''Read salinity from an Atlas Scientific EC EZO sensor, and publish to the UDP gateway.''')
 parser.add_argument('-a', dest='address', type=int, default=100, help='I2C address of the sensor, defaults to 100 (0x64)')
-parser.add_argument('-p', dest='udp_gateway_port', type=int, help='UDP gateway port to publish data to')
+parser.add_argument('-p', dest='udp_gateway_port', type=int, default=20000, help='UDP gateway port to publish data to')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
 parser.add_argument('--simulator', action='store_true')
 
