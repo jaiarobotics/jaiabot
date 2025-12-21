@@ -203,6 +203,7 @@ function isCurrentMissionFile(value: any): boolean {
 
 /**
  * Checks if parsed datsa matches the legacy format
+ *
  * @param {any} value Raw parsed data
  * @returns {Boolean} True if legacy format
  */
@@ -218,11 +219,10 @@ function isLegacyMissionFile(value: any): boolean {
  * @returns {MissionSetSnapshot} Snapshot of mission set
  *
  * @notes
- * This is the default extrator and is called when a file
+ * This is the default extractor and is called when a file
  * contains a mission set version. Changes to the MissionSet interface
  * may affect this function.
  */
-
 function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
     const missionsArray: [number, Mission][] = [];
     if (Array.isArray(rawMissionSet.missions)) {
@@ -251,9 +251,8 @@ function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
  * @returns {MissionSetSnapshot} Snapshot of mission set
  *
  * @notes
- * This extrator is called when a file appears to be a legacy file.
+ * This extractor is called when a file appears to be a legacy file.
  */
-
 function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
     const snapshot: MissionSetSnapshot = {
         missions: [],
