@@ -130,7 +130,7 @@ export function exportMissionSetToFile(name: string) {
  * Prompts user to open a file with a serialized mission set
  * and returns a MissionSetSnapshot if succesful
  *
- * @retruns {MissionSetSnapshot | null} Snapshot of mission set if the selected
+ * @retruns Promis of {MissionSetSnapshot | null} Snapshot of mission set if the selected
  * file can be parsed correctly otherwise returns null
  *
  * @notes
@@ -158,12 +158,12 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
 
                 const parsed = JSON.parse(await file.text());
                 if (!parsed) {
-                    // File could not valid JSON
+                    // File could not be parsed
                     resolve(null);
                     return;
                 }
 
-                // Check version of file to parse
+                // Check version of parsed file
                 if (isCurrentMissionFile(parsed)) {
                     loadSnapshotResult.snapshot = extractMissionSetSnapshot(parsed.snapshot);
                     loadSnapshotResult.resultType = LoadResultType.CURRENT_FORMAT;
@@ -185,6 +185,13 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
         input.click();
     });
 }
+
+/**
+ * Checks if parsed data matches the current mission set format
+ *
+ * @param {any} value Raw parsed data
+ * @returns {Boolean} True if current format
+ */
 function isCurrentMissionFile(value: any): boolean {
     return (
         value &&
@@ -194,6 +201,11 @@ function isCurrentMissionFile(value: any): boolean {
     );
 }
 
+/**
+ * Checks if parsed datsa matches the legacy format
+ * @param {any} value Raw parsed data
+ * @returns {Boolean} True if legacy format
+ */
 function isLegacyMissionFile(value: any): boolean {
     return value && typeof value === "object" && value.runs !== undefined;
 }
@@ -233,14 +245,13 @@ function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
 }
 
 /**
- * Extracts a mission set data from a raw legacy mission file (Jaia 2.3 or earlier)
+ * Extracts mission set data from a raw legacy mission file (Jaia 2.3 or earlier)
  *
  * @param {LegacyMissionInterface} rawMissionSet Raw mission data parsed from legacy file
  * @returns {MissionSetSnapshot} Snapshot of mission set
  *
  * @notes
- * This extrator is called when a file does not have a version defined.
- * It is assumed to be a legacy file.
+ * This extrator is called when a file appears to be a legacy file.
  */
 
 function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
