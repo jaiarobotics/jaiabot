@@ -20,7 +20,6 @@ from dataclasses_json import dataclass_json
 
 # JAIA message types as python dataclasses
 from jaia_messages import *
-import path_descriptors
 
 
 def itemsmatching(file: h5py.File, regular_expression: re.Pattern):
