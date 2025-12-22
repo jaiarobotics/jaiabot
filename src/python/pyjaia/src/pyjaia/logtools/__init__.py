@@ -264,7 +264,7 @@ class JaiaLogH5:
 
         series.utime = []
         series.y_values = []
-        series.hovertext_map = {}
+        series.hovertext_map = None
 
         path = self.get_path(path)
         l.info(color_text(f'Loading series from path {path} in file {self.log.filename}', 'green'))
@@ -288,7 +288,7 @@ class JaiaLogH5:
             series.hovertext_map = None
         else:
             series.utime, _, series.y_values = zip(*s)
-            series.hovertext_map = get_enum_map(self.log[path]) or {}
+            series.hovertext_map = get_enum_map(self.log[path])
             series.hovertext = None
 
         return series
