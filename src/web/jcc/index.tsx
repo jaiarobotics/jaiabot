@@ -37,10 +37,15 @@ let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
 
 const statusInterval = setInterval(async () => {
+    const startTime = new Date().getTime();
     if (statusRequestInFlight) {
+        const endTime = new Date().getTime();
+        const duration = endTime - startTime;
+        if (duration > MAX_REQUEST_TIME) {
+            updateWarning(CONGESTION_WARNING, true);
+        }
         return;
     }
-    const startTime = new Date().getTime();
     try {
         statusRequestInFlight = true;
         const response = await fetch(STATUS_URL);
