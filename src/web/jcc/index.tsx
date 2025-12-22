@@ -28,6 +28,10 @@ const TASK_PACKET_VERSION_URL = "/jaia/v0/task-packets-version";
 const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
 const DISCONNECT_THRESHOLD = NO_COMMS_STATUS_AGE * 1e6;
+const MAX_REQUEST_TIME = 10000; // ms;
+
+const CONNECTION_WARNING = "connection-warning";
+const CONGESTION_WARNING = "congestion-warning";
 
 let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
@@ -36,6 +40,7 @@ const statusInterval = setInterval(async () => {
     if (statusRequestInFlight) {
         return;
     }
+    const startTime = new Date().getTime();
     try {
         statusRequestInFlight = true;
         const response = await fetch(STATUS_URL);
@@ -48,14 +53,21 @@ const statusInterval = setInterval(async () => {
             updateJaiaGlobal(json.controllingClientId);
             updateOpenLayers();
             if (json.messages.error && json.messages.error === HUB_CONNECTION_ERROR) {
-                updateDisconnectedWarning(true);
+                updateWarning(CONNECTION_WARNING, true);
             } else {
-                updateDisconnectedWarning(false);
+                updateWarning(CONNECTION_WARNING, false);
             }
         }
     } catch (error) {
-        updateDisconnectedWarning(true);
+        updateWarning(CONNECTION_WARNING, true);
         console.error(error);
+    }
+    const endTime = new Date().getTime();
+    const duration = endTime - startTime;
+    if (duration > MAX_REQUEST_TIME) {
+        updateWarning(CONGESTION_WARNING, true);
+    } else {
+        updateWarning(CONGESTION_WARNING, false);
     }
     statusRequestInFlight = false;
 }, DATA_MODEL_POLL_TIME);
@@ -156,8 +168,8 @@ function updateTaskLayers() {
  * @param {boolean} isDisconnected State of client to server connection
  * @returns {void}
  */
-function updateDisconnectedWarning(isDisconnected: boolean) {
-    const connectionWarning = document.getElementById("connection-warning");
+function updateWarning(id: string, isDisconnected: boolean) {
+    const connectionWarning = document.getElementById(id);
     if (isDisconnected) {
         connectionWarning.style.visibility = "visible";
     } else {
