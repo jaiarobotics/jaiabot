@@ -33,6 +33,7 @@
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
+#include "jaiabot/messages/arduino.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -256,10 +257,13 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
         {
-            current_tpv_ = tpv;
-
-            // TODO make sure this meets gps requirements
-            machine_->set_gps_tpv(current_tpv_);
+            if (tpv.has_mode() &&
+                (tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode2D ||
+                 tpv.mode() == goby::middleware::protobuf::gpsd::TimePositionVelocity::Mode3D))
+            {
+                current_tpv_ = tpv;
+                machine_->set_gps_tpv(current_tpv_);
+            }
         });
 
     // subscribe for GPS data (to reacquire gps)
@@ -275,12 +279,19 @@ jaiabot::apps::MissionManager::MissionManager()
                 ev.hdop = sky.hdop();
                 ev.pdop = sky.pdop();
                 machine_->process_event(ev);
+            }
+        });
 
-                // Publish TPV that meets our mission requirements
-                if (current_tpv_.IsInitialized())
-                {
-                    machine_->set_gps_tpv(current_tpv_);
-                }
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
+            glog.is_debug2() && glog << "Received Arduino Response " << arduino_response.ShortDebugString() << std::endl;
+
+            if (arduino_response.has_motor())
+            {
+                statechart::EvMotorStopped ev;
+                ev.is_motor_stopped = arduino_response.motor() == 1500;
+                machine_->process_event(ev);
             }
         });
 
@@ -297,6 +308,7 @@ jaiabot::apps::MissionManager::MissionManager()
                     auto pitch = imu_data.euler_angles().pitch_with_units();
                     statechart::EvVehiclePitch ev;
                     ev.pitch = pitch;
+                    machine_->set_latest_pitch(pitch);
                     machine_->process_event(ev);
                     fwd_progress_data_.latest_pitch = pitch;
                 }

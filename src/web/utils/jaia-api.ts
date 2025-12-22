@@ -243,7 +243,7 @@ export class JaiaAPI {
         }
     }
 
-    async getOfflineMaps() {
+    async getHubMaps() {
         return this.get("maps/").then((response) => {
             return response as Promise<MapsDirectory>;
         });
@@ -270,8 +270,8 @@ export class JaiaAPI {
         });
     }
 
-    async deleteOfflineMap(mapName: string) {
-        return fetch(`maps/${mapName}`, {
+    async deleteHubMap(map_name: string) {
+        return fetch(`maps/${map_name}`, {
             method: "DELETE",
         });
     }

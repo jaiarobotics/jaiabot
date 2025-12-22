@@ -659,8 +659,8 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
         node_status.mutable_speed()->set_over_ground_with_units(
             dccl_nav.speed().over_ground_with_units());
 
-    if (dccl_nav.has_depth())
-        node_status.mutable_global_fix()->set_depth_with_units(dccl_nav.depth_with_units());
+    if (dccl_nav.has_sensor_depth())
+        node_status.mutable_global_fix()->set_depth_with_units(dccl_nav.sensor_depth_with_units());
 
     // check for data offload
 

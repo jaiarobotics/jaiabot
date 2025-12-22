@@ -1,13 +1,9 @@
 import { mdiArrowLeft, mdiDelete, mdiMagnify } from "@mdi/js";
 import React from "react";
-import { LogApi, SeriesDescriptor, SeriesDescriptor_matchesString } from "../model/LogApi";
+import { LogApi } from "../model/LogApi";
+import { SeriesDescriptor } from "../model/SeriesDescriptor";
+import { PathIndex } from "../model/PathIndex";
 import Icon from "@mdi/react";
-
-interface KeywordIndexEntry {
-    keyword: string;
-    score: number;
-    series_descriptor: SeriesDescriptor;
-}
 
 interface PathSelectorProps {
     logs: string[];
@@ -21,8 +17,7 @@ interface PathSelectorState {
     mode: "search" | "browse";
 
     // Search state
-    series_descriptors: { [path: string]: SeriesDescriptor };
-    series_descriptor_keyword_index: KeywordIndexEntry[];
+    search_index: PathIndex;
     search_text: string;
     search_results: SeriesDescriptor[];
 
@@ -79,8 +74,7 @@ export default class PathSelector extends React.Component {
             mode: "search",
             chosen_path: "",
             next_path_segments: [],
-            series_descriptors: {},
-            series_descriptor_keyword_index: [],
+            search_index: new PathIndex([]),
             search_text: "",
             search_results: [],
         };
@@ -88,50 +82,7 @@ export default class PathSelector extends React.Component {
 
     load_series_descriptors() {
         LogApi.getAllSeriesDescriptors(this.state.logs).then((series_descriptors) => {
-            let series_descriptors_map: { [path: string]: SeriesDescriptor } = {};
-            for (const sd of series_descriptors) {
-                series_descriptors_map[sd.path] = sd;
-            }
-            this.setState({ series_descriptors: series_descriptors_map });
-
-            var series_descriptor_keyword_index: KeywordIndexEntry[] = [];
-
-            // Pre-calculate keyword scores
-            for (const series_descriptor of series_descriptors) {
-                let keyword_scores: { [keyword: string]: number } = {};
-
-                for (const name_part of series_descriptor.name.split(" ")) {
-                    if (name_part.length > 1) {
-                        keyword_scores[name_part.toLowerCase()] =
-                            (keyword_scores[name_part.toLowerCase()] || 0) + 3;
-                    }
-                }
-
-                for (const desc_part of series_descriptor.description?.split(" ") || []) {
-                    if (desc_part.length > 1) {
-                        keyword_scores[desc_part.toLowerCase()] =
-                            (keyword_scores[desc_part.toLowerCase()] || 0) + 2;
-                    }
-                }
-
-                for (const path_part of series_descriptor.path.split("/")) {
-                    if (path_part.length > 1) {
-                        keyword_scores[path_part.toLowerCase()] =
-                            (keyword_scores[path_part.toLowerCase()] || 0) + 1;
-                    }
-                }
-
-                for (const [keyword, keyword_score] of Object.entries(keyword_scores)) {
-                    series_descriptor_keyword_index.push({
-                        keyword: keyword,
-                        score: keyword_score,
-                        series_descriptor,
-                    });
-                }
-            }
-
-            series_descriptor_keyword_index.sort((a, b) => (b.keyword < a.keyword ? 1 : -1)); // Descending
-            this.setState({ series_descriptor_keyword_index });
+            this.setState({ search_index: new PathIndex(series_descriptors) });
         });
     }
 
@@ -155,31 +106,8 @@ export default class PathSelector extends React.Component {
             return;
         }
 
-        let results: { [path: string]: number } = {};
-
-        for (const query_part of query.toLowerCase().split(" ")) {
-            if (query_part.length < 2) {
-                continue;
-            }
-
-            for (const keyword_entry of this.state.series_descriptor_keyword_index) {
-                if (keyword_entry.keyword === query_part) {
-                    results[keyword_entry.series_descriptor.path] =
-                        (results[keyword_entry.series_descriptor.path] || 0) +
-                        2 * keyword_entry.score;
-                } else if (keyword_entry.keyword.startsWith(query_part)) {
-                    results[keyword_entry.series_descriptor.path] =
-                        (results[keyword_entry.series_descriptor.path] || 0) + keyword_entry.score;
-                }
-            }
-        }
-
-        const search_results_paths = Object.keys(results).sort((a, b) => results[b] - results[a]); // Descending
-        const search_results = search_results_paths.map(
-            (path) => this.state.series_descriptors[path],
-        );
-
-        this.setState({ search_results }); // Descending
+        const search_results = this.state.search_index.search(query);
+        this.setState({ search_results });
     }
 
     renderSearchBar() {

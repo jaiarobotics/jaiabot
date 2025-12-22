@@ -129,6 +129,8 @@ JAIA_RF_ENCRYPTION_PASSWORD=$RET
 db_get jaiabot-embedded/comms_links
 JAIA_COMMS_LINKS="$(echo $RET | sed 's/,/ /g')"
 
+db_get jaiabot-embedded/camera_positions
+JAIA_CAMERA_POSITIONS="$(echo $RET | sed 's/,/ /g')"
 
 /usr/share/jaiabot/config/gen/systemd.py ${JAIA_TYPE} \
                                          --enable \
@@ -154,7 +156,8 @@ JAIA_COMMS_LINKS="$(echo $RET | sed 's/,/ /g')"
                                          --temperature_sensor_type=${JAIA_TEMPERATURE_SENSOR_TYPE} \
                                          --pressure_sensor_type=${JAIA_PRESSURE_SENSOR_TYPE} \
                                          --rf_encryption_password=${JAIA_RF_ENCRYPTION_PASSWORD} \
-                                         --comms_links ${JAIA_COMMS_LINKS}
+                                         --comms_links ${JAIA_COMMS_LINKS} \
+                                         --camera_positions ${JAIA_CAMERA_POSITIONS}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 
@@ -224,6 +227,12 @@ fi
 
 
 echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' jaiabot-embedded)" > /etc/jaiabot/software_version
+
+if [ ! -f /etc/apt/apt.conf.d/99disable-auto-upgrades ]; then
+    echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/99disable-auto-upgrades
+    echo 'APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99disable-auto-upgrades
+    systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
+fi
 
 #DEBHELPER#
 
