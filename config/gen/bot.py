@@ -209,7 +209,8 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
     subscribes_block+='''subscribe {
     link: LINK_IRIDIUM
     subscribe_on_start: true
-    resubscribe: false
+    resubscribe: true
+    resubscribe_interval: 300
 }\n'''
         
     link_block += config.template_substitute(templates_dir+'/link_iridium.pb.cfg.in',
