@@ -177,7 +177,7 @@ filter-template-debian-builds: &filter-template-debian-builds
       only: /.*/
     branches:
       only:
-        - "feature/2.y/developer-friendly-jcc"
+        - "task/place-dev-friendly-on-test"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
