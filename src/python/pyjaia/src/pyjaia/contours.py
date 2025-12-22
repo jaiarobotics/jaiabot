@@ -173,7 +173,7 @@ def getContourValues(bottomDives: List[BottomDive], contourCount = 10):
     Returns:
         NDArray[float]: An array of equally-spaced contour values spanning the rand of depths for the `bottomDive` objects.
     """
-    if len(bottomDives) < 3:
+    if len(bottomDives) < 1:
         return [] # No bottom dives, so no contours.
 
     # Get contour values

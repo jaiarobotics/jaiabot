@@ -43,9 +43,8 @@ message HubStatus
     message BotOffloadData
     {
         required uint32 bot_id = 1;
-        optional uint32 data_offload_percentage = 2;
+        optional int32 data_offload_percentage = 2;
         optional bool offload_succeeded = 3;
-        repeated uint32 bots_pending = 4;
     }
     optional BotOffloadData bot_offload = 13;
 

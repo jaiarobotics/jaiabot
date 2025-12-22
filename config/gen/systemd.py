@@ -228,14 +228,7 @@ class CloudHubType(Enum):
     PRIMARY = 1
     SECONDARY = 2
 
-class CloudHubType(Enum):
-    NEVER = 0
-    PRIMARY = 1
-    SECONDARY = 2
-
 is_cloudhub=False
-cloudhub_type=CloudHubType.SECONDARY
-
 cloudhub_type=CloudHubType.SECONDARY
 
 if args.type == 'bot':
