@@ -150,12 +150,12 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
                 return;
             }
 
-            try {
-                const loadSnapshotResult: LoadSnapshotResult = {
-                    snapshot: null,
-                    resultType: LoadResultType.INVALID_FORMAT,
-                };
+            const loadSnapshotResult: LoadSnapshotResult = {
+                snapshot: null,
+                resultType: LoadResultType.INVALID_FORMAT,
+            };
 
+            try {
                 const parsed = JSON.parse(await file.text());
                 if (!parsed) {
                     // File could not be parsed
@@ -176,9 +176,13 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
                     resolve(loadSnapshotResult);
                     return;
                 }
+
+                // file is json but does not match expected formats
+                resolve(loadSnapshotResult);
+                return;
             } catch (error) {
                 console.error("Error reading or parsing mission set file:", error);
-                resolve({ snapshot: null, resultType: LoadResultType.INVALID_FORMAT });
+                resolve(loadSnapshotResult);
             }
         };
         input.click();
