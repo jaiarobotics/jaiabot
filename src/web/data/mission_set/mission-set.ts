@@ -3,6 +3,11 @@ import Mission from "./mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds } from "../../types/protobuf-types";
 
+// This constant will be used to track versions of mission sets
+// exported to files, update whenever the class or supporting
+// classes are updated
+export const MISSION_SET_VERSION = "2.0";
+
 export interface MissionSetSnapshot {
     missions: [number, Mission][];
     nextMissionID: number;
