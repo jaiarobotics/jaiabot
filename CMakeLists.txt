@@ -211,6 +211,8 @@ set(scripts_to_install
   fleet/jaia-create-fleet-config.sh
   fleet/jaia-generate-first-boot.py
   fleet/jaia-fleet-config-update-iso.sh
+  fleet/jaia-create-cloudhub.py
+  fleet/jaia-delete-cloudhub.py
   # First boot (also used by VirtualFleet creation)
   init/jaia-create-ansible-inventory.sh
   )
