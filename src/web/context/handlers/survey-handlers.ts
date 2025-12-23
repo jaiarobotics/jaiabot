@@ -11,6 +11,7 @@ import { MISSION_ENDPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { MapModes } from "../../types/openlayers-types";
 import { TaskType } from "../../types/protobuf-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
+import { isActiveMission } from "./handler-utils";
 
 /**
  * Makes map and grid plan changes based on survey state change
@@ -75,9 +76,19 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
                 }
             }
             gridPlan.fitLanesToBots();
+
             if (gridPlan.getSRPTask().getType() === TaskType.CONSTANT_HEADING) {
                 gridPlan.applySafetyReturnParameters();
             }
+
+            for (const mission of missionSet.getMissions().values()) {
+                if (isActiveMission(mission.getMissionID())) {
+                    missionSet.addGhostMission(mission.getMissionID());
+                } else {
+                    missionSet.deleteGhostMission(mission.getMissionID());
+                }
+            }
+
             missionSet.setMissions(cloneDeep(gridPlan.getMissions()));
             missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
             missionSet.setNextMissionID(gridPlan.getMissions().size + 1);
@@ -88,6 +99,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             handleMapModeChange(MapModes.DEFAULT);
             mutableState.visiblePanel = ButtonNames.NONE;
             missionLayer.updateFeatures();
+            console.log(missionSet.getGhostMissions());
             break;
     }
     return mutableState;

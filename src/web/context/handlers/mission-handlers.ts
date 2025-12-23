@@ -9,7 +9,7 @@ import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { syncOpenLayers } from "./handler-utils";
+import { isActiveMission, syncOpenLayers } from "./handler-utils";
 
 /**
  * Makes a call to add a new, default mission to the data model
@@ -40,10 +40,15 @@ export function handleAddMission(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaAction) {
+    if (isActiveMission(action.missionID)) {
+        missionSet.addGhostMission(action.missionID);
+    }
     missionSet.deleteMission(action.missionID);
     missionsManager.removeAssignment(action.missionID);
 
     missionLayer.updateFeatures();
+
+    console.log(missionSet.getGhostMissions());
 
     return mutableState;
 }
@@ -76,12 +81,19 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDeleteAllMissions(mutableState: JaiaContextType) {
+    for (const mission of missionSet.getMissions().values()) {
+        if (isActiveMission(mission.getMissionID())) {
+            missionSet.addGhostMission(mission.getMissionID());
+        }
+    }
     missionSet.deleteAllMissions();
     missionsManager.clear();
 
     mutableState.missionAccordionStates = {};
 
     missionLayer.updateFeatures();
+
+    console.log(missionSet.getGhostMissions());
 
     return mutableState;
 }

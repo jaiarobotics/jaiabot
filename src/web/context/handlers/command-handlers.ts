@@ -49,4 +49,6 @@ function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Co
     if (missionSet.getMissionIDInEditMode() === missionID) {
         missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
     }
+    missionSet.deleteGhostMission(missionID);
+    console.log(missionSet.getGhostMissions());
 }

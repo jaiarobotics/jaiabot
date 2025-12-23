@@ -6,6 +6,8 @@ import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
+import { bots } from "../../data/bots/bots";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 /**
  * Repaints the map layers using the latest data
@@ -24,4 +26,13 @@ export function syncTaskLayers() {
     driftLayer.updateFeatures();
     contourLayer.updateFeatures();
     excludedTaskPacketsLayer.updateFeatures();
+}
+
+export function isActiveMission(missionID: number) {
+    const botID = missionsManager.getBotID(missionID);
+    const bot = bots.getBot(botID);
+    if (bot && bot.getMissionStatus().targetWaypoint) {
+        return true;
+    }
+    return false;
 }
