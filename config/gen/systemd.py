@@ -739,7 +739,8 @@ jaia_firmware = [
      'template': 'backup-date.service.in',
      'args': '',
      'runs_on': [Type.BOTH],
-     'runs_when': Mode.BOTH},
+     'runs_when': Mode.BOTH,
+     'runs_on_cloudhub': CloudHubType.SECONDARY },
      {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',
@@ -819,7 +820,7 @@ for app in jaiabot_apps:
         if app['template'] == 'jcc.conf.in':
             print('Enabling ' + service)
             subprocess.run('a2ensite ' + service, check=True, shell=True)
-            subprocess.run('systemctl reload apache2', check=True, shell=True)
+            subprocess.run('if systemctl is-active --quiet apache2; then systemctl reload apache2; else systemctl start apache2; fi', check=True, shell=True)
             
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
 def is_firm_run(firm):
