@@ -197,12 +197,7 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
  * @returns {Boolean} True if current format
  */
 function isCurrentMissionFile(value: any) {
-    return (
-        value &&
-        typeof value === "object" &&
-        value.version === MISSION_SET_VERSION &&
-        value.snapshot !== undefined
-    );
+    return value && value.version === MISSION_SET_VERSION && value.snapshot !== undefined;
 }
 
 /**
@@ -212,7 +207,7 @@ function isCurrentMissionFile(value: any) {
  * @returns {Boolean} True if legacy format
  */
 function isLegacyMissionFile(value: any): boolean {
-    return value && typeof value === "object" && value.runs !== undefined;
+    return value && value.runs !== undefined;
 }
 
 /**
