@@ -167,18 +167,11 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
                 if (isCurrentMissionFile(parsed)) {
                     loadSnapshotResult.snapshot = extractMissionSetSnapshot(parsed.snapshot);
                     loadSnapshotResult.resultType = LoadResultType.CURRENT_FORMAT;
-                    resolve(loadSnapshotResult);
-                    return;
-                }
-
-                if (isLegacyMissionFile(parsed)) {
+                } else if (isLegacyMissionFile(parsed)) {
                     loadSnapshotResult.snapshot = extractLegacyMissionData(parsed);
                     loadSnapshotResult.resultType = LoadResultType.OLD_FORMAT;
-                    resolve(loadSnapshotResult);
-                    return;
                 }
 
-                // File is json but does not match expected formats
                 resolve(loadSnapshotResult);
                 return;
             } catch (error) {
