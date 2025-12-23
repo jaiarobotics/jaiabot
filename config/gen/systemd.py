@@ -65,6 +65,7 @@ parser.add_argument('--pressure_sensor_type', choices=['bar02', 'bar30', 'none']
 parser.add_argument('--rf_encryption_password', default ='', help='Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex')
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
+parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
 
 args=parser.parse_args()
 
@@ -281,6 +282,7 @@ subprocess.run('bash -ic "' +
                'export jaia_comms_mode=' + ','.join(link for link in comms_links_in_use) + '; ' +
                'export jaia_cloudhub_type=' + cloudhub_type_str + '; ' +
                'export jaia_camera_positions=' + ','.join(position for position in camera_positions_in_use) + '; ' +
+               f'export jaia_dccl_encryption_password={args.dccl_encryption_password}; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -737,7 +739,7 @@ jaia_firmware = [
      'template': 'backup-date.service.in',
      'args': '',
      'runs_on': [Type.BOTH],
-     'runs_when': Mode.RUNTIME},
+     'runs_when': Mode.BOTH},
      {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',

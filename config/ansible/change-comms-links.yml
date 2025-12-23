@@ -7,7 +7,11 @@
     allowed_values:
       - wifi
       - xbee
+      - iridium
       - xbee,wifi
+      - xbee,iridium
+      - wifi,iridium
+      - xbee,wifi,iridium
   pre_tasks:
     - name: Check if comms_link is a valid enumeration
       ansible.builtin.assert:
@@ -25,3 +29,6 @@
 
     - name: Reconfigure package
       command: dpkg-reconfigure -f noninteractive jaiabot-embedded
+
+    - name: Restart JaiaBot services
+      command: systemctl restart jaiabot
