@@ -14,57 +14,63 @@ interface DialogProps {
 
 interface ButtonRowProps {
     onClose: (dialogAction: DialogActions) => void;
-    commit: boolean; // true = confirm dialog, false = informational
+    isConfirm: boolean;
 }
 
-const isConfirmDialog = (type: DialogWarningType) => {
-    return type === DialogWarningType.CLEAR_MISSIONS;
-};
-
-const getDialogWarningText = (type: DialogWarningType) => {
-    switch (type) {
-        case DialogWarningType.CLEAR_MISSIONS:
-            return "The mission set panel will be cleared prior to importing.";
-        case DialogWarningType.OLD_FORMAT:
-            return "The imported file is an old format.  Export the mission set to translate it to the new format.";
-        case DialogWarningType.INVALID_FORMAT:
-            return "The file could not be imported, it is an invalid format.";
-    }
-};
-
 /**
- * Produces the seconday dialog box for warnings based on warning type
- * DialogWarningType.CLEAR_MISSIONS: Warns user the current misison set will be overwritten
- *      Buttons will be Cancel & Confirm
- * DialogWarningType.OLD_FORMAT: Notifies user the file is old format and suggests re-exporting
- *      Button will be Close
- * DialogWarningType.INVALID_FORMAT: Notifies user the file was invalid
- *      Button will be Close
+ * Produces the seconday dialog box for warnings
  */
 export function ImportMissionSetDialog(props: DialogProps) {
+    /**
+     * Distingues dialog types (confirmation vs informative)
+     *
+     * @param {DialogWarningType} type Warning type to be displayed
+     * @returns {boolean}
+     */
+    const isConfirmDialog = (type: DialogWarningType) => {
+        return type === DialogWarningType.CLEAR_MISSIONS;
+    };
+
+    /**
+     * Provides the text to display in the dialog
+     *
+     * @param {DialogWarningType} type Determines which message to display
+     * @returns {string} Text to display in the dialog
+     */
+    const getDialogWarningText = (type: DialogWarningType) => {
+        switch (type) {
+            case DialogWarningType.CLEAR_MISSIONS:
+                return "The mission set panel will be cleared prior to importing.";
+            case DialogWarningType.OLD_FORMAT:
+                return "The imported file is an old format. Export to make a copy in the new format.";
+            case DialogWarningType.INVALID_FORMAT:
+                return "The file could not be imported, it is an invalid format.";
+        }
+    };
+
+    const isConfirm = isConfirmDialog(props.warningType);
+    const title = isConfirm ? "Confirm" : "Warning";
+
     if (!props.isVisible) {
-        return <div></div>;
+        return;
     }
-    const commit = isConfirmDialog(props.warningType);
-    const title = commit ? "Confirm" : "Warning";
 
     return (
         <div className="secondary-dialog alert">
             <h1>{title}</h1>
             <p>{getDialogWarningText(props.warningType)}</p>
-            <ButtonRow onClose={props.onClose} commit={commit} />
+            <ButtonRow onClose={props.onClose} isConfirm={isConfirm} />
         </div>
     );
 }
 
 /**
  * Produces the buttons for the dialog box.
- * The buttons will be Cancel and Import if it is a commit dialog or
- * Close if it is not
+ * The buttons will be Cancel and Import if it is a
+ * confirmation dialog or Close if it is an informative dialog.
  */
 function ButtonRow(props: ButtonRowProps) {
-    if (props.commit) {
-        // Confirm dialog: Cancel + Import
+    if (props.isConfirm) {
         return (
             <div className="dialog-button-row">
                 <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
@@ -79,7 +85,6 @@ function ButtonRow(props: ButtonRowProps) {
             </div>
         );
     } else {
-        // Informational dialog: single Close button
         return (
             <div className="dialog-button-row">
                 <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>

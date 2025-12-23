@@ -171,7 +171,6 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
                 }
 
                 if (isLegacyMissionFile(parsed)) {
-                    console.log("Legacy Mission file detected");
                     loadSnapshotResult.snapshot = extractLegacyMissionData(parsed);
                     loadSnapshotResult.resultType = LoadResultType.OLD_FORMAT;
                     resolve(loadSnapshotResult);
@@ -192,7 +191,7 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
  * @param {any} value Raw parsed data
  * @returns {Boolean} True if current format
  */
-function isCurrentMissionFile(value: any): boolean {
+function isCurrentMissionFile(value: any) {
     return (
         value &&
         typeof value === "object" &&
@@ -215,7 +214,7 @@ function isLegacyMissionFile(value: any): boolean {
  * Extracts a mission set from a raw snapshot data
  *
  * @param {any} rawMissionSet Raw mission set data parsed from file
- * @param {number} version optional version number for future use
+ * @param {number} version Optional version number for future use
  * @returns {MissionSetSnapshot} Snapshot of mission set
  *
  * @notes
@@ -227,7 +226,7 @@ function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
     const missionsArray: [number, Mission][] = [];
     if (Array.isArray(rawMissionSet.missions)) {
         missionsArray.push(
-            ...rawMissionSet.missions.map(([missionID, serializedMission]: [any, any]) => [
+            ...rawMissionSet.missions.map(([missionID, serializedMission]: [number, string]) => [
                 0, // Ignore original key
                 Mission.fromJSON(serializedMission),
             ]),

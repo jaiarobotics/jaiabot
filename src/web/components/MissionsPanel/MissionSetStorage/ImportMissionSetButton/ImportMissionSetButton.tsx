@@ -31,20 +31,21 @@ export default function ImportMissionSetButton(props: Props) {
     };
 
     /**
-     * Dispatches an event with the mission set snapshot
-     * if the user confirms they want to import and the file could be parsed
+     * Dispatches an event with the mission set snapshot if the user
+     * confirms they want to import and the file can be parsed
      *
      * Re-opens the dialog with secondary warnings if the user selects a
-     * file from an old format or an invalid format.
+     * file from an old or invalid format.
      *
-     * Closes dialog when a current format file is imported or the close button
-     * was pressed
+     * Closes the dialog when a file is imported or the close button
+     * is pressed
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
      *
-     * @notes the onClose from the parent is only called if the initial confirmation
-     * is for a mission set in the current format or the close button is pressed
+     * @notes
+     * The onClose from the parent is only called if the initial confirmation
+     * for a mission set in the current format or the close button is pressed
      *
      */
     const onDialogClose = async (dialogAction: DialogActions) => {
@@ -67,7 +68,6 @@ export default function ImportMissionSetButton(props: Props) {
                 console.warn("No valid mission set file selected");
                 return;
             }
-
             props.onClose();
         }
     };
