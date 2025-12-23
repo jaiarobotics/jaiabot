@@ -41,7 +41,8 @@ body {
     touch-action: none;
 }
 
-#connection-warning {
+#connection-warning,
+#congestion-warning {
     position: absolute;
     visibility: hidden;
 
@@ -59,4 +60,12 @@ body {
     transform: translate(-50%, 0);
 
     font-size: 1.1rem;
+}
+
+#connection-warning {
+    z-index: @connection-warning-z-index;
+}
+
+#congestion-warning {
+    z-index: @congestion-warning-z-index;
 }
