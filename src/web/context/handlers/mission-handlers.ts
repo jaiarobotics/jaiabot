@@ -48,9 +48,6 @@ export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaA
 
     missionLayer.updateFeatures();
     ghostMissionLayer.updateFeatures();
-
-    console.log(missionSet.getGhostMissions());
-
     return mutableState;
 }
 

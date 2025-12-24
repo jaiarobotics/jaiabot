@@ -99,7 +99,6 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             mutableState.visiblePanel = ButtonNames.NONE;
             missionLayer.updateFeatures();
             ghostMissionLayer.updateFeatures();
-            console.log(missionSet.getGhostMissions());
             break;
     }
     return mutableState;
