@@ -5,11 +5,11 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
-import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { ghostMissionLayer, missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { isActiveMission, syncOpenLayers } from "./handler-utils";
+import { syncOpenLayers } from "./handler-utils";
 
 /**
  * Makes a call to add a new, default mission to the data model
@@ -40,13 +40,14 @@ export function handleAddMission(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaAction) {
-    if (isActiveMission(action.missionID)) {
+    if (missionSet.getMission(action.missionID).getGhostParameters().hasStarted) {
         missionSet.addGhostMission(action.missionID);
     }
     missionSet.deleteMission(action.missionID);
     missionsManager.removeAssignment(action.missionID);
 
     missionLayer.updateFeatures();
+    ghostMissionLayer.updateFeatures();
 
     console.log(missionSet.getGhostMissions());
 
@@ -82,7 +83,7 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
  */
 export function handleDeleteAllMissions(mutableState: JaiaContextType) {
     for (const mission of missionSet.getMissions().values()) {
-        if (isActiveMission(mission.getMissionID())) {
+        if (mission.getGhostParameters().hasStarted) {
             missionSet.addGhostMission(mission.getMissionID());
         }
     }
@@ -92,8 +93,7 @@ export function handleDeleteAllMissions(mutableState: JaiaContextType) {
     mutableState.missionAccordionStates = {};
 
     missionLayer.updateFeatures();
-
-    console.log(missionSet.getGhostMissions());
+    ghostMissionLayer.updateFeatures();
 
     return mutableState;
 }

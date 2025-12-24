@@ -1,6 +1,6 @@
 import { botLayer } from "../../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../../openlayers/layers/vector/hub-layer";
-import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { ghostMissionLayer, missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { rallyLayer } from "../../openlayers/layers/vector/rally-layer";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
@@ -18,6 +18,7 @@ export function syncOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
+    ghostMissionLayer.updateFeatures();
     rallyLayer.updateFeatures();
 }
 
@@ -26,13 +27,4 @@ export function syncTaskLayers() {
     driftLayer.updateFeatures();
     contourLayer.updateFeatures();
     excludedTaskPacketsLayer.updateFeatures();
-}
-
-export function isActiveMission(missionID: number) {
-    const botID = missionsManager.getBotID(missionID);
-    const bot = bots.getBot(botID);
-    if (bot && bot.getMissionStatus().targetWaypoint) {
-        return true;
-    }
-    return false;
 }

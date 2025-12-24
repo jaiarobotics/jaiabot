@@ -5,13 +5,12 @@ import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
-import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { ghostMissionLayer, missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { MISSION_ENDPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { MapModes } from "../../types/openlayers-types";
 import { TaskType } from "../../types/protobuf-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
-import { isActiveMission } from "./handler-utils";
 
 /**
  * Makes map and grid plan changes based on survey state change
@@ -82,7 +81,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             }
 
             for (const mission of missionSet.getMissions().values()) {
-                if (isActiveMission(mission.getMissionID())) {
+                if (mission.getGhostParameters().hasStarted) {
                     missionSet.addGhostMission(mission.getMissionID());
                 } else {
                     missionSet.deleteGhostMission(mission.getMissionID());
@@ -99,6 +98,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             handleMapModeChange(MapModes.DEFAULT);
             mutableState.visiblePanel = ButtonNames.NONE;
             missionLayer.updateFeatures();
+            ghostMissionLayer.updateFeatures();
             console.log(missionSet.getGhostMissions());
             break;
     }
