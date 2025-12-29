@@ -370,7 +370,7 @@ message DriftPacket
     };
 
     optional int32 drift_duration = 1 [
-        default = 0,
+        default = 0,;
         (dccl.field) = {
             min: 0
             max: 3600
@@ -582,6 +582,63 @@ message DivePacket
         [(jaia.field).rest_api.presence = GUARANTEED]; 
 }
 
+message WavePacket
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required double wave_height = 1 [
+        (dccl.field) = {
+            min: 0.1
+            max: 10.0
+            precision: 1
+            units { derived_dimensions: "length" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    required double wave_period = 2 [
+        (dccl.field) = {
+            min: 1.5
+            max: 10.0
+            precision: 1
+            units { base_dimensions: "T" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+}
+
+message CurrentPacket
+{
+    option (dccl.msg) {
+        unit_system: "si"
+    };
+
+    required double speed = 1 [
+        (dccl.field) = {
+            min: 0
+            max: 10
+            precision: 1
+            units { derived_dimensions: "velocity" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    optional double heading = 3 [
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units {
+                derived_dimensions: "plane_angle"
+                system: "angle::degree"
+            }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ]; 
+}
+
 message TaskPacket
 {
     /*
@@ -626,6 +683,9 @@ message TaskPacket
 
     optional DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
     optional DriftPacket drift = 11
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional WavePacket wave = 12 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional CurrentPacket current = 13
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
