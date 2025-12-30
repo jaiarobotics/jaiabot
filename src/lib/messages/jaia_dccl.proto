@@ -611,7 +611,7 @@ message WavePacket
 
 message CurrentPacket
 {
-    option (dccl.msg) {
+    option (dccl.msg) = {
         unit_system: "si"
     };
 
