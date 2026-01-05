@@ -26,7 +26,34 @@ namespace middleware = goby::middleware;
 #include "groups.h"
 
 
+// UTILS
+
 #define earthRadiusKm 6371.0
+
+// This function converts decimal degrees to radians
+double deg2rad(const double& deg) { return (deg * M_PI / 180); }
+
+/**
+ * Returns the distance between two points on the Earth.
+ * Direct translation from http://en.wikipedia.org/wiki/Haversine_formula
+ * @param lat1d Latitude of the first point in degrees
+ * @param lon1d Longitude of the first point in degrees
+ * @param lat2d Latitude of the second point in degrees
+ * @param lon2d Longitude of the second point in degrees
+ * @return The distance between the two points in kilometers
+ */
+double distanceToGoal(const double& lat1d, const double& lon1d,
+                                                     const double& lat2d, const double& lon2d)
+{
+    double lat1r, lon1r, lat2r, lon2r, u, v;
+    lat1r = deg2rad(lat1d);
+    lon1r = deg2rad(lon1d);
+    lat2r = deg2rad(lat2d);
+    lon2r = deg2rad(lon2d);
+    u = sin((lat2r - lat1r) / 2);
+    v = sin((lon2r - lon1r) / 2);
+    return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+}
 
 
 // Main thread
@@ -1075,61 +1102,6 @@ void jaiabot::apps::MissionManager::handle_bottom_dive_safety_params(
     machine_->set_bottom_safety_depth(params.safety_depth());
 }
 
-bool jaiabot::apps::MissionManager::health_considered_ok(
-    const goby::middleware::protobuf::VehicleHealth& vehicle_health)
-{
-    if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
-    {
-        return true;
-    }
-    else if (is_test_mode(config::MissionManager::ENGINEERING_TEST__IGNORE_SOME_ERRORS))
-    {
-        jaiabot::protobuf::BotStatus status;
-        // check if we would be OK if the ignored errors didn't exist
-        jaiabot::health::populate_status_from_health(status, vehicle_health, false);
-
-        for (auto e : status.error())
-        {
-            // if we find any errors that are not excluded, health is not OK
-            auto ee = static_cast<protobuf::Error>(e);
-            if (!ignore_errors_.count(ee))
-            {
-                glog.is_debug1() && glog << "Error " << protobuf::Error_Name(ee)
-                                         << " was not excluded" << std::endl;
-                return false;
-            }
-        }
-        // no errors found that were not excluded, so health is considered OK
-        return true;
-    }
-    return false;
-}
-
-// This function converts decimal degrees to radians
-double jaiabot::apps::MissionManager::deg2rad(const double& deg) { return (deg * M_PI / 180); }
-
-/**
- * Returns the distance between two points on the Earth.
- * Direct translation from http://en.wikipedia.org/wiki/Haversine_formula
- * @param lat1d Latitude of the first point in degrees
- * @param lon1d Longitude of the first point in degrees
- * @param lat2d Latitude of the second point in degrees
- * @param lon2d Longitude of the second point in degrees
- * @return The distance between the two points in kilometers
- */
-double jaiabot::apps::MissionManager::distanceToGoal(const double& lat1d, const double& lon1d,
-                                                     const double& lat2d, const double& lon2d)
-{
-    double lat1r, lon1r, lat2r, lon2r, u, v;
-    lat1r = deg2rad(lat1d);
-    lon1r = deg2rad(lon1d);
-    lat2r = deg2rad(lat2d);
-    lon2r = deg2rad(lon2d);
-    u = sin((lat2r - lat1r) / 2);
-    v = sin((lon2r - lon1r) / 2);
-    return 2.0 * earthRadiusKm * asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
-}
-
 // To determine no forward progress:
 //    If the vehicle is in the vertical position; pitch > resolve_pitch_threshold  (default 30 deg)
 //    If the vehicle desired speed is > resolve_desired_speed_threshold (default: 0 m/s)
@@ -1176,3 +1148,34 @@ void jaiabot::apps::MissionManager::set_hub_id(int hub_id)
     // set environmental variable for dataoffload
     setenv("jaia_dataoffload_hub_id", std::to_string(hub_id).c_str(), 1 /*overwrite*/);
 }
+
+bool jaiabot::apps::MissionManager::health_considered_ok(
+    const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+{
+    if (vehicle_health.state() != goby::middleware::protobuf::HEALTH__FAILED)
+    {
+        return true;
+    }
+    else if (is_test_mode(config::MissionManager::ENGINEERING_TEST__IGNORE_SOME_ERRORS))
+    {
+        jaiabot::protobuf::BotStatus status;
+        // check if we would be OK if the ignored errors didn't exist
+        jaiabot::health::populate_status_from_health(status, vehicle_health, false);
+
+        for (auto e : status.error())
+        {
+            // if we find any errors that are not excluded, health is not OK
+            auto ee = static_cast<protobuf::Error>(e);
+            if (!ignore_errors_.count(ee))
+            {
+                glog.is_debug1() && glog << "Error " << protobuf::Error_Name(ee)
+                                         << " was not excluded" << std::endl;
+                return false;
+            }
+        }
+        // no errors found that were not excluded, so health is considered OK
+        return true;
+    }
+    return false;
+}
+
