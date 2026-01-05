@@ -1,168 +1,52 @@
 #ifndef JAIABOT_SRC_BIN_MISSION_MANAGER_MACHINE_H
 #define JAIABOT_SRC_BIN_MISSION_MANAGER_MACHINE_H
 
+// Boost
 #include <boost/mpl/list.hpp>
 #include <boost/statechart/custom_reaction.hpp>
 #include <boost/statechart/deep_history.hpp>
-#include <boost/statechart/event.hpp>
 #include <boost/statechart/in_state_reaction.hpp>
 #include <boost/statechart/state.hpp>
 #include <boost/statechart/state_machine.hpp>
 #include <boost/statechart/transition.hpp>
 
+// Protobuf
+#include <google/protobuf/util/json_util.h>
+
+// Goby
 #include "goby/middleware/navigation/navigation.h"
 #include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/util/constants.h>
 #include <goby/util/debug_logger.h>
 #include <goby/util/linebasedcomms/nmea_sentence.h>
+#include <goby/util/seawater.h>
 
-#include "bin/mission_manager/config.pb.h"
+// Jaiabot
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/dive_debug.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
-#include "machine_common.h"
-#include <fstream>
-#include <cmath>
-#include <goby/util/seawater.h>
-#include <google/protobuf/util/json_util.h>
-#include <cmath>
-
 #include "jaiabot/messages/echo.pb.h"
-#include "jaiabot/messages/imu.pb.h"
-#include "jaiabot/utils/mission_manager_utils.h"
 using jaiabot::protobuf::EchoCommand;
+#include "jaiabot/messages/imu.pb.h"
 using jaiabot::protobuf::IMUCommand;
+#include "jaiabot/utils/mission_manager_utils.h"
+
+// Mission Manager app
+#include "bin/mission_manager/config.pb.h"
+#include "machine_common.h"
+#include "events.h"
 
 namespace jaiabot
 {
-namespace groups
-{
-constexpr goby::middleware::Group state_change{"jaiabot::state_change"};
-} // namespace groups
-
-namespace apps
-{
-class MissionManager;
-}
-
 namespace statechart
 {
-struct MissionManagerStateMachine;
-
-// events
-#define STATECHART_EVENT(EVENT)                    \
-    struct EVENT : boost::statechart::event<EVENT> \
-    {                                              \
-    };
-
-// events
-STATECHART_EVENT(EvStarted)
-STATECHART_EVENT(EvStartupTimeout)
-STATECHART_EVENT(EvSelfTestSuccessful)
-STATECHART_EVENT(EvSelfTestFails)
-struct EvMissionFeasible : boost::statechart::event<EvMissionFeasible>
-{
-    EvMissionFeasible(const jaiabot::protobuf::MissionPlan& p) : plan(p) {}
-    jaiabot::protobuf::MissionPlan plan;
-};
-struct EvRCOverrideFailed : boost::statechart::event<EvRCOverrideFailed>
-{
-    EvRCOverrideFailed(const jaiabot::protobuf::MissionPlan& p) : plan(p) {}
-    jaiabot::protobuf::MissionPlan plan;
-};
-
-STATECHART_EVENT(EvMissionInfeasible)
-STATECHART_EVENT(EvDeployed)
-STATECHART_EVENT(EvWaypointReached)
-
-struct EvPerformTask : boost::statechart::event<EvPerformTask>
-{
-    EvPerformTask() : has_task(false) {}
-    EvPerformTask(const jaiabot::protobuf::MissionTask& t) : task(t), has_task(true) {}
-    bool has_task;
-    jaiabot::protobuf::MissionTask task;
-}; // namespace statechart
-
-STATECHART_EVENT(EvTaskComplete)
-STATECHART_EVENT(EvNewMission)
-STATECHART_EVENT(EvReturnToHome)
-STATECHART_EVENT(EvStop)
-STATECHART_EVENT(EvAbort)
-STATECHART_EVENT(EvRecovered)
-STATECHART_EVENT(EvBeginDataOffload)
-STATECHART_EVENT(EvDataOffloadComplete)
-STATECHART_EVENT(EvDataOffloadFailed)
-STATECHART_EVENT(EvRetryDataOffload)
-STATECHART_EVENT(EvShutdown)
-STATECHART_EVENT(EvActivate)
-STATECHART_EVENT(EvDivePrepComplete)
-STATECHART_EVENT(EvDepthTargetReached)
-STATECHART_EVENT(EvDiveComplete)
-STATECHART_EVENT(EvPowerDescentSafety)
-STATECHART_EVENT(EvHoldComplete)
-STATECHART_EVENT(EvDiveRising)
-STATECHART_EVENT(EvBotNotVertical)
-STATECHART_EVENT(EvSurfacingTimeout)
-STATECHART_EVENT(EvSurfaced)
-STATECHART_EVENT(EvGPSFix)
-STATECHART_EVENT(EvGPSNoFix)
-STATECHART_EVENT(EvIMURestart)
-STATECHART_EVENT(EvIMURestartCompleted)
-STATECHART_EVENT(EvBottomDepthAbort)
-
-STATECHART_EVENT(EvLoop)
-struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
-{
-    EvVehicleDepth(boost::units::quantity<boost::units::si::length> d, boost::units::quantity<boost::units::si::length> s) : sensor_depth(d), depth(s) {}
-    boost::units::quantity<boost::units::si::length> sensor_depth; // Depth of the pressure sensor
-    boost::units::quantity<boost::units::si::length> depth; // Depth of the stern of the vehicle
-};
-
-struct EvMeasurement : boost::statechart::event<EvMeasurement>
-{
-    boost::optional<
-        boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>>
-        temperature;
-    boost::optional<double> salinity;
-};
-
-struct EvVehicleGPS : boost::statechart::event<EvVehicleGPS>
-{
-    double hdop;
-    double pdop;
-};
-
-struct EvVehiclePitch : boost::statechart::event<EvVehiclePitch>
-{
-    boost::units::quantity<boost::units::degree::plane_angle> pitch;
-};
-
-struct EvMotorStopped : boost::statechart::event<EvMotorStopped>
-{
-    bool is_motor_stopped;
-};
-
-STATECHART_EVENT(EvResumeMovement)
-struct EvRCSetpoint : boost::statechart::event<EvRCSetpoint>
-{
-    EvRCSetpoint(const protobuf::RemoteControl& setpoint) : rc_setpoint(setpoint) {}
-    protobuf::RemoteControl rc_setpoint;
-};
-STATECHART_EVENT(EvRCSetpointComplete)
-
-STATECHART_EVENT(EvPause)
-STATECHART_EVENT(EvResume)
-STATECHART_EVENT(EvNoForwardProgress)
-STATECHART_EVENT(EvForwardProgressResolved)
-
-#undef STATECHART_EVENT
 
 // RAII publication of state changes
 template <typename Derived, jaiabot::protobuf::MissionState state,
-          jaiabot::protobuf::SetpointType setpoint_type = protobuf::SETPOINT_STOP>
+          jaiabot::protobuf::SetpointType setpoint_type = jaiabot::protobuf::SETPOINT_STOP>
 struct Notify : public AppMethodsAccess<Derived>
 {
     Notify()

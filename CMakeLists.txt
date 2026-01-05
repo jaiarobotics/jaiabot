@@ -7,6 +7,11 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Limit cascading C++ errors (GCC / Clang only)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-fmax-errors=3)
+endif()
+
 # determine version of jaiabot
 include(JaiaVersions)
 
