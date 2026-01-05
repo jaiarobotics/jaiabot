@@ -16,7 +16,7 @@
 #include <goby/util/debug_logger.h>
 #include <goby/util/linebasedcomms/nmea_sentence.h>
 
-#include "config.pb.h"
+#include "bin/mission_manager/config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/dive_debug.pb.h"
 #include "jaiabot/messages/high_control.pb.h"
