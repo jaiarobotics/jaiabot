@@ -120,12 +120,16 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
-    jaiaGlobal.setSelectedWaypoint(action.clickedWaypoint);
-
-    mutableState.visiblePanel = ButtonNames.WAYPOINT_PANEL;
-
+    if (!missionSet.getMission(action.clickedWaypoint.missionID)) {
+        jaiaGlobal.resetSelectedWaypoint();
+        if (mutableState.visiblePanel === ButtonNames.WAYPOINT_PANEL) {
+            mutableState.visiblePanel = ButtonNames.NONE;
+        }
+    } else {
+        jaiaGlobal.setSelectedWaypoint(action.clickedWaypoint);
+        mutableState.visiblePanel = ButtonNames.WAYPOINT_PANEL;
+    }
     missionLayer.updateFeatures();
-
     return mutableState;
 }
 
