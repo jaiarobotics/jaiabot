@@ -7,7 +7,7 @@ import { taskPackets } from "../data/task_packets/task-packets";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
-import { missionLayer } from "../openlayers/layers/vector/mission-layer";
+import { ghostMissionLayer, missionLayer } from "../openlayers/layers/vector/mission-layer";
 import { diveLayer } from "../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../openlayers/layers/vector/contour-layer";
@@ -152,6 +152,7 @@ function updateOpenLayers() {
     botLayer.updateFeatures();
     hubLayer.updateFeatures();
     missionLayer.updateFeatures();
+    ghostMissionLayer.updateFeatures();
     hubCommsLayer.updateFeatures();
 }
 

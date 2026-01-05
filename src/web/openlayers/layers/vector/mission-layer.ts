@@ -1,4 +1,5 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
+import Mission from "../../../data/mission_set/mission";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { TaskType } from "../../../types/protobuf-types";
 import { LayerTitles, LineType } from "../../../types/openlayers-types";
@@ -11,25 +12,25 @@ import {
 } from "../../features/waypoint-feature";
 
 class MissionLayer extends JaiaVectorLayer {
-    constructor() {
-        super(LayerTitles.MISSION_LAYER, layersZIndexes.get(LayerTitles.MISSION_LAYER));
+    constructor(layerTitle: LayerTitles) {
+        super(layerTitle, layersZIndexes.get(layerTitle));
+        this.styleLayer(layerTitle);
     }
 
     /**
      * Adds a waypoint and connecting line (if needed) to the mission layer
      *
-     * @param {number} missionID Used to access waypoint and determine color of line segment
+     * @param {Mission} mission Used to access waypoint and determine color of line segment
      * @param {number} waypointNum Positon of waypoint in mission sequence (to be displayed on icon)
      * @returns {void}
      */
-    buildMission(missionID: number, waypointNum: number) {
-        const mission = missionSet.getMission(missionID);
+    buildMission(mission: Mission, waypointNum: number) {
         const waypoint = mission.getWaypoint(waypointNum);
         const source = this.getVectorLayer().getSource();
 
         // Add mission flag
         if (waypointNum === 1) {
-            source.addFeature(generateMissionFlagFeature(waypoint.getLocation(), missionID));
+            source.addFeature(generateMissionFlagFeature(waypoint.getLocation(), mission));
         }
         // Add connecting line
         else {
@@ -49,13 +50,13 @@ class MissionLayer extends JaiaVectorLayer {
                     lineStartLocation,
                     waypoint.getLocation(),
                     LineType.SOLID,
-                    missionID,
+                    mission,
                 ),
             );
         }
 
         // Add waypoint
-        source.addFeature(generateWaypointFeature(waypoint.getLocation(), waypointNum, missionID));
+        source.addFeature(generateWaypointFeature(waypoint.getLocation(), waypointNum, mission));
 
         // Add projected constant heading track
         if (waypoint.getTask().getType() === TaskType.CONSTANT_HEADING) {
@@ -64,7 +65,7 @@ class MissionLayer extends JaiaVectorLayer {
                     waypoint.getLocation(),
                     constantHeadingParamsToLocation(waypoint.getLocation(), waypoint.getTask()),
                     LineType.DASHED,
-                    missionID,
+                    mission,
                 ),
             );
         }
@@ -78,12 +79,39 @@ class MissionLayer extends JaiaVectorLayer {
     updateFeatures() {
         this.getVectorLayer().getSource().clear();
 
-        for (let [missionID, mission] of missionSet.getMissions()) {
+        const layerTitle = this.getVectorLayer().getProperties()["title"];
+
+        if (
+            layerTitle === LayerTitles.GHOST_MISSION_LAYER &&
+            missionSet.getGhostMissions().size === 0
+        ) {
+            return;
+        }
+
+        let missions = missionSet.getMissions();
+        if (layerTitle === LayerTitles.GHOST_MISSION_LAYER) {
+            missions = missionSet.getGhostMissions();
+        }
+
+        for (let [missionID, mission] of missions) {
             for (let [index, waypoint] of mission.getWaypoints().entries()) {
-                this.buildMission(missionID, index + 1);
+                this.buildMission(mission, index + 1);
             }
+        }
+    }
+
+    /**
+     * Applies a reduced opactiy to the ghost mission layee
+     *
+     * @param {LayerTitles} layerTitle Identifies mission layer type
+     * @returns {void}
+     */
+    styleLayer(layerTitle: LayerTitles) {
+        if (layerTitle === LayerTitles.GHOST_MISSION_LAYER) {
+            this.getVectorLayer().setOpacity(0.5);
         }
     }
 }
 
-export const missionLayer = new MissionLayer();
+export const missionLayer = new MissionLayer(LayerTitles.MISSION_LAYER);
+export const ghostMissionLayer = new MissionLayer(LayerTitles.GHOST_MISSION_LAYER);

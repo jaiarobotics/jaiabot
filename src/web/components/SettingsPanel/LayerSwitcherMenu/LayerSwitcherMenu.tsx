@@ -217,6 +217,15 @@ export default function LayerSwitcherMenu() {
                         </div>
                         <div className="layer-container">
                             <Checkbox
+                                onClick={() => handleLayerClick(LayerTitles.GHOST_MISSION_LAYER)}
+                                checked={layerCheckedStates.get(LayerTitles.GHOST_MISSION_LAYER)}
+                                sx={getCheckboxStyle()}
+                                data-testid={`${LayerTitles.GHOST_MISSION_LAYER}-checkbox`}
+                            />
+                            <p>Ghost Missions</p>
+                        </div>
+                        <div className="layer-container">
+                            <Checkbox
                                 onClick={() => handleLayerClick(LayerTitles.RALLY_LAYER)}
                                 checked={layerCheckedStates.get(LayerTitles.RALLY_LAYER)}
                                 sx={getCheckboxStyle()}

@@ -18,6 +18,7 @@ export interface MissionSetSnapshot {
 
 export class MissionSet {
     private missions: Map<number, Mission>;
+    private ghostMissions: Map<number, Mission>;
     private nextMissionID: number;
     private missionIDInEditMode: number;
     private missionSpeeds: Speeds;
@@ -25,6 +26,7 @@ export class MissionSet {
 
     constructor() {
         this.missions = new Map<number, Mission>();
+        this.ghostMissions = new Map<number, Mission>();
         this.nextMissionID = 1;
         this.missionIDInEditMode = UNASSIGNED_ID;
         this.missionSpeeds = { transit: 2, stationkeep_outer: 2 };
@@ -37,6 +39,14 @@ export class MissionSet {
 
     setMissions(missions: Map<number, Mission>) {
         this.missions = missions;
+    }
+
+    getGhostMissions() {
+        return this.ghostMissions;
+    }
+
+    setGhostMissions(missions: Map<number, Mission>) {
+        this.ghostMissions = missions;
     }
 
     getNextMissionID() {
@@ -107,6 +117,14 @@ export class MissionSet {
         this.missions.clear();
         this.setMissionIDInEditMode(UNASSIGNED_ID);
         this.setNextMissionID(1);
+    }
+
+    addGhostMission(missionID: number) {
+        this.ghostMissions.set(missionID, cloneDeep(this.missions.get(missionID)));
+    }
+
+    deleteGhostMission(missionID: number) {
+        this.ghostMissions.delete(missionID);
     }
 
     /**
