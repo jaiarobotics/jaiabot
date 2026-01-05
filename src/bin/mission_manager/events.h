@@ -10,6 +10,7 @@
 
 // Jaiabot
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 
 namespace jaiabot
 {

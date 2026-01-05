@@ -1,23 +1,36 @@
-#include "jaiabot/intervehicle.h"
-
-#include <goby/middleware/log/groups.h>
-#include <goby/middleware/protobuf/logger.pb.h>
+// C++ standard library
 #include <ctime>
 
-#include "machine.h"
+// Protobuf
+#include <google/protobuf/util/json_util.h>
+
+// Goby
+#include <goby/middleware/log/groups.h>
+#include <goby/middleware/protobuf/logger.pb.h>
+
+// Jaiabot
+#include "jaiabot/intervehicle.h"
+#include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/messages/echo.pb.h"
+using namespace jaiabot::protobuf;
+
+// Mission Manager app
+#include "states.h"
 #include "mission_manager.h"
+#include "jaiabot/utils/mission_manager_utils.h"
+
 
 using goby::glog;
 namespace si = boost::units::si;
 using boost::units::quantity;
 
-jaiabot::protobuf::IvPBehaviorUpdate
-create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
+IvPBehaviorUpdate
+create_transit_update(const GeographicCoordinate& location,
                       quantity<si::velocity> speed, const goby::util::UTMGeodesy& geodesy,
                       const int& slip_radius)
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
-    jaiabot::protobuf::IvPBehaviorUpdate::TransitUpdate& transit = *update.mutable_transit();
+    IvPBehaviorUpdate update;
+    IvPBehaviorUpdate::TransitUpdate& transit = *update.mutable_transit();
 
     auto xy = geodesy.convert({location.lat_with_units(), location.lon_with_units()});
 
@@ -33,12 +46,12 @@ create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
     return update;
 }
 
-jaiabot::protobuf::IvPBehaviorUpdate create_location_stationkeep_update(
-    const jaiabot::protobuf::GeographicCoordinate& location, quantity<si::velocity> transit_speed,
+IvPBehaviorUpdate create_location_stationkeep_update(
+    const GeographicCoordinate& location, quantity<si::velocity> transit_speed,
     quantity<si::velocity> outer_speed, const goby::util::UTMGeodesy& geodesy)
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
-    jaiabot::protobuf::IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
+    IvPBehaviorUpdate update;
+    IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
         *update.mutable_stationkeep();
 
     stationkeep.set_active(true);
@@ -57,12 +70,12 @@ jaiabot::protobuf::IvPBehaviorUpdate create_location_stationkeep_update(
     return update;
 }
 
-jaiabot::protobuf::IvPBehaviorUpdate
+IvPBehaviorUpdate
 create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
                                           quantity<si::velocity> outer_speed)
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
-    jaiabot::protobuf::IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
+    IvPBehaviorUpdate update;
+    IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
         *update.mutable_stationkeep();
 
     stationkeep.set_active(true);
@@ -77,11 +90,11 @@ create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
     return update;
 }
 
-jaiabot::protobuf::IvPBehaviorUpdate
+IvPBehaviorUpdate
 create_constant_heading_update(quantity<si::plane_angle> heading)
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
-    jaiabot::protobuf::IvPBehaviorUpdate::ConstantHeadingUpdate& constantHeading =
+    IvPBehaviorUpdate update;
+    IvPBehaviorUpdate::ConstantHeadingUpdate& constantHeading =
         *update.mutable_constantheading();
 
     constantHeading.set_active(true);
@@ -93,10 +106,10 @@ create_constant_heading_update(quantity<si::plane_angle> heading)
     return update;
 }
 
-jaiabot::protobuf::IvPBehaviorUpdate create_constant_speed_update(quantity<si::velocity> speed)
+IvPBehaviorUpdate create_constant_speed_update(quantity<si::velocity> speed)
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
-    jaiabot::protobuf::IvPBehaviorUpdate::ConstantSpeedUpdate& constantSpeed =
+    IvPBehaviorUpdate update;
+    IvPBehaviorUpdate::ConstantSpeedUpdate& constantSpeed =
         *update.mutable_constantspeed();
 
     constantSpeed.set_active(true);
@@ -233,7 +246,7 @@ jaiabot::statechart::inmission::underway::movement::Transit::Transit(
 
 jaiabot::statechart::inmission::underway::movement::Transit::~Transit()
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
+    IvPBehaviorUpdate update;
     update.mutable_transit()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
@@ -245,7 +258,7 @@ jaiabot::statechart::inmission::underway::movement::Trail::Trail(typename StateB
     // next goal (after trailing) is recovery
     context<InMission>().set_goal_index_to_recovery();
 
-    jaiabot::protobuf::IvPBehaviorUpdate update;
+    IvPBehaviorUpdate update;
     update.mutable_trail()->set_active(true);
     if (this->machine().mission_plan().has_trail())
         *update.mutable_trail()->mutable_param() = this->machine().mission_plan().trail();
@@ -259,7 +272,7 @@ jaiabot::statechart::inmission::underway::movement::Trail::Trail(typename StateB
 
 jaiabot::statechart::inmission::underway::movement::Trail::~Trail()
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
+    IvPBehaviorUpdate update;
     update.mutable_trail()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
@@ -270,7 +283,7 @@ jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
     : Base(c)
 {
     auto recovery = this->machine().mission_plan().recovery();
-    jaiabot::protobuf::IvPBehaviorUpdate update;
+    IvPBehaviorUpdate update;
     int slip_radius = cfg().waypoint_with_no_task_slip_radius();
 
     if (recovery.recover_at_final_goal())
@@ -291,7 +304,7 @@ jaiabot::statechart::inmission::underway::recovery::Transit::Transit(
 
 jaiabot::statechart::inmission::underway::recovery::Transit::~Transit()
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
+    IvPBehaviorUpdate update;
     update.mutable_transit()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
@@ -302,7 +315,7 @@ jaiabot::statechart::inmission::underway::recovery::StationKeep::StationKeep(
     : Base(c)
 {
     auto recovery = this->machine().mission_plan().recovery();
-    jaiabot::protobuf::IvPBehaviorUpdate update;
+    IvPBehaviorUpdate update;
     if (recovery.recover_at_final_goal())
     {
         auto final_goal = context<InMission>().final_goal();
@@ -323,8 +336,8 @@ jaiabot::statechart::inmission::underway::recovery::StationKeep::StationKeep(
 
 jaiabot::statechart::inmission::underway::recovery::StationKeep::~StationKeep()
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
-    jaiabot::protobuf::IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
+    IvPBehaviorUpdate update;
+    IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
         *update.mutable_stationkeep();
 
     stationkeep.set_active(false);
@@ -723,7 +736,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth
     setpoint_msg.set_type(protobuf::SETPOINT_DIVE);
 
     // keep track of dive information
-    jaiabot::protobuf::DivePowerDescentDebug dive_pdescent_debug;
+    DivePowerDescentDebug dive_pdescent_debug;
 
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
     goby::time::SteadyClock::time_point current_clock = goby::time::SteadyClock::now();
@@ -922,7 +935,7 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::loop(const EvLo
     goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
 
     //Keep track of dive information
-    jaiabot::protobuf::DiveHoldDebug dive_hold_debug;
+    DiveHoldDebug dive_hold_debug;
 
     dive_hold_debug.set_hold_timeout(hold_stop_.time_since_epoch().count());
 
@@ -971,7 +984,7 @@ void jaiabot::statechart::inmission::underway::task::dive::Hold::depth(const EvV
              << std::endl;
 
     //Keep track of dive information
-    jaiabot::protobuf::DiveHoldDebug dive_hold_debug;
+    DiveHoldDebug dive_hold_debug;
 
     // Set Current Depth
     context<Dive>().set_current_depth(ev.depth);
@@ -1054,7 +1067,7 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
              << std::endl;
 
     //Keep track of dive information
-    jaiabot::protobuf::DiveUnpoweredAscentDebug dive_uascent_debug;
+    DiveUnpoweredAscentDebug dive_uascent_debug;
 
     // Set Current Depth
     context<Dive>().set_current_depth(ev.depth);
@@ -1228,7 +1241,7 @@ void jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth(
              << std::endl;
 
     // keep track of dive information
-    jaiabot::protobuf::DivePoweredAscentDebug dive_pascent_debug;
+    DivePoweredAscentDebug dive_pascent_debug;
 
     // Set Current Depth
     context<Dive>().set_current_depth(ev.depth);
@@ -1324,8 +1337,8 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading
         (goal.get().task().constant_heading().constant_heading_speed() *
          boost::units::si::meters_per_second));
 
-    jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
-    jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
+    IvPBehaviorUpdate constantHeadingUpdate;
+    IvPBehaviorUpdate constantSpeedUpdate;
 
     constantHeadingUpdate = create_constant_heading_update(heading);
     constantSpeedUpdate = create_constant_speed_update(speed);
@@ -1344,8 +1357,8 @@ jaiabot::statechart::inmission::underway::task::ConstantHeading::ConstantHeading
 
 jaiabot::statechart::inmission::underway::task::ConstantHeading::~ConstantHeading()
 {
-    jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
-    jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
+    IvPBehaviorUpdate constantHeadingUpdate;
+    IvPBehaviorUpdate constantSpeedUpdate;
     constantHeadingUpdate.mutable_constantheading()->set_active(false);
     constantSpeedUpdate.mutable_constantspeed()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
@@ -1374,7 +1387,7 @@ jaiabot::statechart::inmission::pause::ReacquireGPS::ReacquireGPS(typename State
     }
     else
     {
-        this->machine().insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+        this->machine().insert_warning(WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
     }
 }
 
@@ -1402,7 +1415,7 @@ void jaiabot::statechart::inmission::pause::ResolveNoForwardProgress::loop(const
 
 jaiabot::statechart::inmission::pause::ResolveNoForwardProgress::~ResolveNoForwardProgress()
 {
-    this->machine().erase_warning(jaiabot::protobuf::WARNING__VEHICLE__NO_FORWARD_PROGRESS);
+    this->machine().erase_warning(WARNING__VEHICLE__NO_FORWARD_PROGRESS);
 }
 
 // Dive::ReacquireGPS
@@ -1418,7 +1431,7 @@ jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::ReacquireGPS
     }
     else
     {
-        this->machine().insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+        this->machine().insert_warning(WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
     }
 }
 
@@ -1426,7 +1439,7 @@ jaiabot::statechart::inmission::underway::task::dive::ReacquireGPS::~ReacquireGP
 {
     end_time_ = goby::time::SystemClock::now<goby::time::MicroTime>();
     context<Dive>().dive_packet().set_duration_to_acquire_gps_with_units(end_time_ - start_time_);
-    this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    this->machine().erase_warning(WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
 }
 
 // Task::StationKeep
@@ -1436,7 +1449,7 @@ jaiabot::statechart::inmission::underway::task::StationKeep::StationKeep(
 {
     boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
 
-    jaiabot::protobuf::IvPBehaviorUpdate update;
+    IvPBehaviorUpdate update;
 
     // if we have a defined location in the goal
     if (goal)
@@ -1476,8 +1489,8 @@ jaiabot::statechart::inmission::underway::task::dive::ConstantHeading::ConstantH
         (this->machine().bottom_depth_safety_constant_heading_speed() *
          boost::units::si::meters_per_second));
 
-    jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
-    jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
+    IvPBehaviorUpdate constantHeadingUpdate;
+    IvPBehaviorUpdate constantSpeedUpdate;
 
     constantHeadingUpdate = create_constant_heading_update(heading);
     constantSpeedUpdate = create_constant_speed_update(speed);
@@ -1493,8 +1506,8 @@ jaiabot::statechart::inmission::underway::task::dive::ConstantHeading::ConstantH
 
 jaiabot::statechart::inmission::underway::task::dive::ConstantHeading::~ConstantHeading()
 {
-    jaiabot::protobuf::IvPBehaviorUpdate constantHeadingUpdate;
-    jaiabot::protobuf::IvPBehaviorUpdate constantSpeedUpdate;
+    IvPBehaviorUpdate constantHeadingUpdate;
+    IvPBehaviorUpdate constantSpeedUpdate;
     constantHeadingUpdate.mutable_constantheading()->set_active(false);
     constantSpeedUpdate.mutable_constantspeed()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
@@ -1510,7 +1523,7 @@ void jaiabot::statechart::inmission::underway::task::dive::ConstantHeading::loop
 
 jaiabot::statechart::inmission::underway::task::StationKeep::~StationKeep()
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
+    IvPBehaviorUpdate update;
     update.mutable_stationkeep()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
@@ -1535,7 +1548,7 @@ jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::
     typename StateBase::my_context c)
     : Base(c)
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update = create_center_activate_stationkeep_update(
+    IvPBehaviorUpdate update = create_center_activate_stationkeep_update(
         this->machine().mission_plan().speeds().transit_with_units(),
         this->machine().mission_plan().speeds().stationkeep_outer_with_units());
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
@@ -1543,7 +1556,7 @@ jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::
 
 jaiabot::statechart::inmission::underway::movement::remotecontrol::StationKeep::~StationKeep()
 {
-    jaiabot::protobuf::IvPBehaviorUpdate update;
+    IvPBehaviorUpdate update;
     update.mutable_stationkeep()->set_active(false);
     this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
 }
@@ -1590,7 +1603,7 @@ jaiabot::statechart::inmission::underway::recovery::Stopped::Stopped(
     protobuf::DesiredSetpoints setpoint_msg;
     setpoint_msg.set_type(protobuf::SETPOINT_STOP);
     interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
-    this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    this->machine().erase_warning(WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
 }
 
 // PostDeployment::DataOffload
@@ -1617,13 +1630,13 @@ jaiabot::statechart::postdeployment::DataOffload::DataOffload(typename StateBase
     {
         glog.is_warn() && glog << "Pre offload command Failed" << std::endl;
         this->machine().insert_warning(
-            jaiabot::protobuf::WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED);
+            WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED);
         post_event(EvDataOffloadFailed());
     }
     else
     {
         glog.is_debug1() && glog << "Pre offload command Succeeded" << std::endl;
-        this->machine().erase_warning(jaiabot::protobuf::WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED);
+        this->machine().erase_warning(WARNING__MISSION__DATA_PRE_OFFLOAD_FAILED);
     }
 }
 
@@ -1720,13 +1733,13 @@ jaiabot::statechart::postdeployment::DataOffload::~DataOffload()
         {
             glog.is_warn() && glog << "Post offload command failed" << std::endl;
             this->machine().insert_warning(
-                jaiabot::protobuf::WARNING__MISSION__DATA_POST_OFFLOAD_FAILED);
+                WARNING__MISSION__DATA_POST_OFFLOAD_FAILED);
         }
         else
         {
             glog.is_debug1() && glog << "Post offload command Succeeded" << std::endl;
             this->machine().erase_warning(
-                jaiabot::protobuf::WARNING__MISSION__DATA_POST_OFFLOAD_FAILED);
+                WARNING__MISSION__DATA_POST_OFFLOAD_FAILED);
         }
     }
 

@@ -20,13 +20,12 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+// Goby
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/util/seawater.h>
 
-#include "machine.h"
-#include "mission_manager.h"
-
+// Jaiabot
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
@@ -34,6 +33,11 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
+
+// Mission Manager app
+#include "states.h"
+#include "mission_manager_state_machine.h"
+#include "mission_manager.h"
 
 using goby::glog;
 namespace si = boost::units::si;
