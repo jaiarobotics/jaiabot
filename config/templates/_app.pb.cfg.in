@@ -5,4 +5,5 @@ app {
       $file_log
   }
   $simulation
+  $intervehicle_cfg
 }
