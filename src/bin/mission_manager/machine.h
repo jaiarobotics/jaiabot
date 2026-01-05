@@ -44,31 +44,6 @@ namespace jaiabot
 namespace statechart
 {
 
-// RAII publication of state changes
-template <typename Derived, jaiabot::protobuf::MissionState state,
-          jaiabot::protobuf::SetpointType setpoint_type = jaiabot::protobuf::SETPOINT_STOP>
-struct Notify : public AppMethodsAccess<Derived>
-{
-    Notify()
-    {
-        this->machine().set_state(state);
-        this->machine().set_setpoint_type(setpoint_type);
-
-        goby::middleware::protobuf::TransporterConfig pub_cfg;
-        // required since we're publishing in and subscribing to the group within the same thread
-        pub_cfg.set_echo(true);
-        this->interthread().template publish<groups::state_change>(std::make_pair(true, state),
-                                                                   {pub_cfg});
-    }
-    ~Notify()
-    {
-        goby::middleware::protobuf::TransporterConfig pub_cfg;
-        pub_cfg.set_echo(true);
-        this->interthread().template publish<groups::state_change>(std::make_pair(false, state),
-                                                                   {pub_cfg});
-    }
-};
-
 struct PreDeployment;
 namespace predeployment
 {

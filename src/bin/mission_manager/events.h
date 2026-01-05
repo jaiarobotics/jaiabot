@@ -13,10 +13,6 @@
 
 namespace jaiabot
 {
-namespace groups
-{
-constexpr goby::middleware::Group state_change{"jaiabot::state_change"};
-} // namespace groups
 
 namespace apps
 {

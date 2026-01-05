@@ -1,14 +1,22 @@
 #ifndef JAIABOT_SRC_BIN_MISSION_MANAGER_MACHINE_COMMON_H
 #define JAIABOT_SRC_BIN_MISSION_MANAGER_MACHINE_COMMON_H
 
+// Goby
 #include <goby/zeromq/application/multi_thread.h>
+
+// Jaiabot
+#include "jaiabot/groups.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
+
 
 namespace jaiabot
 {
+
 namespace apps
 {
 class MissionManager;
 }
+
 namespace config
 {
 class MissionManager;
@@ -51,6 +59,32 @@ template <typename Derived> class AppMethodsAccess
     apps::MissionManager& app() { return machine().app(); }
     const apps::MissionManager& app() const { return machine().app(); }
 };
+
+// RAII publication of state changes
+template <typename Derived, protobuf::MissionState state,
+          protobuf::SetpointType setpoint_type = protobuf::SETPOINT_STOP>
+struct Notify : public AppMethodsAccess<Derived>
+{
+    Notify()
+    {
+        this->machine().set_state(state);
+        this->machine().set_setpoint_type(setpoint_type);
+
+        goby::middleware::protobuf::TransporterConfig pub_cfg;
+        // required since we're publishing in and subscribing to the group within the same thread
+        pub_cfg.set_echo(true);
+        this->interthread().template publish<groups::state_change>(std::make_pair(true, state),
+                                                                   {pub_cfg});
+    }
+    ~Notify()
+    {
+        goby::middleware::protobuf::TransporterConfig pub_cfg;
+        pub_cfg.set_echo(true);
+        this->interthread().template publish<groups::state_change>(std::make_pair(false, state),
+                                                                   {pub_cfg});
+    }
+};
+
 } // namespace statechart
 } // namespace jaiabot
 
