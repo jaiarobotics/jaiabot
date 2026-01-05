@@ -62,6 +62,10 @@ function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Co
  * @returns {void}
  */
 function manageGhostLayer(botID: number, missionID: number) {
+    if (!missionSet.getMission(missionID)) {
+        return;
+    }
+
     for (const mission of missionSet.getMissions().values()) {
         // Reset ghost parameters if Bot assignment changed
         if (mission.getGhostParameters().botID === botID) {
