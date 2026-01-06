@@ -119,7 +119,8 @@ verbosities = \
   'jaiabot_driver_camera':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_mission_repeater':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_tsys01_temperature_sensor_driver':     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'jaiabot_comms_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
+  'jaiabot_comms_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -442,6 +443,11 @@ elif common.app == 'jaiabot_comms_manager':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      subscribes=subscribes_block))
+elif common.app == 'jaiabot_turner_c_fluor_sensor_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_turner_c_fluor_sensor_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common,
+                                     fluorometer_coefficients=fluorometer_coefficients))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
