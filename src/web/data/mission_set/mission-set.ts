@@ -127,6 +127,10 @@ export class MissionSet {
         this.ghostMissions.delete(missionID);
     }
 
+    deleteAllGhostMissions() {
+        this.ghostMissions.clear();
+    }
+
     /**
      * Captures a snapshot of the MissionSet
      *

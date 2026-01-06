@@ -1,6 +1,7 @@
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import RallyPoint from "../../data/rally_points/rally-point";
 import { rallyPoints } from "../../data/rally_points/rally-points";
+import { missionSet } from "../../data/mission_set/mission-set";
 import { rallyLayer } from "../../openlayers/layers/vector/rally-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { MapModes } from "../../types/openlayers-types";
@@ -47,9 +48,14 @@ export function handleDeleteRallyPoint(mutableState: JaiaContextType) {
  */
 export function handleSendRallyMission(mutableState: JaiaContextType) {
     missionsManager.unassignAll();
+    missionSet.deleteAllGhostMissions();
+
+    for (const mission of missionSet.getMissions().values()) {
+        mission.resetGhostParameters();
+    }
+
     rallyPoints.setSelectedRallyPointID(UNASSIGNED_ID);
     mutableState.visiblePanel = ButtonNames.NONE;
-
     syncOpenLayers();
 
     return mutableState;
