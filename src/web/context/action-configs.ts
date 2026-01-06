@@ -93,7 +93,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     ],
     [
         JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
-        { handler: handleChangeTaskPacketVisibility, tracked: true },
+        { handler: handleChangeTaskPacketVisibility, tracked: false },
     ],
 
     // Survey Actions

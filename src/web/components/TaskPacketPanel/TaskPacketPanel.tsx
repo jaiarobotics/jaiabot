@@ -62,7 +62,9 @@ export default function TaskPacketPanel(props: Props) {
      */
     const formatDate = (timestamp: number) => {
         const date = new Date(timestamp / 1_000);
-        return `${date.getHours()}:${date.getMinutes()} ${date.getMonth()}/${date.getDay()}/${date.getFullYear()}`;
+        const minutes = date.getMinutes();
+        const minutesFormated = minutes < 10 ? `0${minutes}` : minutes;
+        return `${date.getHours()}:${minutesFormated} ${date.getMonth()}/${date.getDay()}/${date.getFullYear()}`;
     };
 
     /**
