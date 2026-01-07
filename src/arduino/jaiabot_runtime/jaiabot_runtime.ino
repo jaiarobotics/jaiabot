@@ -15,7 +15,7 @@
 // If you are increasing this version than update
 // arduino driver configuration to include the new
 // version
-const int arduino_version = 2;
+const int arduino_version = 3;
 
 // Binary serial protocol
 // [JAIA][2-byte size - big endian][bytes][JAIA]...
@@ -100,6 +100,9 @@ constexpr int VccCurrent = A2;
 constexpr int VccVoltage = A0;
 constexpr int thermistor_pin = A4;
 
+// Generic GPIO Device Pin 
+constexpr int generic_gpio_pin = 7;
+
 jaiabot_protobuf_ArduinoCommand command = jaiabot_protobuf_ArduinoCommand_init_default;
 
 double Vcccurrent_rolling_average() {
@@ -180,6 +183,9 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
   // Arduino yields resolution of 5V over 1024 units
   ack.thermistor_voltage = analogRead(thermistor_pin) * 5 / 1024.0;
 
+  ack.has_generic_gpio_voltage = true;
+  ack.generic_gpio_voltage = analogRead(generic_gpio_pin) * 5 / 1024.0;
+
   status = pb_encode(&stream, jaiabot_protobuf_ArduinoResponse_fields, &ack);
   message_length = stream.bytes_written;
 
@@ -215,6 +221,7 @@ void setup()
   pinMode(VccVoltage, INPUT);
   pinMode(VvCurrent, INPUT);
   pinMode(LED_D1_PIN, OUTPUT);
+  pinMode(generic_gpio_pin, OUTPUT);
   
   motor_servo.attach(MOTOR_PIN);
   rudder_servo.attach(RUDDER_PIN);
