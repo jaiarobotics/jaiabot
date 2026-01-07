@@ -66,6 +66,13 @@ function manageGhostLayer(botID: number, missionID: number) {
         return;
     }
 
+    for (const mission of missionSet.getMissions().values()) {
+        // Reset ghost parameters on previously assigned mission
+        if (mission.getGhostParameters().botID === botID) {
+            mission.resetGhostParameters();
+        }
+    }
+
     for (const mission of missionSet.getGhostMissions().values()) {
         // Bot started new mission, remove ghost mission
         if (mission.getGhostParameters().botID === botID) {
