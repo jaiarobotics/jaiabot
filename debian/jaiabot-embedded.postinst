@@ -135,6 +135,9 @@ JAIA_CAMERA_POSITIONS="$(echo $RET | sed 's/,/ /g')"
 db_get jaiabot-embedded/dccl_encryption_password
 JAIA_DCCL_ENCRYPTION_PASSWORD=$RET
 
+db_get jaiabot-embedded/additional_sensors
+JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
+
 /usr/share/jaiabot/config/gen/systemd.py ${JAIA_TYPE} \
                                          --enable \
                                          --jaiabot_bin_dir=/usr/bin \
@@ -161,7 +164,8 @@ JAIA_DCCL_ENCRYPTION_PASSWORD=$RET
                                          --rf_encryption_password=${JAIA_RF_ENCRYPTION_PASSWORD} \
                                          --comms_links ${JAIA_COMMS_LINKS} \
                                          --camera_positions ${JAIA_CAMERA_POSITIONS} \
-                                         --dccl_encryption_password=${JAIA_DCCL_ENCRYPTION_PASSWORD}
+                                         --dccl_encryption_password=${JAIA_DCCL_ENCRYPTION_PASSWORD} \
+                                         --additional_sensors ${JAIA_ADDITIONAL_SENSORS}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 

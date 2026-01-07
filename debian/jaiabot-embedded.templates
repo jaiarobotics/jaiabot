@@ -141,3 +141,9 @@ Template: jaiabot-embedded/dccl_encryption_password
 Type: string
 Default:
 Description: Encryption passphrase for DCCL (intervehicle) messages: can be any string.
+
+Template: jaiabot-embedded/additional_sensors
+Type: multiselect
+Choices: turner_c_flour, none
+Default: none
+Description: Which additional sensors?
