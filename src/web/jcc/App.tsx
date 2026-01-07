@@ -60,7 +60,7 @@ export default function App() {
                 <TakeControl />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>
-            <div id="congestion-warning">Network Congestion Warning</div>
+            <div id="congestion-warning">Slow Hub WiFi Speeds</div>
         </div>
     );
 }
