@@ -5,6 +5,7 @@ import { BotModes } from "../../types/jaia-system-types";
 import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { Command, CommandType, MovementType } from "../../types/protobuf-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { ghostMissionLayer } from "../../openlayers/layers/vector/mission-layer";
 
 /**
  * Sets the mode of the Bot based on the command sent
@@ -49,4 +50,36 @@ function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Co
     if (missionSet.getMissionIDInEditMode() === missionID) {
         missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
     }
+
+    manageGhostLayer(command.bot_id, missionID);
+}
+
+/**
+ * Loops through the missions to update the ghost parameters
+ *
+ * @param {number} botID Used to reset ghost mission params
+ * @param {number} missionID Used to delete the ghost mission
+ * @returns {void}
+ */
+function manageGhostLayer(botID: number, missionID: number) {
+    if (!missionSet.getMission(missionID)) {
+        return;
+    }
+
+    for (const mission of missionSet.getMissions().values()) {
+        // Reset ghost parameters on previously assigned mission
+        if (mission.getGhostParameters().botID === botID) {
+            mission.resetGhostParameters();
+        }
+    }
+
+    for (const mission of missionSet.getGhostMissions().values()) {
+        // Bot started new mission, remove ghost mission
+        if (mission.getGhostParameters().botID === botID) {
+            missionSet.deleteGhostMission(mission.getMissionID());
+        }
+    }
+
+    missionSet.getMission(missionID).setGhostParameters({ hasStarted: true, botID: botID });
+    ghostMissionLayer.updateFeatures();
 }

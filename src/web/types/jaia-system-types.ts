@@ -61,6 +61,11 @@ export interface TaskParameterPair {
     value: number;
 }
 
+export interface GhostParameters {
+    hasStarted: boolean;
+    botID: number;
+}
+
 export enum SystemButtonTypes {
     SHUTDOWN = 1,
     REBOOT = 2,

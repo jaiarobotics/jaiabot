@@ -9,6 +9,8 @@ import {
 } from "../../types/protobuf-types";
 import Waypoint from "../waypoints/waypoint";
 import Task from "../tasks/task";
+import { GhostParameters } from "../../types/jaia-system-types";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 export default class Mission {
     private missionID: number;
@@ -16,12 +18,14 @@ export default class Mission {
     private speeds: Speeds;
     private repeats: number;
     private bottomDepthSafetyParams: BottomDepthSafetyParams;
+    private ghostParameters: GhostParameters;
 
     constructor() {
         // missionID assigned by missionSet singleton
         // speeds set by missionSet singleton
         this.waypoints = [];
         this.repeats = 1;
+        this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID };
     }
 
     getMissionID() {
@@ -63,6 +67,18 @@ export default class Mission {
 
     setBottomDepthSafetyParams(bottomDepthSafetyParams: BottomDepthSafetyParams) {
         this.bottomDepthSafetyParams = bottomDepthSafetyParams;
+    }
+
+    getGhostParameters() {
+        return this.ghostParameters;
+    }
+
+    setGhostParameters(ghostParameters: GhostParameters) {
+        this.ghostParameters = ghostParameters;
+    }
+
+    resetGhostParameters() {
+        this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID };
     }
 
     getWaypoint(waypointNum: number) {

@@ -198,7 +198,7 @@ export default function BotDetails() {
                                         </tr>
                                         <tr>
                                             <td>Wi-Fi Link Quality</td>
-                                            <td>{bot.getWifiLinkQuality() ?? "" + "%"}</td>
+                                            <td>{bot.getWifiLinkQuality() ?? ""}</td>
                                         </tr>
                                         <tr>
                                             <td>Data Logging</td>
