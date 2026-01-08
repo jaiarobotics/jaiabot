@@ -7,6 +7,7 @@ import {
     JaiaContextDataSnapshot,
     ButtonNames,
 } from "../../types/context-types";
+import { MapModes } from "../../types/openlayers-types";
 import { historyManager } from "../../data/history/histroy-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -41,8 +42,8 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
     // Clear the grid layer to remove left over features after undo
     gridLayer.getVectorLayer().getSource().clear();
 
-    // Reset the MapMode based on restored state
-    handleMapModeChange(mutableState.jaiaGlobal.getMapMode());
+    // Reset the map mode
+    handleMapModeChange(MapModes.DEFAULT);
 
     syncOpenLayers();
     return mutableState;
