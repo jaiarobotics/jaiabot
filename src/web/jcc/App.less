@@ -1,0 +1,71 @@
+@import "../node_modules/reset-css/reset.css";
+
+@import "../style/stylesheets/vars.less";
+
+@import "../style/stylesheets/accordion.less";
+@import "../style/stylesheets/button.less";
+@import "../style/stylesheets/details.less";
+@import "../style/stylesheets/dialog.less";
+@import "../style/stylesheets/input.less";
+@import "../style/stylesheets/panel.less";
+@import "../style/stylesheets/openlayers.less";
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    font-family: @global-font-family;
+    touch-action: pan-y;
+}
+
+#root {
+    height: 100vh;
+    width: 100vw;
+}
+
+#jcc {
+    height: 100%;
+    width: 100%;
+}
+
+// Turns off general touch actions
+// so they are processed as OpenLayer Events
+// which allows the operator to smoothly
+// pan and drag in full-screen mode
+#map,
+.ol-viewport {
+    touch-action: none;
+}
+
+#connection-warning,
+#congestion-warning {
+    position: absolute;
+    visibility: hidden;
+
+    width: 300px;
+    padding: 18px 0;
+    border: 1px solid #000;
+    background-color: @error-color;
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+
+    display: flex;
+    justify-content: center;
+
+    bottom: 30px;
+    left: 50%;
+    transform: translate(-50%, 0);
+
+    font-size: 1.1rem;
+}
+
+#connection-warning {
+    z-index: @connection-warning-z-index;
+}
+
+#congestion-warning {
+    z-index: @congestion-warning-z-index;
+}

@@ -29,7 +29,8 @@ const baseConfig = {
                 },
             },
             { test: /\.css$/, use: ["style-loader", "css-loader"] },
-            { test: /\.(png|svg|jpg|jpeg|gif)$/, type: "asset/resource" },
+            { test: /\.(png|jpg|jpeg|gif)$/, type: "asset/resource" },
+            { test: /\.svg$/, type: "asset/inline" },
             {
                 test: /\.less$/,
                 use: [
@@ -90,7 +91,7 @@ module.exports = (env, argv) => {
      */
     const jccConfig = {
         entry: {
-            client: path.resolve(__dirname, "jcc/index.js"),
+            client: path.resolve(__dirname, "jcc/index.tsx"),
         },
         output: {
             path: path.resolve(env.OUTPUT_DIR, "jcc/"),

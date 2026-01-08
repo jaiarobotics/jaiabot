@@ -1,0 +1,50 @@
+@import "./vars.less";
+
+.jaia-button-row {
+    display: flex;
+    column-gap: 12px;
+}
+
+// !important used to override MUI defaults
+.jaia-button {
+    height: @jaia-button-height;
+    width: @jaia-button-width;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-color: @jaia-button-background-color !important;
+    border-radius: @jaia-button-border-radius !important;
+    min-width: 48px !important;
+    padding: @jaia-button-padding !important;
+
+    box-shadow: @jaia-button-box-shadow;
+
+    cursor: pointer;
+
+    svg {
+        color: #000 !important;
+    }
+
+    span {
+        color: #000 !important;
+    }
+}
+
+.jaia-button.selected {
+    background-color: @selected-color !important;
+}
+
+.jaia-button.disabled {
+    background-color: @disabled-color !important;
+}
+
+.jaia-button.stop {
+    background-color: @error-color !important;
+}
+
+.jaia-button img {
+    width: 30px;
+    height: auto;
+}
