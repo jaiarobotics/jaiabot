@@ -1,0 +1,41 @@
+.depth-map-3D-container {
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+    padding: 12px;
+
+    position: absolute;
+}
+
+.depth-map-3D-container.center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    height: 75%;
+}
+
+.depth-map-3D-container.left {
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+}
+
+.depth-map-3D-container.right {
+    top: 0;
+    right: 0;
+    width: 50%;
+    height: 100%;
+}
+
+.depth-menu {
+    display: grid;
+    grid-template-columns: min-content 1fr min-content min-content min-content;
+    column-gap: 12px;
+}
+
+.depth-menu button {
+    all: unset;
+    width: 30px;
+}

@@ -1,0 +1,106 @@
+import { messages } from "./remote-control-messages";
+import { DisabledCodes } from "../disabled-codes";
+import { DialogActions } from "../../../types/context-types";
+
+interface DialogProps {
+    isVisible: boolean;
+    disabledCode: DisabledCodes;
+    onClose: (dialogAction: DialogActions) => void;
+}
+
+interface TitleProps {
+    disabledCode: DisabledCodes;
+}
+
+interface ButtonRowProps {
+    disabledCode: DisabledCodes;
+    onClose: (dialogAction: DialogActions) => void;
+}
+
+/**
+ * Produces the dialog box that appears when clicking on the remote control button.
+ * This dialog will be an alert if the command cannot be
+ * sent or a confirmation prior to sending the command.
+ */
+export function RemoteControlDialog(props: DialogProps) {
+    /**
+     * Forms the class name with a base of "jaia-dialog" and adds
+     * "alert" when the disabled code does not equal NONE.
+     *
+     * @returns {string} General class name jaia-dialog plus confirm/alert type
+     */
+    const getClassName = () => {
+        let className = "jaia-dialog";
+
+        if (props.disabledCode === DisabledCodes.MISSION_STATE) {
+            className += " alert";
+        }
+
+        return className;
+    };
+
+    if (!props.isVisible) {
+        return <div></div>;
+    }
+
+    return (
+        <div className="jaia-dialog-container">
+            <div className="blocking-overlay" onClick={() => {}}>
+                <div className={getClassName()}>
+                    <Title disabledCode={props.disabledCode} />
+                    <p>{messages.get(props.disabledCode)}</p>
+                    <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Produces the title for the dialog box. If there is nothing blocking the command from
+ * being sent the title will be Confirm, otherwise it will be Alert.
+ */
+function Title(props: TitleProps) {
+    if (props.disabledCode === DisabledCodes.MISSION_STATE) {
+        return <h1>Alert</h1>;
+    }
+
+    return <h1>Confirm</h1>;
+}
+
+/**
+ * Produces the buttons for the dialox box.
+ * For a confirmation dialog, the buttons will be Cancel and Enter RC Mode.
+ * For an alert, the button will be Close.
+ */
+function ButtonRow(props: ButtonRowProps) {
+    let confirmText = "";
+
+    if (props.disabledCode === DisabledCodes.NONE) {
+        confirmText = "Enter RC Mode";
+    } else if (props.disabledCode === DisabledCodes.NONE__EXIT_RC) {
+        confirmText = "Exit RC Mode";
+    }
+
+    if (props.disabledCode !== DisabledCodes.MISSION_STATE) {
+        return (
+            <div className="dialog-button-row">
+                <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
+                    Cancel
+                </button>
+                <button
+                    className="dialog-button"
+                    onClick={() => props.onClose(DialogActions.CONFIRMED)}
+                >
+                    {confirmText}
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <button className="dialog-button" onClick={() => props.onClose(DialogActions.NONE)}>
+            Close
+        </button>
+    );
+}
