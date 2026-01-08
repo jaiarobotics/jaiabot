@@ -18,6 +18,7 @@ namespace middleware = goby::middleware;
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/mission.pb.h"
 
 // Mission Manager app
 #include "states.h"

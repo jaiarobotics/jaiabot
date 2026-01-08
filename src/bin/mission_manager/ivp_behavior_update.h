@@ -1,3 +1,5 @@
+#pragma once
+
 // Boost
 #include <boost/units/systems/si/velocity.hpp>
 using namespace boost::units;
@@ -9,9 +11,11 @@ using goby::glog;
 
 // Jaiabot
 #include "jaiabot/messages/mission.pb.h"
+using IvPBehaviorUpdate = jaiabot::protobuf::IvPBehaviorUpdate;
+using GeographicCoordinate = jaiabot::protobuf::GeographicCoordinate;
 
 
-IvPBehaviorUpdate
+inline IvPBehaviorUpdate
 create_transit_update(const GeographicCoordinate& location,
                       quantity<si::velocity> speed, const goby::util::UTMGeodesy& geodesy,
                       const int& slip_radius)
@@ -33,7 +37,7 @@ create_transit_update(const GeographicCoordinate& location,
     return update;
 }
 
-IvPBehaviorUpdate create_location_stationkeep_update(
+inline IvPBehaviorUpdate create_location_stationkeep_update(
     const GeographicCoordinate& location, quantity<si::velocity> transit_speed,
     quantity<si::velocity> outer_speed, const goby::util::UTMGeodesy& geodesy)
 {
@@ -57,7 +61,7 @@ IvPBehaviorUpdate create_location_stationkeep_update(
     return update;
 }
 
-IvPBehaviorUpdate
+inline IvPBehaviorUpdate
 create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
                                           quantity<si::velocity> outer_speed)
 {
@@ -77,7 +81,7 @@ create_center_activate_stationkeep_update(quantity<si::velocity> transit_speed,
     return update;
 }
 
-IvPBehaviorUpdate
+inline IvPBehaviorUpdate
 create_constant_heading_update(quantity<si::plane_angle> heading)
 {
     IvPBehaviorUpdate update;
@@ -93,7 +97,7 @@ create_constant_heading_update(quantity<si::plane_angle> heading)
     return update;
 }
 
-IvPBehaviorUpdate create_constant_speed_update(quantity<si::velocity> speed)
+inline IvPBehaviorUpdate create_constant_speed_update(quantity<si::velocity> speed)
 {
     IvPBehaviorUpdate update;
     IvPBehaviorUpdate::ConstantSpeedUpdate& constantSpeed =
