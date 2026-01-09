@@ -36,7 +36,7 @@ namespace jaiabot
                 struct Movement;
                 namespace movement
                 {
-                    // dummy state whose role is to dynmically transit to the correct substate
+                    // dummy state whose role is to dynamically transit to the correct substate
                     // based on the current mission
                     struct MovementSelection;
                     struct Transit;

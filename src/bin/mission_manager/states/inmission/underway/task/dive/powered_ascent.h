@@ -223,7 +223,7 @@ struct PoweredAscent
     // determines duration to have the motor off
     goby::time::SteadyClock::duration powered_ascent_motor_off_duration_ =
         std::chrono::seconds(cfg().powered_ascent_motor_off_timeout());
-    // determines wehn we are still in motor off mode
+    // determines when we are still in motor off mode
     bool in_motor_off_mode_{false};
     // keep track of the depth changes so we can detect if we are stuck
     boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
