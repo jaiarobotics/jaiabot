@@ -1,7 +1,9 @@
+#pragma once
+
 #include <cmath>
 
 // This function converts decimal degrees to radians
-const double deg2rad(const double& deg) { return (deg * M_PI / 180); }
+double deg2rad(const double& deg) { return (deg * M_PI / 180); }
 
 /**
  * Returns the distance between two points on the Earth.
@@ -12,7 +14,7 @@ const double deg2rad(const double& deg) { return (deg * M_PI / 180); }
  * @param lon2d Longitude of the second point in degrees
  * @return The distance between the two points in kilometers
  */
-const double distanceToGoal(const double& lat1d, const double& lon1d,
+double distanceToGoal(const double& lat1d, const double& lon1d,
                       const double& lat2d, const double& lon2d)
 {
     constexpr double earthRadiusKm = 6371.0;
