@@ -22,36 +22,6 @@ def hub2hub_udp_port(hub_id):
         return 32000
     
 
-def bar30_cpp_udp_port(node_id):
-    if is_simulation():
-        return 20100 + node_id
-    else:
-        return 20100
-    
-def bar30_py_udp_port(node_id):
-    if is_simulation():
-        return 20000 + node_id
-    else:
-        return 20001
-    
-def tsys01_cpp_udp_port():
-    return 0
-
-def tsys01_py_udp_port():
-    return 20006 
-
-def atlas_ezo_cpp_udp_port(node_id):
-    if is_simulation():
-        return 20200 + node_id
-    else:
-        return 0
-    
-def atlas_ezo_py_udp_port(node_id):
-    if is_simulation():
-        return 20300 + node_id
-    else:
-        return 20002
-    
 def udp_gateway_port(node_id):
     if is_simulation():
         return 20400 + node_id
