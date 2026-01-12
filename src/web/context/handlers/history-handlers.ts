@@ -34,17 +34,6 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
     // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
 
-    // Close survey panel if left open by undo
-    if (mutableState.visiblePanel === ButtonNames.SURVEY_TOOL) {
-        mutableState.visiblePanel = ButtonNames.NONE;
-    }
-
-    // Clear the grid layer to remove left over features after undo
-    gridLayer.getVectorLayer().getSource().clear();
-
-    // Reset the map mode
-    handleMapModeChange(MapModes.DEFAULT);
-
     syncOpenLayers();
     return mutableState;
 }
