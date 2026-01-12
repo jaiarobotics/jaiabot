@@ -1,0 +1,39 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message CTD {
+    option (dccl.msg) = {
+        id: 100
+        codec_version: 4
+        unit_system: "si"
+    };
+    optional uint32 bot_id = 1 [
+        (dccl.field) = { min: 0 max: 255 }
+    ];
+    optional uint64 start_time = 2 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+            precision: -6  // second precision
+
+        }
+    ];
+    optional uint64 end_time = 3 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+            precision: -6  // second precision
+
+        }
+    ];
+    optional GeographicCoordinate start_location = 4;
+
+    repeated double conductivity = 5;
+    repeated double temperature = 6;
+    repeated double depth = 7;
+}
