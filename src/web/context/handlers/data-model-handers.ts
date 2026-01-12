@@ -4,6 +4,7 @@ import {
     HubAccordionStates,
     BotAccordionStates,
 } from "../../types/context-types";
+import { JaiaActions } from "../jaia-actions";
 import { bots } from "../../data/bots/bots";
 import { hubs } from "../../data/hubs/hubs";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
@@ -13,6 +14,7 @@ import { gridPlan } from "../../data/survey_planner/grid-plan";
 import { rallyPoints } from "../../data/rally_points/rally-points";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { NodeTypes } from "../../types/jaia-system-types";
+import { saveHistory } from "./history-handlers";
 
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
@@ -66,6 +68,7 @@ export function handleInit(mutableState: JaiaContextType) {
         previousTick: bots.getTick(),
     };
 
+    saveHistory(completeInit, JaiaActions.INIT);
     Object.assign(mutableState, completeInit);
     return mutableState;
 }
