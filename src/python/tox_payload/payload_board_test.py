@@ -1,7 +1,9 @@
 # Usage: python3 payload_board_test.py
 
 # By default, the script is looking for the board to be connected via UART_2 
-# on the sensor card (/dev/tty
+# on the sensor card (/dev/ttyAMA5). 
+
+
 
 
 
@@ -12,7 +14,7 @@
 import serial
 import time
 
-serial_port = serial.Serial('/dev/ttyAMA', 40000, timeout=1)
+serial_port = serial.Serial('/dev/ttyAMA5', 40000, timeout=1)
 
 write_buffer = [0]
 
