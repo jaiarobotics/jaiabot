@@ -6,7 +6,7 @@ import "jaiabot/messages/option_extensions.proto";
 
 package jaiabot.protobuf;
 
-message CTD {
+message CTDSnapshot {
     option (dccl.msg) = {
         id: 100
         codec_version: 4
@@ -33,7 +33,11 @@ message CTD {
     ];
     optional GeographicCoordinate start_location = 4;
 
-    repeated double conductivity = 5;
-    repeated double temperature = 6;
-    repeated double depth = 7;
+    optional double conductivity = 5;
+    optional double temperature = 6;
+    optional double depth = 7;
+}
+
+message CTDProfile {
+    repeated CTDSnapshot snapshots = 1;
 }

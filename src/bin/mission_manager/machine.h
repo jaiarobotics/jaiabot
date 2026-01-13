@@ -32,6 +32,7 @@
 
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/messages/ctd.pb.h"
 #include "jaiabot/utils/mission_manager_utils.h"
 using jaiabot::protobuf::EchoCommand;
 using jaiabot::protobuf::IMUCommand;
@@ -126,7 +127,9 @@ struct EvMeasurement : boost::statechart::event<EvMeasurement>
     boost::optional<
         boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>>
         temperature;
+    boost::optional<double> pressure_raw;
     boost::optional<double> salinity;
+    boost::optional<double> conductivity;
 };
 
 struct EvVehicleGPS : boost::statechart::event<EvVehicleGPS>
@@ -1789,7 +1792,8 @@ struct UnpoweredAscent
 
     void loop(const EvLoop&);
     void depth(const EvVehicleDepth& ev);
-
+    void collectCTD(const EvMeasurement& ev);
+ 
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvSurfacingTimeout, PoweredAscent>,
         boost::statechart::transition<EvSurfaced, ReacquireGPS>,
@@ -1806,6 +1810,10 @@ struct UnpoweredAscent
     boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
+    goby::time::MicroTime latest_measurement_time{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    jaiabot::protobuf::CTDSnapshot latest_ctd_snapshot;
+    jaiabot::protobuf::CTDProfile latest_ctd_profile;
+
 };
 
 struct PoweredAscent

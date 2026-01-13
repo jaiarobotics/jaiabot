@@ -1111,6 +1111,31 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::dept
              << std::endl;
 }
 
+void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::collectCTD(
+    const EvMeasurement& ev)
+{
+    auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+
+    if (ev.conductivity.has_value()) {
+        latest_ctd_snapshot.set_conductivity(ev.conductivity.value());
+    }
+
+    if (ev.temperature.has_value()) {
+        latest_ctd_snapshot.set_temperature(ev.temperature->value());
+    }
+
+    if (ev.pressure_raw.has_value()) {
+        latest_ctd_snapshot.set_depth(ev.pressure_raw.value());
+    }
+
+    if (now.value() - latest_measurement_time.value() >= 0.1) {
+        glog.is_debug1() && glog << "Adding CTD snapshot to profile" << std::endl;
+        latest_ctd_profile.add_snapshots()->CopyFrom(latest_ctd_snapshot);
+    }
+    latest_measurement_time = now;
+    glog.is_debug1() && glog << "New CTD measurement" << std::endl;
+}
+
 // Task::Dive::PoweredAscent
 jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::PoweredAscent(
     typename StateBase::my_context c)
