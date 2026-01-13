@@ -1799,7 +1799,10 @@ struct UnpoweredAscent
         boost::statechart::transition<EvSurfaced, ReacquireGPS>,
         boost::statechart::in_state_reaction<EvLoop, UnpoweredAscent, &UnpoweredAscent::loop>,
         boost::statechart::in_state_reaction<EvVehicleDepth, UnpoweredAscent,
-                                             &UnpoweredAscent::depth>>;
+                                             &UnpoweredAscent::depth>,
+        boost::statechart::in_state_reaction<EvMeasurement, UnpoweredAscent, &UnpoweredAscent::collectCTD>
+    >;
+        
 
   private:
     goby::time::MicroTime detect_depth_changes_init_timeout_{
