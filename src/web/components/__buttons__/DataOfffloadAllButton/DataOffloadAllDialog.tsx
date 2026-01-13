@@ -89,7 +89,7 @@ export function DataOffloadAllDialog(props: DialogProps) {
                 subMessage += `because ${botIDs.length > 1 ? "they do not have comms with the Hub." : "it does not have comms with the Hub."}`;
                 break;
             case DisabledCodes.MISSION_STATE:
-                subMessage += `because ${botIDs.length > 1 ? "they are not in an idle state." : "it is not in an idle state."}`;
+                subMessage += `because ${botIDs.length > 1 ? "they are not stopped or the offload already occured." : "it is not stopped or the offload already occured."}`;
                 break;
             case DisabledCodes.WIFI_QUALITY:
                 subMessage += `because ${botIDs.length > 1 ? "they are not connected to the Hub Wi-Fi network." : "it is not connected to the Hub Wi-Fi network."}`;
