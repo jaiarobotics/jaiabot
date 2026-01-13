@@ -50,6 +50,7 @@ protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_IN
   udp_driver.proto
   link_config.proto
   comms.proto
+  concentration_payload.proto
   ${SENSOR_MESSAGES}
 )
 

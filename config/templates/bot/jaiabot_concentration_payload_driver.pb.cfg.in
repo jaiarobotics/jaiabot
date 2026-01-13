@@ -1,0 +1,6 @@
+$app_block
+$interprocess_block
+mcu_serial {
+    port: "$port"
+    baud: $baud
+}
