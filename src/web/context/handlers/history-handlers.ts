@@ -34,13 +34,14 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
     // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
 
-    // TODO calls below can be remove when/if these features
+    // TODO call below can be remove when/if these features
     // are tracked in the application context
 
     // Clear the grid layer to remove left over features after undo
     gridLayer.getVectorLayer().getSource().clear();
+
     // Reset the map mode
-    handleMapModeChange(MapModes.DEFAULT);
+    handleMapModeChange(jaiaGlobal.getMapMode());
 
     syncOpenLayers();
     return mutableState;
