@@ -5,7 +5,7 @@ export const messages = new Map<DisabledCodes, string>([
     [DisabledCodes.NO_COMMS, "The Bot does not have comms with the Hub."],
     [
         DisabledCodes.MISSION_STATE,
-        "Cannot start a data offload because the Bot is not in an idle state. Try sending the stop command first.",
+        "Cannot start a data offload because the Bot is not in a stopped state or the offload already occured.",
     ],
     [
         DisabledCodes.WIFI_QUALITY,
