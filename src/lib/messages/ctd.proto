@@ -38,5 +38,5 @@ message CTDSnapshot {
 }
 
 message CTDProfile {
-    repeated CTDSnapshot snapshots = 1;
+    repeated CTDSnapshot snapshot = 1;
 }

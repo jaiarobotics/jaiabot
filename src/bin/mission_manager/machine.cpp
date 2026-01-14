@@ -1031,6 +1031,12 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::~Unpowere
 
     context<Dive>().dive_packet().set_unpowered_rise_rate_with_units(rise_rate *
                                                                      boost::units::si::velocity());
+
+    interprocess().publish<jaiabot::groups::ctd>(latest_ctd_profile_);
+    latest_ctd_profile_.clear_snapshots();
+    glog.is_debug1() && glog << "Published CTD profile" << std::endl;
+
+                                                                     
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop(const EvLoop&)
