@@ -1034,9 +1034,7 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::~Unpowere
 
     interprocess().publish<jaiabot::groups::ctd>(latest_ctd_profile_);
     latest_ctd_profile_.clear_snapshots();
-    glog.is_debug1() && glog << "Published CTD profile" << std::endl;
-
-                                                                     
+    glog.is_debug1() && glog << "Published CTD profile" << std::endl;                                                                    
 }
 
 void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop(const EvLoop&)
