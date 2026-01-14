@@ -20,7 +20,6 @@ message CTDSnapshot {
             codec: "dccl.time2"
             units { prefix: "micro" derived_dimensions: "time" }
             precision: -6  // second precision
-
         }
     ];
     optional uint64 end_time = 3 [

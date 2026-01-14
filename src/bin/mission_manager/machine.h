@@ -1790,6 +1790,8 @@ struct UnpoweredAscent
     UnpoweredAscent(typename StateBase::my_context c);
     ~UnpoweredAscent();
 
+    const int CTDUpdateRate = 100000; // 0.1 seconds
+
     void loop(const EvLoop&);
     void depth(const EvVehicleDepth& ev);
     void collectCTD(const EvMeasurement& ev);
@@ -1813,9 +1815,9 @@ struct UnpoweredAscent
     boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
-    goby::time::MicroTime last_snapshot_time{goby::time::SystemClock::now<goby::time::MicroTime>()};
-    jaiabot::protobuf::CTDSnapshot latest_ctd_snapshot;
-    jaiabot::protobuf::CTDProfile latest_ctd_profile;
+    goby::time::MicroTime last_snapshot_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    jaiabot::protobuf::CTDSnapshot latest_ctd_snapshot_;
+    jaiabot::protobuf::CTDProfile latest_ctd_profile_;
 
 };
 

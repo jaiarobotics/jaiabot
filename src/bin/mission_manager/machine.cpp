@@ -11,8 +11,6 @@ using goby::glog;
 namespace si = boost::units::si;
 using boost::units::quantity;
 
-const CTDUpdateRate = 100000; // 0.1 seconds
-
 jaiabot::protobuf::IvPBehaviorUpdate
 create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
                       quantity<si::velocity> speed, const goby::util::UTMGeodesy& geodesy,
@@ -1119,21 +1117,21 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::coll
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
     if (ev.conductivity.has_value()) {
-        latest_ctd_snapshot.set_conductivity(ev.conductivity.value());
+        latest_ctd_snapshot_.set_conductivity(ev.conductivity.value());
     }
 
     if (ev.temperature.has_value()) {
-        latest_ctd_snapshot.set_temperature(ev.temperature->value());
+        latest_ctd_snapshot_.set_temperature(ev.temperature->value());
     }
 
     if (ev.sensor_depth.has_value()) {
-        latest_ctd_snapshot.set_depth(ev.sensor_depth->value());
+        latest_ctd_snapshot_.set_depth(ev.sensor_depth->value());
     }
 
-    if (now.value() - last_snapshot_time.value() >= CTDUpdateRate) {
+    if (now.value() - last_snapshot_time_.value() >= CTDUpdateRate) {
         glog.is_debug1() && glog << "Adding CTD snapshot to profile" << std::endl;
-        latest_ctd_profile.add_snapshots()->CopyFrom(latest_ctd_snapshot);
-        last_snapshot_time = now;
+        latest_ctd_profile_.add_snapshots()->CopyFrom(latest_ctd_snapshot_);
+        last_snapshot_time_ = now;
     }
 }
 
