@@ -5,6 +5,7 @@ export default class HistoryStack<T> {
     /** Creates a history stack
      *
      * @param {number} capacity Maximum number of entries in history stack
+     * @returns {void}
      */
     constructor(capacity: number = 20, initialEntry?: T) {
         this.capacity = capacity;
@@ -17,7 +18,7 @@ export default class HistoryStack<T> {
      * Push a new item onto the stack
      *
      * @param {T} item New item to push onto the stack
-     *
+     * @returns {void}
      */
     push(item: T) {
         if (this.items.length === this.capacity) {
@@ -50,6 +51,7 @@ export default class HistoryStack<T> {
 
     /**
      * Returns number of items on the stack
+     *
      * @returns {number} number of items on the stack
      */
     size() {

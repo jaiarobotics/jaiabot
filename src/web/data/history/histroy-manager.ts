@@ -15,7 +15,7 @@ export class HistoryManager {
 
     undo() {
         const unDoneState = this.undoBuffer.pop();
-        // TODO when implementing redo this will be pushed onto redo stack
+        // When implementing redo this will be pushed onto redo stack
         return this.undoBuffer.peek();
     }
 }
