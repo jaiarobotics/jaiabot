@@ -1134,7 +1134,7 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::coll
 
     if (now.value() - last_snapshot_time_.value() >= CTDUpdateRate) {
         glog.is_debug1() && glog << "Adding CTD snapshot to profile" << std::endl;
-        latest_ctd_profile_.add_snapshots()->CopyFrom(latest_ctd_snapshot_);
+        latest_ctd_profile_.add_snapshot()->CopyFrom(latest_ctd_snapshot_);
         last_snapshot_time_ = now;
     }
 }
