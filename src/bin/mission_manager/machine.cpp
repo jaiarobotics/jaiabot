@@ -1033,7 +1033,7 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::~Unpowere
                                                                      boost::units::si::velocity());
 
     interprocess().publish<jaiabot::groups::ctd>(latest_ctd_profile_);
-    latest_ctd_profile_.clear_snapshots();
+    latest_ctd_profile_.clear_snapshot();
     glog.is_debug1() && glog << "Published CTD profile" << std::endl;                                                                    
 }
 
