@@ -11,6 +11,8 @@ using goby::glog;
 namespace si = boost::units::si;
 using boost::units::quantity;
 
+const CTDUpdateRate = 100000; // 0.1 seconds
+
 jaiabot::protobuf::IvPBehaviorUpdate
 create_transit_update(const jaiabot::protobuf::GeographicCoordinate& location,
                       quantity<si::velocity> speed, const goby::util::UTMGeodesy& geodesy,
@@ -1124,16 +1126,15 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::coll
         latest_ctd_snapshot.set_temperature(ev.temperature->value());
     }
 
-    if (ev.pressure_raw.has_value()) {
-        latest_ctd_snapshot.set_depth(ev.pressure_raw.value());
+    if (ev.sensor_depth.has_value()) {
+        latest_ctd_snapshot.set_depth(ev.sensor_depth->value());
     }
 
-    if (now.value() - latest_measurement_time.value() >= 0.1) {
+    if (now.value() - last_snapshot_time.value() >= CTDUpdateRate) {
         glog.is_debug1() && glog << "Adding CTD snapshot to profile" << std::endl;
         latest_ctd_profile.add_snapshots()->CopyFrom(latest_ctd_snapshot);
+        last_snapshot_time = now;
     }
-    latest_measurement_time = now;
-    glog.is_debug1() && glog << "New CTD measurement" << std::endl;
 }
 
 // Task::Dive::PoweredAscent

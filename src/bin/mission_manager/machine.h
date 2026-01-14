@@ -127,9 +127,9 @@ struct EvMeasurement : boost::statechart::event<EvMeasurement>
     boost::optional<
         boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>>
         temperature;
-    boost::optional<double> pressure_raw;
     boost::optional<double> salinity;
     boost::optional<double> conductivity;
+    boost::optional<boost::units::quantity<boost::units::si::length>> sensor_depth;
 };
 
 struct EvVehicleGPS : boost::statechart::event<EvVehicleGPS>
@@ -1813,7 +1813,7 @@ struct UnpoweredAscent
     boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
-    goby::time::MicroTime latest_measurement_time{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    goby::time::MicroTime last_snapshot_time{goby::time::SystemClock::now<goby::time::MicroTime>()};
     jaiabot::protobuf::CTDSnapshot latest_ctd_snapshot;
     jaiabot::protobuf::CTDProfile latest_ctd_profile;
 
