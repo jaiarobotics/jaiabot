@@ -1,13 +1,7 @@
 import { cloneDeep } from "lodash";
 import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
-import {
-    JaiaContextType,
-    JaiaSnapshot,
-    JaiaContextDataSnapshot,
-    ButtonNames,
-} from "../../types/context-types";
-import { MapModes } from "../../types/openlayers-types";
+import { JaiaContextType, JaiaSnapshot, JaiaContextDataSnapshot } from "../../types/context-types";
 import { historyManager } from "../../data/history/histroy-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -15,7 +9,6 @@ import { gridPlan } from "../../data/survey_planner/grid-plan";
 import { rallyPoints } from "../../data/rally_points/rally-points";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { handleMapModeChange } from "../../openlayers/maps/map";
-import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 
 /**
  * Pulls previous state from history and updates current state and data model
@@ -33,12 +26,6 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
 
     // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
-
-    // TODO call below can be remove when/if these features
-    // are tracked in the application context
-
-    // Clear the grid layer to remove left over features after undo
-    gridLayer.getVectorLayer().getSource().clear();
 
     // Reset the map mode
     handleMapModeChange(jaiaGlobal.getMapMode());
