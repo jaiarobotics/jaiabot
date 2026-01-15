@@ -54,3 +54,6 @@ jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientif
 # Camera
 [kill=SIGTERM] socat -d -d pty,raw,echo=0,link=/tmp/bot${jaia_bot_index}_camera_0 pty,raw,echo=0,link=/tmp/bot${jaia_bot_index}_camera_1
 jaiabot_driver_camera <(../../gen/bot.py jaiabot_driver_camera)
+
+# CTD
+jaiabot_ctd_manager <(../../gen/bot.py jaiabot_ctd_manager)
