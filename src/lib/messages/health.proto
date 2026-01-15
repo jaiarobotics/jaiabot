@@ -88,6 +88,9 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_COMMS_MANAGER = 41
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_CTD_MANAGER = 42
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -148,6 +151,8 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_COMMS_MANAGER = 127
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_TURNER_C_FLUOR_SENSOR_DRIVER = 128
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_CTD_MANAGER = 129
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
