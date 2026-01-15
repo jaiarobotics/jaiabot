@@ -1,95 +1,103 @@
+import { jaiaAPI } from "./jaia-api";
 import {
     Command,
+    CommandForHub,
     CommandType,
-    HubCommandType,
-    BotStatus,
+    Engineering,
     MissionState,
-    HubStatus,
-} from "../shared/JAIAProtobuf";
-import { jaiaAPI } from "./jaia-api";
-import { CustomAlert } from "../shared/CustomAlert";
-import { isError } from "lodash";
-
-export interface CommandInfo {
-    commandType: CommandType | HubCommandType;
-    description: string;
-    confirmationButtonText: string;
-    statesAvailable?: RegExp[];
-    statesNotAvailable?: RegExp[];
-    humanReadableAvailable?: string;
-    humanReadableNotAvailable?: string;
-}
-
-export const hubCommands: { [key: string]: CommandInfo } = {
-    shutdown: {
-        commandType: CommandType.SHUTDOWN_COMPUTER,
-        description: "Shutdown Hub",
-        confirmationButtonText: "Shutdown Hub",
-        statesNotAvailable: [],
-    },
-    restartServices: {
-        commandType: CommandType.RESTART_ALL_SERVICES,
-        description: "Restart Services",
-        confirmationButtonText: "Restart Services",
-        statesNotAvailable: [],
-    },
-    reboot: {
-        commandType: CommandType.REBOOT_COMPUTER,
-        description: "Reboot Hub",
-        confirmationButtonText: "Reboot Hub",
-        statesNotAvailable: [],
-    },
-};
+} from "../types/protobuf-types";
+import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 
 /**
- * Saves client ID associated with the user session as the controlling client ID
- *
- * @param {string} clientID ID associated with user session
- * @returns {boolean} Whether or not the client took control
+ * commandStates is a map of command types to regular expressions
+ * that include all of the states of a Bot for which a command can be sent
  */
-export async function takeControl(clientID: string) {
-    const status = await jaiaAPI.getStatus();
+const commandStates: Map<CommandType, RegExp[]> = new Map<CommandType, RegExp[]>([
+    [CommandType.ACTIVATE, [/^.+__IDLE$/, /^PRE_DEPLOYMENT__FAILED$/]],
+    [CommandType.NEXT_TASK, [/^IN_MISSION__(?!REMOTE_CONTROL).+$/]],
+    [
+        CommandType.REBOOT_COMPUTER,
+        [/^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/, /^PRE_DEPLOYMENT.+$/, /^POST_DEPLOYMENT.+$/],
+    ],
+    [CommandType.RECOVERED, [/^PRE_DEPLOYMENT.+$/, /^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/]],
+    [
+        CommandType.REMOTE_CONTROL_TASK,
+        [/^IN_MISSION__.+$/, /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/, /^.+__FAILED$/],
+    ],
+    [
+        CommandType.RESTART_ALL_SERVICES,
+        [/^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/, /^PRE_DEPLOYMENT.+$/, /^POST_DEPLOYMENT.+$/],
+    ],
+    [CommandType.RETRY_DATA_OFFLOAD, [/^POST_DEPLOYMENT__FAILED$/]],
+    [CommandType.RETURN_TO_HOME, [/^IN_MISSION__.+$/]],
+    [
+        CommandType.SHUTDOWN,
+        [/^IN_MISSION__UNDERWAY__RECOVERY__STOPPED$/, /^PRE_DEPLOYMENT.+$/, /^POST_DEPLOYMENT.+$/],
+    ],
+    [CommandType.START_MISSION, [/^IN_MISSION__.+$/, /^PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN$/]],
+    [CommandType.STOP, [/^IN_MISSION__(?!UNDERWAY__RECOVERY__STOPPED).+$/]],
+]);
 
-    if (isError(status)) {
-        console.error("Error retrieving status message");
-        return false;
-    }
+/**
+ * Tests a mission state against the available states of a command
+ *
+ * @param {CommandType} commandType Command to check available states
+ * @param {MissionState} missionState Bot's state to match against
+ * @returns {boolean} True if the command is available for the given mission state, otherwise, false
+ */
+export function isCommandAvailable(commandType: CommandType, missionState: MissionState) {
+    const availableStates = commandStates.get(commandType);
 
-    if (clientID === status["controllingClientId"]) {
-        return true;
-    }
-
-    const didConfirm = await CustomAlert.confirmAsync(
-        "Another client is currently controlling the pod.  Take control?",
-        "Take Control",
-    );
-    if (didConfirm) {
-        const response = await jaiaAPI.takeControl();
-        if (!isError(response)) {
+    for (let availableState of availableStates) {
+        if (availableState.test(missionState)) {
             return true;
         }
-        return false;
     }
     return false;
 }
 
 /**
- * Posts command to the server so it can be passed to the hub
+ * Passes a command message for a Bot to the jaiaAPI
+ * so it can reach the Hub for distribution
  *
- * @param {number} hubID Determines which hub receives the command
- * @param {CommandInfo} hubCommand Contains the contents of the command
- * @returns {void}
+ * @param {Command} command Command message to be sent to Bot
+ * @returns {Promise} Response from sending command
  */
-export async function sendHubCommand(hubID: number, hubCommand: CommandInfo) {
-    const didConfirm = await CustomAlert.confirmAsync(
-        "Are you sure you'd like to " + hubCommand.description + "?",
-        hubCommand.confirmationButtonText,
-    );
-    if (didConfirm) {
-        const command = {
-            hub_id: hubID,
-            type: hubCommand.commandType as HubCommandType,
-        };
-        jaiaAPI.postCommandForHub(command);
+export function sendBotCommand(command: Command) {
+    return jaiaAPI.postCommand(command);
+}
+
+/**
+ * Passes a command message for a Hub to the jaiaAPI so it can reach the Hub
+ *
+ * @param {Command} command Command message to be sent to Hub
+ * @returns {Promise} Response from sending command
+ */
+export function sendHubCommand(command: CommandForHub) {
+    return jaiaAPI.postCommandForHub(command);
+}
+
+/**
+ * Passes a engineering command message for a Bot to the jaiaAPI
+ * so it can reach the Hub for distribution
+ *
+ * @param {Engineering} command Engineering command message to be sent to Bot
+ * @returns {Promise} Response from sending command
+ */
+export function sendEngineeringCommand(command: Engineering) {
+    return jaiaAPI.postEngineering(command);
+}
+
+/*
+ * Checks whether the client is in control
+ *
+ * @returns {boolean} True if the client is in control, otherwise false
+ */
+export function isControllingClient() {
+    const controllingID = jaiaGlobal.getControllingClientID();
+    if (controllingID === jaiaAPI.getClientId() || controllingID === null) {
+        return true;
     }
+
+    return false;
 }

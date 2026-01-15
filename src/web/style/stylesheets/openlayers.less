@@ -1,0 +1,54 @@
+.ol-zoom {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    position: absolute;
+    right: 6px;
+}
+
+.ol-control-button {
+    border: none;
+}
+
+.ol-rotate-reset {
+    position: absolute;
+    bottom: 19px;
+    right: -9px;
+}
+
+.ol-mouse-position {
+    position: absolute;
+    bottom: 66px;
+    right: 75px;
+
+    height: 40px;
+    width: 90px;
+    line-height: 18px;
+
+    padding: 2px;
+    font-size: 14px;
+    text-align: center;
+
+    background-color: @overlay-background;
+    color: #fff;
+}
+
+.ol-scale-line {
+    background-color: @overlay-background;
+    color: #fff;
+}
+
+.ol-scale-line-inner {
+    border: 1px solid #fff;
+    border-top: none;
+    padding: 0 0 3px 0;
+    margin: 6px 6px 3px 6px;
+    will-change: contents, width;
+}
+
+.ol-attribution {
+    background-color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    padding: 1px;
+}

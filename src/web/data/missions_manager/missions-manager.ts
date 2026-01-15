@@ -1,0 +1,159 @@
+import cloneDeep from "lodash/cloneDeep";
+import { bots } from "../bots/bots";
+import { missionSet } from "../mission_set/mission-set";
+import { UNASSIGNED_ID } from "../../utils/constants";
+import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
+
+export interface MissionsManagerSnapshot {
+    botsToMissions: Map<number, number>;
+    missionsToBots: Map<number, number>;
+}
+
+export class MissionsManager {
+    private botsToMissions: Map<number, number>;
+    private missionsToBots: Map<number, number>;
+
+    readonly STATUS_AGE_MAX_SECONDS = 30;
+
+    constructor() {
+        this.botsToMissions = new Map<number, number>();
+        this.missionsToBots = new Map<number, number>();
+    }
+
+    /**
+     * Provides the mission ID associated with a Bot
+     *
+     * @param {number} botID Used in search for mission assoicated with Bot
+     * @returns {number} Mission ID associated with a Bot or (-1) if the Bot is not assigned to a mission
+     */
+    getMissionID(botID: number) {
+        return this.botsToMissions.get(botID) ?? UNASSIGNED_ID;
+    }
+
+    /**
+     * Provides the Bot ID associated with a mission
+     *
+     * @param {number} missionID Used in search for Bot associated with mission
+     * @returns {number} Bot ID associated with a mission or (-1) if the mission is not assigned to a Bot
+     */
+    getBotID(missionID: number) {
+        return this.missionsToBots.get(missionID) ?? UNASSIGNED_ID;
+    }
+
+    /**
+     * Connects Bots and missions
+     *
+     * @param {number} botID Used in assignment
+     * @param {number} missionID Used in assignment
+     * @returns {void}
+     */
+    assign(botID: number, missionID: number) {
+        // Reset Bot previously assigned to mission
+        const previousBotAssignment = this.getBotID(missionID);
+
+        if (previousBotAssignment !== UNASSIGNED_ID) {
+            this.botsToMissions.set(previousBotAssignment, UNASSIGNED_ID);
+        }
+
+        // We do not need a key of (-1) in the botsToMissions map
+        if (botID !== UNASSIGNED_ID) {
+            this.botsToMissions.set(botID, missionID);
+        }
+
+        this.missionsToBots.set(missionID, botID);
+    }
+
+    /**
+     * Assigns available Bots to open missions. The Bot and mission assignments move from low IDs to high IDs.
+     *
+     * @returns {void}
+     */
+    autoAssign() {
+        for (let [missionID, mission] of missionSet.getMissions()) {
+            if (this.getBotID(missionID) === UNASSIGNED_ID) {
+                if (this.getNextAvailableBotID() !== UNASSIGNED_ID) {
+                    this.assign(this.getNextAvailableBotID(), missionID);
+                }
+            }
+        }
+    }
+
+    /**
+     * Assigns all missions to UNASSIGNED_ID
+     *
+     * @returns {void}
+     */
+    unassignAll() {
+        for (let [missionID, mission] of missionSet.getMissions()) {
+            this.assign(UNASSIGNED_ID, missionID);
+        }
+    }
+
+    /**
+     * Finds the lowest Bot ID that is not assigned to a mission
+     *
+     * @returns {number} Bot ID or (-1) if all Bots are already assigned to missions or outside of comms range
+     */
+    getNextAvailableBotID() {
+        for (let [botID, bot] of bots.getBots()) {
+            if (
+                this.getMissionID(bot.getBotID()) === UNASSIGNED_ID &&
+                convertMicrosecondsToSeconds(bot.getStatusAge()) < this.STATUS_AGE_MAX_SECONDS
+            ) {
+                return bot.getBotID();
+            }
+        }
+        return UNASSIGNED_ID;
+    }
+
+    /**
+     * Removes connection between a Bot and a deleted mission
+     *
+     * @param {number} missionID ID of deleted mission
+     * @returns {void}
+     */
+    removeAssignment(missionID: number) {
+        const botAssignment = this.getBotID(missionID);
+
+        if (botAssignment !== UNASSIGNED_ID) {
+            this.botsToMissions.set(botAssignment, UNASSIGNED_ID);
+        }
+    }
+
+    /**
+     * Resets the Bot and mission connections
+     *
+     * @returns {void}
+     */
+    clear() {
+        this.botsToMissions.clear();
+        this.missionsToBots.clear();
+    }
+
+    /**
+     * Captures a snapshot of the current assignments
+     *
+     * @returns {MissionsManagerSnapshot} Snapshot of current MissionsManager
+     */
+    captureSnapshot() {
+        const snapshot: MissionsManagerSnapshot = {
+            botsToMissions: this.botsToMissions,
+            missionsToBots: this.missionsToBots,
+        };
+        return cloneDeep(snapshot);
+    }
+
+    /**
+     * Replaces the current assignments with those from the saved snapshot
+     *
+     * @param {MissionsManagerSnapshot} snapshot Snapshot of assignments
+     * @returns {void}
+     */
+    restoreFromSnapshot(snapshot: MissionsManagerSnapshot) {
+        // Copy maps from snapshot
+        this.botsToMissions = snapshot.botsToMissions;
+        this.missionsToBots = snapshot.missionsToBots;
+    }
+}
+
+export const missionsManager = new MissionsManager();
