@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Install files to /opt/jaia_packages
+mkdir /opt/jaia_packages
+wget https://raw.githubusercontent.com/jaiarobotics/jaiabot/refs/heads/2.y/scripts/packages/mini-dinstall.conf -P /opt/jaia_packages
+wget https://raw.githubusercontent.com/jaiarobotics/jaiabot/refs/heads/2.y/scripts/packages/sign_release.sh -P /opt/jaia_packages && chmod a+x /opt/jaia_packages/sign_release.sh
+wget https://raw.githubusercontent.com/jaiarobotics/jaiabot/refs/heads/2.y/scripts/packages/update_gobysoft_mirror.sh -P /opt/jaia_packages && chmod a+x /opt/jaia_packages/update_gobysoft_mirror.sh
+chown -R jaia:jaia /opt/jaia_packages
+
+# Create directories for mini-dinstall and gobysoft mirror
+for repo in test continuous beta release; do
+    mkdir -p /var/www/html/ubuntu/gobysoft/\${repo}
+    for version in 1.y 2.y 3.y; do
+        mkdir -p /var/www/html/ubuntu/\${repo}/\${version}/mini-dinstall/incoming
+        ln -s /var/spool/apt-mirror/release/\${version}/mirror/packages.gobysoft.org/ubuntu/release /var/www/html/ubuntu/gobysoft/\${repo}/\${version}
+    done
+done
+chown -R dput /var/www/html/ubuntu
+
+# Install script for pulling data from old packages.gobysoft.org (if relevant)
+sync_script=/home/jaia/sync_from_prior_packages_server.sh
+cat <<EOF > \${sync_script}
+#!/bin/bash
+
+# Prereqs:
+#   - Need to manually provide SSH key pair for new server to log into dput on old server
+
+# sync existing files
+sudo -E rsync -aP dput@packages.jaia.tech:/var/www/html/ubuntu/ /var/www/html/ubuntu/
+sudo -E rsync -aP dput@packages.jaia.tech:/var/spool/apt-mirror/ /var/spool/apt-mirror/
+
+# fetch existing GPG key
+ssh dput@packages.jaia.tech \"gpg --export-secret-keys --armor 954A004CD5D8CF32\" | sudo -u dput gpg --import
+
+# trust key ultimately
+sudo -u dput /bin/bash -c \"echo -e '5\ny\n' | gpg --command-fd 0 --edit-key 954A004CD5D8CF32 trust quit\"
+EOF
+chmod a+x \${sync_script}
+chown jaia:jaia \${sync_script}
+
