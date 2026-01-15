@@ -73,7 +73,7 @@ export class RallyPoints {
 
     restoreFromSnapshot(snapshot: RallyPointsSnapshot) {
         const restored = cloneDeep(snapshot);
-        this.rallyPoints = cloneDeep(restored.rallyPoints);
+        this.rallyPoints = restored.rallyPoints;
         this.nextRallyPointID = restored.nextRallyPointID;
         this.selectedRallyPointID = restored.selectedRallyPointID;
     }

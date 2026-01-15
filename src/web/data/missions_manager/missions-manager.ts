@@ -152,8 +152,8 @@ export class MissionsManager {
     restoreFromSnapshot(snapshot: MissionsManagerSnapshot) {
         const restored = cloneDeep(snapshot);
         // Copy maps from snapshot
-        this.botsToMissions = snapshot.botsToMissions;
-        this.missionsToBots = snapshot.missionsToBots;
+        this.botsToMissions = restored.botsToMissions;
+        this.missionsToBots = restored.missionsToBots;
     }
 }
 
