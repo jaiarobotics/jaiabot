@@ -5,10 +5,10 @@
 			"Sid": "RunInstancesSpecificVPC",
 			"Effect": "Allow",
 			"Action": "ec2:RunInstances",
-			"Resource": "arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:subnet/*",
+			"Resource": "{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:subnet/*",
 			"Condition": {
 				"StringEquals": {
-					"ec2:Vpc": "arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:vpc/{{VPC_ID}}"
+					"ec2:Vpc": "{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:vpc/{{VPC_ID}}"
 				}
 			}
 		},
@@ -23,12 +23,12 @@
 			"Effect": "Allow",
 			"Action": "ec2:RunInstances",
 			"Resource": [
-				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:network-interface/*",
-				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:security-group/*",
-				"arn:aws:ec2:{{REGION}}::image/ami-*",
-				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:instance/*",
-				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:volume/*",
-				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:key-pair/*"
+				"{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:network-interface/*",
+				"{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:security-group/*",
+				"{{ARN_PREFIX}}:ec2:{{REGION}}::image/ami-*",
+				"{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:instance/*",
+				"{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:volume/*",
+				"{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:key-pair/*"
 			]
 		},
 		{
@@ -41,8 +41,8 @@
 				"ec2:StopInstances"
 			],
 			"Resource": [
-				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:instance/*",
-				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:volume/*"
+				"{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:instance/*",
+				"{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:volume/*"
 			],
 			"Condition": {
 				"StringEquals": {
@@ -55,8 +55,8 @@
 			"Effect": "Allow",
 			"Action": "ec2:CreateTags",
 			"Resource": [
-				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:instance/*",
-				"arn:aws:ec2:{{REGION}}:{{ACCOUNT_ID}}:volume/*"
+				"{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:instance/*",
+				"{{ARN_PREFIX}}:ec2:{{REGION}}:{{ACCOUNT_ID}}:volume/*"
 			],
 			"Condition": {
 				"StringEquals": {
@@ -75,8 +75,8 @@
 				"s3:GetBucketAcl"
 			],
 			"Resource": [
-				"arn:aws:s3:::{{CLOUDHUB_DATA_BUCKET}}",
-				"arn:aws:s3:::{{CLOUDHUB_DATA_BUCKET}}/*"
+				"{{ARN_PREFIX}}:s3:::{{CLOUDHUB_DATA_BUCKET}}",
+				"{{ARN_PREFIX}}:s3:::{{CLOUDHUB_DATA_BUCKET}}/*"
 			]
 		}
 	]

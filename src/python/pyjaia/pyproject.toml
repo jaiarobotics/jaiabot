@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyjaia"
+version = "1.0.0"
+description = "Jaia python utilities."
+requires-python = ">=3.8"
+authors = [
+    { name = "Ed Sanville (Jaia Robotics)", email = "edsanville@gmail.com" },
+]
+keywords = ["jaia"]
+dependencies = [
+    'wheel', 
+    'protobuf==3.20.0', 
+    'scipy', 
+    'numpy', 
+    'cmocean',
+    'turfpy',
+    'h5py',
+    'plotly',
+]
+
+[project.urls]
+Homepage = "https://www.jaia.tech"
+"Bug Tracker" = "https://github.com/jaiarobotics/jaiabot"
+
+[tool.setuptools.packages.find]
+where = ["src"] # Specify where Setuptools should look for packages
+
+[project.scripts]
+jaia-analyze-waves = "pyjaia.waves.analyze_tool:main" 

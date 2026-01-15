@@ -15,4 +15,11 @@ message TurnerCFluor
     optional double concentration_voltage = 2;
 }
 
+message FluorCoefficients
+{
+    optional double offset = 1;
+    optional double coefficient = 2;
+    optional int32 serial_number = 3;
+}
+
 

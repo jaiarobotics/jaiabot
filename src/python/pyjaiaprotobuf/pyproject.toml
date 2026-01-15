@@ -1,19 +1,23 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyjaiaprotobuf"
-dynamic = ["version"]
+version = "1.0.0"
 description = "Jaia python protobuf messages"
-license = {text=""}
+requires-python = ">=3.8"
 authors = [
-    { name = "Jaia Robotics", email = "edsanville@gmail.com" },
+    { name = "Ed Sanville (Jaia Robotics)", email = "edsanville@gmail.com" },
 ]
+keywords = ["jaia"]
 dependencies = [
-    "protobuf",
-    "wheel",
+    'protobuf==3.20.0', 
 ]
 
 [project.urls]
 Homepage = "https://www.jaia.tech"
+"Bug Tracker" = "https://github.com/jaiarobotics/jaiabot"
+
+[tool.setuptools.packages.find]
+where = ["src"] # Specify where Setuptools should look for packages

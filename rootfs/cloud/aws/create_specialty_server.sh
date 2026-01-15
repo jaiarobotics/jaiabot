@@ -16,6 +16,7 @@ REGION=us-west-2
 SUBNET_ID=subnet-f5f17b8d
 DISK_SIZE_GB=8
 ELASTIC_IP_ALLOCATION_ID=
+CREATE_NUM_DAILY_BACKUPS=1
 IPV6_ADDRESS=
 
 set -a; source $1; set +a;
@@ -123,14 +124,83 @@ else
     echo ">>>>>> Instance is running. Not associating Elastic IP Address as ELASTIC_IP_ALLOCATION_ID is not set"
 fi
 
+
+echo ">>>>>> Tagging resources"
+
 run "" aws ec2 create-tags --resources "$INSTANCE_ID" \
     "$SECURITY_GROUP_ID" \
     --tags \
     "Key=jaia_server_type,Value=${SERVER_TYPE}"
 
-run "" aws ec2 create-tags --resources "$INSTANCE_ID" --tags "Key=Name,Value=${SERVER_TYPE}.jaia.tech"
-run "" aws ec2 create-tags --resources "$SECURITY_GROUP_ID" --tags "Key=Name,Value=${SERVER_TYPE}.jaia.tech Security Group"
+SERVER_NAME="${SERVER_TYPE}.jaia.tech"
+
+run "" aws ec2 create-tags --resources "$INSTANCE_ID" --tags "Key=Name,Value=${SERVER_NAME}"
+run "" aws ec2 create-tags --resources "$SECURITY_GROUP_ID" --tags "Key=Name,Value=${SERVER_NAME} Security Group"
+
+VOLUME=$(run ".Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId" aws ec2 describe-instances  --instance-ids "$INSTANCE_ID")
+
+run "" aws ec2 create-tags --resources "$VOLUME" --tags "Key=Name,Value=${SERVER_NAME}"
 
 echo ">>>>>> Tagged resources"
+
+if [[ $CREATE_NUM_DAILY_BACKUPS -gt 0 ]]; then
+    echo ">>>>>> Creating DLM (Backup) Policy, keep ${CREATE_NUM_DAILY_BACKUPS} days"
+
+    # Find policy ID(s) matching the target tag
+    POLICY_IDS=$(run ".[].PolicyId" aws dlm get-lifecycle-policies --query "Policies[?Tags.Name=='"${SERVER_NAME}"']")
+
+    # Delete existing policy/policies if found
+    if [[ -n "$POLICY_IDS" ]]; then
+        echo "Found existing policy(ies): $POLICY_IDS - deleting..."
+        for PID in $POLICY_IDS; do
+            run "" aws dlm delete-lifecycle-policy \
+                --region "$REGION" \
+                --policy-id "$PID"
+        done
+    else
+        echo "No existing policies found for tag Name=${SERVER_NAME}"
+    fi
+    
+    # Create new policy
+    ACCOUNT_ID=$(run ".Account" aws sts get-caller-identity)
+    DLM_ROLE=arn:aws:iam::${ACCOUNT_ID}:role/service-role/AWSDataLifecycleManagerDefaultRole
+    if [[ $REGION == *"us-gov"* ]]; then
+        DLM_ROLE=arn:aws-us-gov:iam::${ACCOUNT_ID}:role/AWSDataLifecycleManagerDefaultRole
+    fi
+    NEW_POLICY_ID=$(run ".PolicyId" aws dlm create-lifecycle-policy \
+        --region "$REGION" \
+        --execution-role-arn ${DLM_ROLE} \
+        --description "Daily snapshots for ${SERVER_TYPE}" \
+        --state ENABLED \
+        --tags "Name=${SERVER_NAME}" \
+        --policy-details '{
+    "ResourceTypes": ["VOLUME"],
+    "TargetTags": [
+      {"Key": "Name", "Value": "'"${SERVER_NAME}"'"}
+    ],
+    "Schedules": [
+      {
+        "Name": "DailySnapshots",
+        "CopyTags": true,
+        "TagsToAdd": [
+          {"Key": "CreatedBy", "Value": "DLM"}
+        ],
+        "CreateRule": {
+          "Interval": 24,
+          "IntervalUnit": "HOURS",
+          "Times": ["00:00"]
+        },
+        "RetainRule": {
+          "Count": 0,
+          "Interval": '"$CREATE_NUM_DAILY_BACKUPS"',
+          "IntervalUnit": "DAYS"
+        }
+      }
+    ]
+  }')
+
+    echo ">>>>>> Created DLM Policy"
+fi
+
 
 echo ">>>>>> SUCCESS"

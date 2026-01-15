@@ -519,6 +519,10 @@ void jaiabot::apps::HubManager::loop()
         latest_hub_status_.mutable_bot_offload()->set_bot_id(current_offload_bot_id_);
         latest_hub_status_.mutable_bot_offload()->set_data_offload_percentage(
             data_offload_percentage_);
+        for (int bot_id : bots_pending_data_offload_)
+        { 
+            latest_hub_status_.mutable_bot_offload()->add_bots_pending(bot_id); 
+        }
 
         if (offload_complete_)
         {
@@ -656,8 +660,8 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
         node_status.mutable_speed()->set_over_ground_with_units(
             dccl_nav.speed().over_ground_with_units());
 
-    if (dccl_nav.has_depth())
-        node_status.mutable_global_fix()->set_depth_with_units(dccl_nav.depth_with_units());
+    if (dccl_nav.has_sensor_depth())
+        node_status.mutable_global_fix()->set_depth_with_units(dccl_nav.sensor_depth_with_units());
 
     // check for data offload
 

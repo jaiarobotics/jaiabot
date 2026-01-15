@@ -2,7 +2,6 @@ import glob
 from typing import Iterable
 import h5py
 import logging
-import json
 import re
 import datetime
 import os
@@ -38,26 +37,6 @@ def itemsmatching(file: h5py.File, regular_expression: re.Pattern):
     for item in matching_items:
         yield item
 
-
-# Path descriptions
-
-try:
-    path_descriptions = json.load(open('jaiabot_paths.json'))
-except FileNotFoundError:
-    path_descriptions = {}
-
-
-def jaia_get_description(path):
-    for description in path_descriptions:
-        if 'path' in description:
-            if description['path'] == path:
-                return description
-        
-        if 'path_regex' in description:
-            if re.match(description['path_regex'], path):
-                return description
-    
-    return None
 
 def get_title_from_path(path):
     components = path.split('/')
@@ -229,11 +208,18 @@ class JaialogStore:
         }
 
 
-    def getFields(self, log_names: List[str], root_path='/'):
+    def getFields(self, log_names: List[str], root_path=None):
         '''Get a list of the fields below a root path in a set of logs'''
         h5_paths = [f'{self.LOG_DIR}/{name}.h5' for name in log_names]
         h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
         return h5_files.fields(root_path=root_path)
+
+
+    def getAllSeriesDescriptors(self, log_names: List[str]):
+        '''Get a list of all series descriptors in a set of logs'''
+        h5_paths = [f'{self.LOG_DIR}/{name}.h5' for name in log_names]
+        h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
+        return h5_files.getAllSeriesDescriptors()
 
 
     def getSeries(self, log_names: List[str], paths: List[str]):
@@ -254,6 +240,23 @@ class JaialogStore:
         h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
 
         return h5_files.getSeries(paths)
+
+
+    def getObjects(self, log_names: List[str], path: str):
+        """Gets a list of objects from a list of log names.
+
+        Args:
+            log_names (List[str]): List of log names.
+            path (str): Path to the dataset to load.
+        """
+        
+        if log_names is None or path is None:
+            return []
+
+        h5_paths = [f'{self.LOG_DIR}/{name}.h5' for name in log_names]
+        h5_files = JaiaH5FileSet(h5_paths, shouldConvertGoby=True)
+
+        return h5_files.getObjects(path)
 
 
     def getMap(self, log_names: List[str]):
