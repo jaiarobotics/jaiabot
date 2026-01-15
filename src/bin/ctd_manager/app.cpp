@@ -1,7 +1,7 @@
 // Copyright 2021:
 //   JaiaRobotics LLC
 // File authors:
-//   Toby Schneider <toby@gobysoft.org>
+//   Michael Twomey <michael.twomey@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -23,9 +23,11 @@
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/single_thread.h>
+#include <fstream>
+#include <string>
 
 #include "config.pb.h"
-#include "jaiabot/messages/ctd.pb.h";
+#include "jaiabot/messages/ctd.pb.h"
 #include "jaiabot/groups.h"
 
 using goby::glog;
@@ -42,6 +44,8 @@ class CTDManager : public ApplicationBase
   public:
     CTDManager();
   private:
+    void handle_ctd_profile(const jaiabot::protobuf::CTDProfile& ctd_profile);
+    void write_to_file(const std::string& path, const std::string& content);
 
 };
 } // namespace apps
@@ -51,8 +55,20 @@ jaiabot::apps::CTDManager::CTDManager() : ApplicationBase() {
   interprocess().subscribe<jaiabot::groups::ctd>(
     [this](const jaiabot::protobuf::CTDProfile& ctd_profile) {
       glog.is_debug1() && glog << "Received CTD Profile" << std::endl;
+      handle_ctd_profile(ctd_profile);
     }
   );
+}
+
+void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDProfile& ctd_profile) {
+  write_to_file("/var/log/jaiabot/test.txt", ctd_profile.ShortDebugString());
+}
+
+void jaiabot::apps::CTDManager::write_to_file(const std::string& path, const std::string& content)
+{
+  std::ofstream out(path);
+  out << content;
+  out.close();
 }
 
 int main(int argc, char* argv[])
