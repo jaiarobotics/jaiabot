@@ -123,10 +123,11 @@ function captureContextData(context: JaiaContextType) {
  * @returns {void}
  */
 function restoreCotextData(mutableState: JaiaContextType, snapshot: JaiaContextDataSnapshot) {
-    mutableState.visibleDetails = snapshot.visibleDetails;
-    mutableState.visiblePanel = snapshot.visiblePanel;
-    mutableState.hubAccordionStates = snapshot.hubAccordionStates;
-    mutableState.botAccordionStates = snapshot.botAccordionStates;
-    mutableState.mapLayerAccordionStates = snapshot.mapLayerAccordionStates;
-    mutableState.missionAccordionStates = snapshot.missionAccordionStates;
+    const restored = cloneDeep(snapshot);
+    mutableState.visibleDetails = restored.visibleDetails;
+    mutableState.visiblePanel = restored.visiblePanel;
+    mutableState.hubAccordionStates = restored.hubAccordionStates;
+    mutableState.botAccordionStates = restored.botAccordionStates;
+    mutableState.mapLayerAccordionStates = restored.mapLayerAccordionStates;
+    mutableState.missionAccordionStates = restored.missionAccordionStates;
 }

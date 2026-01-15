@@ -154,19 +154,21 @@ export class MissionSet {
      * @returns {void}
      */
     restoreFromSnapshot(snapshot: MissionSetSnapshot) {
+        const restored = cloneDeep(snapshot);
+
         // Clear current mission set
         this.deleteAllMissions();
 
         // Rebuild mission set from snapshot
         if (Array.isArray(snapshot.missions)) {
-            snapshot.missions.forEach(([id, mission]) => {
+            restored.missions.forEach(([id, mission]) => {
                 this.missions.set(id, mission);
             });
         }
-        this.nextMissionID = snapshot.nextMissionID;
-        this.missionIDInEditMode = snapshot.missionIDInEditMode;
-        this.missionSpeeds = snapshot.missionSpeeds;
-        this.name = snapshot.name;
+        this.nextMissionID = restored.nextMissionID;
+        this.missionIDInEditMode = restored.missionIDInEditMode;
+        this.missionSpeeds = restored.missionSpeeds;
+        this.name = restored.name;
     }
 }
 
