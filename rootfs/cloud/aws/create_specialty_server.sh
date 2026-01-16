@@ -60,11 +60,15 @@ if [[ ! -z "${IPV6_ADDRESS}" ]]; then
     network_interfaces_json=$(echo $network_interfaces_json | jq -c --arg ipv6 "${IPV6_ADDRESS}" '.[0] += {"Ipv6Addresses": [{"Ipv6Address": $ipv6}]}')
 fi
 
-USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.sh.in"
-USER_DATA_SCRIPT="${TMPDIR}/user-data.sh"
-eval "echo \"$(< ${USER_DATA_SCRIPT_IN})\"" > ${USER_DATA_SCRIPT}
-#cat ${TMPDIR}/user-data.sh
 
+USER_DATA_SCRIPT="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.sh"
+USER_DATA_SCRIPT_TMPL="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.sh.in"
+if [[ -e ${USER_DATA_SCRIPT} ]]; then
+    :
+elif [[ -e ${USER_DATA_SCRIPT_TMPL} ]]; then
+    USER_DATA_SCRIPT="${TMPDIR}/user-data.sh"
+    eval "echo \"$(< ${USER_DATA_SCRIPT_TMPL})\"" > ${USER_DATA_SCRIPT}
+fi
 
 USER_DATA_CORE_IN="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.yaml.in"
 USER_DATA_CORE="${TMPDIR}/user-data.yaml"

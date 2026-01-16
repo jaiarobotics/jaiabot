@@ -1,6 +1,6 @@
 #cloud-config
 
-hostname: jaia-cloud-authelia
+hostname: jaia-authelia
 
 ssh_pwauth: false
   
@@ -30,34 +30,13 @@ ${INDENTED_ROOT_PUBKEYS}
       };
       Unattended-Upgrade::Automatic-Reboot "true";
       Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
-  - path: /etc/caddy/Caddyfile
-    content: |
-      ## It is important to read the following document before enabling this section:
-      ##     https://www.authelia.com/integration/proxies/caddy/#trusted-proxies
-      # trusted_proxies 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 fc00::/7
-
-      # Authelia Portal.
-      jaia-auth.gobysoft.org {
-        reverse_proxy localhost:9091
-      }
-
-      # Protected Endpoint.
-      jaia-cloud.gobysoft.org {
-        forward_auth localhost:9091 {
-          uri /api/authz/forward-auth
-          copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-        }
-
-         # TODO - replace with JCC
-        reverse_proxy localhost:8080
-      }
 
 packages:
   - zile
   - ca-certificates
   - curl
   - gnupg
-  - certbot
+  - wireguard
   
 runcmd:
   - ln -s /usr/bin/zile /usr/local/bin/emacs
