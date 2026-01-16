@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
-    echo "Usage: $0 <server_type: iridium|vpn>"
+    echo "Usage: $0 <server_type: iridium|vpn|packages>"
     exit 1
 fi
 
