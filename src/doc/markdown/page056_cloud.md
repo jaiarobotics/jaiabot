@@ -206,7 +206,7 @@ To create a new specialty server type (which we'll call "foo") you need to creat
 
 - `jaiabot/rootfs/cloud/aws/foo`
 	+ `foo.conf`
-	+ `user-data.sh.in`
+	+ `user-data.sh.in` or `user-data.sh`
 	+ `user-data.yaml.in`
 	
 The `docs` and `iridium `server configurations are fairly simple, and one of these may be a useful starting point to copy for a new server configuration.
@@ -232,7 +232,7 @@ The `docs` and `iridium `server configurations are fairly simple, and one of the
 
 These are template files for [cloud-init user-data](https://cloudinit.readthedocs.io/en/latest/explanation/format.html) configuration. Both must be included but one may be left empty, except for the header line. 
 
-Minimal `user-data.sh.in`:
+Minimal `user-data.sh.in` or `user-data.sh`:
 ```
 #!/bin/bash
 ```
@@ -243,7 +243,7 @@ Minimal `user-data.yaml.in`:
 #cloud-config
 ```
 
-Both configuration files are preprocessed using bash before being passed to cloud-init so that bash variables (`${}`) are expanded using the values in `foo.conf` and `jaiabot/scripts/common-versions.env`.
+Both `*.in` configuration files are preprocessed using bash before being passed to cloud-init so that bash variables (`${}`) are expanded using the values in `foo.conf` and `jaiabot/scripts/common-versions.env`. If `user-data.sh` is specified instead, it will be used directly without preprocessing.
 
 The contents of the preprocessed files are used by `cloud-init` to seed the new server instance. See the cloud-init documentation for more details.
 
