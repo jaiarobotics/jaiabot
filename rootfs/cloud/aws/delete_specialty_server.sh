@@ -9,7 +9,12 @@ if [ -z "$AWS_DEFAULT_REGION" ]; then
     REGION=us-west-2
     export AWS_DEFAULT_REGION=$REGION
 fi
-    
+
+# for ease of switching between cloudhub creation and speciality server creation
+if [ "$AWS_DEFAULT_REGION" = "us-east-1" ]; then
+    REGION=us-west-2
+    export AWS_DEFAULT_REGION=$REGION
+fi
 
 set -e -u
 
