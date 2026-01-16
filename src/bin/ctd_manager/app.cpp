@@ -23,8 +23,12 @@
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/zeromq/application/single_thread.h>
+#include <filesystem>
 #include <fstream>
+#include <chrono>
 #include <string>
+#include <format>
+#include <google/protobuf/util/json_util.h>
 
 #include "config.pb.h"
 #include "jaiabot/messages/ctd.pb.h"
@@ -45,8 +49,6 @@ class CTDManager : public ApplicationBase
     CTDManager();
   private:
     void handle_ctd_profile(const jaiabot::protobuf::CTDProfile& ctd_profile);
-    void write_to_file(const std::string& path, const std::string& content);
-
 };
 } // namespace apps
 } // namespace jaiabot
@@ -61,14 +63,29 @@ jaiabot::apps::CTDManager::CTDManager() : ApplicationBase() {
 }
 
 void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDProfile& ctd_profile) {
-  write_to_file("/var/log/jaiabot/test.txt", ctd_profile.ShortDebugString());
-}
+    std::string time;
+    if (ctd_profile.snapshot_size() > 0)
+    {
+      auto seconds = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::microseconds{ctd_profile.snapshot(0).time()});
+      auto time_point = std::chrono::sys_time<std::chrono::seconds>{seconds};
+      auto local = std::chrono::zoned_time{std::chrono::current_zone(), time_point};
+      time = std::format("{:%Y%m%dT%H%M%S}", local);
+    }
+    else 
+    {
+      return;
+    }
 
-void jaiabot::apps::CTDManager::write_to_file(const std::string& path, const std::string& content)
-{
-  std::ofstream out(path);
-  out << content;
-  out.close();
+    std::filesystem::path path = 
+      std::filesystem::path("/var/log/jaiabot/bot") /
+      std::to_string(ctd_profile.bot_id()) / 
+      ("bot" + std::to_string(ctd_profile.bot_id()) + "_" + time + ".ctd.json");
+    
+    std::string json;
+    google::protobuf::util::MessageToJsonString(ctd_profile, &json);
+    std::ofstream out(path);
+    out << json;
+    out.close();
 }
 
 int main(int argc, char* argv[])

@@ -12,31 +12,27 @@ message CTDSnapshot {
         codec_version: 4
         unit_system: "si"
     };
-    optional uint32 bot_id = 1 [
-        (dccl.field) = { min: 0 max: 255 }
-    ];
-    optional uint64 start_time = 2 [
+    optional uint64 time = 1 [
         (dccl.field) = {
             codec: "dccl.time2"
             units { prefix: "micro" derived_dimensions: "time" }
             precision: -6  // second precision
         }
     ];
-    optional uint64 end_time = 3 [
-        (dccl.field) = {
-            codec: "dccl.time2"
-            units { prefix: "micro" derived_dimensions: "time" }
-            precision: -6  // second precision
-
-        }
-    ];
-    optional GeographicCoordinate start_location = 4;
-
-    optional double conductivity = 5;
-    optional double temperature = 6;
-    optional double depth = 7;
+    optional double conductivity = 2;
+    optional double temperature = 3;
+    optional double depth = 4;
 }
 
 message CTDProfile {
-    repeated CTDSnapshot snapshot = 1;
+    option (dccl.msg) = {
+        id: 101
+        codec_version: 4
+        unit_system: "si"
+    };
+    optional uint32 bot_id = 1 [
+        (dccl.field) = { min: 0 max: 255 }
+    ];
+    optional GeographicCoordinate location = 2;
+    repeated CTDSnapshot snapshot = 3;
 }

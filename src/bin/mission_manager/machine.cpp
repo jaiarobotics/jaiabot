@@ -1032,6 +1032,9 @@ jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::~Unpowere
     context<Dive>().dive_packet().set_unpowered_rise_rate_with_units(rise_rate *
                                                                      boost::units::si::velocity());
 
+    latest_ctd_profile_.set_bot_id(cfg().bot_id());
+    latest_ctd_profile_.mutable_location()->set_lat(this->machine().gps_tpv().location().lat());
+    latest_ctd_profile_.mutable_location()->set_lon(this->machine().gps_tpv().location().lon());
     interprocess().publish<jaiabot::groups::ctd>(latest_ctd_profile_);
     latest_ctd_profile_.clear_snapshot();
     glog.is_debug1() && glog << "Published CTD profile" << std::endl;                                                                    
@@ -1134,6 +1137,7 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::coll
 
     if (now.value() - last_snapshot_time_.value() >= CTDUpdateRate) {
         glog.is_debug1() && glog << "Adding CTD snapshot to profile" << std::endl;
+        latest_ctd_snapshot_.set_time(now.value());
         latest_ctd_profile_.add_snapshot()->CopyFrom(latest_ctd_snapshot_);
         last_snapshot_time_ = now;
     }
