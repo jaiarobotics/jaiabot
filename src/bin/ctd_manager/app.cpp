@@ -79,7 +79,7 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
     std::filesystem::path path = 
       std::filesystem::path("/var/log/jaiabot/bot") /
       std::to_string(ctd_profile.bot_id()) / 
-      ("bot" + std::to_string(ctd_profile.bot_id()) + "_" + time + ".ctd.json");
+      "ctd" / ("bot" + std::to_string(ctd_profile.bot_id()) + "_" + time + ".ctd.json");
     
     std::string json;
     google::protobuf::util::MessageToJsonString(ctd_profile, &json);
