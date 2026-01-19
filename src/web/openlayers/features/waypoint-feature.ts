@@ -258,7 +258,10 @@ function getWaypointColor(mission: Mission, waypointNum?: number) {
         }
     }
 
-    if (mission.getMissionID() === missionSet.getMissionIDInEditMode()) {
+    if (
+        mission.getMissionID() === missionSet.getMissionIDInEditMode() &&
+        !mission.getGhostParameters().isGhost
+    ) {
         return OpenLayersColors.EDIT;
     }
 
