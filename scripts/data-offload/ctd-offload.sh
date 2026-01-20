@@ -37,8 +37,9 @@ fi
 
 if [[ "${bot_ip}" == "127.0.0.1" ]]; then
     userat=""
-    nice -n 10 rsync -azh --info=progress2 --timeout=15 "${ctd_dir}" "${destination_dir}"
+    nice -n 10 rsync -azh --info=progress2 --timeout=15  --remove-source-files "${ctd_dir}" "${destination_dir}"
+
 else
     userat="jaia@"
-    nice -n 10 rsync -azh --info=progress2 --timeout=15 "${userat}${bot_ip}:${ctd_dir}" "${destination_dir}"
+    nice -n 10 rsync -azh --info=progress2 --timeout=15  --remove-source-files "${userat}${bot_ip}:${ctd_dir}" "${destination_dir}"
 fi

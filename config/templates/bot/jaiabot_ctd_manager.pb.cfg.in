@@ -1,2 +1,5 @@
 $app_block
 $interprocess_block
+
+offload_script: "ctd-offload.sh"
+use_localhost_for_data_offload: $use_localhost_for_data_offload
