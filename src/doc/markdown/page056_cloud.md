@@ -280,7 +280,32 @@ To upgrade an existing server, the following set of steps is recommended:
 6. Power down (stop) the old server.
 7. After some period (e.g., 1-2 weeks or so) of the new server functioning correctly,  disable termination protection for the old server and enable termination protection for the new server (if not already set) under (in the AWS console) `Actions->Instance Settings->Change termination protection`. Terminate (delete) the old instance.
 
-## Cloud server (*.cloud.jaia.tech)
+## Cloud Login server (*.cloud.jaia.tech)
 
 
 ![cloud server](../figures/cloudhub-login-reverse-proxy.png)
+
+The Cloud Login Server (*.cloud.jaia.tech) manages user authentication (with 2-factor [2FA] verification) for access to CloudHub resources. This provides a more convenient way to access the JCC and other CloudHub applications without requiring that the client machine have the Wireguard VPN installed.
+
+### Implementation
+
+This server is implemented using three open source projects:
+
+- [Authelia](https://www.authelia.com/) for authentication including 2FA (time-based one-time password, TOTP and WebAuthn which supports physical keys like Yubikeys).
+- [Caddy](https://caddyserver.com/) for the reverse proxy features.
+- [LLDAP](https://github.com/lldap/lldap): Light LDAP (Lightweight Directory Access Protocol) implementation for user management.
+
+In short, Authelia manages authentication, Caddy manages the reverse proxy (between the insecure HTTP applications and the authenticated HTTPS connection), and LLDAP manages the user information (user names, group, passwords, etc.).
+
+These all run on a single machine, cloud.jaia.tech.
+
+### Available services
+
+CloudHub access:
+- https://fN.cloud.jaia.tech: JCC for Fleet N (e.g., https://f1.cloud.jaia.tech for fleet 1).
+- https://jcu.fN.cloud.jaia.tech: JCU for Fleet N.
+- https://jdv.fN.cloud.jaia.tech: JDV for Fleet N.
+
+Supporting web pages:
+- https://auth.cloud.jaia.tech: Authelia authentication website. Typically the user doesn't need to access this directly unless they want to change their user settings.
+- https://lldap.cloud.jaia.tech: User management by Jaia administrators. Add new users, add users to fleet access, and remove old users.
