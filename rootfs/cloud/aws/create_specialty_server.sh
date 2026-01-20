@@ -206,5 +206,10 @@ if [[ $CREATE_NUM_DAILY_BACKUPS -gt 0 ]]; then
     echo ">>>>>> Created DLM Policy"
 fi
 
+PUB_IPV4_ADDRESS=$(run ".Reservations[0].Instances[0].PublicIpAddress" aws ec2 describe-instances --instance-ids $INSTANCE_ID)
 
 echo ">>>>>> SUCCESS"
+
+echo "You can login in with:"
+echo "ssh jaia@${PUB_IPV4_ADDRESS}"
+

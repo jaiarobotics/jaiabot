@@ -1,5 +1,49 @@
 #!/bin/bash
 
+# Swap file
+fallocate -l 1G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+
+# Install script for pulling data from old cloud.jaia.tech (if relevant)
+sync_script=/home/jaia/sync_from_prior_cloud_server.sh
+cat <<EOF > ${sync_script}
+#!/bin/bash
+# Prereqs:
+#   - Need to manually provide SSH key pair for new server to log into jaia on old server
+# sync existing files
+#   - Need to set IP address for old Authelia server
+
+old_cloud_server=xxx.yyy.zzz.qqq
+
+ssh jaia@\${old_cloud_server} "sudo tar cfvz /home/jaia/cloud_backup.tar.gz /etc/wireguard /var/lib/lldap /etc/lldap /etc/caddy"
+rsync -aP jaia@\${old_cloud_server}:/home/jaia/cloud_backup.tar.gz .
+
+sudo tar -C / -x -z -f cloud_backup.tar.gz
+
+for conf in \$(sudo find /etc/wireguard -name *.conf)
+do
+   filename=\$(basename \${conf})
+   wgname="\${filename%.conf}"
+   sudo systemctl enable wg-quick@\${wgname}
+   sudo systemctl start wg-quick@\${wgname}
+done
+
+# Copy the password for LLDAP in Authelia
+lldap_password=\$(ssh jaia@\${old_cloud_server} "sudo yq '.authentication_backend.ldap.password' /etc/authelia/configuration.yml")
+sudo yq -Y -i ".authentication_backend.ldap.password = \${lldap_password}" /etc/authelia/configuration.yml
+
+sudo systemctl restart authelia
+sudo systemctl restart caddy
+sudo systemctl restart lldap
+EOF
+
+chmod a+x ${sync_script}
+chown jaia:jaia ${sync_script}
+
+
 # Install Authelia
 curl -fsSL https://www.authelia.com/keys/authelia-security.gpg -o /usr/share/keyrings/authelia-security.gpg
 echo 'deb [arch='$(dpkg --print-architecture)' signed-by=/usr/share/keyrings/authelia-security.gpg] https://apt.authelia.com stable main' | tee /etc/apt/sources.list.d/authelia.list > /dev/null
@@ -14,6 +58,9 @@ mv /etc/authelia/configuration.yml /etc/authelia/configuration.yml.ex
 jwt_secret=$(openssl rand -hex 64)
 session_secret=$(openssl rand -hex 64)
 storage_encryption_key=$(openssl rand -hex 64)
+lldap_jwt_secret=$(openssl rand -hex 64)
+lldap_key_seed=$(openssl rand -hex 64)
+lldap_admin_password=$(openssl rand -hex 64)
 
 
 cat <<EOF > /etc/authelia/configuration.yml
@@ -32,55 +79,41 @@ identity_validation:
   reset_password:
     jwt_secret: '$jwt_secret'
 authentication_backend:
-  file:
-    path: '/var/lib/authelia/users_database.yml'
+  ldap:
+    implementation: 'lldap'
+    address: 'ldap://localhost:3890'
+    base_dn: 'DC=jaia,DC=tech'
+    user: 'UID=admin,OU=people,DC=jaia,DC=tech'
+    password: '$lldap_admin_password'
 access_control:
   default_policy: 'deny'
   rules:
-    - domain_regex: '^(jdv\.|jcu\.|)(?P<Group>\w+)\.jaia\.gobysoft\.org$'
+    - domain_regex: '^(jdv\.|jcu\.|)(?P<Group>\w+)\.cloud\.jaia\.tech$'
       policy: 'two_factor'
+    - domain: 'lldap.cloud.jaia.tech'
+      policy: 'two_factor'
+      subject: 'group:lldap_admin'
 session:
   secret: '$session_secret'
   cookies:
      -
-      domain: 'gobysoft.org'
-      authelia_url: 'https://auth.jaia.gobysoft.org'
+      domain: 'jaia.tech'
+      authelia_url: 'https://auth.cloud.jaia.tech'
 storage:
   encryption_key: '$storage_encryption_key'
   local:
     path: '/var/lib/authelia/db.sqlite3'
 notifier:
-  filesystem:
-    filename: '/var/lib/authelia/notification.txt'
+  smtp:
+    address: 'smtp://smtp-relay.gmail.com:587'
+    sender: 'Jaia <info@jaia.tech>'
+    # Currently we are using GobySoft's SMTP relay (Google Workspace)
+    identifier: 'gobysoft.org'
+    subject: '[Jaia Cloud] {title}'
 ...
 EOF
 
-cat <<EOF > /var/lib/authelia/users_database.yml
-# yamllint disable rule:line-length
----
-###############################################################
-#                         Users Database                      #
-###############################################################
 
-# To generate password use 'authelia crypto hash generate argon2'
-
-users:
-#  authelia:
-#    disabled: false
-#    displayname: "Test User"
-#    password: ""
-#    email: authelia@authelia.com
-#    groups:
-#      - f1
-
-...
-# yamllint enable rule:line-length
-EOF
-
-
-# Enable Authelia service
-systemctl enable authelia
-systemctl start authelia
 
 # Install reverse proxy caddy
 apt install -y caddy
@@ -88,44 +121,98 @@ apt install -y caddy
 # caddy configuration
 cat <<EOF > /etc/caddy/Caddyfile
 # Authelia Portal.
-auth.jaia.gobysoft.org {
+auth.cloud.jaia.tech {
         reverse_proxy localhost:9091
 }
 
-# Protected Endpoint.
-f1.jaia.gobysoft.org {
-        forward_auth localhost:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-        }
-
-        reverse_proxy [fd0f:77ac:4fdf:1::1e]:80
+# Protected Endpoints.
+(authelia_foward_auth) {
+	forward_auth localhost:9091 {
+		uri /api/authz/forward-auth
+		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+	}
 }
 
-jcu.f1.jaia.gobysoft.org {
-        forward_auth localhost:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-        }
-
-        reverse_proxy [fd0f:77ac:4fdf:1::1e]:9091
-}
-
-
-jdv.f1.jaia.gobysoft.org {
-       forward_auth localhost:9091 {
-                uri /api/authz/forward-auth
-                copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
-        }
-
-        reverse_proxy [fd0f:77ac:4fdf:1::1e]:40010
+lldap.cloud.jaia.tech {
+        import authelia_foward_auth
+        reverse_proxy :17170
 }
 EOF
 
+
+## TO DO - move to wildcard domain certificate
+# https://caddyserver.com/docs/caddyfile/patterns#wildcard-certificates
+fleets=(1 2)
+
+for fleet_id in $fleets; do
+    ch_ip=$(jaia-ip.py --net=cloudhub_vpn --fleet_id=${fleet_id} --node=hub --node_id=30 --ipv6 addr)
+    cat <<EOF >> /etc/caddy/Caddyfile
+f${fleet_id}.cloud.jaia.tech {
+        import authelia_foward_auth
+        reverse_proxy [$ch_ip]:80
+}
+
+jcu.f${fleet_id}.cloud.jaia.tech {
+        import authelia_foward_auth
+        reverse_proxy [$ch_ip]:9091
+}
+
+jdv.f${fleet_id}.cloud.jaia.tech {
+        import authelia_foward_auth
+        reverse_proxy [$ch_ip]:40010
+}
+EOF
+done
+
 systemctl restart caddy
 
-# Swap file
-fallocate -l 1G /swapfile
-chmod 600 /swapfile
-mkswap /swapfile
-echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+# LLDAP
+mkdir /etc/lldap
+cat <<EOF > /etc/lldap/docker-compose.yaml
+version: "3"
+
+volumes:
+  lldap_data:
+    driver: local
+
+services:
+  lldap:
+    image: lldap/lldap:stable
+    volumes:
+      - "/var/lib/lldap:/data"
+    ports:
+      # web portal
+      - "17170:17170"
+      # ldap
+      - "3890:3890"
+    environment:
+      - LLDAP_JWT_SECRET=$lldap_jwt_secret
+      - LLDAP_KEY_SEED=$lldap_key_seed
+      - LLDAP_LDAP_BASE_DN=dc=jaia,dc=tech
+      - LLDAP_LDAP_USER_PASS=$lldap_admin_password
+EOF
+
+cat <<EOF > /etc/systemd/system/lldap.service
+[Unit]
+Description=LLDAP Docker
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/lldap
+ExecStart=/usr/bin/docker-compose up
+ExecStop=/usr/bin/docker-compose down
+Restart=always
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable lldap
+systemctl start lldap
+
+# Enable Authelia service
+systemctl enable authelia
+systemctl start authelia
+

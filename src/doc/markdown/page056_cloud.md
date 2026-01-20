@@ -189,6 +189,7 @@ In addition to the CloudHub and VirtualFleet mentioned above, Jaia runs a number
 - `packages.jaia.tech`: Hosts Ubuntu (*.deb) packages
 - `docs.jaia.tech`: Documentation
 - `vpn.jaia.tech`: Service VPN for remote support.
+- `*.cloud.jaia.tech`: Web access with 2-factor authentication for accessing CloudHubs.
 
 We want to be able to recreate these servers from scratch for consistency of implementation, security, and AWS instance type. We want to be able to upgrade to the latest Ubuntu/Jaiabot release by rebuilding servers, and have the tools in place to recreate them in the event of an instance disk corruption or AWS failure.
 
@@ -278,3 +279,8 @@ To upgrade an existing server, the following set of steps is recommended:
 5. Ensure the new server is fully functional now with these IP addresses (which should map to the correct domain names as well).
 6. Power down (stop) the old server.
 7. After some period (e.g., 1-2 weeks or so) of the new server functioning correctly,  disable termination protection for the old server and enable termination protection for the new server (if not already set) under (in the AWS console) `Actions->Instance Settings->Change termination protection`. Terminate (delete) the old instance.
+
+## Cloud server (*.cloud.jaia.tech)
+
+
+![cloud server](../figures/cloudhub-login-reverse-proxy.png)
