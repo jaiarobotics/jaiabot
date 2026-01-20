@@ -978,6 +978,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             machine_->process_event(statechart::EvDataOffloadFailed());
             machine_->insert_warning(jaiabot::protobuf::WARNING__MISSION__DATA_OFFLOAD_FAILED);
             break;
+        
+        case protobuf::Command::CTD_DATA_OFFLOAD:
+            interprocess().publish<jaiabot::groups::ctd>(command);
+            break;
 
             // handled by jaiabot_health
         case protobuf::Command::SHUTDOWN_COMPUTER:

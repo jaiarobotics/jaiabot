@@ -76,6 +76,7 @@ message Command
         RETRY_DATA_OFFLOAD = 32;
         DATA_OFFLOAD_COMPLETE = 33;
         DATA_OFFLOAD_FAILED = 34;
+        CTD_DATA_OFFLOAD = 35;
 
         // debugging low level commands
         RESTART_ALL_SERVICES = 40;

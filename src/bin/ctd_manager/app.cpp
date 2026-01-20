@@ -32,6 +32,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/messages/ctd.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/groups.h"
 
 using goby::glog;
@@ -58,6 +59,12 @@ jaiabot::apps::CTDManager::CTDManager() : ApplicationBase() {
     [this](const jaiabot::protobuf::CTDProfile& ctd_profile) {
       glog.is_debug1() && glog << "Received CTD Profile" << std::endl;
       handle_ctd_profile(ctd_profile);
+    }
+  );
+
+  interprocess().subscribe<jaiabot::groups::ctd>(
+    [this](const jaiabot::protobuf::Command& command) {
+      glog.is_debug1() && glog << "Received CTD command" << std::endl;
     }
   );
 }
