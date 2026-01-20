@@ -318,7 +318,7 @@ export default function Map() {
      * Dispatches action to display the 3D depth map. If a mission is
      * in edit mode, a waypoint will be added instead.
      *
-     * @param {MapBrowserEvent<PointerEvent>} Event Contains click coordinate
+     * @param {MapBrowserEvent<PointerEvent>} event Contains click coordinate
      * @returns {void}
      */
     const handleDepthContourClick = (event: MapBrowserEvent<PointerEvent>) => {
