@@ -63,13 +63,6 @@ jaiabot::apps::CTDManager::CTDManager() : ApplicationBase()
       handle_ctd_profile(ctd_profile);
     }
   );
-
-  interprocess().subscribe<jaiabot::groups::ctd>(
-    [this](const jaiabot::protobuf::Command& command) {
-      glog.is_debug1() && glog << "Received CTD command" << std::endl;
-      handle_ctd_offload_command(command);
-    }
-  );
 }
 
 void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDProfile& ctd_profile) 
@@ -101,29 +94,6 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
     std::ofstream out(file);
     out << json;
     out.close();
-}
-
-void jaiabot::apps::CTDManager::handle_ctd_offload_command(const jaiabot::protobuf::Command& command) 
-{
-    std::string bot_ip = cfg().class_b_network() + "." + std::to_string(cfg().fleet_id()) + "." +
-                         std::to_string((cfg().bot_start_ip() + command.bot_id()));
-    
-    if (cfg().use_localhost_for_data_offload())
-        bot_ip = "127.0.0.1";
-    
-    std::string offload_command = cfg().offload_script() + " -bot_id " + std::to_string(command.bot_id()) +
-                                  " -bot_ip " + bot_ip + " 2>&1";
-
-                  
-
-    glog.is_debug1() && glog << "Offload command: " << offload_command << std::endl;
-
-    FILE* pipe = popen(offload_command.c_str(), "r");
-    if (!pipe)
-    {
-        glog.is_warn() && glog << "Error opening pipe to CTD offload command: "
-                                << strerror(errno) << std::endl;
-    }
 }
 
 int main(int argc, char* argv[])

@@ -4,8 +4,9 @@ import { mdiClose } from "@mdi/js";
 import "./CTDOffload.less";
 import { useContext, useMemo } from "react";
 import { JaiaContext } from "../../../context/JaiaContext";
-import { sendBotCommand } from "../../../utils/commands";
-import { Command, CommandType } from "../../../types/protobuf-types";
+import { sendHubCommand } from "../../../utils/commands";
+import { CommandForHub, HubCommandType } from "../../../types/protobuf-types";
+import Hub from "../../../data/hubs/hub";
 
 interface Props {
     isVisible: boolean;
@@ -27,11 +28,13 @@ export default function CTDOffload(props: Props) {
     const handleDownloadCTDClick = () => {
         for (const [botID, checkedState] of botCheckedStates.entries()) {
             if (checkedState) {
-                const command: Command = {
-                    bot_id: botID,
-                    type: CommandType.CTD_DATA_OFFLOAD,
+                const hub = jaiaContext.hubs.getHubs().values().next()?.value as Hub;
+                const command: CommandForHub = {
+                    hub_id: hub.getHubID() ?? 0,
+                    type: HubCommandType.CTD_DATA_OFFLOAD,
+                    scan_for_bot_id: botID,
                 };
-                sendBotCommand(command);
+                sendHubCommand(command);
             }
         }
     };

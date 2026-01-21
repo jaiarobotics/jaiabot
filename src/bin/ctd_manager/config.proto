@@ -35,9 +35,4 @@ message CTDManager
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     // any specific configuration parameters for your application
-    optional string class_b_network = 3 [default = "10.23"];
-    optional int32 fleet_id = 4 [default = 0];
-    optional int32 bot_start_ip = 5 [default = 100];
-    optional string offload_script = 6;
-    optional bool use_localhost_for_data_offload = 7 [default = false];
 }
