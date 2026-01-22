@@ -10,12 +10,15 @@ from jaiabot.messages.moos_pb2 import MOOSMessage
 from goby.middleware.protobuf.gpsd_pb2 import TimePositionVelocity as tpv
 from jaiabot.messages.arduino_pb2 import ArduinoResponse
 from jaiabot.messages.pressure_temperature_pb2 import PressureAdjustedData
-from jaiabot.messages.jaia_dccl_pb2 import BotStatus
+from jaiabot.messages.jaia_dccl_pb2 import BotStatus, CurrentPacket
 from jaiabot.messages.metadata_pb2 import DeviceMetadata
+
 
 def split_into_drifts(stationkeep_df):
     drift_arduino_value = 1500
     min_drift_len=300
+    # time for jaiabot to come to a stop after motor turns off
+    dt_m = 1.5 # s
 
     sk_epoch = stationkeep_df['ts'].to_numpy()
     sk_ard = stationkeep_df['motor'].to_numpy()
@@ -36,14 +39,17 @@ def split_into_drifts(stationkeep_df):
         if (de - ds) < min_drift_len:
             continue  # skip very short blips if desired
 
+        drift_timestamps = sk_epoch[ds:de]
+        drift_start_ts = drift_timestamps[0]
+        ds_m = np.argmax(drift_timestamps > (drift_start_ts + dt_m)) # skip drift periods where the bot still carries momentum from motor
         drift_seg = {
-            "index_range": (ds, de),          # indices within THIS station keep
-            "epoch_time": sk_epoch[ds:de],
-            "pressure":   sk_pres[ds:de],
-            "arduino":    sk_ard[ds:de],
-            "speed":      sk_speed[ds:de],
-            "latitude":   sk_lat[ds:de],
-            "longitude":  sk_lon[ds:de],
+            "index_range": (ds_m, de),          # indices within THIS station keep
+            "epoch_time": sk_epoch[ds_m:de],
+            "pressure":   sk_pres[ds_m:de],
+            "arduino":    sk_ard[ds_m:de],
+            "speed":      sk_speed[ds_m:de],
+            "latitude":   sk_lat[ds_m:de],
+            "longitude":  sk_lon[ds_m:de],
         }
         drifts.append(drift_seg)
     
@@ -121,6 +127,17 @@ def filter_currents(
     return final_mask, filtered_speed
 
 
+def bearing_from_components(dE, dN):
+    """
+    Convert east/north components (dE, dN) to a bearing (deg) from true north,
+    clockwise, in [0, 360).
+
+    dE: east component (x)
+    dN: north component (y)
+    """
+    return np.rad2deg((np.pi / 2 - np.arctan2(dN, dE)) % (2 * np.pi))
+
+
 def compute_drift_stats(drift, n_edge_points=10, use_mask=True):
     """
     Compute drift direction (3 ways) and speed stats (mean, median, mode)
@@ -143,19 +160,15 @@ def compute_drift_stats(drift, n_edge_points=10, use_mask=True):
     stats : dict
         {
           'longitude', 'latitude', 'speed', 'mask', 'time',
-          'longitude', 'latitude',       # filtered lat/lon
-          'bearing_line',                # deg, line fit lat = alon + b
-          'bearing_first_last',          # deg, mean of first/last n_edge_points
-          'bearing_avg_steps',           # deg, from average step vector
+          'filtered_lon', 'filtered_lat',       # filtered lat/lon
+          'bearing_line',                # deg, line fit lat = a(lon*cos(lat)) + b
           'speed_mean', 'speed_median',
           'speed_mode_rayleigh',         # mode assuming Rayleigh dist
-          'dE_seg', 'dN_seg',            # first/last segment vector
-          'dE_avg', 'dN_avg',            # average step vector
           'R2'                           # R² of line fit
         }
     """
-    utmE = np.asarray(drift["utmE"])
-    utmN = np.asarray(drift["utmN"])
+    lon = np.asarray(drift["longitude"])
+    lat = np.asarray(drift["latitude"])
     speed = np.asarray(drift["filtered_speed"])
     time = np.asarray(drift["epoch_time"])
 
@@ -166,30 +179,30 @@ def compute_drift_stats(drift, n_edge_points=10, use_mask=True):
         mask = np.isfinite(speed)
 
     # Filtered positions & speeds
-    E = utmE[mask]
-    N = utmN[mask]
+    filtered_lon = lon[mask]
+    filtered_lat = lat[mask]
     speed_valid = speed[mask]
 
     stats = {
-        "utmE": utmE,
-        "utmN": utmN,
+        "longitude": lon,
+        "latitude": lat,
         "speed": speed,
         "mask": mask,
         "time": time,
+        "filtered_lon": filtered_lon,
+        "filtered_lat": filtered_lat,
         "bearing_line": np.nan,
         "speed_mean": np.nan,
-        "speed_median": np.nan,
         "speed_mode_rayleigh": np.nan,
         "R2": np.nan,
     }
 
     # Need at least 2 valid points for direction (and speed)
-    if len(E) < 2:
+    if len(filtered_lon) < 2:
         return stats
 
     # ---------- Speed stats ----------
     stats["speed_mean"] = np.nanmean(speed_valid)
-    stats["speed_median"] = np.nanmedian(speed_valid)
 
     # Rayleigh mode: sigma_hat = sqrt( mean(v^2) / 2 ), mode = sigma_hat
     mean_v2 = np.nanmean(speed_valid ** 2)
@@ -198,13 +211,14 @@ def compute_drift_stats(drift, n_edge_points=10, use_mask=True):
         stats["speed_mode_rayleigh"] = sigma_hat
 
     # ---------- 1) Drift direction by line fit (all valid points) ----------
-    # Fit N = a * E + b
-    a, b = np.polyfit(E, N, 1)  # uses least squares to fit a line to the drift points
+    # Fit lat = a(lon*cos(lat)) + b
+    filtered_lon = filtered_lon*np.cos(np.deg2rad(np.nanmean(filtered_lat)))
+    a, b = np.polyfit(filtered_lon, filtered_lat, 1)  # uses least squares to fit a line to the drift points
 
     # The method to find the R² value for the fitted line and the drift points
-    N_pred = a * E + b
-    SS_res = np.sum((N - N_pred) ** 2)  # how far the points deviate from the line
-    SS_tot = np.sum((N - np.mean(N)) ** 2)  # total variance in N
+    lat_pred = a * filtered_lon + b
+    SS_res = np.sum((filtered_lat - lat_pred) ** 2)  # how far the points deviate from the line
+    SS_tot = np.sum((filtered_lat - np.mean(filtered_lat)) ** 2)  # total variance in N
     if SS_tot > 0:
         R2 = 1.0 - SS_res / SS_tot
     else:
@@ -215,27 +229,51 @@ def compute_drift_stats(drift, n_edge_points=10, use_mask=True):
     v_line = np.array([1.0, a])
 
     # Net displacement from first to last valid point
-    v_net = np.array([E[-1] - E[0], N[-1] - N[0]])  # determine which way the drift actually moved
+    v_net = np.array([filtered_lon[-1] - filtered_lon[0], filtered_lat[-1] - filtered_lat[0]])  # determine which way the drift actually moved
 
     # If line vector points opposite to net motion, flip it
     if np.dot(v_line, v_net) < 0:
         v_line *= -1
 
-    dE_line, dN_line = v_line
+    dlon_line, dlat_line = v_line
 
-    stats["bearing_line"] = bearing_from_components(dE_line,
-                                                    dN_line)  # convert the direction vector into a compass bearing
+    stats["bearing_line"] = bearing_from_components(dlon_line,
+                                                    dlat_line)  # convert the direction vector into a compass bearing
 
     return stats
 
 
+def wrap_deg180(x_deg):
+    """Wrap degrees to [-180, 180]."""
+    return (x_deg + 180) % 360 - 180
+
+
+def std_about_value(values, center):
+    """STD about a fixed center (not about the sample mean)."""
+    values = np.asarray(values, dtype=float)
+    mask = np.isfinite(values) & np.isfinite(center)
+    if mask.sum() < 2:
+        return np.nan
+    return np.sqrt(np.mean((values[mask] - center) ** 2))
+
+
+def circular_std_about_value_deg(angles_deg, center_deg):
+    """Circular STD (deg) about a fixed center angle (deg)."""
+    a = np.asarray(angles_deg, dtype=float)
+    if not np.isfinite(center_deg):
+        return np.nan
+    mask = np.isfinite(a)
+    if mask.sum() < 2:
+        return np.nan
+    d = wrap_deg180(a[mask] - center_deg)  # signed residuals in [-180,180]
+    return np.sqrt(np.mean(d ** 2))
+
+
 def summarize_filtered_station_keep(
         drifts,
-        center_loc,
         n_edge_points=10,
         use_mask=True,
         R2_threshold=0.5,
-        verbose=True,
 ):
     """
     Load drifts from a list of filtered station keeps compute stats for each drift,
@@ -255,13 +293,9 @@ def summarize_filtered_station_keep(
           'mean_bearing': mean_bearing,
           'avg_mode_speed': avg_mode_speed,
           'avg_mean_speed': avg_mean_speed,
-          'avg_median_speed': avg_median_speed,
           'R2_threshold': R2_threshold,
         }
     """
-    # 1) Load drifts
-    # 1b) Load station-keep center location
-    center_lat_deg, center_lon_deg, = center_loc
 
     if len(drifts) == 0:
         return {
@@ -272,17 +306,14 @@ def summarize_filtered_station_keep(
             "mean_bearing": np.nan,
             "avg_mode_speed": np.nan,
             "avg_mean_speed": np.nan,
-            "avg_median_speed": np.nan,
             "R2_threshold": R2_threshold,
-            "center_lat_deg": center_lat_deg,
-            "center_lon_deg": center_lon_deg,
         }
 
-    # 2) Compute per-drift stats
+    # 1) Compute per-drift stats
     drift_stats_list = [compute_drift_stats(d, n_edge_points=n_edge_points, use_mask=use_mask)
                         for d in drifts]
 
-    # 3) Filter by R²
+    # 2) Filter by R²
     R2_values = np.array([s["R2"] for s in drift_stats_list])
     good_mask = np.isfinite(R2_values) & (R2_values > R2_threshold)
 
@@ -290,8 +321,6 @@ def summarize_filtered_station_keep(
     stats_good = [s for s, keep in zip(drift_stats_list, good_mask) if keep]
 
     if len(stats_good) == 0:
-        if verbose:
-            print(f"No drifts with R² > {R2_threshold}.")
         return {
             "drifts": drifts,
             "stats": drift_stats_list,
@@ -300,15 +329,10 @@ def summarize_filtered_station_keep(
             "mean_bearing": np.nan,
             "avg_mode_speed": np.nan,
             "avg_mean_speed": np.nan,
-            "avg_median_speed": np.nan,
             "R2_threshold": R2_threshold,
-            "center_lat_deg": center_lat_deg,
-            "center_lon_deg": center_lon_deg,
-            "center_utmE_m": center_utmE_m,
-            "center_utmN_m": center_utmN_m,
         }
 
-    # 4) Extract bearing_line and speeds from good drifts
+    # 3) Extract bearing_line and speeds from good drifts
     bearings = np.array([
         s["bearing_line"] for s in stats_good
         if np.isfinite(s["bearing_line"])
@@ -318,16 +342,13 @@ def summarize_filtered_station_keep(
         s["speed_mode_rayleigh"] for s in stats_good
         if np.isfinite(s["speed_mode_rayleigh"])
     ])
+
     speed_mean = np.array([
         s["speed_mean"] for s in stats_good
         if np.isfinite(s["speed_mean"])
     ])
-    speed_median = np.array([
-        s["speed_median"] for s in stats_good
-        if np.isfinite(s["speed_median"])
-    ])
 
-    # 5) Circular mean of bearings
+    # 4) Circular mean of bearings
     if bearings.size > 0:
         rad = np.deg2rad(bearings)
         mean_rad = np.arctan2(np.nanmean(np.sin(rad)), np.nanmean(np.cos(rad)))
@@ -335,31 +356,20 @@ def summarize_filtered_station_keep(
     else:
         mean_bearing = np.nan
 
-    # 6) Average speed stats (plain mean over good drifts)
+    # 5) Average speed stats (plain mean over good drifts)
     avg_mode_speed = np.nanmean(speed_mode) if speed_mode.size > 0 else np.nan
     avg_mean_speed = np.nanmean(speed_mean) if speed_mean.size > 0 else np.nan
     avg_median_speed = np.nanmean(speed_median) if speed_median.size > 0 else np.nan
 
-    speed_std_about_reported_mean = (
-        std_about_value(speed_mean, avg_mean_speed)
-        if speed_mean.size > 0 and np.isfinite(avg_mean_speed) else np.nan
+    speed_std_about_reported_mean = ( # TODO: ask if std should be computed from speed_mode & avg_mode_speed
+        std_about_value(speed_mean, avg_mode_speed)
+        if speed_mean.size > 0 and np.isfinite(avg_mode_speed) else np.nan
     )
 
     dir_std_about_reported_mean = (
         circular_std_about_value_deg(bearings, mean_bearing)
         if bearings.size > 0 and np.isfinite(mean_bearing) else np.nan
     )
-
-    if verbose:
-        print(f"\nR² threshold: {R2_threshold}")
-        print(f"Number of drifts: {len(drifts)}")
-        print(f"Number of good drifts (R² > {R2_threshold}): {len(stats_good)}")
-        print(f"Average bearing of good drifts: {mean_bearing:.2f}°")
-        print(f"Mode speed of good drifts: {avg_mode_speed:.3f} m/s")
-        print(f"Mean speed of good drifts: {avg_mean_speed:.3f} m/s")
-        print(f"Median speed of good drifts: {avg_median_speed:.3f} m/s")
-        print(f"Speed STD about reported mean: {speed_std_about_reported_mean:.3f} m/s")
-        print(f"Direction STD about reported mean: {dir_std_about_reported_mean:.2f}°")
 
     return {
         "drifts": drifts,
@@ -369,18 +379,12 @@ def summarize_filtered_station_keep(
         "mean_bearing": mean_bearing,
         "avg_mode_speed": avg_mode_speed,
         "avg_mean_speed": avg_mean_speed,
-        "avg_median_speed": avg_median_speed,
         "R2_threshold": R2_threshold,
 
         # NEW:
         "speed_std_about_reported_mean": speed_std_about_reported_mean,  # m/s
         "dir_std_about_reported_mean": dir_std_about_reported_mean,  # deg
         "n_good_drifts": int(len(stats_good)),
-
-        "center_lat_deg": center_lat_deg,
-        "center_lon_deg": center_lon_deg,
-        "center_utmE_m": center_utmE_m,
-        "center_utmN_m": center_utmN_m,
     }
 
 
@@ -394,19 +398,23 @@ gps_csv_header = ['ts','lat','lon','speed']
 arduino_csv_header = ['ts','motor']
 pressure_csv_header = ['ts','pressure']
 
-# time for jaiabot to come to a stop after motor turns off
-dt_m = 1.5 # s
-
 # TODO: investigate udp_driver.proto
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((localHost, port))
+timeout_seconds = 2
+sock.settimeout(timeout_seconds)
 
 station_keep_ts = 0
 curr_station_keep_subdir = ""
 
 while True:
     # PHASE 1: WAITING FOR STATION_KEEP START
-    data, addr = sock.recvfrom(1024) #TODO: add timeout and sleep
+    try:
+        data, addr = sock.recvfrom(1024)
+    except socket.timeout:
+        time.sleep(8) # C++ UDP bridge is not sending JAIABOT_MISSION_STATE messages rn, sleep to relinguish CPU time
+        continue
+    
     try:
         # assumes that MOOSMessages are published at a regular interval indicating which state the bot is in
         curr_task = MOOSMessage() #TODO: ask Matt Ferro how to pass stationkeep coords/ associate current estimate with stationkeep ID (MOOSMessage.id ?)
@@ -442,7 +450,10 @@ while True:
 
         # loop logging relevent data streams until stationkeep ends
         while True:
-            data, addr = sock.recvfrom(1024) #TODO: Timeout
+            try:
+                data, addr = sock.recvfrom(1024)
+            except socket.timeout:
+                continue
 
             curr_ts = time.time()
             curr_tpv = None
@@ -538,7 +549,7 @@ while True:
 
         drifts = split_into_drifts(gps_df)
 
-        for i, drift in enumerate(sk0["drifts"]):
+        for i, drift in enumerate(drifts):
             epoch_time = drift["epoch_time"]
             speed = drift["speed"]
             pressure = drift["pressure"]
@@ -565,13 +576,20 @@ while True:
             drift.clear()
             drift.update(drift_keep)
 
-            result = summarize_filtered_station_keep(
-                drifts,
-                center_loc,
-                n_edge_points=10,
-                use_mask=True,
-                R2_threshold=0.5,
-                verbose=False,
-            )
+        result = summarize_filtered_station_keep(
+            drifts,
+            n_edge_points=10,
+            use_mask=True,
+            R2_threshold=0.5,
+        )
 
         # PHASE 4: SEND CURRENT STATS AND DELETE TEMP FILES
+        current = CurrentPacket()
+        current.speed = result["avg_mode_speed"]
+        current.speed_std = result["speed_std_about_reported_mean"]
+        current.heading = result["mean_bearing"]
+        current.heading_std = result["dir_std_about_reported_mean"]
+
+        sock.sendto(current.SerializeToString().encode(), (localHost, port))
+        shutil.rmtree(curr_station_keep_subdir, ignore_errors=True)
+
