@@ -1,17 +1,16 @@
 import csv
 import os
 import socket
+import shutil
 import time
 import numpy as np
 import pandas as pd
-import google.protobuf.descriptor_pb2 as pb2
 import google.protobuf.message as pbm
 from jaiabot.messages.moos_pb2 import MOOSMessage 
 from goby.middleware.protobuf.gpsd_pb2 import TimePositionVelocity as tpv
 from jaiabot.messages.arduino_pb2 import ArduinoResponse
 from jaiabot.messages.pressure_temperature_pb2 import PressureAdjustedData
 from jaiabot.messages.jaia_dccl_pb2 import BotStatus, CurrentPacket
-from jaiabot.messages.metadata_pb2 import DeviceMetadata
 
 
 def split_into_drifts(stationkeep_df):
