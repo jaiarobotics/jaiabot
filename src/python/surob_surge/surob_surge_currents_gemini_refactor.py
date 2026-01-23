@@ -110,6 +110,7 @@ def compute_drift_statistics(drift):
     stats = {
         "bearing_line": np.nan, "speed_mean": np.nan, 
         "speed_mode_rayleigh": np.nan, "R2": np.nan,
+        "filtered_lon": filtered_lon, "filtered_lat": filtered_lat,
     }
 
     if len(filtered_lon) < 2:
@@ -193,12 +194,21 @@ def summarize_station_keep_drifts(drifts, r2_threshold=0.5):
     speed_std_about_reported_mean = calculate_std_about_value(speed_means, avg_mean_speed) #TODO: Ask if speed std should be computed from speed_mode & avg_mode_speed
     dir_std_about_reported_mean = calculate_circular_std_about_value_deg(bearings, mean_bearing)
 
+    lats = [s["filtered_lat"] for s in good_drifts_stats]
+    lons = [s["filtered_lon"] for s in good_drifts_stats]
+    lats = np.concatenate(lats)
+    lons = np.concatenate(lons)
+    mean_lat = np.nanmean(lats)
+    mean_lon = np.nanmean(lons)
+
     return {
         "mean_bearing": mean_bearing,
         "avg_mode_speed": avg_mode_speed,
         "speed_std_about_reported_mean": speed_std_about_reported_mean,
         "dir_std_about_reported_mean": dir_std_about_reported_mean,
         "n_good_drifts": len(good_drifts_stats),
+        "mean_lat": mean_lat,
+        "mean_lon": mean_lon
     }
 
 # --- Main Application Logic ---
@@ -284,13 +294,13 @@ def process_logged_data(station_keep_dir):
         stationkeep_df = gps_df.assign(motor=motor_interp, pressure=pressure_interp).dropna()
 
         drift_segments = extract_drift_segments(stationkeep_df)
-        return summarize_station_keep_drifts(drift_segments)
+        return summarize_station_keep_drifts(drift_segments) 
 
     except (FileNotFoundError, pd.errors.EmptyDataError) as e:
         print(f"Error processing data: {e}")
         return {}
 
-def send_results_and_cleanup(sock, results, station_keep_dir):
+def send_results_and_cleanup(sock, results, station_keep_dir): #TODO: Ask about automatic protobuf to h5 cacheing
     """Sends computed statistics and removes temporary files."""
     if not results:
         print("No results to send.")
@@ -304,7 +314,10 @@ def send_results_and_cleanup(sock, results, station_keep_dir):
             packet.heading = results["mean_bearing"]
         if np.isfinite(results.get("dir_std_about_reported_mean", np.nan)):
             packet.heading_std = results["dir_std_about_reported_mean"]
-        
+        if np.isfinite(results.get("mean_lat", np.nan)) and np.isfinite(results.get("mean_lon", np.nan)):
+            packet.location.lat = results["mean_lat"]
+            packet.location.lon = results["mean_lon"]
+
         try:
             sock.sendto(packet.SerializeToString(), (LOCAL_HOST, PORT))
             print("Results sent successfully.")

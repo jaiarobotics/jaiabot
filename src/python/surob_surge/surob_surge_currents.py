@@ -329,6 +329,8 @@ def summarize_filtered_station_keep(
             "avg_mode_speed": np.nan,
             "avg_mean_speed": np.nan,
             "R2_threshold": R2_threshold,
+            "mean_lat": np.nan,
+            "mean_lon": np.nan,
         }
 
     # 3) Extract bearing_line and speeds from good drifts
@@ -346,6 +348,13 @@ def summarize_filtered_station_keep(
         s["speed_mean"] for s in stats_good
         if np.isfinite(s["speed_mean"])
     ])
+
+    lats = [s["filtered_lat"] for s in stats_good]
+    lons = [s["filtered_lon"] for s in stats_good]
+    lats = np.concatenate(lats)
+    lons = np.concatenate(lons)
+    mean_lat = np.nanmean(lats)
+    mean_lon = np.nanmean(lons)
 
     # 4) Circular mean of bearings
     if bearings.size > 0:
@@ -384,6 +393,8 @@ def summarize_filtered_station_keep(
         "speed_std_about_reported_mean": speed_std_about_reported_mean,  # m/s
         "dir_std_about_reported_mean": dir_std_about_reported_mean,  # deg
         "n_good_drifts": int(len(stats_good)),
+        "mean_lat": mean_lat,
+        "mean_lon": mean_lon
     }
 
 
@@ -588,6 +599,8 @@ while True:
         current.speed_std = result["speed_std_about_reported_mean"]
         current.heading = result["mean_bearing"]
         current.heading_std = result["dir_std_about_reported_mean"]
+        current.location.lat = result["mean_lat"]
+        current.location.lon = result["mean_lon"]
 
         sock.sendto(current.SerializeToString().encode(), (localHost, port))
         shutil.rmtree(curr_station_keep_subdir, ignore_errors=True)
