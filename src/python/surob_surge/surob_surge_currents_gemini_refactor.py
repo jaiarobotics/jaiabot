@@ -19,10 +19,12 @@ LOCAL_HOST = "127.0.0.1"
 PORT = 51200 #TODO : get list of ports from Matt Ferro
 BUFFER_SIZE = 1024
 SOCKET_TIMEOUT_SECONDS = 2
-SAVE_DIR = "/var/log/jaiabot/tmp_currents"
-GPS_CSV_HEADER = ['ts', 'lat', 'lon', 'speed']
-ARDUINO_CSV_HEADER = ['ts', 'motor']
-PRESSURE_CSV_HEADER = ['ts', 'pressure']
+
+# --- HDF5 Data Type Definitions ---
+# i8 = int64, i4 = int32, f8 = float64
+GPS_DTYPE = [('ts', 'i8'), ('lat', 'f8'), ('lon', 'f8'), ('speed', 'f8')]
+ARDUINO_DTYPE = [('ts', 'i8'), ('motor', 'i4')]
+PRESSURE_DTYPE = [('ts', 'i8'), ('pressure', 'f8')]
 
 # --- Main Application Logic ---
 
@@ -33,56 +35,6 @@ def setup_socket(host, port, timeout):
     sock.settimeout(timeout)
     return sock
 
-def wait_for_station_keep(sock):
-    """Waits for a MOOS message indicating the start of a station-keep task."""
-    while True:
-        try:
-            data, _ = sock.recvfrom(BUFFER_SIZE)
-            moos_msg = MOOSMessage()
-            moos_msg.ParseFromString(data)
-            if moos_msg.key == "JAIABOT_MISSION_STATE" and moos_msg.svalue == "IN_MISSION__UNDERWAY__TASK__STATION_KEEP":
-                return
-        except (socket.timeout, pbm.DecodeError):
-            continue
-
-def log_data_during_station_keep(sock, station_keep_dir):
-    """Logs GPS, motor, and pressure data to CSV files during station-keep."""
-    gps_path = os.path.join(station_keep_dir, "gps.h5")
-    arduino_path = os.path.join(station_keep_dir, "arduino.h5")
-    pressure_path = os.path.join(station_keep_dir, "pressure.h5")
-
-    with h5py.File(gps_path, 'w') as gps_f, \
-         h5py.File(arduino_path, 'w') as ard_f, \
-         h5py.File(pressure_path, 'w') as pres_f:
-
-        gps_f.create_dataset("gps", (0,4), maxshape=(None,4), chunk=True) # ts, lat, lon, speed
-
-        ard_f.create_dataset("arduino", (0,2), maxshape=(None,2), chunk=True) # ts, motor
-
-        pres_f.create_dataset("pressure", (0, 2), maxshape=(None, 2), chunk=True) # ts, pressure
-
-        while True:
-            try:
-                data, _ = sock.recvfrom(BUFFER_SIZE)
-                ts = time.time()
-                
-                if (msg := try_parse(data, TPV)) and msg.HasField('location') and msg.HasField('speed'):
-                    gps_dset = gps_f["gps"]
-                    gps_dset.resize(gps_dset.shape[0]+1, axis=0)
-                    gps_dset[-1] = np.array([msg.time or ts, msg.location.lat, msg.location.lon, msg.speed]).reshape(1, -1)
-                elif (msg := try_parse(data, ArduinoResponse)) and msg.HasField('motor'):
-                    ard_dset = ard_f["arduino"]
-                    ard_dset.resize(ard_dset.shape[0]+1, axis=0)
-                    ard_dset[-1] = np.array([ts, msg.motor]).reshape(1, -1)
-                elif (msg := try_parse(data, PressureAdjustedData)) and msg.HasField('pressure_adjusted'):
-                    pres_dset = pres_f["pressure"]
-                    pres_dset.resize(pres_dset.shape[0]+1, axis=0)
-                    pres_dset[-1] = np.array([ts, msg.pressure_adjusted]).reshape(1, -1)
-                elif (msg := try_parse(data, MOOSMessage)) and msg.key == "JAIABOT_MISSION_STATE" and msg.svalue != "IN_MISSION__UNDERWAY__TASK__STATION_KEEP":
-                    break
-            except socket.timeout:
-                continue
-
 def try_parse(data, message_type):
     """Attempts to parse data into a given protobuf message type."""
     try:
@@ -92,26 +44,85 @@ def try_parse(data, message_type):
     except pbm.DecodeError:
         return None
 
-def process_logged_data(station_keep_dir):
-    """Processes logged data to compute current statistics."""
+def wait_for_station_keep(sock):
+    """Waits for a MOOS message indicating the start of a station-keep task."""
+    while True:
+        try:
+            data, _ = sock.recvfrom(BUFFER_SIZE)
+            if (msg := try_parse(data, MOOSMessage)) and 
+                msg.key == "JAIABOT_MISSION_STATE" and 
+                msg.HasField("svalue") and 
+                msg.svalue == "IN_MISSION__UNDERWAY__TASK__STATION_KEEP":
+                return
+        except socket.timeout:
+            continue
+
+def log_data_during_station_keep(sock, h5_log_path):
+    """Buffers and logs sensor data to a single HDF5 file with explicit data types."""
+    # Buffer data in memory as lists of tuples
+    gps_data = []
+    arduino_data = []
+    pressure_data = []
+
+    print("Buffering data in memory...")
+    while True:
+        try:
+            data, _ = sock.recvfrom(BUFFER_SIZE)
+            current_ts = time.time()
+
+            if (msg := try_parse(data, TPV)) and msg.HasField('location') and msg.HasField('speed'):
+                ts_ns = int((msg.time or current_ts) * 1_000_000_000)
+                gps_data.append((ts_ns, msg.location.lat, msg.location.lon, msg.speed))
+            elif (msg := try_parse(data, ArduinoResponse)) and msg.HasField('motor'):
+                ts_ns = int(current_ts * 1_000_000_000)
+                arduino_data.append((ts_ns, msg.motor))
+            elif (msg := try_parse(data, PressureAdjustedData)) and msg.HasField('pressure_adjusted'):
+                ts_ns = int(current_ts * 1_000_000_000)
+                pressure_data.append((ts_ns, msg.pressure_adjusted))
+            elif (msg := try_parse(data, MOOSMessage)) and msg.key == "JAIABOT_MISSION_STATE" and msg.svalue != "IN_MISSION__UNDERWAY__TASK__STATION_KEEP":
+                break  # End of station keep
+
+        except socket.timeout:
+            continue
+
+    # Write all buffered data to the HDF5 file using structured arrays
+    print(f"Writing buffered data to {h5_log_path} with specified dtypes...")
+    with h5py.File(h5_log_path, 'w') as f:
+        if gps_data:
+            f.create_dataset("gps", data=np.array(gps_data, dtype=GPS_DTYPE))
+        if arduino_data:
+            f.create_dataset("arduino", data=np.array(arduino_data, dtype=ARDUINO_DTYPE))
+        if pressure_data:
+            f.create_dataset("pressure", data=np.array(pressure_data, dtype=PRESSURE_DTYPE))
+
+def process_logged_data(h5_log_path):
+    """Processes logged data from an HDF5 file to compute current statistics."""
     try:
-        gps_df = pd.read_csv(os.path.join(station_keep_dir, "gps.csv"))
-        arduino_df = pd.read_csv(os.path.join(station_keep_dir, "arduino.csv"))
-        pressure_df = pd.read_csv(os.path.join(station_keep_dir, "pressure.csv"))
+        with h5py.File(h5_log_path, 'r') as f:
+            if "gps" not in f or "arduino" not in f or "pressure" not in f:
+                print("HDF5 file is missing required datasets.")
+                return {}
+
+            # Read the structured arrays into DataFrames
+            gps_df = pd.DataFrame(f["gps"][:])
+            arduino_df = pd.DataFrame(f["arduino"][:])
+            pressure_df = pd.DataFrame(f["pressure"][:])
 
         if gps_df.empty or arduino_df.empty or pressure_df.empty:
             return {}
+        
+        for df in [gps_df, arduino_df, pressure_df]:
+            df['ts'] = df['ts'] / 1_000_000_000.0
 
         motor_interp = np.interp(gps_df['ts'], arduino_df['ts'], arduino_df['motor'], left=np.nan, right=np.nan)
         pressure_interp = np.interp(gps_df['ts'], pressure_df['ts'], pressure_df['pressure'], left=np.nan, right=np.nan)
         stationkeep_df = gps_df.assign(motor=motor_interp, pressure=pressure_interp).dropna()
 
-        # Use the analysis library to process data
         drift_segments = cal.extract_drift_segments(stationkeep_df)
         return cal.summarize_station_keep_drifts(drift_segments)
 
-    except (FileNotFoundError, pd.errors.EmptyDataError) as e:
-        print(f"Error processing data: {e}")
+    except (FileNotFoundError, OSError, KeyError) as e:
+        print(f"Error processing data from {h5_log_path}: {e}")
         return {}
 
 def send_results_and_cleanup(sock, results, station_keep_dir): # TODO: Ask about automatic protobuf to h5 cacheing
@@ -155,13 +166,14 @@ def main():
         
         station_keep_dir = os.path.join(SAVE_DIR, str(int(time.time())))
         os.makedirs(station_keep_dir, exist_ok=True)
+        h5_log_path = os.path.join(station_keep_dir, "log.h5")
         
         try:
             print(f"Station-keep started. Logging data to {station_keep_dir}...")
-            log_data_during_station_keep(sock, station_keep_dir)
+            log_data_during_station_keep(sock, h5_log_path)
             
             print("Station-keep ended. Processing data...")
-            results = process_logged_data(station_keep_dir)
+            results = process_logged_data(h5_log_path)
             
             send_results_and_cleanup(sock, results, station_keep_dir)
             print("Cycle complete.")
