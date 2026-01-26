@@ -1,5 +1,6 @@
 import h5py
 import os
+import logging
 import shutil
 import socket
 import time
@@ -57,14 +58,14 @@ def wait_for_station_keep(sock):
         except socket.timeout:
             continue
 
-def log_data_during_station_keep(sock, h5_log_path):
+def log_data_during_station_keep(sock, h5_log_path, log):
     """Buffers and logs sensor data to a single HDF5 file with explicit data types."""
     # Buffer data in memory as lists of tuples
     gps_data = []
     arduino_data = []
     pressure_data = []
 
-    print("Buffering data in memory...")
+    log.info("Buffering received data in memory...")
     while True:
         try:
             data, _ = sock.recvfrom(BUFFER_SIZE)
@@ -86,7 +87,7 @@ def log_data_during_station_keep(sock, h5_log_path):
             continue
 
     # Write all buffered data to the HDF5 file using structured arrays
-    print(f"Writing buffered data to {h5_log_path} with specified dtypes...")
+    log.info(f"Writing buffered data to {h5_log_path} with specified dtypes...")
     with h5py.File(h5_log_path, 'w') as f:
         if gps_data:
             f.create_dataset("gps", data=np.array(gps_data, dtype=GPS_DTYPE))
@@ -95,12 +96,12 @@ def log_data_during_station_keep(sock, h5_log_path):
         if pressure_data:
             f.create_dataset("pressure", data=np.array(pressure_data, dtype=PRESSURE_DTYPE))
 
-def process_logged_data(h5_log_path):
+def process_logged_data(h5_log_path, log):
     """Processes logged data from an HDF5 file to compute current statistics."""
     try:
         with h5py.File(h5_log_path, 'r') as f:
             if "gps" not in f or "arduino" not in f or "pressure" not in f:
-                print("HDF5 file is missing required datasets.")
+                log.error("HDF5 file is missing required datasets.")
                 return {}
 
             # Read the structured arrays into DataFrames
@@ -122,13 +123,13 @@ def process_logged_data(h5_log_path):
         return cal.summarize_station_keep_drifts(drift_segments)
 
     except (FileNotFoundError, OSError, KeyError) as e:
-        print(f"Error processing data from {h5_log_path}: {e}")
+        log.exception(f"Error processing data from {h5_log_path}: {e}")
         return {}
 
-def send_results_and_cleanup(sock, results, station_keep_dir): # TODO: Ask about automatic protobuf to h5 cacheing
+def send_results_and_cleanup(sock, results, station_keep_dir, log): # TODO: Ask about automatic protobuf to h5 cacheing
     """Sends computed statistics and removes temporary files."""
     if not results:
-        print("No results to send.")
+        log.warning("No results to send.")
     else:
         packet = CurrentPacket()
         if np.isfinite(results.get("avg_mode_speed", np.nan)):
@@ -145,23 +146,29 @@ def send_results_and_cleanup(sock, results, station_keep_dir): # TODO: Ask about
 
         try:
             sock.sendto(packet.SerializeToString(), (LOCAL_HOST, PORT))
-            print("Results sent successfully.")
+            log.info("Results sent successfully.")
         except Exception as e:
-            print(f"Failed to send results: {e}")
+            log.exception(f"Failed to send results: {e}")
             
     shutil.rmtree(station_keep_dir, ignore_errors=True)
 
 def main():
     """Main loop to listen for tasks, log data, compute currents, and send results."""
+
+    logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
+    log = logging.getLogger('surob_surge_currents')
+    log.setLevel(logging.INFO)
+
     try:
         sock = setup_socket(LOCAL_HOST, PORT, SOCKET_TIMEOUT_SECONDS)
         os.makedirs(SAVE_DIR, exist_ok=True)
     except Exception as e:
-        print(f"Initialization failed: {e}")
-        return
+        log.exception(f"Initialization failed: {e}")
+        return 1 # return with non-zero exit code to restart on failure
 
     while True:
-        print("Waiting for station-keep to start...")
+        # TODO: could look in station_keep_dir for existing files and attempt to process them, in the attempt of a script crash in the middle of logging a stationkeep
+        log.info("Waiting for station-keep to start...")
         wait_for_station_keep(sock)
         
         station_keep_dir = os.path.join(SAVE_DIR, str(int(time.time())))
@@ -169,16 +176,16 @@ def main():
         h5_log_path = os.path.join(station_keep_dir, "log.h5")
         
         try:
-            print(f"Station-keep started. Logging data to {station_keep_dir}...")
-            log_data_during_station_keep(sock, h5_log_path)
+            log.info(f"Station-keep started. Logging data to {station_keep_dir}...")
+            log_data_during_station_keep(sock, h5_log_path, log)
             
-            print("Station-keep ended. Processing data...")
-            results = process_logged_data(h5_log_path)
+            log.info("Station-keep ended. Processing data...")
+            results = process_logged_data(h5_log_path, log)
             
-            send_results_and_cleanup(sock, results, station_keep_dir)
-            print("Cycle complete.")
+            send_results_and_cleanup(sock, results, station_keep_dir, log)
+            log.info("Cycle complete.")
         except Exception as e:
-            print(f"An error occurred during the station-keep cycle: {e}")
+            log.exception(f"An error occurred during the station-keep cycle: {e}")
             shutil.rmtree(station_keep_dir, ignore_errors=True)
             time.sleep(5)
 

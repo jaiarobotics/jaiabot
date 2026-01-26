@@ -567,6 +567,15 @@ jaiabot_apps = [
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
+     {'exe': 'surob_surge_currents.py',
+     'description': 'Surob Surge Currents Analysis Code',
+     'template': 'py-app.service.in',
+     'subdir': 'surob_surge',
+     'error_on_fail': 'ERROR__FAILED__SUROB_SURGE_CURRENTS',
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
 
     ## ECHO Services ##
 
