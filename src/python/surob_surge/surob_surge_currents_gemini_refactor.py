@@ -1,4 +1,4 @@
-import csv
+import h5py
 import os
 import shutil
 import socket
@@ -16,7 +16,7 @@ import current_analysis_lib as cal
 
 # --- Application Constants ---
 LOCAL_HOST = "127.0.0.1"
-PORT = 51200
+PORT = 51200 #TODO : get list of ports from Matt Ferro
 BUFFER_SIZE = 1024
 SOCKET_TIMEOUT_SECONDS = 2
 SAVE_DIR = "/var/log/jaiabot/tmp_currents"
@@ -47,22 +47,19 @@ def wait_for_station_keep(sock):
 
 def log_data_during_station_keep(sock, station_keep_dir):
     """Logs GPS, motor, and pressure data to CSV files during station-keep."""
-    gps_path = os.path.join(station_keep_dir, "gps.csv")
-    arduino_path = os.path.join(station_keep_dir, "arduino.csv")
-    pressure_path = os.path.join(station_keep_dir, "pressure.csv")
+    gps_path = os.path.join(station_keep_dir, "gps.h5")
+    arduino_path = os.path.join(station_keep_dir, "arduino.h5")
+    pressure_path = os.path.join(station_keep_dir, "pressure.h5")
 
-    with open(gps_path, 'w', newline='') as gps_f, \
-         open(arduino_path, 'w', newline='') as ard_f, \
-         open(pressure_path, 'w', newline='') as pres_f:
-        
-        writers = {
-            'gps': csv.writer(gps_f),
-            'arduino': csv.writer(ard_f),
-            'pressure': csv.writer(pres_f),
-        }
-        writers['gps'].writerow(GPS_CSV_HEADER)
-        writers['arduino'].writerow(ARDUINO_CSV_HEADER)
-        writers['pressure'].writerow(PRESSURE_CSV_HEADER)
+    with h5py.File(gps_path, 'w') as gps_f, \
+         h5py.File(arduino_path, 'w') as ard_f, \
+         h5py.File(pressure_path, 'w') as pres_f:
+
+        gps_f.create_dataset("gps", (0,4), maxshape=(None,4), chunk=True) # ts, lat, lon, speed
+
+        ard_f.create_dataset("arduino", (0,2), maxshape=(None,2), chunk=True) # ts, motor
+
+        pres_f.create_dataset("pressure", (0, 2), maxshape=(None, 2), chunk=True) # ts, pressure
 
         while True:
             try:
@@ -70,11 +67,17 @@ def log_data_during_station_keep(sock, station_keep_dir):
                 ts = time.time()
                 
                 if (msg := try_parse(data, TPV)) and msg.HasField('location') and msg.HasField('speed'):
-                    writers['gps'].writerow([msg.time or ts, msg.location.lat, msg.location.lon, msg.speed])
+                    gps_dset = gps_f["gps"]
+                    gps_dset.resize(gps_dset.shape[0]+1, axis=0)
+                    gps_dset[-1] = np.array([msg.time or ts, msg.location.lat, msg.location.lon, msg.speed]).reshape(1, -1)
                 elif (msg := try_parse(data, ArduinoResponse)) and msg.HasField('motor'):
-                    writers['arduino'].writerow([ts, msg.motor])
+                    ard_dset = ard_f["arduino"]
+                    ard_dset.resize(ard_dset.shape[0]+1, axis=0)
+                    ard_dset[-1] = np.array([ts, msg.motor]).reshape(1, -1)
                 elif (msg := try_parse(data, PressureAdjustedData)) and msg.HasField('pressure_adjusted'):
-                    writers['pressure'].writerow([ts, msg.pressure_adjusted])
+                    pres_dset = pres_f["pressure"]
+                    pres_dset.resize(pres_dset.shape[0]+1, axis=0)
+                    pres_dset[-1] = np.array([ts, msg.pressure_adjusted]).reshape(1, -1)
                 elif (msg := try_parse(data, MOOSMessage)) and msg.key == "JAIABOT_MISSION_STATE" and msg.svalue != "IN_MISSION__UNDERWAY__TASK__STATION_KEEP":
                     break
             except socket.timeout:
