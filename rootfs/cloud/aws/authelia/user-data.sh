@@ -106,7 +106,7 @@ storage:
 notifier:
   smtp:
     address: 'smtp://smtp-relay.gmail.com:587'
-    sender: 'Jaia <info@jaia.tech>'
+    sender: 'Jaia <noreply@jaia.tech>'
     # Currently we are using GobySoft's SMTP relay (Google Workspace)
     identifier: 'gobysoft.org'
     subject: '[Jaia Cloud] {title}'
