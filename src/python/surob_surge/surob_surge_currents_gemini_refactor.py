@@ -7,7 +7,7 @@ import time
 import numpy as np
 import pandas as pd
 import google.protobuf.message as pbm
-from jaiabot.messages.moos_pb2 import MOOSMessage 
+from jaiabot.messages.mission import MissionState, MissionReport 
 from goby.middleware.protobuf.gpsd_pb2 import TimePositionVelocity as TPV
 from jaiabot.messages.arduino_pb2 import ArduinoResponse
 from jaiabot.messages.pressure_temperature_pb2 import PressureAdjustedData
@@ -16,16 +16,24 @@ from jaiabot.messages.jaia_dccl_pb2 import CurrentPacket
 import current_analysis_lib as cal
 
 # --- Application Constants ---
-LOCAL_HOST = "127.0.0.1"
 PORT = 51200 #TODO : get list of ports from Matt Ferro
 BUFFER_SIZE = 1024
 SOCKET_TIMEOUT_SECONDS = 2
+SAVE_DIR = os.path.join("/var", "log", "jaiabot", "surob_surge_currents")
 
 # --- HDF5 Data Type Definitions ---
 # i8 = int64, i4 = int32, f8 = float64
 GPS_DTYPE = [('ts', 'i8'), ('lat', 'f8'), ('lon', 'f8'), ('speed', 'f8')]
 ARDUINO_DTYPE = [('ts', 'i8'), ('motor', 'i4')]
 PRESSURE_DTYPE = [('ts', 'i8'), ('pressure', 'f8')]
+
+# --- Mission States to Ignore for Ending a Station-Keep ---
+PAUSED_MISSION_STATES = {
+    MissionState.IN_MISSION__PAUSE__IMU_RESTART,
+    MissionState.IN_MISSION__PAUSE__REACQUIRE_GPS,
+    MissionState.IN_MISSION__PAUSE__MANUAL,
+    MissionState.IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS
+}
 
 # --- Main Application Logic ---
 
@@ -46,15 +54,13 @@ def try_parse(data, message_type):
         return None
 
 def wait_for_station_keep(sock):
-    """Waits for a MOOS message indicating the start of a station-keep task."""
+    """Waits for a MOOS message indicating the start of a station-keep task and returns address to send results to."""
     while True:
         try:
-            data, _ = sock.recvfrom(BUFFER_SIZE)
-            if (msg := try_parse(data, MOOSMessage)) and 
-                msg.key == "JAIABOT_MISSION_STATE" and 
-                msg.HasField("svalue") and 
-                msg.svalue == "IN_MISSION__UNDERWAY__TASK__STATION_KEEP":
-                return
+            data, addr = sock.recvfrom(BUFFER_SIZE)
+            if ((msg := try_parse(data, MissionReport)) and
+                 msg.state == MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP):
+                return addr
         except socket.timeout:
             continue
 
@@ -80,8 +86,11 @@ def log_data_during_station_keep(sock, h5_log_path, log):
             elif (msg := try_parse(data, PressureAdjustedData)) and msg.HasField('pressure_adjusted'):
                 ts_ns = int(current_ts * 1_000_000_000)
                 pressure_data.append((ts_ns, msg.pressure_adjusted))
-            elif (msg := try_parse(data, MOOSMessage)) and msg.key == "JAIABOT_MISSION_STATE" and msg.svalue != "IN_MISSION__UNDERWAY__TASK__STATION_KEEP":
-                break  # End of station keep
+            elif ((msg := try_parse(data, MissionReport)) and 
+                  msg.state != MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP and 
+                  msg.state not in PAUSED_MISSION_STATES):
+                log.info(f"Station-keep ended. New mission state: {MissionState.Name(msg.state)}")
+                break
 
         except socket.timeout:
             continue
@@ -89,12 +98,9 @@ def log_data_during_station_keep(sock, h5_log_path, log):
     # Write all buffered data to the HDF5 file using structured arrays
     log.info(f"Writing buffered data to {h5_log_path} with specified dtypes...")
     with h5py.File(h5_log_path, 'w') as f:
-        if gps_data:
-            f.create_dataset("gps", data=np.array(gps_data, dtype=GPS_DTYPE))
-        if arduino_data:
-            f.create_dataset("arduino", data=np.array(arduino_data, dtype=ARDUINO_DTYPE))
-        if pressure_data:
-            f.create_dataset("pressure", data=np.array(pressure_data, dtype=PRESSURE_DTYPE))
+        if gps_data: f.create_dataset("gps", data=np.array(gps_data, dtype=GPS_DTYPE))
+        if arduino_data: f.create_dataset("arduino", data=np.array(arduino_data, dtype=ARDUINO_DTYPE))
+        if pressure_data: f.create_dataset("pressure", data=np.array(pressure_data, dtype=PRESSURE_DTYPE))
 
 def process_logged_data(h5_log_path, log):
     """Processes logged data from an HDF5 file to compute current statistics."""
@@ -126,7 +132,7 @@ def process_logged_data(h5_log_path, log):
         log.exception(f"Error processing data from {h5_log_path}: {e}")
         return {}
 
-def send_results_and_cleanup(sock, results, station_keep_dir, log): # TODO: Ask about automatic protobuf to h5 cacheing
+def send_results_and_cleanup(sock, addr, results, station_keep_dir, log):
     """Sends computed statistics and removes temporary files."""
     if not results:
         log.warning("No results to send.")
@@ -145,7 +151,7 @@ def send_results_and_cleanup(sock, results, station_keep_dir, log): # TODO: Ask 
             packet.location.lon = results["mean_lon"]
 
         try:
-            sock.sendto(packet.SerializeToString(), (LOCAL_HOST, PORT))
+            sock.sendto(packet.SerializeToString(), addr)
             log.info("Results sent successfully.")
         except Exception as e:
             log.exception(f"Failed to send results: {e}")
@@ -160,21 +166,20 @@ def main():
     log.setLevel(logging.INFO)
 
     try:
-        sock = setup_socket(LOCAL_HOST, PORT, SOCKET_TIMEOUT_SECONDS)
+        sock = setup_socket('', PORT, SOCKET_TIMEOUT_SECONDS)
         os.makedirs(SAVE_DIR, exist_ok=True)
     except Exception as e:
         log.exception(f"Initialization failed: {e}")
         return 1 # return with non-zero exit code to restart on failure
 
     while True:
-        # TODO: could look in station_keep_dir for existing files and attempt to process them, in the attempt of a script crash in the middle of logging a stationkeep
         log.info("Waiting for station-keep to start...")
-        wait_for_station_keep(sock)
-        
+        addr = wait_for_station_keep(sock)
+
         station_keep_dir = os.path.join(SAVE_DIR, str(int(time.time())))
         os.makedirs(station_keep_dir, exist_ok=True)
         h5_log_path = os.path.join(station_keep_dir, "log.h5")
-        
+
         try:
             log.info(f"Station-keep started. Logging data to {station_keep_dir}...")
             log_data_during_station_keep(sock, h5_log_path, log)
@@ -182,7 +187,7 @@ def main():
             log.info("Station-keep ended. Processing data...")
             results = process_logged_data(h5_log_path, log)
             
-            send_results_and_cleanup(sock, results, station_keep_dir, log)
+            send_results_and_cleanup(sock, addr, results, station_keep_dir, log)
             log.info("Cycle complete.")
         except Exception as e:
             log.exception(f"An error occurred during the station-keep cycle: {e}")
@@ -190,4 +195,4 @@ def main():
             time.sleep(5)
 
 if __name__ == "__main__":
-    main()
+    main() # TODO: Argparser to toggle cleaning up logs, processing old logs, UDP port
