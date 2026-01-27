@@ -118,7 +118,7 @@ export class App extends React.Component {
             <div className="vertical flexbox maximized">
                 <div className="vertical flexbox top_pane padded">
                     <div className="row">
-                        <img src="/favicon.png" className="jaia-icon" />
+                        <img src="favicon.png" className="jaia-icon" />
                         <h2 className="appName">{APP_NAME}</h2>
                     </div>
                 </div>
