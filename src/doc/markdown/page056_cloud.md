@@ -303,8 +303,8 @@ These all run on a single machine, cloud.jaia.tech.
 
 CloudHub access:
 - https://fN.cloud.jaia.tech: JCC for Fleet N (e.g., https://f1.cloud.jaia.tech for fleet 1).
-- https://jcu.fN.cloud.jaia.tech: JCU for Fleet N.
-- https://jdv.fN.cloud.jaia.tech: JDV for Fleet N.
+- https://fN.cloud.jaia.tech/jcu: JCU for Fleet N.
+- https://fN.cloud.jaia.tech/jdv: JDV for Fleet N.
 
 Supporting web pages:
 - https://auth.cloud.jaia.tech: Authelia authentication website. Typically the user doesn't need to access this directly unless they want to change their user settings.

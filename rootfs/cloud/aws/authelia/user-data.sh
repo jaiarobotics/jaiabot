@@ -88,7 +88,7 @@ authentication_backend:
 access_control:
   default_policy: 'deny'
   rules:
-    - domain_regex: '^(jdv\.|jcu\.|)(?P<Group>\w+)\.cloud\.jaia\.tech$'
+    - domain: '{group}.cloud.jaia.tech'
       policy: 'two_factor'
     - domain: 'lldap.cloud.jaia.tech'
       policy: 'two_factor'
@@ -150,16 +150,6 @@ for fleet_id in $fleets; do
 f${fleet_id}.cloud.jaia.tech {
         import authelia_foward_auth
         reverse_proxy [$ch_ip]:80
-}
-
-jcu.f${fleet_id}.cloud.jaia.tech {
-        import authelia_foward_auth
-        reverse_proxy [$ch_ip]:9091
-}
-
-jdv.f${fleet_id}.cloud.jaia.tech {
-        import authelia_foward_auth
-        reverse_proxy [$ch_ip]:40010
 }
 EOF
 done

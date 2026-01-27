@@ -121,7 +121,7 @@ export default function HubDetails() {
     function openJDV() {
         const hubOctet = 10 + hub.getHubID();
         const fleetOctet = hub.getFleetID();
-        const url = `http://${IPPrefix}.${fleetOctet}.${hubOctet}:40010`;
+        const url = `jdv/`;
         window.open(url, "_blank");
     }
 
@@ -144,7 +144,7 @@ export default function HubDetails() {
     function openUpgradePage() {
         const hubOctet = 10 + hub.getHubID();
         const fleetOctet = hub.getFleetID();
-        const url = `http://${IPPrefix}.${fleetOctet}.${hubOctet}:9091`;
+        const url = `jcu/`;
         window.open(url, "_blank");
     }
 

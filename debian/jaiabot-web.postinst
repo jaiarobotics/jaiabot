@@ -4,6 +4,12 @@ set -e
 # disable default apache2 site if enabled
 a2dissite 000-default || true
 
+# enable required apache2 modules
+a2enmod proxy || true
+a2enmod proxy_http || true
+
+systemctl apache2 restart || true
+
 #DEBHELPER#
 
 exit 0
