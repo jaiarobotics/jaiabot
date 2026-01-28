@@ -10,7 +10,7 @@ import google.protobuf.message as pbm
 from jaiabot.messages.mission import MissionState, MissionReport 
 from goby.middleware.protobuf.gpsd_pb2 import TimePositionVelocity as TPV
 from jaiabot.messages.arduino_pb2 import ArduinoResponse
-from jaiabot.messages.pressure_temperature_pb2 import PressureAdjustedData
+from jaiabot.messages.sensor.pressure_temperature_pb2 import PressureTemperatureData
 from jaiabot.messages.jaia_dccl_pb2 import CurrentPacket
 
 import current_analysis_lib as cal
@@ -83,9 +83,9 @@ def log_data_during_station_keep(sock, h5_log_path, log):
             elif (msg := try_parse(data, ArduinoResponse)) and msg.HasField('motor'):
                 ts_ns = int(current_ts * 1_000_000_000)
                 arduino_data.append((ts_ns, msg.motor))
-            elif (msg := try_parse(data, PressureAdjustedData)) and msg.HasField('pressure_adjusted'):
+            elif (msg := try_parse(data, PressureTemperatureData)) and msg.HasField('pressure_raw'):
                 ts_ns = int(current_ts * 1_000_000_000)
-                pressure_data.append((ts_ns, msg.pressure_adjusted))
+                pressure_data.append((ts_ns, msg.pressure_raw))
             elif ((msg := try_parse(data, MissionReport)) and 
                   msg.state != MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP and 
                   msg.state not in PAUSED_MISSION_STATES):
