@@ -1,0 +1,14 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message PPKCommand
+{
+    enum IMUCommandType
+    {
+        START_RECORDING = 0;
+        STOP_RECORDING = 1;
+    }
+
+    required IMUCommandType type = 1;
+}
