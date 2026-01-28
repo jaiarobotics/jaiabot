@@ -32,11 +32,11 @@
     ProxyRequests Off
     ProxyPreserveHost On
 
-    RedirectMatch 301 ^/jcu$ /jcu/
+    RedirectMatch 301 ^/jcu$$ /jcu/
     ProxyPass        /jcu/  http://127.0.0.1:9091/
     ProxyPassReverse /jcu/  http://127.0.0.1:9091/
 
-    RedirectMatch 301 ^/jdv$ /jdv/
+    RedirectMatch 301 ^/jdv$$ /jdv/
     ProxyPass        /jdv/  http://127.0.0.1:40010/
     ProxyPassReverse /jdv/  http://127.0.0.1:40010/
 
