@@ -57,7 +57,7 @@ def create_speed_mask(speed, threshold=1.25):
 
 def filter_current_data(drift, use_pressure=True, use_speed=True):
     """
-    Applies filters to a single drift segment and returns the filtered data.
+    Computes filters for a single drift segment and returns the mask to filter data.
     """
     final_mask = np.ones_like(drift["epoch_time"], dtype=bool)
 
@@ -67,9 +67,7 @@ def filter_current_data(drift, use_pressure=True, use_speed=True):
     if use_speed:
         final_mask &= create_speed_mask(drift["speed"])
     
-    filtered_speed = np.where(final_mask, drift["speed"], np.nan)
-    
-    return {**drift, "final_mask": final_mask, "filtered_speed": filtered_speed}
+    return {**drift, "final_mask": final_mask}
 
 def calculate_bearing_from_components(east_component, north_component):
     """Converts east/north components to a bearing in degrees [0, 360)."""
@@ -146,7 +144,7 @@ def summarize_station_keep_drifts(drifts, r2_threshold=0.5):
         return {}
 
     drift_stats_list = [compute_drift_statistics(filter_current_data(d)) for d in drifts]
-    good_drifts_stats = [s for s in drift_stats_list if s.get("R2", 0) > r2_threshold]
+    good_drifts_stats = [s for s in drift_stats_list if ((not np.isnan(s.get("R2", 0))) and (s.get("R2", 0) > r2_threshold))]
 
     if not good_drifts_stats:
         return {}
