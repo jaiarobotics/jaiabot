@@ -18,37 +18,65 @@ cat <<EOF > ${setup_script}
 set -e -u
 
 old_db=/home/jaia/jaiaparts.sql
-mysql_root_password=$(openssl rand -hex 16)
+mysql_root_password=\$(openssl rand -hex 16)
 
-if [ ! -f "$old_db" ]; then
-  echo "$old_db file doesn't exist! Please export it and copy to this machine to use as the starting point for the new DB"
+if [ ! -f "\$old_db" ]; then
+  echo "\$old_db file doesn't exist! Please export it and copy to this machine to use as the starting point for the new DB"
   exit 1
 fi
 
-cd /home/jaia
-git clone git@github.com:jaiarobotics/jaia-database.git
-python3 -m venv venv
-. venv/bin/activate
-pip install -r jaia-database/requirements.txt
+if [ ! -e "jaia-database" ]; then
+  cd /home/jaia
+  git clone git@github.com:jaiarobotics/jaia-database.git -b ubuntu24.04
+  python3 -m venv venv
+  . venv/bin/activate
+  pip install -r jaia-database/requirements.txt
+fi
 
-sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${mysql_root_password}';"
-sudo mysql_secure_installation --use-default
-sudo chown -R jaia /var/lib/mysql
-sudo chown -R jaia /var/run/mysqld
+cat << EOFF > mysql_setup.sql
+-- Set root password
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '\${mysql_root_password}';
 
-mysql -u root -p${mysql_root_password} -e "create database jaiaparts;"
-mysql -u root -p${mysql_root_password} jaiaparts < $old_db
+-- Remove anonymous users
+DELETE FROM mysql.user WHERE User='';
+
+-- Disallow remote root login
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+
+-- Remove test database
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+
+-- Reload privilege tables
+FLUSH PRIVILEGES;
+
+EOFF
+
+sudo mysql -uroot < mysql_setup.sql
+
+mysql -uroot -p\${mysql_root_password} -e "create database jaiaparts;"
+mysql -uroot -p\${mysql_root_password} jaiaparts < \$old_db
 
 cat <<EOFF > ~/my.cnf
 [client]
 database = jaiaparts
 user = root
-password = ${mysql_root_password}
+password = \${mysql_root_password}
 default-character-set = utf8
 EOFF
 
-Echo "Randomly generated MySQL root password is '${mysql_root_password}'. Please save this somewhere secure (e.g. Bitwarden or similar)"
+DJANGO_SECRET_KEY=\$(
+  venv/bin/python3 -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+)
 
+sudo tee /etc/jaia-database-config.json > /dev/null <<EOF
+{
+  "SECRET_KEY": "\${DJANGO_SECRET_KEY}"
+}
+EO
+
+
+echo "Randomly generated MySQL root password is '\${mysql_root_password}'. Please save this somewhere secure (e.g. Bitwarden or similar)"
 EOF
 
 chmod a+x ${setup_script}

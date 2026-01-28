@@ -45,6 +45,7 @@ packages:
   - default-libmysqlclient-dev
   - pre-commit
   - git
+  - pkg-config
 
 runcmd:
   - ln -s /usr/bin/zile /usr/local/bin/emacs
