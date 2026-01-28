@@ -14,6 +14,7 @@ References:
     * https://content.u-blox.com/sites/default/files/u-blox-M9-SPG-4.04_InterfaceDescription_UBX-21022436.pdf
 """
 
+from dataclasses import dataclass
 import os
 import sys
 import time
@@ -271,15 +272,26 @@ def connect_spi(bus: int, dev: int, max_hz: int, meas_ms: int) -> spidev.SpiDev:
     print("Disabling NMEA...")
     disable_nmea_on_spi(spi)
 
-    # Enable NAV-PVT
-    print("Enabling NAV-PVT...")
-    if not send_ubx_command(spi, cfg_msg_rate_spi(0x01, 0x07, 1)):
-        print("Warning: NAV-PVT enable not acknowledged")
+    # Enable desired UBX messages
+    @dataclass
+    class MessageType:
+        name: str
+        class_: int
+        id: int
+        freq_hz: int
 
-    # Enable NAV-SAT
-    print("Enabling NAV-SAT...")
-    if not send_ubx_command(spi, cfg_msg_rate_spi(0x01, 0x35, 1)):
-        print("Warning: NAV-SAT enable not acknowledged")
+    desired_messages = [
+        MessageType("NAV-PVT", 0x01, 0x07, 1),
+        MessageType("NAV-SAT", 0x01, 0x35, 1),
+        # Messages for PPK / RTK
+        MessageType("RXM-RAWX", 0x02, 0x15, 1), # 1 Hz for RTK/PPK
+        MessageType("RXM-SFRBX", 0x02, 0x13, 1), # These come in as collected, not periodic
+    ]
+
+    for msg in desired_messages:
+        print(f"Enabling {msg.name}...")
+        if not send_ubx_command(spi, cfg_msg_rate_spi(msg.class_, msg.id, msg.freq_hz)):
+            print(f"Warning: {msg.name} enable not acknowledged")
 
     # Set Sea dynamic model
     print("Setting CFG-NAV to Sea...")
