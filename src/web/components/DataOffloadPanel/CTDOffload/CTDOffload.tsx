@@ -1,5 +1,6 @@
 import Icon from "@mdi/react";
 import { mdiClose } from "@mdi/js";
+import { success } from "toastr";
 import { useContext, useMemo } from "react";
 
 import Hub from "../../../data/hubs/hub";
@@ -12,6 +13,8 @@ import "./CTDOffload.less";
 interface Props {
     isVisible: boolean;
 }
+
+const LOOKUP_DELAY = 5_000;
 
 export default function CTDOffload(props: Props) {
     const jaiaContext = useContext(JaiaContext);
@@ -35,22 +38,25 @@ export default function CTDOffload(props: Props) {
                     type: HubCommandType.CTD_DATA_OFFLOAD,
                     scan_for_bot_id: botID,
                 };
-                sendHubCommand(command).then(() => {
-                    setTimeout(async () => {
-                        const res = await jaiaAPI.getCTDProfiles(botID);
-                        const blob = await res.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = `ctd-bot-${botID}`;
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        window.URL.revokeObjectURL(url);
-                    }, 5_000);
-                });
+                sendHubCommand(command).then(() => getCTDFiles(botID));
             }
         }
+        success("Starting CTD download");
+    };
+
+    const getCTDFiles = (botID: number) => {
+        setTimeout(async () => {
+            const res = await jaiaAPI.getCTDProfiles(botID);
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `ctd-bot-${botID}`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        }, LOOKUP_DELAY);
     };
 
     const getConnectedBots = () => {
@@ -73,12 +79,17 @@ export default function CTDOffload(props: Props) {
     if (props.isVisible) {
         return (
             <div className="ctd-offload">
-                <button className="close-button">
-                    <Icon path={mdiClose} size={1} />
-                </button>
-                <div>Bots in WiFi Range</div>
+                <div className="header">
+                    <div>CTD Download</div>
+                    <button className="close-button">
+                        <Icon path={mdiClose} size={1} />
+                    </button>
+                </div>
+                <div>Bots in WiFi Range:</div>
                 <ul>{getConnectedBots()}</ul>
-                <button onClick={() => handleDownloadCTDClick()}>Download CTD Data</button>
+                <button className="download-button" onClick={() => handleDownloadCTDClick()}>
+                    Download
+                </button>
             </div>
         );
     }
