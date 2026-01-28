@@ -1,12 +1,13 @@
 import Icon from "@mdi/react";
 import { mdiClose } from "@mdi/js";
-
-import "./CTDOffload.less";
 import { useContext, useMemo } from "react";
+
+import Hub from "../../../data/hubs/hub";
 import { JaiaContext } from "../../../context/JaiaContext";
+import { jaiaAPI } from "../../../utils/jaia-api";
 import { sendHubCommand } from "../../../utils/commands";
 import { CommandForHub, HubCommandType } from "../../../types/protobuf-types";
-import Hub from "../../../data/hubs/hub";
+import "./CTDOffload.less";
 
 interface Props {
     isVisible: boolean;
@@ -34,7 +35,20 @@ export default function CTDOffload(props: Props) {
                     type: HubCommandType.CTD_DATA_OFFLOAD,
                     scan_for_bot_id: botID,
                 };
-                sendHubCommand(command);
+                sendHubCommand(command).then(() => {
+                    setTimeout(async () => {
+                        const res = await jaiaAPI.getCTDProfiles(botID);
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `ctd-bot-${botID}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                    }, 5_000);
+                });
             }
         }
     };
