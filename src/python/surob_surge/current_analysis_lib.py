@@ -90,7 +90,6 @@ def compute_drift_statistics(drift):
         return stats
 
     # Speed stats
-    stats["speed_mean"] = np.nanmean(speed_valid)
     mean_v2 = np.nanmean(speed_valid ** 2)
     if np.isfinite(mean_v2) and mean_v2 > 0:
         sigma_hat = np.sqrt(mean_v2 / 2.0)
@@ -151,12 +150,11 @@ def summarize_station_keep_drifts(drifts, r2_threshold=0.5):
 
     bearings = np.array([s["bearing_line"] for s in good_drifts_stats if np.isfinite(s["bearing_line"])])
     speed_modes = np.array([s["speed_mode_rayleigh"] for s in good_drifts_stats if np.isfinite(s["speed_mode_rayleigh"])])
-    speed_means = np.array([s["speed_mean"] for s in good_drifts_stats if np.isfinite(s["speed_mean"])])
 
     mean_bearing = (np.rad2deg(np.arctan2(np.nanmean(np.sin(np.deg2rad(bearings))), np.nanmean(np.cos(np.deg2rad(bearings))))) + 360) % 360 if bearings.size > 0 else np.nan
     avg_mode_speed = np.nanmean(speed_modes) if speed_modes.size > 0 else np.nan
     
-    speed_std = calculate_std_about_value(speed_means, avg_mode_speed) # TODO: Ask if speed std should be computed from speed_mode & avg_mode_speed
+    speed_std = calculate_std_about_value(speed_modes, avg_mode_speed) 
     dir_std = calculate_circular_std_about_value_deg(bearings, mean_bearing)
 
     lats = [s["filtered_lat"] for s in good_drifts_stats]
