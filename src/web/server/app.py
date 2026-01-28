@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
-from flask import Flask, send_from_directory, Response, request
 import json
 import logging
 import os
+import io
+import zipfile
 from datetime import *
-import os
+from pathlib import Path
 from http import HTTPStatus
+from flask import Flask, send_from_directory, Response, request, send_file
 
 # Internal Imports
 import jaia_portal
@@ -385,6 +387,23 @@ def delete_map(map_name: str):
     map_tile_server.delete_map(map_name)
     return Response(status=HTTPStatus.OK)
 
+@app.route('/ctd-profiles/<bot_id>', methods=['GET'])
+def get_ctd_profiles(bot_id: str):
+    dir = Path("/var/log/jaiabot/bot_offload/ctd/") / bot_id
+    files = list(dir.glob("*.json"))
+
+    file = io.BytesIO()
+    with zipfile.ZipFile(file, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in files:
+            zf.write(path, arcname=path.name)
+    file.seek(0)
+    zip_name = f"ctd-bot-{bot_id}.zip"
+    return send_file(
+        file,
+        as_attachment=True,
+        download_name=zip_name,
+        mimetype="application/zip",
+    )
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=40001, debug=False)
