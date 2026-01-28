@@ -26,6 +26,7 @@ if [ ! -f "\$old_db" ]; then
 fi
 
 cd /opt
+sudo chown jaia /opt
 git clone git@github.com:jaiarobotics/jaia-database.git -b ubuntu24.04
 python3 -m venv venv
 . venv/bin/activate
