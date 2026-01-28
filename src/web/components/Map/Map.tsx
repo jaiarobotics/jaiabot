@@ -91,7 +91,8 @@ export default function Map() {
                     handleTaskPacketClick(feature, MapFeatureTypes.DRIFT);
                     return;
                 case MapFeatureTypes.DEPTH_CONTOUR:
-                    handleDepthContourClick();
+                    handleDepthContourClick(event);
+                    return;
                 default:
                     return;
             }
@@ -298,8 +299,8 @@ export default function Map() {
 
     /** Dispatches action to set the selected task packet
      *
-     * @param {Feature<Geometry>} feature
-     * @param {MapFeatureTypes} type
+     * @param {Feature<Geometry>} feature Clicked task packet
+     * @param {MapFeatureTypes} type Distinguishes between dives and drifts
      * @returns {void}
      */
     const handleTaskPacketClick = (feature: Feature<Geometry>, type: MapFeatureTypes) => {
@@ -314,16 +315,22 @@ export default function Map() {
     };
 
     /**
-     * Dispatches action to display the 3D depth map
+     * Dispatches action to display the 3D depth map. If a mission is
+     * in edit mode, a waypoint will be added instead.
      *
+     * @param {MapBrowserEvent<PointerEvent>} event Contains click coordinate
      * @returns {void}
      */
-    const handleDepthContourClick = () => {
-        jaiaDispatch({
-            type: JaiaActions.CLICKED_BUTTON,
-            buttonType: ButtonTypes.PANEL,
-            buttonName: ButtonNames.DEPTH_MAP_3D,
-        });
+    const handleDepthContourClick = (event: MapBrowserEvent<PointerEvent>) => {
+        if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
+            handleAddWaypointClick(event.coordinate);
+        } else {
+            jaiaDispatch({
+                type: JaiaActions.CLICKED_BUTTON,
+                buttonType: ButtonTypes.PANEL,
+                buttonName: ButtonNames.DEPTH_MAP_3D,
+            });
+        }
     };
 
     /**
