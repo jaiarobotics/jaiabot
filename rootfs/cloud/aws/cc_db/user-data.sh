@@ -25,13 +25,11 @@ if [ ! -f "\$old_db" ]; then
   exit 1
 fi
 
-if [ ! -e "jaia-database" ]; then
-  cd /home/jaia
-  git clone git@github.com:jaiarobotics/jaia-database.git -b ubuntu24.04
-  python3 -m venv venv
-  . venv/bin/activate
-  pip install -r jaia-database/requirements.txt
-fi
+cd /opt
+git clone git@github.com:jaiarobotics/jaia-database.git -b ubuntu24.04
+python3 -m venv venv
+. venv/bin/activate
+pip install -r jaia-database/requirements.txt
 
 cat << EOFF > mysql_setup.sql
 -- Set root password
@@ -57,7 +55,7 @@ sudo mysql -uroot < mysql_setup.sql
 mysql -uroot -p\${mysql_root_password} -e "create database jaiaparts;"
 mysql -uroot -p\${mysql_root_password} jaiaparts < \$old_db
 
-cat <<EOFF > ~/my.cnf
+cat <<EOFF > /opt/my.cnf
 [client]
 database = jaiaparts
 user = root
@@ -71,7 +69,8 @@ DJANGO_SECRET_KEY=\$(
 
 sudo tee /etc/jaia-database-config.json > /dev/null <<EOFF
 {
-  "SECRET_KEY": "\${DJANGO_SECRET_KEY}"
+  "SECRET_KEY": "\${DJANGO_SECRET_KEY}",
+  "PROD": "True"
 }
 EOFF
 
@@ -82,3 +81,41 @@ EOF
 chmod a+x ${setup_script}
 chown jaia:jaia ${setup_script}
 
+
+cat <<EOF > /etc/apache2/sites-available/cc_db.conf
+WSGIPythonHome "/opt/venv"
+
+<virtualhost *:80>
+    ServerName cc_db
+ 
+    WSGIDaemonProcess db user=jaia group=jaia threads=5 python-home=/opt/venv python-path=/opt/jaia-database/
+    WSGIScriptAlias / /opt/jaia-database/jaia-database/wsgi.py process-group=db
+
+    <directory /opt/jaia-database/>
+        WSGIApplicationGroup %{GLOBAL}
+        WSGIScriptReloading On
+        AllowOverride None
+        Require all granted
+    </directory>
+
+    Alias /static/ /opt/jaia-database/static/
+
+    <directory /opt/jaia-database/static>
+        Require all granted
+    </directory>
+
+    Alias /media/ /var/www/jaia-database/media/
+
+    <directory /var/www/jaia-database/media>
+        Require all granted
+    </directory>
+
+    WSGIErrorOverride Off
+</virtualhost>
+
+EOF
+
+a2enmod wsgi
+a2ensite cc_db
+a2dissite 000-default
+systemctl restart apache2

@@ -46,6 +46,8 @@ packages:
   - pre-commit
   - git
   - pkg-config
-
+  - apache2
+  - libapache2-mod-wsgi-py3
+  
 runcmd:
   - ln -s /usr/bin/zile /usr/local/bin/emacs

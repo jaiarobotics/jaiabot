@@ -143,7 +143,7 @@ lldap.cloud.jaia.tech {
 
 cc.cloud.jaia.tech {
         import authelia_foward_auth
-        reverse_proxy [2600:1f13:501:a400:546a:73cf:10af:9579]:8000
+        reverse_proxy [2600:1f13:501:a400:546a:73cf:10af:9579]:80
 }
 
 EOF
