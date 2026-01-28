@@ -1,5 +1,5 @@
 node_modules
-dist
+/dist/
 typescript
 jcc/typescript
 jdv/client/typescript
