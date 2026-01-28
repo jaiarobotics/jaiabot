@@ -120,7 +120,9 @@ export class MissionSet {
     }
 
     addGhostMission(missionID: number) {
-        this.ghostMissions.set(missionID, cloneDeep(this.missions.get(missionID)));
+        const ghostMission = cloneDeep(this.missions.get(missionID));
+        ghostMission.getGhostParameters().isGhost = true;
+        this.ghostMissions.set(missionID, ghostMission);
     }
 
     deleteGhostMission(missionID: number) {
