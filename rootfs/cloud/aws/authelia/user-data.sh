@@ -93,6 +93,9 @@ access_control:
     - domain: 'lldap.cloud.jaia.tech'
       policy: 'two_factor'
       subject: 'group:lldap_admin'
+    - domain: 'cc.cloud.jaia.tech'
+      policy: 'two_factor'
+      subject: 'group:cc_db'
 session:
   secret: '$session_secret'
   cookies:
@@ -137,6 +140,12 @@ lldap.cloud.jaia.tech {
         import authelia_foward_auth
         reverse_proxy :17170
 }
+
+cc.cloud.jaia.tech {
+        import authelia_foward_auth
+        reverse_proxy [2600:1f13:501:a400:546a:73cf:10af:9579]:8000
+}
+
 EOF
 
 

@@ -69,11 +69,11 @@ DJANGO_SECRET_KEY=\$(
   venv/bin/python3 -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
 )
 
-sudo tee /etc/jaia-database-config.json > /dev/null <<EOF
+sudo tee /etc/jaia-database-config.json > /dev/null <<EOFF
 {
   "SECRET_KEY": "\${DJANGO_SECRET_KEY}"
 }
-EO
+EOFF
 
 
 echo "Randomly generated MySQL root password is '\${mysql_root_password}'. Please save this somewhere secure (e.g. Bitwarden or similar)"
