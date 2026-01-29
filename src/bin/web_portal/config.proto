@@ -36,6 +36,4 @@ message WebPortal
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     required goby.middleware.protobuf.UDPOneToManyConfig udp_config = 3;
-
-    optional goby.middleware.protobuf.UDPPointToPointConfig udp_customer_config = 4;
 }

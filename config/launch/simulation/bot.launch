@@ -37,19 +37,13 @@ jaiabot_comms_manager <(../../gen/bot.py jaiabot_comms_manager)
 jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control)
 jaiabot_engineering <(../../gen/bot.py jaiabot_engineering)
 
-goby_coroner <(../../gen/bot.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_simulator --expected_name jaiabot_fusion --expected_name jaiabot_bluerobotics_pressure_sensor_driver --expected_name jaiabot_mission_manager --expected_name goby_gps --expected_name goby_logger --expected_name jaiabot_metadata --expected jaiabot_pid_control --expected_name jaiabot_health --expected_name jaiabot_adafruit_BNO055_driver --expected_name jaiabot_atlas_scientific_ezo_ec_driver
+goby_coroner <(../../gen/bot.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_simulator --expected_name jaiabot_fusion --expected_name jaiabot_mission_manager --expected_name goby_gps --expected_name goby_logger --expected_name jaiabot_metadata --expected jaiabot_pid_control --expected_name jaiabot_health --expected_name jaiabot_udp_gateway
 jaiabot_health <(../../gen/bot.py jaiabot_health)
 
 # Need to confirm the below lines included from engineering launch, but commented to match standard
 
-# Pressure sensor
-jaiabot_bluerobotics_pressure_sensor_driver <(../../gen/bot.py jaiabot_bluerobotics_pressure_sensor_driver)
-
-# IMU sensor
-jaiabot_adafruit_BNO055_driver <(../../gen/bot.py jaiabot_adafruit_BNO055_driver)
-
-# Salinity sensor
-jaiabot_atlas_scientific_ezo_ec_driver <(../../gen/bot.py jaiabot_atlas_scientific_ezo_ec_driver)
+# UDP gateway
+jaiabot_udp_gateway <(../../gen/bot.py jaiabot_udp_gateway)
 
 # Camera
 [kill=SIGTERM] socat -d -d pty,raw,echo=0,link=/tmp/bot${jaia_bot_index}_camera_0 pty,raw,echo=0,link=/tmp/bot${jaia_bot_index}_camera_1

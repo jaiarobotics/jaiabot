@@ -17,6 +17,7 @@ SUBNET_ID=subnet-f5f17b8d
 DISK_SIZE_GB=8
 ELASTIC_IP_ALLOCATION_ID=
 CREATE_NUM_DAILY_BACKUPS=1
+IPV6_ADDRESS=
 
 set -a; source $1; set +a;
 
@@ -54,6 +55,10 @@ network_interfaces_json=$(jq -n -c \
                      }
                    ]')
 
+
+if [[ ! -z "${IPV6_ADDRESS}" ]]; then
+    network_interfaces_json=$(echo $network_interfaces_json | jq -c --arg ipv6 "${IPV6_ADDRESS}" '.[0] += {"Ipv6Addresses": [{"Ipv6Address": $ipv6}]}')
+fi
 
 USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/${SERVER_TYPE}/user-data.sh.in"
 USER_DATA_SCRIPT="${TMPDIR}/user-data.sh"
