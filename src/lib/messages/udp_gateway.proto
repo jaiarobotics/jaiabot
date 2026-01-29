@@ -4,12 +4,32 @@ import "jaiabot/messages/sensor/salinity.proto";
 import "jaiabot/messages/sensor/pressure_temperature.proto";
 import "jaiabot/messages/tsys01.proto";
 import "jaiabot/messages/echo.proto";
+import "jaiabot/messages/jaia_dccl.proto";
+import "goby/middleware/protobuf/gpsd.proto";
+import "jaiabot/messages/arduino.proto";
 
 package jaiabot.protobuf;
 
 
 message UDPGatewayEnvelope
 {
+    message SurobCurrentsPayload
+    {
+        oneof payload
+        {
+            // current estimate from Python app
+            CurrentPacket current_packet = 1;
+            
+            // data messages sent to Python app, logged to compute current estimate
+            ArduinoResponse arduino_response = 2;
+            PressureTemperatureData pressure_temperature_data = 3;
+            TimePositionVelocity time_position_velocity = 4;
+
+            // mission state sent to Python app to start/stop data logging
+            MissionReport mission_report = 5;
+        }
+    }
+    
     oneof payload
     {
         IMUCommand imu_command = 1;
@@ -23,6 +43,8 @@ message UDPGatewayEnvelope
 
         EchoCommand echo_command = 6;
         EchoData echo_data = 7;
+
+        SurobCurrentsPayload surob_currents_payload = 8;
     }
 
 }

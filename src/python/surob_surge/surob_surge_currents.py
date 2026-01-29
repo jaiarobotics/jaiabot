@@ -76,7 +76,7 @@ def log_data_during_station_keep(sock, h5_log_path, log):
         try:
             data, _ = sock.recvfrom(BUFFER_SIZE)
             current_ts = time.time()
-
+            # TODO: parse from udp_gateway message
             if (msg := try_parse(data, TPV)) and msg.HasField('location') and msg.HasField('speed'):
                 ts_ns = int((msg.time or current_ts) * 1_000_000_000)
                 gps_data.append((ts_ns, msg.location.lat, msg.location.lon, msg.speed))
@@ -137,7 +137,7 @@ def send_results_and_cleanup(sock, addr, results, station_keep_dir, log):
     if not results:
         log.warning("No results to send.")
     else:
-        packet = CurrentPacket()
+        packet = CurrentPacket() # TODO: send as TaskPacket() to more easily capture start time and end time fields, wrap in SurobCurrentsPayload envelope
         if np.isfinite(results.get("avg_mode_speed", np.nan)):
             packet.speed = results["avg_mode_speed"]
         if np.isfinite(results.get("speed_std_about_reported_mean", np.nan)):

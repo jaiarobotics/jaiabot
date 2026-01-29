@@ -20,17 +20,30 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <iostream>
+#include <numeric>
+
+#include <goby/middleware/marshalling/protobuf.h>
+// this space intentionally left blank
 #include <dccl/codec.h>
 #include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/util/constants.h>
 #include <goby/util/seawater/units.h>
 #include <goby/zeromq/application/multi_thread.h>
 #include <goby/middleware/marshalling/protobuf.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/udp_gateway.pb.h"
+#include "jaiabot/messages/moos.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/arduino.pb.h"
+
+#include "jaiabot/utils/derived_salinity.h"
+#include "jaiabot/utils/specific_conductivity.h"
 
 using goby::glog;
 using namespace std;
@@ -62,6 +75,7 @@ class UDPGateway
 
     void send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command);
     void send_echo_command(const jaiabot::protobuf::EchoCommand& echo_command);
+    void send_surob_currents_payload(const jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload& surob_currents_payload);
 
     void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
     void process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_src);
@@ -92,6 +106,9 @@ class UDPGateway
     goby::time::SteadyClock::time_point last_echo_trigger_issue_time_{
         goby::time::SteadyClock::now()};
     goby::middleware::protobuf::UDPEndPoint echo_udp_src_;
+
+    // surob currents data tracking
+    goby::middleware::protobuf::UDPEndPoint surob_currents_udp_src_;
 
 };
 
@@ -151,6 +168,20 @@ jaiabot::apps::UDPGateway::UDPGateway()
             send_echo_command(echo_command);
         });
 
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
+            auto jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
+            *surob_currents_payload.mutable_arduino_response() = arduino_response;
+            send_surob_currents_payload(surob_currents_payload);
+        });
+
+    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            auto jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
+            *surob_currents_payload.mutable_time_position_velocity() = tpv;
+            send_surob_currents_payload(surob_currents_payload);
+        });
+
 }
 
 
@@ -184,6 +215,10 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
                 double pressure_raw = envelope.pressure_temperature_data().pressure_raw();
                 pressure_temperature_data.set_pressure_raw_with_units(pressure_raw * si::milli *
                                                                       goby::util::seawater::bar);
+                
+                auto jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
+                *surob_currents_payload.mutable_pressure_temperature_data() = pressure_temperature_data;
+                send_surob_currents_payload(surob_currents_payload);
             }
 
             if (envelope.pressure_temperature_data().has_temperature())
@@ -209,6 +244,14 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             last_echo_data_time_ = goby::time::SteadyClock::now();
             echo_udp_src_ = udp_src;
             glog.is_debug1() && glog << "Received EchoData" << endl;
+            break;
+        }
+        case jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload:
+        {
+            auto jaiabot::protobuf::TaskPacket task_packet;
+            task_packet.current = envelope.surob_currents_payload.current_packet(); // TODO: check for current_packet presence in surob_currents_payload
+            surob_currents_udp_src_ = udp_src;
+            glog.is_debug1() && glog << "Received SurobCurrentsPayload" << endl;
             break;
         }
         default:
@@ -250,6 +293,12 @@ void jaiabot::apps::UDPGateway::send_echo_command(const jaiabot::protobuf::EchoC
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
     *envelope.mutable_echo_command() = echo_command;
     send_envelope(envelope, echo_udp_src_);
+}
+
+void jaiabot::apps::UDPGateway::send_surob_currents_payload(const jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload& surob_currents_payload) {
+    auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
+    *envelope.mutable_surob_currents_payload() = surob_currents_payload;
+    send_envelope(envelope, surob_currents_udp_src_);
 }
 
 
