@@ -1,0 +1,26 @@
+#!/usr/bin/env -S goby_launch -L -P -d 100
+
+# start the Goby processes
+gobyd <(../../gen/bot.py gobyd)
+
+# IMU sensor
+[kill=SIGTERM] jaiabot_udp_gateway <(../../gen/bot.py jaiabot_udp_gateway) -vv -z
+
+# Start IMU simulator
+[kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/adafruit/jaiabot_imu.py $(../../gen/bot.py jaiabot_imu.py) -l DEBUG
+
+# Start Salinity sensor simulator
+[kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/atlas_scientific_ezo_ec/jaiabot_as-ezo-ec.py $(../../gen/bot.py jaiabot_as-ezo-ec.py) -l DEBUG
+
+# Start Pressure sensor simulator
+[kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/pressure_sensor/jaiabot_pressure_sensor.py $(../../gen/bot.py jaiabot_pressure_sensor.py) -l DEBUG
+
+# Start TSYS01 temperature sensor simulator
+[kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/tsys01_temperature_sensor/jaiabot_tsys01.py $(../../gen/bot.py jaiabot_tsys01.py) -t sim
+
+# Start Echo sensor simulator
+[kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/echo/jaiabot_echo.py $(../../gen/bot.py jaiabot_echo.py) --simulator -l DEBUG
+
+# Run the health check function
+goby_coroner <(../../gen/bot.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_simulator --expected_name jaiabot_fusion --expected_name jaiabot_bluerobotics_pressure_sensor_driver --expected_name jaiabot_mission_manager --expected_name goby_gps --expected_name goby_logger --expected_name jaiabot_metadata --expected jaiabot_pid_control --expected_name jaiabot_health --expected_name jaiabot_udp_gateway --expected_name jaiabot_atlas_scientific_ezo_ec_driver
+jaiabot_health <(../../gen/bot.py jaiabot_health)
