@@ -282,6 +282,12 @@ export class JaiaAPI {
         });
     }
 
+    async deleteCTDProfiles(botID: number) {
+        return fetch(`ctd-profiles/${botID}`, {
+            method: "DELETE",
+        });
+    }
+
     allStop() {
         return this.post("jaia/v0/all-stop");
     }

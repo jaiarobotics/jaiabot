@@ -41,7 +41,7 @@ export default function CTDOffload(props: Props) {
         setIsDeleteDialogVisible(true);
     };
 
-    const startCTDDownload = () => {
+    const startCTDDownload = (deleteCTDFiles: boolean) => {
         for (const [botID, checkedState] of botCheckedStates.entries()) {
             if (checkedState) {
                 const hub = jaiaContext.hubs.getHubs().values().next()?.value as Hub;
@@ -50,7 +50,7 @@ export default function CTDOffload(props: Props) {
                     type: HubCommandType.CTD_DATA_OFFLOAD,
                     scan_for_bot_id: botID,
                 };
-                sendHubCommand(command).then(() => getCTDFiles(botID));
+                sendHubCommand(command).then(() => getCTDFiles(botID, deleteCTDFiles));
             }
         }
         success("Starting CTD download");
@@ -58,13 +58,14 @@ export default function CTDOffload(props: Props) {
 
     const handleDeleteDialogClick = (action: DialogAction) => {
         setIsDeleteDialogVisible(false);
+        let deleteCTDFiles = false;
         if (action === DialogAction.DELETE) {
-            console.log("Delete CTD files from Hub");
+            deleteCTDFiles = true;
         }
-        startCTDDownload();
+        startCTDDownload(deleteCTDFiles);
     };
 
-    const getCTDFiles = (botID: number) => {
+    const getCTDFiles = (botID: number, deleteCTDFiles: boolean) => {
         setTimeout(async () => {
             const res = await jaiaAPI.getCTDProfiles(botID);
             const blob = await res.blob();
@@ -76,6 +77,10 @@ export default function CTDOffload(props: Props) {
             a.click();
             a.remove();
             window.URL.revokeObjectURL(url);
+
+            if (deleteCTDFiles) {
+                jaiaAPI.deleteCTDProfiles(botID);
+            }
         }, LOOKUP_DELAY);
     };
 
