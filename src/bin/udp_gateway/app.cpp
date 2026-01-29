@@ -189,7 +189,21 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
         case jaiabot::protobuf::UDPGatewayEnvelope::kPressureTemperatureData:
         {
             glog.is_debug1() && glog << "Received PressureTemperatureData" << endl;
-            interprocess().publish<jaiabot::groups::pressure_temperature>(envelope.pressure_temperature_data());
+            auto pressure_temperature_data = envelope.pressure_temperature_data();
+            if (envelope.pressure_temperature_data().has_pressure_raw())
+            {
+                double pressure_raw = envelope.pressure_temperature_data().pressure_raw();
+                pressure_temperature_data.set_pressure_raw_with_units(pressure_raw * si::milli *
+                                                                      goby::util::seawater::bar);
+            }
+
+            if (envelope.pressure_temperature_data().has_temperature())
+            {
+                double temperature = pressure_temperature_data.temperature();
+                pressure_temperature_data.set_temperature_with_units(
+                    temperature * boost::units::absolute<boost::units::celsius::temperature>());
+            }
+            interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_temperature_data);
             last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
             break;
         }
