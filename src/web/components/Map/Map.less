@@ -1,0 +1,68 @@
+@map-button-height: 45px;
+@map-button-width: 45px;
+@map-right-margin: 15px;
+@map-left-margin: 15px;
+@map-bottom-margin: 30px;
+
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+}
+
+.ol-rotate {
+    position: absolute;
+    bottom: calc(@map-bottom-margin + @map-button-height + @map-button-height);
+    right: @map-right-margin;
+}
+
+.ol-rotate-reset {
+    height: @map-button-height;
+    width: @map-button-width;
+}
+
+.ol-zoom {
+    position: absolute;
+    bottom: @map-bottom-margin;
+    right: @map-right-margin;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.ol-zoom-in,
+.ol-zoom-out {
+    height: @map-button-height;
+    width: @map-button-width;
+}
+
+.ol-scale-line {
+    position: absolute;
+    bottom: @map-bottom-margin;
+    right: calc(@map-right-margin + @map-button-width + @map-right-margin);
+
+    text-align: center;
+
+    border: 1px solid #000;
+    border-top: none;
+}
+
+.ol-attribution {
+    position: absolute;
+    bottom: @map-bottom-margin;
+    left: @map-left-margin;
+}
+
+.ol-attribution ul {
+    margin: 0;
+    padding: 0;
+}
+
+.ol-attribution li {
+    list-style-type: none;
+}
+
+.ol-attribution button {
+    display: none;
+}

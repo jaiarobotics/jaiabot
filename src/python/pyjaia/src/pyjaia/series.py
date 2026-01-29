@@ -30,9 +30,11 @@ class Series:
         r.utime += list(other_series.utime)
         r.y_values += list(other_series.y_values)
         if other_series.hovertext is not None:
-            r.hovertext = (r.hovertext or []) + list(other_series.hovertext)
+            r.hovertext = r.hovertext or []
+            r.hovertext.extend(other_series.hovertext)
         elif other_series.hovertext_map is not None:
-            r.hovertext_map = (r.hovertext_map or {}).update(other_series.hovertext_map)
+            r.hovertext_map = r.hovertext_map or {}
+            r.hovertext_map.update(other_series.hovertext_map)
         return r
 
     def clear(self):

@@ -1,0 +1,31 @@
+@import "./vars.less";
+
+// The classname accordion-container-engineering mimics
+// accordion-container but it does not come with
+// the scroll into view click handlers
+
+.accordions-container {
+    overflow-y: auto;
+    // Prevents scrollbar from shifting panel
+    scrollbar-width: none;
+}
+
+.accordion-container,
+.accordion-container-engineering {
+    overflow-y: auto;
+    margin-top: 1px;
+}
+
+.accordion-container .accordion-summary,
+.accordion-container-engineering .accordion-summary {
+    background-color: @cc-accordian-color;
+    color: @cc-text-color-light;
+}
+
+.accordion-container .accordion-details-buttons {
+    // 16px is based on MUI default styles
+    display: flex;
+    gap: 16px;
+
+    padding: 16px;
+}

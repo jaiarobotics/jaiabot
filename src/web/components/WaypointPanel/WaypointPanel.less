@@ -1,0 +1,86 @@
+@import "../../style/stylesheets/vars.less";
+
+.waypoint-panel-container {
+    position: absolute;
+    top: @panel-top;
+    right: @panel-right;
+
+    z-index: @jaia-panel-z-index;
+
+    padding: 6px;
+
+    max-height: @panel-max-height;
+
+    background-color: @overlay-background;
+}
+
+.waypoint-panel {
+    display: grid;
+    grid-template-columns: min-content min-content;
+    align-items: center;
+    gap: 12px;
+
+    padding: 12px;
+
+    max-height: calc(@panel-max-height - 52px);
+    overflow: auto;
+
+    background-color: @cc-background-color;
+    font-size: 1.1rem;
+}
+
+.waypoint-panel .label {
+    font-weight: 600;
+}
+
+.jaia-input.coordinate {
+    width: 90px;
+}
+
+.waypoint-input-container {
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    column-gap: 12px;
+    align-items: center;
+}
+
+.waypoint-panel .line-break {
+    grid-column: 1 / 3;
+    height: 1px;
+    background-color: #d1d5db;
+}
+
+.toggle-row {
+    grid-column: 1 / 3;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.toggle-row div {
+    width: max-content;
+}
+
+.jaia-input.coordinate {
+    width: 90px;
+}
+
+.jaia-button.delete-waypoint {
+    justify-self: center;
+}
+
+.waypoint-panel .task-parameters-container {
+    grid-column: 2 / 3;
+}
+
+.waypoint-panel-container .button-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0 0 0;
+}
+
+.waypoint-panel-container .button-row button {
+    all: unset;
+    padding: 9px;
+    color: @cc-text-color-light;
+}
