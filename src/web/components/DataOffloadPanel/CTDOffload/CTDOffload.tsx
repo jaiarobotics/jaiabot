@@ -12,13 +12,7 @@ import "./CTDOffload.less";
 
 interface Props {
     isVisible: boolean;
-    closeCTDPanel?: () => void;
-    deleteDialogClick?: (action: DialogAction) => void;
-}
-
-enum DialogAction {
-    DEFAULT = 1,
-    DELETE = 2,
+    closeCTDPanel: () => void;
 }
 
 const LOOKUP_DELAY = 5_000; // ms;
@@ -28,7 +22,7 @@ const LOOKUP_DELAY = 5_000; // ms;
  */
 export default function CTDOffload(props: Props) {
     const jaiaContext = useContext(JaiaContext);
-    const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
+    const [isDeleteFilesChecked, setIsDeleteFileChecked] = useState(false);
     const botCheckedStates = useMemo(() => new Map<number, boolean>(), []);
 
     /**
@@ -47,16 +41,6 @@ export default function CTDOffload(props: Props) {
     };
 
     /**
-     * Opens a dialog to inquire about deleting the
-     * downloaded data from the Hub
-     *
-     * @returns {void}
-     */
-    const handleDownloadCTDClick = () => {
-        setIsDeleteDialogVisible(true);
-    };
-
-    /**
      * Sends the command to the Hub to transfer CTD files from a Bot to the Hub.
      * Once the command has been sent, a call is made to transfer the files from the
      * Hub to the client computer.
@@ -64,7 +48,7 @@ export default function CTDOffload(props: Props) {
      * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
      * @returns {void}
      */
-    const startCTDDownload = (deleteCTDFiles: boolean) => {
+    const handleDownloadCTDClick = () => {
         for (const [botID, checkedState] of botCheckedStates.entries()) {
             if (checkedState) {
                 const hub = jaiaContext.hubs.getHubs().values().next()?.value as Hub;
@@ -73,26 +57,10 @@ export default function CTDOffload(props: Props) {
                     type: HubCommandType.CTD_DATA_OFFLOAD,
                     scan_for_bot_id: botID,
                 };
-                sendHubCommand(command).then(() => getCTDFiles(botID, deleteCTDFiles));
+                sendHubCommand(command).then(() => getCTDFiles(botID));
             }
         }
         success("Starting CTD download");
-    };
-
-    /**
-     * Makes the call to start the CTD download. Passes the delete information
-     * to the download function.
-     *
-     * @param {DialogAction} action Indicates what button the operator clicked
-     * @returns {void}
-     */
-    const handleDeleteDialogClick = (action: DialogAction) => {
-        setIsDeleteDialogVisible(false);
-        let deleteCTDFiles = false;
-        if (action === DialogAction.DELETE) {
-            deleteCTDFiles = true;
-        }
-        startCTDDownload(deleteCTDFiles);
     };
 
     /**
@@ -102,7 +70,7 @@ export default function CTDOffload(props: Props) {
      * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
      * @returns {void}
      */
-    const getCTDFiles = (botID: number, deleteCTDFiles: boolean) => {
+    const getCTDFiles = (botID: number) => {
         setTimeout(async () => {
             const res = await jaiaAPI.getCTDProfiles(botID);
             const blob = await res.blob();
@@ -115,7 +83,7 @@ export default function CTDOffload(props: Props) {
             a.remove();
             window.URL.revokeObjectURL(url);
 
-            if (deleteCTDFiles) {
+            if (isDeleteFilesChecked) {
                 jaiaAPI.deleteCTDProfiles(botID);
             }
         }, LOOKUP_DELAY);
@@ -154,37 +122,17 @@ export default function CTDOffload(props: Props) {
                 </div>
                 <div>Bots in WiFi Range:</div>
                 <ul>{getConnectedBots()}</ul>
+                <div className="line-break"></div>
+                <div className="remove-files-selection">
+                    <input
+                        type="checkbox"
+                        onClick={() => setIsDeleteFileChecked(!isDeleteFilesChecked)}
+                    />
+                    <label>Remove CTD Files From Hub</label>
+                </div>
                 <button className="download-button" onClick={() => handleDownloadCTDClick()}>
                     Download
                 </button>
-                <CTDDialog
-                    isVisible={isDeleteDialogVisible}
-                    deleteDialogClick={handleDeleteDialogClick}
-                />
-            </div>
-        );
-    }
-}
-
-/**
- * Allows the operator to control how the CTD data is managed on the Hub
- * after a download
- */
-function CTDDialog(props: Props) {
-    if (props.isVisible) {
-        return (
-            <div className="ctd-dialog">
-                <div className="ctd-text">
-                    Would you like to remove the CTD files from the Hub after this download?
-                </div>
-                <div className="ctd-button-row">
-                    <button onClick={() => props.deleteDialogClick(DialogAction.DEFAULT)}>
-                        No
-                    </button>
-                    <button onClick={() => props.deleteDialogClick(DialogAction.DELETE)}>
-                        Yes
-                    </button>
-                </div>
             </div>
         );
     }
