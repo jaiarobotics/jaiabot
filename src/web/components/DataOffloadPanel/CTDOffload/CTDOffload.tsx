@@ -12,6 +12,7 @@ import "./CTDOffload.less";
 
 interface Props {
     isVisible: boolean;
+    closeCTDPanel: () => void;
 }
 
 const LOOKUP_DELAY = 5_000;
@@ -81,7 +82,7 @@ export default function CTDOffload(props: Props) {
             <div className="ctd-offload">
                 <div className="header">
                     <div>CTD Download</div>
-                    <button className="close-button">
+                    <button className="close-button" onClick={() => props.closeCTDPanel()}>
                         <Icon path={mdiClose} size={1} />
                     </button>
                 </div>

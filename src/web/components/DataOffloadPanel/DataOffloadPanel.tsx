@@ -38,7 +38,7 @@ export default function DataOffloadPanel() {
         downloadFile(csvFilename, await getCSV(taskPackets.getIncludedTaskPackets()), "text/csv");
     };
 
-    const handleDownloadCTD = async () => {
+    const handleDownloadCTD = () => {
         setIsCTDPanelVisible(true);
     };
 
@@ -64,7 +64,10 @@ export default function DataOffloadPanel() {
                     <DataOffloadQueue />
                 </AccordionDetails>
             </Accordion>
-            <CTDOffload isVisible={isCTDPanelVisible} />
+            <CTDOffload
+                isVisible={isCTDPanelVisible}
+                closeCTDPanel={() => setIsCTDPanelVisible(false)}
+            />
         </div>
     );
 }
