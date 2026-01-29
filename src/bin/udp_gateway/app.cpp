@@ -41,6 +41,7 @@
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/mission.pb.h"
 
 #include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/utils/specific_conductivity.h"
@@ -172,6 +173,13 @@ jaiabot::apps::UDPGateway::UDPGateway()
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
             auto jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
             *surob_currents_payload.mutable_arduino_response() = arduino_response;
+            send_surob_currents_payload(surob_currents_payload);
+        });
+
+    interprocess().subscribe<jaiabot::groups::mission_report>(
+        [this](const protobuf::MissionReport& mission_report) {
+            auto jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
+            *surob_currents_payload.mutable_mission_report() = mission_report;
             send_surob_currents_payload(surob_currents_payload);
         });
 
