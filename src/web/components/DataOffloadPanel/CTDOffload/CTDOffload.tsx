@@ -1,7 +1,7 @@
 import Icon from "@mdi/react";
 import { mdiClose } from "@mdi/js";
 import { success } from "toastr";
-import { useContext, useMemo } from "react";
+import { useContext, useMemo, useState } from "react";
 
 import Hub from "../../../data/hubs/hub";
 import { JaiaContext } from "../../../context/JaiaContext";
@@ -12,13 +12,20 @@ import "./CTDOffload.less";
 
 interface Props {
     isVisible: boolean;
-    closeCTDPanel: () => void;
+    closeCTDPanel?: () => void;
+    deleteDialogClick?: (action: DialogAction) => void;
+}
+
+enum DialogAction {
+    DEFAULT = 1,
+    DELETE = 2,
 }
 
 const LOOKUP_DELAY = 5_000;
 
 export default function CTDOffload(props: Props) {
     const jaiaContext = useContext(JaiaContext);
+    const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
     const botCheckedStates = useMemo(() => new Map<number, boolean>(), []);
 
     const handleCheckboxClick = (botID: number) => {
@@ -31,6 +38,10 @@ export default function CTDOffload(props: Props) {
     };
 
     const handleDownloadCTDClick = () => {
+        setIsDeleteDialogVisible(true);
+    };
+
+    const startCTDDownload = () => {
         for (const [botID, checkedState] of botCheckedStates.entries()) {
             if (checkedState) {
                 const hub = jaiaContext.hubs.getHubs().values().next()?.value as Hub;
@@ -43,6 +54,14 @@ export default function CTDOffload(props: Props) {
             }
         }
         success("Starting CTD download");
+    };
+
+    const handleDeleteDialogClick = (action: DialogAction) => {
+        setIsDeleteDialogVisible(false);
+        if (action === DialogAction.DELETE) {
+            console.log("Delete CTD files from Hub");
+        }
+        startCTDDownload();
     };
 
     const getCTDFiles = (botID: number) => {
@@ -91,22 +110,31 @@ export default function CTDOffload(props: Props) {
                 <button className="download-button" onClick={() => handleDownloadCTDClick()}>
                     Download
                 </button>
-                <CTDDialog />
+                <CTDDialog
+                    isVisible={isDeleteDialogVisible}
+                    deleteDialogClick={handleDeleteDialogClick}
+                />
             </div>
         );
     }
 }
 
-function CTDDialog() {
-    return (
-        <div className="ctd-dialog">
-            <div className="ctd-text">
-                Would you like to remove the CTD files from the Hub after this download?
+function CTDDialog(props: Props) {
+    if (props.isVisible) {
+        return (
+            <div className="ctd-dialog">
+                <div className="ctd-text">
+                    Would you like to remove the CTD files from the Hub after this download?
+                </div>
+                <div className="ctd-button-row">
+                    <button onClick={() => props.deleteDialogClick(DialogAction.DEFAULT)}>
+                        No
+                    </button>
+                    <button onClick={() => props.deleteDialogClick(DialogAction.DELETE)}>
+                        Yes
+                    </button>
+                </div>
             </div>
-            <div className="ctd-button-row">
-                <button>No</button>
-                <button>Yes </button>
-            </div>
-        </div>
-    );
+        );
+    }
 }
