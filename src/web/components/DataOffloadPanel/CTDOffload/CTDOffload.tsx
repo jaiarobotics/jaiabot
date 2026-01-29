@@ -129,7 +129,7 @@ export default function CTDOffload(props: Props) {
     const getConnectedBots = () => {
         const bots = jaiaContext.bots.getBots();
         return Array.from(bots.values()).map((bot) => {
-            if (bot.getBatteryPercent() > 0) {
+            if (bot.getWifiLinkQuality() > 0) {
                 return (
                     <li key={bot.getBotID()}>
                         <input
