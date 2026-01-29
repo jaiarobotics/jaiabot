@@ -18,6 +18,9 @@ jaia_arduino_type='spi'
 if "jaia_electronics_stack" in os.environ:
     jaia_electronics_stack=os.environ['jaia_electronics_stack']
 
+jaia_temperature_sensor_type = os.environ.get('jaia_temperature_sensor_type', default='bar30')
+tsys01_enabled = jaia_temperature_sensor_type == 'tsys01'
+
 if jaia_electronics_stack == '0':
     helm_app_tick=1
     helm_comms_tick=4
@@ -59,10 +62,9 @@ jaia_data_offload_ignore_type="NONE"
 if "jaia_data_offload_ignore_type" in os.environ:
     jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
 
-if "jaia_bot_type" in os.environ:
-    bot_type = os.environ["jaia_bot_type"]
-else:
-    bot_type = "HYDRO"
+bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
+
+echo_enabled=(bot_type == "ECHO")
 
 jaia_motor_harness_type="NONE"
 
@@ -107,18 +109,13 @@ verbosities = \
   'jaiabot_sensors':                              { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET'  },  'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'jaiabot_atlas_scientific_ezo_ec_driver':       { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'jaiabot_echo_driver':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'jaiabot_adafruit_BNO055_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'jaiabot_adafruit_BNO085_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'jaiabot_udp_gateway':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_terminate':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_failure_reporter':                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_camera':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_mission_repeater':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'jaiabot_tsys01_temperature_sensor_driver':     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_comms_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
 }
@@ -229,7 +226,7 @@ if common.is_vfleet:
     liaison_bind_addr='0::0'
 
 # IMU config
-imu_port = common.udp.imu_port(node_id)
+udp_gateway_port = common.udp.udp_gateway_port(node_id)
 imu_detection_solution='REPORT_IMU'
 
 if is_simulation():
@@ -243,6 +240,10 @@ if imu_install_type == "retrofit":
     total_imu_issue_checks = 10
 else:
     total_imu_issue_checks = 4
+
+
+pressure_sensor_type = 'sim' if is_simulation() else 'bar30'
+
 
 if common.app == 'gobyd':    
     print(config.template_substitute(templates_dir+'/gobyd.pb.cfg.in',
@@ -298,49 +299,15 @@ elif common.app == 'jaiabot_simulator':
                                      interprocess_block = interprocess_common,
                                      moos_port=common.bot.moos_simulator_port(node_id),
                                      gpsd_simulator_udp_port=common.bot.gpsd_simulator_udp_port(node_id),
-                                     pressure_udp_port=common.udp.bar30_cpp_udp_port(node_id),
-                                     salinity_udp_port=common.udp.atlas_ezo_cpp_udp_port(node_id)))
-elif common.app == 'jaiabot_bluerobotics_pressure_sensor_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_bluerobotics_pressure_sensor_driver.pb.cfg.in',
+                                     udp_gateway_port=udp_gateway_port))
+elif common.app == 'jaiabot_udp_gateway':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_udp_gateway.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bind_port=common.udp.bar30_cpp_udp_port(node_id),
-                                     remote_port=common.udp.bar30_py_udp_port(node_id),
-                                     blue_robotics_pressure_report_in_simulation=is_simulation()))
-elif common.app == 'jaiabot_tsys01_temperature_sensor_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_tsys01_temperature_sensor_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     bind_port=common.udp.tsys01_cpp_udp_port(),
-                                     remote_port=common.udp.tsys01_py_udp_port()))
-elif common.app == 'jaiabot_adafruit_BNO055_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO055_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     adafruit_bno055_report_in_simulation=is_simulation(),
-                                     imu_port=imu_port))
-elif common.app == 'jaiabot_adafruit_BNO085_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO085_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     adafruit_bno085_report_in_simulation=is_simulation(),
-                                     imu_port=imu_port))
-elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_atlas_scientific_ezo_ec_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     bind_port=common.udp.atlas_ezo_cpp_udp_port(node_id),
-                                     remote_port=common.udp.atlas_ezo_py_udp_port(node_id),
-                                     atlas_salinity_report_in_simulation=is_simulation()))
-elif common.app == 'jaiabot_echo_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_echo_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     echo_report_in_simulation=is_simulation()))
-elif common.app == 'salinity-subscriber':
-    print(config.template_substitute(templates_dir+'/bot/salinity-subscriber.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common))
+                                     in_simulation=is_simulation(),
+                                     udp_gateway_port=udp_gateway_port,
+                                     echo_enabled=str(echo_enabled).lower(),
+                                     tsys01_enabled=str(tsys01_enabled).lower()))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,
@@ -455,5 +422,6 @@ else:
                                      bot_id=bot_index,
                                      jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds,
                                      jaia_arduino_dev_location=jaia_arduino_dev_location,
-                                     imu_port=imu_port,
-                                     imu_type=imu_type))
+                                     udp_gateway_port=udp_gateway_port,
+                                     imu_type=imu_type,
+                                     pressure_sensor_type=pressure_sensor_type))

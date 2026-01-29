@@ -51,6 +51,7 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
+#include "jaiabot/messages/udp_gateway.pb.h"
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 
@@ -70,11 +71,8 @@ namespace apps
 constexpr goby::middleware::Group gps_udp_in{"gps_udp_in"};
 constexpr goby::middleware::Group gps_udp_out{"gps_udp_out"};
 
-constexpr goby::middleware::Group pressure_udp_in{"pressure_udp_in"};
-constexpr goby::middleware::Group pressure_udp_out{"pressure_udp_out"};
-
-constexpr goby::middleware::Group salinity_udp_in{"salinity_udp_in"};
-constexpr goby::middleware::Group salinity_udp_out{"salinity_udp_out"};
+constexpr goby::middleware::Group gateway_udp_in{"gateway_udp_in"};
+constexpr goby::middleware::Group gateway_udp_out{"gateway_udp_out"};
 
 class SimulatorTranslation : public goby::moos::Translator
 {
@@ -142,13 +140,9 @@ jaiabot::apps::Simulator::Simulator()
         if (cfg().enable_gps())
             launch_thread<GPSUDPThread>(cfg().gps_udp_config());
 
-        using PressureUDPThread =
-            goby::middleware::io::UDPPointToPointThread<pressure_udp_in, pressure_udp_out>;
-        launch_thread<PressureUDPThread>(cfg().pressure_udp_config());
-
-        using SalinityUDPThread =
-            goby::middleware::io::UDPPointToPointThread<salinity_udp_in, salinity_udp_out>;
-        launch_thread<SalinityUDPThread>(cfg().salinity_udp_config());
+        using GatewayUDPThread =
+            goby::middleware::io::UDPPointToPointThread<gateway_udp_in, gateway_udp_out>;
+        launch_thread<GatewayUDPThread>(cfg().udp_gateway_config());
 
         launch_thread<ArduinoSimThread>(cfg().arduino_config());
     }
@@ -403,16 +397,16 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
 
         using goby::util::seawater::bar;
 
-        jaiabot::protobuf::PressureTemperatureData pressure_temperature_data;
         // convert pressure from decibars to millibars to mimic output of BARXX sensor
-        pressure_temperature_data.set_pressure_raw(
-            quantity<decltype(si::milli * bar)>(pressure).value());
-        pressure_temperature_data.set_temperature(temperature);
-        pressure_temperature_data.set_sensor_type(jaiabot::protobuf::PressureSensorType::BAR30);
+        auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
+        auto pressure_temperature_data = envelope.mutable_pressure_temperature_data();
+        pressure_temperature_data->set_pressure_raw_with_units(pressure);
+        pressure_temperature_data->set_temperature_with_units(temperature * boost::units::absolute<boost::units::celsius::temperature>()); // I tried, but could not get boost.units to work with Celsius here.
+        pressure_temperature_data->set_sensor_type(jaiabot::protobuf::PressureSensorType::BAR30);
 
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(pressure_temperature_data.SerializeAsString());
-        interthread().publish<pressure_udp_out>(io_data);
+        io_data->set_data(envelope.SerializeAsString());
+        interthread().publish<gateway_udp_out>(io_data);
     }
 
     // publish salinity as UDP message for atlas scientific ezo-ec driver
@@ -423,15 +417,16 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         // randomize salinity
         salinity += salinity_distribution_(generator_);
 
-        auto msg = jaiabot::protobuf::SalinityData();
+        auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
+        auto salinity_data = envelope.mutable_salinity_data();
         // We only set the raw values here, because the derived values are calculated elsewhere, after the data comes in from the sensor.
-        msg.set_conductivity_raw(45000.0);
-        msg.set_salinity_raw(salinity);
-        msg.set_total_dissolved_solids(0.0);
+        salinity_data->set_conductivity_raw(45000.0);
+        salinity_data->set_salinity_raw(salinity);
+        salinity_data->set_total_dissolved_solids(0.0);
 
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(msg.SerializeAsString());
-        interthread().publish<salinity_udp_out>(io_data);
+        io_data->set_data(envelope.SerializeAsString());
+        interthread().publish<gateway_udp_out>(io_data);
     }
 
     // publish IMUData
