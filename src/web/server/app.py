@@ -390,10 +390,14 @@ def delete_map(map_name: str):
 
 @app.route('/ctd-profiles/<bot_id>', methods=['GET', 'DELETE'])
 def get_ctd_profiles(bot_id: str):
+    """Provides access to CTD files on the Hub
+    
+    Args:
+        bot_id (int): Indicates which CTD to make accessible
+    """
     dir = Path("/var/log/jaiabot/bot_offload/ctd/") / bot_id
     if request.method == "GET":
         files = list(dir.glob("*.json"))
-
         file = io.BytesIO()
         with zipfile.ZipFile(file, "w", zipfile.ZIP_DEFLATED) as zf:
             for path in files:

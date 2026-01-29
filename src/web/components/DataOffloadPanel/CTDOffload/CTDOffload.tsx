@@ -21,13 +21,22 @@ enum DialogAction {
     DELETE = 2,
 }
 
-const LOOKUP_DELAY = 5_000;
+const LOOKUP_DELAY = 5_000; // ms;
 
+/**
+ * Allows an operator to download CTD data via WiFi
+ */
 export default function CTDOffload(props: Props) {
     const jaiaContext = useContext(JaiaContext);
     const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
     const botCheckedStates = useMemo(() => new Map<number, boolean>(), []);
 
+    /**
+     * Updates the checkbox state of a Bot when clicked
+     *
+     * @param {number} botID Identifies Bot clicked
+     * @returns {void}
+     */
     const handleCheckboxClick = (botID: number) => {
         const checkedState = botCheckedStates.get(botID);
         if (!checkedState) {
@@ -37,10 +46,24 @@ export default function CTDOffload(props: Props) {
         }
     };
 
+    /**
+     * Opens a dialog to inquire about deleting the
+     * downloaded data from the Hub
+     *
+     * @returns {void}
+     */
     const handleDownloadCTDClick = () => {
         setIsDeleteDialogVisible(true);
     };
 
+    /**
+     * Sends the command to the Hub to transfer CTD files from a Bot to the Hub.
+     * Once the command has been sent, a call is made to transfer the files from the
+     * Hub to the client computer.
+     *
+     * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
+     * @returns {void}
+     */
     const startCTDDownload = (deleteCTDFiles: boolean) => {
         for (const [botID, checkedState] of botCheckedStates.entries()) {
             if (checkedState) {
@@ -56,6 +79,13 @@ export default function CTDOffload(props: Props) {
         success("Starting CTD download");
     };
 
+    /**
+     * Makes the call to start the CTD download. Passes the delete information
+     * to the download function.
+     *
+     * @param {DialogAction} action Indicates what button the operator clicked
+     * @returns {void}
+     */
     const handleDeleteDialogClick = (action: DialogAction) => {
         setIsDeleteDialogVisible(false);
         let deleteCTDFiles = false;
@@ -65,6 +95,13 @@ export default function CTDOffload(props: Props) {
         startCTDDownload(deleteCTDFiles);
     };
 
+    /**
+     * Gets the CTD files from the Hub and downloads them to the client computer
+     *
+     * @param {number} botID Identifies which files to get
+     * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
+     * @returns {void}
+     */
     const getCTDFiles = (botID: number, deleteCTDFiles: boolean) => {
         setTimeout(async () => {
             const res = await jaiaAPI.getCTDProfiles(botID);
@@ -84,6 +121,11 @@ export default function CTDOffload(props: Props) {
         }, LOOKUP_DELAY);
     };
 
+    /**
+     * Creates a list item element for each Bot connected to the router
+     *
+     * @returns {HTMLElement[]} Displayable list of Bots connected to the router
+     */
     const getConnectedBots = () => {
         const bots = jaiaContext.bots.getBots();
         return Array.from(bots.values()).map((bot) => {
@@ -124,6 +166,10 @@ export default function CTDOffload(props: Props) {
     }
 }
 
+/**
+ * Allows the operator to control how the CTD data is managed on the Hub
+ * after a download
+ */
 function CTDDialog(props: Props) {
     if (props.isVisible) {
         return (
