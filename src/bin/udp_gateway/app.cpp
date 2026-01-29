@@ -1,8 +1,7 @@
-// Copyright 2021:
+// Copyright 2026:
 //   JaiaRobotics LLC
 // File authors:
-//   Toby Schneider <toby@gobysoft.org>
-//   Edited by Ed Sanville <edsanville@gmail.com>
+//   Ed Sanville <edsanville@gmail.com>
 //
 //
 // This file is part of the JaiaBot Hydro Project Binaries
@@ -21,27 +20,17 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <numeric>
-
-#include <goby/middleware/marshalling/protobuf.h>
-// this space intentionally left blank
 #include <dccl/codec.h>
 #include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/util/constants.h>
 #include <goby/util/seawater/units.h>
 #include <goby/zeromq/application/multi_thread.h>
-#include <iostream>
+#include <goby/middleware/marshalling/protobuf.h>
 
-#include "bin/udp_gateway/config.pb.h"
+#include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/udp_gateway.pb.h"
-#include "jaiabot/messages/moos.pb.h"
-#include "jaiabot/messages/engineering.pb.h"
-#include "jaiabot/messages/jaia_dccl.pb.h"
-
-#include "jaiabot/utils/derived_salinity.h"
-#include "jaiabot/utils/specific_conductivity.h"
 
 using goby::glog;
 using namespace std;
