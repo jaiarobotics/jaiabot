@@ -18,7 +18,7 @@ message UDPGatewayEnvelope
         oneof payload
         {
             // current estimate from Python app
-            CurrentPacket current_packet = 1;
+            TaskPacket task_packet = 1;
             
             // data messages sent to Python app, logged to compute current estimate
             ArduinoResponse arduino_response = 2;

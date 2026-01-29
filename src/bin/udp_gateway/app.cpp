@@ -254,11 +254,11 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             glog.is_debug1() && glog << "Received EchoData" << endl;
             break;
         }
-        case jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload:
+        case jaiabot::protobuf::UDPGatewayEnvelope::kSurobCurrentsPayload:
         {
-            auto jaiabot::protobuf::TaskPacket task_packet;
-            task_packet.current = envelope.surob_currents_payload.current_packet(); // TODO: check for current_packet presence in surob_currents_payload
+            auto task_packet = envelope.surob_currents_payload.task_packet(); // TODO: check for task_packet presence in surob_currents_payload
             surob_currents_udp_src_ = udp_src;
+            // TODO: publish taskpacket
             glog.is_debug1() && glog << "Received SurobCurrentsPayload" << endl;
             break;
         }
