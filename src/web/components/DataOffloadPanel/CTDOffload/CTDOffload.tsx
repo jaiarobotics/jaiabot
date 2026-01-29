@@ -65,7 +65,7 @@ export default function CTDOffload(props: Props) {
         return Array.from(bots.values()).map((bot) => {
             if (bot.getBatteryPercent() > 0) {
                 return (
-                    <li>
+                    <li key={bot.getBotID()}>
                         <input
                             type="checkbox"
                             onClick={() => handleCheckboxClick(bot.getBotID())}
@@ -91,7 +91,22 @@ export default function CTDOffload(props: Props) {
                 <button className="download-button" onClick={() => handleDownloadCTDClick()}>
                     Download
                 </button>
+                <CTDDialog />
             </div>
         );
     }
+}
+
+function CTDDialog() {
+    return (
+        <div className="ctd-dialog">
+            <div className="ctd-text">
+                Would you like to remove the CTD files from the Hub after this download?
+            </div>
+            <div className="ctd-button-row">
+                <button>No</button>
+                <button>Yes </button>
+            </div>
+        </div>
+    );
 }
