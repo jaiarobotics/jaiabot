@@ -9,3 +9,5 @@ in_simulation: $in_simulation
 
 tsys01_enabled: $tsys01_enabled
 echo_enabled: $echo_enabled
+
+bot_id: $bot_id
