@@ -1,3 +1,4 @@
+import argparse
 import h5py
 import os
 import logging
@@ -13,7 +14,7 @@ from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 import current_analysis_lib as cal
 
 # --- Application Constants ---
-PORT = 0 #TODO : update to UDP port assignment scheme used by other python apps
+PORT = 0
 BUFFER_SIZE = 1024
 SOCKET_TIMEOUT_SECONDS = 2
 SAVE_DIR = os.path.join("/var", "log", "jaiabot", "surob_surge_currents")
@@ -154,12 +155,12 @@ def process_logged_data(h5_log_path, log):
         log.exception(f"Error processing data from {h5_log_path}: {e}")
         return {}
 
-def send_results_and_cleanup(sock, addr, results, station_keep_dir, log):
+def send_results_and_cleanup(sock, addr, results, station_keep_dir, log, cleanup=True):
     """Sends computed statistics and removes temporary files."""
     if not results:
         log.warning("No results to send.")
     else:
-        current_packet = CurrentPacket() # TODO: send as TaskPacket() to more easily capture start time and end time fields, wrap in SurobCurrentsPayload envelope
+        current_packet = CurrentPacket()
         if np.isfinite(results.get("avg_mode_speed", np.nan)):
             current_packet.speed = results["avg_mode_speed"]
         if np.isfinite(results.get("speed_std_about_reported_mean", np.nan)):
@@ -188,14 +189,18 @@ def send_results_and_cleanup(sock, addr, results, station_keep_dir, log):
         except Exception as e:
             log.exception(f"Failed to send results: {e}")
             
-    shutil.rmtree(station_keep_dir, ignore_errors=True)
+    if cleanup:
+        shutil.rmtree(station_keep_dir, ignore_errors=True)
 
-def main():
+def main(args):
+    global PORT
     """Main loop to listen for tasks, log data, compute currents, and send results."""
+
+    PORT = int(args.udp_gateway_port)
 
     logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
     log = logging.getLogger('surob_surge_currents')
-    log.setLevel(logging.INFO)
+    log.setLevel(args.logging_level)
 
     try:
         sock = setup_socket('', PORT, SOCKET_TIMEOUT_SECONDS)
@@ -219,7 +224,7 @@ def main():
             log.info("Station-keep ended. Processing data...")
             results = process_logged_data(h5_log_path, log)
             
-            send_results_and_cleanup(sock, addr, results, station_keep_dir, log)
+            send_results_and_cleanup(sock, addr, results, station_keep_dir, log, cleanup=args.delete_temporary_files)
             log.info("Cycle complete.")
         except Exception as e:
             log.exception(f"An error occurred during the station-keep cycle: {e}")
@@ -227,4 +232,9 @@ def main():
             time.sleep(5)
 
 if __name__ == "__main__":
-    main() # TODO: Argparser to toggle cleaning up logs, processing old logs, UDP port
+    parser = argparse.ArgumentParser(description='Log GPS, pressure, and Arduino status motor data to compute current estimate during Station Keep')
+    parser.add_argument('-p', '--udp_gateway_port', default=20000, type=int, help='The UDP gateway port to send PressureTemperatureData to (default: 20000)')
+    parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
+    parser.add_argument('--delete_temporary_files', action=argparse.BooleanOptionalAction, type=bool, default=True, help='Whether to delete temporary logging h5s after sending current estimate')
+    args = parser.parse_args()
+    main(args)

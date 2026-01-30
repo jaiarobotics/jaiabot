@@ -561,6 +561,7 @@ jaiabot_apps = [
      'description': 'Surob Surge Currents Analysis Code',
      'template': 'py-app.service.in',
      'subdir': 'surob_surge',
+     'args': f'-p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__SUROB_SURGE_CURRENTS',
      'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,
