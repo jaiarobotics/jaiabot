@@ -318,16 +318,17 @@ export class GridPlan {
      * @returns {void}
      */
     restoreFromSnapshot(snapshot: GridPanSnapshot) {
-        this.missions = snapshot.missions;
-        this.missionStart = snapshot.missionStart;
-        this.missionEnd = snapshot.missionEnd;
-        this.numOfLanes = snapshot.numOfLanes;
-        this.laneSpacing = snapshot.laneSpacing;
-        this.pointSpacing = snapshot.pointSpacing;
-        this.surveyTask = snapshot.surveyTask;
-        this.startTask = snapshot.startTask;
-        this.endTask = snapshot.endTask;
-        this.state = snapshot.state;
+        const restored = cloneDeep(snapshot);
+        this.missions = restored.missions;
+        this.missionStart = restored.missionStart;
+        this.missionEnd = restored.missionEnd;
+        this.numOfLanes = restored.numOfLanes;
+        this.laneSpacing = restored.laneSpacing;
+        this.pointSpacing = restored.pointSpacing;
+        this.surveyTask = restored.surveyTask;
+        this.startTask = restored.startTask;
+        this.endTask = restored.endTask;
+        this.state = restored.state;
     }
 }
 
