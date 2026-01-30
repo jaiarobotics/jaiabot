@@ -121,7 +121,7 @@ void jaiabot::apps::CTDManager::convert_proto_to_unb(
       std::to_string(snapshot.depth()) + " " + 
       "0.000 " + 
       std::to_string(snapshot.temperature()) + " " + 
-      std::to_string(snapshot.conductivity());
+      std::to_string(snapshot.salinity());
     out << line << '\n';
   }
   

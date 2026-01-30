@@ -19,7 +19,7 @@ message CTDSnapshot {
             precision: -6  // second precision
         }
     ];
-    optional double conductivity = 2;
+    optional double salinity = 2;
     optional double temperature = 3;
     optional double depth = 4;
 }

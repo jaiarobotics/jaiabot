@@ -1123,8 +1123,8 @@ void jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::coll
 {
     auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
 
-    if (ev.conductivity.has_value()) {
-        latest_ctd_snapshot_.set_conductivity(ev.conductivity.value());
+    if (ev.salinity.has_value()) {
+        latest_ctd_snapshot_.set_salinity(ev.salinity.value());
     }
 
     if (ev.temperature.has_value()) {
