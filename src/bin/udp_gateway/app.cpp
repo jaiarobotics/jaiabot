@@ -43,6 +43,7 @@
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/mission.pb.h"
 
+#include "jaiabot/intervehicle.h"
 #include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/utils/specific_conductivity.h"
 
@@ -256,10 +257,20 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
         }
         case jaiabot::protobuf::UDPGatewayEnvelope::kSurobCurrentsPayload:
         {
-            auto task_packet = envelope.surob_currents_payload.task_packet(); // TODO: check for task_packet presence in surob_currents_payload
-            surob_currents_udp_src_ = udp_src;
-            // TODO: publish taskpacket
             glog.is_debug1() && glog << "Received SurobCurrentsPayload" << endl;
+            if (envelope.surob_currents_payload.HasField("task_packet"))
+            {
+                auto task_packet = envelope.surob_currents_payload.task_packet();
+                surob_currents_udp_src_ = udp_src;
+                task_packet.bot_id = cfg().bot_id();
+
+                glog.is_debug1() && glog
+                                        << "Assuming RF is enabled. Publishing task packet "
+                                           "intervehicle: " // TODO: find how to determine if RF is disabled
+                                        << task_packet.DebugString() << std::endl;
+                intervehicle().publish<groups::task_packet>(
+                    task_packet, intervehicle::default_publisher<protobuf::TaskPacket>);
+            }
             break;
         }
         default:

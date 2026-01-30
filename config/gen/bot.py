@@ -304,6 +304,7 @@ elif common.app == 'jaiabot_udp_gateway':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_udp_gateway.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
+                                     bot_id=bot_index,
                                      in_simulation=is_simulation(),
                                      udp_gateway_port=udp_gateway_port,
                                      echo_enabled=str(echo_enabled).lower(),

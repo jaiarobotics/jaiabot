@@ -173,7 +173,7 @@ def send_results_and_cleanup(sock, addr, results, station_keep_dir, log):
             current_packet.location.lon = results["mean_lon"]
 
         task_packet = TaskPacket()
-        task_packet.bot_id = 0 # TODO: find where to get bot_id and update here or in udp_gateway/app.cpp
+        task_packet.bot_id = 0 # will set when received in udp_gateway app
         task_packet.start_time = start_time_us
         task_packet.end_time = end_time_us
         task_packet.type = MissionTask.TaskType.STATION_KEEP
