@@ -85,6 +85,7 @@ class UDPGateway
   private:
     dccl::Codec dccl_;
     bool helm_ivp_in_mission_{false};
+    bool rf_enabled_{false};
     goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
         goby::time::SteadyClock::now()};
 
@@ -191,6 +192,25 @@ jaiabot::apps::UDPGateway::UDPGateway()
             send_surob_currents_payload(surob_currents_payload);
         });
 
+    // handle rf disable commands to make sure task packets are not sent
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const jaiabot::protobuf::Engineering& power_rf)
+        {
+            if (power_rf.has_rf_disable_options())
+            {
+                if (power_rf.rf_disable_options().has_rf_disable())
+                {
+                    if (power_rf.rf_disable_options().rf_disable())
+                    {
+                        this->rf_enabled_ = false;
+                    }
+                    else
+                    {
+                        this->rf_enabled_ = true;
+                    }
+                }
+            }
+        });
 }
 
 
@@ -264,12 +284,22 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
                 surob_currents_udp_src_ = udp_src;
                 task_packet.bot_id = cfg().bot_id();
 
-                glog.is_debug1() && glog
-                                        << "Assuming RF is enabled. Publishing task packet "
-                                           "intervehicle: " // TODO: find how to determine if RF is disabled
-                                        << task_packet.DebugString() << std::endl;
-                intervehicle().publish<groups::task_packet>(
-                    task_packet, intervehicle::default_publisher<protobuf::TaskPacket>);
+                if (this->rf_enabled_)
+                {
+                    glog.is_debug1() && glog << "(RF Enabled) Publishing task packet "
+                                                "intervehicle: "
+                                             << task_packet.DebugString() << std::endl;
+                    intervehicle().publish<groups::task_packet>(
+                        task_packet, intervehicle::default_publisher<protobuf::TaskPacket>);
+                }
+                else
+                {
+                    glog.is_debug1() && glog << "(RF Disabled) Publishing task packet "
+                                                "interprocess: "
+                                             << task_packet.DebugString() << std::endl;
+                    intervehicle().publish<groups::task_packet>(
+                        task_packet, intervehicle::default_publisher<protobuf::TaskPacket>);
+                }
             }
             break;
         }
