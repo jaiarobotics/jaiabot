@@ -51,6 +51,11 @@ class CTDManager : public ApplicationBase
   private:
     void handle_ctd_profile(const jaiabot::protobuf::CTDProfile& ctd_profile);
     void handle_ctd_offload_command(const jaiabot::protobuf::Command& command);
+    void convert_proto_to_unb(
+      const jaiabot::protobuf::CTDProfile& ctd_profile,
+      std::filesystem::path file,
+      std::string time
+    );
 };
 } // namespace apps
 } // namespace jaiabot
@@ -84,16 +89,43 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
       std::filesystem::path("/var/log/jaiabot/bot") /
       std::to_string(ctd_profile.bot_id()) / 
       "ctd";
-
     std::filesystem::create_directories(base);
+    std::filesystem::path file = base / ("bot" + std::to_string(ctd_profile.bot_id()) + "_" + time + ".unb");
+    convert_proto_to_unb(ctd_profile, file, time);
+}
 
-    std::filesystem::path file = base / ("bot" + std::to_string(ctd_profile.bot_id()) + "_" + time + ".ctd.json");
+void jaiabot::apps::CTDManager::convert_proto_to_unb(
+  const jaiabot::protobuf::CTDProfile& ctd_profile, 
+  std::filesystem::path file,
+  std::string time
+) 
+{
+  const int unb_version = 2;
+  const std::string date_logging = "0000 000 00:00:00";
+  const std::string ship_location = "0.000000 0.000000"; 
+  const int num_obs = ctd_profile.snapshot().size();
 
-    std::string json;
-    google::protobuf::util::MessageToJsonString(ctd_profile, &json);
-    std::ofstream out(file);
-    out << json;
-    out.close();
+  std::ofstream out(file);
+  out << unb_version << '\n' 
+      << time << '\n'
+      << date_logging << '\n'
+      << ctd_profile.location().lat() << " " << ctd_profile.location().lon() << '\n'
+      << ship_location << '\n'; 
+
+
+  for (int i = 0; i < ctd_profile.snapshot().size(); i++)
+  {
+    const jaiabot::protobuf::CTDSnapshot& snapshot = ctd_profile.snapshot()[i];
+    const std::string line = 
+      std::to_string(i) + " " + 
+      std::to_string(snapshot.depth()) + " " + 
+      "0.000 " + 
+      std::to_string(snapshot.temperature()) + " " + 
+      std::to_string(snapshot.conductivity());
+    out << line << '\n';
+  }
+  
+  out.close();
 }
 
 int main(int argc, char* argv[])

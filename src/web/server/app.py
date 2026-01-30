@@ -397,7 +397,7 @@ def get_ctd_profiles(bot_id: str):
     """
     dir = Path("/var/log/jaiabot/bot_offload/ctd/") / bot_id
     if request.method == "GET":
-        files = list(dir.glob("*.json"))
+        files = list(dir.glob("*.unb"))
         file = io.BytesIO()
         with zipfile.ZipFile(file, "w", zipfile.ZIP_DEFLATED) as zf:
             for path in files:
