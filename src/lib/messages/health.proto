@@ -86,6 +86,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_UDP_GATEWAY = 42
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_PPK = 43
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
