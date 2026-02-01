@@ -60,7 +60,7 @@ def do_port_loop(echo: Echo):
             data, _ = sock.recvfrom(1024) # buffer size is 1024 bytes
 
             # Deserialize the message
-            envelope = UDPGatewayEnvelope().FromString(data)
+            envelope = UDPGatewayEnvelope.FromString(data)
             command = envelope.echo_command
             log.debug(f'Received command:\n{command}')
 
