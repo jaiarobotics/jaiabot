@@ -67,6 +67,7 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
 
         if reading is None:
             port_log.warning('takeReading() returned None')
+            return
         else:
             imu_data = reading.convertToIMUData()
             wave_analyzer.addIMUData(imu_data)
