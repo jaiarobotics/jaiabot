@@ -45,8 +45,20 @@ namespace middleware = goby::middleware;
 #include <cerrno>
 #include <cstring>
 #include <iostream>
+#include <chrono>
+#include <format>
+#include <string>
 
-pid_t start_process() {
+
+std::string now_timestamp() {
+    using namespace std::chrono;
+
+    auto now = system_clock::now();
+    return std::format("{:%Y%m%dT%H%M%S}", floor<seconds>(now));
+}
+
+
+pid_t start_logging_ppk_to_file(const std::string& ubx_output_filename) {
     pid_t pid = fork();
     if (pid == -1) {
         std::cerr << "fork failed: " << std::strerror(errno) << "\n";
@@ -57,7 +69,7 @@ pid_t start_process() {
         // Child
         const char* argv[] = {
             "ubxtool",
-            "-R", "/var/log/jaiabot/ppk_raw.ubx",
+            "-R", ubx_output_filename.c_str(),
             "-w", "0",
             nullptr
         };
@@ -90,6 +102,7 @@ class PKK : public zeromq::SingleThreadApplication<PKKConfig>
     void loop() override;
 
     pid_t ppk_process_pid_{-1};
+    string ubx_output_filename_prefix_;
 };
 
 } // namespace apps
@@ -107,19 +120,29 @@ jaiabot::apps::PKK::PKK()
     : zeromq::SingleThreadApplication<PKKConfig>(0.0 * boost::units::si::hertz)
 {
 
+    ubx_output_filename_prefix_ = cfg().ubx_output_dir() + "/" +
+                                  "bot" + std::to_string(cfg().bot_id()) + "_" +
+                                  "fleet" + std::to_string(cfg().fleet_id()) + "_ppk_";
+
     interprocess().subscribe<jaiabot::groups::ppk>(
         [this](const jaiabot::protobuf::PPKCommand& command) {
-            glog.is_warn() && glog << "Received PPK command of type " << command.type();
+            glog.is_warn() && glog << "Received PPK command: " << command.ShortDebugString() << std::endl;
 
             switch(command.type()) {
                 case jaiabot::protobuf::PPKCommand_IMUCommandType_START_RECORDING:
-                    ppk_process_pid_ = start_process();
+                    ppk_process_pid_ = start_logging_ppk_to_file(ubx_output_filename_prefix_ + now_timestamp() + ".ubx");
+                    break;
                 case jaiabot::protobuf::PPKCommand_IMUCommandType_STOP_RECORDING:
                     kill_process(ppk_process_pid_);
+                    ppk_process_pid_ = -1;
+                    break;
                 default:
-                    glog.is_warn() && glog << "Received unknown PPK command type: " << command.type();
+                    glog.is_warn() && glog << "Received unknown PPK command type: " << command.type() << std::endl;
+                    break;
             }
         });
+
+    glog.is_warn() && glog << "PPK application initialized, subscribed to PPK commands." << std::endl;
 
 }
 

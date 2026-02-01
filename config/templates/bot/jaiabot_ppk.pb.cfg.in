@@ -1,0 +1,6 @@
+$app_block
+$interprocess_block
+
+ubx_output_dir: "$log_file_dir"
+bot_id: $bot_id
+fleet_id: $fleet_id
