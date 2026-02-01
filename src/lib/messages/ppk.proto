@@ -4,11 +4,11 @@ package jaiabot.protobuf;
 
 message PPKCommand
 {
-    enum IMUCommandType
+    enum PPKCommandType
     {
         START_RECORDING = 0;
         STOP_RECORDING = 1;
     }
 
-    required IMUCommandType type = 1;
+    required PPKCommandType type = 1;
 }

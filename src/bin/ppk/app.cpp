@@ -129,10 +129,10 @@ jaiabot::apps::PKK::PKK()
             glog.is_warn() && glog << "Received PPK command: " << command.ShortDebugString() << std::endl;
 
             switch(command.type()) {
-                case jaiabot::protobuf::PPKCommand_IMUCommandType_START_RECORDING:
+                case jaiabot::protobuf::PPKCommand_PPKCommandType_START_RECORDING:
                     ppk_process_pid_ = start_logging_ppk_to_file(ubx_output_filename_prefix_ + now_timestamp() + ".ubx");
                     break;
-                case jaiabot::protobuf::PPKCommand_IMUCommandType_STOP_RECORDING:
+                case jaiabot::protobuf::PPKCommand_PPKCommandType_STOP_RECORDING:
                     kill_process(ppk_process_pid_);
                     ppk_process_pid_ = -1;
                     break;
