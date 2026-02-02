@@ -285,7 +285,7 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             {
                 auto task_packet = envelope.surob_currents_payload().task_packet();
                 surob_currents_udp_src_ = udp_src;
-                task_packet.bot_id = cfg().bot_id();
+                task_packet.set_bot_id(cfg().bot_id());
 
                 if (this->rf_enabled_)
                 {
