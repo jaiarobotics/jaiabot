@@ -17,7 +17,7 @@ import current_analysis_lib as cal
 
 # --- Application Constants ---
 BUFFER_SIZE = 1024
-SOCKET_TIMEOUT_SECONDS = 2
+SOCKET_TIMEOUT_SECONDS = 1
 SAVE_DIR = os.path.join("/var", "log", "jaiabot", "surob_surge_currents")
 
 # --- HDF5 Data Type Definitions ---
@@ -56,14 +56,14 @@ def wait_for_station_keep(sock):
     """Waits for a UDPGatewayEnvelope message containing a MissionReport indicating the start of a station keep task and returns address to send results to. Returns time station keep began."""
     while True:
         try:
-            data, addr = sock.recvfrom(BUFFER_SIZE)
+            data, _ = sock.recvfrom(BUFFER_SIZE)
             if ((envelope := try_parse(data, UDPGatewayEnvelope)) and 
                 envelope.HasField('surob_currents_payload')):
                 payload = envelope.surob_currents_payload
                 if ((payload.WhichOneof('payload') == 'mission_report') and 
                     payload.mission_report.state == MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP):
                     start_time_us = int(time.time()* 1_000_000) 
-                    return addr, start_time_us
+                    return start_time_us
 
         except socket.timeout:
             continue
@@ -206,16 +206,17 @@ def main(args):
     log.setLevel(args.logging_level)
 
     try:
-        sock = setup_socket('', args.udp_gateway_port, SOCKET_TIMEOUT_SECONDS)
+        sock = setup_socket('', 0, SOCKET_TIMEOUT_SECONDS)
+        udp_gateway_address = ('localhost', args.udp_gateway_port)
         os.makedirs(SAVE_DIR, exist_ok=True)
-        log.info(f"Service initialized on port {args.udp_gateway_port}. Listening for station-keep commands.")
+        log.info(f"Service initialized. Listening for station-keep commands.")
     except Exception as e:
         log.exception(f"Initialization failed: {e}")
         return 1 # return with non-zero exit code to restart on failure
 
     while True:
         log.info("Waiting for station-keep to start...")
-        addr, start_time_us = wait_for_station_keep(sock)
+        start_time_us = wait_for_station_keep(sock)
 
         station_keep_dir = os.path.join(SAVE_DIR, str(int(time.time())))
         os.makedirs(station_keep_dir, exist_ok=True)
@@ -228,7 +229,7 @@ def main(args):
             log.info("Station-keep ended. Processing data...")
             results = process_logged_data(h5_log_path, log)
             
-            send_results_and_cleanup(sock, addr, results, start_time_us, end_time_us, station_keep_dir, log, cleanup=args.delete_temporary_files)
+            send_results_and_cleanup(sock, udp_gateway_address, results, start_time_us, end_time_us, station_keep_dir, log, cleanup=args.delete_temporary_files)
             log.info("Cycle complete.")
         except Exception as e:
             log.exception(f"An error occurred during the station-keep cycle: {e}")
@@ -237,7 +238,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Log GPS, pressure, and Arduino status motor data to compute current estimate during Station Keep')
-    parser.add_argument('-p', '--udp_gateway_port', default=0, type=int, help='The UDP gateway port to send surob surge current estimate TaskPacket to (default: 0)')
+    parser.add_argument('-p', '--udp_gateway_port', default=20000, type=int, help='The UDP gateway port to send surob surge current estimate TaskPacket to (default: 20000)')
     parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
     parser.add_argument('--delete_temporary_files', action=argparse.BooleanOptionalAction, default=True, help='Whether to delete temporary logging h5s after sending current estimate')
     
