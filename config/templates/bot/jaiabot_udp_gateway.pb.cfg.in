@@ -1,6 +1,8 @@
 $app_block
 $interprocess_block
 
+bot_id: $bot_id
+
 udp_config { 
     bind_port: $udp_gateway_port
 }
@@ -10,4 +12,3 @@ in_simulation: $in_simulation
 tsys01_enabled: $tsys01_enabled
 echo_enabled: $echo_enabled
 
-bot_id: $bot_id

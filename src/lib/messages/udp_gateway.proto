@@ -7,6 +7,7 @@ import "jaiabot/messages/echo.proto";
 import "jaiabot/messages/jaia_dccl.proto";
 import "goby/middleware/protobuf/gpsd.proto";
 import "jaiabot/messages/arduino.proto";
+import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
 
@@ -23,7 +24,7 @@ message UDPGatewayEnvelope
             // data messages sent to Python app, logged to compute current estimate
             ArduinoResponse arduino_response = 2;
             PressureTemperatureData pressure_temperature_data = 3;
-            TimePositionVelocity time_position_velocity = 4;
+            goby.middleware.protobuf.gpsd.TimePositionVelocity time_position_velocity = 4;
 
             // mission state sent to Python app to start/stop data logging
             MissionReport mission_report = 5;

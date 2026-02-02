@@ -26,12 +26,12 @@
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <dccl/codec.h>
+#include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/io/udp_point_to_point.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/util/constants.h>
 #include <goby/util/seawater/units.h>
 #include <goby/zeromq/application/multi_thread.h>
-#include <goby/middleware/marshalling/protobuf.h>
-#include <goby/middleware/protobuf/gpsd.pb.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -172,22 +172,25 @@ jaiabot::apps::UDPGateway::UDPGateway()
         });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
-            auto jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
+            jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
             *surob_currents_payload.mutable_arduino_response() = arduino_response;
             send_surob_currents_payload(surob_currents_payload);
         });
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
-        [this](const protobuf::MissionReport& mission_report) {
-            auto jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
+        [this](const protobuf::MissionReport& mission_report)
+        {
+            jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
             *surob_currents_payload.mutable_mission_report() = mission_report;
             send_surob_currents_payload(surob_currents_payload);
         });
 
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
-        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
-            auto jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
+        {
+            jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
             *surob_currents_payload.mutable_time_position_velocity() = tpv;
             send_surob_currents_payload(surob_currents_payload);
         });
@@ -244,8 +247,8 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
                 double pressure_raw = envelope.pressure_temperature_data().pressure_raw();
                 pressure_temperature_data.set_pressure_raw_with_units(pressure_raw * si::milli *
                                                                       goby::util::seawater::bar);
-                
-                auto jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
+
+                jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
                 *surob_currents_payload.mutable_pressure_temperature_data() = pressure_temperature_data;
                 send_surob_currents_payload(surob_currents_payload);
             }
@@ -278,9 +281,9 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
         case jaiabot::protobuf::UDPGatewayEnvelope::kSurobCurrentsPayload:
         {
             glog.is_debug1() && glog << "Received SurobCurrentsPayload" << endl;
-            if (envelope.surob_currents_payload.HasField("task_packet"))
+            if (envelope.surob_currents_payload().has_task_packet())
             {
-                auto task_packet = envelope.surob_currents_payload.task_packet();
+                auto task_packet = envelope.surob_currents_payload().task_packet();
                 surob_currents_udp_src_ = udp_src;
                 task_packet.bot_id = cfg().bot_id();
 
