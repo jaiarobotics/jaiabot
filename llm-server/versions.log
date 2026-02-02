@@ -1,0 +1,8 @@
+===== Ollama Native Environment =====
+Date: Thu 15 Jan 17:54:28 GMT 2026
+Service Status: active
+Custom Directory: /var/log/models
+Models Stored In: 6.3G	/var/log/models/models
+
+Ollama Version: ollama version is 0.13.5
+Python: Python 3.13.5

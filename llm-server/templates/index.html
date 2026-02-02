@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JaiaBot AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='favicon.png') }}">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0a74da;
+            --primary-dark: #0056b3;
+            --danger: #dc3545;
+            --success: #28a745;
+            --bg-body: #f4f7f9;
+            --bg-card: #ffffff;
+            --user-msg-bg: #0a74da;
+            --ai-msg-bg: #ffffff;
+            --border-radius: 12px;
+            --faded-opacity: 0.5;
+        }
+
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-body); margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        header { background: var(--bg-card); padding: 15px 20px; box-shadow: 0 1px 5px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 10px; z-index: 10; }
+        header img { height: 32px; width: 32px; }
+        header h2 { margin: 0; font-size: 1.2rem; color: var(--primary); }
+
+        #conn-status { font-size: 0.8rem; margin-left: auto; color: #888; display: flex; align-items: center; gap: 6px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; transition: background 0.3s; }
+        .connected .status-dot { background: var(--success); }
+        .connected { color: var(--success) !important; }
+        .disconnected .status-dot { background: var(--danger); }
+        .disconnected { color: var(--danger) !important; }
+
+        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; max-width: 900px; margin: 0 auto; width: 100%; box-sizing: border-box; scroll-behavior: smooth; }
+        .message { display: flex; flex-direction: column; max-width: 85%; animation: fadeIn 0.3s ease; transition: opacity 0.5s ease; }
+        .message.user { align-self: flex-end; align-items: flex-end; }
+        .message.ai { align-self: flex-start; align-items: flex-start; }
+        .message.system { align-self: center; align-items: center; max-width: 95%; width: 100%; } 
+        .message.history-faded { opacity: var(--faded-opacity); filter: grayscale(100%); }
+
+        .bubble { padding: 15px 20px; border-radius: var(--border-radius); line-height: 1.5; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; min-height: 20px; }
+        .message.user .bubble { background: var(--user-msg-bg); color: white; border-bottom-right-radius: 2px; }
+        .message.ai .bubble { background: var(--ai-msg-bg); color: #333; border-bottom-left-radius: 2px; }
+        .message.system .bubble { background: transparent; box-shadow: none; padding: 5px; color: #666; font-size: 0.85rem; display: flex; align-items: center; gap: 10px; font-style: italic; }
+
+        .session-separator { display: flex; align-items: center; text-align: center; color: #aaa; font-size: 0.75rem; margin: 15px 0; gap: 15px; opacity: 0.6; }
+        .session-separator::before, .session-separator::after { content: ''; flex: 1; border-bottom: 1px dashed #ccc; }
+
+        .status-line { font-size: 0.85em; color: #666; font-style: italic; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px; width: 100%; }
+        .spinner { border: 2px solid #f3f3f3; border-top: 2px solid #888; border-radius: 50%; width: 12px; height: 12px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .sources-area { margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; display: flex; flex-wrap: wrap; gap: 8px; }
+        .source-chip { font-size: 12px; background: #eef4fb; color: var(--primary); padding: 4px 10px; border-radius: 12px; cursor: pointer; border: 1px solid #dce1e7; }
+        .source-chip:hover { background: #dcebf9; }
+
+        .input-area { background: var(--bg-card); padding: 20px; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .input-wrapper { max-width: 900px; width: 100%; display: flex; gap: 10px; position: relative; }
+        textarea { flex: 1; padding: 12px 15px; border: 1px solid #ddd; border-radius: 24px; font-size: 15px; resize: none; height: 24px; outline: none; transition: border 0.2s; }
+        textarea:focus { border-color: var(--primary); }
+        
+        .input-hint { font-size: 12px; color: #999; margin-top: 5px; text-align: center; }
+
+        /* Global Round Buttons (Send/Stop) */
+        button { border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        
+        button#send-btn { background: var(--primary); color: white; }
+        button#send-btn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        button#stop-btn { background: var(--danger); color: white; display: none; }
+        button#stop-btn:hover { background: #bb2d3b; }
+        
+        /* --- STOP ICON STYLE (The White Square) --- */
+        .stop-icon-square {
+            width: 14px;
+            height: 14px;
+            background-color: white;
+            border-radius: 2px;
+            display: inline-block;
+        }
+
+        .btn { 
+            padding: 10px 24px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            border: none; 
+            font-size: 14px; 
+            font-weight: 500;
+            color: white; 
+            background: var(--primary);
+            
+            /* Override global button width/height */
+            width: auto; 
+            height: auto; 
+            display: inline-block;
+        }
+        .btn:hover { background: var(--primary-dark); }
+
+        .hidden { display: none !important; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; }
+        .modal-box { background: white; width: 90%; max-width: 400px; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center; }
+        .modal-title { font-weight: bold; font-size: 1.4em; margin-bottom: 10px; color: #1a1a1a; }
+        .modal-desc { color: #666; margin-bottom: 25px; line-height: 1.5; font-size: 0.95em; }
+        .modal-actions { display: flex; gap: 10px; justify-content: center; }
+
+        #doc-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        .modal-content { background: white; width: 80%; max-width: 700px; height: 70vh; padding: 25px; border-radius: 12px; display: flex; flex-direction: column; }
+        .modal-header { font-weight: bold; margin-bottom: 15px; color: var(--primary); display: flex; justify-content: space-between; }
+        .close-modal { cursor: pointer; font-size: 1.5rem; color: #999; }
+        .modal-body { flex: 1; overflow-y: auto; white-space: pre-wrap; background: #f9f9fb; padding: 15px; font-family: monospace; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="{{ url_for('static', path='favicon.png') }}" alt="Logo">
+        <h2>Jaia Language Model</h2>
+        <div id="conn-status" class="disconnected"><div class="status-dot"></div><span id="conn-text">Disconnected</span></div>
+    </header>
+
+    <div id="chat-container"></div>
+
+    <div class="input-area">
+        <form id="chat-form" class="input-wrapper">
+            <textarea id="user-input" name="query" placeholder="Waiting for model..." rows="1" required disabled></textarea>
+            <button type="submit" id="send-btn" disabled>➤</button>
+            
+            <button type="button" id="stop-btn">
+                <div class="stop-icon-square"></div>
+            </button>
+            
+        </form>
+        <div class="input-hint">Context is cleared after every answer. Please be specific.</div>
+    </div>
+
+    <div id="conflict-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title">Session Conflict</div>
+            <div class="modal-desc">Jaia Language Model is active in another tab.</div>
+            <div class="modal-actions">
+                <button class="btn" onclick="forceTakeover()">Take Over Session</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="doc-modal">
+        <div class="modal-content">
+            <div class="modal-header"><span id="modal-title">Viewer</span><span class="close-modal" onclick="closeModal()">×</span></div>
+            <div class="modal-body" id="modal-text">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const form = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const connStatus = document.getElementById('conn-status');
+        const connText = document.getElementById('conn-text');
+        
+        const conflictModal = document.getElementById('conflict-modal');
+        const docModal = document.getElementById('doc-modal');
+        const docText = document.getElementById('modal-text');
+        const docTitle = document.getElementById('modal-title');
+
+        let ws = null;
+        let currentAiBubble = null;
+        let currentAiText = "";
+        let systemStatusId = null; 
+        let msgCounter = 0; 
+
+        function connect(force = false) {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const url = `${protocol}//${window.location.host}/ws${force ? '?force=true' : ''}`;
+            
+            ws = new WebSocket(url);
+
+            ws.onopen = () => {
+                connStatus.className = 'connected';
+                connText.innerText = 'Connected';
+                conflictModal.style.display = 'none'; 
+                
+                chatContainer.innerHTML = ''; 
+                addMessage(`<strong>Hello! I am your JaiaBot assistant.</strong><br>I'm loading my AI model into memory.`, 'ai');
+                systemStatusId = addMessage(`<div class="spinner"></div> <span>Initializing connection...</span>`, 'system');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'status') {
+                    if (userInput.disabled && !currentAiBubble) {
+                        updateSystemBubble(data.msg);
+                        if (data.msg.includes("Ready")) {
+                            updateSystemBubble("Model Loaded & Verified. Ready to chat. ✅");
+                            enableInput(true);
+                        }
+                    } else {
+                        ensureAiBubble();
+                        updateAiStatus(data.msg);
+                    }
+                } 
+                else if (data.type === 'sources') {
+                    ensureAiBubble();
+                    renderSources(data.data);
+                }
+                else if (data.type === 'token') {
+                    ensureAiBubble();
+                    const statusElem = currentAiBubble.querySelector('.status-line');
+                    if (statusElem) statusElem.remove(); 
+
+                    currentAiText += data.msg;
+                    const contentDiv = currentAiBubble.querySelector('.markdown-content');
+                    contentDiv.innerHTML = marked.parse(currentAiText);
+                    scrollToBottom();
+                }
+                else if (data.type === 'end') {
+                    enableInput(true);
+                    currentAiBubble = null;
+                    currentAiText = "";
+                }
+            };
+
+            ws.onclose = (event) => {
+                connStatus.className = 'disconnected';
+                enableInput(false);
+                if (event.code === 4000) {
+                    connText.innerText = 'Session Busy';
+                    conflictModal.style.display = 'flex'; 
+                } else {
+                    connText.innerText = 'Disconnected';
+                    addMessage("<i>Connection lost.</i>", 'system');
+                }
+            };
+        }
+
+        function forceTakeover() { connect(true); }
+
+        function updateSystemBubble(htmlOrText) {
+            if (!systemStatusId) return;
+            const msgDiv = document.getElementById(systemStatusId);
+            if (msgDiv) {
+                const bubble = msgDiv.querySelector('.bubble');
+                if (htmlOrText.includes("Loading") || htmlOrText.includes("Initializing")) {
+                    bubble.innerHTML = `<div class="spinner"></div> <span>${htmlOrText}</span>`;
+                } else {
+                    bubble.innerHTML = `<span>${htmlOrText}</span>`;
+                }
+            }
+        }
+
+        function updateAiStatus(text) {
+            if (!currentAiBubble) return;
+            const statusElem = currentAiBubble.querySelector('.status-line');
+            if (statusElem) {
+                statusElem.querySelector('span').innerText = text;
+                
+                if (text.toLowerCase().includes("stop")) {
+                    const spinner = statusElem.querySelector('.spinner');
+                    if (spinner) spinner.remove();
+                }
+            }
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const query = userInput.value.trim();
+            if (!query) return;
+
+            const oldMessages = chatContainer.querySelectorAll('.message');
+            oldMessages.forEach(msg => msg.classList.add('history-faded'));
+            const separator = document.createElement('div');
+            separator.className = 'session-separator';
+            separator.innerText = 'Context Cleared';
+            chatContainer.appendChild(separator);
+
+            addMessage(query, 'user');
+            userInput.value = '';
+            userInput.style.height = '24px';
+            
+            ws.send(query);
+            enableInput(false);
+            stopBtn.style.display = 'flex';
+            sendBtn.classList.add('hidden');
+
+            currentAiText = "";
+            const id = addMessage("", 'ai');
+            currentAiBubble = document.getElementById(id).querySelector('.bubble');
+            currentAiBubble.innerHTML = `
+                <div class="status-line"><div class="spinner"></div> <span>Sending request...</span></div>
+                <div class="markdown-content"></div>
+                <div class="sources-container"></div>
+            `;
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send("STOP_GENERATION");
+                if (currentAiBubble) {
+                    updateAiStatus("Stopping...");
+                }
+            }
+        });
+
+        function ensureAiBubble() {
+            if (!currentAiBubble) {
+                const id = addMessage("", 'ai');
+                currentAiBubble = document.getElementById(id).querySelector('.bubble');
+                currentAiBubble.innerHTML = `<div class="status-line"><div class="spinner"></div> <span>Processing...</span></div><div class="markdown-content"></div><div class="sources-container"></div>`;
+            }
+        }
+
+        function renderSources(sources) {
+            const container = currentAiBubble.querySelector('.sources-container');
+            if (sources.length > 0) {
+                container.innerHTML = `<div class="sources-area"><strong>Sources:</strong> ${sources.map(s => `<span class="source-chip" onclick="viewDocument('${s}')">📄 ${s}</span>`).join('')}</div>`;
+            }
+        }
+
+        function addMessage(html, type) {
+            msgCounter++; 
+            const id = 'msg-' + Date.now() + '-' + msgCounter;
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+            msgDiv.id = id;
+            msgDiv.innerHTML = `<div class="bubble">${html}</div>`;
+            chatContainer.appendChild(msgDiv);
+            scrollToBottom();
+            return id;
+        }
+
+        function scrollToBottom() { chatContainer.scrollTop = chatContainer.scrollHeight; }
+
+        function enableInput(enabled) {
+            userInput.disabled = !enabled;
+            sendBtn.disabled = !enabled;
+            if (enabled) {
+                sendBtn.classList.remove('hidden');
+                stopBtn.style.display = 'none';
+                userInput.placeholder = "Ask a complete question...";
+                userInput.focus();
+            } else {
+                userInput.placeholder = "Please wait...";
+            }
+        }
+        
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if(this.value === '') this.style.height = '24px';
+        });
+
+        window.viewDocument = async (sourceName) => {
+            docModal.style.display = 'flex';
+            docTitle.innerText = sourceName;
+            docText.innerText = "Fetching content...";
+            try {
+                const res = await fetch(`/get_source?source=${encodeURIComponent(sourceName)}`);
+                const data = await res.json();
+                docText.innerText = data.content;
+            } catch(e) { docText.innerText = "Error."; }
+        };
+        window.closeModal = () => docModal.style.display = 'none';
+        window.onclick = (event) => { if (event.target == docModal) closeModal(); };
+
+        connect(false);
+    </script>
+</body>
+</html>
