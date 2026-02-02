@@ -57,11 +57,12 @@ def wait_for_station_keep(sock):
     while True:
         try:
             data, addr = sock.recvfrom(BUFFER_SIZE)
-            if (envelope := try_parse(data, UDPGatewayEnvelope) and envelope.HasField('surob_currents_payload')):
+            if ((envelope := try_parse(data, UDPGatewayEnvelope)) and 
+                envelope.HasField('surob_currents_payload')):
                 payload = envelope.surob_currents_payload
                 if ((payload.WhichOneof('payload') == 'mission_report') and 
                     payload.mission_report.state == MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP):
-                    start_time_us = int(time.time()) * 1_000_000
+                    start_time_us = int(time.time()* 1_000_000) 
                     return addr, start_time_us
 
         except socket.timeout:
