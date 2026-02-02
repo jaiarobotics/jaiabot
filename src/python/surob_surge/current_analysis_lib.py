@@ -4,7 +4,7 @@ import pandas as pd
 # --- Constants for Analysis ---
 DRIFT_ARDUINO_VALUE = 1500
 MIN_DRIFT_LEN_PTS = 300
-MOTOR_STOP_MOMENTUM_PERIOD_S = 1.5 # TODO: determine upper bound for vehicle to come to a stop from full throttle
+MOTOR_STOP_MOMENTUM_PERIOD_S = 1.5 # TODO: determine upper bound for vehicle to come to a stop from full throttle, current value is somewhat arbitrary
 
 # --- Data Analysis Functions ---
 
