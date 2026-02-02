@@ -239,7 +239,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Log GPS, pressure, and Arduino status motor data to compute current estimate during Station Keep')
     parser.add_argument('-p', '--udp_gateway_port', default=0, type=int, help='The UDP gateway port to send surob surge current estimate TaskPacket to (default: 0)')
     parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
-    parser.add_argument('--delete_temporary_files', action=argparse.BooleanOptionalAction, type=bool, default=True, help='Whether to delete temporary logging h5s after sending current estimate')
+    parser.add_argument('--delete_temporary_files', action=argparse.BooleanOptionalAction, default=True, help='Whether to delete temporary logging h5s after sending current estimate')
     
     args = parser.parse_args()
     exit(main(args))
