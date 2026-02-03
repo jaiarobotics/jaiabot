@@ -300,8 +300,7 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
                     glog.is_debug1() && glog << "(RF Disabled) Publishing task packet "
                                                 "interprocess: "
                                              << task_packet.DebugString() << std::endl;
-                    intervehicle().publish<groups::task_packet>(
-                        task_packet, intervehicle::default_publisher<protobuf::TaskPacket>);
+                    interprocess().publish<groups::task_packet>(task_packet);
                 }
             }
             break;
