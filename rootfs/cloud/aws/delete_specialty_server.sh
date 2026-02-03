@@ -1,18 +1,22 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
-    echo "Usage: $0 <server_type: iridium|vpn>"
+    echo "Usage: $0 <server_type: iridium|vpn|packages>"
     exit 1
 fi
 
+if [ -z "$AWS_DEFAULT_REGION" ]; then
+    REGION=us-west-2
+    export AWS_DEFAULT_REGION=$REGION
+fi
+    
+
 set -e -u
 
-REGION=us-west-2
-export AWS_DEFAULT_REGION=$REGION
 
 SERVER_TYPE="$1"
 
-echo "⚠️  WARNING: This script will permanently delete all AWS resources tagged as 'jaia_server_type=${SERVER_TYPE}'."
+echo -e "⚠️  WARNING: This script will permanently delete all AWS resources tagged as 'jaia_server_type=${SERVER_TYPE}' in region \033[1m$AWS_DEFAULT_REGION.\033[0m"
 echo "This includes:"
 echo "  - Terminating all EC2 instances"
 echo "  - Disassociating (but NOT releasing) Elastic IP"

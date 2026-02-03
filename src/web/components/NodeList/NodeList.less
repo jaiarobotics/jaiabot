@@ -1,0 +1,66 @@
+@import "../../style/stylesheets/vars.less";
+
+.node-bgcolor(@col) {
+    background-color: @col;
+    color: if(luminance(@col) > 45, black, white);
+}
+
+#nodeList {
+    position: absolute;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    max-height: @panel-max-height;
+    overflow-y: auto;
+
+    background-color: @overlay-background;
+    padding: 6px;
+
+    .node-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        min-height: 48px;
+        min-width: 48px;
+
+        border: 1px solid white;
+        .node-bgcolor(@good-color);
+
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .bot-item {
+        border-radius: 9px;
+        font-size: 1.6rem;
+    }
+
+    .hub-item {
+        border-radius: 30px;
+        font-size: 21px;
+    }
+
+    // The order of these matters
+    > div.node-item.tracked {
+        .node-bgcolor(@tracked-color);
+    }
+    > div.node-item.faultLevel1 {
+        .node-bgcolor(@warning-color);
+    }
+    > div.node-item.faultLevel2 {
+        .node-bgcolor(@error-color);
+    }
+    > div.node-item.disconnected {
+        .node-bgcolor(@disconnected);
+    }
+    > div.node-item.selected {
+        outline: 5px solid @selected-color;
+    }
+    > div.node-item.controlled {
+        .node-bgcolor(@controlled-color);
+    }
+}

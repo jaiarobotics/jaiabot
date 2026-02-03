@@ -65,6 +65,8 @@ parser.add_argument('--pressure_sensor_type', choices=['bar02', 'bar30', 'none']
 parser.add_argument('--rf_encryption_password', default ='', help='Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex')
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
+parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
+parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 
 args=parser.parse_args()
 
@@ -258,6 +260,7 @@ elif cloudhub_type == CloudHubType.SECONDARY:
     cloudhub_type_str='secondary'
 
 camera_positions_in_use = args.camera_positions
+jaia_additional_sensors = args.additional_sensors
     
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
@@ -283,6 +286,8 @@ subprocess.run('bash -ic "' +
                'export jaia_comms_mode=' + ','.join(link for link in comms_links_in_use) + '; ' +
                'export jaia_cloudhub_type=' + cloudhub_type_str + '; ' +
                'export jaia_camera_positions=' + ','.join(position for position in camera_positions_in_use) + '; ' +
+               f'export jaia_dccl_encryption_password={args.dccl_encryption_password}; ' +
+               'export jaia_additional_sensors=' + ','.join(position for position in jaia_additional_sensors) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -650,6 +655,18 @@ if 'none' not in camera_positions_in_use:
     ]
     jaiabot_apps.extend(jaiabot_apps_camera)
 
+if 'none' not in jaia_additional_sensors:
+    jaiabot_turner_c_fluor = [
+        {'exe': 'jaiabot_turner_c_fluor_sensor_driver',
+        'description': 'JaiaBot Turner C Fluor Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_TURNER_C_FLUOR_SENSOR_DRIVER',
+        'runs_on': [Type.BOT],
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service'},
+    ]
+    jaiabot_apps.extend(jaiabot_turner_c_fluor)
+
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
      'description': 'Hub Button LED Poweroff Mode',
@@ -703,7 +720,8 @@ jaia_firmware = [
      'template': 'backup-date.service.in',
      'args': '',
      'runs_on': [Type.BOTH],
-     'runs_when': Mode.RUNTIME},
+     'runs_when': Mode.BOTH,
+     'runs_on_cloudhub': CloudHubType.SECONDARY },
      {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',
@@ -783,7 +801,7 @@ for app in jaiabot_apps:
         if app['template'] == 'jcc.conf.in':
             print('Enabling ' + service)
             subprocess.run('a2ensite ' + service, check=True, shell=True)
-            subprocess.run('systemctl reload apache2', check=True, shell=True)
+            subprocess.run('if systemctl is-active --quiet apache2; then systemctl reload apache2; else systemctl start apache2; fi', check=True, shell=True)
             
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
 def is_firm_run(firm):
