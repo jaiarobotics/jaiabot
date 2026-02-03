@@ -281,6 +281,11 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
         case jaiabot::protobuf::UDPGatewayEnvelope::kSurobCurrentsPayload:
         {
             glog.is_debug1() && glog << "Received SurobCurrentsPayload" << endl;
+            if (envelope.surob_currents_payload().has_init_packet())
+            {
+                glog.is_debug1() && glog << "Received surob_surge_currents.py address" << endl;
+                surob_currents_udp_src_ = udp_src;
+            }
             if (envelope.surob_currents_payload().has_task_packet())
             {
                 auto task_packet = envelope.surob_currents_payload().task_packet();
@@ -317,8 +322,8 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
 
 void jaiabot::apps::UDPGateway::send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst) {
     if (!udp_dst.has_addr() || !udp_dst.has_port()) {
-        glog.is_warn() && glog << "UDP destination is not set, cannot send UDPGatewayEnvelope"
-                               << endl;
+        glog.is_warn() && glog << "UDP destination is not set, cannot send UDPGatewayEnvelope: "
+                               << envelope.DebugString() << endl;
         return;
     }
 

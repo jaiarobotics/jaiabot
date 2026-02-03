@@ -208,8 +208,11 @@ def main(args):
     try:
         sock = setup_socket('', 0, SOCKET_TIMEOUT_SECONDS)
         udp_gateway_address = ('localhost', args.udp_gateway_port)
+        envelope = UDPGatewayEnvelope()
+        envelope.surob_currents_payload.init_packet = True
+        sock.sendto(envelope.SerializeToString(), udp_gateway_address)
         os.makedirs(SAVE_DIR, exist_ok=True)
-        log.info(f"Service initialized. Listening for station-keep commands.")
+        log.info(f"Service initialized. Initialization packet sent to udp_gateway app. Listening for station-keep commands.")
     except Exception as e:
         log.exception(f"Initialization failed: {e}")
         return 1 # return with non-zero exit code to restart on failure

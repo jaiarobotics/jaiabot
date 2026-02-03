@@ -28,6 +28,9 @@ message UDPGatewayEnvelope
 
             // mission state sent to Python app to start/stop data logging
             MissionReport mission_report = 5;
+
+            // packet sent by Python app on startup to direct udp_gateway app to Python app address
+            bool init_packet = 6;
         }
     }
     
