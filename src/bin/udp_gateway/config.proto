@@ -58,6 +58,10 @@ message UDPGateway
     optional jaiabot.protobuf.EchoIssue.SolutionType echo_issue_solution = 18 [default = REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY];
     optional int32 echo_trigger_issue_timeout_seconds = 19 [default = 20];
 
+    // Surob Currents
+    optional bool surob_surge_currents_enabled = 23 [default = true];
+    optional int32 surob_surge_currents_heartbeat_report_timeout_seconds = 24 [default = 20];
+
     optional bool in_simulation = 11 [default = true];
     optional int32 bot_id = 22; 
 }

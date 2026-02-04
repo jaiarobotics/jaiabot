@@ -111,6 +111,7 @@ class UDPGateway
     goby::middleware::protobuf::UDPEndPoint echo_udp_src_;
 
     // surob currents data tracking
+    goby::time::SteadyClock::time_point last_surob_surge_currents_time_{std::chrono::seconds(0)};
     goby::middleware::protobuf::UDPEndPoint surob_currents_udp_src_;
 
 };
@@ -281,14 +282,15 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
         case jaiabot::protobuf::UDPGatewayEnvelope::kSurobCurrentsPayload:
         {
             glog.is_debug1() && glog << "Received SurobCurrentsPayload" << endl;
-            if (envelope.surob_currents_payload().has_init_packet())
+            if (envelope.surob_currents_payload().has_heartbeat())
             {
-                glog.is_debug1() && glog << "Received surob_surge_currents.py address" << endl;
+                last_surob_surge_currents_time_ = goby::time::SteadyClock::now();
                 surob_currents_udp_src_ = udp_src;
             }
             if (envelope.surob_currents_payload().has_task_packet())
             {
                 auto task_packet = envelope.surob_currents_payload().task_packet();
+                last_surob_surge_currents_time_ = goby::time::SteadyClock::now();
                 surob_currents_udp_src_ = udp_src;
                 task_packet.set_bot_id(cfg().bot_id());
 
@@ -464,4 +466,16 @@ void jaiabot::apps::UDPGateway::check_last_report(
         }
     }
 
+    // Surob Surge Currents Heartbeat timeout check
+    if (cfg().surob_surge_currents_enabled() &&
+        last_surob_surge_currents_time_ +
+                std::chrono::seconds(
+                    cfg().surob_surge_currents_heartbeat_report_timeout_seconds()) <
+            goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on Surob Surge Currents" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(protobuf::WARNING__NOT_RESPONDING__SUROB_SURGE_CURRENTS);
+    }
 }
