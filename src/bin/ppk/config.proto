@@ -34,7 +34,5 @@ message PKKConfig
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    optional string ubx_output_dir = 3 [default = "/var/log/jaiabot/"];
-    required int32 fleet_id = 9;
-    required int32 bot_id = 10;
+    optional string ubx_output_filename = 3 [default = "/var/log/jaiabot/ppk.ubx"];
 }

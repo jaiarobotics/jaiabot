@@ -50,45 +50,6 @@ namespace middleware = goby::middleware;
 #include <string>
 
 
-std::string now_timestamp() {
-    using namespace std::chrono;
-
-    auto now = system_clock::now();
-    return std::format("{:%Y%m%dT%H%M%S}", floor<seconds>(now));
-}
-
-
-pid_t start_logging_ppk_to_file(const std::string& ubx_output_filename) {
-    pid_t pid = fork();
-    if (pid == -1) {
-        std::cerr << "fork failed: " << std::strerror(errno) << "\n";
-        return -1;
-    }
-
-    if (pid == 0) {
-        // Child
-        const char* argv[] = {
-            "ubxtool",
-            "-R", ubx_output_filename.c_str(),
-            "-w", "0",
-            nullptr
-        };
-
-        execvp(argv[0], const_cast<char* const*>(argv));
-        _exit(127); // exec failed
-    }
-
-    // Parent
-    return pid;
-}
-
-
-bool kill_process(pid_t pid) {
-    if (pid <= 0) return false;
-    return kill(pid, SIGTERM) == 0;
-}
-
-
 namespace jaiabot
 {
 namespace apps
@@ -101,8 +62,10 @@ class PKK : public zeromq::SingleThreadApplication<PKKConfig>
   private:
     void loop() override;
 
+    void start_logging();
+    void stop_logging();
+
     pid_t ppk_process_pid_{-1};
-    string ubx_output_filename_prefix_;
 };
 
 } // namespace apps
@@ -120,21 +83,16 @@ jaiabot::apps::PKK::PKK()
     : zeromq::SingleThreadApplication<PKKConfig>(0.0 * boost::units::si::hertz)
 {
 
-    ubx_output_filename_prefix_ = cfg().ubx_output_dir() + "/" +
-                                  "bot" + std::to_string(cfg().bot_id()) + "_" +
-                                  "fleet" + std::to_string(cfg().fleet_id()) + "_ppk_";
-
     interprocess().subscribe<jaiabot::groups::ppk>(
         [this](const jaiabot::protobuf::PPKCommand& command) {
             glog.is_warn() && glog << "Received PPK command: " << command.ShortDebugString() << std::endl;
 
             switch(command.type()) {
                 case jaiabot::protobuf::PPKCommand_PPKCommandType_START_RECORDING:
-                    ppk_process_pid_ = start_logging_ppk_to_file(ubx_output_filename_prefix_ + now_timestamp() + ".ubx");
+                    start_logging();
                     break;
                 case jaiabot::protobuf::PPKCommand_PPKCommandType_STOP_RECORDING:
-                    kill_process(ppk_process_pid_);
-                    ppk_process_pid_ = -1;
+                    stop_logging();
                     break;
                 default:
                     glog.is_warn() && glog << "Received unknown PPK command type: " << command.type() << std::endl;
@@ -147,3 +105,69 @@ jaiabot::apps::PKK::PKK()
 }
 
 void jaiabot::apps::PKK::loop() {}
+
+
+void jaiabot::apps::PKK::start_logging() {
+    if (ppk_process_pid_ > 0) {
+        glog.is_warn() && glog << "PPK logging process already running with PID " << ppk_process_pid_ << std::endl;
+        return;
+    }
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        glog.is_warn() && glog << "fork failed: " << std::strerror(errno) << std::endl;
+        return;
+    }
+
+    if (pid == 0) {
+        // Child
+        const char* argv[] = {
+            "ubxtool",
+            "-R", cfg().ubx_output_filename().c_str(),
+            "-w", "0",
+            nullptr
+        };
+
+        execvp(argv[0], const_cast<char* const*>(argv));
+        glog.is_warn() && glog << "execvp failed: " << std::strerror(errno) << std::endl;
+        _exit(127); // exec failed
+    }
+
+    // Parent
+    ppk_process_pid_ = pid;
+    glog.is_verbose() && glog << "Started PPK logging process with PID " << ppk_process_pid_ << std::endl;
+    return;
+}
+
+
+void jaiabot::apps::PKK::stop_logging() {
+    if (ppk_process_pid_ <= 0) {
+        glog.is_warn() && glog << "No PPK logging process running." << std::endl;
+        return;
+    }
+    
+    glog.is_verbose() && glog << "Stopping PPK logging process with PID " << ppk_process_pid_ << std::endl;
+    if (kill(ppk_process_pid_, SIGTERM) == 0) {
+        sleep(1); // give it a moment to exit
+
+        // Check if process is still running
+        if (kill(ppk_process_pid_, 0) != 0) {
+            glog.is_verbose() && glog << "Success." << std::endl;
+            ppk_process_pid_ = -1;
+            return;
+        }
+    }
+
+    if (errno == ESRCH) {
+        glog.is_verbose() && glog << "PPK logging process has already exited." << std::endl;
+        ppk_process_pid_ = -1;
+        return;
+    }
+
+    glog.is_warn() && glog << "PPK logging process did not terminate after SIGTERM, sending SIGKILL." << std::endl;
+
+    kill(ppk_process_pid_, SIGKILL);
+    ppk_process_pid_ = -1;
+    return;
+
+}
