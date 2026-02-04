@@ -12,3 +12,7 @@ message PPKCommand
 
     required PPKCommandType type = 1;
 }
+
+message UBXChunk {
+    optional bytes data = 1;
+}

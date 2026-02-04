@@ -48,6 +48,7 @@ namespace middleware = goby::middleware;
 #include <chrono>
 #include <format>
 #include <string>
+#include <filesystem>
 
 
 namespace jaiabot
@@ -66,6 +67,7 @@ class PKK : public zeromq::SingleThreadApplication<PKKConfig>
     void stop_logging();
 
     pid_t ppk_process_pid_{-1};
+    size_t logged_bytes_{0};
 };
 
 } // namespace apps
@@ -80,7 +82,7 @@ int main(int argc, char* argv[])
 // Main thread
 
 jaiabot::apps::PKK::PKK()
-    : zeromq::SingleThreadApplication<PKKConfig>(0.0 * boost::units::si::hertz)
+    : zeromq::SingleThreadApplication<PKKConfig>(1.0 * boost::units::si::hertz)
 {
 
     interprocess().subscribe<jaiabot::groups::ppk>(
@@ -104,7 +106,45 @@ jaiabot::apps::PKK::PKK()
 
 }
 
-void jaiabot::apps::PKK::loop() {}
+void jaiabot::apps::PKK::loop() {
+    // Read new UBX bytes, and publish them
+    std::ifstream file(cfg().ubx_output_filename(), std::ios::binary);
+    if (!file) {
+        return; // file not found yet
+    }
+
+    // Determine file size
+    file.seekg(0, std::ios::end);
+    std::streamoff end = file.tellg();
+
+    if (logged_bytes_ < 0 || logged_bytes_ > end) {
+        glog.is_warn() && glog << "UBX file was truncated or reset, resetting logged_bytes_ to 0." << std::endl;
+        logged_bytes_ = 0;
+        return;
+    }
+
+    // Seek to requested offset
+    file.seekg(logged_bytes_, std::ios::beg);
+    std::vector<uint8_t> buffer(static_cast<size_t>(end - logged_bytes_));
+
+    file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+
+    if (!file) {
+        glog.is_warn() && glog << "Error reading UBX file: " << std::strerror(errno) << std::endl;
+        return;
+    }
+
+    // Publish the data
+    if (buffer.empty()) {
+        return; // no new data
+    }
+
+    jaiabot::protobuf::UBXChunk ubx_chunk;
+    ubx_chunk.set_data(std::string(reinterpret_cast<const char*>(buffer.data()), buffer.size()));
+    interprocess().publish<jaiabot::groups::ppk>(ubx_chunk);
+
+    logged_bytes_ += buffer.size();
+}
 
 
 void jaiabot::apps::PKK::start_logging() {
@@ -122,7 +162,8 @@ void jaiabot::apps::PKK::start_logging() {
     if (pid == 0) {
         // Child
         const char* argv[] = {
-            "ubxtool",
+            "/usr/bin/python3",
+            "/usr/bin/ubxtool",
             "-R", cfg().ubx_output_filename().c_str(),
             "-w", "0",
             nullptr
@@ -135,6 +176,7 @@ void jaiabot::apps::PKK::start_logging() {
 
     // Parent
     ppk_process_pid_ = pid;
+    logged_bytes_ = 0;
     glog.is_verbose() && glog << "Started PPK logging process with PID " << ppk_process_pid_ << std::endl;
     return;
 }
@@ -154,6 +196,7 @@ void jaiabot::apps::PKK::stop_logging() {
         if (kill(ppk_process_pid_, 0) != 0) {
             glog.is_verbose() && glog << "Success." << std::endl;
             ppk_process_pid_ = -1;
+            std::filesystem::remove(cfg().ubx_output_filename());
             return;
         }
     }
@@ -161,13 +204,15 @@ void jaiabot::apps::PKK::stop_logging() {
     if (errno == ESRCH) {
         glog.is_verbose() && glog << "PPK logging process has already exited." << std::endl;
         ppk_process_pid_ = -1;
+        std::filesystem::remove(cfg().ubx_output_filename());
         return;
     }
 
-    glog.is_warn() && glog << "PPK logging process did not terminate after SIGTERM, sending SIGKILL." << std::endl;
+    glog.is_warn() && glog << "PPK logging process " <<  ppk_process_pid_ << " did not terminate after SIGTERM, sending SIGKILL." << std::endl;
 
     kill(ppk_process_pid_, SIGKILL);
     ppk_process_pid_ = -1;
+    std::filesystem::remove(cfg().ubx_output_filename());
     return;
 
 }
