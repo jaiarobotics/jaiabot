@@ -8,7 +8,7 @@ a2dissite 000-default || true
 a2enmod proxy || true
 a2enmod proxy_http || true
 
-systemctl apache2 restart || true
+systemctl restart apache2 || true
 
 #DEBHELPER#
 
