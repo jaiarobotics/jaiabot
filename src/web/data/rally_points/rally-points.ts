@@ -72,9 +72,10 @@ export class RallyPoints {
     }
 
     restoreFromSnapshot(snapshot: RallyPointsSnapshot) {
-        this.rallyPoints = snapshot.rallyPoints;
-        this.nextRallyPointID = snapshot.nextRallyPointID;
-        this.selectedRallyPointID = snapshot.selectedRallyPointID;
+        const restored = cloneDeep(snapshot);
+        this.rallyPoints = restored.rallyPoints;
+        this.nextRallyPointID = restored.nextRallyPointID;
+        this.selectedRallyPointID = restored.selectedRallyPointID;
     }
 }
 

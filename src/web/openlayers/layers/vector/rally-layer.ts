@@ -6,11 +6,8 @@ import { generateRallyFeature } from "../../features/rally-feature";
 import { LayerTitles } from "../../../types/openlayers-types";
 
 class RallyLayer extends JaiaVectorLayer {
-    private rallyIDs: number[];
-
     constructor() {
         super(LayerTitles.RALLY_LAYER, layersZIndexes.get(LayerTitles.RALLY_LAYER));
-        this.rallyIDs = [];
     }
 
     /**

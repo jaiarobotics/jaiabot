@@ -5,7 +5,7 @@ import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
-import { ghostMissionLayer, missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { MISSION_ENDPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { MapModes } from "../../types/openlayers-types";
@@ -80,14 +80,6 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
                 gridPlan.applySafetyReturnParameters();
             }
 
-            for (const mission of missionSet.getMissions().values()) {
-                if (mission.getGhostParameters().hasStarted) {
-                    missionSet.addGhostMission(mission.getMissionID());
-                } else {
-                    missionSet.deleteGhostMission(mission.getMissionID());
-                }
-            }
-
             missionSet.setMissions(cloneDeep(gridPlan.getMissions()));
             missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
             missionSet.setNextMissionID(gridPlan.getMissions().size + 1);
@@ -98,7 +90,6 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             handleMapModeChange(MapModes.DEFAULT);
             mutableState.visiblePanel = ButtonNames.NONE;
             missionLayer.updateFeatures();
-            ghostMissionLayer.updateFeatures();
             break;
     }
     return mutableState;

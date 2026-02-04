@@ -4,7 +4,6 @@ import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import { MapModes } from "../../../types/openlayers-types";
 import { ButtonNames, ButtonTypes } from "../../../types/context-types";
-import { info } from "../../../utils/notifications";
 
 import { Button } from "@mui/material";
 import rallyIcon from "../../../style/icons/rally-point.svg";
@@ -38,7 +37,6 @@ export default function RallyButton() {
             buttonType: ButtonTypes.MAP_MODE,
             buttonName: ButtonNames.ADD_RALLY,
         });
-        info("Tap to add rally point");
     };
 
     return (

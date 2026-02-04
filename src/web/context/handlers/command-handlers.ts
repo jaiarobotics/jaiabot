@@ -81,5 +81,6 @@ function manageGhostLayer(botID: number, missionID: number) {
     }
 
     missionSet.getMission(missionID).setGhostParameters({ hasStarted: true, botID: botID });
+    missionSet.addGhostMission(missionID);
     ghostMissionLayer.updateFeatures();
 }
