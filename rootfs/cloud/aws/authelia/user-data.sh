@@ -126,7 +126,7 @@ auth.cloud.jaia.tech {
 }
 
 # Protected Endpoints.
-(authelia_foward_auth) {
+(authelia_forward_auth) {
 	forward_auth localhost:9091 {
 		uri /api/authz/forward-auth
 		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
@@ -134,7 +134,7 @@ auth.cloud.jaia.tech {
 }
 
 lldap.cloud.jaia.tech {
-        import authelia_foward_auth
+        import authelia_forward_auth
         reverse_proxy :17170
 }
 EOF
@@ -148,7 +148,7 @@ for fleet_id in $fleets; do
     ch_ip=$(jaia-ip.py --net=cloudhub_vpn --fleet_id=${fleet_id} --node=hub --node_id=30 --ipv6 addr)
     cat <<EOF >> /etc/caddy/Caddyfile
 f${fleet_id}.cloud.jaia.tech {
-        import authelia_foward_auth
+        import authelia_forward_auth
         reverse_proxy [$ch_ip]:80
 }
 EOF
