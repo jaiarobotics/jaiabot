@@ -7,7 +7,6 @@ declare -a ProcessArray=(
     goby_moos_gateway
     goby_opencpn_interface
     goby_intervehicle_portal
-    jaiabot_bluerobotics_pressure_sensor_driver
     jaiabot_engineering
     jaiabot_fusion
     jaiabot_health
@@ -17,7 +16,6 @@ declare -a ProcessArray=(
     jaiabot_simulator
     jaiabot_web_portal
     socat
-    bluerobotics-pressure-sensor-driver
     jaiabot_mission_manager
     goby_gps
     goby_logger
