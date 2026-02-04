@@ -189,6 +189,7 @@ In addition to the CloudHub and VirtualFleet mentioned above, Jaia runs a number
 - `packages.jaia.tech`: Hosts Ubuntu (*.deb) packages
 - `docs.jaia.tech`: Documentation
 - `vpn.jaia.tech`: Service VPN for remote support.
+- `*.cloud.jaia.tech`: Web access with 2-factor authentication for accessing CloudHubs.
 
 We want to be able to recreate these servers from scratch for consistency of implementation, security, and AWS instance type. We want to be able to upgrade to the latest Ubuntu/Jaiabot release by rebuilding servers, and have the tools in place to recreate them in the event of an instance disk corruption or AWS failure.
 
@@ -206,7 +207,7 @@ To create a new specialty server type (which we'll call "foo") you need to creat
 
 - `jaiabot/rootfs/cloud/aws/foo`
 	+ `foo.conf`
-	+ `user-data.sh.in`
+	+ `user-data.sh.in` or `user-data.sh`
 	+ `user-data.yaml.in`
 	
 The `docs` and `iridium `server configurations are fairly simple, and one of these may be a useful starting point to copy for a new server configuration.
@@ -232,7 +233,7 @@ The `docs` and `iridium `server configurations are fairly simple, and one of the
 
 These are template files for [cloud-init user-data](https://cloudinit.readthedocs.io/en/latest/explanation/format.html) configuration. Both must be included but one may be left empty, except for the header line. 
 
-Minimal `user-data.sh.in`:
+Minimal `user-data.sh.in` or `user-data.sh`:
 ```
 #!/bin/bash
 ```
@@ -243,7 +244,7 @@ Minimal `user-data.yaml.in`:
 #cloud-config
 ```
 
-Both configuration files are preprocessed using bash before being passed to cloud-init so that bash variables (`${}`) are expanded using the values in `foo.conf` and `jaiabot/scripts/common-versions.env`.
+Both `*.in` configuration files are preprocessed using bash before being passed to cloud-init so that bash variables (`${}`) are expanded using the values in `foo.conf` and `jaiabot/scripts/common-versions.env`. If `user-data.sh` is specified instead, it will be used directly without preprocessing.
 
 The contents of the preprocessed files are used by `cloud-init` to seed the new server instance. See the cloud-init documentation for more details.
 
@@ -278,3 +279,33 @@ To upgrade an existing server, the following set of steps is recommended:
 5. Ensure the new server is fully functional now with these IP addresses (which should map to the correct domain names as well).
 6. Power down (stop) the old server.
 7. After some period (e.g., 1-2 weeks or so) of the new server functioning correctly,  disable termination protection for the old server and enable termination protection for the new server (if not already set) under (in the AWS console) `Actions->Instance Settings->Change termination protection`. Terminate (delete) the old instance.
+
+## Cloud Login server (*.cloud.jaia.tech)
+
+
+![cloud server](../figures/cloudhub-login-reverse-proxy.png)
+
+The Cloud Login Server (*.cloud.jaia.tech) manages user authentication (with 2-factor [2FA] verification) for access to CloudHub resources. This provides a more convenient way to access the JCC and other CloudHub applications without requiring that the client machine have the Wireguard VPN installed.
+
+### Implementation
+
+This server is implemented using three open source projects:
+
+- [Authelia](https://www.authelia.com/) for authentication including 2FA (time-based one-time password, TOTP and WebAuthn which supports physical keys like Yubikeys).
+- [Caddy](https://caddyserver.com/) for the reverse proxy features.
+- [LLDAP](https://github.com/lldap/lldap): Light LDAP (Lightweight Directory Access Protocol) implementation for user management.
+
+In short, Authelia manages authentication, Caddy manages the reverse proxy (between the insecure HTTP applications and the authenticated HTTPS connection), and LLDAP manages the user information (user names, group, passwords, etc.).
+
+These all run on a single machine, cloud.jaia.tech.
+
+### Available services
+
+CloudHub access:
+- https://fN.cloud.jaia.tech: JCC for Fleet N (e.g., https://f1.cloud.jaia.tech for fleet 1).
+- https://fN.cloud.jaia.tech/jcu: JCU for Fleet N.
+- https://fN.cloud.jaia.tech/jdv: JDV for Fleet N.
+
+Supporting web pages:
+- https://auth.cloud.jaia.tech: Authelia authentication website. Typically the user doesn't need to access this directly unless they want to change their user settings.
+- https://lldap.cloud.jaia.tech: User management by Jaia administrators. Add new users, add users to fleet access, and remove old users.
