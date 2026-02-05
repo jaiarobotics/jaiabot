@@ -1,7 +1,7 @@
-// Copyright 2025:
+// Copyright 2026:
 //   JaiaRobotics LLC
 // File authors:
-//   Matthew Ferro <matt.ferro@jaia.tech>
+//   Michael Twomey <michael.twomey@jaia.tech>
 //
 // This file is part of the JaiaBot Hydro Project Binaries
 // ("The Jaia Binaries").
@@ -55,7 +55,8 @@ class AMLSensorDriver
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
-    void display_sensor_version();
+    void get_sensor_version();
+    void set_output_rate();
     void handle_sensor_output(const goby::middleware::protobuf::IOData& io_data);
     
     jaiabot::protobuf::AML::Sensor sensor_name_{jaiabot::protobuf::AML::DEFAULT};
@@ -83,7 +84,7 @@ jaiabot::apps::AMLSensorDriver::AMLSensorDriver()
   interthread().subscribe<jaiabot::groups::aml_in>(
     [this](const goby::middleware::protobuf::IOData& data) { handle_sensor_output(data); });
 
-  display_sensor_version();
+  get_sensor_version();
 
 }
 
@@ -115,11 +116,19 @@ void jaiabot::apps::AMLSensorDriver::check_last_report(
     }
 }
 
-void jaiabot::apps::AMLSensorDriver::display_sensor_version()
+void jaiabot::apps::AMLSensorDriver::get_sensor_version()
 {
   goby::middleware::protobuf::IOData io_out;
   io_out.set_data("DISPLAY VERSION\r\n");
   interthread().publish<jaiabot::groups::aml_out>(io_out);
+}
+
+void jaiabot::apps::AMLSensorDriver::set_output_rate()
+{
+    goby::middleware::protobuf::IOData io_out;
+    std::string output_rate_cmd = "SET OUTPUTRATE " + std::to_string(cfg().output_rate()) + "\r\n"; 
+    io_out.set_data(output_rate_cmd);
+    interthread().publish<jaiabot::groups::aml_out>(io_out);
 }
 
 void jaiabot::apps::AMLSensorDriver::handle_sensor_output(const goby::middleware::protobuf::IOData& io_data)

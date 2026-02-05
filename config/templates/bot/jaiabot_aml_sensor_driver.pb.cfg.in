@@ -6,6 +6,8 @@ serial {
     delimiter: "\n"
 }
 
+output_rate: 10
+
 catalog {
     conductivity: "Conductivty Sensor"
 }
