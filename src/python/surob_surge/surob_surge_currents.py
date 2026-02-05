@@ -163,7 +163,7 @@ def main(args):
     try:
         sock = setup_socket(0, SOCKET_TIMEOUT_SECONDS)
         listening_port = sock.getsockname()[1]
-        udp_gateway_address = ('localhost', args.port)
+        udp_gateway_address = ('localhost', args.udp_gateway_port)
         os.makedirs(SAVE_DIR, exist_ok=True)
         log.info(f"Service initialized. Listening on port {listening_port}. Sending results and heartbeats to {udp_gateway_address}.")
     except Exception as e:
@@ -240,7 +240,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Log GPS, pressure, and Arduino status motor data to compute current estimate during Station Keep')
-    parser.add_argument('-p', '--port', default=20000, type=int, help='The UDP gateway port to send surob surge current estimate TaskPacket to (default: 20000)')
+    parser.add_argument('-p', '--udp_gateway_port', default=20000, type=int, help='The UDP gateway port to send surob surge current estimate TaskPacket to (default: 20000)')
     parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
     parser.add_argument('--delete_temporary_files', action=argparse.BooleanOptionalAction, default=True, help='Whether to delete temporary logging h5s after sending current estimate')
     
