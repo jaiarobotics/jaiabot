@@ -1,0 +1,7 @@
+$app_block
+$interprocess_block
+serial {
+    port: "/dev/ttyAM5"
+    baud: 9600
+    delimiter: "\n"
+}

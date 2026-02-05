@@ -60,6 +60,10 @@ constexpr goby::middleware::Group mcu_command{"jaiabot_sensors::mcu_command"};
 constexpr goby::middleware::Group mcu_calibration_command{
     "jaiabot_sensors::mcu_calibration_command"};
 
+constexpr goby::middleware::Group aml_in{"jaiabot::sensors::aml::in"};
+constexpr goby::middleware::Group aml_out{"jaiabot::sensors::aml::out"};
+
+
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};

@@ -659,7 +659,17 @@ if 'none' not in jaia_additional_sensors:
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service'},
     ]
+    jaiabot_aml_sensor = [
+        {'exe': 'jaiabot_aml_sensor_driver',
+        'description': 'JaiaBot AML Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER',
+        'runs_on': [Type.BOT],
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service'},
+    ]
     jaiabot_apps.extend(jaiabot_turner_c_fluor)
+    jaiabot_apps.extend(jaiabot_aml_sensor)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',

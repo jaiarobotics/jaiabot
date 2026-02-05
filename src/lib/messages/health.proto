@@ -145,6 +145,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_TURNER_C_FLUOR_SENSOR_DRIVER = 129
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER = 130
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
     ERROR__MISSING_DATA__GPS_FIX = 200

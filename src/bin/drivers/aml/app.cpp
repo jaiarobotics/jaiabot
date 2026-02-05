@@ -71,7 +71,9 @@ int main(int argc, char* argv[])
 jaiabot::apps::AMLSensorDriver::AMLSensorDriver()
     : zeromq::MultiThreadApplication<config::AMLSensorDriver>()
 {
-
+  using SerialThread = goby::middleware::io::SerialThreadLineBased<jaiabot::groups::aml_in,
+                                                                   jaiabot::groups::aml_out>;
+  launch_thread<SerialTHread>(cfg().serial());
 }
 
 void jaiabot::apps::AMLSensorDriver::health(
@@ -98,6 +100,6 @@ void jaiabot::apps::AMLSensorDriver::check_last_report(
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(
-                protobuf::WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA);
+                protobuf::WARNING__MISSING_DATA__AML_DATA);
     }
 }
