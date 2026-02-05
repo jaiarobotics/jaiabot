@@ -1,0 +1,15 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message AML {
+    enum Sensor {
+        DEFAULT = 1;
+        CONDUCTIVITY = 2;
+    }
+
+    optional Sensor sensor = 1;
+    optional double conductivity = 2;
+    optional double temperature = 3;
+}
+

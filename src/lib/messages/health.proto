@@ -353,6 +353,8 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA = 807
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__AML_DATA = 808
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 message LinuxHardwareStatus

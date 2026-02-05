@@ -20,17 +20,18 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <numeric>
+#include <string>
+#include <iostream>
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
-#include <dccl/codec.h>
 #include <goby/zeromq/application/multi_thread.h>
+#include <goby/middleware/io/line_based/serial.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/health.pb.h"
-#include "jaiabot/messages/sensor/turner__c_fluor.pb.h"
-#include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/sensor/aml.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -54,6 +55,10 @@ class AMLSensorDriver
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
+    void display_sensor_version();
+    void handle_sensor_output(const goby::middleware::protobuf::IOData& io_data);
+    
+    jaiabot::protobuf::AML::Sensor sensor_name_{jaiabot::protobuf::AML::DEFAULT};
 
   private:
     goby::time::SteadyClock::time_point last_aml_report_time_{std::chrono::seconds(0)};
@@ -73,7 +78,13 @@ jaiabot::apps::AMLSensorDriver::AMLSensorDriver()
 {
   using SerialThread = goby::middleware::io::SerialThreadLineBased<jaiabot::groups::aml_in,
                                                                    jaiabot::groups::aml_out>;
-  launch_thread<SerialTHread>(cfg().serial());
+  launch_thread<SerialThread>(cfg().serial());
+
+  interthread().subscribe<jaiabot::groups::aml_in>(
+    [this](const goby::middleware::protobuf::IOData& data) { handle_sensor_output(data); });
+
+  display_sensor_version();
+
 }
 
 void jaiabot::apps::AMLSensorDriver::health(
@@ -102,4 +113,43 @@ void jaiabot::apps::AMLSensorDriver::check_last_report(
             ->add_warning(
                 protobuf::WARNING__MISSING_DATA__AML_DATA);
     }
+}
+
+void jaiabot::apps::AMLSensorDriver::display_sensor_version()
+{
+  goby::middleware::protobuf::IOData io_out;
+  io_out.set_data("DISPLAY VERSION\r\n");
+  interthread().publish<jaiabot::groups::aml_out>(io_out);
+}
+
+void jaiabot::apps::AMLSensorDriver::handle_sensor_output(const goby::middleware::protobuf::IOData& io_data)
+{
+    if (sensor_name_ == jaiabot::protobuf::AML::DEFAULT)
+    {
+        if (io_data.data().contains(cfg().catalog().conductivity()))
+        {
+            sensor_name_ = jaiabot::protobuf::AML::CONDUCTIVITY;
+        }
+    }
+
+    jaiabot::protobuf::AML aml;
+    std::istringstream input_stream{io_data.data()};
+    switch (sensor_name_)
+    {
+        case jaiabot::protobuf::AML::CONDUCTIVITY:
+            double conductivity{};
+            double temperature{};
+            if (input_stream >> conductivity >> temperature) 
+            {
+                aml.set_conductivity(conductivity);
+                aml.set_temperature(temperature);
+            }
+            else
+            {
+                glog.is_debug1() && glog << "Unexpected CT sensor output" << std::endl;
+            }
+            break;
+    }
+    aml.set_sensor(sensor_name_);
+    interprocess().publish<jaiabot::groups::aml>(aml);
 }

@@ -5,3 +5,7 @@ serial {
     baud: 9600
     delimiter: "\n"
 }
+
+catalog {
+    conductivity: "Conductivty Sensor"
+}

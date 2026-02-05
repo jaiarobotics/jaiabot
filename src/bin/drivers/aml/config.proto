@@ -27,6 +27,10 @@ import "goby/middleware/protobuf/serial_config.proto";
 
 package jaiabot.config;
 
+message AMLCatalog {
+    optional string conductivity = 1;
+}
+
 message AMLSensorDriver
 {
     // required parameters for ApplicationBase3 class
@@ -37,4 +41,6 @@ message AMLSensorDriver
     optional int32 aml_report_timeout_seconds = 10 [default = 40];
 
     optional goby.middleware.protobuf.SerialConfig serial = 20;
+
+    optional AMLCatalog catalog = 30;
 }
