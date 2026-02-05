@@ -2,7 +2,6 @@
 
 import argparse
 import h5py
-import os
 
 
 def main():
