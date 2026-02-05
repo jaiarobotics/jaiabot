@@ -11,7 +11,7 @@ import google.protobuf.message as pbm
 
 from enum import Enum
 
-from jaiabot.messages.mission import MissionState, MissionTask
+from jaiabot.messages.mission_pb2 import MissionState, MissionTask
 from jaiabot.messages.jaia_dccl_pb2 import CurrentPacket, TaskPacket
 from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 
@@ -65,7 +65,7 @@ def send_heartbeat(sock, addr, log):
     envelope.surob_currents_payload.heartbeat = True
     try:
         sock.sendto(envelope.SerializeToString(), addr)
-        log.debug(f"Heartbeat sent to {addr}.")
+        log.info(f"Heartbeat sent to {addr}.")
     except Exception:
         log.exception("Failed to send heartbeat")
 
