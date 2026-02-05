@@ -63,6 +63,7 @@ class PKK : public zeromq::SingleThreadApplication<PKKConfig>
   private:
     void loop() override;
 
+    void publish_ubx_data();
     void start_logging();
     void stop_logging();
 
@@ -87,7 +88,7 @@ jaiabot::apps::PKK::PKK()
 
     interprocess().subscribe<jaiabot::groups::ppk>(
         [this](const jaiabot::protobuf::PPKCommand& command) {
-            glog.is_warn() && glog << "Received PPK command: " << command.ShortDebugString() << std::endl;
+            glog.is_verbose() && glog << "Received PPK command: " << command.ShortDebugString() << std::endl;
 
             switch(command.type()) {
                 case jaiabot::protobuf::PPKCommand_PPKCommandType_START_RECORDING:
@@ -102,14 +103,19 @@ jaiabot::apps::PKK::PKK()
             }
         });
 
-    glog.is_warn() && glog << "PPK application initialized, subscribed to PPK commands." << std::endl;
+    glog.is_verbose() && glog << "PPK application initialized, subscribed to PPK commands." << std::endl;
 
 }
 
 void jaiabot::apps::PKK::loop() {
     // Read new UBX bytes, and publish them
+    publish_ubx_data();
+}
+
+void jaiabot::apps::PKK::publish_ubx_data() {
     std::ifstream file(cfg().ubx_output_filename(), std::ios::binary);
     if (!file) {
+        glog.is_debug1() && glog << "UBX file " << cfg().ubx_output_filename() << " not found." << std::endl;
         return; // file not found yet
     }
 
@@ -118,7 +124,7 @@ void jaiabot::apps::PKK::loop() {
     std::streamoff end = file.tellg();
 
     if (logged_bytes_ < 0 || logged_bytes_ > end) {
-        glog.is_warn() && glog << "UBX file was truncated or reset, resetting logged_bytes_ to 0." << std::endl;
+        glog.is_verbose() && glog << "UBX file was truncated or reset, resetting logged_bytes_ to 0." << std::endl;
         logged_bytes_ = 0;
         return;
     }
@@ -127,6 +133,7 @@ void jaiabot::apps::PKK::loop() {
     file.seekg(logged_bytes_, std::ios::beg);
     std::vector<uint8_t> buffer(static_cast<size_t>(end - logged_bytes_));
 
+    glog.is_debug1() && glog << "Reading " << buffer.size() << " new UBX bytes from " << cfg().ubx_output_filename() << std::endl;
     file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
 
     if (!file) {
@@ -136,12 +143,14 @@ void jaiabot::apps::PKK::loop() {
 
     // Publish the data
     if (buffer.empty()) {
+        glog.is_debug1() && glog << "No new UBX data to publish." << std::endl;
         return; // no new data
     }
 
     jaiabot::protobuf::UBXChunk ubx_chunk;
     ubx_chunk.set_data(std::string(reinterpret_cast<const char*>(buffer.data()), buffer.size()));
     interprocess().publish<jaiabot::groups::ppk>(ubx_chunk);
+    glog.is_debug1() && glog << "Published UBXChunk with " << buffer.size() << " bytes." << std::endl;
 
     logged_bytes_ += buffer.size();
 }
@@ -190,7 +199,7 @@ void jaiabot::apps::PKK::stop_logging() {
     
     glog.is_verbose() && glog << "Stopping PPK logging process with PID " << ppk_process_pid_ << std::endl;
     if (kill(ppk_process_pid_, SIGTERM) == 0) {
-        sleep(1); // give it a moment to exit
+        sleep(5); // give it a moment to exit
 
         // Check if process is still running
         if (kill(ppk_process_pid_, 0) != 0) {
@@ -212,6 +221,9 @@ void jaiabot::apps::PKK::stop_logging() {
 
     kill(ppk_process_pid_, SIGKILL);
     ppk_process_pid_ = -1;
+
+    publish_ubx_data(); // publish any remaining data
+
     std::filesystem::remove(cfg().ubx_output_filename());
     return;
 
