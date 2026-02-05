@@ -119,14 +119,14 @@ void jaiabot::apps::AMLSensorDriver::check_last_report(
 void jaiabot::apps::AMLSensorDriver::get_sensor_version()
 {
   goby::middleware::protobuf::IOData io_out;
-  io_out.set_data("DISPLAY VERSION\r\n");
+  io_out.set_data("\r\nDISPLAY VERSION\r\n");
   interthread().publish<jaiabot::groups::aml_out>(io_out);
 }
 
 void jaiabot::apps::AMLSensorDriver::set_output_rate()
 {
     goby::middleware::protobuf::IOData io_out;
-    std::string output_rate_cmd = "SET OUTPUTRATE " + std::to_string(cfg().output_rate()) + "\r\n"; 
+    std::string output_rate_cmd = "\r\nSET OUTPUTRATE " + std::to_string(cfg().output_rate()) + "\r\n"; 
     io_out.set_data(output_rate_cmd);
     interthread().publish<jaiabot::groups::aml_out>(io_out);
 }
