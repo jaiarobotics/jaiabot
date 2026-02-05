@@ -147,77 +147,34 @@ Examples:
 
 This scheme ensures that continuous packages are considered to always be newer versions (by the rules of `apt`) than the last (beta or regular) release. This also ensures that each version can be tracked back to the git tag or git hash from which it was built. 
 
-## Initial set up of packages.jaia.tech
+## Creation of packages.jaia.tech
 
-This section describes the process by which the [packages.jaia.tech](http://packages.jaia.tech/) VM was initially configured, in the event that it needs to be re-created, or modified.
+The server packages.jaia.tech is created using the configuration in `jaiabot/rootfs/cloud/aws/packages`.
 
-### Creation of VM
+### Rebuild server
 
-packages.jaia.tech is hosted on AWS as an EC2 virtual machine with Ubuntu 22.04 EC2 using the t3a.micro instance type and a 30 GB SSD.
-
-The default user (`ubuntu`) is configured with the appropriate SSH keys for general access.
-
-A secondary unprivileged (no sudo) user was created for the `dput` uploads. This user is only configured for login with the `id_packages_ssh` public SSH key (private key is set in CircleCI):
+It can be rebuilt using:
 
 ```
-sudo adduser dput
+cd jaiabot/rootfs/cloud/aws
+./create_specialty_server.sh packages/packages.conf
 ```
 
-### Dependencies
+This will build a new version of the `packages.jaia.tech` server with a temporary IP address while leaving the existing packages server running. Log into https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#Instances: to find the new public IP address (`<new server IP address>`).
+
+#### Manual steps
+
+If you want to copy the files from the existing server (recommended), you will first need to provide a public key (`<public key>`) corresponding to a private key on your current machine to login to the existing server (`dput` user):
 
 ```
-sudo apt install emacs mini-dinstall apache2 gpg
+jaia admin ssh add --authorized_keys_file=/home/dput/.ssh/authorized_keys packages.jaia.tech <public key> 1d
+ssh -A jaia@<new server IP address>
+./sync_from_prior_packages_server.sh
 ```
 
-### Configuration
+Once this is complete you can swap the elastic IP (https://us-west-2.console.aws.amazon.com/ec2/home?region=us-west-2#Addresses:) for packages.jaia.tech by using "Disassociate Elastic IP Address" and "Associate Elastic IP address", chosing the new server on the second step (associate). When you are satisfied that the new server is working correctly, you can terminate the old one.
 
-`mini-dinstall` manages the actual Debian repository on packages.jaia.tech. `dput` uploads packages (from CircleCI). For integrity reasons, packages are signed after building using a known GPG key (which is verified when you do an `apt install ...`). This is done by the `sign_release.sh` script.
-
-I copied these files (`mini-dinstall.conf` and `sign_release.sh` from `jaiabot/scripts/packages` to `/opt/jaia_packages` on packages.jaia.tech).
-
-As the repositories are hosted using HTTP via Apache2, I created the empty repository directories and made `dput` the user:
-
-```
-sudo mkdir -p /var/www/html/ubuntu/continuous/2.y/mini-dinstall/incoming
-sudo mkdir -p /var/www/html/ubuntu/beta/2.y/mini-dinstall/incoming
-sudo mkdir -p /var/www/html/ubuntu/release/2.y/mini-dinstall/incoming
-sudo chown -R dput /var/www/html/ubuntu/
-```
-
-### SSH for dput
-
-In order to upload packages, CircleCI needs to be able to SSH to packages.jaia.tech. For this reason, I created a dedicated SSH key pair (written to `id_packages_ssh` / `id_packages_ssh.pub`):
-
-```
-ssh-keygen -t ed25519
-```
-
-I added the `id_packages_ssh.pub` to /home/dput/.ssh/authorized_keys and the private key (`id_packages_ssh`) to [the appropriate CircleCI setting](https://app.circleci.com/settings/project/github/jaiarobotics/jaiabot/ssh).
-
-### dput configuration
-
-The configuration for `dput` is in `jaiabot/.circleci/dput.cf`. It is configured for each of the existing three repositories: `jaiabot-continuous-2.y` for `/var/www/html/ubuntu/continuous/2.y`, `jaiabot-beta-2.y` for `/var/www/html/ubuntu/beta/2.y` and `jaiabot-release-2.y` for `/var/www/html/ubuntu/release/2.y`.
-
-### GPG for signing
-
-I created a GPG key for signing (as `dput` user):
-
-```
-sudo su dput
-gpg --gen-key
-
-Real name: Jaiabot Packages
-Email address: info@jaia.tech
-```
-
-and the fingerprint of the resulting (public) key was `954A004CD5D8CF32`. 
-
-In order for CircleCI builds to sign the package, the GPG private key must be available to CircleCI but kept private (so it can't be in `jaiabot`):
-```
-gpg -a --export-secret-keys 954A004CD5D8CF32 | cat -e | sed 's/\$/\\n/g' 
-```
-
-The resulting contents was copied into Circle CI [private environmental variable configuration](https://app.circleci.com/settings/project/github/jaiarobotics/jaiabot/environment-variables) and called "GPG_KEY" (which is later used by `jaiabot/.circleci/config.yml`).
+You will also need to update `jaiabot/.circleci/config.yml` to change the known_hosts entry for the new server for uploads (under the "Upload packages to packages.jaia.tech" task).
 
 ### packages.gobysoft.org mirror
 

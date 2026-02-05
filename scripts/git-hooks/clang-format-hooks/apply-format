@@ -299,13 +299,29 @@ else # Diff-only.
     read -r -a format_diff_args <<< "$format_diff"
     [ "$in_place" = true ] && format_diff_args+=("-i")
 
+    # FIX: Disable pipefail temporarily to handle clang-format-diff exit code
+    # clang-format-diff (especially LLVM 10-18) returns exit code 1 when it finds
+    # formatting differences, which is not an error - it's expected behavior.
+    # We only want to fail on actual errors (exit code > 1).
+    set +o pipefail
+
     "${git_args[@]}" "$@" \
         | "${format_diff_args[@]}" \
             -p1 \
             -style="$style" \
             -iregex='^.*\.(c|cpp|cxx|cc|h|m|mm|java)$' \
-            > "$patch_dest" \
-        || exit 1
+            > "$patch_dest"
+
+    format_diff_exit_code=$?
+
+    # Re-enable pipefail
+    set -o pipefail
+
+    # Only fail on real errors (exit code > 1)
+    # Exit code 1 from clang-format-diff means "found formatting issues" which is fine
+    if [ $format_diff_exit_code -gt 1 ]; then
+        error_exit "clang-format-diff failed with exit code $format_diff_exit_code"
+    fi
 
     if [ "$apply_to_staged" = true ]; then
         if [ ! -s "$patch_dest" ]; then
