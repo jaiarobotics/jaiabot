@@ -649,7 +649,7 @@ if 'none' not in camera_positions_in_use:
     ]
     jaiabot_apps.extend(jaiabot_apps_camera)
 
-if 'none' not in jaia_additional_sensors:
+if 'turner_c_flour' in jaia_additional_sensors:
     jaiabot_turner_c_fluor = [
         {'exe': 'jaiabot_turner_c_fluor_sensor_driver',
         'description': 'JaiaBot Turner C Fluor Sensor Driver',
@@ -659,6 +659,9 @@ if 'none' not in jaia_additional_sensors:
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service'},
     ]
+    jaiabot_apps.extend(jaiabot_turner_c_fluor)
+
+if 'aml' in jaia_additional_sensors:
     jaiabot_aml_sensor = [
         {'exe': 'jaiabot_aml_sensor_driver',
         'description': 'JaiaBot AML Sensor Driver',
@@ -668,7 +671,6 @@ if 'none' not in jaia_additional_sensors:
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service'},
     ]
-    jaiabot_apps.extend(jaiabot_turner_c_fluor)
     jaiabot_apps.extend(jaiabot_aml_sensor)
 
 jaia_firmware = [
