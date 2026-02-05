@@ -1,0 +1,45 @@
+@import "../../../style/stylesheets/vars.less";
+
+#missions-list {
+    overflow-y: auto;
+    // Prevents scrollbar from shifting panel
+    scrollbar-width: none;
+}
+
+.mission-accordion-summary {
+    gap: 12px;
+    margin: 1px 0 0 0 !important;
+    background-color: @cc-accordian-color !important;
+    color: @cc-text-color-light !important;
+}
+
+.mission-accordion-title {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+}
+
+.mission-assignment {
+    font-style: italic;
+}
+
+.mission-accordion-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 16px !important;
+}
+
+.mission-accordion-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.mission-repeats {
+    width: 90px;
+}
+
+.mission-repeats input {
+    text-align: right;
+}

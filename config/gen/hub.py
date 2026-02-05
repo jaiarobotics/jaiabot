@@ -123,37 +123,39 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                              ipv6='')
 
 if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
-
-    if is_simulation():
-        iridium_mt_server_address='127.0.0.1'
-        iridium_mt_server_port=10800
-    else:
-        # By convention, we assign hub25 to iridium.jaia.tech on the CloudHub VPN
-        iridium_jaia_tech_hub_id=25
-        result = subprocess.run(f"jaia-ip.py addr --node hub --node_id {iridium_jaia_tech_hub_id} --net cloudhub_vpn --fleet_id {fleet_index} --ipv6", stdout=subprocess.PIPE, shell=True)
-        iridium_mt_server_address=result.stdout.decode().strip()
-        iridium_mt_server_port=10800+fleet_index
-
     sbd_type=common.comms.iridium_sbd_type()
-    rockblock=''
-    directip=''
-    if sbd_type == "SBD_DIRECTIP":
-        directip=f'mo_sbd_server_port: 11800 mt_sbd_server_address: "{iridium_mt_server_address}" mt_sbd_server_port: {iridium_mt_server_port}'
-    elif sbd_type == "SBD_ROCKBLOCK":
-        (rockblock_username, rockblock_password) = common.comms.iridium_rockblock_credentials()
-        rockblock=f'mo_sbd_server_port: 12800 rockblock {{ username: "{rockblock_username}" password: "{rockblock_password}" }}'
-        
-    link_block += config.template_substitute(templates_dir+'/link_iridium_shore.pb.cfg.in',
-                                             subnet_mask=common.comms.subnet_mask,
-                                             modem_id=common.comms.modem_id("iridium",node_id),
-                                             mac_slots=common.comms.iridium_shore_mac_slots(node_id),
-                                             sub_buffer=sub_buffer_config,
-                                             ack_timeout=iridium_ack_timeout,
-                                             modem_imei_map=common.comms.iridium_modem_imei_mapping(),
-                                             sbd_type=sbd_type,
-                                             rockblock=rockblock,
-                                             directip=directip)
+    if sbd_type is None:
+        sys.stderr.write('Warning: "comms_mode: iridium" is set but "/etc/jaiabot/iridium.json" does not exist. Continuing without Iridium comms.\n')
+    else:
+        if is_simulation():
+            iridium_mt_server_address='127.0.0.1'
+            iridium_mt_server_port=10800
+        else:
+            # By convention, we assign hub25 to iridium.jaia.tech on the CloudHub VPN
+            iridium_jaia_tech_hub_id=25
+            result = subprocess.run(f"jaia-ip.py addr --node hub --node_id {iridium_jaia_tech_hub_id} --net cloudhub_vpn --fleet_id {fleet_index} --ipv6", stdout=subprocess.PIPE, shell=True)
+            iridium_mt_server_address=result.stdout.decode().strip()
+            iridium_mt_server_port=10800+fleet_index
 
+        rockblock=''
+        directip=''
+        if sbd_type == "SBD_DIRECTIP":
+            directip=f'mo_sbd_server_port: 11800 mt_sbd_server_address: "{iridium_mt_server_address}" mt_sbd_server_port: {iridium_mt_server_port}'
+        elif sbd_type == "SBD_ROCKBLOCK":
+            (rockblock_username, rockblock_password) = common.comms.iridium_rockblock_credentials()
+            rockblock=f'mo_sbd_server_port: 12800 rockblock {{ username: "{rockblock_username}" password: "{rockblock_password}" }}'
+        
+        link_block += config.template_substitute(templates_dir+'/link_iridium_shore.pb.cfg.in',
+                                                 subnet_mask=common.comms.subnet_mask,
+                                                 modem_id=common.comms.modem_id("iridium",node_id),
+                                                 mac_slots=common.comms.iridium_shore_mac_slots(node_id),
+                                                 sub_buffer=sub_buffer_config,
+                                                 ack_timeout=iridium_ack_timeout,
+                                                 modem_imei_map=common.comms.iridium_modem_imei_mapping(),
+                                                 sbd_type=sbd_type,
+                                                 rockblock=rockblock,
+                                                 directip=directip)
+        
 subscribes_block=''
 
 if common.comms.has_cloudhub_vpn(fleet_index):

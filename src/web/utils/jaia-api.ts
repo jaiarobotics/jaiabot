@@ -1,20 +1,12 @@
-/* eslint-disable quote-props */
-require("es6-promise").polyfill();
-require("isomorphic-fetch");
-
 import { GeoJSON } from "ol/format";
-import { Command, Engineering, CommandForHub, TaskPacket } from "../shared/JAIAProtobuf";
+import { Command, Engineering, CommandForHub, TaskPacket } from "../types/protobuf-types";
 import { randomBase57, convertHTMLStrDateToISO } from "../shared/Utilities";
 import { FeatureCollection, Geometry } from "geojson";
-import { Feature } from "ol";
 
 export interface JaiaError {
     code?: number;
     message?: string;
 }
-
-export type BotPathPoint = [utime: number, lon: number, lat: number];
-export type BotPaths = { [key: string]: BotPathPoint[] };
 
 export type TaskPackets = { included: TaskPacket[]; excluded: TaskPacket[] };
 
@@ -135,16 +127,6 @@ export class JaiaAPI {
         return this.get("jaia/v0/status-hubs");
     }
 
-    getBotPaths(since_utime?: number): Promise<JaiaResponse<BotPaths>> {
-        var url = "jaia/v0/bot-paths";
-
-        if (since_utime) {
-            url += `?since-utime=${since_utime}`;
-        }
-
-        return this.get(url);
-    }
-
     /**
      * Queries the server for TaskPackets within a specified range. If no start and end date, the
      * server defaults to a 14 hour window with the end date set to now
@@ -261,7 +243,7 @@ export class JaiaAPI {
         }
     }
 
-    async getHubMaps() {
+    async getOfflineMaps() {
         return this.get("maps/").then((response) => {
             return response as Promise<MapsDirectory>;
         });
@@ -288,8 +270,8 @@ export class JaiaAPI {
         });
     }
 
-    async deleteHubMap(map_name: string) {
-        return fetch(`maps/${map_name}`, {
+    async deleteOfflineMap(mapName: string) {
+        return fetch(`maps/${mapName}`, {
             method: "DELETE",
         });
     }

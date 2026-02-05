@@ -98,13 +98,10 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
             { latest_engineering.mutable_bounds()->CopyFrom(bounds); });
 
         // Subscribe to Echo driver data changes, so they show up in the engineering_status messages
-        interprocess().subscribe<jaiabot::groups::engineering_status>(
+        interprocess().subscribe<jaiabot::groups::echo>(
             [this](const jaiabot::protobuf::EchoData& echo_data)
             {
-                if (echo_data.has_echo_state())
-                {
-                    latest_engineering.mutable_echo()->set_echo_state(echo_data.echo_state());
-                }
+                latest_engineering.mutable_echo()->set_echo_state(echo_data.echo_state());
             });
 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
@@ -205,6 +202,7 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
                             engineering_status.bottom_depth_safety_params().safety_depth());
                     }
                 }
+
             });
     }
 

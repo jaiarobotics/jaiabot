@@ -3,7 +3,7 @@
 import sys
 import os
 
-# A bit hacky, but we need to do this until we properly install pyjaiaprotobu
+# A bit hacky, but we need to do this until we properly install pyjaiaprotobuf
 def set_pythonpath():
     script_path = os.path.abspath(__file__)
     script_dir = os.path.dirname(script_path)
