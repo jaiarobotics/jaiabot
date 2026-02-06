@@ -13,7 +13,7 @@ echo "Using tmp_dir: ${tmp_dir}"
 source includes/import_utils.sh
 
 if [ ! $# -eq 4 ]; then
-   echo "Usage ./import_vms.sh vm.ova n_bots|bots_comma_separated_list n_hubs|hubs_comma_separate_list fleet_id"
+   echo "Usage ./import_vms.sh vm.ova n_bots|bots_comma_separated_list n_hubs|hubs_comma_separated_list fleet_id"
    exit 1;
 fi
 
@@ -130,7 +130,7 @@ bots: [$(IFS=,; echo "${ALL_BOTS[*]}")]
 ssh {
 ${perm_ssh_keys}
 $(for HUB in "${HUBS[@]}"; do
-     if [ -z "$n" ]; then continue; fi
+     if [ -z "$HUB" ]; then continue; fi
 
     KEYNAME="hub${HUB}_fleet${FLEET}"
     PRIVKEY="${HUB_KEY_DIR}/${KEYNAME}"

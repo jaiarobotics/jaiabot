@@ -228,7 +228,6 @@ add_commander_tab: false
         name: "Change Communications Links in use"
         section: "Communications"
         role: USER
-        section: "Fleet Changes"
         input_var {
             name: "comms_link"
             display_name: "Comms Links"

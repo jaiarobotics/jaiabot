@@ -160,7 +160,7 @@ def main():
         new_hub_script=bootdir + '/new_hub.sh'    
         with open(new_hub_script, "w") as f:
             f.write(rendered_output)
-        print(f'Write new hub script: {new_hub_script}')
+        print(f'Wrote new hub script: {new_hub_script}')
             
     if 'vpn_key' in actions:
         # generate vpn key pair
