@@ -20,21 +20,18 @@ l = logging.getLogger('task_packet_database')
 
 
 class TaskPacketDatabase:
-    if os.environ.get("jaia_mode") == "simulation":
-        taskpacket_files_path: str = os.path.expanduser("~/jaia-logs/bot_offload/")
-        database_path: str = os.path.expanduser("~/jaia-logs/db")
-    else:
-        taskpacket_files_path: str = "/var/log/jaiabot/bot_offload/"
-        database_path: str = "/var/log/jaiabot/db"
-
     task_packets_version = random.sample(range(2**31), 1)[0]
 
     db: sqlite3.Connection
     _lock: threading.Lock
 
     def __init__(self, taskpacket_files_path: str=None, database_path: str=None):
-        self.taskpacket_files_path = taskpacket_files_path or self.taskpacket_files_path
-        self.database_path = database_path or self.database_path
+        if os.environ.get("jaia_mode") == "simulation":
+            taskpacket_files_path: str = os.path.expanduser("~/jaia-logs/bot_offload/")
+            database_path: str = os.path.expanduser("~/jaia-logs/db")
+        else:
+            taskpacket_files_path: str = "/var/log/jaiabot/bot_offload/"
+            database_path: str = "/var/log/jaiabot/db"
         self._lock = threading.Lock()
 
         self.db = self._create_or_open_db()
