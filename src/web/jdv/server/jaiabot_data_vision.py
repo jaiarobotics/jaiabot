@@ -208,10 +208,11 @@ def getUBX():
     if logName is None:
         return JSONErrorResponse('Please specify file to download with "file="')
     
-    ubx_name = logName + '.ubx'
-    headers = { 'Content-Disposition': f'attachment; filename={ubx_name}' }
-
-    return Response(jaialogStore.getUBXFile(logName), mimetype='application/octet-stream', headers=headers)
+    logNames = parseFilenames(logName)
+    fileDownload = jaialogStore.getUBXFile(logNames)
+           
+    headers = { 'Content-Disposition': f'attachment; filename={fileDownload.filename}' }
+    return Response(fileDownload.content, mimetype=fileDownload.mimetype, headers=headers)
 
 
 if __name__ == '__main__':

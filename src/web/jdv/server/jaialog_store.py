@@ -1,6 +1,7 @@
 import subprocess
 import glob
 from typing import Iterable
+import zipfile
 import h5py
 import logging
 import re
@@ -99,6 +100,20 @@ class LogDirectory:
 
     logs: List[LogDescription] = field(default_factory=list)
     '''List of available logs'''
+
+
+@dataclass
+class FileDownload:
+    '''A file to be downloaded by the client'''
+
+    filename: str
+    '''Filename for the downloaded file'''
+
+    content: bytes
+    '''Content of the file'''
+
+    mimetype: str
+    '''MIME type of the file'''
 
 
 class JaialogStore:
@@ -336,10 +351,31 @@ class JaialogStore:
         return open(self.fullPathForLog(logName), 'br')
 
 
-    def getUBXFile(self, logName: str):
-        '''Returns a UBX file object'''
-        subprocess.run(['jaia-ubx-extractor', f'{self.LOG_DIR}/{logName}.h5'], check=True)
-        return open(f'{self.LOG_DIR}/{logName}.ubx', 'br')
+    def getUBXFile(self, logNames: list[str]) -> FileDownload:
+        '''Returns a UBX file object, zipped if multiple logs are requested'''
+
+        # Convert h5 to ubx if needed
+        for logName in logNames:
+            subprocess.run(['jaia-ubx-extractor', f'{self.LOG_DIR}/{logName}.h5'], check=True)
+
+        # If there's only one log, return the ubx file directly.  If there are multiple logs, zip them up and return the zip file.
+        if len(logNames) == 1:
+            with open(f'{self.LOG_DIR}/{logNames[0]}.ubx', 'br') as f:
+                content = f.read()
+            return FileDownload(filename=f'{logNames[0]}.ubx', content=content, mimetype='application/octet-stream')
+        
+        else:
+            zip_filename = f'{self.LOG_DIR}/ubx_files.zip'
+            with zipfile.ZipFile(zip_filename, 'w') as zip_file:
+                for logName in logNames:
+                    zip_file.write(f'{self.LOG_DIR}/{logName}.ubx', arcname=f'{logName}.ubx')
+
+            with open(zip_filename, 'br') as f:
+                content = f.read()
+
+            os.remove(zip_filename)
+
+            return FileDownload(filename='ubx_files.zip', content=content, mimetype='application/zip')
 
 
     def deleteLog(self, logName: str):
