@@ -79,12 +79,12 @@ def do_port_loop(imu: IMU, wave_analyzer: AccelerationAnalyzer):
 
             imu_data.imu_type = args.device_type
 
-        address = ('localhost', udp_gateway_port)
+            address = ('localhost', udp_gateway_port)
 
-        envelope = UDPGatewayEnvelope(imu_data=imu_data)
+            envelope = UDPGatewayEnvelope(imu_data=imu_data)
 
-        port_log.debug(f'Sending UDPGatewayEnvelope to jaiabot_udp_gateway at {address}:\n{envelope}')
-        sock.sendto(envelope.SerializeToString(), address)
+            port_log.debug(f'Sending UDPGatewayEnvelope to jaiabot_udp_gateway at {address}:\n{envelope}')
+            sock.sendto(envelope.SerializeToString(), address)
 
 
     while True:
