@@ -1,7 +1,8 @@
-// Copyright 2021:
+// Copyright 2026:
 //   JaiaRobotics LLC
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
+//   Ed Sanville <edsanville@gmail.com>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -20,7 +21,6 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-
 // Goby
 #include <goby/middleware/application/multi_thread.h>
 #include <goby/middleware/application/configurator.h>
@@ -30,7 +30,6 @@
 #include "jaiabot/intervehicle.h"
 
 // Mission Manager app
-#include "bin/mission_manager/config.pb.h"
 #include "groups.h"
 #include "mission_manager.h"
 
