@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import h5py
 
 
@@ -23,13 +24,16 @@ def main():
     if args.input_file.endswith(".h5"):
         h5_filename = args.input_file
     elif args.input_file.endswith(".goby"):
-        print("Converting .goby file to .h5 format...")
-        import subprocess
         h5_filename = args.input_file.rsplit(".", 1)[0] + ".h5"
-        subprocess.run(["goby", "log", "convert", "-i", args.input_file, "-o", h5_filename, "--format", "HDF5"], check=True)
     else:
         print("Input file must be a .goby or .h5 file.")
         return
+    
+    # Convert .goby to .h5 if necessary
+    if os.path.exists(h5_filename) is False:
+        print("Converting .goby file to .h5 format...")
+        import subprocess
+        subprocess.run(["goby", "log", "convert", "-i", args.input_file, "-o", h5_filename, "--format", "HDF5"], check=True)
 
     output_filename = args.input_file.rsplit(".", 1)[0] + ".ubx"
 
