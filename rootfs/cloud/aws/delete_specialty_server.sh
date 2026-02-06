@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
-    echo "Usage: $0 <server_type: iridium|vpn|packages>"
+    echo "Usage: $0 <server_type: iridium|vpn|packages|cloud>"
     exit 1
 fi
 
@@ -9,7 +9,12 @@ if [ -z "$AWS_DEFAULT_REGION" ]; then
     REGION=us-west-2
     export AWS_DEFAULT_REGION=$REGION
 fi
-    
+
+# for ease of switching between cloudhub creation and speciality server creation
+if [ "$AWS_DEFAULT_REGION" = "us-east-1" ]; then
+    REGION=us-west-2
+    export AWS_DEFAULT_REGION=$REGION
+fi
 
 set -e -u
 

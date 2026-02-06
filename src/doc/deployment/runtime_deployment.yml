@@ -27,8 +27,5 @@ platforms:
       - jaiabot_engineering_interface.yml
       - @GOBY_INTERFACES_DIR@/goby_coroner_interface.yml
       - jaiabot_health_interface.yml
-      - jaiabot_bluerobotics_pressure_sensor_driver_interface.yml
-      - jaiabot_adafruit_BNO055_driver_interface.yml
-      - jaiabot_atlas_scientific_ezo_ec_driver_interface.yml
       - jaiabot_driver_camera_interface.yml
       - jaiabot_driver_arduino_interface.yml

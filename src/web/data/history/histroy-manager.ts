@@ -1,20 +1,22 @@
 import { JaiaSnapshot } from "../../types/context-types";
 import { MAX_HISTORY } from "../../utils/constants";
-import HistoryBuffer from "./history-buffer";
+import HistoryStack from "./history-stack";
 
 export class HistoryManager {
-    private undoBuffer = new HistoryBuffer<JaiaSnapshot>(MAX_HISTORY);
+    private undoBuffer = new HistoryStack<JaiaSnapshot>(MAX_HISTORY);
 
     pushUndo(snapshot: JaiaSnapshot) {
         this.undoBuffer.push(snapshot);
     }
 
     canUndo() {
-        return this.undoBuffer.canPop();
+        return this.undoBuffer.size() > 1;
     }
 
     undo() {
-        return this.undoBuffer.pop();
+        const unDoneState = this.undoBuffer.pop();
+        // When implementing redo this will be pushed onto redo stack
+        return this.undoBuffer.peek();
     }
 }
 
