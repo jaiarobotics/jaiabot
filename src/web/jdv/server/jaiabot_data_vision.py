@@ -200,6 +200,20 @@ def getH5():
     return Response(jaialogStore.getH5File(logName), mimetype='application/x-hdf', headers=headers)
 
 
+@app.route('/ubx', methods=['GET'])
+def getUBX():
+    '''Download a UBX file'''
+    logName = request.args.get('file')
+
+    if logName is None:
+        return JSONErrorResponse('Please specify file to download with "file="')
+    
+    ubx_name = logName + '.ubx'
+    headers = { 'Content-Disposition': f'attachment; filename={ubx_name}' }
+
+    return Response(jaialogStore.getUBXFile(logName), mimetype='application/octet-stream', headers=headers)
+
+
 if __name__ == '__main__':
 
     # Arguments

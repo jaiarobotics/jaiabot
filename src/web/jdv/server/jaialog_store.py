@@ -1,3 +1,4 @@
+import subprocess
 import glob
 from typing import Iterable
 import h5py
@@ -193,7 +194,7 @@ class JaialogStore:
 
 
     def convertIfNeeded(self, log_names: List[str]):
-        '''Converts a llist of logs if needed, returning True if they're already converted, False otherwise'''
+        '''Converts a list of logs if needed, returning True if they're already converted, False otherwise'''
         done = True
 
         for log_name in log_names:
@@ -333,6 +334,12 @@ class JaialogStore:
     def getH5File(self, logName: str):
         '''Returns a Jaia H5 file object'''
         return open(self.fullPathForLog(logName), 'br')
+
+
+    def getUBXFile(self, logName: str):
+        '''Returns a UBX file object'''
+        subprocess.run(['jaia-ubx-extractor', f'{self.LOG_DIR}/{logName}.h5'], check=True)
+        return open(f'{self.LOG_DIR}/{logName}.ubx', 'br')
 
 
     def deleteLog(self, logName: str):
