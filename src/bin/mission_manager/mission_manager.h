@@ -7,7 +7,7 @@
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/zeromq/application/multi_thread.h>
 
-#include "config.pb.h"
+#include "bin/mission_manager/config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/comms.pb.h"
@@ -39,17 +39,13 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
-    bool health_considered_ok(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
-
     void handle_command(const protobuf::Command& command);
     bool handle_command_fragment(const protobuf::Command& input_command_fragment,
                                  protobuf::Command& out_command);
     void handle_bottom_dive_safety_params(const protobuf::BottomDepthSafetyParams);
 
+    bool health_considered_ok(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
     void handle_self_test_results(bool result); // TODO: replace with Protobuf message
-    double deg2rad(const double& deg);
-    double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
-                          const double& lon2d);
     void intervehicle_subscribe(const jaiabot::protobuf::IntervehicleSubscribeRequest& req);
 
     void check_forward_progress();
