@@ -59,7 +59,7 @@ class AMLSensorDriver
     void set_output_rate();
     void handle_sensor_output(const goby::middleware::protobuf::IOData& io_data);
     
-    jaiabot::protobuf::AML::Sensor sensor_name_{jaiabot::protobuf::AML::DEFAULT};
+    jaiabot::sensor::protobuf::AML::Sensor sensor_name_{jaiabot::sensor::protobuf::AML::DEFAULT};
 
   private:
     goby::time::SteadyClock::time_point last_aml_report_time_{std::chrono::seconds(0)};
@@ -133,19 +133,19 @@ void jaiabot::apps::AMLSensorDriver::set_output_rate()
 
 void jaiabot::apps::AMLSensorDriver::handle_sensor_output(const goby::middleware::protobuf::IOData& io_data)
 {
-    if (sensor_name_ == jaiabot::protobuf::AML::DEFAULT)
+    if (sensor_name_ == jaiabot::sensor::protobuf::AML::DEFAULT)
     {
         if (io_data.data().contains(cfg().catalog().conductivity()))
         {
-            sensor_name_ = jaiabot::protobuf::AML::CONDUCTIVITY;
+            sensor_name_ = jaiabot::sensor::protobuf::AML::CONDUCTIVITY;
         }
     }
 
-    jaiabot::protobuf::AML aml;
+    jaiabot::sensor::protobuf::AML aml;
     std::istringstream input_stream{io_data.data()};
     switch (sensor_name_)
     {
-        case jaiabot::protobuf::AML::CONDUCTIVITY:
+        case jaiabot::sensor::protobuf::AML::CONDUCTIVITY:
             double conductivity{};
             double temperature{};
             if (input_stream >> conductivity >> temperature) 

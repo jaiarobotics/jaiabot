@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package jaiabot.protobuf;
+package jaiabot.sensor.protobuf;
 
 message AML {
     enum Sensor {
