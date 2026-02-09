@@ -10,9 +10,9 @@ import { DEPTH_MAP_3D_NAME } from "../../utils/constants";
 const Plotly = require("plotly.js-dist");
 
 interface Props {
+    windowPosition: string;
     setWindowPosition: React.Dispatch<React.SetStateAction<string>>;
     onClose: () => void;
-    windowPosition: string;
 }
 
 /**
@@ -38,9 +38,9 @@ export default function DepthMap3D() {
     return (
         <div className={`depth-map-3D-container ${windowPosition}`}>
             <MenuBar
+                windowPosition={windowPosition}
                 setWindowPosition={setWindowPosition}
                 onClose={onClose}
-                windowPosition={windowPosition}
             />
             <div id={DEPTH_MAP_3D_NAME}></div>
         </div>
