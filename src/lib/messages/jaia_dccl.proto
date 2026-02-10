@@ -658,11 +658,9 @@ message WavePacket
         unit_system: "si"
     };
 
-    // significant wave height calculated and reported during each stationkeep
-    // hub will ignore significant wave heights calculated from surface drifts
-    // source of WavePacket determined using wrapping TaskPacket's type field
+    // wave height calculated and reported during each stationkeep
 
-    optional double significant_wave_height = 1 [
+    optional double wave_height = 1 [
         (dccl.field) = {
             min: 0.1 // real value informed by noise floor
             max: 5.0
@@ -672,9 +670,7 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    // the hs uncertainty is a std calculated using the GPS height uncertainty in a Monte Carlo Simulation
-
-    optional double hs_uncertainty = 2 [
+    optional double wave_height_stdev = 2 [
         (dccl.field) = {
             min: 0.1 
             max: 1.0
@@ -696,125 +692,7 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    // the period uncertainty is reported as a fixed value based on the model's performance vs ground truth data
-
-    optional double period_uncertainty = 4 [
-        default = 2.0,
-        (dccl.field) = {
-            min: 1.0 
-            max: 3.0
-            precision: 2
-            units { base_dimensions: "T" }
-        },
-        (jaia.field).rest_api.presence = GUARANTEED
-    ];
-
-    // location to associate measurement with, currently mean lat/lon of collection
-    optional GeographicCoordinate location = 5
-        [(jaia.field).rest_api.presence = GUARANTEED];
-}
-
-message CurrentPacket
-{
-    option (dccl.msg) = {
-        unit_system: "si"
-    };
-
-    required double speed = 1 [
-        (dccl.field) = {
-            min: 0
-            max: 10
-            precision: 1
-            units { derived_dimensions: "velocity" }
-        },
-        (jaia.field).rest_api.presence = GUARANTEED
-    ];
-
-    // uncertainty metrics are either std of driflets within Station Keep (n > 1), or default uncertainty metric derived from static testing (n = 1)
-    required double speed_uncertainty = 2 [
-        (dccl.field) = {
-            min: 0.05
-            max: 2.0
-            precision: 2
-            units { derived_dimensions: "velocity" }
-        },
-        (jaia.field).rest_api.presence = GUARANTEED
-    ];
-
-    required double heading = 3 [
-        (dccl.field) = {
-            min: 0
-            max: 360
-            precision: 0
-            units {
-                derived_dimensions: "plane_angle"
-                system: "angle::degree"
-            }
-        },
-        (jaia.field).rest_api.presence = GUARANTEED
-    ];
-
-    required double heading_uncertainty = 4 [
-        (dccl.field) = {
-            min: 0.1
-            max: 15.0
-            precision: 1
-            units {
-                derived_dimensions: "plane_angle"
-                system: "angle::degree"
-            }
-        },
-        (jaia.field).rest_api.presence = GUARANTEED
-    ];
-
-    // location to associate measurement with, currently mean lat/lon of stationkeep
-    optional GeographicCoordinate location = 5
-        [(jaia.field).rest_api.presence = GUARANTEED];
-}
-
-message WavePacket
-{
-    option (dccl.msg) = {
-        unit_system: "si"
-    };
-
-    // significant wave height calculated and reported during each stationkeep
-    // hub will ignore significant wave heights calculated from surface drifts
-    // source of WavePacket determined using wrapping TaskPacket's type field
-
-    optional double significant_wave_height = 1 [
-        (dccl.field) = {
-            min: 0.1 // real value informed by noise floor
-            max: 5.0
-            precision: 1
-            units { derived_dimensions: "length" }
-        },
-        (jaia.field).rest_api.presence = GUARANTEED
-    ];
-
-    optional double wave_height_stdev = 3 [
-        (dccl.field) = {
-            min: 0.1 
-            max: 1.0
-            precision: 2
-            units { derived_dimensions: "length" }
-        },
-        (jaia.field).rest_api.presence = GUARANTEED
-    ];
-
-    // wave period calculated during furthest offshore stationkeep or during surface drift
-
-    optional double period = 3 [
-        (dccl.field) = {
-            min: 2.0 // real value informed by natural frequency of bot
-            max: 30.0
-            precision: 1
-            units { base_dimensions: "T" }
-        },
-        (jaia.field).rest_api.presence = GUARANTEED
-    ];
-
-    optional double wave_period_stdev = 5 [
+    optional double wave_period_stdev = 4 [
         (dccl.field) = {
             min: 1.0 
             max: 3.0
