@@ -645,19 +645,9 @@ message WavePacket
         unit_system: "si"
     };
 
-    // Whether WavePacket was generated from a stationkeep or a drift
-    enum PacketOrigin
-    {
-        STATIONKEEP = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
-        DRIFT = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
-    }
+    // wave height calculated and reported during each stationkeep
 
-    required PacketOrigin packet_origin = 1
-        [(jaia.field).rest_api.presence = GUARANTEED];
-
-    // wave height calculated during stationkeeps
-
-    optional double wave_height = 2 [
+    optional double wave_height = 1 [
         (dccl.field) = {
             min: 0.1 // real value informed by noise floor
             max: 5.0
@@ -667,7 +657,7 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    optional double wave_height_std = 3 [
+    optional double wave_height_std = 2 [
         (dccl.field) = {
             min: 0.1 
             max: 1.0
@@ -677,9 +667,9 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    // wave period calculated during drifts
+    // wave period calculated during furthest offshore stationkeep
 
-    optional double wave_period = 4 [
+    optional double wave_period = 3 [
         (dccl.field) = {
             min: 2.0 // real value informed by natural frequency of bot
             max: 30.0
@@ -689,7 +679,7 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    optional double wave_period_std = 5 [
+    optional double wave_period_std = 4 [
         (dccl.field) = {
             min: 1.0 
             max: 3.0
@@ -699,8 +689,8 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    // location to associate measurement with, currently mean lat/lon of stationkeep/drift
-    optional GeographicCoordinate location = 6
+    // location to associate measurement with, currently mean lat/lon of stationkeep
+    optional GeographicCoordinate location = 5
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
