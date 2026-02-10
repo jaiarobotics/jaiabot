@@ -160,16 +160,6 @@ f${fleet_id}.cloud.jaia.tech {
         import authelia_forward_auth
         reverse_proxy [$ch_ip]:80
 }
-
-jcu.f${fleet_id}.cloud.jaia.tech {
-        import authelia_forward_auth
-        reverse_proxy [$ch_ip]:9091
-}
-
-jdv.f${fleet_id}.cloud.jaia.tech {
-        import authelia_forward_auth
-        reverse_proxy [$ch_ip]:40010
-}
 EOF
 done
 
