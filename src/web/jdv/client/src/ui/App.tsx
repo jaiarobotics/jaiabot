@@ -6,11 +6,11 @@ import JaiaMap from "./JaiaMap";
 import LogSelector from "./LogSelector";
 import TimeSlider from "./TimeSlider";
 import { Plots } from "./Plots";
-import { SeriesDescriptor } from "../model/SeriesDescriptor";
 
 import { createMeasureInteraction } from "../tools/interactions";
 import { LogApi } from "../model/LogApi";
 import { Plot } from "../model/Plot";
+import { SeriesDescriptor } from "../model/SeriesDescriptor";
 import { Draw } from "ol/interaction";
 
 import "../styles/styles.css";
