@@ -7,7 +7,7 @@ mkswap /swapfile
 swapon /swapfile
 echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
 
-# Install script for pulling data from old cloud.jaia.tech (if relevant)
+# Install script for pulling data from old server (if relevant)
 setup_script=/home/jaia/setup_jaia_database.sh
 cat <<EOF > ${setup_script}
 #!/bin/bash
