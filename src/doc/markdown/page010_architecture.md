@@ -26,16 +26,14 @@ In addition, we expect to support clients using `ROS` in the future.
 - `goby_liaison`: Host a web interface on the platform to view and send Goby messages.
 - `goby_logger`: Subscribes to messages in the gobyd and logs them to the disk.
 - `goby_moos_gateway`: Gateway to MOOS applications.
-- `goby_ros_gateway`: Gateway to ROS middleware (not yet written).
+- `goby_ros_gateway`: Gateway to ROS middleware.
 - `goby_opencpn_interface`: Interface from Goby3 to OpenCPN (not run from systemd, but feel free to use in the simulator).
 - `gobyd`: The Goby3 daemon which handles the publishing and subscribing.
 
 #### In jaiabot project
 
-- `jaiabot_adafruit_bno055_driver`: Middleman between our `jaiabot_imu_py` driver and the Goby system. Listens on UDP to Python driver and republishes as a Goby3 message.
 - `jaiabot_as-ezo-ec_py`: Python driver for Atlas Scientific conductivity sensor.
-- `jaiabot_atlas_scientific_ezo_ec_driver`: Middleman between our `jaiabot_as-ezo-ec_py` driver and the Goby system. Listens on UDP to Python driver and republishes as a Goby3 message.
-- `jaiabot_bluerobotics_pressure_sensor_driver`: Middleman between our `jaiabot_pressure_sensor_py` driver and the Goby system. Listens on UDP to Python driver and republishes as a Goby3 message.
+- `jaiabot_udp_gateway`: Middleman between our python drivers and the Goby system. Listens on UDP to Python driver and republishes as a Goby3 message.
 - `jaiabot_driver_arduino`: This is the driver for the Arduino which controls the elevators, rudder, motor, diagnostic LEDs, and power monitoring.
 - `jaiabot_engineering`: Handles commands from the Engineering Interface web page to set and test low level functionality.
 - `jaiabot_fusion`: Assembles the `goby::middleware::frontseat::protobuf::NodeStatus` message used by the `goby_moos_gateway` from the `goby_gps` output, pressure sensor, and other sources, as needed.

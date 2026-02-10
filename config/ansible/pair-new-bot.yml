@@ -1,0 +1,32 @@
+---
+- name: Pair new bot
+  hosts: hubs
+  become: yes
+  gather_facts: no
+  pre_tasks:
+    - name: Check if bot_id is valid
+      assert:
+        that:
+          - bot_id is defined
+          - bot_id is regex("^[0-9]+$")
+        fail_msg: "Invalid bot_id: must be defined and an integer"
+  tasks:
+    - include_tasks: tasks/read-debconf.yml
+
+    - name: Remove known_hosts entry for the bot if it exists
+      shell: |
+        ip=$(jaia ip b{{ bot_id }}f{{ jaiabot_embedded_fleet_id }})
+        sudo -u jaia ssh-keygen -R $ip
+
+    - name: Fetch inventory from new bot
+      shell: |
+        ip=$(jaia ip b{{ bot_id }}f{{ jaiabot_embedded_fleet_id }})
+        # need to use jaia's user's ssh configuration
+        sudo -u jaia rsync -aP ${ip}:/etc/jaiabot/inventory.yml /tmp/inventory.yml
+        mv /tmp/inventory.yml /etc/jaiabot/inventory.yml
+ 
+    - name: Reboot hub to allow new inventory to take effect
+      # since we're running this on the hub, we will reboot the machine running ansible
+      # this precludes using the reboot builtin
+      shell: "nohup /bin/bash -c 'sleep 5 && systemctl reboot &' > /dev/null"
+

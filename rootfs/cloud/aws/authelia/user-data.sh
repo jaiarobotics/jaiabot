@@ -88,7 +88,7 @@ authentication_backend:
 access_control:
   default_policy: 'deny'
   rules:
-    - domain_regex: '^(jdv\.|jcu\.|)(?P<Group>\w+)\.cloud\.jaia\.tech$'
+    - domain: '{group}.cloud.jaia.tech'
       policy: 'two_factor'
     - domain: 'lldap.cloud.jaia.tech'
       policy: 'two_factor'
@@ -109,7 +109,7 @@ storage:
 notifier:
   smtp:
     address: 'smtp://smtp-relay.gmail.com:587'
-    sender: 'Jaia <info@jaia.tech>'
+    sender: 'Jaia <noreply@jaia.tech>'
     # Currently we are using GobySoft's SMTP relay (Google Workspace)
     identifier: 'gobysoft.org'
     subject: '[Jaia Cloud] {title}'
@@ -129,7 +129,7 @@ auth.cloud.jaia.tech {
 }
 
 # Protected Endpoints.
-(authelia_foward_auth) {
+(authelia_forward_auth) {
 	forward_auth localhost:9091 {
 		uri /api/authz/forward-auth
 		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
@@ -137,12 +137,12 @@ auth.cloud.jaia.tech {
 }
 
 lldap.cloud.jaia.tech {
-        import authelia_foward_auth
+        import authelia_forward_auth
         reverse_proxy :17170
 }
 
 cc.cloud.jaia.tech {
-        import authelia_foward_auth
+        import authelia_forward_auth
         reverse_proxy [2600:1f13:501:a400:546a:73cf:10af:9579]:80
 }
 
@@ -157,17 +157,17 @@ for fleet_id in $fleets; do
     ch_ip=$(jaia-ip.py --net=cloudhub_vpn --fleet_id=${fleet_id} --node=hub --node_id=30 --ipv6 addr)
     cat <<EOF >> /etc/caddy/Caddyfile
 f${fleet_id}.cloud.jaia.tech {
-        import authelia_foward_auth
+        import authelia_forward_auth
         reverse_proxy [$ch_ip]:80
 }
 
 jcu.f${fleet_id}.cloud.jaia.tech {
-        import authelia_foward_auth
+        import authelia_forward_auth
         reverse_proxy [$ch_ip]:9091
 }
 
 jdv.f${fleet_id}.cloud.jaia.tech {
-        import authelia_foward_auth
+        import authelia_forward_auth
         reverse_proxy [$ch_ip]:40010
 }
 EOF
