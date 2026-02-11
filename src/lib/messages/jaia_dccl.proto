@@ -658,9 +658,9 @@ message WavePacket
         unit_system: "si"
     };
 
-    // wave height calculated and reported during each stationkeep
+    // significant wave height calculated and reported during each stationkeep
 
-    optional double wave_height = 1 [
+    optional double significant_wave_height = 1 [
         (dccl.field) = {
             min: 0.1 // real value informed by noise floor
             max: 5.0
@@ -670,7 +670,7 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    optional double wave_height_stdev = 2 [
+    optional double hs_stdev = 2 [
         (dccl.field) = {
             min: 0.1 
             max: 1.0
@@ -692,7 +692,8 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    optional double wave_period_stdev = 4 [
+    optional double period_stdev = 4 [
+        default = 2.0,
         (dccl.field) = {
             min: 1.0 
             max: 3.0
