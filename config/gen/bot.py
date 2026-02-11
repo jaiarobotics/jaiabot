@@ -67,6 +67,7 @@ bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 echo_enabled=(bot_type == "ECHO")
 
 surob_surge_currents_enabled=(bot_type == "HYDRO" or bot_type == "ECHO")
+surob_surge_waves_enabled=(bot_type == "HYDRO" or bot_type == "ECHO")
 
 jaia_motor_harness_type="NONE"
 
@@ -311,7 +312,8 @@ elif common.app == 'jaiabot_udp_gateway':
                                      udp_gateway_port=udp_gateway_port,
                                      echo_enabled=str(echo_enabled).lower(),
                                      tsys01_enabled=str(tsys01_enabled).lower(),
-                                     surob_surge_currents_enabled=str(surob_surge_currents_enabled).lower()))
+                                     surob_surge_currents_enabled=str(surob_surge_currents_enabled).lower(),
+                                     surob_surge_waves_enabled=str(surob_surge_waves_enabled).lower()))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,

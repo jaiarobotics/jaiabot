@@ -12,3 +12,4 @@ in_simulation: $in_simulation
 tsys01_enabled: $tsys01_enabled
 echo_enabled: $echo_enabled
 surob_surge_currents_enabled: $surob_surge_currents_enabled
+surob_surge_waves_enabled: $surob_surge_waves_enabled
