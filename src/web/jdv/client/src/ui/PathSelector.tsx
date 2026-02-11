@@ -9,7 +9,7 @@ interface PathSelectorProps {
     logs: string[];
     didCancel: () => void;
     didSelectPath: (path: string) => void;
-    seriesDescrriptors: SeriesDescriptor[];
+    seriesDescriptors: SeriesDescriptor[];
 }
 
 interface PathSelectorState {
@@ -82,7 +82,7 @@ export default class PathSelector extends React.Component {
     }
 
     load_series_descriptors() {
-        this.setState({ search_index: new PathIndex(this.props.seriesDescrriptors) });
+        this.setState({ search_index: new PathIndex(this.props.seriesDescriptors) });
     }
 
     componentDidMount() {

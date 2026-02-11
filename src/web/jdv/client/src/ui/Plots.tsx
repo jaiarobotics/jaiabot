@@ -46,7 +46,7 @@ export interface PlotsProps {
     plots: Plot[];
     t: number;
     visibleTimeRange: number[];
-    seriesDescrriptors: SeriesDescriptor[];
+    seriesDescriptors: SeriesDescriptor[];
 }
 
 export function Plots(props: PlotsProps) {
@@ -455,7 +455,7 @@ export function Plots(props: PlotsProps) {
                 didCancel={() => {
                     setIsPathSelectorDisplayed(false);
                 }}
-                seriesDescrriptors={props.seriesDescrriptors}
+                seriesDescriptors={props.seriesDescriptors}
             />
         );
     } else {

@@ -142,7 +142,7 @@ export class App extends React.Component {
                         t={this.state.t}
                         delegate={this}
                         visibleTimeRange={this.state.visibleTimeRange}
-                        seriesDescrriptors={this.seriesDescriptors}
+                        seriesDescriptors={this.seriesDescriptors}
                     />
 
                     <div id="mapPane" className="rounded clipped shadowed margin">
@@ -383,7 +383,7 @@ export class App extends React.Component {
                 });
 
                 // Get the series descriptors
-                const getSeriesDescriptors = LogApi.getAllSeriesDescriptors(
+                const getSeriesDescriptorsJob = LogApi.getAllSeriesDescriptors(
                     this.state.chosenLogs,
                 ).then((seriesDescriptors) => {
                     this.seriesDescriptors = seriesDescriptors;
@@ -397,7 +397,7 @@ export class App extends React.Component {
                     getTaskPacketsJob,
                     getDepthContoursJob,
                     getDriftInterpolationsJob,
-                    getSeriesDescriptors,
+                    getSeriesDescriptorsJob,
                 ])
                     .catch(exceptionCatcher)
                     .finally(() => {
