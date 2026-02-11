@@ -33,6 +33,24 @@ message UDPGatewayEnvelope
             bool heartbeat = 6;
         }
     }
+
+    message SurobWavesPayload
+    {
+        oneof payload
+        {
+            // wave estimate from Python app
+            TaskPacket task_packet = 1;
+            
+            // data messages sent to Python app, logged to compute wave estimate
+            goby.middleware.protobuf.gpsd.TimePositionVelocity time_position_velocity = 2;
+
+            // mission state sent to Python app to start/stop data logging
+            MissionReport mission_report = 3;
+
+            // packet sent by Python app on startup and on regular interval to direct udp_gateway app to Python app address
+            bool heartbeat = 4;
+        }
+    }
     
     oneof payload
     {
@@ -49,6 +67,7 @@ message UDPGatewayEnvelope
         EchoData echo_data = 7;
 
         SurobCurrentsPayload surob_currents_payload = 8;
+        SurobWavesPayload surob_waves_payload = 9;
     }
 
 }
