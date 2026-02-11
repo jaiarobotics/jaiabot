@@ -135,6 +135,7 @@ def process_logged_data(h5_log_path, log):
         gps_df['ts'] = gps_df['ts'] / 1_000_000_000.0
 
         # TODO: compute wave statistics in wave_analysis_lib and return dictionary of results
+        return wal.process_station_keep_dict_gps_only(gps_df.to_dict())
 
     except (FileNotFoundError, OSError, KeyError) as e:
         log.exception(f"Error processing data from {h5_log_path}: {e}")
