@@ -24,6 +24,7 @@ import {
     Plot_get_plot_to_use,
 } from "../model/Plot";
 import { PlotProfiles } from "../model/PlotProfiles";
+import { SeriesDescriptor } from "../model/SeriesDescriptor";
 
 import PathSelector from "./PathSelector";
 import { OpenPlotSet } from "./OpenPlotSet";
@@ -45,6 +46,7 @@ export interface PlotsProps {
     plots: Plot[];
     t: number;
     visibleTimeRange: number[];
+    seriesDescriptors: SeriesDescriptor[];
 }
 
 export function Plots(props: PlotsProps) {
@@ -453,6 +455,7 @@ export function Plots(props: PlotsProps) {
                 didCancel={() => {
                     setIsPathSelectorDisplayed(false);
                 }}
+                seriesDescriptors={props.seriesDescriptors}
             />
         );
     } else {
