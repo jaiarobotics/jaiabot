@@ -1,7 +1,6 @@
 // Copyright 2026:
 //   JaiaRobotics LLC
 // File authors:
-//   Toby Schneider <toby@gobysoft.org>
 //   Ed Sanville <edsanville@gmail.com>
 //
 // This file is part of the JaiaBot Project Binaries
