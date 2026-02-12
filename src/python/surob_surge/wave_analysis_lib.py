@@ -7,7 +7,7 @@ from scipy.signal import butter, sosfiltfilt, welch
 GPS_NPERSEG = 512
 PSD_MIN_NPERSEG = 64
 PSD_OVERLAP_FRAC = 0.5
-MIN_STATION_KEEP_LENGTH_M = 10
+MIN_STATION_KEEP_LENGTH_M = 1 # TODO: Reset to 10 after testing is complete
 MIN_STATION_KEEP_LENGTH_S = MIN_STATION_KEEP_LENGTH_M*60
 
 # ============================================================
