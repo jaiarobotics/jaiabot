@@ -12,6 +12,8 @@ export class PathIndex {
     delimiter: RegExp = /[\s/_]+/;
 
     constructor(seriesDescriptors: SeriesDescriptor[], delimiter: RegExp = /[\s/_]+/) {
+        console.debug("** PathIndex Constructor called with seriesDescriptors **");
+        console.debug(seriesDescriptors);
         this.delimiter = delimiter;
 
         let title_keyword_map = new Map<string, SeriesDescriptor[]>();

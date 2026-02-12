@@ -10,6 +10,7 @@ import { Plots } from "./Plots";
 import { createMeasureInteraction } from "../tools/interactions";
 import { LogApi } from "../model/LogApi";
 import { Plot } from "../model/Plot";
+import { SeriesDescriptor } from "../model/SeriesDescriptor";
 import { Draw } from "ol/interaction";
 
 import "../styles/styles.css";
@@ -65,6 +66,7 @@ export class App extends React.Component {
     state: State;
     map: JaiaMap;
     plot_div_element: any;
+    seriesDescriptors: SeriesDescriptor[];
 
     constructor(props: AppProps) {
         super(props);
@@ -140,6 +142,7 @@ export class App extends React.Component {
                         t={this.state.t}
                         delegate={this}
                         visibleTimeRange={this.state.visibleTimeRange}
+                        seriesDescriptors={this.seriesDescriptors}
                     />
 
                     <div id="mapPane" className="rounded clipped shadowed margin">
@@ -390,6 +393,13 @@ export class App extends React.Component {
                     this.map.updateWithDriftInterpolationGeoJSON(geoJSON);
                 });
 
+                // Get the series descriptors
+                const getSeriesDescriptorsJob = LogApi.getAllSeriesDescriptors(
+                    this.state.chosenLogs,
+                ).then((seriesDescriptors) => {
+                    this.seriesDescriptors = seriesDescriptors;
+                });
+
                 this.startBusyIndicator();
                 Promise.all([
                     getMapJob,
@@ -398,6 +408,7 @@ export class App extends React.Component {
                     getTaskPacketsJob,
                     getDepthContoursJob,
                     getDriftInterpolationsJob,
+                    getSeriesDescriptorsJob,
                 ])
                     .catch(exceptionCatcher)
                     .finally(() => {
@@ -471,7 +482,6 @@ export class App extends React.Component {
     setPaths(pathArray: string[]) {
         console.debug(`Selected paths: ${pathArray}`);
 
-        this.setState({ isPathSelectorDisplayed: false });
         this.startBusyIndicator();
 
         LogApi.getSeries(this.state.chosenLogs, pathArray)
