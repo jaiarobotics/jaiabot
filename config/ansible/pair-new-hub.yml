@@ -1,0 +1,71 @@
+---
+- name: Pair new hub - Hub staging
+  hosts: hubs
+  become: yes
+  gather_facts: no
+  vars_files:
+    - vars/new-hub.yml
+  tasks:
+    - include_tasks: tasks/read-debconf.yml
+
+    - name: Set fact for fleet configuration
+      set_fact:
+        iso_fleet_cfg: "/var/www/html/updates/major_upgrade/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
+        local_fleet_cfg: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
+
+    - name: Check if the iso fleet config file exists 
+      stat:
+        path: "{{ iso_fleet_cfg }}"
+      register: iso_fleet_file
+
+    - name: Fail if file doesn't exist
+      fail:
+        msg: "Fleet configuration doesn't exist: ensure USB key or CD is installed with embedded fleet configuration"
+      when: not iso_fleet_file.stat.exists
+      
+    - name: Create staging directory
+      file:
+        path: "{{ staging_dir }}"
+        state: directory
+      
+    - name: Copy new_hub.sh.j2 template script to hub
+      copy:
+        src: "files/new_hub.sh.j2"
+        dest: "{{ staging_dir }}/new_hub.sh.j2"
+      
+    - name: Create new_hub.sh file using fleet configuration
+      shell: |
+        # update the local fleet configuration
+        cp {{ iso_fleet_cfg }} {{ local_fleet_cfg }}
+
+        # generate script for updating all nodes
+        jaia admin fleet generate --bootdir={{ staging_dir }} {{ local_fleet_cfg }} {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }} --action new_hub_script
+
+    - name: Fetch new_hub.sh script to control computer (may or may not be the hub)
+      fetch:
+        src: "{{ staging_dir }}/new_hub.sh"
+        dest: "{{ control_staging_dir }}/new_hub.sh"
+        flat: true
+        
+- name: Pair new hub - Update all bots and hub
+  hosts: all
+  become: yes
+  gather_facts: yes
+  vars_files:
+    - vars/new-hub.yml
+  tasks:
+    - name: Create staging directory
+      file:
+        path: "{{ staging_dir }}"
+        state: directory
+
+    - name: Copy new_hub.sh script to all hosts from control computer
+      copy:
+        src: "{{ control_staging_dir }}/new_hub.sh"
+        dest: "{{ staging_dir }}/new_hub.sh"
+        mode: a+x        
+
+    - name: Run the script
+      shell: |      
+        {{ staging_dir }}/new_hub.sh
+
