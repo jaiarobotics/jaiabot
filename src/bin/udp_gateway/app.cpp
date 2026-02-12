@@ -405,7 +405,7 @@ void jaiabot::apps::UDPGateway::send_surob_currents_payload(const jaiabot::proto
     send_envelope(envelope, surob_currents_udp_src_);
 }
 
-void jaiabot::apps::UDPGateway::send_surob_currents_payload(
+void jaiabot::apps::UDPGateway::send_surob_waves_payload(
     const jaiabot::protobuf::UDPGatewayEnvelope::SurobWavesPayload& surob_waves_payload)
 {
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
