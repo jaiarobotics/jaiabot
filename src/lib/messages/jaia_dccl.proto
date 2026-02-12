@@ -627,6 +627,12 @@ message TaskPacket
     optional DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];
+
+    optional bytes mission_uuid = 12 [
+        (dccl.field).max_length = 16,
+        (dccl.field).omit = true  // not sent over radio, only saved to local goby file for offload
+    ];
+
 }
 
 message ContactUpdate
