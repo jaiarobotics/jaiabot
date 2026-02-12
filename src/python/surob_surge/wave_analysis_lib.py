@@ -2,11 +2,13 @@ import numpy as np
 from scipy.signal import butter, sosfiltfilt, welch
 
 # ============================================================
-# Constants / Regex
+# Constants
 # ============================================================
 GPS_NPERSEG = 512
 PSD_MIN_NPERSEG = 64
 PSD_OVERLAP_FRAC = 0.5
+MIN_STATION_KEEP_LENGTH_M = 10
+MIN_STATION_KEEP_LENGTH_S = MIN_STATION_KEEP_LENGTH_M*60
 
 # ============================================================
 # General helper functions
@@ -202,6 +204,9 @@ def process_station_keep_dict_gps_only(
     epv = np.asarray(sk.get("epv", []), float)
     lat = np.asarray(sk.get("lat", []), float)
     lon = np.asarray(sk.get("lon", []), float)
+
+    if tpv_time[-1] - tpv_time[0] < MIN_STATION_KEEP_LENGTH_S:
+        return out
 
     gps_fs_calc = fs_from_epoch_rounded(tpv_time) if tpv_time.size else np.nan
     gps_fs_used = int(np.round(gps_fs_override)) if gps_fs_override is not None else gps_fs_calc
