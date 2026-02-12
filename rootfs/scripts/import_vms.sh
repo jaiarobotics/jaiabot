@@ -5,10 +5,15 @@
 #set -x
 set -u -e
 
+tmp_dir=$(mktemp -d)
+
+echo "Using tmp_dir: ${tmp_dir}"
+#trap "rm -rf $tmp_dir" EXIT
+
 source includes/import_utils.sh
 
 if [ ! $# -eq 4 ]; then
-   echo "Usage ./import_vms.sh vm.ova n_bots n_hubs fleet_id"
+   echo "Usage ./import_vms.sh vm.ova n_bots|bots_comma_separated_list n_hubs|hubs_comma_separated_list fleet_id"
    exit 1;
 fi
 
@@ -16,9 +21,21 @@ fi
 sudo bash -c "exit"
 
 OVA="$1"
-N_BOTS="$2"
-N_HUBS="$3"
+BOTS_PARAM="$2"
+HUBS_PARAM="$3"
 FLEET="$4"
+
+if echo "${BOTS_PARAM}" | grep -q ","; then
+    IFS=',' read -r -a BOTS <<< "$BOTS_PARAM"
+else
+    BOTS=($(seq 1 ${BOTS_PARAM}))
+fi
+
+if echo "${HUBS_PARAM}" | grep -q ","; then
+    IFS=',' read -r -a HUBS <<< "$HUBS_PARAM"
+else
+    HUBS=($(seq 1 ${HUBS_PARAM}))    
+fi
 
 OVA_BASENAME=$(basename $OVA)
 OVA_EXTENSION="${OVA_BASENAME##*.}"
@@ -26,10 +43,21 @@ GROUP="/${OVA_BASENAME%.*}"
 
 GROUP=$(echo "$GROUP" | sed 's/[\+~\.]/_/g')
 
-if vboxmanage list groups | grep -q "\"${GROUP}\""; then
-    echo "Group \"${GROUP}\" already exists. Please delete all VMs from this group before re-importing"
-    exit 1;
-fi
+for n in "${BOTS[@]}"; do
+    if [ -z "$n" ]; then continue; fi
+    if VBoxManage list vms -l | awk -v RS= "/Groups:.*\\${GROUP}/" | grep '^Name:' | grep -q bot$n; then
+        echo "bot${n} in group \"${GROUP}\" already exists. Please delete this VM from this group before re-importing"
+        exit 1;
+    fi
+done
+
+for n in "${HUBS[@]}"; do
+    if [ -z "$n" ]; then continue; fi
+    if VBoxManage list vms -l | awk -v RS= "/Groups:.*\\${GROUP}/" | grep '^Name:' | grep -q hub$n; then
+        echo "hub${n} in group \"${GROUP}\" already exists. Please delete this VM from this group before re-importing"
+        exit 1;
+    fi
+done
 
 if [[ "${OVA_EXTENSION}" != "ova" ]]; then
     echo "Expecting .ova for first argument, got $OVA"
@@ -60,28 +88,50 @@ function import_bot_or_hub()
     echo "Disk UUID: $DISKUUID"
     write_preseed $DISKUUID $n ${bot_or_hub}
 
-    [[ "$bot_or_hub" == "bot" ]] && GUEST_SSH_PORT=$((100+n)) || GUEST_SSH_PORT=$((10+n))
-    
-    vboxmanage natnetwork modify --netname ${NATNET_NAME} --port-forward-4="ssh ${VMNAME}:tcp:[]:${HOST_SSH_PORT}:[10.23.${FLEET}.${GUEST_SSH_PORT}]:22"
+}
 
+function network_bot_or_hub()
+{
+    local bot_or_hub=$1
+    local n=$2
+    VMNAME="${bot_or_hub}${n}"
+    [[ "$bot_or_hub" == "bot" ]] && GUEST_SSH_PORT=$((100+n)) || GUEST_SSH_PORT=$((10+n))    
+    (set -x
+     vboxmanage natnetwork modify --netname ${NATNET_NAME} --port-forward-4="ssh ${VMNAME}:tcp:[]:${HOST_SSH_PORT}:[10.23.${FLEET}.${GUEST_SSH_PORT}]:22"
+    )
     SSH_CONFIG+="Host ${VMNAME}-virtualfleet${FLEET}\n  User jaia\n  Port ${HOST_SSH_PORT}\n  HostName 127.0.0.1\n"
-    
-    HOST_SSH_PORT=$((HOST_SSH_PORT + 1))    
+    HOST_SSH_PORT=$((HOST_SSH_PORT + 1))
 }
 
 
-HUB_KEY_DIR=/tmp/jaia_vm_hub_keys
+HUB_KEY_DIR=${tmp_dir}/jaia_vm_hub_keys
 mkdir -p ${HUB_KEY_DIR}
 
 perm_ssh_keys=$(cat $HOME/.ssh/*.pub | sed 's/^/permanent_authorized_keys: "/' | sed 's/$/"/')
 
-cat <<EOF > /tmp/fleet.cfg
+# Get all the existing bots / hubs in this fleet
+EXISTING_BOTS=()
+EXISTING_HUBS=()
+while read -r _ name; do
+    if [[ $name == bot* ]]; then
+        EXISTING_BOTS+=("${name#bot}")
+    elif [[ $name == hub* ]]; then
+        EXISTING_HUBS+=("${name#hub}")
+    fi
+done <<< "$(VBoxManage list vms -l | awk -v RS= "/Groups:.*\\${GROUP}/" | grep '^Name:')"
+
+ALL_BOTS=(${BOTS[@]} ${EXISTING_BOTS[@]})
+ALL_HUBS=(${HUBS[@]} ${EXISTING_HUBS[@]})
+
+cat <<EOF > ${tmp_dir}/fleet.cfg
 fleet: ${FLEET}
-hubs: [$(seq -s "," 1 ${N_HUBS})]
-bots: [$(seq -s "," 1 ${N_BOTS})]
+hubs: [$(IFS=,; echo "${ALL_HUBS[*]}")]
+bots: [$(IFS=,; echo "${ALL_BOTS[*]}")]
 ssh {
 ${perm_ssh_keys}
-$(for HUB in `seq 1 $((N_HUBS))`; do
+$(for HUB in "${HUBS[@]}"; do
+     if [ -z "$HUB" ]; then continue; fi
+
     KEYNAME="hub${HUB}_fleet${FLEET}"
     PRIVKEY="${HUB_KEY_DIR}/${KEYNAME}"
     PUBKEY="${PRIVKEY}.pub"
@@ -118,13 +168,24 @@ debconf {
 
 EOF
 
-
-for n in `seq 1 $((N_BOTS))`; do
+for n in "${BOTS[@]}"; do
+    if [ -z "$n" ]; then continue; fi
     import_bot_or_hub bot $n
 done
 
-for n in `seq 1 $((N_HUBS))`; do
+for n in "${HUBS[@]}"; do
+    if [ -z "$n" ]; then continue; fi
     import_bot_or_hub hub $n
+done
+
+for n in "${ALL_BOTS[@]}"; do
+    if [ -z "$n" ]; then continue; fi
+    network_bot_or_hub bot $n
+done
+
+for n in "${ALL_HUBS[@]}"; do
+    if [ -z "$n" ]; then continue; fi
+    network_bot_or_hub hub $n
 done
 
 rm -rf ${HUB_KEY_DIR}

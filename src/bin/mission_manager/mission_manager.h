@@ -1,3 +1,27 @@
+// Copyright 2026:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//   Ed Sanville <edsanville@gmail.com>
+//   Michael Twomey <michael.twomey@jaia.tech>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
 #ifndef JAIABOT_BIN_MISSION_MANAGER_MISSION_MANAGER_H
 #define JAIABOT_BIN_MISSION_MANAGER_MISSION_MANAGER_H
 
@@ -39,17 +63,13 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
-    bool health_considered_ok(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
-
     void handle_command(const protobuf::Command& command);
     bool handle_command_fragment(const protobuf::Command& input_command_fragment,
                                  protobuf::Command& out_command);
     void handle_bottom_dive_safety_params(const protobuf::BottomDepthSafetyParams);
 
+    bool health_considered_ok(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
     void handle_self_test_results(bool result); // TODO: replace with Protobuf message
-    double deg2rad(const double& deg);
-    double distanceToGoal(const double& lat1d, const double& lon1d, const double& lat2d,
-                          const double& lon2d);
     void intervehicle_subscribe(const jaiabot::protobuf::IntervehicleSubscribeRequest& req);
 
     void check_forward_progress();

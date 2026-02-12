@@ -155,11 +155,12 @@ export class JaiaGlobal {
      */
 
     restoreFromSnapshot(snapshot: JaiaGlobalSnapshot) {
-        this.selectedNode = snapshot.selectedNode;
-        this.selectedWaypoint = snapshot.selectedWaypoint;
-        this.selectedTaskPacket = snapshot.selectedTaskPacket;
-        this.mapMode = snapshot.mapMode;
-        this.defaultTaskParameters = snapshot.defaultTaskParameters;
+        const restored = cloneDeep(snapshot);
+        this.selectedNode = restored.selectedNode;
+        this.selectedWaypoint = restored.selectedWaypoint;
+        this.selectedTaskPacket = restored.selectedTaskPacket;
+        this.mapMode = restored.mapMode;
+        this.defaultTaskParameters = restored.defaultTaskParameters;
     }
 }
 

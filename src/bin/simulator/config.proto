@@ -46,10 +46,8 @@ message Simulator
     optional goby.apps.moos.protobuf.GobyMOOSGatewayConfig.MOOSConfig moos = 10;
 
     optional goby.middleware.protobuf.UDPPointToPointConfig gps_udp_config = 20;
-    optional goby.middleware.protobuf.UDPPointToPointConfig
-        pressure_udp_config = 21;
-    optional goby.middleware.protobuf.UDPPointToPointConfig
-        salinity_udp_config = 22;
+
+    optional goby.middleware.protobuf.UDPPointToPointConfig udp_gateway_config = 21;
 
     // allow simulator without GPS by setting this false
     optional bool enable_gps = 25 [default = true];

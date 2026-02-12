@@ -256,10 +256,13 @@ function getWaypointColor(mission: Mission, waypointNum?: number) {
         if (waypointNum && shouldColorTargetWaypoint(mission, waypointNum)) {
             return OpenLayersColors.TARGET;
         }
-    } else {
-        if (mission.getMissionID() === missionSet.getMissionIDInEditMode()) {
-            return OpenLayersColors.EDIT;
-        }
+    }
+
+    if (
+        mission.getMissionID() === missionSet.getMissionIDInEditMode() &&
+        !mission.getGhostParameters().isGhost
+    ) {
+        return OpenLayersColors.EDIT;
     }
 
     if (isAssignedToSelectedBot(mission)) {

@@ -205,6 +205,8 @@ if args.pressure_sensor_type == 'bar02':
 else:
     jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BAR30
 
+UDP_GATEWAY_PORT = 20000
+
 # make the output directories, if they don't exist
 os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
 
@@ -541,23 +543,11 @@ jaiabot_apps = [
 
     ## Bot Types: HYDRO, ECHO, NONE Services
 
-    {'exe': 'jaiabot_bluerobotics_pressure_sensor_driver',
-     'description': 'JaiaBot Blue Robotics Pressure Sensor Driver',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER',
-     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
-     'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_atlas_scientific_ezo_ec_driver',
-     'description': 'JaiaBot Atlas Scientific Salinity Sensor Driver',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER',
-     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
-     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pressure_sensor.py',
      'description': 'JaiaBot Pressure Sensor Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'pressure_sensor',
-     'args': f'-t {jaia_pressure_sensor_type.value}',
+     'args': f'-t {jaia_pressure_sensor_type.value} -p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
      'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,
@@ -567,7 +557,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Salinity Sensor Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'atlas_scientific_ezo_ec',
-     'args': '20002',
+     'args': f'-p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
      'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,
@@ -576,17 +566,11 @@ jaiabot_apps = [
 
     ## ECHO Services ##
 
-    {'exe': 'jaiabot_echo_driver',
-     'description': 'JaiaBot Echo Driver',
-     'template': 'goby-app.service.in',
-     'error_on_fail': 'ERROR__FAILED__JAIABOT_ECHO_DRIVER',
-     'runs_on': [BOT_TYPE.ECHO],
-     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_echo.py',
      'description': 'JaiaBot MAI Echo Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'echo',
-     'args': '20003',
+     'args': f'-p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ECHO',
      'runs_on': [BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,
@@ -602,21 +586,24 @@ jaiabot_apps = [
      'exec_start_pre': '/usr/bin/reset-bio-payload-board.sh',
      'runs_on': [BOT_TYPE.BIO],
      'wanted_by': 'jaiabot_health.service'},
+
+     ## UDP Gateway Services ##
+    {'exe': 'jaiabot_udp_gateway',
+    'description': 'JaiaBot UDP Gateway',
+    'template': 'goby-app.service.in',
+    'error_on_fail': 'ERROR__FAILED__JAIABOT_UDP_GATEWAY',
+    'runs_on': [Type.BOT],
+    'wanted_by': 'jaiabot_health.service'},
+
 ]
 
 if jaia_imu_type.value == 'bno085':
     jaiabot_apps_imu = [
-        {'exe': 'jaiabot_adafruit_BNO085_driver',
-        'description': 'JaiaBot BNO085 IMU Sensor Driver',
-        'template': 'goby-app.service.in',
-        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO085_DRIVER',
-        'runs_on': [Type.BOT],
-        'wanted_by': 'jaiabot_health.service'},
         {'exe': 'jaiabot_imu.py',
         'description': 'JaiaBot BNO085 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO085.value} -p 20000',
+        'args': f'-t {IMU_TYPE.BNO085.value} -p {UDP_GATEWAY_PORT}',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,
@@ -626,17 +613,11 @@ if jaia_imu_type.value == 'bno085':
     jaiabot_apps.extend(jaiabot_apps_imu)
 else:
     jaiabot_apps_imu = [
-        {'exe': 'jaiabot_adafruit_BNO055_driver',
-        'description': 'JaiaBot BNO055 IMU Sensor Driver',
-        'template': 'goby-app.service.in',
-        'error_on_fail': 'ERROR__FAILED__JAIABOT_ADAFRUIT_BNO055_DRIVER',
-        'runs_on': [Type.BOT],
-        'wanted_by': 'jaiabot_health.service'},
         {'exe': 'jaiabot_imu.py',
         'description': 'JaiaBot BNO055 IMU Python Driver',
         'template': 'py-app.service.in',
         'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO055.value} -p 20000',
+        'args': f'-t {IMU_TYPE.BNO055.value} -p {UDP_GATEWAY_PORT}',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
         'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,
@@ -661,27 +642,6 @@ if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
         'restart': 'on-failure'}
     ] 
     jaiabot_apps.extend(jaiabot_apps_motor_harness_type)
-
-if jaia_temperature_sensor_type.value == 'tsys01':
-    jaiabot_apps_tsys01 = [
-        {'exe': 'jaiabot_tsys01_temperature_sensor_driver',
-        'description': 'JaiaBot TSYS01 Temperature Sensor Driver',
-        'template': 'goby-app.service.in',
-        'error_on_fail': 'ERROR__FAILED__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
-        'runs_on': [Type.BOT],
-        'wanted_by': 'jaiabot_health.service'},
-        {'exe': 'jaiabot_tsys01.py',
-        'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'tsys01_temperature_sensor',
-        'args': '-p 20006',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
-        'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'},
-    ]
-    jaiabot_apps.extend(jaiabot_apps_tsys01)
 
 if 'none' not in camera_positions_in_use:
     jaiabot_apps_camera = [

@@ -80,8 +80,6 @@ namespace apps
 {
 constexpr goby::middleware::Group web_portal_udp_in{"web_portal_udp_in"};
 constexpr goby::middleware::Group web_portal_udp_out{"web_portal_udp_out"};
-constexpr goby::middleware::Group web_portal_udp_customer_in{"web_portal_udp_customer_in"};
-constexpr goby::middleware::Group web_portal_udp_customer_out{"web_portal_udp_customer_out"};
 
 class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
 {
@@ -123,14 +121,6 @@ jaiabot::apps::WebPortal::WebPortal()
     using UDPThread =
         goby::middleware::io::UDPOneToManyThread<web_portal_udp_in, web_portal_udp_out>;
     launch_thread<UDPThread>(cfg().udp_config());
-
-    using UDPCustomerThread =
-        goby::middleware::io::UDPPointToPointThread<web_portal_udp_customer_in,
-                                                    web_portal_udp_customer_out>;
-    if (cfg().has_udp_customer_config())
-    {
-        launch_thread<UDPCustomerThread>(cfg().udp_customer_config());
-    }
 
     glog.is_debug1() && glog << group("main") << "Web Portal Started" << endl;
     glog.is_debug1() && glog << group("main") << "Config:" << cfg().ShortDebugString() << endl;
@@ -302,24 +292,6 @@ void jaiabot::apps::WebPortal::send_message_to_client(
                                  << endl;
     }
 
-    if (cfg().has_udp_customer_config())
-    {
-        // Send just task packet information for now
-        if (message.has_task_packet())
-        {
-            auto io_data = make_shared<goby::middleware::protobuf::IOData>();
-            io_data->mutable_udp_dest()->set_addr(cfg().udp_customer_config().remote_address());
-            io_data->mutable_udp_dest()->set_port(cfg().udp_customer_config().remote_port());
-
-            // Serialize for the UDP packet
-            string data;
-            message.task_packet().SerializeToString(&data);
-            io_data->set_data(data);
-
-            // Send it
-            interthread().publish<web_portal_udp_customer_out>(io_data);
-        }
-    }
 }
 
 void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& command)
