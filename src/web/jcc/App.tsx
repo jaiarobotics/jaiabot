@@ -30,6 +30,9 @@ import LoadingScreen from "../components/LoadingScreen/LoadingScreen";
 
 import "./App.less";
 
+// Duration to show loading screen during JCC initialization
+const LOADING_SCREEN_DURATION_MS = 2000;
+
 /**
  * The root of the JCC interface
  */
@@ -41,7 +44,7 @@ export default function App() {
         // Hide loading screen after initial data load
         const timer = setTimeout(() => {
             setIsLoading(false);
-        }, 2000); // Wait 2 seconds for initial data to load
+        }, LOADING_SCREEN_DURATION_MS);
 
         return () => clearTimeout(timer);
     }, []);
