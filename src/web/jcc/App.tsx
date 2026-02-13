@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useEffect } from "react";
 import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 
 import { gridPlan } from "../data/survey_planner/grid-plan";
@@ -26,33 +26,24 @@ import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 import SimulationBanner from "../components/SimulationBanner/SimulationBanner";
 import TakeControlButton from "../components/__buttons__/TakeControl/TakeControlButton/TakeControlButton";
 import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
-import LoadingScreen from "../components/LoadingScreen/LoadingScreen";
 
 import "./App.less";
-
-// Duration to show loading screen during JCC initialization
-const LOADING_SCREEN_DURATION_MS = 2000;
 
 /**
  * The root of the JCC interface
  */
 export default function App() {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Remove the initial HTML loading screen immediately when React mounts
+        // Remove the initial HTML loading screen when React mounts and is ready
         const initialLoadingScreen = document.getElementById('initial-loading-screen');
         if (initialLoadingScreen) {
-            initialLoadingScreen.remove();
+            // Small delay to ensure React has rendered before removing loading screen
+            setTimeout(() => {
+                initialLoadingScreen.remove();
+            }, 100);
         }
-
-        // Hide React loading screen after a fixed delay to allow initial UI render
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, LOADING_SCREEN_DURATION_MS);
-
-        return () => clearTimeout(timer);
     }, []);
 
     /**
@@ -65,10 +56,6 @@ export default function App() {
             document.documentElement.requestFullscreen();
         }
     };
-
-    if (isLoading) {
-        return <LoadingScreen />;
-    }
 
     return (
         <div id={JCC_CONTAINER} onClick={() => handleJCCClick()}>
