@@ -11,8 +11,12 @@ def test_myip_success():
     assert isinstance(result, str)
     assert len(result) > 0
     # Should return either a valid IP or "localhost"
-    assert result == "localhost" or all(part.isdigit() and 0 <= int(part) <= 255 
-                                        for part in result.split('.') if part)
+    if result != "localhost":
+        # Validate it's a proper IPv4 address
+        parts = result.split('.')
+        assert len(parts) == 4, f"IPv4 should have 4 octets, got {len(parts)}"
+        assert all(part.isdigit() and 0 <= int(part) <= 255 for part in parts), \
+            f"All octets should be 0-255, got {result}"
 
 
 def test_myip_handles_socket_error():
