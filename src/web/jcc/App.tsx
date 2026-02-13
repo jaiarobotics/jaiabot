@@ -41,7 +41,7 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Hide loading screen after initial data load
+        // Hide loading screen after a fixed delay to allow initial UI render
         const timer = setTimeout(() => {
             setIsLoading(false);
         }, LOADING_SCREEN_DURATION_MS);
