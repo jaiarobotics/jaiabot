@@ -7,6 +7,7 @@ import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Dashboard } from "./Dashboard/Dashboard";
 import { DiveCommand, DiveInputs, RCDiveParameters } from "./DiveControls/DiveControls";
+import { GamepadComponent } from "./GamepadComponent/GamepadComponent";
 
 import {
     CommandType,
@@ -254,6 +255,70 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     };
 
     /**
+     * Handles gamepad button press events
+     *
+     * @param {string} buttonName Name of the button pressed
+     * @returns {void}
+     */
+    const handleGamepadButtonDown = (buttonName: string) => {
+        console.log("Gamepad button down:", buttonName);
+    };
+
+    /**
+     * Handles gamepad button release events
+     *
+     * @param {string} buttonName Name of the button released
+     * @returns {void}
+     */
+    const handleGamepadButtonUp = (buttonName: string) => {
+        console.log("Gamepad button up:", buttonName);
+    };
+
+    /**
+     * Handles gamepad axis change events
+     *
+     * @param {string} axisName Name of the axis that changed
+     * @param {number} value New value of the axis (-1 to 1)
+     * @returns {void}
+     */
+    const handleGamepadAxisChange = (axisName: string, value: number) => {
+        // Left stick Y-axis controls throttle
+        if (axisName === "LeftStickY") {
+            const absValue = Math.abs(value) * 100;
+            if (absValue > RCZones.DEAD) {
+                setThrottleDirection(value < 0 ? "FORWARD" : "BACKWARD");
+                if (absValue < RCZones.LOW) {
+                    setThrottleMagnitude(1);
+                } else if (absValue < RCZones.HIGH) {
+                    setThrottleMagnitude(2);
+                } else {
+                    setThrottleMagnitude(rcOverdrive ? 3 : 2);
+                }
+            } else {
+                setThrottleDirection("");
+                setThrottleMagnitude(0);
+            }
+        }
+        // Right stick X-axis controls rudder
+        else if (axisName === "RightStickX") {
+            const absValue = Math.abs(value) * 100;
+            if (absValue > RCZones.DEAD) {
+                setRudderDirection(value > 0 ? "RIGHT" : "LEFT");
+                if (absValue < RCZones.LOW) {
+                    setRudderMagnitude(1);
+                } else if (absValue < RCZones.HIGH) {
+                    setRudderMagnitude(2);
+                } else {
+                    setRudderMagnitude(3);
+                }
+            } else {
+                setRudderDirection("");
+                setRudderMagnitude(0);
+            }
+        }
+    };
+
+    /**
      * Updates RC dive parameters in state
      *
      * @param {string} name Dive parameter changed
@@ -390,6 +455,23 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                             botId={props.botID}
                             handleRCDiveCommand={handleRCDiveCommand}
                         />
+                    </div>
+                </div>
+            );
+        case ControlTypes.GAMEPAD:
+            return (
+                <div className="remote-control-panel gamepad">
+                    <GamepadComponent
+                        onButtonDown={handleGamepadButtonDown}
+                        onButtonUp={handleGamepadButtonUp}
+                        onAxisChange={handleGamepadAxisChange}
+                    />
+                    <div className="rc-dashboard">
+                        <div className="selection-controls">
+                            {RCSelectMenu}
+                            {RCOverdrive}
+                        </div>
+                        {RCDashboard}
                     </div>
                 </div>
             );

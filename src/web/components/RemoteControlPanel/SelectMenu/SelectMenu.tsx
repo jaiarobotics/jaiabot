@@ -11,6 +11,7 @@ export enum ControlTypes {
     SINGLE = "SINGLE",
     DUAL = "DUAL",
     DIVE = "DIVE",
+    GAMEPAD = "GAMEPAD",
 }
 
 /**
@@ -28,6 +29,7 @@ export function SelectMenu(props: SelectMenuProps) {
                     <MenuItem value={ControlTypes.SINGLE}>Single</MenuItem>
                     <MenuItem value={ControlTypes.DUAL}>Dual</MenuItem>
                     <MenuItem value={ControlTypes.DIVE}>Dive</MenuItem>
+                    <MenuItem value={ControlTypes.GAMEPAD}>Gamepad</MenuItem>
                 </Select>
             </div>
         </ThemeProvider>
