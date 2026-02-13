@@ -117,6 +117,8 @@
             (function() {
                 const progressBar = document.getElementById('initial-loading-bar');
                 let progress = 10; // Start at 10%
+                let checkResourcesInterval = null;
+                let fallbackInterval = null;
                 
                 // Update progress bar
                 function updateProgress(value) {
@@ -126,15 +128,21 @@
                     }
                 }
                 
+                // Clean up intervals
+                function cleanup() {
+                    if (checkResourcesInterval) clearInterval(checkResourcesInterval);
+                    if (fallbackInterval) clearInterval(fallbackInterval);
+                }
+                
                 // Simulate initial loading stages
                 const startTime = Date.now();
                 
                 // Progress through stages as DOM loads
                 updateProgress(20); // HTML parsed
                 
-                // Monitor resource loading
+                // Monitor resource loading using Performance API
                 if (window.performance && window.performance.getEntriesByType) {
-                    const checkResources = setInterval(function() {
+                    checkResourcesInterval = setInterval(function() {
                         const resources = performance.getEntriesByType('resource');
                         const scripts = resources.filter(r => r.initiatorType === 'script');
                         
@@ -147,29 +155,38 @@
                         
                         // Clear interval after 30 seconds max
                         if (Date.now() - startTime > 30000) {
-                            clearInterval(checkResources);
+                            cleanup();
                         }
                     }, 100);
-                    
-                    // Complete when React removes the loading screen
-                    const observer = new MutationObserver(function() {
-                        const loadingScreen = document.getElementById('initial-loading-screen');
-                        if (!loadingScreen) {
-                            updateProgress(100);
-                            observer.disconnect();
+                } else {
+                    // Fallback: Increment progress over time only if Performance API unavailable
+                    fallbackInterval = setInterval(function() {
+                        if (progress < 90) {
+                            updateProgress(progress + 1);
+                        } else {
+                            clearInterval(fallbackInterval);
                         }
-                    });
-                    observer.observe(document.body, { childList: true, subtree: true });
+                    }, 300);
                 }
                 
-                // Fallback: Increment progress over time
-                const fallbackInterval = setInterval(function() {
-                    if (progress < 90) {
-                        updateProgress(progress + 1);
-                    } else {
-                        clearInterval(fallbackInterval);
-                    }
-                }, 300);
+                // Monitor for loading screen removal
+                const loadingScreen = document.getElementById('initial-loading-screen');
+                if (loadingScreen && loadingScreen.parentNode) {
+                    const observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.removedNodes.length > 0) {
+                                mutation.removedNodes.forEach(function(node) {
+                                    if (node.id === 'initial-loading-screen') {
+                                        updateProgress(100);
+                                        cleanup();
+                                        observer.disconnect();
+                                    }
+                                });
+                            }
+                        });
+                    });
+                    observer.observe(loadingScreen.parentNode, { childList: true });
+                }
                 
                 // DOM Content Loaded
                 if (document.readyState === 'loading') {
@@ -183,6 +200,7 @@
                 // Window Load (all resources loaded)
                 window.addEventListener('load', function() {
                     updateProgress(95);
+                    cleanup();
                 });
             })();
         </script>
