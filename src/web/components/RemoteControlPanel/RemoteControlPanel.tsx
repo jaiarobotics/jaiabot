@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
+import Gamepad from "react-gamepad";
 
 import JaiaToggle from "../JaiaToggle/JaiaToggle";
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Dashboard } from "./Dashboard/Dashboard";
 import { DiveCommand, DiveInputs, RCDiveParameters } from "./DiveControls/DiveControls";
-import { GamepadComponent } from "./GamepadComponent/GamepadComponent";
 
 import {
     CommandType,
@@ -401,79 +401,89 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     switch (controlType) {
         case ControlTypes.SINGLE:
             return (
-                <div className="remote-control-panel">
-                    <AnalogStick
-                        analogStickType={AnalogStickTypes.SINGLE}
-                        handleAnalogStickMove={(event) =>
-                            handleAnalogStickMove(event, AnalogStickTypes.SINGLE)
-                        }
-                        onAnalogStickStop={onAnalogStickStop}
-                    />
-                    <div className="rc-dashboard">
-                        <div className="selection-controls">
-                            {RCSelectMenu}
-                            {RCOverdrive}
-                        </div>
-                        {RCDashboard}
-                    </div>
-                </div>
-            );
-        case ControlTypes.DUAL:
-            return (
-                <div className="remote-control-panel">
-                    <AnalogStick
-                        analogStickType={AnalogStickTypes.LEFT}
-                        handleAnalogStickMove={(event) =>
-                            handleAnalogStickMove(event, AnalogStickTypes.LEFT)
-                        }
-                        onAnalogStickStop={onAnalogStickStop}
-                    />
-                    <div className="rc-dashboard">
-                        <div className="selection-controls">
-                            {RCSelectMenu}
-                            {RCOverdrive}
-                        </div>
-                        {RCDashboard}
-                    </div>
-                    <AnalogStick
-                        analogStickType={AnalogStickTypes.RIGHT}
-                        handleAnalogStickMove={(event) =>
-                            handleAnalogStickMove(event, AnalogStickTypes.RIGHT)
-                        }
-                        onAnalogStickStop={onAnalogStickStop}
-                    />
-                </div>
-            );
-        case ControlTypes.DIVE:
-            return (
-                <div className="remote-control-panel dive">
-                    <DiveInputs rcDiveParameters={rcDiveParameters} onChange={handleRCDiveChange} />
-                    <div className="rc-dashboard dive">
-                        {RCSelectMenu}
-                        <DiveCommand
-                            rcDiveParameters={rcDiveParameters}
-                            botId={props.botID}
-                            handleRCDiveCommand={handleRCDiveCommand}
-                        />
-                    </div>
-                </div>
-            );
-        case ControlTypes.GAMEPAD:
-            return (
-                <div className="remote-control-panel gamepad">
-                    <GamepadComponent
+                <>
+                    <Gamepad
                         onButtonDown={handleGamepadButtonDown}
                         onButtonUp={handleGamepadButtonUp}
                         onAxisChange={handleGamepadAxisChange}
-                    />
-                    <div className="rc-dashboard">
-                        <div className="selection-controls">
-                            {RCSelectMenu}
-                            {RCOverdrive}
+                    >
+                        <div></div>
+                    </Gamepad>
+                    <div className="remote-control-panel">
+                        <AnalogStick
+                            analogStickType={AnalogStickTypes.SINGLE}
+                            handleAnalogStickMove={(event) =>
+                                handleAnalogStickMove(event, AnalogStickTypes.SINGLE)
+                            }
+                            onAnalogStickStop={onAnalogStickStop}
+                        />
+                        <div className="rc-dashboard">
+                            <div className="selection-controls">
+                                {RCSelectMenu}
+                                {RCOverdrive}
+                            </div>
+                            {RCDashboard}
                         </div>
-                        {RCDashboard}
                     </div>
-                </div>
+                </>
+            );
+        case ControlTypes.DUAL:
+            return (
+                <>
+                    <Gamepad
+                        onButtonDown={handleGamepadButtonDown}
+                        onButtonUp={handleGamepadButtonUp}
+                        onAxisChange={handleGamepadAxisChange}
+                    >
+                        <div></div>
+                    </Gamepad>
+                    <div className="remote-control-panel">
+                        <AnalogStick
+                            analogStickType={AnalogStickTypes.LEFT}
+                            handleAnalogStickMove={(event) =>
+                                handleAnalogStickMove(event, AnalogStickTypes.LEFT)
+                            }
+                            onAnalogStickStop={onAnalogStickStop}
+                        />
+                        <div className="rc-dashboard">
+                            <div className="selection-controls">
+                                {RCSelectMenu}
+                                {RCOverdrive}
+                            </div>
+                            {RCDashboard}
+                        </div>
+                        <AnalogStick
+                            analogStickType={AnalogStickTypes.RIGHT}
+                            handleAnalogStickMove={(event) =>
+                                handleAnalogStickMove(event, AnalogStickTypes.RIGHT)
+                            }
+                            onAnalogStickStop={onAnalogStickStop}
+                        />
+                    </div>
+                </>
+            );
+        case ControlTypes.DIVE:
+            return (
+                <>
+                    <Gamepad
+                        onButtonDown={handleGamepadButtonDown}
+                        onButtonUp={handleGamepadButtonUp}
+                        onAxisChange={handleGamepadAxisChange}
+                    >
+                        <div></div>
+                    </Gamepad>
+                    <div className="remote-control-panel dive">
+                        <DiveInputs rcDiveParameters={rcDiveParameters} onChange={handleRCDiveChange} />
+                        <div className="rc-dashboard dive">
+                            {RCSelectMenu}
+                            <DiveCommand
+                                rcDiveParameters={rcDiveParameters}
+                                botId={props.botID}
+                                handleRCDiveCommand={handleRCDiveCommand}
+                            />
+                        </div>
+                    </div>
+                </>
             );
     }
 }
