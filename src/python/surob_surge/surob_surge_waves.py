@@ -23,6 +23,8 @@ SOCKET_TIMEOUT_SECONDS = 1
 HEARTBEAT_INTERVAL_SECONDS = 5
 SAVE_DIR = os.path.join("/var", "log", "jaiabot", "surob_surge_waves")
 
+DEFAULT_PERIOD_STD_S = 2.0 # TODO: investigate why default value in jaia_dccl.proto doesn't work, value is reported as NaN in h5
+
 class FSM_STATES(Enum):
     WAITING = 0
     LOGGING = 1
@@ -93,7 +95,8 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
             wave_packet.hs_std = results["Hs_gps_std"]
         if np.isfinite(results.get("Tp_gps", np.nan)):
             wave_packet.period = results["Tp_gps"]
-        # period std is not computed, reported as a fixed value of 2s
+            # period std is not computed, reported as a fixed value of 2s
+            wave_packet.period_std = DEFAULT_PERIOD_STD_S
         if np.isfinite(results.get("mean_lat", np.nan)) and np.isfinite(results.get("mean_lon", np.nan)):
             wave_packet.location.lat = results["mean_lat"]
             wave_packet.location.lon = results["mean_lon"]
