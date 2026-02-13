@@ -23,7 +23,6 @@
     width: 300px;
     height: auto;
     animation: fadeIn 0.5s ease-in, sheen 2s ease-in-out 0.5s infinite;
-    position: relative;
 }
 
 #initial-loading-bar-container {
