@@ -402,11 +402,13 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         case ControlTypes.SINGLE:
             return (
                 <>
+                    {/* Gamepad component listens for Xbox controller input in background */}
                     <Gamepad
                         onButtonDown={handleGamepadButtonDown}
                         onButtonUp={handleGamepadButtonUp}
                         onAxisChange={handleGamepadAxisChange}
                     >
+                        {/* Empty div required by react-gamepad library */}
                         <div></div>
                     </Gamepad>
                     <div className="remote-control-panel">
@@ -430,11 +432,13 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         case ControlTypes.DUAL:
             return (
                 <>
+                    {/* Gamepad component listens for Xbox controller input in background */}
                     <Gamepad
                         onButtonDown={handleGamepadButtonDown}
                         onButtonUp={handleGamepadButtonUp}
                         onAxisChange={handleGamepadAxisChange}
                     >
+                        {/* Empty div required by react-gamepad library */}
                         <div></div>
                     </Gamepad>
                     <div className="remote-control-panel">
@@ -465,11 +469,13 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         case ControlTypes.DIVE:
             return (
                 <>
+                    {/* Gamepad component listens for Xbox controller input in background */}
                     <Gamepad
                         onButtonDown={handleGamepadButtonDown}
                         onButtonUp={handleGamepadButtonUp}
                         onAxisChange={handleGamepadAxisChange}
                     >
+                        {/* Empty div required by react-gamepad library */}
                         <div></div>
                     </Gamepad>
                     <div className="remote-control-panel dive">
