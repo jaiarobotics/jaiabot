@@ -10,7 +10,23 @@ def myip():
         str: The local machine's IP address, or "localhost" if not found.
     """
     try:
-        return (([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")] or [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) + ["localhost"])[0]
+        # Try to get IP addresses associated with the hostname
+        hostname = socket.gethostname()
+        ip_addresses = socket.gethostbyname_ex(hostname)[2]
+        
+        # Filter out localhost addresses (127.x.x.x)
+        non_localhost_ips = [ip for ip in ip_addresses if not ip.startswith("127.")]
+        
+        if non_localhost_ips:
+            return non_localhost_ips[0]
+        
+        # If no non-localhost IPs found, try connecting to external DNS to get local IP
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            # Connect to Google DNS (doesn't actually send data)
+            s.connect(("8.8.8.8", 53))
+            local_ip = s.getsockname()[0]
+            return local_ip
+            
     except (socket.error, socket.gaierror, OSError, IndexError):
         return "localhost"
 
