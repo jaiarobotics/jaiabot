@@ -21,14 +21,14 @@ def test_myip_success():
 
 def test_myip_handles_socket_error():
     """Test that myip returns localhost when socket operations fail."""
-    with mock.patch('socket.gethostbyname_ex', side_effect=socket.error("Network error")):
-        with mock.patch('socket.socket', side_effect=socket.error("Network error")):
+    with mock.patch('pyjaia.utils.socket.gethostbyname_ex', side_effect=socket.error("Network error")):
+        with mock.patch('pyjaia.utils.socket.socket', side_effect=socket.error("Network error")):
             result = myip()
             assert result == "localhost"
 
 
-def test_myip_handles_exception():
-    """Test that myip returns localhost when any exception occurs."""
-    with mock.patch('socket.gethostbyname_ex', side_effect=Exception("Generic error")):
+def test_myip_handles_gaierror():
+    """Test that myip returns localhost when DNS resolution fails with socket.gaierror."""
+    with mock.patch('pyjaia.utils.socket.gethostbyname_ex', side_effect=socket.gaierror("DNS error")):
         result = myip()
         assert result == "localhost"
