@@ -39,13 +39,6 @@ pip install pytest
 
 If you get an "externally-managed-environment" error, use Option 1 instead.
 
-#### Option 3: Using pipx (Alternative)
-
-```bash
-cd src/python/pyjaia
-pipx install -e .
-```
-
 ### Running All Tests
 
 To run all tests in this directory:
