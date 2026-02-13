@@ -49,8 +49,9 @@
             #initial-loading-bar {
                 height: 100%;
                 background-color: #cc0505;
-                animation: loadingProgress 2s ease-in-out infinite;
+                width: 10%;
                 border-radius: 4px;
+                transition: width 0.3s ease-out;
             }
 
             #initial-loading-text {
@@ -58,12 +59,6 @@
                 font-size: 1.2rem;
                 color: black;
                 animation: pulse 1.5s ease-in-out infinite;
-            }
-
-            @keyframes loadingProgress {
-                0% { width: 0%; }
-                50% { width: 70%; }
-                100% { width: 100%; }
             }
 
             @keyframes fadeIn {
@@ -117,5 +112,79 @@
             </div>
         </div>
         <div id="root"></div>
+        <script>
+            // Track actual loading progress
+            (function() {
+                const progressBar = document.getElementById('initial-loading-bar');
+                let progress = 10; // Start at 10%
+                
+                // Update progress bar
+                function updateProgress(value) {
+                    progress = Math.min(value, 95); // Cap at 95% until fully loaded
+                    if (progressBar) {
+                        progressBar.style.width = progress + '%';
+                    }
+                }
+                
+                // Simulate initial loading stages
+                const startTime = Date.now();
+                
+                // Progress through stages as DOM loads
+                updateProgress(20); // HTML parsed
+                
+                // Monitor resource loading
+                if (window.performance && window.performance.getEntriesByType) {
+                    const checkResources = setInterval(function() {
+                        const resources = performance.getEntriesByType('resource');
+                        const scripts = resources.filter(r => r.initiatorType === 'script');
+                        
+                        // Calculate progress based on loaded scripts
+                        if (scripts.length > 0) {
+                            const loadedScripts = scripts.filter(s => s.responseEnd > 0);
+                            const scriptProgress = 30 + (loadedScripts.length / Math.max(scripts.length, 1)) * 60;
+                            updateProgress(scriptProgress);
+                        }
+                        
+                        // Clear interval after 30 seconds max
+                        if (Date.now() - startTime > 30000) {
+                            clearInterval(checkResources);
+                        }
+                    }, 100);
+                    
+                    // Complete when React removes the loading screen
+                    const observer = new MutationObserver(function() {
+                        const loadingScreen = document.getElementById('initial-loading-screen');
+                        if (!loadingScreen) {
+                            updateProgress(100);
+                            observer.disconnect();
+                        }
+                    });
+                    observer.observe(document.body, { childList: true, subtree: true });
+                }
+                
+                // Fallback: Increment progress over time
+                const fallbackInterval = setInterval(function() {
+                    if (progress < 90) {
+                        updateProgress(progress + 1);
+                    } else {
+                        clearInterval(fallbackInterval);
+                    }
+                }, 300);
+                
+                // DOM Content Loaded
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        updateProgress(40);
+                    });
+                } else {
+                    updateProgress(40);
+                }
+                
+                // Window Load (all resources loaded)
+                window.addEventListener('load', function() {
+                    updateProgress(95);
+                });
+            })();
+        </script>
     </body>
 </html>
