@@ -6,12 +6,44 @@ This directory contains tests for the pyjaia Python package.
 
 ### Prerequisites
 
-Install the required dependencies:
+**Note:** On modern Linux systems with externally-managed Python environments (PEP 668), you'll need to use a virtual environment.
+
+#### Option 1: Using a Virtual Environment (Recommended)
+
+Create and activate a virtual environment:
+
+```bash
+cd src/python/pyjaia
+python3 -m venv venv
+source venv/bin/activate  # On Linux/Mac
+# OR
+venv\Scripts\activate  # On Windows
+```
+
+Then install the dependencies:
+
+```bash
+pip install -e .
+pip install pytest
+```
+
+#### Option 2: Using System Python (if allowed)
+
+If your system allows it:
 
 ```bash
 cd src/python/pyjaia
 pip install -e .
 pip install pytest
+```
+
+If you get an "externally-managed-environment" error, use Option 1 instead.
+
+#### Option 3: Using pipx (Alternative)
+
+```bash
+cd src/python/pyjaia
+pipx install -e .
 ```
 
 ### Running All Tests
@@ -68,3 +100,11 @@ pytest tests/ --cov=pyjaia --cov-report=html
 - `test_logtools.py` - Tests for log reading and processing
 - `test_contours.py` - Tests for contour generation
 - `test_task_packet_database.py` - Tests for task packet database operations
+
+## Deactivating Virtual Environment
+
+When you're done testing, deactivate the virtual environment:
+
+```bash
+deactivate
+```
