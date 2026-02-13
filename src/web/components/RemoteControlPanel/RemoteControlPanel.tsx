@@ -261,7 +261,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
      * @returns {void}
      */
     const handleGamepadButtonDown = (buttonName: string) => {
-        console.log("Gamepad button down:", buttonName);
+        // Future: Implement button functionality for additional controls
     };
 
     /**
@@ -271,7 +271,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
      * @returns {void}
      */
     const handleGamepadButtonUp = (buttonName: string) => {
-        console.log("Gamepad button up:", buttonName);
+        // Future: Implement button functionality for additional controls
     };
 
     /**

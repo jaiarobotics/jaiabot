@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import Gamepad from "react-gamepad";
 
 export interface GamepadComponentProps {
