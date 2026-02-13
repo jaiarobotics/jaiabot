@@ -3,6 +3,7 @@
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
 //   Ed Sanville <edsanville@gmail.com>
+//   Matthew Ferro <matt.ferro@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -62,6 +63,19 @@ struct DivePrep : boost::statechart::state<DivePrep, Dive>,
             start.set_lat_with_units(pos.lat_with_units());
             start.set_lon_with_units(pos.lon_with_units());
         }
+
+        // This makes sure we capture the pressure before the dive begins
+        // Then we can adjust pressure accordingly
+        this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
+
+        // Calculate and set the depth of our pressure sensor at the start of our dive according to the vehicle's pitch and waterline
+        this->machine().calculate_start_of_dive_depth(this->machine().latest_pitch());
+
+        glog.is_debug1() &&
+            glog << "Start of Dive Pitch: " << this->machine().latest_pitch().value() << " degrees"
+                 << std::endl;
+        glog.is_debug1() && glog << "Start of Dive Depth: " << this->machine().start_of_dive_depth()
+                                 << " meters" << std::endl;
     }
 
     void loop(const EvLoop&)
