@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useState, useEffect } from "react";
 import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 
 import { gridPlan } from "../data/survey_planner/grid-plan";
@@ -26,6 +26,7 @@ import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 import SimulationBanner from "../components/SimulationBanner/SimulationBanner";
 import TakeControlButton from "../components/__buttons__/TakeControl/TakeControlButton/TakeControlButton";
 import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
+import LoadingScreen from "../components/LoadingScreen/LoadingScreen";
 
 import "./App.less";
 
@@ -34,6 +35,16 @@ import "./App.less";
  */
 export default function App() {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // Hide loading screen after initial data load
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 2000); // Wait 2 seconds for initial data to load
+
+        return () => clearTimeout(timer);
+    }, []);
 
     /**
      * Places the JCC in full-screen mode on mobile devices
@@ -45,6 +56,10 @@ export default function App() {
             document.documentElement.requestFullscreen();
         }
     };
+
+    if (isLoading) {
+        return <LoadingScreen />;
+    }
 
     return (
         <div id={JCC_CONTAINER} onClick={() => handleJCCClick()}>
