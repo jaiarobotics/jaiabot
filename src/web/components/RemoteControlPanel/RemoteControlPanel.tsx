@@ -217,7 +217,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             let magnitude = 0;
             if (absValue < RCZones.LOW) {
                 magnitude = 1;
-            } else if (absValue < RCZones.HIGH) {
+            } else if (absValue >= RCZones.LOW && absValue <= RCZones.HIGH) {
                 magnitude = 2;
             } else {
                 magnitude = 3;
