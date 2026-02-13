@@ -41,7 +41,13 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Hide loading screen after a fixed delay to allow initial UI render
+        // Remove the initial HTML loading screen immediately when React mounts
+        const initialLoadingScreen = document.getElementById('initial-loading-screen');
+        if (initialLoadingScreen) {
+            initialLoadingScreen.remove();
+        }
+
+        // Hide React loading screen after a fixed delay to allow initial UI render
         const timer = setTimeout(() => {
             setIsLoading(false);
         }, LOADING_SCREEN_DURATION_MS);
