@@ -20,9 +20,24 @@ def test_myip_success():
 
 
 def test_myip_handles_socket_error():
-    """Test that myip returns localhost when socket operations fail."""
+    """Test that myip returns localhost when socket creation fails."""
     with mock.patch('pyjaia.utils.socket.gethostbyname_ex', side_effect=socket.error("Network error")):
         with mock.patch('pyjaia.utils.socket.socket', side_effect=socket.error("Network error")):
+            result = myip()
+            assert result == "localhost"
+
+
+def test_myip_handles_connect_error():
+    """Test that myip returns localhost when socket connect fails."""
+    with mock.patch('pyjaia.utils.socket.gethostbyname_ex', return_value=('hostname', [], [])):
+        # Mock socket.socket to return a mock socket that fails on connect
+        with mock.patch('pyjaia.utils.socket.socket') as mock_socket_cls:
+            mock_socket_instance = mock.Mock()
+            # Support use of socket.socket as a context manager
+            mock_socket_cls.return_value.__enter__.return_value = mock_socket_instance
+            mock_socket_cls.return_value.__exit__.return_value = False
+            # Fail when connect is called
+            mock_socket_instance.connect.side_effect = socket.error("Connection failed")
             result = myip()
             assert result == "localhost"
 
