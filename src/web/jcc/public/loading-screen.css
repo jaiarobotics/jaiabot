@@ -22,7 +22,8 @@
 #initial-loading-logo {
     width: 300px;
     height: auto;
-    animation: fadeIn 0.5s ease-in;
+    animation: fadeIn 0.5s ease-in, sheen 2s ease-in-out 0.5s infinite;
+    position: relative;
 }
 
 #initial-loading-bar-container {
@@ -38,7 +39,7 @@
     background-color: #cc0505;
     width: 10%;
     border-radius: 4px;
-    transition: width 0.3s ease-out;
+    transition: width 0.5s ease-out;
 }
 
 #initial-loading-text {
@@ -46,6 +47,7 @@
     font-size: 1.2rem;
     color: black;
     animation: pulse 1.5s ease-in-out infinite;
+    display: none;
 }
 
 @keyframes fadeIn {
@@ -56,4 +58,16 @@
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
+}
+
+@keyframes sheen {
+    0% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(1.2);
+    }
+    100% {
+        filter: brightness(1);
+    }
 }
