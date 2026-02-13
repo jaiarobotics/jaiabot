@@ -165,11 +165,11 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         const isNegative = position < 0;
         let magnitude = 0;
 
-        if (absPosition > RCZones.DEAD && position < RCZones.LOW) {
+        if (absPosition > RCZones.DEAD && absPosition < RCZones.LOW) {
             magnitude = 1;
         }
 
-        if (absPosition >= RCZones.LOW && position <= RCZones.HIGH) {
+        if (absPosition >= RCZones.LOW && absPosition <= RCZones.HIGH) {
             magnitude = 2;
         }
 
@@ -192,6 +192,59 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             case AnalogStickTypes.RIGHT:
                 setRudderMagnitude(magnitude);
                 break;
+        }
+    };
+
+    /**
+     * Handles axis input from both analog sticks and gamepad
+     * 
+     * @param {number} value Raw axis value (-1 to 1)
+     * @param {AnalogStickTypes} axisType Which axis (LEFT for throttle, RIGHT for rudder)
+     * @returns {void}
+     */
+    const handleAxisInput = (value: number, axisType: AnalogStickTypes) => {
+        const absValue = Math.abs(value) * 100;
+        
+        if (absValue > RCZones.DEAD) {
+            // Set direction
+            if (axisType === AnalogStickTypes.LEFT) {
+                setThrottleDirection(value < 0 ? "FORWARD" : "BACKWARD");
+            } else if (axisType === AnalogStickTypes.RIGHT) {
+                setRudderDirection(value > 0 ? "RIGHT" : "LEFT");
+            }
+            
+            // Set magnitude
+            let magnitude = 0;
+            if (absValue < RCZones.LOW) {
+                magnitude = 1;
+            } else if (absValue < RCZones.HIGH) {
+                magnitude = 2;
+            } else {
+                magnitude = 3;
+                if (axisType === AnalogStickTypes.LEFT && !rcOverdrive) {
+                    magnitude = 2;
+                }
+            }
+            
+            // Only one speed in reverse for throttle
+            if (value > 0 && axisType === AnalogStickTypes.LEFT) {
+                magnitude = 1;
+            }
+            
+            if (axisType === AnalogStickTypes.LEFT) {
+                setThrottleMagnitude(magnitude);
+            } else if (axisType === AnalogStickTypes.RIGHT) {
+                setRudderMagnitude(magnitude);
+            }
+        } else {
+            // Reset when in dead zone
+            if (axisType === AnalogStickTypes.LEFT) {
+                setThrottleDirection("");
+                setThrottleMagnitude(0);
+            } else if (axisType === AnalogStickTypes.RIGHT) {
+                setRudderDirection("");
+                setRudderMagnitude(0);
+            }
         }
     };
 
@@ -255,26 +308,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     };
 
     /**
-     * Handles gamepad button press events
-     *
-     * @param {string} buttonName Name of the button pressed
-     * @returns {void}
-     */
-    const handleGamepadButtonDown = (buttonName: string) => {
-        // Future: Implement button functionality for additional controls
-    };
-
-    /**
-     * Handles gamepad button release events
-     *
-     * @param {string} buttonName Name of the button released
-     * @returns {void}
-     */
-    const handleGamepadButtonUp = (buttonName: string) => {
-        // Future: Implement button functionality for additional controls
-    };
-
-    /**
      * Handles gamepad axis change events
      *
      * @param {string} axisName Name of the axis that changed
@@ -284,39 +317,14 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     const handleGamepadAxisChange = (axisName: string, value: number) => {
         // Left stick Y-axis controls throttle
         if (axisName === "LeftStickY") {
-            const absValue = Math.abs(value) * 100;
-            if (absValue > RCZones.DEAD) {
-                setThrottleDirection(value < 0 ? "FORWARD" : "BACKWARD");
-                if (absValue < RCZones.LOW) {
-                    setThrottleMagnitude(1);
-                } else if (absValue < RCZones.HIGH) {
-                    setThrottleMagnitude(2);
-                } else {
-                    setThrottleMagnitude(rcOverdrive ? 3 : 2);
-                }
-            } else {
-                setThrottleDirection("");
-                setThrottleMagnitude(0);
-            }
+            handleAxisInput(value, AnalogStickTypes.LEFT);
         }
         // Right stick X-axis controls rudder
         else if (axisName === "RightStickX") {
-            const absValue = Math.abs(value) * 100;
-            if (absValue > RCZones.DEAD) {
-                setRudderDirection(value > 0 ? "RIGHT" : "LEFT");
-                if (absValue < RCZones.LOW) {
-                    setRudderMagnitude(1);
-                } else if (absValue < RCZones.HIGH) {
-                    setRudderMagnitude(2);
-                } else {
-                    setRudderMagnitude(3);
-                }
-            } else {
-                setRudderDirection("");
-                setRudderMagnitude(0);
-            }
+            handleAxisInput(value, AnalogStickTypes.RIGHT);
         }
     };
+
 
     /**
      * Updates RC dive parameters in state
@@ -403,11 +411,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             return (
                 <>
                     {/* Gamepad component listens for Xbox controller input in background */}
-                    <Gamepad
-                        onButtonDown={handleGamepadButtonDown}
-                        onButtonUp={handleGamepadButtonUp}
-                        onAxisChange={handleGamepadAxisChange}
-                    >
+                    <Gamepad onAxisChange={handleGamepadAxisChange}>
                         {/* Empty div required by react-gamepad library */}
                         <div></div>
                     </Gamepad>
@@ -433,11 +437,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             return (
                 <>
                     {/* Gamepad component listens for Xbox controller input in background */}
-                    <Gamepad
-                        onButtonDown={handleGamepadButtonDown}
-                        onButtonUp={handleGamepadButtonUp}
-                        onAxisChange={handleGamepadAxisChange}
-                    >
+                    <Gamepad onAxisChange={handleGamepadAxisChange}>
                         {/* Empty div required by react-gamepad library */}
                         <div></div>
                     </Gamepad>
@@ -470,11 +470,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             return (
                 <>
                     {/* Gamepad component listens for Xbox controller input in background */}
-                    <Gamepad
-                        onButtonDown={handleGamepadButtonDown}
-                        onButtonUp={handleGamepadButtonUp}
-                        onAxisChange={handleGamepadAxisChange}
-                    >
+                    <Gamepad onAxisChange={handleGamepadAxisChange}>
                         {/* Empty div required by react-gamepad library */}
                         <div></div>
                     </Gamepad>
