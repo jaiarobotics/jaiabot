@@ -3,6 +3,8 @@ from threading import Lock
 
 import datetime
 
+imu_log = logging.getLogger('imu.simulator')
+
 class Simulator(IMU):
     wave_frequency: float
     wave_height: float
@@ -10,7 +12,7 @@ class Simulator(IMU):
     _lock: Lock
 
     def __init__(self, wave_frequency: float=1, wave_height: float=1):
-        log.info('Device: Simulator')
+        imu_log.info('Device: Simulator')
 
         self.wave_frequency = wave_frequency
         self.wave_height = wave_height

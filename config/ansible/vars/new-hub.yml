@@ -1,0 +1,3 @@
+staging_dir: '/tmp/generate_new_hub'
+control_staging_dir: '/tmp/control_generate_new_hub'
+

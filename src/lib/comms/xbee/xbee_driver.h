@@ -38,7 +38,6 @@
 #include "goby/acomms/protobuf/driver_base.pb.h" // for DriverConfig
 #include "goby/time/steady_clock.h"              // for SteadyClock
 
-#include "jaiabot/messages/modem_message_extensions.pb.h" // For extensions to ModemTransmission
 #include "jaiabot/messages/xbee_extensions.pb.h"          // For our custom config
 
 extern "C"
@@ -100,9 +99,6 @@ class XBeeDriver : public goby::acomms::ModemDriverBase
     void update_active_hub(int hub_id, goby::acomms::protobuf::ModemTransmission* out);
     void set_active_hub_peer(int hub_id);
 
-    bool read_hub_info_file(jaiabot::protobuf::HubInfo& hub_info);
-    bool write_hub_info_file(const jaiabot::protobuf::HubInfo& hub_info);
-
   private:
     goby::acomms::protobuf::DriverConfig driver_cfg_;
 
@@ -115,9 +111,6 @@ class XBeeDriver : public goby::acomms::ModemDriverBase
     bool test_comms_{false};
     std::map<int32_t, goby::time::SteadyClock::time_point> send_time_{};
     std::size_t number_of_bytes_to_send_{0};
-
-    bool have_active_hub_{false};
-    int active_hub_id_{-1};
 
     // 1
     int hub_xbee_base_modem_id_{-1};

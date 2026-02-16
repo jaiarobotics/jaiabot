@@ -24,13 +24,13 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
-import "goby/middleware/protobuf/transporter_config.proto";
-import "jaiabot/messages/xbee_extensions.proto";
 import "goby/middleware/protobuf/udp_config.proto";
 import "goby/middleware/protobuf/pty_config.proto";
 import "goby/middleware/protobuf/serial_config.proto";
 import "goby/middleware/protobuf/tcp_config.proto";
 import "jaiabot/messages/link.proto";
+import "jaiabot/messages/link_config.proto";
+import "goby/acomms/protobuf/buffer.proto";
 
 package jaiabot.config;
 
@@ -41,18 +41,17 @@ message HubManager
     // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    // use to pre-seed expected bots
-    message ExpectedBots
+    message ExpectedHubs
     {
         repeated int32 id = 1;
     }
-    optional ExpectedBots expected_bots = 17;
-
-    required goby.middleware.protobuf.TransporterConfig status_sub_cfg = 11;
-    required goby.middleware.protobuf.TransporterConfig task_packet_sub_cfg =
-        12;
-    required goby.middleware.protobuf.TransporterConfig
-        engineering_status_sub_cfg = 13;
+    optional ExpectedHubs expected_hubs = 18;
+    
+    required jaiabot.protobuf.LinkAwareBufferConfig status_buffer = 11;
+    required jaiabot.protobuf.LinkAwareBufferConfig task_packet_buffer = 12;
+    required jaiabot.protobuf.LinkAwareBufferConfig engineering_status_buffer =
+        13;
+    required goby.acomms.protobuf.DynamicBufferConfig hub2hub_buffer = 19;
 
     optional int32 hub_id = 14 [default = 0];
     optional int32 fleet_id = 15 [default = 0];
@@ -108,7 +107,8 @@ message HubManager
     optional int32 contact_blackout_seconds = 43
         [default = 2];  // don't send a contact update more often than this
 
-    
     required uint32 subnet_mask = 50;
-    repeated protobuf.Link link_to_subscribe_on = 51; // when subscribing to managed bots, use these links, otherwise wait for bots to subscribe first
+    repeated protobuf.Link link_to_subscribe_on =
+        51;  // when subscribing to managed bots, use these links, otherwise
+             // wait for bots to subscribe first
 }

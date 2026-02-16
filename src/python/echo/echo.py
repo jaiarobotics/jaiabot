@@ -13,7 +13,7 @@ logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('echo')
 
 try:
-    uart = serial.Serial("/dev/ttyAMA3", 115200)
+    uart = serial.Serial("/dev/pam-stack", 115200)
     physical_device_available = True
 except ModuleNotFoundError:
     log.warning('ModuleNotFoundError, so physical device not available')
@@ -23,6 +23,7 @@ except NotImplementedError:
     physical_device_available = False
 except serial.serialutil.SerialException:
     log.warning('SerialException, so physical device not available')
+    physical_device_available = False
 
 class EchoState(Enum):
     BOOTING = 0
@@ -167,3 +168,25 @@ class Echo:
         except Exception as error:
             log.warning("Error trying to stop device")
             
+
+class EchoSimulator:
+    def __init__(self):
+        log.info('Device: Simulator')
+
+    def setup(self):
+        pass
+
+    def sendCMD(self, message):
+        pass
+
+    def getStatus(self):
+        pass
+
+    def getState(self):
+        return EchoState.READY.value
+
+    def startDevice(self):
+        pass
+    
+    def stopDevice(self):
+        pass            

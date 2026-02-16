@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jaia_serial"
+version = "1.0.0"
+description = "The JaiaSerial class provides a serial interface for protobuf messages, with CRC-32 integrity checking."
+requires-python = ">=3.8"
+authors = [
+    { name = "Ed Sanville (Jaia Robotics)", email = "edsanville@gmail.com" },
+]
+keywords = ["jaia", "serial", "protobuf"]
+dependencies = [
+    "protobuf==3.20.0",
+    "pyserial==3.5"
+]
+
+[project.urls]
+Homepage = "https://www.jaia.tech"
+"Bug Tracker" = "https://github.com/jaiarobotics/jaiabot"
+
+[tool.setuptools.packages.find]
+where = ["src"] # Specify where Setuptools should look for packages

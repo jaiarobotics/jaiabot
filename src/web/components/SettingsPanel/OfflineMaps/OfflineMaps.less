@@ -1,0 +1,136 @@
+@import "../../../style/stylesheets/vars.less";
+
+.offline-maps-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.offline-maps-container .heading {
+    font-weight: 600;
+}
+
+.offline-maps-container svg {
+    width: 30px;
+    height: auto;
+    cursor: pointer;
+}
+
+.geotiff-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+
+    padding: 12px;
+    border: 1px solid #9ca3af;
+}
+
+.geotiff-select-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.geotiff-progress-container {
+    display: flex;
+    align-items: center;
+}
+
+.save-tiles-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    padding: 12px;
+    border: 1px solid #9ca3af;
+}
+
+.layer-selection-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.layer-selection-container .select-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.layer-selection-container .progress-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.layer-selection-container .progress-section div {
+    display: flex;
+    gap: 15px;
+    font-style: italic;
+}
+
+.layer-selection-container .progress-section button {
+    all: unset;
+    box-sizing: border-box;
+    border: 1px solid #9ca3af;
+    border-radius: 3px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.layer-selection-container svg {
+    margin-top: -6px;
+    cursor: pointer;
+}
+
+.offline-layers-container {
+    padding: 12px;
+    border: 1px solid #9ca3af;
+
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.offline-layers-container ul {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.offline-layers-container li {
+    background-color: #e5e7eb;
+    padding: 12px;
+
+    display: grid;
+    grid-template-columns: 150px 75px max-content;
+    column-gap: 15px;
+    align-items: center;
+}
+
+.offline-layers-container li .size {
+    grid-column: 2 / 3;
+    justify-self: end;
+}
+
+.offline-layers-container li .title {
+    overflow-wrap: break-word; // So long map layer titles render correctly
+}
+
+.offline-layers-container li svg {
+    width: 21px;
+    height: auto;
+    cursor: pointer;
+}
+
+.offline-layers-container .heading-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.heading-container .disk-space {
+    font-style: italic;
+}

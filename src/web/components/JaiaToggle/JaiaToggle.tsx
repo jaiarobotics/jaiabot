@@ -9,6 +9,7 @@ interface Props {
     disabled?: () => boolean;
     label?: string;
     title?: string;
+    testLabel?: string;
 }
 
 // MUI Styling: mui.com/material-ui/react-switch
@@ -36,6 +37,7 @@ export default function JaiaToggle(props: Props) {
                         checked={props.checked()}
                         disabled={props?.disabled ? props.disabled() : false}
                         onClick={() => props.onClick()}
+                        aria-label={props.testLabel}
                     />
                 }
                 label={props?.label ? props.label : ""}

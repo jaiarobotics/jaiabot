@@ -9,7 +9,7 @@ message IMUCommand
 {
     enum IMUCommandType
     {
-        TAKE_READING = 0;
+        CONFIGURE = 0;
         START_WAVE_HEIGHT_SAMPLING = 1;
         STOP_WAVE_HEIGHT_SAMPLING = 2;
         START_BOTTOM_TYPE_SAMPLING = 3;
@@ -18,6 +18,15 @@ message IMUCommand
     }
 
     required IMUCommandType type = 1;
+
+    /// Sample rate for data collection in Hz
+    optional double sample_rate = 2
+        [(dccl.field) = {units {
+            derived_dimensions: "frequency"
+            system: "si"
+            }, min: 0.1 max: 60 precision: 1},
+            default = 10
+        ];
 }
 
 enum IMUCalibrationState
@@ -124,6 +133,56 @@ message IMUData
     optional Quaternion quaternion = 10;
 
     optional string imu_type = 11;
+
+    optional Acceleration acceleration = 12;
+
+    message MagneticField {
+        optional double x = 1
+            [(dccl.field) = {
+                units {
+                    prefix: "micro"
+                    system: "si::tesla"
+                }
+            }];
+        optional double y = 2
+            [(dccl.field) = {
+                units {
+                    prefix: "micro"
+                    system: "si::tesla"
+                }
+            }];
+        optional double z = 3
+            [(dccl.field) = {
+                units {
+                    prefix: "micro"
+                    system: "si::tesla"
+                }
+            }];
+    }
+
+    optional MagneticField magnetic_field = 13;
+
+    message AccelerationWorld {
+        optional double north = 1
+            [(dccl.field) = {units {
+                derived_dimensions: "acceleration"
+                system: "si"
+                }}
+            ];
+        optional double east = 2
+            [(dccl.field) = {units {
+                derived_dimensions: "acceleration"
+                system: "si"
+                }}
+            ];
+        optional double down = 3
+            [(dccl.field) = {units {
+                derived_dimensions: "acceleration"
+                system: "si"
+                }}
+            ];
+    }
+    optional AccelerationWorld linear_acceleration_world = 14;
 
 }
 

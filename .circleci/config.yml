@@ -25,7 +25,6 @@ environment-template-noble: &environment-template-noble
   DISTRO_RELEASE_VERSION: "ubuntu24.04"
 
 ## Pre-declare Docker containers
-
 docker-base-noble: &docker-base-noble
   - image: gobysoft/jaiabot-ubuntu-amd64:24.04.1
     auth:
@@ -222,6 +221,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
       only:
         - "2.y"
 
+        
 ## Begin actual config
 version: 2.1
 orbs:
@@ -298,6 +298,15 @@ workflows:
             - arm64-bundle-noble
           <<: *filter-template-aws-rootfs-builds
 
+      - aws-sync-govcloud:
+          requires:
+            - arm64-raspi-image-create-noble
+            - amd64-virtualbox-image-create-noble
+            - amd64-bundle-noble
+            - arm64-bundle-noble
+          <<: *filter-template-aws-rootfs-builds
+
+          
       # docker creation jobs
       - arm64-docker-sim:
           <<: *filter-template-docker-sim-builds
@@ -313,6 +322,88 @@ workflows:
             - arm64-docker-sim
             - amd64-docker-sim
 
+
+commands:
+  aws-sync-command:
+    parameters:
+      role_arn:
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp
+      - aws-cli/setup:
+          profile_name: OIDC-User
+          role_arn: << parameters.role_arn >>
+      - run:
+          name: Set environmental variables for which repo tag to use (analogous to APT repo names)
+          command: |
+            repo=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
+            version=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
+            echo "repo:${repo}"
+            echo "version:${version}"
+            # export these for later use
+            echo "export JAIABOT_ROOTFS_GEN_REPO=${repo}" >> $BASH_ENV
+            echo "export JAIABOT_ROOTFS_GEN_REPO_VERSION=${version}" >> $BASH_ENV
+      - run:
+          name: Delete previous images for this repo/version (except release repo)
+          command: |
+            if [ ! "${JAIABOT_ROOTFS_GEN_REPO}" = "release" ]; then
+              aws s3 rm --recursive s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            fi
+      - run:
+          name: Remove unnecessary files before sync to AWS
+          command: |
+            # No need to sync boot.tar.gz and rootfs.tar.gz
+            rm /tmp/arm64/*.tar.gz
+            rm /tmp/amd64/*.tar.gz
+      - aws-s3/sync:
+          profile_name: OIDC-User
+          from: /tmp/amd64
+          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/vbox
+      - aws-s3/sync:
+          profile_name: OIDC-User
+          from: /tmp/arm64
+          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/rpi
+      - aws-s3/sync:
+          profile_name: OIDC-User
+          from: /tmp/bundle/result/amd64
+          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/vbox
+      - aws-s3/sync:
+          profile_name: OIDC-User
+          from: /tmp/bundle/result/arm64
+          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/rpi
+      - run:
+          name: Import new AMI
+          command: |
+            OVA=$(basename $(ls /tmp/amd64/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}*.ova))
+            IMAGE_NAME=${OVA%.*}
+            # writes result.json for later use
+            rootfs/cloud/aws/import_ova_as_ami.sh ${OVA} ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+            echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
+      - run:
+          name: Deregister old AMI and delete snapshots
+          command: |
+            rootfs/cloud/aws/delete_ami.sh ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+      - run:
+          name: Tag new AMI
+          command: |
+            source /tmp/amd64/*.metadata.txt
+            image_id=$(jq -r '.ImportImageTasks[0].ImageId' result.json)
+            snapshot_id=$(jq -r '.ImportImageTasks[0].SnapshotDetails[0].SnapshotId' result.json)
+            aws ec2 create-tags --resources ${image_id} ${snapshot_id} --tags \
+              "Key=Name,Value=${JAIABOT_IMAGE_NAME}" \
+              "Key=jaia_creator,Value=circleci" \
+              "Key=jaiabot-rootfs-gen_version,Value=${JAIABOT_ROOTFS_GEN_TAG}" \
+              "Key=jaiabot-rootfs-gen_distro,Value=${DISTRO_RELEASE_CODENAME}" \
+              "Key=jaiabot-rootfs-gen_repository,Value=${JAIABOT_ROOTFS_GEN_REPO}" \
+              "Key=jaiabot-rootfs-gen_repository_version,Value=${JAIABOT_ROOTFS_GEN_REPO_VERSION}" \
+              "Key=jaiabot-rootfs-gen_build-date,Value=$(date -u)" \
+              "Key=jaiabot-rootfs-gen_build-unixtime,Value=$(date -u +%s)" \
+              "Key=jaiabot_version_when_built,Value=${JAIABOT_VERSION}" \
+              "Key=goby_version_when_built,Value=${GOBY_VERSION}"
+
+            
 jobs:
   get-orig-source:
     <<: *job-template-deb-amd64
@@ -406,7 +497,7 @@ jobs:
           name: Upload packages to packages.jaia.tech
           command: |
             echo 'trusted-key 954A004CD5D8CF32' >> ~/.gnupg/gpg.conf
-            echo '|1|OX0vdRrGPWjPOTrl5R/joY37TX0=|teBg0IDnMu36QiR2UL4usur+XyY= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBIz46MTlT0H1Z9P4Msh32nhdbQ9D/CEfnIavB+pRtHZZ3oKrS6ZWKxTOUHTKgw+KKUMSKzdW7XtPaBKb0Qndahw=' >> ~/.ssh/known_hosts
+            echo '|1|pdeN5jVicoT8qgAbw7Wd10DSjtA=|Lbu1IC80DrCY9/cnDZSmG9upweM= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG89ZqxUp9T8j4wOV77EmFH/+OpKAxIHLohhHj5L5z1l' >> ~/.ssh/known_hosts
             for change_file in /root/deb/*.changes;
             do dput -c ${CIRCLE_WORKING_DIRECTORY}/.circleci/dput.cf jaiabot-${JAIABOT_APT_REPO}-${JAIABOT_APT_VERSION} $change_file;
             done
@@ -516,6 +607,8 @@ jobs:
             major_upgrade_version=$(echo ${rootfs_version} | sed 's/.*-v\([1-9]\+\.[0-9]\+\.[0-9]\+.*\)/\1/')
             major_upgrade_ubuntu_version=$(echo ${DISTRO_RELEASE_VERSION} | sed 's/ubuntu//')
             major_upgrade_arch=${TARGET_ARCH}
+            major_upgrade_rootfs_checksum=sha256:$(sha256sum build/bundle/major_upgrade/${rootfs_version}.rootfs.tar.gz | cut -d ' ' -f 1)
+            major_upgrade_bootfs_checksum=sha256:$(sha256sum build/bundle/major_upgrade/${rootfs_version}.boot.tar.gz | cut -d ' ' -f 1)
             EOF
             
             
@@ -588,104 +681,29 @@ jobs:
             cp images/jaiabot__rpicam-zero-bookworm.img /tmp/arm64/jaiabot__rpicam-zero-bookworm_${ROOTFS_BUILD_TAG}.img
       - run: *run-compress-image-raspi
       - store_artifacts: *store-raspi
-            
+
   aws-sync:
     docker:
       - image: cimg/base:current
     environment:
       AWS_DEFAULT_REGION: "us-east-1"
-      # only upload latest Ubuntu version to AWS
       DISTRO_RELEASE_CODENAME: "noble"
     resource_class: medium
     steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp
-      - aws-cli/setup:
-          profile_name: OIDC-User
+      - aws-sync-command:
           role_arn: arn:aws:iam::120512385734:role/JaiaCircleCI
-      - run:
-          name: Set environmental variables for which repo tag to use (analogous to APT repo names)
-          command: |
-            repo=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
-            version=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
-            echo "repo:${repo}"
-            echo "version:${version}"
-            # export these for later use
-            echo "export JAIABOT_ROOTFS_GEN_REPO=${repo}" >> $BASH_ENV
-            echo "export JAIABOT_ROOTFS_GEN_REPO_VERSION=${version}" >> $BASH_ENV
-      - run:
-          name: Delete previous images for this repo/version (except release repo)
-          command: |
-            if [ ! "${JAIABOT_ROOTFS_GEN_REPO}" = "release" ]; then
-              aws s3 rm --recursive s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}
-            fi
-      - run:
-          name: Remove unnecessary files before sync to AWS
-          command: |
-            # No need to sync boot.tar.gz and rootfs.tar.gz
-            rm /tmp/arm64/*.tar.gz
-            rm /tmp/amd64/*.tar.gz
-      - aws-s3/sync:
-          profile_name: OIDC-User
-          from: /tmp/amd64
-          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/vbox
-      - aws-s3/sync:
-          profile_name: OIDC-User
-          from: /tmp/arm64
-          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/rpi
-      - aws-s3/sync:
-          profile_name: OIDC-User
-          from: /tmp/bundle/result/amd64
-          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/vbox
-      - aws-s3/sync:
-          profile_name: OIDC-User
-          from: /tmp/bundle/result/arm64
-          to: s3://jaia-disk-images/${JAIABOT_ROOTFS_GEN_REPO}/${JAIABOT_ROOTFS_GEN_REPO_VERSION}/rpi
-      - run:
-          name: Import new AMI
-          command: |
-            OVA=$(basename $(ls /tmp/amd64/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}*.ova))
-            IMAGE_NAME=${OVA%.*}
 
-            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-            sudo apt-add-repository -y "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-            sudo apt-get update && sudo apt-get -y install packer
-            packer plugins install github.com/hashicorp/ansible
-            packer plugins install github.com/hashicorp/amazon
+  aws-sync-govcloud:
+    docker:
+      - image: cimg/base:current
+    environment:
+      AWS_DEFAULT_REGION: "us-gov-east-1"
+      DISTRO_RELEASE_CODENAME: "noble"
+    resource_class: medium
+    steps:
+      - aws-sync-command:
+          role_arn: arn:aws-us-gov:iam::497433381399:role/JaiaCircleCI        
 
-            export JAIA_UPGRADE_ISO_SOURCE=local
-            export JAIA_UPGRADE_ISO_LOCAL_DIR=/tmp/bundle/result/amd64
-
-            AMI_NAME=$(echo $IMAGE_NAME | sed 's/+/[plus]/g' | sed 's/~/[tilde]/g')
-
-            rootfs/cloud/aws/packer/packer-create-ami-by-upgrade.sh "${AMI_NAME}" "${JAIABOT_ROOTFS_GEN_REPO}"
-            
-            echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
-            echo "export JAIABOT_AMI_NAME=${AMI_NAME}" >> $BASH_ENV
-      - run:
-          name: Deregister old AMI and delete snapshots
-          command: |
-            rootfs/cloud/aws/delete_ami.sh ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
-      - run:
-          name: Tag new AMI
-          command: |
-            source /tmp/amd64/*.metadata.txt
-            
-            image_id=$(aws ec2 describe-images --filters "Name=name,Values=\"${JAIABOT_AMI_NAME}\"" --query 'Images[*].[ImageId]' --output text)
-            snapshot_id=$(aws ec2 describe-images --filters "Name=name,Values=\"${JAIABOT_AMI_NAME}\"" --query 'Images[*].[BlockDeviceMappings[0].Ebs.SnapshotId]' --output text)
-            
-            aws ec2 create-tags --resources ${image_id} ${snapshot_id} --tags \
-              "Key=Name,Value=${JAIABOT_IMAGE_NAME}" \
-              "Key=jaia_creator,Value=circleci" \
-              "Key=jaiabot-rootfs-gen_version,Value=${JAIABOT_ROOTFS_GEN_TAG}" \
-              "Key=jaiabot-rootfs-gen_distro,Value=${DISTRO_RELEASE_CODENAME}" \
-              "Key=jaiabot-rootfs-gen_repository,Value=${JAIABOT_ROOTFS_GEN_REPO}" \
-              "Key=jaiabot-rootfs-gen_repository_version,Value=${JAIABOT_ROOTFS_GEN_REPO_VERSION}" \
-              "Key=jaiabot-rootfs-gen_build-date,Value=$(date -u)" \
-              "Key=jaiabot-rootfs-gen_build-unixtime,Value=$(date -u +%s)" \
-              "Key=jaiabot_version_when_built,Value=${JAIABOT_VERSION}" \
-              "Key=goby_version_when_built,Value=${GOBY_VERSION}"
   arm64-docker-sim:
     environment:
       <<: *environment-template-arm64    

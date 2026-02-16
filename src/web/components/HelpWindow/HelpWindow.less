@@ -1,0 +1,58 @@
+@import "../../style/stylesheets/vars.less";
+
+.help-window-outer {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: @jaia-panel-z-index;
+
+    width: 570px;
+    padding: 24px 12px;
+
+    border-radius: 3px;
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+    background-color: #ecf0f1;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.help-window-outer .close-button {
+    all: unset;
+    align-self: flex-end;
+    cursor: pointer;
+}
+
+.help-window {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.help-window h1 {
+    text-align: center;
+    font-weight: 600;
+}
+
+.help-window-grid {
+    display: grid;
+    grid-template-columns: min-content max-content 1fr;
+    column-gap: 24px;
+    row-gap: 24px;
+    align-items: center;
+
+    padding: 3px;
+
+    max-height: 400px;
+    overflow: auto;
+}
+
+.help-window-grid img {
+    width: 33px;
+    height: auto;
+}
+
+.help-window-grid .button-name {
+    font-weight: 600;
+}

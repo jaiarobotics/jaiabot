@@ -1,0 +1,3 @@
+../pyjaiaprotobuf
+../pyjaia
+../Adafruit_CircuitPython_BNO08x

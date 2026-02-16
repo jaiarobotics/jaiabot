@@ -48,6 +48,7 @@ message ArduinoResponse
     optional float vvcurrent = 5;
     optional int32 motor = 6;
     optional float thermistor_voltage = 7;
+    optional float generic_gpio_voltage = 8;
 
     optional uint32 crc = 50;
     optional uint32 calculated_crc = 51;

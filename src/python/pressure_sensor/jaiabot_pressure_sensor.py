@@ -5,16 +5,22 @@ import argparse
 import socket
 import logging
 import time
+from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 from jaiabot.messages.sensor.pressure_temperature_pb2 import PressureTemperatureData
 
 parser = argparse.ArgumentParser(description='Read temperature and pressure from a Bar30 sensor, and publish them over UDP port')
-parser.add_argument('-rp', '--receive_port', metavar='receive_port', default=20001, type=int, help='port to receive data')
-parser.add_argument('-sp', '--send_port', metavar='send_port', default=20100, type=int, help='port to send data')
+parser.add_argument('-p', '--udp_gateway_port', default=20000, type=int, help='The UDP gateway port to send PressureTemperatureData to (default: 20000)')
 parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
 parser.add_argument('-t', dest='sensor_type', default='bar30', help='Type of Blue Robotics pressure-temperature sensor')
 parser.add_argument('-r', '--data_rate', metavar="data_rate", choices=[10, 20, 50, 100], default=10, type=int, help='Data Rate, default is 10 Hz')
-parser.add_argument('--simulator', action='store_true')
-args = parser.parse_args()
+
+class Args:
+    udp_gateway_port: int
+    logging_level: str
+    sensor_type: str
+    data_rate: int
+
+args: Args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('pressure')
@@ -104,7 +110,7 @@ class SensorSimulator:
 
 
 # Setup the Bar30
-if args.simulator:
+if args.sensor_type == 'sim':
     sensor = SensorSimulator()
 else:
     sensor = Sensor()
@@ -112,9 +118,9 @@ else:
 
 # Create socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('', args.receive_port))
-# Send data to localhost on port 20100
-addr = ("localhost", args.send_port)
+sock.bind(('', 0))
+
+udp_gateway_address = ("localhost", args.udp_gateway_port)
 
 # Target send interval (in seconds)
 target_interval = 1.0 / args.data_rate  
@@ -122,8 +128,6 @@ target_interval = 1.0 / args.data_rate
 next_send_time = time.perf_counter()  
 
 while True:
-    loop_start = time.perf_counter()
-
     # Read data from sensor
     try:
         p_mbar, t_celsius = sensor.read()
@@ -146,12 +150,12 @@ while True:
     pressure_temperature_data.sensor_type = sensor.sensor_type
 
     try:
-        sock.sendto(pressure_temperature_data.SerializeToString(), addr)
+        envelope = UDPGatewayEnvelope()
+        envelope.pressure_temperature_data.CopyFrom(pressure_temperature_data)
+        sock.sendto(envelope.SerializeToString(), udp_gateway_address)
+        log.debug(f'Sent: {envelope} to {udp_gateway_address}')
     except Exception as e:
         log.error(f"Failed to send data: {e}")
-
-    # Measure loop duration
-    loop_duration = time.perf_counter() - loop_start
 
     # Adjust next send time dynamically
     next_send_time += target_interval

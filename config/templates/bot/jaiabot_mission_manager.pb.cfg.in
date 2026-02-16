@@ -59,6 +59,10 @@ pitch_angle_checks: 3 # (optional) (default=3) Number of pitch data
 pitch_angle_min_check_time: 1 # (optional) (default=1) Seconds
 dive_surface_eps: 0.75 # (optional) (default=0.75) Meters
 hard_bottom_type_acceleration: 100 # (optional) (default=100)
+min_subsurface_current_vector_hold_time: 10 # (optional) (default=10)
+min_subsurface_current_vector_drift_time: 15 # (optional) (default=15)
+pressure_sensor_to_waterline: 0.4572 # (optional) (default=0.4572) Meters
+pressure_sensor_to_tail: 0.3683 # (optional) (default=0.3683) Meters
 
 # GPS Requirements in Transit
 total_gps_fix_checks: 10 # (optional) (default=10)
@@ -109,9 +113,6 @@ min_depth_safety: -1 # (default = -1)
 # IMU Restart State Timeout
 imu_restart_seconds: 15 # (default = 15)
 
-# If using wifi we need to subscribe to the hub on start, since the hub doesn't know what bots are running
-$subscribe_to_hub_on_start
-
 # Waypoint Transit Behavior Updates
 waypoint_with_no_task_slip_radius: 15 # (default = 15)
 waypoint_with_task_slip_radius: 7 # (default = 5)
@@ -127,11 +128,12 @@ subnet_mask: $subnet_mask
 
 start_camera_command {
     id: 1
-    type: START_IMAGES
-    image_capture_interval: 2 # seconds
+    type: START_VIDEO
 }
 
 stop_camera_command {
     id: 2
-    type: STOP_IMAGES
+    type: STOP_VIDEO
 }
+
+camera_available: $camera_available

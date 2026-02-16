@@ -3,11 +3,10 @@
 
 ##
 ## Usage:
-## jaiabot_arduino_type=usb_old jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh 172.20.11.102
+## jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh 172.20.11.102
 ##
 ## Command line arguments is a list of Jaiabots to push deployed code to.
 ## If omitted, the code is just built, but not pushed
-## Env var "jaiabot_arduino_type" can be set to one of: usb, spi, which will upload the arduino code (jaiabot_runtime) based on the connection type. If unset, the arduino code will not be flashed.
 ## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appropriate systemd services. If unset, the systemd services will not be installed and enabled
 ## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead. If unset, the target will be the standard arm64 embedded system.
 ## Env var "jaiabot_repo" can be set to one of: release, continuous, beta, test, which will set the repository to use for install 'apt' dependencies in the Docker container. If unset, "release" will be used.
@@ -85,10 +84,10 @@ else
     do
         echo "🟢 Uploading to "$remote
         # Sync all directories
-        rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./src/web/jcc.conf ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
+        rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
         # Login to the target, and deploy the software
-        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_arduino_type=${jaiabot_arduino_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c \"./jaiabot/scripts/arm64-deploy.sh ${build_dir}\""
+        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c \"./jaiabot/scripts/arm64-deploy.sh ${build_dir}\""
 
         if [ ! -z $jaiabot_systemd_type ]; then
             echo "When you're ready, ssh ${botuser}@${hostname} and run 'sudo systemctl start jaiabot'"

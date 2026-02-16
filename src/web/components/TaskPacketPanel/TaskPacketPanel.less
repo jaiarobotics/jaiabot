@@ -1,0 +1,68 @@
+@import "../../style/stylesheets/vars.less";
+
+.task-packet-panel-container {
+    position: absolute;
+    top: @panel-top;
+    right: @panel-right;
+    z-index: @jaia-panel-z-index;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    padding: 6px;
+
+    max-height: @panel-max-height;
+
+    background-color: @overlay-background;
+}
+
+.task-packet-panel {
+    display: grid;
+    grid-template-columns: max-content min-content;
+    align-items: center;
+    gap: 15px;
+
+    padding: 15px;
+
+    background-color: @cc-background-color;
+    font-size: 1.1rem;
+}
+
+.task-packet-panel .title {
+    grid-column: 1 / 3;
+    justify-self: center;
+
+    font-weight: 600;
+    padding-bottom: 12px;
+}
+
+.task-packet-panel .label {
+    font-weight: 600;
+}
+
+.task-packet-panel .line-break {
+    grid-column: 1 / 3;
+    height: 1px;
+    background-color: #d1d5db;
+}
+
+.task-packet-panel-container button {
+    all: unset;
+    padding: 9px;
+    color: @cc-text-color-light;
+
+    display: flex;
+    justify-content: center;
+}
+
+.visibility-buttons {
+    display: flex;
+    justify-content: space-around;
+}
+
+.visibility-buttons button {
+    border: 1px solid #fff;
+    border-radius: 3px;
+    padding: 6px 18px;
+}

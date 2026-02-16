@@ -7,6 +7,11 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Limit cascading C++ errors (GCC / Clang only)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+   add_compile_options(-fmax-errors=3)
+endif()
+
 # determine version of jaiabot
 include(JaiaVersions)
 
@@ -206,10 +211,13 @@ set(scripts_to_install
   system/jaiabot-checkloadavg.py
   system/jaia_update_ufw_rules.sh
   system/jaia_update_network.sh
+  system/jaia_iridium_tunnel.sh
   # Fleet config
   fleet/jaia-create-fleet-config.sh
   fleet/jaia-generate-first-boot.py
   fleet/jaia-fleet-config-update-iso.sh
+  fleet/jaia-create-cloudhub.py
+  fleet/jaia-delete-cloudhub.py
   # First boot (also used by VirtualFleet creation)
   init/jaia-create-ansible-inventory.sh
   )
@@ -236,7 +244,7 @@ foreach(app_target ${PROJECT_APP_LIST})
 endforeach()
 
 if(export_goby_interfaces)
-  # remove splines= when https://gitlab.com/graphviz/graphviz/-/issues/1408 fix is available (2.y)?
+  # remove splines= when https://gitlab.com/graphviz/graphviz/-/issues/1408 fix is available (3.y)?
   set(INTERFACE_COMMON_PARAMS "--splines=line;--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_no_interthread.svg "--omit-interthread;--no-disconnected;${INTERFACE_COMMON_PARAMS}")

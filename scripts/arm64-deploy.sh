@@ -19,14 +19,12 @@ fi
 
 echo "🟢 Creating python virtual environment (venv)"
 pushd ${HOME}/jaiabot/${build_dir}/share/jaiabot/python
-    /usr/bin/python3 -m venv venv/
+    /usr/bin/python3 -m venv venv/ --system-site-packages
     source venv/bin/activate
     # /tmp does not necessarily have enough space on the embedded boards, but /var/log is large
     python3 -m pip -q install wheel
     python3 -m pip install -q -r requirements.txt
 popd
-
-sudo apt-get -qq -y remove "*jaiabot*"
 
 jaiabot_version=$(cat ${HOME}/jaiabot/${build_dir}/share/version.txt)
 
@@ -46,7 +44,7 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
     if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
         cd ${HOME}/jaiabot/config/gen
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,})
+        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,} --camera_positions ${jaia_camera_positions,,} --additional_sensors ${jaia_additional_sensors})
 
     else
 
@@ -54,8 +52,7 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
          ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced)
 
-        sudo cp ${HOME}/jaiabot/src/web/jcc.conf /etc/apache2/sites-available
-        sudo cp -r ${HOME}/jaiabot/${build_dir}/share/jaiabot/* /usr/share/jaiabot
+        sudo chmod o+x ${HOME}
         sudo a2ensite jcc
     fi
 
@@ -65,9 +62,11 @@ sudo cp ${HOME}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/
 # use symlink so this gets updated if the user re-installs the packaged version
 sudo ln -s -f /etc/update-motd.d/75-jaiabot-status /usr/local/bin/jaiabot-status
 
-if [ ! -z "$jaiabot_arduino_type" ]; then
-    echo "🟢 Loading arduino type $jaiabot_arduino_type on $HOSTNAME"
-    sudo ${HOME}/jaiabot/${build_dir}/share/jaiabot/arduino/jaiabot_runtime/$jaiabot_arduino_type/upload.sh
+echo "Arduino Type: $jaia_arduino_type"
+
+if [ "$jaia_arduino_type" != "none" ]; then
+    echo "🟢 Loading arduino type $jaia_arduino_type on $HOSTNAME"
+    sudo ${HOME}/jaiabot/${build_dir}/share/jaiabot/arduino/jaiabot_runtime/$jaia_arduino_type/upload.sh
 fi
 
 sudo sh -c "echo 'Development version: ${jaiabot_version}, deployed $(date)' > /etc/jaiabot/software_version"

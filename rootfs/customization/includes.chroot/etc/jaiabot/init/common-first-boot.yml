@@ -56,6 +56,8 @@ runcmd:
   - /etc/jaiabot/init/install-hub-ssh-keys.sh
   # Format overlay to btrfs (if not already)
   - mkfs.btrfs -f $(blkid -L overlay) -L overlay
+  # Disable apt timers to prevent lock contention and background updates
+  - systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
 
   
 # Reboot for overlay to take effect

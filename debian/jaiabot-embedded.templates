@@ -1,11 +1,11 @@
 Template: jaiabot-embedded/debconf_state_common
 Type: select
-Choices: type, fleet_id, led_type, electronics_stack, comms_links, mode, warp, rf_encryption_password, NEXT
+Choices: type, fleet_id, led_type, electronics_stack, comms_links, mode, warp, rf_encryption_password, dccl_encryption_password, NEXT
 Description: Choose a common option to edit
 
 Template: jaiabot-embedded/debconf_state_bot
 Type: select
-Choices: BACK, bot_id, arduino_type, imu_type, bot_type, data_offload_ignore_type, imu_install_type, temperature_sensor_type, pressure_sensor_type, motor_harness_type, EXIT
+Choices: BACK, bot_id, arduino_type, imu_type, bot_type, data_offload_ignore_type, imu_install_type, temperature_sensor_type, pressure_sensor_type, motor_harness_type, camera_positions, EXIT
 Description: Choose a bot option to edit
 
 Template: jaiabot-embedded/debconf_state_hub
@@ -127,7 +127,23 @@ Description: Encryption key for XBee radio: 128-bit value (up to 16 bytes) as he
 
 Template: jaiabot-embedded/comms_links
 Type: multiselect
-Choices: xbee, wifi
+Choices: xbee, wifi, iridium
 Default: xbee
 Description: Which comms links to activate?
 
+Template: jaiabot-embedded/camera_positions
+Type: multiselect
+Choices: aft, fore, outward, none
+Default: none
+Description: Which camera positions?
+
+Template: jaiabot-embedded/dccl_encryption_password
+Type: string
+Default:
+Description: Encryption passphrase for DCCL (intervehicle) messages: can be any string.
+
+Template: jaiabot-embedded/additional_sensors
+Type: multiselect
+Choices: turner_c_flour, none
+Default: none
+Description: Which additional sensors?

@@ -23,16 +23,16 @@
 #include <goby/middleware/marshalling/protobuf.h>
 #include <google/protobuf/text_format.h>
 // this space intentionally left blank
-#include <goby/zeromq/application/single_thread.h>
 #include <fstream>
+#include <goby/zeromq/application/single_thread.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/intervehicle.h"
+#include "jaiabot/messages/comms.pb.h"
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
-#include "jaiabot/messages/modem_message_extensions.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -58,7 +58,7 @@ class JaiabotEngineering : public ApplicationBase
 
     void handle_engineering_command(const jaiabot::protobuf::Engineering& command);
     void handle_bounds_change(const jaiabot::protobuf::Bounds& new_bounds);
-    void intervehicle_subscribe(const jaiabot::protobuf::HubInfo& hub_info);
+    void intervehicle_subscribe(const jaiabot::protobuf::IntervehicleSubscribeRequest& req);
 
     // Engineering state to be published over intervehicle on a regular basis
     jaiabot::protobuf::Engineering latest_engineering;
@@ -89,28 +89,24 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
         // jaiabot_pid_control
         interprocess()
             .subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::PIDControl>(
-                [this](const jaiabot::protobuf::PIDControl& pid_control) {
-                    latest_engineering.mutable_pid_control()->CopyFrom(pid_control);
-                });
+                [this](const jaiabot::protobuf::PIDControl& pid_control)
+                { latest_engineering.mutable_pid_control()->CopyFrom(pid_control); });
 
         // Subscribe to Arduino driver bounds changes, so they show up in the engineering_status messages
         interprocess().subscribe<jaiabot::groups::engineering_status>(
-            [this](const jaiabot::protobuf::Bounds& bounds) {
-                    latest_engineering.mutable_bounds()->CopyFrom(bounds);
-            });
+            [this](const jaiabot::protobuf::Bounds& bounds)
+            { latest_engineering.mutable_bounds()->CopyFrom(bounds); });
 
         // Subscribe to Echo driver data changes, so they show up in the engineering_status messages
-        interprocess().subscribe<jaiabot::groups::engineering_status>(
-            [this](const jaiabot::protobuf::EchoData& echo_data) {
-                if (echo_data.has_echo_state())
-                {
-                    latest_engineering.mutable_echo()->set_echo_state(
-                        echo_data.echo_state());
-                }
+        interprocess().subscribe<jaiabot::groups::echo>(
+            [this](const jaiabot::protobuf::EchoData& echo_data)
+            {
+                latest_engineering.mutable_echo()->set_echo_state(echo_data.echo_state());
             });
 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
-            [this](const jaiabot::protobuf::Engineering& engineering_status) {
+            [this](const jaiabot::protobuf::Engineering& engineering_status)
+            {
                 if (engineering_status.has_bot_status_rate())
                 {
                     latest_engineering.set_bot_status_rate(engineering_status.bot_status_rate());
@@ -206,33 +202,33 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
                             engineering_status.bottom_depth_safety_params().safety_depth());
                     }
                 }
+
             });
     }
 
+    // subscribe for commands when we get a request to subscribe (from jaiabot_comms_manager)
     interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
-        [this](const jaiabot::protobuf::HubInfo& hub_info) { intervehicle_subscribe(hub_info); });
-
-    if (cfg().has_subscribe_to_hub_on_start())
-    {
-        intervehicle_subscribe(cfg().subscribe_to_hub_on_start());
-    }
+        [this](const jaiabot::protobuf::IntervehicleSubscribeRequest& req)
+        { intervehicle_subscribe(req); });
 }
 
 void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
-    const jaiabot::protobuf::HubInfo& hub_info)
+    const jaiabot::protobuf::IntervehicleSubscribeRequest& req)
 {
-    glog.is_verbose() && glog << "Subscribing for Engineering commands from hub "
-                              << hub_info.hub_id() << " (modem id " << hub_info.modem_id() << ")"
-                              << std::endl;
+    int hub_modem_id = jaiabot::comms::hub_modem_id(cfg().subnet_mask(), req.link());
+
+    glog.is_verbose() && glog << "Subscribing for Engineering commands from hub on link: "
+                              << jaiabot::protobuf::Link_Name(req.link()) << std::endl;
 
     // Intervehicle subscribe for commands from engineering
     auto on_command_subscribed =
         [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-               const goby::middleware::intervehicle::protobuf::AckData& ack) {
-            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                     << std::endl;
-        };
+               const goby::middleware::intervehicle::protobuf::AckData& ack)
+    {
+        glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                 << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                 << std::endl;
+    };
 
     // use vehicle ID as group for command
     auto hub_command_subscriber_group_func =
@@ -246,7 +242,7 @@ void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
 
     // set command publisher to the hub that triggered this subscribe
     latest_command_sub_cfg_.mutable_intervehicle()->clear_publisher_id();
-    latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_info.modem_id());
+    latest_command_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_modem_id);
 
     auto hub_command_set_link_data =
         [this](jaiabot::protobuf::Engineering& msg,
@@ -261,7 +257,8 @@ void jaiabot::apps::JaiabotEngineering::intervehicle_subscribe(
         hub_command_set_link_data};
 
     intervehicle().subscribe_dynamic<jaiabot::protobuf::Engineering>(
-        [this](const jaiabot::protobuf::Engineering& command) {
+        [this](const jaiabot::protobuf::Engineering& command)
+        {
             glog.is_debug1() && glog << "Engineering Command: " << command.ShortDebugString()
                                      << std::endl;
 
@@ -276,11 +273,12 @@ jaiabot::apps::JaiabotEngineering::~JaiabotEngineering()
     {
         auto on_command_unsubscribed =
             [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
-                   const goby::middleware::intervehicle::protobuf::AckData& ack) {
-                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
-                                         << "\nfor subscription:\n\t" << sub.ShortDebugString()
-                                         << std::endl;
-            };
+                   const goby::middleware::intervehicle::protobuf::AckData& ack)
+        {
+            glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                     << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                     << std::endl;
+        };
         goby::middleware::Subscriber<jaiabot::protobuf::Engineering> command_subscriber{
             latest_command_sub_cfg_, on_command_unsubscribed};
 

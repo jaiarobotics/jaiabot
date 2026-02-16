@@ -3,8 +3,12 @@ set -e
 
 # disable default apache2 site if enabled
 a2dissite 000-default || true
-# enable JCC site in apache2
-a2ensite jcc
+
+# enable required apache2 modules
+a2enmod proxy || true
+a2enmod proxy_http || true
+
+systemctl restart apache2 || true
 
 #DEBHELPER#
 

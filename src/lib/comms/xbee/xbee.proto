@@ -15,7 +15,7 @@ message XBeePacket
 
     // broadcast (0) + 31 hubs (0-30 inclusive) + 151 bots (0-150 inclusive)
     // Values above 153 are currently a PLACEHOLDER (as only 1 hub modem id is
-    // used) for when we implement full multi-hub support
+    // used)
     required int32 src = 1 [(dccl.field) = { min: 0, max: 183 }];
     required int32 dest = 2 [(dccl.field) = { min: 0, max: 183 }];
 
@@ -30,9 +30,6 @@ message XBeePacket
 
     optional int32 acked_frame = 7
         [(dccl.field) = { min: 0, max: 15, codec: "dccl.presence" }];
-
-    optional int32 hub_id = 8
-        [(dccl.field) = { min: 0, max: 30, codec: "dccl.presence" }];
 
     optional bytes data = 10
         [(dccl.field) = { codec: "dccl.var_bytes" max_length: 242 }];

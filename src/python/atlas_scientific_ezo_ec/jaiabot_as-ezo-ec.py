@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
-from time import sleep
-from datetime import datetime
-import random
-import sys
 import argparse
 import socket
 import logging
+import time
 import atlas_oem
 from jaiabot.messages.sensor.salinity_pb2 import SalinityData
+from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 
 parser = argparse.ArgumentParser(description=\
-    '''Read salinity from an Atlas Scientific EC EZO sensor, and publish over UDP port.  The data is published as a comma-separated series on one line.  These are the fields, in the order they will appear:
-
-1) Date of the reading, in YYYY-MM-DDThh:mm:ss format
-2) EC:  electrical conductivity (microS / cm)
-3) TDS: total dissolved solids (ppm)
-4) S:   salinity PSU (g / kg)
-5) SG:  specific gravity''')
+    '''Read salinity from an Atlas Scientific EC EZO sensor, and publish to the UDP gateway.''')
 parser.add_argument('-a', dest='address', type=int, default=100, help='I2C address of the sensor, defaults to 100 (0x64)')
-parser.add_argument('port', metavar='port', type=int, help='port to publish salinity')
+parser.add_argument('-p', dest='udp_gateway_port', type=int, default=20000, help='UDP gateway port to publish data to')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is WARNING')
 parser.add_argument('--simulator', action='store_true')
-args = parser.parse_args()
+
+class Args:
+    address: int
+    udp_gateway_port: int
+    logging_level: str
+    simulator: bool
+
+args: Args = parser.parse_args()
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('salinity')
@@ -82,21 +81,22 @@ else:
 
 
 # Create socket
-port = args.port
-
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('', port))
+sock.bind(('', 0))
 
+MEASUREMENT_INTERVAL_SECONDS = 0.1
 
 while True:
-    data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-
-    # Respond to anyone who sends us a packet
     try:
         data = sensor.read()
     except Exception as e:
         log.warning(f'Exception on sensor.read(): {e}')
         continue
 
-    sock.sendto(data.SerializeToString(), addr)
-    log.debug(f'Sent: {data}')
+    envelope = UDPGatewayEnvelope()
+    envelope.salinity_data.CopyFrom(data)
+
+    sock.sendto(envelope.SerializeToString(), ('localhost', args.udp_gateway_port))
+    log.debug(f'Sent: {envelope} to port {args.udp_gateway_port}')
+
+    time.sleep(MEASUREMENT_INTERVAL_SECONDS)

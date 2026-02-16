@@ -37,7 +37,10 @@ constexpr goby::middleware::Group example{"jaiabot::example"};
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
 constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"};
+
+constexpr goby::middleware::Group raw_salinity{"jaiabot::raw_salinity"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
+
 constexpr goby::middleware::Group dissolved_oxygen{"jaiabot::dissolved_oxygen"};
 constexpr goby::middleware::Group ph{"jaiabot::ph"};
 constexpr goby::middleware::Group fluorometer{"jaiabot::fluorometer"};
@@ -68,6 +71,7 @@ constexpr goby::middleware::Group mission_ivp_behavior_report{
 constexpr goby::middleware::Group powerstate_command{"jaiabot::powerstate_command"};
 constexpr goby::middleware::Group mission_dive{"jaiabot::mission_dive"};
 constexpr goby::middleware::Group self_command{"jaiabot::self_command"};
+constexpr goby::middleware::Group state_change{"jaiabot::state_change"};
 
 // hub manager
 constexpr goby::middleware::Group hub_status{"jaiabot::hub_status"};
@@ -96,6 +100,8 @@ constexpr goby::middleware::Group engineering_status{"jaiabot::engineering_statu
 
 constexpr goby::middleware::Group contact_update{"jaiabot::contact_update",
                                                  goby::middleware::Group::broadcast_group};
+
+constexpr goby::middleware::Group hub2hub_data{"jaiabot::hub2hub_data", jaiabot::INTERVEHICLE_API_VERSION};
 
 // DCCL (interprocess)
 constexpr goby::middleware::Group hub_command_full{"jaiabot::hub_command_full"};
