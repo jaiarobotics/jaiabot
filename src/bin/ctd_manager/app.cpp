@@ -28,6 +28,7 @@
 #include <chrono>
 #include <string>
 #include <format>
+#include <cmath>
 #include <google/protobuf/util/json_util.h>
 
 #include "config.pb.h"
@@ -56,6 +57,7 @@ class CTDManager : public ApplicationBase
       std::filesystem::path file,
       std::string time
     );
+    const double ascent_epsilon{0.5};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -72,7 +74,9 @@ jaiabot::apps::CTDManager::CTDManager() : ApplicationBase()
 
 void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDProfile& ctd_profile) 
 {
+
     std::string time;
+
     if (ctd_profile.snapshot_size() > 0)
     {
       auto seconds = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::microseconds{ctd_profile.snapshot(0).time()});
@@ -81,6 +85,15 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
       time = std::format("{:%Y%m%dT%H%M%S}", local);
     }
     else 
+    {
+      return;
+    }
+
+    double bottom_depth = ctd_profile.snapshot(0).depth();
+    double top_depth = ctd_profile.snapshot(ctd_profile.snapshot_size() - 1).depth();
+
+    // bot stuck on bottom, discard data
+    if (bottom_depth - top_depth < ascent_epsilon)
     {
       return;
     }

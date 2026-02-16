@@ -26,11 +26,6 @@ fi
 destination_dir="/var/log/jaiabot/bot_offload/ctd/$bot_id/"
 ctd_dir="/var/log/jaiabot/bot/${bot_id}/ctd/"
 
-if [[ ! -d "${ctd_dir}" ]]; then
-    echo "CTD directory does not exist"
-    exit 1;
-fi
-
 if [[ ! -d "${destination_dir}" ]]; then
   mkdir -p "${destination_dir}"
 fi

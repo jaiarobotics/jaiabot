@@ -15,7 +15,7 @@ interface Props {
     closeCTDPanel: () => void;
 }
 
-const LOOKUP_DELAY = 5_000; // ms;
+const LOOKUP_DELAY = 7_500; // ms;
 
 /**
  * Allows an operator to download CTD data via WiFi
