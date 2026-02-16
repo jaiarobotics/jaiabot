@@ -22,7 +22,7 @@ const LOOKUP_DELAY = 5_000; // ms;
  */
 export default function CTDOffload(props: Props) {
     const jaiaContext = useContext(JaiaContext);
-    const [isDeleteFilesChecked, setIsDeleteFileChecked] = useState(false);
+    const [isDeleteFilesChecked, setIsDeleteFilesChecked] = useState(false);
     const botCheckedStates = useMemo(() => new Map<number, boolean>(), []);
 
     /**
@@ -96,13 +96,16 @@ export default function CTDOffload(props: Props) {
      */
     const getConnectedBots = () => {
         const bots = jaiaContext.bots.getBots();
-        return Array.from(bots.values()).map((bot) => {
+        const connectedBots = Array.from(bots.values()).filter(
+            (bot) => bot.getWifiLinkQuality() > 0,
+        );
+        return connectedBots.map((bot) => {
             if (bot.getWifiLinkQuality() > 0) {
                 return (
                     <li key={bot.getBotID()}>
                         <input
                             type="checkbox"
-                            onClick={() => handleCheckboxClick(bot.getBotID())}
+                            onChange={() => handleCheckboxClick(bot.getBotID())}
                         />
                         <label>Bot {bot.getBotID()}</label>
                     </li>
@@ -126,7 +129,7 @@ export default function CTDOffload(props: Props) {
                 <div className="remove-files-selection">
                     <input
                         type="checkbox"
-                        onClick={() => setIsDeleteFileChecked(!isDeleteFilesChecked)}
+                        onChange={() => setIsDeleteFilesChecked(!isDeleteFilesChecked)}
                     />
                     <label>Remove CTD Files From Hub</label>
                 </div>

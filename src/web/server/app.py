@@ -7,7 +7,7 @@ import os
 import io
 import zipfile
 import shutil
-from datetime import *
+from datetime import datetime
 from pathlib import Path
 from http import HTTPStatus
 from flask import Flask, send_from_directory, Response, request, send_file
@@ -397,7 +397,7 @@ def get_ctd_profiles(bot_id: str):
     """
     dir = Path("/var/log/jaiabot/bot_offload/ctd/") / bot_id
     if request.method == "GET":
-        files = list(dir.glob("*.unb"))
+        files = list(dir.glob("*.unb")) if dir.exists() else []
         file = io.BytesIO()
         with zipfile.ZipFile(file, "w", zipfile.ZIP_DEFLATED) as zf:
             for path in files:
@@ -412,8 +412,9 @@ def get_ctd_profiles(bot_id: str):
         )
 
     if request.method == "DELETE":
-        shutil.rmtree(dir)
-        return Response(status=HTTPStatus.OK)
+        if dir.exists():
+            shutil.rmtree(dir)
+            return Response(status=HTTPStatus.OK)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=40001, debug=False)
