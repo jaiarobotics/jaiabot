@@ -11,6 +11,7 @@ import jaialog_store
 import moos_messages
 import pyjaia.contours
 import pyjaia.drift_interpolation
+import pyjaia.utils
 
 from pathlib import *
 import traceback
