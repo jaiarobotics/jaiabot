@@ -165,11 +165,11 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         const isNegative = position < 0;
         let magnitude = 0;
 
-        if (absPosition > RCZones.DEAD && absPosition < RCZones.LOW) {
+        if (absPosition > RCZones.DEAD && position < RCZones.LOW) {
             magnitude = 1;
         }
 
-        if (absPosition >= RCZones.LOW && absPosition <= RCZones.HIGH) {
+        if (absPosition >= RCZones.LOW && position <= RCZones.HIGH) {
             magnitude = 2;
         }
 
