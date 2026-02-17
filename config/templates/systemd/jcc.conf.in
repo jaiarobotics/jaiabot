@@ -41,6 +41,9 @@
     ProxyPassReverse /jdv/  http://127.0.0.1:40010/
 
     # JDV API endpoints (needed when JDV is accessed via proxy)
+    # Note: More specific paths must come before less specific ones
+    ProxyPass        /log/                    http://127.0.0.1:40010/log/
+    ProxyPassReverse /log/                    http://127.0.0.1:40010/log/
     ProxyPass        /logs                    http://127.0.0.1:40010/logs
     ProxyPassReverse /logs                    http://127.0.0.1:40010/logs
     ProxyPass        /series                  http://127.0.0.1:40010/series
@@ -67,8 +70,6 @@
     ProxyPassReverse /convert-if-needed       http://127.0.0.1:40010/convert-if-needed
     ProxyPass        /all-series-descriptors  http://127.0.0.1:40010/all-series-descriptors
     ProxyPassReverse /all-series-descriptors  http://127.0.0.1:40010/all-series-descriptors
-    ProxyPass        /log/                    http://127.0.0.1:40010/log/
-    ProxyPassReverse /log/                    http://127.0.0.1:40010/log/
     ProxyPass        /h5                      http://127.0.0.1:40010/h5
     ProxyPassReverse /h5                      http://127.0.0.1:40010/h5
 
