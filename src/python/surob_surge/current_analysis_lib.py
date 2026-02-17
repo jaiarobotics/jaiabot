@@ -47,13 +47,13 @@ def extract_drift_segments(stationkeep_df):
     
     return drifts
 
-def create_pressure_mask(pressure, threshold=0.05):
-    """Creates a boolean mask for pressure values greater than a threshold."""
-    return pressure > threshold
+def create_pressure_mask(pressure, threshold_bar=0.05):
+    """Creates a boolean mask for pressure values greater than a threshold. 0.05 bar selected as rough "wetness" filter."""
+    return pressure > threshold_bar
 
-def create_speed_mask(speed, threshold=1.25):
-    """Creates a boolean mask for speed values below a threshold."""
-    return speed < threshold
+def create_speed_mask(speed, threshold_mps=1.25):
+    """Creates a boolean mask for speed values below a threshold. 1.25 m/s selected as rough "surfing" (bot carried by wave) speed threshold."""
+    return speed < threshold_mps
 
 def filter_current_data(drift, use_pressure=True, use_speed=True):
     """
