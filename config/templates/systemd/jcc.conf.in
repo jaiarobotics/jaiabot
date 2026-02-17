@@ -36,11 +36,8 @@
     ProxyPass        /jcu/  http://127.0.0.1:9091/
     ProxyPassReverse /jcu/  http://127.0.0.1:9091/
 
-    RedirectMatch 301 ^/jdv$$ /jdv/
-    ProxyPass        /jdv/  http://127.0.0.1:40010/
-    ProxyPassReverse /jdv/  http://127.0.0.1:40010/
-
     # JDV API endpoints (needed when JDV is accessed via proxy)
+    # Note: These must come before the /jdv/ catch-all to ensure they take precedence
     # Note: More specific paths must come before less specific ones
     ProxyPass        /log/                    http://127.0.0.1:40010/log/
     ProxyPassReverse /log/                    http://127.0.0.1:40010/log/
@@ -72,6 +69,10 @@
     ProxyPassReverse /all-series-descriptors  http://127.0.0.1:40010/all-series-descriptors
     ProxyPass        /h5                      http://127.0.0.1:40010/h5
     ProxyPassReverse /h5                      http://127.0.0.1:40010/h5
+
+    RedirectMatch 301 ^/jdv$$ /jdv/
+    ProxyPass        /jdv/  http://127.0.0.1:40010/
+    ProxyPassReverse /jdv/  http://127.0.0.1:40010/
 
 
 </virtualhost>
