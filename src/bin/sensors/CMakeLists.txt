@@ -9,6 +9,7 @@ add_executable(${APP}
   drivers/atlas_scientific__oem_ph.cpp
   drivers/blue_robotics_bar30.cpp
   drivers/turner__c_fluor.cpp
+  drivers/aml.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}

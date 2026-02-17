@@ -66,7 +66,7 @@ parser.add_argument('--rf_encryption_password', default ='', help='Encryption ke
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 
 args=parser.parse_args()
 

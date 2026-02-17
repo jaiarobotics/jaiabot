@@ -12,4 +12,3 @@ message AML {
     optional double conductivity = 2;
     optional double temperature = 3;
 }
-
