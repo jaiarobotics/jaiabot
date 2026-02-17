@@ -205,6 +205,8 @@ def process_station_keep_dict_gps_only(
     lat = np.asarray(sk.get("lat", []), float)
     lon = np.asarray(sk.get("lon", []), float)
 
+    if tpv_time.size < 2:
+        return out
     if tpv_time[-1] - tpv_time[0] < MIN_STATION_KEEP_LENGTH_S:
         return out
 
