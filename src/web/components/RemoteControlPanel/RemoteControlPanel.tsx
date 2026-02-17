@@ -89,33 +89,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     };
 
     /**
-     * Updates throttle and rudder values when the analog stick moves
-     *
-     * @param {IJoystickUpdateEvent} event Contains the direction + magnitude of the movement
-     * @param {AnalogStickTypes} analogStickType Which analog stick moved
-     * @returns {void}
-     */
-    const handleAnalogStickMove = (
-        event: IJoystickUpdateEvent,
-        analogStickType: AnalogStickTypes,
-    ) => {
-        switch (analogStickType) {
-            case AnalogStickTypes.SINGLE:
-                handleAxisInput(event.y, AnalogStickTypes.LEFT);
-                handleAxisInput(event.x, AnalogStickTypes.RIGHT);
-                break;
-
-            case AnalogStickTypes.LEFT:
-                handleAxisInput(event.y, AnalogStickTypes.LEFT);
-                break;
-
-            case AnalogStickTypes.RIGHT:
-                handleAxisInput(event.x, AnalogStickTypes.RIGHT);
-                break;
-        }
-    };
-
-    /**
      * Handles axis input from both analog sticks and gamepad
      *
      * @param {number} value Raw axis value (-1 to 1)
@@ -225,25 +198,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         };
 
         return command;
-    };
-
-    /**
-     * Handles gamepad axis change events
-     *
-     * @param {string} axisName Name of the axis that changed
-     * @param {number} value New value of the axis (-1 to 1)
-     * @returns {void}
-     */
-    const handleGamepadAxisChange = (axisName: string, value: number) => {
-        // Left stick Y-axis controls throttle
-        // Invert Y-axis to match on-screen joystick behavior (up = positive = forward)
-        if (axisName === "LeftStickY") {
-            handleAxisInput(value, AnalogStickTypes.LEFT);
-        }
-        // Right stick X-axis controls rudder
-        else if (axisName === "RightStickX") {
-            handleAxisInput(value, AnalogStickTypes.RIGHT);
-        }
     };
 
     /**
