@@ -189,7 +189,6 @@ def gps_hs_uncertainty_from_epv_mc(
 def process_station_keep_dict_gps_only(
         sk,
         *,
-        gps_fs_override=None,
         gps_fmin=0.05,
         gps_fmax=0.30,
         min_gps_finite_frac=0.75,
@@ -210,18 +209,17 @@ def process_station_keep_dict_gps_only(
     if tpv_time[-1] - tpv_time[0] < MIN_STATION_KEEP_LENGTH_S:
         return out
 
-    gps_fs_calc = fs_from_epoch_rounded(tpv_time) if tpv_time.size else np.nan
-    gps_fs_used = int(np.round(gps_fs_override)) if gps_fs_override is not None else gps_fs_calc
+    gps_fs = fs_from_epoch_rounded(tpv_time) if tpv_time.size else np.nan
 
     gps_frac = finite_fraction(altitude)
 
-    if gps_frac < min_gps_finite_frac or (not np.isfinite(gps_fs_used)) or gps_fs_used <= 0:
+    if gps_frac < min_gps_finite_frac or (not np.isfinite(gps_fs)):
         return out
 
-    Hs, Tp = hs_from_altitude_psd(altitude, fs=float(gps_fs_used),
+    Hs, Tp = hs_from_altitude_psd(altitude, fs=float(gps_fs),
                                   fmin=gps_fmin, fmax=gps_fmax)
     Hs_std = gps_hs_uncertainty_from_epv_mc(altitude, epv,
-                                            fs=float(gps_fs_used),
+                                            fs=float(gps_fs),
                                             fmin=gps_fmin, fmax=gps_fmax,
                                             n_mc=n_mc, epv_scale=epv_scale, 
                                             seed=seed)
