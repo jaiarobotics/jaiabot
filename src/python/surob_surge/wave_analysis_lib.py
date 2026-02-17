@@ -123,7 +123,7 @@ def _welch_psd(y, *, fs, nperseg=None):
 def hs_from_altitude_psd(altitude, *, fs, fmin=0.05, fmax=0.30):
     alt_hp_fill, alt_hp_mask = highpass_fill_and_mask(altitude, fs=fs, fmin=fmin, order=4)
     if alt_hp_fill.size == 0 or not np.isfinite(alt_hp_fill).all():
-        return np.nan, np.nan, np.nan, None, None, alt_hp_fill, alt_hp_mask
+        return np.nan, np.nan
 
     f_alt, Salt = _welch_psd(alt_hp_fill, fs=fs)
 

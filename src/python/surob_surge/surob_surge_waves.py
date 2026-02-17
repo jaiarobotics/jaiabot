@@ -189,7 +189,7 @@ def main(args):
             payload_type = payload.WhichOneof('payload')
 
             # === WAITING MODE ===
-            if current_state is FSM_STATES.WAITING:
+            if current_state == FSM_STATES.WAITING:
                 if (payload_type == 'mission_report' and 
                         payload.mission_report.state == MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP):
                     log.info("Start signal received. Switching to LOGGING mode.")
@@ -198,7 +198,7 @@ def main(args):
                     data_buffers = {'gps': []}
             
             # === LOGGING MODE ===
-            elif current_state is FSM_STATES.LOGGING:
+            elif current_state == FSM_STATES.LOGGING:
                 current_ts = time.time()
                 match payload_type:
                     case 'time_position_velocity':
