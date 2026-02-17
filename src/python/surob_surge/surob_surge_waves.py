@@ -137,8 +137,7 @@ def process_logged_data(h5_log_path, log):
         
         gps_df['ts'] = gps_df['ts'] / 1_000_000_000.0
 
-        # TODO: compute wave statistics in wave_analysis_lib and return dictionary of results
-        return wal.process_station_keep_dict_gps_only(gps_df.to_dict(orient='list'))
+        return wal.process_station_keep_dict_gps_only(gps_df.to_dict(orient='list'), log)
 
     except (FileNotFoundError, OSError, KeyError) as e:
         log.exception(f"Error processing data from {h5_log_path}: {e}")
@@ -203,7 +202,7 @@ def main(args):
                 match payload_type:
                     case 'time_position_velocity':
                         if payload.time_position_velocity.HasField('location') and payload.time_position_velocity.HasField('altitude') and payload.time_position_velocity.HasField('epv'):
-                            data_buffers['gps'].append((int((payload.time_position_velocity.time or current_ts) * 1e9), 
+                            data_buffers['gps'].append((int((payload.time_position_velocity.time or current_ts) * 1_000_000_000), 
                                                         payload.time_position_velocity.location.lat, 
                                                         payload.time_position_velocity.location.lon, 
                                                         payload.time_position_velocity.altitude,

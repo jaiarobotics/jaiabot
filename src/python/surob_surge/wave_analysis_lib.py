@@ -120,15 +120,17 @@ def _welch_psd(y, *, fs, nperseg=None):
     return f, S
 
 
-def hs_from_altitude_psd(altitude, *, fs, fmin=0.05, fmax=0.30):
-    alt_hp_fill, alt_hp_mask = highpass_fill_and_mask(altitude, fs=fs, fmin=fmin, order=4)
+def hs_from_altitude_psd(altitude, log, *, fs, fmin=0.05, fmax=0.30):
+    alt_hp_fill, _ = highpass_fill_and_mask(altitude, fs=fs, fmin=fmin, order=4)
     if alt_hp_fill.size == 0 or not np.isfinite(alt_hp_fill).all():
         return np.nan, np.nan
 
     f_alt, Salt = _welch_psd(alt_hp_fill, fs=fs)
 
     band = (f_alt >= fmin) & (f_alt <= fmax)
+    log.info("Attempting np.trapz call here.")
     m0 = np.trapz(Salt[band], f_alt[band])
+    log.info("Completed np.trapz call here.")
     Hs = 4.0 * np.sqrt(m0)
 
     Tp, _ = peak_period_from_psd(f_alt, Salt, fmin=fmin, fmax=fmax)
@@ -188,6 +190,7 @@ def gps_hs_uncertainty_from_epv_mc(
 # ============================================================
 def process_station_keep_dict_gps_only(
         sk,
+        log,
         *,
         gps_fmin=0.05,
         gps_fmax=0.30,
@@ -205,18 +208,24 @@ def process_station_keep_dict_gps_only(
     lon = np.asarray(sk.get("lon", []), float)
 
     if tpv_time.size < 2:
+        log.warning(f"Timeseries in GPS dataset had length < 2.")
         return out
     if tpv_time[-1] - tpv_time[0] < MIN_STATION_KEEP_LENGTH_S:
+        log.warning(f"Timeseries in GPS dataset did not excede minimum length of {MIN_STATION_KEEP_LENGTH_S} seconds. Actual length was {tpv_time[-1] - tpv_time[0]} seconds.")
         return out
 
     gps_fs = fs_from_epoch_rounded(tpv_time) if tpv_time.size else np.nan
 
     gps_frac = finite_fraction(altitude)
 
-    if gps_frac < min_gps_finite_frac or (not np.isfinite(gps_fs)):
+    if gps_frac < min_gps_finite_frac:
+        log.warning(f"Altitude series was not at least {min_gps_finite_frac*100}% finite values. Actual percent was {gps_frac*100}%.")
+        return out 
+    if (not np.isfinite(gps_fs)) or gps_fs < 0:
+        log.warning(f"GPS data frequency was not finite or greater than zero. Calculated frequency was {gps_fs} Hz.")
         return out
 
-    Hs, Tp = hs_from_altitude_psd(altitude, fs=float(gps_fs),
+    Hs, Tp = hs_from_altitude_psd(altitude, log, fs=float(gps_fs),
                                   fmin=gps_fmin, fmax=gps_fmax)
     Hs_std = gps_hs_uncertainty_from_epv_mc(altitude, epv,
                                             fs=float(gps_fs),
