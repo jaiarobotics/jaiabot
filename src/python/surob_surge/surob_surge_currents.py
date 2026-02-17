@@ -90,36 +90,46 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
     if not results:
         log.warning("No results to send.")
     else:
-        current_packet = CurrentPacket()
-        if np.isfinite(results.get("avg_mode_speed", np.nan)):
-            current_packet.speed = results["avg_mode_speed"]
-        if np.isfinite(results.get("speed_std_about_reported_mean", np.nan)):
-            current_packet.speed_std = results["speed_std_about_reported_mean"]
-        if np.isfinite(results.get("mean_bearing", np.nan)):
-            current_packet.heading = results["mean_bearing"]
-        if np.isfinite(results.get("dir_std_about_reported_mean", np.nan)):
-            current_packet.heading_std = results["dir_std_about_reported_mean"]
-        if np.isfinite(results.get("mean_lat", np.nan)) and np.isfinite(results.get("mean_lon", np.nan)):
-            current_packet.location.lat = results["mean_lat"]
-            current_packet.location.lon = results["mean_lon"]
+        # Extract required current values and ensure they are finite before sending.
+        speed = results.get("avg_mode_speed", np.nan)
+        speed_std = results.get("speed_std_about_reported_mean", np.nan)
+        heading = results.get("mean_bearing", np.nan)
+        heading_std = results.get("dir_std_about_reported_mean", np.nan)
 
-        task_packet = TaskPacket(
-            bot_id=0,  # To be set by the receiving udp_gateway app
-            start_time=start_time_us,
-            end_time=end_time_us,
-            type=MissionTask.TaskType.STATION_KEEP
-        )
-        task_packet.current.CopyFrom(current_packet)
+        if not (np.isfinite(speed) and np.isfinite(speed_std) and np.isfinite(heading) and np.isfinite(heading_std)):
+            log.warning(
+                "Current results contain non-finite required values; not sending TaskPacket "
+                f"(speed={speed}, speed_std={speed_std}, heading={heading}, heading_std={heading_std})."
+            )
+        else:
+            current_packet = CurrentPacket()
+            # All required fields are finite; set them unconditionally.
+            current_packet.speed = float(speed)
+            current_packet.speed_std = float(speed_std)
+            current_packet.heading = float(heading)
+            current_packet.heading_std = float(heading_std)
 
-        envelope = UDPGatewayEnvelope()
-        envelope.surob_currents_payload.task_packet.CopyFrom(task_packet)
-        
-        try:
-            sock.sendto(envelope.SerializeToString(), addr)
-            log.info("Results sent successfully.")
-        except Exception:
-            log.exception("Failed to send results")
+            # Location is optional; set only if finite.
+            if np.isfinite(results.get("mean_lat", np.nan)) and np.isfinite(results.get("mean_lon", np.nan)):
+                current_packet.location.lat = results["mean_lat"]
+                current_packet.location.lon = results["mean_lon"]
 
+            task_packet = TaskPacket(
+                bot_id=0,  # To be set by the receiving udp_gateway app
+                start_time=start_time_us,
+                end_time=end_time_us,
+                type=MissionTask.TaskType.STATION_KEEP
+            )
+            task_packet.current.CopyFrom(current_packet)
+
+            envelope = UDPGatewayEnvelope()
+            envelope.surob_currents_payload.task_packet.CopyFrom(task_packet)
+
+            try:
+                sock.sendto(envelope.SerializeToString(), addr)
+                log.info("Results sent successfully.")
+            except Exception:
+                log.exception("Failed to send results")
     if cleanup:
         shutil.rmtree(station_keep_dir, ignore_errors=True)
 
@@ -138,9 +148,12 @@ def process_logged_data(h5_log_path, log):
         if gps_df.empty or arduino_df.empty or pressure_df.empty:
             log.warning(f"One or more datasets in '{h5_log_path}' were empty.")
             return {}
-        
+
+        # Convert nanosecond timestamps (int64) to seconds as float64.
+        # Using float64 seconds is sufficient for the expected mission durations
+        # and matches the f8 (float64) timestamp precision used elsewhere.
         for df in [gps_df, arduino_df, pressure_df]:
-            df['ts'] = df['ts'] / 1_000_000_000.0
+            df['ts'] = df['ts'].astype('float64') / 1_000_000_000.0
 
         motor_interp = np.interp(gps_df['ts'], arduino_df['ts'], arduino_df['motor'], left=np.nan, right=np.nan)
         pressure_interp = np.interp(gps_df['ts'], pressure_df['ts'], pressure_df['pressure'], left=np.nan, right=np.nan)

@@ -99,6 +99,11 @@ def compute_drift_statistics(drift):
     # scale lon by cosine of lat angle to linearly correlate the variables
     # distance between latitude lines are constant while distance between longitude lines approaches zero as you approach the poles
     scaled_filtered_lon = filtered_lon * np.cos(np.deg2rad(np.nanmean(filtered_lat))) 
+
+    # Guard against zero-variance data that would cause np.polyfit to emit RankWarning or fail
+    # If all latitudes or all scaled longitudes are identical, the linear fit is ill-posed.
+    if np.nanmin(filtered_lat) == np.nanmax(filtered_lat) or np.nanmin(scaled_filtered_lon) == np.nanmax(scaled_filtered_lon):
+        return stats
     a, b = np.polyfit(scaled_filtered_lon, filtered_lat, 1)
 
     lat_pred = a * scaled_filtered_lon + b
@@ -143,7 +148,15 @@ def summarize_station_keep_drifts(drifts, r2_threshold=0.5):
         return {}
 
     drift_stats_list = [compute_drift_statistics(filter_current_data(d)) for d in drifts]
-    good_drifts_stats = [s for s in drift_stats_list if ((not np.isnan(s.get("R2", 0))) and (s.get("R2", 0) > r2_threshold))]
+    good_drifts_stats = [
+        s
+        for s in drift_stats_list
+        if (
+            (r2_value := s.get("R2", np.nan)) is not None
+            and not np.isnan(r2_value)
+            and r2_value > r2_threshold
+        )
+    ]
 
     if not good_drifts_stats:
         return {}
@@ -157,13 +170,29 @@ def summarize_station_keep_drifts(drifts, r2_threshold=0.5):
     speed_std = calculate_std_about_value(speed_modes, avg_mode_speed) 
     dir_std = calculate_circular_std_about_value_deg(bearings, mean_bearing)
 
-    lats = [s["filtered_lat"] for s in good_drifts_stats]
-    lons = [s["filtered_lon"] for s in good_drifts_stats]
-    lats = np.concatenate(lats)
-    lons = np.concatenate(lons)
-    mean_lat = np.nanmean(lats)
-    mean_lon = np.nanmean(lons)
+    # Collect non-empty filtered latitude/longitude arrays
+    lat_arrays = []
+    lon_arrays = []
+    for s in good_drifts_stats:
+        lat = s.get("filtered_lat")
+        lon = s.get("filtered_lon")
+        # Skip if missing or empty
+        if lat is None or lon is None:
+            continue
+        if np.size(lat) == 0 or np.size(lon) == 0:
+            continue
+        lat_arrays.append(lat)
+        lon_arrays.append(lon)
 
+    if lat_arrays and lon_arrays:
+        lats = np.concatenate(lat_arrays)
+        lons = np.concatenate(lon_arrays)
+        mean_lat = np.nanmean(lats)
+        mean_lon = np.nanmean(lons)
+    else:
+        # No position data available from good drifts
+        mean_lat = np.nan
+        mean_lon = np.nan
     return {
         "mean_bearing": mean_bearing,
         "avg_mode_speed": avg_mode_speed,
