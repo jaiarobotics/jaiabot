@@ -186,7 +186,7 @@ struct UnpoweredAscent
     boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
-    goby::time::MicroTime last_snapshot_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    goby::time::MicroTime last_snapshot_time_{0};
     jaiabot::protobuf::CTDSnapshot latest_ctd_snapshot_;
     jaiabot::protobuf::CTDProfile latest_ctd_profile_;
 };
