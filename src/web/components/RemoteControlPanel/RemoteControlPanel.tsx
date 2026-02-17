@@ -316,8 +316,9 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
      */
     const handleGamepadAxisChange = (axisName: string, value: number) => {
         // Left stick Y-axis controls throttle
+        // Invert Y-axis to match on-screen joystick behavior (up = positive = forward)
         if (axisName === "LeftStickY") {
-            handleAxisInput(value, AnalogStickTypes.LEFT);
+            handleAxisInput(-value, AnalogStickTypes.LEFT);
         }
         // Right stick X-axis controls rudder
         else if (axisName === "RightStickX") {
