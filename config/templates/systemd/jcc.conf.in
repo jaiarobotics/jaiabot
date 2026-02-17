@@ -36,43 +36,9 @@
     ProxyPass        /jcu/  http://127.0.0.1:9091/
     ProxyPassReverse /jcu/  http://127.0.0.1:9091/
 
-    # JDV API endpoints (needed when JDV is accessed via proxy)
-    # Note: These must come before the /jdv/ catch-all to ensure they take precedence
-    # Note: More specific paths must come before less specific ones
-    ProxyPass        /log/                    http://127.0.0.1:40010/log/
-    ProxyPassReverse /log/                    http://127.0.0.1:40010/log/
-    ProxyPass        /logs                    http://127.0.0.1:40010/logs
-    ProxyPassReverse /logs                    http://127.0.0.1:40010/logs
-    ProxyPass        /series                  http://127.0.0.1:40010/series
-    ProxyPassReverse /series                  http://127.0.0.1:40010/series
-    ProxyPass        /paths                   http://127.0.0.1:40010/paths
-    ProxyPassReverse /paths                   http://127.0.0.1:40010/paths
-    ProxyPass        /map                     http://127.0.0.1:40010/map
-    ProxyPassReverse /map                     http://127.0.0.1:40010/map
-    ProxyPass        /commands                http://127.0.0.1:40010/commands
-    ProxyPassReverse /commands                http://127.0.0.1:40010/commands
-    ProxyPass        /active-goal             http://127.0.0.1:40010/active-goal
-    ProxyPassReverse /active-goal             http://127.0.0.1:40010/active-goal
-    ProxyPass        /task-packet             http://127.0.0.1:40010/task-packet
-    ProxyPassReverse /task-packet             http://127.0.0.1:40010/task-packet
-    ProxyPass        /depth-contours          http://127.0.0.1:40010/depth-contours
-    ProxyPassReverse /depth-contours          http://127.0.0.1:40010/depth-contours
-    ProxyPass        /interpolated-drifts     http://127.0.0.1:40010/interpolated-drifts
-    ProxyPassReverse /interpolated-drifts     http://127.0.0.1:40010/interpolated-drifts
-    ProxyPass        /objects                 http://127.0.0.1:40010/objects
-    ProxyPassReverse /objects                 http://127.0.0.1:40010/objects
-    ProxyPass        /moos                    http://127.0.0.1:40010/moos
-    ProxyPassReverse /moos                    http://127.0.0.1:40010/moos
-    ProxyPass        /convert-if-needed       http://127.0.0.1:40010/convert-if-needed
-    ProxyPassReverse /convert-if-needed       http://127.0.0.1:40010/convert-if-needed
-    ProxyPass        /all-series-descriptors  http://127.0.0.1:40010/all-series-descriptors
-    ProxyPassReverse /all-series-descriptors  http://127.0.0.1:40010/all-series-descriptors
-    ProxyPass        /h5                      http://127.0.0.1:40010/h5
-    ProxyPassReverse /h5                      http://127.0.0.1:40010/h5
-
     RedirectMatch 301 ^/jdv$$ /jdv/
-    ProxyPass        /jdv/  http://127.0.0.1:40010/
-    ProxyPassReverse /jdv/  http://127.0.0.1:40010/
+    ProxyPass        /jdv/  http://127.0.0.1:40010/jdv/
+    ProxyPassReverse /jdv/  http://127.0.0.1:40010/jdv/
 
 
 </virtualhost>
