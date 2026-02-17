@@ -186,17 +186,6 @@ def summarize_station_keep_drifts(drifts, log):
         log.info(f"Mode Speed STD: {speed_stdev} m/s.")
         log.info(f"Heading STD: {heading_stdev} degrees.")
 
-    log.info(f"Mean driftlet stats for this station keep:")
-    log.info(f"Average Mode Speed: {avg_mode_speed} m/s.")
-    log.info(f"Mean Bearing: {mean_bearing} degrees.")
-    if np.isnan(speed_uncertainty) or np.isnan(bearing_uncertainty):
-        log.warn(f"Speed and direction standard deviations could not be calculated for this station keep! Too few driftlets. Using default uncertainty values instead.")
-        speed_uncertainty = DEFAULT_SPEED_UNCERTAINTY_MPS
-        bearing_uncertainty = DEFAULT_DIRECTION_UNCERTAINTY_DEG
-    else:
-        log.info(f"Mode Speed STD: {speed_uncertainty} m/s.")
-        log.info(f"Bearing STD: {bearing_uncertainty} degrees.")
-
     # Collect non-empty filtered latitude/longitude arrays
     lat_arrays = []
     lon_arrays = []
