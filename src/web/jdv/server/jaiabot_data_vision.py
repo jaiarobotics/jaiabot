@@ -204,7 +204,7 @@ def getH5():
     return Response(jaialogStore.getH5File(logName), mimetype='application/x-hdf', headers=headers)
 
 
-@app.route('/ubx', methods=['GET'])
+@app.route('/jdv/ubx', methods=['GET'])
 def getUBX():
     '''Download a UBX file'''
     logName = request.args.get('file')
