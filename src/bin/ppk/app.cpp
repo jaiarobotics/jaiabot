@@ -30,7 +30,7 @@ using namespace std;
 
 #include "jaiabot/messages/ppk.pb.h"
 
-#include "bin/ppk/config.pb.h"
+#include "config.pb.h"
 using namespace jaiabot::config;
 
 #include "jaiabot/groups.h"
