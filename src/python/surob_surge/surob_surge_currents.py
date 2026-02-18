@@ -169,7 +169,9 @@ def process_logged_data(h5_log_path, log):
 def main(args):
     """Main loop to listen for tasks, log data, compute currents, and send results."""
 
-    logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
+    os.makedirs(SAVE_DIR, exist_ok=True)
+
+    logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s', filename=os.path.join(SAVE_DIR, f'surob_surge_currents_{str(int(time.time()))}.log', filemode='w'))
     log = logging.getLogger('surob_surge_currents')
     log.setLevel(args.logging_level)
 
@@ -177,7 +179,6 @@ def main(args):
         sock = setup_socket(0, SOCKET_TIMEOUT_SECONDS)
         listening_port = sock.getsockname()[1]
         udp_gateway_address = ('localhost', args.udp_gateway_port)
-        os.makedirs(SAVE_DIR, exist_ok=True)
         log.info(f"Service initialized. Listening on port {listening_port}. Sending results and heartbeats to {udp_gateway_address}.")
     except Exception as e:
         log.exception(f"Initialization failed: {e}")
@@ -240,7 +241,7 @@ def main(args):
                                 payload.mission_report.state not in PAUSED_MISSION_STATES):
                             log.info(f"End signal received. New state: {MissionState.Name(payload.mission_report.state)}. Processing data...")
                             end_time_us = int(current_ts * 1_000_000)
-                            process_and_send_results(sock, udp_gateway_address, start_time_us, end_time_us, data_buffers, log, cleanup=args.delete_temporary_files)
+                            process_and_send_results(sock, udp_gateway_address, start_time_us, end_time_us, data_buffers, log, cleanup=args.delete_temporary_h5s)
                             log.info("Cycle complete. Switching back to WAITING mode.")
                             current_state = FSM_STATES.WAITING
                     case _:
@@ -255,7 +256,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Log GPS, pressure, and Arduino status motor data to compute current estimate during Station Keep')
     parser.add_argument('-p', '--udp_gateway_port', default=20000, type=int, help='The UDP gateway port to send surob surge current estimate TaskPacket to (default: 20000)')
     parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
-    parser.add_argument('--delete_temporary_files', action=argparse.BooleanOptionalAction, default=True, help='Whether to delete temporary logging h5s after sending current estimate')
+    parser.add_argument('--delete_temporary_h5s', action=argparse.BooleanOptionalAction, default=True, help='Whether to delete temporary logging h5s after sending current estimate')
     
     args = parser.parse_args()
     exit(main(args))
