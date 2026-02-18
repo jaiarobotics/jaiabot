@@ -11,6 +11,7 @@ import jaialog_store
 import moos_messages
 import pyjaia.contours
 import pyjaia.drift_interpolation
+import pyjaia.utils
 
 from pathlib import *
 import traceback
@@ -48,8 +49,7 @@ def handle_http_exception(e):
     _, _, tb = sys.exc_info()
     return JSONErrorResponse(f"There was an error processing your request.  Please check the server logs for details.\n{e}\n{traceback.extract_tb(tb)[-1].filename} line {traceback.extract_tb(tb)[-1].lineno}")
 
-
-@app.route('/<path>', methods=['GET'])
+@app.route('/jdv/<path>', methods=['GET'])
 def getStaticFile(path):
     try:
         return send_from_directory(root, path)
@@ -58,47 +58,51 @@ def getStaticFile(path):
         l.error(locals())
         return Response(status=404)
 
-@app.route('/', methods=['GET'])
+@app.route('/jdv/', methods=['GET'])
 def getRoot():
     '''The html/css/javascript client'''
     return getStaticFile('index.html')
 
+@app.route('/')
+def index():
+    return redirect('/jdv/')
+
 ####### API endpoints
 
-@app.route('/logs', methods=['GET'])
+@app.route('/jdv/logs', methods=['GET'])
 def getLogs():
     return JSONResponse(jaialogStore.getLogs().to_dict())
 
-@app.route('/convert-if-needed', methods=['POST'])
+@app.route('/jdv/convert-if-needed', methods=['POST'])
 def convertLogs():
     log_names = request.json
     return JSONResponse(jaialogStore.convertIfNeeded(log_names))
 
-@app.route('/log/<logName>', methods=['DELETE'])
+@app.route('/jdv/log/<logName>', methods=['DELETE'])
 def deleteLog(logName: str):
     return JSONResponse(jaialogStore.deleteLog(logName))
 
-@app.route('/paths', methods=['GET'])
+@app.route('/jdv/paths', methods=['GET'])
 def getFields():
     log_names = parseFilenames(request.args.get('log'))
     root_path = request.args.get('root_path')
     return JSONResponse(jaialogStore.getFields(log_names, root_path))
 
 
-@app.route('/all-series-descriptors', methods=['GET'])
+@app.route('/jdv/all-series-descriptors', methods=['GET'])
 def getAllSeriesDescriptors():
     log_names = parseFilenames(request.args.get('log'))
     return JSONResponse([series.to_dict() for series in jaialogStore.getAllSeriesDescriptors(log_names)])
 
 
-@app.route('/series', methods=['GET'])
+@app.route('/jdv/series', methods=['GET'])
 def getSeries():
     log_names = parseFilenames(request.args.get('log'))
     series_names = request.args.get('path').split(',')
     series = jaialogStore.getSeries(log_names, series_names)
     return JSONResponse(series)
 
-@app.route('/objects', methods=['GET'])
+@app.route('/jdv/objects', methods=['GET'])
 def getObjects():
     log_names = parseFilenames(request.args.get('log'))
     path = request.args.get('path')
@@ -109,13 +113,13 @@ def getObjects():
         return JSONResponse([])
 
 
-@app.route('/map', methods=['GET'])
+@app.route('/jdv/map', methods=['GET'])
 def getMap():
     log_names = parseFilenames(request.args.get('log'))
     return JSONResponse(jaialogStore.getMap(log_names))
 
 
-@app.route('/commands', methods=['GET'])
+@app.route('/jdv/commands', methods=['GET'])
 def getCommands():
     log_names = parseFilenames(request.args.get('log'))
 
@@ -125,7 +129,7 @@ def getCommands():
     return JSONResponse(jaialogStore.getCommands(log_names))
 
 
-@app.route('/active-goal', methods=['GET'])
+@app.route('/jdv/active-goal', methods=['GET'])
 def getActiveGoals():
     log_names = parseFilenames(request.args.get('log'))
 
@@ -135,7 +139,7 @@ def getActiveGoals():
     return JSONResponse(jaialogStore.getActiveGoals(log_names))
 
 
-@app.route('/task-packet', methods=['GET'])
+@app.route('/jdv/task-packet', methods=['GET'])
 def getTaskPackets():
     log_names = parseFilenames(request.args.get('log'))
 
@@ -145,7 +149,7 @@ def getTaskPackets():
     return JSONResponse(jaialogStore.getTaskPacketDicts(log_names))
 
 
-@app.route('/moos', methods=['GET'])
+@app.route('/jdv/moos', methods=['GET'])
 def getMOOSMessages():
     '''Get a CSV of all the MOOSMessage objects between t_start and t_end from the logs'''
     log_names = parseFilenames(request.args.get('log'))
@@ -158,7 +162,7 @@ def getMOOSMessages():
     return Response(moos_messages.get_moos_messages(log_names, t_start, t_end), mimetype='text/csv')
 
 
-@app.route('/depth-contours', methods=['GET'])
+@app.route('/jdv/depth-contours', methods=['GET'])
 def getDepthContours():
     """Get a GeoJSON of contours for the depth soundings in this mission
 
@@ -174,7 +178,7 @@ def getDepthContours():
     return JSONResponse(pyjaia.contours.taskPacketsToColorMap(taskPackets))
 
 
-@app.route('/interpolated-drifts', methods=['GET'])
+@app.route('/jdv/interpolated-drifts', methods=['GET'])
 def getInterpolatedDrifts():
     '''Get a GeoJSON of interpolated drift icons'''
     log_names = parseFilenames(request.args.get('log'))
@@ -186,7 +190,7 @@ def getInterpolatedDrifts():
     return Response(pyjaia.drift_interpolation.taskPacketsToDriftMarkersGeoJSON(taskPackets))
 
 
-@app.route('/h5', methods=['GET'])
+@app.route('/jdv/h5', methods=['GET'])
 def getH5():
     '''Download a Jaia HDF5 file'''
     logName = request.args.get('file')

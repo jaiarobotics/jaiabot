@@ -37,8 +37,8 @@
     ProxyPassReverse /jcu/  http://127.0.0.1:9091/
 
     RedirectMatch 301 ^/jdv$$ /jdv/
-    ProxyPass        /jdv/  http://127.0.0.1:40010/
-    ProxyPassReverse /jdv/  http://127.0.0.1:40010/
+    ProxyPass        /jdv/  http://127.0.0.1:40010/jdv/
+    ProxyPassReverse /jdv/  http://127.0.0.1:40010/jdv/
 
 
 </virtualhost>
