@@ -49,7 +49,6 @@ def handle_http_exception(e):
     _, _, tb = sys.exc_info()
     return JSONErrorResponse(f"There was an error processing your request.  Please check the server logs for details.\n{e}\n{traceback.extract_tb(tb)[-1].filename} line {traceback.extract_tb(tb)[-1].lineno}")
 
-
 @app.route('/jdv/<path>', methods=['GET'])
 def getStaticFile(path):
     try:
@@ -63,6 +62,10 @@ def getStaticFile(path):
 def getRoot():
     '''The html/css/javascript client'''
     return getStaticFile('index.html')
+
+@app.route('/')
+def index():
+    return redirect('/jdv/')
 
 ####### API endpoints
 
