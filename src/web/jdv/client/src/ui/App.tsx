@@ -185,7 +185,7 @@ export class App extends React.Component {
                                 id="ubxExportButton"
                                 className="mapButton"
                                 onClick={() => {
-                                    window.location.href = `/ubx?file=${this.state.chosenLogs.join(",")}`;
+                                    window.location.href = `/jdv/ubx?file=${this.state.chosenLogs.join(",")}`;
                                 }}
                             >
                                 <Icon path={mdiDownload} size={1}></Icon>
