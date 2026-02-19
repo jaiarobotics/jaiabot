@@ -22,6 +22,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct DivePrep;
+#else
 struct DivePrep : boost::statechart::state<DivePrep, Dive>,
                   Notify<DivePrep, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP,
                          protobuf::SETPOINT_STOP>
@@ -123,3 +126,4 @@ struct DivePrep : boost::statechart::state<DivePrep, Dive>,
     goby::time::MicroTime last_pitch_dive_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
+#endif

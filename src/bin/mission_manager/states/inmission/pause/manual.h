@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Manual;
+#else
 struct Manual : boost::statechart::state<Manual, Pause>,
                 Notify<Manual, protobuf::IN_MISSION__PAUSE__MANUAL, protobuf::SETPOINT_STOP>
 {
@@ -33,3 +36,4 @@ struct Manual : boost::statechart::state<Manual, Pause>,
                                       boost::statechart::deep_history<underway::Abort // default
                                                                       >>>;
 };
+#endif

@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Replan;
+#else
 struct Replan : boost::statechart::state<Replan, Underway>,
                 Notify<Replan, protobuf::IN_MISSION__UNDERWAY__REPLAN,
                        protobuf::SETPOINT_IVP_HELM // stationkeep
@@ -34,3 +37,4 @@ struct Replan : boost::statechart::state<Replan, Underway>,
         boost::statechart::transition<EvMissionInfeasible, Replan>, // maybe in_state_reaction
         boost::statechart::transition<EvMissionFeasible, Movement>>;
 };
+#endif

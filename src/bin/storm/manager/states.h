@@ -23,11 +23,11 @@
 #pragma once
 
 // Boost
+#include <boost/statechart/custom_reaction.hpp>
+#include <boost/statechart/deep_history.hpp>
+#include <boost/statechart/in_state_reaction.hpp>
 #include <boost/statechart/state.hpp>
 #include <boost/statechart/transition.hpp>
-#include <boost/statechart/in_state_reaction.hpp>
-#include <boost/statechart/deep_history.hpp>
-#include <boost/statechart/custom_reaction.hpp>
 
 // Protobuf
 #include <google/protobuf/util/json_util.h>
@@ -39,13 +39,14 @@ using namespace jaiabot::protobuf;
 // Storm Manager app
 #include "events.h"
 #include "machine_common.h"
-#include "storm_manager_state_machine.h"
+#include "state_machine.h"
 
 // States
-#include "states/states_fwd.h"
 
-namespace jaiabot::statechart {
+// forward declaration
+#define JAIABOT_STORM_MANAGER_FWD_DECL
+#include "states/root.h"
+#undef JAIABOT_STORM_MANAGER_FWD_DECL
 
-#include "states/starting_up.h"
-
-}
+// actual definition
+#include "states/root.h"

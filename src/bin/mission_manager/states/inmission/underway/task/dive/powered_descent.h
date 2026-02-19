@@ -22,6 +22,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct PoweredDescent;
+#else
 struct PoweredDescent
     : boost::statechart::state<PoweredDescent, Dive>,
       Notify<PoweredDescent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT,
@@ -258,3 +261,4 @@ struct PoweredDescent
     // determines the initial value for last_depth_
     bool is_initial_depth_reading_{true};
 };
+#endif

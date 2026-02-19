@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Pause;
+#else
 struct Pause : boost::statechart::state<Pause, InMission, pause::Manual>, AppMethodsAccess<Pause>
 {
     using StateBase = boost::statechart::state<Pause, InMission, pause::Manual>;
@@ -35,6 +38,7 @@ struct Pause : boost::statechart::state<Pause, InMission, pause::Manual>, AppMet
     }
     ~Pause() { goby::glog.is_debug1() && goby::glog << "~Pause" << std::endl; }
 };
+#endif
 
 namespace pause {
 

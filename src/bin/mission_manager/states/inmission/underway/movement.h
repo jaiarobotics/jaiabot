@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Movement;
+#else
 struct Movement : boost::statechart::state<Movement, Underway, movement::MovementSelection,
                                            boost::statechart::has_deep_history>,
                   AppMethodsAccess<Movement>
@@ -45,6 +48,7 @@ struct Movement : boost::statechart::state<Movement, Underway, movement::Movemen
 };
 
 #include "ivp_sensor_pause_common.h"
+#endif
 
 namespace movement {
 

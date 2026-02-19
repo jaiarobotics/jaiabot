@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Hold;
+#else
 struct Hold
     : boost::statechart::state<Hold, Dive>,
       Notify<Hold, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__HOLD, protobuf::SETPOINT_DIVE>
@@ -189,3 +192,4 @@ struct Hold
         temperatures_;
     std::vector<double> salinities_;
 };
+#endif

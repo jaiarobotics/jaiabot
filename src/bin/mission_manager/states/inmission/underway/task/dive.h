@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Dive;
+#else
 struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAccess<Dive>
 {
     using StateBase = boost::statechart::state<Dive, Task, dive::DivePrep>;
@@ -240,6 +243,7 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
     bool bot_performed_hold_{false};
     bool bot_performed_powered_ascent_after_bottom_{false};
 };
+#endif
 
 namespace dive {
 

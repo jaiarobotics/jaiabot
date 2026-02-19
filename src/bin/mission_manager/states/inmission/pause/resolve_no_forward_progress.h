@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct ResolveNoForwardProgress;
+#else
 struct ResolveNoForwardProgress
     : boost::statechart::state<ResolveNoForwardProgress, Pause>,
       Notify<ResolveNoForwardProgress, protobuf::IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS,
@@ -63,3 +66,4 @@ struct ResolveNoForwardProgress
   private:
     goby::time::SteadyClock::time_point resume_timeout_;
 };
+#endif

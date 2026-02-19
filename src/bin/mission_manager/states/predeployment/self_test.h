@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct SelfTest;
+#else
 struct SelfTest : boost::statechart::state<SelfTest, PreDeployment>,
                   Notify<SelfTest, protobuf::PRE_DEPLOYMENT__SELF_TEST>
 {
@@ -35,4 +38,4 @@ struct SelfTest : boost::statechart::state<SelfTest, PreDeployment>,
         boost::mpl::list<boost::statechart::transition<EvSelfTestFails, Failed>,
                          boost::statechart::transition<EvSelfTestSuccessful, WaitForMissionPlan>>;
 };
-
+#endif

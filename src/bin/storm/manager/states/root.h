@@ -2,7 +2,6 @@
 //   JaiaRobotics LLC
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
-//   Ed Sanville <edsanville@gmail.com>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -21,27 +20,6 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
-struct RemoteControl;
-#else
-struct RemoteControl
-    : boost::statechart::state<RemoteControl, Movement, remotecontrol::RemoteControlEndSelection>
-{
-    using StateBase =
-        boost::statechart::state<RemoteControl, Movement, remotecontrol::RemoteControlEndSelection>;
-    RemoteControl(typename StateBase::my_context c) : StateBase(c) {}
-    ~RemoteControl() {}
-
-    using reactions = boost::mpl::list<boost::statechart::transition<EvResumeMovement, Movement>>;
-};
-#endif
-
-namespace remotecontrol
-{
-
-    #include "remote_control/remote_control_end_selection.h"
-    #include "remote_control/station_keep.h"
-    #include "remote_control/surface_drift.h"
-    #include "remote_control/setpoint.h"
-
+namespace jaiabot::statechart {
+#include "starting_up.h"
 }

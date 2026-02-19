@@ -22,6 +22,9 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 // dummy state that should immediately transit to the correct RemoteControl child state based on the configured rc_setpoint_end value
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct RemoteControlEndSelection;
+#else
 struct RemoteControlEndSelection
     : boost::statechart::state<RemoteControlEndSelection, RemoteControl>,
       AppMethodsAccess<RemoteControlEndSelection>
@@ -52,4 +55,4 @@ struct RemoteControlEndSelection
 
     using reactions = boost::statechart::custom_reaction<EvRCEndSelect>;
 };
-
+#endif

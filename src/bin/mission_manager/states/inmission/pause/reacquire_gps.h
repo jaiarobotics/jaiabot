@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct ReacquireGPS;
+#else
 struct ReacquireGPS
     : boost::statechart::state<ReacquireGPS, Pause>,
       Notify<ReacquireGPS, protobuf::IN_MISSION__PAUSE__REACQUIRE_GPS, protobuf::SETPOINT_STOP>
@@ -90,3 +93,4 @@ struct ReacquireGPS
   private:
     int gps_fix_check_incr_{0};
 };
+#endif

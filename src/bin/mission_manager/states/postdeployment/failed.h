@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Failed;
+#else
 struct Failed : boost::statechart::state<Failed, PostDeployment>,
                 Notify<Failed, protobuf::POST_DEPLOYMENT__FAILED>
 {
@@ -40,4 +43,5 @@ struct Failed : boost::statechart::state<Failed, PostDeployment>,
         boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>,
                          boost::statechart::transition<EvRetryDataOffload, DataOffload>>;
 };
+#endif
 

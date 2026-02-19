@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Stopped;
+#else
 struct Stopped : boost::statechart::state<Stopped, Recovery>,
                  Notify<Stopped, protobuf::IN_MISSION__UNDERWAY__RECOVERY__STOPPED>
 {
@@ -39,3 +42,4 @@ struct Stopped : boost::statechart::state<Stopped, Recovery>,
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
 };
+#endif

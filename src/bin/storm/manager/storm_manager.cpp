@@ -35,7 +35,7 @@ namespace middleware = goby::middleware;
 #include "jaiabot/intervehicle.h"
 
 #include "states.h"
-#include "storm_manager_state_machine.h"
+#include "state_machine.h"
 #include "storm_manager.h"
 
 
@@ -78,3 +78,4 @@ void jaiabot::apps::StormManager::health(goby::middleware::protobuf::ThreadHealt
     // add warnings that the state machine keeps track of and possible downgrade health state
     machine_->health(health);
 }
+

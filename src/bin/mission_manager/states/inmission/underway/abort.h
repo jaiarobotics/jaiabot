@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Abort;
+#else
 struct Abort : boost::statechart::state<Abort, Underway>,
                Notify<Abort, protobuf::IN_MISSION__UNDERWAY__ABORT>
 {
@@ -32,4 +35,4 @@ struct Abort : boost::statechart::state<Abort, Underway>,
     }
     ~Abort() {}
 };
-
+#endif

@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct ConstantHeading;
+#else
 struct ConstantHeading
 : boost::statechart::state<ConstantHeading, Task>,
     Notify<ConstantHeading, protobuf::IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING,
@@ -85,3 +88,4 @@ struct ConstantHeading
 private:
     goby::time::SteadyClock::time_point setpoint_stop_;
 };
+#endif

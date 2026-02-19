@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct WaitForMissionPlan;
+#else
 struct WaitForMissionPlan
     : boost::statechart::state<WaitForMissionPlan, PreDeployment>,
       Notify<WaitForMissionPlan, protobuf::PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN>
@@ -34,4 +37,4 @@ struct WaitForMissionPlan
                          // maybe change to in_state_reaction?
                          boost::statechart::transition<EvMissionInfeasible, WaitForMissionPlan>>;
 };
-
+#endif

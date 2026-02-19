@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Underway;
+#else
 struct Underway : boost::statechart::state<Underway, InMission, underway::Movement,
                                            boost::statechart::has_deep_history>,
                   AppMethodsAccess<Underway>
@@ -40,6 +43,7 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
         boost::statechart::transition<EvPause, pause::Manual>,
         boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>>;
 };
+#endif
 
 namespace underway {
 

@@ -23,6 +23,9 @@
 
 // This file contains the definition of the PostDeployment state and its substates.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct PostDeployment;
+#else
 struct PostDeployment : boost::statechart::state<PostDeployment, MissionManagerStateMachine,
                                                  postdeployment::Recovered>
 {
@@ -34,6 +37,7 @@ struct PostDeployment : boost::statechart::state<PostDeployment, MissionManagerS
     // exit action
     ~PostDeployment() {}
 };
+#endif
 
 namespace postdeployment
 {

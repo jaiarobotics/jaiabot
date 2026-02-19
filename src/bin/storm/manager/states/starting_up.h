@@ -20,6 +20,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_STORM_MANAGER_FWD_DECL
+struct StartingUp;
+#else
 struct StartingUp : boost::statechart::state<StartingUp,               // (CRTP)
                                              StormManagerStateMachine> // Parent state (or machine)
 {
@@ -34,3 +37,4 @@ struct StartingUp : boost::statechart::state<StartingUp,               // (CRTP)
     //       boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>,
     //                        boost::statechart::transition<EvRecovered, postdeployment::Recovered>>;
 };
+#endif

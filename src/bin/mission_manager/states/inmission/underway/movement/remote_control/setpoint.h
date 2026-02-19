@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Setpoint;
+#else
 struct Setpoint
     : boost::statechart::state<Setpoint, RemoteControl>,
       Notify<Setpoint, protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SETPOINT,
@@ -64,3 +67,4 @@ struct Setpoint
     goby::time::SteadyClock::time_point setpoint_stop_;
     protobuf::RemoteControl rc_setpoint_;
 };
+#endif

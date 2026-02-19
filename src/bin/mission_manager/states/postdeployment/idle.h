@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Idle;
+#else
 struct Idle : boost::statechart::state<Idle, PostDeployment>,
             Notify<Idle, protobuf::POST_DEPLOYMENT__IDLE>
 {
@@ -53,3 +56,4 @@ struct Idle : boost::statechart::state<Idle, PostDeployment>,
                         boost::statechart::transition<EvActivate, predeployment::SelfTest>>;
 };
 
+#endif

@@ -23,6 +23,9 @@
 
 // This file contains the definition of the PreDeployment state and its substates.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct PreDeployment;
+#else
 struct PreDeployment
 : boost::statechart::state<PreDeployment,              // (CRTP)
                             MissionManagerStateMachine, // Parent state (or machine)
@@ -41,6 +44,7 @@ struct PreDeployment
         boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>,
                          boost::statechart::transition<EvRecovered, postdeployment::Recovered>>;
 };
+#endif
 
 namespace predeployment
 {

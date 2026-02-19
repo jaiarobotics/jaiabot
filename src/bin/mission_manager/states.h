@@ -48,12 +48,11 @@ using namespace jaiabot::protobuf;
 #include "ivp_behavior_update.h"
 
 // States
-#include "states/states_fwd.h"
 
-namespace jaiabot::statechart {
+// forward declaration
+#define JAIABOT_MISSION_MANAGER_FWD_DECL
+#include "states/root.h"
+#undef JAIABOT_MISSION_MANAGER_FWD_DECL
 
-    #include "states/predeployment.h"
-    #include "states/inmission.h"
-    #include "states/postdeployment.h"
-
-}
+// actual definition
+#include "states/root.h"

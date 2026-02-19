@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Recovery;
+#else
 struct Recovery : boost::statechart::state<Recovery, Underway, recovery::Transit>
 {
     using StateBase = boost::statechart::state<Recovery, Underway, recovery::Transit>;
@@ -32,6 +35,7 @@ struct Recovery : boost::statechart::state<Recovery, Underway, recovery::Transit
     }
     ~Recovery() {}
 };
+#endif
 
 namespace recovery
 {

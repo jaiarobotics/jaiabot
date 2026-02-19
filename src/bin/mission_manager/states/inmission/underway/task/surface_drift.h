@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct SurfaceDrift;
+#else
 struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
                                              protobuf::IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT>
 {
@@ -30,4 +33,4 @@ struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task,
     {
     }
 };
-
+#endif

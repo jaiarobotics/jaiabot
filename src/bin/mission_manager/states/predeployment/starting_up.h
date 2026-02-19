@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct StartingUp;
+#else
 struct StartingUp : boost::statechart::state<StartingUp, PreDeployment>,
                     Notify<StartingUp, protobuf::PRE_DEPLOYMENT__STARTING_UP>
 {
@@ -65,4 +68,4 @@ struct StartingUp : boost::statechart::state<StartingUp, PreDeployment>,
   private:
     goby::time::SteadyClock::time_point timeout_stop_;
 };
-
+#endif

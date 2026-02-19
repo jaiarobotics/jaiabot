@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct PoweredAscent;
+#else
 struct PoweredAscent
     : boost::statechart::state<PoweredAscent, Dive>,
       Notify<PoweredAscent, protobuf::IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT,
@@ -256,3 +259,4 @@ struct PoweredAscent
     goby::time::MicroTime last_pitch_dive_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
 };
+#endif

@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct IMURestart;
+#else
 struct IMURestart
     : boost::statechart::state<IMURestart, Pause>,
       Notify<IMURestart, protobuf::IN_MISSION__PAUSE__IMU_RESTART, protobuf::SETPOINT_STOP>
@@ -57,3 +60,4 @@ struct IMURestart
   private:
     goby::time::SteadyClock::time_point imu_restart_time_stop_;
 };
+#endif

@@ -23,6 +23,9 @@
 
 // This file contains the definition of the InMission state and its substates.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct InMission;
+#else
 struct InMission
     : boost::statechart::state<InMission, MissionManagerStateMachine, inmission::Underway>,
       AppMethodsAccess<InMission>
@@ -181,6 +184,7 @@ struct InMission
     bool use_heading_constant_pid_{false};
     bool is_echo_recording_{false};
 };
+#endif
 
 namespace inmission {
 

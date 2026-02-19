@@ -22,6 +22,9 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 // dummy state that should immediately transit to the correct Movement child state based on the current mission movement value
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct MovementSelection;
+#else
 struct MovementSelection : boost::statechart::state<MovementSelection, Movement>,
                            AppMethodsAccess<MovementSelection>
 {
@@ -51,3 +54,4 @@ struct MovementSelection : boost::statechart::state<MovementSelection, Movement>
 
     using reactions = boost::statechart::custom_reaction<EvMovementSelect>;
 };
+#endif

@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct StationKeep;
+#else
 struct StationKeep
     : IvPSensorPauseCommon<StationKeep, RemoteControl,
                            protobuf::IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__STATION_KEEP>
@@ -51,4 +54,4 @@ struct StationKeep
         typename boost::mpl::copy<local_reactions,
                                   boost::mpl::front_inserter<Base::common_reactions>>::type;
 };
-
+#endif

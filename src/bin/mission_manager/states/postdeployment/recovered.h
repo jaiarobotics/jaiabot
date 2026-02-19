@@ -21,6 +21,9 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Recovered;
+#else
 struct Recovered : boost::statechart::state<Recovered, PostDeployment>,
                 Notify<Recovered, protobuf::POST_DEPLOYMENT__RECOVERED>
 {
@@ -35,3 +38,4 @@ struct Recovered : boost::statechart::state<Recovered, PostDeployment>,
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvBeginDataOffload, DataOffload>>;
 };
+#endif

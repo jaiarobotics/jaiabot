@@ -22,6 +22,9 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 // similar to MovementSelection but for Tasks
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct TaskSelection;
+#else
 struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
                        AppMethodsAccess<TaskSelection>
 {
@@ -67,4 +70,4 @@ struct TaskSelection : boost::statechart::state<TaskSelection, Task>,
 
     using reactions = boost::statechart::custom_reaction<EvTaskSelect>;
 };
-
+#endif

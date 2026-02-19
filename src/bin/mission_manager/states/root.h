@@ -2,6 +2,7 @@
 //   JaiaRobotics LLC
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
+//   Ed Sanville <edsanville@gmail.com>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -20,16 +21,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-// This file contains forward declarations of all state structs
-// to allow their use in other headers without circular dependencies.
-
-#pragma once
-
-namespace jaiabot
-{
-namespace statechart
-{
-struct StartingUp;
-
-} // namespace statechart
-} // namespace jaiabot
+namespace jaiabot::statechart {
+    #include "predeployment.h"
+    #include "inmission.h"
+    #include "postdeployment.h"
+}

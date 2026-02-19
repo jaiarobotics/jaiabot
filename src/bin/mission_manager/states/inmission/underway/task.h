@@ -23,13 +23,15 @@
 
 // Task
 
+#ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
+struct Task;
+#else
 struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, AppMethodsAccess<Task>
 
 {
     using StateBase = boost::statechart::state<Task, Underway, task::TaskSelection>;
 
-    Task(typename StateBase::my_context c)
-    : StateBase(c)
+    Task(typename StateBase::my_context c) : StateBase(c)
     {
         goby::glog.is_debug2() && goby::glog << "Entering Task" << std::endl;
         auto perform_task_event = dynamic_cast<const EvPerformTask*>(triggering_event());
@@ -40,7 +42,8 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
         }
 
         task_packet_.set_bot_id(cfg().bot_id());
-        task_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+        task_packet_.set_start_time_with_units(
+            goby::time::SystemClock::now<goby::time::MicroTime>());
         boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
         task_packet_.set_type(current_task ? current_task->type() : protobuf::MissionTask::NONE);
     }
@@ -57,7 +60,7 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
             {
                 goby::glog.is_debug1() &&
                     goby::glog << "Minimum depth was reached, do not increment waypoint index"
-                            << std::endl;
+                               << std::endl;
             }
             else
             {
@@ -79,14 +82,15 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
                 // Set the snake_case option
                 json_options.preserve_proto_field_names = true;
 
-                google::protobuf::util::MessageToJsonString(task_packet_, &json_string, json_options);
+                google::protobuf::util::MessageToJsonString(task_packet_, &json_string,
+                                                            json_options);
 
                 // Check if it is a new task packet file
                 if (this->machine().create_task_packet_file())
                 {
-                    this->machine().set_task_packet_file_name(cfg().interprocess().platform() + "_" +
-                                                            this->machine().create_file_date_time() +
-                                                            ".taskpacket");
+                    this->machine().set_task_packet_file_name(
+                        cfg().interprocess().platform() + "_" +
+                        this->machine().create_file_date_time() + ".taskpacket");
                     this->machine().set_create_task_packet_file(false);
                 }
                 else
@@ -107,18 +111,17 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
             if (this->machine().rf_disable())
             {
                 glog.is_debug2() && glog << "(RF Disabled) Publishing task packet interprocess: "
-                                        << task_packet_.DebugString() << std::endl;
+                                         << task_packet_.DebugString() << std::endl;
                 interprocess().publish<groups::task_packet>(task_packet_);
             }
             else
             {
                 glog.is_debug2() && glog << "(RF Enabled) Publishing task packet intervehicle: "
-                                        << task_packet_.DebugString() << std::endl;
+                                         << task_packet_.DebugString() << std::endl;
                 intervehicle().publish<groups::task_packet>(
                     task_packet_, intervehicle::default_publisher<protobuf::TaskPacket>);
             }
         }
-
     }
 
     // see if we have a manual task or a planned task available and return it
@@ -143,13 +146,19 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
     jaiabot::protobuf::TaskPacket task_packet_;
 };
 
-namespace task {
+namespace task
+{
+#include "task/surface_drift_task_common.h"
+}
 
-    #include "task/surface_drift_task_common.h"
-    #include "task/dive.h"
-    #include "task/task_selection.h"
-    #include "task/surface_drift.h"
-    #include "task/constant_heading.h"
-    #include "task/station_keep.h"
+#endif
 
-} // namespace jaiabot::statechart::inmission::underway::task
+namespace task
+{
+#include "task/constant_heading.h"
+#include "task/dive.h"
+#include "task/station_keep.h"
+#include "task/surface_drift.h"
+#include "task/task_selection.h"
+
+} // namespace task
