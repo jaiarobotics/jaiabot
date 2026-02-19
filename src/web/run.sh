@@ -38,4 +38,4 @@ popd > /dev/null
 
 # Watch build JCC and JED clients for development
 echo 🟢 Building the client apps. Please wait until initial build completes before loading JCC or JED in browser.
-npx webpack --mode development --env OUTPUT_DIR=${BUILD_DIR} --watch --progress
+npx webpack --mode production --env OUTPUT_DIR=${BUILD_DIR} --watch --progress
