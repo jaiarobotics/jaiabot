@@ -114,37 +114,41 @@ module.exports = (env, argv) => {
                 ],
                 options: {},
             }),
-            new GenerateSW({
-                clientsClaim: true,
-                skipWaiting: true,
-                // Precaches all webpack-emitted assets (client.js, chunks, index.html, etc.)
-                // automatically. Runtime caching rules handle dynamic API and tile requests.
-                runtimeCaching: [
-                    {
-                        // API calls — network first so live data is always fresh,
-                        // falling back to cache if the hub is unreachable.
-                        urlPattern: /\/jaia\/v0\/.*/,
-                        handler: "NetworkFirst",
-                        options: {
-                            cacheName: "api-cache",
-                            networkTimeoutSeconds: 10,
-                        },
-                    },
-                    {
-                        // Offline map tiles — cache first since tiles are static
-                        // once downloaded. Capped to avoid unbounded storage growth.
-                        urlPattern: /\/maps\/.*/,
-                        handler: "CacheFirst",
-                        options: {
-                            cacheName: "map-tiles",
-                            expiration: {
-                                maxEntries: 50000,
-                                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
-                            },
-                        },
-                    },
-                ],
-            }),
+            ...(argv.mode === "production"
+                ? [
+                      new GenerateSW({
+                          clientsClaim: true,
+                          skipWaiting: true,
+                          // Precaches all webpack-emitted assets (client.js, chunks, index.html, etc.)
+                          // automatically. Runtime caching rules handle dynamic API and tile requests.
+                          runtimeCaching: [
+                              {
+                                  // API calls — network first so live data is always fresh,
+                                  // falling back to cache if the hub is unreachable.
+                                  urlPattern: /\/jaia\/v0\/.*/,
+                                  handler: "NetworkFirst",
+                                  options: {
+                                      cacheName: "api-cache",
+                                      networkTimeoutSeconds: 10,
+                                  },
+                              },
+                              {
+                                  // Offline map tiles — cache first since tiles are static
+                                  // once downloaded. Capped to avoid unbounded storage growth.
+                                  urlPattern: /\/maps\/.*/,
+                                  handler: "CacheFirst",
+                                  options: {
+                                      cacheName: "map-tiles",
+                                      expiration: {
+                                          maxEntries: 50000,
+                                          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+                                      },
+                                  },
+                              },
+                          ],
+                      }),
+                  ]
+                : []),
             new webpack.HotModuleReplacementPlugin(),
         ],
     };
