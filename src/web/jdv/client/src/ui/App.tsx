@@ -250,7 +250,7 @@ export class App extends React.Component {
     chosenLogsListElement() {
         const chosenLogsElements = this.state.chosenLogs.map((chosenLogPath) => {
             const chosenLogName = chosenLogPath.split("/").at(-1);
-            const href = `/h5?file=${chosenLogPath}`;
+            const href = `/jdv/h5?file=${chosenLogPath}`;
 
             const logs_are_displayed = this.state.chosenLogs.length > 0;
 
