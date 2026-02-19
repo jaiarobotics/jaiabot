@@ -21,16 +21,25 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef JAIABOT_STORM_MANAGER_FWD_DECL
-struct StartingUp;
+struct SelfTest;
 #else
-struct StartingUp : boost::statechart::state<StartingUp, StormManagerStateMachine>,
-                    Notify<StartingUp, protobuf::STARTING_UP>
+struct SelfTest
+    : boost::statechart::state<SelfTest, StormManagerStateMachine, self_test::InWaterDetection>,
+      AppMethodsAccess<SelfTest>
 {
-    using StateBase = boost::statechart::state<StartingUp, StormManagerStateMachine>;
+    using StateBase =
+        boost::statechart::state<SelfTest, StormManagerStateMachine, self_test::InWaterDetection>;
 
-    StartingUp(typename StateBase::my_context c) : StateBase(c) {}
-    ~StartingUp() {}
+    SelfTest(typename StateBase::my_context c) : StateBase(c) {}
+    ~SelfTest() {}
 
     using reactions = boost::mpl::list<>;
 };
 #endif
+
+namespace self_test
+{
+
+#include "self_test/in_water_detection.h"
+
+} // namespace self_test

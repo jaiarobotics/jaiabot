@@ -21,15 +21,15 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef JAIABOT_STORM_MANAGER_FWD_DECL
-struct StartingUp;
+struct Activating;
 #else
-struct StartingUp : boost::statechart::state<StartingUp, StormManagerStateMachine>,
-                    Notify<StartingUp, protobuf::STARTING_UP>
+struct Activating : boost::statechart::state<Activating, StormManagerStateMachine>,
+                    Notify<Activating, protobuf::ACTIVATING>
 {
-    using StateBase = boost::statechart::state<StartingUp, StormManagerStateMachine>;
+    using StateBase = boost::statechart::state<Activating, StormManagerStateMachine>;
 
-    StartingUp(typename StateBase::my_context c) : StateBase(c) {}
-    ~StartingUp() {}
+    Activating(typename StateBase::my_context c) : StateBase(c) {}
+    ~Activating() {}
 
     using reactions = boost::mpl::list<>;
 };

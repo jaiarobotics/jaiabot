@@ -6,5 +6,9 @@ package jaiabot.protobuf;
 
 enum StormState
 {
-    STARTING_UP = 0 [(jaia.ev).rest_api.presence = GUARANTEED];
+    STARTING_UP = 0;
+    ACTIVATING = 1;
+    MISSION_RUNNING = 2;
+
+    SELF_TEST__IN_WATER_DETECTION = 100;
 }
