@@ -121,7 +121,8 @@ jaiabot::apps::Sensors::Sensors()
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH},
         {jaiabot::sensor::protobuf::TURNER__C_FLUOR,
          jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR},
-        {jaiabot::sensor::protobuf::AML__SENSOR, jaiabot::protobuf::WARNING__INIT_FAILED__AML}};
+        {jaiabot::sensor::protobuf::AML__SENSOR, 
+         jaiabot::protobuf::WARNING__INIT_FAILED__AML}};
 }
 
 void jaiabot::apps::Sensors::loop()
@@ -276,7 +277,9 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
             launch_thread<TurnerCFluorDriver>(cfg().fluorometer());
             break;
 
-        case sensor::protobuf::AML: launch_thread<AMLSensorDriver>(cfg().aml()); break;
+        case sensor::protobuf::AML__SENSOR: 
+            launch_thread<AMLSensorDriver>(cfg().aml()); 
+            break;
 
         default:
             glog.is_warn() && glog << "Driver not implemented for sensor: "

@@ -54,7 +54,7 @@ jaiabot::apps::AMLSensorDriver::AMLSensorDriver(
 
   // Set report timeout on missing report
   report_timeout_ = config.report_timeout_seconds();
-  resend_cfg_timeout_ = config.resend_cfg_timeout_seconds();
+  resend_cfg_timeout_ = config.resend_cfg_timeout_seconds(); 
 
 
   // Configure the sensor
@@ -64,7 +64,7 @@ jaiabot::apps::AMLSensorDriver::AMLSensorDriver(
 void jaiabot::apps::AMLSensorDriver::receive_data(
     const sensor::protobuf::AML& aml_data)
 {
-    glog.is_debug1() && glog << group("aml")
+    glog.is_debug1() && glog << group("aml_sensor")
                             << "Received aml_data: " << aml_data.ShortDebugString()
                             << std::endl;
 
