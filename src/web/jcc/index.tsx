@@ -211,3 +211,11 @@ const root = ReactDOM.createRoot(element);
 root.render(<App />);
 
 module.hot.accept();
+
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker
+            .register("./service-worker.js")
+            .catch((err) => console.warn("Service worker registration failed:", err));
+    });
+}

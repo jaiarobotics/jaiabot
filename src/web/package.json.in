@@ -88,7 +88,8 @@
         "url-loader": "^4.1.1",
         "webpack": "^@JAIA_VERSION_WEBPACK@",
         "webpack-cli": "^@JAIA_VERSION_WEBPACK_CLI@",
-        "webpack-dev-server": "^5.2.0"
+        "webpack-dev-server": "^5.2.0",
+        "workbox-webpack-plugin": "^7.1.0"
     },
     "scripts": {
         "test": "NODE_OPTIONS='--max-old-space-size=4096' jest",

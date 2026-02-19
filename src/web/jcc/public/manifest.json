@@ -1,14 +1,26 @@
 {
-    "short_name": "Jaia Command & Control",
+    "short_name": "JCC",
     "name": "Jaia Command & Control",
     "icons": [
         {
             "src": "favicon.png",
             "sizes": "64x64",
             "type": "image/png"
+        },
+        {
+            "src": "icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
         }
     ],
     "start_url": "/",
     "display": "standalone",
-    "orientation": "landscape"
+    "orientation": "landscape",
+    "theme_color": "#ed1c24",
+    "background_color": "#ffffff"
 }
