@@ -265,6 +265,7 @@
 
                 function injectClientScript() {
                     var s = document.createElement('script');
+                    s.onerror = function () { updateProgress(0); };
                     s.src = 'client.js';
                     document.head.appendChild(s);
                 }
@@ -292,7 +293,8 @@
                                     var blob = new Blob(chunks, { type: 'application/javascript' });
                                     var url = URL.createObjectURL(blob);
                                     var s = document.createElement('script');
-                                    s.onload = function () { URL.revokeObjectURL(url); };
+                                    s.onload = function () { updateProgress(95); URL.revokeObjectURL(url); };
+                                    s.onerror = function () { URL.revokeObjectURL(url); injectClientScript(); };
                                     s.src = url;
                                     document.head.appendChild(s);
                                     return;
