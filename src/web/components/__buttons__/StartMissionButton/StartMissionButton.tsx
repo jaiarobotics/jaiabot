@@ -112,10 +112,13 @@ export default function StartMissionButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
+            const mission_plan = props.mission.packageMissionForHub();
+            mission_plan.mission_name = "Untitled Mission"; // TODO: set real mission name
+
             const startMissionCommand: Command = {
                 bot_id: props.bot.getBotID(),
                 type: CommandType.MISSION_PLAN,
-                plan: props.mission.packageMissionForHub(),
+                plan: mission_plan,
             };
             const response = await sendBotCommand(startMissionCommand);
             if (response && response.status === "ok") {

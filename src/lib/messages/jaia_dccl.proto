@@ -102,7 +102,8 @@ message Command
 
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;
-    }
+    };
+
 }
 
 message CommandForHub
@@ -628,7 +629,7 @@ message TaskPacket
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional bytes mission_uuid = 12 [
+    optional bytes mission_id = 12 [
         (dccl.field).max_length = 16,
         (dccl.field).omit = true  // not sent over radio, only saved to local goby file for offload
     ];

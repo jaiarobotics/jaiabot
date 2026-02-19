@@ -1,4 +1,5 @@
 import glob
+import hashlib
 import json
 import bisect
 import socket
@@ -233,6 +234,11 @@ class Interface:
 
     def post_command(self, command_dict, clientId):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
+
+        if command.HasField('plan') and command.plan.HasField('mission_name'):
+            # Calculate hash of mission_name and store it in mission_id
+            command.plan.mission_id = hashlib.md5(command.plan.mission_name.encode('utf-8')).digest()
+
         logging.debug(f'Sending command: {command}')
         command.time = now_utime()
         msg = ClientToPortalMessage()
@@ -247,7 +253,7 @@ class Interface:
     def post_single_waypoint_mission(self, single_waypoint_mission_dict, clientId):
         logging.debug(f'Sending single waypoint coordinate: {single_waypoint_mission_dict}')
 
-        if 'lat' and 'lon' in single_waypoint_mission_dict:
+        if 'lat' in single_waypoint_mission_dict and 'lon' in single_waypoint_mission_dict:
             command_dict = {'bot_id': 1, 'time': now_utime(), 'type': 'MISSION_PLAN', 
                             'plan': {'start': 'START_IMMEDIATELY', 'movement': 'TRANSIT', 
                             'goal': [{'location': {'lat': single_waypoint_mission_dict["lat"], 'lon': single_waypoint_mission_dict["lon"]}}], 

@@ -418,10 +418,14 @@ message MissionPlan
         (dccl.field) = { min: 1 max: 100 }
     ];
 
-    // UUID is used for identifying task packets with the same mission plan, for idempotency and tracking. It is not used as a uni
-    optional bytes uuid = 11 [
+    // not sent over radio, only saved to the hub
+    optional string mission_name = 11 [(dccl.field).omit = true];
+
+    // calculated as a hash of the mission_name
+    optional bytes mission_id = 12 [
         (dccl.field).max_length = 16
     ];
+
 }
 
 message IvPBehaviorUpdate

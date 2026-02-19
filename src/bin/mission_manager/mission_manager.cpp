@@ -1023,6 +1023,16 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
             out_command.set_time(initial_fragment.time());
             out_command.set_type(protobuf::Command::MISSION_PLAN);
 
+            if (initial_fragment.plan().has_mission_name())
+            {
+                out_command.mutable_plan()->set_mission_name(
+                    initial_fragment.plan().mission_name());
+            }
+            if (initial_fragment.plan().has_mission_id())
+            {
+                out_command.mutable_plan()->set_mission_id(initial_fragment.plan().mission_id());
+            }
+
             if (initial_fragment.plan().has_start())
             {
                 out_command.mutable_plan()->set_start(initial_fragment.plan().start());

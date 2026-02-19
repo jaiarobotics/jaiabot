@@ -115,10 +115,13 @@ export default function StartAllMissionsButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
                 const missionID = missionsManager.getMissionID(botID);
+                const mission_plan = props.missions.get(missionID).packageMissionForHub();
+                mission_plan.mission_name = "Untitled Mission"; // TODO: set real mission name
+
                 const startMissionCommand: Command = {
                     bot_id: botID,
                     type: CommandType.MISSION_PLAN,
-                    plan: props.missions.get(missionID).packageMissionForHub(),
+                    plan: mission_plan,
                 };
                 const res = await sendBotCommand(startMissionCommand);
                 if (res.status === "ok") {

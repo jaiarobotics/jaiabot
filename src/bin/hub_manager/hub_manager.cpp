@@ -913,6 +913,16 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                     command.plan().bottom_depth_safety_params();
             }
 
+            if (command.plan().has_mission_id() && fragment_index == 0)
+            {
+                command_fragment.mutable_plan()->set_mission_id(command.plan().mission_id());
+            }
+
+            if (command.plan().has_mission_name() && fragment_index == 0)
+            {
+                command_fragment.mutable_plan()->set_mission_name(command.plan().mission_name());
+            }
+
             command_fragment.mutable_plan()->set_fragment_index(fragment_index);
 
             command_fragment.mutable_plan()->set_expected_fragments(command_fragments_expected);
