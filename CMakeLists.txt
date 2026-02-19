@@ -8,8 +8,10 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Limit cascading C++ errors (GCC / Clang only)
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
    add_compile_options(-fmax-errors=3)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+   add_compile_options(-ferror-limit=3)
 endif()
 
 # determine version of jaiabot

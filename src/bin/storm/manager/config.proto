@@ -1,0 +1,19 @@
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.config;
+
+message StormManager
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
+
+}

@@ -1,0 +1,64 @@
+// Copyright 2026:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+#ifndef JAIABOT_STORM_MANAGER_EVENTS_H
+#define JAIABOT_STORM_MANAGER_EVENTS_H
+
+// Boost
+#include <boost/optional.hpp>
+
+// Goby
+#include <boost/statechart/event.hpp>
+#include <goby/middleware/group.h>
+
+// Jaiabot
+#include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/mission.pb.h"
+
+namespace jaiabot
+{
+
+namespace apps
+{
+class StormManager;
+}
+
+namespace statechart
+{
+struct StormManagerStateMachine;
+
+// events
+#define STATECHART_EVENT(EVENT)                    \
+    struct EVENT : boost::statechart::event<EVENT> \
+    {                                              \
+    };
+
+// events
+STATECHART_EVENT(EvStarted)
+STATECHART_EVENT(EvLoop)
+
+#undef STATECHART_EVENT
+
+} // namespace statechart
+} // namespace jaiabot
+
+#endif // JAIABOT_STORM_MANAGER_EVENTS_H
