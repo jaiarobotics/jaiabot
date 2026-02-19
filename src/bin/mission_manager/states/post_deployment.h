@@ -27,10 +27,10 @@
 struct PostDeployment;
 #else
 struct PostDeployment : boost::statechart::state<PostDeployment, MissionManagerStateMachine,
-                                                 postdeployment::Recovered>
+                                                 post_deployment::Recovered>
 {
     using StateBase = boost::statechart::state<PostDeployment, MissionManagerStateMachine,
-                                               postdeployment::Recovered>;
+                                               post_deployment::Recovered>;
 
     // entry action
     PostDeployment(typename StateBase::my_context c) : StateBase(c) {}
@@ -39,13 +39,13 @@ struct PostDeployment : boost::statechart::state<PostDeployment, MissionManagerS
 };
 #endif
 
-namespace postdeployment
+namespace post_deployment
 {
 
-    #include "postdeployment/idle.h"
-    #include "postdeployment/failed.h"
-    #include "postdeployment/shutting_down.h"
-    #include "postdeployment/recovered.h"
-    #include "postdeployment/data_offload.h"
+    #include "post_deployment/idle.h"
+    #include "post_deployment/failed.h"
+    #include "post_deployment/shutting_down.h"
+    #include "post_deployment/recovered.h"
+    #include "post_deployment/data_offload.h"
 
-} // namespace postdeployment
+} // namespace post_deployment

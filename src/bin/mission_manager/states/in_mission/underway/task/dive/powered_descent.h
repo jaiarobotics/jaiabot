@@ -96,7 +96,7 @@ struct PoweredDescent
     {
         glog.is_debug1() &&
             glog << "Entered "
-                    "jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth: \n"
+                    "jaiabot::statechart::in_mission::underway::task::dive::PoweredDescent::depth: \n"
                 << std::endl;
 
         // Desired setpoint command
@@ -232,7 +232,7 @@ struct PoweredDescent
         interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 
         glog.is_debug1() &&
-            glog << "Exit jaiabot::statechart::inmission::underway::task::dive::PoweredDescent::depth: "
+            glog << "Exit jaiabot::statechart::in_mission::underway::task::dive::PoweredDescent::depth: "
                     "\n"
                 << std::endl;
     }

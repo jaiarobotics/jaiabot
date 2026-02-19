@@ -33,8 +33,6 @@ struct StartingUp : boost::statechart::state<StartingUp,               // (CRTP)
     // exit action
     ~StartingUp() {}
 
-    //    using reactions =
-    //       boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>,
-    //                        boost::statechart::transition<EvRecovered, postdeployment::Recovered>>;
+    using reactions = boost::mpl::list<>;
 };
 #endif

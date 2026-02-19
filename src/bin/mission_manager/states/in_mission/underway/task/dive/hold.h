@@ -89,7 +89,7 @@ struct Hold
     void loop(const EvLoop&)
     {
         glog.is_debug1() &&
-            glog << "Entered jaiabot::statechart::inmission::underway::task::dive::Hold::loop: \n"
+            glog << "Entered jaiabot::statechart::in_mission::underway::task::dive::Hold::loop: \n"
                 << std::endl;
 
         goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
@@ -124,7 +124,7 @@ struct Hold
         }
         interprocess().publish<jaiabot::groups::mission_dive>(dive_hold_debug);
         glog.is_debug1() &&
-            glog << "Exit jaiabot::statechart::inmission::underway::task::dive::Hold::loop: \n"
+            glog << "Exit jaiabot::statechart::in_mission::underway::task::dive::Hold::loop: \n"
                 << std::endl;
     }
 
@@ -140,7 +140,7 @@ struct Hold
     void depth(const EvVehicleDepth& ev)
     {
         glog.is_debug1() &&
-            glog << "Entered jaiabot::statechart::inmission::underway::task::dive::Hold::depth: \n"
+            glog << "Entered jaiabot::statechart::in_mission::underway::task::dive::Hold::depth: \n"
                 << std::endl;
 
         //Keep track of dive information
@@ -172,7 +172,7 @@ struct Hold
         interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
 
         glog.is_debug1() &&
-            glog << "Exit jaiabot::statechart::inmission::underway::task::dive::Hold::depth: \n"
+            glog << "Exit jaiabot::statechart::in_mission::underway::task::dive::Hold::depth: \n"
                 << std::endl;
     }
 

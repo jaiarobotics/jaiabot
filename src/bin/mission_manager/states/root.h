@@ -22,7 +22,7 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace jaiabot::statechart {
-    #include "predeployment.h"
-    #include "inmission.h"
-    #include "postdeployment.h"
+    #include "pre_deployment.h"
+    #include "in_mission.h"
+    #include "post_deployment.h"
 }

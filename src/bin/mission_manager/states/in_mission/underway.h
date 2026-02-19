@@ -39,7 +39,7 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
 
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvReturnToHome, underway::Recovery>,
-        boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>,
+        boost::statechart::transition<EvRCSetpoint, underway::movement::remote_control::Setpoint>,
         boost::statechart::transition<EvPause, pause::Manual>,
         boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>>;
 };
@@ -53,4 +53,4 @@ namespace underway {
     #include "underway/task.h"
     #include "underway/replan.h"
 
-} // namespace jaiabot::statechart::inmission::underway
+} // namespace jaiabot::statechart::in_mission::underway

@@ -65,7 +65,7 @@ struct UnpoweredAscent
     {
         glog.is_debug1() &&
             glog << "Entered "
-                    "jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::loop: \n"
+                    "jaiabot::statechart::in_mission::underway::task::dive::UnpoweredAscent::loop: \n"
                 << std::endl;
 
         protobuf::DesiredSetpoints setpoint_msg;
@@ -78,7 +78,7 @@ struct UnpoweredAscent
     {
         glog.is_debug1() &&
             glog << "Entered "
-                    "jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::depth: \n"
+                    "jaiabot::statechart::in_mission::underway::task::dive::UnpoweredAscent::depth: \n"
                 << std::endl;
 
         //Keep track of dive information
@@ -135,7 +135,7 @@ struct UnpoweredAscent
         interprocess().publish<jaiabot::groups::mission_dive>(dive_uascent_debug);
         glog.is_debug1() &&
             glog << "Exit "
-                    "jaiabot::statechart::inmission::underway::task::dive::UnpoweredAscent::depth: \n"
+                    "jaiabot::statechart::in_mission::underway::task::dive::UnpoweredAscent::depth: \n"
                 << std::endl;
     }
 

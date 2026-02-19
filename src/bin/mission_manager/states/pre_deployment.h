@@ -29,11 +29,11 @@ struct PreDeployment;
 struct PreDeployment
 : boost::statechart::state<PreDeployment,              // (CRTP)
                             MissionManagerStateMachine, // Parent state (or machine)
-                            predeployment::StartingUp   // Initial child substate
+                            pre_deployment::StartingUp   // Initial child substate
                             >
 {
     using StateBase = boost::statechart::state<PreDeployment, MissionManagerStateMachine,
-                                               predeployment::StartingUp>;
+                                               pre_deployment::StartingUp>;
 
     // entry action
     PreDeployment(typename StateBase::my_context c) : StateBase(c) {}
@@ -41,19 +41,19 @@ struct PreDeployment
     ~PreDeployment() {}
 
     using reactions =
-        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>,
-                         boost::statechart::transition<EvRecovered, postdeployment::Recovered>>;
+        boost::mpl::list<boost::statechart::transition<EvShutdown, post_deployment::ShuttingDown>,
+                         boost::statechart::transition<EvRecovered, post_deployment::Recovered>>;
 };
 #endif
 
-namespace predeployment
+namespace pre_deployment
 {
 
-    #include "predeployment/starting_up.h"
-    #include "predeployment/idle.h"
-    #include "predeployment/self_test.h"
-    #include "predeployment/failed.h"
-    #include "predeployment/wait_for_mission_plan.h"
-    #include "predeployment/ready.h"
+    #include "pre_deployment/starting_up.h"
+    #include "pre_deployment/idle.h"
+    #include "pre_deployment/self_test.h"
+    #include "pre_deployment/failed.h"
+    #include "pre_deployment/wait_for_mission_plan.h"
+    #include "pre_deployment/ready.h"
 
-} // namespace predeployment
+} // namespace pre_deployment

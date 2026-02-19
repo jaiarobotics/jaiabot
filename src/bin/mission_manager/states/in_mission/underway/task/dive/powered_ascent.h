@@ -141,7 +141,7 @@ struct PoweredAscent
     {
         glog.is_debug1() &&
             glog << "Entered "
-                    "jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth: \n"
+                    "jaiabot::statechart::in_mission::underway::task::dive::PoweredAscent::depth: \n"
                 << std::endl;
 
         // keep track of dive information
@@ -195,7 +195,7 @@ struct PoweredAscent
         interprocess().publish<jaiabot::groups::mission_dive>(dive_pascent_debug);
         glog.is_debug1() &&
             glog
-                << "Exit jaiabot::statechart::inmission::underway::task::dive::PoweredAscent::depth: \n"
+                << "Exit jaiabot::statechart::in_mission::underway::task::dive::PoweredAscent::depth: \n"
                 << std::endl;
     }
 

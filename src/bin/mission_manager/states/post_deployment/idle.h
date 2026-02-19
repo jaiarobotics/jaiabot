@@ -53,7 +53,7 @@ struct Idle : boost::statechart::state<Idle, PostDeployment>,
 
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvShutdown, ShuttingDown>,
-                        boost::statechart::transition<EvActivate, predeployment::SelfTest>>;
+                        boost::statechart::transition<EvActivate, pre_deployment::SelfTest>>;
 };
 
 #endif

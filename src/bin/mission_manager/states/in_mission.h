@@ -27,14 +27,14 @@
 struct InMission;
 #else
 struct InMission
-    : boost::statechart::state<InMission, MissionManagerStateMachine, inmission::Underway>,
+    : boost::statechart::state<InMission, MissionManagerStateMachine, in_mission::Underway>,
       AppMethodsAccess<InMission>
 {
     constexpr static int RECOVERY_GOAL_INDEX{-1};
     constexpr static int SURF_EGRESS_GOAL_INDEX{-2};
 
     using StateBase =
-        boost::statechart::state<InMission, MissionManagerStateMachine, inmission::Underway>;
+        boost::statechart::state<InMission, MissionManagerStateMachine, in_mission::Underway>;
 
     InMission(typename StateBase::my_context c) : StateBase(c)
     {
@@ -172,10 +172,10 @@ struct InMission
     bool is_echo_recording() const { return is_echo_recording_; }
 
     using reactions = boost::mpl::list<
-        boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
+        boost::statechart::transition<EvNewMission, in_mission::underway::Replan>,
         boost::statechart::transition<EvRecovered, PostDeployment>,
-        boost::statechart::transition<EvAbort, inmission::underway::Abort>,
-        boost::statechart::transition<EvStop, inmission::underway::recovery::Stopped>>;
+        boost::statechart::transition<EvAbort, in_mission::underway::Abort>,
+        boost::statechart::transition<EvStop, in_mission::underway::recovery::Stopped>>;
 
   private:
     int goal_index_{0};
@@ -186,9 +186,10 @@ struct InMission
 };
 #endif
 
-namespace inmission {
+namespace in_mission
+{
 
-    #include "inmission/underway.h"
-    #include "inmission/pause.h"
+#include "in_mission/pause.h"
+#include "in_mission/underway.h"
 
-}
+} // namespace in_mission

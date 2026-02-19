@@ -22,24 +22,26 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef JAIABOT_MISSION_MANAGER_FWD_DECL
-struct Stopped;
+struct RemoteControl;
 #else
-struct Stopped : boost::statechart::state<Stopped, Recovery>,
-                 Notify<Stopped, protobuf::IN_MISSION__UNDERWAY__RECOVERY__STOPPED>
+struct RemoteControl
+    : boost::statechart::state<RemoteControl, Movement, remote_control::RemoteControlEndSelection>
 {
-    using StateBase = boost::statechart::state<Stopped, Recovery>;
+    using StateBase =
+        boost::statechart::state<RemoteControl, Movement, remote_control::RemoteControlEndSelection>;
+    RemoteControl(typename StateBase::my_context c) : StateBase(c) {}
+    ~RemoteControl() {}
 
-    Stopped(typename StateBase::my_context c) : StateBase(c)
-    {
-        protobuf::DesiredSetpoints setpoint_msg;
-        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
-        interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
-        this->machine().erase_warning(WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
-    }
-
-    ~Stopped() {}
-
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvShutdown, postdeployment::ShuttingDown>>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvResumeMovement, Movement>>;
 };
 #endif
+
+namespace remote_control
+{
+
+    #include "remote_control/remote_control_end_selection.h"
+    #include "remote_control/station_keep.h"
+    #include "remote_control/surface_drift.h"
+    #include "remote_control/setpoint.h"
+
+}
