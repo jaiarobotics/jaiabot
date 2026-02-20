@@ -431,7 +431,7 @@ export function Plots(props: PlotsProps) {
                 yref: yref,
                 x: 1.01,
                 y: mean,
-                text: `μ=${mean.toFixed(3)}<br>σ=${std.toFixed(3)}`,
+                text: `Avg=${mean.toFixed(3)}<br>std=${std.toFixed(3)}`,
                 showarrow: false,
                 font: { size: 10, color: "red" },
                 xanchor: "left",
