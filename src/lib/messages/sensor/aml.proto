@@ -2,13 +2,31 @@ syntax = "proto2";
 
 package jaiabot.sensor.protobuf;
 
+// message AML_CT {
+//     optional double conductivity = 1;
+//     optional double temperature = 2; 
+// }
+
+// message AML_SV {
+//     optional double value1;
+//     optional double value2;
+// }
+
 message AML {
     enum Sensor {
         DEFAULT = 1;
         CONDUCTIVITY = 2;
+        // SOUND_VELOCITY = 3;
     }
 
     optional Sensor sensor = 1;
     optional double conductivity = 2;
     optional double temperature = 3;
+    
+    // When we're ready for more sensors...
+    // oneof sensor_data
+    // {
+    //    AML_CT ct;
+    //    AML_SV sv;
+    // }
 }
