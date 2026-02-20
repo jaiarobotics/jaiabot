@@ -646,6 +646,8 @@ message WavePacket
     };
 
     // significant wave height calculated and reported during each stationkeep
+    // hub will ignore significant wave heights calculated from surface drifts
+    // source of WavePacket determined using wrapping TaskPacket's type field
 
     optional double significant_wave_height = 1 [
         (dccl.field) = {
@@ -667,7 +669,7 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    // wave period calculated during furthest offshore stationkeep
+    // wave period calculated during furthest offshore stationkeep or during surface drift
 
     optional double period = 3 [
         (dccl.field) = {
@@ -690,7 +692,7 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    // location to associate measurement with, currently mean lat/lon of stationkeep
+    // location to associate measurement with, currently mean lat/lon of collection
     optional GeographicCoordinate location = 5
         [(jaia.field).rest_api.presence = GUARANTEED];
 }

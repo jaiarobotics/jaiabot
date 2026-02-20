@@ -27,7 +27,8 @@ DEFAULT_PERIOD_STD_S = 2.0 # TODO: investigate why default value in jaia_dccl.pr
 
 class FSM_STATES(Enum):
     WAITING = 0
-    LOGGING = 1
+    LOGGING_STATION_KEEP = 1
+    LOGGING_SURFACE_DRIFT = 2
 
 # --- HDF5 Data Type Definitions ---
 # i8 = int64, i4 = int32, f8 = float64
@@ -69,7 +70,7 @@ def send_heartbeat(sock, addr, log):
     except Exception:
         log.exception("Failed to send heartbeat")
 
-def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffers, log, cleanup=True):
+def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffers, task_type, log, cleanup=True):
     """Writes buffered data to HDF5, processes it, and sends the final results."""
     station_keep_dir = os.path.join(SAVE_DIR, str(int(time.time())))
     os.makedirs(station_keep_dir, exist_ok=True)
@@ -105,7 +106,7 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
             bot_id=0,  # To be set by the receiving udp_gateway app
             start_time=start_time_us,
             end_time=end_time_us,
-            type=MissionTask.TaskType.STATION_KEEP
+            type=task_type
         )
         task_packet.wave.CopyFrom(wave_packet)
 
@@ -119,6 +120,7 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
             log.exception("Failed to send results")
 
     if cleanup:
+        log.info(f"Cleaning up {station_keep_dir}")
         shutil.rmtree(station_keep_dir, ignore_errors=True)
 
 def process_logged_data(h5_log_path, log):
@@ -192,13 +194,19 @@ def main(args):
             if current_state == FSM_STATES.WAITING:
                 if (payload_type == 'mission_report' and 
                         payload.mission_report.state == MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP):
-                    log.info("Start signal received. Switching to LOGGING mode.")
-                    current_state = FSM_STATES.LOGGING
+                    log.info("Station Keep started. Switching to LOGGING_STATION_KEEP mode.")
+                    current_state = FSM_STATES.LOGGING_STATION_KEEP
+                    start_time_us = int(time.time() * 1_000_000)
+                    data_buffers = {'gps': []}
+                elif (payload_type == 'mission_report' and 
+                        payload.mission_report.state == MissionState.IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT):
+                    log.info("Drift started. Switching to LOGGING_SURFACE_DRIFT mode.")
+                    current_state = FSM_STATES.LOGGING_SURFACE_DRIFT
                     start_time_us = int(time.time() * 1_000_000)
                     data_buffers = {'gps': []}
             
             # === LOGGING MODE ===
-            elif current_state == FSM_STATES.LOGGING:
+            elif current_state == FSM_STATES.LOGGING_STATION_KEEP or current_state == FSM_STATES.LOGGING_SURFACE_DRIFT:
                 current_ts = time.time()
                 match payload_type:
                     case 'time_position_velocity':
@@ -209,12 +217,19 @@ def main(args):
                                                         payload.time_position_velocity.altitude,
                                                         payload.time_position_velocity.epv))
                     case 'mission_report':
-                        if (payload.mission_report.state != MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP and
+                        if (current_state == FSM_STATES.LOGGING_STATION_KEEP and payload.mission_report.state != MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP and
                                 payload.mission_report.state not in PAUSED_MISSION_STATES):
-                            log.info(f"End signal received. New state: {MissionState.Name(payload.mission_report.state)}. Processing data...")
+                            log.info(f"Station Keep ended. New state: {MissionState.Name(payload.mission_report.state)}. Processing data...")
                             end_time_us = int(current_ts * 1_000_000)
-                            process_and_send_results(sock, udp_gateway_address, start_time_us, end_time_us, data_buffers, log, cleanup=args.delete_temporary_h5s)
-                            log.info("Cycle complete. Switching back to WAITING mode.")
+                            process_and_send_results(sock, udp_gateway_address, start_time_us, end_time_us, data_buffers, MissionTask.TaskType.STATION_KEEP, log, cleanup=args.delete_temporary_h5s)
+                            log.info("Station Keep processing complete. Switching back to WAITING mode.")
+                            current_state = FSM_STATES.WAITING
+                        elif (current_state == FSM_STATES.LOGGING_SURFACE_DRIFT and payload.mission_report.state != MissionState.IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT and
+                                payload.mission_report.state not in PAUSED_MISSION_STATES):
+                            log.info(f"Surface Drift ended. New state: {MissionState.Name(payload.mission_report.state)}. Processing data...")
+                            end_time_us = int(current_ts * 1_000_000)
+                            process_and_send_results(sock, udp_gateway_address, start_time_us, end_time_us, data_buffers, MissionTask.TaskType.SURFACE_DRIFT, log, cleanup=args.delete_temporary_h5s)
+                            log.info("Surface Drift processing complete. Switching back to WAITING mode.")
                             current_state = FSM_STATES.WAITING
                     case _:
                         log.warning(f"Received unexpected payload type during logging: {payload_type}")
