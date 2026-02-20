@@ -344,18 +344,17 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__INIT_FAILED__TURNER__C_FLUOR = 803
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__INIT_FAILED__AML = 804
+    WARNING__MISSING_DATA__ATLAS_OEM_EC_DATA = 804
         [(jaia.ev).rest_api.presence = GUARANTEED];
-
-    WARNING__MISSING_DATA__ATLAS_OEM_EC_DATA = 805
+    WARNING__MISSING_DATA__ATLAS_OEM_PH_DATA = 805
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__MISSING_DATA__ATLAS_OEM_PH_DATA = 806
+    WARNING__MISSING_DATA__ATLAS_OEM_DO_DATA = 806
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__MISSING_DATA__ATLAS_OEM_DO_DATA = 807
+    WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA = 807
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA = 808
+    WARNING__MISSING_DATA__AML_DATA = 808
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__MISSING_DATA__AML_DATA = 809
+    WARNING__INIT_FAILED__AML = 809
         [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 

@@ -9,5 +9,5 @@ serial {
 output_rate: 10
 
 catalog {
-    conductivity: "Conductivty Sensor"
+    conductivity: "Conductivity Sensor"
 }

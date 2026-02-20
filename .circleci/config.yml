@@ -176,7 +176,7 @@ filter-template-debian-builds: &filter-template-debian-builds
       only: /.*/
     branches:
       only:
-        - "feature/create-driver-for-AML"
+        - "2.y"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
