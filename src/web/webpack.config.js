@@ -112,6 +112,8 @@ module.exports = (env, argv) => {
                 patterns: [
                     path.resolve(__dirname, "jcc/public/favicon.png"),
                     path.resolve(__dirname, "jcc/public/manifest.json"),
+                    path.resolve(__dirname, "jcc/public/loading.css"),
+                    path.resolve(__dirname, "jcc/public/loading-logo.svg"),
                 ],
                 options: {},
             }),
