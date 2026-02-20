@@ -168,11 +168,50 @@ export function Plots(props: PlotsProps) {
             };
 
             data.push(trace);
+
+            // Mean line trace
+            data.push({
+                name: `${series.title} mean`,
+                x: [],
+                y: [],
+                xaxis: "x",
+                yaxis: yaxis,
+                type: "scattergl",
+                mode: "lines",
+                line: { dash: "dash", color: "red", width: 1.5 },
+                hoverinfo: "skip",
+            } as Plotly.Data);
+
+            // Mean + std line trace
+            data.push({
+                name: `${series.title} mean+std`,
+                x: [],
+                y: [],
+                xaxis: "x",
+                yaxis: yaxis,
+                type: "scattergl",
+                mode: "lines",
+                line: { dash: "dot", color: "orange", width: 1.5 },
+                hoverinfo: "skip",
+            } as Plotly.Data);
+
+            // Mean - std line trace
+            data.push({
+                name: `${series.title} mean-std`,
+                x: [],
+                y: [],
+                xaxis: "x",
+                yaxis: yaxis,
+                type: "scattergl",
+                mode: "lines",
+                line: { dash: "dot", color: "orange", width: 1.5 },
+                hoverinfo: "skip",
+            } as Plotly.Data);
         }
 
-        layout.grid = { rows: data.length, columns: 1, pattern: "coupled" };
+        layout.grid = { rows: plots.length, columns: 1, pattern: "coupled" };
 
-        layout.height = data.length * 300 + 1; // in pixels
+        layout.height = plots.length * 300 + 1; // in pixels
 
         // Preserve current x axis range
         const current_layout_xaxis = plot_div_element.layout?.xaxis;
@@ -247,14 +286,18 @@ export function Plots(props: PlotsProps) {
             return [start_index, Math.min(end_index + 2, series._utime_.length)];
         };
 
+        const annotations: any[] = [];
+
         for (let [plot_index, series] of plots.entries()) {
             if (series._utime_.length == 0) {
-                // No data points
-                update.x.push([]);
-                update.y.push([]);
-                update.hovertext.push([]);
-                update.customdata.push([]);
-                update.mode.push("lines");
+                // No data points — push empty entries for main trace + 3 stat traces
+                for (let i = 0; i < 4; i++) {
+                    update.x.push([]);
+                    update.y.push([]);
+                    update.hovertext.push([]);
+                    update.customdata.push([]);
+                    update.mode.push("lines");
+                }
                 continue;
             }
 
@@ -332,8 +375,73 @@ export function Plots(props: PlotsProps) {
             update.hovertext.push(hovertext);
             update.customdata.push(customdata);
             update.mode.push(auto_mode);
+
+            // --- Mean / Std computation (full-resolution data, zoom window) ---
+            const t_start = visibleTimeRange ? visibleTimeRange[0] : Number.MIN_SAFE_INTEGER;
+            const t_end = visibleTimeRange ? visibleTimeRange[1] : Number.MAX_SAFE_INTEGER;
+
+            const visible_y: number[] = [];
+            for (let i = 0; i < series._utime_.length; i++) {
+                if (series._utime_[i] >= t_start && series._utime_[i] <= t_end) {
+                    visible_y.push(series.series_y[i]);
+                }
+            }
+            const visible_y_filtered = visible_y.filter((y) => y !== null && y !== undefined);
+
+            let mean = 0;
+            let std = 0;
+            if (visible_y_filtered.length > 0) {
+                mean = visible_y_filtered.reduce((a, b) => a + b, 0) / visible_y_filtered.length;
+                const variance =
+                    visible_y_filtered.reduce((sum, y) => sum + (y - mean) ** 2, 0) /
+                    visible_y_filtered.length;
+                std = Math.sqrt(variance);
+            }
+
+            // Span the stat lines across the full series extent so they remain
+            // visible even when panning (Plotly clips to the visible window).
+            const stat_x_start = microsToDate(series._utime_[0]);
+            const stat_x_end = microsToDate(series._utime_[series._utime_.length - 1]);
+
+            // Mean line
+            update.x.push([stat_x_start, stat_x_end]);
+            update.y.push([mean, mean]);
+            update.hovertext.push([]);
+            update.customdata.push([]);
+            update.mode.push("lines");
+
+            // Mean + std line
+            update.x.push([stat_x_start, stat_x_end]);
+            update.y.push([mean + std, mean + std]);
+            update.hovertext.push([]);
+            update.customdata.push([]);
+            update.mode.push("lines");
+
+            // Mean - std line
+            update.x.push([stat_x_start, stat_x_end]);
+            update.y.push([mean - std, mean - std]);
+            update.hovertext.push([]);
+            update.customdata.push([]);
+            update.mode.push("lines");
+
+            // Annotation showing the values (right edge, paper x so it stays visible)
+            const yref = "y" + (plot_index + 1);
+            annotations.push({
+                xref: "paper",
+                yref: yref,
+                x: 1.01,
+                y: mean,
+                text: `μ=${mean.toFixed(3)}<br>σ=${std.toFixed(3)}`,
+                showarrow: false,
+                font: { size: 10, color: "red" },
+                xanchor: "left",
+                yanchor: "middle",
+                bgcolor: "rgba(255,255,255,0.7)",
+            });
         }
+
         Plotly.restyle("plot", update);
+        Plotly.relayout("plot", { annotations });
     };
 
     useEffect(refreshPlotData, [props.chosenLogs, props.plots, props.visibleTimeRange]);
