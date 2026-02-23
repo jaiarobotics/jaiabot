@@ -150,7 +150,7 @@ def main(args):
 
     os.makedirs(SAVE_DIR, exist_ok=True)
 
-    logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s', filename=os.path.join(SAVE_DIR, f'surob_surge_waves_{str(int(time.time()))}.log', filemode='w'))
+    logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s', filename=os.path.join(SAVE_DIR, f'surob_surge_waves_{str(int(time.time()))}.log'), filemode='w')
     log = logging.getLogger('surob_surge_waves')
     log.setLevel(args.logging_level)
 
