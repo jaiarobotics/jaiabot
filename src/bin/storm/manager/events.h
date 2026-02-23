@@ -54,6 +54,26 @@ struct StormManagerStateMachine;
 
 // events
 STATECHART_EVENT(EvStarted)
+STATECHART_EVENT(EvBeginSelfTest)
+STATECHART_EVENT(EvWaterDetected)
+STATECHART_EVENT(EvLaunchTubeStuck)
+STATECHART_EVENT(EvLaunchTubeCleared)
+STATECHART_EVENT(EvLaunchTubeRecoveryComplete)
+STATECHART_EVENT(EvParachuteReleased)
+STATECHART_EVENT(EvParachuteStillAttached)
+STATECHART_EVENT(EvParachuteAttachmentRecoveryComplete)
+STATECHART_EVENT(EvAirDescentDataTimeout)
+STATECHART_EVENT(EvAirDescentDataTransmitted)
+STATECHART_EVENT(EvSelfTestComplete)
+STATECHART_EVENT(EvMissionManagerReadyForMission)
+STATECHART_EVENT(EvRemoteMissionTimeout)
+STATECHART_EVENT(EvRemoteMissionReceived)
+STATECHART_EVENT(EvMissionRunning)
+STATECHART_EVENT(EvSleepInitiated)
+STATECHART_EVENT(EvDataOffloadComplete)
+STATECHART_EVENT(EvDataOffloadTimeout)
+STATECHART_EVENT(EvSleepReady)
+
 STATECHART_EVENT(EvLoop)
 
 #undef STATECHART_EVENT

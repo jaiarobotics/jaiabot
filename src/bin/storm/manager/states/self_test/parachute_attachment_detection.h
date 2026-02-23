@@ -20,33 +20,20 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
+#ifdef JAIABOT_STORM_MANAGER_FWD_DECL
+struct ParachuteAttachmentDetection;
+#else
+struct ParachuteAttachmentDetection
+    : boost::statechart::state<ParachuteAttachmentDetection, SelfTest>,
+      Notify<ParachuteAttachmentDetection, protobuf::SELF_TEST__PARACHUTE_ATTACHMENT_DETECTION>
+{
+    using StateBase = boost::statechart::state<ParachuteAttachmentDetection, SelfTest>;
 
-// Boost
-#include <boost/statechart/custom_reaction.hpp>
-#include <boost/statechart/in_state_reaction.hpp>
-#include <boost/statechart/state.hpp>
-#include <boost/statechart/termination.hpp>
-#include <boost/statechart/transition.hpp>
+    ParachuteAttachmentDetection(typename StateBase::my_context c) : StateBase(c) {}
+    ~ParachuteAttachmentDetection() {}
 
-// Protobuf
-#include <google/protobuf/util/json_util.h>
-
-// Jaiabot
-#include "jaiabot/intervehicle.h"
-using namespace jaiabot::protobuf;
-
-// Storm Manager app
-#include "events.h"
-#include "machine_common.h"
-#include "state_machine.h"
-
-// States
-
-// forward declaration
-#define JAIABOT_STORM_MANAGER_FWD_DECL
-#include "states/root.h"
-#undef JAIABOT_STORM_MANAGER_FWD_DECL
-
-// actual definition
-#include "states/root.h"
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvParachuteReleased, AirDescentDataOffload>,
+        boost::statechart::transition<EvParachuteStillAttached, ParachuteAttachmentRecovery>>;
+};
+#endif

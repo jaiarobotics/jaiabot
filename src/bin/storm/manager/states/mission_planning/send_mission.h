@@ -20,33 +20,18 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
+#ifdef JAIABOT_STORM_MANAGER_FWD_DECL
+struct SendMission;
+#else
+struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
+                     Notify<SendMission, protobuf::MISSION_PLANNING__SEND_MISSION>
+{
+    using StateBase = boost::statechart::state<SendMission, MissionPlanning>;
 
-// Boost
-#include <boost/statechart/custom_reaction.hpp>
-#include <boost/statechart/in_state_reaction.hpp>
-#include <boost/statechart/state.hpp>
-#include <boost/statechart/termination.hpp>
-#include <boost/statechart/transition.hpp>
+    SendMission(typename StateBase::my_context c) : StateBase(c) {}
+    ~SendMission() {}
 
-// Protobuf
-#include <google/protobuf/util/json_util.h>
-
-// Jaiabot
-#include "jaiabot/intervehicle.h"
-using namespace jaiabot::protobuf;
-
-// Storm Manager app
-#include "events.h"
-#include "machine_common.h"
-#include "state_machine.h"
-
-// States
-
-// forward declaration
-#define JAIABOT_STORM_MANAGER_FWD_DECL
-#include "states/root.h"
-#undef JAIABOT_STORM_MANAGER_FWD_DECL
-
-// actual definition
-#include "states/root.h"
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvMissionRunning, MissionRunning>>;
+};
+#endif

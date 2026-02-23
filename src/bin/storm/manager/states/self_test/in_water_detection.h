@@ -31,6 +31,8 @@ struct InWaterDetection : boost::statechart::state<InWaterDetection, SelfTest>,
     InWaterDetection(typename StateBase::my_context c) : StateBase(c) {}
     ~InWaterDetection() {}
 
-    using reactions = boost::mpl::list<>;
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvWaterDetected, LaunchTubeDetection>>;
 };
+
 #endif

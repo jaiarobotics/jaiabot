@@ -20,33 +20,27 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
+#ifdef JAIABOT_STORM_MANAGER_FWD_DECL
+struct SleepPrep;
+#else
+struct SleepPrep
+    : boost::statechart::state<SleepPrep, StormManagerStateMachine, sleep_prep::DataOffload>,
+      AppMethodsAccess<SleepPrep>
+{
+    using StateBase =
+        boost::statechart::state<SleepPrep, StormManagerStateMachine, sleep_prep::DataOffload>;
 
-// Boost
-#include <boost/statechart/custom_reaction.hpp>
-#include <boost/statechart/in_state_reaction.hpp>
-#include <boost/statechart/state.hpp>
-#include <boost/statechart/termination.hpp>
-#include <boost/statechart/transition.hpp>
+    SleepPrep(typename StateBase::my_context c) : StateBase(c) {}
+    ~SleepPrep() {}
 
-// Protobuf
-#include <google/protobuf/util/json_util.h>
+    using reactions = boost::mpl::list<>;
+};
+#endif
 
-// Jaiabot
-#include "jaiabot/intervehicle.h"
-using namespace jaiabot::protobuf;
+namespace sleep_prep
+{
 
-// Storm Manager app
-#include "events.h"
-#include "machine_common.h"
-#include "state_machine.h"
+#include "sleep_prep/data_offload.h"
+#include "sleep_prep/wrapup.h"
 
-// States
-
-// forward declaration
-#define JAIABOT_STORM_MANAGER_FWD_DECL
-#include "states/root.h"
-#undef JAIABOT_STORM_MANAGER_FWD_DECL
-
-// actual definition
-#include "states/root.h"
+} // namespace sleep_prep

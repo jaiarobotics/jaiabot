@@ -31,6 +31,6 @@ struct MissionRunning : boost::statechart::state<MissionRunning, StormManagerSta
     MissionRunning(typename StateBase::my_context c) : StateBase(c) {}
     ~MissionRunning() {}
 
-    using reactions = boost::mpl::list<>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvSleepInitiated, SleepPrep>>;
 };
 #endif

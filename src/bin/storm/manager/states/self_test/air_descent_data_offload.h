@@ -20,33 +20,20 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
+#ifdef JAIABOT_STORM_MANAGER_FWD_DECL
+struct AirDescentDataOffload;
+#else
+struct AirDescentDataOffload
+    : boost::statechart::state<AirDescentDataOffload, SelfTest>,
+      Notify<AirDescentDataOffload, protobuf::SELF_TEST__AIR_DESCENT_DATA_OFFLOAD>
+{
+    using StateBase = boost::statechart::state<AirDescentDataOffload, SelfTest>;
 
-// Boost
-#include <boost/statechart/custom_reaction.hpp>
-#include <boost/statechart/in_state_reaction.hpp>
-#include <boost/statechart/state.hpp>
-#include <boost/statechart/termination.hpp>
-#include <boost/statechart/transition.hpp>
+    AirDescentDataOffload(typename StateBase::my_context c) : StateBase(c) {}
+    ~AirDescentDataOffload() {}
 
-// Protobuf
-#include <google/protobuf/util/json_util.h>
-
-// Jaiabot
-#include "jaiabot/intervehicle.h"
-using namespace jaiabot::protobuf;
-
-// Storm Manager app
-#include "events.h"
-#include "machine_common.h"
-#include "state_machine.h"
-
-// States
-
-// forward declaration
-#define JAIABOT_STORM_MANAGER_FWD_DECL
-#include "states/root.h"
-#undef JAIABOT_STORM_MANAGER_FWD_DECL
-
-// actual definition
-#include "states/root.h"
+    using reactions =
+        boost::mpl::list<boost::statechart::transition<EvAirDescentDataTransmitted, Wrapup>,
+                         boost::statechart::transition<EvAirDescentDataTimeout, Wrapup>>;
+};
+#endif

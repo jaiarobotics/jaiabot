@@ -31,6 +31,6 @@ struct Activating : boost::statechart::state<Activating, StormManagerStateMachin
     Activating(typename StateBase::my_context c) : StateBase(c) {}
     ~Activating() {}
 
-    using reactions = boost::mpl::list<>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvBeginSelfTest, SelfTest>>;
 };
 #endif

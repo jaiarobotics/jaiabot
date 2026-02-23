@@ -21,16 +21,27 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifdef JAIABOT_STORM_MANAGER_FWD_DECL
-struct StartingUp;
+struct MissionPlanning;
 #else
-struct StartingUp : boost::statechart::state<StartingUp, StormManagerStateMachine>,
-                    Notify<StartingUp, protobuf::STARTING_UP>
+struct MissionPlanning : boost::statechart::state<MissionPlanning, StormManagerStateMachine,
+                                                  mission_planning::WaitForMissionManager>,
+                         AppMethodsAccess<MissionPlanning>
 {
-    using StateBase = boost::statechart::state<StartingUp, StormManagerStateMachine>;
+    using StateBase = boost::statechart::state<MissionPlanning, StormManagerStateMachine,
+                                               mission_planning::WaitForMissionManager>;
 
-    StartingUp(typename StateBase::my_context c) : StateBase(c) {}
-    ~StartingUp() {}
+    MissionPlanning(typename StateBase::my_context c) : StateBase(c) {}
+    ~MissionPlanning() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvStarted, Activating>>;
+    using reactions = boost::mpl::list<>;
 };
 #endif
+
+namespace mission_planning
+{
+
+#include "mission_planning/send_mission.h"
+#include "mission_planning/wait_for_mission_manager.h"
+#include "mission_planning/wait_for_remote_mission.h"
+
+} // namespace mission_planning
