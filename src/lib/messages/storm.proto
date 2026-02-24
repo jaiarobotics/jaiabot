@@ -1,6 +1,9 @@
 syntax = "proto2";
 
+import "dccl/option_extensions.proto";
+
 import "jaiabot/messages/option_extensions.proto";
+import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
 
@@ -23,7 +26,88 @@ enum StormState
     MISSION_PLANNING__SEND_MISSION = 202;
 
     SLEEP_PREP__DATA_OFFLOAD = 300;
-    SLEEP_PREP__WRAPUP = 301;    
-
+    SLEEP_PREP__WRAPUP = 301;
 }
 
+message StormMission
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required MissionTask.DiveParameters dive = 10;
+
+    required uint32 sleep_for_minutes = 20 [(dccl.field) = {
+        min: 0
+        max: 10080  // week
+        units { unit: "metric::minute" }
+    }];
+
+    optional uint32 min_battery_percentage = 30
+        [default = 10, (dccl.field) = { min: 0 max: 99 }];
+
+    optional uint32 remote_mission_wait_minutes = 40 [
+        default = 0,
+        (dccl.field) = {
+            min: 0
+            max: 60
+            units { unit: "metric::minute" }
+        }
+    ];
+
+    message LaunchTubeDetectionParams
+    {
+        message Action
+        {
+            required uint32 thrust_percentage = 1
+                [(dccl.field) = { min: -100 max: 100 }];
+
+            required uint32 thrust_duration = 2 [
+                default = 5,
+                (dccl.field) = {
+                    min: 0
+                    max: 60
+                    units { base_dimensions: "T" }
+                }
+            ];
+            optional uint32 repeat = 3
+                [default = 0, (dccl.field) = { min: 0 max: 10 }];
+        }
+
+        repeated Action action = 1 [(dccl.field) = { max_repeat: 10 }];
+    }
+
+    message ParachuteAttachmentDetectionParams
+    {
+        // TBD
+    }
+
+    optional LaunchTubeDetectionParams launch_tube = 50;
+    optional ParachuteAttachmentDetectionParams parachute = 51;
+}
+
+message StormMissionUpdate
+{
+    enum UpdateType
+    {
+        UPDATE_MISSION = 1;
+        ABORT = 2;
+        PAUSE = 3;
+        RESUME = 4;
+        DELAY = 5;
+    }
+    required UpdateType type = 1;
+
+    oneof update_data
+    {
+        // required when type == UPDATE_MISSION
+        StormMission new_mission = 10;
+
+        // required when type == DELAY
+        uint32 delay_for_minutes = 20 [(dccl.field) = {
+            min: 1
+            max: 1440  // day
+            units { unit: "metric::minute" }
+        }];
+    }
+}

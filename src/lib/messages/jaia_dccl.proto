@@ -9,6 +9,7 @@ import "jaiabot/messages/health.proto";
 import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/link.proto";
+import "jaiabot/messages/storm.proto";
 
 package jaiabot.protobuf;
 
@@ -70,6 +71,9 @@ message Command
         REMOTE_CONTROL_TASK = 21;
         REMOTE_CONTROL_RESUME_MOVEMENT = 22;
 
+        // during STORM mission
+        STORM_DYNAMIC_MISSION_UPDATE = 25;
+
         // post mission
         RECOVERED = 30 [(jaia.ev).rest_api.presence = GUARANTEED];
         SHUTDOWN = 31 [(jaia.ev).rest_api.presence = GUARANTEED];
@@ -102,6 +106,9 @@ message Command
 
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;
+
+        // required for type == STORM_DYNAMIC_MISSION_UPDATE
+        StormMissionUpdate storm = 40;
     }
 }
 
@@ -579,7 +586,7 @@ message DivePacket
     }
 
     optional SubsurfaceCurrentVector subsurface_current = 21
-        [(jaia.field).rest_api.presence = GUARANTEED]; 
+        [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message TaskPacket

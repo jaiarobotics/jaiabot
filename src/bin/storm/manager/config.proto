@@ -5,6 +5,8 @@ import "goby/zeromq/protobuf/interprocess_config.proto";
 
 import "dccl/option_extensions.proto";
 
+import "jaiabot/messages/storm.proto";
+
 package jaiabot.config;
 
 message StormManager
@@ -15,5 +17,5 @@ message StormManager
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-
+    required jaiabot.protobuf.StormMission initial_mission = 10;
 }
