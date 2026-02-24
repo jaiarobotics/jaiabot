@@ -93,6 +93,14 @@ else()
   option(build_arduino "Build Arduino code (requires arduino-cli)" OFF)
 endif()
 
+find_program(STM32_MAKE arm-none-eabi-gcc)
+if(STM32_MAKE)
+  option(build_stm32 "Build STM32 firmware (requires arm-none-eabi-gcc)" ON)
+else()
+  message(STATUS "Did not find arm-none-eabi-gcc, so not building STM32 firmware")
+  option(build_stm32 "Build STM32 firmware (requires arm-none-eabi-gcc)" OFF)
+endif()
+
 option(build_web "Build web ui code (requires npm)" ON)
 option(build_jdv "Build jdv ui code (requires npm)" ON)
 
@@ -167,6 +175,7 @@ file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/f
 
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
+  PATTERN "stm32" EXCLUDE
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)

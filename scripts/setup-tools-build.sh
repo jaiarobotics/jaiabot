@@ -22,6 +22,14 @@ curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.
     arduino-cli core update-index && \
     arduino-cli core install arduino:avr
 
+# Install STM32 ARM GCC toolchain and flashing tools
+sudo apt-get -y install \
+    gcc-arm-none-eabi \
+    binutils-arm-none-eabi \
+    libnewlib-arm-none-eabi \
+    openocd \
+    stlink-tools
+
 # Install nvm, npm, and webpack
 curl https://raw.githubusercontent.com/creationix/nvm/${jaia_version_nvm}/install.sh | bash
 
