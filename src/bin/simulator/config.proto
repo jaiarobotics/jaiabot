@@ -29,6 +29,7 @@ import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/moos/protobuf/moos_gateway_config.proto";
 import "goby/middleware/protobuf/udp_config.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/node.proto";
 
 package jaiabot.config;
 
@@ -50,7 +51,8 @@ message Simulator
 
     optional jaiabot.protobuf.GeographicCoordinate start_location = 26;
 
-    optional bool is_bot_sim = 28 [default = true];
+    optional jaiabot.protobuf.NodeType node_type = 28 [default = BOT];
+    optional jaiabot.protobuf.BotType bot_type = 29 [default = HYDRO];
 
     optional double vertical_dive_rate = 31
         [(dccl.field) = { units { derived_dimensions: "velocity" } }];

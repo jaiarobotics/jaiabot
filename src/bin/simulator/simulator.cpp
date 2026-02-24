@@ -119,7 +119,7 @@ jaiabot::apps::Simulator::Simulator()
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
-    if (cfg().is_bot_sim())
+    if (cfg().node_type() == jaiabot::protobuf::BOT)
     {
         // gps
         using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<gps_udp_in, gps_udp_out>;
@@ -147,7 +147,7 @@ jaiabot::apps::Simulator::Simulator()
         // moos sim translation
         launch_thread<jaiabot::apps::SimulatorTranslation>(std::make_pair(sim_cfg, cfg()));
     }
-    else
+    else if (cfg().node_type() == jaiabot::protobuf::HUB)
     {
         // hub position
         launch_thread<HubSimThread>(cfg());
@@ -163,7 +163,7 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
           {sim_cfg_.start_location().lat_with_units(), sim_cfg_.start_location().lon_with_units()}))
 
 {
-    if (sim_cfg_.is_bot_sim())
+    if (sim_cfg_.node_type() == jaiabot::protobuf::BOT)
     {
         interprocess().subscribe<goby::middleware::groups::datum_update>(
             [this](const goby::middleware::protobuf::DatumUpdate& datum_update)

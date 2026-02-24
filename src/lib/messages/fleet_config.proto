@@ -22,6 +22,8 @@
 
 syntax = "proto2";
 
+import "jaiabot/messages/node.proto";
+
 package jaiabot.protobuf;
 
 message FleetConfig
@@ -72,18 +74,11 @@ message FleetConfig
 
     message DebconfOverride
     {
-        enum NodeType
-        {
-            HUB = 0;
-            BOT = 1;
-        }
-
         required NodeType type = 1;
         required int32 id = 2;
         repeated Debconf debconf = 3;
     }
     repeated DebconfOverride debconf_override = 8;
-
 
     message Communications
     {
@@ -112,5 +107,4 @@ message FleetConfig
         optional IridiumSBD iridium_sbd = 1;
     }
     optional Communications comms = 9;
-
 }

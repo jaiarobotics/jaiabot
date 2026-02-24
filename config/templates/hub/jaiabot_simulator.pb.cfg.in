@@ -6,7 +6,7 @@ start_location {
     lon: -71.273018
 }
 
-is_bot_sim: false
+node_type: HUB
 
 hub_config
 {
