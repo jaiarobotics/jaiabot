@@ -45,24 +45,12 @@ message Simulator
 
     optional goby.apps.moos.protobuf.GobyMOOSGatewayConfig.MOOSConfig moos = 10;
 
-    optional goby.middleware.protobuf.UDPPointToPointConfig gps_udp_config = 20;
-
-    optional goby.middleware.protobuf.UDPPointToPointConfig udp_gateway_config = 21;
-
-    // allow simulator without GPS by setting this false
-    optional bool enable_gps = 25 [default = true];
+    optional goby.middleware.protobuf.UDPPointToPointConfig udp_gateway_config =
+        21;
 
     optional jaiabot.protobuf.GeographicCoordinate start_location = 26;
 
-    // Default is to use the hdop value so bot does not need to reacquire gps
-    optional double gps_hdop_rand_max = 27 [default = 1.3];
-
     optional bool is_bot_sim = 28 [default = true];
-
-    // Default is to use the pdop value so bot does not need to reacquire gps
-    optional double gps_pdop_rand_max = 29 [default = 2.2];
-
-    optional double heading_rand_max = 30 [default = 0];
 
     optional double vertical_dive_rate = 31
         [(dccl.field) = { units { derived_dimensions: "velocity" } }];
@@ -76,9 +64,6 @@ message Simulator
         (dccl.field) = { units { derived_dimensions: "length" } },
         default = 5
     ];
-
-    optional double gps_hdop_dropout = 35 [default = 20];
-    optional double gps_pdop_dropout = 36 [default = 20];
 
     // minimum thrust value for forward motion (-100-100 scale)
     optional double minimum_thrust = 37 [default = 5];
@@ -114,6 +99,25 @@ message Simulator
     optional string hub_gpsd_device = 43;
 
     optional ArduinoSimThread arduino_config = 60;
+    optional GPSSimThread gps_config = 61;
+}
+
+message GPSSimThread
+{
+    // allow simulator without GPS by setting this false
+    optional bool enable_gps = 1 [default = true];
+    optional goby.middleware.protobuf.UDPPointToPointConfig udp_config = 2;
+
+    optional double heading_rand_max = 10 [default = 0];
+
+    // Default is to use the hdop value so bot does not need to reacquire gps
+    optional double hdop_rand_max = 20 [default = 1.3];
+
+    // Default is to use the pdop value so bot does not need to reacquire gps
+    optional double pdop_rand_max = 21 [default = 2.2];
+
+    optional double hdop_dropout = 22 [default = 20];
+    optional double pdop_dropout = 23 [default = 20];
 }
 
 message ArduinoSimThread

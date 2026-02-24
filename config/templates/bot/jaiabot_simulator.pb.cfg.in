@@ -6,12 +6,20 @@ moos {
   port: $moos_port
 }
 
-enable_gps: true
-gps_udp_config { 
-    bind_port: 0
-    remote_address: "127.0.0.1"
-    remote_port: $gpsd_simulator_udp_port
+# GPS
+gps_config
+{
+    enable_gps: true
+    udp_config { 
+        bind_port: 0
+        remote_address: "127.0.0.1"
+        remote_port: $gpsd_simulator_udp_port
+    }
+    hdop_rand_max: 1.30 # (optional) (default=1.3)
+    pdop_rand_max: 2.20 # (optional) (default=2.2)
+    heading_rand_max: 0 # (optional) (default=0)
 }
+
 start_location {
     lat: 41.662680
     lon: -71.273018
@@ -41,11 +49,6 @@ seafloor_amplitude: 2
 
 temperature_stdev: 0.05
 salinity_stdev: 0.05
-
-# GPS
-gps_hdop_rand_max: 1.30 # (optional) (default=1.3)
-gps_pdop_rand_max: 2.20 # (optional) (default=2.2)
-heading_rand_max: 0 # (optional) (default=0)
 
 # Voltage
 arduino_config {

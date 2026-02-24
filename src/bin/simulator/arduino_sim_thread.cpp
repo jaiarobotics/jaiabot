@@ -32,6 +32,8 @@ using namespace std;
 jaiabot::apps::ArduinoSimThread::ArduinoSimThread(const jaiabot::config::ArduinoSimThread& cfg)
     : SimulatorThread(cfg, "arduino_simulator", 1.0 * boost::units::si::hertz)
 {
+    glog.add_group("arduino", goby::util::Colors::lt_blue);
+
     voltage_step_decrease_ = cfg.voltage_step_decrease();
     voltage_period_ = cfg.voltage_period();
     voltage_start_ = cfg.voltage_start();
@@ -59,6 +61,9 @@ void jaiabot::apps::ArduinoSimThread::loop()
             voltage_start_ = cfg().voltage_start();
         }
     }
+
+    glog.is_debug1() && glog << group("arduino") << "resp: " << arduino_response.ShortDebugString()
+                             << std::endl;
 
     interprocess().publish<groups::arduino_to_pi>(arduino_response);
 }

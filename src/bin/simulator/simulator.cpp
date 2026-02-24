@@ -24,22 +24,20 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
-#include "simulator_thread.h"
 #include <goby/middleware/frontseat/groups.h>
+#include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/middleware/navigation/navigation.h>
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/moos/middleware/moos_plugin_translator.h>
 #include <goby/time/convert.h>
 #include <goby/time/steady_clock.h>
 #include <goby/time/types.h>
-#include <goby/util/linebasedcomms/gps_sentence.h>
 #include <goby/util/sci.h>
 #include <goby/util/seawater.h>
-
 #include <goby/zeromq/application/multi_thread.h>
 
-#include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
@@ -52,8 +50,9 @@
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
 #include "jaiabot/messages/udp_gateway.pb.h"
-#include <goby/middleware/gpsd/groups.h>
-#include <goby/middleware/protobuf/gpsd.pb.h>
+
+#include "config.pb.h"
+#include "simulator_thread.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -68,11 +67,6 @@ namespace jaiabot
 {
 namespace apps
 {
-constexpr goby::middleware::Group gps_udp_in{"gps_udp_in"};
-constexpr goby::middleware::Group gps_udp_out{"gps_udp_out"};
-
-constexpr goby::middleware::Group gateway_udp_in{"gateway_udp_in"};
-constexpr goby::middleware::Group gateway_udp_out{"gateway_udp_out"};
 
 class SimulatorTranslation : public goby::moos::Translator
 {
@@ -105,10 +99,7 @@ class SimulatorTranslation : public goby::moos::Translator
     std::default_random_engine generator_;
     std::normal_distribution<double> temperature_distribution_;
     std::normal_distribution<double> salinity_distribution_;
-    goby::time::SteadyClock::time_point sky_last_updated_{std::chrono::seconds(0)};
-    int time_out_sky_{200};
 
-    goby::time::SteadyClock::time_point gps_dropout_end_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point stop_forward_progress_end_{std::chrono::seconds(0)};
 
     bool making_forward_progress_{false};
@@ -137,8 +128,11 @@ jaiabot::apps::Simulator::Simulator()
     if (cfg().is_bot_sim())
     {
         using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<gps_udp_in, gps_udp_out>;
-        if (cfg().enable_gps())
-            launch_thread<GPSUDPThread>(cfg().gps_udp_config());
+        if (cfg().gps_config().enable_gps())
+        {
+            launch_thread<GPSUDPThread>(cfg().gps_config().udp_config());
+            launch_thread<GPSSimThread>(cfg().gps_config());
+        }
 
         using GatewayUDPThread =
             goby::middleware::io::UDPPointToPointThread<gateway_udp_in, gateway_udp_out>;
@@ -194,7 +188,8 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         // Subscribe to engineering commands for:
         // * bounds config changes, so we can bounce the new config back to jaiabot_engineering
         interprocess().subscribe<jaiabot::groups::engineering_command>(
-            [this](const jaiabot::protobuf::Engineering& engineering) {
+            [this](const jaiabot::protobuf::Engineering& engineering)
+            {
                 if (engineering.has_bounds())
                 {
                     auto bounds = engineering.bounds();
@@ -208,14 +203,6 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
             {
                 switch (command.command_case())
                 {
-                    case jaiabot::protobuf::SimulatorCommand::kGpsDropout:
-                        gps_dropout_end_ =
-                            goby::time::SteadyClock::now() +
-                            goby::time::convert_duration<goby::time::SteadyClock::duration>(
-                                command.gps_dropout().dropout_duration_with_units());
-
-                        break;
-
                     case jaiabot::protobuf::SimulatorCommand::kStopForwardProgress:
                         stop_forward_progress_end_ =
                             goby::time::SteadyClock::now() +
@@ -223,8 +210,8 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                                 command.stop_forward_progress().duration_with_units());
                         break;
 
-                    case jaiabot::protobuf::SimulatorCommand::COMMAND_NOT_SET:
-                        // no command, do nothing
+                    default:
+                        // handled in another thread
                         break;
                 }
             });
@@ -245,8 +232,10 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         // Subscribe to engineering commands for:
         // * hub_location
         interprocess().subscribe<jaiabot::groups::hub_command_full>(
-            [this](const jaiabot::protobuf::CommandForHub& hub_command) {
-                glog.is_warn() && glog << "Received hub_command: " << hub_command.ShortDebugString()
+            [this](const jaiabot::protobuf::CommandForHub& hub_command)
+            {
+                glog.is_warn() && glog << group("main")
+                                       << "Received hub_command: " << hub_command.ShortDebugString()
                                        << std::endl;
 
                 if (hub_command.has_hub_location())
@@ -329,62 +318,17 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         dive_depth_ = depth;
     }
 
-    goby::util::gps::RMC rmc;
-    goby::util::gps::HDT hdt;
-
-    rmc.status = goby::util::gps::RMC::DataValid;
-
     auto latlon = geodesy_->convert({x, y});
-
-    rmc.latitude = latlon.lat;
-    rmc.longitude = latlon.lon;
-
-    rmc.speed_over_ground =
+    auto speed_over_ground =
         quantity<si::velocity>(moos_buffer["NAV_SPEED"].GetDouble() * si::meter_per_second);
+    auto course_over_ground = moos_buffer["NAV_HEADING_OVER_GROUND"].GetDouble() * degree::degree;
 
-    rmc.course_over_ground = moos_buffer["NAV_HEADING_OVER_GROUND"].GetDouble() * degree::degree;
+    auto heading = moos_buffer["NAV_HEADING"].GetDouble() * degree::degrees;
 
-    double heading_error = 0;
+    auto nav = std::make_shared<MOOSNav>(
+        MOOSNav({latlon, speed_over_ground, course_over_ground, depth, heading}));
 
-    if (sim_cfg_.heading_rand_max() > 0)
-    {
-        heading_error = static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.heading_rand_max();
-    }
-
-    glog.is_verbose() && glog << "Heading Error: " << heading_error << std::endl;
-
-    hdt.true_heading = (moos_buffer["NAV_HEADING"].GetDouble() + heading_error) * degree::degrees;
-    {
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(rmc.serialize().message_cr_nl());
-        interthread().publish<gps_udp_out>(io_data);
-    }
-
-    {
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(hdt.serialize().message_cr_nl());
-        interthread().publish<gps_udp_out>(io_data);
-    }
-
-    // publish gps sky data
-    if (sky_last_updated_ + std::chrono::milliseconds(time_out_sky_) < now)
-    {
-        goby::middleware::protobuf::gpsd::SkyView sky;
-
-        bool is_dropout = goby::time::SteadyClock::now() <= gps_dropout_end_;
-
-        double hdop =
-            is_dropout ? sim_cfg_.gps_hdop_dropout()
-                       : static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.gps_hdop_rand_max();
-        double pdop =
-            is_dropout ? sim_cfg_.gps_pdop_dropout()
-                       : static_cast<double>(std::rand()) / (RAND_MAX)*sim_cfg_.gps_pdop_rand_max();
-
-        sky.set_hdop(hdop);
-        sky.set_pdop(pdop);
-        interprocess().publish<goby::middleware::groups::gpsd::sky>(sky);
-        sky_last_updated_ = goby::time::SteadyClock::now();
-    }
+    interthread().publish<moos_nav>(nav);
 
     // publish pressure as UDP message for bar30 driver
     {
@@ -402,7 +346,11 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         auto pressure_temperature_data = envelope.mutable_pressure_temperature_data();
         pressure_temperature_data->set_pressure_raw(
             quantity<decltype(si::milli * bar)>(pressure).value());
-        pressure_temperature_data->set_temperature_with_units(temperature * boost::units::absolute<boost::units::celsius::temperature>()); // I tried, but could not get boost.units to work with Celsius here.
+        pressure_temperature_data->set_temperature_with_units(
+            temperature *
+            boost::units::absolute<
+                boost::units::celsius::
+                    temperature>()); // I tried, but could not get boost.units to work with Celsius here.
         pressure_temperature_data->set_sensor_type(jaiabot::protobuf::PressureSensorType::BAR30);
 
         auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
