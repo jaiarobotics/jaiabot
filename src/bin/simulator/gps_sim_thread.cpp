@@ -28,7 +28,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/simulator.pb.h"
 
-#include "simulator_thread.h"
+#include "gps_sim_thread.h"
 
 using goby::glog;
 
@@ -37,11 +37,11 @@ namespace si = boost::units::si;
 
 jaiabot::apps::GPSSimThread::GPSSimThread(const jaiabot::config::GPSSimThread& cfg)
     : SimulatorThread<jaiabot::config::GPSSimThread>(cfg, "gps_simulator",
-                                                     1.0 * boost::units::si::hertz)
+                                                     0 * boost::units::si::hertz)
 {
     glog.add_group("gps", goby::util::Colors::magenta);
 
-    interthread().subscribe<moos_nav>([this](const MOOSNav& nav) { handle_moos_nav(nav); });
+    interthread().subscribe<sim_nav>([this](const SimNav& nav) { handle_sim_nav(nav); });
 
     interprocess().subscribe<jaiabot::groups::simulator_command>(
         [this](const jaiabot::protobuf::SimulatorCommand& command)
@@ -63,7 +63,7 @@ jaiabot::apps::GPSSimThread::GPSSimThread(const jaiabot::config::GPSSimThread& c
         });
 }
 
-void jaiabot::apps::GPSSimThread::handle_moos_nav(const MOOSNav& nav)
+void jaiabot::apps::GPSSimThread::handle_sim_nav(const SimNav& nav)
 {
     auto now = goby::time::SteadyClock::now();
 
@@ -127,5 +127,3 @@ void jaiabot::apps::GPSSimThread::handle_moos_nav(const MOOSNav& nav)
         sky_last_updated_ = goby::time::SteadyClock::now();
     }
 }
-
-void jaiabot::apps::GPSSimThread::loop() {}

@@ -43,15 +43,27 @@ constexpr goby::middleware::Group gateway_udp_out{"gateway_udp_out"};
 constexpr goby::middleware::Group gps_udp_in{"gps_udp_in"};
 constexpr goby::middleware::Group gps_udp_out{"gps_udp_out"};
 
-constexpr goby::middleware::Group moos_nav{"moos_nav"};
+constexpr goby::middleware::Group sim_nav{"sim_nav"};
 
-struct MOOSNav
+constexpr goby::middleware::Group sim_oceanography{"sim_oceanography"};
+
+struct SimNav
 {
     goby::util::UTMGeodesy::LatLonPoint latlon;
     boost::units::quantity<boost::units::si::velocity> speed_over_ground;
     boost::units::quantity<boost::units::degree::plane_angle> course_over_ground;
     boost::units::quantity<boost::units::si::length> depth;
     boost::units::quantity<boost::units::degree::plane_angle> heading;
+    boost::units::quantity<boost::units::si::plane_angle> pitch;
+    boost::units::quantity<boost::units::si::plane_angle> roll;
+};
+
+struct SimOceanography
+{
+    SimNav nav;
+    boost::units::quantity<boost::units::si::pressure> pressure;
+    boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>> temperature;
+    double salinity;
 };
 
 template <typename Config> class SimulatorThread : public goby::middleware::SimpleThread<Config>
@@ -72,39 +84,6 @@ template <typename Config> class SimulatorThread : public goby::middleware::Simp
 
   private:
     std::string thread_name_;
-};
-
-class GPSSimThread : public SimulatorThread<jaiabot::config::GPSSimThread>
-{
-  public:
-    GPSSimThread(const jaiabot::config::GPSSimThread& cfg);
-    ~GPSSimThread() {}
-
-  private:
-    void loop() override;
-    void handle_moos_nav(const MOOSNav& nav);
-
-  private:
-    int time_out_sky_{200};
-    goby::time::SteadyClock::time_point sky_last_updated_{std::chrono::seconds(0)};
-    goby::time::SteadyClock::time_point gps_dropout_end_{std::chrono::seconds(0)};
-};
-
-class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThread>
-{
-  public:
-    ArduinoSimThread(const jaiabot::config::ArduinoSimThread& cfg);
-    ~ArduinoSimThread() {}
-
-  private:
-    void loop() override;
-
-  private:
-    int voltage_period_{1};
-    double voltage_step_decrease_{0.1};
-    double voltage_start_{24.0};
-    double reset_voltage_level_{15};
-    goby::time::SteadyClock::time_point voltage_updated_{std::chrono::seconds(0)};
 };
 
 } // namespace apps

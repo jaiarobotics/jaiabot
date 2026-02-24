@@ -20,8 +20,6 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <random>
-
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/middleware/frontseat/groups.h>
@@ -35,7 +33,6 @@
 #include <goby/time/steady_clock.h>
 #include <goby/time/types.h>
 #include <goby/util/sci.h>
-#include <goby/util/seawater.h>
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "jaiabot/groups.h"
@@ -49,9 +46,13 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
-#include "jaiabot/messages/udp_gateway.pb.h"
 
+#include "arduino_sim_thread.h"
+#include "bar30_sim_thread.h"
 #include "config.pb.h"
+#include "ezo_ec_sim_thread.h"
+#include "gps_sim_thread.h"
+#include "oceanographic_sim_thread.h"
 #include "simulator_thread.h"
 
 using goby::glog;
@@ -93,13 +94,6 @@ class SimulatorTranslation : public goby::moos::Translator
     quantity<si::length> dive_x_, dive_y_, dive_depth_;
     goby::time::SteadyClock::time_point last_nav_process_time_;
 
-    std::map<quantity<si::length>, double> temperature_degC_profile_;
-    std::map<quantity<si::length>, double> salinity_profile_;
-
-    std::default_random_engine generator_;
-    std::normal_distribution<double> temperature_distribution_;
-    std::normal_distribution<double> salinity_distribution_;
-
     goby::time::SteadyClock::time_point stop_forward_progress_end_{std::chrono::seconds(0)};
 
     bool making_forward_progress_{false};
@@ -138,6 +132,10 @@ jaiabot::apps::Simulator::Simulator()
             goby::middleware::io::UDPPointToPointThread<gateway_udp_in, gateway_udp_out>;
         launch_thread<GatewayUDPThread>(cfg().udp_gateway_config());
 
+        launch_thread<OceanographicSimThread>(cfg().oceanographic_config());
+        launch_thread<Bar30SimThread>(cfg().bar30_config());
+        launch_thread<EzoECSimThread>(cfg().ezo_ec_config());
+
         launch_thread<ArduinoSimThread>(cfg().arduino_config());
     }
 
@@ -153,10 +151,8 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
     const std::pair<goby::apps::moos::protobuf::GobyMOOSGatewayConfig, config::Simulator>& cfg)
     : goby::moos::Translator(cfg.first),
       sim_cfg_(cfg.second),
-      geodesy_(new goby::util::UTMGeodesy({sim_cfg_.start_location().lat_with_units(),
-                                           sim_cfg_.start_location().lon_with_units()})),
-      temperature_distribution_(0, sim_cfg_.temperature_stdev()),
-      salinity_distribution_(0, sim_cfg_.salinity_stdev())
+      geodesy_(new goby::util::UTMGeodesy(
+          {sim_cfg_.start_location().lat_with_units(), sim_cfg_.start_location().lon_with_units()}))
 
 {
     if (sim_cfg_.is_bot_sim())
@@ -215,12 +211,6 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
                         break;
                 }
             });
-
-        for (const auto& sample : sim_cfg_.sample())
-        {
-            temperature_degC_profile_[sample.depth_with_units()] = sample.temperature();
-            salinity_profile_[sample.depth_with_units()] = sample.salinity();
-        }
 
         // Seed once
         std::srand(unsigned(std::time(NULL)));
@@ -324,70 +314,22 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     auto course_over_ground = moos_buffer["NAV_HEADING_OVER_GROUND"].GetDouble() * degree::degree;
 
     auto heading = moos_buffer["NAV_HEADING"].GetDouble() * degree::degrees;
+    auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
+    if (!making_forward_progress_)
+        pitch = sim_cfg_.pitch_at_rest_with_units<decltype(pitch)>();
 
-    auto nav = std::make_shared<MOOSNav>(
-        MOOSNav({latlon, speed_over_ground, course_over_ground, depth, heading}));
+    auto roll = moos_buffer["NAV_ROLL"].GetDouble() * si::radians;
+    auto nav = std::make_shared<SimNav>(
+        SimNav({latlon, speed_over_ground, course_over_ground, depth, heading, pitch, roll}));
 
-    interthread().publish<moos_nav>(nav);
-
-    // publish pressure as UDP message for bar30 driver
-    {
-        auto pressure = goby::util::seawater::pressure(depth, latlon.lat);
-
-        // interpolate temperature value from table
-        double temperature = goby::util::linear_interpolate(depth, temperature_degC_profile_);
-        // randomize temperature
-        temperature += temperature_distribution_(generator_);
-
-        using goby::util::seawater::bar;
-
-        // convert pressure from decibars to millibars to mimic output of BARXX sensor
-        auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
-        auto pressure_temperature_data = envelope.mutable_pressure_temperature_data();
-        pressure_temperature_data->set_pressure_raw(
-            quantity<decltype(si::milli * bar)>(pressure).value());
-        pressure_temperature_data->set_temperature_with_units(
-            temperature *
-            boost::units::absolute<
-                boost::units::celsius::
-                    temperature>()); // I tried, but could not get boost.units to work with Celsius here.
-        pressure_temperature_data->set_sensor_type(jaiabot::protobuf::PressureSensorType::BAR30);
-
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(envelope.SerializeAsString());
-        interthread().publish<gateway_udp_out>(io_data);
-    }
-
-    // publish salinity as UDP message for atlas scientific ezo-ec driver
-    {
-        std::stringstream ss;
-        // interpolate salinity value from table
-        double salinity = goby::util::linear_interpolate(depth, salinity_profile_);
-        // randomize salinity
-        salinity += salinity_distribution_(generator_);
-
-        auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
-        auto salinity_data = envelope.mutable_salinity_data();
-        // We only set the raw values here, because the derived values are calculated elsewhere, after the data comes in from the sensor.
-        salinity_data->set_conductivity_raw(45000.0);
-        salinity_data->set_salinity_raw(salinity);
-        salinity_data->set_total_dissolved_solids(0.0);
-
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(envelope.SerializeAsString());
-        interthread().publish<gateway_udp_out>(io_data);
-    }
+    interthread().publish<sim_nav>(nav);
 
     // publish IMUData
     {
         jaiabot::protobuf::IMUData imu_data;
-        auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
-        if (!making_forward_progress_)
-            pitch = sim_cfg_.pitch_at_rest_with_units<decltype(pitch)>();
 
         imu_data.mutable_euler_angles()->set_pitch_with_units(pitch);
-        imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
-                                                             si::radians);
+        imu_data.mutable_euler_angles()->set_roll_with_units(roll);
 
         auto accuracies = imu_data.mutable_accuracies();
         accuracies->set_accelerometer(3);

@@ -75,31 +75,14 @@ message Simulator
         }
     ];
 
-    message ScalarSample
-    {
-        optional double depth = 1
-            [(dccl.field) = { units: { derived_dimensions: "length" } }];
-
-        optional double temperature = 2 [(dccl.field) = {
-            units { derived_dimensions: "temperature" system: "celsius" }
-        }];
-        optional double salinity = 3;
-    }
-
-    repeated ScalarSample sample = 40;
-    optional double temperature_stdev = 41 [(dccl.field) = {
-        units {
-            derived_dimensions: "temperature"
-            system: "celsius"
-            relative_temperature: true
-        }
-    }];
-    optional double salinity_stdev = 42;
-
     optional string hub_gpsd_device = 43;
 
     optional ArduinoSimThread arduino_config = 60;
     optional GPSSimThread gps_config = 61;
+
+    optional OceanographicSimThread oceanographic_config = 62;
+    optional Bar30SimThread bar30_config = 63;
+    optional EzoECSimThread ezo_ec_config = 64;
 }
 
 message GPSSimThread
@@ -131,3 +114,34 @@ message ArduinoSimThread
     optional double voltage_start = 3 [default = 24.0];
     optional double reset_voltage_level = 4 [default = 15.0];
 }
+
+message OceanographicSimThread
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    message ScalarSample
+    {
+        optional double depth = 1
+            [(dccl.field) = { units: { derived_dimensions: "length" } }];
+        optional double temperature = 2 [(dccl.field) = {
+            units { derived_dimensions: "temperature" system: "celsius" }
+        }];
+        optional double salinity = 3;
+    }
+
+    repeated ScalarSample sample = 10;
+    optional double temperature_stdev = 11 [(dccl.field) = {
+        units {
+            derived_dimensions: "temperature"
+            system: "celsius"
+            relative_temperature: true
+        }
+    }];
+    optional double salinity_stdev = 12;
+}
+
+message EzoECSimThread {}
+
+message Bar30SimThread {}

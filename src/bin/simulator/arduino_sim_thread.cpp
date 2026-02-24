@@ -23,7 +23,8 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/arduino.pb.h"
-#include "simulator_thread.h"
+
+#include "arduino_sim_thread.h"
 
 namespace si = boost::units::si;
 using goby::glog;
