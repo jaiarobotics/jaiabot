@@ -20,12 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <goby/middleware/gpsd/groups.h>
-#include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/middleware/protobuf/io.pb.h>
-#include <goby/util/linebasedcomms/gps_sentence.h>
 #include <goby/util/sci.h>
-#include <goby/util/seawater.h>
 
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/simulator.pb.h"

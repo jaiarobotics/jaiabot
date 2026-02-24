@@ -75,14 +75,13 @@ message Simulator
         }
     ];
 
-    optional string hub_gpsd_device = 43;
-
     optional ArduinoSimThread arduino_config = 60;
     optional GPSSimThread gps_config = 61;
-
     optional OceanographicSimThread oceanographic_config = 62;
     optional Bar30SimThread bar30_config = 63;
     optional EzoECSimThread ezo_ec_config = 64;
+
+    optional HubSimThread hub_config = 70;
 }
 
 message GPSSimThread
@@ -145,3 +144,8 @@ message OceanographicSimThread
 message EzoECSimThread {}
 
 message Bar30SimThread {}
+
+message HubSimThread
+{
+    optional string gpsd_device = 1;
+}

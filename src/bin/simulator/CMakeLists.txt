@@ -9,6 +9,7 @@ add_executable(${APP}
   oceanographic_sim_thread.cpp
   ezo_ec_sim_thread.cpp
   bar30_sim_thread.cpp
+  hub_sim_thread.cpp
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 target_link_libraries(${APP}

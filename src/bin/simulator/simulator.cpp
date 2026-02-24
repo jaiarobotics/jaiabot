@@ -52,6 +52,7 @@
 #include "config.pb.h"
 #include "ezo_ec_sim_thread.h"
 #include "gps_sim_thread.h"
+#include "hub_sim_thread.h"
 #include "oceanographic_sim_thread.h"
 #include "simulator_thread.h"
 
@@ -79,7 +80,6 @@ class SimulatorTranslation : public goby::moos::Translator
     void process_nav(const CMOOSMsg& msg);
     void process_desired_setpoints(const protobuf::DesiredSetpoints& desired_setpoints);
     void process_control_surfaces(const protobuf::ControlSurfaces& control_surfaces);
-    void sim_hub_status();
     quantity<si::length> egg_box_function(const quantity<si::length> mean_value,
                                           const quantity<si::length> amplitude,
                                           const quantity<si::length> wavelength,
@@ -121,6 +121,7 @@ jaiabot::apps::Simulator::Simulator()
 
     if (cfg().is_bot_sim())
     {
+        // gps
         using GPSUDPThread = goby::middleware::io::UDPPointToPointThread<gps_udp_in, gps_udp_out>;
         if (cfg().gps_config().enable_gps())
         {
@@ -128,22 +129,29 @@ jaiabot::apps::Simulator::Simulator()
             launch_thread<GPSSimThread>(cfg().gps_config());
         }
 
+        // oceanographic sensors
         using GatewayUDPThread =
             goby::middleware::io::UDPPointToPointThread<gateway_udp_in, gateway_udp_out>;
         launch_thread<GatewayUDPThread>(cfg().udp_gateway_config());
-
         launch_thread<OceanographicSimThread>(cfg().oceanographic_config());
         launch_thread<Bar30SimThread>(cfg().bar30_config());
         launch_thread<EzoECSimThread>(cfg().ezo_ec_config());
 
+        // arduino
         launch_thread<ArduinoSimThread>(cfg().arduino_config());
-    }
 
-    goby::apps::moos::protobuf::GobyMOOSGatewayConfig sim_cfg;
-    *sim_cfg.mutable_app() = cfg().app();
-    *sim_cfg.mutable_interprocess() = cfg().interprocess();
-    *sim_cfg.mutable_moos() = cfg().moos();
-    launch_thread<jaiabot::apps::SimulatorTranslation>(std::make_pair(sim_cfg, cfg()));
+        goby::apps::moos::protobuf::GobyMOOSGatewayConfig sim_cfg;
+        *sim_cfg.mutable_app() = cfg().app();
+        *sim_cfg.mutable_interprocess() = cfg().interprocess();
+        *sim_cfg.mutable_moos() = cfg().moos();
+        // moos sim translation
+        launch_thread<jaiabot::apps::SimulatorTranslation>(std::make_pair(sim_cfg, cfg()));
+    }
+    else
+    {
+        // hub position
+        launch_thread<HubSimThread>(cfg());
+    }
 }
 
 // Translation thread
@@ -215,49 +223,6 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         // Seed once
         std::srand(unsigned(std::time(NULL)));
     }
-    else
-    {
-        sim_hub_status();
-
-        // Subscribe to engineering commands for:
-        // * hub_location
-        interprocess().subscribe<jaiabot::groups::hub_command_full>(
-            [this](const jaiabot::protobuf::CommandForHub& hub_command)
-            {
-                glog.is_warn() && glog << group("main")
-                                       << "Received hub_command: " << hub_command.ShortDebugString()
-                                       << std::endl;
-
-                if (hub_command.has_hub_location())
-                {
-                    auto location = hub_command.hub_location();
-
-                    // Re-publish hub at new coordinates
-                    goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;
-                    tpv.mutable_location()->set_lat_with_units(location.lat_with_units());
-                    tpv.mutable_location()->set_lon_with_units(location.lon_with_units());
-                    tpv.set_device(sim_cfg_.hub_gpsd_device());
-                    interprocess().publish<goby::middleware::groups::gpsd::tpv>(tpv);
-
-                    // Publish a datum change
-                    goby::middleware::protobuf::DatumUpdate update;
-                    update.mutable_datum()->set_lat_with_units(location.lat_with_units());
-                    update.mutable_datum()->set_lon_with_units(location.lon_with_units());
-                    this->interprocess().template publish<goby::middleware::groups::datum_update>(
-                        update);
-                }
-            });
-    }
-}
-
-void jaiabot::apps::SimulatorTranslation::sim_hub_status()
-{
-    goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;
-    tpv.mutable_location()->set_lat(sim_cfg_.start_location().lat());
-    tpv.mutable_location()->set_lon(sim_cfg_.start_location().lon());
-    tpv.set_device(sim_cfg_.hub_gpsd_device());
-
-    interprocess().publish<goby::middleware::groups::gpsd::tpv>(tpv);
 }
 
 void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
