@@ -31,3 +31,4 @@ where = ["src"] # Specify where Setuptools should look for packages
 
 [project.scripts]
 jaia-analyze-waves = "pyjaia.waves.analyze_tool:main" 
+jaia-ubx-extractor = "pyjaia.ubx.extractor_tool:main"

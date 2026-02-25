@@ -22,8 +22,8 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 // Goby
-#include <goby/middleware/application/multi_thread.h>
 #include <goby/middleware/application/configurator.h>
+#include <goby/middleware/application/multi_thread.h>
 #include <goby/middleware/group.h>
 
 // Jaiabot
@@ -32,7 +32,6 @@
 // Mission Manager app
 #include "groups.h"
 #include "mission_manager.h"
-
 
 namespace jaiabot
 {
