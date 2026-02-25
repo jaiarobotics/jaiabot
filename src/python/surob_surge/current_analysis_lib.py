@@ -55,18 +55,22 @@ def create_speed_mask(speed, threshold_mps=1.25):
     """Creates a boolean mask for speed values below a threshold. 1.25 m/s selected as rough "surfing" (bot carried by wave) speed threshold."""
     return speed < threshold_mps
 
-def filter_current_data(drift, use_pressure=True, use_speed=True):
+def filter_current_data(drift, log, use_pressure=True, use_speed=True):
     """
     Computes filters for a single drift segment and returns the mask to filter data.
     """
     final_mask = np.ones_like(drift["epoch_time"], dtype=bool)
+    log.info(f"Number of points in driftlet before filtering: {len(final_mask)}")
 
     if use_pressure:
         final_mask &= create_pressure_mask(drift["pressure"])
+    log.info(f"Number of points filtered by pressure mask: {np.sum(np.logical_not(create_pressure_mask(drift["pressure"])))}")
 
     if use_speed:
         final_mask &= create_speed_mask(drift["speed"])
-    
+    log.info(f"Number of points filtered by speed mask: {np.sum(np.logical_not(create_speed_mask(drift["speed"])))}")
+
+    log.info(f"Number of points in driftlet after filtering: {np.sum(final_mask)}")
     return {**drift, "final_mask": final_mask}
 
 def calculate_bearing_from_components(east_component, north_component):
@@ -140,14 +144,14 @@ def calculate_circular_std_about_value_deg(angles_deg, center_deg):
     residuals = wrap_degrees_180(angles[mask] - center_deg)
     return np.sqrt(np.mean(residuals ** 2))
 
-def summarize_station_keep_drifts(drifts, r2_threshold=0.5):
+def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
     """
     Computes statistics for each drift, filters by R², and calculates overall averages.
     """
     if not drifts:
         return {}
 
-    drift_stats_list = [compute_drift_statistics(filter_current_data(d)) for d in drifts]
+    drift_stats_list = [compute_drift_statistics(filter_current_data(d, log)) for d in drifts]
     good_drifts_stats = [
         s
         for s in drift_stats_list

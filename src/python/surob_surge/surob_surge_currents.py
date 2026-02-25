@@ -159,8 +159,10 @@ def process_logged_data(h5_log_path, log):
         pressure_interp = np.interp(gps_df['ts'], pressure_df['ts'], pressure_df['pressure'], left=np.nan, right=np.nan)
         stationkeep_df = gps_df.assign(motor=motor_interp, pressure=pressure_interp).dropna()
 
+        log.info(f"Number of points in Station Keep: {stationkeep_df.shape[0]}")
         drift_segments = cal.extract_drift_segments(stationkeep_df)
-        return cal.summarize_station_keep_drifts(drift_segments)
+        log.info(f"Station Keep split into {len(drift_segments)} driftlets.")
+        return cal.summarize_station_keep_drifts(drift_segments, log)
 
     except (FileNotFoundError, OSError, KeyError) as e:
         log.exception(f"Error processing data from {h5_log_path}: {e}")
