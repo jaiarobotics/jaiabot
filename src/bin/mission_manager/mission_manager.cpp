@@ -106,17 +106,17 @@ jaiabot::apps::MissionManager::MissionManager()
     for (auto e : cfg().ignore_error()) ignore_errors_.insert(static_cast<protobuf::Error>(e));
 
     interthread().subscribe<jaiabot::groups::state_change>(
-        [this](const std::pair<bool, jaiabot::protobuf::MissionState>& state_pair)
+        [this](const jaiabot::protobuf::MissionStateChange& state_change)
         {
-            const auto& state_name = jaiabot::protobuf::MissionState_Name(state_pair.second);
+            const auto& state_name = jaiabot::protobuf::MissionState_Name(state_change.state());
 
-            if (state_pair.first)
+            if (state_change.direction() == protobuf::MissionStateChange::ENTERED)
             {
                 glog.is_verbose() && glog << group("statechart") << "Entered: " << state_name
                                           << std::endl;
 
                 // publish the mission report on each state change
-                publish_mission_report(state_pair.second);
+                publish_mission_report(state_change.state());
             }
             else
                 glog.is_verbose() && glog << group("statechart") << "Exited: " << state_name

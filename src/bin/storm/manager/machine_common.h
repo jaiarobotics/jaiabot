@@ -67,10 +67,7 @@ template <typename Derived> class AppMethodsAccess
 
     const config::StormManager& cfg() const { return this->app().cfg(); }
 
-    StormManagerStateMachine& machine()
-    {
-        return static_cast<Derived*>(this)->outermost_context();
-    }
+    StormManagerStateMachine& machine() { return static_cast<Derived*>(this)->outermost_context(); }
 
     const StormManagerStateMachine& machine() const
     {
@@ -82,7 +79,7 @@ template <typename Derived> class AppMethodsAccess
 };
 
 // RAII publication of state changes
-template <typename Derived, protobuf::StormState state>
+template <typename Derived, protobuf::StormMissionState state>
 struct Notify : public AppMethodsAccess<Derived>
 {
     Notify()
@@ -92,18 +89,22 @@ struct Notify : public AppMethodsAccess<Derived>
         goby::middleware::protobuf::TransporterConfig pub_cfg;
         // required since we're publishing in and subscribing to the group within the same thread
         pub_cfg.set_echo(true);
-        this->interthread().template publish<groups::state_change>(std::make_pair(true, state),
-                                                                   {pub_cfg});
+
+        protobuf::StormMissionStateChange state_change;
+        state_change.set_state(state);
+        state_change.set_direction(protobuf::StormMissionStateChange::ENTERED);
+        this->interprocess().template publish<groups::storm_state_change>(state_change, {pub_cfg});
     }
     ~Notify()
     {
         goby::middleware::protobuf::TransporterConfig pub_cfg;
         pub_cfg.set_echo(true);
-        this->interthread().template publish<groups::state_change>(std::make_pair(false, state),
-                                                                   {pub_cfg});
+        protobuf::StormMissionStateChange state_change;
+        state_change.set_state(state);
+        state_change.set_direction(protobuf::StormMissionStateChange::EXITED);
+        this->interprocess().template publish<groups::storm_state_change>(state_change, {pub_cfg});
     }
 };
 
 } // namespace statechart
 } // namespace jaiabot
-

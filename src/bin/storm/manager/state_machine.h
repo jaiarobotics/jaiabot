@@ -30,8 +30,8 @@
 
 // Mission Manager app
 #include "machine_common.h"
-#include "storm_manager.h"
 #include "states.h"
+#include "storm_manager.h"
 
 namespace jaiabot
 {
@@ -46,8 +46,8 @@ struct StormManagerStateMachine
 {
     StormManagerStateMachine(apps::StormManager& a) : app_(a) {}
 
-    void set_state(jaiabot::protobuf::StormState state) { state_ = state; }
-    jaiabot::protobuf::StormState state() const { return state_; }
+    void set_state(jaiabot::protobuf::StormMissionState state) { state_ = state; }
+    jaiabot::protobuf::StormMissionState state() const { return state_; }
 
     void insert_warning(jaiabot::protobuf::Warning warning) { warnings_.insert(warning); }
     void erase_warning(jaiabot::protobuf::Warning warning) { warnings_.erase(warning); }
@@ -63,19 +63,10 @@ struct StormManagerStateMachine
     apps::StormManager& app() { return app_; }
     const apps::StormManager& app() const { return app_; }
 
-    bool has_geodesy() const { return geodesy_ ? true : false; }
-    goby::util::UTMGeodesy& geodesy()
-    {
-        if (has_geodesy())
-            return *geodesy_;
-        else
-            throw(goby::Exception("Uninitialized geodesy"));
-    }
 
   private:
     apps::StormManager& app_;
-    jaiabot::protobuf::StormState state_{jaiabot::protobuf::STARTING_UP};
-    std::unique_ptr<goby::util::UTMGeodesy> geodesy_;
+    jaiabot::protobuf::StormMissionState state_{jaiabot::protobuf::STARTING_UP};
     std::set<jaiabot::protobuf::Warning> warnings_;
 };
 

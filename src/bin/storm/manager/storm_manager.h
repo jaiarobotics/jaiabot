@@ -49,6 +49,8 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
+    void publish_mission_report(protobuf::StormMissionState state);
+    void process_mission_manager_state(protobuf::MissionState state);
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 

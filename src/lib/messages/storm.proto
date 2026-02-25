@@ -7,7 +7,7 @@ import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
 
-enum StormState
+enum StormMissionState
 {
     STARTING_UP = 0;
     ACTIVATING = 1;
@@ -55,20 +55,20 @@ message StormMission
         }
     ];
 
-    optional uint32 data_offload_timeout = 50 [
+    optional uint32 data_offload_timeout_minutes = 50 [
         default = 60,
         (dccl.field) = {
             min: 0
             max: 600
             units { unit: "metric::minute" }
         }
-    ];    
+    ];
 
     message LaunchTubeDetectionParams
     {
         message Action
         {
-            required uint32 thrust_percentage = 1
+            required int32 thrust_percentage = 1
                 [(dccl.field) = { min: -100 max: 100 }];
 
             required uint32 thrust_duration = 2 [
@@ -79,8 +79,8 @@ message StormMission
                     units { base_dimensions: "T" }
                 }
             ];
-            optional uint32 repeat = 3
-                [default = 0, (dccl.field) = { min: 0 max: 10 }];
+            optional uint32 count = 3
+                [default = 1, (dccl.field) = { min: 1 max: 10 }];
         }
 
         repeated Action action = 1 [(dccl.field) = { max_repeat: 10 }];
@@ -119,4 +119,36 @@ message StormMissionUpdate
             units { unit: "metric::minute" }
         }];
     }
+}
+
+message StormMissionReport
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required StormMissionState state = 10;
+}
+
+message StormMissionStateChange
+{
+    required StormMissionState state = 1;
+
+    enum Direction
+    {
+        ENTERED = 1;
+        EXITED = 2;
+    }
+
+    required Direction direction = 2;
+}
+
+// added to BotStatus
+message StormStatus
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required StormMissionState mission_state = 10;
 }

@@ -138,6 +138,10 @@ constexpr goby::middleware::Group camera{"jaiabot::camera"};
 constexpr goby::middleware::Group script_step_begin{"jaiabot::script_step_begin"};
 constexpr goby::middleware::Group script_step_end{"jaiabot::script_step_end"};
 
+// storm manager
+constexpr goby::middleware::Group storm_mission_report{"jaiabot::storm_mission_report"};
+constexpr goby::middleware::Group storm_state_change{"jaiabot::storm_state_change"};
+
 } // namespace groups
 } // namespace jaiabot
 

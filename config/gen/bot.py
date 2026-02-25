@@ -65,6 +65,7 @@ if "jaia_data_offload_ignore_type" in os.environ:
 bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 
 echo_enabled=(bot_type == "ECHO")
+storm_enabled=(bot_type == "STORM")
 
 jaia_motor_harness_type="NONE"
 
@@ -117,7 +118,8 @@ verbosities = \
   'jaiabot_driver_camera':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_mission_repeater':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_comms_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
+  'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_storm_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }}
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -320,6 +322,12 @@ elif common.app == 'jaiabot_fusion':
                                      imu_detection_solution=imu_detection_solution,
                                      bot_gpsd_device=common.bot.gpsd_device(node_id)))
 elif common.app == 'jaiabot_mission_manager':
+
+    delegated_states=''
+    if storm_enabled:
+        # delegated to jaiabot_storm_manager
+        delegated_states='delegated_states: [IN_MISSION__UNDERWAY__SLEEP__PREP, PRE_DEPLOYMENT__SELF_TEST]'
+        
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
@@ -332,7 +340,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      fleet_id=fleet_index,
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
                                      subnet_mask=common.comms.subnet_mask,
-                                     camera_available=common.camera_available))
+                                     camera_available=common.camera_available,
+                                     delegated_states=delegated_states))
 
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
@@ -415,6 +424,10 @@ elif common.app == 'jaiabot_turner_c_fluor_sensor_driver':
                                      app_block=app_common,
                                      interprocess_block=interprocess_common,
                                      fluorometer_coefficients=fluorometer_coefficients))
+elif common.app == 'jaiabot_storm_manager':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_storm_manager.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,

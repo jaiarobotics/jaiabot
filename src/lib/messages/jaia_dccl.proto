@@ -363,6 +363,11 @@ message BotStatus
         },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
+
+    oneof bot_type_status
+    {
+        StormStatus storm = 100;
+    }
 }
 
 message DriftPacket

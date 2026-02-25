@@ -22,6 +22,9 @@ jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
 jaiabot_sensors <(../../gen/bot.py jaiabot_sensors)
 jaiabot_comms_manager <(../../gen/bot.py jaiabot_comms_manager)
 
+[kill=SIGTERM,name=jaiabot_storm_manager] /bin/bash -c "echo $jaia_bot_type | grep -q -i STORM && exec jaiabot_storm_manager <(../../gen/bot.py jaiabot_storm_manager) -vvv -n || sleep infinity"
+
+
 # vehicle MOOS components
 [kill=SIGTERM] MOOSDB /tmp/jaiabot_${jaia_bot_index}.moos
 [kill=SIGTERM] pHelmIvP /tmp/jaiabot_${jaia_bot_index}.moos

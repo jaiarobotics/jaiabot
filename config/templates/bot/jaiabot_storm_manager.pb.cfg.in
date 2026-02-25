@@ -1,0 +1,32 @@
+$app_block
+$interprocess_block
+
+
+initial_mission { 
+  dive { 
+    max_depth: 50 
+    depth_interval: inf
+    hold_time: 0
+    bottom_dive: false
+  }
+  
+  sleep_for_minutes: 1 
+  min_battery_percentage: 10 
+  remote_mission_wait_minutes: 10 
+  data_offload_timeout_minutes: 60
+  launch_tube { 
+    action { 
+      thrust_percentage: 60
+      thrust_duration: 5 # seconds
+      count: 3
+    }
+    action { 
+      thrust_percentage: -30
+      thrust_duration: 5 # seconds
+      count: 1
+    }
+  }
+  parachute {
+      # TBD
+  }
+}

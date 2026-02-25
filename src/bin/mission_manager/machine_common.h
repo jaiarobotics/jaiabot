@@ -96,8 +96,11 @@ struct Notify : public AppMethodsAccess<Derived>
         goby::middleware::protobuf::TransporterConfig pub_cfg;
         // required since we're publishing in and subscribing to the group within the same thread
         pub_cfg.set_echo(true);
-        this->interthread().template publish<groups::state_change>(std::make_pair(true, state),
-                                                                   {pub_cfg});
+
+        protobuf::MissionStateChange state_change;
+        state_change.set_state(state);
+        state_change.set_direction(protobuf::MissionStateChange::ENTERED);
+        this->interprocess().template publish<groups::state_change>(state_change, {pub_cfg});
 
         if (delegate_type == protobuf::CAN_BE_DELEGATED)
         {
@@ -110,8 +113,10 @@ struct Notify : public AppMethodsAccess<Derived>
     {
         goby::middleware::protobuf::TransporterConfig pub_cfg;
         pub_cfg.set_echo(true);
-        this->interthread().template publish<groups::state_change>(std::make_pair(false, state),
-                                                                   {pub_cfg});
+        protobuf::MissionStateChange state_change;
+        state_change.set_state(state);
+        state_change.set_direction(protobuf::MissionStateChange::EXITED);
+        this->interprocess().template publish<groups::state_change>(state_change, {pub_cfg});
     }
 };
 

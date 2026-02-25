@@ -63,14 +63,14 @@ enum MissionState
 
     IN_MISSION__UNDERWAY__ABORT = 150;
 
+    IN_MISSION__UNDERWAY__SLEEP__PREP = 170
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
     IN_MISSION__PAUSE__IMU_RESTART = 160;
     IN_MISSION__PAUSE__REACQUIRE_GPS = 161
         [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__PAUSE__MANUAL = 162 [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS = 163;
-
-    IN_MISSION__UNDERWAY__SLEEP__PREP = 170
-        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     POST_DEPLOYMENT__RECOVERED = 200 [(jaia.ev).rest_api.presence = GUARANTEED];
     POST_DEPLOYMENT__DATA_OFFLOAD = 202
@@ -559,6 +559,19 @@ message MissionTpvMeetsGpsReq
     };
 
     optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv = 1;
+}
+
+message MissionStateChange
+{
+    required MissionState state = 1;
+
+    enum Direction
+    {
+        ENTERED = 1;
+        EXITED = 2;
+    }
+
+    required Direction direction = 2;
 }
 
 enum DelegateType
