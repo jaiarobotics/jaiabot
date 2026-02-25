@@ -43,19 +43,35 @@ constexpr goby::middleware::Group gateway_udp_out{"gateway_udp_out"};
 constexpr goby::middleware::Group gps_udp_in{"gps_udp_in"};
 constexpr goby::middleware::Group gps_udp_out{"gps_udp_out"};
 
+constexpr goby::middleware::Group to_moos{"to_moos"};
+
+// written by main moos translator thread
+constexpr goby::middleware::Group moos_nav{"moos_nav"};
+
+// written by STORM simulator
+constexpr goby::middleware::Group storm_nav{"storm_nav"};
+
+// written by dive simulator
+constexpr goby::middleware::Group dive_nav{"dive_nav"};
+
+// Most downstream threads use this nav
 constexpr goby::middleware::Group sim_nav{"sim_nav"};
 
 constexpr goby::middleware::Group sim_oceanography{"sim_oceanography"};
 
 struct SimNav
 {
-    goby::util::UTMGeodesy::LatLonPoint latlon;
+    boost::units::quantity<boost::units::si::length> x;
+    boost::units::quantity<boost::units::si::length> y;
     boost::units::quantity<boost::units::si::velocity> speed_over_ground;
     boost::units::quantity<boost::units::degree::plane_angle> course_over_ground;
     boost::units::quantity<boost::units::si::length> depth;
     boost::units::quantity<boost::units::degree::plane_angle> heading;
     boost::units::quantity<boost::units::si::plane_angle> pitch;
     boost::units::quantity<boost::units::si::plane_angle> roll;
+
+    // added by main thread before publishing "sim_nav"
+    goby::util::UTMGeodesy::LatLonPoint latlon;
 };
 
 struct SimOceanography

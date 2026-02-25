@@ -21,6 +21,7 @@ gps_config
 }
 
 node_type: BOT
+bot_type: $bot_type
 
 start_location {
     lat: 41.662680
@@ -34,14 +35,6 @@ udp_gateway_config {
 }
 
 
-# m/s
-vertical_dive_rate: 0.5 
-
-
-# seafloor depth
-seafloor_depth: 7
-seafloor_wavelength: 250
-seafloor_amplitude: 2
 
 
 # Voltage
@@ -77,3 +70,13 @@ ezo_ec_config
 {
 }
 
+dive_config
+{
+    # m/s
+    vertical_dive_rate: 0.5 
+    
+    # seafloor depth
+    seafloor_depth: 7
+    seafloor_wavelength: 250
+    seafloor_amplitude: 2
+}

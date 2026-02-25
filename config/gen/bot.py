@@ -301,7 +301,8 @@ elif common.app == 'jaiabot_simulator':
                                      interprocess_block = interprocess_common,
                                      moos_port=common.bot.moos_simulator_port(node_id),
                                      gpsd_simulator_udp_port=common.bot.gpsd_simulator_udp_port(node_id),
-                                     udp_gateway_port=udp_gateway_port))
+                                     udp_gateway_port=udp_gateway_port,
+                                     bot_type=bot_type))
 elif common.app == 'jaiabot_udp_gateway':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_udp_gateway.pb.cfg.in',
                                      app_block=app_common,
