@@ -55,6 +55,15 @@ message StormMission
         }
     ];
 
+    optional uint32 data_offload_timeout = 50 [
+        default = 60,
+        (dccl.field) = {
+            min: 0
+            max: 600
+            units { unit: "metric::minute" }
+        }
+    ];    
+
     message LaunchTubeDetectionParams
     {
         message Action
@@ -82,8 +91,8 @@ message StormMission
         // TBD
     }
 
-    optional LaunchTubeDetectionParams launch_tube = 50;
-    optional ParachuteAttachmentDetectionParams parachute = 51;
+    optional LaunchTubeDetectionParams launch_tube = 60;
+    optional ParachuteAttachmentDetectionParams parachute = 61;
 }
 
 message StormMissionUpdate

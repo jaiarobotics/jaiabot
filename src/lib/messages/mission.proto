@@ -69,6 +69,9 @@ enum MissionState
     IN_MISSION__PAUSE__MANUAL = 162 [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS = 163;
 
+    IN_MISSION__UNDERWAY__SLEEP__PREP = 170
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
     POST_DEPLOYMENT__RECOVERED = 200 [(jaia.ev).rest_api.presence = GUARANTEED];
     POST_DEPLOYMENT__DATA_OFFLOAD = 202
         [(jaia.ev).rest_api.presence = GUARANTEED];
@@ -417,7 +420,6 @@ message MissionPlan
         (jaia.field).rest_api.presence = GUARANTEED,
         (dccl.field) = { min: 1 max: 100 }
     ];
-
 }
 
 message IvPBehaviorUpdate
@@ -557,4 +559,30 @@ message MissionTpvMeetsGpsReq
     };
 
     optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv = 1;
+}
+
+enum DelegateType
+{
+    NOT_DELEGATED = 0;
+    CAN_BE_DELEGATED = 1;
+};
+
+message MissionStateDelegateRequest
+{
+    required MissionState state = 1;
+}
+
+message MissionStateDelegateResponse
+{
+    required MissionState state = 1;
+
+    enum MissionEvent
+    {
+        EV_SELF_TEST_FAILS = 1;
+        EV_SELF_TEST_SUCCESSFUL = 2;
+
+        EV_SHUTDOWN = 10;
+    }
+
+    required MissionEvent event = 2;
 }

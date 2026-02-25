@@ -37,19 +37,19 @@ namespace middleware = goby::middleware;
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
-#include "jaiabot/messages/arduino.pb.h"
-#include "jaiabot/messages/mission.pb.h"
 
 // Mission Manager app
 #include "states.h"
-#include "mission_manager_state_machine.h"
-#include "mission_manager.h"
-#include "groups.h"
-#include "utils.h"
 
+#include "groups.h"
+#include "mission_manager.h"
+#include "mission_manager_state_machine.h"
+#include "utils.h"
 
 // Main thread
 void jaiabot::apps::MissionManager::initialize()
@@ -221,12 +221,13 @@ jaiabot::apps::MissionManager::MissionManager()
                 // consider the system started when it reports a non-failed health report (as at least all the expected apps have responded)
                 machine_->process_event(statechart::EvStarted());
 
-                // TODO make SelfTest include more information?
-                machine_->process_event(statechart::EvSelfTestSuccessful());
+                if (!delegated_states_.count(protobuf::PRE_DEPLOYMENT__SELF_TEST))
+                    machine_->process_event(statechart::EvSelfTestSuccessful());
             }
             else
             {
-                machine_->process_event(statechart::EvSelfTestFails());
+                if (!delegated_states_.count(protobuf::PRE_DEPLOYMENT__SELF_TEST))
+                    machine_->process_event(statechart::EvSelfTestFails());
             }
         });
 
@@ -262,7 +263,8 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         {
-            glog.is_debug2() && glog << "Received Arduino Response " << arduino_response.ShortDebugString() << std::endl;
+            glog.is_debug2() && glog << "Received Arduino Response "
+                                     << arduino_response.ShortDebugString() << std::endl;
 
             if (arduino_response.has_motor())
             {
@@ -441,6 +443,49 @@ jaiabot::apps::MissionManager::MissionManager()
                         machine_->set_rf_disable(false);
                     }
                 }
+            }
+        });
+
+    for (auto goal : cfg().delegated_states())
+    {
+        auto goal_state = static_cast<jaiabot::protobuf::MissionState>(goal);
+        delegated_states_.insert(goal_state);
+    }
+
+    interprocess().subscribe<jaiabot::groups::state_delegate_response>(
+        [this](const jaiabot::protobuf::MissionStateDelegateResponse& resp)
+        {
+            if (resp.state() != machine_->state())
+            {
+                glog.is_warn() &&
+                    glog << "Ignoring MissionStateDelegateResponse for wrong state. Response: "
+                         << resp.ShortDebugString()
+                         << ", current state: " << protobuf::MissionState_Name(machine_->state())
+                         << std::endl;
+                return;
+            }
+
+            if (!delegated_states_.count(resp.state()))
+            {
+                glog.is_warn() && glog << "Ignoring MissionStateDelegateResponse for state that is "
+                                          "not in delegated_states config. Response: "
+                                       << resp.ShortDebugString() << std::endl;
+                return;
+            }
+
+            switch (resp.event())
+            {
+                case protobuf::MissionStateDelegateResponse::EV_SELF_TEST_FAILS:
+                    machine_->process_event(statechart::EvSelfTestFails());
+                    break;
+
+                case protobuf::MissionStateDelegateResponse::EV_SELF_TEST_SUCCESSFUL:
+                    machine_->process_event(statechart::EvSelfTestSuccessful());
+                    break;
+
+                case protobuf::MissionStateDelegateResponse::EV_SHUTDOWN:
+                    machine_->process_event(statechart::EvShutdown());
+                    break;
             }
         });
 }
@@ -961,6 +1006,9 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                 glog << "MISSION_PLAN_FRAGMENT command not processed by handle_command()"
                      << std::endl;
             break;
+
+            // handled by jaiabot_storm_manager
+        case protobuf::Command::STORM_DYNAMIC_MISSION_UPDATE: break;
     }
 }
 
@@ -1173,4 +1221,3 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
     }
     return false;
 }
-

@@ -52,5 +52,5 @@ namespace underway {
     #include "underway/recovery.h"
     #include "underway/task.h"
     #include "underway/replan.h"
-
+    #include "underway/sleep.h"
 } // namespace jaiabot::statechart::in_mission::underway

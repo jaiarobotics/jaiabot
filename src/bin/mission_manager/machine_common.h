@@ -31,7 +31,6 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 
-
 namespace jaiabot
 {
 
@@ -85,7 +84,8 @@ template <typename Derived> class AppMethodsAccess
 
 // RAII publication of state changes
 template <typename Derived, protobuf::MissionState state,
-          protobuf::SetpointType setpoint_type = protobuf::SETPOINT_STOP>
+          protobuf::SetpointType setpoint_type = protobuf::SETPOINT_STOP,
+          protobuf::DelegateType delegate_type = protobuf::NOT_DELEGATED>
 struct Notify : public AppMethodsAccess<Derived>
 {
     Notify()
@@ -98,6 +98,13 @@ struct Notify : public AppMethodsAccess<Derived>
         pub_cfg.set_echo(true);
         this->interthread().template publish<groups::state_change>(std::make_pair(true, state),
                                                                    {pub_cfg});
+
+        if (delegate_type == protobuf::CAN_BE_DELEGATED)
+        {
+            protobuf::MissionStateDelegateRequest req;
+            req.set_state(state);
+            this->interprocess().template publish<groups::state_delegate_request>(req);
+        }
     }
     ~Notify()
     {

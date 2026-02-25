@@ -72,6 +72,8 @@ constexpr goby::middleware::Group powerstate_command{"jaiabot::powerstate_comman
 constexpr goby::middleware::Group mission_dive{"jaiabot::mission_dive"};
 constexpr goby::middleware::Group self_command{"jaiabot::self_command"};
 constexpr goby::middleware::Group state_change{"jaiabot::state_change"};
+constexpr goby::middleware::Group state_delegate_request{"jaiabot::state_delegate_request"};
+constexpr goby::middleware::Group state_delegate_response{"jaiabot::state_delegate_response"};
 
 // hub manager
 constexpr goby::middleware::Group hub_status{"jaiabot::hub_status"};
@@ -101,7 +103,8 @@ constexpr goby::middleware::Group engineering_status{"jaiabot::engineering_statu
 constexpr goby::middleware::Group contact_update{"jaiabot::contact_update",
                                                  goby::middleware::Group::broadcast_group};
 
-constexpr goby::middleware::Group hub2hub_data{"jaiabot::hub2hub_data", jaiabot::INTERVEHICLE_API_VERSION};
+constexpr goby::middleware::Group hub2hub_data{"jaiabot::hub2hub_data",
+                                               jaiabot::INTERVEHICLE_API_VERSION};
 
 // DCCL (interprocess)
 constexpr goby::middleware::Group hub_command_full{"jaiabot::hub_command_full"};

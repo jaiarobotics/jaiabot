@@ -25,7 +25,8 @@
 struct SelfTest;
 #else
 struct SelfTest : boost::statechart::state<SelfTest, PreDeployment>,
-                  Notify<SelfTest, protobuf::PRE_DEPLOYMENT__SELF_TEST>
+                  Notify<SelfTest, protobuf::PRE_DEPLOYMENT__SELF_TEST, protobuf::SETPOINT_STOP,
+                         protobuf::CAN_BE_DELEGATED>
 {
     using StateBase = boost::statechart::state<SelfTest, PreDeployment>;
     SelfTest(typename StateBase::my_context c) : StateBase(c)

@@ -175,6 +175,7 @@ struct InMission
         boost::statechart::transition<EvNewMission, in_mission::underway::Replan>,
         boost::statechart::transition<EvRecovered, PostDeployment>,
         boost::statechart::transition<EvAbort, in_mission::underway::Abort>,
+        boost::statechart::transition<EvSleep, in_mission::underway::Sleep>,
         boost::statechart::transition<EvStop, in_mission::underway::recovery::Stopped>>;
 
   private:
