@@ -46,4 +46,15 @@ jaiabot::apps::StormSimThread::StormSimThread(const jaiabot::config::StormSimThr
 {
     glog.add_group("storm", goby::util::Colors::magenta);
 
+    interthread().subscribe<dive_nav>([this](std::shared_ptr<const SimNav> dv_nav)
+                                      { handle_dive_nav(dv_nav); });
+}
+
+void jaiabot::apps::StormSimThread::handle_dive_nav(std::shared_ptr<const SimNav> dv_nav)
+{
+    glog.is_debug1() && glog << group("storm") << "[dive_nav] x: " << dv_nav->x
+                             << ", y: " << dv_nav->y << std::endl;
+
+    auto s_nav = std::make_shared<SimNav>(*dv_nav);
+    interthread().publish<storm_nav>(s_nav);
 }

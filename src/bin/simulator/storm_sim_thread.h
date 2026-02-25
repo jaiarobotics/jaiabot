@@ -39,6 +39,7 @@ class StormSimThread : public SimulatorThread<jaiabot::config::StormSimThread>
     ~StormSimThread() {}
 
   private:
+    void handle_dive_nav(std::shared_ptr<const SimNav> dv_nav);
 
   private:
     //    std::default_random_engine generator_;

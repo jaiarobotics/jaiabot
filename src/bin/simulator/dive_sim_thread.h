@@ -37,7 +37,7 @@ class DiveSimThread : public SimulatorThread<jaiabot::config::DiveSimThread>
     ~DiveSimThread() {}
 
   private:
-    void handle_moos_nav(const SimNav& moos_nav);
+    void handle_moos_nav(std::shared_ptr<const SimNav> moos_nav);
     void process_desired_setpoints(const protobuf::DesiredSetpoints& desired_setpoints);
     boost::units::quantity<boost::units::si::length>
     egg_box_function(const boost::units::quantity<boost::units::si::length> mean_value,

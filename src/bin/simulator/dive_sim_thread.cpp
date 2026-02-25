@@ -40,26 +40,27 @@ jaiabot::apps::DiveSimThread::DiveSimThread(const jaiabot::config::DiveSimThread
 {
     glog.add_group("dive", goby::util::Colors::magenta);
 
-    interthread().subscribe<moos_nav>([this](const SimNav& nav) { handle_moos_nav(nav); });
+    interthread().subscribe<moos_nav>([this](std::shared_ptr<const SimNav> nav)
+                                      { handle_moos_nav(nav); });
     interprocess().subscribe<groups::desired_setpoints>(
         [this](const protobuf::DesiredSetpoints& desired_setpoints)
         { process_desired_setpoints(desired_setpoints); });
 }
 
-void jaiabot::apps::DiveSimThread::handle_moos_nav(const SimNav& moos_nav)
+void jaiabot::apps::DiveSimThread::handle_moos_nav(std::shared_ptr<const SimNav> moos_nav)
 {
     auto now = goby::time::SteadyClock::now();
     auto dt = std::chrono::duration_cast<std::chrono::microseconds>(now - last_nav_process_time_)
                   .count() *
               si::micro * si::seconds;
 
-    SimNav dv_nav = moos_nav;
+    auto dv_nav = std::make_shared<SimNav>(*moos_nav);
 
     // very simple vertical depth simulation assuming perfect controller
     if (last_setpoints_.type() == protobuf::SETPOINT_DIVE)
     {
-        dv_nav.x = dive_x_;
-        dv_nav.y = dive_y_;
+        dv_nav->x = dive_x_;
+        dv_nav->y = dive_y_;
 
         dive_depth_ += cfg().vertical_dive_rate_with_units() * quantity<si::time>(dt);
         if (dive_depth_ > last_setpoints_.dive_depth_with_units())
@@ -67,16 +68,16 @@ void jaiabot::apps::DiveSimThread::handle_moos_nav(const SimNav& moos_nav)
 
         const auto seafloor_depth = egg_box_function(
             cfg().seafloor_depth_with_units(), cfg().seafloor_amplitude_with_units(),
-            cfg().seafloor_wavelength_with_units(), dv_nav.x, dv_nav.y);
+            cfg().seafloor_wavelength_with_units(), dv_nav->x, dv_nav->y);
 
         if (dive_depth_ > seafloor_depth)
             dive_depth_ = seafloor_depth;
 
-        dv_nav.depth = dive_depth_;
+        dv_nav->depth = dive_depth_;
 
         std::stringstream reset_ss;
-        reset_ss << "x=" << dv_nav.x.value() << ",y=" << dv_nav.y.value()
-                 << ",depth=" << dv_nav.depth.value() << ",speed=0,heading=0";
+        reset_ss << "x=" << dv_nav->x.value() << ",y=" << dv_nav->y.value()
+                 << ",depth=" << dv_nav->depth.value() << ",speed=0,heading=0";
 
         glog.is_debug1() && glog << group("dive") << "diving, depth: " << dive_depth_ << std::endl;
 
@@ -85,9 +86,9 @@ void jaiabot::apps::DiveSimThread::handle_moos_nav(const SimNav& moos_nav)
     else
     {
         // keep updating these until we dive
-        dive_x_ = moos_nav.x;
-        dive_y_ = moos_nav.y;
-        dive_depth_ = moos_nav.depth;
+        dive_x_ = moos_nav->x;
+        dive_y_ = moos_nav->y;
+        dive_depth_ = moos_nav->depth;
     }
     last_nav_process_time_ = now;
 
