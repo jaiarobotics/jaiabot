@@ -8,7 +8,7 @@ MOTOR_STOP_MOMENTUM_PERIOD_S = 1.5 # TODO: determine upper bound for vehicle to 
 
 # --- Data Analysis Functions ---
 
-def extract_drift_segments(stationkeep_df):
+def extract_drift_segments(stationkeep_df, log):
     """
     Identifies and extracts drift segments from station-keeping data.
 
@@ -22,19 +22,24 @@ def extract_drift_segments(stationkeep_df):
 
     drift_starts = np.flatnonzero(~is_drifting_padded[:-1] & is_drifting_padded[1:])
     drift_ends = np.flatnonzero(is_drifting_padded[:-1] & ~is_drifting_padded[1:])
+    log.info(f"Number of driftlet candidates: {len(drift_starts)}")
 
     drifts = []
     for start_idx, end_idx in zip(drift_starts, drift_ends):
         if (end_idx - start_idx) < MIN_DRIFT_LEN_PTS:
+            log.warn(f"Driftlet was too short! Number of points {end_idx - start_idx}")
             continue
+
+        log.info(f"Driftlet length: {end_idx - start_idx} points.")
 
         drift_timestamps = timestamps[start_idx:end_idx]
         drift_start_ts = drift_timestamps[0]
         
         momentum_clear_ts = drift_start_ts + MOTOR_STOP_MOMENTUM_PERIOD_S
-        momentum_clear_index = start_idx + np.argmax(drift_timestamps > momentum_clear_ts)
+        momentum_clear_index = start_idx + np.argmax(drift_timestamps > momentum_clear_ts) # np.argmax() returns 0 if no value in array is true
 
-        if momentum_clear_index < end_idx:
+        if start_idx != momentum_clear_index and momentum_clear_index < end_idx:
+            log.info(f"Driftlet length after accounting for momentum: {end_idx - momentum_clear_index} points.")
             segment_df = stationkeep_df.iloc[momentum_clear_index:end_idx]
             drift_seg = {
                 "epoch_time": segment_df['ts'].to_numpy(),
@@ -44,6 +49,8 @@ def extract_drift_segments(stationkeep_df):
                 "longitude":  segment_df['lon'].to_numpy(),
             }
             drifts.append(drift_seg)
+        else:
+            log.warn(f"Driftlet ended before momentum was cleared!")
     
     return drifts
 
@@ -64,11 +71,11 @@ def filter_current_data(drift, log, use_pressure=True, use_speed=True):
 
     if use_pressure:
         final_mask &= create_pressure_mask(drift["pressure"])
-    log.info(f"Number of points filtered by pressure mask: {np.sum(np.logical_not(create_pressure_mask(drift["pressure"])))}")
+        log.info(f"Number of points filtered by pressure mask: {np.sum(np.logical_not(create_pressure_mask(drift["pressure"])))}")
 
     if use_speed:
         final_mask &= create_speed_mask(drift["speed"])
-    log.info(f"Number of points filtered by speed mask: {np.sum(np.logical_not(create_speed_mask(drift["speed"])))}")
+        log.info(f"Number of points filtered by speed mask: {np.sum(np.logical_not(create_speed_mask(drift["speed"])))}")
 
     log.info(f"Number of points in driftlet after filtering: {np.sum(final_mask)}")
     return {**drift, "final_mask": final_mask}
@@ -77,7 +84,7 @@ def calculate_bearing_from_components(east_component, north_component):
     """Converts east/north components to a bearing in degrees [0, 360)."""
     return np.rad2deg((np.pi / 2 - np.arctan2(north_component, east_component)) % (2 * np.pi))
 
-def compute_drift_statistics(drift):
+def compute_drift_statistics(drift, log):
     """Computes direction and speed statistics for a single filtered drift segment."""
     mask = drift["final_mask"]
     filtered_lon = drift["longitude"][mask]
@@ -98,6 +105,7 @@ def compute_drift_statistics(drift):
     if np.isfinite(mean_v2) and mean_v2 > 0:
         sigma_hat = np.sqrt(mean_v2 / 2.0)
         stats["speed_mode_rayleigh"] = sigma_hat
+        log.info(f"Driftlet speed: {sigma_hat} m/s")
 
     # Drift direction by line fit
     # scale lon by cosine of lat angle to linearly correlate the variables
@@ -107,6 +115,7 @@ def compute_drift_statistics(drift):
     # Guard against zero-variance data that would cause np.polyfit to emit RankWarning or fail
     # If all latitudes or all scaled longitudes are identical, the linear fit is ill-posed.
     if np.nanmin(filtered_lat) == np.nanmax(filtered_lat) or np.nanmin(scaled_filtered_lon) == np.nanmax(scaled_filtered_lon):
+        log.warn(f"Cannot perform polyfit for lat/lon coords. Zero variance in latitude or longitude data for this driftlet.")
         return stats
     a, b = np.polyfit(scaled_filtered_lon, filtered_lat, 1)
 
@@ -114,6 +123,7 @@ def compute_drift_statistics(drift):
     ss_res = np.sum((filtered_lat - lat_pred) ** 2)
     ss_tot = np.sum((filtered_lat - np.mean(filtered_lat)) ** 2)
     stats["R2"] = 1.0 - ss_res / ss_tot if ss_tot > 0 else np.nan
+    log.info(f"Driftlet R^2 fit: {stats["R2"]}")
 
     line_vector = np.array([1.0, a])
     net_displacement = np.array([scaled_filtered_lon[-1] - scaled_filtered_lon[0], filtered_lat[-1] - filtered_lat[0]])
@@ -122,6 +132,7 @@ def compute_drift_statistics(drift):
 
     dlon_line, dlat_line = line_vector
     stats["bearing_line"] = calculate_bearing_from_components(dlon_line, dlat_line)
+    log.info(f"Driftlet bearing: {stats["bearing_line"]} degrees.")
 
     return stats
 
@@ -151,7 +162,7 @@ def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
     if not drifts:
         return {}
 
-    drift_stats_list = [compute_drift_statistics(filter_current_data(d, log)) for d in drifts]
+    drift_stats_list = [compute_drift_statistics(filter_current_data(d, log), log) for d in drifts]
     good_drifts_stats = [
         s
         for s in drift_stats_list
@@ -163,7 +174,10 @@ def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
     ]
 
     if not good_drifts_stats:
+        log.warn(f"No good driftlets for this station keep! All R^2 fits are < {r2_threshold}.")
         return {}
+
+    log.info(f"Number of good driftlets for this station keep: {len(good_drifts_stats)}")
 
     bearings = np.array([s["bearing_line"] for s in good_drifts_stats if np.isfinite(s["bearing_line"])])
     speed_modes = np.array([s["speed_mode_rayleigh"] for s in good_drifts_stats if np.isfinite(s["speed_mode_rayleigh"])])
@@ -173,6 +187,15 @@ def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
     
     speed_std = calculate_std_about_value(speed_modes, avg_mode_speed) 
     dir_std = calculate_circular_std_about_value_deg(bearings, mean_bearing)
+
+    log.info(f"Mean driftlet stats for this station keep:")
+    log.info(f"Average Mode Speed: {avg_mode_speed} m/s.")
+    log.info(f"Mean Bearing: {mean_bearing} degrees.")
+    if np.isnan(speed_std) or np.isnan(dir_std):
+        log.warn(f"Speed and direction standard deviations could not be calculated for this station keep! Too few driftlets.")
+    else:
+        log.info(f"Mode Speed STD: {speed_std} m/s.")
+        log.info(f"Bearing STD: {bearings} degrees.")
 
     # Collect non-empty filtered latitude/longitude arrays
     lat_arrays = []
@@ -193,10 +216,12 @@ def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
         lons = np.concatenate(lon_arrays)
         mean_lat = np.nanmean(lats)
         mean_lon = np.nanmean(lons)
+        log.info(f"Station Keep location: {mean_lat} lat, {mean_lon} lon")
     else:
         # No position data available from good drifts
         mean_lat = np.nan
         mean_lon = np.nan
+        log.warn(f"Couldn't compute a mean location for this Station Keep!")
     return {
         "mean_bearing": mean_bearing,
         "avg_mode_speed": avg_mode_speed,
