@@ -131,6 +131,7 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
             except Exception:
                 log.exception("Failed to send results")
     if cleanup:
+        log.info(f"Cleaning up {station_keep_dir}")
         shutil.rmtree(station_keep_dir, ignore_errors=True)
 
 def process_logged_data(h5_log_path, log):
@@ -243,7 +244,7 @@ def main(args):
                                 payload.mission_report.state not in PAUSED_MISSION_STATES):
                             log.info(f"End signal received. New state: {MissionState.Name(payload.mission_report.state)}. Processing data...")
                             end_time_us = int(current_ts * 1_000_000)
-                            process_and_send_results(sock, udp_gateway_address, start_time_us, end_time_us, data_buffers, log, cleanup=args.delete_temporary_h5s)
+                            process_and_send_results(sock, udp_gateway_address, start_time_us, end_time_us, data_buffers, log, cleanup=False)
                             log.info("Cycle complete. Switching back to WAITING mode.")
                             current_state = FSM_STATES.WAITING
                     case _:
