@@ -186,6 +186,15 @@ def summarize_station_keep_drifts(drifts, log):
         log.info(f"Mode Speed STD: {speed_stdev} m/s.")
         log.info(f"Heading STD: {heading_stdev} degrees.")
 
+    log.info(f"Mean driftlet stats for this station keep:")
+    log.info(f"Average Mode Speed: {avg_mode_speed} m/s.")
+    log.info(f"Mean Bearing: {mean_bearing} degrees.")
+    if np.isnan(speed_std) or np.isnan(dir_std):
+        log.warn(f"Speed and direction standard deviations could not be calculated for this station keep! Too few driftlets.")
+    else:
+        log.info(f"Mode Speed STD: {speed_std} m/s.")
+        log.info(f"Bearing STD: {bearings} degrees.")
+
     # Collect non-empty filtered latitude/longitude arrays
     lat_arrays = []
     lon_arrays = []
