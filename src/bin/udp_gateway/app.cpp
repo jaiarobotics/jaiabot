@@ -29,6 +29,7 @@
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
+#include <goby/middleware/marshalling/protobuf.h>
 #include <goby/util/constants.h>
 #include <goby/util/seawater/units.h>
 #include <goby/zeromq/application/multi_thread.h>
@@ -260,7 +261,8 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
                 pressure_temperature_data.set_temperature_with_units(
                     temperature * boost::units::absolute<boost::units::celsius::temperature>());
             }
-            interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_temperature_data);
+            interprocess().publish<jaiabot::groups::pressure_temperature>(
+                pressure_temperature_data);
             last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
             break;
         }
