@@ -133,6 +133,8 @@ void jaiabot::apps::AMLSensorDriver::set_output_rate()
 
 void jaiabot::apps::AMLSensorDriver::handle_sensor_output(const goby::middleware::protobuf::IOData& io_data)
 {
+    last_aml_report_time_ = goby::time::SteadyClock::now();
+
     if (sensor_name_ == jaiabot::sensor::protobuf::AML::DEFAULT)
     {
         if (io_data.data().contains(cfg().catalog().conductivity()))

@@ -66,6 +66,10 @@ bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 
 echo_enabled=(bot_type == "ECHO")
 
+# We do not want these services running if they are already running on the BIO payload board
+salinity_enabled=(bot_type != "BIO")
+bar30_enabled=(bot_type != "BIO")
+
 jaia_motor_harness_type="NONE"
 
 if "jaia_motor_harness_type" in os.environ:
@@ -308,6 +312,8 @@ elif common.app == 'jaiabot_udp_gateway':
                                      in_simulation=is_simulation(),
                                      udp_gateway_port=udp_gateway_port,
                                      echo_enabled=str(echo_enabled).lower(),
+                                     salinity_enabled=str(salinity_enabled).lower(),
+                                     bar30_enabled=str(bar30_enabled).lower(),
                                      tsys01_enabled=str(tsys01_enabled).lower()))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
