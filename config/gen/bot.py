@@ -428,7 +428,8 @@ elif common.app == 'jaiabot_turner_c_fluor_sensor_driver':
 elif common.app == 'jaiabot_storm_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_storm_manager.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common))
+                                     interprocess_block = interprocess_common,
+                                     bot_id=bot_index))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,

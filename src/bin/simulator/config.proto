@@ -170,19 +170,55 @@ message StormSimThread
         unit_system: "si"
     };
 
-    optional double launch_altitude = 1
-        [(dccl.field) = { units { derived_dimensions: "length" } }];
+    optional double launch_altitude = 1 [
+        default = 3000,
+        (dccl.field) = { units { derived_dimensions: "length" } }
+    ];
 
-    optional double air_descent_rate = 2
-        [(dccl.field) = { units { derived_dimensions: "velocity" } }];
+    optional double air_descent_rate = 2 [
+        default = 30,
+        (dccl.field) = { units { derived_dimensions: "velocity" } }
+    ];
+
+    optional double pitch_during_air_descent = 3 [
+        default = 89,
+        (dccl.field).units = {
+            derived_dimensions: "plane_angle"
+            system: "angle::degree"
+        }
+    ];
+
+    message InWaterDelays
+    {
+        optional double parachute_detachment = 1
+            [default = 0, (dccl.field).units = { derived_dimensions: "time" }];
+        optional double tube_release = 2
+            [default = 0, (dccl.field).units = { derived_dimensions: "time" }];
+    }
+
+    optional InWaterDelays delay = 4;
+
+    message InTubeSinkRates
+    {
+        optional double with_parachute = 1 [
+            default = .3,
+            (dccl.field) = { units { derived_dimensions: "velocity" } }
+        ];
+        optional double without_parachute = 2 [
+            default = 1,
+            (dccl.field) = { units { derived_dimensions: "velocity" } }
+        ];
+    }
+
+    optional InTubeSinkRates in_tube_sink_rates = 5;
 
     enum SimFailureType
     {
-        STUCK_IN_TUBE_RESOLVABLE = 1;
-        // STUCK_IN_TUBE_UNRESOLVABLE = 2;
+        // STUCK_IN_TUBE_RESOLVABLE = 1;
+        STUCK_IN_TUBE_UNRESOLVABLE = 2;
 
         // PARACHUTE_NOT_DETACHED_RESOLVABLE = 3;
-        // PARACHUTE_NOT_DETACHED_UNRESOLVABLE = 4;
+        PARACHUTE_NOT_DETACHED_UNRESOLVABLE = 4;
 
         // AIR_DESCENT_DATA_OFFLOAD_FAILS = 5;
 
@@ -195,5 +231,5 @@ message StormSimThread
         optional float probability = 2 [default = 1];
     }
 
-    repeated SimFailure failures = 3;
+    repeated SimFailure failures = 10;
 }

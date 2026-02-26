@@ -282,8 +282,8 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     auto nav = std::make_shared<SimNav>(
         SimNav({x, y, speed_over_ground, course_over_ground, depth, heading, pitch, roll}));
 
-    glog.is_debug1() && glog << group("translation") << "[moos_nav] x: " << x << ", y: " << y
-                             << std::endl;
+    glog.is_debug1() && glog << group("translation") << "[moos_nav] x: " << nav->x
+                             << ", y: " << nav->y << ", depth: " << nav->depth << std::endl;
 
     interthread().publish<moos_nav>(nav);
 }

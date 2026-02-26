@@ -28,7 +28,17 @@ struct Activating : boost::statechart::state<Activating, StormManagerStateMachin
 {
     using StateBase = boost::statechart::state<Activating, StormManagerStateMachine>;
 
-    Activating(typename StateBase::my_context c) : StateBase(c) {}
+    Activating(typename StateBase::my_context c) : StateBase(c)
+    {
+        protobuf::Command command;
+        command.set_bot_id(this->cfg().bot_id());
+        command.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+        command.set_type(protobuf::Command::ACTIVATE);
+        goby::glog.is_verbose() && goby::glog << group("statechart")
+                                              << "Sending command: " << command.ShortDebugString()
+                                              << std::endl;
+        this->interprocess().template publish<jaiabot::groups::self_command>(command);
+    }
     ~Activating() {}
 
     using reactions = boost::mpl::list<boost::statechart::transition<EvBeginSelfTest, SelfTest>>;

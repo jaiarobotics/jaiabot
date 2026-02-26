@@ -1,9 +1,13 @@
 syntax = "proto2";
 
+import "goby/middleware/protobuf/gpsd.proto";
+
 import "dccl/option_extensions.proto";
 
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/sensor/blue_robotics__bar30.proto";
+import "jaiabot/messages/sensor/atlas_scientific__oem_ec.proto";
 
 package jaiabot.protobuf;
 
@@ -151,4 +155,18 @@ message StormStatus
     };
 
     required StormMissionState mission_state = 10;
+}
+
+enum StormMissionSimulatorStage
+{
+    AIR_DESCENT = 1;
+    IN_WATER = 2;
+};
+
+// aggregate data sources for states to determine self test progression
+message StormSelfTestData
+{
+    optional sensor.protobuf.AtlasScientificOEMEC ec = 1;
+    optional sensor.protobuf.BlueRoboticsBar30 bar30 = 2;
+    optional goby.middleware.protobuf.gpsd.TimePositionVelocity gps_tpv = 3;
 }

@@ -38,14 +38,35 @@ class StormSimThread : public SimulatorThread<jaiabot::config::StormSimThread>
     StormSimThread(const jaiabot::config::StormSimThread& cfg);
     ~StormSimThread() {}
 
-  private:
-    void handle_dive_nav(std::shared_ptr<const SimNav> dv_nav);
+    struct StormSimState
+    {
+        protobuf::StormMissionSimulatorStage stage{protobuf::AIR_DESCENT};
+        goby::time::SteadyClock::time_point in_water_start{goby::time::SteadyClock::now()};
+        SimNav nav;
+
+        bool parachute_attached{true};
+        bool parachute_deattach_attempted{false};
+
+        bool in_tube{true};
+        bool tube_release_attempted{false};
+    };
 
   private:
-    //    std::default_random_engine generator_;
-    //std::normal_distribution<double> temperature_distribution_;
-    //std::normal_distribution<double> salinity_distribution_;
+    void handle_dive_nav(std::shared_ptr<const SimNav> dv_nav);
+    void compute_air_descent(const goby::time::SteadyClock::time_point& now,
+                             const boost::units::quantity<boost::units::si::time>& dt);
+    void compute_in_water_nav(const goby::time::SteadyClock::time_point& now,
+                              const boost::units::quantity<boost::units::si::time>& dt);
+
+  private:
+    StormSimState state_;
+    bool initial_nav_set_{false};
+    goby::time::SteadyClock::time_point last_nav_process_time_;
+
+    std::default_random_engine generator_;
+    std::map<config::StormSimThread::SimFailureType, std::bernoulli_distribution> failures_;
 };
+std::ostream& operator<<(std::ostream& os, const StormSimThread::StormSimState& s);
 
 } // namespace apps
 } // namespace jaiabot

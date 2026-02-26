@@ -17,5 +17,7 @@ message StormManager
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
+    required int32 bot_id = 5;
+    
     required jaiabot.protobuf.StormMission initial_mission = 10;
 }

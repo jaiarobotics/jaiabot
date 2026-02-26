@@ -60,9 +60,48 @@ jaiabot::apps::OceanographicSimThread::OceanographicSimThread(
 
 void jaiabot::apps::OceanographicSimThread::handle_sim_nav(const SimNav& nav)
 {
-    boost::units::quantity<boost::units::si::pressure> pressure(
-        goby::util::seawater::pressure(nav.depth, nav.latlon.lat));
-    
+    // relative to sea surface pressure (0 Pa at surface)
+    boost::units::quantity<boost::units::si::pressure> pressure;
+
+    if (nav.depth >= 0 * si::meters) // in water
+    {
+        pressure = boost::units::quantity<boost::units::si::pressure>(
+            goby::util::seawater::pressure(nav.depth, nav.latlon.lat));
+    }
+    else // in air
+    {
+        // from https://apps.dtic.mil/sti/tr/pdf/ADA588839.pdf
+        //<=======================================PRESSURE (Pa)
+        const double TABLE4[8][4] = {
+            //<===============================TRANSITION POINTS
+            00000, -0.0065, 288.150, 1.01325000000000E+5, // FOR PRESSURE &
+            11000, 0.0000,  216.650, 2.26320639734629E+4, // TEMPERATURE VS
+            20000, 0.0010,  216.650, 5.47488866967777E+3, // GEOPOTENTIAL
+            32000, 0.0028,  228.650, 8.68018684755228E+2, // ALTITUDE CURVES
+            47000, 0.0000,  270.650, 1.10906305554966E+2, // [table 4]
+            51000, -0.0028, 270.650, 6.69388731186873E+1, // (3RD COLUMN IS
+            71000, -0.0020, 214.650, 3.95642042804073E+0, // TEMPERATURE,
+            84852, 0.0000,  186.946, 3.73383589976215E-1  // 4TH, PRESSURE)
+        };
+
+        // z <--------ALTITUDE (m) (P IS VALID FOR -5,000 m < z < 86,000 m)
+        auto pressure_f = [TABLE4](double z) -> double
+        {
+            double H = z * 6356766 / (z + 6356766); //..............................[equation 18]
+            int b;                                  /*<-*/
+            for (b = 0; b < 7; ++b)
+                if (H < TABLE4[b + 1][0])
+                    break;
+            double C = -.0341631947363104; //................C = -G0*M0/RSTAR [pages 8,9,3]
+            double Hb = TABLE4[b][0], Lb = TABLE4[b][1], Tb = TABLE4[b][2], Pb = TABLE4[b][3];
+            return Pb * (fabs(Lb) > 1E-12 ? pow(1 + Lb / Tb * (H - Hb), C / Lb)
+                                          : exp(C * (H - Hb) / Tb));
+        };
+
+        double z = -nav.depth / si::meters;
+        pressure = (pressure_f(z) - pressure_f(0)) * si::pascals;
+    }
+
     // interpolate temperature value from table
     double temperature_degC = goby::util::linear_interpolate(nav.depth, temperature_degC_profile_);
     // randomize temperature
