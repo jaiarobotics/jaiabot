@@ -1,7 +1,7 @@
 $app_block
 $interprocess_block
 serial {
-    port: "/dev/ttyAM5"
+    port: "/dev/ttyAMA5"
     baud: 9600
     delimiter: "\n"
 }
