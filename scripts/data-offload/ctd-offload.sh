@@ -25,6 +25,8 @@ fi
 
 destination_dir="/var/log/jaiabot/bot_offload/ctd/$bot_id/"
 ctd_dir="/var/log/jaiabot/bot/${bot_id}/ctd/"
+archive_dir="/var/log/jaiabot/archive/"
+
 
 if [[ ! -d "${destination_dir}" ]]; then
   mkdir -p "${destination_dir}"
@@ -32,9 +34,16 @@ fi
 
 if [[ "${bot_ip}" == "127.0.0.1" ]]; then
     userat=""
-    nice -n 10 rsync -azh --info=progress2 --timeout=15  --remove-source-files "${ctd_dir}" "${destination_dir}"
+    nice -n 10 rsync -azh --info=progress2 --timeout=15  "${ctd_dir}" "${destination_dir}"
+    mv "${ctd_dir}"/* "${archive_dir}"
 
 else
     userat="jaia@"
-    nice -n 10 rsync -azh --info=progress2 --timeout=15  --remove-source-files "${userat}${bot_ip}:${ctd_dir}" "${destination_dir}"
+    if nice -n 10 rsync -azh --info=progress2 --timeout=15 "${userat}${bot_ip}:${ctd_dir}" "${destination_dir}"
+    then
+        ssh "${userat}${bot_ip}" \
+            "mkdir -p ${archive_dir} && mv ${ctd_dir}/* ${archive_dir}/"
+    else
+        echo "rsync failed"
+    fi
 fi

@@ -89,8 +89,13 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
       return;
     }
 
-    double bottom_depth = ctd_profile.snapshot(0).depth();
+    // first reading is 0.00 because pressure adjusted lags behind pressure temperature group
+    double bottom_depth = ctd_profile.snapshot(1).depth();
     double top_depth = ctd_profile.snapshot(ctd_profile.snapshot_size() - 1).depth();
+
+    glog.is_debug1() && glog << "bottom_depth: " << bottom_depth << std::endl;
+    glog.is_debug1() && glog << "top_depth: " << top_depth << std::endl;
+
 
     // bot stuck on bottom, discard data
     if (bottom_depth - top_depth < ascent_epsilon)
@@ -113,6 +118,7 @@ void jaiabot::apps::CTDManager::convert_proto_to_unb(
   std::string time
 ) 
 {
+  glog.is_debug1() && glog << "Starting .proto to .unb conversion" << std::endl;
   const int unb_version = 2;
   const std::string date_logging = "0000 000 00:00:00";
   const std::string ship_location = "0.000000 0.000000"; 
@@ -139,6 +145,7 @@ void jaiabot::apps::CTDManager::convert_proto_to_unb(
   }
   
   out.close();
+  glog.is_debug1() && glog << "Completed .proto to .unb conversion" << std::endl;
 }
 
 int main(int argc, char* argv[])

@@ -16,6 +16,7 @@ interface Props {
 }
 
 const LOOKUP_DELAY = 7_500; // ms;
+const WIFI_QUALITY_THRESHOLD = 50;
 
 /**
  * Allows an operator to download CTD data via WiFi
@@ -97,20 +98,15 @@ export default function CTDOffload(props: Props) {
     const getConnectedBots = () => {
         const bots = jaiaContext.bots.getBots();
         const connectedBots = Array.from(bots.values()).filter(
-            (bot) => bot.getWifiLinkQuality() > 0,
+            (bot) => bot.getWifiLinkQuality() > WIFI_QUALITY_THRESHOLD,
         );
         return connectedBots.map((bot) => {
-            if (bot.getWifiLinkQuality() > 0) {
-                return (
-                    <li key={bot.getBotID()}>
-                        <input
-                            type="checkbox"
-                            onChange={() => handleCheckboxClick(bot.getBotID())}
-                        />
-                        <label>Bot {bot.getBotID()}</label>
-                    </li>
-                );
-            }
+            return (
+                <li key={bot.getBotID()}>
+                    <input type="checkbox" onChange={() => handleCheckboxClick(bot.getBotID())} />
+                    <label>Bot {bot.getBotID()}</label>
+                </li>
+            );
         });
     };
 
