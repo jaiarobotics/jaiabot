@@ -66,7 +66,7 @@ parser.add_argument('--rf_encryption_password', default ='', help='Encryption ke
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 
 args=parser.parse_args()
 
@@ -672,6 +672,17 @@ if 'aml' in jaia_additional_sensors:
         'wanted_by': 'jaiabot_health.service'},
     ]
     jaiabot_apps.extend(jaiabot_aml_sensor)
+    
+if 'ppk' in jaia_additional_sensors:
+    jaiabot_ppk = [
+        {'exe': 'jaiabot_ppk',
+        'description': 'JaiaBot PPK Logger',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_PPK',
+        'runs_on': [Type.BOT],
+        'wanted_by': 'jaiabot_health.service'},
+    ]
+    jaiabot_apps.extend(jaiabot_ppk)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
