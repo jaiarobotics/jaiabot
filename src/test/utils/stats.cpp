@@ -195,7 +195,7 @@ BOOST_AUTO_TEST_CASE(GreekAccessors)
     α(2 * m);
     α(4 * m);
 
-    std::cout << "GreekAccessors" << α << std::endl;
+    std::cout << "GreekAccessors " << α << std::endl;
 
     qL μ = α.μ();
     qL σ = α.σ();

@@ -48,14 +48,14 @@ inline std::ostream& operator<<(std::ostream& os, const RollingStatsAccumulator<
     else
     {
         os << "  stats     :\n";
-        os << "    mean      = " << acc.mean() << "\n";
-        os << "    median    = " << acc.median() << "\n";
-        os << "    min       = " << acc.min() << "\n";
-        os << "    max       = " << acc.max() << "\n";
-        os << "    std (N-1) = " << acc.stddev(VarianceNorm::UNBIASED) << "\n";
-        os << "    std (N)   = " << acc.stddev(VarianceNorm::BIASED) << "\n";
-        os << "    var (N-1)      = " << acc.variance(VarianceNorm::UNBIASED) << "\n";
-        os << "    var (N)      = " << acc.variance(VarianceNorm::BIASED) << "\n";
+        os << "    μ      = " << acc.mean() << "\n";
+        os << "    med    = " << acc.median() << "\n";
+        os << "    min    = " << acc.min() << "\n";
+        os << "    max    = " << acc.max() << "\n";
+        os << "    σ (N-1) = " << acc.stddev(VarianceNorm::UNBIASED) << "\n";
+        os << "    σ (N)   = " << acc.stddev(VarianceNorm::BIASED) << "\n";
+        os << "    σ² (N-1)      = " << acc.variance(VarianceNorm::UNBIASED) << "\n";
+        os << "    σ² (N)      = " << acc.variance(VarianceNorm::BIASED) << "\n";
     }
 
     os << "}";
