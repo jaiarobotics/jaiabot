@@ -64,7 +64,7 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
   # target requiring compiled hex
   add_custom_target(stm32_compile_${sketchname}_${nickname}
     ALL
-    DEPENDS ${hex_output} jaiabot_messages_c
+    DEPENDS ${hex_output}
   )
 
   # set upload variables for configure_file

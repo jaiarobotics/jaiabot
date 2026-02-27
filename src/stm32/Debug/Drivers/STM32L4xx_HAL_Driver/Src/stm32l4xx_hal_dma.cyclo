@@ -1,0 +1,13 @@
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:155:19:HAL_DMA_Init	5
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:282:19:HAL_DMA_DeInit	4
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:411:19:HAL_DMA_Start	3
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:462:19:HAL_DMA_Start_IT	4
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:538:19:HAL_DMA_Abort	3
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:603:19:HAL_DMA_Abort_IT	3
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:669:19:HAL_DMA_PollForTransfer	10
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:800:6:HAL_DMA_IRQHandler	13
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:894:19:HAL_DMA_RegisterCallback	7
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:945:19:HAL_DMA_UnRegisterCallback	8
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:1022:22:HAL_DMA_GetState	1
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:1034:10:HAL_DMA_GetError	1
+../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c:1061:13:DMA_SetConfig	2

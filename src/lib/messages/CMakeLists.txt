@@ -67,10 +67,15 @@ configure_file(${NANOPB_PROTO} ${project_INC_DIR}/nanopb/nanopb.proto COPYONLY)
 protobuf_include_dirs(${project_INC_DIR}/nanopb)
 
 # we need to generate a nanopb version of these external messages as upstream doesn't provide a nanopb version
+file(MAKE_DIRECTORY ${project_INC_DIR}/nanopb/dccl)
 configure_file(${DCCL_INCLUDE_DIR}/dccl/option_extensions.proto ${project_INC_DIR}/nanopb/dccl/option_extensions.proto COPYONLY)
+file(MAKE_DIRECTORY ${project_INC_DIR}/nanopb/google/protobuf)
 configure_file(${PROTOBUF_INCLUDE_DIRS}/google/protobuf/descriptor.proto ${project_INC_DIR}/nanopb/google/protobuf/descriptor.proto COPYONLY)
 
 protobuf_generate_nanopb_c_full(DCCL_PROTO_C_SRCS DCCL_PROTO_C_HDRS "dccl" ${project_INC_DIR} option_extensions.proto)
+
+# Generate Google protobuf descriptor
+protobuf_generate_nanopb_c_full(GOOGLE_PROTO_C_SRCS GOOGLE_PROTO_C_HDRS "google/protobuf" ${project_INC_DIR} descriptor.proto)
 
 protobuf_generate_nanopb_c_full(PROTO_C_SRCS PROTO_C_HDRS "jaiabot/messages" ${project_INC_DIR}
   arduino.proto

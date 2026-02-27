@@ -119,12 +119,23 @@ file(GLOB_RECURSE NANOPB_OPTIONS_FILES RELATIVE ${project_SRC_DIR}/lib/messages
 foreach(I ${INCLUDE_FILES})
   configure_file(${project_SRC_DIR}/lib/${I} ${project_INC_DIR}/jaiabot/${I} @ONLY)
 endforeach()
+
+# Create output directories before copying files
+foreach(I ${PROTO_FILES})
+  get_filename_component(OUT_DIR_CPP ${project_INC_DIR}/jaiabot/messages/${I} DIRECTORY)
+  file(MAKE_DIRECTORY ${OUT_DIR_CPP})
+  get_filename_component(OUT_DIR_NANOPB ${project_INC_DIR}/nanopb/jaiabot/messages/${I} DIRECTORY)
+  file(MAKE_DIRECTORY ${OUT_DIR_NANOPB})
+endforeach()
+
 foreach(I ${PROTO_FILES})
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/${I} @ONLY)
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
 foreach(I ${NANOPB_OPTIONS_FILES})
+  get_filename_component(OUT_DIR ${project_INC_DIR}/nanopb/jaiabot/messages/${I} DIRECTORY)
+  file(MAKE_DIRECTORY ${OUT_DIR})
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
@@ -184,6 +195,11 @@ unset(PROJECT_APP_LIST CACHE)
 # share
 # install config
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/config DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+
+# install stm32 scripts and tools
+if(build_stm32)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/scripts/stm32 DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+endif()
 
 # etc
 option(install_motd "Install MOTD script" ON)

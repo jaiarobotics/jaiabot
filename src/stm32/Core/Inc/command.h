@@ -14,7 +14,7 @@
 #include "string.h"
 #include "stdbool.h"
 
-#include "nanopb/jaiabot/messages/sensor/sensor_core.pb.h"
+#include "jaiabot/messages/sensor/sensor_core.pb.h"
 
 #define UART_QUEUE_SIZE 32
 #define UART_MAX_LEN 256

@@ -161,7 +161,8 @@ C_INCLUDES =  \
 -IDrivers/CMSIS/Include \
 $(if $(NANOPB_INC),-I$(NANOPB_INC)) \
 $(if $(JAIABOT_INC),-I$(JAIABOT_INC)) \
-$(if $(NANOPB_SYS_INC),-I$(NANOPB_SYS_INC))
+$(if $(NANOPB_SYS_INC),-I$(NANOPB_SYS_INC)) \
+-I$(NANOPB_RUNTIME_DIR)
 
 
 # compile gcc flags

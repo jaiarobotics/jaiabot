@@ -126,7 +126,7 @@ int initAtlasScientificDO();
 int initAtlasScientificPH();
 int initAtlasScientificEC();
 
-HAL_StatusTypeDef OEM_Activate(I2C_HandleTypeDef *i2cHandle, uint8_t *devAddr);
+HAL_StatusTypeDef OEM_Activate(I2C_HandleTypeDef *i2cHandle, uint8_t devAddr);
 // HAL_StatusTypeDef OEM_Hibernate(OEM_CHIP *dev);
 
 // /* COLLECT DATA */

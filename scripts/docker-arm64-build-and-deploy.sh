@@ -86,6 +86,19 @@ else
         # Sync all directories
         rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
+        # Sync STM32 build artifacts if they exist
+        if [ -f "./build/stm32/JAIA_STM32.hex" ]; then
+            echo "🟢 Syncing STM32 build artifacts to ${remote}"
+            mkdir -p ./build/stm32/stm32_deploy
+            # Copy hex and related files
+            cp ./build/stm32/JAIA_STM32.* ./build/stm32/stm32_deploy/ 2>/dev/null || true
+            # Copy deploy scripts and tools from scripts/stm32 directory
+            cp ./scripts/stm32/* ./build/stm32/stm32_deploy/ 2>/dev/null || true
+            # Sync to remote
+            rsync -za --force ./build/stm32/stm32_deploy/ ${botuser}@"$remote":/home/${botuser}/jaiabot/${build_dir}/share/jaiabot/stm32/
+            rm -rf ./build/stm32/stm32_deploy
+        fi
+
         # Login to the target, and deploy the software
         ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c \"./jaiabot/scripts/arm64-deploy.sh ${build_dir}\""
 

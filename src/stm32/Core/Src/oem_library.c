@@ -58,13 +58,13 @@ int initAtlasScientificPH()
   return 0;
 }
 
-HAL_StatusTypeDef OEM_Activate(I2C_HandleTypeDef *i2cHandle, uint8_t *devAddr)
+HAL_StatusTypeDef OEM_Activate(I2C_HandleTypeDef *i2cHandle, uint8_t devAddr)
 {
   uint8_t activate_command = 0x01;
   return OEM_WriteRegister(i2cHandle, devAddr, OEM_REG_ACTIVATE, &activate_command);
 }
 
-HAL_StatusTypeDef OEM_Hibernate(I2C_HandleTypeDef *i2cHandle, uint8_t *devAddr)
+HAL_StatusTypeDef OEM_Hibernate(I2C_HandleTypeDef *i2cHandle, uint8_t devAddr)
 {
   uint8_t hibernate_command = 0x00;
   return OEM_WriteRegister(i2cHandle, devAddr, OEM_REG_ACTIVATE, &hibernate_command);
