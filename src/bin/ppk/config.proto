@@ -4,7 +4,6 @@
 //   Toby Schneider <toby@gobysoft.org>
 //   Ed Sanville <edsanville@gmail.com>
 //
-//
 // This file is part of the JaiaBot Project Binaries
 // ("The Jaia Binaries").
 //
@@ -21,23 +20,19 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-struct Recovery : boost::statechart::state<Recovery, Underway, recovery::Transit>
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+
+package jaiabot.config;
+
+message PKKConfig
 {
-    using StateBase = boost::statechart::state<Recovery, Underway, recovery::Transit>;
+    // required parameters for ApplicationBase3 class
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    // required parameters for connecting to 'gobyd'
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    Recovery(typename StateBase::my_context c) : StateBase(c)
-    {
-        // once we go into recovery (for any reason), the mission is considered complete
-        context<InMission>().set_mission_complete();
-    }
-    ~Recovery() {}
-};
-
-namespace recovery
-{
-
-    #include "recovery/stopped.h"
-    #include "recovery/transit.h"
-    #include "recovery/station_keep.h"
-
-} // namespace recovery
+    optional string ubx_output_filename = 3 [default = "/var/log/jaiabot/ppk.ubx"];
+}

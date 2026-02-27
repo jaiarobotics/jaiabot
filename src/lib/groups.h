@@ -33,11 +33,6 @@ namespace groups
 {
 constexpr goby::middleware::Group example{"jaiabot::example"};
 
-// lora
-constexpr goby::middleware::Group lora_rx{"jaiabot::lora_rx"};
-constexpr goby::middleware::Group lora_tx{"jaiabot::lora_tx"};
-constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
-
 // sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
@@ -139,6 +134,9 @@ constexpr goby::middleware::Group camera{"jaiabot::camera"};
 // mission repeater
 constexpr goby::middleware::Group script_step_begin{"jaiabot::script_step_begin"};
 constexpr goby::middleware::Group script_step_end{"jaiabot::script_step_end"};
+
+// PPK recorder
+constexpr goby::middleware::Group ppk{"jaiabot::ppk"};
 
 } // namespace groups
 } // namespace jaiabot
