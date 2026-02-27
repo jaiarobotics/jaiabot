@@ -122,7 +122,7 @@ export class LogApi {
      * @returns {Promise<Plot[]>} Promise of an array of Plot objects
      */
     static getSeries(logs: string[], paths: string[]) {
-        var url = new URL("series", window.location.origin);
+        var url = new URL("/jdv/series", window.location.origin);
         url.searchParams.append("log", logs.join(","));
         url.searchParams.append("path", paths.join(","));
 
@@ -131,7 +131,7 @@ export class LogApi {
 
     // Gets all of the logs and associated metadata for each
     static get_logs(): Promise<GetLogsResponse> {
-        return this.getJSON("/logs");
+        return this.getJSON("/jdv/logs");
     }
 
     /**
@@ -142,7 +142,7 @@ export class LogApi {
      * @returns {Promise<string[]>}
      */
     static getPaths(logs: string[], root_path: string = null) {
-        var url = new URL("paths", window.location.origin);
+        var url = new URL("/jdv/paths", window.location.origin);
         url.searchParams.append("log", logs.join(","));
 
         if (root_path !== null) {
@@ -159,7 +159,7 @@ export class LogApi {
      * @returns {Pomise<MapData>}
      */
     static getMapData(logs: string[]) {
-        var url = new URL("map", window.location.origin);
+        var url = new URL("/jdv/map", window.location.origin);
         url.searchParams.append("log", logs.join(","));
 
         type MapData = {
@@ -176,7 +176,7 @@ export class LogApi {
      * @returns {Promise<LogCommand>} Promise of an array of LogCommands
      */
     static getCommands(logs: string[]) {
-        var url = new URL("commands", window.location.origin);
+        var url = new URL("/jdv/commands", window.location.origin);
         url.searchParams.append("log", logs.join(","));
 
         type LogCommands = {
@@ -193,7 +193,7 @@ export class LogApi {
      * @returns {Promise<ActiveGoals>} Promise of an ActiveGoals object
      */
     static async getActiveGoal(logs: string[]): Promise<ActiveGoals> {
-        var url = new URL("active-goal", window.location.origin);
+        var url = new URL("/jdv/active-goal", window.location.origin);
         url.searchParams.append("log", logs.join(","));
 
         return (await this.getJSON(url.toString())) as ActiveGoals;
@@ -206,7 +206,7 @@ export class LogApi {
      * @returns {Promise<LogTaskPacket[]>} An array of task packets
      */
     static async getTaskPackets(logs: string[]) {
-        var url = new URL("task-packet", window.location.origin);
+        var url = new URL("/jdv/task-packet", window.location.origin);
         url.searchParams.append("log", logs.join(","));
 
         return (await this.getJSON(url.toString())) as LogTaskPacket[];
@@ -219,7 +219,7 @@ export class LogApi {
      * @returns {Promise<GeoJSONFeatureCollection>} A GeoJSON feature collection with the computed depth contours
      */
     static async getDepthContours(logs: string[]) {
-        var url = new URL("depth-contours", window.location.origin);
+        var url = new URL("/jdv/depth-contours", window.location.origin);
         url.searchParams.append("log", logs.join(","));
 
         return (await this.getJSON(url.toString())) as GeoJSONFeatureCollection;
@@ -232,7 +232,7 @@ export class LogApi {
      * @returns {Promise<GeoJSONFeatureCollection>} A GeoJSON feature collection with the interpolated drifts
      */
     static async getDriftInterpolations(logs: string[]) {
-        var url = new URL("interpolated-drifts", window.location.origin);
+        var url = new URL("/jdv/interpolated-drifts", window.location.origin);
         url.searchParams.append("log", logs.join(","));
 
         return (await this.getJSON(url.toString())) as GeoJSONFeatureCollection;
@@ -246,7 +246,7 @@ export class LogApi {
      * @returns {Promise<any[]>} Promise of an array of objects
      */
     static async getObjects<T>(logs: string[], path: string) {
-        var url = new URL("objects", window.location.origin);
+        var url = new URL("/jdv/objects", window.location.origin);
         url.searchParams.append("log", logs.join(","));
         url.searchParams.append("path", path);
 
@@ -260,7 +260,7 @@ export class LogApi {
      * @returns {Promise<Response>} Response of the DELETE request
      */
     static async deleteLog(logName: string) {
-        const request = new Request(`/log/${logName}`, { method: "DELETE" });
+        const request = new Request(`/jdv/log/${logName}`, { method: "DELETE" });
         return fetch(request);
     }
 
@@ -272,7 +272,7 @@ export class LogApi {
      * @returns {Promise<void>} Promise of the request
      */
     static async getMOOS(logs: string[], time_range: number[]) {
-        var url = new URL("moos", window.location.origin);
+        var url = new URL("/jdv/moos", window.location.origin);
         url.searchParams.append("log", logs.join(","));
         url.searchParams.append("t_start", String(time_range[0]));
         url.searchParams.append("t_end", String(time_range[1]));
@@ -287,11 +287,11 @@ export class LogApi {
      * @returns {Promise<ConvertStatus>} The status of the conversion operation
      */
     static async postConvertIfNeeded(logs: string[]) {
-        return (await this.post("convert-if-needed", logs)) as ConvertStatus;
+        return (await this.post("/jdv/convert-if-needed", logs)) as ConvertStatus;
     }
 
     static async getAllSeriesDescriptors(logs: string[]) {
-        var url = new URL("all-series-descriptors", window.location.origin);
+        var url = new URL("/jdv/all-series-descriptors", window.location.origin);
         url.searchParams.append("log", logs.join(","));
 
         return (await this.getJSON(url.toString())) as SeriesDescriptor[];

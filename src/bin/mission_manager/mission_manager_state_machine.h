@@ -43,6 +43,7 @@
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/ctd.pb.h"
+#include "jaiabot/messages/ppk.pb.h"
 
 namespace jaiabot
 {
