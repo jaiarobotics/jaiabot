@@ -87,6 +87,7 @@ void jaiabot::apps::AMLSensorDriver::receive_data(
     interprocess().publish<jaiabot::groups::aml>(aml);
 
     last_report_time_ = goby::time::SteadyClock::now();
+    received_aml_reading_ = true;
 }
 
 void jaiabot::apps::AMLSensorDriver::send_cfg() 
@@ -100,15 +101,16 @@ void jaiabot::apps::AMLSensorDriver::send_cfg()
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
 }
 
+// If AML has timed out AND we have received a reading before, HEALTH__DEGRADED
 void jaiabot::apps::AMLSensorDriver::health(
     goby::middleware::protobuf::ThreadHealth& health)
 {
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
-    if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now())
+    if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now() && received_aml_reading_)
     {
         glog.is_warn() && glog << "Timeout on AML report" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(jaiabot::protobuf::WARNING__MISSING_DATA__AML_DATA);
 

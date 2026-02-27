@@ -63,6 +63,7 @@ class AMLSensorDriver
 
   private:
     goby::time::SteadyClock::time_point last_aml_report_time_{std::chrono::seconds(0)};
+    bool received_aml_reading_{false};
 };
 
 } // namespace apps
@@ -104,9 +105,10 @@ void jaiabot::apps::AMLSensorDriver::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
+    // If AML has timed out AND we have received a reading before, HEALTH__DEGRADED
     if (last_aml_report_time_ +
             std::chrono::seconds(cfg().aml_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
+        goby::time::SteadyClock::now() && received_aml_reading_)
     {
         glog.is_warn() && glog << "Timeout on AML sensor" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
@@ -163,4 +165,5 @@ void jaiabot::apps::AMLSensorDriver::handle_sensor_output(const goby::middleware
     }
     aml.set_sensor(sensor_name_);
     interprocess().publish<jaiabot::groups::aml>(aml);
+    received_aml_reading_ = true;
 }
