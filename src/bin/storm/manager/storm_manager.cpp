@@ -35,7 +35,7 @@ namespace middleware = goby::middleware;
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
-
+#include "jaiabot/messages/sensor/salinity.pb.h"
 #include "states.h"
 // intentionally left blank
 #include "state_machine.h"
@@ -102,9 +102,9 @@ jaiabot::apps::StormManager::StormManager()
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {});
 
     // salinity - currently comes in two different messages
-    // interprocess().subscribe<jaiabot::groups::raw_salinity>(
-    //     [this](const jaiabot::protobuf::SalinityData& sal)
-    //     { salinity_.push_back(sal.salinity_with_units()); });
+    interprocess().subscribe<jaiabot::groups::raw_salinity>(
+        [this](const jaiabot::protobuf::SalinityData& sal)
+        { raw_salinity_.push_back(sal.salinity() * boost::units::si::si_dimensionless); });
     interprocess().subscribe<jaiabot::groups::raw_salinity>(
         [this](const jaiabot::sensor::protobuf::AtlasScientificOEMEC& sal)
         { raw_salinity_.push_back(sal.salinity() * boost::units::si::si_dimensionless); });
