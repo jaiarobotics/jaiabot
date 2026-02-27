@@ -162,11 +162,3 @@ enum StormMissionSimulatorStage
     AIR_DESCENT = 1;
     IN_WATER = 2;
 };
-
-// aggregate data sources for states to determine self test progression
-message StormSelfTestData
-{
-    optional sensor.protobuf.AtlasScientificOEMEC ec = 1;
-    optional sensor.protobuf.BlueRoboticsBar30 bar30 = 2;
-    optional goby.middleware.protobuf.gpsd.TimePositionVelocity gps_tpv = 3;
-}

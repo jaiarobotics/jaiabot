@@ -22,6 +22,7 @@
 
 #include <boost/units/systems/si/frequency.hpp>
 namespace si = boost::units::si;
+using boost::units::quantity;
 
 #include <goby/middleware/application/multi_thread.h>
 #include <goby/middleware/gpsd/groups.h>
@@ -33,6 +34,7 @@ namespace middleware = goby::middleware;
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
+#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 
 #include "states.h"
 // intentionally left blank
@@ -53,7 +55,9 @@ void jaiabot::apps::StormManager::finalize()
 }
 
 jaiabot::apps::StormManager::StormManager()
-    : goby::zeromq::MultiThreadApplication<config::StormManager>(1 * si::hertz)
+    : goby::zeromq::MultiThreadApplication<config::StormManager>(1 * si::hertz),
+      raw_salinity_(cfg().rolling_stats_sample_count().salinity()),
+      raw_pressure_(cfg().rolling_stats_sample_count().pressure())
 {
     glog.add_group("statechart", goby::util::Colors::yellow);
 
@@ -92,6 +96,23 @@ jaiabot::apps::StormManager::StormManager()
             if (change.direction() == jaiabot::protobuf::MissionStateChange::ENTERED)
                 process_mission_manager_state(change.state());
         });
+
+    // GPS TPV
+    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {});
+
+    // salinity - currently comes in two different messages
+    // interprocess().subscribe<jaiabot::groups::raw_salinity>(
+    //     [this](const jaiabot::protobuf::SalinityData& sal)
+    //     { salinity_.push_back(sal.salinity_with_units()); });
+    interprocess().subscribe<jaiabot::groups::raw_salinity>(
+        [this](const jaiabot::sensor::protobuf::AtlasScientificOEMEC& sal)
+        { raw_salinity_.push_back(sal.salinity() * boost::units::si::si_dimensionless); });
+
+    // pressure
+    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
+        [this](const jaiabot::protobuf::PressureTemperatureData& pt)
+        { raw_pressure_.push_back(pt.pressure_raw_with_units<quantity<si::pressure>>()); });
 }
 
 jaiabot::apps::StormManager::~StormManager() {}
