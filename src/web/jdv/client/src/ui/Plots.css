@@ -49,3 +49,85 @@
     max-height: 60vh;
     overflow-y: auto;
 }
+
+/* ── Stat-line toggle controls in the action bar ── */
+
+.statToggleDivider {
+    display: inline-block;
+    width: 1px;
+    height: 24px;
+    background-color: #ccc;
+    margin: 0 6pt;
+    vertical-align: middle;
+}
+
+.statToggleLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4pt 8pt;
+    cursor: pointer;
+    font-size: 0.9em;
+    border-radius: 4pt;
+    user-select: none;
+}
+
+.statToggleLabel:hover {
+    background-color: lightgray;
+}
+
+.statToggleLabel input[type="checkbox"] {
+    cursor: pointer;
+    margin: 0;
+}
+
+/* Small colour swatch dot shown next to each toggle label */
+.statToggleSwatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ── Line legend list inside the info dialog ── */
+
+.lineLegendList {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8pt 0;
+}
+
+.lineLegendList li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6pt;
+}
+
+/* Base swatch style shared by all legend entries */
+.lineLegendSwatch {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 28px;
+    height: 0;
+    margin-top: 8px;
+    border-top-width: 2.5px;
+    border-top-style: solid;
+}
+
+/* Solid line swatch (data series) */
+.lineLegendSwatch--solid {
+    border-top-style: solid;
+}
+
+/* Dashed line swatch (mean) */
+.lineLegendSwatch--dashed {
+    border-top-style: dashed;
+}
+
+/* Dotted line swatch (std. dev.) */
+.lineLegendSwatch--dotted {
+    border-top-style: dotted;
+    border-top-width: 3px;
+}

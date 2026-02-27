@@ -49,10 +49,19 @@ export interface PlotsProps {
     seriesDescriptors: SeriesDescriptor[];
 }
 
+// Colors used for stat lines — kept as constants so they are consistent
+// across the plot traces, annotations, and the info dialog legend.
+const MEAN_LINE_COLOR = "red";
+const STD_LINE_COLOR = "orange";
+
 export function Plots(props: PlotsProps) {
     const [isPathSelectorDisplayed, setIsPathSelectorDisplayed] = React.useState(false);
     const [isOpenPlotSetDisplayed, setIsOpenPlotSetDisplayed] = React.useState(false);
     const [isPlotInfoDisplayed, setIsPlotInfoDisplayed] = React.useState(false);
+
+    // Toggles for mean and std. dev. overlay lines
+    const [showMean, setShowMean] = React.useState(true);
+    const [showStd, setShowStd] = React.useState(true);
 
     function deletePlotClicked(plotIndex: number) {
         let { plots } = props;
@@ -171,41 +180,44 @@ export function Plots(props: PlotsProps) {
 
             // Mean line trace
             data.push({
-                name: `${series.title} mean`,
+                name: "Mean",
                 x: [],
                 y: [],
                 xaxis: "x",
                 yaxis: yaxis,
                 type: "scattergl",
                 mode: "lines",
-                line: { dash: "dash", color: "red", width: 1.5 },
+                line: { dash: "dash", color: MEAN_LINE_COLOR, width: 1.5 },
                 hoverinfo: "skip",
+                visible: showMean,
             } as Plotly.Data);
 
             // Mean + std line trace
             data.push({
-                name: `${series.title} mean+std`,
+                name: "+1 Std. Dev.",
                 x: [],
                 y: [],
                 xaxis: "x",
                 yaxis: yaxis,
                 type: "scattergl",
                 mode: "lines",
-                line: { dash: "dot", color: "orange", width: 1.5 },
+                line: { dash: "dot", color: STD_LINE_COLOR, width: 1.5 },
                 hoverinfo: "skip",
+                visible: showStd,
             } as Plotly.Data);
 
             // Mean - std line trace
             data.push({
-                name: `${series.title} mean-std`,
+                name: "\u22121 Std. Dev.",
                 x: [],
                 y: [],
                 xaxis: "x",
                 yaxis: yaxis,
                 type: "scattergl",
                 mode: "lines",
-                line: { dash: "dot", color: "orange", width: 1.5 },
+                line: { dash: "dot", color: STD_LINE_COLOR, width: 1.5 },
                 hoverinfo: "skip",
+                visible: showStd,
             } as Plotly.Data);
         }
 
@@ -259,6 +271,104 @@ export function Plots(props: PlotsProps) {
 
     useEffect(createPlots, [props.chosenLogs, props.plots]);
 
+    // When the user toggles showMean or showStd, update trace visibility without
+    // re-rendering the whole plot.
+    useEffect(() => {
+        const { plots } = props;
+        if (plots.length === 0) return;
+
+        // Each plot contributes 4 traces: [data, mean, mean+std, mean-std]
+        const traceCount = plots.length * 4;
+        const visibilityUpdate: boolean[] = [];
+        for (let i = 0; i < plots.length; i++) {
+            visibilityUpdate.push(true); // data trace — always visible
+            visibilityUpdate.push(showMean); // mean line
+            visibilityUpdate.push(showStd); // mean+std line
+            visibilityUpdate.push(showStd); // mean-std line
+        }
+
+        const traceIndices = Array.from({ length: traceCount }, (_, i) => i);
+        Plotly.restyle("plot", { visible: visibilityUpdate }, traceIndices);
+
+        // Also update annotation visibility by re-running the layout annotation update.
+        // We call refreshAnnotations so mean/std values are still current.
+        refreshAnnotations();
+    }, [showMean, showStd]);
+
+    // Separated annotation refresh so it can be called from the toggle effect.
+    // Returns the annotations array so it can also be used inside refreshPlotData.
+    const buildAnnotations = (plots: Plot[], visibleTimeRange: number[] | null): any[] => {
+        const annotations: any[] = [];
+
+        for (let [plot_index, series] of plots.entries()) {
+            if (series._utime_.length === 0) continue;
+
+            const t_start = visibleTimeRange ? visibleTimeRange[0] : Number.MIN_SAFE_INTEGER;
+            const t_end = visibleTimeRange ? visibleTimeRange[1] : Number.MAX_SAFE_INTEGER;
+
+            const visible_y: number[] = [];
+            for (let i = 0; i < series._utime_.length; i++) {
+                if (series._utime_[i] >= t_start && series._utime_[i] <= t_end) {
+                    visible_y.push(series.series_y[i]);
+                }
+            }
+            const visible_y_filtered = visible_y.filter((y) => y !== null && y !== undefined);
+
+            let mean = 0;
+            let std = 0;
+            if (visible_y_filtered.length > 0) {
+                mean = visible_y_filtered.reduce((a, b) => a + b, 0) / visible_y_filtered.length;
+                const variance =
+                    visible_y_filtered.reduce((sum, y) => sum + (y - mean) ** 2, 0) /
+                    visible_y_filtered.length;
+                std = Math.sqrt(variance);
+            }
+
+            const yref = "y" + (plot_index + 1);
+
+            // Mean annotation (red) — only shown when mean line is visible
+            if (showMean) {
+                annotations.push({
+                    xref: "paper",
+                    yref: yref,
+                    x: 1.01,
+                    y: mean,
+                    text: `<b>Mean:</b> ${mean.toFixed(3)}`,
+                    showarrow: false,
+                    font: { size: 10, color: MEAN_LINE_COLOR },
+                    xanchor: "left",
+                    yanchor: "bottom",
+                    bgcolor: "rgba(255,255,255,0.75)",
+                });
+            }
+
+            // Std. dev. annotation (orange) — only shown when std lines are visible
+            if (showStd) {
+                annotations.push({
+                    xref: "paper",
+                    yref: yref,
+                    x: 1.01,
+                    y: mean,
+                    text: `<b>\u00b11\u03c3:</b> ${std.toFixed(3)}`,
+                    showarrow: false,
+                    font: { size: 10, color: STD_LINE_COLOR },
+                    xanchor: "left",
+                    yanchor: "top",
+                    bgcolor: "rgba(255,255,255,0.75)",
+                });
+            }
+        }
+
+        return annotations;
+    };
+
+    const refreshAnnotations = () => {
+        const { plots, visibleTimeRange } = props;
+        if (plots.length === 0) return;
+        const annotations = buildAnnotations(plots, visibleTimeRange);
+        Plotly.relayout("plot", { annotations });
+    };
+
     const refreshPlotData = () => {
         console.debug("Refreshing plot data");
 
@@ -278,15 +388,6 @@ export function Plots(props: PlotsProps) {
             mode: [],
             customdata: [],
         };
-
-        const getIndexRange = (series: Plot, t_start: number, t_end: number) => {
-            const start_index = bisect(series._utime_, (t) => t_start - t)?.index ?? 0;
-            const end_index =
-                bisect(series._utime_, (t) => t_end - t)?.index ?? series._utime_.length;
-            return [start_index, Math.min(end_index + 2, series._utime_.length)];
-        };
-
-        const annotations: any[] = [];
 
         for (let [plot_index, series] of plots.entries()) {
             if (series._utime_.length == 0) {
@@ -313,6 +414,13 @@ export function Plots(props: PlotsProps) {
 
             // Use lines+markers for the full series, to indicate full resolution
             const auto_mode = plot_to_use.is_full_series ? "lines+markers" : "lines";
+
+            const getIndexRange = (series: Plot, t_start: number, t_end: number) => {
+                const start_index = bisect(series._utime_, (t) => t_start - t)?.index ?? 0;
+                const end_index =
+                    bisect(series._utime_, (t) => t_end - t)?.index ?? series._utime_.length;
+                return [start_index, Math.min(end_index + 2, series._utime_.length)];
+            };
 
             const [start_index, end_index] = getIndexRange(
                 plot_to_use,
@@ -423,25 +531,10 @@ export function Plots(props: PlotsProps) {
             update.hovertext.push([]);
             update.customdata.push([]);
             update.mode.push("lines");
-
-            // Annotation showing the values (right edge, paper x so it stays visible)
-            const yref = "y" + (plot_index + 1);
-            annotations.push({
-                xref: "paper",
-                yref: yref,
-                x: 1.01,
-                y: mean,
-                text: `avg=${mean.toFixed(3)}<br>std=${std.toFixed(3)}`,
-                showarrow: false,
-                font: { size: 10, color: "red" },
-                xanchor: "left",
-                yanchor: "middle",
-                bgcolor: "rgba(255,255,255,0.7)",
-            });
         }
 
         Plotly.restyle("plot", update);
-        Plotly.relayout("plot", { annotations });
+        Plotly.relayout("plot", { annotations: buildAnnotations(plots, visibleTimeRange) });
     };
 
     useEffect(refreshPlotData, [props.chosenLogs, props.plots, props.visibleTimeRange]);
@@ -501,6 +594,36 @@ export function Plots(props: PlotsProps) {
                 >
                     <Icon path={mdiInformation} size={1} style={{ verticalAlign: "middle" }}></Icon>
                 </button>
+
+                {/* Stat line toggles */}
+                <span className="statToggleDivider" />
+                <label className="statToggleLabel" title="Show or hide the mean line on each plot">
+                    <input
+                        type="checkbox"
+                        checked={showMean}
+                        onChange={(e) => setShowMean(e.target.checked)}
+                    />
+                    <span
+                        className="statToggleSwatch"
+                        style={{ backgroundColor: MEAN_LINE_COLOR }}
+                    />
+                    Mean
+                </label>
+                <label
+                    className="statToggleLabel"
+                    title="Show or hide the ±1 std. dev. lines on each plot"
+                >
+                    <input
+                        type="checkbox"
+                        checked={showStd}
+                        onChange={(e) => setShowStd(e.target.checked)}
+                    />
+                    <span
+                        className="statToggleSwatch"
+                        style={{ backgroundColor: STD_LINE_COLOR }}
+                    />
+                    ±1 Std. Dev.
+                </label>
             </div>
         );
     } else {
@@ -517,6 +640,45 @@ export function Plots(props: PlotsProps) {
                 </button>
             </div>
             <div className="text" style={{ bottom: "10pt" }}>
+                <h4>Line Legend</h4>
+                <p>Each plot can display up to four lines:</p>
+                <ul className="lineLegendList">
+                    <li>
+                        <span
+                            className="lineLegendSwatch lineLegendSwatch--solid"
+                            style={{ borderColor: "#1f77b4" }}
+                        />
+                        <strong>Data series</strong> — the raw sensor values over time. Shown as a
+                        solid line; when fully zoomed in to full resolution, individual data-point
+                        markers are also shown.
+                    </li>
+                    <li>
+                        <span
+                            className="lineLegendSwatch lineLegendSwatch--dashed"
+                            style={{ borderColor: MEAN_LINE_COLOR }}
+                        />
+                        <strong style={{ color: MEAN_LINE_COLOR }}>Mean</strong> — a horizontal
+                        dashed line representing the arithmetic mean of all data points currently
+                        visible in the time window.
+                    </li>
+                    <li>
+                        <span
+                            className="lineLegendSwatch lineLegendSwatch--dotted"
+                            style={{ borderColor: STD_LINE_COLOR }}
+                        />
+                        <strong style={{ color: STD_LINE_COLOR }}>±1 Standard Deviation</strong> —
+                        two horizontal dotted lines drawn one standard deviation above and below the
+                        mean, showing the spread of the visible data.
+                    </li>
+                </ul>
+                <p>
+                    Use the <strong>Mean</strong> and <strong>±1 Standard Deviation</strong>{" "}
+                    checkboxes in the toolbar to toggle these overlay lines on or off independently.
+                    A colour-coded info box in the top-right corner of each plot displays the
+                    current numeric values of the mean (in{" "}
+                    <span style={{ color: MEAN_LINE_COLOR }}>red</span>) and standard deviation (in{" "}
+                    <span style={{ color: STD_LINE_COLOR }}>orange</span>).
+                </p>
                 <h4>Plot Downsampling</h4>
                 <p>
                     The displayed plot data is recursively downsampled to improve performance when
