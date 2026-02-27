@@ -81,6 +81,7 @@ template <typename Quantity> class RollingStatsAccumulator
     using QuantitySquared = boost::units::quantity<unit2_type, value_type>;
 
     std::size_t size() const { return buf_.size(); }
+    std::size_t n() const { return size(); }
 
     Quantity mean() const { return extract<boost::accumulators::tag::mean, Quantity>(); }
     Quantity μ() const { return mean(); }
