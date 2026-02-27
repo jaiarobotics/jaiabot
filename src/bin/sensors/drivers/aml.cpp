@@ -108,7 +108,6 @@ void jaiabot::apps::AMLSensorDriver::health(
     if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on AML report" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(jaiabot::protobuf::WARNING__MISSING_DATA__AML_DATA);
 
