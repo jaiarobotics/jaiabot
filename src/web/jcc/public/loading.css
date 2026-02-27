@@ -14,17 +14,6 @@
 #initial-loading-content {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 2rem;
-}
-
-#initial-loading-logo {
-    width: 300px;
-    max-width: 300px;
-    height: auto;
-    animation:
-        fadeIn 0.5s ease-in,
-        sheen 2s ease-in-out 0.5s infinite;
 }
 
 #initial-loading-bar-container {
@@ -38,9 +27,13 @@
 #initial-loading-bar {
     height: 100%;
     background-color: #cc0505;
-    width: 10%;
-    border-radius: 4px;
     transition: width 0.5s ease-out;
+}
+
+#initial-loading-logo {
+    animation:
+        fadeIn 1s ease-in forwards,
+        sheen 2s ease-in-out 0.5s infinite;
 }
 
 @keyframes fadeIn {
@@ -54,12 +47,12 @@
 
 @keyframes sheen {
     0% {
-        filter: brightness(1);
+        transform: scale(1);
     }
     50% {
-        filter: brightness(1.2);
+        transform: scale(1.03);
     }
     100% {
-        filter: brightness(1);
+        transform: scale(1);
     }
 }
