@@ -150,6 +150,9 @@ class HubManager : public ApplicationBase
     std::set<int> bot_to_gps_ids_;
 
     std::map<int, goby::time::MicroTime> known_bots_;
+
+    // The current mission_id to populate in outgoing commands, incremented each time a new mission is started
+    uint8_t current_mission_id_{0};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -822,6 +825,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     using protobuf::Command;
     auto command = input_command;
     command.set_from_hub_id(cfg().hub_id());
+    command.mutable_plan()->set_mission_id(current_mission_id_++);
 
     // check that timestamp is unique within DCCL rounding and bump forward by a second
     // if necessary so that mission manager doesn't reject valid commands
@@ -881,51 +885,49 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
             command_fragment.set_time(command.time());
             command_fragment.set_type(Command::MISSION_PLAN_FRAGMENT);
 
+            auto mutable_plan = command_fragment.mutable_plan();
+
             // The initial fragment is going to have more data
-            if (command.plan().has_start() && fragment_index == 0)
+            if (fragment_index == 0)
             {
-                command_fragment.mutable_plan()->set_start(command.plan().start());
+                if (command.plan().has_start())
+                {
+                    mutable_plan->set_start(command.plan().start());
+                }
+                if (command.plan().has_movement())
+                {
+                    mutable_plan->set_movement(command.plan().movement());
+                }
+                if (command.plan().has_recovery())
+                {
+                    *mutable_plan->mutable_recovery() = command.plan().recovery();
+                }
+                if (command.plan().has_speeds())
+                {
+                    *mutable_plan->mutable_speeds() = command.plan().speeds();
+                }
+                if (command.plan().has_repeats())
+                {
+                    mutable_plan->set_repeats(command.plan().repeats());
+                }
+                if (command.plan().has_bottom_depth_safety_params())
+                {
+                    *mutable_plan->mutable_bottom_depth_safety_params() =
+                        command.plan().bottom_depth_safety_params();
+                }
+                if (command.plan().has_mission_id())
+                {
+                    mutable_plan->set_mission_id(command.plan().mission_id());
+                }
+                if (command.plan().has_mission_name())
+                {
+                    mutable_plan->set_mission_name(command.plan().mission_name());
+                }
             }
 
-            if (command.plan().has_movement() && fragment_index == 0)
-            {
-                command_fragment.mutable_plan()->set_movement(command.plan().movement());
-            }
+            mutable_plan->set_fragment_index(fragment_index);
 
-            if (command.plan().has_recovery() && fragment_index == 0)
-            {
-                *command_fragment.mutable_plan()->mutable_recovery() = command.plan().recovery();
-            }
-
-            if (command.plan().has_speeds() && fragment_index == 0)
-            {
-                *command_fragment.mutable_plan()->mutable_speeds() = command.plan().speeds();
-            }
-
-            if (command.plan().has_repeats() && fragment_index == 0)
-            {
-                command_fragment.mutable_plan()->set_repeats(command.plan().repeats());
-            }
-
-            if (command.plan().has_bottom_depth_safety_params() && fragment_index == 0)
-            {
-                *command_fragment.mutable_plan()->mutable_bottom_depth_safety_params() =
-                    command.plan().bottom_depth_safety_params();
-            }
-
-            if (command.plan().has_mission_id() && fragment_index == 0)
-            {
-                command_fragment.mutable_plan()->set_mission_id(command.plan().mission_id());
-            }
-
-            if (command.plan().has_mission_name() && fragment_index == 0)
-            {
-                command_fragment.mutable_plan()->set_mission_name(command.plan().mission_name());
-            }
-
-            command_fragment.mutable_plan()->set_fragment_index(fragment_index);
-
-            command_fragment.mutable_plan()->set_expected_fragments(command_fragments_expected);
+            mutable_plan->set_expected_fragments(command_fragments_expected);
 
             goal_max_index = goal_max_index + goal_max_size;
 
@@ -944,7 +946,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                                              << ", Total goal size: " << command.plan().goal_size()
                                              << std::endl;
 
-                    protobuf::MissionPlan::Goal* goal = command_fragment.mutable_plan()->add_goal();
+                    protobuf::MissionPlan::Goal* goal = mutable_plan->add_goal();
                     if (command.plan().goal(goal_index).has_name())
                     {
                         goal->set_name(command.plan().goal(goal_index).name());

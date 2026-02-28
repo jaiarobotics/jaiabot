@@ -235,10 +235,6 @@ class Interface:
     def post_command(self, command_dict, clientId):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
 
-        if command.HasField('plan') and command.plan.HasField('mission_name'):
-            # Calculate hash of mission_name and store it in mission_id
-            command.plan.mission_id = hashlib.md5(command.plan.mission_name.encode('utf-8')).digest()
-
         logging.debug(f'Sending command: {command}')
         command.time = now_utime()
         msg = ClientToPortalMessage()

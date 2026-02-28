@@ -363,9 +363,9 @@ message BotStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    required uint32 command_from_hub_id = 70
+    optional uint32 command_from_hub_id = 70
         [(dccl.field) = { min: 0 max: 30 }];
-    required uint32 mission_id = 71 [(dccl.field) = { min: 0 max: 255 }];
+    optional uint32 mission_id = 71 [(dccl.field) = { min: 0 max: 255 }];
     optional string mission_name = 72
         [(dccl.field).omit = true];  // not sent, restored on Hub from map
 }
@@ -635,9 +635,9 @@ message TaskPacket
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    required uint32 command_from_hub_id = 70
+    optional uint32 command_from_hub_id = 70
         [(dccl.field) = { min: 0 max: 30 }];
-    required uint32 mission_id = 71 [(dccl.field) = { min: 0 max: 255 }];
+    optional uint32 mission_id = 71 [(dccl.field) = { min: 0 max: 255 }];
     optional string mission_name = 72
         [(dccl.field).omit = true];  // not sent, restored on Hub from map
 

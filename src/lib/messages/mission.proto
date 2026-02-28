@@ -420,7 +420,7 @@ message MissionPlan
 
     
     optional string mission_name = 11 [(dccl.field).omit = true]; // not sent over radio, only saved to the hub
-    optional uint32 mission_id = 10 [(dccl.field) = { min: 0 max: 255 }];
+    optional uint32 mission_id = 12 [(dccl.field) = { min: 0 max: 255 }];
 
 }
 

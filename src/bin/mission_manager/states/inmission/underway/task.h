@@ -41,9 +41,9 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
 
         task_packet_.set_bot_id(cfg().bot_id());
 
-        // Mission md5
         auto mission_id = this->machine().mission_plan().mission_id();
         task_packet_.set_mission_id(mission_id);
+        task_packet_.set_command_from_hub_id(this->machine().hub_id());
 
         task_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
         boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
