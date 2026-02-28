@@ -362,6 +362,12 @@ message BotStatus
         },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
+
+    required uint32 command_from_hub_id = 70
+        [(dccl.field) = { min: 0 max: 30 }];
+    required uint32 mission_id = 71 [(dccl.field) = { min: 0 max: 255 }];
+    optional string mission_name = 72
+        [(dccl.field).omit = true];  // not sent, restored on Hub from map
 }
 
 message DriftPacket
@@ -629,10 +635,11 @@ message TaskPacket
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional bytes mission_id = 12 [
-        (dccl.field).max_length = 16,
-        (dccl.field).omit = true  // not sent over radio, only saved to local goby file for offload
-    ];
+    required uint32 command_from_hub_id = 70
+        [(dccl.field) = { min: 0 max: 30 }];
+    required uint32 mission_id = 71 [(dccl.field) = { min: 0 max: 255 }];
+    optional string mission_name = 72
+        [(dccl.field).omit = true];  // not sent, restored on Hub from map
 
 }
 
