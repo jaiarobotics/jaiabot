@@ -146,7 +146,7 @@ module.exports = (env, argv) => {
                                   options: {
                                       cacheName: "map-tiles",
                                       expiration: {
-                                          maxEntries: 50000,
+                                          maxEntries: 500,
                                           maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
                                       },
                                   },
