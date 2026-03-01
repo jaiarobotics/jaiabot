@@ -637,6 +637,14 @@ void jaiabot::apps::MissionManager::publish_mission_report(protobuf::MissionStat
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
 
+    // Add mission and hub info to the report if we are in a mission state
+    if (in_mission) {
+        report.set_command_from_hub_id(machine_->hub_id());
+        if (machine_->mission_plan().has_mission_id()) {
+            report.set_mission_id(machine_->mission_plan().mission_id());
+        }
+    }
+
     // Relay the repeat_index
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
     {
@@ -1022,6 +1030,7 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
             out_command.set_bot_id(initial_fragment.bot_id());
             out_command.set_time(initial_fragment.time());
             out_command.set_type(protobuf::Command::MISSION_PLAN);
+
 
             if (initial_fragment.plan().has_mission_name())
             {

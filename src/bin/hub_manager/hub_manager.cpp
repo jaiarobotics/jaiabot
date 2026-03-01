@@ -825,7 +825,11 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     using protobuf::Command;
     auto command = input_command;
     command.set_from_hub_id(cfg().hub_id());
-    command.mutable_plan()->set_mission_id(current_mission_id_++);
+
+    if (command.has_plan())
+    {
+        command.mutable_plan()->set_mission_id(current_mission_id_++);
+    }
 
     // check that timestamp is unique within DCCL rounding and bump forward by a second
     // if necessary so that mission manager doesn't reject valid commands
