@@ -98,7 +98,7 @@ export function StartAllMissionsDialog(props: DialogProps) {
                 subMessage += `because ${botIDs.length > 1 ? "they are in the download queue." : "it is in the download queue."}`;
                 break;
             case DisabledCodes.LOW_BATTERY:
-                subMessage += `because ${botIDs.length > 1 ? "they have a crtically low battery." : "it has a critically low battery."}`;
+                subMessage += `because ${botIDs.length > 1 ? "they have a critically low battery." : "it has a critically low battery."}`;
                 break;
         }
 
