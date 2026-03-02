@@ -1,8 +1,7 @@
 from typing import *
-from .utils import get_task_packet_id, utime, now_utime
+from .utils import get_task_packet_id, utime
 from datetime import datetime
 import glob
-from pathlib import Path
 import json
 import logging
 from pprint import pprint
@@ -13,7 +12,6 @@ import os
 import os.path
 import threading
 import shutil
-import subprocess
 
 
 l = logging.getLogger('task_packet_database')
@@ -48,12 +46,29 @@ class TaskPacketDatabase:
         db = sqlite3.connect(filename, check_same_thread=False)
 
         # Create tables
+
+        # `task_packets` table contains the actual TaskPacket data
+        # * id is the task_packet_id
+        # * bot_id is the id of the bot that generated the task packet
+        # * utime is the unix timestamp of when the task packet was generated
+        # * json_string is the full task packet as a json string.  We use json_string instead of individual columns 
+        #   for flexibility and to avoid having to migrate the database every time we change the task packet schema.
         db.execute('create table if not exists task_packets (id text primary key on conflict replace, bot_id integer, utime integer, json_string text)')
+
+        # `included` table contains the task_packet_ids and their included boolean.  
+        #   We separate this from the main task_packets table to make it more efficient to query included vs excluded 
+        #   task packets without having to read the full json_string
         db.execute('create table if not exists included (id text primary key, included integer)')
+
+        # `mission_name` table contains the task_packet_ids and their mission names.  This is used for querying task 
+        #   packets by mission name.
+        db.execute('create table if not exists mission_name (id text primary key, mission_name text)')
+
         # Create indices
         db.execute('create index if not exists task_packets$bot_id on task_packets(bot_id)')
         db.execute('create index if not exists task_packets$utime on task_packets(utime)')
         db.execute('create index if not exists task_packets$included on included(included)')
+        db.execute('create index if not exists mission_name$mission_name on mission_name(mission_name)')
         db.commit()
 
         return db
@@ -105,6 +120,13 @@ class TaskPacketDatabase:
         self.db.execute('insert or replace into task_packets (id, bot_id, utime, json_string) values (?, ?, ?, ?)', values)
         self.db.execute('insert or ignore into included (id, included) values (?, ?)', (id, True))
 
+        # Task packets that are offloaded from a bot will not have a mission_name field, but task packets that 
+        #   are published interprocess by the hub manager will have a mission_name field (set based on the mission 
+        #   id to name mapping in the hub manager).  So we only add to the mission_name table if the mission_name 
+        #   field is present in the task packet.
+        if 'mission_name' in task_packet:
+            self.db.execute('insert or ignore into mission_name (id, mission_name) values (?, ?)', (id, task_packet["mission_name"]))
+
 
     def add_task_packet(self, task_packet: Dict):
         """Adds a new task packet to the database.
@@ -118,7 +140,7 @@ class TaskPacketDatabase:
             self.task_packets_version += 1
 
 
-    def query_task_packets(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None):
+    def query_task_packets(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None, mission_names: Union[Iterable[str], None]=None) -> List[Dict]:
         """Queries the task packets.
 
         Args:
@@ -126,7 +148,7 @@ class TaskPacketDatabase:
             start_utime (Union[int, None]): Start of time window (or None if no minimum time)
             end_utime (Union[int, None]): End of time window (or None if no maximum time)
             included (Union[bool, None]): Included or excluded task packets (None for both types)
-
+            mission_names (Union[Iterable[str], None]): List of mission names to filter by (None for all)
         Returns:
             list[dict]: A list of task packets that match the criteria.
         """
@@ -153,7 +175,11 @@ class TaskPacketDatabase:
                 conditionals.append(f'included = ?')
                 parameters.append(1 if included else 0)
 
-            query_string = f'select json_string from task_packets natural join included'
+            if mission_names is not None:
+                conditionals.append(f'mission_name in ({",".join(["?" * len(mission_names)])})')
+                parameters.extend(mission_names)
+
+            query_string = f'select json_string from task_packets natural join included natural join mission_name'
             if len(conditionals) > 0:
                 query_string = query_string + " where " + " and ".join(conditionals)
 
