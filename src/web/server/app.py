@@ -2,6 +2,7 @@
 
 import argparse
 from flask import Flask, send_from_directory, Response, request
+from flask_compress import Compress
 import json
 import logging
 import os
@@ -50,6 +51,7 @@ if args.hostname is None:
 jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
 
 app = Flask(__name__)
+Compress(app)
 
 ####### Static files
 jcc: str = os.path.join(args.appRoot, 'jcc')
