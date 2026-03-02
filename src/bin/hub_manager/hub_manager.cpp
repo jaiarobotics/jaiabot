@@ -153,6 +153,9 @@ class HubManager : public ApplicationBase
 
     // The current mission_id to populate in outgoing commands, incremented each time a new mission is started
     uint8_t current_mission_id_{0};
+
+    // map mission id to mission name for logging purposes
+    std::map<uint8_t, std::string> mission_id_to_name_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -757,8 +760,22 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
             std::make_pair(task_packet.bot_id(), task_packet.start_time()));
     }
 
+    // Set the mission_name of the task packet based on the current mission id to name mapping for logging purposes
+    jaiabot::protobuf::TaskPacket task_packet_copy = task_packet;
+
+    if (mission_id_to_name_.count(task_packet.mission_id()))
+    {
+        task_packet_copy.set_mission_name(mission_id_to_name_.at(task_packet.mission_id()));
+    }
+    else
+    {
+        glog.is_warn() && glog << "Mission id " << static_cast<int>(task_packet.mission_id())
+                               << " not found in mission_id_to_name_ mapping" << std::endl;
+        task_packet_copy.set_mission_name("UNKNOWN_MISSION");
+    }
+
     // Publish interprocess for other goby apps
-    interprocess().publish<jaiabot::groups::task_packet>(task_packet);
+    interprocess().publish<jaiabot::groups::task_packet>(task_packet_copy);
 }
 
 void jaiabot::apps::HubManager::handle_command_for_hub(
@@ -828,7 +845,9 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
 
     if (command.has_plan())
     {
-        command.mutable_plan()->set_mission_id(current_mission_id_++);
+        command.mutable_plan()->set_mission_id(current_mission_id_);
+        mission_id_to_name_[current_mission_id_] = command.plan().mission_name();
+        current_mission_id_++;
     }
 
     // check that timestamp is unique within DCCL rounding and bump forward by a second
