@@ -14,6 +14,7 @@ from pathlib import Path
 jaia_electronics_stack='0'
 jaia_imu_type='bno055'
 jaia_arduino_type='spi'
+jaia_pam_connection_type='none'
 
 if "jaia_electronics_stack" in os.environ:
     jaia_electronics_stack=os.environ['jaia_electronics_stack']
@@ -56,6 +57,16 @@ elif jaia_arduino_type == 'usb':
     jaia_arduino_dev_location="/dev/arduino"
 else:
     jaia_arduino_dev_location="/dev/ttyAMA1"
+
+if "jaia_pam_connection_type" in os.environ:
+    jaia_pam_connection_type=os.environ['jaia_pam_connection_type']
+
+if jaia_pam_connection_type == "uart":
+    jaia_pam_dev_location="/dev/pam-stack"
+elif jaia_pam_connection_type == "usb":
+    jaia_pam_dev_location="/dev/ttyACM0"
+else:
+    jaia_pam_dev_location="/dev/pam-stack"
 
 jaia_data_offload_ignore_type="NONE"
 

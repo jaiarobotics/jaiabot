@@ -12,18 +12,6 @@ from threading import *
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('echo')
 
-try:
-    uart = serial.Serial("/dev/ttyACM0", 115200)
-    physical_device_available = True
-except ModuleNotFoundError:
-    log.warning('ModuleNotFoundError, so physical device not available')
-    physical_device_available = False
-except NotImplementedError:
-    log.warning('NotImplementedError, so physical device not available')
-    physical_device_available = False
-except serial.serialutil.SerialException:
-    log.warning('SerialException, so physical device not available')
-    physical_device_available = False
 
 class EchoState(Enum):
     BOOTING = 0
@@ -52,23 +40,39 @@ class EchoCommands(Enum):
 class Echo:
     _lock: Lock
 
-    def __init__(self):
+    def __init__(self, serial_dev):
         log.info('Device: MAI')
+
+        self.is_setup = False
+        self.echo_state = None
+        self.uart = None
+        self._lock = Lock()
+
+        try:
+            self.uart = serial.Serial(f"{serial_dev}", 115200)
+            physical_device_available = True
+        except ModuleNotFoundError:
+            log.warning('ModuleNotFoundError, so physical device not available')
+            physical_device_available = False
+        except NotImplementedError:
+            log.warning('NotImplementedError, so physical device not available')
+            physical_device_available = False
+        except serial.serialutil.SerialException:
+            log.warning('SerialException, so physical device not available')
+            physical_device_available = False
 
         if not physical_device_available:
             log.error('No physical device available')
             exit(1)
 
-        self.is_setup = False
-        self.echo_state = None
-        self._lock = Lock()
+        
 
     def setup(self):
         if not self.is_setup:
             try:
                 log.debug('We are not setup')
-
-                self.sensor = uart
+                
+                self.sensor = self.uart
 
                 log.debug('Connected, now lets enable output')
 

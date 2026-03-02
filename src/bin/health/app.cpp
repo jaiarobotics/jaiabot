@@ -257,7 +257,13 @@ jaiabot::apps::Health::Health()
                     break;
                 case protobuf::EchoIssue::REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY:
                     glog.is_debug2() && glog << "ECHO ERROR: RESTART ECHO PY. " << std::endl;
-                    reboot_echo();
+
+                    /** NOTE: The echo reboot pin and imu reboot pin are both attached to GPIO 23 on the Pi. 
+                     * If we experiece an echo issue (like an unseated SD), we will see the IMU constantly restarting .
+                     * Commented out because we do not see echo issues with the PAM stack anymore - only with the SD card coming unseated. 
+                    */
+                    // reboot_echo(); 
+                    
                     restart_echo_py();
                     break;
                 default:
