@@ -660,7 +660,7 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    optional double hs_std = 2 [
+    optional double hs_uncertainty = 2 [
         (dccl.field) = {
             min: 0.1 
             max: 1.0
@@ -682,7 +682,7 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    optional double period_std = 4 [
+    optional double period_uncertainty = 4 [
         default = 2.0,
         (dccl.field) = {
             min: 1.0 
