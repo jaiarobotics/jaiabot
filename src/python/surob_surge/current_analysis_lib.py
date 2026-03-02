@@ -5,6 +5,8 @@ import pandas as pd
 DRIFT_ARDUINO_VALUE = 1500
 MIN_DRIFT_LEN_PTS = 300
 MOTOR_STOP_MOMENTUM_PERIOD_S = 1.5 # TODO: determine upper bound for vehicle to come to a stop from full throttle, current value is somewhat arbitrary
+DEFAULT_SPEED_UNCERTAINTY_MPS = 0.25 # TODO: determine true value from static testing analysis
+DEFAULT_DIRECTION_UNCERTAINTY_DEG = 45.0
 
 # --- Data Analysis Functions ---
 
@@ -185,17 +187,19 @@ def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
     mean_bearing = (np.rad2deg(np.arctan2(np.nanmean(np.sin(np.deg2rad(bearings))), np.nanmean(np.cos(np.deg2rad(bearings))))) + 360) % 360 if bearings.size > 0 else np.nan
     avg_mode_speed = np.nanmean(speed_modes) if speed_modes.size > 0 else np.nan
     
-    speed_std = calculate_std_about_value(speed_modes, avg_mode_speed) 
-    dir_std = calculate_circular_std_about_value_deg(bearings, mean_bearing)
+    speed_uncertainty = calculate_std_about_value(speed_modes, avg_mode_speed) 
+    bearing_uncertainty = calculate_circular_std_about_value_deg(bearings, mean_bearing)
 
     log.info(f"Mean driftlet stats for this station keep:")
     log.info(f"Average Mode Speed: {avg_mode_speed} m/s.")
     log.info(f"Mean Bearing: {mean_bearing} degrees.")
-    if np.isnan(speed_std) or np.isnan(dir_std):
-        log.warn(f"Speed and direction standard deviations could not be calculated for this station keep! Too few driftlets.")
+    if np.isnan(speed_uncertainty) or np.isnan(bearing_uncertainty):
+        log.warn(f"Speed and direction standard deviations could not be calculated for this station keep! Too few driftlets. Using default uncertainty values instead.")
+        speed_uncertainty = DEFAULT_SPEED_UNCERTAINTY_MPS
+        bearing_uncertainty = DEFAULT_DIRECTION_UNCERTAINTY_DEG
     else:
-        log.info(f"Mode Speed STD: {speed_std} m/s.")
-        log.info(f"Bearing STD: {bearings} degrees.")
+        log.info(f"Mode Speed STD: {speed_uncertainty} m/s.")
+        log.info(f"Bearing STD: {bearing_uncertainty} degrees.")
 
     # Collect non-empty filtered latitude/longitude arrays
     lat_arrays = []
@@ -225,8 +229,8 @@ def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
     return {
         "mean_bearing": mean_bearing,
         "avg_mode_speed": avg_mode_speed,
-        "speed_std_about_reported_mean": speed_std,
-        "dir_std_about_reported_mean": dir_std,
+        "speed_uncertainty": speed_uncertainty,
+        "bearing_uncertainty": bearing_uncertainty,
         "n_good_drifts": len(good_drifts_stats),
         "mean_lat": mean_lat,
         "mean_lon": mean_lon
