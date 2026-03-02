@@ -598,7 +598,8 @@ message CurrentPacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    required double speed_std = 2 [
+    // uncertainty metrics are either std of driflets within Station Keep (n > 1), or default uncertainty metric derived from static testing (n = 1)
+    required double speed_uncertainty = 2 [
         (dccl.field) = {
             min: 0.05
             max: 2.0
@@ -621,7 +622,7 @@ message CurrentPacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    required double heading_std = 4 [
+    required double heading_uncertainty = 4 [
         (dccl.field) = {
             min: 0.1
             max: 15.0
