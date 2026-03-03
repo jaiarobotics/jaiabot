@@ -55,6 +55,10 @@ if args.hostname is None:
 jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
 
 app = Flask(__name__)
+app.config['COMPRESS_MIMETYPES'] = [
+    'text/html', 'text/css', 'text/xml',
+    'application/json', 'application/javascript', 'text/javascript'
+]
 Compress(app)
 
 ####### Static files

@@ -30,7 +30,7 @@ import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPa
 import "./App.less";
 
 // Small delay to ensure React renders before removing HTML loading screen
-const LOADING_SCREEN_REMOVAL_DELAY_MS = 1000;
+const LOADING_SCREEN_REMOVAL_DELAY_MS = 50;
 
 /**
  * The root of the JCC interface
@@ -42,10 +42,7 @@ export default function App() {
         // Remove the initial HTML loading screen when React mounts and is ready
         const initialLoadingScreen = document.getElementById("initial-loading-screen");
         if (initialLoadingScreen) {
-            // Small delay to ensure React has rendered before removing loading screen
-            setTimeout(() => {
-                initialLoadingScreen.remove();
-            }, LOADING_SCREEN_REMOVAL_DELAY_MS);
+            setTimeout(() => initialLoadingScreen.remove(), LOADING_SCREEN_REMOVAL_DELAY_MS);
         }
     }, []);
 
