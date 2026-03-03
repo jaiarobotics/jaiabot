@@ -106,7 +106,7 @@ module.exports = (env, argv) => {
                 template: path.resolve(__dirname, "jcc/public/index.html"),
                 favicon: path.resolve(__dirname, "jcc/public/favicon.png"),
                 excludeChunks: ["customLayerWorker"],
-                inject: false, // Script injection handled manually in template for download progress tracking
+                inject: true,
             }),
             new CopyWebpackPlugin({
                 patterns: [
