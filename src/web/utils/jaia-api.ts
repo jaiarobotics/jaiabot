@@ -276,6 +276,18 @@ export class JaiaAPI {
         });
     }
 
+    async getCTDProfiles(botID: number) {
+        return fetch(`ctd-profiles/${botID}`, {
+            method: "GET",
+        });
+    }
+
+    async deleteCTDProfiles(botID: number) {
+        return fetch(`ctd-profiles/${botID}`, {
+            method: "DELETE",
+        });
+    }
+
     allStop() {
         return this.post("jaia/v0/all-stop");
     }
