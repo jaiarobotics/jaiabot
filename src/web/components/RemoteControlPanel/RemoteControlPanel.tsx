@@ -75,7 +75,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         return () => {
             clearInterval(rcCommandInterval);
         };
-    }, [throttleDirection, throttleMagnitude, rudderDirection, rudderMagnitude]);
+    }, [controlType, throttleDirection, throttleMagnitude, rudderDirection, rudderMagnitude]);
 
     /**
      * Sends RC commands periodically unless in dive mode.
