@@ -548,6 +548,12 @@ jaiabot_apps = [
      'template': 'gpsd-sim.service.in',
      'runs_on': [Type.BOT],
      'runs_when': Mode.SIMULATION},
+    {'exe': 'jaiabot_ctd_manager',
+     'description': 'JaiaBot CTD Manager',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_CTD_MANAGER',
+     'runs_on': [Type.BOT],
+     'wanted_by': 'jaiabot_health.service'},
 
     ## Bot Types: HYDRO, ECHO, NONE Services
 

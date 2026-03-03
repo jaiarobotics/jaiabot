@@ -100,9 +100,7 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
         // Subscribe to Echo driver data changes, so they show up in the engineering_status messages
         interprocess().subscribe<jaiabot::groups::echo>(
             [this](const jaiabot::protobuf::EchoData& echo_data)
-            {
-                latest_engineering.mutable_echo()->set_echo_state(echo_data.echo_state());
-            });
+            { latest_engineering.mutable_echo()->set_echo_state(echo_data.echo_state()); });
 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Engineering& engineering_status)
