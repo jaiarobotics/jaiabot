@@ -61,13 +61,6 @@ else:
 if "jaia_pam_connection_type" in os.environ:
     jaia_pam_connection_type=os.environ['jaia_pam_connection_type']
 
-if jaia_pam_connection_type == "uart":
-    jaia_pam_dev_location="/dev/pam-stack"
-elif jaia_pam_connection_type == "usb":
-    jaia_pam_dev_location="/dev/ttyACM0"
-else:
-    jaia_pam_dev_location="/dev/pam-stack"
-
 jaia_data_offload_ignore_type="NONE"
 
 if "jaia_data_offload_ignore_type" in os.environ:
