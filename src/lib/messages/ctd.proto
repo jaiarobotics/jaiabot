@@ -19,9 +19,16 @@ message CTDSnapshot {
             precision: -6  // second precision
         }
     ];
-    optional double salinity = 2;
-    optional double temperature = 3;
-    optional double depth = 4;
+    // PPT
+    optional double salinity = 2 [(dccl.field) = {
+        units { derived_dimensions: "dimensionless" }
+    }];
+    optional double temperature = 3 [(dccl.field) = {
+        units { derived_dimensions: "temperature" system: "celsius" }
+    }];
+    optional double depth = 4 [(dccl.field) = {
+        units: { derived_dimensions: "length" }
+    }];
 }
 
 message CTDProfile {

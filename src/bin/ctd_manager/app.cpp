@@ -79,10 +79,7 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
 
     if (ctd_profile.snapshot_size() > 0)
     {
-      auto seconds = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::microseconds{ctd_profile.snapshot(0).time()});
-      auto time_point = std::chrono::sys_time<std::chrono::seconds>{seconds};
-      auto local = std::chrono::zoned_time{std::chrono::current_zone(), time_point};
-      time = std::format("{:%Y%m%dT%H%M%S}", local);
+        time = goby::time::file_str();
     }
     else 
     {
