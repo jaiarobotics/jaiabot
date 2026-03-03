@@ -703,6 +703,21 @@ if 'ppk' in jaia_additional_sensors:
     ]
     jaiabot_apps.extend(jaiabot_ppk)
 
+if jaia_temperature_sensor_type.value == 'tsys01':
+    jaiabot_apps_tsys01 = [
+        {'exe': 'jaiabot_tsys01.py',
+         'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
+         'template': 'py-app.service.in',
+         'subdir': 'tsys01_temperature_sensor',
+         'args': f'-p {UDP_GATEWAY_PORT}',
+         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
+         'runs_on': [Type.BOT],
+         'runs_when': Mode.RUNTIME, 
+         'wanted_by': 'jaiabot_health.service',
+         'restart': 'on-failure'},
+    ]
+    jaiabot_apps.extend(jaiabot_apps_tsys01)
+
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
      'description': 'Hub Button LED Poweroff Mode',
