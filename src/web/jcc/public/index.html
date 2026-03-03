@@ -80,6 +80,7 @@
                                     // no reliance on browser HTTP cache sharing between
                                     // fetch() and <script> request destinations.
                                     var blob = new Blob(chunks, { type: 'application/javascript' });
+                                    chunks.length = 0; // Free Uint8Arrays immediately
                                     var url = URL.createObjectURL(blob);
                                     var s = document.createElement('script');
                                     s.onload = function () { updateProgress(95); URL.revokeObjectURL(url); };
