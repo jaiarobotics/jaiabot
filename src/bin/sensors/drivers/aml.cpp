@@ -56,7 +56,6 @@ jaiabot::apps::AMLSensorDriver::AMLSensorDriver(
   report_timeout_ = config.report_timeout_seconds();
   resend_cfg_timeout_ = config.resend_cfg_timeout_seconds(); 
 
-
   // Configure the sensor
   send_cfg();
 }

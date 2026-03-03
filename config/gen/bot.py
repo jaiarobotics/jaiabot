@@ -69,8 +69,7 @@ if "jaia_data_offload_ignore_type" in os.environ:
 bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 
 echo_enabled=(bot_type == "ECHO")
-
-# We do not want these services running if they are already running on the BIO payload board
+# Ignore health warnings from UDP gateway if data comes from BIO payload board
 salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
 

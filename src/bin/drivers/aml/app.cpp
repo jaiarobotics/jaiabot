@@ -86,7 +86,6 @@ jaiabot::apps::AMLSensorDriver::AMLSensorDriver()
     [this](const goby::middleware::protobuf::IOData& data) { handle_sensor_output(data); });
 
   get_sensor_version();
-
 }
 
 void jaiabot::apps::AMLSensorDriver::health(

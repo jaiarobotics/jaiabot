@@ -39,7 +39,7 @@ message AMLSensorDriver
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     optional int32 aml_report_timeout_seconds = 10 [default = 40];
-    optional int32 output_rate = 11 [default = 40];
+    optional int32 output_rate = 11 [default = 25];
 
     optional goby.middleware.protobuf.SerialConfig serial = 20;
 
