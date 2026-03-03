@@ -29,7 +29,7 @@ import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPa
 
 import "./App.less";
 
-// Small delay to ensure React renders before removing HTML loading screen
+// 400 ms is intentionally conservative to avoid flicker or partially rendered content on slower devices.
 const LOADING_SCREEN_REMOVAL_DELAY_MS = 400;
 
 /**

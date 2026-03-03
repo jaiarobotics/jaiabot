@@ -104,7 +104,6 @@ module.exports = (env, argv) => {
         plugins: [
             new HtmlWebpackPlugin({
                 template: path.resolve(__dirname, "jcc/public/index.html"),
-                favicon: path.resolve(__dirname, "jcc/public/favicon.png"),
                 excludeChunks: ["customLayerWorker"],
                 inject: true,
             }),
