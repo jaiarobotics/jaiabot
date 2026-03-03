@@ -140,7 +140,12 @@ class TaskPacketDatabase:
             self.task_packets_version += 1
 
 
-    def query_task_packets(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None, mission_names: Union[Iterable[str], None]=None) -> List[Dict]:
+    def query_task_packets(self, 
+                           bot_ids: Union[Iterable[int], None]=None, 
+                           start_utime: Union[int, None]=None, 
+                           end_utime: Union[int, None]=None, 
+                           included: Union[bool, None]=None, 
+                           mission_name: Union[str, None]=None) -> List[Dict]:
         """Queries the task packets.
 
         Args:
@@ -148,7 +153,7 @@ class TaskPacketDatabase:
             start_utime (Union[int, None]): Start of time window (or None if no minimum time)
             end_utime (Union[int, None]): End of time window (or None if no maximum time)
             included (Union[bool, None]): Included or excluded task packets (None for both types)
-            mission_names (Union[Iterable[str], None]): List of mission names to filter by (None for all)
+            mission_name (Union[str, None]): Mission name to filter by (None for all)
         Returns:
             list[dict]: A list of task packets that match the criteria.
         """
@@ -175,9 +180,9 @@ class TaskPacketDatabase:
                 conditionals.append(f'included = ?')
                 parameters.append(1 if included else 0)
 
-            if mission_names is not None:
-                conditionals.append(f'mission_name in ({",".join(["?" * len(mission_names)])})')
-                parameters.extend(mission_names)
+            if mission_name is not None:
+                conditionals.append(f'mission_name = ?')
+                parameters.append(mission_name)
 
             query_string = f'select json_string from task_packets natural join included natural join mission_name'
             if len(conditionals) > 0:
@@ -185,8 +190,12 @@ class TaskPacketDatabase:
 
             query_string = query_string + ' order by utime desc limit 1000'
 
-            results = self.db.execute(query_string, parameters)
-            return [json.loads(row[0]) for row in results]
+            l.warning(f'Parameters for task packet query: bot_ids={bot_ids}, start_utime={start_utime}, end_utime={end_utime}, included={included}, mission_name={mission_name}')
+            l.warning(f'Querying task packets with query string: {query_string} and parameters: {parameters}')
+
+            results_json = self.db.execute(query_string, parameters)
+            results: List[Dict] = [json.loads(row[0]) for row in results_json]
+            return results
 
 
     def get_task_packets(self, start_date: datetime, end_date: datetime):

@@ -1,28 +1,24 @@
-import asyncio
-
-import jaiabot.messages.rest_api_pb2
-import jaiabot.messages.hub_pb2
-import jaiabot.messages.jaia_dccl_pb2
 import jaiabot.messages.portal_pb2
+import jaiabot.messages.rest_api_pb2 as rest_api
 
 import common.shared_data
 from common.time import utc_now_microseconds
 from common.api_exception import APIException
 
-def process_request(jaia_request):
+def process_request(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
     action = jaia_request.WhichOneof("action")
     # call function in this module with the same name as action
     if action in globals():
         return globals()[action](jaia_request)
     else:
-        raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__NOT_IMPLEMENTED, "Action '" + action + "' has not yet been implemented in the REST API")
+        raise APIException(rest_api.API_ERROR__NOT_IMPLEMENTED, "Action '" + action + "' has not yet been implemented in the REST API")
 
 def send_client_to_portal_message(hub_id, msg):
     # queue.Queue is threadsafe
     common.shared_data.get_queue(hub_id).put(msg)
 
-def status(jaia_request):
-    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+def status(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
+    jaia_response = rest_api.APIResponse()
 
     with common.shared_data.data_lock:
         if jaia_request.target.all:
@@ -53,12 +49,12 @@ def status(jaia_request):
                     empty.time=0
     return jaia_response
 
-def metadata(jaia_request):
-    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+def metadata(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
+    jaia_response = rest_api.APIResponse()
     with common.shared_data.data_lock:
         # We only serve hub metadata as this isn't currently sent over XBee
         if jaia_request.target.bots:
-            raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__INVALID_TARGET, 'Metadata is only available for hubs (not bots) through this API')
+            raise APIException(rest_api.API_ERROR__INVALID_TARGET, 'Metadata is only available for hubs (not bots) through this API')
 
         if jaia_request.target.all:
             for hub_id,hub_metadata in common.shared_data.data.hub_metadata.items():
@@ -75,20 +71,26 @@ def metadata(jaia_request):
 
     return jaia_response
 
-def task_packets(jaia_request):
-   jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+def task_packets(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
+   jaia_response = rest_api.APIResponse()
    with common.shared_data.data_lock:
         if jaia_request.target.all:
             bot_ids = None
         else:
             bot_ids = jaia_request.target.bots
 
-        task_packets = common.shared_data.data.get_task_packets(bot_ids, jaia_request.task_packets.start_time, jaia_request.task_packets.end_time)
+        print(f"API request for task packets: {jaia_request}")
+
+        start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else None
+        end_time = jaia_request.task_packets.end_time if jaia_request.task_packets.HasField('end_time') else None
+        mission_name = jaia_request.task_packets.mission_name if jaia_request.task_packets.HasField('mission_name') else None
+
+        task_packets = common.shared_data.data.get_task_packets(bot_ids, start_time, end_time, mission_name)
         jaia_response.task_packets.packets.extend(task_packets)
    return jaia_response
 
-def command(jaia_request):
-    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+def command(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
+    jaia_response = rest_api.APIResponse()
 
     # Bots to send Command to
     bots = list()
@@ -130,8 +132,8 @@ def command(jaia_request):
     
     return jaia_response
 
-def command_for_hub(jaia_request):
-    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+def command_for_hub(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
+    jaia_response = rest_api.APIResponse()
 
     # Hubs to send CommandForHub to
     hubs = list()    

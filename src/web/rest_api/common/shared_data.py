@@ -44,19 +44,35 @@ class Data:
         pass
 
 
-    def get_task_packets(self, bot_ids: Union[Iterable[int], None], start_time_microseconds: Union[int, None], end_time_microseconds: Union[int, None]):
+    def get_task_packets(self, 
+                         bot_ids: Union[Iterable[int], None], 
+                         start_time_microseconds: Union[int, None]=None, 
+                         end_time_microseconds: Union[int, None]=None, 
+                         mission_name: Union[str, None]=None) -> List[Message]:
         """Gets a list of task packets occurring during a timespan.
 
         Args:
+            bot_ids (Union[Iterable[int], None]): If not None, only return task packets with a bot_id in this list.
             start_time_microseconds (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
             end_time_microseconds (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
+            mission_name (Union[str, None]): The name of the mission.  None means all missions.
 
         Returns:
             List[TaskPacket]: A list of the task packets, sorted ascending by start_time.
         """
         # This function returns dictionary representations of the task packets
         # Let's expand the range by 1 second on either end, to account for dccl rounding
-        task_packet_dicts = self.task_packet_database.query_task_packets(bot_ids=bot_ids, start_utime=start_time_microseconds - 1_000_000, end_utime=end_time_microseconds + 1_000_000)
+
+        if start_time_microseconds is not None:
+            start_time_microseconds = max(0, start_time_microseconds - 1_000_000)
+        if end_time_microseconds is not None:
+            end_time_microseconds = end_time_microseconds + 1_000_000
+
+        task_packet_dicts = \
+            self.task_packet_database.query_task_packets(bot_ids=bot_ids, 
+                                                         start_utime=start_time_microseconds, 
+                                                         end_utime=end_time_microseconds, 
+                                                         mission_name=mission_name)
 
         # Convert the dicts into TaskPacket protobuf message objects
         task_packets: List[Message] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])

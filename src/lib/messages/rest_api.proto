@@ -9,15 +9,17 @@ package jaiabot.protobuf;
 
 message TaskPacketsRequest
 {
-    required uint64 start_time = 1
+    optional uint64 start_time = 1
         [(jaia.field).rest_api = {
-            presence: GUARANTEED,
             doc: "Start of time range as a Unix timestamp in microseconds."
         }];
-    required uint64 end_time = 2
+    optional uint64 end_time = 2
         [(jaia.field).rest_api = {
-            presence: GUARANTEED,
             doc: "End of time range as a Unix timestamp in microseconds."
+        }];
+    optional string mission_name = 3
+        [(jaia.field).rest_api = {
+            doc: "If set, only return task packets associated with the given mission name."
         }];
 }
 

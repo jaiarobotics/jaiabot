@@ -26,7 +26,7 @@ if args.https_skip_verify:
     verify=False
 
 
-def run_request(req_json, expected_response_subset=dict()):
+def run_request(req_json):
     print("#### REQUEST ####")
     print(json.dumps(req_json))
 
@@ -38,27 +38,25 @@ def run_request(req_json, expected_response_subset=dict()):
     res = requests.post(f'{http}://{args.api_host}:{args.api_port}/jaia/v1', json=req_json, verify=verify)
     end = time()
 
-    assert(res.ok)
+    assert res.ok, f"Request failed with status code {res.status_code} and message {res.text}"
 
     print(f"Response time = {end - start} seconds")
-    print(f"{len(res.json()['task_packets']['packets'])} task packets")
+    print(res.json())
 
 
 # Test and time the task packet endpoint
 now_micros = int(datetime.datetime.now().timestamp() * 1e6)
 DAY = 1e6 * 60 * 60 * 24 # microseconds in a day
 
-run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 0.1 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
-            expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
+queries = [
+    # {"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 0.1 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
+    # {"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 0.2 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
+    # {"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 0.5 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
+    # {"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 1 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
+    # {"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 50 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
+    {"target": {"bots": [1]}, "task_packets": {"mission_name": "Ed Test Mission 3"}, "api_key": api_key},
+]
 
-run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 0.2 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
-            expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
+for query in queries:
+    run_request(query)
 
-run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 0.5 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
-            expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
-
-run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 1 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
-            expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
-
-run_request({"target": {"bots": [1]}, "task_packets": {"start_time": now_micros - 50 * DAY, "end_time": now_micros + DAY}, "api_key": api_key},
-            expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [1]}}, "task_packets": {}})
