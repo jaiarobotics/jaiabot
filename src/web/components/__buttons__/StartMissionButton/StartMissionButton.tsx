@@ -108,12 +108,12 @@ export default function StartMissionButton(props: Props) {
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
      */
-    const onDialogClose = async (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions, missionName: string) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
             const mission_plan = props.mission.packageMissionForHub();
-            mission_plan.mission_name = "Untitled Mission"; // TODO: set real mission name
+            mission_plan.mission_name = missionName;
 
             const startMissionCommand: Command = {
                 bot_id: props.bot.getBotID(),
