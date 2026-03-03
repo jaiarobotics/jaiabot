@@ -15,6 +15,7 @@ set(SENSOR_MESSAGES
   sensor/atlas_scientific__oem_do.proto
   sensor/atlas_scientific__oem_ph.proto
   sensor/turner__c_fluor.proto
+  sensor/aml.proto
 )
 
 protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_INC_DIR}

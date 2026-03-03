@@ -28,6 +28,7 @@
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
+#include "drivers/aml.h"
 #include "drivers/atlas_scientific__oem_do.h"
 #include "drivers/atlas_scientific__oem_ec.h"
 #include "drivers/atlas_scientific__oem_ph.h"
@@ -119,7 +120,9 @@ jaiabot::apps::Sensors::Sensors()
         {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH,
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH},
         {jaiabot::sensor::protobuf::TURNER__C_FLUOR,
-         jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR}};
+         jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR},
+        {jaiabot::sensor::protobuf::AML__SENSOR, 
+         jaiabot::protobuf::WARNING__INIT_FAILED__AML}};
 }
 
 void jaiabot::apps::Sensors::loop()
@@ -272,6 +275,10 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
 
         case sensor::protobuf::TURNER__C_FLUOR:
             launch_thread<TurnerCFluorDriver>(cfg().fluorometer());
+            break;
+
+        case sensor::protobuf::AML__SENSOR: 
+            launch_thread<AMLSensorDriver>(cfg().aml()); 
             break;
 
         default:
