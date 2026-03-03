@@ -26,34 +26,15 @@
         </div>
         <div id="root"></div>
         <script>
-            // Stream client.js via fetch() to track real byte-level download progress,
-            // then inject it as a blob URL so the bundle is only downloaded once.
-            // Using a blob URL avoids relying on browser HTTP cache sharing between
-            // fetch() and <script> request destinations (which is not guaranteed).
-            //
-            // The uncompressed file size is injected at build time by HtmlWebpackPlugin.
-            // response.body.getReader() yields decompressed bytes, which equals the
-            // uncompressed size — so the progress ratio is accurate regardless of whether
-            // the server applies gzip compression.
-            //
-            // webpack publicPath is set to "./" so lazy chunk URLs resolve correctly
-            // against the document URL even when client.js loads from a blob: URL.
-            //
-            // CSP note: blob: must be allowed in script-src if a Content-Security-Policy
-            // is ever added. The .catch() fallback injects <script src="client.js">
-            // directly, which only requires 'self', in case fetch() fails.
-            //
-            // inject:false in HtmlWebpackPlugin prevents webpack from also emitting a
-            // <script> tag, which would cause double execution.
             (function () {
-                var progressBar = document.getElementById('initial-loading-bar');
+                const progressBar = document.getElementById('initial-loading-bar');
 
                 function updateProgress(pct) {
                     if (progressBar) progressBar.style.width = Math.min(pct, 95) + '%';
                 }
 
                 function injectClientScript() {
-                    var s = document.createElement('script');
+                    const s = document.createElement('script');
                     s.onerror = function () { updateProgress(0); };
                     s.src = 'client.js';
                     document.head.appendChild(s);
@@ -61,43 +42,47 @@
 
                 updateProgress(5);
 
+                const total = <%= compilation.assets['client.js'] ? compilation.assets['client.js'].size() : 0 %>;
+
                 fetch('client.js')
                     .then(function (response) {
                         if (!response.ok || !response.body) throw new Error('fetch failed');
-                        // Uncompressed size injected at build time. The reader yields
-                        // decompressed bytes, so this total is always accurate even when
-                        // the server sends Content-Encoding: gzip.
-                        var total = <%= compilation.assets['client.js'] ? compilation.assets['client.js'].size() : 0 %>;
-                        var reader = response.body.getReader();
-                        var chunks = [];
-                        var loaded = 0;
+
+                        const [progressStream, blobStream] = response.body.tee();
+
+                        let loaded = 0;
+                        let reader = progressStream.getReader();
 
                         function pump() {
                             return reader.read().then(function (result) {
                                 if (result.done) {
-                                    updateProgress(90);
-                                    // Inject via blob URL — guaranteed single download,
-                                    // no reliance on browser HTTP cache sharing between
-                                    // fetch() and <script> request destinations.
-                                    var blob = new Blob(chunks, { type: 'application/javascript' });
-                                    chunks.length = 0; // Free Uint8Arrays immediately
-                                    var url = URL.createObjectURL(blob);
-                                    var s = document.createElement('script');
-                                    s.onload = function () { updateProgress(95); URL.revokeObjectURL(url); };
-                                    s.onerror = function () { URL.revokeObjectURL(url); injectClientScript(); };
-                                    s.src = url;
-                                    document.head.appendChild(s);
+                                    reader = null;
+                                    updateProgress(95);
                                     return;
                                 }
-                                chunks.push(result.value);
                                 loaded += result.value.byteLength;
-                                if (total > 0) updateProgress(5 + (loaded / total) * 85);
+                                if (total > 0) updateProgress(5 + (loaded / total) * 90);
                                 return pump();
                             });
                         }
-                        return pump();
+
+                        return Promise.all([
+                            pump(),
+                            new Response(blobStream).blob()
+                        ]);
                     })
-                    .catch(injectClientScript); // fetch failed or unsupported — inject directly
+                    .then(function (results) {
+                        let blob = results[1];
+                        const url = URL.createObjectURL(blob);
+                        blob = null;
+
+                        const s = document.createElement('script');
+                        s.onload = function () { updateProgress(95); URL.revokeObjectURL(url); };
+                        s.onerror = function () { URL.revokeObjectURL(url); injectClientScript(); };
+                        s.src = url;
+                        document.head.appendChild(s);
+                    })
+                    .catch(injectClientScript);
             })();
         </script>
     </body>
