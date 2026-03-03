@@ -86,9 +86,11 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_CTD_MANAGER = 42
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__SUROB_SURGE_CURRENTS = 43
+    ERROR__FAILED__JAIABOT_UDP_GATEWAY = 43
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_PPK = 45
+    ERROR__FAILED__JAIABOT_PPK = 44
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__SUROB_SURGE_CURRENTS = 45
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
