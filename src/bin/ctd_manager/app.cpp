@@ -79,7 +79,7 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
 
     if (ctd_profile.snapshot_size() > 0)
     {
-        time = goby::time::file_str();
+      time = goby::time::file_str();
     }
     else 
     {
