@@ -1,11 +1,12 @@
 import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
+import { useEffect, useRef, useState } from "react";
 
 interface DialogProps {
     isVisible: boolean;
     botReadyStates: Map<DisabledCodes, number[]>;
     numBots: number;
-    onClose: (dialogAction: DialogActions) => void;
+    onClose: (dialogAction: DialogActions, missionName: string) => void;
 }
 
 interface TitleProps {
@@ -23,6 +24,17 @@ interface ButtonRowProps {
  * It will describe the reason(s) the other Bots cannot accept the command.
  */
 export function StartAllMissionsDialog(props: DialogProps) {
+    // Ref and useEffect to focus the mission name input when the dialog opens and there is at least one ready bot
+    const missionNameInputRef = useRef(null);
+    const [missionName, setMissionName] = useState("Untitled Mission");
+    const numReadyBots = props.botReadyStates.get(DisabledCodes.NONE).length;
+
+    useEffect(() => {
+        if (props.isVisible && numReadyBots > 0) {
+            missionNameInputRef.current.focus();
+        }
+    }, [props.isVisible, numReadyBots]);
+
     /**
      * Applies the base class "jaia-dialog" and appends "alert"
      * if at least one Bot cannot receive the command to adjust spacing
@@ -30,12 +42,12 @@ export function StartAllMissionsDialog(props: DialogProps) {
      * @returns {string} The class name for the dialog div
      */
     const getClassName = () => {
-        return `jaia-dialog ${props.botReadyStates.get(DisabledCodes.NONE).length !== props.numBots ? "alert" : ""}`;
+        return `jaia-dialog ${numReadyBots !== props.numBots ? "alert" : ""}`;
     };
 
     /**
-     * Places each sub message to be displayed in the dialox box in an array.
-     * The messages depend on the state of the Bot and the requirments of the command.
+     * Places each sub message to be displayed in the dialog box in an array.
+     * The messages depend on the state of the Bot and the requirements of the command.
      *
      * @returns {string[]} The messages to be displayed in the dialog box
      */
@@ -118,6 +130,28 @@ export function StartAllMissionsDialog(props: DialogProps) {
         });
     };
 
+    /**
+     * The mission name text field, if we're ready to send the mission.
+     *
+     * @returns {JSX.Element | null} A text field for the mission name if at least one Bot can receive the command, otherwise null
+     */
+    const missionNameTextField = () => {
+        if (numReadyBots === 0) {
+            return null;
+        }
+
+        return (
+            <input
+                ref={missionNameInputRef}
+                type="text"
+                placeholder="Untitled Mission"
+                value={missionName}
+                onChange={(e) => setMissionName(e.target.value)}
+                className="mission-name-input"
+            ></input>
+        );
+    };
+
     if (!props.isVisible) {
         return <div></div>;
     }
@@ -128,7 +162,11 @@ export function StartAllMissionsDialog(props: DialogProps) {
             <div className={getClassName()}>
                 <Title botReadyStates={props.botReadyStates} />
                 {formatMessage()}
-                <ButtonRow botReadyStates={props.botReadyStates} onClose={props.onClose} />
+                {missionNameTextField()}
+                <ButtonRow
+                    botReadyStates={props.botReadyStates}
+                    onClose={(dialogAction) => props.onClose(dialogAction, missionName)}
+                />
             </div>
         </div>
     );
