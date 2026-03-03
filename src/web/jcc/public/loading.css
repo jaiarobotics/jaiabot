@@ -11,26 +11,8 @@
     z-index: 9999;
 }
 
-#initial-loading-content {
-    display: flex;
-    flex-direction: column;
-}
-
-#initial-loading-bar-container {
-    width: 300px;
-    height: 8px;
-    background-color: #e0e0e0;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-#initial-loading-bar {
-    height: 100%;
-    background-color: #cc0505;
-    transition: width 0.5s ease-out;
-}
-
 #initial-loading-logo {
+    width: 300px;
     animation:
         fadeIn 1s ease-in forwards,
         sheen 2s ease-in-out 0.5s infinite;
@@ -50,7 +32,7 @@
         transform: scale(1);
     }
     50% {
-        transform: scale(1.03);
+        transform: scale(1.05);
     }
     100% {
         transform: scale(1);
