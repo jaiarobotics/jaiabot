@@ -660,6 +660,8 @@ message WavePacket
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
+    // the hs uncertainty is a std calculated using the GPS height uncertainty in a Monte Carlo Simulation
+
     optional double hs_uncertainty = 2 [
         (dccl.field) = {
             min: 0.1 
@@ -681,6 +683,8 @@ message WavePacket
         },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
+
+    // the period uncertainty is reported as a fixed value based on the model's performance vs ground truth data
 
     optional double period_uncertainty = 4 [
         default = 2.0,
