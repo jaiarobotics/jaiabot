@@ -190,9 +190,6 @@ class TaskPacketDatabase:
 
             query_string = query_string + ' order by utime desc limit 1000'
 
-            l.warning(f'Parameters for task packet query: bot_ids={bot_ids}, start_utime={start_utime}, end_utime={end_utime}, included={included}, mission_name={mission_name}')
-            l.warning(f'Querying task packets with query string: {query_string} and parameters: {parameters}')
-
             results_json = self.db.execute(query_string, parameters)
             results: List[Dict] = [json.loads(row[0]) for row in results_json]
             return results
