@@ -64,7 +64,7 @@ def create_speed_mask(speed, threshold_mps=1.25):
     """Creates a boolean mask for speed values below a threshold. 1.25 m/s selected as rough "surfing" (bot carried by wave) speed threshold."""
     return speed < threshold_mps
 
-def filter_current_data(drift, log, use_pressure=True, use_speed=True):
+def filter_current_data(drift, log, use_pressure=False, use_speed=True):
     """
     Computes filters for a single drift segment and returns the mask to filter data.
     """
