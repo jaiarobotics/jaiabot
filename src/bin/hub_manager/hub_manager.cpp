@@ -82,6 +82,7 @@ class HubManager : public ApplicationBase
 
     void intervehicle_subscribe(int bot_id, std::set<jaiabot::protobuf::Link> links);
     void hub2hub_subscribe(int other_hub_id);
+    void handle_ctd_offload_command(const jaiabot::protobuf::CommandForHub& command);
 
     void update_vfleet_shutdown_time()
     {
@@ -807,6 +808,9 @@ void jaiabot::apps::HubManager::handle_command_for_hub(
         case protobuf::CommandForHub::RESTART_ALL_SERVICES:
             interprocess().publish<jaiabot::groups::powerstate_command>(input_command_for_hub);
             break;
+        case protobuf::CommandForHub::CTD_DATA_OFFLOAD:
+            handle_ctd_offload_command(input_command_for_hub);
+            break;
         default: break;
     }
 }
@@ -1105,4 +1109,25 @@ void jaiabot::apps::HubManager::publish_hub2hub_data(jaiabot::protobuf::Hub2HubD
     hub2hub_data->set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     intervehicle().publish<jaiabot::groups::hub2hub_data>(
         *hub2hub_data, intervehicle::default_publisher<jaiabot::protobuf::Hub2HubData>);
+}
+
+void jaiabot::apps::HubManager::handle_ctd_offload_command(const jaiabot::protobuf::CommandForHub& command) 
+{
+    std::string bot_ip = cfg().class_b_network() + "." + std::to_string(cfg().fleet_id()) + "." +
+                         std::to_string((cfg().bot_start_ip() + command.scan_for_bot_id()));
+    
+    if (cfg().use_localhost_for_data_offload())
+        bot_ip = "127.0.0.1";
+    
+    std::string offload_command = cfg().ctd_offload_script()  + " -bot_id " + std::to_string(command.scan_for_bot_id()) +
+                                  " -bot_ip " + bot_ip + " 2>&1";
+
+    glog.is_debug1() && glog << "Offload command: " << offload_command << std::endl;
+
+    FILE* pipe = popen(offload_command.c_str(), "r");
+    if (!pipe)
+    {
+        glog.is_warn() && glog << "Error opening pipe to CTD offload command: "
+                                << strerror(errno) << std::endl;
+    }
 }

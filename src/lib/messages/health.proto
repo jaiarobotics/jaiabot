@@ -84,7 +84,9 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_COMMS_MANAGER = 41
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_UDP_GATEWAY = 42
+    ERROR__FAILED__JAIABOT_CTD_MANAGER = 42
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_UDP_GATEWAY = 43
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__SUROB_SURGE_CURRENTS = 43
         [(jaia.ev).rest_api.presence = GUARANTEED];
@@ -150,6 +152,8 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_IMU = 128
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_TURNER_C_FLUOR_SENSOR_DRIVER = 129
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_CTD_MANAGER = 130
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
