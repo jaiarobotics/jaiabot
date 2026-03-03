@@ -1,0 +1,13 @@
+$app_block
+$interprocess_block
+serial {
+    port: "/dev/ttyAMA5"
+    baud: 9600
+    delimiter: "\n"
+}
+
+output_rate: 10
+
+catalog {
+    conductivity: "Conductivity Sensor"
+}

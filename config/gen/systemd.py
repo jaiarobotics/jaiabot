@@ -57,6 +57,7 @@ parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set
 parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
+parser.add_argument('--pam_connection_type', choices=['uart', 'usb', 'none'], help='If set, configure services for PAM connection type')
 parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
@@ -66,12 +67,17 @@ parser.add_argument('--rf_encryption_password', default ='', help='Encryption ke
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 
 args=parser.parse_args()
 
 class ARDUINO_TYPE(Enum):
     SPI = 'spi'
+    USB = 'usb'
+    NONE = 'none'
+
+class PAM_CONNECTION_TYPE(Enum):
+    UART = 'uart'
     USB = 'usb'
     NONE = 'none'
 
@@ -134,6 +140,13 @@ elif args.arduino_type == 'usb':
     jaia_arduino_type = ARDUINO_TYPE.USB
 else:
     jaia_arduino_type = ARDUINO_TYPE.NONE
+
+if args.pam_connection_type == 'uart':
+    jaia_pam_connection_type = PAM_CONNECTION_TYPE.UART
+elif args.pam_connection_type == 'usb':
+    jaia_pam_connection_type = PAM_CONNECTION_TYPE.USB
+else:
+    jaia_pam_connection_type = PAM_CONNECTION_TYPE.NONE
 
 if args.imu_type == 'bno055':
     jaia_imu_type = IMU_TYPE.BNO055
@@ -277,6 +290,7 @@ subprocess.run('bash -ic "' +
                'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
                'export jaia_imu_install_type=' + str(jaia_imu_install_type.value) + '; ' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
+               'export jaia_pam_connection_type=' + str(jaia_pam_connection_type.value) + '; ' +
                'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
                'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
                'export jaia_motor_harness_type=' + str(jaia_motor_harness_type.value) + '; ' +
@@ -590,7 +604,7 @@ jaiabot_apps = [
      'description': 'JaiaBot MAI Echo Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'echo',
-     'args': f'-p {UDP_GATEWAY_PORT}',
+     'args': f'-p {UDP_GATEWAY_PORT} -d {args.pam_connection_type}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ECHO',
      'runs_on': [BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,
@@ -687,6 +701,17 @@ if 'turner_c_flour' in jaia_additional_sensors:
     ]
     jaiabot_apps.extend(jaiabot_turner_c_fluor)
 
+if 'aml' in jaia_additional_sensors:
+    jaiabot_aml_sensor = [
+        {'exe': 'jaiabot_aml_sensor_driver',
+        'description': 'JaiaBot AML Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER',
+        'runs_on': [Type.BOT],
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service'},
+    ]
+    jaiabot_apps.extend(jaiabot_aml_sensor)
 if 'ppk' in jaia_additional_sensors:
     jaiabot_ppk = [
         {'exe': 'jaiabot_ppk',
