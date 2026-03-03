@@ -122,6 +122,8 @@ struct EvMeasurement : boost::statechart::event<EvMeasurement>
         boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>>>
         temperature;
     boost::optional<double> salinity;
+    boost::optional<double> conductivity;
+    boost::optional<boost::units::quantity<boost::units::si::length>> sensor_depth;
 };
 
 struct EvVehicleGPS : boost::statechart::event<EvVehicleGPS>
