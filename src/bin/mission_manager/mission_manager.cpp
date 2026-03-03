@@ -3,6 +3,7 @@
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
 //   Ed Sanville <edsanville@gmail.com>
+//   Michael Twomey <michael.twomey@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -199,6 +200,14 @@ jaiabot::apps::MissionManager::MissionManager()
             ev.temperature = pt.temperature_with_units();
             machine_->process_event(ev);
         });
+    
+    interprocess().subscribe<jaiabot::groups::pressure_adjusted>(
+        [this](const jaiabot::protobuf::PressureAdjustedData& pa)
+        {
+            statechart::EvMeasurement ev;
+            ev.sensor_depth = pa.sensor_depth_with_units();
+            machine_->process_event(ev);
+        });
 
     // subscribe for salinity data
     interprocess().subscribe<jaiabot::groups::salinity>(
@@ -208,6 +217,7 @@ jaiabot::apps::MissionManager::MissionManager()
             {
                 statechart::EvMeasurement ev;
                 ev.salinity = sal.salinity();
+                ev.conductivity = sal.conductivity();
                 machine_->process_event(ev);
             }
         });

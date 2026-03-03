@@ -3,6 +3,7 @@
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
 //   Ed Sanville <edsanville@gmail.com>
+//   Michael Twomey <michael.twomey@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -41,7 +42,8 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/imu.pb.h"
-
+#include "jaiabot/messages/ctd.pb.h"
+#include "jaiabot/messages/ppk.pb.h"
 
 namespace jaiabot
 {

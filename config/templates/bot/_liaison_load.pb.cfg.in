@@ -12,6 +12,13 @@ load_protobuf {  #  (repeated)
     }
 }
 
+load_protobuf {  #  (repeated)
+    name: "jaiabot.protobuf.PPKCommand"  #  (required)
+    publish_to {
+        group: "jaiabot::ppk"
+    }
+}
+
 #load_protobuf {  #  (repeated)
 #    name: "jaiabot.protobuf.Command"  #  (required)
 #    publish_to {

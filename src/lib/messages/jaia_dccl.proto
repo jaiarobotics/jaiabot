@@ -121,6 +121,7 @@ message CommandForHub
     enum HubCommandType
     {
         SCAN_FOR_BOTS = 5;
+        CTD_DATA_OFFLOAD = 6;
 
         // debugging low level commands
         RESTART_ALL_SERVICES = 40;

@@ -66,7 +66,7 @@ parser.add_argument('--rf_encryption_password', default ='', help='Encryption ke
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 
 args=parser.parse_args()
 
@@ -534,6 +534,12 @@ jaiabot_apps = [
      'template': 'gpsd-sim.service.in',
      'runs_on': [Type.BOT],
      'runs_when': Mode.SIMULATION},
+    {'exe': 'jaiabot_ctd_manager',
+     'description': 'JaiaBot CTD Manager',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_CTD_MANAGER',
+     'runs_on': [Type.BOT],
+     'wanted_by': 'jaiabot_health.service'},
 
     ## Bot Types: HYDRO, ECHO, NONE Services
 
@@ -649,7 +655,7 @@ if 'none' not in camera_positions_in_use:
     ]
     jaiabot_apps.extend(jaiabot_apps_camera)
 
-if 'none' not in jaia_additional_sensors:
+if 'turner_c_flour' in jaia_additional_sensors:
     jaiabot_turner_c_fluor = [
         {'exe': 'jaiabot_turner_c_fluor_sensor_driver',
         'description': 'JaiaBot Turner C Fluor Sensor Driver',
@@ -660,6 +666,17 @@ if 'none' not in jaia_additional_sensors:
         'wanted_by': 'jaiabot_health.service'},
     ]
     jaiabot_apps.extend(jaiabot_turner_c_fluor)
+
+if 'ppk' in jaia_additional_sensors:
+    jaiabot_ppk = [
+        {'exe': 'jaiabot_ppk',
+        'description': 'JaiaBot PPK Logger',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_PPK',
+        'runs_on': [Type.BOT],
+        'wanted_by': 'jaiabot_health.service'},
+    ]
+    jaiabot_apps.extend(jaiabot_ppk)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',

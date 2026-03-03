@@ -144,6 +144,6 @@ Description: Encryption passphrase for DCCL (intervehicle) messages: can be any 
 
 Template: jaiabot-embedded/additional_sensors
 Type: multiselect
-Choices: turner_c_flour, none
+Choices: turner_c_flour, ppk, none
 Default: none
 Description: Which additional sensors?

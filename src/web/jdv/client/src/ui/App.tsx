@@ -182,6 +182,17 @@ export class App extends React.Component {
                             </button>
 
                             <button
+                                id="ubxExportButton"
+                                className="mapButton"
+                                onClick={() => {
+                                    window.location.href = `/jdv/ubx?file=${this.state.chosenLogs.join(",")}`;
+                                }}
+                            >
+                                <Icon path={mdiDownload} size={1}></Icon>
+                                UBX
+                            </button>
+
+                            <button
                                 className="mapButton"
                                 onClick={() => {
                                     this.toggleMeasureResult();
@@ -239,7 +250,7 @@ export class App extends React.Component {
     chosenLogsListElement() {
         const chosenLogsElements = this.state.chosenLogs.map((chosenLogPath) => {
             const chosenLogName = chosenLogPath.split("/").at(-1);
-            const href = `/h5?file=${chosenLogPath}`;
+            const href = `/jdv/h5?file=${chosenLogPath}`;
 
             const logs_are_displayed = this.state.chosenLogs.length > 0;
 
