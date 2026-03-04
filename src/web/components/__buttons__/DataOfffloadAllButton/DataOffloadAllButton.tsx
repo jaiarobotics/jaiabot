@@ -47,7 +47,16 @@ export default function DataOffloadAllButton(props: Props) {
             if (isCommsDropped(bot.getStatusAge())) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (
-                !isCommandAvailable(CommandType.RECOVERED, bot.getMissionStatus().missionState)
+                !(
+                    isCommandAvailable(
+                        CommandType.RECOVERED,
+                        bot.getMissionStatus().missionState,
+                    ) ||
+                    isCommandAvailable(
+                        CommandType.RETRY_DATA_OFFLOAD,
+                        bot.getMissionStatus().missionState,
+                    )
+                )
             ) {
                 updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
             } else if (!bot.getWifiLinkQuality()) {

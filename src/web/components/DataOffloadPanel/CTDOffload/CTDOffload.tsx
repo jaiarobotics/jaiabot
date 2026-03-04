@@ -16,7 +16,9 @@ interface Props {
 }
 
 const LOOKUP_DELAY = 7_500; // ms;
-const WIFI_QUALITY_THRESHOLD = 50;
+const WIFI_QUALITY_THRESHOLD = 0;
+
+const botCheckedStates = new Map<number, boolean>();
 
 /**
  * Allows an operator to download CTD data via WiFi
@@ -24,7 +26,6 @@ const WIFI_QUALITY_THRESHOLD = 50;
 export default function CTDOffload(props: Props) {
     const jaiaContext = useContext(JaiaContext);
     const [isDeleteFilesChecked, setIsDeleteFilesChecked] = useState(false);
-    const botCheckedStates = useMemo(() => new Map<number, boolean>(), []);
 
     /**
      * Updates the checkbox state of a Bot when clicked
