@@ -15,7 +15,30 @@ initial_mission {
   min_battery_percentage: 10 
   remote_mission_wait_minutes: 10 
   data_offload_timeout_minutes: 60
-  launch_tube { 
+  in_water { 
+    threshold { 
+      check { 
+        condition: GREATER_THAN 
+        stat: MEAN
+        conductivity: 1000 # uS/cm
+      }
+      check { 
+        condition: GREATER_THAN 
+        stat: MEAN
+        pressure: -1 # dBar
+      }
+    }
+  }
+  
+  launch_tube {
+    threshold { 
+      check { 
+        condition: GREATER_THAN 
+        stat: MEAN
+        pressure: 1 # dBar
+      }
+    }
+    
     action { 
       thrust_percentage: 60
       thrust_duration: 5 # seconds
@@ -28,6 +51,8 @@ initial_mission {
     }
   }
   parachute {
+    threshold { 
       # TBD
+    }
   }
 }

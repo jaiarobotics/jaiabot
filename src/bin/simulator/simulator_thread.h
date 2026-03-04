@@ -32,6 +32,8 @@
 
 #include "config.pb.h"
 
+#include "jaiabot/units/conductivity.h"
+
 namespace jaiabot
 {
 namespace apps
@@ -80,6 +82,7 @@ struct SimOceanography
     boost::units::quantity<boost::units::si::pressure> pressure;
     boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>> temperature;
     double salinity;
+    boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit> conductivity;
 };
 
 template <typename Config> class SimulatorThread : public goby::middleware::SimpleThread<Config>

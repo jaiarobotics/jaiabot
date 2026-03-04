@@ -12,7 +12,7 @@ message AtlasScientificOEMEC
 
     optional double conductivity_raw = 1;
     optional double conductivity = 2;
-    // REQUIRES DCCL 4.2.2 - uncomment when we wrap this in
+    // REQUIRES DCCL 4.3.1 - uncomment when we wrap this in
     // [(dccl.field) = {
     // units {
     //         custom {

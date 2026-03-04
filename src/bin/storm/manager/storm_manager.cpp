@@ -44,7 +44,8 @@ namespace middleware = goby::middleware;
 // Main thread
 void jaiabot::apps::StormManager::initialize()
 {
-    machine_.reset(new statechart::StormManagerStateMachine(*this));
+    machine_.reset(new statechart::StormManagerStateMachine(*this, cfg().initial_mission()));
+
     machine_->initiate();
 }
 
@@ -56,8 +57,9 @@ void jaiabot::apps::StormManager::finalize()
 
 jaiabot::apps::StormManager::StormManager()
     : goby::zeromq::MultiThreadApplication<config::StormManager>(1 * si::hertz),
-      raw_salinity_(cfg().rolling_stats_sample_count().salinity()),
-      raw_pressure_(cfg().rolling_stats_sample_count().pressure())
+      raw_conductivity_(cfg().rolling_stats_sample_count().conductivity()),
+      raw_pressure_(cfg().rolling_stats_sample_count().pressure()),
+      gps_altitude_(cfg().rolling_stats_sample_count().gps_altitude())
 {
     glog.add_group("statechart", goby::util::Colors::yellow);
 
@@ -99,20 +101,38 @@ jaiabot::apps::StormManager::StormManager()
 
     // GPS TPV
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
-        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {});
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
+        {
+            gps_altitude_.push_back(tpv.altitude_with_units());
+            machine_->process_event(statechart::EvGPSAltitude(
+                gps_altitude_.mean(), gps_altitude_.median(), gps_altitude_.stddev()));
+        });
 
-    // salinity - currently comes in two different messages
+    auto post_conductivity_event =
+        [this](boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit> c)
+    {
+        raw_conductivity_.push_back(c);
+        machine_->process_event(statechart::EvConductivity(
+            raw_conductivity_.mean(), raw_conductivity_.median(), raw_conductivity_.stddev()));
+    };
+
+    // conductivity - currently comes in two different messages
+    // TODO - replace with _with_units
     interprocess().subscribe<jaiabot::groups::raw_salinity>(
-        [this](const jaiabot::protobuf::SalinityData& sal)
-        { raw_salinity_.push_back(sal.salinity() * boost::units::si::si_dimensionless); });
+        [this, post_conductivity_event](const jaiabot::protobuf::SalinityData& sal)
+        { post_conductivity_event(sal.conductivity_raw() * jaiabot::units::microsiemens_per_cm); });
     interprocess().subscribe<jaiabot::groups::raw_salinity>(
-        [this](const jaiabot::sensor::protobuf::AtlasScientificOEMEC& sal)
-        { raw_salinity_.push_back(sal.salinity() * boost::units::si::si_dimensionless); });
+        [this, post_conductivity_event](const jaiabot::sensor::protobuf::AtlasScientificOEMEC& sal)
+        { post_conductivity_event(sal.conductivity_raw() * jaiabot::units::microsiemens_per_cm); });
 
     // pressure
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureTemperatureData& pt)
-        { raw_pressure_.push_back(pt.pressure_raw_with_units<quantity<si::pressure>>()); });
+        {
+            raw_pressure_.push_back(pt.pressure_raw_with_units<quantity<si::pressure>>());
+            machine_->process_event(statechart::EvPressure(
+                raw_pressure_.mean(), raw_pressure_.median(), raw_pressure_.stddev()));
+        });
 }
 
 jaiabot::apps::StormManager::~StormManager() {}

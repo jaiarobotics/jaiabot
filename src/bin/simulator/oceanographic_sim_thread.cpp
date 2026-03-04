@@ -32,6 +32,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/simulator.pb.h"
 #include "jaiabot/messages/udp_gateway.pb.h"
+#include "jaiabot/units/conductivity.h"
 
 #include "oceanographic_sim_thread.h"
 
@@ -62,11 +63,30 @@ void jaiabot::apps::OceanographicSimThread::handle_sim_nav(const SimNav& nav)
 {
     // relative to sea surface pressure (0 Pa at surface)
     boost::units::quantity<boost::units::si::pressure> pressure;
+    boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>> temperature;
+    double salinity{0};
+    boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit> conductivity;
 
     if (nav.depth >= 0 * si::meters) // in water
     {
         pressure = boost::units::quantity<boost::units::si::pressure>(
             goby::util::seawater::pressure(nav.depth, nav.latlon.lat));
+        // interpolate temperature value from table
+        double temperature_degC =
+            goby::util::linear_interpolate(nav.depth, temperature_degC_profile_);
+        // randomize temperature
+        temperature_degC += temperature_distribution_(generator_);
+
+        temperature =
+            temperature_degC * boost::units::absolute<boost::units::celsius::temperature>();
+
+        // interpolate salinity value from table
+        salinity = goby::util::linear_interpolate(nav.depth, salinity_profile_);
+        // randomize salinity
+        salinity += salinity_distribution_(generator_);
+
+        conductivity = decltype(conductivity)(
+            goby::util::seawater::conductivity(salinity, temperature, pressure));
     }
     else // in air
     {
@@ -100,30 +120,23 @@ void jaiabot::apps::OceanographicSimThread::handle_sim_nav(const SimNav& nav)
 
         double z = -nav.depth / si::meters;
         pressure = (pressure_f(z) - pressure_f(0)) * si::pascals;
+
+        temperature = 25 * boost::units::absolute<boost::units::celsius::temperature>();
+        conductivity = 0 * jaiabot::units::microsiemens_per_cm;
+        salinity = -1;
     }
-
-    // interpolate temperature value from table
-    double temperature_degC = goby::util::linear_interpolate(nav.depth, temperature_degC_profile_);
-    // randomize temperature
-    temperature_degC += temperature_distribution_(generator_);
-
-    auto temperature =
-        temperature_degC * boost::units::absolute<boost::units::celsius::temperature>();
-
-    // interpolate salinity value from table
-    double salinity = goby::util::linear_interpolate(nav.depth, salinity_profile_);
-    // randomize salinity
-    salinity += salinity_distribution_(generator_);
 
     auto ocean_data = std::make_shared<SimOceanography>();
     ocean_data->nav = nav;
     ocean_data->pressure = pressure;
     ocean_data->temperature = temperature;
+    ocean_data->conductivity = conductivity;
     ocean_data->salinity = salinity;
 
     glog.is_debug1() && glog << group("oceanographic")
-                             << "Ocean data (pressure, salinity, temperature): (" << pressure
-                             << ", " << salinity << ", " << temperature << ")" << std::endl;
+                             << "Ocean data (pressure, conductivity, salinity, temperature): ("
+                             << pressure << ", " << conductivity << ", " << salinity << ", "
+                             << temperature << ")" << std::endl;
 
     interthread().publish<sim_oceanography>(ocean_data);
 }

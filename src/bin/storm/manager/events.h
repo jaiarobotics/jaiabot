@@ -33,6 +33,7 @@
 // Jaiabot
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/units/conductivity.h"
 
 namespace jaiabot
 {
@@ -74,6 +75,38 @@ STATECHART_EVENT(EvDataOffloadComplete)
 STATECHART_EVENT(EvDataOffloadTimeout)
 STATECHART_EVENT(EvSleepReady)
 
+struct EvConductivity : boost::statechart::event<EvConductivity>
+{
+    EvConductivity(boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit> mean,
+                   boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit> median,
+                   boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit> stddev)
+        : mean(mean), median(median), stddev(stddev)
+    {
+    }
+    boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit> mean, median, stddev;
+};
+
+struct EvPressure : boost::statechart::event<EvPressure>
+{
+    EvPressure(boost::units::quantity<boost::units::si::pressure> mean,
+               boost::units::quantity<boost::units::si::pressure> median,
+               boost::units::quantity<boost::units::si::pressure> stddev)
+        : mean(mean), median(median), stddev(stddev)
+    {
+    }
+    boost::units::quantity<boost::units::si::pressure> mean, median, stddev;
+};
+
+struct EvGPSAltitude : boost::statechart::event<EvGPSAltitude>
+{
+    EvGPSAltitude(boost::units::quantity<boost::units::si::length> mean,
+                  boost::units::quantity<boost::units::si::length> median,
+                  boost::units::quantity<boost::units::si::length> stddev)
+        : mean(mean), median(median), stddev(stddev)
+    {
+    }
+    boost::units::quantity<boost::units::si::length> mean, median, stddev;
+};
 STATECHART_EVENT(EvLoop)
 
 #undef STATECHART_EVENT

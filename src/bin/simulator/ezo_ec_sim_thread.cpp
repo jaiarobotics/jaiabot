@@ -52,7 +52,7 @@ void jaiabot::apps::EzoECSimThread::handle_sim_oceanography(const SimOceanograph
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
     auto salinity_data = envelope.mutable_salinity_data();
     // We only set the raw values here, because the derived values are calculated elsewhere, after the data comes in from the sensor.
-    salinity_data->set_conductivity_raw(45000.0);
+    salinity_data->set_conductivity_raw(ocean_data.conductivity.value());
     salinity_data->set_salinity_raw(ocean_data.salinity);
     salinity_data->set_total_dissolved_solids(0.0);
 

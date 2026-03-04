@@ -35,17 +35,20 @@ struct SelfTest
 
     using reactions = boost::mpl::list<>;
 };
+
+#include "self_test/threshold_common.h"
+
 #endif
 
 namespace self_test
 {
 
+#include "self_test/air_descent_data_offload.h"
 #include "self_test/in_water_detection.h"
 #include "self_test/launch_tube_detection.h"
 #include "self_test/launch_tube_recovery.h"
 #include "self_test/parachute_attachment_detection.h"
 #include "self_test/parachute_attachment_recovery.h"
-#include "self_test/air_descent_data_offload.h"
 #include "self_test/wrapup.h"
 
 } // namespace self_test

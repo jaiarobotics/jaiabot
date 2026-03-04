@@ -30,6 +30,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/units/conductivity.h"
 #include "jaiabot/utils/stats.h"
 
 #include "machine_common.h"
@@ -58,10 +59,11 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
   private:
     std::unique_ptr<statechart::StormManagerStateMachine> machine_;
 
-    utils::RollingStatsAccumulator<boost::units::quantity<boost::units::si::dimensionless>>
-        raw_salinity_;
+    utils::RollingStatsAccumulator<boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit>>
+        raw_conductivity_;
     utils::RollingStatsAccumulator<boost::units::quantity<boost::units::si::pressure>>
         raw_pressure_;
+    utils::RollingStatsAccumulator<boost::units::quantity<boost::units::si::length>> gps_altitude_;
 };
 
 } // namespace apps

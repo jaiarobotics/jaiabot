@@ -68,8 +68,67 @@ message StormMission
         }
     ];
 
+    message Threshold
+    {
+        enum Stat
+        {
+            MEAN = 1;
+            MEDIAN = 2;
+            STDDEV = 3;
+        }
+
+        enum Condition
+        {
+            IGNORE = 0;
+            GREATER_THAN = 1;
+            LESS_THAN = 2;
+        }
+
+        message Check
+        {
+            optional Condition condition = 1 [default = IGNORE];
+            optional Stat stat = 2 [default = MEAN];
+
+            oneof value
+            {
+                double conductivity = 10
+                    [(dccl.field) = { min: 0 max: 60000 precision: -1 }];
+                // REQUIRES DCCL 4.3.1 - uncomment when we wrap this in
+                // [(dccl.field) = {
+                // units {
+                //         custom {
+                //             unit: "jaiabot::units::microsiemens_per_cm_unit"
+                //             header: "jaiabot/units/conductivity.h"
+                //         }
+                //     }
+                // }];
+                double pressure = 11 [(dccl.field) = {
+                    min: -10
+                    max: 100
+                    precision: 1
+                    units { prefix: "deci" unit: "metric::bar" }
+                }];
+
+                double gps_altitude = 12 [(dccl.field) = {
+                    min: -10
+                    max: 1000
+                    precision: -1
+                    units { derived_dimensions: "length" }
+                }];
+            }
+        }
+        repeated Check check = 1 [(dccl.field).max_repeat = 5];
+    }
+
+    message InWaterDetectionParams
+    {
+        required Threshold threshold = 1;
+    }
+    required InWaterDetectionParams in_water = 60;
+
     message LaunchTubeDetectionParams
     {
+        required Threshold threshold = 1;
         message Action
         {
             required int32 thrust_percentage = 1
@@ -87,16 +146,17 @@ message StormMission
                 [default = 1, (dccl.field) = { min: 1 max: 10 }];
         }
 
-        repeated Action action = 1 [(dccl.field) = { max_repeat: 10 }];
+        repeated Action action = 2 [(dccl.field) = { max_repeat: 10 }];
     }
+    required LaunchTubeDetectionParams launch_tube = 61;
 
     message ParachuteAttachmentDetectionParams
     {
+        required Threshold threshold = 1;
         // TBD
     }
 
-    optional LaunchTubeDetectionParams launch_tube = 60;
-    optional ParachuteAttachmentDetectionParams parachute = 61;
+    required ParachuteAttachmentDetectionParams parachute = 62;
 }
 
 message StormMissionUpdate

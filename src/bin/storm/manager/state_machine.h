@@ -44,7 +44,11 @@ struct StormManagerStateMachine
     : boost::statechart::state_machine<StormManagerStateMachine, StartingUp>,
       AppMethodsAccess<StormManagerStateMachine>
 {
-    StormManagerStateMachine(apps::StormManager& a) : app_(a) {}
+    StormManagerStateMachine(apps::StormManager& a, const jaiabot::protobuf::StormMission& mission)
+        : app_(a)
+    {
+        set_mission(mission);
+    }
 
     void set_state(jaiabot::protobuf::StormMissionState state) { state_ = state; }
     jaiabot::protobuf::StormMissionState state() const { return state_; }
@@ -63,11 +67,15 @@ struct StormManagerStateMachine
     apps::StormManager& app() { return app_; }
     const apps::StormManager& app() const { return app_; }
 
+    void set_mission(const jaiabot::protobuf::StormMission& mission) { mission_ = mission; };
+    const jaiabot::protobuf::StormMission& mission() { return mission_; }
 
   private:
     apps::StormManager& app_;
     jaiabot::protobuf::StormMissionState state_{jaiabot::protobuf::STARTING_UP};
     std::set<jaiabot::protobuf::Warning> warnings_;
+
+    jaiabot::protobuf::StormMission mission_;
 };
 
 } // namespace statechart
