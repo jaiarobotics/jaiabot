@@ -10,9 +10,80 @@
         <link rel="shortcut icon" href="/favicon.png" />
 
         <title>Jaia Command & Control</title>
+
+        <link rel="stylesheet" href="loading.css" />
     </head>
 
     <body>
+        <!-- Initial loading screen shown immediately before JavaScript loads -->
+        <div id="initial-loading-screen">
+            <div id="initial-loading-content">
+                <img id="initial-loading-logo" src="loading-logo.svg" alt="Jaia" />
+                <div id="initial-loading-bar-container">
+                    <div id="initial-loading-bar"></div>
+                </div>
+            </div>
+        </div>
         <div id="root"></div>
+        <script>
+            (function () {
+                const progressBar = document.getElementById('initial-loading-bar');
+
+                function updateProgress(pct) {
+                    if (progressBar) progressBar.style.width = Math.min(pct, 95) + '%';
+                }
+
+                function injectClientScript() {
+                    const s = document.createElement('script');
+                    s.onerror = function () { updateProgress(0); };
+                    s.src = 'client.js';
+                    document.head.appendChild(s);
+                }
+
+                updateProgress(5);
+
+                const total = <%= compilation.assets['client.js'] ? compilation.assets['client.js'].size() : 0 %>;
+
+                fetch('client.js')
+                    .then(function (response) {
+                        if (!response.ok || !response.body) throw new Error('fetch failed');
+
+                        const [progressStream, blobStream] = response.body.tee();
+
+                        let loaded = 0;
+                        let reader = progressStream.getReader();
+
+                        function pump() {
+                            return reader.read().then(function (result) {
+                                if (result.done) {
+                                    reader = null;
+                                    updateProgress(95);
+                                    return;
+                                }
+                                loaded += result.value.byteLength;
+                                if (total > 0) updateProgress(5 + (loaded / total) * 90);
+                                return pump();
+                            });
+                        }
+
+                        return Promise.all([
+                            pump(),
+                            new Response(blobStream).blob()
+                        ]);
+                    })
+                    .then(function (results) {
+                        let blob = results[1];
+                        const url = URL.createObjectURL(blob);
+                        blob = null;
+
+                        const s = document.createElement('script');
+                        s.onload = function () { updateProgress(95); URL.revokeObjectURL(url); };
+                        s.onerror = function () { URL.revokeObjectURL(url); injectClientScript(); };
+                        s.src = url;
+                        document.head.appendChild(s);
+                    })
+                    .catch(injectClientScript);
+            })();
+        </script>
     </body>
 </html>

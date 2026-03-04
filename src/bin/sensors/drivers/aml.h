@@ -51,6 +51,7 @@ class AMLSensorDriver
     int32_t report_timeout_{20};
     int32_t resend_cfg_timeout_{20};
     sensor::protobuf::AML last_aml_reading;
+    bool received_aml_reading_{false};
 };
 
 } // namespace apps

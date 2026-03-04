@@ -1,2 +1,0 @@
-../Core/Src/crc32.c:14:6:init_crc32_table	4
-../Core/Src/crc32.c:35:10:compute_crc32	2

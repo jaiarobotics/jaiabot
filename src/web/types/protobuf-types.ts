@@ -978,6 +978,7 @@ export enum HubCommandType {
     REBOOT_COMPUTER = "REBOOT_COMPUTER",
     SHUTDOWN_COMPUTER = "SHUTDOWN_COMPUTER",
     SET_HUB_LOCATION = "SET_HUB_LOCATION",
+    CTD_DATA_OFFLOAD = "CTD_DATA_OFFLOAD",
 }
 
 export interface CommandForHub {

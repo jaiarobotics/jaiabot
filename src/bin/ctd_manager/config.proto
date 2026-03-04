@@ -3,7 +3,8 @@
 // File authors:
 //   Michael Twomey <michael.twomey@jaia.tech>
 //
-// This file is part of the JaiaBot Hydro Project Binaries
+//
+// This file is part of the JaiaBot Project Binaries
 // ("The Jaia Binaries").
 //
 // The Jaia Binaries are free software: you can redistribute them and/or modify
@@ -23,25 +24,15 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
-import "goby/middleware/protobuf/serial_config.proto";
 
 package jaiabot.config;
 
-message AMLCatalog {
-    optional string conductivity = 1;
-}
-
-message AMLSensorDriver
+message CTDManager
 {
     // required parameters for ApplicationBase3 class
     optional goby.middleware.protobuf.AppConfig app = 1;
-
+    // required parameters for connecting to 'gobyd'
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    optional int32 aml_report_timeout_seconds = 10 [default = 40];
-    optional int32 output_rate = 11 [default = 25];
-
-    optional goby.middleware.protobuf.SerialConfig serial = 20;
-
-    optional AMLCatalog catalog = 30;
+    // any specific configuration parameters for your application
 }
