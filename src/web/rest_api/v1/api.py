@@ -9,6 +9,8 @@ import common.shared_data
 from common.time import utc_now_microseconds
 from common.api_exception import APIException
 
+from surob_mission_planner.planner import JaiabotMissionPlanner, MissionParameters
+
 def process_request(jaia_request):
     action = jaia_request.WhichOneof("action")
     # call function in this module with the same name as action
@@ -158,3 +160,73 @@ def command_for_hub(jaia_request):
 
     return jaia_response
 
+SUROB_MEASUREMENT_TIME_M = 7.0 # 5 minutes per station keep + 2 minute budget for dives, actual time may be lower
+SUROB_STATION_KEEP_TIME_M = 5.0
+
+MAX_WAYPOINTS = 80 # should match https://github.com/jaiarobotics/jaiabot/blob/2.y/src/web/utils/constants.ts#L32
+
+def surob_mission_plan_request(jaia_request):
+    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+
+    shoreline_point = (jaia_request.surob_mission_plan_request.shoreline_point.lat,jaia_request.surob_mission_plan_request.shoreline_point.lon)
+    offshore_point = (jaia_request.surob_mission_plan_request.offshore_point.lat,jaia_request.surob_mission_plan_request.offshore_point.lon)
+
+    constraint_type = jaia_request.surob_mission_plan_request.constraint_type
+    constraint_value = jaia_request.surob_mission_plan_request.constraint_value
+
+    # Bots to include in mission plan
+    bots = list()    
+
+    with common.shared_data.data_lock:
+        if jaia_request.target.all:
+            # all the bots we know about
+            bots = common.shared_data.data.bots.keys()
+        else:
+            # don't bother to send commands to bots we haven't heard from
+            bots = [value for value in jaia_request.target.bots if value in common.shared_data.data.bots.keys()]
+        
+        common.shared_data.data.surob_mission_shoreline_point = shoreline_point
+        common.shared_data.data.surob_mission_offshore_point = offshore_point
+
+    if len(bots) == 0:
+        jaia_response.MissionPlanResponse.planned_successfully = False
+        jaia_response.MissionPlanResponse.error_message = "No active bots found."
+        return jaia_response
+    try:
+        params = MissionParameters(
+            shoreline_lat=shoreline_point[0],
+            shoreline_lon=shoreline_point[1],
+            offshore_lat=offshore_point[0],
+            offshore_lon=offshore_point[1],
+            bot_ids=bots,
+            measurement_time=SUROB_MEASUREMENT_TIME_M,
+            planning_mode=("time" if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else ("resolution" if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None)),
+            mission_duration=(constraint_value if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else None),
+            target_resolution=(constraint_value if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None),
+            station_keep_time=SUROB_STATION_KEEP_TIME_M,
+        )
+    except ValueError:
+        # bad mission parameter(s)
+        jaia_response.MissionPlanResponse.planned_successfully = False
+        jaia_response.MissionPlanResponse.error_message = "Mission parameters could not be parsed properly."
+        return jaia_response
+
+    planner = JaiabotMissionPlanner(params)
+    try:
+        plan = planner.plan_mission()
+    except ValueError:
+        # could not fit mission within time constraint 
+        jaia_response.MissionPlanResponse.planned_successfully = False
+        jaia_response.MissionPlanResponse.error_message = f"Mission could not be fit within maximum length of {constraint_value} minutes."
+        return jaia_response
+    
+    if plan.measurements_per_bot[bots[0]] > MAX_WAYPOINTS/2: # Jaia missions have a per bot maximum waypoint count, a "measurement" encodes a station keep/drift and a dive, so 2 waypoints each.
+        # mission is too long, since waypoints are assigned in a sequential "round robin" style, we assume the first bot in the list will have the most measurements if not evenly distributed
+        jaia_response.MissionPlanResponse.planned_successfully = False
+        jaia_response.MissionPlanResponse.error_message = f"Bot mission length exceeds maximum waypoint count of {MAX_WAYPOINTS}. Mission length was {int(plan.measurements_per_bot[bots[0]]/2)} waypoints."
+        return jaia_response
+
+    mission_plan_json = planner.export_to_jaia_mission_json_string(plan, mission_name="Surob Mission")
+    jaia_response.MissionPlanResponse.planned_successfully = True
+    jaia_response.MissionPlanResponse.mission_plan_json = mission_plan_json
+    return jaia_response
