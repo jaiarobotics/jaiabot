@@ -111,6 +111,9 @@ JAIA_IMU_INSTALL_TYPE=$RET
 db_get jaiabot-embedded/arduino_type
 JAIA_ARDUINO_TYPE=$RET
 
+db_get jaiabot-embedded/pam_connection_type
+JAIA_PAM_CONNECTION_TYPE=$RET
+
 db_get jaiabot-embedded/data_offload_ignore_type
 JAIA_DATA_OFFLOAD_IGNORE_TYPE=$RET
 
@@ -155,6 +158,7 @@ JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
                                          --user_role=${JAIA_USER_ROLE} \
                                          --imu_type=${JAIA_IMU_TYPE} \
                                          --arduino_type=${JAIA_ARDUINO_TYPE} \
+                                         --pam_connection_type=${JAIA_PAM_CONNECTION_TYPE} \
                                          --bot_type=${JAIA_BOT_TYPE} \
                                          --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \
                                          --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE} \
