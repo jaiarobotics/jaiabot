@@ -65,3 +65,13 @@ if [ ! -e ${script_dir}/../.git/hooks/pre-commit ]; then
    # Install the pre-commit hook
    ${script_dir}/../scripts/git-hooks/clang-format-hooks/git-pre-commit-format install
 fi
+
+# Install necessary HAL drivers for STM32 if the script exists
+if [ -f "${script_dir}/stm32/fetch_drivers.sh" ]; then
+    echo ""
+    echo "🟢 Installing STM32 drivers..."
+    bash "${script_dir}/stm32/fetch_drivers.sh"
+else
+    echo ""
+    echo "STM32 build script not found at ${script_dir}/stm32/fetch_drivers.sh"
+fi

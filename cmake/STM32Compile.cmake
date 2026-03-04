@@ -103,6 +103,28 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
     DESTINATION ${STM32_INSTALL_DIR}/${sketchname}/${nickname}
   )
 
+  # copy deploy script and stm32flash tool into the build output directory
+  if(${nickname} STREQUAL "uart")
+    add_custom_command(TARGET stm32_compile_${sketchname}_${nickname} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/scripts/stm32/deploy_stm32.sh
+        ${outdir}/upload.sh
+      COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/scripts/stm32/stm32flash-0.7.tar.gz
+        ${outdir}/stm32flash-0.7.tar.gz
+      COMMENT "Copying deploy script and stm32flash to ${outdir}"
+    )
+    install(
+      PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/stm32/deploy_stm32.sh
+      DESTINATION ${STM32_INSTALL_DIR}/${sketchname}/${nickname}
+      RENAME upload.sh
+    )
+    install(
+      FILES ${CMAKE_SOURCE_DIR}/scripts/stm32/stm32flash-0.7.tar.gz
+      DESTINATION ${STM32_INSTALL_DIR}/${sketchname}/${nickname}
+    )
+  endif()
+
   add_custom_target(stm32_upload_${sketchname}_${nickname}
     DEPENDS stm32_compile_${sketchname}_${nickname}
     COMMAND ${outdir}/upload.sh

@@ -49,7 +49,15 @@ sleep 3
 
 
 echo "Flashing STM32 with stm32flash..."
-stm32flash-0.7/stm32flash -w JAIA_STM32.bin -v -b "115200" -g "0x08000000"  "/dev/bio-payload"
+if stm32flash-0.7/stm32flash -w "$BIN" -v -b "115200" -g "0x08000000" "/dev/bio-payload"; then
+    cp "$BIN" "JAIA_STM32_uploaded.bin"
+    cp "$ELF" "JAIA_STM32_uploaded.elf"
+    echo "Saved uploaded firmware as JAIA_STM32_uploaded.{bin,elf}"
+else
+    echo "ERROR: Flash failed!"
+    sudo systemctl restart jaiabot_sensors
+    exit 1
+fi
 
 echo "Resetting STM32..."
 echo '0' | sudo tee /sys/bus/usb/devices/usb1/authorized

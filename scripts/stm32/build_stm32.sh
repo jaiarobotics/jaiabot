@@ -61,11 +61,12 @@ if [ "$FORCE" = false ] && [ "$CLEAN" = false ]; then
     fi
 fi
 
-# --- Optional: regenerate HAL/CMSIS from .ioc ---
+# --- Fetch Drivers (HAL/CMSIS) if not present ---
+FETCH_FLAGS=""
 if [ "$REGEN" = true ]; then
-    echo "[STM32] Regenerating HAL/CMSIS from .ioc..."
-    bash "${script_dir}/regen_ioc.sh"
+    FETCH_FLAGS="--force"
 fi
+bash "${script_dir}/fetch_drivers.sh" ${FETCH_FLAGS}
 
 # --- Clean ---
 if [ "$CLEAN" = true ]; then
@@ -100,13 +101,13 @@ mkdir -p "${NANOPB_MSG_DIR}"
 mkdir -p "${NANOPB_SENSOR_DIR}"
 
 # --- Generate nanopb sources from .proto files ---
-echo "[STM32] Generating nanopb sources from .proto + .options files..."
+echo "[STM32] Generating nanopb sources..."
 # Top-level messages
 nanopb_generator.py \
     --output-dir="${NANOPB_MSG_DIR}" \
     --options-path="${MESSAGES_DIR}" \
     -I "${PROTO_STAGING}" \
-    "${MESSAGES_DIR}"/*.proto
+    "${MESSAGES_DIR}"/*.proto 2>&1 | grep -v '^Writing to\|warning:' || true
 
 # Sensor messages — pass via staging symlink so protoc sees them as
 # "jaiabot/messages/sensor/..." (matching the fully-qualified imports in the protos).
@@ -117,23 +118,20 @@ nanopb_generator.py \
     --output-dir="${NANOPB_OUT}" \
     --options-path="${MESSAGES_DIR}/sensor" \
     -I "${PROTO_STAGING}" \
-    "${PROTO_STAGING}/jaiabot/messages/sensor"/*.proto
-
-echo "[STM32] Generated nanopb files:"
-ls "${NANOPB_MSG_DIR}"
-ls "${NANOPB_SENSOR_DIR}"
+    "${PROTO_STAGING}/jaiabot/messages/sensor"/*.proto 2>&1 | grep -v '^Writing to\|warning:' || true
 
 # --- Build ---
 # NANOPB_INC: root of jaiabot/messages/ tree → NANOPB_SENSOR_GEN_DIR = $(NANOPB_INC)/jaiabot/messages/sensor
 # JAIABOT_INC: parent of nanopb/ → resolves #include "nanopb/jaiabot/messages/sensor/..."
 # NANOPB_SYS_INC: sensor dir → resolves bare sibling includes inside sensor pb.h files
 echo "[STM32] Building STM32L432 firmware..."
-(set -x; time make -C "${STM32_SRC_DIR}" \
+make -C "${STM32_SRC_DIR}" \
     -j"$(nproc)" \
     BUILD_DIR="${STM32_BUILD_DIR}" \
     JAIABOT_INC="${STM32_BUILD_DIR}" \
     NANOPB_INC="${NANOPB_OUT}" \
-    NANOPB_SYS_INC="${NANOPB_SENSOR_DIR}")
+    NANOPB_SYS_INC="${NANOPB_SENSOR_DIR}" \
+    --no-print-directory -s
 
 # --- Verify output ---
 FIRMWARE_HEX="${STM32_BUILD_DIR}/JAIA_STM32.hex"
