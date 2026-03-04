@@ -52,7 +52,7 @@ export default function App() {
      * @returns {void}
      */
     const handleJCCClick = () => {
-        if (!document.fullscreenElement && isMobile) {
+        if (isMobile) {
             document.documentElement.requestFullscreen();
         }
     };
