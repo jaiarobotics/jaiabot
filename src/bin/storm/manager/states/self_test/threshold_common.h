@@ -105,11 +105,8 @@ template <typename Derived> struct ThresholdCheckerBase
                 break;
         }
 
-        goby::glog.is_debug1() && goby::glog << group("statechart") << "[" << name_
-                                             << "]: Checking condition: " << "value: " << value
-                                             << " " << check.ShortDebugString() << std::endl;
-
         bool threshold_met = false;
+        bool threshold_met_complete = false;
         switch (check.condition())
         {
             case protobuf::StormMission::Threshold::IGNORE: break;
@@ -121,18 +118,17 @@ template <typename Derived> struct ThresholdCheckerBase
                 break;
         }
 
+        std::string result_string = threshold_met ? "TRUE" : "FALSE";
+
         auto hold_start_it = thresholds_met_start_.find(key);
+
         if (threshold_met)
         {
             auto now = goby::time::SteadyClock::now();
 
             if (hold_start_it == thresholds_met_start_.end())
             {
-                goby::glog.is_verbose() && goby::glog
-                                               << group("statechart") << "[" << name_
-                                               << "] Condition first met: " << "value: " << value
-                                               << " " << check.ShortDebugString() << std::endl;
-
+                result_string = "TRUE/FIRST";
                 bool new_element = false;
                 std::tie(hold_start_it, new_element) =
                     thresholds_met_start_.insert(std::make_pair(key, now));
@@ -146,28 +142,30 @@ template <typename Derived> struct ThresholdCheckerBase
             if (now >= start_time + hold_time)
             {
                 // threshold has been met for long enough
-                goby::glog.is_verbose() &&
-                    goby::glog << group("statechart") << "[" << name_
-                               << "] Condition hold time elapsed: " << "value: " << value << " "
-                               << check.ShortDebugString() << std::endl;
-
-                unmet_thresholds_.erase(key);
-
-                if (unmet_thresholds_.empty())
-                {
-                    goby::glog.is_verbose() && goby::glog << group("statechart") << "[" << name_
-                                                          << "] All conditions met." << std::endl;
-                    this->post_event(state);
-                }
+                result_string = "TRUE/COMPLETE";
+                threshold_met_complete = true;
             }
         }
         else if (hold_start_it != thresholds_met_start_.end())
         {
-            goby::glog.is_verbose() && goby::glog
-                                           << group("statechart") << "[" << name_
-                                           << "] Condition no longer met: " << "value: " << value
-                                           << " " << check.ShortDebugString() << std::endl;
+            result_string = "FALSE/RESET";
             thresholds_met_start_.erase(hold_start_it);
+        }
+
+        goby::glog.is_debug1() && goby::glog << group("statechart") << "[" << name_
+                                             << "]: Condition (" << result_string
+                                             << "): " << "value: " << value << " "
+                                             << check.ShortDebugString() << std::endl;
+
+        if (threshold_met_complete)
+        {
+            unmet_thresholds_.erase(key);
+            if (unmet_thresholds_.empty())
+            {
+                goby::glog.is_debug1() && goby::glog << group("statechart") << "[" << name_
+                                                     << "]: All thresholds met" << std::endl;
+                this->post_event(state);
+            }
         }
     }
 
