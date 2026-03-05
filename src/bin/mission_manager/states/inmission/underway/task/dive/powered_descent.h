@@ -146,12 +146,15 @@ struct PoweredDescent
                 << ((now - last_depth_change_time_) >
                     static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
                 << std::endl;
-
+ 
         if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
             cfg().dive_depth_eps_with_units())
         {
-            // Set depth achieved if we have reached our goal depth
-            context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+            // Set depth achieved if we have reached our goal depth and are deeper than current depth achieved
+            if (ev.depth > context<Dive>().dive_packet().depth_achieved_with_units())
+            {
+                context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+            }
             dive_pdescent_debug.set_depth_reached(true);
             post_event(EvDepthTargetReached());
         }
@@ -185,8 +188,11 @@ struct PoweredDescent
             {
                 context<Dive>().set_seafloor_reached(ev.depth);
 
-                // Set depth achieved if we had a bottoming timeout
-                context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+                // Set depth achieved if we had a bottoming timeout and are deeper than our current depth achieved
+                if (ev.depth > context<Dive>().dive_packet().depth_achieved_with_units())
+                {
+                    context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+                }
 
                 // Set the max_acceration
                 context<Dive>().dive_packet().set_max_acceleration_with_units(
