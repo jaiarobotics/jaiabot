@@ -72,7 +72,7 @@
         "typescript": "^5.9.3",
         "webpack": "^@JAIA_VERSION_WEBPACK@",
         "webpack-cli": "^@JAIA_VERSION_WEBPACK_CLI@",
-        "webpack-dev-server": "^5.2.0"
+        "webpack-dev-server": "^5.2.3"
     },
     "scripts": {
         "test": "NODE_OPTIONS='--max-old-space-size=4096' jest",
