@@ -81,6 +81,7 @@ export default function CTDOffload(props: Props) {
             a.href = url;
             a.download = `ctd-bot-${botID}`;
             document.body.appendChild(a);
+            a.addEventListener("click", (event) => event.stopPropagation());
             a.click();
             a.remove();
             window.URL.revokeObjectURL(url);
