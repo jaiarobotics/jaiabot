@@ -23,16 +23,32 @@
 #ifdef JAIABOT_STORM_MANAGER_FWD_DECL
 struct LaunchTubeDetection;
 #else
-struct LaunchTubeDetection : boost::statechart::state<LaunchTubeDetection, SelfTest>,
-                             Notify<LaunchTubeDetection, protobuf::SELF_TEST__LAUNCH_TUBE_DETECTION>
+struct LaunchTubeDetection
+    : boost::statechart::state<LaunchTubeDetection, SelfTest>,
+      Notify<LaunchTubeDetection, protobuf::SELF_TEST__LAUNCH_TUBE_DETECTION>,
+      ThresholdCommon<LaunchTubeDetection>
 {
     using StateBase = boost::statechart::state<LaunchTubeDetection, SelfTest>;
 
-    LaunchTubeDetection(typename StateBase::my_context c) : StateBase(c) {}
+    using ThresholdBase = ThresholdCommon<LaunchTubeDetection>;
+
+    LaunchTubeDetection(typename StateBase::my_context c) : StateBase(c)
+    {
+        this->set_threshold_cfg<EvLaunchTubeCleared>(
+            "launch tube cleared threshold",
+            this->machine().mission().launch_tube().cleared_threshold());
+
+        this->set_threshold_cfg<EvLaunchTubeStuck>(
+            "launch tube stuck threshold",
+            this->machine().mission().launch_tube().stuck_threshold());
+    }
     ~LaunchTubeDetection() {}
 
-    using reactions = boost::mpl::list<
+    using local_reactions = boost::mpl::list<
         boost::statechart::transition<EvLaunchTubeCleared, ParachuteAttachmentDetection>,
         boost::statechart::transition<EvLaunchTubeStuck, LaunchTubeRecovery>>;
+
+    using reactions = typename boost::mpl::copy<
+        local_reactions, boost::mpl::front_inserter<ThresholdBase::common_reactions>>::type;
 };
 #endif

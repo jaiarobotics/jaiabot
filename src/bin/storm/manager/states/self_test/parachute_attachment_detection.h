@@ -25,15 +25,28 @@ struct ParachuteAttachmentDetection;
 #else
 struct ParachuteAttachmentDetection
     : boost::statechart::state<ParachuteAttachmentDetection, SelfTest>,
-      Notify<ParachuteAttachmentDetection, protobuf::SELF_TEST__PARACHUTE_ATTACHMENT_DETECTION>
+      Notify<ParachuteAttachmentDetection, protobuf::SELF_TEST__PARACHUTE_ATTACHMENT_DETECTION>,
+      ThresholdCommon<ParachuteAttachmentDetection>
 {
     using StateBase = boost::statechart::state<ParachuteAttachmentDetection, SelfTest>;
+    using ThresholdBase = ThresholdCommon<ParachuteAttachmentDetection>;
 
-    ParachuteAttachmentDetection(typename StateBase::my_context c) : StateBase(c) {}
+    ParachuteAttachmentDetection(typename StateBase::my_context c) : StateBase(c)
+    {
+        this->set_threshold_cfg<EvParachuteReleased>(
+            "parachute released threshold",
+            this->machine().mission().parachute().cleared_threshold());
+
+        this->set_threshold_cfg<EvParachuteStillAttached>(
+            "parachute still attached threshold",
+            this->machine().mission().parachute().entangled_threshold());
+    }
     ~ParachuteAttachmentDetection() {}
 
-    using reactions = boost::mpl::list<
+    using local_reactions = boost::mpl::list<
         boost::statechart::transition<EvParachuteReleased, AirDescentDataOffload>,
         boost::statechart::transition<EvParachuteStillAttached, ParachuteAttachmentRecovery>>;
+    using reactions = typename boost::mpl::copy<
+        local_reactions, boost::mpl::front_inserter<ThresholdBase::common_reactions>>::type;
 };
 #endif

@@ -134,7 +134,7 @@ void jaiabot::apps::StormSimThread::compute_air_descent(
     if (state_.nav.depth >= 0 * si::meters)
     {
         state_.stage = protobuf::IN_WATER;
-        state_.nav.depth = std::numeric_limits<double>::quiet_NaN() * si::meters;
+        state_.nav.depth = 0 * si::meters;
         state_.in_water_start = now;
     }
 }

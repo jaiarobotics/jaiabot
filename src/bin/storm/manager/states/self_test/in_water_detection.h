@@ -23,24 +23,25 @@
 #ifdef JAIABOT_STORM_MANAGER_FWD_DECL
 struct InWaterDetection;
 #else
-struct InWaterDetection : ThresholdCommon<InWaterDetection, SelfTest,
-                                          protobuf::SELF_TEST__IN_WATER_DETECTION, EvWaterDetected>
+struct InWaterDetection : boost::statechart::state<InWaterDetection, SelfTest>,
+                          Notify<InWaterDetection, protobuf::SELF_TEST__IN_WATER_DETECTION>,
+                          ThresholdCommon<InWaterDetection>
 {
-    using Base = ThresholdCommon<InWaterDetection, SelfTest,
-                                 protobuf::SELF_TEST__IN_WATER_DETECTION, EvWaterDetected>;
+    using StateBase = boost::statechart::state<InWaterDetection, SelfTest>;
+    using ThresholdBase = ThresholdCommon<InWaterDetection>;
 
-    InWaterDetection(typename Base::my_context c) : Base(c)
+    InWaterDetection(typename StateBase::my_context c) : StateBase(c)
     {
-        this->set_threshold_cfg(this->machine().mission().in_water().threshold());
+        this->set_threshold_cfg<EvWaterDetected>("in-water threshold",
+                                                 this->machine().mission().in_water().threshold());
     }
     ~InWaterDetection() {}
 
     using local_reactions =
         boost::mpl::list<boost::statechart::transition<EvWaterDetected, LaunchTubeDetection>>;
 
-    using reactions =
-        typename boost::mpl::copy<local_reactions,
-                                  boost::mpl::front_inserter<Base::common_reactions>>::type;
+    using reactions = typename boost::mpl::copy<
+        local_reactions, boost::mpl::front_inserter<ThresholdBase::common_reactions>>::type;
 };
 
 #endif

@@ -15,44 +15,71 @@ initial_mission {
   min_battery_percentage: 10 
   remote_mission_wait_minutes: 10 
   data_offload_timeout_minutes: 60
-  in_water { 
+  in_water {
+    # in-water if conductivity is definitely seawater and pressure is definitely sea level or greater
     threshold { 
       check { 
         condition: GREATER_THAN 
         stat: MEAN
         conductivity: 1000 # uS/cm
+        hold_time: 10 # sec
       }
       check { 
         condition: GREATER_THAN 
         stat: MEAN
         pressure: -1 # dBar
+        hold_time: 5 # sec
       }
     }
   }
   
   launch_tube {
-    threshold { 
+      # stuck if we get sink below a certain depth 
+    stuck_threshold { 
       check { 
         condition: GREATER_THAN 
         stat: MEAN
-        pressure: 1 # dBar
+        pressure: 20 # dBar
+        hold_time: 0 # sec
+      }
+     }
+     # cleared if we're near the surface
+     cleared_threshold { 
+      check { 
+        condition: LESS_THAN 
+        stat: MEAN
+        pressure: 3 # dBar
+        hold_time: 10 # sec
       }
     }
     
-    action { 
+    recovery_action { 
       thrust_percentage: 60
       thrust_duration: 5 # seconds
       count: 3
     }
-    action { 
+    recovery_action { 
       thrust_percentage: -30
       thrust_duration: 5 # seconds
       count: 1
     }
   }
-  parachute {
-    threshold { 
-      # TBD
+  parachute {      
+    cleared_threshold { 
+        # TBD - for now make this check always pass
+        check {
+            condition: GREATER_THAN
+            stat: MEAN
+            conductivity: -inf
+        }
+    }
+    entangled_threshold { 
+        # TBD - for now make this check impossible
+        check { 
+            condition: GREATER_THAN 
+            stat: MEAN
+            conductivity: inf
+        }
     }
   }
 }

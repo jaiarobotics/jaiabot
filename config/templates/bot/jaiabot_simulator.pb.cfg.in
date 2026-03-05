@@ -81,8 +81,9 @@ dive_config
     seafloor_amplitude: 2
 }
 
-storm_config {  
-  launch_altitude: 3000 # m
+storm_config {
+    #   launch_altitude: 3000 # m
+  launch_altitude: 300 # m
   air_descent_rate: 30 # m/s
   pitch_during_air_descent: 89 # deg 
   delay {  

@@ -116,6 +116,16 @@ message StormMission
                     units { derived_dimensions: "length" }
                 }];
             }
+
+            optional double hold_time = 3 [
+                default = 0,
+                (dccl.field) = {
+                    min: 0
+                    max: 600
+                    precision: 0
+                    units { derived_dimensions: "time" }
+                }
+            ];
         }
         repeated Check check = 1 [(dccl.field).max_repeat = 5];
     }
@@ -128,7 +138,9 @@ message StormMission
 
     message LaunchTubeDetectionParams
     {
-        required Threshold threshold = 1;
+        required Threshold cleared_threshold = 1;
+        required Threshold stuck_threshold = 2;
+
         message Action
         {
             required int32 thrust_percentage = 1
@@ -146,13 +158,14 @@ message StormMission
                 [default = 1, (dccl.field) = { min: 1 max: 10 }];
         }
 
-        repeated Action action = 2 [(dccl.field) = { max_repeat: 10 }];
+        repeated Action recovery_action = 3 [(dccl.field) = { max_repeat: 10 }];
     }
     required LaunchTubeDetectionParams launch_tube = 61;
 
     message ParachuteAttachmentDetectionParams
     {
-        required Threshold threshold = 1;
+        required Threshold cleared_threshold = 1;
+        required Threshold entangled_threshold = 2;
         // TBD
     }
 

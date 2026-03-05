@@ -61,6 +61,9 @@ jaiabot::apps::OceanographicSimThread::OceanographicSimThread(
 
 void jaiabot::apps::OceanographicSimThread::handle_sim_nav(const SimNav& nav)
 {
+    glog.is_debug1() && glog << group("oceanographic") << "Input nav (depth, lat): (" << nav.depth
+                             << ", " << nav.latlon.lat << ")" << std::endl;
+
     // relative to sea surface pressure (0 Pa at surface)
     boost::units::quantity<boost::units::si::pressure> pressure;
     boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>> temperature;

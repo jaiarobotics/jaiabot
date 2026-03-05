@@ -23,19 +23,13 @@
 // Base class for all states to manage reaching various thresholds of conductivity, pressure, etc.
 // When thresholds are met, the ThresholdEvent is posted
 
-template <typename Derived, typename Parent, StormMissionState state, typename ThresholdEvent>
-struct ThresholdCommon : boost::statechart::state<Derived, Parent>, Notify<Derived, state>
+template <typename Derived> struct ThresholdCheckerBase
 {
-    using StateBase = boost::statechart::state<Derived, Parent>;
-    ThresholdCommon(typename StateBase::my_context c) : StateBase(c) {}
-
-    ~ThresholdCommon() {}
-
-    void set_threshold_cfg(const protobuf::StormMission::Threshold& cfg)
+    ThresholdCheckerBase(const std::string& name, const protobuf::StormMission::Threshold& cfg)
+        : threshold_cfg_(cfg), name_(name)
     {
         unmet_thresholds_.clear();
 
-        threshold_cfg_ = cfg;
         for (const auto& check : threshold_cfg_.check())
         {
             if (check.condition() != protobuf::StormMission::Threshold::IGNORE &&
@@ -46,21 +40,74 @@ struct ThresholdCommon : boost::statechart::state<Derived, Parent>, Notify<Deriv
         }
     }
 
-    template <typename EventType, typename ValueType>
-    void check_condition(EventType event, ValueType threshold_value,
-                         protobuf::StormMission::Threshold::Check check)
+    virtual ~ThresholdCheckerBase() {}
+
+    // traits to define SensorEvent -> protobuf value case -> threshold value field
+    template <typename SensorEvent>
+    struct threshold_traits; // intentionally undefined (forces specializations)
+
+    // Conductivity
+    template <> struct threshold_traits<EvConductivity>
     {
-        ValueType value;
+        static constexpr auto value_case = protobuf::StormMission::Threshold::Check::kConductivity;
+
+        static auto threshold_value(const protobuf::StormMission::Threshold::Check& c)
+        {
+            // TO-DO: change to c.conductivity_with_units()
+            return c.conductivity() * jaiabot::units::microsiemens_per_cm;
+        }
+    };
+
+    // Pressure
+    template <> struct threshold_traits<EvPressure>
+    {
+        static constexpr auto value_case = protobuf::StormMission::Threshold::Check::kPressure;
+
+        static auto threshold_value(const protobuf::StormMission::Threshold::Check& c)
+        {
+            return c.pressure_with_units();
+        }
+    };
+
+    // GPS Altitude
+    template <> struct threshold_traits<EvGPSAltitude>
+    {
+        static constexpr auto value_case = protobuf::StormMission::Threshold::Check::kGpsAltitude;
+
+        static auto threshold_value(const protobuf::StormMission::Threshold::Check& c)
+        {
+            return c.gps_altitude_with_units();
+        }
+    };
+
+    template <typename SensorEvent> void check(Derived* state, const SensorEvent& s_event)
+    {
+        const auto key = threshold_traits<SensorEvent>::value_case;
+
+        auto unmet_it = unmet_thresholds_.find(key);
+        if (unmet_it == unmet_thresholds_.end())
+            return;
+
+        auto threshold_value = threshold_traits<SensorEvent>::threshold_value(unmet_it->second);
+
+        const protobuf::StormMission::Threshold::Check& check = unmet_it->second;
+        decltype(threshold_value) value;
         switch (check.stat())
         {
-            case protobuf::StormMission::Threshold::MEAN: value = ValueType(event.mean); break;
-            case protobuf::StormMission::Threshold::MEDIAN: value = ValueType(event.median); break;
-            case protobuf::StormMission::Threshold::STDDEV: value = ValueType(event.stddev); break;
+            case protobuf::StormMission::Threshold::MEAN:
+                value = decltype(value)(s_event.mean);
+                break;
+            case protobuf::StormMission::Threshold::MEDIAN:
+                value = decltype(value)(s_event.median);
+                break;
+            case protobuf::StormMission::Threshold::STDDEV:
+                value = decltype(value)(s_event.stddev);
+                break;
         }
 
-        goby::glog.is_debug1() && goby::glog << group("statechart")
-                                             << "Checking condition: " << "value: " << value << " "
-                                             << check.ShortDebugString() << std::endl;
+        goby::glog.is_debug1() && goby::glog << group("statechart") << "[" << name_
+                                             << "]: Checking condition: " << "value: " << value
+                                             << " " << check.ShortDebugString() << std::endl;
 
         bool threshold_met = false;
         switch (check.condition())
@@ -74,61 +121,108 @@ struct ThresholdCommon : boost::statechart::state<Derived, Parent>, Notify<Deriv
                 break;
         }
 
+        auto hold_start_it = thresholds_met_start_.find(key);
         if (threshold_met)
         {
-            goby::glog.is_verbose() && goby::glog << group("statechart")
-                                                  << "Condition met: " << "value: " << value << " "
-                                                  << check.ShortDebugString() << std::endl;
-            unmet_thresholds_.erase(check.value_case());
-            if (unmet_thresholds_.empty())
-            {
-                goby::glog.is_verbose() && goby::glog << group("statechart")
-                                                      << "All conditions met." << std::endl;
+            auto now = goby::time::SteadyClock::now();
 
-                this->post_event(ThresholdEvent());
+            if (hold_start_it == thresholds_met_start_.end())
+            {
+                goby::glog.is_verbose() && goby::glog
+                                               << group("statechart") << "[" << name_
+                                               << "] Condition first met: " << "value: " << value
+                                               << " " << check.ShortDebugString() << std::endl;
+
+                bool new_element = false;
+                std::tie(hold_start_it, new_element) =
+                    thresholds_met_start_.insert(std::make_pair(key, now));
             }
+
+            auto start_time = hold_start_it->second;
+
+            auto hold_time = goby::time::convert_duration<goby::time::SteadyClock::duration>(
+                check.hold_time_with_units());
+
+            if (now >= start_time + hold_time)
+            {
+                // threshold has been met for long enough
+                goby::glog.is_verbose() &&
+                    goby::glog << group("statechart") << "[" << name_
+                               << "] Condition hold time elapsed: " << "value: " << value << " "
+                               << check.ShortDebugString() << std::endl;
+
+                unmet_thresholds_.erase(key);
+
+                if (unmet_thresholds_.empty())
+                {
+                    goby::glog.is_verbose() && goby::glog << group("statechart") << "[" << name_
+                                                          << "] All conditions met." << std::endl;
+                    this->post_event(state);
+                }
+            }
+        }
+        else if (hold_start_it != thresholds_met_start_.end())
+        {
+            goby::glog.is_verbose() && goby::glog
+                                           << group("statechart") << "[" << name_
+                                           << "] Condition no longer met: " << "value: " << value
+                                           << " " << check.ShortDebugString() << std::endl;
+            thresholds_met_start_.erase(hold_start_it);
         }
     }
 
-    void check_conductivity(const EvConductivity& ev_c)
-    {
-        auto it = unmet_thresholds_.find(protobuf::StormMission::Threshold::Check::kConductivity);
-        if (it == unmet_thresholds_.end())
-            return;
-
-        // TO-DO - change to it->second.conductivity_with_units()
-        check_condition(ev_c, it->second.conductivity() * jaiabot::units::microsiemens_per_cm,
-                        it->second);
-    }
-    void check_pressure(const EvPressure& ev_p)
-    {
-        auto it = unmet_thresholds_.find(protobuf::StormMission::Threshold::Check::kPressure);
-        if (it == unmet_thresholds_.end())
-            return;
-
-        check_condition(ev_p, it->second.pressure_with_units(), it->second);
-    }
-    void check_gps_altitude(const EvGPSAltitude& ev_gps_alt)
-    {
-        auto it = unmet_thresholds_.find(protobuf::StormMission::Threshold::Check::kGpsAltitude);
-        if (it == unmet_thresholds_.end())
-            return;
-        check_condition(ev_gps_alt, it->second.gps_altitude_with_units(), it->second);
-    }
-
-    using common_reactions =
-        boost::mpl::list<boost::statechart::in_state_reaction<EvConductivity, ThresholdCommon,
-                                                              &ThresholdCommon::check_conductivity>,
-                         boost::statechart::in_state_reaction<EvPressure, ThresholdCommon,
-                                                              &ThresholdCommon::check_pressure>,
-
-                         boost::statechart::in_state_reaction<
-                             EvGPSAltitude, ThresholdCommon, &ThresholdCommon::check_gps_altitude>>;
+    virtual void post_event(Derived* state) = 0;
 
   private:
+    std::string name_;
+
     protobuf::StormMission::Threshold threshold_cfg_;
 
     std::map<protobuf::StormMission::Threshold::Check::ValueCase,
              protobuf::StormMission::Threshold::Check>
         unmet_thresholds_;
+
+    std::map<protobuf::StormMission::Threshold::Check::ValueCase,
+             goby::time::SteadyClock::time_point>
+        thresholds_met_start_;
+};
+
+template <typename Derived, typename ThresholdEvent>
+struct ThresholdChecker : public ThresholdCheckerBase<Derived>
+{
+    ThresholdChecker(const std::string& name, const protobuf::StormMission::Threshold& cfg)
+        : ThresholdCheckerBase<Derived>(name, cfg)
+    {
+    }
+    ~ThresholdChecker() {}
+
+    void post_event(Derived* state) override { state->post_event(ThresholdEvent()); }
+};
+
+template <typename Derived> struct ThresholdCommon
+{
+    ThresholdCommon() {}
+    ~ThresholdCommon() {}
+
+    template <typename ThresholdEvent>
+    void set_threshold_cfg(const std::string& name, const protobuf::StormMission::Threshold& cfg)
+    {
+        checkers_.emplace(std::make_unique<ThresholdChecker<Derived, ThresholdEvent>>(name, cfg));
+    }
+
+    template <typename SensorEvent> boost::statechart::result react(const SensorEvent& sensor_event)
+    {
+        for (auto& checker : checkers_)
+        {
+            checker->check(static_cast<Derived*>(this), sensor_event);
+        }
+        return static_cast<Derived*>(this)->discard_event();
+    }
+
+    using common_reactions = boost::mpl::list<boost::statechart::custom_reaction<EvConductivity>,
+                                              boost::statechart::custom_reaction<EvPressure>,
+                                              boost::statechart::custom_reaction<EvGPSAltitude>>;
+
+  private:
+    std::set<std::unique_ptr<ThresholdCheckerBase<Derived>>> checkers_;
 };
