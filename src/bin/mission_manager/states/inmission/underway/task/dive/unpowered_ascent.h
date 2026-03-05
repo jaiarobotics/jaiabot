@@ -39,7 +39,7 @@ struct UnpoweredAscent
         {
             interprocess().publish<jaiabot::groups::camera>(cfg().stop_camera_command());
         }
-
+        latest_ctd_snapshot_.set_depth(context<Dive>().current_depth().value());
         loop(EvLoop());
     }
 
