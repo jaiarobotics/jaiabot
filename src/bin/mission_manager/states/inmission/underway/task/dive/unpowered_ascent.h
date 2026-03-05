@@ -28,6 +28,8 @@ struct UnpoweredAscent
 {
     using StateBase = boost::statechart::state<UnpoweredAscent, Dive>;
 
+    const int CTDUpdateRate = 100000; // 0.1 seconds
+
     // Task::Dive::UnpoweredAscent
     UnpoweredAscent(
         typename StateBase::my_context c)
@@ -56,6 +58,13 @@ struct UnpoweredAscent
 
         context<Dive>().dive_packet().set_unpowered_rise_rate_with_units(rise_rate *
                                                                         boost::units::si::velocity());
+
+        latest_ctd_profile_.set_bot_id(cfg().bot_id());
+        latest_ctd_profile_.mutable_location()->set_lat(this->machine().gps_tpv().location().lat());
+        latest_ctd_profile_.mutable_location()->set_lon(this->machine().gps_tpv().location().lon());
+        interprocess().publish<jaiabot::groups::ctd>(latest_ctd_profile_);
+        latest_ctd_profile_.clear_snapshot();
+        glog.is_debug1() && glog << "Published CTD profile" << std::endl; 
     }
 
     void loop(const EvLoop&)
@@ -136,12 +145,37 @@ struct UnpoweredAscent
                 << std::endl;
     }
 
+    void collectCTD(const EvMeasurement& ev)
+    {
+        auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+
+        if (ev.salinity.has_value()) {
+            latest_ctd_snapshot_.set_salinity(ev.salinity.value());
+        }
+
+        if (ev.temperature.has_value()) {
+            latest_ctd_snapshot_.set_temperature(ev.temperature->value());
+        }
+
+        if (ev.sensor_depth.has_value()) {
+            latest_ctd_snapshot_.set_depth(ev.sensor_depth->value());
+        }
+
+        if (now.value() - last_snapshot_time_.value() >= CTDUpdateRate) {
+            glog.is_debug1() && glog << "Adding CTD snapshot to profile" << std::endl;
+            latest_ctd_snapshot_.set_time(now.value());
+            latest_ctd_profile_.add_snapshot()->CopyFrom(latest_ctd_snapshot_);
+            last_snapshot_time_ = now;
+        }
+    }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvSurfacingTimeout, PoweredAscent>,
         boost::statechart::transition<EvSurfaced, ReacquireGPS>,
         boost::statechart::in_state_reaction<EvLoop, UnpoweredAscent, &UnpoweredAscent::loop>,
         boost::statechart::in_state_reaction<EvVehicleDepth, UnpoweredAscent,
-                                             &UnpoweredAscent::depth>>;
+                                             &UnpoweredAscent::depth>,
+        boost::statechart::in_state_reaction<EvMeasurement, UnpoweredAscent, &UnpoweredAscent::collectCTD>>;
 
   private:
     goby::time::MicroTime detect_depth_changes_init_timeout_{
@@ -152,4 +186,7 @@ struct UnpoweredAscent
     boost::units::quantity<boost::units::si::length> last_depth_{context<Dive>().current_depth()};
     goby::time::MicroTime last_depth_change_time_{
         goby::time::SystemClock::now<goby::time::MicroTime>()};
+    goby::time::MicroTime last_snapshot_time_{goby::time::SystemClock::now<goby::time::MicroTime>()};
+    jaiabot::protobuf::CTDSnapshot latest_ctd_snapshot_;
+    jaiabot::protobuf::CTDProfile latest_ctd_profile_;
 };
