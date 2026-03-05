@@ -15,13 +15,9 @@ export interface CustomAlertProps {
     buttons?: CustomAlertButton[];
 }
 
-export class CustomAlert extends React.Component {
-    props: CustomAlertProps;
-
+export class CustomAlert extends React.Component<CustomAlertProps> {
     constructor(props: CustomAlertProps) {
         super(props);
-
-        this.props = props;
     }
 
     render(): React.ReactNode {

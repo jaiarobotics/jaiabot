@@ -62,8 +62,8 @@ interface State {
     isInformationDialogVisible: boolean;
 }
 
-export class App extends React.Component {
-    state: State;
+export class App extends React.Component<AppProps, State> {
+    declare state: State;
     map: JaiaMap;
     plot_div_element: any;
     seriesDescriptors: SeriesDescriptor[];
