@@ -47,6 +47,19 @@ export function ExportMissionSetDialog(props: DialogProps) {
  * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
+    /**
+     * Exits full screen so it can be re-established after the export
+     * and passes the confirm signal to the onClose method
+     *
+     * @returns {void}
+     */
+    const handleExportClick = () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+        props.onClose(DialogActions.CONFIRMED);
+    };
+
     switch (props.disabledCode) {
         case DisabledCodes.NONE: {
             return (
@@ -57,10 +70,7 @@ function ButtonRow(props: ButtonRowProps) {
                     >
                         Cancel
                     </button>
-                    <button
-                        className="dialog-button"
-                        onClick={() => props.onClose(DialogActions.CONFIRMED)}
-                    >
+                    <button className="dialog-button" onClick={() => handleExportClick()}>
                         Export
                     </button>
                 </div>

@@ -49,8 +49,15 @@ export default function CTDOffload(props: Props) {
      *
      * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
      * @returns {void}
+     *
+     * @notes
+     * Exit full screen prior to download so it can be re-established after
      */
     const handleDownloadCTDClick = () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+
         for (const [botID, checkedState] of botCheckedStates.entries()) {
             if (checkedState) {
                 const hub = jaiaContext.hubs.getHubs().values().next()?.value as Hub;
@@ -62,6 +69,7 @@ export default function CTDOffload(props: Props) {
                 sendHubCommand(command).then(() => getCTDFiles(botID));
             }
         }
+
         success("Starting CTD download");
     };
 

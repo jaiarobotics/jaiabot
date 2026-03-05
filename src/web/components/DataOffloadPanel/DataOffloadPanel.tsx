@@ -24,6 +24,9 @@ export default function DataOffloadPanel() {
      * @returns {void}
      */
     const handleDownloadKMZ = async () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
         const kmzFilename = getKMZFilename(taskPackets.getIncludedTaskPackets());
         downloadFile(kmzFilename, await getKMZ(taskPackets.getIncludedTaskPackets()));
     };
