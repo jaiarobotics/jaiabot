@@ -15,7 +15,6 @@ export function downloadFile(
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = fileName;
-    link.addEventListener("click", (event) => event.stopPropagation());
 
     // Append to DOM, trigger click, then clean up
     document.body.appendChild(link);

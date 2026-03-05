@@ -51,14 +51,21 @@ export default function App() {
      *
      * @returns {void}
      */
-    const handleJCCClick = () => {
-        if (isMobile) {
-            document.documentElement.requestFullscreen();
+    const handleJCCClick = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        if (!isMobile) {
+            return;
         }
+
+        const target = event.target as HTMLElement;
+        if (target.closest("a")) {
+            return;
+        }
+
+        document.documentElement.requestFullscreen();
     };
 
     return (
-        <div id={JCC_CONTAINER} onClick={() => handleJCCClick()}>
+        <div id={JCC_CONTAINER} onClick={(event) => handleJCCClick(event)}>
             <JaiaContextProvider>
                 <Map />
                 <NodeList />
