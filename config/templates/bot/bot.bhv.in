@@ -4,14 +4,34 @@ initialize   JAIABOT_STATIONKEEP_ACTIVE = false
 initialize   JAIABOT_CONSTANTHEADING_ACTIVE = false
 initialize   JAIABOT_CONSTANTSPEED_ACTIVE = false
 initialize   JAIABOT_TRAIL_ACTIVE = false
+initialize   OBSTACLE_ALERT = none
+
+Behavior = BHV_AvoidObstacleV21
+{
+  name       = avoid_obs_
+  pwt        = 150
+  condition  = MOOS_MANUAL_OVERRIDE = false
+  updates    = OBSTACLE_ALERT
+  templating = spawn
+
+  // Essential for the Handshake with pObstacleMgr
+  // This automatically sends the OBM_ALERT_REQUEST
+  pwt_outer_dist = 20    // Alert range: start tracking at 20m
+  pwt_inner_dist = 8     // Critical range: max priority at 8m
+  completed_dist = 25    // Self-delete when 25m away
+
+  // Safety Buffers
+  buffer_dist    = 3     // Stay at least 3m away from the polygon edge
+  allowable_ttc  = 5     // Seconds until impact before reacting strongly
+}
 
 Behavior = BHV_Waypoint
-{ 
+{
   name      = jaia_transit
   pwt       = 100
   condition = JAIABOT_WAYPOINT_ACTIVE = true
   updates   = JAIABOT_TRANSIT_UPDATES
-  
+
   endflag   = JAIABOT_TRANSIT_COMPLETE = true
 
   lead               = 8
@@ -22,7 +42,7 @@ Behavior = BHV_Waypoint
   slip_radius        = 5.0
   efficiency_measure = all
   perpetual          = true
-  
+
   // set by updates
   // speed = ...   // meters per second
   // point = ...
@@ -44,7 +64,7 @@ Behavior = BHV_StationKeep
    // set by updates
    // outer_speed  = ...
    // transit_speed  = ...
-   // station_pt =  ...           
+   // station_pt =  ...
 }
 
 Behavior = BHV_ConstantDepth
@@ -62,7 +82,7 @@ Behavior = BHV_ConstantHeading
 {
   // General Behavior Parameters
   // ---------------------------
-  name         = jaia_fixed_heading  
+  name         = jaia_fixed_heading
   pwt          = 1000                  // default
   condition    = JAIABOT_CONSTANTHEADING_ACTIVE = true
   updates      = JAIABOT_CONSTANTHEADING_UPDATES
@@ -106,8 +126,8 @@ Behavior = BHV_Trail
    extrapolate  = true // If true, contact position is extrapolated from last position and trajectory.
    decay        = 60,120 // Time interval during which extrapolated position slows to a halt.
 
-   // The distance (in meters) from the trail position that will result in the behavior ``cutting range to the trail position, and inside of which will result in the behavior ``shadowing the contact. 
-   radius       = 5 // default, meters 
+   // The distance (in meters) from the trail position that will result in the behavior ``cutting range to the trail position, and inside of which will result in the behavior ``shadowing the contact.
+   radius       = 5 // default, meters
    nm_radius    = 20
 
    // will be updated with JAIABOT_TRAIL_UPDATES
@@ -116,5 +136,5 @@ Behavior = BHV_Trail
    // set by updates
    // trail_angle = ...
    // trail_angle_type =  ...
-   // trail_range =  ...           
+   // trail_range =  ...
 }

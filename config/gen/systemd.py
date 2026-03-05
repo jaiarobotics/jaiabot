@@ -28,8 +28,8 @@ try:
 except Exception as e:
     moos_bin_dir_default='/usr/bin'
 
-    
-gen_dir_default=script_dir    
+
+gen_dir_default=script_dir
 ansible_dir_default=os.path.realpath(script_dir + '/../ansible')
 
 parser = argparse.ArgumentParser(description='Generate systemd services for JaiaBot and JaiaHub', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -57,6 +57,7 @@ parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set
 parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
+parser.add_argument('--pam_connection_type', choices=['uart', 'usb', 'none'], help='If set, configure services for PAM connection type')
 parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
@@ -66,12 +67,17 @@ parser.add_argument('--rf_encryption_password', default ='', help='Encryption ke
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 
 args=parser.parse_args()
 
 class ARDUINO_TYPE(Enum):
     SPI = 'spi'
+    USB = 'usb'
+    NONE = 'none'
+
+class PAM_CONNECTION_TYPE(Enum):
+    UART = 'uart'
     USB = 'usb'
     NONE = 'none'
 
@@ -135,6 +141,13 @@ elif args.arduino_type == 'usb':
 else:
     jaia_arduino_type = ARDUINO_TYPE.NONE
 
+if args.pam_connection_type == 'uart':
+    jaia_pam_connection_type = PAM_CONNECTION_TYPE.UART
+elif args.pam_connection_type == 'usb':
+    jaia_pam_connection_type = PAM_CONNECTION_TYPE.USB
+else:
+    jaia_pam_connection_type = PAM_CONNECTION_TYPE.NONE
+
 if args.imu_type == 'bno055':
     jaia_imu_type = IMU_TYPE.BNO055
 elif args.imu_type == 'bno085':
@@ -153,7 +166,7 @@ elif args.imu_install_type == 'retrofit':
 if args.led_type == 'hub_led':
     jaia_led_type = LED_TYPE.HUB_LED
 elif args.led_type == 'none':
-    jaia_led_type = LED_TYPE.NONE    
+    jaia_led_type = LED_TYPE.NONE
 else:
     jaia_led_type = LED_TYPE.NONE
 
@@ -214,7 +227,7 @@ class Mode(Enum):
     SIMULATION = 'simulation'
     RUNTIME = 'runtime'
     BOTH = 'both'
-    
+
 if args.simulation:
     jaia_mode = Mode.SIMULATION
     warp = args.warp
@@ -241,7 +254,7 @@ if args.type == 'bot':
 elif args.type == 'hub':
     cloudhub_id=30
     if args.hub_index == cloudhub_id:
-        is_cloudhub=True        
+        is_cloudhub=True
     jaia_type = Type.HUB
     bot_or_hub_index_str = 'export jaia_hub_index=' + str(args.hub_index) + '; '
 
@@ -261,14 +274,14 @@ elif cloudhub_type == CloudHubType.SECONDARY:
 
 camera_positions_in_use = args.camera_positions
 jaia_additional_sensors = args.additional_sensors
-    
+
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
 
 subprocess.run('bash -ic "' +
                'export jaia_mode=' + jaia_mode.value + '; ' +
-               bot_or_hub_index_str + 
-               'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
+               bot_or_hub_index_str +
+               'export jaia_fleet_index=' + str(args.fleet_index) + '; ' +
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
                f'export jaia_goby_log_level={args.goby_log_level}; ' +
@@ -277,6 +290,7 @@ subprocess.run('bash -ic "' +
                'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
                'export jaia_imu_install_type=' + str(jaia_imu_install_type.value) + '; ' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
+               'export jaia_pam_connection_type=' + str(jaia_pam_connection_type.value) + '; ' +
                'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
                'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
                'export jaia_motor_harness_type=' + str(jaia_motor_harness_type.value) + '; ' +
@@ -324,7 +338,7 @@ except:
 if common_macros['user'] == 'root':
     common_macros['user'] = 'jaia'
     common_macros['group'] = 'jaia'
-    
+
 if jaia_type == Type.BOT:
     common_macros['gen'] = args.gen_dir + '/bot.py'
 elif jaia_type == Type.HUB:
@@ -334,8 +348,8 @@ elif jaia_type == Type.HUB:
 # most firmware does not run on Cloudhubs at all
 firmware_common_macros = common_macros.copy()
 firmware_common_macros['runs_on_cloudhub'] = CloudHubType.NEVER
-    
-    
+
+
 all_goby_apps = []
 
 jaiabot_apps = [
@@ -365,7 +379,7 @@ jaiabot_apps = [
      'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1',
      'error_on_fail': 'ERROR__FAILED__GOBY_LIAISON',
      'runs_on': [Type.BOTH],
-     'wanted_by': 'jaiabot_health.service',   
+     'wanted_by': 'jaiabot_health.service',
      'runs_on_cloudhub': CloudHubType.SECONDARY},
     {'exe': 'goby_gps',
      'description': 'Goby GPS Driver',
@@ -415,7 +429,7 @@ jaiabot_apps = [
      'wanted_by': 'jaiabot_health.service'},
 
     ## HUB Services ##
-    
+
     {'exe': 'jaiabot_hub_manager',
      'description': 'JaiaBot Hub Manager',
      'template': 'goby-app.service.in',
@@ -460,7 +474,7 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__JAIABOT_SIMULATOR',
      'runs_on': [Type.BOT],
      'runs_when': Mode.SIMULATION,
-     'wanted_by': 'jaiabot_health.service'},       
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_moos_gateway',
      'description': 'Goby to MOOS Gateway',
      'template': 'goby-app.service.in',
@@ -504,12 +518,17 @@ jaiabot_apps = [
      'description': 'pHelmIvP Autonomy Engine',
      'template': 'moos-app.service.in',
      'error_on_fail': 'ERROR__FAILED__MOOS_PHELMIVP',
-     'runs_on': [Type.BOT]},    
+     'runs_on': [Type.BOT]},
+    {'exe': 'pObstacleMgr',
+     'description': 'pObstacleMgr Obstacle Management',
+     'template': 'moos-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__MOOS_POBSTACLEMGR',
+     'runs_on': [Type.BOT]},
     {'exe': 'uProcessWatch',
      'description': 'uProcessWatch MOOS Health monitor',
      'template': 'moos-app.service.in',
      'error_on_fail': 'ERROR__FAILED__MOOS_UPROCESSWATCH',
-     'runs_on': [Type.BOT]},    
+     'runs_on': [Type.BOT]},
     {'exe': 'pNodeReporter',
      'description': 'pNodeReporter MOOS data aggregator',
      'template': 'moos-app.service.in',
@@ -534,6 +553,19 @@ jaiabot_apps = [
      'template': 'gpsd-sim.service.in',
      'runs_on': [Type.BOT],
      'runs_when': Mode.SIMULATION},
+    {'exe': 'jaiabot_ctd_manager',
+     'description': 'JaiaBot CTD Manager',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_CTD_MANAGER',
+     'runs_on': [Type.BOT],
+     'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_live_detection.py',
+     'description': 'JaiaBot Obstacle Detector',
+     'template': 'py-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_OBSTACLE_DETECTOR',
+     'runs_on': [Type.BOT],
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
 
     ## Bot Types: HYDRO, ECHO, NONE Services
 
@@ -564,7 +596,7 @@ jaiabot_apps = [
      'description': 'JaiaBot MAI Echo Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'echo',
-     'args': f'-p {UDP_GATEWAY_PORT}',
+     'args': f'-p {UDP_GATEWAY_PORT} -d {args.pam_connection_type}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ECHO',
      'runs_on': [BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,
@@ -603,7 +635,7 @@ if jaia_imu_type.value == 'bno085':
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'},
-    ] 
+    ]
     jaiabot_apps.extend(jaiabot_apps_imu)
 else:
     jaiabot_apps_imu = [
@@ -634,7 +666,7 @@ if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
         'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'}
-    ] 
+    ]
     jaiabot_apps.extend(jaiabot_apps_motor_harness_type)
 
 if 'none' not in camera_positions_in_use:
@@ -649,7 +681,7 @@ if 'none' not in camera_positions_in_use:
     ]
     jaiabot_apps.extend(jaiabot_apps_camera)
 
-if 'none' not in jaia_additional_sensors:
+if 'turner_c_flour' in jaia_additional_sensors:
     jaiabot_turner_c_fluor = [
         {'exe': 'jaiabot_turner_c_fluor_sensor_driver',
         'description': 'JaiaBot Turner C Fluor Sensor Driver',
@@ -660,6 +692,43 @@ if 'none' not in jaia_additional_sensors:
         'wanted_by': 'jaiabot_health.service'},
     ]
     jaiabot_apps.extend(jaiabot_turner_c_fluor)
+
+if 'aml' in jaia_additional_sensors:
+    jaiabot_aml_sensor = [
+        {'exe': 'jaiabot_aml_sensor_driver',
+        'description': 'JaiaBot AML Sensor Driver',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER',
+        'runs_on': [Type.BOT],
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service'},
+    ]
+    jaiabot_apps.extend(jaiabot_aml_sensor)
+if 'ppk' in jaia_additional_sensors:
+    jaiabot_ppk = [
+        {'exe': 'jaiabot_ppk',
+        'description': 'JaiaBot PPK Logger',
+        'template': 'goby-app.service.in',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_PPK',
+        'runs_on': [Type.BOT],
+        'wanted_by': 'jaiabot_health.service'},
+    ]
+    jaiabot_apps.extend(jaiabot_ppk)
+
+if jaia_temperature_sensor_type.value == 'tsys01':
+    jaiabot_apps_tsys01 = [
+        {'exe': 'jaiabot_tsys01.py',
+         'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
+         'template': 'py-app.service.in',
+         'subdir': 'tsys01_temperature_sensor',
+         'args': f'-p {UDP_GATEWAY_PORT}',
+         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
+         'runs_on': [Type.BOT],
+         'runs_when': Mode.RUNTIME,
+         'wanted_by': 'jaiabot_health.service',
+         'restart': 'on-failure'},
+    ]
+    jaiabot_apps.extend(jaiabot_apps_tsys01)
 
 jaia_firmware = [
     {'exe': 'hub-button-led-poweroff.py',
@@ -744,11 +813,11 @@ for app in jaiabot_apps:
     if is_app_run(app):
         if app['template'] == 'goby-app.service.in':
             all_goby_apps.append(app['exe'])
-        
+
 for app in jaiabot_apps:
     if is_app_run(app):
         macros={**common_macros, **app}
-        
+
         # generate service name from lowercase exe name, substituting . for _, and
         # adding jaiabot to the front if it doesn't already start with that
         if 'service' in macros:
@@ -761,7 +830,7 @@ for app in jaiabot_apps:
         # special case for goby_coroner - need a list of everything we're running
         if app.get('exe') == 'goby_coroner':
             macros['extra_flags'] = '--expected_name ' + ' --expected_name '.join(all_goby_apps)
-            
+
         if not 'bin_dir' in macros:
             if (macros.get('exe') or '').startswith('goby'):
                 macros['bin_dir'] = macros['goby_bin_dir']
@@ -769,9 +838,9 @@ for app in jaiabot_apps:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
 
         macros['service'] = service
-                
-        with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:        
-            out=Template(file.read()).substitute(macros)    
+
+        with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:
+            out=Template(file.read()).substitute(macros)
         outfilename = args.systemd_dir + '/' + service + '.service'
 
         enable = args.enable
@@ -796,32 +865,32 @@ for app in jaiabot_apps:
             print('Enabling ' + service)
             subprocess.run('a2ensite ' + service, check=True, shell=True)
             subprocess.run('if systemctl is-active --quiet apache2; then systemctl reload apache2; else systemctl start apache2; fi', check=True, shell=True)
-            
+
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
 def is_firm_run(firm):
     macros={**firmware_common_macros, **firm}
 
     if (jaia_type not in macros['runs_on'] and Type.BOTH not in macros['runs_on']):
         return False
-    
+
     if (macros['runs_when'] != Mode.BOTH and macros['runs_when'] != jaia_mode):
         return False
-    
+
     if ('led_type' in macros):
         if (macros['led_type'] != jaia_led_type):
             return False
-        
+
     if ('gps_type' in macros):
         if (macros['gps_type'] != jaia_gps_type):
             return False
-        
+
     if ('imu_type' in macros):
         if (macros['imu_type'] != jaia_imu_type):
             return False
 
     if(is_cloudhub and not macros['runs_on_cloudhub'].value >= cloudhub_type.value):
         return False
-        
+
     return True
 
 for firmware in jaia_firmware:
@@ -836,7 +905,7 @@ for firmware in jaia_firmware:
             service = firmware['exe'].replace('.', '_').lower()
             if macros['exe'][0:9] != 'jaia_firm':
                 service = 'jaia_firm_' + service
-            
+
         if not 'bin_dir' in macros:
             if macros['exe'][0:4] == 'goby':
                 macros['bin_dir'] = macros['goby_bin_dir']
@@ -844,9 +913,9 @@ for firmware in jaia_firmware:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
 
         macros['service'] = service
-                
-        with open(script_dir + '/../templates/systemd/' + firmware['template'], 'r') as file:        
-            out=Template(file.read()).substitute(macros)    
+
+        with open(script_dir + '/../templates/systemd/' + firmware['template'], 'r') as file:
+            out=Template(file.read()).substitute(macros)
         outfilename = args.systemd_dir + '/' + service + '.service'
         print('Writing ' + outfilename)
         outfile = open(outfilename, 'w')
@@ -862,7 +931,7 @@ for firmware in jaia_firmware:
             if args.disable:
                 print('Disabling ' + service)
                 subprocess.run('systemctl disable ' + service, check=True, shell=True)
-        
-        
+
+
 if args.enable or args.disable:
     subprocess.run('systemctl daemon-reload', check=True, shell=True)

@@ -15,7 +15,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tsys01_temperature_sensor DESTINATION ${pr
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/motor DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
-
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/obstacle_detection DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 
 # Building the JaiaBot Goby message python modules into the pyjaiaprotobuf python package
 set(pyjaiaprotobuf_outdir ${project_SHARE_DIR}/jaiabot/python/pyjaiaprotobuf)

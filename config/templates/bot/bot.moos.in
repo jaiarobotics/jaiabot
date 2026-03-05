@@ -33,15 +33,39 @@ ProcessConfig = pHelmIvP
 }
 
 //------------------------------------------
+// pObstacleMgr config block
+
+ProcessConfig = pObstacleMgr
+{
+  AppTick   = 4
+  CommsTick = 4
+
+  // 1. Where to look for your Python/YOLO points
+  point_var = TRACKED_FEATURE
+
+  // 2. Memory Management (How long to remember an obstacle)
+  max_pts_per_cluster = 20
+  max_age_per_point   = 20
+
+  // 3. Range Settings
+  alert_range  = 25
+  ignore_range = 35
+
+  // 4. Visuals (optional, helpful for pMarineViewer)
+  post_dist_to_polys = true
+  post_view_polys = true
+  obstacles_color = red
+}
+
+//------------------------------------------
 // pNodeReporter config block
 
 ProcessConfig = pNodeReporter
 {
   AppTick        = 10
   CommsTick	 = 10
-  
+
   platform_type   = bot
   platform_color  = yellow
   platform_length = 2
 }
-

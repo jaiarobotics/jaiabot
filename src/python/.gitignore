@@ -1,3 +1,4 @@
 venv/
 build/
 *.egg-info
+obstacle_detection/pip_cache

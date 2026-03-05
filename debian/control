@@ -72,7 +72,11 @@ Depends: ${shlibs:Depends}, ${misc:Depends},
          python3-ftdi,
          python3-sysv-ipc,
          python3-typing-extensions,
-         python3-usb
+         python3-usb,
+         python3-opencv,
+         python3-flask,
+         python3-dev,
+         libatlas-base-dev
 Section: science
 Architecture: all
 Description: Python applications and virtual environment (venv) of the Python dependencies for the Jaiabot Project
