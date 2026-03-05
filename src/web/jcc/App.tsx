@@ -61,7 +61,9 @@ export default function App() {
             return;
         }
 
-        document.documentElement.requestFullscreen();
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        }
     };
 
     return (
