@@ -88,7 +88,7 @@ def test_mission_name_filtering():
             bots=[1]
         ),
         task_packets=rest_api.TaskPacketsRequest(
-            mission_name=mission_name
+            mission_name=[mission_name]
         )
     ))
 
@@ -98,6 +98,28 @@ def test_mission_name_filtering():
         assert packet.mission_name == mission_name, f"{packet}\nTask packet mission name does not match the specified mission name"
 
     print(f"Successfully retrieved {len(response.task_packets.packets)} task packets for mission name '{mission_name}'")
+
+    if len(mission_names) < 2:
+        print("Not enough unique mission names found in task packets to test multiple mission name filtering, skipping that part of the test")
+        return
+    
+    mission_name_2 = mission_names.pop()
+
+    response = run_request(rest_api.APIRequest(
+        target=rest_api.APIRequest.Nodes(
+            bots=[1]
+        ),
+        task_packets=rest_api.TaskPacketsRequest(
+            mission_name=[mission_name, mission_name_2]
+        )
+    ))
+
+    assert len(response.task_packets.packets) > 0, "Expected at least one task packet for the specified mission names"
+
+    for packet in response.task_packets.packets:
+        assert packet.mission_name in [mission_name, mission_name_2], f"{packet}\nTask packet mission name does not match the specified mission names"
+
+    print(f"Successfully retrieved {len(response.task_packets.packets)} task packets for mission names '{mission_name}' and '{mission_name_2}'")
 
 
 if __name__ == "__main__":

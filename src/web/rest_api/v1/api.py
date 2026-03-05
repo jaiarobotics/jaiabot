@@ -83,9 +83,9 @@ def task_packets(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
 
         start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else None
         end_time = jaia_request.task_packets.end_time if jaia_request.task_packets.HasField('end_time') else None
-        mission_name = jaia_request.task_packets.mission_name if jaia_request.task_packets.HasField('mission_name') else None
+        mission_names = list(jaia_request.task_packets.mission_name) or None
 
-        task_packets = common.shared_data.data.get_task_packets(bot_ids, start_time, end_time, mission_name)
+        task_packets = common.shared_data.data.get_task_packets(bot_ids, start_time, end_time, mission_names)
         jaia_response.task_packets.packets.extend(task_packets)
    return jaia_response
 

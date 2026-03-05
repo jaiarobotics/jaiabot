@@ -17,9 +17,9 @@ message TaskPacketsRequest
         [(jaia.field).rest_api = {
             doc: "End of time range as a Unix timestamp in microseconds.  If not set, returns an open-ended search, ending at the latest available data."
         }];
-    optional string mission_name = 3
+    repeated string mission_name = 3
         [(jaia.field).rest_api = {
-            doc: "If set, only return task packets associated with the given mission name."
+            doc: "If set, only return task packets associated with the given mission name(s)."
         }];
 }
 

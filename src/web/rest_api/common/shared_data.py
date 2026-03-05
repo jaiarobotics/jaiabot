@@ -48,14 +48,14 @@ class Data:
                          bot_ids: Union[Iterable[int], None], 
                          start_time_microseconds: Union[int, None]=None, 
                          end_time_microseconds: Union[int, None]=None, 
-                         mission_name: Union[str, None]=None) -> List[Message]:
+                         mission_names: Union[List[str], None]=None) -> List[Message]:
         """Gets a list of task packets occurring during a timespan.
 
         Args:
             bot_ids (Union[Iterable[int], None]): If not None, only return task packets with a bot_id in this list.
             start_time_microseconds (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
             end_time_microseconds (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
-            mission_name (Union[str, None]): The name of the mission.  None means all missions.
+            mission_names (Union[List[str], None]): The name(s) of the mission(s).  None means all missions.
 
         Returns:
             List[TaskPacket]: A list of the task packets, sorted ascending by start_time.
@@ -72,7 +72,7 @@ class Data:
             self.task_packet_database.query_task_packets(bot_ids=bot_ids, 
                                                          start_utime=start_time_microseconds, 
                                                          end_utime=end_time_microseconds, 
-                                                         mission_name=mission_name)
+                                                         mission_names=mission_names)
 
         # Convert the dicts into TaskPacket protobuf message objects
         task_packets: List[Message] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])

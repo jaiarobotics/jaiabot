@@ -145,7 +145,7 @@ class TaskPacketDatabase:
                            start_utime: Union[int, None]=None, 
                            end_utime: Union[int, None]=None, 
                            included: Union[bool, None]=None, 
-                           mission_name: Union[str, None]=None) -> List[Dict]:
+                           mission_names: Union[str, List[str], None]=None) -> List[Dict]:
         """Queries the task packets.
 
         Args:
@@ -153,7 +153,7 @@ class TaskPacketDatabase:
             start_utime (Union[int, None]): Start of time window (or None if no minimum time)
             end_utime (Union[int, None]): End of time window (or None if no maximum time)
             included (Union[bool, None]): Included or excluded task packets (None for both types)
-            mission_name (Union[str, None]): Mission name to filter by (None for all)
+            mission_names (Union[str, List[str], None]): Mission name(s) to filter by (None for all)
         Returns:
             list[dict]: A list of task packets that match the criteria.
         """
@@ -165,7 +165,7 @@ class TaskPacketDatabase:
             parameters = []
 
             if bot_ids is not None:
-                conditionals.append(f'bot_id in ({",".join(["?" * len(bot_ids)])})')
+                conditionals.append(f'bot_id in ({",".join(["?"] * len(bot_ids))})')
                 parameters.extend(bot_ids)
 
             if start_utime is not None:
@@ -180,15 +180,19 @@ class TaskPacketDatabase:
                 conditionals.append(f'included = ?')
                 parameters.append(1 if included else 0)
 
-            if mission_name is not None:
-                conditionals.append(f'mission_name = ?')
-                parameters.append(mission_name)
+            if mission_names is not None:
+                if isinstance(mission_names, str):
+                    mission_names = [mission_names]
+                conditionals.append(f'mission_name in ({",".join(["?"] * len(mission_names))})')
+                parameters.extend(mission_names)
 
             query_string = f'select json_string from task_packets natural join included natural join mission_name'
             if len(conditionals) > 0:
                 query_string = query_string + " where " + " and ".join(conditionals)
 
             query_string = query_string + ' order by utime desc limit 1000'
+
+            l.debug(f"Executing query: {query_string} with parameters {parameters}")
 
             results_json = self.db.execute(query_string, parameters)
             results: List[Dict] = [json.loads(row[0]) for row in results_json]
