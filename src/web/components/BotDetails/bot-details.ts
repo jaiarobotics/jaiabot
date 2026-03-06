@@ -117,6 +117,10 @@ export function getBotOffloadPercent(botID: number, hub: Hub) {
 export function getRepeatProgress(repeats: number, missionStatus: MissionStatus) {
     let repeatProgress = "N/A";
 
+    if (repeats > 1 && !missionStatus?.repeatIndex) {
+        repeatProgress = `${1} of ${repeats}`;
+    }
+
     if (missionStatus?.repeatIndex) {
         repeatProgress = `${missionStatus.repeatIndex + 1} of ${repeats}`;
     }
@@ -156,4 +160,18 @@ export function getDistToWaypoint(missionStatus: MissionStatus) {
         return missionStatus.distanceToTargetWaypoint + " m";
     }
     return "Distance To Goal > 1000";
+}
+
+/**
+ * Loops through the ghost missions to check if a Bot is carrying out a mission
+ *
+ * @param {number} botID Bot of interest
+ * @returns {Mission} Mission Bot is currently running even if deleted from user interface
+ */
+export function searchGhostMissions(botID: number) {
+    for (const ghostMission of missionSet.getGhostMissions().values()) {
+        if (ghostMission.getGhostParameters().botID === botID) {
+            return ghostMission;
+        }
+    }
 }
