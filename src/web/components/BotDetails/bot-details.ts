@@ -117,10 +117,6 @@ export function getBotOffloadPercent(botID: number, hub: Hub) {
 export function getRepeatProgress(repeats: number, missionStatus: MissionStatus) {
     let repeatProgress = "N/A";
 
-    if (repeats > 1 && !missionStatus?.repeatIndex) {
-        repeatProgress = `${1} of ${repeats}`;
-    }
-
     if (missionStatus?.repeatIndex) {
         repeatProgress = `${missionStatus.repeatIndex + 1} of ${repeats}`;
     }
