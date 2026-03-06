@@ -23,10 +23,10 @@ try:
 except Exception as e:
     goby_bin_dir_default='/usr/bin'
 
-try:
-    moos_bin_dir_default=os.path.dirname(shutil.which('MOOSDB'))
-except Exception as e:
-    moos_bin_dir_default='/usr/bin'
+# try:
+#     moos_bin_dir_default=os.path.dirname(shutil.which('MOOSDB'))
+# except Exception as e:
+moos_bin_dir_default='/usr/bin'
 
 
 gen_dir_default=script_dir
