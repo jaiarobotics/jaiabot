@@ -1,7 +1,7 @@
 import Icon from "@mdi/react";
 import { mdiClose } from "@mdi/js";
 import { success } from "toastr";
-import { useContext, useMemo, useState } from "react";
+import React, { useContext, useState } from "react";
 
 import Hub from "../../../data/hubs/hub";
 import { JaiaContext } from "../../../context/JaiaContext";
@@ -53,7 +53,8 @@ export default function CTDOffload(props: Props) {
      * @notes
      * Exit full screen prior to download so it can be re-established after
      */
-    const handleDownloadCTDClick = () => {
+    const handleDownloadCTDClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
         if (document.fullscreenElement) {
             document.exitFullscreen();
         }
@@ -138,7 +139,10 @@ export default function CTDOffload(props: Props) {
                     />
                     <label>Remove CTD Files From Hub</label>
                 </div>
-                <button className="download-button" onClick={() => handleDownloadCTDClick()}>
+                <button
+                    className="download-button"
+                    onClick={(event) => handleDownloadCTDClick(event)}
+                >
                     Download
                 </button>
             </div>

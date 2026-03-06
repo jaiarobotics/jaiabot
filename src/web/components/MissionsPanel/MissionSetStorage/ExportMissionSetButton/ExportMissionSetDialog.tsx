@@ -1,3 +1,4 @@
+import React from "react";
 import { DisabledCodes, messages } from "./export-messages";
 import { DialogActions } from "../../../../types/context-types";
 
@@ -53,7 +54,8 @@ function ButtonRow(props: ButtonRowProps) {
      *
      * @returns {void}
      */
-    const handleExportClick = () => {
+    const handleExportClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
         if (document.fullscreenElement) {
             document.exitFullscreen();
         }
@@ -70,7 +72,7 @@ function ButtonRow(props: ButtonRowProps) {
                     >
                         Cancel
                     </button>
-                    <button className="dialog-button" onClick={() => handleExportClick()}>
+                    <button className="dialog-button" onClick={(event) => handleExportClick(event)}>
                         Export
                     </button>
                 </div>
