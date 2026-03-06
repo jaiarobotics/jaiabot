@@ -150,7 +150,7 @@ struct PoweredDescent
         if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
             cfg().dive_depth_eps_with_units())
         {
-            // Set depth achieved if we have reached our goal depth and are deeper than current depth achieved
+            // Set depth achieved if we have reached our goal depth AND are deeper than current depth achieved
             if (ev.depth > context<Dive>().dive_packet().depth_achieved_with_units())
             {
                 context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
@@ -188,7 +188,7 @@ struct PoweredDescent
             {
                 context<Dive>().set_seafloor_reached(ev.depth);
 
-                // Set depth achieved if we had a bottoming timeout and are deeper than our current depth achieved
+                // Set depth achieved if we had a bottoming timeout AND are deeper than our current depth achieved
                 if (ev.depth > context<Dive>().dive_packet().depth_achieved_with_units())
                 {
                     context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
