@@ -60,8 +60,8 @@ export function Plots(props: PlotsProps) {
     const [isPlotInfoDisplayed, setIsPlotInfoDisplayed] = React.useState(false);
 
     // Toggles for mean and std. dev. overlay lines
-    const [showMean, setShowMean] = React.useState(true);
-    const [showStd, setShowStd] = React.useState(true);
+    const [showMean, setShowMean] = React.useState(false);
+    const [showStd, setShowStd] = React.useState(false);
 
     function deletePlotClicked(plotIndex: number) {
         let { plots } = props;
@@ -634,72 +634,97 @@ export function Plots(props: PlotsProps) {
     const plotInfo = isPlotInfoDisplayed ? (
         <div className="centered dialog" id="plotInfoDialog">
             <div className="horizontal flexbox" id="plotInfoDialogHeader">
-                <h3 style={{ flex: 1 }}>Notes</h3>
+                <h2 style={{ flex: 1 }}>Information</h2>
                 <button className="plotButton" onClick={() => setIsPlotInfoDisplayed(false)}>
                     <Icon path={mdiClose} size={1} style={{ verticalAlign: "middle" }}></Icon>
                 </button>
             </div>
+
             <div className="text" style={{ bottom: "10pt" }}>
-                <h4>Line Legend</h4>
-                <p>Each plot can display up to four lines:</p>
-                <ul className="lineLegendList">
-                    <li>
-                        <span
-                            className="lineLegendSwatch lineLegendSwatch--solid"
-                            style={{ borderColor: "#1f77b4" }}
-                        />
-                        <strong>Data series</strong> — the raw sensor values over time. Shown as a
-                        solid line; when fully zoomed in to full resolution, individual data-point
-                        markers are also shown.
-                    </li>
-                    <li>
-                        <span
-                            className="lineLegendSwatch lineLegendSwatch--dashed"
-                            style={{ borderColor: MEAN_LINE_COLOR }}
-                        />
-                        <strong style={{ color: MEAN_LINE_COLOR }}>Mean</strong> — a horizontal
-                        dashed line representing the arithmetic mean of all data points currently
-                        visible in the time window.
-                    </li>
-                    <li>
-                        <span
-                            className="lineLegendSwatch lineLegendSwatch--dotted"
-                            style={{ borderColor: STD_LINE_COLOR }}
-                        />
-                        <strong style={{ color: STD_LINE_COLOR }}>±1 Standard Deviation</strong> —
-                        two horizontal dotted lines drawn one standard deviation above and below the
-                        mean, showing the spread of the visible data.
-                    </li>
-                </ul>
+                <h3>Line Legend</h3>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                    <span
+                        className="lineLegendSwatch lineLegendSwatch--solid"
+                        style={{ borderColor: "#1f77b4", marginTop: 0, marginRight: "0.5em" }}
+                    />
+                    <b>
+                        <i>Data Series</i>
+                    </b>
+                    <span
+                        className="lineLegendSwatch lineLegendSwatch--solid"
+                        style={{ borderColor: "#1f77b4", marginTop: 0, marginLeft: "0.5em" }}
+                    />
+                </div>
                 <p>
-                    Use the <strong>Mean</strong> and <strong>±1 Standard Deviation</strong>{" "}
-                    checkboxes in the toolbar to toggle these overlay lines on or off independently.
-                    A colour-coded info box in the top-right corner of each plot displays the
-                    current numeric values of the mean (in{" "}
+                    The raw sensor values over time. Shown as a solid line; when fully zoomed in to
+                    full resolution, individual data-point markers are also shown.
+                </p>
+
+                <div style={{ display: "flex", alignItems: "center" }}>
+                    <span
+                        className="lineLegendSwatch lineLegendSwatch--dashed"
+                        style={{ borderColor: MEAN_LINE_COLOR, marginTop: 0, marginRight: "0.5em" }}
+                    />
+                    <b>
+                        <i>Mean</i>
+                    </b>
+                    <span
+                        className="lineLegendSwatch lineLegendSwatch--dashed"
+                        style={{ borderColor: MEAN_LINE_COLOR, marginTop: 0, marginLeft: "0.5em" }}
+                    />
+                </div>
+                <p>
+                    A horizontal dashed line representing the arithmetic mean of all data points
+                    currently visible in the time window.
+                </p>
+
+                <div style={{ display: "flex", alignItems: "center" }}>
+                    <span
+                        className="lineLegendSwatch lineLegendSwatch--dotted"
+                        style={{ borderColor: STD_LINE_COLOR, marginTop: 0, marginRight: "0.5em" }}
+                    />
+                    <b>
+                        <i>Standard Deviation</i>
+                    </b>
+                    <span
+                        className="lineLegendSwatch lineLegendSwatch--dotted"
+                        style={{ borderColor: STD_LINE_COLOR, marginTop: 0, marginLeft: "0.5em" }}
+                    />
+                </div>
+                <p>
+                    Two horizontal dotted lines drawn one standard deviation above and below the
+                    mean, showing the spread of the visible data.
+                </p>
+
+                <p>
+                    Use the <strong>Mean</strong> and <strong>±1 Std. Dev.</strong> checkboxes in
+                    the toolbar to toggle these overlay lines on or off independently. A
+                    colour-coded info box in the top-right corner of each plot displays the current
+                    numeric values of the mean (in{" "}
                     <span style={{ color: MEAN_LINE_COLOR }}>red</span>) and standard deviation (in{" "}
                     <span style={{ color: STD_LINE_COLOR }}>orange</span>).
                 </p>
-                <h4>Plot Downsampling</h4>
+                <h3>Plot Downsampling</h3>
                 <p>
                     The displayed plot data is recursively downsampled to improve performance when
                     viewing large datasets. When zoomed out, fewer data points are shown to provide
                     an overview of the data. As you zoom in, more data points are displayed to
                     reveal finer details.
                 </p>
-                <h4>Full-Resolution Display</h4>
+                <h3>Full-Resolution Display</h3>
                 <p>
                     When the plot is zoomed in far enough that all data points can be displayed
                     without downsampling, the plot will switch to showing the full-resolution data.
                     In this mode, both lines and markers are used to represent the data points,
                     providing a clear view of the exact values.
                 </p>
-                <h4>Peak Preservation</h4>
+                <h3>Peak Preservation</h3>
                 <p>
                     This downsampling process preserves significant features of the data, such as
                     peaks and valleys, ensuring that important trends remain visible at all zoom
                     levels. When downsampled, only lines are used to represent the data points.
                 </p>
-                <h4>Data Export</h4>
+                <h3>Data Export</h3>
                 <p>
                     The downsampling algorithm only affects the visual representation of the data
                     and does not modify the underlying dataset. When exporting data as CSV, for
