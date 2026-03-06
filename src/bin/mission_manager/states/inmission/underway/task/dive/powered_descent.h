@@ -194,11 +194,11 @@ struct PoweredDescent
                     context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
                 }
 
-                // Set the max_acceration
+                // Set the max_acceleration
                 context<Dive>().dive_packet().set_max_acceleration_with_units(
                     this->machine().latest_max_acceleration());
 
-                //Commenting out max acceperation hard/soft determination for bottom type to switch to ascent-based logic
+                //Commenting out max acceleration hard/soft determination for bottom type to switch to ascent-based logic
                 // // Determine Hard/Soft
                 // if (this->machine().latest_max_acceleration().value() >=
                 //     cfg().hard_bottom_type_acceleration())
