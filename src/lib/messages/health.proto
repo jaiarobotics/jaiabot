@@ -84,9 +84,11 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_COMMS_MANAGER = 41
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_UDP_GATEWAY = 42
+    ERROR__FAILED__JAIABOT_CTD_MANAGER = 42
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_PPK = 43
+    ERROR__FAILED__JAIABOT_UDP_GATEWAY = 43
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_PPK = 44
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
@@ -146,6 +148,10 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_IMU = 128
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_TURNER_C_FLUOR_SENSOR_DRIVER = 129
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER = 130
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_CTD_MANAGER = 131
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
@@ -258,6 +264,8 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 106
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER = 107
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
     WARNING__MISSING_DATA__PITCH = 200
@@ -342,7 +350,6 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__INIT_FAILED__TURNER__C_FLUOR = 803
         [(jaia.ev).rest_api.presence = GUARANTEED];
-
     WARNING__MISSING_DATA__ATLAS_OEM_EC_DATA = 804
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__MISSING_DATA__ATLAS_OEM_PH_DATA = 805
@@ -350,6 +357,10 @@ enum Warning
     WARNING__MISSING_DATA__ATLAS_OEM_DO_DATA = 806
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA = 807
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__AML_DATA = 808
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__INIT_FAILED__AML = 809
         [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 

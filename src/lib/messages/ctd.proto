@@ -1,0 +1,45 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message CTDSnapshot {
+    option (dccl.msg) = {
+        id: 100
+        codec_version: 4
+        unit_system: "si"
+    };
+    optional uint64 time = 1 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+            precision: -6  // second precision
+        }
+    ];
+    // PPT
+    optional double salinity = 2 [(dccl.field) = {
+        units { derived_dimensions: "dimensionless" }
+    }];
+    optional double temperature = 3 [(dccl.field) = {
+        units { derived_dimensions: "temperature" system: "celsius" }
+    }];
+    optional double depth = 4 [(dccl.field) = {
+        units: { derived_dimensions: "length" }
+    }];
+}
+
+message CTDProfile {
+    option (dccl.msg) = {
+        id: 101
+        codec_version: 4
+        unit_system: "si"
+    };
+    optional uint32 bot_id = 1 [
+        (dccl.field) = { min: 0 max: 255 }
+    ];
+    optional GeographicCoordinate location = 2;
+    repeated CTDSnapshot snapshot = 3;
+}
