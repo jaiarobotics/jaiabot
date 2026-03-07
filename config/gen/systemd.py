@@ -571,8 +571,8 @@ jaiabot_apps = [
      'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
-     'restart': 'on-failure'}
-    ]
+     'restart': 'on-failure'},
+    
 
     ## Bot Types: HYDRO, ECHO, NONE Services
 
