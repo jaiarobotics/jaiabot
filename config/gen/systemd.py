@@ -23,10 +23,10 @@ try:
 except Exception as e:
     goby_bin_dir_default='/usr/bin'
 
-# try:
-#     moos_bin_dir_default=os.path.dirname(shutil.which('MOOSDB'))
-# except Exception as e:
-moos_bin_dir_default='/usr/bin'
+try:
+    moos_bin_dir_default=os.path.dirname(shutil.which('MOOSDB'))
+except Exception as e:
+    moos_bin_dir_default='/usr/bin'
 
 
 gen_dir_default=script_dir
@@ -520,7 +520,7 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__MOOS_PHELMIVP',
      'runs_on': [Type.BOT]},
     {'exe': 'pObstacleMgr',
-     'description': 'pObstacleMgr Obstacle Management',
+     'description': 'pObstacleMgr Obstacle Manager',
      'template': 'moos-app.service.in',
      'error_on_fail': 'ERROR__FAILED__MOOS_POBSTACLEMGR',
      'runs_on': [Type.BOT]},
@@ -562,10 +562,17 @@ jaiabot_apps = [
     {'exe': 'jaiabot_live_detection.py',
      'description': 'JaiaBot Obstacle Detector',
      'template': 'py-app.service.in',
+     'subdir': 'obstacle_detection',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_OBSTACLE_DETECTOR',
+     'template': 'py-app.service.in',
+     'user': 'root', # must run as root to allow interaction with GPIO pin
+     'group': 'root',
+     'args': '',
      'runs_on': [Type.BOT],
+     'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
-     'restart': 'on-failure'},
+     'restart': 'on-failure'}
+    ]
 
     ## Bot Types: HYDRO, ECHO, NONE Services
 

@@ -21,7 +21,7 @@ FOV_H      = 70.0  # Horizontal Field of View
 IMG_W, IMG_H = 640, 480
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "best.onnx") # Optimized for Pi
+MODEL_PATH = os.path.join("/var/log", "best.onnx") # Optimized for Pi
 
 app = Flask(__name__)
 
