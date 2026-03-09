@@ -35,11 +35,13 @@ struct UnpoweredAscent
         typename StateBase::my_context c)
         : StateBase(c)
     {
+        latest_ctd_snapshot_.set_depth(context<Dive>().current_depth().value());
+
         if (cfg().camera_available() && cfg().has_stop_camera_command())
         {
             interprocess().publish<jaiabot::groups::camera>(cfg().stop_camera_command());
         }
-
+        
         loop(EvLoop());
     }
 

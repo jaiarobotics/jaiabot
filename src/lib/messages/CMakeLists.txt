@@ -15,6 +15,7 @@ set(SENSOR_MESSAGES
   sensor/atlas_scientific__oem_do.proto
   sensor/atlas_scientific__oem_ph.proto
   sensor/turner__c_fluor.proto
+  sensor/aml.proto
 )
 
 protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_INC_DIR}
@@ -117,7 +118,7 @@ if(NOT CMAKE_CROSSCOMPILING)
   # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x363ef402b9d4fb21")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0xfd22b71d5f3dbf8e")
   check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x06360f297908432c")
   check_dccl_md5_hash("jaiabot.protobuf.Command" "0xcef2ec6ccd98547c")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x6694c32d91a8b1c7")
