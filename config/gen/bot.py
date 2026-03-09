@@ -320,7 +320,7 @@ elif common.app == 'jaiabot_udp_gateway':
                                      in_simulation=is_simulation(),
                                      udp_gateway_port=udp_gateway_port,
                                      echo_enabled=str(echo_enabled).lower(),
-                                     surob_surge_currents_enabled=str(surob_surge_currents_enabled).lower()))
+                                     surob_surge_currents_enabled=str(surob_surge_currents_enabled).lower(),
                                      salinity_enabled=str(salinity_enabled).lower(),
                                      bar30_enabled=str(bar30_enabled).lower(),
                                      tsys01_enabled=str(tsys01_enabled).lower()))
