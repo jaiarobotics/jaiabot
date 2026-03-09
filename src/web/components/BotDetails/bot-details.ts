@@ -157,3 +157,17 @@ export function getDistToWaypoint(missionStatus: MissionStatus) {
     }
     return "Distance To Goal > 1000";
 }
+
+/**
+ * Loops through the ghost missions to check if a Bot is carrying out a mission
+ *
+ * @param {number} botID Bot of interest
+ * @returns {Mission} Mission the Bot is currently running even if deleted from user interface
+ */
+export function searchGhostMissions(botID: number) {
+    for (const ghostMission of missionSet.getGhostMissions().values()) {
+        if (ghostMission.getGhostParameters().botID === botID) {
+            return ghostMission;
+        }
+    }
+}
