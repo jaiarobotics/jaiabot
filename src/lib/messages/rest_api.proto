@@ -164,7 +164,7 @@ message APIRequest
             doc: "Send a shoreline and offshore point to the hub to generate a mission plan for the fleet. Expect a response of type 'mission_plan'. Mission plans can either be time-constrained with a specified maximum duration in minutes (more bots = higher resolution), or resolution-constrained, with a target distance between surob samples in meters (more bots = faster mission)."
             example {
                 request: '{"target": {"all": true}, "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "TIME", "constraint_value": "60.0"}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"MissionPlanResponse": {planned_successfully: true, mission_plan_json: "{"id": "surfzone-1769788798", "name": "surfzone-1769788798 (TIME)", "runs": {"run-1": {...}}}"}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "TIME", "constraint_value": "60"}, "target": {"hubs": [1]}}}'
+                response: '{"MissionPlanResponse": {planned_successfully: true, mission_plan_json: "{"id": "surfzone-1769788798", "name": "surfzone-1769788798 (TIME)", "runs": {"run-1": {...}}}"}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "TIME", "constraint_value": "60"}, "target": {"all": true}}}'
             }
         }];
     }
