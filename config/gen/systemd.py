@@ -729,7 +729,7 @@ if jaia_temperature_sensor_type.value == 'tsys01':
          'args': f'-p {UDP_GATEWAY_PORT}',
          'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
          'runs_on': [Type.BOT],
-         'runs_when': Mode.RUNTIME,
+         'runs_when': Mode.RUNTIME, 
          'wanted_by': 'jaiabot_health.service',
          'restart': 'on-failure'},
     ]

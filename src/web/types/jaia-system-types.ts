@@ -64,6 +64,7 @@ export interface TaskParameterPair {
 export interface GhostParameters {
     hasStarted: boolean;
     botID: number;
+    repeats: number;
     isGhost?: boolean;
 }
 

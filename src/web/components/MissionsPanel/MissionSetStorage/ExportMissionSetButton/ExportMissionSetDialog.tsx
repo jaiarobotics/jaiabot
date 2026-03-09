@@ -1,3 +1,4 @@
+import React from "react";
 import { DisabledCodes, messages } from "./export-messages";
 import { DialogActions } from "../../../../types/context-types";
 
@@ -47,6 +48,20 @@ export function ExportMissionSetDialog(props: DialogProps) {
  * For an alert, the button will be Close.
  */
 function ButtonRow(props: ButtonRowProps) {
+    /**
+     * Exits full screen so it can be re-established after the export
+     * and passes the confirm signal to the onClose method
+     *
+     * @returns {void}
+     */
+    const handleExportClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+        props.onClose(DialogActions.CONFIRMED);
+    };
+
     switch (props.disabledCode) {
         case DisabledCodes.NONE: {
             return (
@@ -57,10 +72,7 @@ function ButtonRow(props: ButtonRowProps) {
                     >
                         Cancel
                     </button>
-                    <button
-                        className="dialog-button"
-                        onClick={() => props.onClose(DialogActions.CONFIRMED)}
-                    >
+                    <button className="dialog-button" onClick={(event) => handleExportClick(event)}>
                         Export
                     </button>
                 </div>
