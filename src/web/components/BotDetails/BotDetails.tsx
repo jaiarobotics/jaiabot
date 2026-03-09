@@ -29,6 +29,7 @@ import {
     getRepeatProgress,
     getDistToWaypoint,
     isBotLogging,
+    searchGhostMissions,
 } from "./bot-details";
 
 import { accordionTheme, addDropdownListener } from "../../utils/style";
@@ -58,15 +59,17 @@ export default function BotDetails() {
     });
 
     const hub = jaiaContext.hubs.getHubs().values().next()?.value;
-
     const botID = jaiaContext.jaiaGlobal.getSelectedNode().id;
     const bot = jaiaContext.bots.getBot(botID);
-
-    const missionID = missionsManager.getMissionID(botID);
-    const mission = jaiaContext.missionSet.getMission(missionID);
-
     if (!bot || !hub) {
         return;
+    }
+
+    const missionID = missionsManager.getMissionID(botID);
+    let mission = jaiaContext.missionSet.getMission(missionID);
+    if (!mission) {
+        // Mission can still be undefined if ghost mission does not exist
+        mission = searchGhostMissions(botID);
     }
 
     const missionStatus: MissionStatus = bot.getMissionStatus();
