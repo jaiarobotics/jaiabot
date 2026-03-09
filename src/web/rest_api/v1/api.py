@@ -184,9 +184,6 @@ def surob_mission_plan_request(jaia_request):
         else:
             # don't bother to send commands to bots we haven't heard from
             bots = [value for value in jaia_request.target.bots if value in common.shared_data.data.bots.keys()]
-        
-        common.shared_data.data.surob_mission_shoreline_point = shoreline_point
-        common.shared_data.data.surob_mission_offshore_point = offshore_point
 
     if len(bots) == 0:
         jaia_response.MissionPlanResponse.planned_successfully = False
@@ -229,4 +226,5 @@ def surob_mission_plan_request(jaia_request):
     mission_plan_json = planner.export_to_jaia_mission_json_string(plan, mission_name="Surob Mission")
     jaia_response.MissionPlanResponse.planned_successfully = True
     jaia_response.MissionPlanResponse.mission_plan_json = mission_plan_json
+
     return jaia_response

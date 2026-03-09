@@ -40,10 +40,6 @@ class Data:
     task_packet_files_path = "/var/log/jaiabot/bot_offload"
     task_packet_loaded_filenames: Set[str] = set()
 
-    # For Surob Surge Mission Planner and Results Report: saved to determine direction of current relative to shore normal
-    surob_mission_shoreline_point = tuple()
-    surob_mission_offshore_point = tuple()
-
     def __init__(self) -> None:
         pass
 
