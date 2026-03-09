@@ -6,7 +6,7 @@ initialize   JAIABOT_CONSTANTSPEED_ACTIVE = false
 initialize   JAIABOT_TRAIL_ACTIVE = false
 initialize   OBSTACLE_ALERT = none
 
-Behavior = BHV_AvoidObstacleV21
+Behavior = BHV_AvoidObstacleV24
 {
   name       = avoid_obs_
   pwt        = 150

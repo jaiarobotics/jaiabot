@@ -24,7 +24,7 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/obstacle_detection/
 
 # 2. Install the heavy model file specifically to the /var/log/ partition
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/obstacle_detection/best.onnx
-        DESTINATION /var/log/)
+        DESTINATION /var/log/jaiabot)
 # Building the JaiaBot Goby message python modules into the pyjaiaprotobuf python package
 set(pyjaiaprotobuf_outdir ${project_SHARE_DIR}/jaiabot/python/pyjaiaprotobuf)
 add_custom_command(OUTPUT ${pyjaiaprotobuf_outdir}/src/jaiabot/messages/jaia_dccl_pb2.py

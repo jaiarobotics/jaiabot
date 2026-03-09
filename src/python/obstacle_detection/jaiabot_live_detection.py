@@ -21,7 +21,8 @@ FOV_H      = 70.0  # Horizontal Field of View
 IMG_W, IMG_H = 640, 480
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join("/var/log", "best.onnx") # Optimized for Pi
+# Note: Ensure this path is correct on your bot
+MODEL_PATH = os.path.join("/var/log/jaiabot", "best.onnx") 
 
 app = Flask(__name__)
 
@@ -35,7 +36,7 @@ class USVVisionBridge:
         self.moos = pymoos.comms()
         self.moos.set_on_connect_callback(self.on_connect)
         
-        # Start MOOS in a background thread so it doesn't block Python
+        # Start MOOS in a background thread
         self.moos_thread = threading.Thread(target=self._run_moos, daemon=True)
         self.moos_thread.start()
 
@@ -65,24 +66,17 @@ class USVVisionBridge:
 
     def pixel_to_local(self, u, v):
         """Converts pixel (u,v) to local USV forward/lateral meters"""
-        # Center the pixels: cx (horizontal), cy (vertical)
-        # Note: In images, v=0 is top. We want cy positive for pixels near horizon.
         cx = u - (IMG_W / 2)
         cy = (IMG_H / 2) - v 
         
-        # Vertical angle: CAM_ANGLE (tilt) + pixel offset angle
         fov_v = FOV_H * (IMG_H / IMG_W)
         alpha_v = (cy / (IMG_H / 2)) * (fov_v / 2)
         total_angle_rad = math.radians(CAM_ANGLE + alpha_v)
         
-        # Avoid division by zero (objects at or above horizon)
         if total_angle_rad <= 0.05: 
             return None
         
-        # Distance calculation (Flat Earth assumption)
         dist_f = CAM_HEIGHT / math.tan(total_angle_rad)
-        
-        # Lateral distance calculation
         alpha_h = (cx / (IMG_W / 2)) * (FOV_H / 2)
         dist_l = dist_f * math.tan(math.radians(alpha_h))
         
@@ -91,31 +85,61 @@ class USVVisionBridge:
     def local_to_global(self, fwd, lat):
         """Rotates local meters into MOOS global XY space"""
         t = math.radians(self.nav_heading)
-        # MOOS X is East (sin), Y is North (cos)
         gx = self.nav_x + fwd * math.sin(t) + lat * math.cos(t)
         gy = self.nav_y + fwd * math.cos(t) - lat * math.sin(t)
         return gx, gy
 
-# --- Initialization ---
+# --- Camera Discovery Logic ---
+
+def get_first_working_camera(max_to_try=5):
+    """Iterates through /dev/videoN to find the first available sensor."""
+    for i in range(max_to_try):
+        print(f"Checking camera index {i}...")
+        cap = cv2.VideoCapture(i, cv2.CAP_V4L2)
+        if cap.isOpened():
+            # Try to grab one frame to verify it's not just a ghost device
+            success, _ = cap.read()
+            if success:
+                print(f"🟢 Successfully connected to camera at index {i}")
+                return cap
+            cap.release()
+    return None
+
+# --- Main Logic ---
+
 bridge = USVVisionBridge()
 
 def gen_frames():
-    # Use V4L2 backend for better performance on Linux/Pi
-    cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+    cap = get_first_working_camera()
+    
+    if cap is None:
+        print("🔴 FATAL: No working camera found. Check hardware connections.")
+        return
+
+    # Optimization settings
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_W)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # Minimizes lag
     
     prev_time = 0
 
     while True:
         success, frame = cap.read()
         if not success:
-            break
+            print("🟡 Lost camera signal. Attempting to reconnect...")
+            cap.release()
+            time.sleep(2)
+            cap = get_first_working_camera()
+            if cap is None: continue
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, IMG_W)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, IMG_H)
+            continue
 
         # 1. Sync with MOOS
         bridge.update_nav()
 
-        # 2. YOLO Inference (imgsz=320 for speed on Pi)
+        # 2. YOLO Inference
+        # imgsz=320 is recommended for ARM64 real-time performance
         results = bridge.model(frame, imgsz=320, conf=0.2, verbose=False)
         r = results[0]
         annotated_frame = r.plot()
@@ -123,7 +147,6 @@ def gen_frames():
         # 3. Process Detections
         if r.boxes:
             for i, box in enumerate(r.boxes):
-                # Get bottom-center of the bounding box
                 coords = box.xyxy[0].cpu().numpy()
                 x_mid = (coords[0] + coords[2]) / 2
                 y_bottom = coords[3] 
@@ -133,18 +156,18 @@ def gen_frames():
                     fwd, lat = loc
                     gx, gy = bridge.local_to_global(fwd, lat)
 
-                    # Post to MOOS for pObstacleMgr
+                    # Post to MOOS
                     payload = f"x={gx:.2f},y={gy:.2f},label=obj_{i}"
                     bridge.moos.notify("TRACKED_FEATURE", payload)
 
-        # 4. Performance Overlay
+        # 4. FPS Overlay
         curr_time = time.time()
         fps = 1 / (curr_time - prev_time) if prev_time != 0 else 0
         prev_time = curr_time
         cv2.putText(annotated_frame, f"FPS: {int(fps)}", (10, 30), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
-        # 5. Stream back to Flask
+        # 5. Flask Streaming
         _, buffer = cv2.imencode('.jpg', annotated_frame)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
@@ -160,11 +183,11 @@ def index():
       <body style='background:#111; color:#eee; text-align:center; font-family:sans-serif;'>
         <h2>JaiaBot Vision Stream</h2>
         <img src='/video_feed' width='80%' style='border:5px solid #333; border-radius:10px;'>
-        <p>Publishing to MOOS: TRACKED_FEATURE</p>
+        <p>Active MOOS App: pYoloTracker | Output: TRACKED_FEATURE</p>
       </body>
     </html>
     """
 
 if __name__ == '__main__':
-    # host='0.0.0.0' allows access from other devices on the same network
+    # Listen on all interfaces (0.0.0.0) so you can view the stream from your laptop
     app.run(host='0.0.0.0', port=5000, threaded=True)

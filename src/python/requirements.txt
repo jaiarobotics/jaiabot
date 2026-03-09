@@ -16,7 +16,7 @@ h5py-stubs
 ./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x
 ./jaia_serial
-pymoos==2021.1
 torch==2.3.1
 torchvision==0.18.1
 ultralytics==8.4.21
+onnxruntime==1.24.3

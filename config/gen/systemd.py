@@ -279,6 +279,7 @@ jaia_additional_sensors = args.additional_sensors
 print('Writing ' + args.env_file + ' from preseed.goby')
 
 subprocess.run('bash -ic "' +
+               'export PYTHONPATH=/usr/lib/python3/dist-packages:/usr/local/lib/python3.12/dist-packages:/home/jaia/jaiabot/build/noble-2.y-arm64/share/jaiabot/python/venv/lib/python3.12/site-packages; ' +
                'export jaia_mode=' + jaia_mode.value + '; ' +
                bot_or_hub_index_str +
                'export jaia_fleet_index=' + str(args.fleet_index) + '; ' +
@@ -302,9 +303,8 @@ subprocess.run('bash -ic "' +
                'export jaia_camera_positions=' + ','.join(position for position in camera_positions_in_use) + '; ' +
                f'export jaia_dccl_encryption_password={args.dccl_encryption_password}; ' +
                'export jaia_additional_sensors=' + ','.join(position for position in jaia_additional_sensors) + '; ' +
-               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
+               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH|^PYTHONPATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
-
 common_macros=dict()
 
 common_macros['env_file'] = args.env_file
@@ -565,8 +565,6 @@ jaiabot_apps = [
      'subdir': 'obstacle_detection',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_OBSTACLE_DETECTOR',
      'template': 'py-app.service.in',
-     'user': 'root', # must run as root to allow interaction with GPIO pin
-     'group': 'root',
      'args': '',
      'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,

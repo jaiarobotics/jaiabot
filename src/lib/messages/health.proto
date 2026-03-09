@@ -84,11 +84,15 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_COMMS_MANAGER = 41
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_UDP_GATEWAY = 42
+    ERROR__FAILED__JAIABOT_CTD_MANAGER = 42
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__MOOS_POBSTACLEMGR = 43
+    ERROR__FAILED__JAIABOT_UDP_GATEWAY = 43
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_OBSTACLE_DETECTOR = 44
+    ERROR__FAILED__JAIABOT_PPK = 44
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__MOOS_POBSTACLEMGR = 45
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_OBSTACLE_DETECTOR = 46
         [(jaia.ev).rest_api.presence = GUARANTEED];
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
