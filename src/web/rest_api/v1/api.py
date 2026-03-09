@@ -1,9 +1,14 @@
 import asyncio
+import math
+import json
+import statistics
 
 import jaiabot.messages.rest_api_pb2
 import jaiabot.messages.hub_pb2
 import jaiabot.messages.jaia_dccl_pb2
 import jaiabot.messages.portal_pb2
+
+from  jaiabot.messages.mission_pb2 import MissionTask
 
 import common.shared_data
 from common.time import utc_now_microseconds
@@ -213,18 +218,188 @@ def surob_mission_plan_request(jaia_request):
         plan = planner.plan_mission()
     except ValueError:
         # could not fit mission within time constraint 
-        jaia_response.MissionPlanResponse.planned_successfully = False
-        jaia_response.MissionPlanResponse.error_message = f"Mission could not be fit within maximum length of {constraint_value} minutes."
+        jaia_response.mission_plan.planned_successfully = False
+        jaia_response.mission_plan.error_message = f"Mission could not be fit within maximum length of {constraint_value} minutes."
         return jaia_response
     
     if plan.measurements_per_bot[bots[0]] > MAX_WAYPOINTS/2: # Jaia missions have a per bot maximum waypoint count, a "measurement" encodes a station keep/drift and a dive, so 2 waypoints each.
         # mission is too long, since waypoints are assigned in a sequential "round robin" style, we assume the first bot in the list will have the most measurements if not evenly distributed
-        jaia_response.MissionPlanResponse.planned_successfully = False
-        jaia_response.MissionPlanResponse.error_message = f"Bot mission length exceeds maximum waypoint count of {MAX_WAYPOINTS}. Mission length was {int(plan.measurements_per_bot[bots[0]]/2)} waypoints."
+        jaia_response.mission_plan.planned_successfully = False
+        jaia_response.mission_plan.error_message = f"Bot mission length exceeds maximum waypoint count of {MAX_WAYPOINTS}. Mission length was {int(plan.measurements_per_bot[bots[0]]/2)} waypoints."
         return jaia_response
 
     mission_plan_json = planner.export_to_jaia_mission_json_string(plan, mission_name="Surob Mission")
-    jaia_response.MissionPlanResponse.planned_successfully = True
-    jaia_response.MissionPlanResponse.mission_plan_json = mission_plan_json
+    jaia_response.mission_plan.planned_successfully = True
+    jaia_response.mission_plan.mission_plan_json = mission_plan_json
 
+    return jaia_response
+
+def surob_results_request(jaia_request):
+
+    def meters_to_feet(m):
+        m_to_f_conversion_factor = 3.28084
+        return m*m_to_f_conversion_factor
+    
+    def mps_to_knots(mps):
+        mps_to_knots_conversion_factor = 1.943844492
+        return mps*mps_to_knots_conversion_factor
+    
+    # adapted from: https://www.movable-type.co.uk/scripts/latlong.html
+    def shore_normal_bearing_deg(shoreline_point, offshore_point):
+        shoreline_lat_rad = math.radians(shoreline_point[0])
+        shoreline_lon_rad = math.radians(shoreline_point[1])
+
+        offshore_lat_rad = math.radians(offshore_point[0])
+        offshore_lon_rad = math.radians(offshore_point[1])
+    
+        y = math.sin(offshore_lon_rad - shoreline_lon_rad)*math.cos(offshore_lat_rad)
+        x = math.cos(shoreline_lat_rad)*math.sin(offshore_lat_rad) - math.sin(shoreline_lat_rad)*math.cos(offshore_lat_rad)*math.cos(offshore_lon_rad-shoreline_lon_rad)
+
+        shore_normal_angle_rad = math.atan2(y, x)
+        return (math.degrees(shore_normal_angle_rad) + 360.0) % 360.0
+
+    def alongshore_current_component(shore_normal_bearing_deg, current_heading, current_speed):
+        theta_deg = (shore_normal_bearing_deg - current_heading + 360.0) % 360.0
+        alongshore_comp = current_speed*math.cos(math.radians(theta_deg))
+
+        return abs(alongshore_comp), ("right" if alongshore_comp > 0 else "left")
+
+
+    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+
+    shoreline_point = (jaia_request.surob_results_request.shoreline_point.lat,jaia_request.surob_results_request.shoreline_point.lon)
+    offshore_point = (jaia_request.surob_results_request.offshore_point.lat,jaia_request.surob_results_request.offshore_point.lon)
+
+    start_time = jaia_request.task_packets.start_time
+    end_time = jaia_request.task_packets.end_time
+
+    with common.shared_data.data_lock:
+        if jaia_request.target.all:
+            bot_ids = None
+        else:
+            bot_ids = jaia_request.target.bots
+
+        task_packets = common.shared_data.data.get_task_packets(bot_ids, start_time, end_time)
+
+    if len(task_packet) == 0:
+        jaia_response.surob_results_response.surob_results_found = False
+        if bot_ids is None:
+            jaia_response.surob_results_response.error_message = f"No task packets found for active bots between {start_time} and {end_time}."
+        else:
+            jaia_response.surob_results_response.error_message = f"No task packets found for bots {bot_ids} between {start_time} and {end_time}."
+        return jaia_response
+
+    shore_normal_bearing_deg = shore_normal_bearing_deg(shoreline_point, offshore_point)
+
+    current_measurements = []
+    wave_measurements = []
+
+    max_alongshore_current_speed_knots = None
+    max_alongshore_current_speed_uncertainty_knots = None
+    max_alongshore_current_flank = None
+
+    max_sig_wave_height_ft = None
+    max_sig_wave_height_uncertainty_ft = None
+
+    surface_drift_sig_wave_periods_s = []
+    surface_drift_sig_wave_period_uncertainties_s = []
+
+    current_measurement_ct = 0
+    wave_measurement_ct = 0
+
+    for task_packet in task_packets:
+        if task_packet.type == MissionTask.TaskType.STATION_KEEP:
+            # consider current and sig wave height values
+            if task_packet.HasField("current") and task_packet.current.speed != 0: # (jaia.field).rest_api.presence = GUARANTEED means optional fields will always be present with filler values
+                current_speed = {"value": meters_to_feet(task_packet.current.speed), "uncert": meters_to_feet(task_packet.current.speed_uncertainty), "units": "fps"}
+                current_direction = {"value": task_packet.current.heading, "uncert": task_packet.current.heading_uncertainty, "units": "degrees from true north", "cf_standard_name": "sea_water_velocity_to_direction"}
+                location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84", "vertical_location": "surface"}
+                curr_current = {"description": f"current_measurement_{current_measurement_ct + 1}", "current_speed": current_speed, "current_direction": current_direction, "location": location}
+                current_measurements.append(curr_current)
+                current_measurement_ct += 1
+
+                # transform to alongshore and crossshore components, save largest alongshore
+                alongshore_current_speed_mps, alongshore_current_flank = alongshore_current_component(shore_normal_bearing_deg, task_packet.current.heading, task_packet.current.speed)
+                alongshore_current_speed_knots = mps_to_knots(alongshore_current_speed_mps)
+                if max_alongshore_current_speed_knots is None or alongshore_current_speed_knots > max_alongshore_current_speed_knots:
+                    max_alongshore_current_speed_knots = alongshore_current_speed_knots
+                    max_alongshore_current_speed_uncertainty_knots = mps_to_knots(task_packet.current.speed_uncertainty)
+                    max_alongshore_current_flank = alongshore_current_flank
+            
+            elif task_packet.HasField("wave") and task_packet.wave.significant_wave_height != 0:
+                hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
+                hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
+                
+                wave_height = {"value": hs_ft, "uncert": hs_uncertainty_ft, "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
+                wave_period = {"value": task_packet.wave.period, "uncert": task_packet.wave.period_uncertainty, "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
+                location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84"}
+                curr_wave = {"description": f"wave_measurement_{wave_measurement_ct + 1}", "wave_height": wave_height, "wave_period": wave_period, "location": location}
+                wave_measurements.append(curr_wave)
+                wave_measurement_ct += 1
+                
+                if max_sig_wave_height_ft is None or hs_ft > max_sig_wave_height_ft:
+                    max_sig_wave_height_ft = hs_ft
+                    max_sig_wave_height_uncertainty_ft = hs_uncertainty_ft
+        
+        elif task_packet.type == MissionTask.TaskType.SURFACE_DRIFT:
+            # consider sig wave period values
+            if task_packet.HasField("wave") and task_packet.wave.period != 0:
+                hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
+                hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
+                
+                wave_height = {"value": hs_ft, "uncert": hs_uncertainty_ft, "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
+                wave_period = {"value": task_packet.wave.period, "uncert": task_packet.wave.period_uncertainty, "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
+                location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84"}
+                curr_wave = {"description": f"wave_measurement_{wave_measurement_ct + 1}", "wave_height": wave_height, "wave_period": wave_period, "location": location}
+                wave_measurements.append(curr_wave)
+                wave_measurement_ct += 1
+
+                # append sig wave period values, if multiple are received, average for final result
+                surface_drift_sig_wave_periods_s.append(task_packet.wave.period)
+                surface_drift_sig_wave_period_uncertainties_s.append(task_packet.wave.period_uncertainty)
+
+    if max_alongshore_current_speed_knots is None:
+        jaia_response.surob_results_response.surob_results_found = False
+        if bot_ids is None:
+            jaia_response.surob_results_response.error_message = f"No current estimates found for active bots between {start_time} and {end_time}."
+        else:
+            jaia_response.surob_results_response.error_message = f"No current estimates found for bots {bot_ids} between {start_time} and {end_time}."
+        return jaia_response
+
+    if max_sig_wave_height_ft is None:
+        jaia_response.surob_results_response.surob_results_found = False
+        if bot_ids is None:
+            jaia_response.surob_results_response.error_message = f"No significant wave height estimates found for active bots between {start_time} and {end_time}."
+        else:
+            jaia_response.surob_results_response.error_message = f"No significant wave height estimates found for bots {bot_ids} between {start_time} and {end_time}."
+        return jaia_response
+
+    if len(surface_drift_sig_wave_periods_s) == 0:
+        jaia_response.surob_results_response.surob_results_found = False
+        if bot_ids is None:
+            jaia_response.surob_results_response.error_message = f"No significant wave period estimates found for active bots between {start_time} and {end_time}."
+        else:
+            jaia_response.surob_results_response.error_message = f"No significant wave period estimates found for bots {bot_ids} between {start_time} and {end_time}."
+        return jaia_response
+    
+    if len(surface_drift_sig_wave_periods_s) == 1:
+        surface_drift_sig_wave_period_s_to_report = surface_drift_sig_wave_periods_s[0]
+        surface_drift_sig_wave_period_uncertainty_s_to_report = surface_drift_sig_wave_period_uncertainties_s[0]
+    else:
+        # we expect only 1 surface drift per surob, but in the event we find multiple, report average of period estimates and uncertainty of largest between std of period estimates or default uncertainty of period estimate
+        surface_drift_sig_wave_period_s_to_report = statistics.mean(surface_drift_sig_wave_periods_s)
+        surface_drift_sig_wave_period_uncertainty_s_to_report = max(max(surface_drift_sig_wave_period_uncertainties_s), statistics.stdev(surface_drift_sig_wave_periods_s))
+
+    sig_breaker_height = {"value": max_sig_wave_height_ft, "uncert": max_sig_wave_height_uncertainty_ft, "units": "feet"}
+    breaker_period = {"value": surface_drift_sig_wave_period_s_to_report, "uncert": surface_drift_sig_wave_period_uncertainty_s_to_report, "units": "seconds"}
+    littoral_current_local = {"value": max_alongshore_current_speed_knots, "uncert": max_alongshore_current_speed_uncertainty_knots, "flank": max_alongshore_current_flank, "units": "knots"}
+    surob = {"sig_breaker_height": sig_breaker_height, "breaker_period": breaker_period, "littoral_current_local": littoral_current_local}
+    reports = [{"surob": surob}]
+
+    attachments = current_measurements + wave_measurements
+
+    output_dict = {"topic": "is2ops", "subtopic": "surob", "source": "jaia", "msg": {"reports": reports}, "attachments": attachments}
+
+    jaia_response.surob_results.response.surob_results_found = True
+    jaia_response.surob_results.response.surob_results_json = json.dumps(output_dict)
     return jaia_response
