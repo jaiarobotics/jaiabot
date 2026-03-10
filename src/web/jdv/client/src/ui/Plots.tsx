@@ -52,7 +52,69 @@ export interface PlotsProps {
 // Colors used for stat lines — kept as constants so they are consistent
 // across the plot traces, annotations, and the info dialog legend.
 const MEAN_LINE_COLOR = "red";
-const STD_LINE_COLOR = "orange";
+const STD_LINE_COLOR = "purple";
+
+// Plotly's default color cycle — used to explicitly assign data trace colors
+// so that the extra stat traces don't shift the color assignments.
+const PLOTLY_COLORS = [
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf",
+];
+
+function wrapLines(text: string, maxLength = 30, splitChars = ["/", " "]) {
+    var components: string[] = [];
+    var newComponent = true;
+
+    for (let characterIndex = 0; characterIndex < text.length; characterIndex++) {
+        if (newComponent) {
+            components.push("");
+        }
+
+        const c = text[characterIndex];
+        components[components.length - 1] = components[components.length - 1].concat(c);
+
+        if (splitChars.includes(c)) {
+            newComponent = true;
+        } else {
+            newComponent = false;
+        }
+    }
+
+    var lines: string[] = [];
+    var line = "";
+
+    for (const component of components) {
+        if (component.length > maxLength) {
+            if (line.length > 0) {
+                lines.push(line);
+            }
+            lines.push(component);
+            continue;
+        }
+
+        if (line.length + component.length > maxLength) {
+            lines.push(line);
+            line = component;
+            continue;
+        }
+
+        line = line.concat(component);
+    }
+
+    if (line.length > 0) {
+        lines.push(line);
+    }
+
+    return lines.join("<br>");
+}
 
 export function Plots(props: PlotsProps) {
     const [isPathSelectorDisplayed, setIsPathSelectorDisplayed] = React.useState(false);
@@ -109,61 +171,13 @@ export function Plots(props: PlotsProps) {
         var layout: any = { showlegend: false };
 
         for (let [plot_index, series] of plots.entries()) {
-            // Set the y-axis for this plot
-            function wrapLines(text: string, maxLength = 30, splitChars = ["/", " "]) {
-                // Get components that include the splitChars
-                var components: string[] = [];
-                var newComponent = true;
-
-                for (let characterIndex = 0; characterIndex < text.length; characterIndex++) {
-                    if (newComponent) {
-                        components.push("");
-                    }
-
-                    const c = text[characterIndex];
-                    components[components.length - 1] = components[components.length - 1].concat(c);
-
-                    if (splitChars.includes(c)) {
-                        newComponent = true;
-                    } else {
-                        newComponent = false;
-                    }
-                }
-
-                // Concat the components, with <br> if necessary
-                var lines: string[] = [];
-                var line = "";
-
-                for (const component of components) {
-                    if (component.length > maxLength) {
-                        if (line.length > 0) {
-                            lines.push(line);
-                        }
-                        lines.push(component);
-                        continue;
-                    }
-
-                    if (line.length + component.length > maxLength) {
-                        lines.push(line);
-                        line = component;
-                        continue;
-                    }
-
-                    line = line.concat(component);
-                }
-
-                if (line.length > 0) {
-                    lines.push(line);
-                }
-
-                return lines.join("<br>");
-            }
-
             const y_axis_title = wrapLines(series.y_axis_title.replaceAll("\n", "<br>"));
             layout["yaxis" + (plot_index + 1)] = { title: y_axis_title };
 
             // Add to the data array
             let yaxis = "y" + (plot_index + 1);
+
+            const traceColor = PLOTLY_COLORS[plot_index % PLOTLY_COLORS.length];
 
             let trace: Plotly.Data = {
                 name: series.title,
@@ -174,6 +188,8 @@ export function Plots(props: PlotsProps) {
                 hovertext: [],
                 type: "scattergl",
                 mode: "lines+markers",
+                marker: { color: traceColor },
+                line: { color: traceColor },
             };
 
             data.push(trace);
@@ -221,9 +237,11 @@ export function Plots(props: PlotsProps) {
             } as Plotly.Data);
         }
 
-        layout.grid = { rows: plots.length, columns: 1, pattern: "coupled" };
+        layout.grid = { rows: plots.length, columns: 1, pattern: "coupled", ygap: 0.12 };
+        layout.margin = { l: 80, r: 20, t: 20, b: 80 };
+        layout.xaxis = { ...layout.xaxis, ticklabelstandoff: 20 };
 
-        layout.height = plots.length * 300 + 1; // in pixels
+        layout.height = plots.length * 350 + 1; // in pixels
 
         // Preserve current x axis range
         const current_layout_xaxis = plot_div_element.layout?.xaxis;
@@ -290,83 +308,80 @@ export function Plots(props: PlotsProps) {
         const traceIndices = Array.from({ length: traceCount }, (_, i) => i);
         Plotly.restyle("plot", { visible: visibilityUpdate }, traceIndices);
 
-        // Also update annotation visibility by re-running the layout annotation update.
-        // We call refreshAnnotations so mean/std values are still current.
-        refreshAnnotations();
+        // Update y-axis titles to show/hide stat values.
+        refreshSubplotTitles();
     }, [showMean, showStd]);
 
-    // Separated annotation refresh so it can be called from the toggle effect.
-    // Returns the annotations array so it can also be used inside refreshPlotData.
-    const buildAnnotations = (plots: Plot[], visibleTimeRange: number[] | null): any[] => {
+    // Build stat annotations below each subplot and divider lines between subplots.
+    const buildSubplotOverlays = (
+        plots: Plot[],
+        visibleTimeRange: number[] | null,
+    ): { annotations: any[]; shapes: any[] } => {
         const annotations: any[] = [];
+        const shapes: any[] = [];
 
         for (let [plot_index, series] of plots.entries()) {
-            if (series._utime_.length === 0) continue;
+            const yDomainRef = plot_index === 0 ? "y domain" : `y${plot_index + 1} domain`;
 
-            const t_start = visibleTimeRange ? visibleTimeRange[0] : Number.MIN_SAFE_INTEGER;
-            const t_end = visibleTimeRange ? visibleTimeRange[1] : Number.MAX_SAFE_INTEGER;
+            if (series._utime_.length > 0 && (showMean || showStd)) {
+                const t_start = visibleTimeRange ? visibleTimeRange[0] : Number.MIN_SAFE_INTEGER;
+                const t_end = visibleTimeRange ? visibleTimeRange[1] : Number.MAX_SAFE_INTEGER;
 
-            const visible_y: number[] = [];
-            for (let i = 0; i < series._utime_.length; i++) {
-                if (series._utime_[i] >= t_start && series._utime_[i] <= t_end) {
-                    visible_y.push(series.series_y[i]);
+                const visible_y: number[] = [];
+                for (let i = 0; i < series._utime_.length; i++) {
+                    if (series._utime_[i] >= t_start && series._utime_[i] <= t_end) {
+                        visible_y.push(series.series_y[i]);
+                    }
                 }
-            }
-            const visible_y_filtered = visible_y.filter((y) => y !== null && y !== undefined);
+                const filtered = visible_y.filter((y) => y !== null && y !== undefined);
 
-            let mean = 0;
-            let std = 0;
-            if (visible_y_filtered.length > 0) {
-                mean = visible_y_filtered.reduce((a, b) => a + b, 0) / visible_y_filtered.length;
-                const variance =
-                    visible_y_filtered.reduce((sum, y) => sum + (y - mean) ** 2, 0) /
-                    visible_y_filtered.length;
-                std = Math.sqrt(variance);
-            }
+                let mean = 0;
+                let std = 0;
+                if (filtered.length > 0) {
+                    mean = filtered.reduce((a, b) => a + b, 0) / filtered.length;
+                    const variance =
+                        filtered.reduce((sum, y) => sum + (y - mean) ** 2, 0) / filtered.length;
+                    std = Math.sqrt(variance);
+                }
 
-            const yref = "y" + (plot_index + 1);
+                const parts: string[] = [];
+                if (showMean) {
+                    parts.push(
+                        `<b><span style="color:${MEAN_LINE_COLOR}">Mean: ${mean.toFixed(3)}</span></b>`,
+                    );
+                }
+                if (showStd) {
+                    parts.push(
+                        `<b><span style="color:${STD_LINE_COLOR}">σ: ${std.toFixed(3)}</span></b>`,
+                    );
+                }
 
-            // Mean annotation (red) — only shown when mean line is visible
-            if (showMean) {
                 annotations.push({
                     xref: "paper",
-                    yref: yref,
-                    x: 1.01,
-                    y: mean,
-                    text: `<b>Mean:</b> ${mean.toFixed(3)}`,
+                    yref: yDomainRef,
+                    x: 0.02,
+                    y: -0.03,
+                    text: parts.join("&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;"),
                     showarrow: false,
-                    font: { size: 10, color: MEAN_LINE_COLOR },
+                    font: { size: 12 },
                     xanchor: "left",
                     yanchor: "bottom",
-                    bgcolor: "rgba(255,255,255,0.75)",
-                });
-            }
-
-            // Std. dev. annotation (orange) — only shown when std lines are visible
-            if (showStd) {
-                annotations.push({
-                    xref: "paper",
-                    yref: yref,
-                    x: 1.01,
-                    y: mean,
-                    text: `<b>\u00b11\u03c3:</b> ${std.toFixed(3)}`,
-                    showarrow: false,
-                    font: { size: 10, color: STD_LINE_COLOR },
-                    xanchor: "left",
-                    yanchor: "top",
-                    bgcolor: "rgba(255,255,255,0.75)",
+                    bgcolor: "rgba(255, 255, 255, 0.9)",
+                    bordercolor: "#ccc",
+                    borderwidth: 1,
+                    borderpad: 4,
                 });
             }
         }
 
-        return annotations;
+        return { annotations, shapes };
     };
 
-    const refreshAnnotations = () => {
+    const refreshSubplotTitles = () => {
         const { plots, visibleTimeRange } = props;
         if (plots.length === 0) return;
-        const annotations = buildAnnotations(plots, visibleTimeRange);
-        Plotly.relayout("plot", { annotations });
+        const { annotations, shapes } = buildSubplotOverlays(plots, visibleTimeRange);
+        Plotly.relayout("plot", { annotations, shapes });
     };
 
     const refreshPlotData = () => {
@@ -534,7 +549,8 @@ export function Plots(props: PlotsProps) {
         }
 
         Plotly.restyle("plot", update);
-        Plotly.relayout("plot", { annotations: buildAnnotations(plots, visibleTimeRange) });
+        const overlays = buildSubplotOverlays(plots, visibleTimeRange);
+        Plotly.relayout("plot", { annotations: overlays.annotations, shapes: overlays.shapes });
     };
 
     useEffect(refreshPlotData, [props.chosenLogs, props.plots, props.visibleTimeRange]);
@@ -609,10 +625,7 @@ export function Plots(props: PlotsProps) {
                     />
                     Mean
                 </label>
-                <label
-                    className="statToggleLabel"
-                    title="Show or hide the ±1 std. dev. lines on each plot"
-                >
+                <label className="statToggleLabel" title="Show or hide the ±1 σ lines on each plot">
                     <input
                         type="checkbox"
                         checked={showStd}
@@ -622,7 +635,7 @@ export function Plots(props: PlotsProps) {
                         className="statToggleSwatch"
                         style={{ backgroundColor: STD_LINE_COLOR }}
                     />
-                    ±1 Std. Dev.
+                    ±1 σ
                 </label>
             </div>
         );
@@ -692,17 +705,16 @@ export function Plots(props: PlotsProps) {
                     />
                 </div>
                 <p>
-                    Two horizontal dotted lines drawn one standard deviation above and below the
-                    mean, showing the spread of the visible data.
+                    Two horizontal dotted lines drawn one standard deviation (±1σ) above and below
+                    the mean, showing the spread of the <i>visible data</i>.
                 </p>
 
                 <p>
-                    Use the <strong>Mean</strong> and <strong>±1 Std. Dev.</strong> checkboxes in
-                    the toolbar to toggle these overlay lines on or off independently. A
-                    colour-coded info box in the top-right corner of each plot displays the current
-                    numeric values of the mean (in{" "}
-                    <span style={{ color: MEAN_LINE_COLOR }}>red</span>) and standard deviation (in{" "}
-                    <span style={{ color: STD_LINE_COLOR }}>orange</span>).
+                    Use the <strong>Mean</strong> and <strong>±1 σ</strong> checkboxes in the
+                    toolbar to toggle these overlay lines on or off independently. A colour-coded
+                    info box in the top-right corner of each plot displays the current numeric
+                    values of the mean (in <span style={{ color: MEAN_LINE_COLOR }}>red</span>) and
+                    standard deviation (in <span style={{ color: STD_LINE_COLOR }}>purple</span>).
                 </p>
                 <h3>Plot Downsampling</h3>
                 <p>
