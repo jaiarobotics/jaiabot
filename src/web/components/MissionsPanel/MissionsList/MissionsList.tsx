@@ -27,8 +27,11 @@ import {
 
 import "./MissionsList.less";
 
-interface MissionAccordionTitleProps {
-    missionID: number;
+interface Props {
+    missionID?: number;
+    missionSetName?: string;
+    numOfMissions?: number;
+    handleNameChange?: (name: string) => void;
 }
 
 export default function MissionsList() {
@@ -67,6 +70,12 @@ export default function MissionsList() {
         return false;
     };
 
+    /**
+     * Dispatches action to update the mission set name
+     *
+     * @param {string} name Input entered by operator
+     * @returns {void}
+     */
     const handleNameChange = (name: string) => {
         jaiaDispatch({
             type: JaiaActions.CHANGE_MISSION_SET_NAME,
@@ -125,9 +134,10 @@ export default function MissionsList() {
 
     return (
         <div id="missions-list" data-testid="missions-list">
-            <input
-                value={jaiaContext.missionSet.getName()}
-                onChange={(event) => handleNameChange(event.target.value)}
+            <MissionSetName
+                missionSetName={jaiaContext.missionSet.getName()}
+                numOfMissions={jaiaContext.missionSet.getMissions().size}
+                handleNameChange={handleNameChange}
             />
             {Array.from(jaiaContext.missionSet.getMissions().values()).map((mission) => {
                 return (
@@ -203,7 +213,7 @@ export default function MissionsList() {
     );
 }
 
-function MissionAccordionTitle(props: MissionAccordionTitleProps) {
+function MissionAccordionTitle(props: Props) {
     const assignedBotID = missionsManager.getBotID(props.missionID) ?? -1;
     return (
         <div className="mission-accordion-title">
@@ -213,4 +223,15 @@ function MissionAccordionTitle(props: MissionAccordionTitleProps) {
             </p>
         </div>
     );
+}
+
+function MissionSetName(props: Props) {
+    if (props.numOfMissions > 0) {
+        return (
+            <input
+                value={props.missionSetName}
+                onChange={(event) => props.handleNameChange(event.target.value)}
+            />
+        );
+    }
 }
