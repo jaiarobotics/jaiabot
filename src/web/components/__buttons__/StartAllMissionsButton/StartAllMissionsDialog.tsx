@@ -1,12 +1,11 @@
 import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
-import { useEffect, useRef, useState } from "react";
 
 interface DialogProps {
     isVisible: boolean;
     botReadyStates: Map<DisabledCodes, number[]>;
     numBots: number;
-    onClose: (dialogAction: DialogActions, missionName: string) => void;
+    onClose: (dialogAction: DialogActions) => void;
 }
 
 interface TitleProps {
@@ -24,16 +23,7 @@ interface ButtonRowProps {
  * It will describe the reason(s) the other Bots cannot accept the command.
  */
 export function StartAllMissionsDialog(props: DialogProps) {
-    // Ref and useEffect to focus the mission name input when the dialog opens and there is at least one ready bot
-    const missionNameInputRef = useRef(null);
-    const [missionName, setMissionName] = useState("Untitled Mission");
     const numReadyBots = props.botReadyStates.get(DisabledCodes.NONE).length;
-
-    useEffect(() => {
-        if (props.isVisible && numReadyBots > 0) {
-            missionNameInputRef.current.focus();
-        }
-    }, [props.isVisible, numReadyBots]);
 
     /**
      * Applies the base class "jaia-dialog" and appends "alert"
@@ -142,7 +132,7 @@ export function StartAllMissionsDialog(props: DialogProps) {
                 {formatMessage()}
                 <ButtonRow
                     botReadyStates={props.botReadyStates}
-                    onClose={(dialogAction) => props.onClose(dialogAction, missionName)}
+                    onClose={(dialogAction) => props.onClose(dialogAction)}
                 />
             </div>
         </div>
