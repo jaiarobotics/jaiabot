@@ -14,7 +14,7 @@ import { scrollMissionsList } from "../../utils/style";
 // MUI | MDI
 import Button from "@mui/material/Button";
 import Icon from "@mdi/react";
-import { mdiAutoFix, mdiContentSave, mdiFolderOpen, mdiPlus } from "@mdi/js";
+import { mdiAutoFix, mdiPlus } from "@mdi/js";
 
 import "./MissionsPanel.less";
 

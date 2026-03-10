@@ -135,6 +135,18 @@ export function handleChangeMissionRepeats(mutableState: JaiaContextType, action
 }
 
 /**
+ * Makes a call update the mission set name
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Includes mission set name
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleChangeMissionSetName(mutableState: JaiaContextType, action: JaiaAction) {
+    missionSet.setName(action.missionSetName);
+    return mutableState;
+}
+
+/**
  * Loads a mission set from local storage
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications

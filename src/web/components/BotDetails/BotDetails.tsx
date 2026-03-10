@@ -114,7 +114,11 @@ export default function BotDetails() {
                     <h3 className="details-help-text">{getWaypontHelperText(mission)}</h3>
                     <div className="details-toolbar">
                         <StopButton bot={bot} />
-                        <StartMissionButton bot={bot} mission={mission} />
+                        <StartMissionButton
+                            bot={bot}
+                            mission={mission}
+                            missionSetName={jaiaContext.missionSet.getName()}
+                        />
                         <DeleteMissionButton
                             deleteAll={false}
                             missionID={mission?.getMissionID()}

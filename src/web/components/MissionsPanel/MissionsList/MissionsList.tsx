@@ -67,6 +67,13 @@ export default function MissionsList() {
         return false;
     };
 
+    const handleNameChange = (name: string) => {
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_MISSION_SET_NAME,
+            missionSetName: name,
+        });
+    };
+
     /**
      * Dispatches action to update the number of repeats for a mission
      *
@@ -118,6 +125,10 @@ export default function MissionsList() {
 
     return (
         <div id="missions-list" data-testid="missions-list">
+            <input
+                value={jaiaContext.missionSet.getName()}
+                onChange={(event) => handleNameChange(event.target.value)}
+            />
             {Array.from(jaiaContext.missionSet.getMissions().values()).map((mission) => {
                 return (
                     <ThemeProvider theme={accordionTheme} key={mission.getMissionID()}>

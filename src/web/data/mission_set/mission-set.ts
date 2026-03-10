@@ -30,7 +30,7 @@ export class MissionSet {
         this.nextMissionID = 1;
         this.missionIDInEditMode = UNASSIGNED_ID;
         this.missionSpeeds = { transit: 2, stationkeep_outer: 2 };
-        this.name = "";
+        this.name = "Mission Set Name";
     }
 
     getMissions() {
