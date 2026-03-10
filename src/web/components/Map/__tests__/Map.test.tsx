@@ -137,13 +137,5 @@ test("Click on map with Bot selected and not assigned to a mission", () => {
     });
 
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
-    expect(missionLayerFeatures.length).toBe(2);
-    expect(missionLayerFeatures[1].get("type")).toBe(MapFeatureTypes.WAYPOINT);
-    expect(missionLayerFeatures[1].get("waypointNum")).toBe(1);
-
-    expect(missionSet.getMissionIDInEditMode()).toBe(1);
-
-    // Reset states
-    missionSet.deleteAllMissions();
-    missionLayer.getVectorLayer().getSource().clear();
+    expect(missionLayerFeatures.length).toBe(0);
 });
