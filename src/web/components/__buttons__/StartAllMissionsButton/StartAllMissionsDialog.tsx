@@ -130,28 +130,6 @@ export function StartAllMissionsDialog(props: DialogProps) {
         });
     };
 
-    /**
-     * The mission name text field, if we're ready to send the mission.
-     *
-     * @returns {JSX.Element | null} A text field for the mission name if at least one Bot can receive the command, otherwise null
-     */
-    const missionNameTextField = () => {
-        if (numReadyBots === 0) {
-            return null;
-        }
-
-        return (
-            <input
-                ref={missionNameInputRef}
-                type="text"
-                placeholder="Untitled Mission"
-                value={missionName}
-                onChange={(e) => setMissionName(e.target.value)}
-                className="mission-name-input"
-            ></input>
-        );
-    };
-
     if (!props.isVisible) {
         return <div></div>;
     }
@@ -162,7 +140,6 @@ export function StartAllMissionsDialog(props: DialogProps) {
             <div className={getClassName()}>
                 <Title botReadyStates={props.botReadyStates} />
                 {formatMessage()}
-                {missionNameTextField()}
                 <ButtonRow
                     botReadyStates={props.botReadyStates}
                     onClose={(dialogAction) => props.onClose(dialogAction, missionName)}

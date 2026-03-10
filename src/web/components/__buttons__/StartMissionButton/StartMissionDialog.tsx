@@ -48,33 +48,12 @@ export function StartMissionDialog(props: DialogProps) {
         return <div></div>;
     }
 
-    /**
-     * The text input field for the mission name.
-     *
-     * @returns {React.ReactElement | null} The text input field or null if disabled
-     */
-    const missionNameTextField = () => {
-        if (props.disabledCode !== DisabledCodes.NONE) {
-            return null;
-        }
-
-        return (
-            <input
-                type="text"
-                value={missionName}
-                onChange={(e) => setMissionName(e.target.value)}
-                ref={missionNameInputRef}
-            />
-        );
-    };
-
     return (
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}></div>
             <div className={getClassName()}>
                 <Title disabledCode={props.disabledCode} />
                 <p>{messages.get(props.disabledCode)}</p>
-                {missionNameTextField()}
                 <ButtonRow
                     disabledCode={props.disabledCode}
                     onClose={(dialogAction: DialogActions) => {
