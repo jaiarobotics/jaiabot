@@ -29,9 +29,6 @@ import "./MissionsList.less";
 
 interface Props {
     missionID?: number;
-    missionSetName?: string;
-    numOfMissions?: number;
-    handleNameChange?: (name: string) => void;
 }
 
 export default function MissionsList() {
@@ -68,19 +65,6 @@ export default function MissionsList() {
             return jaiaContext.missionAccordionStates[missionID];
         }
         return false;
-    };
-
-    /**
-     * Dispatches action to update the mission set name
-     *
-     * @param {string} name Input entered by operator
-     * @returns {void}
-     */
-    const handleNameChange = (name: string) => {
-        jaiaDispatch({
-            type: JaiaActions.CHANGE_MISSION_SET_NAME,
-            missionSetName: name,
-        });
     };
 
     /**
@@ -134,11 +118,6 @@ export default function MissionsList() {
 
     return (
         <div id="missions-list" data-testid="missions-list">
-            <MissionSetName
-                missionSetName={jaiaContext.missionSet.getName()}
-                numOfMissions={jaiaContext.missionSet.getMissions().size}
-                handleNameChange={handleNameChange}
-            />
             {Array.from(jaiaContext.missionSet.getMissions().values()).map((mission) => {
                 return (
                     <ThemeProvider theme={accordionTheme} key={mission.getMissionID()}>
@@ -223,15 +202,4 @@ function MissionAccordionTitle(props: Props) {
             </p>
         </div>
     );
-}
-
-function MissionSetName(props: Props) {
-    if (props.numOfMissions > 0) {
-        return (
-            <input
-                value={props.missionSetName}
-                onChange={(event) => props.handleNameChange(event.target.value)}
-            />
-        );
-    }
 }

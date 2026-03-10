@@ -14,6 +14,7 @@ import "./MissionSetStorage.less";
 
 interface DialogProps {
     isVisible: boolean;
+    missionSetName: string;
     onClose: () => void;
 }
 
@@ -28,7 +29,7 @@ interface MissionSetRowProps {
  * This dialog provides delete, save and load mission set buttons
  */
 export function MissionSetStorageDialog(props: DialogProps) {
-    const [saveName, setSaveName] = useState(missionSet.getName());
+    const [saveName, setSaveName] = useState(props.missionSetName);
 
     /**
      * Updates the selected mission set in state
@@ -56,13 +57,13 @@ export function MissionSetStorageDialog(props: DialogProps) {
      * @returns {void}
      */
     const handleCloseButtonClick = () => {
-        // reset save name for next time the dialog is opened
+        // Reset save name for next time the dialog is opened
         setSaveName(missionSet.getName());
         props.onClose();
     };
 
     if (!props.isVisible) {
-        return <div></div>;
+        return;
     }
 
     return createPortal(
@@ -75,8 +76,8 @@ export function MissionSetStorageDialog(props: DialogProps) {
                         <input
                             type="text"
                             value={saveName}
-                            onInput={(evt) => {
-                                setSaveName((evt.target as any).value);
+                            onChange={(evt) => {
+                                setSaveName(evt.target.value);
                             }}
                         />
                     </div>
