@@ -104,11 +104,7 @@ export default function Map() {
         }
 
         // Prevent generating false ADD_WAYPOINT actions
-        if (
-            (jaiaGlobal.getSelectedNode().type === NodeTypes.BOT &&
-                missionsManager.getMissionID(jaiaGlobal.getSelectedNode().id) === UNASSIGNED_ID) ||
-            missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID
-        ) {
+        if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
             handleAddWaypointClick(event.coordinate);
         }
     };
