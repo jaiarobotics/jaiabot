@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
-import { missionSet } from "../../../data/mission_set/mission-set";
+import { JCC_CONTAINER } from "../../../utils/constants";
 import { listSavedMissionSets } from "./mission-set-storage";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
 import ImportMissionSetButton from "./ImportMissionSetButton/ImportMissionSetButton";
 import ExportMissionSetButton from "./ExportMissionSetButton/ExportMissionSetButton";
-import { JCC_CONTAINER } from "../../../utils/constants";
 
 import "./MissionSetStorage.less";
 
@@ -50,22 +49,6 @@ export function MissionSetStorageDialog(props: DialogProps) {
         setSaveName("");
     };
 
-    /**
-     * Resets the selected name to the mission set displayed in the JCC and
-     * closes the dialog
-     *
-     * @returns {void}
-     */
-    const handleCloseButtonClick = () => {
-        // Reset save name for next time the dialog is opened
-        setSaveName(missionSet.getName());
-        props.onClose();
-    };
-
-    if (!props.isVisible) {
-        return;
-    }
-
     return createPortal(
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}>
@@ -106,7 +89,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
                         <ExportMissionSetButton saveName={saveName} />
                         <ImportMissionSetButton onClose={props.onClose} />
                     </div>
-                    <button onClick={() => handleCloseButtonClick()}>Close</button>
+                    <button onClick={props.onClose}>Close</button>
                 </div>
             </div>
         </div>,
