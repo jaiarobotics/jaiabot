@@ -49,7 +49,7 @@ class TaskPacketDatabase:
 
         # `task_packets` table contains the actual TaskPacket data
         # * id is the task_packet_id
-        # * bot_id is the id of the bot that generated the task packet
+        # * bot_id is the id of the Bot that generated the task packet
         # * utime is the unix timestamp of when the task packet was generated
         # * json_string is the full task packet as a json string.  We use json_string instead of individual columns 
         #   for flexibility and to avoid having to migrate the database every time we change the task packet schema.
@@ -120,7 +120,7 @@ class TaskPacketDatabase:
         self.db.execute('insert or replace into task_packets (id, bot_id, utime, json_string) values (?, ?, ?, ?)', values)
         self.db.execute('insert or ignore into included (id, included) values (?, ?)', (id, True))
 
-        # Task packets that are offloaded from a bot will not have a mission_name field, but task packets that 
+        # Task packets that are offloaded from a Bot will not have a mission_name field, but task packets that 
         #   are published interprocess by the hub manager will have a mission_name field (set based on the mission 
         #   id to name mapping in the hub manager).  So we only add to the mission_name table if the mission_name 
         #   field is present in the task packet.
