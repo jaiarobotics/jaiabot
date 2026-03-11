@@ -8,7 +8,7 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
-import { DEFAULT_MISSION_SET_NAME, UNASSIGNED_ID } from "../../utils/constants";
+import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers } from "./handler-utils";
 
 /**

@@ -106,4 +106,5 @@ function MissionSetName(props: Props) {
             />
         );
     }
+    return null;
 }

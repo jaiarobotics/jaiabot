@@ -28,7 +28,7 @@ import {
 import "./MissionsList.less";
 
 interface Props {
-    missionID?: number;
+    missionID: number;
 }
 
 export default function MissionsList() {

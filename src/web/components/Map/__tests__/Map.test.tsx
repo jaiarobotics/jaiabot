@@ -138,4 +138,6 @@ test("Click on map with Bot selected and not assigned to a mission", () => {
 
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
     expect(missionLayerFeatures.length).toBe(0);
+
+    jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
 });

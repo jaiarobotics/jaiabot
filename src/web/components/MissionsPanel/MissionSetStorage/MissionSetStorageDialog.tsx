@@ -12,7 +12,6 @@ import ExportMissionSetButton from "./ExportMissionSetButton/ExportMissionSetBut
 import "./MissionSetStorage.less";
 
 interface DialogProps {
-    isVisible: boolean;
     missionSetName: string;
     onClose: () => void;
 }
