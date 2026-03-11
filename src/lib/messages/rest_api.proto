@@ -21,6 +21,20 @@ message TaskPacketsRequest
         }];
 }
 
+message KMZRequest
+{
+    required uint64 start_time = 1
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Start of time range as a Unix timestamp in microseconds."
+        }];
+    required uint64 end_time = 2
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "End of time range as a Unix timestamp in microseconds."
+        }];
+}
+
 message CommandResult
 {
     required bool command_sent = 1
@@ -100,7 +114,14 @@ message APIRequest
                 response: '{"request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "target": {"bots": [1]}, "task_packets": {"end_time": "1722970466581176", "start_time": "1722797666581176"}}, "task_packets": {"packets": [{"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.658228, "lon": -71.275736}, "estimated_drift": {"heading": 237.0, "speed": 0.9}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658275, "lon": -71.275645}}, "end_time": "1722895675000000", "start_time": "1722895664000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.65826, "lon": -71.2757}, "estimated_drift": {"heading": 316.0, "speed": 0.6}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658225, "lon": -71.275651}}, "end_time": "1722896712000000", "start_time": "1722896702000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.659469, "lon": -71.272064}, "estimated_drift": {"heading": 72.0, "speed": 0.7}, "significant_wave_height": 0.0, "start_location": {"lat": 41.659448, "lon": -71.272146}}, "end_time": "1722896904000000", "start_time": "1722896893000000", "type": "SURFACE_DRIFT"}]}}'
             }
         }];
-
+        KMZRequest kmz = 16 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Request a KMZ file containing task packet information for the specified bots over a given time range. Expect a response with the kmz file in the body."
+            example {
+                request: '{"target": {"all": true}, "kmz": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
+                response: '<KMZ file containing task packet information for all bots and hubs over the given time range>'
+            }
+        }];
         Command command = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Send a command to one or more bots. Expect a response of type 'command_result'."
