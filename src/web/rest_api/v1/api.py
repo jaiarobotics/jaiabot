@@ -268,12 +268,6 @@ def surob_results_request(jaia_request):
         alongshore_uncertainty = speed_uncertainty*math.cos(math.radians(theta_deg))
 
         return abs(mps_to_knots(alongshore_comp)), abs(mps_to_knots(alongshore_uncertainty)), ("right" if alongshore_comp > 0 else "left")
-
-    def round_to_1_decimal_with_floor(x):
-        rounded = round(x, 1)
-        if rounded == 0.0:
-            return 0.1
-        return rounded
     
     # adapted from https://www.geeksforgeeks.org/dsa/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
     def haversine(point_1, point_2):
@@ -349,11 +343,11 @@ def surob_results_request(jaia_request):
     wave_measurement_ct = 0
 
     for task_packet in task_packets:
-        if task_packet.type == MissionTask.TaskType.STATION_KEEP:
+        if task_packet.type == MissionTask.TaskType.STATION_KEEP: # TODO: Update reported uncertainties to variance rather than std
             # consider current and sig wave height values
             if task_packet.HasField("current") and task_packet.current.speed != 0: # (jaia.field).rest_api.presence = GUARANTEED means optional fields will always be present with filler values
-                current_speed = {"value": round_to_1_decimal_with_floor(meters_to_feet(task_packet.current.speed)), "uncert": round_to_1_decimal_with_floor(meters_to_feet(task_packet.current.speed_uncertainty)), "units": "fps"}
-                current_direction = {"value": round_to_1_decimal_with_floor(task_packet.current.heading), "uncert": round_to_1_decimal_with_floor(task_packet.current.heading_uncertainty), "units": "degrees from true north", "cf_standard_name": "sea_water_velocity_to_direction"}
+                current_speed = {"value": meters_to_feet(task_packet.current.speed), "uncert": meters_to_feet(task_packet.current.speed_uncertainty), "units": "fps"}
+                current_direction = {"value": task_packet.current.heading, "uncert": task_packet.current.heading_uncertainty, "units": "degrees from true north", "cf_standard_name": "sea_water_velocity_to_direction"}
                 location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84", "vertical_location": "surface"}
                 curr_current = {"description": f"current_measurement_{current_measurement_ct + 1}", "current_speed": current_speed, "current_direction": current_direction, "location": location}
                 current_measurements.append(curr_current)
@@ -370,8 +364,8 @@ def surob_results_request(jaia_request):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
-                wave_height = {"value": round_to_1_decimal_with_floor(hs_ft), "uncert": round_to_1_decimal_with_floor(hs_uncertainty_ft), "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
-                wave_period = {"value": round_to_1_decimal_with_floor(task_packet.wave.period), "uncert": round_to_1_decimal_with_floor(task_packet.wave.period_uncertainty), "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
+                wave_height = {"value": hs_ft, "uncert": hs_uncertainty_ft, "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
+                wave_period = {"value": task_packet.wave.period, "uncert": task_packet.wave.period_uncertainty, "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
                 location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84"}
                 curr_wave = {"description": f"wave_measurement_{wave_measurement_ct + 1}", "wave_height": wave_height, "wave_period": wave_period, "location": location}
                 wave_measurements.append(curr_wave)
@@ -394,8 +388,8 @@ def surob_results_request(jaia_request):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
-                wave_height = {"value": round_to_1_decimal_with_floor(hs_ft), "uncert": round_to_1_decimal_with_floor(hs_uncertainty_ft), "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
-                wave_period = {"value": round_to_1_decimal_with_floor(task_packet.wave.period), "uncert": round_to_1_decimal_with_floor(task_packet.wave.period_uncertainty), "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
+                wave_height = {"value": hs_ft, "uncert": hs_uncertainty_ft, "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
+                wave_period = {"value": task_packet.wave.period, "uncert": task_packet.wave.period_uncertainty, "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
                 location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84"}
                 curr_wave = {"description": f"wave_measurement_{wave_measurement_ct + 1}", "wave_height": wave_height, "wave_period": wave_period, "location": location}
                 wave_measurements.append(curr_wave)
@@ -441,9 +435,9 @@ def surob_results_request(jaia_request):
         sig_wave_period_s_to_report = statistics.mean(surface_drift_sig_wave_periods_s)
         sig_wave_period_uncertainty_s_to_report = max(max(surface_drift_sig_wave_period_uncertainties_s), statistics.stdev(surface_drift_sig_wave_periods_s))
 
-    sig_breaker_height = {"value": round_to_1_decimal_with_floor(max_sig_wave_height_ft), "uncert": round_to_1_decimal_with_floor(max_sig_wave_height_uncertainty_ft), "units": "feet"}
-    breaker_period = {"value": round_to_1_decimal_with_floor(sig_wave_period_s_to_report), "uncert": round_to_1_decimal_with_floor(sig_wave_period_uncertainty_s_to_report), "units": "seconds"}
-    littoral_current_local = {"value": round_to_1_decimal_with_floor(max_alongshore_current_speed_knots), "uncert": round_to_1_decimal_with_floor(max_alongshore_current_speed_uncertainty_knots), "flank": max_alongshore_current_flank, "units": "knots"}
+    sig_breaker_height = {"value": max_sig_wave_height_ft, "uncert": max_sig_wave_height_uncertainty_ft, "units": "feet"}
+    breaker_period = {"value": sig_wave_period_s_to_report, "uncert": sig_wave_period_uncertainty_s_to_report, "units": "seconds"}
+    littoral_current_local = {"value": max_alongshore_current_speed_knots, "uncert": max_alongshore_current_speed_uncertainty_knots, "flank": max_alongshore_current_flank, "units": "knots"}
     surob = {"sig_breaker_height": sig_breaker_height, "breaker_period": breaker_period, "littoral_current_local": littoral_current_local}
     reports = [{"surob": surob}]
 
