@@ -225,12 +225,13 @@ message APIConfig
                     'status',
                     'metadata',
                     'task_packets',
+                    'kmz',
                     'command',
                     'command_for_hub'
                 ]
             }];
             READ = 1 [(jaia.ev).rest_api = {
-                permitted_action: [ 'status', 'metadata', 'task_packets' ]
+                permitted_action: [ 'status', 'metadata', 'task_packets', 'kmz' ]
             }];
             WRITE = 2 [(jaia.ev).rest_api = {
                 permitted_action: [ 'command', 'command_for_hub' ]
@@ -246,6 +247,7 @@ message APIConfig
             COMMAND_FOR_HUB = 7 [
                 (jaia.ev).rest_api = { permitted_action: [ 'command_for_hub' ] }
             ];
+            KMZ = 8 [(jaia.ev).rest_api = { permitted_action: [ 'kmz' ] }];
         }
 
         repeated Permission permission = 2;
