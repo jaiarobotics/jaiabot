@@ -24,7 +24,7 @@ def send_client_to_portal_message(hub_id, msg):
     common.shared_data.get_queue(hub_id).put(msg)
 
 def status(jaia_request):
-    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+    jaia_response = APIResponse()
 
     with common.shared_data.data_lock:
         if jaia_request.target.all:
@@ -56,7 +56,7 @@ def status(jaia_request):
     return jaia_response
 
 def metadata(jaia_request):
-    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+    jaia_response = APIResponse()
     with common.shared_data.data_lock:
         # We only serve hub metadata as this isn't currently sent over XBee
         if jaia_request.target.bots:
@@ -78,7 +78,7 @@ def metadata(jaia_request):
     return jaia_response
 
 def task_packets(jaia_request):
-   jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+   jaia_response = APIResponse()
    with common.shared_data.data_lock:
         if jaia_request.target.all:
             bot_ids = None
@@ -112,7 +112,7 @@ def kmz(jaia_request: APIRequest) -> Tuple[bytes, dict]:
 
 
 def command(jaia_request):
-    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+    jaia_response = APIResponse()
 
     # Bots to send Command to
     bots = list()
@@ -155,7 +155,7 @@ def command(jaia_request):
     return jaia_response
 
 def command_for_hub(jaia_request):
-    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+    jaia_response = APIResponse()
 
     # Hubs to send CommandForHub to
     hubs = list()    
