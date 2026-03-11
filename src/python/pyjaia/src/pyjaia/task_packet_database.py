@@ -1,4 +1,7 @@
+from google.protobuf.json_format import ParseDict
 from typing import *
+
+from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
 from .utils import get_task_packet_id, utime, now_utime
 from datetime import datetime
 import glob
@@ -13,7 +16,7 @@ import os
 import os.path
 import threading
 import shutil
-import subprocess
+from . import kmz
 
 
 l = logging.getLogger('task_packet_database')
@@ -118,7 +121,7 @@ class TaskPacketDatabase:
             self.task_packets_version += 1
 
 
-    def query_task_packets(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None):
+    def query_task_packets(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None) -> List[Dict]:
         """Queries the task packets.
 
         Args:
@@ -128,7 +131,7 @@ class TaskPacketDatabase:
             included (Union[bool, None]): Included or excluded task packets (None for both types)
 
         Returns:
-            list[dict]: A list of task packets that match the criteria.
+            list[dict] or list[TaskPacket]: A list of task packets that match the criteria.
         """
 
         with self._lock:
@@ -160,7 +163,26 @@ class TaskPacketDatabase:
             query_string = query_string + ' order by utime desc limit 1000'
 
             results = self.db.execute(query_string, parameters)
+
             return [json.loads(row[0]) for row in results]
+
+
+    def query_task_packets_as_protobuf(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None) -> List[TaskPacket]:
+        """Queries the task packets and returns them as protobuf objects.
+
+        Args:
+            bot_ids (Union[Iterable[int], None]): List of bot_ids.
+            start_utime (Union[int, None]): Start of time window (or None if no minimum time)
+            end_utime (Union[int, None]): End of time window (or None if no maximum time)
+            included (Union[bool, None]): Included or excluded task packets (None for both types)
+
+        Returns:
+            list[TaskPacket]: A list of task packets that match the criteria, as protobuf objects.
+        """
+        taskpacket_dicts = self.query_task_packets(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime, included=included)
+
+        return [ParseDict(tp_dict, TaskPacket()) for tp_dict in taskpacket_dicts]
+
 
 
     def get_task_packets(self, start_date: datetime, end_date: datetime):
@@ -181,6 +203,22 @@ class TaskPacketDatabase:
         }
 
         return result
+    
+
+    def get_kmz(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None) -> bytes:
+        """Gets a KMZ file containing task packet information for the specified bots over a given time range.
+
+        Args:
+            bot_ids (Union[Iterable[int], None]): The bot IDs to include in the KMZ.  None means include all bots.
+            start_utime (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
+            end_utime (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
+        Returns:
+            bytes: The KMZ file data as a byte string.
+        """
+        # This function returns the KMZ file data as a byte string
+        task_packets = self.query_task_packets_as_protobuf(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime)
+        kmz_data = kmz.getKMZ(task_packets)
+        return kmz_data
     
 
     def get_task_packets_version(self) -> int:

@@ -22,7 +22,7 @@ import common.streaming_client as streaming_client
 import common.shared_data as shared_data
 import common.endpoint_parse as endpoint_parse
 
-from jaiabot.messages.rest_api_pb2 import APIConfig
+from jaiabot.messages.rest_api_pb2 import APIConfig, APIResponse
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -123,7 +123,18 @@ def jaia_api_short(version):
         if not check_api_key(jaia_request.api_key, jaia_request.WhichOneof("action")):
             abort(403) # forbidden
 
-        jaia_response.CopyFrom(process_request(version, jaia_request))
+        response = process_request(version, jaia_request)
+
+        if isinstance(response, APIResponse):
+            jaia_response.CopyFrom(response)
+        else:
+            # If the response is not an API Response, then return as-is
+            # For example, this allows the KMZ endpoint to return raw KMZ bytes instead of JSON
+            # A tuple[bytes, dict] can also be returned for full control over the HTTP response
+            # (e.g., to set content type to application/vnd.google-earth.kmz for KMZ files)
+            # Another option is to use flask.Response directly, however this adds a dependency to
+            # Flask in the API processing code which I wanted to avoid for separation of concerns
+            return response
         
     except APIException as e:  
         jaia_response.error.code = e.code

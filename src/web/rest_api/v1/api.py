@@ -1,4 +1,5 @@
 import asyncio
+from typing import Tuple
 
 import jaiabot.messages.rest_api_pb2
 import jaiabot.messages.hub_pb2
@@ -8,6 +9,7 @@ import jaiabot.messages.portal_pb2
 import common.shared_data
 from common.time import utc_now_microseconds
 from common.api_exception import APIException
+from jaiabot.messages.rest_api_pb2 import APIRequest, APIResponse
 
 def process_request(jaia_request):
     action = jaia_request.WhichOneof("action")
@@ -86,6 +88,28 @@ def task_packets(jaia_request):
         task_packets = common.shared_data.data.get_task_packets(bot_ids, jaia_request.task_packets.start_time, jaia_request.task_packets.end_time)
         jaia_response.task_packets.packets.extend(task_packets)
    return jaia_response
+
+
+def kmz(jaia_request: APIRequest) -> Tuple[bytes, dict]:
+    """Get a KMZ file.
+
+    Args:
+        jaia_request (APIRequest): A request object containing the parameters for the KMZ request, including target bots and time range.
+
+    Returns:
+        Tuple[bytes, dict]: A tuple containing the KMZ data as bytes and a dictionary of HTTP headers.
+    """
+    if jaia_request.target.all:
+        bot_ids = None
+    else:
+        bot_ids = jaia_request.target.bots
+
+    with common.shared_data.data_lock:
+        kmz_data = common.shared_data.data.get_kmz(bot_ids, jaia_request.kmz.start_time, jaia_request.kmz.end_time)
+    
+    headers = {"Content-Type": "application/vnd.google-earth.kmz"}
+    return kmz_data, headers
+
 
 def command(jaia_request):
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()

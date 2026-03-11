@@ -64,6 +64,22 @@ class Data:
         return task_packets
 
 
+    def get_kmz(self, bot_ids: Union[Iterable[int], None], start_time_microseconds: Union[int, None], end_time_microseconds: Union[int, None]) -> bytes:
+        """Gets a KMZ file containing task packet information for the specified bots over a given time range.
+
+        Args:
+            bot_ids (Union[Iterable[int], None]): The bot IDs to include in the KMZ.  None means include all bots.
+            start_time_microseconds (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
+            end_time_microseconds (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
+
+        Returns:
+            bytes: The KMZ file data as a byte string.
+        """
+        # This function returns the KMZ file data as a byte string
+        kmz_data = self.task_packet_database.get_kmz(bot_ids=bot_ids, start_utime=start_time_microseconds, end_utime=end_time_microseconds)
+        return kmz_data
+
+
     def process_portal_to_client_message(self, hub_id, msg):
         if msg.HasField('bot_status'):
             msg.bot_status.received_time = utc_now_microseconds()
