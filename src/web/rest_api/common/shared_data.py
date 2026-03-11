@@ -76,7 +76,12 @@ class Data:
             bytes: The KMZ file data as a byte string.
         """
         # This function returns the KMZ file data as a byte string
-        kmz_data = self.task_packet_database.get_kmz(bot_ids=bot_ids, start_utime=start_time_microseconds, end_utime=end_time_microseconds)
+        # Expand the range by 1 second on either end, to match get_task_packets() and account for DCCL rounding
+        kmz_data = self.task_packet_database.get_kmz(
+            bot_ids=bot_ids,
+            start_utime=start_time_microseconds - 1_000_000,
+            end_utime=end_time_microseconds + 1_000_000,
+        )
         return kmz_data
 
 
