@@ -31,7 +31,6 @@ export default function MissionSetStorageButton(props: Props) {
             </Button>
             {isDialogVisible ? (
                 <MissionSetStorageDialog
-                    isVisible={isDialogVisible}
                     missionSetName={props.missionSetName}
                     onClose={onDialogClose}
                 />
