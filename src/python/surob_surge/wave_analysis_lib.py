@@ -7,7 +7,7 @@ from scipy.signal import butter, sosfiltfilt, welch
 GPS_NPERSEG = 512
 PSD_MIN_NPERSEG = 64
 PSD_OVERLAP_FRAC = 0.5
-MIN_STATION_KEEP_LENGTH_M = 10
+MIN_STATION_KEEP_LENGTH_M = 4.5 # min station keep length for Surob mission plan is 5 minutes, give some margin for clipped ends
 MIN_STATION_KEEP_LENGTH_S = MIN_STATION_KEEP_LENGTH_M*60
 
 # ============================================================
