@@ -8,8 +8,7 @@ import re
 import datetime
 import os
 
-import kmz
-
+from pyjaia import kmz
 from objects import *
 from moos_messages import *
 from pprint import pprint

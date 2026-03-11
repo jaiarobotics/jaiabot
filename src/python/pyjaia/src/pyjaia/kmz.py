@@ -1,5 +1,4 @@
-from jaia_messages import *
-from pprint import pprint
+from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
 import math
 import zipfile
 from typing import Iterable, List
