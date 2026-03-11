@@ -1,9 +1,8 @@
 import numpy as np
-import pandas as pd
 
 # --- Constants for Analysis ---
 DRIFT_ARDUINO_VALUE = 1500
-MIN_DRIFT_LEN_PTS = 300
+MIN_DRIFT_LEN_PTS = 300 # TODO: ask about reducing this if jaia mission station keep lengths will be 5 minutes, 300 gps pts ~= 1 min duration @ 5hz
 MOTOR_STOP_MOMENTUM_PERIOD_S = 1.5 # TODO: determine upper bound for vehicle to come to a stop from full throttle, current value is somewhat arbitrary
 DEFAULT_SPEED_UNCERTAINTY_MPS = 0.1
 DEFAULT_DIRECTION_UNCERTAINTY_DEG = 45.0
