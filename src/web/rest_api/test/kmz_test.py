@@ -10,13 +10,17 @@ import os
 """A pytest script to test the KMZ generation functionality of the REST API."""
 
 API_KEY = os.getenv('JAIA_REST_API_PRIVATE_KEY', "")
+URL = os.getenv("JAIA_REST_API_URL", "http://localhost:9092/jaia/v1")
+
+print(f'Testing KMZ generation with API URL: {URL}')
 print(f'Using API key: {API_KEY}')
+
 
 def utime_now():
     return int(datetime.datetime.now().timestamp() * 1e6)
 
 
-def test_kmz_generation():
+def test_kmz_generation(dump_kmz_file=False):
     # This test will make a request to the KMZ endpoint and check that it returns a non-empty byte string
     now = utime_now()
     
@@ -27,16 +31,18 @@ def test_kmz_generation():
     api_request.kmz.end_time = int(now)
     api_request.api_key = API_KEY
 
-    res = requests.post('http://localhost:9092/jaia/v1', json=MessageToDict(api_request, preserving_proto_field_name=True))
+    res = requests.post(URL, json=MessageToDict(api_request, preserving_proto_field_name=True))
     assert res.ok, f"Request failed with status code {res.status_code} and message: {res.text}"
     assert res.status_code == 200
     assert isinstance(res.content, bytes)
     assert len(res.content) > 0
 
     print("KMZ generation test passed, received KMZ file of size", len(res.content), "bytes")
-    open('test_output.kmz', 'wb').write(res.content)
+
+    if dump_kmz_file:
+        open('test_output.kmz', 'wb').write(res.content)
 
 
 if __name__ == "__main__":
-    test_kmz_generation()
+    test_kmz_generation(dump_kmz_file=True)
 
