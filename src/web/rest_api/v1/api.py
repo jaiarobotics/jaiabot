@@ -346,7 +346,7 @@ def surob_results_request(jaia_request):
         if task_packet.type == MissionTask.TaskType.STATION_KEEP: 
             
             # LitFuse expects uncertainty values as variance, however wave and current estimates from task packets report uncertainty as stdev, so we square
-            # Exception is period uncertainty, which is expressed as a fixed value of 2.0s, which we still square to 4.0s^2
+            # Exception is period uncertainty, which is expressed as a fixed value of 2.0, so we sqrt the value accordingly so square will restore original value
 
             # consider current and sig wave height values
             if task_packet.HasField("current") and task_packet.current.speed != 0: # (jaia.field).rest_api.presence = GUARANTEED means optional fields will always be present with filler values
@@ -422,7 +422,7 @@ def surob_results_request(jaia_request):
     if len(surface_drift_sig_wave_periods_s) == 0:
         if station_keep_furthest_from_shoreline_pt_sig_wave_period_s is not None: # use period estimate from station keep furthest offshore as a back up, if it exists
             sig_wave_period_s_to_report = station_keep_furthest_from_shoreline_pt_sig_wave_period_s
-            sig_wave_period_uncertainty_s_to_report = station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s
+            sig_wave_period_uncertainty_s_to_report = math.sqrt(station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s)
         else:
             jaia_response.surob_results_response.surob_results_found = False
             if bot_ids is None:
@@ -433,11 +433,11 @@ def surob_results_request(jaia_request):
     
     if len(surface_drift_sig_wave_periods_s) == 1:
         sig_wave_period_s_to_report = surface_drift_sig_wave_periods_s[0]
-        sig_wave_period_uncertainty_s_to_report = surface_drift_sig_wave_period_uncertainties_s[0]
+        sig_wave_period_uncertainty_s_to_report = math.sqrt(surface_drift_sig_wave_period_uncertainties_s[0])
     else:
         # we expect only 1 surface drift per surob, but in the event we find multiple, report average of period estimates and uncertainty of largest between std of period estimates or default uncertainty of period estimate
         sig_wave_period_s_to_report = statistics.mean(surface_drift_sig_wave_periods_s)
-        sig_wave_period_uncertainty_s_to_report = max(max(surface_drift_sig_wave_period_uncertainties_s), statistics.stdev(surface_drift_sig_wave_periods_s))
+        sig_wave_period_uncertainty_s_to_report = max(math.sqrt(max(surface_drift_sig_wave_period_uncertainties_s)), statistics.stdev(surface_drift_sig_wave_periods_s))
 
     sig_breaker_height = {"value": max_sig_wave_height_ft, "uncert": math.pow(max_sig_wave_height_uncertainty_ft, 2), "units": "feet"}
     breaker_period = {"value": sig_wave_period_s_to_report, "uncert": math.pow(sig_wave_period_uncertainty_s_to_report, 2), "units": "seconds"}
