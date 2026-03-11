@@ -274,14 +274,39 @@ def surob_results_request(jaia_request):
         if rounded == 0.0:
             return 0.1
         return rounded
+    
+    # adapted from https://www.geeksforgeeks.org/dsa/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
+    def haversine(point_1, point_2):
+        lat1 = point_1[0]
+        lon1 = point_1[1]
+
+        lat2 = point_2[0]
+        lon2 = point_2[1]
+
+        # distance between latitudes
+        # and longitudes
+        dLat = (lat2 - lat1) * math.pi / 180.0
+        dLon = (lon2 - lon1) * math.pi / 180.0
+
+        # convert to radians
+        lat1 = (lat1) * math.pi / 180.0
+        lat2 = (lat2) * math.pi / 180.0
+
+        # apply formulae
+        a = (pow(math.sin(dLat / 2), 2) + 
+            pow(math.sin(dLon / 2), 2) * 
+                math.cos(lat1) * math.cos(lat2))
+        rad_m = 6371*1000
+        c = 2 * math.asin(math.sqrt(a))
+        return rad_m * c
 
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
 
     shoreline_point = (jaia_request.surob_results_request.shoreline_point.lat,jaia_request.surob_results_request.shoreline_point.lon)
     offshore_point = (jaia_request.surob_results_request.offshore_point.lat,jaia_request.surob_results_request.offshore_point.lon)
 
-    start_time = jaia_request.task_packets.start_time
-    end_time = jaia_request.task_packets.end_time
+    start_time = jaia_request.surob_results_request.start_time
+    end_time = jaia_request.surob_results_request.end_time
 
     with common.shared_data.data_lock:
         if jaia_request.target.all:
@@ -291,7 +316,7 @@ def surob_results_request(jaia_request):
 
         task_packets = common.shared_data.data.get_task_packets(bot_ids, start_time, end_time)
 
-    if len(task_packet) == 0:
+    if len(task_packets) == 0:
         jaia_response.surob_results_response.surob_results_found = False
         if bot_ids is None:
             jaia_response.surob_results_response.error_message = f"No task packets found for active bots between {start_time} and {end_time}."
@@ -314,6 +339,11 @@ def surob_results_request(jaia_request):
 
     surface_drift_sig_wave_periods_s = []
     surface_drift_sig_wave_period_uncertainties_s = []
+
+    station_keep_furthest_from_shoreline_pt_distance_m = None
+    station_keep_furthest_from_shoreline_pt_sig_wave_period_s = None
+    station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s = None
+
 
     current_measurement_ct = 0
     wave_measurement_ct = 0
@@ -346,11 +376,18 @@ def surob_results_request(jaia_request):
                 curr_wave = {"description": f"wave_measurement_{wave_measurement_ct + 1}", "wave_height": wave_height, "wave_period": wave_period, "location": location}
                 wave_measurements.append(curr_wave)
                 wave_measurement_ct += 1
-                
+
                 if max_sig_wave_height_ft is None or hs_ft > max_sig_wave_height_ft:
                     max_sig_wave_height_ft = hs_ft
                     max_sig_wave_height_uncertainty_ft = hs_uncertainty_ft
         
+                distance_to_shoreline_pt_m = haversine(shoreline_point, (task_packet.location.lat, task_packet.location.lon))
+
+                if station_keep_furthest_from_shoreline_pt_distance_m is None or distance_to_shoreline_pt_m > station_keep_furthest_from_shoreline_pt_distance_m:
+                    station_keep_furthest_from_shoreline_pt_distance_m = distance_to_shoreline_pt_m
+                    station_keep_furthest_from_shoreline_pt_sig_wave_period_s = task_packet.wave.period
+                    station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s = task_packet.wave.period_uncertainty
+
         elif task_packet.type == MissionTask.TaskType.SURFACE_DRIFT:
             # consider sig wave period values
             if task_packet.HasField("wave") and task_packet.wave.period != 0:
@@ -385,28 +422,32 @@ def surob_results_request(jaia_request):
         return jaia_response
 
     if len(surface_drift_sig_wave_periods_s) == 0:
-        jaia_response.surob_results_response.surob_results_found = False
-        if bot_ids is None:
-            jaia_response.surob_results_response.error_message = f"No significant wave period estimates found for active bots between {start_time} and {end_time}."
+        if station_keep_furthest_from_shoreline_pt_sig_wave_period_s is not None: # use period estimate from station keep furthest offshore as a back up, if it exists
+            sig_wave_period_s_to_report = station_keep_furthest_from_shoreline_pt_sig_wave_period_s
+            sig_wave_period_uncertainty_s_to_report = station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s
         else:
-            jaia_response.surob_results_response.error_message = f"No significant wave period estimates found for bots {bot_ids} between {start_time} and {end_time}."
-        return jaia_response
+            jaia_response.surob_results_response.surob_results_found = False
+            if bot_ids is None:
+                jaia_response.surob_results_response.error_message = f"No significant wave period estimates found for active bots between {start_time} and {end_time}."
+            else:
+                jaia_response.surob_results_response.error_message = f"No significant wave period estimates found for bots {bot_ids} between {start_time} and {end_time}."
+            return jaia_response
     
     if len(surface_drift_sig_wave_periods_s) == 1:
-        surface_drift_sig_wave_period_s_to_report = surface_drift_sig_wave_periods_s[0]
-        surface_drift_sig_wave_period_uncertainty_s_to_report = surface_drift_sig_wave_period_uncertainties_s[0]
+        sig_wave_period_s_to_report = surface_drift_sig_wave_periods_s[0]
+        sig_wave_period_uncertainty_s_to_report = surface_drift_sig_wave_period_uncertainties_s[0]
     else:
         # we expect only 1 surface drift per surob, but in the event we find multiple, report average of period estimates and uncertainty of largest between std of period estimates or default uncertainty of period estimate
-        surface_drift_sig_wave_period_s_to_report = statistics.mean(surface_drift_sig_wave_periods_s)
-        surface_drift_sig_wave_period_uncertainty_s_to_report = max(max(surface_drift_sig_wave_period_uncertainties_s), statistics.stdev(surface_drift_sig_wave_periods_s))
+        sig_wave_period_s_to_report = statistics.mean(surface_drift_sig_wave_periods_s)
+        sig_wave_period_uncertainty_s_to_report = max(max(surface_drift_sig_wave_period_uncertainties_s), statistics.stdev(surface_drift_sig_wave_periods_s))
 
     sig_breaker_height = {"value": round_to_1_decimal_with_floor(max_sig_wave_height_ft), "uncert": round_to_1_decimal_with_floor(max_sig_wave_height_uncertainty_ft), "units": "feet"}
-    breaker_period = {"value": round_to_1_decimal_with_floor(surface_drift_sig_wave_period_s_to_report), "uncert": round_to_1_decimal_with_floor(surface_drift_sig_wave_period_uncertainty_s_to_report), "units": "seconds"}
+    breaker_period = {"value": round_to_1_decimal_with_floor(sig_wave_period_s_to_report), "uncert": round_to_1_decimal_with_floor(sig_wave_period_uncertainty_s_to_report), "units": "seconds"}
     littoral_current_local = {"value": round_to_1_decimal_with_floor(max_alongshore_current_speed_knots), "uncert": round_to_1_decimal_with_floor(max_alongshore_current_speed_uncertainty_knots), "flank": max_alongshore_current_flank, "units": "knots"}
     surob = {"sig_breaker_height": sig_breaker_height, "breaker_period": breaker_period, "littoral_current_local": littoral_current_local}
     reports = [{"surob": surob}]
 
-    attachments = current_measurements + wave_measurements
+    attachments = current_measurements + wave_measurements # TODO: update attachments to GEOJSON and format wave/current estimates accordingly
 
     output_dict = {"topic": "is2ops", "subtopic": "surob", "source": "jaia", "msg": {"reports": reports}, "attachments": attachments}
 
