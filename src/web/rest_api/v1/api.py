@@ -187,8 +187,7 @@ def surob_mission_plan_request(jaia_request):
             # all the bots we know about
             bots = common.shared_data.data.bots.keys()
         else:
-            # don't bother to send commands to bots we haven't heard from
-            bots = [value for value in jaia_request.target.bots if value in common.shared_data.data.bots.keys()]
+            bots = [value for value in jaia_request.target.bots]
 
     if len(bots) == 0:
         jaia_response.MissionPlanResponse.planned_successfully = False
