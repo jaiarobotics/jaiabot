@@ -1,7 +1,7 @@
 import Icon from "@mdi/react";
 import { mdiClose } from "@mdi/js";
 import { success } from "toastr";
-import { useContext, useMemo, useState } from "react";
+import React, { useContext, useState } from "react";
 
 import Hub from "../../../data/hubs/hub";
 import { JaiaContext } from "../../../context/JaiaContext";
@@ -16,7 +16,9 @@ interface Props {
 }
 
 const LOOKUP_DELAY = 7_500; // ms;
-const WIFI_QUALITY_THRESHOLD = 50;
+const WIFI_QUALITY_THRESHOLD = 0;
+
+const botCheckedStates = new Map<number, boolean>();
 
 /**
  * Allows an operator to download CTD data via WiFi
@@ -24,7 +26,6 @@ const WIFI_QUALITY_THRESHOLD = 50;
 export default function CTDOffload(props: Props) {
     const jaiaContext = useContext(JaiaContext);
     const [isDeleteFilesChecked, setIsDeleteFilesChecked] = useState(false);
-    const botCheckedStates = useMemo(() => new Map<number, boolean>(), []);
 
     /**
      * Updates the checkbox state of a Bot when clicked
@@ -48,8 +49,16 @@ export default function CTDOffload(props: Props) {
      *
      * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
      * @returns {void}
+     *
+     * @notes
+     * Exit full screen prior to download so it can be re-established after
      */
-    const handleDownloadCTDClick = () => {
+    const handleDownloadCTDClick = (event: React.MouseEvent) => {
+        event.stopPropagation();
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+
         for (const [botID, checkedState] of botCheckedStates.entries()) {
             if (checkedState) {
                 const hub = jaiaContext.hubs.getHubs().values().next()?.value as Hub;
@@ -61,6 +70,7 @@ export default function CTDOffload(props: Props) {
                 sendHubCommand(command).then(() => getCTDFiles(botID));
             }
         }
+
         success("Starting CTD download");
     };
 
@@ -129,7 +139,10 @@ export default function CTDOffload(props: Props) {
                     />
                     <label>Remove CTD Files From Hub</label>
                 </div>
-                <button className="download-button" onClick={() => handleDownloadCTDClick()}>
+                <button
+                    className="download-button"
+                    onClick={(event) => handleDownloadCTDClick(event)}
+                >
                     Download
                 </button>
             </div>

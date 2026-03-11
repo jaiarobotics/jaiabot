@@ -12,11 +12,13 @@ from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 
 parser = argparse.ArgumentParser(description='Echo sensor, and publish them over UDP port')
 parser.add_argument('-p', '--port', type=int, default=20000, help='UDP Gateway port to send Echo data to (default: 20000)')
+parser.add_argument('-d', '--device', type=str, default='/dev/ttyAMA5', help='Serial device to use for Echo (default: /dev/ttyAMA5)')
 parser.add_argument('-l', dest='logging_level', default='WARNING', type=str, help='Logging level (CRITICAL, ERROR, WARNING (default), INFO, DEBUG)')
 parser.add_argument('-s', '--simulator', action='store_true', help='Use simulator instead of real device')
 
 class Args:
     port: int
+    device: str
     logging_level: str
     simulator: bool
 
@@ -30,6 +32,11 @@ log.setLevel(args.logging_level)
 
 
 def do_port_loop(echo: Echo):
+    serial_dev = args.device
+    if serial_dev is None:
+        log.error(f'Must specify serial device to use for Echo')
+        exit(1)
+
     # Create socket
     port = args.port
     if port is None:
@@ -46,7 +53,7 @@ def do_port_loop(echo: Echo):
     def send_state():
         echo_state = echo.getState()
 
-        log.debug(f'State: {echo_state}')
+        log.debug(f'State: {echo_state}') 
         if echo_state != None:
             envelope = UDPGatewayEnvelope(echo_data=EchoData(echo_state=echo_state))
             sock.sendto(envelope.SerializeToString(), udp_gateway_address)
@@ -83,7 +90,7 @@ def do_port_loop(echo: Echo):
 
 if __name__ == '__main__':
     # Setup the sensor
-    echo = Echo() if not args.simulator else EchoSimulator()
+    echo = Echo(args.device) if not args.simulator else EchoSimulator()
 
     # Start the thread that responds to EchoCommands over the port
     portThread = Thread(target=do_port_loop, name='portThread', daemon=True, args=[echo])

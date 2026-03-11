@@ -82,8 +82,7 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
         return;
     }
 
-    // first reading is 0.00 because pressure adjusted lags behind pressure temperature group
-    double bottom_depth = ctd_profile.snapshot(1).depth();
+    double bottom_depth = ctd_profile.snapshot(0).depth();
     double top_depth = ctd_profile.snapshot(ctd_profile.snapshot_size() - 1).depth();
 
     glog.is_debug1() && glog << "bottom_depth: " << bottom_depth << std::endl;
