@@ -131,7 +131,7 @@ class TaskPacketDatabase:
             included (Union[bool, None]): Included or excluded task packets (None for both types)
 
         Returns:
-            list[dict] or list[TaskPacket]: A list of task packets that match the criteria.
+            list[dict]: A list of task packet dictionaries that match the criteria.
         """
 
         with self._lock:
