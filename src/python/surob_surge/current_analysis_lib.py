@@ -5,7 +5,7 @@ import pandas as pd
 DRIFT_ARDUINO_VALUE = 1500
 MIN_DRIFT_LEN_PTS = 300
 MOTOR_STOP_MOMENTUM_PERIOD_S = 1.5 # TODO: determine upper bound for vehicle to come to a stop from full throttle, current value is somewhat arbitrary
-DEFAULT_SPEED_UNCERTAINTY_MPS = 0.25 # TODO: determine true value from static testing analysis
+DEFAULT_SPEED_UNCERTAINTY_MPS = 0.1
 DEFAULT_DIRECTION_UNCERTAINTY_DEG = 45.0
 
 # --- Data Analysis Functions ---
