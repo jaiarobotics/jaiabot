@@ -262,12 +262,12 @@ def surob_results_request(jaia_request):
         # alongshore bearing 90 degrees CW of shore normal bearing
         return ((shore_normal_bearing_deg - 90.0) + 360.0) % 360.0
 
-    def alongshore_current_component(alongshore_bearing_deg, current_heading, current_speed, speed_uncertainty):
-        theta_deg = (alongshore_bearing_deg - current_heading + 360.0) % 360.0
-        alongshore_comp = current_speed*math.cos(math.radians(theta_deg))
-        alongshore_uncertainty = speed_uncertainty*math.cos(math.radians(theta_deg))
+    def alongshore_current_component_knots(alongshore_bearing_deg, current_heading_deg, current_speed_mps, speed_uncertainty_mps):
+        theta_deg = (alongshore_bearing_deg - current_heading_deg + 360.0) % 360.0
+        alongshore_comp_mps = current_speed_mps*math.cos(math.radians(theta_deg))
+        alongshore_uncertainty_mps = speed_uncertainty_mps*math.cos(math.radians(theta_deg))
 
-        return abs(mps_to_knots(alongshore_comp)), abs(mps_to_knots(alongshore_uncertainty)), ("right" if alongshore_comp > 0 else "left")
+        return abs(mps_to_knots(alongshore_comp_mps)), abs(mps_to_knots(alongshore_uncertainty_mps)), ("right" if alongshore_comp_mps > 0 else "left")
     
     # adapted from https://www.geeksforgeeks.org/dsa/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
     def haversine(point_1, point_2):
@@ -318,11 +318,7 @@ def surob_results_request(jaia_request):
             jaia_response.surob_results_response.error_message = f"No task packets found for bots {bot_ids} between {start_time} and {end_time}."
         return jaia_response
 
-    shore_normal_bearing_deg = shore_normal_bearing_deg(shoreline_point, offshore_point)
-    alongshore_bearing_deg = shore_normal_to_alongshore_bearing_deg(shore_normal_bearing_deg)
-
-    current_measurements = []
-    wave_measurements = []
+    alongshore_bearing_deg = shore_normal_to_alongshore_bearing_deg(shore_normal_bearing_deg(shoreline_point, offshore_point))
 
     max_alongshore_current_speed_knots = None
     max_alongshore_current_speed_uncertainty_knots = None
@@ -338,9 +334,10 @@ def surob_results_request(jaia_request):
     station_keep_furthest_from_shoreline_pt_sig_wave_period_s = None
     station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s = None
 
-
     current_measurement_ct = 0
     wave_measurement_ct = 0
+
+    features = []
 
     for task_packet in task_packets:
         if task_packet.type == MissionTask.TaskType.STATION_KEEP: 
@@ -350,15 +347,18 @@ def surob_results_request(jaia_request):
 
             # consider current and sig wave height values
             if task_packet.HasField("current") and task_packet.current.speed != 0: # (jaia.field).rest_api.presence = GUARANTEED means optional fields will always be present with filler values
-                current_speed = {"value": meters_to_feet(task_packet.current.speed), "uncert": math.pow(meters_to_feet(task_packet.current.speed_uncertainty), 2), "units": "fps"}
-                current_direction = {"value": task_packet.current.heading, "uncert": math.pow(task_packet.current.heading_uncertainty, 2), "units": "degrees from true north", "cf_standard_name": "sea_water_velocity_to_direction"}
-                location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84", "vertical_location": "surface"}
-                curr_current = {"description": f"current_measurement_{current_measurement_ct + 1}", "current_speed": current_speed, "current_direction": current_direction, "location": location}
-                current_measurements.append(curr_current)
+                curr_current_speed = {"value": meters_to_feet(task_packet.current.speed), "uncert": math.pow(meters_to_feet(task_packet.current.speed_uncertainty), 2), "units": "fps"}
+                curr_current_direction = {"value": task_packet.current.heading, "uncert": math.pow(task_packet.current.heading_uncertainty, 2), "units": "degrees from true north", "cf_standard_name": "sea_water_velocity_to_direction"}
+                curr_current_measurement = {"current_speed": curr_current_speed, "current_direction": curr_current_direction}
+                curr_current_coordinates = [task_packet.location.lon, task_packet.location.lat]
+                curr_current_properties = {"units": "degrees", "type": "current_measurement", "description": "Jaiabot current measurement", "id": current_measurement_ct, "vertical_location": "surface", "h_datum": "wgs84", "current_measurement": curr_current_measurement}
+                curr_current_geometry = {"coordinates": curr_current_coordinates, "type": "Point"}
+                curr_current = {"type": "feature", "properties": curr_current_properties,  "geometry": curr_current_geometry}
+                features.append(curr_current)
                 current_measurement_ct += 1
 
                 # transform to alongshore and crossshore components, save largest alongshore
-                alongshore_current_speed_knots, alongshore_current_speed_uncertainty_knots, alongshore_current_flank = alongshore_current_component(alongshore_bearing_deg, task_packet.current.heading, task_packet.current.speed, task_packet.current.speed_uncertainty)
+                alongshore_current_speed_knots, alongshore_current_speed_uncertainty_knots, alongshore_current_flank = alongshore_current_component_knots(alongshore_bearing_deg, task_packet.current.heading, task_packet.current.speed, task_packet.current.speed_uncertainty)
                 if max_alongshore_current_speed_knots is None or alongshore_current_speed_knots > max_alongshore_current_speed_knots:
                     max_alongshore_current_speed_knots = alongshore_current_speed_knots
                     max_alongshore_current_speed_uncertainty_knots = alongshore_current_speed_uncertainty_knots
@@ -368,11 +368,14 @@ def surob_results_request(jaia_request):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
-                wave_height = {"value": hs_ft, "uncert": math.pow(hs_uncertainty_ft, 2), "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
-                wave_period = {"value": task_packet.wave.period, "uncert": math.pow(task_packet.wave.period_uncertainty, 2), "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
-                location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84"}
-                curr_wave = {"description": f"wave_measurement_{wave_measurement_ct + 1}", "wave_height": wave_height, "wave_period": wave_period, "location": location}
-                wave_measurements.append(curr_wave)
+                curr_wave_height = {"value": hs_ft, "uncert": math.pow(hs_uncertainty_ft, 2), "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
+                curr_wave_period = {"value": task_packet.wave.period, "uncert": math.pow(task_packet.wave.period_uncertainty, 2), "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
+                curr_wave_measurement = {"wave_height": curr_wave_height, "wave_period": curr_wave_period}
+                curr_wave_coordinates = [task_packet.location.lon, task_packet.location.lat]
+                curr_wave_properties = {"units": "degrees", "type": "wave_measurement", "description": "Jaiabot wave measurement", "id": wave_measurement_ct, "h_datum": "wgs84", "wave_measurement": curr_wave_measurement}
+                curr_wave_geometry = {"coordinates": curr_wave_coordinates, "type": "Point"}
+                curr_wave = {"type": "feature", "properties": curr_wave_properties,  "geometry": curr_wave_geometry}
+                features.append(curr_wave)
                 wave_measurement_ct += 1
 
                 if max_sig_wave_height_ft is None or hs_ft > max_sig_wave_height_ft:
@@ -392,11 +395,14 @@ def surob_results_request(jaia_request):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
-                wave_height = {"value": hs_ft, "uncert": math.pow(hs_uncertainty_ft, 2), "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
-                wave_period = {"value": task_packet.wave.period, "uncert": math.pow(task_packet.wave.period_uncertainty, 2), "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
-                location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84"}
-                curr_wave = {"description": f"wave_measurement_{wave_measurement_ct + 1}", "wave_height": wave_height, "wave_period": wave_period, "location": location}
-                wave_measurements.append(curr_wave)
+                curr_wave_height = {"value": hs_ft, "uncert": math.pow(hs_uncertainty_ft, 2), "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
+                curr_wave_period = {"value": task_packet.wave.period, "uncert": math.pow(task_packet.wave.period_uncertainty, 2), "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
+                curr_wave_measurement = {"wave_height": curr_wave_height, "wave_period": curr_wave_period}
+                curr_wave_coordinates = [task_packet.location.lon, task_packet.location.lat]
+                curr_wave_properties = {"units": "degrees", "type": "wave_measurement", "description": "Jaiabot wave measurement", "id": wave_measurement_ct, "h_datum": "wgs84", "wave_measurement": curr_wave_measurement}
+                curr_wave_geometry = {"coordinates": curr_wave_coordinates, "type": "Point"}
+                curr_wave = {"type": "feature", "properties": curr_wave_properties,  "geometry": curr_wave_geometry}
+                features.append(curr_wave)
                 wave_measurement_ct += 1
 
                 # append sig wave period values, if multiple are received, average for final result
@@ -445,9 +451,9 @@ def surob_results_request(jaia_request):
     surob = {"sig_breaker_height": sig_breaker_height, "breaker_period": breaker_period, "littoral_current_local": littoral_current_local}
     reports = [{"surob": surob}]
 
-    attachments = current_measurements + wave_measurements # TODO: update attachments to GEOJSON and format wave/current estimates accordingly
+    geojson = {"type": "FeatureCollection", "features": features}
 
-    output_dict = {"topic": "is2ops", "subtopic": "surob", "source": "jaia", "msg": {"reports": reports}, "attachments": attachments}
+    output_dict = {"topic": "is2ops", "subtopic": "surob", "source": "jaia", "msg": {"reports": reports, "geojson": geojson}}
 
     jaia_response.surob_results.response.surob_results_found = True
     jaia_response.surob_results.response.surob_results_json = json.dumps(output_dict)
