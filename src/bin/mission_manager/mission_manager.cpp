@@ -647,7 +647,7 @@ void jaiabot::apps::MissionManager::publish_mission_report(protobuf::MissionStat
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
 
-    // Add mission and hub info to the report if we are in a mission state
+    // Add mission and Hub info to report if we are in a mission state
     if (in_mission) {
         report.set_command_from_hub_id(machine_->hub_id());
         if (machine_->mission_plan().has_mission_id()) {

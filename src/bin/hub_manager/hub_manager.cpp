@@ -152,7 +152,7 @@ class HubManager : public ApplicationBase
 
     std::map<int, goby::time::MicroTime> known_bots_;
 
-    // The current mission_id to populate in outgoing commands, incremented each time a new mission is started
+    // the current mission_id to populate in outgoing commands, incremented each time a new mission is started
     uint8_t current_mission_id_{0};
 
     // map mission id to mission name for logging purposes
@@ -770,7 +770,7 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     }
     else
     {
-        glog.is_warn() && glog << "Mission id " << static_cast<int>(task_packet.mission_id())
+        glog.is_warn() && glog << "Mission ID " << static_cast<int>(task_packet.mission_id())
                                << " not found in mission_id_to_name_ mapping" << std::endl;
         task_packet_copy.set_mission_name("UNKNOWN_MISSION");
     }

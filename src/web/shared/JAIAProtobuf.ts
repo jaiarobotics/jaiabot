@@ -703,7 +703,6 @@ export interface MissionPlan {
     expected_fragments?: number;
     repeats?: number;
     trail?: TrailParameters;
-    mission_name?: string;
 }
 
 export interface TransitUpdate {

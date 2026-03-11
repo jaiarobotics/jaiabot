@@ -102,8 +102,7 @@ message Command
 
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;
-    };
-
+    }
 }
 
 message CommandForHub
