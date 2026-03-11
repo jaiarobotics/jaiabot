@@ -165,7 +165,7 @@ def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
         return {}
 
     drift_stats_list = [compute_drift_statistics(filter_current_data(d, log), log) for d in drifts]
-    good_drifts_stats = [
+    good_drifts_stats = [ # TODO: replace with weighting by R2 value to improve current estimate availability
         s
         for s in drift_stats_list
         if (
