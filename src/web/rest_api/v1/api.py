@@ -343,11 +343,15 @@ def surob_results_request(jaia_request):
     wave_measurement_ct = 0
 
     for task_packet in task_packets:
-        if task_packet.type == MissionTask.TaskType.STATION_KEEP: # TODO: Update reported uncertainties to variance rather than std
+        if task_packet.type == MissionTask.TaskType.STATION_KEEP: 
+            
+            # LitFuse expects uncertainty values as variance, however wave and current estimates from task packets report uncertainty as stdev, so we square
+            # Exception is period uncertainty, which is expressed as a fixed value of 2.0s, which we still square to 4.0s^2
+
             # consider current and sig wave height values
             if task_packet.HasField("current") and task_packet.current.speed != 0: # (jaia.field).rest_api.presence = GUARANTEED means optional fields will always be present with filler values
-                current_speed = {"value": meters_to_feet(task_packet.current.speed), "uncert": meters_to_feet(task_packet.current.speed_uncertainty), "units": "fps"}
-                current_direction = {"value": task_packet.current.heading, "uncert": task_packet.current.heading_uncertainty, "units": "degrees from true north", "cf_standard_name": "sea_water_velocity_to_direction"}
+                current_speed = {"value": meters_to_feet(task_packet.current.speed), "uncert": math.pow(meters_to_feet(task_packet.current.speed_uncertainty), 2), "units": "fps"}
+                current_direction = {"value": task_packet.current.heading, "uncert": math.pow(task_packet.current.heading_uncertainty, 2), "units": "degrees from true north", "cf_standard_name": "sea_water_velocity_to_direction"}
                 location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84", "vertical_location": "surface"}
                 curr_current = {"description": f"current_measurement_{current_measurement_ct + 1}", "current_speed": current_speed, "current_direction": current_direction, "location": location}
                 current_measurements.append(curr_current)
@@ -364,8 +368,8 @@ def surob_results_request(jaia_request):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
-                wave_height = {"value": hs_ft, "uncert": hs_uncertainty_ft, "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
-                wave_period = {"value": task_packet.wave.period, "uncert": task_packet.wave.period_uncertainty, "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
+                wave_height = {"value": hs_ft, "uncert": math.pow(hs_uncertainty_ft, 2), "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
+                wave_period = {"value": task_packet.wave.period, "uncert": math.pow(task_packet.wave.period_uncertainty, 2), "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
                 location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84"}
                 curr_wave = {"description": f"wave_measurement_{wave_measurement_ct + 1}", "wave_height": wave_height, "wave_period": wave_period, "location": location}
                 wave_measurements.append(curr_wave)
@@ -388,8 +392,8 @@ def surob_results_request(jaia_request):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
-                wave_height = {"value": hs_ft, "uncert": hs_uncertainty_ft, "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
-                wave_period = {"value": task_packet.wave.period, "uncert": task_packet.wave.period_uncertainty, "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
+                wave_height = {"value": hs_ft, "uncert": math.pow(hs_uncertainty_ft, 2), "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
+                wave_period = {"value": task_packet.wave.period, "uncert": math.pow(task_packet.wave.period_uncertainty, 2), "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
                 location = {"longitude": task_packet.location.lon, "latitude": task_packet.location.lat, "units": "degrees", "h_datum": "wgs84"}
                 curr_wave = {"description": f"wave_measurement_{wave_measurement_ct + 1}", "wave_height": wave_height, "wave_period": wave_period, "location": location}
                 wave_measurements.append(curr_wave)
@@ -435,9 +439,9 @@ def surob_results_request(jaia_request):
         sig_wave_period_s_to_report = statistics.mean(surface_drift_sig_wave_periods_s)
         sig_wave_period_uncertainty_s_to_report = max(max(surface_drift_sig_wave_period_uncertainties_s), statistics.stdev(surface_drift_sig_wave_periods_s))
 
-    sig_breaker_height = {"value": max_sig_wave_height_ft, "uncert": max_sig_wave_height_uncertainty_ft, "units": "feet"}
-    breaker_period = {"value": sig_wave_period_s_to_report, "uncert": sig_wave_period_uncertainty_s_to_report, "units": "seconds"}
-    littoral_current_local = {"value": max_alongshore_current_speed_knots, "uncert": max_alongshore_current_speed_uncertainty_knots, "flank": max_alongshore_current_flank, "units": "knots"}
+    sig_breaker_height = {"value": max_sig_wave_height_ft, "uncert": math.pow(max_sig_wave_height_uncertainty_ft, 2), "units": "feet"}
+    breaker_period = {"value": sig_wave_period_s_to_report, "uncert": math.pow(sig_wave_period_uncertainty_s_to_report, 2), "units": "seconds"}
+    littoral_current_local = {"value": max_alongshore_current_speed_knots, "uncert": math.pow(max_alongshore_current_speed_uncertainty_knots, 2), "flank": max_alongshore_current_flank, "units": "knots"}
     surob = {"sig_breaker_height": sig_breaker_height, "breaker_period": breaker_period, "littoral_current_local": littoral_current_local}
     reports = [{"surob": surob}]
 
