@@ -190,8 +190,8 @@ def surob_mission_plan_request(jaia_request):
             bots = [value for value in jaia_request.target.bots]
 
     if len(bots) == 0:
-        jaia_response.MissionPlanResponse.planned_successfully = False
-        jaia_response.MissionPlanResponse.error_message = "No active bots found."
+        jaia_response.mission_plan.planned_successfully = False
+        jaia_response.mission_plan.error_message = "No active bots found."
         return jaia_response
     try:
         params = MissionParameters(
@@ -208,8 +208,9 @@ def surob_mission_plan_request(jaia_request):
         )
     except ValueError:
         # bad mission parameter(s)
-        jaia_response.MissionPlanResponse.planned_successfully = False
-        jaia_response.MissionPlanResponse.error_message = "Mission parameters could not be parsed properly."
+        # seems likely this will never
+        jaia_response.mission_plan.planned_successfully = False
+        jaia_response.mission_plan.error_message = "Mission parameters could not be parsed properly."
         return jaia_response
 
     planner = JaiabotMissionPlanner(params)

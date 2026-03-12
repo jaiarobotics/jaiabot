@@ -42,6 +42,10 @@ class MissionParameters:
 
     def __post_init__(self):
         """Validate parameters"""
+        if abs(self.shoreline_lat) > 90.0 or abs(self.offshore_lat) > 90.0:
+            raise ValueError("latitude coordinates must be in the range of [-90, 90] degrees.")
+        if abs(self.shoreline_lon) > 180.0 or abs(self.offshore_lon) > 180.0:
+            raise ValueError("Longitude coordinates must be in the range of [-180, 180] degrees.")
         if not self.bot_ids:
             raise ValueError("bot_ids must be a non-empty list")
         self.num_bots = len(self.bot_ids)
