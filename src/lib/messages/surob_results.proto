@@ -1,0 +1,81 @@
+syntax = "proto2";
+package jaiabot.protobuf;
+
+message ValueUncertUnits {
+    optional double value = 1;
+    optional double uncert = 2;
+    optional string units = 3;
+}
+
+message LittoralCurrent {
+    optional double value = 1;
+    optional double uncert = 2;
+    optional string units = 3;
+    optional string flank = 4;
+}
+
+message Surob {
+    optional ValueUncertUnits sig_breaker_height = 1;
+    optional ValueUncertUnits breaker_period = 2;
+    optional LittoralCurrent littoral_current_local = 3;
+}
+
+message Report {
+    optional Surob surob = 1;
+}
+
+message ValueUncertUnitsCF {
+    optional double value = 1;
+    optional double uncert = 2;
+    optional string units = 3;
+    optional string cf_standard_name = 4;
+}
+
+message CurrentMeasurement {
+    optional ValueUncertUnits current_speed = 1;
+    optional ValueUncertUnitsCF current_direction = 2;
+}
+
+message WaveMeasurement {
+    optional ValueUncertUnitsCF wave_height = 1;
+    optional ValueUncertUnitsCF wave_period = 2;
+}
+
+message Properties {
+    optional string units = 1;
+    optional string type = 2;
+    optional string description = 3;
+    optional int32 id = 4;
+    optional string vertical_location = 5;
+    optional string h_datum = 6;
+    optional WaveMeasurement wave_measurement = 7;
+    optional CurrentMeasurement current_measurement = 8;
+}
+
+message PointGeometry {
+    optional string type = 1;
+    repeated double coordinates = 2;
+}
+
+message Feature {
+    optional string type = 1;
+    optional Properties properties = 2;
+    optional PointGeometry geometry = 3;
+}
+
+message FeatureCollection {
+    optional string type = 1;
+    repeated Feature features = 2;
+}
+
+message Msg {
+    repeated Report reports = 1;
+    optional FeatureCollection geojson = 2;
+}
+
+message JaiaSurobMessage {
+    optional string topic = 1;
+    optional string subtopic = 2;
+    optional string source = 3;
+    optional Msg msg = 4;
+}

@@ -5,6 +5,7 @@ import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/metadata.proto";
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/surob_results.proto";
 
 package jaiabot.protobuf;
 
@@ -98,7 +99,7 @@ message SurobResultsResponse
 {
     required bool surob_results_found = 1
         [(jaia.field).rest_api.presence = GUARANTEED];
-    optional string surob_results_json = 2
+    optional JaiaSurobMessage surob_results = 2
         [(jaia.field).rest_api.presence = GUARANTEED];
     optional string error_message = 3
         [(jaia.field).rest_api.presence = GUARANTEED];
