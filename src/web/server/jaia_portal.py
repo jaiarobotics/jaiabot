@@ -170,7 +170,7 @@ class Interface:
                 hubStatus = protobufMessageToDict(msg.hub_status)
 
                 if 'bot_offload' in hubStatus:
-                    if 'offload_succeeded' in hubStatus['bot_offload']:
+                    if 'offload_succeeded' in hubStatus['bot_offload'] is True:
                         self.task_packet_database._update()
 
                 # Set the time of last status to now
