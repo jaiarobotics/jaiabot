@@ -28,11 +28,6 @@ try:
 except Exception as e:
     moos_bin_dir_default='/usr/bin'
 
-default_log_dir = (
-    os.path.expanduser("~/jaia-logs")
-    if os.environ.get("jaia_mode") == "simulation"
-    else "/var/log/jaiabot"
-)    
 gen_dir_default=script_dir    
 ansible_dir_default=os.path.realpath(script_dir + '/../ansible')
 
@@ -53,7 +48,7 @@ parser.add_argument('--enable', action='store_true', help='If set, run systemctl
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
 parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
 parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets the warp speed to use (multiple of real clock). This value must match other bots/hubs')
-parser.add_argument('--log_dir', default=default_log_dir, help='Directory to write log files to')
+parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
 parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .goby files (default RELEASE)')
 parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
 parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
