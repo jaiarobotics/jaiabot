@@ -23,10 +23,10 @@ try:
 except Exception as e:
     goby_bin_dir_default='/usr/bin'
 
-try:
-    moos_bin_dir_default=os.path.dirname(shutil.which('MOOSDB'))
-except Exception as e:
-    moos_bin_dir_default='/usr/bin'
+# try:
+#     moos_bin_dir_default=os.path.dirname(shutil.which('MOOSDB'))
+# except Exception as e:
+moos_bin_dir_default='/usr/bin'
 
 
 gen_dir_default=script_dir
@@ -351,6 +351,7 @@ firmware_common_macros['runs_on_cloudhub'] = CloudHubType.NEVER
 
 
 all_goby_apps = []
+written_services = set()  # track all service files written this run for stale cleanup
 
 jaiabot_apps = [
 
@@ -559,17 +560,13 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__JAIABOT_CTD_MANAGER',
      'runs_on': [Type.BOT],
      'wanted_by': 'jaiabot_health.service'},
-    {'exe': 'jaiabot_live_detection.py',
+    {'exe': 'jaiabot_obstacle_detector',
      'description': 'JaiaBot Obstacle Detector',
-     'template': 'py-app.service.in',
-     'subdir': 'obstacle_detection',
+     'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_OBSTACLE_DETECTOR',
-     'template': 'py-app.service.in',
-     'args': '',
      'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,
-     'wanted_by': 'jaiabot_health.service',
-     'restart': 'on-failure'},
+     'wanted_by': 'jaiabot_health.service'},
     
 
     ## Bot Types: HYDRO, ECHO, NONE Services
@@ -860,6 +857,7 @@ for app in jaiabot_apps:
         outfile = open(outfilename, 'w')
         outfile.write(out)
         outfile.close()
+        written_services.add(outfilename)
         if enable:
             print('Enabling ' + service)
             subprocess.run('systemctl enable ' + service, check=True, shell=True)
@@ -926,6 +924,7 @@ for firmware in jaia_firmware:
         outfile = open(outfilename, 'w')
         outfile.write(out)
         outfile.close()
+        written_services.add(outfilename)
 
         # Check to see if we should enable the service to run at boot
         # If not then we should not try to enable or disable the service
@@ -937,6 +936,35 @@ for firmware in jaia_firmware:
                 print('Disabling ' + service)
                 subprocess.run('systemctl disable ' + service, check=True, shell=True)
 
+
+# Remove stale jaiabot/jaia_firm service files and dangling enable symlinks that
+# were not written this run. This handles services removed from the codebase that
+# would otherwise keep running (showing as 'not-found' in systemctl).
+import glob
+stale_patterns = [
+    args.systemd_dir + '/jaiabot_*.service',
+    args.systemd_dir + '/jaia_firm_*.service',
+]
+wants_dirs = glob.glob(args.systemd_dir + '/*.target.wants')
+for pattern in stale_patterns:
+    # Check unit files in systemd_dir
+    for existing in glob.glob(pattern):
+        if existing not in written_services:
+            service_name = os.path.basename(existing).replace('.service', '')
+            print('Removing stale service: ' + existing)
+            subprocess.run('systemctl disable ' + service_name, shell=True)
+            subprocess.run('systemctl stop ' + service_name, shell=True)
+            os.remove(existing)
+    # Check for dangling enable symlinks in *.target.wants dirs (unit file already gone)
+    base_pattern = os.path.basename(pattern)
+    for wants_dir in wants_dirs:
+        for symlink in glob.glob(wants_dir + '/' + base_pattern):
+            target = os.path.join(args.systemd_dir, os.path.basename(symlink))
+            if not os.path.exists(target):
+                service_name = os.path.basename(symlink).replace('.service', '')
+                print('Removing dangling enable symlink for: ' + service_name)
+                subprocess.run('systemctl disable ' + service_name, shell=True)
+                subprocess.run('systemctl stop ' + service_name, shell=True)
 
 if args.enable or args.disable:
     subprocess.run('systemctl daemon-reload', check=True, shell=True)

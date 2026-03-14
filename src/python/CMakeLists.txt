@@ -15,16 +15,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tsys01_temperature_sensor DESTINATION ${pr
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/motor DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
-# 1. Copy the directory, but EXCLUDE the heavy model file
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/obstacle_detection/
-        DESTINATION ${project_SHARE_DIR}/jaiabot/python/
-        FILES_MATCHING
-        PATTERN "*"
-        EXCLUDE PATTERN "best.onnx")
 
-# 2. Install the heavy model file specifically to the /var/log/ partition
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/obstacle_detection/best.onnx
-        DESTINATION /var/log/jaiabot)
 # Building the JaiaBot Goby message python modules into the pyjaiaprotobuf python package
 set(pyjaiaprotobuf_outdir ${project_SHARE_DIR}/jaiabot/python/pyjaiaprotobuf)
 add_custom_command(OUTPUT ${pyjaiaprotobuf_outdir}/src/jaiabot/messages/jaia_dccl_pb2.py

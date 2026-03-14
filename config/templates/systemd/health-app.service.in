@@ -6,6 +6,7 @@ After=jaiabot_gobyd.service
 $extra_unit
 
 [Service]
+Type=notify
 User=$user
 Group=$group
 

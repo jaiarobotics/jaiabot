@@ -17,7 +17,7 @@ RUN apt-get update && \
             git build-essential ssh cmake gpg gpg-agent \
             devscripts equivs ca-certificates quilt \
             clang clang-tools dirmngr \
-            dput cdbs \
+            dput cdbs wget curl ca-certificates \
             && rm -rf /var/lib/apt/lists/*
 
 # Add Jaiabot repositories
@@ -25,9 +25,28 @@ RUN echo -e "deb http://packages.jaia.tech/ubuntu/${repo}/${version}/ ${distro}/
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32 && \
     apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 
+# ByteTrack-cpp (Vertical-Beach) — built from source
+RUN apt-get update && apt-get -y install --no-install-recommends libeigen3-dev git && \
+    rm -rf /var/lib/apt/lists/*
+RUN git clone https://github.com/Vertical-Beach/ByteTrack-cpp.git /tmp/ByteTrack-cpp && \
+    cmake -S /tmp/ByteTrack-cpp -B /tmp/ByteTrack-cpp/build && \
+    make -C /tmp/ByteTrack-cpp/build -j$(nproc) && \
+    cp /tmp/ByteTrack-cpp/build/libbytetrack.so /usr/local/lib/ && \
+    cp -r /tmp/ByteTrack-cpp/include/ByteTrack /usr/local/include/ && \
+    ldconfig && \
+    rm -rf /tmp/ByteTrack-cpp
+
+# ONNX Runtime Manual Installation (Native ARM64 Workaround)
+# Noble 24.04 does not yet have libonnxruntime-dev in base apt.
+# Pulling v1.24.3 binaries released March 2026.
+RUN wget https://github.com/microsoft/onnxruntime/releases/download/v1.24.3/onnxruntime-linux-aarch64-1.24.3.tgz && \
+    tar -xzf onnxruntime-linux-aarch64-1.24.3.tgz && \
+    cp -r onnxruntime-linux-aarch64-1.24.3/include/* /usr/local/include/ && \
+    cp -r onnxruntime-linux-aarch64-1.24.3/lib/* /usr/local/lib/ && \
+    rm -rf onnxruntime-linux-aarch64-1.24.3* && \
+    ldconfig
+
 # Install jaiabot dependencies NATIVELY
-# Removed all :amd64 and :arm64 suffixes. 
-# Apt will automatically grab the native arm64 versions for your Mac.
 RUN apt-get update && \
     apt-get -y upgrade && \
     apt-get -y install --no-install-recommends \
@@ -43,9 +62,9 @@ RUN apt-get update && \
             goby3-interfaces \
             libnanopb-dev \
             nanopb \
+            libopencv-core-dev libopencv-imgproc-dev \
+            libopencv-dnn-dev libopencv-videoio-dev libopencv-imgcodecs-dev \
             python3-protobuf \
-            wget \
-            curl \
             graphviz \
             doxygen \
             && \

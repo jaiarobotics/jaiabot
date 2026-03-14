@@ -19,10 +19,8 @@ Behavior = BHV_AvoidObstacleV24
   pwt_outer_dist = 20    // Alert range: start tracking at 20m
   pwt_inner_dist = 8     // Critical range: max priority at 8m
   completed_dist = 25    // Self-delete when 25m away
-
-  // Safety Buffers
-  buffer_dist    = 3     // Stay at least 3m away from the polygon edge
   allowable_ttc  = 5     // Seconds until impact before reacting strongly
+  use_refinery = true    // more optimized behavior
 }
 
 Behavior = BHV_Waypoint

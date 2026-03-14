@@ -1,18 +1,32 @@
 #!/bin/bash
 set -e
 
-# We need to change to the directory where requirements.txt resides, so the
-#   pyjaia path works
-pushd /usr/share/jaiabot/python
-    /usr/bin/python3 -m venv venv --system-site-packages
+# Change to the directory where requirements.txt resides
+pushd /usr/share/jaiabot/python > /dev/null
 
-    source venv/bin/activate
+    echo "🟢 Setting up Python virtual environment..."
 
-    pip3 install -U wheel
-    pip3 install -r requirements.txt
+    # 1. Bootstrap uv using the system pip if it's missing
+    if ! command -v uv &> /dev/null; then
+        echo "⬇️ uv not found, installing via pip..."
+        # --break-system-packages is required on Ubuntu 24.04+ for system pip
+        pip3 install -q uv --break-system-packages || pip3 install -q uv
+    fi
 
-    deactivate
-popd
+    # 2. Create the venv using uv
+    # --system-site-packages is critical so Python can see your 
+    # system-installed Protobuf and DCCL libraries.
+    uv venv venv --system-site-packages -q
+
+    # 3. Install requirements
+    # uv doesn't need 'pip install wheel' first; it handles builds natively.
+    # We point uv specifically to the venv we just created.
+    echo "📦 Installing Python dependencies..."
+    uv pip install -q -r requirements.txt --python venv
+
+    echo "✅ Virtual environment ready."
+
+popd > /dev/null
 
 #DEBHELPER#
 

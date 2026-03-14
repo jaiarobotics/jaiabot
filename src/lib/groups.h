@@ -144,6 +144,9 @@ constexpr goby::middleware::Group script_step_end{"jaiabot::script_step_end"};
 // PPK recorder
 constexpr goby::middleware::Group ppk{"jaiabot::ppk"};
 
+// obstacle detector
+constexpr goby::middleware::Group obstacle_detector{"jaiabot::obstacle_detector"};
+
 } // namespace groups
 } // namespace jaiabot
 

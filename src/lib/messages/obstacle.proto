@@ -1,0 +1,20 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message Obstacle
+{
+    optional double lat = 1;
+    optional double lon = 2;
+    optional float confidence = 3;
+    optional int32 class_id = 4;
+    optional int32 track_id = 5;
+    optional double local_x = 6; // forward distance from camera (metres)
+    optional double local_y = 7; // lateral offset from camera (metres, positive = right)
+}
+
+message Obstacles
+{
+    required uint64 time = 1;
+    repeated Obstacle detection = 2;
+}

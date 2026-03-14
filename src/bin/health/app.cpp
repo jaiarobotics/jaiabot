@@ -20,6 +20,10 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <cstring>
+#include <sys/socket.h>
+#include <sys/un.h>
+
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/middleware/io/udp_point_to_point.h>
@@ -314,6 +318,35 @@ jaiabot::apps::Health::Health()
     if (cfg().check_helm_ivp_status())
     {
         launch_thread<HelmIVPStatusThread>(cfg().helm());
+    }
+
+    // Signal systemd that we are fully initialized and ready to receive
+    // systemd_report messages. This ensures goby apps that start after us
+    // (After=jaiabot_health.service) don't fire their failure reporters
+    // before our subscriptions are established.
+    // Implemented directly via POSIX sockets to avoid libsystemd-dev dependency.
+    if (const char* notify_socket = std::getenv("NOTIFY_SOCKET"))
+    {
+        int fd = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+        if (fd >= 0)
+        {
+            struct sockaddr_un addr{};
+            addr.sun_family = AF_UNIX;
+            if (notify_socket[0] == '@')
+            {
+                // abstract socket
+                addr.sun_path[0] = '\0';
+                std::strncpy(addr.sun_path + 1, notify_socket + 1, sizeof(addr.sun_path) - 2);
+            }
+            else
+            {
+                std::strncpy(addr.sun_path, notify_socket, sizeof(addr.sun_path) - 1);
+            }
+            const char* msg = "READY=1";
+            ::sendto(fd, msg, std::strlen(msg), MSG_NOSIGNAL,
+                     reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+            ::close(fd);
+        }
     }
 }
 

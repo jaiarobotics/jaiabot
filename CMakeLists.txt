@@ -36,6 +36,20 @@ find_package(MOOS 10 REQUIRED)
 # find Goby3
 find_package(GOBY 3.0 REQUIRED zeromq moos)
 
+# find OpenCV
+find_package(OpenCV REQUIRED)
+
+# --- CHANGED SECTION: ONNX RUNTIME ---
+# find ONNX Runtime using the custom find module in cmake/FindOnnxRuntime.cmake
+find_package(OnnxRuntime REQUIRED)
+
+# find ByteTrack-cpp using the custom find module in cmake/FindByteTrack.cmake
+find_package(ByteTrack REQUIRED)
+
+# We use target_link_libraries later, so we don't need global include_directories 
+# for ONNX if the Find module creates a proper imported target.
+# -------------------------------------
+
 include_directories("${GOBY_INCLUDE_DIR}")
 protobuf_include_dirs("${GOBY_INCLUDE_DIR}")
 
@@ -84,7 +98,6 @@ if(export_goby_interfaces)
   set(YML_OUT_DIR ${project_SHARE_DIR}/jaiabot/interfaces)
 endif()
 
-
 find_program(ARDUINO_CLI arduino-cli)
 if(ARDUINO_CLI)
   option(build_arduino "Build Arduino code (requires arduino-cli)" ON)
@@ -95,7 +108,6 @@ endif()
 
 option(build_web "Build web ui code (requires npm)" ON)
 option(build_jdv "Build jdv ui code (requires npm)" ON)
-
 
 # configure the headers to build/include
 file(GLOB_RECURSE INCLUDE_FILES RELATIVE ${project_SRC_DIR}/lib
@@ -120,7 +132,6 @@ foreach(I ${NANOPB_OPTIONS_FILES})
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
-
 ## set instructions for `make install`
 
 # override library version for debian sbuild cross-builds
@@ -138,8 +149,6 @@ install(DIRECTORY ${project_INC_DIR}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 # bin
 macro(project_install_bin target_bin)
   install(TARGETS ${target_bin} DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-  # set the macros required for jaiabot_health to map this app name to the appropriate ERROR__NOT_RESPONDING enum
   list(APPEND PROJECT_APP_LIST ${target_bin})
   set(PROJECT_APP_LIST ${PROJECT_APP_LIST} CACHE INTERNAL "project_app_list")
 endmacro()
@@ -148,7 +157,7 @@ endmacro()
 macro(project_install_lib target_lib)
   set_property(TARGET ${target_lib} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
     $<BUILD_INTERFACE:${project_INC_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>  # <prefix>/include
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
 
   set_target_properties(${target_lib} PROPERTIES VERSION "${PROJECT_VERSION}" SOVERSION "${PROJECT_SOVERSION}")
@@ -160,20 +169,18 @@ macro(project_install_lib target_lib)
   set(PROJECT_LIBRARY_LIST ${PROJECT_LIBRARY_LIST} CACHE INTERNAL "project_library_list")
 endmacro()
 
-
-# Install these init files so that they are accessible to CloudHub for VirtualFleet generation
+# Install these init files
 file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml DESTINATION ${project_SHARE_DIR}/jaiabot/init/)
 file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2 DESTINATION ${project_SHARE_DIR}/jaiabot/init/)
 
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
-  PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
+  PATTERN "arduino" EXCLUDE
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
 unset(PROJECT_APP_LIST CACHE)
  
-# share
-# install config
+# share/config
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/config DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
 
 # etc
@@ -193,44 +200,36 @@ install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_IN
 file(MAKE_DIRECTORY ${project_BIN_DIR})
 
 set(scripts_to_install
-  # data offload
   data-offload/jaiahub-dataoffload.sh
   data-offload/jaiabot-predataoffload.sh
   data-offload/jaiabot-postdataoffload.sh
   data-offload/jaiahub-dataoffload-cloudhub.sh
   data-offload/ctd-offload.sh
-  # Firmware scripts
   jaia_firm_backup_date.sh
   reset-bio-payload-board.sh
   geotiff_format.py
   geotiff_scan.sh
-  # Utilities
   jaia-ip.py
   jaia-doc.py
   jaia-vpn-gen.sh
-  # System scripts
   system/jaiabot-checkloadavg.py
   system/jaia_update_ufw_rules.sh
   system/jaia_update_network.sh
   system/jaia_iridium_tunnel.sh
-  # Fleet config
   fleet/jaia-create-fleet-config.sh
   fleet/jaia-generate-first-boot.py
   fleet/jaia-fleet-config-update-iso.sh
   fleet/jaia-create-cloudhub.py
   fleet/jaia-delete-cloudhub.py
-  # First boot (also used by VirtualFleet creation)
   init/jaia-create-ansible-inventory.sh
   )
 
-# Iterate over each script to install and copy
 foreach(script ${scripts_to_install})
     install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
     configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
 endforeach()
 
-
-option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
+option(enable_testing "Enable building of tests" OFF)
 if(enable_testing)
   enable_testing()
   include(CTest)
@@ -245,7 +244,6 @@ foreach(app_target ${PROJECT_APP_LIST})
 endforeach()
 
 if(export_goby_interfaces)
-  # remove splines= when https://gitlab.com/graphviz/graphviz/-/issues/1408 fix is available (3.y)?
   set(INTERFACE_COMMON_PARAMS "--splines=line;--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_no_interthread.svg "--omit-interthread;--no-disconnected;${INTERFACE_COMMON_PARAMS}")
@@ -254,11 +252,8 @@ if(export_goby_interfaces)
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/runtime_deployment.yml ${YML_OUT_DIR} runtime_deployment_inc_unused.pdf "${INTERFACE_COMMON_PARAMS}")
 endif()
 
-# configuration export - installed version
+# configuration export
 install(EXPORT jaiabot-config DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/jaiabot)
-# configuration export - local build version
 export(TARGETS ${PROJECT_LIBRARY_LIST} FILE ${CMAKE_BINARY_DIR}/jaiabot-config.cmake)
 
-## Configure Dockerfiles
-# Read common-version.env into CMake variables
 include(ConfigureDockerfiles)

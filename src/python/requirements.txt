@@ -17,7 +17,3 @@ flask-compress==1.23
 ./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x
 ./jaia_serial
-torch==2.3.1
-torchvision==0.18.1
-ultralytics==8.4.21
-onnxruntime==1.24.3

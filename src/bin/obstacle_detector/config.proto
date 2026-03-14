@@ -1,0 +1,49 @@
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+
+package jaiabot.config;
+
+message ObstacleDetector
+{
+    // required parameters for ApplicationBase3 class
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    // required parameters for connecting to 'gobyd'
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
+    // Path to the YOLO ONNX model
+    optional string model_path = 10 [default = "/var/log/jaiabot/best.onnx"];
+
+    // Detection confidence threshold [0, 1]
+    optional float confidence_threshold = 11 [default = 0.2];
+
+    // Camera device index (-1 = auto-detect first working camera)
+    optional int32 camera_index = 12 [default = -1];
+
+    // Camera capture resolution
+    optional int32 image_width = 13 [default = 640];
+    optional int32 image_height = 14 [default = 480];
+
+    // YOLO inference input size (square)
+    optional int32 inference_size = 15 [default = 320];
+
+    // Camera geometry: height above waterline in meters
+    optional double cam_height_m = 20 [default = 0.5];
+
+    // Camera geometry: tilt angle downward from horizon in degrees
+    optional double cam_angle_deg = 21 [default = 15.0];
+
+    // Camera horizontal field of view in degrees
+    // DeepWater Exploration exploreHD: 138deg in air, ~82deg in water
+    optional double fov_horizontal_deg = 22 [default = 138.0];
+
+    // HTTP port for MJPEG video stream
+    optional int32 http_port = 30 [default = 5000];
+
+    // NMS IoU threshold
+    optional float nms_threshold = 40 [default = 0.45];
+
+    // Number of mask coefficients in segmentation model output (nm)
+    optional int32 num_mask_coefficients = 41 [default = 32];
+}
