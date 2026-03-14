@@ -38,12 +38,12 @@ def run_request(request: rest_api.APIRequest) -> rest_api.APIResponse:
     return response
 
 
-def get_all_task_packets_for_bot(bot_id: int) -> rest_api.APIResponse.TaskPackets:
+def get_all_task_packets_for_bot(bot_id: int) -> rest_api.TaskPacketQueryResults:
     request = rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
             bots=[bot_id]
         ),
-        task_packets=rest_api.TaskPacketsRequest()
+        task_packets=rest_api.TaskPacketQuery()
     )
 
     response = run_request(request)
@@ -64,7 +64,7 @@ def test_time_range_filtering():
         target=rest_api.APIRequest.Nodes(
             bots=[1]
         ),
-        task_packets=rest_api.TaskPacketsRequest(
+        task_packets=rest_api.TaskPacketQuery(
             start_time=first_packet_start_time,
             end_time=middle_time
         )
@@ -95,7 +95,7 @@ def test_mission_name_filtering():
         target=rest_api.APIRequest.Nodes(
             bots=[1]
         ),
-        task_packets=rest_api.TaskPacketsRequest(
+        task_packets=rest_api.TaskPacketQuery(
             mission_name=[mission_name]
         )
     ))
@@ -117,7 +117,7 @@ def test_mission_name_filtering():
         target=rest_api.APIRequest.Nodes(
             bots=[1]
         ),
-        task_packets=rest_api.TaskPacketsRequest(
+        task_packets=rest_api.TaskPacketQuery(
             mission_name=[mission_name, mission_name_2]
         )
     ))
