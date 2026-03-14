@@ -126,13 +126,7 @@ def jaia_api_short(version):
         response = process_request(version, jaia_request)
 
         if isinstance(response, APIResponse):
-            if isinstance(response, APIResponse):
-                jaia_response.CopyFrom(response)
-            else:
-                # If the response is not an APIResponse, then return as-is.
-                # This mirrors jaia_api_short and allows endpoints (e.g., KMZ)
-                # to return raw bytes or (bytes, headers) tuples.
-                return response
+            jaia_response.CopyFrom(response)
         else:
             # If the response is not an API Response, then return as-is
             # For example, this allows the KMZ endpoint to return raw KMZ bytes instead of JSON
