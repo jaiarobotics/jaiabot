@@ -1,11 +1,9 @@
 import importlib
 from typing import List, Union, AbstractSet, Dict
 from pathlib import Path
-from objects import jaialog_get_object_list
 from pyjaia.series import *
 from pyjaia.logtools import JaiaLogH5
 from threading import Lock
-import path_descriptors
 
 import h5py
 import logging
@@ -19,6 +17,11 @@ from google.protobuf.json_format import MessageToDict
 # Import the available message types for the getObjects function
 from jaiabot.messages.jaia_dccl_pb2 import *
 from jaiabot.messages.metadata_pb2 import *
+
+# Jaia packages
+from .objects import jaialog_get_object_list
+from . import path_descriptors
+
 
 l = logging.getLogger('jaia_h5')
 
