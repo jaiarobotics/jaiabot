@@ -181,7 +181,7 @@ class TaskPacketDatabase:
         """
         taskpacket_dicts = self.query_task_packets(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime, included=included)
 
-        return [ParseDict(tp_dict, TaskPacket()) for tp_dict in taskpacket_dicts]
+        return [ParseDict(tp_dict, TaskPacket(), ignore_unknown_fields=True) for tp_dict in taskpacket_dicts]
 
 
 
