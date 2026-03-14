@@ -61,6 +61,9 @@ namespace apps
 constexpr goby::middleware::Group bot_gps_in{"bot_gps_in"};
 constexpr goby::middleware::Group bot_gps_out{"bot_gps_out"};
 
+using MissionId = uint8_t;
+using HubId = uint32_t;
+
 class HubManager : public ApplicationBase
 {
   public:
@@ -153,10 +156,10 @@ class HubManager : public ApplicationBase
     std::map<int, goby::time::MicroTime> known_bots_;
 
     // the current mission_id to populate in outgoing commands, incremented each time a new mission is started
-    uint8_t current_mission_id_{0};
+    MissionId current_mission_id_{0};
 
     // map mission id to mission name for logging purposes
-    std::map<uint8_t, std::string> mission_id_to_name_;
+    std::map<std::pair<HubId, MissionId>, std::string> mission_id_to_name_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -764,15 +767,23 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     // Set the mission_name of the task packet based on the current mission id to name mapping for logging purposes
     jaiabot::protobuf::TaskPacket task_packet_copy = task_packet;
 
-    if (mission_id_to_name_.count(task_packet.mission_id()))
+    if (task_packet.has_command_from_hub_id() && task_packet.has_mission_id())
     {
-        task_packet_copy.set_mission_name(mission_id_to_name_.at(task_packet.mission_id()));
-    }
-    else
-    {
-        glog.is_warn() && glog << "Mission ID " << static_cast<int>(task_packet.mission_id())
-                               << " not found in mission_id_to_name_ mapping" << std::endl;
-        task_packet_copy.set_mission_name("UNKNOWN_MISSION");
+        auto hub_and_mission_id =
+            std::make_pair(task_packet.command_from_hub_id(), task_packet.mission_id());
+
+        if (mission_id_to_name_.count(hub_and_mission_id))
+        {
+            task_packet_copy.set_mission_name(mission_id_to_name_.at(hub_and_mission_id));
+        }
+        else
+        {
+            glog.is_warn() && glog << group("main")
+                                   << "Hub ID = " << task_packet.command_from_hub_id()
+                                   << ", Mission ID = " << task_packet.mission_id()
+                                   << " not found in mission_id_to_name_ mapping" << std::endl;
+            task_packet_copy.set_mission_name("UNKNOWN_MISSION");
+        }
     }
 
     // Publish interprocess for other goby apps
@@ -850,7 +861,10 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     if (command.has_plan())
     {
         command.mutable_plan()->set_mission_id(current_mission_id_);
-        mission_id_to_name_[current_mission_id_] = command.plan().mission_name();
+
+        mission_id_to_name_[std::make_pair(cfg().hub_id(), current_mission_id_)] =
+            command.plan().mission_name();
+
         current_mission_id_++;
     }
 
