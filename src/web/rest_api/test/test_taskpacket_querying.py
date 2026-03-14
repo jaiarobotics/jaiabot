@@ -20,6 +20,9 @@ url = "http://127.0.0.1:9092/jaia/v1"
 
 def run_request(request: rest_api.APIRequest) -> rest_api.APIResponse:
     print("#### REQUEST ####")
+    # Attach API key from environment, if available, to the request.
+    if api_key:
+        request.api_key = api_key
     request_json = json_format.MessageToDict(request)
     print(request_json)
 
