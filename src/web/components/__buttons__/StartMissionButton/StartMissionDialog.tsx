@@ -24,13 +24,13 @@ interface ButtonRowProps {
  * sent or a confirmation prior to sending the command.
  */
 export function StartMissionDialog(props: DialogProps) {
-    const missionNameInputRef = useRef(null);
+    const missionNameInputRef = useRef<HTMLInputElement | null>(null);
     const [missionName, setMissionName] = useState("Untitled Mission");
     const botIsReady = props.disabledCode === DisabledCodes.NONE;
 
     useEffect(() => {
         if (props.isVisible && botIsReady) {
-            missionNameInputRef.current.focus();
+            missionNameInputRef.current?.focus();
         }
     }, [props.isVisible, botIsReady]);
 
