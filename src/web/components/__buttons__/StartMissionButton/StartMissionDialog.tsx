@@ -24,15 +24,20 @@ interface ButtonRowProps {
  * sent or a confirmation prior to sending the command.
  */
 export function StartMissionDialog(props: DialogProps) {
-    const missionNameInputRef = useRef(null);
+    const missionNameInputRef = useRef<HTMLInputElement | null>(null);
     const [missionName, setMissionName] = useState("Untitled Mission");
     const botIsReady = props.disabledCode === DisabledCodes.NONE;
 
+    const disabledCodesThatAllowMissionNameInput = [DisabledCodes.LOW_BATTERY, DisabledCodes.NONE];
+    const shouldInputMissionName = disabledCodesThatAllowMissionNameInput.includes(
+        props.disabledCode,
+    );
+
     useEffect(() => {
-        if (props.isVisible && botIsReady) {
-            missionNameInputRef.current.focus();
+        if (props.isVisible && shouldInputMissionName) {
+            missionNameInputRef.current?.focus();
         }
-    }, [props.isVisible, botIsReady]);
+    }, [props.isVisible, shouldInputMissionName]);
 
     /**
      * Forms the class name with a base of "jaia-dialog" and adds
@@ -54,7 +59,7 @@ export function StartMissionDialog(props: DialogProps) {
      * @returns {React.ReactElement | null} The text input field or null if disabled
      */
     const missionNameTextField = () => {
-        if (props.disabledCode !== DisabledCodes.NONE) {
+        if (!shouldInputMissionName) {
             return null;
         }
 
