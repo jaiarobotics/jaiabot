@@ -165,7 +165,7 @@ def kmlFromTaskPackets(task_packets: Iterable[TaskPacket]):
 
 
 def writeTaskPacketsToKMZ(task_packets: Iterable[TaskPacket], output_kmz_path: str):
-    """Creates a kmz file at output_kmz_path, containing placemarks for the input task_packets
+    """Creates a KMZ file at output_kmz_path, containing placemarks for the input task_packets
 
     Args:
         task_packets (Iterable[TaskPacket]): task packets to include in the file
@@ -184,12 +184,12 @@ def writeTaskPacketsToKMZ(task_packets: Iterable[TaskPacket], output_kmz_path: s
 
 
 def getKMZ(task_packets: Iterable[TaskPacket]) -> bytes:
-    """Returns a kmz file as a byte string, containing placemarks for the input task_packets
+    """Returns a KMZ file as a byte string, containing placemarks for the input task packets
 
     Args:
         task_packets (Iterable[TaskPacket]): task packets to include in the file
     Results:
-        bytes: The kmz file as a byte string
+        bytes: KMZ file as a byte string
     """
     writeTaskPacketsToKMZ(task_packets, '/tmp/temp.kmz')
     with open('/tmp/temp.kmz', 'rb') as kmz_file:

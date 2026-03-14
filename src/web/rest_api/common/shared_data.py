@@ -65,10 +65,10 @@ class Data:
 
 
     def get_kmz(self, bot_ids: Union[Iterable[int], None], start_time_microseconds: Union[int, None], end_time_microseconds: Union[int, None]) -> bytes:
-        """Gets a KMZ file containing task packet information for the specified bots over a given time range.
+        """Gets a KMZ file containing task packet information for the specified Bots over a given time range.
 
         Args:
-            bot_ids (Union[Iterable[int], None]): The bot IDs to include in the KMZ.  None means include all bots.
+            bot_ids (Union[Iterable[int], None]): The Bot IDs to include in the KMZ.  None means include all Bots.
             start_time_microseconds (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
             end_time_microseconds (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
 

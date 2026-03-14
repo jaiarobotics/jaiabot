@@ -116,10 +116,10 @@ message APIRequest
         }];
         KMZRequest kmz = 16 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Request a KMZ file containing task packet information for the specified bots over a given time range. Expect a response with the kmz file in the body."
+            doc: "Request a KMZ file containing task packet information for the specified Bots over a given time range. Expect a response with the kmz file in the body."
             example {
                 request: '{"target": {"all": true}, "kmz": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '<KMZ file containing task packet information for all bots and hubs over the given time range>'
+                response: '<KMZ file containing task packet information for all Bots and hubs over the given time range>'
             }
         }];
         Command command = 14 [(jaia.field).rest_api = {
