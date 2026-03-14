@@ -163,6 +163,7 @@ class TaskPacketDatabase:
 
             conditionals = []
             parameters = []
+            from_clause = ' from task_packets'
 
             if bot_ids is not None:
                 conditionals.append(f'bot_id in ({",".join(["?"] * len(bot_ids))})')
@@ -179,14 +180,16 @@ class TaskPacketDatabase:
             if included is not None:
                 conditionals.append(f'included = ?')
                 parameters.append(1 if included else 0)
+                from_clause += ' natural join included'
 
             if mission_names is not None:
                 if isinstance(mission_names, str):
                     mission_names = [mission_names]
                 conditionals.append(f'mission_name in ({",".join(["?"] * len(mission_names))})')
                 parameters.extend(mission_names)
+                from_clause += ' natural join mission_name'
 
-            query_string = f'select json_string from task_packets natural join included natural join mission_name'
+            query_string = f'select json_string {from_clause}'
             if len(conditionals) > 0:
                 query_string = query_string + " where " + " and ".join(conditionals)
 

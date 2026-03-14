@@ -69,14 +69,19 @@ def test_time_range_filtering():
 
     assert len(response.task_packets.packets) > 0, "Expected at least one task packet in the specified time range"
 
-    for packet in response.task_packets.packets:
-        assert first_packet_start_time <= packet.start_time <= middle_time, f"{packet}\nTask packet start time is outside the specified range"
+    # Account for the 1-second padding of the time querying
+    ONE_SECOND = 1_000_000
+    expected_range = (first_packet_start_time - ONE_SECOND, middle_time + ONE_SECOND)
 
-    print(f"Successfully retrieved {len(response.task_packets.packets)} task packets between {first_packet_start_time} and {middle_time}")
+    for packet in response.task_packets.packets:
+        assert expected_range[0] <= packet.start_time <= expected_range[1], \
+            f"{packet}\nTask packet start time {packet.start_time} is outside the specified range: {expected_range[0]} - {expected_range[1]}"
+
+    print(f"Successfully retrieved {len(response.task_packets.packets)} task packets between {expected_range[0]} and {expected_range[1]}")
 
 
 def test_mission_name_filtering():
-    mission_names = set(packet.mission_name for packet in all_task_packets)
+    mission_names = set(packet.mission_name for packet in all_task_packets if packet.mission_name)
     if len(mission_names) == 0:
         print("No mission names found in task packets, skipping mission name filtering test")
         return
