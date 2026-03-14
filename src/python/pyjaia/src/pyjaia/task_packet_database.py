@@ -125,7 +125,7 @@ class TaskPacketDatabase:
         #   id to name mapping in the hub manager).  So we only add to the mission_name table if the mission_name 
         #   field is present in the task packet.
         if 'mission_name' in task_packet:
-            self.db.execute('insert or ignore into mission_name (id, mission_name) values (?, ?)', (id, task_packet["mission_name"]))
+            self.db.execute('insert or replace into mission_name (id, mission_name) values (?, ?)', (id, task_packet["mission_name"]))
 
 
     def add_task_packet(self, task_packet: Dict):
