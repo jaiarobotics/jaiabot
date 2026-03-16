@@ -122,7 +122,7 @@ message APIRequest
         }];
         TaskPacketQuery task_packets = 13 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Query task packets from a given range of time. Expect a response of type 'task_packet_query_results'."
+            doc: "Query task packets from a given range of time. Expect a response of type 'task_packets'."
             example {
                 request: '{"target": {"bots": [1]}, "task_packets": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
                 response: '{"request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "target": {"bots": [1]}, "task_packets": {"end_time": "1722970466581176", "start_time": "1722797666581176"}}, "task_packets": {"packets": [{"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.658228, "lon": -71.275736}, "estimated_drift": {"heading": 237.0, "speed": 0.9}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658275, "lon": -71.275645}}, "end_time": "1722895675000000", "start_time": "1722895664000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.65826, "lon": -71.2757}, "estimated_drift": {"heading": 316.0, "speed": 0.6}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658225, "lon": -71.275651}}, "end_time": "1722896712000000", "start_time": "1722896702000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.659469, "lon": -71.272064}, "estimated_drift": {"heading": 72.0, "speed": 0.7}, "significant_wave_height": 0.0, "start_location": {"lat": 41.659448, "lon": -71.272146}}, "end_time": "1722896904000000", "start_time": "1722896893000000", "type": "SURFACE_DRIFT"}]}}'
@@ -193,11 +193,11 @@ message APIResponse
         }];
         TaskPacketQueryResults task_packets = 13 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Task packet response. This is sent in response to a successful Request 'task_packet' action."
+            doc: "Task packet response. This is sent in response to a successful Request 'task_packets' action."
         }];
         MissionQueryResults missions = 15 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Mission query response. This is sent in response to a successful Request 'mission_query' action."
+            doc: "Mission query response. This is sent in response to a successful Request 'missions' action."
         }];
         CommandResult command_result = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,

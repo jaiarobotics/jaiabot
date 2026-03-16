@@ -74,6 +74,8 @@ class Data:
         # Convert the dicts into TaskPacket protobuf message objects
         task_packets: List[TaskPacket] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])
 
+        task_packets.sort(key=lambda tp: tp.start_time)
+
         return task_packets
     
 
@@ -81,9 +83,23 @@ class Data:
                               bot_ids: Union[Iterable[int], None], 
                               start_time_microseconds: Union[int, None]=None, 
                               end_time_microseconds: Union[int, None]=None) -> List[MissionSummary]:
-        return self.task_packet_database.query_mission_summaries(bot_ids=bot_ids,
-                                                                start_utime=start_time_microseconds,
-                                                                end_utime=end_time_microseconds)
+        """Gets a list of mission summaries for missions that occur during a timeframe.
+
+        Args:
+            bot_ids (Union[Iterable[int], None]): If not None, only return mission summaries with a bot_id in this list.
+            start_time_microseconds (Union[int, None], optional): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
+            end_time_microseconds (Union[int, None], optional): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
+
+        Returns:
+            List[MissionSummary]: A list of the mission summaries, sorted ascending by start_time.
+        """
+
+
+        mission_summaries = self.task_packet_database.query_mission_summaries(bot_ids=bot_ids,
+                                                                              start_utime=start_time_microseconds,
+                                                                              end_utime=end_time_microseconds)
+        mission_summaries.sort(key=lambda ms: ms.start_time)
+        return mission_summaries
 
 
     def process_portal_to_client_message(self, hub_id, msg):

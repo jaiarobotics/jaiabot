@@ -25,13 +25,13 @@ interface ButtonRowProps {
  */
 export function StartAllMissionsDialog(props: DialogProps) {
     // Ref and useEffect to focus the mission name input when the dialog opens and there is at least one ready bot
-    const missionNameInputRef = useRef(null);
+    const missionNameInputRef = useRef<HTMLInputElement | null>(null);
     const [missionName, setMissionName] = useState("Untitled Mission");
     const numReadyBots = props.botReadyStates.get(DisabledCodes.NONE).length;
 
     useEffect(() => {
         if (props.isVisible && numReadyBots > 0) {
-            missionNameInputRef.current.focus();
+            missionNameInputRef.current?.focus();
         }
     }, [props.isVisible, numReadyBots]);
 

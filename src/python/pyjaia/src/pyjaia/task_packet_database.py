@@ -172,7 +172,8 @@ class TaskPacketDatabase:
             from_clause = ' from task_packets'
 
             if bot_ids is not None:
-                conditionals.append(f'bot_id in ({",".join(["?"] * len(list(bot_ids)))})')
+                bot_ids = list(bot_ids)
+                conditionals.append(f'bot_id in ({",".join(["?"] * len(bot_ids))})')
                 parameters.extend(bot_ids)
 
             if start_utime is not None:
@@ -231,7 +232,8 @@ class TaskPacketDatabase:
             parameters = []
 
             if bot_ids is not None:
-                conditionals.append(f'bot_id in ({",".join(["?"] * len(list(bot_ids)))})')
+                bot_ids = list(bot_ids)
+                conditionals.append(f'bot_id in ({",".join(["?"] * len(bot_ids))})')
                 parameters.extend(bot_ids)
 
             if start_utime is not None:

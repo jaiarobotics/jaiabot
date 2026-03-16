@@ -704,6 +704,7 @@ export interface MissionPlan {
     repeats?: number;
     trail?: TrailParameters;
     mission_name?: string;
+    mission_id?: number;
 }
 
 export interface TransitUpdate {
