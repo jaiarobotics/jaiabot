@@ -48,7 +48,7 @@ class Data:
                          bot_ids: Union[Iterable[int], None], 
                          start_time_microseconds: Union[int, None]=None, 
                          end_time_microseconds: Union[int, None]=None, 
-                         mission_names: Union[List[str], None]=None) -> List[Message]:
+                         mission_names: Union[List[str], None]=None) -> List[TaskPacket]:
         """Gets a list of task packets occurring during a timespan.
 
         Args:
@@ -75,7 +75,7 @@ class Data:
                                                          mission_names=mission_names)
 
         # Convert the dicts into TaskPacket protobuf message objects
-        task_packets: List[Message] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])
+        task_packets: List[TaskPacket] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])
 
         return task_packets
 
