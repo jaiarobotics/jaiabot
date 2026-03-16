@@ -131,13 +131,17 @@ def test_mission_name_filtering():
 
 
 def test_mission_summary_querying():
+    first_packet_start_time = min([packet.start_time for packet in all_task_packets])
+    last_packet_start_time = max([packet.start_time for packet in all_task_packets])
+    middle_time = (first_packet_start_time + last_packet_start_time) // 2
+
     response = run_request(rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
             bots=[1]
         ),
         missions=rest_api.MissionQuery(
-            start_time=all_task_packets[0].start_time,
-            end_time=all_task_packets[-1].start_time
+            start_time=first_packet_start_time, # Task packets are sorted descending by start time, so the last packet has the earliest start time.  This means we should get all missions that started after that time, which should be all of them.
+            end_time=last_packet_start_time
         )
     ))
 
