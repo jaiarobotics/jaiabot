@@ -13,6 +13,8 @@ import os.path
 import threading
 import shutil
 
+from jaiabot.messages.mission_pb2 import MissionSummary
+
 
 l = logging.getLogger('task_packet_database')
 
@@ -26,7 +28,7 @@ class TaskPacketDatabase:
     db: sqlite3.Connection
     _lock: threading.Lock
 
-    def __init__(self, taskpacket_files_path: str=None, database_path: str=None):
+    def __init__(self, taskpacket_files_path: str | None=None, database_path: str | None=None):
         self.taskpacket_files_path = taskpacket_files_path or self.taskpacket_files_path
         self.database_path = database_path or self.database_path
         self._lock = threading.Lock()
@@ -170,7 +172,7 @@ class TaskPacketDatabase:
             from_clause = ' from task_packets'
 
             if bot_ids is not None:
-                conditionals.append(f'bot_id in ({",".join(["?"] * len(bot_ids))})')
+                conditionals.append(f'bot_id in ({",".join(["?"] * len(list(bot_ids)))})')
                 parameters.extend(bot_ids)
 
             if start_utime is not None:
@@ -204,6 +206,67 @@ class TaskPacketDatabase:
             results_json = self.db.execute(query_string, parameters)
             results: List[Dict] = [json.loads(row[0]) for row in results_json]
             return results
+
+
+    def query_mission_summaries(self, bot_ids: Union[Iterable[int], None], 
+                              start_utime: Union[int, None]=None, 
+                              end_utime: Union[int, None]=None,
+                              utime_padding: int=1_000_000) -> List[MissionSummary]:
+        """Gets a list of mission summaries for missions occurring during a timespan.
+        
+        Args:            
+            bot_ids (Union[List[int], None]): If not None, only return mission summaries for missions with a bot_id in this list.
+            start_utime (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
+            end_utime (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
+            utime_padding (int): Padding to apply to the start and end times, in microseconds. Default is 1 second (1,000,000 microseconds).  This is to account for any potential rounding issues with the utime values in the database.
+
+        Returns:
+            list[MissionSummary]: A list of mission summaries that match the criteria.
+        """
+
+        with self._lock:
+            self._update()
+
+            conditionals = []
+            parameters = []
+
+            if bot_ids is not None:
+                conditionals.append(f'bot_id in ({",".join(["?"] * len(list(bot_ids)))})')
+                parameters.extend(bot_ids)
+
+            if start_utime is not None:
+                conditionals.append(f'utime >= ?')
+                parameters.append(start_utime - utime_padding)
+
+            if end_utime is not None:
+                conditionals.append(f'utime <= ?')
+                parameters.append(end_utime + utime_padding)
+
+            query_string = f'select utime, mission_name from task_packets natural join mission_name'
+            if len(conditionals) > 0:
+                query_string = query_string + " where " + " and ".join(conditionals)
+
+            query_string = query_string + ' order by utime desc limit 1000'
+
+            l.debug(f"Executing query: {query_string} with parameters {parameters}")
+
+            rows = self.db.execute(query_string, parameters)
+
+            # mission_name => MissionSummary
+            mission_summaries: Dict[str, MissionSummary] = {}
+
+            for row in rows:
+                utime, mission_name = row
+                mission_summary = mission_summaries.get(mission_name, MissionSummary(mission_name=mission_name))
+                if mission_summary.start_time == 0 or utime < mission_summary.start_time:
+                    mission_summary.start_time = utime
+                if mission_summary.end_time == 0 or utime > mission_summary.end_time:
+                    mission_summary.end_time = utime
+                mission_summary.task_packet_count += 1
+                mission_summaries[mission_name] = mission_summary
+
+            # Return MissionSummaries sorted by start_time ascending
+            return sorted(mission_summaries.values(), key=lambda ms: ms.start_time)
 
 
     def get_task_packets(self, start_date: datetime, end_date: datetime):

@@ -130,7 +130,23 @@ def test_mission_name_filtering():
     print(f"Successfully retrieved {len(response.task_packets.packets)} task packets for mission names '{mission_name}' and '{mission_name_2}'")
 
 
+def test_mission_summary_querying():
+    response = run_request(rest_api.APIRequest(
+        target=rest_api.APIRequest.Nodes(
+            bots=[1]
+        ),
+        missions=rest_api.MissionQuery(
+            start_time=all_task_packets[0].start_time,
+            end_time=all_task_packets[-1].start_time
+        )
+    ))
+
+    assert len(response.missions.mission_summaries) > 0, "Expected at least one mission summary for bot 1"
+
+    print(f"Successfully retrieved {len(response.missions.mission_summaries)} mission summaries for bot 1")
+
+
 if __name__ == "__main__":
     test_time_range_filtering()
     test_mission_name_filtering()
-
+    test_mission_summary_querying()

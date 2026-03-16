@@ -87,6 +87,23 @@ def task_packets(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
         jaia_response.task_packets.packets.extend(task_packets)
     return jaia_response
 
+
+def missions(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
+    jaia_response = rest_api.APIResponse()
+    with common.shared_data.data_lock:
+        if jaia_request.target.all:
+            bot_ids = None
+        else:
+            bot_ids = jaia_request.target.bots
+
+        start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else None
+        end_time = jaia_request.task_packets.end_time if jaia_request.task_packets.HasField('end_time') else None
+
+        mission_summaries = common.shared_data.data.get_mission_summaries(bot_ids, start_time, end_time)
+        jaia_response.missions.mission_summaries.extend(mission_summaries)
+    return jaia_response
+
+
 def command(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
     jaia_response = rest_api.APIResponse()
 

@@ -4,19 +4,16 @@
 
 from queue import Queue
 from typing import *
-from pathlib import Path
-from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
 from google.protobuf.json_format import ParseDict, MessageToDict
-from google.protobuf.message import Message
 import threading
 import logging
-import bisect
-import glob
-import json
+
+# Jaia
+from common.time import utc_now_microseconds
+from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
+from jaiabot.messages.mission_pb2 import MissionSummary
 from pyjaia.task_packet_database import TaskPacketDatabase
 
-
-from common.time import utc_now_microseconds
 
 log = logging.getLogger()
 
@@ -78,6 +75,15 @@ class Data:
         task_packets: List[TaskPacket] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])
 
         return task_packets
+    
+
+    def get_mission_summaries(self, 
+                              bot_ids: Union[Iterable[int], None], 
+                              start_time_microseconds: Union[int, None]=None, 
+                              end_time_microseconds: Union[int, None]=None) -> List[MissionSummary]:
+        return self.task_packet_database.query_mission_summaries(bot_ids=bot_ids,
+                                                                start_utime=start_time_microseconds,
+                                                                end_utime=end_time_microseconds)
 
 
     def process_portal_to_client_message(self, hub_id, msg):

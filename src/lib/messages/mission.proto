@@ -565,3 +565,12 @@ message MissionTpvMeetsGpsReq
 
     optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv = 1;
 }
+
+// Represents a summary of a mission, for use in mission querying results.
+message MissionSummary
+{
+    optional string mission_name = 1;
+    optional uint64 start_time = 2;
+    optional uint64 end_time = 3;
+    optional uint32 task_packet_count = 4;
+}
