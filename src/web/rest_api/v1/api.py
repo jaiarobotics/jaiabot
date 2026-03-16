@@ -7,6 +7,7 @@ import jaiabot.messages.rest_api_pb2
 import jaiabot.messages.hub_pb2
 import jaiabot.messages.jaia_dccl_pb2
 import jaiabot.messages.portal_pb2
+import jaiabot.messages.surob_results_pb2
 
 from  jaiabot.messages.mission_pb2 import MissionTask
 
@@ -165,12 +166,12 @@ def command_for_hub(jaia_request):
 
     return jaia_response
 
-SUROB_MEASUREMENT_TIME_M = 7.0 # 5 minutes per station keep + 2 minute budget for dives, actual time may be lower
-SUROB_STATION_KEEP_TIME_M = 5.0
-
-MAX_WAYPOINTS = 80 # should match https://github.com/jaiarobotics/jaiabot/blob/2.y/src/web/utils/constants.ts#L32
-
 def surob_mission_plan_request(jaia_request):
+    SUROB_MEASUREMENT_TIME_M = 7.0 # 5 minutes per station keep + 2 minute budget for dives, actual time may be lower
+    SUROB_STATION_KEEP_TIME_M = 5.0
+
+    MAX_WAYPOINTS = 80 # should match https://github.com/jaiarobotics/jaiabot/blob/2.y/src/web/utils/constants.ts#L32
+    
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
 
     shoreline_point = (jaia_request.surob_mission_plan_request.shoreline_point.lat,jaia_request.surob_mission_plan_request.shoreline_point.lon)
@@ -235,6 +236,37 @@ def surob_mission_plan_request(jaia_request):
     return jaia_response
 
 def surob_results_request(jaia_request):
+    # string constants for surob results proto
+    CURRENT_SPEED_UNITS = "fps"
+    # No cf standard name for magnitude of current vector with direction sea_water_velocity_to_direction
+    CURRENT_DIRECTION_UNITS = "degrees from true north"
+    CURRENT_DIRECTION_CF_STANDARD_NAME = "sea_water_velocity_to_direction"
+    CURRENT_PROPERTIES_UNITS = "degrees" # TODO: confirm feature properties units field is for the feature's geometry units (eg. degrees lat/lon)
+    CURRENT_PROPERTIES_TYPE = "current_measurement"
+    CURRENT_PROPERTIES_DESCRIPTION = "Jaiabot current measurement"
+    CURRENT_PROPERTIES_VERTICAL_LOCATION = "surface"
+
+    WAVE_HEIGHT_UNITS = "feet"
+    WAVE_HEIGHT_CF_STANDARD_NAME = "sea_surface_wave_significant_height"
+    WAVE_PERIOD_UNITS = "seconds"
+    WAVE_PERIOD_CF_STANDARD_NAME = "sea_surface_wave_significant_period"
+    WAVE_PROPERTIES_UNITS  = "degrees"
+    WAVE_PROPERTIES_TYPE = "wave_measurement"
+    WAVE_PROPERTIES_DESCRIPTION = "Jaiabot wave measurement"
+
+    PROPERTIES_H_DATUM = "wgs84"
+
+    POINT_GEOMETRY_TYPE = "Point"
+
+    FEATURE_TYPE = "feature"
+
+    LITTORAL_CURRENT_UNITS = "knots"
+
+    FEATURE_COLLECTION_TYPE = "FeatureCollection"
+
+    JAIA_SUROB_MESSAGE_TOPIC = "is2ops"
+    JAIA_SUROB_MESSAGE_SUBTOPIC = "surob"
+    JAIA_SUROB_MESSAGE_SOURCE = "jaia"
 
     def meters_to_feet(m):
         m_to_f_conversion_factor = 3.28084
@@ -334,8 +366,8 @@ def surob_results_request(jaia_request):
     station_keep_furthest_from_shoreline_pt_sig_wave_period_s = None
     station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s = None
 
-    current_measurement_ct = 0
-    wave_measurement_ct = 0
+    current_measurement_id = 0
+    wave_measurement_id = 0
 
     features = []
 
@@ -347,17 +379,33 @@ def surob_results_request(jaia_request):
 
             # consider current and sig wave height values
             if task_packet.HasField("current") and task_packet.current.speed != 0: # (jaia.field).rest_api.presence = GUARANTEED means optional fields will always be present with filler values
-                curr_current_speed = {"value": meters_to_feet(task_packet.current.speed), "uncert": math.pow(meters_to_feet(task_packet.current.speed_uncertainty), 2), "units": "fps"}
-                curr_current_direction = {"value": task_packet.current.heading, "uncert": math.pow(task_packet.current.heading_uncertainty, 2), "units": "degrees from true north", "cf_standard_name": "sea_water_velocity_to_direction"}
-                curr_current_measurement = {"current_speed": curr_current_speed, "current_direction": curr_current_direction}
+                curr_current_speed = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=meters_to_feet(task_packet.current.speed), 
+                                                                                         uncert=math.pow(meters_to_feet(task_packet.current.speed_uncertainty), 2), 
+                                                                                         units=CURRENT_SPEED_UNITS)
+                curr_current_direction = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=task_packet.current.heading, 
+                                                                                               uncert=math.pow(task_packet.current.heading_uncertainty, 2), 
+                                                                                               units=CURRENT_DIRECTION_UNITS, 
+                                                                                               cf_standard_name=CURRENT_DIRECTION_CF_STANDARD_NAME)
+                curr_current_measurement = jaiabot.messages.surob_results_pb2.CurrentMeasurement(current_speed=curr_current_speed, 
+                                                                                                 current_direction=curr_current_direction)
+                curr_current_properties = jaiabot.messages.surob_results_pb2.Properties(units=CURRENT_PROPERTIES_UNITS, 
+                                                                                        type=CURRENT_PROPERTIES_TYPE, 
+                                                                                        description=CURRENT_PROPERTIES_DESCRIPTION, 
+                                                                                        id=current_measurement_id, 
+                                                                                        vertical_location=CURRENT_PROPERTIES_VERTICAL_LOCATION, 
+                                                                                        h_datum=PROPERTIES_H_DATUM, 
+                                                                                        current_measurement=curr_current_measurement)
+                
                 curr_current_coordinates = [task_packet.location.lon, task_packet.location.lat]
-                curr_current_properties = {"units": "degrees", "type": "current_measurement", "description": "Jaiabot current measurement", "id": current_measurement_ct, "vertical_location": "surface", "h_datum": "wgs84", "current_measurement": curr_current_measurement}
-                curr_current_geometry = {"coordinates": curr_current_coordinates, "type": "Point"}
-                curr_current = {"type": "feature", "properties": curr_current_properties,  "geometry": curr_current_geometry}
+                curr_current_geometry = jaiabot.messages.surob_results_pb2.PointGeometry(type=POINT_GEOMETRY_TYPE, coordinates=curr_current_coordinates)
+                
+                curr_current = jaiabot.messages.surob_results_pb2.Feature(type=FEATURE_TYPE, properties=curr_current_properties, geometry=curr_current_geometry)
+                
                 features.append(curr_current)
-                current_measurement_ct += 1
+                current_measurement_id += 1
 
                 # transform to alongshore and crossshore components, save largest alongshore
+                # TODO: Monte Carlo alongshore estimation: sample current estimates from reported speed_std and dir_std, get alongshore comp of each, report mean and variance of alongshore comps to report in surob
                 alongshore_current_speed_knots, alongshore_current_speed_uncertainty_knots, alongshore_current_flank = alongshore_current_component_knots(alongshore_bearing_deg, task_packet.current.heading, task_packet.current.speed, task_packet.current.speed_uncertainty)
                 if max_alongshore_current_speed_knots is None or alongshore_current_speed_knots > max_alongshore_current_speed_knots:
                     max_alongshore_current_speed_knots = alongshore_current_speed_knots
@@ -368,15 +416,30 @@ def surob_results_request(jaia_request):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
-                curr_wave_height = {"value": hs_ft, "uncert": math.pow(hs_uncertainty_ft, 2), "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
-                curr_wave_period = {"value": task_packet.wave.period, "uncert": math.pow(task_packet.wave.period_uncertainty, 2), "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
-                curr_wave_measurement = {"wave_height": curr_wave_height, "wave_period": curr_wave_period}
+                curr_wave_height = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=hs_ft, 
+                                                                                         uncert=math.pow(task_packet.wave.period_uncertainty, 2), 
+                                                                                         units=WAVE_HEIGHT_UNITS, 
+                                                                                         cf_standard_name=WAVE_HEIGHT_CF_STANDARD_NAME)
+                curr_wave_period = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=task_packet.wave.period, 
+                                                                                         uncert=math.pow(task_packet.wave.period_uncertainty, 2), 
+                                                                                         units=WAVE_PERIOD_UNITS, 
+                                                                                         cf_standard_name=WAVE_PERIOD_CF_STANDARD_NAME)
+                curr_wave_measurement = jaiabot.messages.surob_results_pb2.WaveMeasurement(wave_height=curr_wave_height, 
+                                                                                           wave_period=curr_wave_period)
+                curr_wave_properties = jaiabot.messages.surob_results_pb2.Properties(units=WAVE_PROPERTIES_UNITS, 
+                                                                                     type=WAVE_PROPERTIES_TYPE, 
+                                                                                     description=WAVE_PROPERTIES_DESCRIPTION, 
+                                                                                     id=wave_measurement_id, 
+                                                                                     h_datum=PROPERTIES_H_DATUM, 
+                                                                                     wave_measurement=curr_wave_measurement)
+                
                 curr_wave_coordinates = [task_packet.location.lon, task_packet.location.lat]
-                curr_wave_properties = {"units": "degrees", "type": "wave_measurement", "description": "Jaiabot wave measurement", "id": wave_measurement_ct, "h_datum": "wgs84", "wave_measurement": curr_wave_measurement}
-                curr_wave_geometry = {"coordinates": curr_wave_coordinates, "type": "Point"}
-                curr_wave = {"type": "feature", "properties": curr_wave_properties,  "geometry": curr_wave_geometry}
+                curr_wave_geometry = jaiabot.messages.surob_results_pb2.PointGeometry(type=POINT_GEOMETRY_TYPE, coordinates=curr_wave_coordinates)
+
+                curr_wave = jaiabot.messages.surob_results_pb2.Feature(type=FEATURE_TYPE, properties=curr_wave_properties, geometry=curr_wave_geometry)
+                
                 features.append(curr_wave)
-                wave_measurement_ct += 1
+                wave_measurement_id += 1
 
                 if max_sig_wave_height_ft is None or hs_ft > max_sig_wave_height_ft:
                     max_sig_wave_height_ft = hs_ft
@@ -395,15 +458,30 @@ def surob_results_request(jaia_request):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
-                curr_wave_height = {"value": hs_ft, "uncert": math.pow(hs_uncertainty_ft, 2), "units": "feet", "cf_standard_name": "sea_surface_wave_significant_height"}
-                curr_wave_period = {"value": task_packet.wave.period, "uncert": math.pow(task_packet.wave.period_uncertainty, 2), "units": "seconds", "cf_standard_name": "sea_surface_wave_significant_period"}
-                curr_wave_measurement = {"wave_height": curr_wave_height, "wave_period": curr_wave_period}
+                curr_wave_height = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=hs_ft, 
+                                                                                         uncert=math.pow(task_packet.wave.period_uncertainty, 2), 
+                                                                                         units=WAVE_HEIGHT_UNITS, 
+                                                                                         cf_standard_name=WAVE_HEIGHT_CF_STANDARD_NAME)
+                curr_wave_period = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=task_packet.wave.period, 
+                                                                                         uncert=math.pow(task_packet.wave.period_uncertainty, 2), 
+                                                                                         units=WAVE_PERIOD_UNITS, 
+                                                                                         cf_standard_name=WAVE_PERIOD_CF_STANDARD_NAME)
+                curr_wave_measurement = jaiabot.messages.surob_results_pb2.WaveMeasurement(wave_height=curr_wave_height, 
+                                                                                           wave_period=curr_wave_period)
+                curr_wave_properties = jaiabot.messages.surob_results_pb2.Properties(units=WAVE_PROPERTIES_UNITS, 
+                                                                                     type=WAVE_PROPERTIES_TYPE, 
+                                                                                     description=WAVE_PROPERTIES_DESCRIPTION, 
+                                                                                     id=wave_measurement_id, 
+                                                                                     h_datum=PROPERTIES_H_DATUM, 
+                                                                                     wave_measurement=curr_wave_measurement)
+                
                 curr_wave_coordinates = [task_packet.location.lon, task_packet.location.lat]
-                curr_wave_properties = {"units": "degrees", "type": "wave_measurement", "description": "Jaiabot wave measurement", "id": wave_measurement_ct, "h_datum": "wgs84", "wave_measurement": curr_wave_measurement}
-                curr_wave_geometry = {"coordinates": curr_wave_coordinates, "type": "Point"}
-                curr_wave = {"type": "feature", "properties": curr_wave_properties,  "geometry": curr_wave_geometry}
+                curr_wave_geometry = jaiabot.messages.surob_results_pb2.PointGeometry(type=POINT_GEOMETRY_TYPE, coordinates=curr_wave_coordinates)
+
+                curr_wave = jaiabot.messages.surob_results_pb2.Feature(type=FEATURE_TYPE, properties=curr_wave_properties, geometry=curr_wave_geometry)
+                
                 features.append(curr_wave)
-                wave_measurement_ct += 1
+                wave_measurement_id += 1
 
                 # append sig wave period values, if multiple are received, average for final result
                 surface_drift_sig_wave_periods_s.append(task_packet.wave.period)
@@ -445,16 +523,18 @@ def surob_results_request(jaia_request):
         sig_wave_period_s_to_report = statistics.mean(surface_drift_sig_wave_periods_s)
         sig_wave_period_uncertainty_s_to_report = max(math.sqrt(max(surface_drift_sig_wave_period_uncertainties_s)), statistics.stdev(surface_drift_sig_wave_periods_s))
 
-    sig_breaker_height = {"value": max_sig_wave_height_ft, "uncert": math.pow(max_sig_wave_height_uncertainty_ft, 2), "units": "feet"}
-    breaker_period = {"value": sig_wave_period_s_to_report, "uncert": math.pow(sig_wave_period_uncertainty_s_to_report, 2), "units": "seconds"}
-    littoral_current_local = {"value": max_alongshore_current_speed_knots, "uncert": math.pow(max_alongshore_current_speed_uncertainty_knots, 2), "flank": max_alongshore_current_flank, "units": "knots"}
-    surob = {"sig_breaker_height": sig_breaker_height, "breaker_period": breaker_period, "littoral_current_local": littoral_current_local}
-    reports = [{"surob": surob}]
+    sig_breaker_height = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=max_sig_wave_height_ft, uncert=math.pow(max_sig_wave_height_uncertainty_ft, 2), units=WAVE_HEIGHT_UNITS)
+    breaker_period = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=sig_wave_period_s_to_report, uncert=math.pow(sig_wave_period_uncertainty_s_to_report, 2), units=WAVE_PERIOD_UNITS)
+    littoral_current_local = jaiabot.messages.surob_results_pb2.LittoralCurrent(value=max_alongshore_current_speed_knots, uncert=math.pow(max_alongshore_current_speed_uncertainty_knots, 2), flank=max_alongshore_current_flank, units=LITTORAL_CURRENT_UNITS)
+    surob = jaiabot.messages.surob_results_pb2.Surob(sig_breaker_height=sig_breaker_height, breaker_period=breaker_period, littoral_current_local=littoral_current_local)
+    reports = [jaiabot.messages.surob_results_pb2.Report(surob=surob)]
 
-    geojson = {"type": "FeatureCollection", "features": features}
+    geojson = jaiabot.messages.surob_results_pb2.FeatureCollection(type=FEATURE_COLLECTION_TYPE, features=features)
 
-    output_dict = {"topic": "is2ops", "subtopic": "surob", "source": "jaia", "msg": {"reports": reports, "geojson": geojson}}
+    msg = jaiabot.messages.surob_results_pb2.Msg(reports=reports, geojson=geojson)
+
+    jaia_surob_results = jaiabot.messages.surob_results_pb2.JaiaSurobMessage(topic=JAIA_SUROB_MESSAGE_TOPIC, subtopic=JAIA_SUROB_MESSAGE_SUBTOPIC, source=JAIA_SUROB_MESSAGE_SOURCE, msg=msg)
 
     jaia_response.surob_results.response.surob_results_found = True
-    jaia_response.surob_results.response.surob_results_json = json.dumps(output_dict)
+    jaia_response.surob_results.response.surob_results = jaia_surob_results
     return jaia_response
