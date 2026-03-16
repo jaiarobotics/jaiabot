@@ -10,7 +10,7 @@ message ValueUncertUnits {
 message LittoralCurrent {
     optional double value = 1;
     optional double uncert = 2;
-    optional string units = 3;
+    optional string units = 3 [default="knots"];
     optional string flank = 4;
 }
 
@@ -42,29 +42,29 @@ message WaveMeasurement {
 }
 
 message Properties {
-    optional string units = 1;
+    optional string units = 1 [default="degrees"];
     optional string type = 2;
     optional string description = 3;
     optional int32 id = 4;
     optional string vertical_location = 5;
-    optional string h_datum = 6;
+    optional string h_datum = 6 [default="wgs84"];
     optional WaveMeasurement wave_measurement = 7;
     optional CurrentMeasurement current_measurement = 8;
 }
 
 message PointGeometry {
-    optional string type = 1;
+    optional string type = 1 [default="Point"];
     repeated double coordinates = 2;
 }
 
 message Feature {
-    optional string type = 1;
+    optional string type = 1 [default="feature"];
     optional Properties properties = 2;
     optional PointGeometry geometry = 3;
 }
 
 message FeatureCollection {
-    optional string type = 1;
+    optional string type = 1 [default="FeatureCollection"];
     repeated Feature features = 2;
 }
 
@@ -74,8 +74,8 @@ message Msg {
 }
 
 message JaiaSurobMessage {
-    optional string topic = 1;
-    optional string subtopic = 2;
-    optional string source = 3;
+    optional string topic = 1 [default="is2ops"];
+    optional string subtopic = 2 [default="surob"];
+    optional string source = 3 [default="jaia"];
     optional Msg msg = 4;
 }
