@@ -130,10 +130,10 @@ message APIRequest
         }];
         MissionQuery missions = 16 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Query missions from a given range of time. Expect a response of type 'mission_query_results'."
+            doc: "Query missions from a given range of time. Expect a response of type 'missions'."
             example {
                 request: '{"target": {"all": true}, "missions": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"mission_query_results": {"mission_summaries": [{"end_time": "1722896904000000", "mission_name": "mission1", "start_time": "1722895664000000", "task_packet_count": 3}]}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "missions": {"end_time": "1722970466581176", "start_time": "1722797666581176"}, "target": {"all": true}}, "target": {"hubs": [1], "bots": [1]}}'
+                response: '{"missions": {"mission_summaries": [{"end_time": "1722896904000000", "mission_name": "mission1", "start_time": "1722895664000000", "task_packet_count": 3}]}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "missions": {"end_time": "1722970466581176", "start_time": "1722797666581176"}, "target": {"all": true}}, "target": {"hubs": [1], "bots": [1]}}'
             }
         }];
         Command command = 14 [(jaia.field).rest_api = {
