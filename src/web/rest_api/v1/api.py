@@ -375,7 +375,7 @@ def surob_results_request(jaia_request):
         if task_packet.type == MissionTask.TaskType.STATION_KEEP: 
             
             # LitFuse expects uncertainty values as variance, however wave and current estimates from task packets report uncertainty as stdev, so we square
-            # Exception is period uncertainty, which is expressed as a fixed value of 2.0, so we sqrt the value accordingly so square will restore original value
+            # Exception is period uncertainty, which is expressed as a fixed value of 2.0, so we sqrt the value accordingly so square will restore original value, TODO: handle more gracefully to return as 2.0, rather than arbitrary precision
 
             # consider current and sig wave height values
             if task_packet.HasField("current") and task_packet.current.speed != 0: # (jaia.field).rest_api.presence = GUARANTEED means optional fields will always be present with filler values
