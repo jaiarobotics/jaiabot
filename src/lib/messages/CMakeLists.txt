@@ -55,8 +55,6 @@ protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_IN
   udp_gateway.proto
   ppk.proto
   surob_results.proto
-  mission_set_snapshot_map.proto
-  mission_set_snapshot.proto
   ${SENSOR_MESSAGES}
 )
 
