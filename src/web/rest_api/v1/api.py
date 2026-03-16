@@ -1,7 +1,7 @@
 import asyncio
-import math
-import json
 import statistics
+
+import numpy as np
 
 import jaiabot.messages.rest_api_pb2
 import jaiabot.messages.hub_pb2
@@ -268,6 +268,8 @@ def surob_results_request(jaia_request):
     JAIA_SUROB_MESSAGE_SUBTOPIC = "surob"
     JAIA_SUROB_MESSAGE_SOURCE = "jaia"
 
+    rng = np.random.default_rng()
+
     def meters_to_feet(m):
         m_to_f_conversion_factor = 3.28084
         return m*m_to_f_conversion_factor
@@ -275,32 +277,41 @@ def surob_results_request(jaia_request):
     def mps_to_knots(mps):
         mps_to_knots_conversion_factor = 1.943844492
         return mps*mps_to_knots_conversion_factor
-    
+
     # adapted from: https://www.movable-type.co.uk/scripts/latlong.html
     def shore_normal_bearing_deg(shoreline_point, offshore_point):
-        shoreline_lat_rad = math.radians(shoreline_point[0])
-        shoreline_lon_rad = math.radians(shoreline_point[1])
+        shoreline_lat_rad = np.deg2rad(shoreline_point[0])
+        shoreline_lon_rad = np.deg2rad(shoreline_point[1])
 
-        offshore_lat_rad = math.radians(offshore_point[0])
-        offshore_lon_rad = math.radians(offshore_point[1])
+        offshore_lat_rad = np.deg2rad(offshore_point[0])
+        offshore_lon_rad = np.deg2rad(offshore_point[1])
     
-        y = math.sin(offshore_lon_rad - shoreline_lon_rad)*math.cos(offshore_lat_rad)
-        x = math.cos(shoreline_lat_rad)*math.sin(offshore_lat_rad) - math.sin(shoreline_lat_rad)*math.cos(offshore_lat_rad)*math.cos(offshore_lon_rad-shoreline_lon_rad)
+        y = np.sin(offshore_lon_rad - shoreline_lon_rad)*np.cos(offshore_lat_rad)
+        x = np.cos(shoreline_lat_rad)*np.sin(offshore_lat_rad) - np.sin(shoreline_lat_rad)*np.cos(offshore_lat_rad)*np.cos(offshore_lon_rad-shoreline_lon_rad)
 
-        shore_normal_angle_rad = math.atan2(y, x)
-        return (math.degrees(shore_normal_angle_rad) + 360.0) % 360.0
+        shore_normal_angle_rad = np.arctan2(y, x)
+        return (np.rad2deg(shore_normal_angle_rad) + 360.0) % 360.0
 
     def shore_normal_to_alongshore_bearing_deg(shore_normal_bearing_deg):
         # alongshore bearing 90 degrees CW of shore normal bearing
         return ((shore_normal_bearing_deg - 90.0) + 360.0) % 360.0
-
-    def alongshore_current_component_knots(alongshore_bearing_deg, current_heading_deg, current_speed_mps, speed_uncertainty_mps):
-        theta_deg = (alongshore_bearing_deg - current_heading_deg + 360.0) % 360.0
-        alongshore_comp_mps = current_speed_mps*math.cos(math.radians(theta_deg))
-        alongshore_uncertainty_mps = speed_uncertainty_mps*math.cos(math.radians(theta_deg))
-
-        return abs(mps_to_knots(alongshore_comp_mps)), abs(mps_to_knots(alongshore_uncertainty_mps)), ("right" if alongshore_comp_mps > 0 else "left")
     
+    # Finds estimate of alongshore component of current measurement through Monte Carlo Analysis. Samples n_samples currents from normal distributions of the speed and heading angle.
+    # Then gets the alongshore component of each sample and reports the mean and std of the sample alongshore components for the alongshore speed and uncertainty.
+    def currents_monte_carlo_analysis_knots(current_speed_mps, current_std_mps, current_heading_deg, current_heading_std_deg, alongshore_bearing_deg, n_samples=200):
+        current_sample_speeds_mps = rng.normal(current_speed_mps, current_std_mps, n_samples)
+        current_sample_headings_deg = rng.normal(current_heading_deg, current_heading_std_deg, n_samples)
+
+        current_sample_headings_deg = (current_sample_headings_deg + 360.0) % 360.0
+
+        theta_deg = (alongshore_bearing_deg - current_sample_headings_deg + 360.0) % 360.0
+        alongshore_component_samples_mps = current_sample_speeds_mps*np.cos(np.deg2rad(theta_deg))
+
+        alongshore_component_mean_mps = np.nanmean(alongshore_component_samples_mps)
+        alongshore_component_std_mps = np.nanstd(alongshore_component_samples_mps)
+
+        return abs(mps_to_knots(alongshore_component_mean_mps)), abs(mps_to_knots(alongshore_component_std_mps)), ("right" if alongshore_component_mean_mps > 0 else "left")
+
     # adapted from https://www.geeksforgeeks.org/dsa/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
     def haversine(point_1, point_2):
         lat1 = point_1[0]
@@ -311,20 +322,18 @@ def surob_results_request(jaia_request):
 
         # distance between latitudes
         # and longitudes
-        dLat = (lat2 - lat1) * math.pi / 180.0
-        dLon = (lon2 - lon1) * math.pi / 180.0
+        dLat = np.deg2rad(lat2 - lat1)
+        dLon = np.deg2rad(lon2 - lon1)
 
         # convert to radians
-        lat1 = (lat1) * math.pi / 180.0
-        lat2 = (lat2) * math.pi / 180.0
+        lat1 = np.deg2rad(lat1)
+        lat2 = np.deg2rad(lat2)
 
         # apply formulae
-        a = (pow(math.sin(dLat / 2), 2) + 
-            pow(math.sin(dLon / 2), 2) * 
-                math.cos(lat1) * math.cos(lat2))
-        rad_m = 6371*1000
-        c = 2 * math.asin(math.sqrt(a))
-        return rad_m * c
+        a = (np.power(np.sin(dLat / 2), 2) + np.power(np.sin(dLon / 2), 2) * np.cos(lat1) * np.cos(lat2))
+        radius_m = 6371*1000
+        c = 2 * np.asin(np.sqrt(a))
+        return radius_m * c
 
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
 
@@ -380,10 +389,10 @@ def surob_results_request(jaia_request):
             # consider current and sig wave height values
             if task_packet.HasField("current") and task_packet.current.speed != 0: # (jaia.field).rest_api.presence = GUARANTEED means optional fields will always be present with filler values
                 curr_current_speed = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=meters_to_feet(task_packet.current.speed), 
-                                                                                         uncert=math.pow(meters_to_feet(task_packet.current.speed_uncertainty), 2), 
+                                                                                         uncert=np.power(meters_to_feet(task_packet.current.speed_uncertainty), 2), 
                                                                                          units=CURRENT_SPEED_UNITS)
                 curr_current_direction = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=task_packet.current.heading, 
-                                                                                               uncert=math.pow(task_packet.current.heading_uncertainty, 2), 
+                                                                                               uncert=np.power(task_packet.current.heading_uncertainty, 2), 
                                                                                                units=CURRENT_DIRECTION_UNITS, 
                                                                                                cf_standard_name=CURRENT_DIRECTION_CF_STANDARD_NAME)
                 curr_current_measurement = jaiabot.messages.surob_results_pb2.CurrentMeasurement(current_speed=curr_current_speed, 
@@ -405,8 +414,7 @@ def surob_results_request(jaia_request):
                 current_measurement_id += 1
 
                 # transform to alongshore and crossshore components, save largest alongshore
-                # TODO: Monte Carlo alongshore estimation: sample current estimates from reported speed_std and dir_std, get alongshore comp of each, report mean and variance of alongshore comps to report in surob
-                alongshore_current_speed_knots, alongshore_current_speed_uncertainty_knots, alongshore_current_flank = alongshore_current_component_knots(alongshore_bearing_deg, task_packet.current.heading, task_packet.current.speed, task_packet.current.speed_uncertainty)
+                alongshore_current_speed_knots, alongshore_current_speed_uncertainty_knots, alongshore_current_flank = currents_monte_carlo_analysis_knots(task_packet.current.speed, task_packet.current.speed_uncertainty, task_packet.current.heading, task_packet.current.heading_uncertainty, alongshore_bearing_deg)
                 if max_alongshore_current_speed_knots is None or alongshore_current_speed_knots > max_alongshore_current_speed_knots:
                     max_alongshore_current_speed_knots = alongshore_current_speed_knots
                     max_alongshore_current_speed_uncertainty_knots = alongshore_current_speed_uncertainty_knots
@@ -417,11 +425,11 @@ def surob_results_request(jaia_request):
                 hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
                 curr_wave_height = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=hs_ft, 
-                                                                                         uncert=math.pow(task_packet.wave.period_uncertainty, 2), 
+                                                                                         uncert=np.power(task_packet.wave.period_uncertainty, 2), 
                                                                                          units=WAVE_HEIGHT_UNITS, 
                                                                                          cf_standard_name=WAVE_HEIGHT_CF_STANDARD_NAME)
                 curr_wave_period = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=task_packet.wave.period, 
-                                                                                         uncert=math.pow(task_packet.wave.period_uncertainty, 2), 
+                                                                                         uncert=np.power(task_packet.wave.period_uncertainty, 2), 
                                                                                          units=WAVE_PERIOD_UNITS, 
                                                                                          cf_standard_name=WAVE_PERIOD_CF_STANDARD_NAME)
                 curr_wave_measurement = jaiabot.messages.surob_results_pb2.WaveMeasurement(wave_height=curr_wave_height, 
@@ -459,11 +467,11 @@ def surob_results_request(jaia_request):
                 hs_uncertainty_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
                 curr_wave_height = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=hs_ft, 
-                                                                                         uncert=math.pow(task_packet.wave.period_uncertainty, 2), 
+                                                                                         uncert=np.power(task_packet.wave.period_uncertainty, 2), 
                                                                                          units=WAVE_HEIGHT_UNITS, 
                                                                                          cf_standard_name=WAVE_HEIGHT_CF_STANDARD_NAME)
                 curr_wave_period = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=task_packet.wave.period, 
-                                                                                         uncert=math.pow(task_packet.wave.period_uncertainty, 2), 
+                                                                                         uncert=np.power(task_packet.wave.period_uncertainty, 2), 
                                                                                          units=WAVE_PERIOD_UNITS, 
                                                                                          cf_standard_name=WAVE_PERIOD_CF_STANDARD_NAME)
                 curr_wave_measurement = jaiabot.messages.surob_results_pb2.WaveMeasurement(wave_height=curr_wave_height, 
@@ -506,7 +514,7 @@ def surob_results_request(jaia_request):
     if len(surface_drift_sig_wave_periods_s) == 0:
         if station_keep_furthest_from_shoreline_pt_sig_wave_period_s is not None: # use period estimate from station keep furthest offshore as a back up, if it exists
             sig_wave_period_s_to_report = station_keep_furthest_from_shoreline_pt_sig_wave_period_s
-            sig_wave_period_uncertainty_s_to_report = math.sqrt(station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s)
+            sig_wave_period_uncertainty_s_to_report = np.sqrt(station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s)
         else:
             jaia_response.surob_results_response.surob_results_found = False
             if bot_ids is None:
@@ -517,15 +525,15 @@ def surob_results_request(jaia_request):
     
     if len(surface_drift_sig_wave_periods_s) == 1:
         sig_wave_period_s_to_report = surface_drift_sig_wave_periods_s[0]
-        sig_wave_period_uncertainty_s_to_report = math.sqrt(surface_drift_sig_wave_period_uncertainties_s[0])
+        sig_wave_period_uncertainty_s_to_report = np.sqrt(surface_drift_sig_wave_period_uncertainties_s[0])
     else:
         # we expect only 1 surface drift per surob, but in the event we find multiple, report average of period estimates and uncertainty of largest between std of period estimates or default uncertainty of period estimate
         sig_wave_period_s_to_report = statistics.mean(surface_drift_sig_wave_periods_s)
-        sig_wave_period_uncertainty_s_to_report = max(math.sqrt(max(surface_drift_sig_wave_period_uncertainties_s)), statistics.stdev(surface_drift_sig_wave_periods_s))
+        sig_wave_period_uncertainty_s_to_report = max(np.sqrt(max(surface_drift_sig_wave_period_uncertainties_s)), statistics.stdev(surface_drift_sig_wave_periods_s))
 
-    sig_breaker_height = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=max_sig_wave_height_ft, uncert=math.pow(max_sig_wave_height_uncertainty_ft, 2), units=WAVE_HEIGHT_UNITS)
-    breaker_period = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=sig_wave_period_s_to_report, uncert=math.pow(sig_wave_period_uncertainty_s_to_report, 2), units=WAVE_PERIOD_UNITS)
-    littoral_current_local = jaiabot.messages.surob_results_pb2.LittoralCurrent(value=max_alongshore_current_speed_knots, uncert=math.pow(max_alongshore_current_speed_uncertainty_knots, 2), flank=max_alongshore_current_flank, units=LITTORAL_CURRENT_UNITS)
+    sig_breaker_height = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=max_sig_wave_height_ft, uncert=np.power(max_sig_wave_height_uncertainty_ft, 2), units=WAVE_HEIGHT_UNITS)
+    breaker_period = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=sig_wave_period_s_to_report, uncert=np.power(sig_wave_period_uncertainty_s_to_report, 2), units=WAVE_PERIOD_UNITS)
+    littoral_current_local = jaiabot.messages.surob_results_pb2.LittoralCurrent(value=max_alongshore_current_speed_knots, uncert=np.power(max_alongshore_current_speed_uncertainty_knots, 2), flank=max_alongshore_current_flank, units=LITTORAL_CURRENT_UNITS)
     surob = jaiabot.messages.surob_results_pb2.Surob(sig_breaker_height=sig_breaker_height, breaker_period=breaker_period, littoral_current_local=littoral_current_local)
     reports = [jaiabot.messages.surob_results_pb2.Report(surob=surob)]
 
