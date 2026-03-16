@@ -558,3 +558,39 @@ message MissionTpvMeetsGpsReq
 
     optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv = 1;
 }
+
+// Proto definitions for fields MissionSetSnapshot Typescript object, enabling export of mission sets from Gobysoft/REST API envs to web Typescript env
+// defined separately from mission_set_snapshot.proto to clarify dependencies for map in MissionSetSnapshot message
+
+message MissionSetSnapshotTask {
+    optional MissionTask.TaskType type = 1;
+    optional MissionTask.DiveParameters diveParameters = 2;
+    optional MissionTask.DriftParameters driftParameters = 3;
+    optional MissionTask.ConstantHeadingParameters constantHeadingParameters = 4;
+    optional MissionTask.StationKeepParameters stationKeepParameters = 5;
+    optional int32 safetyDepth = 6;
+    optional bool isBottomDive = 7;
+    optional bool useHydrophone = 8;
+    optional bool isSurveyTask = 9;
+}
+
+message MissionSetSnapshotWaypoint {
+    optional GeographicCoordinate location = 1;
+    optional MissionSetSnapshotTask task = 2;
+}
+
+message MissionSetGhostParameters {
+    optional bool hasStarted = 1;
+    optional int32 botID = 2;
+    optional int32 repeats = 3;
+    optional bool isGhost = 4;
+}
+
+message MissionSetSnapshotMission {
+    optional int32 missionID = 1;
+    repeated MissionSetSnapshotWaypoint waypoints = 2;
+    optional Speeds speeds = 3;
+    optional int32 repeats = 4;
+    optional BottomDepthSafetyParams BottomDepthSafetyParams = 5;
+    optional MissionSetGhostParameters ghostParameters = 6;
+}

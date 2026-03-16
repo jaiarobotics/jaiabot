@@ -1,0 +1,15 @@
+syntax = "proto2";
+
+import "jaiabot/messages/mission.proto";
+
+package jaiabot.protobuf.map;
+
+// This is the message containing the problematic map field.
+// By isolating it, we break the dependency cycle.
+message MissionSetSnapshot {
+    map<int32, jaiabot.protobuf.MissionSetSnapshotMission> missions = 1;
+    optional int32 nextMissionID = 2;
+    optional int32 missionIDInEditMode = 3;
+    optional jaiabot.protobuf.Speeds missionSpeeds = 4;
+    optional string name = 5;
+}
