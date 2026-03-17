@@ -15,6 +15,7 @@ import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import {
     DATA_MODEL_POLL_TIME,
+    METADATA_POLL_TIME,
     NO_COMMS_STATUS_AGE,
     TASK_PACKET_POLL_TIME,
 } from "../utils/constants";
@@ -25,6 +26,7 @@ import SoundEffects from "../style/audio/sound-effects";
 const STATUS_URL = "/jaia/v0/status";
 const TASK_PACKET_URL = "/jaia/v0/task-packets";
 const TASK_PACKET_VERSION_URL = "/jaia/v0/task-packets-version";
+const METADATA_URL = "/jaia/v0/metadata";
 const HUB_CONNECTION_ERROR = "Connection Dropped To HUB";
 
 const DISCONNECT_THRESHOLD = NO_COMMS_STATUS_AGE * 1e6;
@@ -35,6 +37,7 @@ const CONGESTION_WARNING = "congestion-warning";
 
 let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
+let metadataRequestInFlight = false;
 
 const statusInterval = setInterval(async () => {
     const startTime = new Date().getTime();
@@ -85,7 +88,7 @@ const taskPacketInterval = setInterval(async () => {
         taskPacketRequestInFlight = true;
         const versionRes = await fetch(TASK_PACKET_VERSION_URL);
         if (!versionRes.ok) {
-            console.error(`Response status: ${versionRes.status}`);
+            console.error(`Task packet response status: ${versionRes.status}`);
         } else {
             const version = await versionRes.json();
             if (version !== taskPackets.getVersion()) {
@@ -102,6 +105,25 @@ const taskPacketInterval = setInterval(async () => {
     }
     taskPacketRequestInFlight = false;
 }, TASK_PACKET_POLL_TIME);
+
+const metadataInterval = setInterval(async () => {
+    if (metadataRequestInFlight) {
+        return;
+    }
+    try {
+        metadataRequestInFlight = true;
+        const res = await fetch(METADATA_URL);
+        if (!res.ok) {
+            console.error(`Metadata response status: ${res.status}`);
+        } else {
+            const metadata = await res.json();
+            jaiaGlobal.setMetadata(metadata);
+        }
+    } catch (error) {
+        console.error(error);
+    }
+    metadataRequestInFlight = false;
+}, METADATA_POLL_TIME);
 
 /**
  * Moves Bot data from the server to the client-side data model

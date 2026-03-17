@@ -8,13 +8,14 @@ import {
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { Metadata } from "../../types/protobuf-types";
 
 export interface JaiaGlobalSnapshot {
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
     selectedTaskPacket: SelectedTaskPacket;
-    mapMode: MapModes;
     defaultTaskParameters: TaskParameters;
+    mapMode: MapModes;
 }
 
 const defaultTaskParameters: TaskParameters = {
@@ -43,6 +44,7 @@ export class JaiaGlobal {
     private mapMode: MapModes;
     private defaultTaskParameters: TaskParameters;
     private controllingClientID: string;
+    private metadata: Metadata;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
@@ -58,6 +60,7 @@ export class JaiaGlobal {
         };
         this.mapMode = MapModes.DEFAULT;
         this.defaultTaskParameters = defaultTaskParameters;
+        this.metadata = {};
     }
 
     getSelectedNode() {
@@ -113,6 +116,14 @@ export class JaiaGlobal {
 
     setControllingClientID(controllingClientID: string) {
         this.controllingClientID = controllingClientID;
+    }
+
+    getMetadata() {
+        return this.metadata;
+    }
+
+    setMetadata(metadata: Metadata) {
+        this.metadata = metadata;
     }
 
     resetSelectedWaypoint() {
