@@ -128,8 +128,8 @@ HAL_StatusTypeDef get_PHReading()
   ph.ph = (float)regReading / divFactor;
 
   // Temperature
-  ph.temperature = OEM_ConvertVoltageToTemperature(adc_voltage4);
-  ph.temperature_voltage = adc_voltage4;
+  ph.temperature = OEM_ConvertVoltageToTemperature(adc_voltage3);
+  ph.temperature_voltage = adc_voltage3;
 
   return status;
 }
