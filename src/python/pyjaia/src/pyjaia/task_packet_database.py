@@ -142,7 +142,8 @@ class TaskPacketDatabase:
             parameters = []
 
             if bot_ids is not None:
-                conditionals.append(f'bot_id in ({",".join(["?" * len(bot_ids)])})')
+                placeholders = ",".join(["?"] * len(bot_ids))
+                conditionals.append(f'bot_id in ({placeholders})')
                 parameters.extend(bot_ids)
 
             if start_utime is not None:
