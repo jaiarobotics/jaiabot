@@ -350,7 +350,7 @@ elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block=interprocess_common,
-                                     port='/dev/ttyUSB0',
+                                     port='/dev/bio-payload',
                                      baud=115200,
                                      fluorometer_coefficients=fluorometer_coefficients))
 elif common.app == 'jaiabot_engineering':
