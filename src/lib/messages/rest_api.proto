@@ -29,7 +29,7 @@ message CommandResult
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
-message SurobMissionPlanRequest
+message SurobMissionPlanRequest // TODO: after surob field exercise, expose shoreline offset to allow user to adjust for missions too close/too far from the shore
 {
     required GeographicCoordinate shoreline_point = 1
         [(jaia.field).rest_api = {
@@ -267,7 +267,7 @@ message APIResponse
             presence: GUARANTEED,
             doc: "Mission plan in Command list format. This is sent in response to a Request 'surob_mission_plan' action with either the desired mission plan or an error message."
         }];
-        SurobResultsRequest surob_results = 16 [(jaia.field).rest_api = {
+        SurobResultsResponse surob_results = 16 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Surob results in SurobResults message format. This is sent in response to a Request 'surob_results' action with either the desired surob results or an error message."
         }]; 

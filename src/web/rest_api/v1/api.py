@@ -352,11 +352,11 @@ def surob_results_request(jaia_request):
         task_packets = common.shared_data.data.get_task_packets(bot_ids, start_time, end_time)
 
     if len(task_packets) == 0:
-        jaia_response.surob_results_response.surob_results_found = False
+        jaia_response.surob_results.surob_results_found = False
         if bot_ids is None:
-            jaia_response.surob_results_response.error_message = f"No task packets found for active bots between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No task packets found for active bots between {start_time} and {end_time}."
         else:
-            jaia_response.surob_results_response.error_message = f"No task packets found for bots {bot_ids} between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No task packets found for bots {bot_ids} between {start_time} and {end_time}."
         return jaia_response
 
     alongshore_bearing_deg = shore_normal_to_alongshore_bearing_deg(shore_normal_bearing_deg(shoreline_point, offshore_point))
@@ -496,19 +496,19 @@ def surob_results_request(jaia_request):
                 surface_drift_sig_wave_period_uncertainties_s.append(task_packet.wave.period_uncertainty)
 
     if max_alongshore_current_speed_knots is None:
-        jaia_response.surob_results_response.surob_results_found = False
+        jaia_response.surob_results.surob_results_found = False
         if bot_ids is None:
-            jaia_response.surob_results_response.error_message = f"No current estimates found for active bots between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No current estimates found for active bots between {start_time} and {end_time}."
         else:
-            jaia_response.surob_results_response.error_message = f"No current estimates found for bots {bot_ids} between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No current estimates found for bots {bot_ids} between {start_time} and {end_time}."
         return jaia_response
 
     if max_sig_wave_height_ft is None:
-        jaia_response.surob_results_response.surob_results_found = False
+        jaia_response.surob_results.surob_results_found = False
         if bot_ids is None:
-            jaia_response.surob_results_response.error_message = f"No significant wave height estimates found for active bots between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No significant wave height estimates found for active bots between {start_time} and {end_time}."
         else:
-            jaia_response.surob_results_response.error_message = f"No significant wave height estimates found for bots {bot_ids} between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No significant wave height estimates found for bots {bot_ids} between {start_time} and {end_time}."
         return jaia_response
 
     if len(surface_drift_sig_wave_periods_s) == 0:
@@ -516,11 +516,11 @@ def surob_results_request(jaia_request):
             sig_wave_period_s_to_report = station_keep_furthest_from_shoreline_pt_sig_wave_period_s
             sig_wave_period_uncertainty_s_to_report = np.sqrt(station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s)
         else:
-            jaia_response.surob_results_response.surob_results_found = False
+            jaia_response.surob_results.surob_results_found = False
             if bot_ids is None:
-                jaia_response.surob_results_response.error_message = f"No significant wave period estimates found for active bots between {start_time} and {end_time}."
+                jaia_response.surob_results.error_message = f"No significant wave period estimates found for active bots between {start_time} and {end_time}."
             else:
-                jaia_response.surob_results_response.error_message = f"No significant wave period estimates found for bots {bot_ids} between {start_time} and {end_time}."
+                jaia_response.surob_results.error_message = f"No significant wave period estimates found for bots {bot_ids} between {start_time} and {end_time}."
             return jaia_response
     
     if len(surface_drift_sig_wave_periods_s) == 1:
