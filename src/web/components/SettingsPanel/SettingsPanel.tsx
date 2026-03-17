@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
 import { ThemeProvider } from "@emotion/react";
 
+import { JaiaContext } from "../../context/JaiaContext";
 import MoveHub from "./MoveHub/MoveHub";
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
 import ScanForBot from "./ScanForBot/ScanForBot";
@@ -12,15 +13,22 @@ import OfflineMaps from "./OfflineMaps/OfflineMaps";
 import QueryBotStatus from "./QueryBotStatus/QueryBotStatus";
 import LayerSwitcherMenu from "./LayerSwitcherMenu/LayerSwitcherMenu";
 import { trackPod } from "../../openlayers/controls/track-pod";
+import { jaiaAPI } from "../../utils/jaia-api";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
+import { Metadata } from "../../types/protobuf-types";
 
 import "./SettingsPanel.less";
+
+interface Props {
+    isSimulation: boolean;
+}
 
 /**
  * Contains general configurations for the JCC and Jaia System
  */
 
 export default function SettingsPanel() {
+    const jaiaContext = useContext(JaiaContext);
     const [isTrackingPod, setIsTrackingPod] = useState(trackPod.isTracking());
 
     useEffect(() => {
@@ -99,19 +107,36 @@ export default function SettingsPanel() {
                             <OfflineMaps />
                         </AccordionDetails>
                     </Accordion>
-                    <Accordion className="accordion-container">
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            className="accordion-summary"
-                        >
-                            <Typography>Simulation</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <MoveHub />
-                        </AccordionDetails>
-                    </Accordion>
+
+                    <SimulationAccordion
+                        isSimulation={jaiaContext.jaiaGlobal.getMetadata()?.is_simulation}
+                    />
                 </ThemeProvider>
             </div>
         </div>
     );
+}
+
+function SimulationAccordion(props: Props) {
+    const [isSimulation, setIsSimulation] = useState(false);
+
+    useEffect(() => {
+        jaiaAPI
+            .getMetadata()
+            .then((metadata: Metadata) => setIsSimulation(metadata?.is_simulation));
+    }, []);
+
+    if (isSimulation || props.isSimulation) {
+        return (
+            <Accordion className="accordion-container">
+                <AccordionSummary expandIcon={<ExpandMoreIcon />} className="accordion-summary">
+                    <Typography>Simulation</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                    <MoveHub />
+                </AccordionDetails>
+            </Accordion>
+        );
+    }
+    return null;
 }

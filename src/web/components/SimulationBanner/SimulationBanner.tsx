@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 import { JaiaContext } from "../../context/JaiaContext";
 import { jaiaAPI } from "../../utils/jaia-api";
+import { Metadata } from "../../types/protobuf-types";
 import "./SimulationBanner.less";
 
 /**
@@ -12,7 +13,7 @@ export default function SimulationBanner() {
 
     // Get metadata before first iteration of interval (10 second delay)
     useEffect(() => {
-        jaiaAPI.getMetadata().then((metadata) => {
+        jaiaAPI.getMetadata().then((metadata: Metadata) => {
             if (metadata?.is_simulation) {
                 setIsSimulation(true);
             }
