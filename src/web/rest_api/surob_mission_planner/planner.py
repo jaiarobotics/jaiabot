@@ -12,7 +12,7 @@ Date: 2026-01-21
 import json
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -25,11 +25,11 @@ class MissionParameters:
     shoreline_lon: float  # Longitude of shoreline point
     offshore_lat: float  # Latitude of offshore extent point
     offshore_lon: float  # Longitude of offshore extent point
-    bot_ids: List[int]  # List of bot IDs to use for the mission
+    num_bots: int  # Number of bots available
     measurement_time: float  # Time for one measurement (station keep + dive) in minutes
     mission_duration: float = None  # Desired total mission duration in minutes (optional)
     target_resolution: float = None  # Target spatial resolution in meters (optional)
-    dive_depth: float = 5.0  # Average dive depth in meters (default from spreadsheet)
+    dive_depth: float = 50.0  # Maximum dive depth in meters (bottom dive default)
     transit_speed: float = 2.0  # Transit speed in m/s (default from spreadsheet)
     station_keep_time: float = 5.0  # Station keeping duration in minutes
     planning_mode: str = "time"  # 'time' or 'resolution'
@@ -37,19 +37,24 @@ class MissionParameters:
     drift_offset_fraction: float = (
         0.5  # Drift position as fraction of transect distance beyond offshore
     )
+    bot_id_display_offset: int = 1  # Added to bot_id for human-readable display (1 = 1-indexed)
     home_offset: float = 25.0  # Distance onshore of shoreline for home/recovery point (meters)
-    num_bots: int = None
+    bot_ids: Optional[List[int]] = None  # Explicit list of bot IDs (overrides num_bots)
 
     def __post_init__(self):
         """Validate parameters"""
-        if abs(self.shoreline_lat) > 90.0 or abs(self.offshore_lat) > 90.0:
-            raise ValueError("latitude coordinates must be in the range of [-90, 90] degrees.")
-        if abs(self.shoreline_lon) > 180.0 or abs(self.offshore_lon) > 180.0:
-            raise ValueError("Longitude coordinates must be in the range of [-180, 180] degrees.")
-        if not self.bot_ids:
-            raise ValueError("bot_ids must be a non-empty list")
-        self.num_bots = len(self.bot_ids)
-        
+        if self.bot_ids is not None:
+            if len(self.bot_ids) == 0:
+                raise ValueError("bot_ids must not be empty")
+            if len(set(self.bot_ids)) != len(self.bot_ids):
+                raise ValueError("bot_ids must not contain duplicates")
+            self.num_bots = len(self.bot_ids)
+            self.bot_id_display_offset = 0
+        else:
+            if self.num_bots <= 0:
+                raise ValueError("num_bots must be positive")
+            self.bot_ids = list(range(self.num_bots))
+
         if self.planning_mode not in ["time", "resolution"]:
             raise ValueError("planning_mode must be 'time' or 'resolution'")
 
@@ -128,13 +133,21 @@ class JaiabotMissionPlanner:
     TRANSIT_BATTERY_PER_KM = 7.647059  # % battery per km
     DIVE_BATTERY_PER_M = 0.093201  # % battery per meter of depth per dive
 
-    # Jaia mission format string constants (for mission.proto compatibility)
-    JAIA_START_IMMEDIATELY = "START_IMMEDIATELY"
-    JAIA_START_ON_COMMAND = "START_ON_COMMAND"
-    JAIA_MOVEMENT_TRANSIT = "TRANSIT"
+    # Jaia mission format constants
+    JAIA_MISSION_SET_VERSION = "2.0"
     JAIA_TASK_DIVE = "DIVE"
     JAIA_TASK_STATION_KEEP = "STATION_KEEP"
     JAIA_TASK_SURFACE_DRIFT = "SURFACE_DRIFT"
+    JAIA_UNASSIGNED_ID = -1
+    JAIA_DEFAULT_STATIONKEEP_OUTER_SPEED = 2
+
+    # Jaia protobuf MissionPlan constants
+    JAIA_PROTOBUF_START_IMMEDIATELY = "START_IMMEDIATELY"
+    JAIA_PROTOBUF_START_ON_COMMAND = "START_ON_COMMAND"
+    JAIA_PROTOBUF_MOVEMENT_TRANSIT = "TRANSIT"
+
+    # Jaia protobuf Command constants
+    JAIA_COMMAND_TYPE_MISSION_PLAN = "MISSION_PLAN"
 
     def __init__(self, params: MissionParameters):
         """
@@ -458,8 +471,8 @@ class JaiabotMissionPlanner:
         extra_measurements = num_measurements % self.params.num_bots
 
         return {
-            self.params.bot_ids[i]: measurements_per_bot + (1 if i < extra_measurements else 0)
-            for i in range(self.params.num_bots)
+            bot_id: measurements_per_bot + (1 if bot_idx < extra_measurements else 0)
+            for bot_idx, bot_id in enumerate(self.params.bot_ids)
         }
 
     def _create_measurement_locations(
@@ -489,8 +502,7 @@ class JaiabotMissionPlanner:
             lat, lon = self._interpolate_position(fraction)
 
             # Assign to bot (round-robin distribution)
-            bot_index = i % self.params.num_bots
-            bot_id = self.params.bot_ids[bot_index]
+            bot_id = self.params.bot_ids[i % self.params.num_bots]
 
             location = MeasurementLocation(
                 location_id=i,
@@ -523,20 +535,19 @@ class JaiabotMissionPlanner:
         drift_offset = self.params.drift_offset_fraction * self.total_distance
 
         if not measurement_locations:
-            # Fallback for edge case, assign to the first bot in the list
-            drift_bot_id = self.params.bot_ids[0] if self.params.bot_ids else 0
+            # Fallback for edge case
             drift_distance = self.total_distance + drift_offset
             fraction = drift_distance / self.total_distance if self.total_distance > 0 else 1.0
             drift_lat, drift_lon = self._interpolate_position(fraction)
             return (
                 DriftLocation(
-                    bot_id=drift_bot_id,
+                    bot_id=self.params.bot_ids[0],
                     distance_from_shore=drift_distance,
                     latitude=drift_lat,
                     longitude=drift_lon,
                     drift_duration=self.params.station_keep_time,
                 ),
-                drift_bot_id,
+                self.params.bot_ids[0],
             )
 
         # Find the most offshore measurement and which bot is assigned to it
@@ -712,11 +723,12 @@ class JaiabotMissionPlanner:
             if self.params.shoreline_offset > 0
             else ""
         )
+        display_offset = self.params.bot_id_display_offset
         summary = f"""
 Mission Plan Summary
 ====================
 Cross-shore Distance: {self.total_distance:.1f} m
-{offset_line}Bot IDs: {self.params.bot_ids}
+{offset_line}Number of Bots: {self.params.num_bots}
 Total Measurements: {num_measurements}
 Cross-shore Resolution: {resolution:.1f} m
 
@@ -732,17 +744,19 @@ Measurements per Bot:
         measurements_per_bot = num_measurements // self.params.num_bots
         extra = num_measurements % self.params.num_bots
 
-        for i, bot_id in enumerate(self.params.bot_ids):
-            count = measurements_per_bot + (1 if i < extra else 0)
+        for bot_idx, bot_id in enumerate(self.params.bot_ids):
+            count = measurements_per_bot + (1 if bot_idx < extra else 0)
+            display_id = bot_id + display_offset
             drift_marker = " (+ drift)" if bot_id == drift_bot_id else ""
-            summary += f"  Bot {bot_id}: {count} measurements{drift_marker}\n"
+            summary += f"  Bot {display_id}: {count} measurements{drift_marker}\n"
 
         # Add drift and home section
+        drift_display_id = drift_bot_id + display_offset
         drift_dist = drift_location.distance_from_shore
         home_dist = abs(home_location.distance_from_shore)
         summary += f"""
 Drift & Recovery:
-  Bot {drift_bot_id} drifts at {drift_dist:.1f}m offshore for {drift_time:.1f} min
+  Bot {drift_display_id} drifts at {drift_dist:.1f}m offshore for {drift_time:.1f} min
   All bots return to home at {home_dist:.1f}m onshore
 """
 
@@ -758,6 +772,7 @@ Drift & Recovery:
         Returns:
             Dictionary with mission plan data
         """
+        display_offset = self.params.bot_id_display_offset
         drift = mission_plan.drift_location
 
         return {
@@ -770,12 +785,13 @@ Drift & Recovery:
                     "lat": self.params.offshore_lat,
                     "lon": self.params.offshore_lon,
                 },
-                "bot_ids": self.params.bot_ids,
                 "num_bots": self.params.num_bots,
+                "bot_ids": self.params.bot_ids,
                 "measurement_time_min": self.params.measurement_time,
                 "mission_duration_min": self.params.mission_duration,
                 "shoreline_offset_m": self.params.shoreline_offset,
                 "drift_offset_fraction": self.params.drift_offset_fraction,
+                "bot_id_display_offset": self.params.bot_id_display_offset,
                 "station_keep_time_min": self.params.station_keep_time,
             },
             "mission_results": {
@@ -787,11 +803,13 @@ Drift & Recovery:
                 "measurement_time_min": mission_plan.measurement_time,
                 "drift_time_min": mission_plan.drift_time,
                 "drift_bot_id": mission_plan.drift_bot_id,
+                "drift_bot_display_id": mission_plan.drift_bot_id + display_offset,
             },
             "measurements": [
                 {
                     "id": loc.location_id,
                     "bot_id": loc.bot_id,
+                    "display_bot_id": loc.bot_id + display_offset,
                     "distance_from_shore_m": loc.distance_from_shore,
                     "latitude": loc.latitude,
                     "longitude": loc.longitude,
@@ -800,6 +818,7 @@ Drift & Recovery:
             ],
             "drift_location": {
                 "bot_id": drift.bot_id,
+                "display_bot_id": drift.bot_id + display_offset,
                 "distance_from_shore_m": drift.distance_from_shore,
                 "latitude": drift.latitude,
                 "longitude": drift.longitude,
@@ -813,6 +832,7 @@ Drift & Recovery:
             "bot_behaviors": [
                 {
                     "bot_id": behavior.bot_id,
+                    "display_bot_id": behavior.bot_id + display_offset,
                     "sequence": behavior.sequence,
                 }
                 for behavior in mission_plan.bot_behaviors
@@ -831,7 +851,7 @@ Drift & Recovery:
         with open(filename, "w") as f:
             json.dump(data, f, indent=2)
 
-    def _convert_behavior_to_jaia_goals(
+    def _convert_behavior_to_jaia_waypoints(
         self,
         behavior: BotBehavior,
         dive_depth: float,
@@ -840,13 +860,13 @@ Drift & Recovery:
         bottom_dive: bool,
     ) -> List[Dict]:
         """
-        Convert a bot's behavior sequence to Jaia-compatible Goal dicts.
+        Convert a bot's behavior sequence to Jaia v2.0 Waypoint dicts.
 
-        Maps internal action types to Jaia task types:
-        - station_keep -> STATION_KEEP
-        - dive -> DIVE
-        - drift -> SURFACE_DRIFT
-        - transit, return_home -> skipped (handled by goal sequence/recovery)
+        Maps internal action types to Jaia Task types using v2.0 serialization format:
+        - station_keep -> STATION_KEEP with stationKeepParameters
+        - dive -> DIVE with diveParameters
+        - drift -> SURFACE_DRIFT with driftParameters
+        - transit, return_home -> skipped (handled by waypoint sequence)
 
         Args:
             behavior: BotBehavior with sequence of actions
@@ -856,7 +876,269 @@ Drift & Recovery:
             bottom_dive: Whether to dive to bottom
 
         Returns:
-            List of Goal dicts in Jaia format
+            List of Waypoint dicts in Jaia v2.0 format
+        """
+        waypoints = []
+
+        for action in behavior.sequence:
+            action_type = action["action"]
+
+            if action_type == "station_keep":
+                loc_id = action.get("location_id")
+                loc = self._get_location_by_id(loc_id)
+                if loc:
+                    waypoints.append(
+                        {
+                            "location": {"lat": loc.latitude, "lon": loc.longitude},
+                            "task": {
+                                "type": self.JAIA_TASK_STATION_KEEP,
+                                "stationKeepParameters": {
+                                    "station_keep_time": int(action["duration_min"] * 60)
+                                },
+                            },
+                        }
+                    )
+
+            elif action_type == "dive":
+                loc_id = action.get("location_id")
+                if loc_id is not None:
+                    loc = self._get_location_by_id(loc_id)
+                    if loc:
+                        waypoints.append(
+                            {
+                                "location": {
+                                    "lat": loc.latitude,
+                                    "lon": loc.longitude,
+                                },
+                                "task": {
+                                    "type": self.JAIA_TASK_DIVE,
+                                    "isBottomDive": bottom_dive,
+                                    "diveParameters": {
+                                        "max_depth": dive_depth,
+                                        "depth_interval": dive_depth_interval,
+                                        "hold_time": int(dive_hold_time),
+                                        "bottom_dive": bottom_dive,
+                                    },
+                                },
+                            }
+                        )
+                else:
+                    # Drift dive (at drift location)
+                    waypoints.append(
+                        {
+                            "location": {
+                                "lat": action["latitude"],
+                                "lon": action["longitude"],
+                            },
+                            "task": {
+                                "type": self.JAIA_TASK_DIVE,
+                                "isBottomDive": bottom_dive,
+                                "diveParameters": {
+                                    "max_depth": dive_depth,
+                                    "depth_interval": dive_depth_interval,
+                                    "hold_time": int(dive_hold_time),
+                                    "bottom_dive": bottom_dive,
+                                },
+                            },
+                        }
+                    )
+
+            elif action_type == "drift":
+                waypoints.append(
+                    {
+                        "location": {
+                            "lat": action["latitude"],
+                            "lon": action["longitude"],
+                        },
+                        "task": {
+                            "type": self.JAIA_TASK_SURFACE_DRIFT,
+                            "driftParameters": {"drift_time": int(action["duration_min"] * 60)},
+                        },
+                    }
+                )
+
+            # Skip transit and return_home - handled by waypoint sequence
+
+        return waypoints
+
+    def _get_location_by_id(self, location_id: int) -> MeasurementLocation:
+        """Helper to get measurement location by ID from cached locations."""
+        if not hasattr(self, "_cached_locations"):
+            return None
+        for loc in self._cached_locations:
+            if loc.location_id == location_id:
+                return loc
+        return None
+
+    def export_to_jaia_mission_set_dict(
+        self,
+        mission_plan: MissionPlan,
+        mission_name: str = "Surfzone Mission",
+        dive_depth_interval: float = 50.0,
+        dive_hold_time: float = 0.0,
+        bottom_dive: bool = True,
+    ) -> Dict:
+        """
+        Export mission plan to Jaia v2.0 MissionSet dictionary format.
+
+        Generates a JSON-compatible dict with version "2.0" and a MissionSetSnapshot
+        containing one Mission per bot, each with waypoints (station keep, dive, drift).
+
+        Compatible with Jaia v2.0+ mission set import via JCC GUI (jaiabot release 2.5.0+).
+
+        By default, dives are configured as bottom dives (max_depth=50, depth_interval=50,
+        hold_time=0, bottom_dive=True) where the bot dives until it hits the bottom
+        then returns to the surface.
+
+        Args:
+            mission_plan: MissionPlan object from plan_mission()
+            mission_name: Human-readable mission name
+            dive_depth_interval: Depth interval for dive in meters (default 50 for bottom dive)
+            dive_hold_time: Time to hold at depth in seconds (default 0 for bottom dive)
+            bottom_dive: Whether to perform a bottom dive (default True)
+
+        Returns:
+            Dict in Jaia v2.0 mission set format with version and snapshot
+        """
+        # Cache measurement locations for lookup
+        self._cached_locations = mission_plan.measurement_locations
+
+        display_offset = self.params.bot_id_display_offset
+        missions = []
+        mission_speeds = {
+            "transit": self.params.transit_speed,
+            "stationkeep_outer": self.JAIA_DEFAULT_STATIONKEEP_OUTER_SPEED,
+        }
+
+        for behavior in mission_plan.bot_behaviors:
+            bot_id = behavior.bot_id
+            mission_id = bot_id + display_offset
+
+            # Convert behavior to Jaia v2.0 waypoints
+            waypoints = self._convert_behavior_to_jaia_waypoints(
+                behavior,
+                dive_depth=self.params.dive_depth,
+                dive_depth_interval=dive_depth_interval,
+                dive_hold_time=dive_hold_time,
+                bottom_dive=bottom_dive,
+            )
+
+            # Add HOME waypoint at the end for each bot to navigate to beach
+            waypoints.append(
+                {
+                    "location": {
+                        "lat": mission_plan.home_location.latitude,
+                        "lon": mission_plan.home_location.longitude,
+                    },
+                    "task": {
+                        "type": self.JAIA_TASK_STATION_KEEP,
+                        "stationKeepParameters": {"station_keep_time": 1},
+                    },
+                }
+            )
+
+            # Build the Mission object
+            mission = {
+                "missionID": mission_id,
+                "waypoints": waypoints,
+                "speeds": dict(mission_speeds),
+                "repeats": 1,
+                "ghostParameters": {
+                    "hasStarted": False,
+                    "botID": self.JAIA_UNASSIGNED_ID,
+                    "repeats": 1,
+                },
+            }
+
+            missions.append([mission_id, mission])
+
+        # Clean up cached locations
+        del self._cached_locations
+
+        next_mission_id = missions[-1][0] + 1 if missions else 1
+
+        return {
+            "version": self.JAIA_MISSION_SET_VERSION,
+            "snapshot": {
+                "missions": missions,
+                "nextMissionID": next_mission_id,
+                "missionIDInEditMode": self.JAIA_UNASSIGNED_ID,
+                "missionSpeeds": mission_speeds,
+                "name": mission_name,
+            },
+        }
+
+    def export_to_jaia_mission_set_json(
+        self,
+        mission_plan: MissionPlan,
+        filename: str,
+        mission_name: str = "Surfzone Mission",
+        dive_depth_interval: float = 50.0,
+        dive_hold_time: float = 0.0,
+        bottom_dive: bool = True,
+    ) -> str:
+        """
+        Export mission plan to Jaia v2.0 MissionSet JSON file.
+
+        Compatible with Jaia v2.0+ mission set import via JCC GUI.
+
+        By default, dives are configured as bottom dives where the bot dives
+        until it hits the bottom then returns to the surface.
+
+        Args:
+            mission_plan: MissionPlan object from plan_mission()
+            filename: Output filename (with or without .json extension)
+            mission_name: Human-readable mission name
+            dive_depth_interval: Depth interval for dive in meters (default 50 for bottom dive)
+            dive_hold_time: Time to hold at depth in seconds (default 0 for bottom dive)
+            bottom_dive: Whether to perform a bottom dive (default True)
+
+        Returns:
+            Path to the created JSON file
+        """
+        data = self.export_to_jaia_mission_set_dict(
+            mission_plan,
+            mission_name=mission_name,
+            dive_depth_interval=dive_depth_interval,
+            dive_hold_time=dive_hold_time,
+            bottom_dive=bottom_dive,
+        )
+
+        # Ensure .json extension
+        if not filename.endswith(".json"):
+            filename = f"{filename}.json"
+
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=2)
+
+        return filename
+
+    def _convert_behavior_to_protobuf_goals(
+        self,
+        behavior: BotBehavior,
+        dive_depth: float,
+        dive_depth_interval: float,
+        dive_hold_time: float,
+        bottom_dive: bool,
+    ) -> List[Dict]:
+        """
+        Convert a bot's behavior sequence to Jaia protobuf Goal dicts.
+
+        Maps internal action types to Jaia protobuf MissionTask types:
+        - station_keep -> STATION_KEEP with station_keep sub-message
+        - dive -> DIVE with dive sub-message
+        - drift -> SURFACE_DRIFT with surface_drift sub-message
+        - transit, return_home -> skipped (handled by goal sequence)
+
+        Args:
+            behavior: BotBehavior with sequence of actions
+            dive_depth: Maximum dive depth in meters
+            dive_depth_interval: Depth sampling interval in meters
+            dive_hold_time: Time to hold at depth in seconds
+            bottom_dive: Whether to dive to bottom
+
+        Returns:
+            List of Goal dicts in Jaia protobuf-compliant format
         """
         goals = []
 
@@ -864,14 +1146,13 @@ Drift & Recovery:
             action_type = action["action"]
 
             if action_type == "station_keep":
-                # Get location from measurement locations
                 loc_id = action.get("location_id")
                 loc = self._get_location_by_id(loc_id)
                 if loc:
                     goals.append(
                         {
-                            "name": f"M{loc_id}",
-                            "location": {"lon": loc.longitude, "lat": loc.latitude},
+                            "name": f"Station Keep {loc_id}",
+                            "location": {"lat": loc.latitude, "lon": loc.longitude},
                             "task": {
                                 "type": self.JAIA_TASK_STATION_KEEP,
                                 "station_keep": {
@@ -882,15 +1163,17 @@ Drift & Recovery:
                     )
 
             elif action_type == "dive":
-                # Check if this is a measurement dive (has location_id) or drift dive
                 loc_id = action.get("location_id")
                 if loc_id is not None:
                     loc = self._get_location_by_id(loc_id)
                     if loc:
                         goals.append(
                             {
-                                "name": f"M{loc_id}-dive",
-                                "location": {"lon": loc.longitude, "lat": loc.latitude},
+                                "name": f"Dive {loc_id}",
+                                "location": {
+                                    "lat": loc.latitude,
+                                    "lon": loc.longitude,
+                                },
                                 "task": {
                                     "type": self.JAIA_TASK_DIVE,
                                     "dive": {
@@ -906,8 +1189,11 @@ Drift & Recovery:
                     # Drift dive (at drift location)
                     goals.append(
                         {
-                            "name": f"D{behavior.bot_id}-dive",
-                            "location": {"lon": action["longitude"], "lat": action["latitude"]},
+                            "name": "Drift Dive",
+                            "location": {
+                                "lat": action["latitude"],
+                                "lon": action["longitude"],
+                            },
                             "task": {
                                 "type": self.JAIA_TASK_DIVE,
                                 "dive": {
@@ -923,8 +1209,11 @@ Drift & Recovery:
             elif action_type == "drift":
                 goals.append(
                     {
-                        "name": f"D{behavior.bot_id}",
-                        "location": {"lon": action["longitude"], "lat": action["latitude"]},
+                        "name": "Surface Drift",
+                        "location": {
+                            "lat": action["latitude"],
+                            "lon": action["longitude"],
+                        },
                         "task": {
                             "type": self.JAIA_TASK_SURFACE_DRIFT,
                             "surface_drift": {"drift_time": int(action["duration_min"] * 60)},
@@ -932,70 +1221,62 @@ Drift & Recovery:
                     }
                 )
 
-            # Skip transit and return_home - handled by goal sequence and recovery
+            # Skip transit and return_home - handled by goal sequence
 
         return goals
 
-    def _get_location_by_id(self, location_id: int) -> MeasurementLocation:
-        """Helper to get measurement location by ID from cached locations."""
-        if not hasattr(self, "_cached_locations"):
-            return None
-        for loc in self._cached_locations:
-            if loc.location_id == location_id:
-                return loc
-        return None
-
-    def export_to_jaia_mission_dict(
+    def export_to_jaia_mission_plan_protobuf_dict(
         self,
         mission_plan: MissionPlan,
-        mission_name: str = "Surfzone Mission",
-        mission_id: str = None,
-        start_mode: str = "on_command",
-        dive_depth_interval: float = 1.0,
-        dive_hold_time: float = 10.0,
+        start_immediately: bool = True,
+        dive_depth_interval: float = 50.0,
+        dive_hold_time: float = 0.0,
         bottom_dive: bool = True,
-    ) -> Dict:
+    ) -> Dict[int, Dict]:
         """
-        Export mission plan to Jaia-compatible dictionary format.
+        Export mission plan to Jaia protobuf-compliant MissionPlan dictionaries.
 
-        Generates a single mission file with all bots' missions under 'runs'.
-        Compatible with the format shown in example_mission.json.
+        Generates a dict mapping bot display IDs to MissionPlan dicts that are
+        compatible with google.protobuf.json_format.Parse() or ParseDict().
+
+        Each bot's mission is a MissionPlan message containing goals (waypoints),
+        recovery location (onshore point), speeds, and start configuration.
+
+        Suitable for uploading missions directly to bots via the Jaia REST API.
+
+        By default, dives are configured as bottom dives (max_depth=50, depth_interval=50,
+        hold_time=0, bottom_dive=True) where the bot dives until it hits the bottom
+        then returns to the surface.
 
         Args:
             mission_plan: MissionPlan object from plan_mission()
-            mission_name: Human-readable mission name
-            mission_id: Optional mission ID (auto-generated if not provided)
-            start_mode: "on_command" (default) or "immediately"
-            dive_depth_interval: Depth interval for dive in meters
-            dive_hold_time: Time to hold at depth in seconds
-            bottom_dive: Whether to dive to bottom
+            start_immediately: If True, mission starts immediately upon upload.
+                If False, mission starts on command. (default: True)
+            dive_depth_interval: Depth interval for dive in meters (default 50 for bottom dive)
+            dive_hold_time: Time to hold at depth in seconds (default 0 for bottom dive)
+            bottom_dive: Whether to perform a bottom dive (default True)
 
         Returns:
-            Dict in Jaia mission format with all bots under 'runs'
+            Dict mapping bot display IDs to protobuf-compliant MissionPlan dicts
         """
         # Cache measurement locations for lookup
         self._cached_locations = mission_plan.measurement_locations
 
-        # Determine start mode string
-        start_str = (
-            self.JAIA_START_ON_COMMAND
-            if start_mode == "on_command"
-            else self.JAIA_START_IMMEDIATELY
+        display_offset = self.params.bot_id_display_offset
+        start_mode = (
+            self.JAIA_PROTOBUF_START_IMMEDIATELY
+            if start_immediately
+            else self.JAIA_PROTOBUF_START_ON_COMMAND
         )
 
-        # Generate mission ID if not provided
-        if mission_id is None:
-            mission_id = f"surfzone-{int(time.time())}"
-
-        runs = {}
-        bots_assigned = {}
+        result = {}
 
         for behavior in mission_plan.bot_behaviors:
             bot_id = behavior.bot_id
-            run_id = f"run-{bot_id}"
+            bot_display_id = bot_id + display_offset
 
-            # Convert behavior to Jaia goals
-            goals = self._convert_behavior_to_jaia_goals(
+            # Convert behavior to protobuf-compliant goals
+            goals = self._convert_behavior_to_protobuf_goals(
                 behavior,
                 dive_depth=self.params.dive_depth,
                 dive_depth_interval=dive_depth_interval,
@@ -1003,142 +1284,87 @@ Drift & Recovery:
                 bottom_dive=bottom_dive,
             )
 
-            # Add HOME waypoint at the end for each bot to navigate to beach
-            goals.append(
-                {
-                    "name": "HOME",
+            # Build the protobuf-compliant MissionPlan
+            mission_plan_dict = {
+                "start": start_mode,
+                "movement": self.JAIA_PROTOBUF_MOVEMENT_TRANSIT,
+                "goal": goals,
+                "recovery": {
+                    "recover_at_final_goal": False,
                     "location": {
-                        "lon": mission_plan.home_location.longitude,
                         "lat": mission_plan.home_location.latitude,
-                    },
-                    "task": {
-                        "type": self.JAIA_TASK_STATION_KEEP,
-                        "station_keep": {"station_keep_time": 1},
-                    },
-                }
-            )
-
-            # Build the run entry
-            runs[run_id] = {
-                "id": run_id,
-                "name": f"Bot {bot_id}",
-                "assigned": bot_id,
-                "command": {
-                    "bot_id": bot_id,
-                    "time": int(time.time() * 1000),
-                    "type": "MISSION_PLAN",
-                    "plan": {
-                        "start": start_str,
-                        "movement": self.JAIA_MOVEMENT_TRANSIT,
-                        "goal": goals,
-                        "recovery": {
-                            "recover_at_final_goal": False,
-                            "location": {
-                                "lon": mission_plan.home_location.longitude,
-                                "lat": mission_plan.home_location.latitude,
-                            },
-                        },
+                        "lon": mission_plan.home_location.longitude,
                     },
                 },
-                "showTableOfWaypoints": True,
+                "speeds": {
+                    "transit": self.params.transit_speed,
+                    "stationkeep_outer": self.JAIA_DEFAULT_STATIONKEEP_OUTER_SPEED,
+                },
+                "repeats": 1,
             }
 
-            bots_assigned[str(bot_id)] = run_id
+            result[bot_display_id] = mission_plan_dict
 
         # Clean up cached locations
         del self._cached_locations
 
-        return {
-            "id": mission_id,
-            "name": mission_name,
-            "runs": runs,
-            "runIdIncrement": len(runs) + 1,
-            "botsAssignedToRuns": bots_assigned,
-            "runIdInEditMode": "",
-        }
+        return result
 
-    def export_to_jaia_mission_json_string(
+    def export_to_jaia_command_protobuf_dict(
         self,
         mission_plan: MissionPlan,
-        mission_name: str = "Surfzone Mission",
-        mission_id: str = None,
-        start_mode: str = "on_command",
-        dive_depth_interval: float = 1.0,
-        dive_hold_time: float = 10.0,
+        start_immediately: bool = True,
+        dive_depth_interval: float = 50.0,
+        dive_hold_time: float = 0.0,
         bottom_dive: bool = True,
-    ) -> str:
+    ) -> Dict[int, Dict]:
         """
-        Export mission plan to Jaia-compatible JSON string.
+        Export mission plan to Jaia protobuf-compliant Command dictionaries.
+
+        Generates a dict mapping bot display IDs to Command dicts that wrap
+        each bot's MissionPlan in a Command message. The output is compatible
+        with google.protobuf.json_format.Parse() or ParseDict() for the
+        jaiabot.protobuf.Command message.
+
+        Suitable for uploading missions directly to bots via the Jaia REST API.
+
+        By default, dives are configured as bottom dives (max_depth=50, depth_interval=50,
+        hold_time=0, bottom_dive=True) where the bot dives until it hits the bottom
+        then returns to the surface.
 
         Args:
             mission_plan: MissionPlan object from plan_mission()
-            mission_name: Human-readable mission name
-            mission_id: Optional mission ID (auto-generated if not provided)
-            start_mode: "on_command" (default) or "immediately"
-            dive_depth_interval: Depth interval for dive in meters
-            dive_hold_time: Time to hold at depth in seconds
-            bottom_dive: Whether to dive to bottom
+            start_immediately: If True, mission starts immediately upon upload.
+                If False, mission starts on command. (default: True)
+            dive_depth_interval: Depth interval for dive in meters (default 50 for bottom dive)
+            dive_hold_time: Time to hold at depth in seconds (default 0 for bottom dive)
+            bottom_dive: Whether to perform a bottom dive (default True)
 
         Returns:
-            Mission serialized into a JSON-formatted string.
+            Dict mapping bot display IDs to protobuf-compliant Command dicts
         """
-        data = self.export_to_jaia_mission_dict(
+        mission_plans = self.export_to_jaia_mission_plan_protobuf_dict(
             mission_plan,
-            mission_name=mission_name,
-            mission_id=mission_id,
-            start_mode=start_mode,
+            start_immediately=start_immediately,
             dive_depth_interval=dive_depth_interval,
             dive_hold_time=dive_hold_time,
             bottom_dive=bottom_dive,
         )
 
-        return json.dumps(data)
+        # Current time in microseconds
+        time_usec = int(time.time() * 1e6)
 
-    def export_to_jaia_mission_json_file(
-        self,
-        mission_plan: MissionPlan,
-        filename: str,
-        mission_name: str = "Surfzone Mission",
-        mission_id: str = None,
-        start_mode: str = "on_command",
-        dive_depth_interval: float = 1.0,
-        dive_hold_time: float = 10.0,
-        bottom_dive: bool = True,
-    ) -> str:
-        """
-        Export mission plan to Jaia-compatible JSON file.
+        result = {}
+        for bot_display_id, plan_dict in mission_plans.items():
+            command = {
+                "bot_id": bot_display_id,
+                "time": time_usec,
+                "type": self.JAIA_COMMAND_TYPE_MISSION_PLAN,
+                "plan": plan_dict,
+            }
+            result[bot_display_id] = command
 
-        Args:
-            mission_plan: MissionPlan object from plan_mission()
-            filename: Output filename (with or without .json extension)
-            mission_name: Human-readable mission name
-            mission_id: Optional mission ID (auto-generated if not provided)
-            start_mode: "on_command" (default) or "immediately"
-            dive_depth_interval: Depth interval for dive in meters
-            dive_hold_time: Time to hold at depth in seconds
-            bottom_dive: Whether to dive to bottom
-
-        Returns:
-            Path to the created JSON file
-        """
-        data = self.export_to_jaia_mission_dict(
-            mission_plan,
-            mission_name=mission_name,
-            mission_id=mission_id,
-            start_mode=start_mode,
-            dive_depth_interval=dive_depth_interval,
-            dive_hold_time=dive_hold_time,
-            bottom_dive=bottom_dive,
-        )
-
-        # Ensure .json extension
-        if not filename.endswith(".json"):
-            filename = f"{filename}.json"
-
-        with open(filename, "w") as f:
-            json.dump(data, f, indent=2)
-
-        return filename
+        return result
 
 
 def plan_surfzone_mission(
@@ -1146,14 +1372,16 @@ def plan_surfzone_mission(
     shoreline_lon: float,
     offshore_lat: float,
     offshore_lon: float,
-    bot_ids: List[int],
+    num_bots: int,
     measurement_time: float,
     mission_duration: float = None,
     target_resolution: float = None,
     planning_mode: str = "time",
     shoreline_offset: float = 25.0,
     drift_offset_fraction: float = 0.5,
+    bot_id_display_offset: int = 1,
     home_offset: float = 25.0,
+    bot_ids: Optional[List[int]] = None,
     **kwargs,
 ) -> MissionPlan:
     """
@@ -1174,39 +1402,41 @@ def plan_surfzone_mission(
         shoreline_lon: Longitude of shoreline point
         offshore_lat: Latitude of offshore extent
         offshore_lon: Longitude of offshore extent
-        bot_ids: List of bot IDs available for the mission
+        num_bots: Number of bots available
         measurement_time: Time per measurement in minutes (station keep + dive)
         mission_duration: Total mission duration in minutes (for 'time' mode)
         target_resolution: Target spacing in meters (for 'resolution' mode)
         planning_mode: 'time' or 'resolution' (default: 'time')
         shoreline_offset: Distance to shift measurements offshore in meters (default: 25.0)
         drift_offset_fraction: Drift as fraction of transect distance beyond offshore (default: 0.5)
+        bot_id_display_offset: Added to bot_id for display (default: 1 for 1-indexed)
         home_offset: Distance onshore for home/recovery point in meters (default: 25.0)
+        bot_ids: Explicit list of bot IDs (default: None, uses range(num_bots))
         **kwargs: Additional parameters (dive_depth, transit_speed, station_keep_time, etc.)
 
     Returns:
         MissionPlan object with measurement locations, drift, home, and bot behaviors
 
     Examples:
-        # TIME MODE: Maximize measurements in 60 minutes with bots 10, 20, 30
+        # TIME MODE: Maximize measurements in 60 minutes
         >>> plan = plan_surfzone_mission(
         ...     shoreline_lat=35.280684,
         ...     shoreline_lon=-75.515804,
         ...     offshore_lat=35.279854,
         ...     offshore_lon=-75.511282,
-        ...     bot_ids=[10, 20, 30],
+        ...     num_bots=3,
         ...     measurement_time=6.0,
         ...     mission_duration=60.0,
         ...     planning_mode='time'
         ... )
 
-        # RESOLUTION MODE: Achieve 20m resolution with bots 10, 20, 30
+        # RESOLUTION MODE: Achieve 20m resolution, minimize time
         >>> plan = plan_surfzone_mission(
         ...     shoreline_lat=35.280684,
         ...     shoreline_lon=-75.515804,
         ...     offshore_lat=35.279854,
         ...     offshore_lon=-75.511282,
-        ...     bot_ids=[10, 20, 30],
+        ...     num_bots=3,
         ...     measurement_time=6.0,
         ...     target_resolution=20.0,
         ...     planning_mode='resolution'
@@ -1217,16 +1447,19 @@ def plan_surfzone_mission(
         shoreline_lon=shoreline_lon,
         offshore_lat=offshore_lat,
         offshore_lon=offshore_lon,
-        bot_ids=bot_ids,
+        num_bots=num_bots,
         measurement_time=measurement_time,
         mission_duration=mission_duration,
         target_resolution=target_resolution,
         planning_mode=planning_mode,
         shoreline_offset=shoreline_offset,
         drift_offset_fraction=drift_offset_fraction,
+        bot_id_display_offset=bot_id_display_offset,
         home_offset=home_offset,
+        bot_ids=bot_ids,
         **kwargs,
     )
 
     planner = JaiabotMissionPlanner(params)
     return planner.plan_mission()
+

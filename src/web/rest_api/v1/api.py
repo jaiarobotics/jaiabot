@@ -3,13 +3,15 @@ import statistics
 
 import numpy as np
 
+from google.protobuf.json_format import ParseDict, ParseError
+
 import jaiabot.messages.rest_api_pb2
 import jaiabot.messages.hub_pb2
 import jaiabot.messages.jaia_dccl_pb2
 import jaiabot.messages.portal_pb2
 import jaiabot.messages.surob_results_pb2
 
-from  jaiabot.messages.mission_pb2 import MissionTask
+from jaiabot.messages.mission_pb2 import MissionTask
 
 import common.shared_data
 from common.time import utc_now_microseconds
@@ -200,16 +202,16 @@ def surob_mission_plan_request(jaia_request):
             shoreline_lon=shoreline_point[1],
             offshore_lat=offshore_point[0],
             offshore_lon=offshore_point[1],
-            bot_ids=bots,
+            num_bots=len(bots),
             measurement_time=SUROB_MEASUREMENT_TIME_M,
             planning_mode=("time" if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else ("resolution" if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None)),
             mission_duration=(constraint_value if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else None),
             target_resolution=(constraint_value if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None),
             station_keep_time=SUROB_STATION_KEEP_TIME_M,
+            bot_ids=bots
         )
     except ValueError:
         # bad mission parameter(s)
-        # seems likely this will never
         jaia_response.mission_plan.planned_successfully = False
         jaia_response.mission_plan.error_message = "Mission parameters could not be parsed properly."
         return jaia_response
@@ -229,9 +231,22 @@ def surob_mission_plan_request(jaia_request):
         jaia_response.mission_plan.error_message = f"Bot mission length exceeds maximum waypoint count of {MAX_WAYPOINTS}. Mission length was {int(plan.measurements_per_bot[bots[0]]/2)} waypoints."
         return jaia_response
 
-    mission_plan_json = planner.export_to_jaia_mission_json_string(plan, mission_name="Surob Mission")
+    commands_dict = planner.export_to_jaia_command_protobuf_dict(plan)
+
+    commands_list = []
+    for command in commands_dict.values():
+        command_msg = jaiabot.messages.jaia_dccl_pb2.Command()
+        try:
+            ParseDict(command, command_msg)
+        except ParseError as e:
+            jaia_response.mission_plan.planned_successfully = False
+            jaia_response.mission_plan.error_message = f"Failed to parse bot mission into Command protobuf message with error {e}."
+            return jaia_response
+        
+        commands_list.append(command_msg)
+
     jaia_response.mission_plan.planned_successfully = True
-    jaia_response.mission_plan.mission_plan_json = mission_plan_json
+    jaia_response.mission_plan.jaiabot_commands.extend(commands_list)
 
     return jaia_response
 
