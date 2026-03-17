@@ -118,15 +118,7 @@ export default function SettingsPanel() {
 }
 
 function SimulationAccordion(props: Props) {
-    const [isSimulation, setIsSimulation] = useState(false);
-
-    useEffect(() => {
-        jaiaAPI
-            .getMetadata()
-            .then((metadata: Metadata) => setIsSimulation(metadata?.is_simulation));
-    }, []);
-
-    if (isSimulation || props.isSimulation) {
+    if (props.isSimulation) {
         return (
             <Accordion className="accordion-container">
                 <AccordionSummary expandIcon={<ExpandMoreIcon />} className="accordion-summary">
