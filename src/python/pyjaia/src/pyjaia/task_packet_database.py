@@ -136,6 +136,7 @@ class TaskPacketDatabase:
         with self._lock:
             mission_command_time_dccl = dccl_time_round(mission_command_time)
             self.db.execute('insert into mission_commands (mission_name, bot_id, mission_command_time) values (?, ?, ?)', (mission_name, bot_id, mission_command_time_dccl))
+            self.db.commit()
 
 
     def _add_task_packet(self, task_packet: Dict):
@@ -214,6 +215,9 @@ class TaskPacketDatabase:
 
             if bot_ids is not None:
                 bot_ids = list(bot_ids)
+                if len(bot_ids) == 0:
+                    return []
+
                 conditionals.append(f'bot_id in ({",".join(["?"] * len(bot_ids))})')
                 parameters.extend(bot_ids)
 
@@ -233,6 +237,12 @@ class TaskPacketDatabase:
             if mission_names is not None:
                 if isinstance(mission_names, str):
                     mission_names = [mission_names]
+                else:
+                    mission_names = list(mission_names)
+
+                if len(mission_names) == 0:
+                    return []
+
                 conditionals.append(f'mission_name in ({",".join(["?"] * len(mission_names))})')
                 parameters.extend(mission_names)
                 from_clause += ' natural join mission_name'
@@ -274,6 +284,9 @@ class TaskPacketDatabase:
 
             if bot_ids is not None:
                 bot_ids = list(bot_ids)
+                if len(bot_ids) == 0:
+                    return []
+                
                 conditionals.append(f'bot_id in ({",".join(["?"] * len(bot_ids))})')
                 parameters.extend(bot_ids)
 

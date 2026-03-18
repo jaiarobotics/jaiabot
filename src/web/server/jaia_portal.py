@@ -238,7 +238,11 @@ class Interface:
         logging.debug(f'Sending command: {command}')
         command.time = now_utime()
 
-        if command.HasField('plan'):
+        if (
+                command.type == Command.MISSION_PLAN
+                and command.HasField('plan')
+                and command.plan.HasField('mission_name')
+            ):
             self.task_packet_database.add_mission_command(command.plan.mission_name, command.bot_id, command.time)
 
         msg = ClientToPortalMessage()
