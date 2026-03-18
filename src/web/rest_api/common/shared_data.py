@@ -72,7 +72,7 @@ class Data:
                                                          mission_names=mission_names)
 
         # Convert the dicts into TaskPacket protobuf message objects
-        task_packets: List[TaskPacket] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])
+        task_packets: List[TaskPacket] = list([ParseDict(tp_dict, TaskPacket(), ignore_unknown_fields=True) for tp_dict in task_packet_dicts])
 
         task_packets.sort(key=lambda tp: tp.start_time)
 
