@@ -320,7 +320,7 @@ function compareVersions(currentVersion: Version, gitHubVersion: Version) {
         return true;
     }
 
-    if (parseInt(gitHubVersion.patch) > parseInt(currentVersion.patch)) {
+    if (parseInt(gitHubVersion.patch) > parseInt(currentVersion.patch[0])) {
         return true;
     }
 
