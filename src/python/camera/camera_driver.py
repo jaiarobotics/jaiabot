@@ -91,6 +91,9 @@ class Camera:
                 "--timeout", "0",
                 "--width", "1920",
                 "--height", "1080",
+                "--bitrate", "5000000",
+                "--intra", "30",
+                "--framerate", "30",
                 "--output", f"{self.output_dir}/video-{now_string()}.mp4"
             ]
             self.rpicam_proc = subprocess.Popen(video_cmd)
@@ -114,7 +117,7 @@ class Camera:
             t = time.time()
             if t - self.last_image_capture > self.image_capture_interval:
                 self.last_image_capture = t
-                os.system(f'rpicam-still --timeout 1 --output {self.output_dir}/image-{now_string()}.jpg')
+                os.system(f'rpicam-still --timeout 1 --autofocus-mode auto --output {self.output_dir}/image-{now_string()}.jpg')
 
 def main():
     if args.simulate:

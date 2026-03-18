@@ -4,19 +4,16 @@
 
 from queue import Queue
 from typing import *
-from pathlib import Path
-from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
 from google.protobuf.json_format import ParseDict, MessageToDict
-from google.protobuf.message import Message
 import threading
 import logging
-import bisect
-import glob
-import json
+
+# Jaia
+from common.time import utc_now_microseconds
+from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
+from jaiabot.messages.mission_pb2 import MissionSummary
 from pyjaia.task_packet_database import TaskPacketDatabase
 
-
-from common.time import utc_now_microseconds
 
 log = logging.getLogger()
 
@@ -48,7 +45,7 @@ class Data:
                          bot_ids: Union[Iterable[int], None], 
                          start_time_microseconds: Union[int, None]=None, 
                          end_time_microseconds: Union[int, None]=None, 
-                         mission_names: Union[List[str], None]=None) -> List[Message]:
+                         mission_names: Union[List[str], None]=None) -> List[TaskPacket]:
         """Gets a list of task packets occurring during a timespan.
 
         Args:
@@ -75,9 +72,34 @@ class Data:
                                                          mission_names=mission_names)
 
         # Convert the dicts into TaskPacket protobuf message objects
-        task_packets: List[Message] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])
+        task_packets: List[TaskPacket] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])
+
+        task_packets.sort(key=lambda tp: tp.start_time)
 
         return task_packets
+    
+
+    def get_mission_summaries(self, 
+                              bot_ids: Union[Iterable[int], None], 
+                              start_time_microseconds: Union[int, None]=None, 
+                              end_time_microseconds: Union[int, None]=None) -> List[MissionSummary]:
+        """Gets a list of mission summaries for missions that occur during a timeframe.
+
+        Args:
+            bot_ids (Union[Iterable[int], None]): If not None, only return mission summaries with a bot_id in this list.
+            start_time_microseconds (Union[int, None], optional): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
+            end_time_microseconds (Union[int, None], optional): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
+
+        Returns:
+            List[MissionSummary]: A list of the mission summaries, sorted ascending by start_time.
+        """
+
+
+        mission_summaries = self.task_packet_database.query_mission_summaries(bot_ids=bot_ids,
+                                                                              start_utime=start_time_microseconds,
+                                                                              end_utime=end_time_microseconds)
+        mission_summaries.sort(key=lambda ms: ms.start_time)
+        return mission_summaries
 
 
     def process_portal_to_client_message(self, hub_id, msg):

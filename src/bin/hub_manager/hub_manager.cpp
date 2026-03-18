@@ -61,6 +61,19 @@ namespace apps
 constexpr goby::middleware::Group bot_gps_in{"bot_gps_in"};
 constexpr goby::middleware::Group bot_gps_out{"bot_gps_out"};
 
+using BotId = uint32_t;
+using MissionCommandTime = uint64_t;
+
+// This function rounds a timestamp to the nearest DCCL time2 resolution (default 1 second)
+// This is so we can properly map the incoming mission_command_time, which will
+// have made a round-trip through the dccl.time2 codec, to the mission_command_time stored
+// on the hub for matching with the mission name
+std::uint64_t dccl_time2_round(std::uint64_t ts_micros,
+                               std::uint64_t resolution_micros = 1000000ULL)
+{
+    return ((ts_micros + resolution_micros / 2) / resolution_micros) * resolution_micros;
+}
+
 class HubManager : public ApplicationBase
 {
   public:
@@ -70,7 +83,7 @@ class HubManager : public ApplicationBase
   private:
     void loop() override;
 
-    void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
+    void handle_bot_nav(jaiabot::protobuf::BotStatus dccl_nav);
     void handle_command(const jaiabot::protobuf::Command& input_command);
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
     void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& input_command_for_hub);
@@ -152,11 +165,16 @@ class HubManager : public ApplicationBase
 
     std::map<int, goby::time::MicroTime> known_bots_;
 
-    // The current mission_id to populate in outgoing commands, incremented each time a new mission is started
-    uint8_t current_mission_id_{0};
-
     // map mission id to mission name for logging purposes
-    std::map<uint8_t, std::string> mission_id_to_name_;
+    std::map<std::pair<BotId, MissionCommandTime>, std::string>
+        bot_id_and_command_time_to_mission_name_;
+
+    void set_mission_name_for_bot_command_time(const BotId bot_id,
+                                               const MissionCommandTime mission_command_time,
+                                               const std::string& mission_name);
+    std::string
+    get_mission_name_for_bot_command_time(const BotId bot_id,
+                                          const MissionCommandTime mission_command_time);
 };
 } // namespace apps
 } // namespace jaiabot
@@ -380,8 +398,58 @@ void jaiabot::apps::HubManager::handle_subscription_report(
                                  ? protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_BOT
                                  : protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB);
 
+            if (status.has_mission_command_time())
+            {
+                status.set_mission_name(
+                    get_mission_name_for_bot_command_time(bot_id, status.mission_command_time()));
+            }
+
             interprocess().publish<jaiabot::groups::bot_status>(status);
         }
+    }
+}
+
+void jaiabot::apps::HubManager::set_mission_name_for_bot_command_time(
+    const BotId bot_id, const MissionCommandTime mission_command_time,
+    const std::string& mission_name)
+{
+    auto mission_command_time_dccl = dccl_time2_round(mission_command_time);
+    auto bot_and_command_time = std::make_pair(bot_id, mission_command_time_dccl);
+
+    bot_id_and_command_time_to_mission_name_[bot_and_command_time] = mission_name;
+
+    glog.is_debug1() && glog << group("main")
+                             << "Set mission name for bot command time: Bot ID = " << bot_id
+                             << ", Command Time = " << mission_command_time_dccl
+                             << ", Mission Name = " << mission_name << std::endl;
+}
+
+std::string jaiabot::apps::HubManager::get_mission_name_for_bot_command_time(
+    const BotId bot_id, const MissionCommandTime mission_command_time)
+{
+    auto mission_command_time_dccl = dccl_time2_round(mission_command_time);
+    auto bot_and_command_time = std::make_pair(bot_id, mission_command_time_dccl);
+
+    if (bot_id_and_command_time_to_mission_name_.count(bot_and_command_time))
+    {
+        return bot_id_and_command_time_to_mission_name_.at(bot_and_command_time);
+    }
+    else
+    {
+        glog.is_warn() && glog << group("main") << "Bot ID = " << bot_id
+                               << ", Command Time = " << mission_command_time_dccl
+                               << " not found in bot_id_and_command_time_to_mission_name_ mapping"
+                               << std::endl;
+
+        for (auto pair : bot_id_and_command_time_to_mission_name_)
+        {
+            glog.is_warn() && glog << group("main")
+                                   << "Known bot and command time: Bot ID = " << pair.first.first
+                                   << ", Command Time = " << pair.first.second
+                                   << ", Mission Name = " << pair.second << std::endl;
+        }
+
+        return "UNKNOWN_MISSION";
     }
 }
 
@@ -625,7 +693,7 @@ void jaiabot::apps::HubManager::loop()
     latest_hub_status_.clear_bot_offload();
 }
 
-void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav)
+void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl_nav)
 {
     glog.is_debug1() && glog << group("bot_nav")
                              << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
@@ -633,6 +701,12 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
     // don't shut down the hub while we have bots reporting to us
     if (is_virtualhub_)
         update_vhub_shutdown_time();
+
+    if (dccl_nav.has_mission_command_time())
+    {
+        dccl_nav.set_mission_name(get_mission_name_for_bot_command_time(
+            dccl_nav.bot_id(), dccl_nav.mission_command_time()));
+    }
 
     // republish for liaison / logger, etc.
     interprocess().publish<jaiabot::groups::bot_status>(dccl_nav);
@@ -764,15 +838,11 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     // Set the mission_name of the task packet based on the current mission id to name mapping for logging purposes
     jaiabot::protobuf::TaskPacket task_packet_copy = task_packet;
 
-    if (mission_id_to_name_.count(task_packet.mission_id()))
+    // Use the last_command_time and the bot_id to fill in the mission_name field
+    if (task_packet.has_bot_id() && task_packet.has_mission_command_time())
     {
-        task_packet_copy.set_mission_name(mission_id_to_name_.at(task_packet.mission_id()));
-    }
-    else
-    {
-        glog.is_warn() && glog << "Mission id " << static_cast<int>(task_packet.mission_id())
-                               << " not found in mission_id_to_name_ mapping" << std::endl;
-        task_packet_copy.set_mission_name("UNKNOWN_MISSION");
+        task_packet_copy.set_mission_name(get_mission_name_for_bot_command_time(
+            task_packet.bot_id(), task_packet.mission_command_time()));
     }
 
     // Publish interprocess for other goby apps
@@ -847,13 +917,6 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     auto command = input_command;
     command.set_from_hub_id(cfg().hub_id());
 
-    if (command.has_plan())
-    {
-        command.mutable_plan()->set_mission_id(current_mission_id_);
-        mission_id_to_name_[current_mission_id_] = command.plan().mission_name();
-        current_mission_id_++;
-    }
-
     // check that timestamp is unique within DCCL rounding and bump forward by a second
     // if necessary so that mission manager doesn't reject valid commands
     // This is only an issue with automated commands and super-human operators who send commands < 1 second apart
@@ -877,6 +940,12 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         command.set_time_with_units(t3 * boost::units::si::micro * boost::units::si::seconds);
     }
     last_command_timestamp_ = command.time_with_units<goby::time::MicroTime>();
+
+    if (command.has_plan())
+    {
+        set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
+                                              command.plan().mission_name());
+    }
 
     std::vector<Command> command_fragments;
 
@@ -941,10 +1010,6 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                 {
                     *mutable_plan->mutable_bottom_depth_safety_params() =
                         command.plan().bottom_depth_safety_params();
-                }
-                if (command.plan().has_mission_id())
-                {
-                    mutable_plan->set_mission_id(command.plan().mission_id());
                 }
                 if (command.plan().has_mission_name())
                 {

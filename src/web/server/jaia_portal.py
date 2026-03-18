@@ -1,12 +1,8 @@
-import glob
-import hashlib
-import json
 import bisect
 import socket
 import threading
 import ipaddress
 import itertools
-import collections
 
 import pyjaia.contours
 import pyjaia.drift_interpolation
@@ -170,6 +166,10 @@ class Interface:
             if msg.HasField('hub_status'):
                 hubStatus = protobufMessageToDict(msg.hub_status)
 
+                if 'bot_offload' in hubStatus:
+                    if hubStatus['bot_offload'].get('offload_succeeded') is True:
+                        self.task_packet_database._update()
+
                 # Set the time of last status to now
                 hubStatus['lastStatusReceivedTime'] = now_utime()
 
@@ -237,9 +237,17 @@ class Interface:
 
         logging.debug(f'Sending command: {command}')
         command.time = now_utime()
+
+        if (
+                command.type == Command.MISSION_PLAN
+                and command.HasField('plan')
+                and command.plan.HasField('mission_name')
+            ):
+            self.task_packet_database.add_mission_command(command.plan.mission_name, command.bot_id, command.time)
+
         msg = ClientToPortalMessage()
         msg.command.CopyFrom(command)
-        
+
         if self.send_message_to_portal(msg):
             self.setControllingClientId(clientId)
             return {'status': 'ok'}

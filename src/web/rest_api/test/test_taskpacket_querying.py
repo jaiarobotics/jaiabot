@@ -20,6 +20,9 @@ url = "http://127.0.0.1:9092/jaia/v1"
 
 def run_request(request: rest_api.APIRequest) -> rest_api.APIResponse:
     print("#### REQUEST ####")
+    # Attach API key from environment, if available, to the request.
+    if api_key:
+        request.api_key = api_key
     request_json = json_format.MessageToDict(request)
     print(request_json)
 
@@ -35,12 +38,12 @@ def run_request(request: rest_api.APIRequest) -> rest_api.APIResponse:
     return response
 
 
-def get_all_task_packets_for_bot(bot_id: int) -> rest_api.APIResponse.TaskPackets:
+def get_all_task_packets_for_bot(bot_id: int) -> rest_api.TaskPacketQueryResults:
     request = rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
             bots=[bot_id]
         ),
-        task_packets=rest_api.TaskPacketsRequest()
+        task_packets=rest_api.TaskPacketQuery()
     )
 
     response = run_request(request)
@@ -61,7 +64,7 @@ def test_time_range_filtering():
         target=rest_api.APIRequest.Nodes(
             bots=[1]
         ),
-        task_packets=rest_api.TaskPacketsRequest(
+        task_packets=rest_api.TaskPacketQuery(
             start_time=first_packet_start_time,
             end_time=middle_time
         )
@@ -69,14 +72,19 @@ def test_time_range_filtering():
 
     assert len(response.task_packets.packets) > 0, "Expected at least one task packet in the specified time range"
 
-    for packet in response.task_packets.packets:
-        assert first_packet_start_time <= packet.start_time <= middle_time, f"{packet}\nTask packet start time is outside the specified range"
+    # Account for the 1-second padding of the time querying
+    ONE_SECOND = 1_000_000
+    expected_range = (first_packet_start_time - ONE_SECOND, middle_time + ONE_SECOND)
 
-    print(f"Successfully retrieved {len(response.task_packets.packets)} task packets between {first_packet_start_time} and {middle_time}")
+    for packet in response.task_packets.packets:
+        assert expected_range[0] <= packet.start_time <= expected_range[1], \
+            f"{packet}\nTask packet start time {packet.start_time} is outside the specified range: {expected_range[0]} - {expected_range[1]}"
+
+    print(f"Successfully retrieved {len(response.task_packets.packets)} task packets between {expected_range[0]} and {expected_range[1]}")
 
 
 def test_mission_name_filtering():
-    mission_names = set(packet.mission_name for packet in all_task_packets)
+    mission_names = set(packet.mission_name for packet in all_task_packets if packet.mission_name)
     if len(mission_names) == 0:
         print("No mission names found in task packets, skipping mission name filtering test")
         return
@@ -87,7 +95,7 @@ def test_mission_name_filtering():
         target=rest_api.APIRequest.Nodes(
             bots=[1]
         ),
-        task_packets=rest_api.TaskPacketsRequest(
+        task_packets=rest_api.TaskPacketQuery(
             mission_name=[mission_name]
         )
     ))
@@ -109,7 +117,7 @@ def test_mission_name_filtering():
         target=rest_api.APIRequest.Nodes(
             bots=[1]
         ),
-        task_packets=rest_api.TaskPacketsRequest(
+        task_packets=rest_api.TaskPacketQuery(
             mission_name=[mission_name, mission_name_2]
         )
     ))
@@ -122,7 +130,27 @@ def test_mission_name_filtering():
     print(f"Successfully retrieved {len(response.task_packets.packets)} task packets for mission names '{mission_name}' and '{mission_name_2}'")
 
 
+def test_mission_summary_querying():
+    first_packet_start_time = min([packet.start_time for packet in all_task_packets])
+    last_packet_start_time = max([packet.start_time for packet in all_task_packets])
+    middle_time = (first_packet_start_time + last_packet_start_time) // 2
+
+    response = run_request(rest_api.APIRequest(
+        target=rest_api.APIRequest.Nodes(
+            bots=[1]
+        ),
+        missions=rest_api.MissionQuery(
+            start_time=first_packet_start_time, # Task packets are sorted descending by start time, so the last packet has the earliest start time.  This means we should get all missions that started after that time, which should be all of them.
+            end_time=last_packet_start_time
+        )
+    ))
+
+    assert len(response.missions.mission_summaries) > 0, "Expected at least one mission summary for bot 1"
+
+    print(f"Successfully retrieved {len(response.missions.mission_summaries)} mission summaries for bot 1")
+
+
 if __name__ == "__main__":
     test_time_range_filtering()
     test_mission_name_filtering()
-
+    test_mission_summary_querying()
