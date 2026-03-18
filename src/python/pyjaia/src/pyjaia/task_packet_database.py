@@ -19,6 +19,20 @@ from jaiabot.messages.mission_pb2 import MissionSummary
 l = logging.getLogger('task_packet_database')
 
 
+def dccl_time_round(utime: int, round_to: int=1_000_000) -> int:
+    """Rounds a unix microsecond timestamp to the nearest round_to microseconds.
+    This accounts for how dccl rounds time values to/from the bots.
+
+    Args:
+        utime (int): The unix microsecond timestamp to round.
+        round_to (int): The number of microseconds to round to.  Default is 1 second (1,000,000 microseconds).
+
+    Returns:
+        int: The rounded unix microsecond timestamp.
+    """
+    return (utime + round_to // 2) // round_to * round_to
+
+
 class TaskPacketDatabase:
     taskpacket_files_path: str = "/var/log/jaiabot/bot_offload/"
     database_path: str= "/var/log/jaiabot/db"
@@ -56,21 +70,26 @@ class TaskPacketDatabase:
         # * json_string is the full task packet as a json string.  We use json_string instead of individual columns 
         #   for flexibility and to avoid having to migrate the database every time we change the task packet schema.
         db.execute('create table if not exists task_packets (id text primary key on conflict replace, bot_id integer, utime integer, json_string text)')
+        db.execute('create index if not exists task_packets$bot_id on task_packets(bot_id)')
+        db.execute('create index if not exists task_packets$utime on task_packets(utime)')
 
         # `included` table contains the task_packet_ids and their included boolean.  
         #   We separate this from the main task_packets table to make it more efficient to query included vs excluded 
         #   task packets without having to read the full json_string
         db.execute('create table if not exists included (id text primary key, included integer)')
+        db.execute('create index if not exists included$included on included(included)')
 
         # `mission_name` table contains the task_packet_ids and their mission names.  This is used for querying task 
         #   packets by mission name.
         db.execute('create table if not exists mission_name (id text primary key, mission_name text)')
-
-        # Create indices
-        db.execute('create index if not exists task_packets$bot_id on task_packets(bot_id)')
-        db.execute('create index if not exists task_packets$utime on task_packets(utime)')
-        db.execute('create index if not exists task_packets$included on included(included)')
         db.execute('create index if not exists mission_name$mission_name on mission_name(mission_name)')
+
+        # mission_commands stores the mission_name.  In case of a power cycle, the hub_manager will not be able to populate
+        # the mission_name field, and in that case we consult this table.
+        db.execute('create table if not exists mission_commands (mission_name text, bot_id, mission_command_time integer)')
+        db.execute('create index if not exists mission_commands$bot_id on mission_commands(bot_id)')
+        db.execute('create index if not exists mission_commands$mission_command_time on mission_commands(mission_command_time)')
+
         db.commit()
 
         return db
@@ -106,6 +125,19 @@ class TaskPacketDatabase:
         self.db.commit()
     
 
+    def add_mission_command(self, mission_name: str, bot_id: int, mission_command_time: int):
+        """Adds a mission command to the database.  Thread safe.
+
+        Args:
+            mission_name (str): The name of the mission.
+            bot_id (int): The id of the bot that received the mission command.
+            mission_command_time (int): The time of the mission command, as a unix microsecond timestamp.
+        """
+        with self._lock:
+            mission_command_time_dccl = dccl_time_round(mission_command_time)
+            self.db.execute('insert into mission_commands (mission_name, bot_id, mission_command_time) values (?, ?, ?)', (mission_name, bot_id, mission_command_time_dccl))
+
+
     def _add_task_packet(self, task_packet: Dict):
         """Adds a task packet to the database.  THREAD UNSAFE.  Does not increment task_packets_version.
 
@@ -128,6 +160,15 @@ class TaskPacketDatabase:
         #   field is present in the task packet.
         if 'mission_name' in task_packet:
             self.db.execute('insert or replace into mission_name (id, mission_name) values (?, ?)', (id, task_packet["mission_name"]))
+        elif 'mission_command_time' in task_packet:
+            # It's possible we know about this task packet's mission_name, but a power cycle occurred.  So we can retrieve it from the
+            # mission_commands table based on the bot_id and the task_packet's mission_command_time.
+            mission_command_time_dccl = dccl_time_round(task_packet['mission_command_time'])
+            rows = self.db.execute('select mission_name from mission_commands where bot_id = ? and mission_command_time = ?', (task_packet["bot_id"], mission_command_time_dccl))
+            row = rows.fetchone()
+            if row is not None:
+                mission_name = row[0]
+                self.db.execute('insert or replace into mission_name (id, mission_name) values (?, ?)', (id, mission_name))
 
 
     def add_task_packet(self, task_packet: Dict):

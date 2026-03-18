@@ -237,9 +237,13 @@ class Interface:
 
         logging.debug(f'Sending command: {command}')
         command.time = now_utime()
+
+        if command.HasField('plan'):
+            self.task_packet_database.add_mission_command(command.plan.mission_name, command.bot_id, command.time)
+
         msg = ClientToPortalMessage()
         msg.command.CopyFrom(command)
-        
+
         if self.send_message_to_portal(msg):
             self.setControllingClientId(clientId)
             return {'status': 'ok'}
