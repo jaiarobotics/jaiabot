@@ -69,7 +69,7 @@ export default function App() {
                 <Panel />
                 <RemoteControl />
                 <SimulationBanner />
-                <NotificationDot />
+                <NotificationDot className="jaia-about-button" />
                 <TakeControl />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>

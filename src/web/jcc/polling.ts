@@ -12,10 +12,12 @@ import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { NO_COMMS_STATUS_AGE } from "../utils/constants";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
+import { Version } from "../types/protobuf-types";
 import SoundEffects from "../style/audio/sound-effects";
 
 const MAX_REQUEST_TIME = 10000; // ms;
 const DISCONNECT_THRESHOLD = NO_COMMS_STATUS_AGE * 1e6;
+const VERSION_LENGTH = 3;
 
 const CONNECTION_WARNING = "connection-warning";
 const CONGESTION_WARNING = "congestion-warning";
@@ -25,10 +27,12 @@ const STATUS_URL = "/jaia/v0/status";
 const TASK_PACKET_URL = "/jaia/v0/task-packets";
 const TASK_PACKET_VERSION_URL = "/jaia/v0/task-packets-version";
 const METADATA_URL = "/jaia/v0/metadata";
+const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/latest";
 
 let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
 let metadataRequestInFlight = false;
+let gitHubRequestInFlight = false;
 
 /**
  * Hits the status endpoint and updates the data model and openlayers
@@ -135,6 +139,38 @@ export async function pollMetadata() {
 }
 
 /**
+ * Hits the jaiabot GitHub repo for the latest version and
+ * updates the data model with the information from the response
+ *
+ * @returns {void}
+ */
+export async function pollGitHub() {
+    if (gitHubRequestInFlight) {
+        return;
+    }
+    try {
+        gitHubRequestInFlight = true;
+        const res = await fetch(GITHUB_URL);
+        if (!res.ok) {
+            console.error(`GitHub response status: ${res.status}`);
+        } else {
+            const json = await res.json();
+            const gitHubVersion = deconstructTagName(json.tag_name);
+            const isUpgradeAvailable = compareVersions(
+                jaiaGlobal.getMetadata()?.jaiabot_version,
+                gitHubVersion,
+            );
+            jaiaGlobal.setIsUpgradeAvailable(isUpgradeAvailable);
+        }
+        jaiaGlobal.setIsInternetConnected(true);
+    } catch (error) {
+        jaiaGlobal.setIsInternetConnected(false);
+        console.error(error);
+    }
+    gitHubRequestInFlight = false;
+}
+
+/**
  * Moves Bot data from the server to the client-side data model
  *
  * @param {PortalBotStatus} botStatuses Bot data from the server
@@ -235,4 +271,45 @@ function handleBotSoundEffects(prevStatusAge: number, newStatusAge: number) {
     if (!isBotDisconnected && prevStatusAge >= DISCONNECT_THRESHOLD) {
         SoundEffects.botReconnect.play();
     }
+}
+
+function deconstructTagName(tagName: string) {
+    if (tagName) {
+        const version = tagName.split(".");
+        const gitHubVersion: Version = {
+            major: "",
+            minor: "",
+            patch: "",
+        };
+        if (version.length === VERSION_LENGTH) {
+            gitHubVersion.major = version[0];
+            gitHubVersion.minor = version[1];
+            gitHubVersion.patch = version[2];
+        }
+        return gitHubVersion;
+    }
+}
+
+function compareVersions(currentVersion: Version, gitHubVersion: Version) {
+    if (!currentVersion) {
+        return false;
+    }
+
+    if (gitHubVersion.major === "") {
+        return false;
+    }
+
+    if (parseInt(gitHubVersion.major) > parseInt(currentVersion.major)) {
+        return true;
+    }
+
+    if (parseInt(gitHubVersion.minor) > parseInt(currentVersion.minor)) {
+        return true;
+    }
+
+    if (parseInt(gitHubVersion.patch) > parseInt(currentVersion.patch)) {
+        return true;
+    }
+
+    return false;
 }
