@@ -481,22 +481,13 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         [this](const protobuf::MissionReport& report) {
             latest_bot_status_.set_mission_state(report.state());
 
-            if (report.has_command_from_hub_id())
+            if (report.has_mission_command_time())
             {
-                latest_bot_status_.set_command_from_hub_id(report.command_from_hub_id());
+                latest_bot_status_.set_mission_command_time(report.mission_command_time());
             }
             else
             {
-                latest_bot_status_.clear_command_from_hub_id();
-            }
-
-            if (report.has_mission_id())
-            {
-                latest_bot_status_.set_mission_id(report.mission_id());
-            }
-            else
-            {
-                latest_bot_status_.clear_mission_id();
+                latest_bot_status_.clear_mission_command_time();
             }
 
             if (report.has_active_goal())

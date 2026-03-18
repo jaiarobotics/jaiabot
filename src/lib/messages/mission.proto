@@ -178,7 +178,12 @@ message MissionReport
         [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
     optional uint32 command_from_hub_id = 70
         [(dccl.field) = { min: 0 max: 30 }];
-    optional uint32 mission_id = 71 [(dccl.field) = { min: 0 max: 255 }];
+    optional uint64 mission_command_time = 71 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" },
+        }
+    ];
 }
 
 message MissionTask
@@ -421,9 +426,7 @@ message MissionPlan
         (dccl.field) = { min: 1 max: 100 }
     ];
 
-    
     optional string mission_name = 11 [(dccl.field).omit = true]; // not sent over radio, only saved to the hub
-    optional uint32 mission_id = 12 [(dccl.field) = { min: 0 max: 255 }];
 
 }
 

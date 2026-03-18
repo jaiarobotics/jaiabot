@@ -363,9 +363,14 @@ message BotStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    optional uint32 command_from_hub_id = 70
-        [(dccl.field) = { min: 0 max: 30 }];
-    optional uint32 mission_id = 71 [(dccl.field) = { min: 0 max: 255 }];
+    optional uint64 mission_command_time = 71 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
     optional string mission_name = 72
         [(dccl.field).omit = true];  // not sent, restored on Hub from map
 }
@@ -635,9 +640,15 @@ message TaskPacket
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional uint32 command_from_hub_id = 70
-        [(dccl.field) = { min: 0 max: 30 }];
-    optional uint32 mission_id = 71 [(dccl.field) = { min: 0 max: 255 }];
+    // The command_time is the time that the Command associated with this Task was sent from the Hub.
+    // This is used, along with the bot_id, to populate the mission_name on the hub.
+    optional uint64 mission_command_time = 71 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
     optional string mission_name = 72
         [(dccl.field).omit = true];  // not sent, restored on Hub from map
 
