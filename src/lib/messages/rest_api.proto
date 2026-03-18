@@ -99,7 +99,7 @@ message SurobResultsResponse
 {
     required bool surob_results_found = 1
         [(jaia.field).rest_api.presence = GUARANTEED];
-    optional JaiaSurobMessage surob_results = 2
+    optional JaiaSurobMessage surob = 2
         [(jaia.field).rest_api.presence = GUARANTEED];
     optional string error_message = 3
         [(jaia.field).rest_api.presence = GUARANTEED];
@@ -207,7 +207,7 @@ message APIRequest
             doc: "Send a shoreline and offshore point and start and end time for a surob collection to the hub to search fleet Task Packets for valid wave and current estimates. Expect a response of type 'surob_results_response'."
             example {
                 request: '{"target": {"all": true}, "surob_results_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"surob_results_response": {surob_results_found: true, surob_results: "{"topic": "is2ops", "subtopic": "surob", "source": "jaia", "msg": {"reports": [{"surob": {...}}], "geojson": [...]}}"}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_results_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "target": {"all": true}}}'
+                response: '{"surob_results": {surob_results_found: true, surob: "{"topic": "is2ops", "subtopic": "surob", "source": "jaia", "msg": {"reports": [{"surob": {...}}], "geojson": [...]}}"}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_results_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "target": {"all": true}}}'
             }
         }];
     }
@@ -269,7 +269,7 @@ message APIResponse
         }];
         SurobResultsResponse surob_results = 16 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Surob results in SurobResults message format. This is sent in response to a Request 'surob_results' action with either the desired surob results or an error message."
+            doc: "Surob results in SurobResults message format. This is sent in response to a Request 'surob_results' action with either the desired surob or an error message."
         }]; 
     }
 

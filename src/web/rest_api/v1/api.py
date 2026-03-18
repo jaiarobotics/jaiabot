@@ -533,6 +533,8 @@ def surob_results_request(jaia_request):
             sig_wave_period_s_to_report = station_keep_furthest_from_shoreline_pt_sig_wave_period_s
             sig_wave_period_uncertainty_s_to_report = station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s
         else:
+            # should not be exercised as max_sig_wave_height_ft and station_keep_furthest_from_shoreline_pt_sig_wave_period_s both populated from wave station keeps
+            # therefore if max_sig_wave_height_ft is None conditional (L523) will be triggered before control flow reaches this code block
             jaia_response.surob_results.surob_results_found = False
             if bot_ids is None:
                 jaia_response.surob_results.error_message = f"No significant wave period estimates found for active bots between {start_time} and {end_time}."
@@ -562,6 +564,6 @@ def surob_results_request(jaia_request):
 
     jaia_surob_results = jaiabot.messages.surob_results_pb2.JaiaSurobMessage(topic=JAIA_SUROB_MESSAGE_TOPIC, subtopic=JAIA_SUROB_MESSAGE_SUBTOPIC, source=JAIA_SUROB_MESSAGE_SOURCE, msg=msg)
 
-    jaia_response.surob_results.response.surob_results_found = True
-    jaia_response.surob_results.response.surob_results = jaia_surob_results
+    jaia_response.surob_results.surob_results_found = True
+    jaia_response.surob_results.surob = jaia_surob_results
     return jaia_response
