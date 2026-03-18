@@ -117,6 +117,9 @@ export default function SettingsPanel() {
     );
 }
 
+/**
+ * Only renders the simulation settings in the sim environment
+ */
 function SimulationAccordion(props: Props) {
     if (props.isSimulation) {
         return (

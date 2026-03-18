@@ -7,8 +7,8 @@ import {
     TaskParameters,
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
-import { UNASSIGNED_ID } from "../../utils/constants";
 import { Metadata } from "../../types/protobuf-types";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 export interface JaiaGlobalSnapshot {
     selectedNode: SelectedNode;

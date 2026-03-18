@@ -35,9 +35,14 @@ export default function JaiaAbout() {
         }
     };
 
-    const getNotificationDotHelperText = () => {
+    /**
+     * Provides context to the notification dot
+     *
+     * @returns {HTMLElement} Description of notification dot
+     */
+    const getNotificationDotHelperElement = () => {
         if (!jaiaGlobal.getIsInternetConnected()) {
-            return "No Internet Connection";
+            return <p>No Internet Connection</p>;
         }
 
         if (jaiaGlobal.getIsUpgradeAvailable()) {
@@ -66,7 +71,7 @@ export default function JaiaAbout() {
             <img src={JaiaLogo}></img>
             <div className="notification-row">
                 <NotificationDot className="jaia-about-panel" />
-                <div>{getNotificationDotHelperText()}</div>
+                {getNotificationDotHelperElement()}
                 <NotificationDot className="jaia-about-panel" />
             </div>
             <div className="jaia-about-row">

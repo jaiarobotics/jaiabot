@@ -1,5 +1,6 @@
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
+import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
@@ -11,7 +12,6 @@ import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { NO_COMMS_STATUS_AGE } from "../utils/constants";
-import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { Version } from "../types/protobuf-types";
 import SoundEffects from "../style/audio/sound-effects";
 
@@ -36,7 +36,7 @@ let gitHubRequestInFlight = false;
 
 /**
  * Hits the status endpoint and updates the data model and openlayers
- * with the information from the response
+ * with information from the response
  *
  * @returns {void}
  */
@@ -83,7 +83,7 @@ export async function pollStatus() {
 
 /**
  * Hits the task packets endpoint and updates the data model and openlayers
- * with the information from the response
+ * with information from the response
  *
  * @returns {void}
  */
@@ -115,7 +115,7 @@ export async function pollTaskPackets() {
 
 /**
  * Hits the metadata endpoint and updates the data model
- * with the information from the response
+ * with information from the response
  *
  * @returns {void}
  */
@@ -140,7 +140,7 @@ export async function pollMetadata() {
 
 /**
  * Hits the jaiabot GitHub repo for the latest version and
- * updates the data model with the information from the response
+ * updates the data model with information from the response
  *
  * @returns {void}
  */
@@ -273,6 +273,12 @@ function handleBotSoundEffects(prevStatusAge: number, newStatusAge: number) {
     }
 }
 
+/**
+ * Converts the tag from a string to a Version object
+ *
+ * @param {string} tagName Tag from GitHub (ex: 2.6.0)
+ * @returns {Version} Tag broken into major, minor, and patch
+ */
 function deconstructTagName(tagName: string) {
     if (tagName) {
         const version = tagName.split(".");
@@ -290,6 +296,13 @@ function deconstructTagName(tagName: string) {
     }
 }
 
+/**
+ * Determines if the GitHub tag is newer than the version on the Hub
+ *
+ * @param {Version} currentVersion Version fetched from Hub
+ * @param {Version} gitHubVersion Version fetched from jaiabot repo
+ * @returns {boolean} True if there is a new version, False otherwise
+ */
 function compareVersions(currentVersion: Version, gitHubVersion: Version) {
     if (!currentVersion) {
         return false;

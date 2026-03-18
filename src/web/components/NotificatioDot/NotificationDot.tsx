@@ -6,6 +6,10 @@ interface Props {
     className: string;
 }
 
+/**
+ * Renders a small circle to notify operators of system conditions such as
+ * Internet connection and upgrade status
+ */
 export default function NotificationDot(props: Props) {
     const jaiaContext = useContext(JaiaContext);
 

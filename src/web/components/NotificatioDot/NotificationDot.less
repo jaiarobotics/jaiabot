@@ -1,3 +1,5 @@
+@import "../../style/stylesheets/vars.less";
+
 .notification-dot {
     height: 12px;
     width: 12px;
@@ -5,11 +7,11 @@
 }
 
 .notification-dot.red {
-    background-color: #cc0505;
+    background-color: @error-color;
 }
 
 .notification-dot.yellow {
-    background-color: gold;
+    background-color: @waypoint-color;
 }
 
 .notification-dot.jaia-about-button {
