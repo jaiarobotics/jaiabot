@@ -1,5 +1,4 @@
 import asyncio
-import statistics
 
 import numpy as np
 
@@ -377,11 +376,11 @@ def surob_results_request(jaia_request):
     alongshore_bearing_deg = shore_normal_to_alongshore_bearing_deg(shore_normal_bearing_deg(shoreline_point, offshore_point))
 
     max_alongshore_current_speed_knots = None
-    max_alongshore_current_speed_uncertainty_knots = None
+    max_alongshore_current_speed_std_knots = None
     max_alongshore_current_flank = None
 
     max_sig_wave_height_ft = None
-    max_sig_wave_height_uncertainty_ft = None
+    max_sig_wave_height_std_ft = None
 
     surface_drift_sig_wave_periods_s = []
     surface_drift_sig_wave_period_uncertainties_s = []
@@ -432,7 +431,7 @@ def surob_results_request(jaia_request):
                 alongshore_current_speed_knots, alongshore_current_speed_uncertainty_knots, alongshore_current_flank = currents_monte_carlo_analysis_knots(task_packet.current.speed, task_packet.current.speed_uncertainty, task_packet.current.heading, task_packet.current.heading_uncertainty, alongshore_bearing_deg)
                 if max_alongshore_current_speed_knots is None or alongshore_current_speed_knots > max_alongshore_current_speed_knots:
                     max_alongshore_current_speed_knots = alongshore_current_speed_knots
-                    max_alongshore_current_speed_uncertainty_knots = alongshore_current_speed_uncertainty_knots
+                    max_alongshore_current_speed_std_knots = alongshore_current_speed_uncertainty_knots
                     max_alongshore_current_flank = alongshore_current_flank
             
             elif task_packet.HasField("wave") and task_packet.wave.significant_wave_height != 0:
@@ -466,7 +465,7 @@ def surob_results_request(jaia_request):
 
                 if max_sig_wave_height_ft is None or hs_ft > max_sig_wave_height_ft:
                     max_sig_wave_height_ft = hs_ft
-                    max_sig_wave_height_uncertainty_ft = hs_uncertainty_ft
+                    max_sig_wave_height_std_ft = hs_uncertainty_ft
         
                 distance_to_shoreline_pt_m = haversine(shoreline_point, (task_packet.location.lat, task_packet.location.lon))
 
@@ -529,7 +528,7 @@ def surob_results_request(jaia_request):
     if len(surface_drift_sig_wave_periods_s) == 0:
         if station_keep_furthest_from_shoreline_pt_sig_wave_period_s is not None: # use period estimate from station keep furthest offshore as a back up, if it exists
             sig_wave_period_s_to_report = station_keep_furthest_from_shoreline_pt_sig_wave_period_s
-            sig_wave_period_uncertainty_s_to_report = np.sqrt(station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s)
+            sig_wave_period_uncertainty_s_to_report = station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s
         else:
             jaia_response.surob_results.surob_results_found = False
             if bot_ids is None:
@@ -540,15 +539,15 @@ def surob_results_request(jaia_request):
     
     if len(surface_drift_sig_wave_periods_s) == 1:
         sig_wave_period_s_to_report = surface_drift_sig_wave_periods_s[0]
-        sig_wave_period_uncertainty_s_to_report = np.sqrt(surface_drift_sig_wave_period_uncertainties_s[0])
+        sig_wave_period_uncertainty_s_to_report = surface_drift_sig_wave_period_uncertainties_s
     else:
-        # we expect only 1 surface drift per surob, but in the event we find multiple, report average of period estimates and uncertainty of largest between std of period estimates or default uncertainty of period estimate
-        sig_wave_period_s_to_report = statistics.mean(surface_drift_sig_wave_periods_s)
-        sig_wave_period_uncertainty_s_to_report = max(np.sqrt(max(surface_drift_sig_wave_period_uncertainties_s)), statistics.stdev(surface_drift_sig_wave_periods_s))
+        # we expect only 1 surface drift per surob, but in the event we find multiple, report average of period estimates and uncertainty of largest between variance of period estimates or default uncertainty of period estimate
+        sig_wave_period_s_to_report = np.mean(surface_drift_sig_wave_periods_s)
+        sig_wave_period_uncertainty_s_to_report = max(max(surface_drift_sig_wave_period_uncertainties_s), np.var(surface_drift_sig_wave_periods_s))
 
-    sig_breaker_height = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=max_sig_wave_height_ft, uncert=np.power(max_sig_wave_height_uncertainty_ft, 2), units=WAVE_HEIGHT_UNITS)
-    breaker_period = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=sig_wave_period_s_to_report, uncert=np.power(sig_wave_period_uncertainty_s_to_report, 2), units=WAVE_PERIOD_UNITS)
-    littoral_current_local = jaiabot.messages.surob_results_pb2.LittoralCurrent(value=max_alongshore_current_speed_knots, uncert=np.power(max_alongshore_current_speed_uncertainty_knots, 2), flank=max_alongshore_current_flank, units=LITTORAL_CURRENT_UNITS)
+    sig_breaker_height = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=max_sig_wave_height_ft, uncert=np.power(max_sig_wave_height_std_ft, 2), units=WAVE_HEIGHT_UNITS)
+    breaker_period = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=sig_wave_period_s_to_report, uncert=sig_wave_period_uncertainty_s_to_report, units=WAVE_PERIOD_UNITS)
+    littoral_current_local = jaiabot.messages.surob_results_pb2.LittoralCurrent(value=max_alongshore_current_speed_knots, uncert=np.power(max_alongshore_current_speed_std_knots, 2), flank=max_alongshore_current_flank, units=LITTORAL_CURRENT_UNITS)
     surob = jaiabot.messages.surob_results_pb2.Surob(sig_breaker_height=sig_breaker_height, breaker_period=breaker_period, littoral_current_local=littoral_current_local)
     reports = [jaiabot.messages.surob_results_pb2.Report(surob=surob)]
 
