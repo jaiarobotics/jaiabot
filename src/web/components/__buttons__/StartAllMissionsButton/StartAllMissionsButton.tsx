@@ -29,6 +29,7 @@ import {
 interface Props {
     bots: Map<number, Bot>;
     missions: Map<number, Mission>;
+    missionSetName: string;
 }
 
 type DisabledCodeGroup = [DisabledCodes, number[]];
@@ -109,19 +110,20 @@ export default function StartAllMissionsButton(props: Props) {
      * @param {DialogActions} dialogAction The operators action on the dialog box
      * @returns {void}
      */
-    const onDialogClose = async (dialogAction: DialogActions, missionName: string) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
                 const missionID = missionsManager.getMissionID(botID);
-                const mission_plan = props.missions.get(missionID).packageMissionForHub();
-                mission_plan.mission_name = missionName; // Set the mission name from the dialog
+                const missionPlan = props.missions
+                    .get(missionID)
+                    .packageMissionForHub(props.missionSetName);
 
                 const startMissionCommand: Command = {
                     bot_id: botID,
                     type: CommandType.MISSION_PLAN,
-                    plan: mission_plan,
+                    plan: missionPlan,
                 };
                 const res = await sendBotCommand(startMissionCommand);
                 if (res.status === "ok") {

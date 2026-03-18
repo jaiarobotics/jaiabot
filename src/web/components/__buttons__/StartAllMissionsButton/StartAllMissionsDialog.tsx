@@ -1,12 +1,11 @@
 import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
-import { useEffect, useRef, useState } from "react";
 
 interface DialogProps {
     isVisible: boolean;
     botReadyStates: Map<DisabledCodes, number[]>;
     numBots: number;
-    onClose: (dialogAction: DialogActions, missionName: string) => void;
+    onClose: (dialogAction: DialogActions) => void;
 }
 
 interface TitleProps {
@@ -24,16 +23,7 @@ interface ButtonRowProps {
  * It will describe the reason(s) the other Bots cannot accept the command.
  */
 export function StartAllMissionsDialog(props: DialogProps) {
-    // Ref and useEffect to focus the mission name input when the dialog opens and there is at least one ready bot
-    const missionNameInputRef = useRef<HTMLInputElement | null>(null);
-    const [missionName, setMissionName] = useState("Untitled Mission");
     const numReadyBots = props.botReadyStates.get(DisabledCodes.NONE).length;
-
-    useEffect(() => {
-        if (props.isVisible && numReadyBots > 0) {
-            missionNameInputRef.current?.focus();
-        }
-    }, [props.isVisible, numReadyBots]);
 
     /**
      * Applies the base class "jaia-dialog" and appends "alert"
@@ -130,28 +120,6 @@ export function StartAllMissionsDialog(props: DialogProps) {
         });
     };
 
-    /**
-     * The mission name text field, if we're ready to send the mission.
-     *
-     * @returns {JSX.Element | null} A text field for the mission name if at least one Bot can receive the command, otherwise null
-     */
-    const missionNameTextField = () => {
-        if (numReadyBots === 0) {
-            return null;
-        }
-
-        return (
-            <input
-                ref={missionNameInputRef}
-                type="text"
-                placeholder="Untitled Mission"
-                value={missionName}
-                onChange={(e) => setMissionName(e.target.value)}
-                className="mission-name-input"
-            ></input>
-        );
-    };
-
     if (!props.isVisible) {
         return <div></div>;
     }
@@ -162,10 +130,9 @@ export function StartAllMissionsDialog(props: DialogProps) {
             <div className={getClassName()}>
                 <Title botReadyStates={props.botReadyStates} />
                 {formatMessage()}
-                {missionNameTextField()}
                 <ButtonRow
                     botReadyStates={props.botReadyStates}
-                    onClose={(dialogAction) => props.onClose(dialogAction, missionName)}
+                    onClose={(dialogAction) => props.onClose(dialogAction)}
                 />
             </div>
         </div>

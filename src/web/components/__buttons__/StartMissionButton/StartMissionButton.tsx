@@ -29,6 +29,7 @@ import { microsecondsToSeconds } from "../../../utils/conversions";
 interface Props {
     bot: Bot;
     mission: Mission;
+    missionSetName: string;
 }
 
 /**
@@ -108,17 +109,16 @@ export default function StartMissionButton(props: Props) {
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
      */
-    const onDialogClose = async (dialogAction: DialogActions, missionName: string) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            const mission_plan = props.mission.packageMissionForHub();
-            mission_plan.mission_name = missionName;
+            const missionPlan = props.mission.packageMissionForHub(props.missionSetName);
 
             const startMissionCommand: Command = {
                 bot_id: props.bot.getBotID(),
                 type: CommandType.MISSION_PLAN,
-                plan: mission_plan,
+                plan: missionPlan,
             };
             const response = await sendBotCommand(startMissionCommand);
             if (response && response.status === "ok") {

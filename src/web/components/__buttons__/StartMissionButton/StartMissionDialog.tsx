@@ -1,12 +1,11 @@
 import { messages } from "./start-mission-messages";
 import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
-import { useEffect, useState, useRef } from "react";
 
 interface DialogProps {
     isVisible: boolean;
     disabledCode: DisabledCodes;
-    onClose: (dialogAction: DialogActions, missionName: string) => void;
+    onClose: (dialogAction: DialogActions) => void;
 }
 
 interface TitleProps {
@@ -24,21 +23,6 @@ interface ButtonRowProps {
  * sent or a confirmation prior to sending the command.
  */
 export function StartMissionDialog(props: DialogProps) {
-    const missionNameInputRef = useRef<HTMLInputElement | null>(null);
-    const [missionName, setMissionName] = useState("Untitled Mission");
-    const botIsReady = props.disabledCode === DisabledCodes.NONE;
-
-    const disabledCodesThatAllowMissionNameInput = [DisabledCodes.LOW_BATTERY, DisabledCodes.NONE];
-    const shouldInputMissionName = disabledCodesThatAllowMissionNameInput.includes(
-        props.disabledCode,
-    );
-
-    useEffect(() => {
-        if (props.isVisible && shouldInputMissionName) {
-            missionNameInputRef.current?.focus();
-        }
-    }, [props.isVisible, shouldInputMissionName]);
-
     /**
      * Forms the class name with a base of "jaia-dialog" and adds
      * "alert" when the disabled code does not equal NONE.
@@ -46,32 +30,12 @@ export function StartMissionDialog(props: DialogProps) {
      * @returns {string} General class name jaia-dialog plus confirm/alert type
      */
     const getClassName = () => {
-        return `jaia-dialog ${botIsReady ? "" : "alert"}`;
+        return `jaia-dialog ${props.disabledCode === DisabledCodes.NONE ? "" : "alert"}`;
     };
 
     if (!props.isVisible) {
         return <div></div>;
     }
-
-    /**
-     * The text input field for the mission name.
-     *
-     * @returns {React.ReactElement | null} The text input field or null if disabled
-     */
-    const missionNameTextField = () => {
-        if (!shouldInputMissionName) {
-            return null;
-        }
-
-        return (
-            <input
-                type="text"
-                value={missionName}
-                onChange={(e) => setMissionName(e.target.value)}
-                ref={missionNameInputRef}
-            />
-        );
-    };
 
     return (
         <div className="jaia-dialog-container">
@@ -79,11 +43,10 @@ export function StartMissionDialog(props: DialogProps) {
             <div className={getClassName()}>
                 <Title disabledCode={props.disabledCode} />
                 <p>{messages.get(props.disabledCode)}</p>
-                {missionNameTextField()}
                 <ButtonRow
                     disabledCode={props.disabledCode}
                     onClose={(dialogAction: DialogActions) => {
-                        props.onClose(dialogAction, missionName);
+                        props.onClose(dialogAction);
                     }}
                 />
             </div>
