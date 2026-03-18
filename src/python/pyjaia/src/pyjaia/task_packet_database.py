@@ -117,6 +117,10 @@ class TaskPacketDatabase:
             self.db.commit()
             self.task_packets_version += 1
 
+    def add_task_packets_from_files(self):
+        """Loads all modified taskpacket files from the offload directory."""
+        with self._lock:
+            self._update()
 
     def query_task_packets(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None):
         """Queries the task packets.
@@ -204,4 +208,3 @@ class TaskPacketDatabase:
             self.db.execute(f'insert or replace into included (id, included) values (?, ?)', (task_packet_id, 1 if included else 0))
             self.db.commit()
             self.task_packets_version += 1
-
