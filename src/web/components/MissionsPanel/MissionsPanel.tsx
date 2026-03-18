@@ -95,6 +95,9 @@ export default function MissionsPanel() {
     );
 }
 
+/**
+ * Renders the input bar to enter a mission set name
+ */
 function MissionSetName(props: Props) {
     if (props.numOfMissions > 0) {
         return (
