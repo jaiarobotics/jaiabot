@@ -127,15 +127,20 @@ message SurobResultsRequest
         }];
     required uint64 start_time = 3
         [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Start of time range as a Unix timestamp in microseconds."
+            doc: "Start of time range as a Unix timestamp in microseconds.  If not set, returns an open-ended search, starting from the earliest available data."
         }];
     required uint64 end_time = 4
         [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "End of time range as a Unix timestamp in microseconds."
+            doc: "End of time range as a Unix timestamp in microseconds.  If not set, returns an open-ended search, ending at the latest available data."
         }];
 }
+
+message MissionQueryResults
+{
+    repeated MissionSummary mission_summaries = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
 
 message SurobResultsResponse
 {
