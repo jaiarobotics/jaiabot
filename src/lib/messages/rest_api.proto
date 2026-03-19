@@ -7,7 +7,7 @@ import "jaiabot/messages/option_extensions.proto";
 
 package jaiabot.protobuf;
 
-message TaskPacketsRequest
+message TaskPacketQuery
 {
     required uint64 start_time = 1
         [(jaia.field).rest_api = {
@@ -19,20 +19,19 @@ message TaskPacketsRequest
             presence: GUARANTEED,
             doc: "End of time range as a Unix timestamp in microseconds."
         }];
-}
+    optional bool included_only = 3
+        [default = true, (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Whether to only return included (non-excluded) task packets."
+        }];
+    
+    enum Format {
+        JSON = 0 [(jaia.ev).rest_api = { presence: GUARANTEED }];
+        KMZ = 1 [(jaia.ev).rest_api = { presence: GUARANTEED }];
+        CSV = 2 [(jaia.ev).rest_api = { presence: GUARANTEED }];
+    }
 
-message KMZRequest
-{
-    required uint64 start_time = 1
-        [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Start of time range as a Unix timestamp in microseconds."
-        }];
-    required uint64 end_time = 2
-        [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "End of time range as a Unix timestamp in microseconds."
-        }];
+    optional Format format = 16 [default = JSON, (jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message CommandResult
@@ -106,20 +105,12 @@ message APIRequest
                 response: '{"metadata": {"hubs": [{"goby_version": "3.1.5", "intervehicle_api_version": 7, "is_simulation": true, "ivp_version": "19.8.1+svn9395-10~ubuntu20.04.1", "jaiabot_image_build_date": "Thu Aug 15 16:20:53 UTC 2024", "jaiabot_image_first_boot_date": "Thu Aug 15 13:50:13 UTC 2024", "jaiabot_image_version": "1.12.0~beta2", "jaiabot_version": {"deb_release_branch": "1.y", "deb_repository": "beta", "major": "1", "minor": "12", "patch": "0~beta2"}, "moos_version": "10.4.0", "name": "hub2-fleet6", "raspi_firmware_version": "1.20220331", "xbee_node_id": "Not Available", "xbee_serial_number": "Not Available"}, {"goby_version": "3.1.5", "intervehicle_api_version": 7, "is_simulation": true, "ivp_version": "19.8.1+svn9395-10~ubuntu20.04.1", "jaiabot_image_build_date": "Thu Aug 15 16:20:53 UTC 2024", "jaiabot_image_first_boot_date": "Thu Aug 15 13:50:11 UTC 2024", "jaiabot_image_version": "1.12.0~beta2", "jaiabot_version": {"deb_release_branch": "1.y", "deb_repository": "beta", "major": "1", "minor": "12", "patch": "0~beta2"}, "moos_version": "10.4.0", "name": "hub1-fleet6", "raspi_firmware_version": "1.20220331", "xbee_node_id": "Not Available", "xbee_serial_number": "Not Available"}]}, "request": {"api_key": "", "metadata": true, "target": {"all": true}}, "target": {"hubs": [2, 1]}}'
             }
         }];
-        TaskPacketsRequest task_packets = 13 [(jaia.field).rest_api = {
+        TaskPacketQuery task_packets = 13 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Query task packets from a given range of time. Expect a response of type 'task_packets'."
             example {
                 request: '{"target": {"bots": [1]}, "task_packets": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
                 response: '{"request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "target": {"bots": [1]}, "task_packets": {"end_time": "1722970466581176", "start_time": "1722797666581176"}}, "task_packets": {"packets": [{"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.658228, "lon": -71.275736}, "estimated_drift": {"heading": 237.0, "speed": 0.9}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658275, "lon": -71.275645}}, "end_time": "1722895675000000", "start_time": "1722895664000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.65826, "lon": -71.2757}, "estimated_drift": {"heading": 316.0, "speed": 0.6}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658225, "lon": -71.275651}}, "end_time": "1722896712000000", "start_time": "1722896702000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.659469, "lon": -71.272064}, "estimated_drift": {"heading": 72.0, "speed": 0.7}, "significant_wave_height": 0.0, "start_location": {"lat": 41.659448, "lon": -71.272146}}, "end_time": "1722896904000000", "start_time": "1722896893000000", "type": "SURFACE_DRIFT"}]}}'
-            }
-        }];
-        KMZRequest kmz = 16 [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Request a KMZ file containing task packet information for the specified Bots over a given time range. Expect a response with the kmz file in the body."
-            example {
-                request: '{"target": {"all": true}, "kmz": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '<KMZ file containing task packet information for all Bots and hubs over the given time range>'
             }
         }];
         Command command = 14 [(jaia.field).rest_api = {
@@ -225,13 +216,12 @@ message APIConfig
                     'status',
                     'metadata',
                     'task_packets',
-                    'kmz',
                     'command',
                     'command_for_hub'
                 ]
             }];
             READ = 1 [(jaia.ev).rest_api = {
-                permitted_action: [ 'status', 'metadata', 'task_packets', 'kmz' ]
+                permitted_action: [ 'status', 'metadata', 'task_packets' ]
             }];
             WRITE = 2 [(jaia.ev).rest_api = {
                 permitted_action: [ 'command', 'command_for_hub' ]
@@ -247,7 +237,6 @@ message APIConfig
             COMMAND_FOR_HUB = 7 [
                 (jaia.ev).rest_api = { permitted_action: [ 'command_for_hub' ] }
             ];
-            KMZ = 8 [(jaia.ev).rest_api = { permitted_action: [ 'kmz' ] }];
         }
 
         repeated Permission permission = 2;

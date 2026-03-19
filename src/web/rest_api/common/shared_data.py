@@ -44,47 +44,6 @@ class Data:
         pass
 
 
-    def get_task_packets(self, bot_ids: Union[Iterable[int], None], start_time_microseconds: Union[int, None], end_time_microseconds: Union[int, None]):
-        """Gets a list of task packets occurring during a timespan.
-
-        Args:
-            start_time_microseconds (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
-            end_time_microseconds (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
-
-        Returns:
-            List[TaskPacket]: A list of the task packets, sorted ascending by start_time.
-        """
-        # This function returns dictionary representations of the task packets
-        # Let's expand the range by 1 second on either end, to account for dccl rounding
-        task_packet_dicts = self.task_packet_database.query_task_packets(bot_ids=bot_ids, start_utime=start_time_microseconds - 1_000_000, end_utime=end_time_microseconds + 1_000_000)
-
-        # Convert the dicts into TaskPacket protobuf message objects
-        task_packets: List[Message] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])
-
-        return task_packets
-
-
-    def get_kmz(self, bot_ids: Union[Iterable[int], None], start_time_microseconds: Union[int, None], end_time_microseconds: Union[int, None]) -> bytes:
-        """Gets a KMZ file containing task packet information for the specified Bots over a given time range.
-
-        Args:
-            bot_ids (Union[Iterable[int], None]): The Bot IDs to include in the KMZ.  None means include all Bots.
-            start_time_microseconds (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
-            end_time_microseconds (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
-
-        Returns:
-            bytes: The KMZ file data as a byte string.
-        """
-        # This function returns the KMZ file data as a byte string
-        # Expand the range by 1 second on either end, to match get_task_packets() and account for DCCL rounding
-        kmz_data = self.task_packet_database.get_kmz(
-            bot_ids=bot_ids,
-            start_utime=start_time_microseconds - 1_000_000,
-            end_utime=end_time_microseconds + 1_000_000,
-        )
-        return kmz_data
-
-
     def process_portal_to_client_message(self, hub_id, msg):
         if msg.HasField('bot_status'):
             msg.bot_status.received_time = utc_now_microseconds()

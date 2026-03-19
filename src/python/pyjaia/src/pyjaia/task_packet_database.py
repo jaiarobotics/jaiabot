@@ -125,7 +125,7 @@ class TaskPacketDatabase:
         with self._lock:
             self._update()
 
-    def query_task_packets(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None) -> List[Dict]:
+    def query_task_packets_as_dicts(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=True) -> List[Dict]:
         """Queries the task packets.
 
         Args:
@@ -138,23 +138,28 @@ class TaskPacketDatabase:
             list[dict]: A list of task packet dictionaries that match the criteria.
         """
 
+        # UTIME_PADDING is a small amount of time (in microseconds) that we pad the start and end times with when querying, 
+        # to account for rounding from the dccl.time2 encoding
+        UTIME_PADDING = 1_000_000
+
         with self._lock:
             self._update()
 
             conditionals = []
             parameters = []
 
-            if bot_ids is not None:
+            bot_ids = list(bot_ids) if bot_ids is not None else []
+            if len(bot_ids) > 0:
                 conditionals.append(f'bot_id in ({",".join(["?" * len(bot_ids)])})')
                 parameters.extend(bot_ids)
 
             if start_utime is not None:
                 conditionals.append(f'utime >= ?')
-                parameters.append(start_utime)
+                parameters.append(start_utime - UTIME_PADDING)
 
             if end_utime is not None:
                 conditionals.append(f'utime <= ?')
-                parameters.append(end_utime)
+                parameters.append(end_utime + UTIME_PADDING)
 
             if included is not None:
                 conditionals.append(f'included = ?')
@@ -171,7 +176,7 @@ class TaskPacketDatabase:
             return [json.loads(row[0]) for row in results]
 
 
-    def query_task_packets_as_protobuf(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=None) -> List[TaskPacket]:
+    def query_task_packets(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None, included: Union[bool, None]=True) -> List[TaskPacket]:
         """Queries the task packets and returns them as protobuf objects.
 
         Args:
@@ -183,7 +188,7 @@ class TaskPacketDatabase:
         Returns:
             list[TaskPacket]: A list of task packets that match the criteria, as protobuf objects.
         """
-        taskpacket_dicts = self.query_task_packets(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime, included=included)
+        taskpacket_dicts = self.query_task_packets_as_dicts(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime, included=included)
 
         return [ParseDict(tp_dict, TaskPacket(), ignore_unknown_fields=True) for tp_dict in taskpacket_dicts]
 
@@ -202,8 +207,8 @@ class TaskPacketDatabase:
         end_utime = utime(end_date) if end_date else None
 
         result = {
-            "included": self.query_task_packets(bot_ids=None, start_utime=start_utime, end_utime=end_utime, included=True),
-            "excluded": self.query_task_packets(bot_ids=None, start_utime=start_utime, end_utime=end_utime, included=False)
+            "included": self.query_task_packets_as_dicts(bot_ids=None, start_utime=start_utime, end_utime=end_utime, included=True),
+            "excluded": self.query_task_packets_as_dicts(bot_ids=None, start_utime=start_utime, end_utime=end_utime, included=False)
         }
 
         return result

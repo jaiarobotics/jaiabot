@@ -22,7 +22,7 @@ import common.streaming_client as streaming_client
 import common.shared_data as shared_data
 import common.endpoint_parse as endpoint_parse
 
-from jaiabot.messages.rest_api_pb2 import APIConfig, APIResponse
+from jaiabot.messages.rest_api_pb2 import APIConfig, APIResponse, APIRequest
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -269,9 +269,12 @@ def process_request(version, jaia_request):
     api_module = importlib.import_module("v" + str(version) + ".api")
     return api_module.process_request(jaia_request)
 
-def finalize_response(jaia_response, jaia_request):
+def finalize_response(jaia_response: APIResponse, jaia_request: APIRequest):
     jaia_response.request.CopyFrom(jaia_request)
-    return google.protobuf.json_format.MessageToDict(jaia_response, preserving_proto_field_name=True)
+
+    http_status = 400 if jaia_response.HasField('error') else 200
+
+    return google.protobuf.json_format.MessageToDict(jaia_response, preserving_proto_field_name=True), http_status
 
 # Recursively check for OMITTED presence, if found at any node in the tree, return True
 def is_omitted(parts, descriptor):

@@ -2,14 +2,21 @@ import asyncio
 from typing import Tuple
 
 import jaiabot.messages.rest_api_pb2
-import jaiabot.messages.hub_pb2
-import jaiabot.messages.jaia_dccl_pb2
+from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse
+from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
 import jaiabot.messages.portal_pb2
+
+from pyjaia.kmz import getKMZ
 
 import common.shared_data
 from common.time import utc_now_microseconds
 from common.api_exception import APIException
-from jaiabot.messages.rest_api_pb2 import APIRequest, APIResponse
+
+
+import logging
+
+l = logging.getLogger(__name__)
+
 
 def process_request(jaia_request):
     action = jaia_request.WhichOneof("action")
@@ -77,38 +84,32 @@ def metadata(jaia_request):
 
     return jaia_response
 
-def task_packets(jaia_request):
-   jaia_response = APIResponse()
-   with common.shared_data.data_lock:
-        if jaia_request.target.all:
-            bot_ids = None
-        else:
-            bot_ids = jaia_request.target.bots
 
-        task_packets = common.shared_data.data.get_task_packets(bot_ids, jaia_request.task_packets.start_time, jaia_request.task_packets.end_time)
-        jaia_response.task_packets.packets.extend(task_packets)
-   return jaia_response
-
-
-def kmz(jaia_request: APIRequest) -> Tuple[bytes, dict]:
-    """Get a KMZ file.
-
-    Args:
-        jaia_request (APIRequest): A request object containing the parameters for the KMZ request, including target bots and time range.
-
-    Returns:
-        Tuple[bytes, dict]: A tuple containing the KMZ data as bytes and a dictionary of HTTP headers.
-    """
+def task_packets(jaia_request: APIRequest):
     if jaia_request.target.all:
         bot_ids = None
     else:
         bot_ids = jaia_request.target.bots
 
     with common.shared_data.data_lock:
-        kmz_data = common.shared_data.data.get_kmz(bot_ids, jaia_request.kmz.start_time, jaia_request.kmz.end_time)
-    
-    headers = {"Content-Type": "application/vnd.google-earth.kmz"}
-    return kmz_data, headers
+        task_packets = common.shared_data.data.task_packet_database.query_task_packets(bot_ids, jaia_request.task_packets.start_time, jaia_request.task_packets.end_time, included=jaia_request.task_packets.included_only or None)
+
+    if jaia_request.task_packets.format == TaskPacketQuery.JSON:
+        jaia_response = APIResponse()
+        jaia_response.task_packets.packets.extend(task_packets)
+        return jaia_response
+
+    elif jaia_request.task_packets.format == TaskPacketQuery.KMZ:
+        kmz_data = getKMZ(task_packets)
+        return kmz_data, {'Content-Type': 'application/vnd.google-earth.kmz'}
+
+    elif jaia_request.task_packets.format == TaskPacketQuery.CSV:
+        l.warning("CSV format for task packets is not yet implemented in the REST API")
+        raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__NOT_IMPLEMENTED, "CSV format for task packets is not yet implemented in the REST API")
+
+    else:
+        l.warning("Invalid format type for task packets: " + str(jaia_request.task_packets.format))
+        raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__INVALID_TYPE, "Invalid format type for task packets: " + str(jaia_request.task_packets.format))
 
 
 def command(jaia_request):
