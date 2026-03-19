@@ -88,7 +88,7 @@ class UDPGateway
   private:
     dccl::Codec dccl_;
     bool helm_ivp_in_mission_{false};
-    bool rf_enabled_{false};
+    bool rf_enabled_{true};
     goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
         goby::time::SteadyClock::now()};
 
