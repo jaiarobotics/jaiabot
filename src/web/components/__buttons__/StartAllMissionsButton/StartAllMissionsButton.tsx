@@ -29,6 +29,7 @@ import {
 interface Props {
     bots: Map<number, Bot>;
     missions: Map<number, Mission>;
+    missionSetName: string;
 }
 
 type DisabledCodeGroup = [DisabledCodes, number[]];
@@ -115,10 +116,14 @@ export default function StartAllMissionsButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
                 const missionID = missionsManager.getMissionID(botID);
+                const missionPlan = props.missions
+                    .get(missionID)
+                    .packageMissionForHub(props.missionSetName);
+
                 const startMissionCommand: Command = {
                     bot_id: botID,
                     type: CommandType.MISSION_PLAN,
-                    plan: props.missions.get(missionID).packageMissionForHub(),
+                    plan: missionPlan,
                 };
                 const res = await sendBotCommand(startMissionCommand);
                 if (res.status === "ok") {
