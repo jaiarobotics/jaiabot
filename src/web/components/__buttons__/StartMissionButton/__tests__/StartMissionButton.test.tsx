@@ -71,7 +71,13 @@ missionsManager.assign(4, missionID1);
 missionsManager.assign(5, missionID2);
 
 test("Button click with no comms between Bot and Hub", async () => {
-    render(<StartMissionButton bot={bots.getBot(1)} mission={mockMission1} />);
+    render(
+        <StartMissionButton
+            bot={bots.getBot(1)}
+            mission={mockMission1}
+            missionSetName="Mission Set"
+        />,
+    );
     const button = screen.getByRole("button", { name: "start-mission-individual-bot" });
     await userEvent.click(button);
     expect(screen.getByText("Alert"));
@@ -80,7 +86,13 @@ test("Button click with no comms between Bot and Hub", async () => {
 });
 
 test("Button click with Bot in pre-deployment idle", async () => {
-    render(<StartMissionButton bot={bots.getBot(2)} mission={mockMission1} />);
+    render(
+        <StartMissionButton
+            bot={bots.getBot(2)}
+            mission={mockMission1}
+            missionSetName="Mission Set"
+        />,
+    );
     const button = screen.getByRole("button", { name: "start-mission-individual-bot" });
     await userEvent.click(button);
     expect(screen.getByText("Alert"));
@@ -89,7 +101,13 @@ test("Button click with Bot in pre-deployment idle", async () => {
 });
 
 test("Button click with Bot not assigned to mission", async () => {
-    render(<StartMissionButton bot={bots.getBot(3)} mission={mockMission1} />);
+    render(
+        <StartMissionButton
+            bot={bots.getBot(3)}
+            mission={mockMission1}
+            missionSetName="Mission Set"
+        />,
+    );
     const button = screen.getByRole("button", { name: "start-mission-individual-bot" });
     await userEvent.click(button);
     expect(screen.getByText("Alert"));
@@ -98,7 +116,13 @@ test("Button click with Bot not assigned to mission", async () => {
 });
 
 test("Button click with critically low battery", async () => {
-    render(<StartMissionButton bot={bots.getBot(4)} mission={mockMission1} />);
+    render(
+        <StartMissionButton
+            bot={bots.getBot(4)}
+            mission={mockMission1}
+            missionSetName="Mission Set"
+        />,
+    );
     const button = screen.getByRole("button", { name: "start-mission-individual-bot" });
     await userEvent.click(button);
     expect(screen.getByText("Alert"));
@@ -108,7 +132,13 @@ test("Button click with critically low battery", async () => {
 });
 
 test("Start mission", async () => {
-    render(<StartMissionButton bot={bots.getBot(5)} mission={mockMission2} />);
+    render(
+        <StartMissionButton
+            bot={bots.getBot(5)}
+            mission={mockMission2}
+            missionSetName="Mission Set"
+        />,
+    );
     const button = screen.getByRole("button", { name: "start-mission-individual-bot" });
     await userEvent.click(button);
     expect(screen.getByText("Confirm"));

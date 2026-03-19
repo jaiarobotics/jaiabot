@@ -29,6 +29,7 @@ import { microsecondsToSeconds } from "../../../utils/conversions";
 interface Props {
     bot: Bot;
     mission: Mission;
+    missionSetName: string;
 }
 
 /**
@@ -112,10 +113,12 @@ export default function StartMissionButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
+            const missionPlan = props.mission.packageMissionForHub(props.missionSetName);
+
             const startMissionCommand: Command = {
                 bot_id: props.bot.getBotID(),
                 type: CommandType.MISSION_PLAN,
-                plan: props.mission.packageMissionForHub(),
+                plan: missionPlan,
             };
             const response = await sendBotCommand(startMissionCommand);
             if (response && response.status === "ok") {

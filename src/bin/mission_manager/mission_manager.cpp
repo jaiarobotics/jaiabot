@@ -647,6 +647,11 @@ void jaiabot::apps::MissionManager::publish_mission_report(protobuf::MissionStat
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
 
+    if (in_mission) {
+        report.set_command_from_hub_id(machine_->hub_id());
+        report.set_mission_command_time(machine_->mission_command_time());
+    }
+
     // Relay the repeat_index
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
     {
@@ -814,6 +819,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
         case protobuf::Command::MISSION_PLAN:
         {
             machine_->process_event(statechart::EvNewMission());
+            machine_->set_mission_command_time(command.time());
 
             bool mission_is_feasible = true;
             bool goal_depth_infeasible = false;
@@ -1032,6 +1038,12 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
             out_command.set_bot_id(initial_fragment.bot_id());
             out_command.set_time(initial_fragment.time());
             out_command.set_type(protobuf::Command::MISSION_PLAN);
+
+            if (initial_fragment.plan().has_mission_name())
+            {
+                out_command.mutable_plan()->set_mission_name(
+                    initial_fragment.plan().mission_name());
+            }
 
             if (initial_fragment.plan().has_start())
             {

@@ -40,9 +40,11 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
         }
 
         task_packet_.set_bot_id(cfg().bot_id());
+
         task_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
         boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
         task_packet_.set_type(current_task ? current_task->type() : protobuf::MissionTask::NONE);
+        task_packet_.set_mission_command_time(this->machine().mission_command_time());
     }
 
     ~Task()
