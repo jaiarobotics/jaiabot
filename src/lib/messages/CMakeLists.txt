@@ -101,6 +101,7 @@ add_library(jaiabot_messages_c SHARED
   ${DCCL_PROTOS_C}
   ${PROTOS_C}
 )
+
 target_link_libraries(jaiabot_messages_c nanopb::protobuf-nanopb-static)
 
 # make sure we don't accidentally include C++ headers for generated protobufs when compiling with C by clearing and re-adding only desired include directories in the correct order (so nanopb generated headers come before others)
