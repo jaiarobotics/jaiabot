@@ -4,20 +4,23 @@ import "jaiabot/messages/jaia_dccl.proto";
 import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/metadata.proto";
 import "jaiabot/messages/option_extensions.proto";
+import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
 
 message TaskPacketQuery
 {
-    required uint64 start_time = 1
+    optional uint64 start_time = 1
         [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Start of time range as a Unix timestamp in microseconds."
+            doc: "Start of time range as a Unix timestamp in microseconds.  If not set, returns an open-ended search, starting from the earliest available data."
         }];
-    required uint64 end_time = 2
+    optional uint64 end_time = 2
         [(jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "End of time range as a Unix timestamp in microseconds."
+            doc: "End of time range as a Unix timestamp in microseconds.  If not set, returns an open-ended search, ending at the latest available data."
+        }];
+    repeated string mission_name = 4
+        [(jaia.field).rest_api = {
+            doc: "If set, only return task packets associated with the given mission name(s)."
         }];
     optional bool included_only = 3
         [default = true, (jaia.field).rest_api = {
@@ -34,6 +37,31 @@ message TaskPacketQuery
 
     optional Format format = 16 [default = JSON, (jaia.field).rest_api.presence = GUARANTEED];
 }
+
+message TaskPacketQueryResults
+{
+    repeated TaskPacket packets = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message MissionQuery
+{
+    optional uint64 start_time = 1
+        [(jaia.field).rest_api = {
+            doc: "Start of time range as a Unix timestamp in microseconds.  If not set, returns an open-ended search, starting from the earliest available data."
+        }];
+    optional uint64 end_time = 2
+        [(jaia.field).rest_api = {
+            doc: "End of time range as a Unix timestamp in microseconds.  If not set, returns an open-ended search, ending at the latest available data."
+        }];
+}
+
+message MissionQueryResults
+{
+    repeated MissionSummary mission_summaries = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
 
 message CommandResult
 {
@@ -114,6 +142,14 @@ message APIRequest
                 response: '{"request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "target": {"bots": [1]}, "task_packets": {"end_time": "1722970466581176", "start_time": "1722797666581176"}}, "task_packets": {"packets": [{"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.658228, "lon": -71.275736}, "estimated_drift": {"heading": 237.0, "speed": 0.9}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658275, "lon": -71.275645}}, "end_time": "1722895675000000", "start_time": "1722895664000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.65826, "lon": -71.2757}, "estimated_drift": {"heading": 316.0, "speed": 0.6}, "significant_wave_height": 0.0, "start_location": {"lat": 41.658225, "lon": -71.275651}}, "end_time": "1722896712000000", "start_time": "1722896702000000", "type": "SURFACE_DRIFT"}, {"bot_id": 1, "drift": {"drift_duration": 10, "end_location": {"lat": 41.659469, "lon": -71.272064}, "estimated_drift": {"heading": 72.0, "speed": 0.7}, "significant_wave_height": 0.0, "start_location": {"lat": 41.659448, "lon": -71.272146}}, "end_time": "1722896904000000", "start_time": "1722896893000000", "type": "SURFACE_DRIFT"}]}}'
             }
         }];
+        MissionQuery missions = 16 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Query missions from a given range of time. Expect a response of type 'missions'."
+            example {
+                request: '{"target": {"all": true}, "missions": {"start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
+                response: '{"missions": {"mission_summaries": [{"end_time": "1722896904000000", "mission_name": "mission1", "start_time": "1722895664000000", "task_packet_count": 3}]}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "missions": {"end_time": "1722970466581176", "start_time": "1722797666581176"}, "target": {"all": true}}, "target": {"hubs": [1], "bots": [1]}}'
+            }
+        }];
         Command command = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Send a command to one or more bots. Expect a response of type 'command_result'."
@@ -155,12 +191,6 @@ message APIResponse
             [(jaia.field).rest_api.presence = GUARANTEED];
     }
 
-    message TaskPackets
-    {
-        repeated TaskPacket packets = 1
-            [(jaia.field).rest_api.presence = GUARANTEED];
-    }
-
     oneof action
     {
         APIError error = 10 [(jaia.field).rest_api = {
@@ -175,9 +205,13 @@ message APIResponse
             presence: GUARANTEED,
             doc: "Metadata response. This is sent in response to a successful Request 'metadata' action."
         }];
-        TaskPackets task_packets = 13 [(jaia.field).rest_api = {
+        TaskPacketQueryResults task_packets = 13 [(jaia.field).rest_api = {
             presence: GUARANTEED,
-            doc: "Task packet response. This is sent in response to a successful Request 'task_packet' action."
+            doc: "Task packet response. This is sent in response to a successful Request 'task_packets' action."
+        }];
+        MissionQueryResults missions = 15 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Mission query response. This is sent in response to a successful Request 'missions' action."
         }];
         CommandResult command_result = 14 [(jaia.field).rest_api = {
             presence: GUARANTEED,
@@ -217,12 +251,13 @@ message APIConfig
                     'status',
                     'metadata',
                     'task_packets',
+                    'missions',
                     'command',
                     'command_for_hub'
                 ]
             }];
             READ = 1 [(jaia.ev).rest_api = {
-                permitted_action: [ 'status', 'metadata', 'task_packets' ]
+                permitted_action: [ 'status', 'metadata', 'task_packets', 'missions' ]
             }];
             WRITE = 2 [(jaia.ev).rest_api = {
                 permitted_action: [ 'command', 'command_for_hub' ]
@@ -233,6 +268,8 @@ message APIConfig
                 [(jaia.ev).rest_api = { permitted_action: [ 'metadata' ] }];
             TASK_PACKETS = 5
                 [(jaia.ev).rest_api = { permitted_action: [ 'task_packets' ] }];
+            MISSIONS = 8
+                [(jaia.ev).rest_api = { permitted_action: [ 'missions' ] }];
             COMMAND = 6
                 [(jaia.ev).rest_api = { permitted_action: [ 'command' ] }];
             COMMAND_FOR_HUB = 7 [

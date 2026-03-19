@@ -1,19 +1,18 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
-import { missionSet } from "../../../data/mission_set/mission-set";
+import { JCC_CONTAINER } from "../../../utils/constants";
 import { listSavedMissionSets } from "./mission-set-storage";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
 import ImportMissionSetButton from "./ImportMissionSetButton/ImportMissionSetButton";
 import ExportMissionSetButton from "./ExportMissionSetButton/ExportMissionSetButton";
-import { JCC_CONTAINER } from "../../../utils/constants";
 
 import "./MissionSetStorage.less";
 
 interface DialogProps {
-    isVisible: boolean;
+    missionSetName: string;
     onClose: () => void;
 }
 
@@ -28,7 +27,7 @@ interface MissionSetRowProps {
  * This dialog provides delete, save and load mission set buttons
  */
 export function MissionSetStorageDialog(props: DialogProps) {
-    const [saveName, setSaveName] = useState(missionSet.getName());
+    const [saveName, setSaveName] = useState(props.missionSetName);
 
     /**
      * Updates the selected mission set in state
@@ -49,22 +48,6 @@ export function MissionSetStorageDialog(props: DialogProps) {
         setSaveName("");
     };
 
-    /**
-     * Resets the selected name to the mission set displayed in the JCC and
-     * closes the dialog
-     *
-     * @returns {void}
-     */
-    const handleCloseButtonClick = () => {
-        // reset save name for next time the dialog is opened
-        setSaveName(missionSet.getName());
-        props.onClose();
-    };
-
-    if (!props.isVisible) {
-        return <div></div>;
-    }
-
     return createPortal(
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}>
@@ -75,8 +58,8 @@ export function MissionSetStorageDialog(props: DialogProps) {
                         <input
                             type="text"
                             value={saveName}
-                            onInput={(evt) => {
-                                setSaveName((evt.target as any).value);
+                            onChange={(evt) => {
+                                setSaveName(evt.target.value);
                             }}
                         />
                     </div>
@@ -105,7 +88,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
                         <ExportMissionSetButton saveName={saveName} />
                         <ImportMissionSetButton onClose={props.onClose} />
                     </div>
-                    <button onClick={() => handleCloseButtonClick()}>Close</button>
+                    <button onClick={props.onClose}>Close</button>
                 </div>
             </div>
         </div>,

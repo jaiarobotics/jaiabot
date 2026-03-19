@@ -30,18 +30,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     const missionIDInEditMode = missionSet.getMissionIDInEditMode();
     const selectedNode = jaiaGlobal.getSelectedNode();
 
-    if (
-        selectedNode.type === NodeTypes.BOT &&
-        missionsManager.getMissionID(selectedNode.id) === UNASSIGNED_ID
-    ) {
-        // Create new mission and add first waypoint for selected Bot without mission
-        const newMission = new Mission();
-        const newMissionID = missionSet.addMission(newMission);
-        newMission.addWaypoint(action.location);
-        missionsManager.assign(selectedNode.id, newMissionID);
-
-        mutableState.missionAccordionStates[newMissionID] = true;
-    } else if (missionIDInEditMode !== UNASSIGNED_ID) {
+    if (missionIDInEditMode !== UNASSIGNED_ID) {
         // Add waypoint to mission in edit mode
         const mission = missionSet.getMission(missionIDInEditMode);
         if (mission.getWaypoints().length < MAX_WAYPOINTS) {
