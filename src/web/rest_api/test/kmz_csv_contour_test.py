@@ -15,7 +15,8 @@ API_KEY = os.getenv('JAIA_REST_API_PRIVATE_KEY', "")
 URL = os.getenv("JAIA_REST_API_URL", "http://localhost:9092/jaia/v1")
 
 print(f'Testing KMZ generation with API URL: {URL}')
-print(f'Using API key: {API_KEY}')
+masked_key = ("****" + API_KEY[-4:]) if API_KEY else "(none)"
+print(f'Using API key: {masked_key}')
 
 
 def utime_now():

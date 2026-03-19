@@ -21,7 +21,7 @@ def utime_to_string(utime: int):
 def flatten_dict(input: dict, prefix=''):
     output = {}
     first_keys = ['bot_id', 'start_time', 'end_time', 'type']
-    other_keys = input.keys() - first_keys
+    other_keys = [key for key in input.keys() if key not in first_keys]
 
     for key in first_keys + list(other_keys):
         value = input.get(key)
@@ -30,10 +30,10 @@ def flatten_dict(input: dict, prefix=''):
 
         if key.endswith('_time'):
             output[prefix + key] = utime_to_string(int(value))
-        elif isinstance(value, (int, float, str)):
-            output[prefix + key] = value
         elif isinstance(value, bool):
             output[prefix + key] = 'YES' if value else 'NO'
+        elif isinstance(value, (int, float, str)):
+            output[prefix + key] = value
         elif isinstance(value, dict):
             output.update(flatten_dict(value, prefix + key + '.'))
         else:

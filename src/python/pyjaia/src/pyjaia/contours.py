@@ -291,7 +291,7 @@ def taskPacketsToColorMap(taskPackets: List[Dict]):
     """
     bottomDives = getBottomDives(taskPackets)
     if len(bottomDives) < 3:
-        logging.warning('Not enough bottom dives to make contours, need at least 3 but only have', len(bottomDives))
+        logging.warning(f'Not enough bottom dives to make contours, need at least 3 but only have {len(bottomDives)}')
         return geojson([]) # Not enough bottom dives to make contours
 
     contourValues = getContourValues(bottomDives)

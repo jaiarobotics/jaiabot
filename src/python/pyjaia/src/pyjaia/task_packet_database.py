@@ -31,7 +31,7 @@ class TaskPacketDatabase:
     db: sqlite3.Connection
     _lock: threading.Lock
 
-    def __init__(self, taskpacket_files_path: str=None, database_path: str=None):
+    def __init__(self, taskpacket_files_path: str | None=None, database_path: str | None=None):
         self.taskpacket_files_path = taskpacket_files_path or self.taskpacket_files_path
         self.database_path = database_path or self.database_path
         self._lock = threading.Lock()
@@ -212,22 +212,6 @@ class TaskPacketDatabase:
         }
 
         return result
-    
-
-    def get_kmz(self, bot_ids: Union[Iterable[int], None]=None, start_utime: Union[int, None]=None, end_utime: Union[int, None]=None) -> bytes:
-        """Gets a KMZ file containing task packet information for the specified bots over a given time range.
-
-        Args:
-            bot_ids (Union[Iterable[int], None]): The bot IDs to include in the KMZ.  None means include all bots.
-            start_utime (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
-            end_utime (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
-        Returns:
-            bytes: The KMZ file data as a byte string.
-        """
-        # This function returns the KMZ file data as a byte string
-        task_packets = self.query_task_packets_as_protobuf(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime)
-        kmz_data = kmz.getKMZ(task_packets)
-        return kmz_data
     
 
     def get_task_packets_version(self) -> int:
