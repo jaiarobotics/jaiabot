@@ -22,7 +22,7 @@ fi
 echo "🟢 Building Jaia protobuf python modules"
 
 # Set up PROTO_INCLUDE directory
-PROTO_INCLUDE="/tmp/proto_include/"
+PROTO_INCLUDE="/tmp/proto_include"
 mkdir -p ${PROTO_INCLUDE}
 
 rm -f ${PROTO_INCLUDE}/goby
@@ -37,11 +37,14 @@ ln -sf /usr/lib/python3/dist-packages/proto/nanopb.proto ${PROTO_INCLUDE}/nanopb
 # Create output directory
 mkdir -p $PYTHON_OUT_DIR
 
-protoc -I${PROTO_INCLUDE} --python_out=${PYTHON_OUT_DIR} --pyi_out=${PYTHON_OUT_DIR} \
+protoc -I${PROTO_INCLUDE} \
+    --python_out=${PYTHON_OUT_DIR} \
+    --pyi_out=${PYTHON_OUT_DIR} \
     ${PROTO_INCLUDE}/dccl/option_extensions.proto \
-    ${PROTO_INCLUDE}/goby/middleware/protobuf/*.proto \
-    ${PROTO_INCLUDE}/jaiabot/messages/*.proto \
-    ${PROTO_INCLUDE}/jaiabot/messages/sensor/*.proto \
+    $(find ${PROTO_INCLUDE}/goby/middleware/protobuf \
+           ${PROTO_INCLUDE}/jaiabot/messages \
+           -name '*.proto' \
+           ! -path "${PROTO_INCLUDE}/jaiabot/messages/nanopb*") \
     ${PROTO_INCLUDE}/nanopb.proto
 
 # Remove the temporary proto_include directory
