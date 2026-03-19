@@ -419,7 +419,7 @@ def surob_results_request(jaia_request):
                                                                                         h_datum=PROPERTIES_H_DATUM, 
                                                                                         current_measurement=curr_current_measurement)
                 
-                curr_current_coordinates = [task_packet.location.lon, task_packet.location.lat]
+                curr_current_coordinates = [task_packet.current.location.lon, task_packet.current.location.lat]
                 curr_current_geometry = jaiabot.messages.surob_results_pb2.PointGeometry(type=POINT_GEOMETRY_TYPE)
                 curr_current_geometry.coordinates.extend(curr_current_coordinates)
                 
@@ -456,7 +456,7 @@ def surob_results_request(jaia_request):
                                                                                      h_datum=PROPERTIES_H_DATUM, 
                                                                                      wave_measurement=curr_wave_measurement)
                 
-                curr_wave_coordinates = [task_packet.location.lon, task_packet.location.lat]
+                curr_wave_coordinates = [task_packet.wave.location.lon, task_packet.wave.location.lat]
                 curr_wave_geometry = jaiabot.messages.surob_results_pb2.PointGeometry(type=POINT_GEOMETRY_TYPE)
                 curr_wave_geometry.coordinates.extend(curr_wave_coordinates)
 
@@ -499,7 +499,7 @@ def surob_results_request(jaia_request):
                                                                                      h_datum=PROPERTIES_H_DATUM, 
                                                                                      wave_measurement=curr_wave_measurement)
                 
-                curr_wave_coordinates = [task_packet.location.lon, task_packet.location.lat]
+                curr_wave_coordinates = [task_packet.wave.location.lon, task_packet.wave.location.lat]
                 curr_wave_geometry = jaiabot.messages.surob_results_pb2.PointGeometry(type=POINT_GEOMETRY_TYPE)
                 curr_wave_geometry.coordinates.extend(curr_wave_coordinates)
 
