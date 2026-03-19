@@ -1,13 +1,13 @@
 # even though the C++ code doesn't use this info, it still needs to generate it to compile correctly
 set(NANOPB_PROTO /usr/lib/python3/dist-packages/proto/nanopb.proto)
 configure_file(${NANOPB_PROTO} ${CMAKE_CURRENT_SOURCE_DIR}/nanopb.proto COPYONLY)
-
 jaiabot_protobuf_generate(LANGUAGE CXX
   TARGET_TYPE LIB
   OUT_VAR NANOPB_PROTOS_CPP
   PROTOS nanopb.proto)
 
-set(SENSOR_MESSAGES
+# Sensor messages
+set(SENSOR_PROTOS
   sensor/pressure_temperature.proto
   sensor/salinity.proto
   sensor/sensor_core.proto
@@ -22,18 +22,22 @@ set(SENSOR_MESSAGES
   sensor/aml.proto
 )
 
-jaiabot_protobuf_generate(LANGUAGE CXX
-  PROTO_IMPORT_PREFIX "jaiabot/messages"
-  TARGET_TYPE LIB
-  OUT_VAR PROTOS_CPP
-  PROTOS
+# All messages used by microcontrollers (C code)
+set(MCU_PROTOS
+  ${SENSOR_PROTOS}
+  arduino.proto
+  feather.proto
+)
+
+# All messages for C++ and Python generation
+set(ALL_PROTOS
+  ${MCU_PROTOS}
   example.proto
   geographic_coordinate.proto
   camera_driver.proto
   control_surfaces.proto
   high_control.proto
   control_surfaces.proto
-  feather.proto
   imu.proto
   mission.proto
   jaia_dccl.proto
@@ -42,7 +46,6 @@ jaiabot_protobuf_generate(LANGUAGE CXX
   portal.proto
   metadata.proto
   moos.proto
-  arduino.proto
   bounds.proto
   health.proto
   hub.proto
@@ -62,11 +65,14 @@ jaiabot_protobuf_generate(LANGUAGE CXX
   ctd.proto
   udp_gateway.proto
   ppk.proto
-  ${SENSOR_MESSAGES})
-
+)
 
 add_jaiabot_library(TARGET jaiabot_messages
   SOURCES ${PROTOS_CPP} ${NANOPB_PROTOS_CPP}
+    PROTO_IMPORT_PREFIX "jaiabot/messages"
+  TARGET_TYPE LIB
+  OUT_VAR PROTOS_CPP
+  PROTOS ${ALL_PROTOS}
   LINK_LIBRARIES protobuf::libprotobuf goby)
 
 add_subdirectory(nanopb)

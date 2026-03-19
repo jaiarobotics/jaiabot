@@ -28,14 +28,11 @@ jaiabot_protobuf_generate(LANGUAGE C
   TARGET_TYPE LIB
   PROTOC_OUT_DIR ${project_INC_DIR}/nanopb
   OUT_VAR PROTOS_C
-  PROTOS
-  arduino.proto
-  feather.proto
-  ${SENSOR_MESSAGES}
+  PROTOS ${MCU_PROTOS}
 )
 
 add_jaiabot_library(TARGET jaiabot_messages_c
-  SOURCES ${DCCL_PROTOS_C} ${PROTOS_C}
+  SOURCES ${GOOGLE_PROTOS_C} ${DCCL_PROTOS_C} ${PROTOS_C}
   LINK_LIBRARIES nanopb::protobuf-nanopb-static)
 
 # make sure we don't accidentally include C++ headers for generated protobufs when compiling with C by clearing and re-adding only desired include directories in the correct order (so nanopb generated headers come before others)
