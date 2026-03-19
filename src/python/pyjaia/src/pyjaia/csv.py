@@ -37,7 +37,7 @@ def flatten_dict(input: dict, prefix=''):
         elif isinstance(value, dict):
             output.update(flatten_dict(value, prefix + key + '.'))
         else:
-            print(f'Warning: Skipping key {prefix + key} with unsupported type {type(value)}')
+            pass
     return output
 
 
@@ -53,7 +53,6 @@ def task_packets_to_csv(task_packets: Iterable[TaskPacket]):
     for packet_dict in packet_dicts:
         union_dict.update(packet_dict)
     fieldnames = list(union_dict.keys())
-    print(fieldnames)
 
     writer = csv.DictWriter(csv_string_io, fieldnames=fieldnames)
     writer.writeheader()

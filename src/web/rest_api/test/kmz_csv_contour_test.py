@@ -22,7 +22,7 @@ def utime_now():
     return int(datetime.datetime.now().timestamp() * 1e6)
 
 
-def test_kmz_csv(dump_files=False):
+def test_all(dump_files=False):
     # This test will make a request to the KMZ endpoint and check that it returns a non-empty byte string
     now = utime_now()
     
@@ -34,11 +34,12 @@ def test_kmz_csv(dump_files=False):
     api_request.task_packets.format = TaskPacketQuery.KMZ
     api_request.api_key = API_KEY
 
-    for format in ['kmz', 'csv']:
+    for format in ['kmz', 'csv', 'geojson']:
 
         format_map = {
             'kmz': TaskPacketQuery.KMZ,
-            'csv': TaskPacketQuery.CSV
+            'csv': TaskPacketQuery.CSV,
+            'geojson': TaskPacketQuery.GEOJSON_CONTOURS
         }
 
         api_request.task_packets.format = format_map[format]
@@ -56,4 +57,4 @@ def test_kmz_csv(dump_files=False):
 
 
 if __name__ == "__main__":
-    test_kmz_csv(dump_files=True)
+    test_all(dump_files=True)

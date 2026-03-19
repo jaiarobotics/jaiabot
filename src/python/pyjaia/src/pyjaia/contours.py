@@ -10,6 +10,10 @@ from pprint import pprint
 from math import *
 from .constrain import *
 
+from google.protobuf.json_format import MessageToDict
+
+from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
+
 
 @dataclass
 class BottomDive:
@@ -287,13 +291,17 @@ def taskPacketsToColorMap(taskPackets: List[Dict]):
     """
     bottomDives = getBottomDives(taskPackets)
     if len(bottomDives) < 3:
+        logging.warning('Not enough bottom dives to make contours, need at least 3 but only have', len(bottomDives))
         return geojson([]) # Not enough bottom dives to make contours
 
     contourValues = getContourValues(bottomDives)
     if len(contourValues) == 0:
+        logging.warning('No contours to display')
         return geojson([]) # No contours to display
 
     simplices = getSimplices(bottomDives)
+    if len(simplices) == 0:
+        logging.warning('No simplices')
 
     polygons: List[Dict] = []
 
@@ -301,4 +309,8 @@ def taskPacketsToColorMap(taskPackets: List[Dict]):
         polygons.extend(getColorMapPolygons([bottomDives[i] for i in simplex], contourValues))
 
     return geojson(polygons)
+
+
+def task_packets_to_geojson(task_packets: list[TaskPacket]):
+    return taskPacketsToColorMap([MessageToDict(packet, preserving_proto_field_name=True) for packet in task_packets])
 

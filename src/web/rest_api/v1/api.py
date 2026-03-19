@@ -1,6 +1,8 @@
 import asyncio
 from typing import Tuple
 
+from google.protobuf.json_format import MessageToDict
+
 import jaiabot.messages.rest_api_pb2
 from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse
 from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
@@ -8,6 +10,7 @@ import jaiabot.messages.portal_pb2
 
 from pyjaia.kmz import getKMZ
 from pyjaia.csv import task_packets_to_csv
+from pyjaia.contours import task_packets_to_geojson
 
 import common.shared_data
 from common.time import utc_now_microseconds
@@ -107,6 +110,10 @@ def task_packets(jaia_request: APIRequest):
     elif jaia_request.task_packets.format == TaskPacketQuery.CSV:
         csv_string = task_packets_to_csv(task_packets)
         return csv_string, {'Content-Type': 'text/csv'}
+
+    elif jaia_request.task_packets.format == TaskPacketQuery.GEOJSON_CONTOURS:
+        geojson_contours = task_packets_to_geojson(task_packets)
+        return geojson_contours, {'Content-Type': 'application/vnd.geo+json'}
 
     else:
         l.warning("Invalid format type for task packets: " + str(jaia_request.task_packets.format))
