@@ -1,10 +1,6 @@
 # even though the C++ code doesn't use this info, it still needs to generate it to compile correctly
 set(NANOPB_PROTO /usr/lib/python3/dist-packages/proto/nanopb.proto)
-configure_file(${NANOPB_PROTO} ${CMAKE_CURRENT_SOURCE_DIR}/nanopb.proto COPYONLY)
-jaiabot_protobuf_generate(LANGUAGE CXX
-  TARGET_TYPE LIB
-  OUT_VAR NANOPB_PROTOS_CPP
-  PROTOS nanopb.proto)
+file(CREATE_LINK "${NANOPB_PROTO}" "${CMAKE_CURRENT_SOURCE_DIR}/nanopb.proto" SYMBOLIC)
 
 # Sensor messages
 set(SENSOR_PROTOS
@@ -30,7 +26,7 @@ set(MCU_PROTOS
 )
 
 # All messages for C++ and Python generation
-set(ALL_PROTOS
+set(JAIABOT_PROTOS
   ${MCU_PROTOS}
   example.proto
   geographic_coordinate.proto
@@ -67,15 +63,20 @@ set(ALL_PROTOS
   ppk.proto
 )
 
+list(TRANSFORM JAIABOT_PROTOS PREPEND "jaiabot/messages/")
+list(TRANSFORM MCU_PROTOS PREPEND "jaiabot/messages/")
+
+set(CXX_PROTOS ${JAIABOT_PROTOS}
+  nanopb.proto)
+
 add_jaiabot_library(TARGET jaiabot_messages
-  SOURCES ${PROTOS_CPP} ${NANOPB_PROTOS_CPP}
-    PROTO_IMPORT_PREFIX "jaiabot/messages"
   TARGET_TYPE LIB
   OUT_VAR PROTOS_CPP
-  PROTOS ${ALL_PROTOS}
+  PROTOS ${CXX_PROTOS}
   LINK_LIBRARIES protobuf::libprotobuf goby)
 
 add_subdirectory(nanopb)
+add_subdirectory(python)
 
 function(check_dccl_md5_hash DCCL_NAME EXPECTED_HASH)
   add_custom_command(

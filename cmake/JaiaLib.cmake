@@ -7,18 +7,18 @@
 # add_jaiabot_library(TARGET target
 #                     PROTOS proto1;proto2
 #                     PRIVATE_PROTOS proto1;proto2
-#                     PROTO_IMPORT_PREFIX prefix/for/protos
 #                     SOURCES file1.cpp;file2.cpp
 #                     LINK_LIBRARIES target1;target2;${SOME_LIBRARIES}
 #                     INCLUDE_DIRECTORIES dir1;dir2
 #                     COMPILE_OPTIONS -opt1;-opt2
+#                     LANGUAGE CXX|C (default CXX)
 #                     CXX_STANDARD 17)
 function(add_jaiabot_library)
 
     cmake_parse_arguments(
         args # prefix of output variables
         "SKIP_INSTALL" # list of names of the boolean arguments (only defined ones will be true)
-        "TARGET;PROTO_IMPORT_PREFIX;CXX_STANDARD;PROTOC_OUT_DIR" # list of names of mono-valued arguments
+        "TARGET;CXX_STANDARD;PROTOC_OUT_DIR;LANGUAGE" # list of names of mono-valued arguments
         "PROTOS;PRIVATE_PROTOS;SOURCES;LINK_LIBRARIES;INCLUDE_DIRECTORIES;COMPILE_OPTIONS;IMPORT_DIRS" # list of names of multi-valued arguments (output variables are lists)
         ${ARGN} # arguments of the function to parse, here we take the all original ones
     )
@@ -27,6 +27,10 @@ function(add_jaiabot_library)
       message(FATAL_ERROR "You must provide a TARGET")
     endif()
 
+    if(NOT args_LANGUAGE)
+      set(args_LANGUAGE "CXX")
+    endif()
+    
     add_library(${args_TARGET} SHARED ${args_SOURCES})
 
     if(args_PROTOS)
@@ -39,10 +43,9 @@ function(add_jaiabot_library)
       endif()
       
       jaiabot_protobuf_generate(
-        LANGUAGE CXX
+        LANGUAGE ${args_LANGUAGE}
         OUT_VAR PROTOS_CPP
         TARGET_TYPE LIB
-        PROTO_IMPORT_PREFIX "${args_PROTO_IMPORT_PREFIX}"
         IMPORT_DIRS ${args_IMPORT_DIRS}
         PROTOS ${args_PROTOS}
         ${PROTOC_OUT_DIR_ARG}
@@ -52,7 +55,7 @@ function(add_jaiabot_library)
 
     if(args_PRIVATE_PROTOS)
       jaiabot_protobuf_generate(
-        LANGUAGE CXX
+        LANGUAGE ${args_LANGUAGE}
         OUT_VAR PRIVATE_PROTOS_CPP
         TARGET_TYPE BIN
         PROTOS ${args_PRIVATE_PROTOS})
