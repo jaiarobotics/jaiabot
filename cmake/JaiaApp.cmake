@@ -13,7 +13,7 @@ function(add_jaiabot_application)
 
     cmake_parse_arguments(
         args # prefix of output variables
-        "LINK_DEFAULT_LIBRARIES" # list of names of the boolean arguments (only defined ones will be true)
+        "LINK_DEFAULT_LIBRARIES;SKIP_INSTALL" # list of names of the boolean arguments (only defined ones will be true)
         "TARGET" # list of names of mono-valued arguments
         "PROTOS;SOURCES;LINK_LIBRARIES;INCLUDE_DIRECTORIES" # list of names of multi-valued arguments (output variables are lists)
         ${ARGN} # arguments of the function to parse, here we take the all original ones
@@ -55,8 +55,10 @@ function(add_jaiabot_application)
     if(export_goby_interfaces)
       generate_interfaces(${args_TARGET})
     endif()
-    
-    project_install_bin(${args_TARGET})
+
+    if(NOT args_SKIP_INSTALL)
+      project_install_bin(${args_TARGET})
+    endif()
     
 endfunction()
 
