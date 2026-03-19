@@ -543,7 +543,7 @@ def surob_results_request(jaia_request):
             return jaia_response
     elif len(surface_drift_sig_wave_periods_s) == 1:
         sig_wave_period_s_to_report = surface_drift_sig_wave_periods_s[0]
-        sig_wave_period_uncertainty_s_to_report = surface_drift_sig_wave_period_uncertainties_s
+        sig_wave_period_uncertainty_s_to_report = surface_drift_sig_wave_period_uncertainties_s[0]
     else:
         # we expect only 1 surface drift per surob, but in the event we find multiple, report average of period estimates and uncertainty of largest between variance of period estimates or default uncertainty of period estimate
         sig_wave_period_s_to_report = np.mean(surface_drift_sig_wave_periods_s)
