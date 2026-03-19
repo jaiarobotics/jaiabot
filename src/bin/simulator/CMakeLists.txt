@@ -4,4 +4,3 @@ add_jaiabot_application(TARGET jaiabot_simulator
   LINK_DEFAULT_LIBRARIES
   LINK_LIBRARIES goby_moos
 )
-

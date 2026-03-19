@@ -1,7 +1,7 @@
 find_package(Protobuf REQUIRED)
 
 # jaiabot_protobuf_generate(PROTOS proto1;proto2
-#                           LANGUAGE_CPP|LANGUAGE_C
+#                           LANGUAGE CPP|CXX|C++|C
 #                           OUT_VAR PROTOS_CPP
 #                           IMPORT_DIRS /path/to/import/dir)
 function(jaiabot_protobuf_generate)
@@ -18,7 +18,7 @@ function(jaiabot_protobuf_generate)
     message(FATAL_ERROR "No LANGUAGE given to jaiabot_protobuf_generate - you need at least one")
   endif()
   
-  # Create the symlink required by Protobuf to correctly generate the prefix need
+  # Create the symlink required by Protobuf to correctly generate the prefix needed
   # That is, if we give PROTO_IMPORT_PREFIX = jaiabot/messages
   # we need to generate symlink ${CMAKE_CURRENT_SOURCE_DIR}/jaiabot/messages -> ..
   # Also, add it to the .gitignore if not already done
@@ -69,7 +69,7 @@ function(jaiabot_protobuf_generate)
   elseif("${args_TARGET_TYPE}" STREQUAL "BIN")
     set(protoc_out_dir ${CMAKE_CURRENT_BINARY_DIR})    
   else()
-    message(FATAL_ERROR "Unsupport TARGET_TYPE ${args_TARGET_TYPE} given to jaiabot_protobuf_generate")
+    message(FATAL_ERROR "Unsupported TARGET_TYPE ${args_TARGET_TYPE} given to jaiabot_protobuf_generate")
 
   endif()
     
@@ -94,7 +94,7 @@ function(jaiabot_protobuf_generate)
         GENERATE_EXTENSIONS .pb.h .pb.c
       )
     else()
-      message(FATAL_ERROR "Unsupport LANGUAGE ${language} given to jaiabot_protobuf_generate")
+      message(FATAL_ERROR "Unsupported LANGUAGE ${language} given to jaiabot_protobuf_generate")
     endif()
   endforeach()
 

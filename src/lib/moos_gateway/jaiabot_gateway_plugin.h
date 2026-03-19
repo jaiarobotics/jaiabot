@@ -9,7 +9,6 @@
 #include "jaiabot/messages/moos.pb.h"
 
 #include "jaiabot/moos_gateway/jaiabot_gateway_config.pb.h"
-
 namespace jaiabot
 {
 namespace moos
