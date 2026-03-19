@@ -7,6 +7,7 @@ from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
 import jaiabot.messages.portal_pb2
 
 from pyjaia.kmz import getKMZ
+from pyjaia.csv import task_packets_to_csv
 
 import common.shared_data
 from common.time import utc_now_microseconds
@@ -104,8 +105,8 @@ def task_packets(jaia_request: APIRequest):
         return kmz_data, {'Content-Type': 'application/vnd.google-earth.kmz'}
 
     elif jaia_request.task_packets.format == TaskPacketQuery.CSV:
-        l.warning("CSV format for task packets is not yet implemented in the REST API")
-        raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__NOT_IMPLEMENTED, "CSV format for task packets is not yet implemented in the REST API")
+        csv_string = task_packets_to_csv(task_packets)
+        return csv_string, {'Content-Type': 'text/csv'}
 
     else:
         l.warning("Invalid format type for task packets: " + str(jaia_request.task_packets.format))
