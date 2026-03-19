@@ -18,7 +18,7 @@ function(add_jaiabot_library)
     cmake_parse_arguments(
         args # prefix of output variables
         "SKIP_INSTALL" # list of names of the boolean arguments (only defined ones will be true)
-        "TARGET;PROTO_IMPORT_PREFIX;CXX_STANDARD" # list of names of mono-valued arguments
+        "TARGET;PROTO_IMPORT_PREFIX;CXX_STANDARD;PROTOC_OUT_DIR" # list of names of mono-valued arguments
         "PROTOS;PRIVATE_PROTOS;SOURCES;LINK_LIBRARIES;INCLUDE_DIRECTORIES;COMPILE_OPTIONS;IMPORT_DIRS" # list of names of multi-valued arguments (output variables are lists)
         ${ARGN} # arguments of the function to parse, here we take the all original ones
     )
@@ -30,13 +30,23 @@ function(add_jaiabot_library)
     add_library(${args_TARGET} SHARED ${args_SOURCES})
 
     if(args_PROTOS)
+      if(args_PROTOC_OUT_DIR)
+        set(PROTOC_OUT_DIR_ARG PROTOC_OUT_DIR ${args_PROTOC_OUT_DIR})
+        target_include_directories(${args_TARGET} PRIVATE ${args_PROTOC_OUT_DIR})
+        file(MAKE_DIRECTORY ${args_PROTOC_OUT_DIR})
+      else()
+        set(PROTOC_OUT_DIR_ARG "")
+      endif()
+      
       jaiabot_protobuf_generate(
         LANGUAGE CXX
         OUT_VAR PROTOS_CPP
         TARGET_TYPE LIB
         PROTO_IMPORT_PREFIX "${args_PROTO_IMPORT_PREFIX}"
         IMPORT_DIRS ${args_IMPORT_DIRS}
-        PROTOS ${args_PROTOS})
+        PROTOS ${args_PROTOS}
+        ${PROTOC_OUT_DIR_ARG}
+      )
       target_sources(${args_TARGET} PRIVATE ${PROTOS_CPP})
     endif()
 

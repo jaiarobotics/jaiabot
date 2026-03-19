@@ -20,7 +20,9 @@ endif()
 file(GLOB_RECURSE CONFIG_PROTOS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "bin/*/config.proto")
 add_jaiabot_library(TARGET jaiabot_config
   PROTOS ${CONFIG_PROTOS}
-  LINK_LIBRARIES protobuf::libprotobuf jaiabot_messages goby goby_zeromq goby_moos)
+  LINK_LIBRARIES protobuf::libprotobuf jaiabot_messages goby goby_zeromq goby_moos
+  PROTOC_OUT_DIR ${project_BUILD_DIR}/config_pb
+)
 
 if(build_arduino)
   include(ArduinoCompile)
