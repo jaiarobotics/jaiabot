@@ -65,10 +65,9 @@ jaiabot_protobuf_generate(LANGUAGE CXX
   ${SENSOR_MESSAGES})
 
 
-add_library(jaiabot_messages SHARED ${PROTOS_CPP} ${NANOPB_PROTOS_CPP})
-target_link_libraries(jaiabot_messages protobuf::libprotobuf goby)
-
-project_install_lib(jaiabot_messages)
+add_jaiabot_library(TARGET jaiabot_messages
+  SOURCES ${PROTOS_CPP} ${NANOPB_PROTOS_CPP}
+  LINK_LIBRARIES protobuf::libprotobuf goby)
 
 add_subdirectory(nanopb)
 

@@ -1,17 +1,5 @@
-set(LIB jaiabot_moos_gateway_plugin)
-
-jaiabot_protobuf_generate(LANGUAGE CXX
-  PROTO_IMPORT_PREFIX "jaiabot/moos_gateway"
-  TARGET_TYPE LIB
-  OUT_VAR PROTOS_CPP
+add_jaiabot_library(TARGET jaiabot_moos_gateway_plugin
+  SOURCES jaiabot_gateway_plugin.cpp
   PROTOS jaiabot_gateway_config.proto
-)
-
-add_library(${LIB} SHARED jaiabot_gateway_plugin.cpp ${PROTOS_CPP})
-target_link_libraries(${LIB}
-  goby goby_zeromq goby_moos jaiabot_messages)
-
-if(export_goby_interfaces)
-  generate_interfaces(${LIB})
-endif()
-project_install_lib(${LIB})
+  PROTO_IMPORT_PREFIX jaiabot/moos_gateway
+  LINK_LIBRARIES goby goby_zeromq goby_moos jaiabot_messages)
