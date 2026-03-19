@@ -61,13 +61,15 @@ namespace apps
 constexpr goby::middleware::Group bot_gps_in{"bot_gps_in"};
 constexpr goby::middleware::Group bot_gps_out{"bot_gps_out"};
 
-using BotId = uint32_t;
+using BotID = uint32_t;
 using MissionCommandTime = uint64_t;
 
-// This function rounds a timestamp to the nearest DCCL time2 resolution (default 1 second)
-// This is so we can properly map the incoming mission_command_time, which will
-// have made a round-trip through the dccl.time2 codec, to the mission_command_time stored
-// on the hub for matching with the mission name
+/*
+ * This function rounds a timestamp to the nearest DCCL time2 resolution (default 1 second).
+ * This is so we can map the incoming mission_command_time, which will have made a round-trip
+ * through the dccl.time2 codec to the mission_command_time stored on the Hub for matching
+ * with the mission name.
+ */
 std::uint64_t dccl_time2_round(std::uint64_t ts_micros,
                                std::uint64_t resolution_micros = 1000000ULL)
 {
@@ -166,14 +168,14 @@ class HubManager : public ApplicationBase
     std::map<int, goby::time::MicroTime> known_bots_;
 
     // map mission id to mission name for logging purposes
-    std::map<std::pair<BotId, MissionCommandTime>, std::string>
+    std::map<std::pair<BotID, MissionCommandTime>, std::string>
         bot_id_and_command_time_to_mission_name_;
 
-    void set_mission_name_for_bot_command_time(const BotId bot_id,
+    void set_mission_name_for_bot_command_time(const BotID bot_id,
                                                const MissionCommandTime mission_command_time,
                                                const std::string& mission_name);
     std::string
-    get_mission_name_for_bot_command_time(const BotId bot_id,
+    get_mission_name_for_bot_command_time(const BotID bot_id,
                                           const MissionCommandTime mission_command_time);
 };
 } // namespace apps
@@ -410,7 +412,7 @@ void jaiabot::apps::HubManager::handle_subscription_report(
 }
 
 void jaiabot::apps::HubManager::set_mission_name_for_bot_command_time(
-    const BotId bot_id, const MissionCommandTime mission_command_time,
+    const BotID bot_id, const MissionCommandTime mission_command_time,
     const std::string& mission_name)
 {
     auto mission_command_time_dccl = dccl_time2_round(mission_command_time);
@@ -419,13 +421,13 @@ void jaiabot::apps::HubManager::set_mission_name_for_bot_command_time(
     bot_id_and_command_time_to_mission_name_[bot_and_command_time] = mission_name;
 
     glog.is_debug1() && glog << group("main")
-                             << "Set mission name for bot command time: Bot ID = " << bot_id
+                             << "Set mission name for Bot command time: Bot ID = " << bot_id
                              << ", Command Time = " << mission_command_time_dccl
                              << ", Mission Name = " << mission_name << std::endl;
 }
 
 std::string jaiabot::apps::HubManager::get_mission_name_for_bot_command_time(
-    const BotId bot_id, const MissionCommandTime mission_command_time)
+    const BotID bot_id, const MissionCommandTime mission_command_time)
 {
     auto mission_command_time_dccl = dccl_time2_round(mission_command_time);
     auto bot_and_command_time = std::make_pair(bot_id, mission_command_time_dccl);
@@ -444,7 +446,7 @@ std::string jaiabot::apps::HubManager::get_mission_name_for_bot_command_time(
         for (auto pair : bot_id_and_command_time_to_mission_name_)
         {
             glog.is_warn() && glog << group("main")
-                                   << "Known bot and command time: Bot ID = " << pair.first.first
+                                   << "Known Bot and command time: Bot ID = " << pair.first.first
                                    << ", Command Time = " << pair.first.second
                                    << ", Mission Name = " << pair.second << std::endl;
         }

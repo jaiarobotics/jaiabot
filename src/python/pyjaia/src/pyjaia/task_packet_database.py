@@ -162,7 +162,7 @@ class TaskPacketDatabase:
         if 'mission_name' in task_packet:
             self.db.execute('insert or replace into mission_name (id, mission_name) values (?, ?)', (id, task_packet["mission_name"]))
         elif 'mission_command_time' in task_packet:
-            # It's possible we know about this task packet's mission_name, but a power cycle occurred.  So we can retrieve it from the
+            # It's possible we know about this task packet's mission_name, but a power cycle occurred. We can retrieve it from the
             # mission_commands table based on the bot_id and the task_packet's mission_command_time.
             mission_command_time_dccl = dccl_time_round(task_packet['mission_command_time'])
             rows = self.db.execute('select mission_name from mission_commands where bot_id = ? and mission_command_time = ?', (task_packet["bot_id"], mission_command_time_dccl))
