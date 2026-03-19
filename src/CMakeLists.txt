@@ -17,14 +17,18 @@ endif()
 
 # library with all the config.protos
 file(GLOB_RECURSE CONFIG_PROTOS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "bin/*/config.proto")
+
+file(MAKE_DIRECTORY ${project_BUILD_DIR}/config_pb)
 jaiabot_protobuf_generate(LANGUAGE CXX
   TARGET_TYPE LIB
   OUT_VAR CONFIG_PROTOS_CPP
+  PROTOC_OUT_DIR ${project_BUILD_DIR}/config_pb
   PROTOS ${CONFIG_PROTOS}
 )
 
 add_library(jaiabot_config SHARED ${CONFIG_PROTOS_CPP})
 target_link_libraries(jaiabot_config protobuf::libprotobuf jaiabot_messages goby goby_zeromq goby_moos)
+target_include_directories(jaiabot_config PRIVATE ${project_BUILD_DIR}/config_pb)
 project_install_lib(jaiabot_config)
 
 if(build_arduino)

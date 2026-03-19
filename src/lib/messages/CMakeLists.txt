@@ -1,12 +1,11 @@
 # even though the C++ code doesn't use this info, it still needs to generate it to compile correctly
 set(NANOPB_PROTO /usr/lib/python3/dist-packages/proto/nanopb.proto)
-configure_file(${NANOPB_PROTO} ${project_INC_DIR}/nanopb.proto COPYONLY)
+configure_file(${NANOPB_PROTO} ${CMAKE_CURRENT_SOURCE_DIR}/nanopb.proto COPYONLY)
 
 jaiabot_protobuf_generate(LANGUAGE CXX
-  PROTO_IMPORT_PREFIX ""
   TARGET_TYPE LIB
   OUT_VAR NANOPB_PROTOS_CPP
-  PROTOS ${project_INC_DIR}/nanopb.proto)
+  PROTOS nanopb.proto)
 
 set(SENSOR_MESSAGES
   sensor/pressure_temperature.proto
@@ -27,7 +26,8 @@ jaiabot_protobuf_generate(LANGUAGE CXX
   PROTO_IMPORT_PREFIX "jaiabot/messages"
   TARGET_TYPE LIB
   OUT_VAR PROTOS_CPP
-  PROTOS example.proto
+  PROTOS
+  example.proto
   geographic_coordinate.proto
   camera_driver.proto
   control_surfaces.proto
@@ -70,49 +70,7 @@ target_link_libraries(jaiabot_messages protobuf::libprotobuf goby)
 
 project_install_lib(jaiabot_messages)
 
-# ####
-# #Nanopb
-# ###
-configure_file(${NANOPB_PROTO} ${project_INC_DIR}/nanopb/nanopb.proto COPYONLY)
-
-# we need to generate a nanopb version of these external messages as upstream doesn't provide a nanopb version
-configure_file(${DCCL_INCLUDE_DIR}/dccl/option_extensions.proto ${project_INC_DIR}/nanopb/dccl/option_extensions.proto COPYONLY)
-configure_file(${PROTOBUF_INCLUDE_DIRS}/google/protobuf/descriptor.proto ${project_INC_DIR}/nanopb/google/protobuf/descriptor.proto COPYONLY)
-
-jaiabot_protobuf_generate(LANGUAGE C
-  PROTO_IMPORT_PREFIX "nanopb/dccl"
-  TARGET_TYPE LIB
-  IMPORT_DIRS ${project_INC_DIR}/nanopb
-  OUT_VAR DCCL_PROTOS_C
-  PROTOS option_extensions.proto
-) 
-
-jaiabot_protobuf_generate(LANGUAGE C
-  PROTO_IMPORT_PREFIX "nanopb/jaiabot/messages"
-  TARGET_TYPE LIB
-  IMPORT_DIRS ${project_INC_DIR}/nanopb
-  OUT_VAR PROTOS_C
-  PROTOS arduino.proto
-  feather.proto
-  ${SENSOR_MESSAGES}
-)
-
-add_library(jaiabot_messages_c SHARED
-  ${DCCL_PROTOS_C}
-  ${PROTOS_C}
-)
-
-target_link_libraries(jaiabot_messages_c nanopb::protobuf-nanopb-static)
-
-# make sure we don't accidentally include C++ headers for generated protobufs when compiling with C by clearing and re-adding only desired include directories in the correct order (so nanopb generated headers come before others)
-set_target_properties(jaiabot_messages_c PROPERTIES INCLUDE_DIRECTORIES "")
-target_include_directories(jaiabot_messages_c
-    PRIVATE ${project_INC_DIR}/nanopb
-    PRIVATE ${project_INC_DIR}
-)
-
-project_install_lib(jaiabot_messages_c)
-
+add_subdirectory(nanopb)
 
 function(check_dccl_md5_hash DCCL_NAME EXPECTED_HASH)
   add_custom_command(
