@@ -1,4 +1,5 @@
 include(JaiaApp)
+include(JaiaLib)
 
 add_subdirectory(lib)
 add_subdirectory(bin)
@@ -17,15 +18,9 @@ endif()
 
 # library with all the config.protos
 file(GLOB_RECURSE CONFIG_PROTOS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "bin/*/config.proto")
-jaiabot_protobuf_generate(LANGUAGE CXX
-  TARGET_TYPE LIB
-  OUT_VAR CONFIG_PROTOS_CPP
+add_jaiabot_library(TARGET jaiabot_config
   PROTOS ${CONFIG_PROTOS}
-)
-
-add_library(jaiabot_config SHARED ${CONFIG_PROTOS_CPP})
-target_link_libraries(jaiabot_config protobuf::libprotobuf jaiabot_messages goby goby_zeromq goby_moos)
-project_install_lib(jaiabot_config)
+  LINK_LIBRARIES protobuf::libprotobuf jaiabot_messages goby goby_zeromq goby_moos)
 
 if(build_arduino)
   include(ArduinoCompile)

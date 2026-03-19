@@ -65,10 +65,9 @@ jaiabot_protobuf_generate(LANGUAGE CXX
   ${SENSOR_MESSAGES})
 
 
-add_library(jaiabot_messages SHARED ${PROTOS_CPP} ${NANOPB_PROTOS_CPP})
-target_link_libraries(jaiabot_messages protobuf::libprotobuf goby)
-
-project_install_lib(jaiabot_messages)
+add_jaiabot_library(TARGET jaiabot_messages
+  SOURCES ${PROTOS_CPP} ${NANOPB_PROTOS_CPP}
+  LINK_LIBRARIES protobuf::libprotobuf goby)
 
 # ####
 # #Nanopb
@@ -97,12 +96,9 @@ jaiabot_protobuf_generate(LANGUAGE C
   ${SENSOR_MESSAGES}
 )
 
-add_library(jaiabot_messages_c SHARED
-  ${DCCL_PROTOS_C}
-  ${PROTOS_C}
-)
-
-target_link_libraries(jaiabot_messages_c nanopb::protobuf-nanopb-static)
+add_jaiabot_library(TARGET jaiabot_messages_c
+  SOURCES ${DCCL_PROTOS_C} ${PROTOS_C}
+  LINK_LIBRARIES nanopb::protobuf-nanopb-static)
 
 # make sure we don't accidentally include C++ headers for generated protobufs when compiling with C by clearing and re-adding only desired include directories in the correct order (so nanopb generated headers come before others)
 set_target_properties(jaiabot_messages_c PROPERTIES INCLUDE_DIRECTORIES "")
@@ -110,8 +106,6 @@ target_include_directories(jaiabot_messages_c
     PRIVATE ${project_INC_DIR}/nanopb
     PRIVATE ${project_INC_DIR}
 )
-
-project_install_lib(jaiabot_messages_c)
 
 
 function(check_dccl_md5_hash DCCL_NAME EXPECTED_HASH)
