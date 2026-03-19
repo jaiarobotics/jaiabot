@@ -346,7 +346,7 @@ def surob_results_request(jaia_request):
         # apply formulae
         a = (np.power(np.sin(dLat / 2), 2) + np.power(np.sin(dLon / 2), 2) * np.cos(lat1) * np.cos(lat2))
         radius_m = 6371*1000
-        c = 2 * np.asin(np.sqrt(a))
+        c = 2 * np.arcsin(np.sqrt(a))
         return radius_m * c
 
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
@@ -401,7 +401,7 @@ def surob_results_request(jaia_request):
             # Exception is period uncertainty, which is expressed as a fixed value of 2.0
 
             # consider current and sig wave height values
-            if task_packet.HasField("current") and task_packet.current.speed != 0:
+            if task_packet.HasField("current"):
                 curr_current_speed = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=meters_to_feet(task_packet.current.speed), 
                                                                                          uncert=np.power(meters_to_feet(task_packet.current.speed_uncertainty), 2), 
                                                                                          units=CURRENT_SPEED_UNITS)
@@ -435,7 +435,7 @@ def surob_results_request(jaia_request):
                     max_alongshore_current_speed_std_knots = alongshore_current_speed_std_knots
                     max_alongshore_current_flank = alongshore_current_flank
             
-            elif task_packet.HasField("wave") and task_packet.wave.significant_wave_height != 0:
+            elif task_packet.HasField("wave"):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_std_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
@@ -469,7 +469,7 @@ def surob_results_request(jaia_request):
                     max_sig_wave_height_ft = hs_ft
                     max_sig_wave_height_std_ft = hs_std_ft
         
-                distance_to_shoreline_pt_m = haversine(shoreline_point, (task_packet.location.lat, task_packet.location.lon))
+                distance_to_shoreline_pt_m = haversine(shoreline_point, (task_packet.wave.location.lat, task_packet.wave.location.lon))
 
                 if station_keep_furthest_from_shoreline_pt_distance_m is None or distance_to_shoreline_pt_m > station_keep_furthest_from_shoreline_pt_distance_m:
                     station_keep_furthest_from_shoreline_pt_distance_m = distance_to_shoreline_pt_m
@@ -478,7 +478,7 @@ def surob_results_request(jaia_request):
 
         elif task_packet.type == MissionTask.TaskType.SURFACE_DRIFT:
             # consider sig wave period values
-            if task_packet.HasField("wave") and task_packet.wave.period != 0:
+            if task_packet.HasField("wave"):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_std_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
@@ -515,7 +515,7 @@ def surob_results_request(jaia_request):
     if max_alongshore_current_speed_knots is None:
         jaia_response.surob_results.surob_results_found = False
         if bot_ids is None:
-            jaia_response.surob_results.error_message = f"No current estimates found for active bots between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No current estimates found for any bots between {start_time} and {end_time}."
         else:
             jaia_response.surob_results.error_message = f"No current estimates found for bots {bot_ids} between {start_time} and {end_time}."
         return jaia_response
@@ -523,7 +523,7 @@ def surob_results_request(jaia_request):
     if max_sig_wave_height_ft is None:
         jaia_response.surob_results.surob_results_found = False
         if bot_ids is None:
-            jaia_response.surob_results.error_message = f"No significant wave height estimates found for active bots between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No significant wave height estimates found for any bots between {start_time} and {end_time}."
         else:
             jaia_response.surob_results.error_message = f"No significant wave height estimates found for bots {bot_ids} between {start_time} and {end_time}."
         return jaia_response
@@ -537,12 +537,11 @@ def surob_results_request(jaia_request):
             # therefore if max_sig_wave_height_ft is None conditional (L523) will be triggered before control flow reaches this code block
             jaia_response.surob_results.surob_results_found = False
             if bot_ids is None:
-                jaia_response.surob_results.error_message = f"No significant wave period estimates found for active bots between {start_time} and {end_time}."
+                jaia_response.surob_results.error_message = f"No significant wave period estimates found for any bots between {start_time} and {end_time}."
             else:
                 jaia_response.surob_results.error_message = f"No significant wave period estimates found for bots {bot_ids} between {start_time} and {end_time}."
             return jaia_response
-    
-    if len(surface_drift_sig_wave_periods_s) == 1:
+    elif len(surface_drift_sig_wave_periods_s) == 1:
         sig_wave_period_s_to_report = surface_drift_sig_wave_periods_s[0]
         sig_wave_period_uncertainty_s_to_report = surface_drift_sig_wave_period_uncertainties_s
     else:
@@ -565,5 +564,5 @@ def surob_results_request(jaia_request):
     jaia_surob_results = jaiabot.messages.surob_results_pb2.JaiaSurobMessage(topic=JAIA_SUROB_MESSAGE_TOPIC, subtopic=JAIA_SUROB_MESSAGE_SUBTOPIC, source=JAIA_SUROB_MESSAGE_SOURCE, msg=msg)
 
     jaia_response.surob_results.surob_results_found = True
-    jaia_response.surob_results.surob = jaia_surob_results
+    jaia_response.surob_results.surob.CopyFrom(jaia_surob_results)
     return jaia_response
