@@ -199,7 +199,7 @@ message APIRequest
             doc: "Send a shoreline and offshore point to the hub to generate a mission plan for the fleet. Expect a response of type 'mission_plan_response'. Mission plans can either be time-constrained with a specified maximum duration in minutes (more bots = higher resolution), or resolution-constrained, with a target distance between surob samples in meters (more bots = faster mission)."
             example {
                 request: '{"target": {"all": true}, "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "PLANNING_CONSTRAINT_TIME", "constraint_value": "60.0"}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"mission_plan_response": {planned_successfully: true, jaiabot_commands: [{"bot_id": 1, "time": 1769788798116, "type": "MISSION_PLAN", "plan": {}}, {"bot_id": 2, "time": 1769788798116, "type": "MISSION_PLAN", "plan": {}}, ...]}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "PLANNING_CONSTRAINT_TIME", "constraint_value": "60"}, "target": {"all": true}}}'
+                response: '{"mission_plan_response": {"planned_successfully": true, "jaiabot_commands": [{"bot_id": 1, "time": 1769788798116, "type": "MISSION_PLAN", "plan": {}}, {"bot_id": 2, "time": 1769788798116, "type": "MISSION_PLAN", "plan": {}}, ...]}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "PLANNING_CONSTRAINT_TIME", "constraint_value": "60"}, "target": {"all": true}}}'
             }
         }];
         SurobResultsRequest surob_results_request = 17 [(jaia.field).rest_api = {
@@ -207,7 +207,7 @@ message APIRequest
             doc: "Send a shoreline and offshore point and start and end time for a surob collection to the hub to search fleet Task Packets for valid wave and current estimates. Expect a response of type 'surob_results_response'."
             example {
                 request: '{"target": {"all": true}, "surob_results_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"surob_results": {surob_results_found: true, surob: "{"topic": "is2ops", "subtopic": "surob", "source": "jaia", "msg": {"reports": [{"surob": {...}}], "geojson": [...]}}"}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_results_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "target": {"all": true}}}'
+                response: '{"surob_results": {"surob_results_found": true, "surob": {"topic": "is2ops", "subtopic": "surob", "source": "jaia", "msg": {"reports": [{"surob": {...}}], "geojson": [...]}}}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_results_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "target": {"all": true}}}'
             }
         }];
     }
