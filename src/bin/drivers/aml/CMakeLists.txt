@@ -1,18 +1,5 @@
-set(APP jaiabot_aml_sensor_driver)
+add_jaiabot_application(TARGET jaiabot_aml_sensor_driver
+  PROTOS config.proto
+  SOURCES app.cpp
+  LINK_DEFAULT_LIBRARIES)
 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.proto)
-
-add_executable(${APP}
-  app.cpp
-  ${PROTO_SRCS} ${PROTO_HDRS})
-
-target_link_libraries(${APP}
-  goby
-  goby_zeromq
-  jaiabot_messages)
-
-if(export_goby_interfaces)
-  generate_interfaces(${APP})
-endif()
-
-project_install_bin(${APP})
