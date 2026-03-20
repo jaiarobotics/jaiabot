@@ -90,7 +90,7 @@ def test_time_range_filtering():
 
     response = run_request(rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
-            bots=[all_bot_ids[0]]
+            all=True
         ),
         task_packets=rest_api.TaskPacketQuery(
             start_time=first_packet_start_time,
@@ -121,7 +121,7 @@ def test_mission_name_filtering():
 
     response = run_request(rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
-            bots=[all_bot_ids[0]]
+            all=True
         ),
         task_packets=rest_api.TaskPacketQuery(
             mission_name=[mission_name]
@@ -143,7 +143,7 @@ def test_mission_name_filtering():
 
     response = run_request(rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
-            bots=[all_bot_ids[0]]
+            all=True
         ),
         task_packets=rest_api.TaskPacketQuery(
             mission_name=[mission_name, mission_name_2]
@@ -165,7 +165,7 @@ def test_mission_summary_querying():
 
     response = run_request(rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
-            bots=[all_bot_ids[0]]
+            all=True
         ),
         missions=rest_api.MissionQuery(
             start_time=first_packet_start_time, # Task packets are sorted descending by start time, so the last packet has the earliest start time.  This means we should get all missions that started after that time, which should be all of them.
