@@ -179,7 +179,35 @@ static ReactionInfo extractReaction(const TemplateSpecializationType* tst,
         if (args.size() >= 1)
             info.event = getTypeName(args[0].getAsType(), policy);
         if (args.size() >= 2)
-            info.target = getTypeName(args[1].getAsType(), policy);
+        {
+            QualType target_type = args[1].getAsType();
+            // Check whether the target is boost::statechart::deep_history<DefaultState>.
+            // deep_history<X> is a pseudo-state meaning "restore deep history of X's parent
+            // composite state, defaulting to X".  We treat it as a special transition type
+            // so the DOT generator can draw it with an H* annotation.
+            const TemplateSpecializationType* target_tst =
+                target_type->getAs<TemplateSpecializationType>();
+            if (!target_tst)
+                if (const auto* et = target_type->getAs<ElaboratedType>())
+                    target_tst = et->getNamedType()->getAs<TemplateSpecializationType>();
+
+            bool is_deep_history = false;
+            if (target_tst)
+            {
+                const auto* target_td = target_tst->getTemplateName().getAsTemplateDecl();
+                if (target_td && target_td->getQualifiedNameAsString() ==
+                                     "boost::statechart::deep_history")
+                {
+                    is_deep_history = true;
+                    info.type = "deep_history_transition";
+                    auto dh_args = target_tst->template_arguments();
+                    if (!dh_args.empty() && dh_args[0].getKind() == TemplateArgument::Type)
+                        info.target = getTypeName(dh_args[0].getAsType(), policy);
+                }
+            }
+            if (!is_deep_history)
+                info.target = getTypeName(target_type, policy);
+        }
     }
     else if (tmpl == "boost::statechart::custom_reaction")
     {
@@ -258,6 +286,11 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
         policy_.FullyQualifiedName = true; // ensure fully qualified names in output
     }
 
+    /// Visit implicit template instantiations so we can detect states that use
+    /// intermediate template base classes (e.g., struct Foo : MyBase<Foo, Parent>
+    /// where MyBase<Derived, P> : boost::statechart::state<Derived, P>).
+    bool shouldVisitTemplateInstantiations() const { return true; }
+
     bool VisitCXXRecordDecl(CXXRecordDecl* decl)
     {
         if (!decl->hasDefinition() || decl != decl->getDefinition())
@@ -290,16 +323,29 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
     void processState(CXXRecordDecl* decl, const ClassTemplateSpecializationDecl* spec)
     {
         StateInfo info;
-        info.name = decl->getQualifiedNameAsString();
         info.is_machine = false;
 
         const auto& args = spec->getTemplateArgs();
         // Template arguments for boost::statechart::state<Self, Parent, [InitChild],
         // [HistoryMode]>:
-        //   args[0] = Self  (skip)
+        //   args[0] = Self
         //   args[1] = Parent state or machine
         //   args[2] = Initial child state (optional)
         //   args[3] = History mode (optional, ignore for our purposes)
+        //
+        // Use args[0] (Self) as the canonical state name rather than decl's name.
+        // This correctly handles indirect inheritance via template intermediaries, e.g.:
+        //   template<typename Derived, typename Parent>
+        //   struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent> {...};
+        //   struct SurfaceDrift : SurfaceDriftTaskCommon<SurfaceDrift, Task, ...> {};
+        // When the AST visits the instantiation SurfaceDriftTaskCommon<SurfaceDrift, Task,...>,
+        // decl->getQualifiedNameAsString() gives "SurfaceDriftTaskCommon" but args[0] correctly
+        // identifies "SurfaceDrift" as the actual state.
+        if (args.size() >= 1 && args[0].getKind() == TemplateArgument::Type &&
+            !args[0].getAsType()->isDependentType())
+            info.name = getTypeName(args[0].getAsType(), policy_);
+        else
+            info.name = decl->getQualifiedNameAsString();
 
         if (args.size() >= 2 && args[1].getKind() == TemplateArgument::Type)
             info.parent = getTypeName(args[1].getAsType(), policy_);
@@ -512,6 +558,7 @@ static void generateDOT(const std::string& filename)
     out << "digraph \"" << TargetName.getValue() << "_state_machine\" {\n";
     out << "    rankdir=TB;\n";
     out << "    compound=true;\n";
+    out << "    splines=ortho;\n";
     out << "    node [fontname=\"Helvetica\", fontsize=10];\n";
     out << "    edge [fontname=\"Helvetica\", fontsize=8];\n\n";
 
@@ -541,6 +588,21 @@ static void generateDOT(const std::string& filename)
             out << pad << "    " << anchor[name]
                 << " [shape=point, style=invis, width=0.01];\n";
 
+            // Initial-state entry circle: declared INSIDE the cluster so graphviz
+            // places the solid dot within the composite-state boundary.
+            std::string init_target_name;
+            if (info.is_machine)
+                init_target_name = info.initial_state;
+            else if (!info.initial_child.empty())
+                init_target_name = info.initial_child;
+            if (!init_target_name.empty() && g_states.count(init_target_name))
+            {
+                std::string init_id = "init_" + dotId(name);
+                out << pad << "    " << init_id
+                    << " [shape=point, style=filled, fillcolor=black,"
+                       " color=black, width=0.2];\n";
+            }
+
             if (children.count(name))
                 for (const auto& child : children.at(name))
                     writeCluster(child, indent + 1);
@@ -560,13 +622,12 @@ static void generateDOT(const std::string& filename)
 
     out << "\n    // ---- Initial-state markers ----\n";
 
-    // Helper to add an initial-state arrow
+    // Helper to emit the initial-state edge.  The node itself is declared inside the
+    // cluster by writeCluster() above so graphviz places the solid dot correctly.
     auto writeInitArrow = [&](const std::string& container, const std::string& init_target,
                                const std::string& init_node_id) {
         if (!g_states.count(init_target))
             return;
-        out << "    " << init_node_id
-            << " [shape=point, style=filled, color=black, width=0.2];\n";
         std::string dst = anchor[init_target];
         out << "    " << init_node_id << " -> " << dst << " [style=bold, arrowhead=vee";
         if (isComposite(init_target))
@@ -626,7 +687,7 @@ static void generateDOT(const std::string& filename)
                     dst = ext_id;
                 }
 
-                out << "    " << src << " -> " << dst << " [label=\"" << shortName(r.event)
+                out << "    " << src << " -> " << dst << " [xlabel=\"" << shortName(r.event)
                     << "\", color=" << edge_color << ", style=" << edge_style;
                 if (cluster.count(name))
                     out << ", ltail=" << cluster[name];
@@ -634,12 +695,48 @@ static void generateDOT(const std::string& filename)
                     out << ", lhead=" << cluster[r.target];
                 out << "];\n";
             }
+            else if (r.type == "deep_history_transition" && !r.target.empty())
+            {
+                // boost::statechart::deep_history<DefaultState> means: restore the deep
+                // history of the target composite state (defaulting to DefaultState).
+                // UML notation: edge with "[H*]" label pointing to the history container.
+                // We find the parent composite state of DefaultState and point to that
+                // cluster; if not found we fall back to the default state node itself.
+                std::string history_container;
+                if (g_states.count(r.target))
+                {
+                    // Point to the parent of the default state (the composite that has history)
+                    const std::string& parent = g_states.at(r.target).parent;
+                    if (!parent.empty() && g_states.count(parent))
+                        history_container = parent;
+                    else
+                        history_container = r.target;
+                }
+                has_target = !history_container.empty();
+                if (has_target)
+                    dst = anchor[history_container];
+                else
+                {
+                    std::string ext_id = "ext_" + dotId(r.target);
+                    out << "    " << ext_id << " [label=\"[H*] " << shortName(r.target)
+                        << "\", shape=box, style=dashed, color=gray];\n";
+                    dst = ext_id;
+                }
+
+                out << "    " << src << " -> " << dst << " [xlabel=\"" << shortName(r.event)
+                    << " [H*]\", color=black, style=dashed";
+                if (cluster.count(name))
+                    out << ", ltail=" << cluster[name];
+                if (has_target && cluster.count(history_container))
+                    out << ", lhead=" << cluster[history_container];
+                out << "];\n";
+            }
             else if ((r.type == "custom_reaction" || r.type == "in_state_reaction" ||
                       r.type == "deferral") &&
                      !r.event.empty())
             {
                 // Show as a self-loop on the state
-                out << "    " << src << " -> " << src << " [label=\"" << shortName(r.event)
+                out << "    " << src << " -> " << src << " [xlabel=\"" << shortName(r.event)
                     << " [" << r.type << "]\", color=" << edge_color << ", style=" << edge_style;
                 if (cluster.count(name))
                     out << ", ltail=" << cluster[name] << ", lhead=" << cluster[name];
