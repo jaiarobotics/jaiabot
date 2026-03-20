@@ -31,7 +31,6 @@ set(JAIABOT_PROTOS
   example.proto
   geographic_coordinate.proto
   camera_driver.proto
-  control_surfaces.proto
   high_control.proto
   control_surfaces.proto
   imu.proto

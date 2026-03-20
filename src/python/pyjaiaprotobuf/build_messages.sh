@@ -6,14 +6,14 @@ set -e
 if [[ -z "$1" ]]; then
     JAIABOT_DIR="$(pwd)/../../../"
 else
-    JAIABOT_DIR=$"$1"
+    JAIABOT_DIR="$1"
 fi  
 
 # The target directory in which to build the protobuf python files
 if [[ -z "$2" ]]; then
     PYTHON_OUT_DIR="$(pwd)/src/"
 else
-    PYTHON_OUT_DIR=$"$2/src/"
+    PYTHON_OUT_DIR="$2/src/"
 fi
 
 echo "🟢 Building Jaia protobuf python modules"
