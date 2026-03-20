@@ -286,7 +286,8 @@ elif common.app == 'goby_logger':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir,
-                                     goby_logger_group_regex=logger.group_regex))
+                                     goby_logger_group_regex=logger.group_regex,
+                                     log_on_startup='true'))
 elif common.app == 'goby_liaison':
     liaison_port=30000
     if is_simulation():

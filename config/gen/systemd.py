@@ -395,8 +395,7 @@ jaiabot_apps = [
      'runs_on': [Type.BOTH],
      'extra_unit': 'BindsTo=var-log.mount\nAfter=var-log.mount',
      'wanted_by': 'jaiabot_health.service',
-     # We run out of disk space on CloudHub if we run the logger
-     'runs_on_cloudhub': CloudHubType.NEVER},
+     'runs_on_cloudhub': CloudHubType.SECONDARY},
     {'exe': 'goby_coroner',
      'description': 'Goby Coroner',
      'template': 'goby-app.service.in',
