@@ -10,8 +10,8 @@ function(jaiabot_protobuf_generate)
   cmake_parse_arguments(
     args # prefix of output variables
     "" # list of names of the boolean arguments (only defined ones will be true)
-    "OUT_VAR;TARGET_TYPE;PROTOC_OUT_DIR" # list of names of mono-valued arguments
-    "PROTOS;LANGUAGE;IMPORT_DIRS" # list of names of multi-valued arguments (output variables are lists)
+    "OUT_VAR;TARGET_TYPE;PROTOC_OUT_DIR;LANGUAGE" # list of names of mono-valued arguments
+    "PROTOS;IMPORT_DIRS" # list of names of multi-valued arguments (output variables are lists)
     ${ARGN} # arguments of the function to parse, here we take the all original ones
   )
 
@@ -32,38 +32,36 @@ function(jaiabot_protobuf_generate)
   set(project_PROTO_IMPORT_DIRS "${protoc_out_dir};${project_INC_DIR};${GOBY_INCLUDE_DIR};${DCCL_INCLUDE_DIR}")
 
   
-  foreach(language ${args_LANGUAGE})
-    if("${language}" STREQUAL "CXX")
-      protobuf_generate(
-        LANGUAGE dccl
-        PROTOC_OPTIONS --cpp_out=${protoc_out_dir}
-        OUT_VAR ${args_OUT_VAR}
-        PROTOC_OUT_DIR ${protoc_out_dir}
-        IMPORT_DIRS ${project_PROTO_IMPORT_DIRS}
-        PROTOS ${args_PROTOS}
-        GENERATE_EXTENSIONS .pb.h .pb.cc
-      )
-    elseif("${language}" STREQUAL "C")
-      protobuf_generate(
-        LANGUAGE nanopb
-        OUT_VAR ${args_OUT_VAR}
-        PROTOC_OUT_DIR ${protoc_out_dir}
-        IMPORT_DIRS ${project_PROTO_IMPORT_DIRS}
-        PROTOS ${args_PROTOS}
-        GENERATE_EXTENSIONS .pb.h .pb.c
-      )
-    elseif("${language}" STREQUAL "PYTHON")
-      protobuf_generate(
-        LANGUAGE python
-        OUT_VAR ${args_OUT_VAR}
-        PROTOC_OUT_DIR ${protoc_out_dir}
-        IMPORT_DIRS ${project_PROTO_IMPORT_DIRS}
-        PROTOS ${args_PROTOS}
-      )
-    else()
-      message(FATAL_ERROR "Unsupported LANGUAGE ${language} given to jaiabot_protobuf_generate")
-    endif()
-  endforeach()
+  if("${args_LANGUAGE}" STREQUAL "CXX")
+    protobuf_generate(
+      LANGUAGE dccl
+      PROTOC_OPTIONS --cpp_out=${protoc_out_dir}
+      OUT_VAR ${args_OUT_VAR}
+      PROTOC_OUT_DIR ${protoc_out_dir}
+      IMPORT_DIRS ${project_PROTO_IMPORT_DIRS} ${args_IMPORT_DIRS}
+      PROTOS ${args_PROTOS}
+      GENERATE_EXTENSIONS .pb.h .pb.cc
+    )
+  elseif("${args_LANGUAGE}" STREQUAL "C")
+    protobuf_generate(
+      LANGUAGE nanopb
+      OUT_VAR ${args_OUT_VAR}
+      PROTOC_OUT_DIR ${protoc_out_dir}
+      IMPORT_DIRS ${project_PROTO_IMPORT_DIRS} ${args_IMPORT_DIRS}
+      PROTOS ${args_PROTOS}
+      GENERATE_EXTENSIONS .pb.h .pb.c
+    )
+  elseif("${args_LANGUAGE}" STREQUAL "PYTHON")
+    protobuf_generate(
+      LANGUAGE python
+      OUT_VAR ${args_OUT_VAR}
+      PROTOC_OUT_DIR ${protoc_out_dir}
+      IMPORT_DIRS ${project_PROTO_IMPORT_DIRS} ${args_IMPORT_DIRS}
+      PROTOS ${args_PROTOS}
+    )
+  else()
+    message(FATAL_ERROR "Unsupported LANGUAGE ${language} given to jaiabot_protobuf_generate")
+  endif()
 
   set(${args_OUT_VAR} ${${args_OUT_VAR}} PARENT_SCOPE)
 endfunction()
