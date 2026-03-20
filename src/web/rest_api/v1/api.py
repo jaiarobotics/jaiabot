@@ -2,6 +2,7 @@ import asyncio
 
 import numpy as np
 
+from datetime import datetime, timezone
 from google.protobuf.json_format import ParseDict, ParseError
 
 import jaiabot.messages.rest_api_pb2
@@ -553,7 +554,8 @@ def surob_results_request(jaia_request):
     breaker_period = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=sig_wave_period_s_to_report, uncert=sig_wave_period_uncertainty_s_to_report, units=WAVE_PERIOD_UNITS)
     littoral_current_local = jaiabot.messages.surob_results_pb2.LittoralCurrent(value=max_alongshore_current_speed_knots, uncert=np.power(max_alongshore_current_speed_std_knots, 2), flank=max_alongshore_current_flank, units=LITTORAL_CURRENT_UNITS)
     surob = jaiabot.messages.surob_results_pb2.Surob(sig_breaker_height=sig_breaker_height, breaker_period=breaker_period, littoral_current_local=littoral_current_local)
-    reports = [jaiabot.messages.surob_results_pb2.Report(surob=surob)]
+    report_timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    reports = [jaiabot.messages.surob_results_pb2.Report(time=report_timestamp, surob=surob)]
 
     geojson = jaiabot.messages.surob_results_pb2.FeatureCollection(type=FEATURE_COLLECTION_TYPE)
     geojson.features.extend(features)

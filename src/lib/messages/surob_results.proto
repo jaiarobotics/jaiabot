@@ -21,7 +21,8 @@ message Surob {
 }
 
 message Report {
-    optional Surob surob = 1;
+    optional string time = 1;
+    optional Surob surob = 2;
 }
 
 message ValueUncertUnitsCF {
