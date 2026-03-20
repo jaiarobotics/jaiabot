@@ -60,7 +60,7 @@ function(jaiabot_protobuf_generate)
       PROTOS ${args_PROTOS}
     )
   else()
-    message(FATAL_ERROR "Unsupported LANGUAGE ${language} given to jaiabot_protobuf_generate")
+    message(FATAL_ERROR "Unsupported LANGUAGE ${args_LANGUAGE} given to jaiabot_protobuf_generate")
   endif()
 
   set(${args_OUT_VAR} ${${args_OUT_VAR}} PARENT_SCOPE)
