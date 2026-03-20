@@ -1,8 +1,7 @@
-# we need to generate a Python version of these external messages as upstream doesn't provide a Python version
-file(CREATE_LINK "${NANOPB_PROTO}" "${CMAKE_CURRENT_SOURCE_DIR}/nanopb.proto" SYMBOLIC)
-file(CREATE_LINK "${DCCL_INCLUDE_DIR}/dccl/option_extensions.proto" "${CMAKE_CURRENT_SOURCE_DIR}/dccl/option_extensions.proto" SYMBOLIC)
-file(CREATE_LINK "${PROTOBUF_INCLUDE_DIRS}/google/protobuf/descriptor.proto" "${CMAKE_CURRENT_SOURCE_DIR}/google/protobuf/descriptor.proto" SYMBOLIC)
-file(CREATE_LINK "${GOBY_INCLUDE_DIR}/goby" "${CMAKE_CURRENT_SOURCE_DIR}/goby" SYMBOLIC)
+file(CREATE_LINK "../jaiabot" "${CMAKE_CURRENT_SOURCE_DIR}/jaiabot" SYMBOLIC)
+
+jaiabot_protobuf_make_symlinks(LINK
+  NANOPB DCCL GOOGLE GOBY)
 
 file(GLOB_RECURSE GOBY_PROTOS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" FOLLOW_SYMLINKS "goby/*.proto")
 

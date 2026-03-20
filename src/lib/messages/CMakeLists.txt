@@ -1,6 +1,6 @@
 # even though the C++ code doesn't use this info, it still needs to generate it to compile correctly
-set(NANOPB_PROTO /usr/lib/python3/dist-packages/proto/nanopb.proto)
-file(CREATE_LINK "${NANOPB_PROTO}" "${CMAKE_CURRENT_SOURCE_DIR}/nanopb.proto" SYMBOLIC)
+
+jaiabot_protobuf_make_symlinks(LINK NANOPB)
 
 # Sensor messages
 set(SENSOR_PROTOS
