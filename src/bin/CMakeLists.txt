@@ -1,3 +1,7 @@
+if(build_state_diagrams)
+  add_subdirectory(jaia_state_tool)
+endif()
+
 add_subdirectory(fusion)
 add_subdirectory(patterns)
 add_subdirectory(simulator)

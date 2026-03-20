@@ -1,1 +1,0 @@
-add_subdirectory(jaia_state_tool)
