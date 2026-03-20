@@ -38,6 +38,19 @@ def dccl_time_round(utime: int, round_to: int=1_000_000) -> int:
     return (utime + round_to // 2) // round_to * round_to
 
 
+def sql_set_placeholders(values: list[Any]) -> str:
+    """Returns a string of SQL placeholders for the given list of values.  For example, if the input list has 3 values, the output will be "(?, ?, ?)".
+
+    Args:
+        values (list[Any]): The list of values to create placeholders for.
+
+    Returns:
+        str: A string of SQL placeholders for the given list of values.
+    """
+    placeholders = ", ".join(["?"] * len(values))
+    return f'({placeholders})'
+
+
 class TaskPacketDatabase:
     taskpacket_files_path: str = "/var/log/jaiabot/bot_offload/"
     database_path: str= "/var/log/jaiabot/db"
@@ -220,7 +233,7 @@ class TaskPacketDatabase:
 
             bot_ids = list(bot_ids) if bot_ids is not None else []
             if len(bot_ids) > 0:
-                conditionals.append(f'bot_id in ({",".join(["?" * len(bot_ids)])})')
+                conditionals.append(f'bot_id in {sql_set_placeholders(bot_ids)}')
                 parameters.extend(bot_ids)
 
             if start_utime is not None:
@@ -241,7 +254,7 @@ class TaskPacketDatabase:
                 if len(mission_names) == 0:
                     return []
 
-                conditionals.append(f'mission_name in ({",".join(["?"] * len(mission_names))})')
+                conditionals.append(f'mission_name in {sql_set_placeholders(mission_names)}')
                 parameters.extend(mission_names)
                 from_clause += ' natural join mission_name'
 
@@ -282,7 +295,7 @@ class TaskPacketDatabase:
 
             bot_ids = list(bot_ids) if bot_ids is not None else []
             if len(bot_ids) > 0:
-                conditionals.append(f'bot_id in ({",".join(["?" * len(bot_ids)])})')
+                conditionals.append(f'bot_id in {sql_set_placeholders(bot_ids)}')
                 parameters.extend(bot_ids)
 
             if start_utime is not None:

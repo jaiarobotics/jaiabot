@@ -1,12 +1,11 @@
 import csv
 import io
-from typing import Iterable, Any
+from typing import Iterable
 import datetime
 
 from google.protobuf.json_format import MessageToDict
 
 from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
-from jaiabot.messages.mission_pb2 import MissionTask
 
 
 def utime_to_string(utime: int):

@@ -2,8 +2,7 @@
 
 from google.protobuf.json_format import MessageToDict
 
-from jaiabot.messages.rest_api_pb2 import *
-from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
+from jaiabot.messages.rest_api_pb2 import APIRequest, TaskPacketQuery
 
 import requests
 import datetime
@@ -35,7 +34,7 @@ def test_all(dump_files=False):
     api_request.task_packets.format = TaskPacketQuery.KMZ
     api_request.api_key = API_KEY
 
-    for format in ['kmz', 'csv', 'geojson']:
+    for output_format in ['kmz', 'csv', 'geojson']:
 
         format_map = {
             'kmz': TaskPacketQuery.KMZ,
@@ -43,18 +42,18 @@ def test_all(dump_files=False):
             'geojson': TaskPacketQuery.GEOJSON_CONTOURS
         }
 
-        api_request.task_packets.format = format_map[format]
-        print(f'Testing format: {format}')
+        api_request.task_packets.format = format_map[output_format]
+        print(f'Testing format: {output_format}')
 
         res = requests.post(URL, json=MessageToDict(api_request, preserving_proto_field_name=True))
         assert res.ok, f"Request failed with status code {res.status_code} and message: {res.text}"
         assert isinstance(res.content, bytes)
         assert len(res.content) > 0
 
-        print(f"{format} generation test passed, received file of size", len(res.content), "bytes")
+        print(f"{output_format} generation test passed, received file of size", len(res.content), "bytes")
 
         if dump_files:
-            open('test_output.' + format, 'wb').write(res.content)
+            open('test_output.' + output_format, 'wb').write(res.content)
 
 
 if __name__ == "__main__":

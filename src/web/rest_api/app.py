@@ -282,10 +282,7 @@ def process_request(version, jaia_request):
 
 def finalize_response(jaia_response: APIResponse, jaia_request: APIRequest):
     jaia_response.request.CopyFrom(jaia_request)
-
-    http_status = 400 if jaia_response.HasField('error') else 200
-
-    return google.protobuf.json_format.MessageToDict(jaia_response, preserving_proto_field_name=True), http_status
+    return google.protobuf.json_format.MessageToDict(jaia_response, preserving_proto_field_name=True)
 
 # Recursively check for OMITTED presence, if found at any node in the tree, return True
 def is_omitted(parts, descriptor):
