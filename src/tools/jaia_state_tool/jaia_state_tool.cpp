@@ -516,7 +516,6 @@ static void generateDOT(const std::string& filename)
     out << "    edge [fontname=\"Helvetica\", fontsize=8];\n\n";
 
     // ---- Recursive cluster writer ----
-    int depth_counter = 0;
     std::function<void(const std::string&, int)> writeCluster;
     writeCluster = [&](const std::string& name, int indent) {
         const auto& info = g_states.at(name);
@@ -554,7 +553,6 @@ static void generateDOT(const std::string& filename)
             out << pad << id << " [label=\"" << shortName(name)
                 << "\", shape=box, style=\"rounded,filled\", fillcolor=lightyellow];\n";
         }
-        ++depth_counter;
     };
 
     if (!g_machine_name.empty() && g_states.count(g_machine_name))
