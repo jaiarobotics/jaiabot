@@ -258,7 +258,6 @@ def surob_results_request(jaia_request):
     CURRENT_DIRECTION_CF_STANDARD_NAME = "sea_water_velocity_to_direction"
     CURRENT_PROPERTIES_UNITS = "degrees" # TODO: confirm feature properties units field is for the feature's geometry units (eg. degrees lat/lon)
     CURRENT_PROPERTIES_TYPE = "current_measurement"
-    CURRENT_PROPERTIES_DESCRIPTION = "Jaiabot current measurement"
     CURRENT_PROPERTIES_VERTICAL_LOCATION = "surface"
 
     WAVE_HEIGHT_UNITS = "feet"
@@ -267,8 +266,6 @@ def surob_results_request(jaia_request):
     WAVE_PERIOD_CF_STANDARD_NAME = "sea_surface_wave_significant_period"
     WAVE_PROPERTIES_UNITS  = "degrees"
     WAVE_PROPERTIES_TYPE = "wave_measurement"
-    WAVE_PROPERTIES_DESCRIPTION = "Jaiabot wave measurement"
-
     PROPERTIES_H_DATUM = "wgs84"
 
     POINT_GEOMETRY_TYPE = "Point"
@@ -414,7 +411,7 @@ def surob_results_request(jaia_request):
                                                                                                  current_direction=curr_current_direction)
                 curr_current_properties = jaiabot.messages.surob_results_pb2.Properties(units=CURRENT_PROPERTIES_UNITS, 
                                                                                         type=CURRENT_PROPERTIES_TYPE, 
-                                                                                        description=CURRENT_PROPERTIES_DESCRIPTION, 
+                                                                                        description=f"Jaiabot station keep current measurement from bot {task_packet.bot_id}", 
                                                                                         id=current_measurement_id, 
                                                                                         vertical_location=CURRENT_PROPERTIES_VERTICAL_LOCATION, 
                                                                                         h_datum=PROPERTIES_H_DATUM, 
@@ -452,7 +449,7 @@ def surob_results_request(jaia_request):
                                                                                            wave_period=curr_wave_period)
                 curr_wave_properties = jaiabot.messages.surob_results_pb2.Properties(units=WAVE_PROPERTIES_UNITS, 
                                                                                      type=WAVE_PROPERTIES_TYPE, 
-                                                                                     description=WAVE_PROPERTIES_DESCRIPTION, 
+                                                                                     description=f"Jaiabot station keep wave measurement from bot {task_packet.bot_id}", 
                                                                                      id=wave_measurement_id, 
                                                                                      h_datum=PROPERTIES_H_DATUM, 
                                                                                      wave_measurement=curr_wave_measurement)
@@ -495,7 +492,7 @@ def surob_results_request(jaia_request):
                                                                                            wave_period=curr_wave_period)
                 curr_wave_properties = jaiabot.messages.surob_results_pb2.Properties(units=WAVE_PROPERTIES_UNITS, 
                                                                                      type=WAVE_PROPERTIES_TYPE, 
-                                                                                     description=WAVE_PROPERTIES_DESCRIPTION, 
+                                                                                     description=f"Jaiabot surface drift wave measurement from bot {task_packet.bot_id}", 
                                                                                      id=wave_measurement_id, 
                                                                                      h_datum=PROPERTIES_H_DATUM, 
                                                                                      wave_measurement=curr_wave_measurement)
