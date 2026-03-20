@@ -650,6 +650,22 @@ static void generateDOT(const std::string& filename)
         }
     }
 
+    // Returns true if 'state' is a proper descendant of 'ancestor' in the hierarchy.
+    // Used to suppress lhead/ltail when they would cause graphviz "head/tail inside
+    // cluster" warnings.
+    auto isDescendant = [&](const std::string& state, const std::string& ancestor) -> bool {
+        if (!g_states.count(state))
+            return false;
+        std::string cur = g_states.at(state).parent;
+        while (!cur.empty() && g_states.count(cur))
+        {
+            if (cur == ancestor)
+                return true;
+            cur = g_states.at(cur).parent;
+        }
+        return false;
+    };
+
     out << "\n    // ---- Transitions ----\n";
 
     for (const auto& [name, info] : g_states)
@@ -689,9 +705,13 @@ static void generateDOT(const std::string& filename)
 
                 out << "    " << src << " -> " << dst << " [xlabel=\"" << shortName(r.event)
                     << "\", color=" << edge_color << ", style=" << edge_style;
-                if (cluster.count(name))
+                // Suppress ltail when destination is inside the source cluster (graphviz
+                // warns: "head is inside tail cluster").
+                if (cluster.count(name) && !isDescendant(r.target, name))
                     out << ", ltail=" << cluster[name];
-                if (has_target && cluster.count(r.target))
+                // Suppress lhead when source is inside the destination cluster (graphviz
+                // warns: "tail is inside head cluster").
+                if (has_target && cluster.count(r.target) && !isDescendant(name, r.target))
                     out << ", lhead=" << cluster[r.target];
                 out << "];\n";
             }
@@ -725,9 +745,10 @@ static void generateDOT(const std::string& filename)
 
                 out << "    " << src << " -> " << dst << " [xlabel=\"" << shortName(r.event)
                     << " [H*]\", color=black, style=dashed";
-                if (cluster.count(name))
+                if (cluster.count(name) && !isDescendant(history_container, name))
                     out << ", ltail=" << cluster[name];
-                if (has_target && cluster.count(history_container))
+                if (has_target && cluster.count(history_container) &&
+                    !isDescendant(name, history_container))
                     out << ", lhead=" << cluster[history_container];
                 out << "];\n";
             }
