@@ -1,4 +1,9 @@
 add_subdirectory(lib)
+
+if(build_state_diagrams)
+  add_subdirectory(tools)
+endif()
+
 add_subdirectory(bin)
 add_subdirectory(python)
 

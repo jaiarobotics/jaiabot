@@ -16,4 +16,8 @@ if(export_goby_interfaces)
   generate_interfaces(${APP})
 endif()
 
+if(build_state_diagrams)
+  generate_state_diagram(${APP})
+endif()
+
 project_install_bin(${APP})
