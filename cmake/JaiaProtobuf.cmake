@@ -54,10 +54,12 @@ function(jaiabot_protobuf_generate)
   elseif("${args_LANGUAGE}" STREQUAL "PYTHON")
     protobuf_generate(
       LANGUAGE python
+      PROTOC_OPTIONS --pyi_out=${protoc_out_dir}
       OUT_VAR ${args_OUT_VAR}
       PROTOC_OUT_DIR ${protoc_out_dir}
       IMPORT_DIRS ${project_PROTO_IMPORT_DIRS} ${args_IMPORT_DIRS}
       PROTOS ${args_PROTOS}
+      GENERATE_EXTENSIONS .py .pyi
     )
   else()
     message(FATAL_ERROR "Unsupported LANGUAGE ${args_LANGUAGE} given to jaiabot_protobuf_generate")
