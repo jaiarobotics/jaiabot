@@ -43,7 +43,6 @@ first_packet_start_time: int = 0
 last_packet_start_time: int = 0
 
 
-@pytest.fixture(scope="module", autouse=True)
 def setup_module():
     global all_task_packets, all_bot_ids, first_packet_start_time, last_packet_start_time
 
@@ -65,24 +64,28 @@ def setup_module():
     assert len(all_task_packets) > 0, "Expected at least one task packet"
 
 
-def test_multibot_querying():
-    if len(all_bot_ids) < 2:
-        print("Not enough bots found in task packets to test multibot querying, skipping that test")
-        return
+setup_module()
 
-    response = run_request(rest_api.APIRequest(
-        target=rest_api.APIRequest.Nodes(
-            bots=all_bot_ids[:2]
-        ),
-        task_packets=rest_api.TaskPacketQuery()
-    ))
 
-    assert len(response.task_packets.packets) > 0, "Expected at least one task packet for the specified bots"
+def test_bot_id_querying():
 
-    for packet in response.task_packets.packets:
-        assert packet.bot_id in all_bot_ids[:2], f"{packet}\nTask packet bot ID does not match the specified bot IDs"
+    for i in range(0, min(len(all_bot_ids), 2)):
+        bot_subset = all_bot_ids[:i+1]
+        print(f'Testing multibot querying with bot IDs: {bot_subset}')
 
-    print(f"Successfully retrieved {len(response.task_packets.packets)} task packets for bots {all_bot_ids[:2]}")
+        response = run_request(rest_api.APIRequest(
+            target=rest_api.APIRequest.Nodes(
+                bots=bot_subset
+            ),
+            task_packets=rest_api.TaskPacketQuery()
+        ))
+
+        assert len(response.task_packets.packets) > 0, "Expected at least one task packet for the specified bots"
+
+        for packet in response.task_packets.packets:
+            assert packet.bot_id in bot_subset, f"{packet}\nTask packet bot ID does not match the specified bot IDs"
+
+        print(f"Successfully retrieved {len(response.task_packets.packets)} task packets for bots {bot_subset}")
 
 
 def test_time_range_filtering():
@@ -180,7 +183,7 @@ def test_mission_summary_querying():
 
 if __name__ == "__main__":
     setup_module()
-    test_multibot_querying()
+    test_bot_id_querying()
     test_time_range_filtering()
     test_mission_name_filtering()
     test_mission_summary_querying()
