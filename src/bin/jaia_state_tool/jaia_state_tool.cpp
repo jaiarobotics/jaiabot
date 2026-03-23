@@ -392,7 +392,11 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
         extractReactionsFromDecl(decl, info.reactions);
 
         std::lock_guard<std::mutex> lock(g_mutex);
-        if (!g_states.count(info.name))
+        // Always store the entry, overwriting any stub that was registered earlier via
+        // the initial_child fallback path (a stub has an empty reactions list and may
+        // have been added before the real definition was visited).
+        auto it = g_states.find(info.name);
+        if (it == g_states.end() || it->second.reactions.empty())
             g_states[info.name] = info;
     }
 
@@ -428,7 +432,7 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
 
             QualType underlying = alias->getUnderlyingType();
 
-            // Try to get the TemplateSpecializationType for boost::mpl::list<...>
+            // Try to get the TemplateSpecializationType for the reaction type
             const TemplateSpecializationType* tst = underlying->getAs<TemplateSpecializationType>();
             if (!tst)
                 if (const auto* et = underlying->getAs<ElaboratedType>())
@@ -441,9 +445,19 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
                 continue;
 
             const std::string tmpl_name = td->getQualifiedNameAsString();
-            // boost::mpl::list, boost::mpl::list0..N
             if (tmpl_name.rfind("boost::mpl::list", 0) == 0)
+            {
+                // boost::mpl::list<...> — extract each element in the list
                 extractReactionsFromMplList(tst, reactions, policy_);
+            }
+            else
+            {
+                // Single reaction type (e.g. boost::statechart::custom_reaction<E>) —
+                // not wrapped in mpl::list; extract it directly.
+                ReactionInfo r = extractReaction(tst, policy_);
+                if (!r.type.empty())
+                    reactions.push_back(r);
+            }
         }
     }
 
@@ -975,6 +989,49 @@ static void generateMermaid(const std::string& filename)
 }
 
 // ============================================================
+// Post-processing: ensure all referenced child states are in g_states
+// ============================================================
+
+/// After the AST pass, some states referenced as initial_child of a composite state
+/// may not have been directly visited (e.g., if their definitions are in headers that
+/// are included in an unusual way, or if template instantiation ordering prevents the
+/// primary detection path from firing).  This function walks every known state and
+/// registers a stub StateInfo for any initial_child that is not yet in g_states.
+/// If the state WAS properly detected, its full entry (with reactions, etc.) takes
+/// priority because processState() overwrites stubs (see above).
+static void resolveChildStates()
+{
+    // Snapshot the current map so iteration is stable while we potentially insert.
+    std::vector<std::pair<std::string, StateInfo>> snapshot(g_states.begin(), g_states.end());
+
+    for (const auto& [parent_name, parent_info] : snapshot)
+    {
+        const std::string& child_name = parent_info.initial_child;
+        if (child_name.empty())
+            continue;
+
+        // If the child already has a complete entry, nothing to do.
+        if (g_states.count(child_name) && !g_states.at(child_name).parent.empty())
+            continue;
+
+        // Build a stub for the initial child so it shows up in the hierarchy.
+        StateInfo stub;
+        stub.name = child_name;
+        stub.parent = parent_name;
+        stub.is_machine = false;
+
+        // Detect choice/selection pseudostates by naming convention.
+        const std::string sn = shortName(child_name);
+        stub.is_choice =
+            (sn.size() >= 9 && sn.compare(sn.size() - 9, 9, "Selection") == 0);
+
+        // Only insert if not already present, or upgrade a parentless stub.
+        if (!g_states.count(child_name) || g_states.at(child_name).parent.empty())
+            g_states[child_name] = stub;
+    }
+}
+
+// ============================================================
 // main
 // ============================================================
 
@@ -1025,6 +1082,10 @@ int main(int argc, const char** argv)
 
     // Create output directory
     fs::create_directories(OutDir.getValue());
+
+    // Post-processing: register any initial_child states that the primary AST
+    // visitor may have missed (e.g., *Selection choice pseudostates).
+    resolveChildStates();
 
     // Write YAML
     generateYAML(OutDir.getValue() + "/" + TargetName.getValue() + "_states.yml");
