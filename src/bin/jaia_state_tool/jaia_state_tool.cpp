@@ -828,10 +828,11 @@ static void generateMermaid(const std::string& filename)
     };
 
     out << "stateDiagram-v2\n";
+    out << "    direction LR\n";
 
     // ---- Recursive state hierarchy writer ----
     // Composite states: state "ShortName" as id { state "{this}" as id_this ... }
-    // Choice states:    state id <<choice>>
+    // Choice states:    state "ShortName" as id <<choice>>
     // Leaf states:      state "ShortName" as id
     std::function<void(const std::string&, int)> writeStateBlock;
     writeStateBlock = [&](const std::string& name, int indent) {
@@ -862,8 +863,9 @@ static void generateMermaid(const std::string& filename)
         }
         else if (info.is_choice)
         {
-            // Choice/selection pseudostates use Mermaid's <<choice>> notation
-            out << pad << "state " << id << " <<choice>>\n";
+            // Choice/selection pseudostates: labeled <<choice>> notation so the state
+            // name is visible in the rendered diagram.
+            out << pad << "state \"" << shortName(name) << "\" as " << id << " <<choice>>\n";
         }
         else
         {
@@ -876,43 +878,92 @@ static void generateMermaid(const std::string& filename)
 
     // ---- Write all transitions ----
     out << "\n";
+
+    // Returns true if 'state' is a descendant of 'ancestor' in the hierarchy.
+    // Used to implement the {this} rule:
+    //   - Use composite_this as SOURCE (tail) only when transitioning from a composite
+    //     state TO one of its own descendants (parent → child).
+    //   - Use composite_this as DESTINATION (head) only when transitioning from a
+    //     descendant TO its containing composite ancestor (child → parent).
+    //   - Sibling-to-sibling or unrelated transitions use plain IDs.
+    auto isDescendantMmd = [&](const std::string& state,
+                               const std::string& ancestor) -> bool {
+        if (!g_states.count(state))
+            return false;
+        std::string cur = g_states.at(state).parent;
+        while (!cur.empty() && g_states.count(cur))
+        {
+            if (cur == ancestor)
+                return true;
+            cur = g_states.at(cur).parent;
+        }
+        return false;
+    };
+
     for (const auto& [name, info] : g_states)
     {
         if (info.is_machine)
             continue;
-        // For composite states, transitions originate from the {this} pseudo-child so that
-        // arrows are drawn from inside the composite-state box (visually cleaner).
-        bool is_composite = children.count(name) && !children.at(name).empty();
-        std::string src = is_composite ? mermaidId(name) + "_this" : mermaidId(name);
+        bool src_is_composite = isComposite(name);
 
         for (const auto& r : info.reactions)
         {
+            std::string effective_target;
             if (r.type == "transition" && !r.target.empty())
-            {
-                std::string dst = mermaidId(r.target);
-                out << "    " << src << " --> " << dst << " : " << shortName(r.event) << "\n";
-            }
+                effective_target = r.target;
             else if (r.type == "deep_history_transition" && !r.target.empty())
             {
-                // Find the parent composite state that holds the history
-                std::string history_container;
                 if (g_states.count(r.target))
                 {
-                    const std::string& parent = g_states.at(r.target).parent;
-                    history_container = (!parent.empty() && g_states.count(parent)) ? parent
-                                                                                    : r.target;
+                    const std::string& par = g_states.at(r.target).parent;
+                    effective_target =
+                        (!par.empty() && g_states.count(par)) ? par : r.target;
                 }
                 else
                 {
-                    history_container = r.target;
+                    effective_target = r.target;
                 }
-                out << "    " << src << " --> " << mermaidId(history_container) << " : "
-                    << shortName(r.event) << " [H*]\n";
+            }
+
+            // Determine source: use {this} only when source is composite AND the
+            // target is a descendant of the source (parent → child transition).
+            std::string src;
+            if (src_is_composite && !effective_target.empty() &&
+                isDescendantMmd(effective_target, name))
+                src = mermaidId(name) + "_this";
+            else
+                src = mermaidId(name);
+
+            if (r.type == "transition" && !r.target.empty())
+            {
+                // Determine destination: use {this} only when target is composite AND
+                // the source is a descendant of the target (child → parent transition).
+                std::string dst;
+                if (isComposite(r.target) && isDescendantMmd(name, r.target))
+                    dst = mermaidId(r.target) + "_this";
+                else
+                    dst = mermaidId(r.target);
+                out << "    " << src << " --> " << dst << " : " << shortName(r.event)
+                    << "\n";
+            }
+            else if (r.type == "deep_history_transition" && !r.target.empty())
+            {
+                // Determine destination with same {this} rule for the history container
+                std::string dst;
+                if (isComposite(effective_target) &&
+                    isDescendantMmd(name, effective_target))
+                    dst = mermaidId(effective_target) + "_this";
+                else
+                    dst = mermaidId(effective_target);
+                out << "    " << src << " --> " << dst << " : " << shortName(r.event)
+                    << " [H*]\n";
             }
             else if (r.type == "deferral" && !r.event.empty())
             {
                 // Deferral: self-loop with annotation
-                out << "    " << src << " --> " << src << " : " << shortName(r.event)
+                std::string self = src_is_composite ? mermaidId(name) + "_this"
+                                                    : mermaidId(name);
+                out << "    " << self << " --> " << self << " : " << shortName(r.event)
                     << " [deferral]\n";
             }
             // in_state_reaction and custom_reaction are omitted from Mermaid output
