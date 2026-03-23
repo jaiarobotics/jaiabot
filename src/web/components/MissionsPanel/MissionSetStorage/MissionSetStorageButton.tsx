@@ -4,7 +4,11 @@ import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiFolder } from "@mdi/js";
 
-export default function MissionSetStorageButton() {
+interface Props {
+    missionSetName: string;
+}
+
+export default function MissionSetStorageButton(props: Props) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -25,7 +29,14 @@ export default function MissionSetStorageButton() {
             >
                 <Icon path={mdiFolder} title="Mission Set Storage"></Icon>
             </Button>
-            <MissionSetStorageDialog isVisible={isDialogVisible} onClose={onDialogClose} />
+            {isDialogVisible ? (
+                <MissionSetStorageDialog
+                    missionSetName={props.missionSetName}
+                    onClose={onDialogClose}
+                />
+            ) : (
+                <div></div>
+            )}
         </div>
     );
 }
