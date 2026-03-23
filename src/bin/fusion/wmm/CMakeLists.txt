@@ -1,2 +1,2 @@
-add_library(wmm SHARED WMM.cpp)
-project_install_lib(wmm)
+add_jaiabot_library(TARGET wmm
+  SOURCES WMM.cpp)

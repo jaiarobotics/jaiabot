@@ -1,1 +1,1 @@
--p $udp_gateway_port --simulator
+-p $udp_gateway_port

@@ -1,6 +1,6 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "./mission";
-import { UNASSIGNED_ID } from "../../utils/constants";
+import { DEFAULT_MISSION_SET_NAME, UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds } from "../../types/protobuf-types";
 
 // This constant will be used to track versions of mission sets
@@ -30,7 +30,7 @@ export class MissionSet {
         this.nextMissionID = 1;
         this.missionIDInEditMode = UNASSIGNED_ID;
         this.missionSpeeds = { transit: 2, stationkeep_outer: 2 };
-        this.name = "";
+        this.name = DEFAULT_MISSION_SET_NAME;
     }
 
     getMissions() {
@@ -116,6 +116,7 @@ export class MissionSet {
     deleteAllMissions() {
         this.missions.clear();
         this.setMissionIDInEditMode(UNASSIGNED_ID);
+        this.setName(DEFAULT_MISSION_SET_NAME);
         this.setNextMissionID(1);
     }
 

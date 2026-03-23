@@ -9,17 +9,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Limit cascading C++ errors (GCC / Clang only)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-   add_compile_options(-fmax-errors=3)
+  add_compile_options(-fmax-errors=3)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-   add_compile_options(-ferror-limit=3)
+  add_compile_options(-ferror-limit=3)
 endif()
 
 # determine version of jaiabot
 include(JaiaVersions)
 
 # find Protobuf
-find_package(ProtobufLocal REQUIRED)
-include_directories(${PROTOBUF_INCLUDE_DIRS})
+include(JaiaProtobuf)
 
 # find NanoPB
 find_package( Nanopb REQUIRED )
@@ -30,7 +29,6 @@ get_target_property(DCCL_INCLUDE_DIR dccl INTERFACE_INCLUDE_DIRECTORIES)
 
 message("Using DCCL in ${DCCL_INCLUDE_DIR}")
 include_directories("${DCCL_INCLUDE_DIR}")
-protobuf_include_dirs("${DCCL_INCLUDE_DIR}")
 
 # find MOOS
 find_package(MOOS 10 REQUIRED)
@@ -39,7 +37,6 @@ find_package(MOOS 10 REQUIRED)
 find_package(GOBY 3.0 REQUIRED zeromq moos)
 
 include_directories("${GOBY_INCLUDE_DIR}")
-protobuf_include_dirs("${GOBY_INCLUDE_DIR}")
 
 # create variables for various directories
 get_filename_component(project_SRC_DIR src ABSOLUTE)
@@ -71,7 +68,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${project_LIB_DIR} CACHE PATH
 
 # include our local include directory
 include_directories(${project_INC_DIR})
-protobuf_include_dirs(${project_INC_DIR})
 
 # settings for goby_clang_tool
 option(build_doc "Build documentation (requires Doxygen)" OFF)
@@ -200,6 +196,7 @@ set(scripts_to_install
   data-offload/jaiabot-predataoffload.sh
   data-offload/jaiabot-postdataoffload.sh
   data-offload/jaiahub-dataoffload-cloudhub.sh
+  data-offload/ctd-offload.sh
   # Firmware scripts
   jaia_firm_backup_date.sh
   reset-bio-payload-board.sh

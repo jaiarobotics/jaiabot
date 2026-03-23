@@ -1,4 +1,6 @@
+import React, { useState } from "react";
 import DataOffloadQueue from "./DataOffloadQueue/DataOffloadQueue";
+import CTDOffload from "./CTDOffload/CTDOffload";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 
@@ -14,12 +16,18 @@ import "./DataOffloadPanel.less";
  * Displays the data offload queue and buttons to download task packet data
  */
 export default function DataOffloadPanel() {
+    const [isCTDPanelVisible, setIsCTDPanelVisible] = useState(false);
+
     /**
      * Initiates KMZ download of task packet data
      *
      * @returns {void}
      */
-    const handleDownloadKMZ = async () => {
+    const handleDownloadKMZ = async (event: React.MouseEvent<Element, MouseEvent>) => {
+        event.stopPropagation();
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
         const kmzFilename = getKMZFilename(taskPackets.getIncludedTaskPackets());
         downloadFile(kmzFilename, await getKMZ(taskPackets.getIncludedTaskPackets()));
     };
@@ -34,6 +42,10 @@ export default function DataOffloadPanel() {
         downloadFile(csvFilename, await getCSV(taskPackets.getIncludedTaskPackets()), "text/csv");
     };
 
+    const handleDownloadCTD = () => {
+        setIsCTDPanelVisible(true);
+    };
+
     return (
         <div className="jaia-panel data-offload-panel">
             <div className="jaia-panel-title">Data Offload</div>
@@ -41,8 +53,11 @@ export default function DataOffloadPanel() {
                 <button onClick={handleDownloadCSV} aria-label={"download-csv"}>
                     CSV
                 </button>
-                <button onClick={handleDownloadKMZ} aria-label={"download-kmz"}>
+                <button onClick={(event) => handleDownloadKMZ(event)} aria-label={"download-kmz"}>
                     KMZ
+                </button>
+                <button onClick={handleDownloadCTD} aria-label={"download-ctd"}>
+                    CTD
                 </button>
             </div>
             <Accordion className="accordion-container">
@@ -53,6 +68,10 @@ export default function DataOffloadPanel() {
                     <DataOffloadQueue />
                 </AccordionDetails>
             </Accordion>
+            <CTDOffload
+                isVisible={isCTDPanelVisible}
+                closeCTDPanel={() => setIsCTDPanelVisible(false)}
+            />
         </div>
     );
 }

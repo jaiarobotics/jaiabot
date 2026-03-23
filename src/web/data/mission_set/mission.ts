@@ -25,7 +25,7 @@ export default class Mission {
         // speeds set by missionSet singleton
         this.waypoints = [];
         this.repeats = 1;
-        this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID };
+        this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID, repeats: 1 };
     }
 
     getMissionID() {
@@ -78,7 +78,7 @@ export default class Mission {
     }
 
     resetGhostParameters() {
-        this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID };
+        this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID, repeats: 1 };
     }
 
     getWaypoint(waypointNum: number) {
@@ -123,7 +123,7 @@ export default class Mission {
         }
     }
 
-    packageMissionForHub() {
+    packageMissionForHub(missionSetName: string) {
         const missionPlan: MissionPlan = {
             start: MissionStart.START_IMMEDIATELY,
             movement: MovementType.TRANSIT,
@@ -133,6 +133,7 @@ export default class Mission {
             },
             speeds: this.speeds,
             repeats: this.repeats,
+            mission_name: missionSetName,
         };
 
         if (this.bottomDepthSafetyParams) {

@@ -67,6 +67,11 @@ export default function Map() {
                 return;
         }
 
+        if (jaiaGlobal.getSelectedWaypoint().isMoveable) {
+            handleMoveWaypointClick(event.coordinate);
+            return;
+        }
+
         const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature, {
             hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
         });
@@ -98,17 +103,8 @@ export default function Map() {
             }
         }
 
-        if (jaiaGlobal.getSelectedWaypoint().isMoveable) {
-            handleMoveWaypointClick(event.coordinate);
-            return;
-        }
-
         // Prevent generating false ADD_WAYPOINT actions
-        if (
-            (jaiaGlobal.getSelectedNode().type === NodeTypes.BOT &&
-                missionsManager.getMissionID(jaiaGlobal.getSelectedNode().id) === UNASSIGNED_ID) ||
-            missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID
-        ) {
+        if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
             handleAddWaypointClick(event.coordinate);
         }
     };
