@@ -26,7 +26,7 @@ struct LaunchTubeDetection;
 struct LaunchTubeDetection
     : boost::statechart::state<LaunchTubeDetection, SelfTest>,
       Notify<LaunchTubeDetection, protobuf::SELF_TEST__LAUNCH_TUBE_DETECTION>,
-      ThresholdCommon<LaunchTubeDetection>
+      jaiabot::statechart::ThresholdCommon<LaunchTubeDetection>
 {
     using StateBase = boost::statechart::state<LaunchTubeDetection, SelfTest>;
 

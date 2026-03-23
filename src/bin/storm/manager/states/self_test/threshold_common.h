@@ -23,6 +23,44 @@
 // Base class for all states to manage reaching various thresholds of conductivity, pressure, etc.
 // When thresholds are met, the ThresholdEvent is posted
 
+#include "jaiabot/units/conductivity.h"
+
+namespace jaiabot::statechart
+{
+
+template <typename SensorEvent> struct threshold_traits; // intentionally undefined
+
+template <> struct threshold_traits<EvConductivity>
+{
+    static constexpr auto value_case = protobuf::StormMission::Threshold::Check::kConductivity;
+
+    static auto threshold_value(const protobuf::StormMission::Threshold::Check& c)
+    {
+        // TO-DO: change to c.conductivity_with_units()
+        return c.conductivity() * ::jaiabot::units::microsiemens_per_cm;
+    }
+};
+
+template <> struct threshold_traits<EvPressure>
+{
+    static constexpr auto value_case = protobuf::StormMission::Threshold::Check::kPressure;
+
+    static auto threshold_value(const protobuf::StormMission::Threshold::Check& c)
+    {
+        return c.pressure_with_units();
+    }
+};
+
+template <> struct threshold_traits<EvGPSAltitude>
+{
+    static constexpr auto value_case = protobuf::StormMission::Threshold::Check::kGpsAltitude;
+
+    static auto threshold_value(const protobuf::StormMission::Threshold::Check& c)
+    {
+        return c.gps_altitude_with_units();
+    }
+};
+
 template <typename Derived> struct ThresholdCheckerBase
 {
     ThresholdCheckerBase(const std::string& name, const protobuf::StormMission::Threshold& cfg)
@@ -42,44 +80,6 @@ template <typename Derived> struct ThresholdCheckerBase
 
     virtual ~ThresholdCheckerBase() {}
 
-    // traits to define SensorEvent -> protobuf value case -> threshold value field
-    template <typename SensorEvent>
-    struct threshold_traits; // intentionally undefined (forces specializations)
-
-    // Conductivity
-    template <> struct threshold_traits<EvConductivity>
-    {
-        static constexpr auto value_case = protobuf::StormMission::Threshold::Check::kConductivity;
-
-        static auto threshold_value(const protobuf::StormMission::Threshold::Check& c)
-        {
-            // TO-DO: change to c.conductivity_with_units()
-            return c.conductivity() * jaiabot::units::microsiemens_per_cm;
-        }
-    };
-
-    // Pressure
-    template <> struct threshold_traits<EvPressure>
-    {
-        static constexpr auto value_case = protobuf::StormMission::Threshold::Check::kPressure;
-
-        static auto threshold_value(const protobuf::StormMission::Threshold::Check& c)
-        {
-            return c.pressure_with_units();
-        }
-    };
-
-    // GPS Altitude
-    template <> struct threshold_traits<EvGPSAltitude>
-    {
-        static constexpr auto value_case = protobuf::StormMission::Threshold::Check::kGpsAltitude;
-
-        static auto threshold_value(const protobuf::StormMission::Threshold::Check& c)
-        {
-            return c.gps_altitude_with_units();
-        }
-    };
-
     template <typename SensorEvent> void check(Derived* state, const SensorEvent& s_event)
     {
         const auto key = threshold_traits<SensorEvent>::value_case;
@@ -91,15 +91,17 @@ template <typename Derived> struct ThresholdCheckerBase
         auto threshold_value = threshold_traits<SensorEvent>::threshold_value(unmet_it->second);
 
         const protobuf::StormMission::Threshold::Check& check = unmet_it->second;
-        decltype(threshold_value) value;
+        decltype(threshold_value) value{};
         switch (check.stat())
         {
             case protobuf::StormMission::Threshold::MEAN:
                 value = decltype(value)(s_event.mean);
                 break;
+
             case protobuf::StormMission::Threshold::MEDIAN:
                 value = decltype(value)(s_event.median);
                 break;
+
             case protobuf::StormMission::Threshold::STDDEV:
                 value = decltype(value)(s_event.stddev);
                 break;
@@ -107,12 +109,15 @@ template <typename Derived> struct ThresholdCheckerBase
 
         bool threshold_met = false;
         bool threshold_met_complete = false;
+
         switch (check.condition())
         {
             case protobuf::StormMission::Threshold::IGNORE: break;
+
             case protobuf::StormMission::Threshold::GREATER_THAN:
                 threshold_met = value > threshold_value;
                 break;
+
             case protobuf::StormMission::Threshold::LESS_THAN:
                 threshold_met = value < threshold_value;
                 break;
@@ -141,7 +146,6 @@ template <typename Derived> struct ThresholdCheckerBase
 
             if (now >= start_time + hold_time)
             {
-                // threshold has been met for long enough
                 result_string = "TRUE/COMPLETE";
                 threshold_met_complete = true;
             }
@@ -173,7 +177,6 @@ template <typename Derived> struct ThresholdCheckerBase
 
   private:
     std::string name_;
-
     protobuf::StormMission::Threshold threshold_cfg_;
 
     std::map<protobuf::StormMission::Threshold::Check::ValueCase,
@@ -192,6 +195,7 @@ struct ThresholdChecker : public ThresholdCheckerBase<Derived>
         : ThresholdCheckerBase<Derived>(name, cfg)
     {
     }
+
     ~ThresholdChecker() {}
 
     void post_event(Derived* state) override { state->post_event(ThresholdEvent()); }
@@ -211,9 +215,8 @@ template <typename Derived> struct ThresholdCommon
     template <typename SensorEvent> boost::statechart::result react(const SensorEvent& sensor_event)
     {
         for (auto& checker : checkers_)
-        {
             checker->check(static_cast<Derived*>(this), sensor_event);
-        }
+
         return static_cast<Derived*>(this)->discard_event();
     }
 
@@ -224,3 +227,5 @@ template <typename Derived> struct ThresholdCommon
   private:
     std::set<std::unique_ptr<ThresholdCheckerBase<Derived>>> checkers_;
 };
+
+} // namespace jaiabot::statechart

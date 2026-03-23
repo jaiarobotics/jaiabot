@@ -26,7 +26,7 @@ struct ParachuteAttachmentDetection;
 struct ParachuteAttachmentDetection
     : boost::statechart::state<ParachuteAttachmentDetection, SelfTest>,
       Notify<ParachuteAttachmentDetection, protobuf::SELF_TEST__PARACHUTE_ATTACHMENT_DETECTION>,
-      ThresholdCommon<ParachuteAttachmentDetection>
+      jaiabot::statechart::ThresholdCommon<ParachuteAttachmentDetection>
 {
     using StateBase = boost::statechart::state<ParachuteAttachmentDetection, SelfTest>;
     using ThresholdBase = ThresholdCommon<ParachuteAttachmentDetection>;

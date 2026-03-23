@@ -25,7 +25,7 @@ struct InWaterDetection;
 #else
 struct InWaterDetection : boost::statechart::state<InWaterDetection, SelfTest>,
                           Notify<InWaterDetection, protobuf::SELF_TEST__IN_WATER_DETECTION>,
-                          ThresholdCommon<InWaterDetection>
+                          jaiabot::statechart::ThresholdCommon<InWaterDetection>
 {
     using StateBase = boost::statechart::state<InWaterDetection, SelfTest>;
     using ThresholdBase = ThresholdCommon<InWaterDetection>;
