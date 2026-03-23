@@ -10,14 +10,14 @@ A compile-time C++ tool based on the [Clang 18 LibTooling API](https://clang.llv
 2. **Extracts the state hierarchy** — each state's parent state (or state machine), initial child state for composite states.
 3. **Extracts all reactions** from `using reactions = boost::mpl::list<...>` type aliases, including:
    - `boost::statechart::transition<Event, TargetState>` — a state change triggered by an event
-   - `boost::statechart::custom_reaction<Event>` — user-defined reaction handled by `react(const Event&)`
-   - `boost::statechart::in_state_reaction<Event, State, &State::handler>` — event handled without changing state
-   - `boost::statechart::deferral<Event>` — event deferred until a state change occurs
+   - `boost::statechart::custom_reaction<Event>` — user-defined reaction handled by `react(const Event&)` — shown in the state box, not as an edge
+   - `boost::statechart::in_state_reaction<Event, State, &State::handler>` — event handled without changing state — shown in the state box, not as an edge
+   - `boost::statechart::deferral<Event>` — event deferred until a state change occurs — shown as a self-loop edge
 4. **Writes a YAML file** (`<target>_states.yml`) with the full hierarchical state description.
-5. **Writes a Graphviz DOT file** (`<target>_states.dot`) with composite-state clusters, initial-state markers, and styled transition edges.
-6. **Writes a Mermaid statechart file** (`<target>_states.mmd`) with nested state blocks and labeled transitions.
-7. Optionally **renders the DOT to SVG** using `dot` (if graphviz is installed).
-8. Optionally **renders the Mermaid diagram to SVG** using `mmdc` (if `@mermaid-js/mermaid-cli` is installed).
+5. **Writes a Graphviz DOT file** (`<target>_states.dot`) with composite-state clusters, initial-state markers, and styled transition edges. `in_state_reaction` and `custom_reaction` are shown inline in the state label.
+6. **Writes a Mermaid statechart file** (`<target>_states.mmd`) with nested state blocks and labeled transitions. `in_state_reaction` and `custom_reaction` are shown as `note right of` annotations.
+7. Optionally **renders the DOT to PDF** using `dot` (if graphviz is installed).
+8. Optionally **renders the Mermaid diagram to PDF** using `mmdc` (if `@mermaid-js/mermaid-cli` is installed).
 
 ## How to build
 
@@ -36,13 +36,13 @@ The tool itself is built as a regular CMake target (`jaia_state_tool`) under `sr
 |---------|---------|
 | `libclang-18-dev` | Clang 18 AST/tooling C++ headers and static libs |
 | `llvm-18-dev` | LLVM 18 development libraries |
-| `graphviz` | `dot` executable for Graphviz SVG rendering (optional) |
-| `@mermaid-js/mermaid-cli` | `mmdc` executable for Mermaid SVG rendering (optional) |
+| `graphviz` | `dot` executable for Graphviz PDF rendering (optional) |
+| `@mermaid-js/mermaid-cli` | `mmdc` executable for Mermaid PDF rendering (optional) |
 
 On Ubuntu 24.04:
 ```bash
 sudo apt install libclang-18-dev graphviz
-npm install -g @mermaid-js/mermaid-cli   # optional, for Mermaid SVG rendering
+npm install -g @mermaid-js/mermaid-cli   # optional, for Mermaid PDF rendering
 ```
 
 ## Output files
@@ -53,9 +53,9 @@ After a successful build with `build_state_diagrams=ON`, the generated files are
 <build>/share/jaiabot/state_diagrams/
 ├── jaiabot_mission_manager_states.yml             # YAML hierarchy (shared input for both diagrams)
 ├── jaiabot_mission_manager_states.dot             # Graphviz DOT source
-├── jaiabot_mission_manager_states_graphviz.svg    # Rendered SVG (if dot found)
+├── jaiabot_mission_manager_states_graphviz.pdf    # Rendered PDF (if dot found)
 ├── jaiabot_mission_manager_states.mmd             # Mermaid statechart source
-└── jaiabot_mission_manager_states_mermaid.svg     # Rendered SVG (if mmdc found)
+└── jaiabot_mission_manager_states_mermaid.pdf     # Rendered PDF (if mmdc found)
 ```
 
 Both diagram formats are generated from the same in-memory state data (the same data that produces the YAML), so they are always in sync.  Either format can be removed in the future by disabling the corresponding generator or renderer.
@@ -80,20 +80,22 @@ states:
         target: jaiabot::statechart::postdeployment::ShuttingDown
 ```
 
-### DOT / SVG diagram (Graphviz)
+### DOT / PDF diagram (Graphviz)
 
 The DOT output uses `compound=true` with `subgraph cluster_*` blocks to represent composite states. Edge styles indicate reaction type:
 
 | Style | Reaction type |
 |-------|---------------|
 | Solid arrow | `transition` |
-| Dashed arrow | `in_state_reaction` (self-loop) |
-| Dotted arrow | `custom_reaction` (self-loop) |
+| Dotted self-loop | `deferral` |
 | Bold arrow | Initial-state marker |
+| State label text | `in_state_reaction` and `custom_reaction` (embedded in the state box, not drawn as edges) |
+
+`in_state_reaction` and `custom_reaction` reactions are shown inline in the state's label in the form `- in_state_reaction: EventName`, since they do not trigger a state change.
 
 ### Mermaid statechart diagram
 
-The Mermaid output uses `stateDiagram-v2` syntax with nested `state "Label" as id { ... }` blocks for composite states. Transitions are written after the state hierarchy.  Deep history transitions are annotated with `[H*]` in the edge label.  The `.mmd` file can be rendered to SVG using `mmdc` or previewed directly in GitHub, GitLab, or any Mermaid-compatible renderer.
+The Mermaid output uses `stateDiagram-v2` syntax with nested `state "Label" as id { ... }` blocks for composite states. Transitions are written after the state hierarchy.  Deep history transitions are annotated with `[H*]` in the edge label.  `in_state_reaction` and `custom_reaction` are rendered as `note right of` annotations attached to the relevant state.  The `.mmd` file can be rendered to PDF using `mmdc` or previewed directly in GitHub, GitLab, or any Mermaid-compatible renderer.
 
 ## Adding state diagram generation to a new target
 
@@ -140,13 +142,13 @@ Composite states (states with children) are rendered as `subgraph cluster_*` blo
 
 ### Mermaid generation
 
-`generateMermaid()` follows the same recursive structure as `generateDOT()`: it first writes the state hierarchy with nested `state "Label" as id { ... }` blocks, then writes all transitions outside the hierarchy.  Leaf states are declared with `state "Label" as id` to show short names.  Both functions share the same `g_states` global, so the two diagram formats are always in sync.
+`generateMermaid()` follows the same recursive structure as `generateDOT()`: it first writes the state hierarchy with nested `state "Label" as id { ... }` blocks, then writes all transitions outside the hierarchy, and finally emits `note right of` blocks for any `in_state_reaction`/`custom_reaction` reactions.  Both functions share the same `g_states` global, so the two diagram formats are always in sync.
 
 ## Modifying the tool
 
 - **Add support for a new reaction type**: add a new `else if` branch in `extractReaction()` matching the new `boost::statechart::*` template name.
-- **Change the DOT appearance**: edit `generateDOT()`. The edge-style lookup is in the `if (r.type == ...)` block near the `// ---- Transitions ----` comment.
-- **Change the Mermaid appearance**: edit `generateMermaid()`. Transition labels and state alias formats are in the corresponding `// ---- Write all transitions ----` block.
+- **Change the DOT appearance**: edit `generateDOT()`. The edge-style lookup is in the `if (r.type == ...)` block near the `// ---- Transitions ----` comment. State label construction is in the `writeCluster` lambda.
+- **Change the Mermaid appearance**: edit `generateMermaid()`. Transition labels are in the `// ---- Write all transitions ----` block; annotation format is in the `// ---- Notes for in_state_reaction / custom_reaction ----` block.
 - **Change the YAML schema**: edit `generateYAML()`.
 - **Remove Graphviz output**: delete the `generateDOT()` call in `main()` and the `if(DOT_EXECUTABLE)` block in `cmake/JaiaStateTool.cmake`.
 - **Remove Mermaid output**: delete the `generateMermaid()` call in `main()` and the `if(MMDC_EXECUTABLE)` block in `cmake/JaiaStateTool.cmake`.

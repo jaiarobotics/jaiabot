@@ -588,8 +588,15 @@ static void generateDOT(const std::string& filename)
 
         if (isComposite(name) || info.is_machine)
         {
+            // Build label: short name + any in_state_reaction/custom_reaction annotations
+            std::string cluster_label = shortName(name);
+            for (const auto& r : info.reactions)
+                if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
+                    !r.event.empty())
+                    cluster_label += "\\n- " + r.type + ": " + shortName(r.event);
+
             out << pad << "subgraph " << cluster[name] << " {\n";
-            out << pad << "    label=\"" << shortName(name) << "\";\n";
+            out << pad << "    label=\"" << cluster_label << "\";\n";
             if (info.is_machine)
             {
                 out << pad << "    style=bold;\n";
@@ -628,8 +635,13 @@ static void generateDOT(const std::string& filename)
         }
         else
         {
-            // Leaf state
-            out << pad << id << " [label=\"" << shortName(name)
+            // Leaf state: build label with any in_state_reaction/custom_reaction annotations
+            std::string node_label = shortName(name);
+            for (const auto& r : info.reactions)
+                if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
+                    !r.event.empty())
+                    node_label += "\\n- " + r.type + ": " + shortName(r.event);
+            out << pad << id << " [label=\"" << node_label
                 << "\", shape=box, style=\"rounded,filled\", fillcolor=lightyellow];\n";
         }
     };
@@ -693,19 +705,6 @@ static void generateDOT(const std::string& filename)
             std::string dst;
             bool has_target = false;
 
-            std::string edge_color = "black";
-            std::string edge_style = "solid";
-            if (r.type == "in_state_reaction")
-            {
-                edge_style = "dashed";
-                edge_color = "gray50";
-            }
-            else if (r.type == "custom_reaction")
-            {
-                edge_style = "dotted";
-                edge_color = "gray30";
-            }
-
             if (r.type == "transition" && !r.target.empty())
             {
                 has_target = g_states.count(r.target) > 0;
@@ -721,7 +720,7 @@ static void generateDOT(const std::string& filename)
                 }
 
                 out << "    " << src << " -> " << dst << " [xlabel=\"" << shortName(r.event)
-                    << "\", color=" << edge_color << ", style=" << edge_style;
+                    << "\", color=black, style=solid";
                 // Suppress ltail when destination is inside the source cluster (graphviz
                 // warns: "head is inside tail cluster").
                 if (cluster.count(name) && !isDescendant(r.target, name))
@@ -769,17 +768,16 @@ static void generateDOT(const std::string& filename)
                     out << ", lhead=" << cluster[history_container];
                 out << "];\n";
             }
-            else if ((r.type == "custom_reaction" || r.type == "in_state_reaction" ||
-                      r.type == "deferral") &&
-                     !r.event.empty())
+            else if (r.type == "deferral" && !r.event.empty())
             {
-                // Show as a self-loop on the state
+                // Deferral: show as a self-loop on the state
                 out << "    " << src << " -> " << src << " [xlabel=\"" << shortName(r.event)
-                    << " [" << r.type << "]\", color=" << edge_color << ", style=" << edge_style;
+                    << " [deferral]\", color=gray30, style=dotted";
                 if (cluster.count(name))
                     out << ", ltail=" << cluster[name] << ", lhead=" << cluster[name];
                 out << "];\n";
             }
+            // in_state_reaction and custom_reaction are embedded in the state label, not drawn
         }
     }
 
@@ -880,14 +878,40 @@ static void generateMermaid(const std::string& filename)
                 out << "    " << src << " --> " << mermaidId(history_container) << " : "
                     << shortName(r.event) << " [H*]\n";
             }
-            else if ((r.type == "custom_reaction" || r.type == "in_state_reaction" ||
-                      r.type == "deferral") &&
-                     !r.event.empty())
+            else if (r.type == "deferral" && !r.event.empty())
             {
-                // Self-loop with reaction type annotated in the label
-                out << "    " << src << " --> " << src << " : " << shortName(r.event) << " ["
-                    << r.type << "]\n";
+                // Deferral: self-loop with annotation
+                out << "    " << src << " --> " << src << " : " << shortName(r.event)
+                    << " [deferral]\n";
             }
+            // in_state_reaction and custom_reaction are emitted as notes below
+        }
+    }
+
+    // ---- Notes for in_state_reaction / custom_reaction ----
+    // These do not change state, so they are shown as annotations on the state box.
+    out << "\n";
+    for (const auto& [name, info] : g_states)
+    {
+        if (info.is_machine)
+            continue;
+        std::string src = mermaidId(name);
+        bool has_note = false;
+        std::string note_text;
+        for (const auto& r : info.reactions)
+        {
+            if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
+                !r.event.empty())
+            {
+                note_text += "        - " + r.type + ": " + shortName(r.event) + "\n";
+                has_note = true;
+            }
+        }
+        if (has_note)
+        {
+            out << "    note right of " << src << "\n";
+            out << note_text;
+            out << "    end note\n";
         }
     }
 

@@ -14,8 +14,8 @@
 #       <STATE_DIAGRAM_OUT_DIR>/<target>_states.yml
 #       <STATE_DIAGRAM_OUT_DIR>/<target>_states.dot
 #       <STATE_DIAGRAM_OUT_DIR>/<target>_states.mmd
-#     and (if dot is available) renders the DOT to SVG,
-#     and (if mmdc is available) renders the Mermaid diagram to SVG.
+#     and (if dot is available) renders the DOT to PDF,
+#     and (if mmdc is available) renders the Mermaid diagram to PDF.
 #
 # Required variables (set before including this module):
 #   STATE_DIAGRAM_OUT_DIR  - directory to write output files into
@@ -28,14 +28,14 @@ find_program(DOT_EXECUTABLE dot)
 if(DOT_EXECUTABLE)
   message(STATUS "Found dot (graphviz): ${DOT_EXECUTABLE}")
 else()
-  message(STATUS "dot (graphviz) not found - Graphviz SVG rendering will be skipped")
+  message(STATUS "dot (graphviz) not found - Graphviz PDF rendering will be skipped")
 endif()
 
 find_program(MMDC_EXECUTABLE mmdc)
 if(MMDC_EXECUTABLE)
   message(STATUS "Found mmdc (mermaid-js CLI): ${MMDC_EXECUTABLE}")
 else()
-  message(STATUS "mmdc (mermaid-js CLI) not found - Mermaid SVG rendering will be skipped")
+  message(STATUS "mmdc (mermaid-js CLI) not found - Mermaid PDF rendering will be skipped")
   message(STATUS "  Install with: npm install -g @mermaid-js/mermaid-cli")
 endif()
 
@@ -86,7 +86,7 @@ endfunction()
 # ---------------------------------------------------------------------------
 # generate_state_diagram(target)
 #   Convenience macro: generates YAML + DOT + Mermaid and (if renderers are
-#   available) SVG outputs for both Graphviz and Mermaid.
+#   available) PDF outputs for both Graphviz and Mermaid.
 # ---------------------------------------------------------------------------
 macro(generate_state_diagram TARGET)
   jaia_generate_state_diagram(${TARGET} _yml_out _dot_out _mmd_out)
@@ -97,39 +97,39 @@ macro(generate_state_diagram TARGET)
   set(_render_deps ${TARGET}_state_diagram_files)
 
   if(DOT_EXECUTABLE)
-    set(_dot_svg_out "${STATE_DIAGRAM_OUT_DIR}/${TARGET}_states_graphviz.svg")
+    set(_dot_pdf_out "${STATE_DIAGRAM_OUT_DIR}/${TARGET}_states_graphviz.pdf")
 
     add_custom_command(
-      OUTPUT "${_dot_svg_out}"
+      OUTPUT "${_dot_pdf_out}"
       COMMAND ${DOT_EXECUTABLE}
-      ARGS -Tsvg -o "${_dot_svg_out}" "${_dot_out}"
+      ARGS -Tpdf -o "${_dot_pdf_out}" "${_dot_out}"
       DEPENDS "${_dot_out}"
-      COMMENT "Rendering ${TARGET} state diagram to SVG (Graphviz)"
+      COMMENT "Rendering ${TARGET} state diagram to PDF (Graphviz)"
       VERBATIM)
 
-    set_source_files_properties("${_dot_svg_out}" PROPERTIES GENERATED TRUE)
+    set_source_files_properties("${_dot_pdf_out}" PROPERTIES GENERATED TRUE)
 
     add_custom_target(${TARGET}_state_diagram_graphviz ALL
-      DEPENDS "${_dot_svg_out}" ${TARGET}_state_diagram_files)
+      DEPENDS "${_dot_pdf_out}" ${TARGET}_state_diagram_files)
 
     list(APPEND _render_deps ${TARGET}_state_diagram_graphviz)
   endif()
 
   if(MMDC_EXECUTABLE)
-    set(_mmd_svg_out "${STATE_DIAGRAM_OUT_DIR}/${TARGET}_states_mermaid.svg")
+    set(_mmd_pdf_out "${STATE_DIAGRAM_OUT_DIR}/${TARGET}_states_mermaid.pdf")
 
     add_custom_command(
-      OUTPUT "${_mmd_svg_out}"
+      OUTPUT "${_mmd_pdf_out}"
       COMMAND ${MMDC_EXECUTABLE}
-      ARGS -i "${_mmd_out}" -o "${_mmd_svg_out}"
+      ARGS -i "${_mmd_out}" -o "${_mmd_pdf_out}"
       DEPENDS "${_mmd_out}"
-      COMMENT "Rendering ${TARGET} state diagram to SVG (Mermaid)"
+      COMMENT "Rendering ${TARGET} state diagram to PDF (Mermaid)"
       VERBATIM)
 
-    set_source_files_properties("${_mmd_svg_out}" PROPERTIES GENERATED TRUE)
+    set_source_files_properties("${_mmd_pdf_out}" PROPERTIES GENERATED TRUE)
 
     add_custom_target(${TARGET}_state_diagram_mermaid ALL
-      DEPENDS "${_mmd_svg_out}" ${TARGET}_state_diagram_files)
+      DEPENDS "${_mmd_pdf_out}" ${TARGET}_state_diagram_files)
 
     list(APPEND _render_deps ${TARGET}_state_diagram_mermaid)
   endif()
