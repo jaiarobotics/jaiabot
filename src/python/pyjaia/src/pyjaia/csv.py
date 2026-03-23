@@ -18,6 +18,19 @@ def utime_to_string(utime: int):
 
 
 def flatten_dict(input: dict, prefix=''):
+    """Flattens a dictionary with possible nested dictionaries into one.  The nested paths use dot notation, i.e. "object1.field1" for their keys.
+    
+    We also want to keep certain keys first in the output dict (bot_id, start_time, end_time, type).  
+    
+    We're using the fact that dicts are ordered in Python 3.7+ to ensure these keys come first in the output CSV.
+
+    Args:
+        input (dict): The dictionary to flatten.
+        prefix (str, optional): The prefix to use for nested keys. Defaults to ''.
+
+    Returns:
+        dict: The flattened dictionary.
+    """
     output = {}
     first_keys = ['bot_id', 'start_time', 'end_time', 'type']
     other_keys = [key for key in input.keys() if key not in first_keys]
@@ -48,6 +61,9 @@ def task_packets_to_csv(task_packets: Iterable[TaskPacket]):
         return "No task packets."
 
     # Get all field names
+    # We will take the union of all keys across all packet dicts to ensure we have a complete set of columns for the CSV
+    # We are using a dict instead of a set to preserve order (insertion order is preserved in Python 3.7+)
+    # We want the columns to be in a consistent order, with the first keys (bot_id, start_time, end_time, type) appearing first if they exist in any packet
     union_dict = {}
     for packet_dict in packet_dicts:
         union_dict.update(packet_dict)
