@@ -1,7 +1,3 @@
-if(build_state_diagrams)
-  add_subdirectory(jaia_state_tool)
-endif()
-
 add_subdirectory(fusion)
 add_subdirectory(patterns)
 add_subdirectory(simulator)
@@ -21,3 +17,7 @@ add_subdirectory(comms_manager)
 add_subdirectory(ctd_manager)
 add_subdirectory(udp_gateway)
 add_subdirectory(ppk)
+
+if(build_state_diagrams)
+  add_subdirectory(state_tool)
+endif()

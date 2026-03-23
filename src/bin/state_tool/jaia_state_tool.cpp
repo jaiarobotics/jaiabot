@@ -89,7 +89,7 @@ struct StateInfo
     std::string parent;        ///< parent state or machine name
     std::string initial_child; ///< initial child state (composite states)
     bool is_machine{false};    ///< true for boost::statechart::state_machine root
-    bool is_choice{false};     ///< true for selection/choice pseudostates (names ending in "Selection")
+    bool is_choice{false}; ///< true for selection/choice pseudostates (names ending in "Selection")
     std::string initial_state; ///< initial state (state_machine only)
     std::vector<ReactionInfo> reactions;
 };
@@ -112,8 +112,7 @@ static std::string cleanTypeName(std::string name)
     {
         std::string p(prefix);
         size_t pos;
-        while ((pos = name.find(p)) != std::string::npos)
-            name.erase(pos, p.size());
+        while ((pos = name.find(p)) != std::string::npos) name.erase(pos, p.size());
     }
     return name;
 }
@@ -213,8 +212,8 @@ static ReactionInfo extractReaction(const TemplateSpecializationType* tst,
             if (target_tst)
             {
                 const auto* target_td = target_tst->getTemplateName().getAsTemplateDecl();
-                if (target_td && target_td->getQualifiedNameAsString() ==
-                                     "boost::statechart::deep_history")
+                if (target_td &&
+                    target_td->getQualifiedNameAsString() == "boost::statechart::deep_history")
                 {
                     is_deep_history = true;
                     info.type = "deep_history_transition";
@@ -513,7 +512,8 @@ static void generateYAML(const std::string& filename)
 
     out << "states:\n";
 
-    auto writeReactions = [&](const std::vector<ReactionInfo>& reactions) {
+    auto writeReactions = [&](const std::vector<ReactionInfo>& reactions)
+    {
         if (reactions.empty())
             return;
         out << "    reactions:\n";
@@ -573,12 +573,11 @@ static void generateDOT(const std::string& filename)
         if (!info.parent.empty())
             children[info.parent].push_back(name);
 
-    auto isComposite = [&](const std::string& name) {
-        return children.count(name) && !children.at(name).empty();
-    };
+    auto isComposite = [&](const std::string& name)
+    { return children.count(name) && !children.at(name).empty(); };
 
     // Map: state name -> DOT node/cluster anchor id
-    std::map<std::string, std::string> anchor; // id to use in edges
+    std::map<std::string, std::string> anchor;  // id to use in edges
     std::map<std::string, std::string> cluster; // cluster id for lhead/ltail
 
     // Assign ids
@@ -605,7 +604,8 @@ static void generateDOT(const std::string& filename)
 
     // ---- Recursive cluster writer ----
     std::function<void(const std::string&, int)> writeCluster;
-    writeCluster = [&](const std::string& name, int indent) {
+    writeCluster = [&](const std::string& name, int indent)
+    {
         const auto& info = g_states.at(name);
         std::string pad(indent * 4, ' ');
         std::string id = dotId(name);
@@ -633,8 +633,7 @@ static void generateDOT(const std::string& filename)
                 out << pad << "    color=steelblue;\n";
             }
             // Anchor node (invisible) for edges that reference this cluster
-            out << pad << "    " << anchor[name]
-                << " [shape=point, style=invis, width=0.01];\n";
+            out << pad << "    " << anchor[name] << " [shape=point, style=invis, width=0.01];\n";
 
             // Initial-state entry circle: declared INSIDE the cluster so graphviz
             // places the solid dot within the composite-state boundary.
@@ -652,30 +651,20 @@ static void generateDOT(const std::string& filename)
             }
 
             if (children.count(name))
-                for (const auto& child : children.at(name))
-                    writeCluster(child, indent + 1);
+                for (const auto& child : children.at(name)) writeCluster(child, indent + 1);
 
             out << pad << "}\n";
         }
         else
         {
-            if (info.is_choice)
-            {
-                // Choice/selection pseudostates: render as a diamond (UML convention)
-                out << pad << id << " [label=\"\", shape=diamond, style=filled,"
-                                    " fillcolor=black, width=0.3, height=0.3];\n";
-            }
-            else
-            {
-                // Leaf state: build label with any in_state_reaction/custom_reaction annotations
-                std::string node_label = shortName(name);
-                for (const auto& r : info.reactions)
-                    if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
-                        !r.event.empty())
-                        node_label += "\\n- " + r.type + ": " + shortName(r.event);
-                out << pad << id << " [label=\"" << node_label
-                    << "\", shape=box, style=\"rounded,filled\", fillcolor=lightyellow];\n";
-            }
+            // Leaf state: build label with any in_state_reaction/custom_reaction annotations
+            std::string node_label = shortName(name);
+            for (const auto& r : info.reactions)
+                if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
+                    !r.event.empty())
+                    node_label += "\\n- " + r.type + ": " + shortName(r.event);
+            out << pad << id << " [label=\"" << node_label
+                << "\", shape=box, style=\"rounded,filled\", fillcolor=lightyellow];\n";
         }
     };
 
@@ -687,7 +676,8 @@ static void generateDOT(const std::string& filename)
     // Helper to emit the initial-state edge.  The node itself is declared inside the
     // cluster by writeCluster() above so graphviz places the solid dot correctly.
     auto writeInitArrow = [&](const std::string& container, const std::string& init_target,
-                               const std::string& init_node_id) {
+                              const std::string& init_node_id)
+    {
         if (!g_states.count(init_target))
             return;
         std::string dst = anchor[init_target];
@@ -715,7 +705,8 @@ static void generateDOT(const std::string& filename)
     // Returns true if 'state' is a proper descendant of 'ancestor' in the hierarchy.
     // Used to suppress lhead/ltail when they would cause graphviz "head/tail inside
     // cluster" warnings.
-    auto isDescendant = [&](const std::string& state, const std::string& ancestor) -> bool {
+    auto isDescendant = [&](const std::string& state, const std::string& ancestor) -> bool
+    {
         if (!g_states.count(state))
             return false;
         std::string cur = g_states.at(state).parent;
@@ -837,19 +828,18 @@ static void generateMermaid(const std::string& filename)
         if (!info.parent.empty())
             children[info.parent].push_back(name);
 
-    auto isComposite = [&](const std::string& name) {
-        return children.count(name) && !children.at(name).empty();
-    };
+    auto isComposite = [&](const std::string& name)
+    { return children.count(name) && !children.at(name).empty(); };
 
     out << "stateDiagram-v2\n";
     out << "    direction LR\n";
 
     // ---- Recursive state hierarchy writer ----
     // Composite states: state "ShortName" as id { state "{this}" as id_this ... }
-    // Choice states:    state "ShortName" as id <<choice>>
     // Leaf states:      state "ShortName" as id
     std::function<void(const std::string&, int)> writeStateBlock;
-    writeStateBlock = [&](const std::string& name, int indent) {
+    writeStateBlock = [&](const std::string& name, int indent)
+    {
         const auto& info = g_states.at(name);
         std::string pad(indent * 4, ' ');
         std::string id = mermaidId(name);
@@ -860,8 +850,7 @@ static void generateMermaid(const std::string& filename)
             if (!info.initial_state.empty() && g_states.count(info.initial_state))
                 out << pad << "[*] --> " << mermaidId(info.initial_state) << "\n";
             if (children.count(name))
-                for (const auto& child : children.at(name))
-                    writeStateBlock(child, indent);
+                for (const auto& child : children.at(name)) writeStateBlock(child, indent);
         }
         else if (isComposite(name))
         {
@@ -871,15 +860,8 @@ static void generateMermaid(const std::string& filename)
             out << pad << "    state \"{this}\" as " << id << "_this\n";
             if (!info.initial_child.empty() && g_states.count(info.initial_child))
                 out << pad << "    [*] --> " << mermaidId(info.initial_child) << "\n";
-            for (const auto& child : children.at(name))
-                writeStateBlock(child, indent + 1);
+            for (const auto& child : children.at(name)) writeStateBlock(child, indent + 1);
             out << pad << "}\n";
-        }
-        else if (info.is_choice)
-        {
-            // Choice/selection pseudostates: labeled <<choice>> notation so the state
-            // name is visible in the rendered diagram.
-            out << pad << "state \"" << shortName(name) << "\" as " << id << " <<choice>>\n";
         }
         else
         {
@@ -900,8 +882,8 @@ static void generateMermaid(const std::string& filename)
     //   - Use composite_this as DESTINATION (head) only when transitioning from a
     //     descendant TO its containing composite ancestor (child → parent).
     //   - Sibling-to-sibling or unrelated transitions use plain IDs.
-    auto isDescendantMmd = [&](const std::string& state,
-                               const std::string& ancestor) -> bool {
+    auto isDescendantMmd = [&](const std::string& state, const std::string& ancestor) -> bool
+    {
         if (!g_states.count(state))
             return false;
         std::string cur = g_states.at(state).parent;
@@ -930,8 +912,7 @@ static void generateMermaid(const std::string& filename)
                 if (g_states.count(r.target))
                 {
                     const std::string& par = g_states.at(r.target).parent;
-                    effective_target =
-                        (!par.empty() && g_states.count(par)) ? par : r.target;
+                    effective_target = (!par.empty() && g_states.count(par)) ? par : r.target;
                 }
                 else
                 {
@@ -957,26 +938,22 @@ static void generateMermaid(const std::string& filename)
                     dst = mermaidId(r.target) + "_this";
                 else
                     dst = mermaidId(r.target);
-                out << "    " << src << " --> " << dst << " : " << shortName(r.event)
-                    << "\n";
+                out << "    " << src << " --> " << dst << " : " << shortName(r.event) << "\n";
             }
             else if (r.type == "deep_history_transition" && !r.target.empty())
             {
                 // Determine destination with same {this} rule for the history container
                 std::string dst;
-                if (isComposite(effective_target) &&
-                    isDescendantMmd(name, effective_target))
+                if (isComposite(effective_target) && isDescendantMmd(name, effective_target))
                     dst = mermaidId(effective_target) + "_this";
                 else
                     dst = mermaidId(effective_target);
-                out << "    " << src << " --> " << dst << " : " << shortName(r.event)
-                    << " [H*]\n";
+                out << "    " << src << " --> " << dst << " : " << shortName(r.event) << " [H*]\n";
             }
             else if (r.type == "deferral" && !r.event.empty())
             {
                 // Deferral: self-loop with annotation
-                std::string self = src_is_composite ? mermaidId(name) + "_this"
-                                                    : mermaidId(name);
+                std::string self = src_is_composite ? mermaidId(name) + "_this" : mermaidId(name);
                 out << "    " << self << " --> " << self << " : " << shortName(r.event)
                     << " [deferral]\n";
             }
@@ -987,50 +964,6 @@ static void generateMermaid(const std::string& filename)
 
     outs() << "Wrote Mermaid: " << filename << "\n";
 }
-
-// ============================================================
-// Post-processing: ensure all referenced child states are in g_states
-// ============================================================
-
-/// After the AST pass, some states referenced as initial_child of a composite state
-/// may not have been directly visited (e.g., if their definitions are in headers that
-/// are included in an unusual way, or if template instantiation ordering prevents the
-/// primary detection path from firing).  This function walks every known state and
-/// registers a stub StateInfo for any initial_child that is not yet in g_states.
-/// If the state WAS properly detected, its full entry (with reactions, etc.) takes
-/// priority because processState() overwrites stubs (see above).
-static void resolveChildStates()
-{
-    // Snapshot the current map so iteration is stable while we potentially insert.
-    std::vector<std::pair<std::string, StateInfo>> snapshot(g_states.begin(), g_states.end());
-
-    for (const auto& [parent_name, parent_info] : snapshot)
-    {
-        const std::string& child_name = parent_info.initial_child;
-        if (child_name.empty())
-            continue;
-
-        // If the child already has a complete entry, nothing to do.
-        if (g_states.count(child_name) && !g_states.at(child_name).parent.empty())
-            continue;
-
-        // Build a stub for the initial child so it shows up in the hierarchy.
-        StateInfo stub;
-        stub.name = child_name;
-        stub.parent = parent_name;
-        stub.is_machine = false;
-
-        // Detect choice/selection pseudostates by naming convention.
-        const std::string sn = shortName(child_name);
-        stub.is_choice =
-            (sn.size() >= 9 && sn.compare(sn.size() - 9, 9, "Selection") == 0);
-
-        // Only insert if not already present, or upgrade a parentless stub.
-        if (!g_states.count(child_name) || g_states.at(child_name).parent.empty())
-            g_states[child_name] = stub;
-    }
-}
-
 // ============================================================
 // main
 // ============================================================
@@ -1082,10 +1015,6 @@ int main(int argc, const char** argv)
 
     // Create output directory
     fs::create_directories(OutDir.getValue());
-
-    // Post-processing: register any initial_child states that the primary AST
-    // visitor may have missed (e.g., *Selection choice pseudostates).
-    resolveChildStates();
 
     // Write YAML
     generateYAML(OutDir.getValue() + "/" + TargetName.getValue() + "_states.yml");
