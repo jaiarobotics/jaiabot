@@ -10,12 +10,12 @@ A compile-time C++ tool based on the [Clang 18 LibTooling API](https://clang.llv
 2. **Extracts the state hierarchy** — each state's parent state (or state machine), initial child state for composite states.
 3. **Extracts all reactions** from `using reactions = boost::mpl::list<...>` type aliases, including:
    - `boost::statechart::transition<Event, TargetState>` — a state change triggered by an event
-   - `boost::statechart::custom_reaction<Event>` — user-defined reaction handled by `react(const Event&)` — shown in the state box, not as an edge
-   - `boost::statechart::in_state_reaction<Event, State, &State::handler>` — event handled without changing state — shown in the state box, not as an edge
+   - `boost::statechart::custom_reaction<Event>` — user-defined reaction handled by `react(const Event&)` — shown in the state box (DOT) or omitted (Mermaid)
+   - `boost::statechart::in_state_reaction<Event, State, &State::handler>` — event handled without changing state — shown in the state box (DOT) or omitted (Mermaid)
    - `boost::statechart::deferral<Event>` — event deferred until a state change occurs — shown as a self-loop edge
 4. **Writes a YAML file** (`<target>_states.yml`) with the full hierarchical state description.
 5. **Writes a Graphviz DOT file** (`<target>_states.dot`) with composite-state clusters, initial-state markers, and styled transition edges. `in_state_reaction` and `custom_reaction` are shown inline in the state label.
-6. **Writes a Mermaid statechart file** (`<target>_states.mmd`) with nested state blocks and labeled transitions. `in_state_reaction` and `custom_reaction` are shown as `note right of` annotations.
+6. **Writes a Mermaid statechart file** (`<target>_states.mmd`) with nested state blocks and labeled transitions. `in_state_reaction` and `custom_reaction` are omitted (Mermaid `stateDiagram-v2` does not support inline multi-line state labels).
 7. Optionally **renders the DOT to PDF** using `dot` (if graphviz is installed).
 8. Optionally **renders the Mermaid diagram to PDF** using `mmdc` (if `@mermaid-js/mermaid-cli` is installed).
 
@@ -95,7 +95,7 @@ The DOT output uses `compound=true` with `subgraph cluster_*` blocks to represen
 
 ### Mermaid statechart diagram
 
-The Mermaid output uses `stateDiagram-v2` syntax with nested `state "Label" as id { ... }` blocks for composite states. Transitions are written after the state hierarchy.  Deep history transitions are annotated with `[H*]` in the edge label.  `in_state_reaction` and `custom_reaction` are rendered as `note right of` annotations attached to the relevant state.  The `.mmd` file can be rendered to PDF using `mmdc` or previewed directly in GitHub, GitLab, or any Mermaid-compatible renderer.
+The Mermaid output uses `stateDiagram-v2` syntax with nested `state "Label" as id { ... }` blocks for composite states. Transitions are written after the state hierarchy.  Deep history transitions are annotated with `[H*]` in the edge label.  `in_state_reaction` and `custom_reaction` are omitted from Mermaid output (Mermaid `stateDiagram-v2` does not support inline multi-line state labels).  The `.mmd` file can be rendered to PDF using `mmdc` or previewed directly in GitHub, GitLab, or any Mermaid-compatible renderer.
 
 ## Adding state diagram generation to a new target
 
@@ -142,13 +142,13 @@ Composite states (states with children) are rendered as `subgraph cluster_*` blo
 
 ### Mermaid generation
 
-`generateMermaid()` follows the same recursive structure as `generateDOT()`: it first writes the state hierarchy with nested `state "Label" as id { ... }` blocks, then writes all transitions outside the hierarchy, and finally emits `note right of` blocks for any `in_state_reaction`/`custom_reaction` reactions.  Both functions share the same `g_states` global, so the two diagram formats are always in sync.
+`generateMermaid()` follows the same recursive structure as `generateDOT()`: it first writes the state hierarchy with nested `state "Label" as id { ... }` blocks, then writes all transitions outside the hierarchy.  `in_state_reaction` and `custom_reaction` are omitted from Mermaid output since Mermaid `stateDiagram-v2` does not support inline multi-line state labels.  Both functions share the same `g_states` global, so the two diagram formats are always in sync.
 
 ## Modifying the tool
 
 - **Add support for a new reaction type**: add a new `else if` branch in `extractReaction()` matching the new `boost::statechart::*` template name.
 - **Change the DOT appearance**: edit `generateDOT()`. The edge-style lookup is in the `if (r.type == ...)` block near the `// ---- Transitions ----` comment. State label construction is in the `writeCluster` lambda.
-- **Change the Mermaid appearance**: edit `generateMermaid()`. Transition labels are in the `// ---- Write all transitions ----` block; annotation format is in the `// ---- Notes for in_state_reaction / custom_reaction ----` block.
+- **Change the Mermaid appearance**: edit `generateMermaid()`. Transition labels are in the `// ---- Write all transitions ----` block.
 - **Change the YAML schema**: edit `generateYAML()`.
 - **Remove Graphviz output**: delete the `generateDOT()` call in `main()` and the `if(DOT_EXECUTABLE)` block in `cmake/JaiaStateTool.cmake`.
 - **Remove Mermaid output**: delete the `generateMermaid()` call in `main()` and the `if(MMDC_EXECUTABLE)` block in `cmake/JaiaStateTool.cmake`.

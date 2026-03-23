@@ -884,34 +884,8 @@ static void generateMermaid(const std::string& filename)
                 out << "    " << src << " --> " << src << " : " << shortName(r.event)
                     << " [deferral]\n";
             }
-            // in_state_reaction and custom_reaction are emitted as notes below
-        }
-    }
-
-    // ---- Notes for in_state_reaction / custom_reaction ----
-    // These do not change state, so they are shown as annotations on the state box.
-    out << "\n";
-    for (const auto& [name, info] : g_states)
-    {
-        if (info.is_machine)
-            continue;
-        std::string src = mermaidId(name);
-        bool has_note = false;
-        std::string note_text;
-        for (const auto& r : info.reactions)
-        {
-            if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
-                !r.event.empty())
-            {
-                note_text += "        - " + r.type + ": " + shortName(r.event) + "\n";
-                has_note = true;
-            }
-        }
-        if (has_note)
-        {
-            out << "    note right of " << src << "\n";
-            out << note_text;
-            out << "    end note\n";
+            // in_state_reaction and custom_reaction are omitted from Mermaid output
+            // (Mermaid stateDiagram-v2 does not support inline multi-line state labels)
         }
     }
 
