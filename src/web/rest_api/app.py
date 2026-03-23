@@ -130,10 +130,6 @@ def jaia_api_short(version):
         else:
             # If the response is not an API Response, then return as-is
             # For example, this allows the KMZ endpoint to return raw KMZ bytes instead of JSON
-            # A tuple[bytes, dict] can also be returned for full control over the HTTP response
-            # (e.g., to set content type to application/vnd.google-earth.kmz for KMZ files)
-            # Another option is to use flask.Response directly, however this adds a dependency to
-            # Flask in the API processing code which I wanted to avoid for separation of concerns
             return response
         
     except APIException as e:  
@@ -203,10 +199,6 @@ def jaia_api_long(version, action, target_str):
         else:
             # If the response is not an API Response, then return as-is
             # For example, this allows the KMZ endpoint to return raw KMZ bytes instead of JSON
-            # A tuple[bytes, dict] can also be returned for full control over the HTTP response
-            # (e.g., to set content type to application/vnd.google-earth.kmz for KMZ files)
-            # Another option is to use flask.Response directly, however this adds a dependency to
-            # Flask in the API processing code which I wanted to avoid for separation of concerns
             return response
         
     except APIException as e:  
