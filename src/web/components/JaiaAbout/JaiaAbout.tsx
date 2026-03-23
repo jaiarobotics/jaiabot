@@ -69,10 +69,12 @@ export default function JaiaAbout() {
                 <Icon path={mdiClose} size={1} />
             </button>
             <img src={JaiaLogo}></img>
-            <div className="notification-row">
-                <NotificationDot className="jaia-about-panel" />
-                {getNotificationDotHelperElement()}
-                <NotificationDot className="jaia-about-panel" />
+            <div className="jaia-about-row">
+                <div className="label">Notifications:</div>
+                <div className="input notification">
+                    <NotificationDot className="jaia-about-panel" />
+                    {getNotificationDotHelperElement()}
+                </div>
             </div>
             <div className="jaia-about-row">
                 <div className="label">Website:</div>
