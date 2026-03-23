@@ -7,7 +7,7 @@ import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-pla
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange, map } from "../../openlayers/maps/map";
-import { MISSION_ENDPOINTS, UNASSIGNED_ID } from "../../utils/constants";
+import { DEFAULT_MISSION_SET_NAME, MISSION_ENDPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { MapModes } from "../../types/openlayers-types";
 import { TaskType } from "../../types/protobuf-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
@@ -81,6 +81,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             }
 
             missionSet.setMissions(cloneDeep(gridPlan.getMissions()));
+            missionSet.setName(DEFAULT_MISSION_SET_NAME);
             missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
             missionSet.setNextMissionID(gridPlan.getMissions().size + 1);
             missionSet.setMissionSpeeds(missionSet.getMissionSpeeds());

@@ -30,7 +30,7 @@ export function StartMissionDialog(props: DialogProps) {
      * @returns {string} General class name jaia-dialog plus confirm/alert type
      */
     const getClassName = () => {
-        return `jaia-dialog ${props.disabledCode !== DisabledCodes.NONE ? "alert" : ""}`;
+        return `jaia-dialog ${props.disabledCode === DisabledCodes.NONE ? "" : "alert"}`;
     };
 
     if (!props.isVisible) {
@@ -43,7 +43,12 @@ export function StartMissionDialog(props: DialogProps) {
             <div className={getClassName()}>
                 <Title disabledCode={props.disabledCode} />
                 <p>{messages.get(props.disabledCode)}</p>
-                <ButtonRow disabledCode={props.disabledCode} onClose={props.onClose} />
+                <ButtonRow
+                    disabledCode={props.disabledCode}
+                    onClose={(dialogAction: DialogActions) => {
+                        props.onClose(dialogAction);
+                    }}
+                />
             </div>
         </div>
     );
