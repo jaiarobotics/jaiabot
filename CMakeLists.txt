@@ -85,7 +85,7 @@ if(export_goby_interfaces)
 endif()
 
 # settings for jaia_state_tool (boost::statechart state diagram generation)
-option(build_state_diagrams "Build Graphviz state diagrams from boost::statechart code (requires Clang 18 dev libraries and graphviz dot)" OFF)
+option(build_state_diagrams "Build Graphviz and Mermaid state diagrams from boost::statechart code (requires Clang 18 dev libraries; optionally graphviz dot and/or mmdc for SVG rendering)" OFF)
 
 if(build_state_diagrams)
   include(JaiaStateTool)

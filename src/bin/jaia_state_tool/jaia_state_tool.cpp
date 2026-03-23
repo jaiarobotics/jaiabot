@@ -155,6 +155,23 @@ static std::string dotId(const std::string& name)
     return id;
 }
 
+/// Make a valid Mermaid state identifier from a qualified name.
+/// Mermaid identifiers must be alphanumeric + underscore only.
+static std::string mermaidId(const std::string& name)
+{
+    std::string id = name;
+    for (char& c : id)
+        if (!std::isalnum(static_cast<unsigned char>(c)))
+            c = '_';
+    // Remove leading/trailing underscores and collapse runs
+    while (id.size() >= 2 && id.find("__") != std::string::npos)
+    {
+        size_t pos = id.find("__");
+        id.replace(pos, 2, "_");
+    }
+    return id;
+}
+
 // ============================================================
 // Reaction extraction helpers
 // ============================================================
@@ -771,6 +788,113 @@ static void generateDOT(const std::string& filename)
 }
 
 // ============================================================
+// Mermaid statechart output
+// ============================================================
+
+static void generateMermaid(const std::string& filename)
+{
+    std::ofstream out(filename);
+    if (!out)
+    {
+        errs() << "Error: cannot open " << filename << " for writing\n";
+        return;
+    }
+
+    // Build parent -> children map
+    std::map<std::string, std::vector<std::string>> children;
+    for (const auto& [name, info] : g_states)
+        if (!info.parent.empty())
+            children[info.parent].push_back(name);
+
+    auto isComposite = [&](const std::string& name) {
+        return children.count(name) && !children.at(name).empty();
+    };
+
+    out << "stateDiagram-v2\n";
+
+    // ---- Recursive state hierarchy writer ----
+    // Composite states: state "ShortName" as id { ... }
+    // Leaf states:      state "ShortName" as id
+    std::function<void(const std::string&, int)> writeStateBlock;
+    writeStateBlock = [&](const std::string& name, int indent) {
+        const auto& info = g_states.at(name);
+        std::string pad(indent * 4, ' ');
+        std::string id = mermaidId(name);
+
+        if (info.is_machine)
+        {
+            // State machine root: emit initial arrow then recurse into direct children
+            if (!info.initial_state.empty() && g_states.count(info.initial_state))
+                out << pad << "[*] --> " << mermaidId(info.initial_state) << "\n";
+            if (children.count(name))
+                for (const auto& child : children.at(name))
+                    writeStateBlock(child, indent);
+        }
+        else if (isComposite(name))
+        {
+            out << pad << "state \"" << shortName(name) << "\" as " << id << " {\n";
+            if (!info.initial_child.empty() && g_states.count(info.initial_child))
+                out << pad << "    [*] --> " << mermaidId(info.initial_child) << "\n";
+            for (const auto& child : children.at(name))
+                writeStateBlock(child, indent + 1);
+            out << pad << "}\n";
+        }
+        else
+        {
+            out << pad << "state \"" << shortName(name) << "\" as " << id << "\n";
+        }
+    };
+
+    if (!g_machine_name.empty() && g_states.count(g_machine_name))
+        writeStateBlock(g_machine_name, 1);
+
+    // ---- Write all transitions ----
+    out << "\n";
+    for (const auto& [name, info] : g_states)
+    {
+        if (info.is_machine)
+            continue;
+        std::string src = mermaidId(name);
+
+        for (const auto& r : info.reactions)
+        {
+            if (r.type == "transition" && !r.target.empty())
+            {
+                std::string dst = mermaidId(r.target);
+                out << "    " << src << " --> " << dst << " : " << shortName(r.event) << "\n";
+            }
+            else if (r.type == "deep_history_transition" && !r.target.empty())
+            {
+                // Find the parent composite state that holds the history
+                std::string history_container;
+                if (g_states.count(r.target))
+                {
+                    const std::string& parent = g_states.at(r.target).parent;
+                    history_container = (!parent.empty() && g_states.count(parent)) ? parent
+                                                                                    : r.target;
+                }
+                else
+                {
+                    history_container = r.target;
+                }
+                out << "    " << src << " --> " << mermaidId(history_container) << " : "
+                    << shortName(r.event) << " [H*]\n";
+            }
+            else if ((r.type == "custom_reaction" || r.type == "in_state_reaction" ||
+                      r.type == "deferral") &&
+                     !r.event.empty())
+            {
+                // Self-loop with reaction type annotated in the label
+                out << "    " << src << " --> " << src << " : " << shortName(r.event) << " ["
+                    << r.type << "]\n";
+            }
+        }
+    }
+
+    outs() << "Wrote Mermaid: " << filename << "\n";
+}
+
+// ============================================================
 // main
 // ============================================================
 
@@ -824,8 +948,10 @@ int main(int argc, const char** argv)
 
     // Write YAML
     generateYAML(OutDir.getValue() + "/" + TargetName.getValue() + "_states.yml");
-    // Write DOT
+    // Write DOT (Graphviz)
     generateDOT(OutDir.getValue() + "/" + TargetName.getValue() + "_states.dot");
+    // Write Mermaid statechart
+    generateMermaid(OutDir.getValue() + "/" + TargetName.getValue() + "_states.mmd");
 
     return 0;
 }

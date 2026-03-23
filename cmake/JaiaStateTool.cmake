@@ -1,7 +1,7 @@
 # JaiaStateTool.cmake
 #
 # CMake integration for jaia_state_tool: a Clang 18 AST-based tool that
-# analyzes boost::statechart state machines and generates YAML/DOT diagrams.
+# analyzes boost::statechart state machines and generates YAML/DOT/Mermaid diagrams.
 #
 # Usage in a target's CMakeLists.txt:
 #   if(build_state_diagrams)
@@ -13,7 +13,9 @@
 #     Runs jaia_state_tool on the sources of <target> to produce:
 #       <STATE_DIAGRAM_OUT_DIR>/<target>_states.yml
 #       <STATE_DIAGRAM_OUT_DIR>/<target>_states.dot
-#     and (if dot is available) renders the DOT to SVG.
+#       <STATE_DIAGRAM_OUT_DIR>/<target>_states.mmd
+#     and (if dot is available) renders the DOT to SVG,
+#     and (if mmdc is available) renders the Mermaid diagram to SVG.
 #
 # Required variables (set before including this module):
 #   STATE_DIAGRAM_OUT_DIR  - directory to write output files into
@@ -26,14 +28,22 @@ find_program(DOT_EXECUTABLE dot)
 if(DOT_EXECUTABLE)
   message(STATUS "Found dot (graphviz): ${DOT_EXECUTABLE}")
 else()
-  message(STATUS "dot (graphviz) not found - SVG rendering will be skipped")
+  message(STATUS "dot (graphviz) not found - Graphviz SVG rendering will be skipped")
+endif()
+
+find_program(MMDC_EXECUTABLE mmdc)
+if(MMDC_EXECUTABLE)
+  message(STATUS "Found mmdc (mermaid-js CLI): ${MMDC_EXECUTABLE}")
+else()
+  message(STATUS "mmdc (mermaid-js CLI) not found - Mermaid SVG rendering will be skipped")
+  message(STATUS "  Install with: npm install -g @mermaid-js/mermaid-cli")
 endif()
 
 # ---------------------------------------------------------------------------
-# JAIA_GENERATE_STATE_DIAGRAM(TARGET YML_OUT DOT_OUT)
+# JAIA_GENERATE_STATE_DIAGRAM(TARGET YML_OUT DOT_OUT MMD_OUT)
 #   Internal function: adds custom_command to run jaia_state_tool on TARGET.
 # ---------------------------------------------------------------------------
-function(JAIA_GENERATE_STATE_DIAGRAM TARGET YML_OUT DOT_OUT)
+function(JAIA_GENERATE_STATE_DIAGRAM TARGET YML_OUT DOT_OUT MMD_OUT)
   get_target_property(TARGET_SOURCES ${TARGET} SOURCES)
 
   # Build absolute source list; skip protobuf-generated headers
@@ -50,9 +60,10 @@ function(JAIA_GENERATE_STATE_DIAGRAM TARGET YML_OUT DOT_OUT)
 
   set(YML_FILE "${STATE_DIAGRAM_OUT_DIR}/${TARGET}_states.yml")
   set(DOT_FILE "${STATE_DIAGRAM_OUT_DIR}/${TARGET}_states.dot")
+  set(MMD_FILE "${STATE_DIAGRAM_OUT_DIR}/${TARGET}_states.mmd")
 
   add_custom_command(
-    OUTPUT "${YML_FILE}" "${DOT_FILE}"
+    OUTPUT "${YML_FILE}" "${DOT_FILE}" "${MMD_FILE}"
     COMMAND $<TARGET_FILE:jaia_state_tool>
     ARGS -gen
          -target ${TARGET}
@@ -64,39 +75,65 @@ function(JAIA_GENERATE_STATE_DIAGRAM TARGET YML_OUT DOT_OUT)
     DEPENDS ${ABS_SOURCES} ${TARGET} jaia_state_tool
     VERBATIM)
 
-  set_source_files_properties("${YML_FILE}" "${DOT_FILE}" PROPERTIES GENERATED TRUE)
+  set_source_files_properties("${YML_FILE}" "${DOT_FILE}" "${MMD_FILE}"
+    PROPERTIES GENERATED TRUE)
 
   set(${YML_OUT} "${YML_FILE}" PARENT_SCOPE)
   set(${DOT_OUT} "${DOT_FILE}" PARENT_SCOPE)
+  set(${MMD_OUT} "${MMD_FILE}" PARENT_SCOPE)
 endfunction()
 
 # ---------------------------------------------------------------------------
 # generate_state_diagram(target)
-#   Convenience macro: generates YAML + DOT and (if dot is available) SVG.
+#   Convenience macro: generates YAML + DOT + Mermaid and (if renderers are
+#   available) SVG outputs for both Graphviz and Mermaid.
 # ---------------------------------------------------------------------------
 macro(generate_state_diagram TARGET)
-  jaia_generate_state_diagram(${TARGET} _yml_out _dot_out)
+  jaia_generate_state_diagram(${TARGET} _yml_out _dot_out _mmd_out)
 
   add_custom_target(${TARGET}_state_diagram_files ALL
-    DEPENDS "${_yml_out}" "${_dot_out}")
+    DEPENDS "${_yml_out}" "${_dot_out}" "${_mmd_out}")
+
+  set(_render_deps ${TARGET}_state_diagram_files)
 
   if(DOT_EXECUTABLE)
-    set(_svg_out "${STATE_DIAGRAM_OUT_DIR}/${TARGET}_states.svg")
+    set(_dot_svg_out "${STATE_DIAGRAM_OUT_DIR}/${TARGET}_states_graphviz.svg")
 
     add_custom_command(
-      OUTPUT "${_svg_out}"
+      OUTPUT "${_dot_svg_out}"
       COMMAND ${DOT_EXECUTABLE}
-      ARGS -Tsvg -o "${_svg_out}" "${_dot_out}"
+      ARGS -Tsvg -o "${_dot_svg_out}" "${_dot_out}"
       DEPENDS "${_dot_out}"
-      COMMENT "Rendering ${TARGET} state diagram to SVG"
+      COMMENT "Rendering ${TARGET} state diagram to SVG (Graphviz)"
       VERBATIM)
 
-    set_source_files_properties("${_svg_out}" PROPERTIES GENERATED TRUE)
+    set_source_files_properties("${_dot_svg_out}" PROPERTIES GENERATED TRUE)
 
-    add_custom_target(${TARGET}_state_diagram ALL
-      DEPENDS "${_svg_out}" ${TARGET}_state_diagram_files)
-  else()
-    add_custom_target(${TARGET}_state_diagram ALL
-      DEPENDS ${TARGET}_state_diagram_files)
+    add_custom_target(${TARGET}_state_diagram_graphviz ALL
+      DEPENDS "${_dot_svg_out}" ${TARGET}_state_diagram_files)
+
+    list(APPEND _render_deps ${TARGET}_state_diagram_graphviz)
   endif()
+
+  if(MMDC_EXECUTABLE)
+    set(_mmd_svg_out "${STATE_DIAGRAM_OUT_DIR}/${TARGET}_states_mermaid.svg")
+
+    add_custom_command(
+      OUTPUT "${_mmd_svg_out}"
+      COMMAND ${MMDC_EXECUTABLE}
+      ARGS -i "${_mmd_out}" -o "${_mmd_svg_out}"
+      DEPENDS "${_mmd_out}"
+      COMMENT "Rendering ${TARGET} state diagram to SVG (Mermaid)"
+      VERBATIM)
+
+    set_source_files_properties("${_mmd_svg_out}" PROPERTIES GENERATED TRUE)
+
+    add_custom_target(${TARGET}_state_diagram_mermaid ALL
+      DEPENDS "${_mmd_svg_out}" ${TARGET}_state_diagram_files)
+
+    list(APPEND _render_deps ${TARGET}_state_diagram_mermaid)
+  endif()
+
+  add_custom_target(${TARGET}_state_diagram ALL
+    DEPENDS ${_render_deps})
 endmacro()
