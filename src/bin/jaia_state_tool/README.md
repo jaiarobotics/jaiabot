@@ -7,7 +7,8 @@ A compile-time C++ tool based on the [Clang 18 LibTooling API](https://clang.llv
 `jaia_state_tool` parses the C++ AST (Abstract Syntax Tree) of a target application's source files and:
 
 1. **Finds all `boost::statechart::state` and `boost::statechart::state_machine` class template specializations.**
-2. **Extracts the state hierarchy** — each state's parent state (or state machine), initial child state for composite states.
+2. **Extracts the state hierarchy** — each state's parent state (or state machine), initial child state (`initial_state`) for composite states.
+3. **Detects selection/choice pseudostates** — any state whose unqualified name ends with `"Selection"` (e.g. `MovementSelection`, `TaskSelection`) is classified as `type: choice` in the YAML. DOT renders them as filled black diamonds; Mermaid uses `<<choice>>` notation.
 3. **Extracts all reactions** from `using reactions = boost::mpl::list<...>` type aliases, including:
    - `boost::statechart::transition<Event, TargetState>` — a state change triggered by an event
    - `boost::statechart::custom_reaction<Event>` — user-defined reaction handled by `react(const Event&)` — shown in the state box (DOT) or omitted (Mermaid)
@@ -73,12 +74,19 @@ states:
   - name: jaiabot::statechart::PreDeployment
     type: state
     parent: jaiabot::statechart::MissionManagerStateMachine
-    initial_child: jaiabot::statechart::predeployment::StartingUp
+    initial_state: jaiabot::statechart::predeployment::StartingUp
     reactions:
       - type: transition
         event: jaiabot::statechart::EvShutdown
         target: jaiabot::statechart::postdeployment::ShuttingDown
+  - name: jaiabot::statechart::inmission::underway::movement::MovementSelection
+    type: choice
+    parent: jaiabot::statechart::inmission::underway::Movement
 ```
+
+Fields:
+- `type`: `machine` | `state` | `choice` — `choice` is used for UML choice pseudostates detected by the `*Selection` naming convention
+- `initial_state`: the initial child state for any composite state (both machine and regular composite states use this field)
 
 ### DOT / PDF diagram (Graphviz)
 
@@ -87,15 +95,17 @@ The DOT output uses `compound=true` with `subgraph cluster_*` blocks to represen
 | Style | Reaction type |
 |-------|---------------|
 | Solid arrow | `transition` |
+| Dashed arrow with `[H*]` label | `deep_history_transition` |
 | Dotted self-loop | `deferral` |
 | Bold arrow | Initial-state marker |
+| Filled black diamond | Choice/selection pseudostate (`*Selection` states) |
 | State label text | `in_state_reaction` and `custom_reaction` (embedded in the state box, not drawn as edges) |
 
 `in_state_reaction` and `custom_reaction` reactions are shown inline in the state's label in the form `- in_state_reaction: EventName`, since they do not trigger a state change.
 
 ### Mermaid statechart diagram
 
-The Mermaid output uses `stateDiagram-v2` syntax with nested `state "Label" as id { ... }` blocks for composite states. Transitions are written after the state hierarchy.  Deep history transitions are annotated with `[H*]` in the edge label.  `in_state_reaction` and `custom_reaction` are omitted from Mermaid output (Mermaid `stateDiagram-v2` does not support inline multi-line state labels).  The `.mmd` file can be rendered to PDF using `mmdc` or previewed directly in GitHub, GitLab, or any Mermaid-compatible renderer.
+The Mermaid output uses `stateDiagram-v2` syntax with nested `state "Label" as id { ... }` blocks for composite states. Each composite state also gets a `state "{this}" as id_this` pseudo-child — outgoing transitions from the composite state are drawn from `{this}` rather than directly from the composite state border, keeping edge routing cleaner. Transitions are written after the state hierarchy. Deep history transitions are annotated with `[H*]` in the edge label. Choice/selection pseudostates use `state id <<choice>>` notation. `in_state_reaction` and `custom_reaction` are omitted (Mermaid `stateDiagram-v2` does not support inline multi-line state labels). The `.mmd` file can be rendered to PDF using `mmdc` or previewed directly in GitHub, GitLab, or any Mermaid-compatible renderer.
 
 ## Adding state diagram generation to a new target
 
@@ -129,7 +139,7 @@ main()
 Key data structures:
 
 - `ReactionInfo` — holds `type` ("transition" | "custom_reaction" | ...), `event` name, `target` state name
-- `StateInfo` — holds `name`, `parent`, `initial_child`, `is_machine`, `reactions`
+- `StateInfo` — holds `name`, `parent`, `initial_child`, `is_machine`, `is_choice`, `reactions`
 - `g_states` — global `map<string, StateInfo>` populated by the visitor (protected by a mutex for future parallel use)
 
 ### Reaction extraction
@@ -142,7 +152,7 @@ Composite states (states with children) are rendered as `subgraph cluster_*` blo
 
 ### Mermaid generation
 
-`generateMermaid()` follows the same recursive structure as `generateDOT()`: it first writes the state hierarchy with nested `state "Label" as id { ... }` blocks, then writes all transitions outside the hierarchy.  `in_state_reaction` and `custom_reaction` are omitted from Mermaid output since Mermaid `stateDiagram-v2` does not support inline multi-line state labels.  Both functions share the same `g_states` global, so the two diagram formats are always in sync.
+`generateMermaid()` follows the same recursive structure as `generateDOT()`: it first writes the state hierarchy with nested `state "Label" as id { ... }` blocks, then writes all transitions outside the hierarchy. Each composite state gets a `{this}` pseudo-child inside the block; the transitions section uses `id_this` as the source node for any reactions declared on the composite state itself.  `in_state_reaction` and `custom_reaction` are omitted from Mermaid output since Mermaid `stateDiagram-v2` does not support inline multi-line state labels.  Both functions share the same `g_states` global, so the two diagram formats are always in sync.
 
 ## Modifying the tool
 

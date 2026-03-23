@@ -89,6 +89,7 @@ struct StateInfo
     std::string parent;        ///< parent state or machine name
     std::string initial_child; ///< initial child state (composite states)
     bool is_machine{false};    ///< true for boost::statechart::state_machine root
+    bool is_choice{false};     ///< true for selection/choice pseudostates (names ending in "Selection")
     std::string initial_state; ///< initial state (state_machine only)
     std::vector<ReactionInfo> reactions;
 };
@@ -370,14 +371,23 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
         if (args.size() >= 3 && args[2].getKind() == TemplateArgument::Type)
         {
             const std::string child = getTypeName(args[2].getAsType(), policy_);
-            // Filter out mpl_ placeholders and history-mode types
+            // Filter out boost::mpl placeholders and boost::statechart history-mode types
+            // (e.g. boost::statechart::has_deep_history).  Do NOT filter out application
+            // state names that happen to live in a "statechart" namespace (e.g.
+            // jaiabot::statechart::*) — that was the original bug.
             if (child.find("mpl_::") == std::string::npos &&
                 child.find("boost::mpl::") == std::string::npos &&
-                child.find("statechart::") == std::string::npos)
+                child.find("boost::statechart::") == std::string::npos)
             {
                 info.initial_child = child;
             }
         }
+
+        // Detect selection/choice pseudostates by naming convention: any state whose
+        // unqualified name ends with "Selection" is treated as a UML choice pseudostate.
+        const std::string sn = shortName(info.name);
+        if (sn.size() >= 9 && sn.compare(sn.size() - 9, 9, "Selection") == 0)
+            info.is_choice = true;
 
         extractReactionsFromDecl(decl, info.reactions);
 
@@ -519,11 +529,11 @@ static void generateYAML(const std::string& filename)
         if (info.is_machine)
             continue;
         out << "  - name: " << info.name << "\n";
-        out << "    type: state\n";
+        out << "    type: " << (info.is_choice ? "choice" : "state") << "\n";
         if (!info.parent.empty())
             out << "    parent: " << info.parent << "\n";
         if (!info.initial_child.empty())
-            out << "    initial_child: " << info.initial_child << "\n";
+            out << "    initial_state: " << info.initial_child << "\n";
         writeReactions(info.reactions);
     }
 
@@ -635,14 +645,23 @@ static void generateDOT(const std::string& filename)
         }
         else
         {
-            // Leaf state: build label with any in_state_reaction/custom_reaction annotations
-            std::string node_label = shortName(name);
-            for (const auto& r : info.reactions)
-                if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
-                    !r.event.empty())
-                    node_label += "\\n- " + r.type + ": " + shortName(r.event);
-            out << pad << id << " [label=\"" << node_label
-                << "\", shape=box, style=\"rounded,filled\", fillcolor=lightyellow];\n";
+            if (info.is_choice)
+            {
+                // Choice/selection pseudostates: render as a diamond (UML convention)
+                out << pad << id << " [label=\"\", shape=diamond, style=filled,"
+                                    " fillcolor=black, width=0.3, height=0.3];\n";
+            }
+            else
+            {
+                // Leaf state: build label with any in_state_reaction/custom_reaction annotations
+                std::string node_label = shortName(name);
+                for (const auto& r : info.reactions)
+                    if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
+                        !r.event.empty())
+                        node_label += "\\n- " + r.type + ": " + shortName(r.event);
+                out << pad << id << " [label=\"" << node_label
+                    << "\", shape=box, style=\"rounded,filled\", fillcolor=lightyellow];\n";
+            }
         }
     };
 
@@ -811,7 +830,8 @@ static void generateMermaid(const std::string& filename)
     out << "stateDiagram-v2\n";
 
     // ---- Recursive state hierarchy writer ----
-    // Composite states: state "ShortName" as id { ... }
+    // Composite states: state "ShortName" as id { state "{this}" as id_this ... }
+    // Choice states:    state id <<choice>>
     // Leaf states:      state "ShortName" as id
     std::function<void(const std::string&, int)> writeStateBlock;
     writeStateBlock = [&](const std::string& name, int indent) {
@@ -831,11 +851,19 @@ static void generateMermaid(const std::string& filename)
         else if (isComposite(name))
         {
             out << pad << "state \"" << shortName(name) << "\" as " << id << " {\n";
+            // {this} pseudo-child: used as the source of outgoing transitions from this
+            // composite state so that arrows are drawn from inside the box (visually cleaner)
+            out << pad << "    state \"{this}\" as " << id << "_this\n";
             if (!info.initial_child.empty() && g_states.count(info.initial_child))
                 out << pad << "    [*] --> " << mermaidId(info.initial_child) << "\n";
             for (const auto& child : children.at(name))
                 writeStateBlock(child, indent + 1);
             out << pad << "}\n";
+        }
+        else if (info.is_choice)
+        {
+            // Choice/selection pseudostates use Mermaid's <<choice>> notation
+            out << pad << "state " << id << " <<choice>>\n";
         }
         else
         {
@@ -852,7 +880,10 @@ static void generateMermaid(const std::string& filename)
     {
         if (info.is_machine)
             continue;
-        std::string src = mermaidId(name);
+        // For composite states, transitions originate from the {this} pseudo-child so that
+        // arrows are drawn from inside the composite-state box (visually cleaner).
+        bool is_composite = children.count(name) && !children.at(name).empty();
+        std::string src = is_composite ? mermaidId(name) + "_this" : mermaidId(name);
 
         for (const auto& r : info.reactions)
         {
