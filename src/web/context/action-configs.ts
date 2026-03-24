@@ -12,6 +12,7 @@ import {
     handleChangeMissionSpeeds,
     handleLoadMissionSet,
     handleChangeMissionRepeats,
+    handleChangeMissionSetName,
 } from "./handlers/mission-handlers";
 import {
     handleAddWaypoint,
@@ -77,6 +78,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.AUTO_ASSIGN_MISSIONS, { handler: handleAutoAssignMissions, tracked: true }],
     [JaiaActions.CHANGE_MISSION_SPEEDS, { handler: handleChangeMissionSpeeds, tracked: true }],
     [JaiaActions.CHANGE_MISSION_REPEATS, { handler: handleChangeMissionRepeats, tracked: true }],
+    [JaiaActions.CHANGE_MISSION_SET_NAME, { handler: handleChangeMissionSetName, tracked: true }],
     [JaiaActions.LOAD_MISSION_SET, { handler: handleLoadMissionSet, tracked: true }],
 
     // Waypoint & Task Actions

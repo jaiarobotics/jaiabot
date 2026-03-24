@@ -96,6 +96,7 @@ export default function ButtonList(props: Props) {
                 <StartAllMissionsButton
                     bots={jaiaContext.bots.getBots()}
                     missions={jaiaContext.missionSet.getMissions()}
+                    missionSetName={jaiaContext.missionSet.getName()}
                 />
                 <DataOffloadAllButton bots={jaiaContext.bots.getBots()} />
                 <Button

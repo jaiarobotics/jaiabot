@@ -23,6 +23,8 @@ interface ButtonRowProps {
  * It will describe the reason(s) the other Bots cannot accept the command.
  */
 export function StartAllMissionsDialog(props: DialogProps) {
+    const numReadyBots = props.botReadyStates.get(DisabledCodes.NONE).length;
+
     /**
      * Applies the base class "jaia-dialog" and appends "alert"
      * if at least one Bot cannot receive the command to adjust spacing
@@ -30,12 +32,12 @@ export function StartAllMissionsDialog(props: DialogProps) {
      * @returns {string} The class name for the dialog div
      */
     const getClassName = () => {
-        return `jaia-dialog ${props.botReadyStates.get(DisabledCodes.NONE).length !== props.numBots ? "alert" : ""}`;
+        return `jaia-dialog ${numReadyBots !== props.numBots ? "alert" : ""}`;
     };
 
     /**
-     * Places each sub message to be displayed in the dialox box in an array.
-     * The messages depend on the state of the Bot and the requirments of the command.
+     * Places each sub message to be displayed in the dialog box in an array.
+     * The messages depend on the state of the Bot and the requirements of the command.
      *
      * @returns {string[]} The messages to be displayed in the dialog box
      */
@@ -98,7 +100,7 @@ export function StartAllMissionsDialog(props: DialogProps) {
                 subMessage += `because ${botIDs.length > 1 ? "they are in the download queue." : "it is in the download queue."}`;
                 break;
             case DisabledCodes.LOW_BATTERY:
-                subMessage += `because ${botIDs.length > 1 ? "they have a crtically low battery." : "it has a critically low battery."}`;
+                subMessage += `because ${botIDs.length > 1 ? "they have a critically low battery." : "it has a critically low battery."}`;
                 break;
         }
 
@@ -128,7 +130,10 @@ export function StartAllMissionsDialog(props: DialogProps) {
             <div className={getClassName()}>
                 <Title botReadyStates={props.botReadyStates} />
                 {formatMessage()}
-                <ButtonRow botReadyStates={props.botReadyStates} onClose={props.onClose} />
+                <ButtonRow
+                    botReadyStates={props.botReadyStates}
+                    onClose={(dialogAction) => props.onClose(dialogAction)}
+                />
             </div>
         </div>
     );
