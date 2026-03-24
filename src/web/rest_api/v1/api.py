@@ -352,8 +352,17 @@ def surob_results_request(jaia_request):
     shoreline_point = (jaia_request.surob_results_request.shoreline_point.lat,jaia_request.surob_results_request.shoreline_point.lon)
     offshore_point = (jaia_request.surob_results_request.offshore_point.lat,jaia_request.surob_results_request.offshore_point.lon)
 
-    start_time = jaia_request.surob_results_request.start_time
-    end_time = jaia_request.surob_results_request.end_time
+    start_time_us = jaia_request.surob_results_request.start_time
+    end_time_us = jaia_request.surob_results_request.end_time
+    report_time_us = (start_time_us+end_time_us)/2
+
+    start_time_s = start_time_us/1_000_000
+    end_time_s = end_time_us/1_000_000
+    report_time_s = report_time_us/1_000_000
+
+    start_timestamp = datetime.fromtimestamp(start_time_s, tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    end_timestamp = datetime.fromtimestamp(end_time_s, tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    report_timestamp = datetime.fromtimestamp(report_time_s, tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
     with common.shared_data.data_lock:
         if jaia_request.target.all:
@@ -361,14 +370,14 @@ def surob_results_request(jaia_request):
         else:
             bot_ids = jaia_request.target.bots
 
-        task_packets = common.shared_data.data.get_task_packets(bot_ids, start_time, end_time)
+        task_packets = common.shared_data.data.get_task_packets(bot_ids, start_time_us, end_time_us)
 
     if len(task_packets) == 0:
         jaia_response.surob_results.surob_results_found = False
         if bot_ids is None:
-            jaia_response.surob_results.error_message = f"No task packets found for active bots between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No task packets found for active bots between {start_timestamp} and {end_timestamp}."
         else:
-            jaia_response.surob_results.error_message = f"No task packets found for bots {bot_ids} between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No task packets found for bots {bot_ids} between {start_timestamp} and {end_timestamp}."
         return jaia_response
 
     alongshore_bearing_deg = shore_normal_to_alongshore_bearing_deg(shore_normal_bearing_deg(shoreline_point, offshore_point))
@@ -513,17 +522,17 @@ def surob_results_request(jaia_request):
     if max_alongshore_current_speed_knots is None:
         jaia_response.surob_results.surob_results_found = False
         if bot_ids is None:
-            jaia_response.surob_results.error_message = f"No current estimates found for any bots between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No current estimates found for any bots between {start_time_us} and {end_time_us}."
         else:
-            jaia_response.surob_results.error_message = f"No current estimates found for bots {bot_ids} between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No current estimates found for bots {bot_ids} between {start_time_us} and {end_time_us}."
         return jaia_response
 
     if max_sig_wave_height_ft is None:
         jaia_response.surob_results.surob_results_found = False
         if bot_ids is None:
-            jaia_response.surob_results.error_message = f"No significant wave height estimates found for any bots between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No significant wave height estimates found for any bots between {start_time_us} and {end_time_us}."
         else:
-            jaia_response.surob_results.error_message = f"No significant wave height estimates found for bots {bot_ids} between {start_time} and {end_time}."
+            jaia_response.surob_results.error_message = f"No significant wave height estimates found for bots {bot_ids} between {start_time_us} and {end_time_us}."
         return jaia_response
 
     if len(surface_drift_sig_wave_periods_s) == 0:
@@ -535,9 +544,9 @@ def surob_results_request(jaia_request):
             # therefore if max_sig_wave_height_ft is None conditional (L523) will be triggered before control flow reaches this code block
             jaia_response.surob_results.surob_results_found = False
             if bot_ids is None:
-                jaia_response.surob_results.error_message = f"No significant wave period estimates found for any bots between {start_time} and {end_time}."
+                jaia_response.surob_results.error_message = f"No significant wave period estimates found for any bots between {start_time_us} and {end_time_us}."
             else:
-                jaia_response.surob_results.error_message = f"No significant wave period estimates found for bots {bot_ids} between {start_time} and {end_time}."
+                jaia_response.surob_results.error_message = f"No significant wave period estimates found for bots {bot_ids} between {start_time_us} and {end_time_us}."
             return jaia_response
     elif len(surface_drift_sig_wave_periods_s) == 1:
         sig_wave_period_s_to_report = surface_drift_sig_wave_periods_s[0]
@@ -551,7 +560,6 @@ def surob_results_request(jaia_request):
     breaker_period = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=sig_wave_period_s_to_report, uncert=sig_wave_period_uncertainty_s_to_report, units=WAVE_PERIOD_UNITS)
     littoral_current_local = jaiabot.messages.surob_results_pb2.LittoralCurrent(value=max_alongshore_current_speed_knots, uncert=np.power(max_alongshore_current_speed_std_knots, 2), flank=max_alongshore_current_flank, units=LITTORAL_CURRENT_UNITS)
     surob = jaiabot.messages.surob_results_pb2.Surob(sig_breaker_height=sig_breaker_height, breaker_period=breaker_period, littoral_current_local=littoral_current_local)
-    report_timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     reports = [jaiabot.messages.surob_results_pb2.Report(time=report_timestamp, surob=surob)]
 
     geojson = jaiabot.messages.surob_results_pb2.FeatureCollection(type=FEATURE_COLLECTION_TYPE)
