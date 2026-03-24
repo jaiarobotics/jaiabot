@@ -188,7 +188,7 @@ def surob_mission_plan_request(jaia_request):
     with common.shared_data.data_lock:
         if jaia_request.target.all:
             # all the bots we know about
-            bots = common.shared_data.data.bots.keys()
+            bots = list(common.shared_data.data.bots.keys())
         else:
             bots = [value for value in jaia_request.target.bots]
 
