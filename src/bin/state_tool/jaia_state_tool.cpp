@@ -83,6 +83,12 @@ struct ReactionInfo
     std::string target; ///< target state (transition only)
 };
 
+struct ChoiceTransition
+{
+    std::string condition; ///< case condition (e.g., fully qualified enum constant)
+    std::string target;    ///< transit target state (fully qualified)
+};
+
 struct StateInfo
 {
     std::string name;          ///< fully qualified C++ name
@@ -92,6 +98,7 @@ struct StateInfo
     bool is_choice{false}; ///< true for selection/choice pseudostates (names ending in "Selection")
     std::string initial_state; ///< initial state (state_machine only)
     std::vector<ReactionInfo> reactions;
+    std::vector<ChoiceTransition> choices; ///< choice transitions (for *Selection states)
 };
 
 // ============================================================
@@ -290,6 +297,57 @@ static void extractReactionsFromMplList(const TemplateSpecializationType* list_t
 }
 
 // ============================================================
+// Choice transition extraction helpers (for *Selection states)
+// ============================================================
+
+/// Recursively search a statement tree for a call to transit<T>()
+/// and return the fully qualified target type name.
+static std::string findTransitTarget(const Stmt* stmt, const PrintingPolicy& policy)
+{
+    if (!stmt)
+        return "";
+
+    if (const auto* call = dyn_cast<CXXMemberCallExpr>(stmt))
+    {
+        const CXXMethodDecl* callee = call->getMethodDecl();
+        if (callee && callee->getNameAsString() == "transit")
+        {
+            const TemplateArgumentList* targs = callee->getTemplateSpecializationArgs();
+            if (targs && targs->size() >= 1 &&
+                (*targs)[0].getKind() == TemplateArgument::Type)
+            {
+                return getTypeName((*targs)[0].getAsType(), policy);
+            }
+        }
+    }
+
+    for (const auto* child : stmt->children())
+    {
+        if (!child)
+            continue;
+        std::string result = findTransitTarget(child, policy);
+        if (!result.empty())
+            return result;
+    }
+
+    return "";
+}
+
+/// Extract the string representation of a case expression
+/// (typically a fully qualified enum constant name).
+static std::string extractCaseCondition(const Expr* expr)
+{
+    if (!expr)
+        return "";
+    expr = expr->IgnoreParenImpCasts();
+
+    if (const auto* dre = dyn_cast<DeclRefExpr>(expr))
+        return dre->getDecl()->getQualifiedNameAsString();
+
+    return "";
+}
+
+// ============================================================
 // Clang AST visitor
 // ============================================================
 
@@ -390,6 +448,9 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
 
         extractReactionsFromDecl(decl, info.reactions);
 
+        if (info.is_choice)
+            extractChoicesFromDecl(decl, info.choices);
+
         std::lock_guard<std::mutex> lock(g_mutex);
         // Always store the entry, overwriting any stub that was registered earlier via
         // the initial_child fallback path (a stub has an empty reactions list and may
@@ -456,6 +517,56 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
                 ReactionInfo r = extractReaction(tst, policy_);
                 if (!r.type.empty())
                     reactions.push_back(r);
+            }
+        }
+    }
+
+    /// Walk the react() method's switch statement in a *Selection state to extract
+    /// case-condition → transit<Target>() pairs.
+    void extractChoicesFromDecl(CXXRecordDecl* decl, std::vector<ChoiceTransition>& choices)
+    {
+        for (const auto* method : decl->methods())
+        {
+            if (method->getNameAsString() != "react")
+                continue;
+            if (!method->hasBody())
+                continue;
+
+            const Stmt* body = method->getBody();
+
+            // Find the first SwitchStmt in the function body
+            std::function<const SwitchStmt*(const Stmt*)> findSwitch;
+            findSwitch = [&](const Stmt* s) -> const SwitchStmt*
+            {
+                if (!s)
+                    return nullptr;
+                if (const auto* sw = dyn_cast<SwitchStmt>(s))
+                    return sw;
+                for (const auto* child : s->children())
+                {
+                    if (const auto* found = findSwitch(child))
+                        return found;
+                }
+                return nullptr;
+            };
+
+            const auto* sw = findSwitch(body);
+            if (!sw)
+                continue;
+
+            // Walk through the switch cases
+            const SwitchCase* sc = sw->getSwitchCaseList();
+            while (sc)
+            {
+                if (const auto* cs = dyn_cast<CaseStmt>(sc))
+                {
+                    std::string condition = extractCaseCondition(cs->getLHS());
+                    std::string target = findTransitTarget(cs->getSubStmt(), policy_);
+
+                    if (!condition.empty() && !target.empty())
+                        choices.push_back({condition, target});
+                }
+                sc = sc->getNextSwitchCase();
             }
         }
     }
@@ -549,6 +660,15 @@ static void generateYAML(const std::string& filename)
         if (!info.initial_child.empty())
             out << "    initial_state: " << info.initial_child << "\n";
         writeReactions(info.reactions);
+        if (!info.choices.empty())
+        {
+            out << "    choices:\n";
+            for (const auto& c : info.choices)
+            {
+                out << "      - condition: " << c.condition << "\n";
+                out << "        target: " << c.target << "\n";
+            }
+        }
     }
 
     outs() << "Wrote YAML: " << filename << "\n";
@@ -657,14 +777,24 @@ static void generateDOT(const std::string& filename)
         }
         else
         {
-            // Leaf state: build label with any in_state_reaction/custom_reaction annotations
-            std::string node_label = shortName(name);
-            for (const auto& r : info.reactions)
-                if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
-                    !r.event.empty())
-                    node_label += "\\n- " + r.type + ": " + shortName(r.event);
-            out << pad << id << " [label=\"" << node_label
-                << "\", shape=box, style=\"rounded,filled\", fillcolor=lightyellow];\n";
+            if (info.is_choice)
+            {
+                // Choice pseudostate: render as a filled diamond
+                out << pad << id << " [label=\"" << shortName(name)
+                    << "\", shape=diamond, style=filled, fillcolor=black,"
+                       " fontcolor=white, fontsize=8, width=0.5, height=0.5];\n";
+            }
+            else
+            {
+                // Leaf state: build label with in_state_reaction/custom_reaction annotations
+                std::string node_label = shortName(name);
+                for (const auto& r : info.reactions)
+                    if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
+                        !r.event.empty())
+                        node_label += "\\n- " + r.type + ": " + shortName(r.event);
+                out << pad << id << " [label=\"" << node_label
+                    << "\", shape=box, style=\"rounded,filled\", fillcolor=lightyellow];\n";
+            }
         }
     };
 
@@ -805,6 +935,27 @@ static void generateDOT(const std::string& filename)
         }
     }
 
+    out << "\n    // ---- Choice transitions ----\n";
+
+    for (const auto& [name, info] : g_states)
+    {
+        for (const auto& c : info.choices)
+        {
+            std::string src = anchor[name];
+            if (g_states.count(c.target))
+            {
+                std::string dst = anchor[c.target];
+                out << "    " << src << " -> " << dst << " [xlabel=\""
+                    << shortName(c.condition) << "\", color=darkgreen, style=solid";
+                if (cluster.count(name) && !isDescendant(c.target, name))
+                    out << ", ltail=" << cluster[name];
+                if (cluster.count(c.target) && !isDescendant(name, c.target))
+                    out << ", lhead=" << cluster[c.target];
+                out << "];\n";
+            }
+        }
+    }
+
     out << "}\n";
     outs() << "Wrote DOT:  " << filename << "\n";
 }
@@ -865,7 +1016,10 @@ static void generateMermaid(const std::string& filename)
         }
         else
         {
-            out << pad << "state \"" << shortName(name) << "\" as " << id << "\n";
+            if (info.is_choice)
+                out << pad << "state \"" << shortName(name) << "\" as " << id << " <<choice>>\n";
+            else
+                out << pad << "state \"" << shortName(name) << "\" as " << id << "\n";
         }
     };
 
@@ -959,6 +1113,29 @@ static void generateMermaid(const std::string& filename)
             }
             // in_state_reaction and custom_reaction are omitted from Mermaid output
             // (Mermaid stateDiagram-v2 does not support inline multi-line state labels)
+        }
+    }
+
+    // ---- Write choice transitions ----
+    for (const auto& [name, info] : g_states)
+    {
+        for (const auto& c : info.choices)
+        {
+            std::string src = mermaidId(name);
+            std::string dst;
+            if (g_states.count(c.target))
+            {
+                bool dst_is_composite = isComposite(c.target);
+                if (dst_is_composite && isDescendantMmd(name, c.target))
+                    dst = mermaidId(c.target) + "_this";
+                else
+                    dst = mermaidId(c.target);
+            }
+            else
+            {
+                dst = mermaidId(c.target);
+            }
+            out << "    " << src << " --> " << dst << " : " << shortName(c.condition) << "\n";
         }
     }
 

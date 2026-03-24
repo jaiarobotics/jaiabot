@@ -9,7 +9,8 @@ A compile-time C++ tool based on the [Clang 18 LibTooling API](https://clang.llv
 1. **Finds all `boost::statechart::state` and `boost::statechart::state_machine` class template specializations.**
 2. **Extracts the state hierarchy** — each state's parent state (or state machine), initial child state (`initial_state`) for composite states.
 3. **Detects selection/choice pseudostates** — any state whose unqualified name ends with `"Selection"` (e.g. `MovementSelection`, `TaskSelection`) is classified as `type: choice` in the YAML. DOT renders them as filled black diamonds; Mermaid uses `<<choice>>` notation.
-3. **Extracts all reactions** from `using reactions = boost::mpl::list<...>` type aliases, including:
+4. **Extracts choice transitions from `react()` switch statements** — for `*Selection` (choice) states, the tool finds the `react()` method, walks its switch statement, and extracts each `case CONDITION: return transit<Target>()` pair. These appear as `choices:` in the YAML, diamond-routed edges in DOT, and labeled transitions in Mermaid.
+5. **Extracts all reactions** from `using reactions = boost::mpl::list<...>` type aliases, including:
    - `boost::statechart::transition<Event, TargetState>` — a state change triggered by an event
    - `boost::statechart::custom_reaction<Event>` — user-defined reaction handled by `react(const Event&)` — shown in the state box (DOT) or omitted (Mermaid)
    - `boost::statechart::in_state_reaction<Event, State, &State::handler>` — event handled without changing state — shown in the state box (DOT) or omitted (Mermaid)
@@ -82,6 +83,13 @@ states:
   - name: jaiabot::statechart::inmission::underway::movement::MovementSelection
     type: choice
     parent: jaiabot::statechart::inmission::underway::Movement
+    choices:
+      - condition: jaiabot::protobuf::MissionPlan::TRANSIT
+        target: jaiabot::statechart::inmission::underway::movement::Transit
+      - condition: jaiabot::protobuf::MissionPlan::REMOTE_CONTROL
+        target: jaiabot::statechart::inmission::underway::movement::RemoteControl
+      - condition: jaiabot::protobuf::MissionPlan::TRAIL
+        target: jaiabot::statechart::inmission::underway::movement::Trail
 ```
 
 Fields:
@@ -130,6 +138,8 @@ main()
        └─ StateChartConsumer::HandleTranslationUnit()
             └─ StateChartVisitor::VisitCXXRecordDecl()
                  ├─ processState()   → populates g_states map
+                 │    ├─ extractReactionsFromDecl() → extracts reaction types
+                 │    └─ extractChoicesFromDecl()   → walks react() switch for *Selection states
                  └─ processMachine() → populates g_states map + g_machine_name
   └─ generateYAML()    → writes <target>_states.yml
   └─ generateDOT()     → writes <target>_states.dot
@@ -139,12 +149,17 @@ main()
 Key data structures:
 
 - `ReactionInfo` — holds `type` ("transition" | "custom_reaction" | ...), `event` name, `target` state name
-- `StateInfo` — holds `name`, `parent`, `initial_child`, `is_machine`, `is_choice`, `reactions`
+- `ChoiceTransition` — holds `condition` (fully qualified enum constant), `target` (fully qualified transit target state)
+- `StateInfo` — holds `name`, `parent`, `initial_child`, `is_machine`, `is_choice`, `reactions`, `choices`
 - `g_states` — global `map<string, StateInfo>` populated by the visitor (protected by a mutex for future parallel use)
 
 ### Reaction extraction
 
 The visitor walks each `CXXRecordDecl` looking for base classes that are specializations of `boost::statechart::state` or `boost::statechart::state_machine`.  For reactions, it locates the `using reactions = ...` typedef/alias inside the class and inspects the `boost::mpl::list<...>` template arguments.  Each argument is matched against known `boost::statechart::*` reaction templates via `TemplateSpecializationType::getTemplateName()`.
+
+### Choice transition extraction (for *Selection states)
+
+For states detected as choice pseudostates (name ending in `"Selection"`), `extractChoicesFromDecl()` iterates over the class's `react()` methods and walks each function body looking for a `SwitchStmt`.  For each `CaseStmt` in the switch, it extracts the case condition (typically a `DeclRefExpr` to an enum constant via `extractCaseCondition()`) and the transit target type (found by recursively searching for a `CXXMemberCallExpr` calling `transit<T>()` via `findTransitTarget()`).  The extracted pairs are stored in `StateInfo::choices`.
 
 ### DOT generation
 
