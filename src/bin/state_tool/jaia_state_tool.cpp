@@ -806,7 +806,7 @@ static void generateDOT(const std::string& filename)
 
     // Map: state name -> DOT node/cluster anchor id
     std::map<std::string, std::string> anchor;  // id to use in edges
-    std::map<std::string, std::string> cluster; // cluster id for lhead/ltail
+    std::map<std::string, std::string> cluster; // cluster id for subgraph declarations
 
     // Assign ids
     for (const auto& [name, info] : g_states)
@@ -814,7 +814,7 @@ static void generateDOT(const std::string& filename)
         std::string id = dotId(name);
         if (isComposite(name) || info.is_machine)
         {
-            anchor[name] = id + "_anchor";
+            anchor[name] = id + "_this";
             cluster[name] = "cluster_" + id;
         }
         else
@@ -860,8 +860,12 @@ static void generateDOT(const std::string& filename)
                 out << pad << "    style=rounded;\n";
                 out << pad << "    color=steelblue;\n";
             }
-            // Anchor node (invisible) for edges that reference this cluster
-            out << pad << "    " << anchor[name] << " [shape=point, style=invis, width=0.01];\n";
+            // {this} pseudo-child: visible node used as endpoint for transitions
+            // involving this composite state (matches the Mermaid {this} approach)
+            out << pad << "    " << anchor[name]
+                << " [label=\"{this}\", shape=box,"
+                   " style=\"rounded,filled\", fillcolor=lightyellow,"
+                   " fontsize=8, width=0.4, height=0.2];\n";
 
             // Initial-state entry circle: declared INSIDE the cluster so graphviz
             // places the solid dot within the composite-state boundary.
@@ -909,10 +913,7 @@ static void generateDOT(const std::string& filename)
         if (!g_states.count(init_target))
             return;
         std::string dst = anchor[init_target];
-        out << "    " << init_node_id << " -> " << dst << " [style=bold, arrowhead=vee";
-        if (isComposite(init_target))
-            out << ", lhead=" << cluster[init_target];
-        out << "];\n";
+        out << "    " << init_node_id << " -> " << dst << " [style=bold, arrowhead=vee];\n";
     };
 
     for (const auto& [name, info] : g_states)
@@ -930,22 +931,6 @@ static void generateDOT(const std::string& filename)
         }
     }
 
-    // Returns true if 'state' is a proper descendant of 'ancestor' in the hierarchy.
-    // Used to suppress lhead/ltail when they would cause graphviz "head/tail inside
-    // cluster" warnings.
-    auto isDescendant = [&](const std::string& state, const std::string& ancestor) -> bool
-    {
-        if (!g_states.count(state))
-            return false;
-        std::string cur = g_states.at(state).parent;
-        while (!cur.empty() && g_states.count(cur))
-        {
-            if (cur == ancestor)
-                return true;
-            cur = g_states.at(cur).parent;
-        }
-        return false;
-    };
 
     out << "\n    // ---- Transitions ----\n";
 
@@ -972,16 +957,7 @@ static void generateDOT(const std::string& filename)
                 }
 
                 out << "    " << src << " -> " << dst << " [xlabel=\"" << shortName(r.event)
-                    << "\", color=black, style=solid";
-                // Suppress ltail when destination is inside the source cluster (graphviz
-                // warns: "head is inside tail cluster").
-                if (cluster.count(name) && !isDescendant(r.target, name))
-                    out << ", ltail=" << cluster[name];
-                // Suppress lhead when source is inside the destination cluster (graphviz
-                // warns: "tail is inside head cluster").
-                if (has_target && cluster.count(r.target) && !isDescendant(name, r.target))
-                    out << ", lhead=" << cluster[r.target];
-                out << "];\n";
+                    << "\", color=black, style=solid];\n";
             }
             else if (r.type == "deep_history_transition" && !r.target.empty())
             {
@@ -1012,22 +988,13 @@ static void generateDOT(const std::string& filename)
                 }
 
                 out << "    " << src << " -> " << dst << " [xlabel=\"" << shortName(r.event)
-                    << " [H*]\", color=black, style=dashed";
-                if (cluster.count(name) && !isDescendant(history_container, name))
-                    out << ", ltail=" << cluster[name];
-                if (has_target && cluster.count(history_container) &&
-                    !isDescendant(name, history_container))
-                    out << ", lhead=" << cluster[history_container];
-                out << "];\n";
+                    << " [H*]\", color=black, style=dashed];\n";
             }
             else if (r.type == "deferral" && !r.event.empty())
             {
                 // Deferral: show as a self-loop on the state
                 out << "    " << src << " -> " << src << " [xlabel=\"" << shortName(r.event)
-                    << " [deferral]\", color=gray30, style=dotted";
-                if (cluster.count(name))
-                    out << ", ltail=" << cluster[name] << ", lhead=" << cluster[name];
-                out << "];\n";
+                    << " [deferral]\", color=gray30, style=dotted];\n";
             }
             // in_state_reaction and custom_reaction are embedded in the state label, not drawn
         }
@@ -1044,12 +1011,7 @@ static void generateDOT(const std::string& filename)
             {
                 std::string dst = anchor[c.target];
                 out << "    " << src << " -> " << dst << " [xlabel=\"" << shortName(c.condition)
-                    << "\", color=darkgreen, style=solid";
-                if (cluster.count(name) && !isDescendant(c.target, name))
-                    out << ", ltail=" << cluster[name];
-                if (cluster.count(c.target) && !isDescendant(name, c.target))
-                    out << ", lhead=" << cluster[c.target];
-                out << "];\n";
+                    << "\", color=darkgreen, style=solid];\n";
             }
         }
     }
@@ -1104,8 +1066,9 @@ static void generateMermaid(const std::string& filename)
         else if (isComposite(name))
         {
             out << pad << "state \"" << shortName(name) << "\" as " << id << " {\n";
-            // {this} pseudo-child: used as the source of outgoing transitions from this
-            // composite state so that arrows are drawn from inside the box (visually cleaner)
+            // {this} pseudo-child: used as both source and destination of transitions
+            // involving this composite state so that arrows are drawn from/to inside
+            // the box rather than the border (visually cleaner)
             out << pad << "    state \"" << shortName(name) << "\{this}\" as " << id << "_this\n";
             if (!info.initial_child.empty() && g_states.count(info.initial_child))
                 out << pad << "    [*] --> " << mermaidId(info.initial_child) << "\n";
@@ -1124,26 +1087,6 @@ static void generateMermaid(const std::string& filename)
     // ---- Write all transitions ----
     out << "\n";
 
-    // Returns true if 'state' is a descendant of 'ancestor' in the hierarchy.
-    // Used to implement the {this} rule:
-    //   - Use composite_this as SOURCE (tail) only when transitioning from a composite
-    //     state TO one of its own descendants (parent → child).
-    //   - Use composite_this as DESTINATION (head) only when transitioning from a
-    //     descendant TO its containing composite ancestor (child → parent).
-    //   - Sibling-to-sibling or unrelated transitions use plain IDs.
-    auto isDescendantMmd = [&](const std::string& state, const std::string& ancestor) -> bool
-    {
-        if (!g_states.count(state))
-            return false;
-        std::string cur = g_states.at(state).parent;
-        while (!cur.empty() && g_states.count(cur))
-        {
-            if (cur == ancestor)
-                return true;
-            cur = g_states.at(cur).parent;
-        }
-        return false;
-    };
 
     for (const auto& [name, info] : g_states)
     {
@@ -1169,34 +1112,23 @@ static void generateMermaid(const std::string& filename)
                 }
             }
 
-            // Determine source: use {this} only when source is composite AND the
-            // target is a descendant of the source (parent → child transition).
-            std::string src;
-            if (src_is_composite && !effective_target.empty() &&
-                isDescendantMmd(effective_target, name))
-                src = mermaidId(name) + "_this";
-            else
-                src = mermaidId(name);
+            // Source: always use {this} when state is composite
+            std::string src = src_is_composite ? mermaidId(name) + "_this" : mermaidId(name);
 
             if (r.type == "transition" && !r.target.empty())
             {
-                // Determine destination: use {this} only when target is composite AND
-                // the source is a descendant of the target (child → parent transition).
-                std::string dst;
-                if (isComposite(r.target) && isDescendantMmd(name, r.target))
-                    dst = mermaidId(r.target) + "_this";
-                else
-                    dst = mermaidId(r.target);
+                // Destination: always use {this} when target is composite
+                std::string dst = (g_states.count(r.target) && isComposite(r.target))
+                    ? mermaidId(r.target) + "_this"
+                    : mermaidId(r.target);
                 out << "    " << src << " --> " << dst << " : " << shortName(r.event) << "\n";
             }
             else if (r.type == "deep_history_transition" && !r.target.empty())
             {
-                // Determine destination with same {this} rule for the history container
-                std::string dst;
-                if (isComposite(effective_target) && isDescendantMmd(name, effective_target))
-                    dst = mermaidId(effective_target) + "_this";
-                else
-                    dst = mermaidId(effective_target);
+                // Destination: always use {this} when target is composite
+                std::string dst = (g_states.count(effective_target) && isComposite(effective_target))
+                    ? mermaidId(effective_target) + "_this"
+                    : mermaidId(effective_target);
                 out << "    " << src << " --> " << dst << " : " << shortName(r.event) << " [H*]\n";
             }
             else if (r.type == "deferral" && !r.event.empty())
@@ -1220,11 +1152,8 @@ static void generateMermaid(const std::string& filename)
             std::string dst;
             if (g_states.count(c.target))
             {
-                bool dst_is_composite = isComposite(c.target);
-                if (dst_is_composite && isDescendantMmd(name, c.target))
-                    dst = mermaidId(c.target) + "_this";
-                else
-                    dst = mermaidId(c.target);
+                dst = isComposite(c.target) ? mermaidId(c.target) + "_this"
+                                            : mermaidId(c.target);
             }
             else
             {
