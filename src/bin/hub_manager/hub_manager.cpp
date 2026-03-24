@@ -739,11 +739,13 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
 
         // Make sure the taskpacket is not a repeat
         // If it is, then we should not handle the taskpacket and exit
+        /*
         if (prev_time == task_packet.start_time())
         {
             glog.is_debug1() && glog << "Repeat taskpacket received! Ignoring..." << std::endl;
             return;
         }
+        */
 
         // Store the previous taskpacket time
         task_packet_id_to_prev_timestamp_.at(task_packet.bot_id()) = task_packet.start_time();
