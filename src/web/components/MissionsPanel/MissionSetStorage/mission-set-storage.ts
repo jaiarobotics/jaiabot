@@ -270,7 +270,7 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
             const waypoint = new Waypoint();
             waypoint.setLocation(goal.location);
             const task = new Task();
-            const originalTask = goal?.task?.type ?? TaskType.NONE;
+            const originalTask = goal.task?.type ?? TaskType.NONE;
             task.setType(originalTask);
             switch (task.getType()) {
                 case TaskType.DIVE:
