@@ -313,8 +313,7 @@ static std::string findTransitTarget(const Stmt* stmt, const PrintingPolicy& pol
         if (callee && callee->getNameAsString() == "transit")
         {
             const TemplateArgumentList* targs = callee->getTemplateSpecializationArgs();
-            if (targs && targs->size() >= 1 &&
-                (*targs)[0].getKind() == TemplateArgument::Type)
+            if (targs && targs->size() >= 1 && (*targs)[0].getKind() == TemplateArgument::Type)
             {
                 return getTypeName((*targs)[0].getAsType(), policy);
             }
@@ -777,24 +776,14 @@ static void generateDOT(const std::string& filename)
         }
         else
         {
-            if (info.is_choice)
-            {
-                // Choice pseudostate: render as a filled diamond
-                out << pad << id << " [label=\"" << shortName(name)
-                    << "\", shape=diamond, style=filled, fillcolor=black,"
-                       " fontcolor=white, fontsize=8, width=0.5, height=0.5];\n";
-            }
-            else
-            {
-                // Leaf state: build label with in_state_reaction/custom_reaction annotations
-                std::string node_label = shortName(name);
-                for (const auto& r : info.reactions)
-                    if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
-                        !r.event.empty())
-                        node_label += "\\n- " + r.type + ": " + shortName(r.event);
-                out << pad << id << " [label=\"" << node_label
-                    << "\", shape=box, style=\"rounded,filled\", fillcolor=lightyellow];\n";
-            }
+            // Leaf state: build label with in_state_reaction/custom_reaction annotations
+            std::string node_label = shortName(name);
+            for (const auto& r : info.reactions)
+                if ((r.type == "in_state_reaction" || r.type == "custom_reaction") &&
+                    !r.event.empty())
+                    node_label += "\\n- " + r.type + ": " + shortName(r.event);
+            out << pad << id << " [label=\"" << node_label
+                << "\", shape=box, style=\"rounded,filled\", fillcolor=lightyellow];\n";
         }
     };
 
@@ -945,8 +934,8 @@ static void generateDOT(const std::string& filename)
             if (g_states.count(c.target))
             {
                 std::string dst = anchor[c.target];
-                out << "    " << src << " -> " << dst << " [xlabel=\""
-                    << shortName(c.condition) << "\", color=darkgreen, style=solid";
+                out << "    " << src << " -> " << dst << " [xlabel=\"" << shortName(c.condition)
+                    << "\", color=darkgreen, style=solid";
                 if (cluster.count(name) && !isDescendant(c.target, name))
                     out << ", ltail=" << cluster[name];
                 if (cluster.count(c.target) && !isDescendant(name, c.target))
@@ -986,7 +975,7 @@ static void generateMermaid(const std::string& filename)
     out << "    direction LR\n";
 
     // ---- Recursive state hierarchy writer ----
-    // Composite states: state "ShortName" as id { state "{this}" as id_this ... }
+    // Composite states: state "ShortName" as id { state "id {this}" as id_this ... }
     // Leaf states:      state "ShortName" as id
     std::function<void(const std::string&, int)> writeStateBlock;
     writeStateBlock = [&](const std::string& name, int indent)
@@ -1008,7 +997,7 @@ static void generateMermaid(const std::string& filename)
             out << pad << "state \"" << shortName(name) << "\" as " << id << " {\n";
             // {this} pseudo-child: used as the source of outgoing transitions from this
             // composite state so that arrows are drawn from inside the box (visually cleaner)
-            out << pad << "    state \"{this}\" as " << id << "_this\n";
+            out << pad << "    state \"" << shortName(name) << "\{this}\" as " << id << "_this\n";
             if (!info.initial_child.empty() && g_states.count(info.initial_child))
                 out << pad << "    [*] --> " << mermaidId(info.initial_child) << "\n";
             for (const auto& child : children.at(name)) writeStateBlock(child, indent + 1);
@@ -1016,10 +1005,7 @@ static void generateMermaid(const std::string& filename)
         }
         else
         {
-            if (info.is_choice)
-                out << pad << "state \"" << shortName(name) << "\" as " << id << " <<choice>>\n";
-            else
-                out << pad << "state \"" << shortName(name) << "\" as " << id << "\n";
+            out << pad << "state \"" << shortName(name) << "\" as " << id << "\n";
         }
     };
 
