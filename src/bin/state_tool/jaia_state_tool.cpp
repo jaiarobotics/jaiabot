@@ -258,7 +258,10 @@ static ReactionInfo extractReaction(const TemplateSpecializationType* tst,
     return info;
 }
 
-/// Extract all reaction types from a boost::mpl::list<...> template specialization.
+/// Extract all reaction types from a boost::mpl::list<...> or boost::mpl::l_item<...>
+/// template specialization.  The l_item<size, head, tail> form is a linked-list
+/// representation used internally by Boost.MPL for lists produced by algorithms
+/// such as mpl::copy.
 static void extractReactionsFromMplList(const TemplateSpecializationType* list_tst,
                                         std::vector<ReactionInfo>& reactions,
                                         const PrintingPolicy& policy)
@@ -266,6 +269,50 @@ static void extractReactionsFromMplList(const TemplateSpecializationType* list_t
     if (!list_tst)
         return;
 
+    const auto* td = list_tst->getTemplateName().getAsTemplateDecl();
+    if (td)
+    {
+        const std::string tmpl = td->getQualifiedNameAsString();
+
+        // boost::mpl::l_item<size_t_value, HeadType, Tail> — linked-list node.
+        // args[0] = mpl::long_<N> (skip)
+        // args[1] = head type (the reaction)
+        // args[2] = tail (next l_item or l_end)
+        if (tmpl == "boost::mpl::l_item")
+        {
+            auto args = list_tst->template_arguments();
+            if (args.size() >= 2 && args[1].getKind() == TemplateArgument::Type)
+            {
+                QualType headType = args[1].getAsType();
+                const TemplateSpecializationType* tst =
+                    headType->getAs<TemplateSpecializationType>();
+                if (!tst)
+                    if (const auto* et = headType->getAs<ElaboratedType>())
+                        tst = et->getNamedType()->getAs<TemplateSpecializationType>();
+                if (tst)
+                {
+                    ReactionInfo r = extractReaction(tst, policy);
+                    if (!r.type.empty())
+                        reactions.push_back(r);
+                }
+            }
+            // Recurse into tail
+            if (args.size() >= 3 && args[2].getKind() == TemplateArgument::Type)
+            {
+                QualType tailType = args[2].getAsType();
+                const TemplateSpecializationType* tailTst =
+                    tailType->getAs<TemplateSpecializationType>();
+                if (!tailTst)
+                    if (const auto* et = tailType->getAs<ElaboratedType>())
+                        tailTst = et->getNamedType()->getAs<TemplateSpecializationType>();
+                if (tailTst)
+                    extractReactionsFromMplList(tailTst, reactions, policy);
+            }
+            return;
+        }
+    }
+
+    // boost::mpl::list<A, B, C, ...> — the standard list representation.
     for (const TemplateArgument& arg : list_tst->template_arguments())
     {
         if (arg.getKind() != TemplateArgument::Type)
@@ -415,11 +462,28 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
         // When the AST visits the instantiation SurfaceDriftTaskCommon<SurfaceDrift, Task,...>,
         // decl->getQualifiedNameAsString() gives "SurfaceDriftTaskCommon" but args[0] correctly
         // identifies "SurfaceDrift" as the actual state.
+
+        // Resolve the actual state class declaration from args[0].  When a state inherits
+        // through a template intermediary (e.g. IvPSensorPauseCommon<Transit, Movement, ...>),
+        // decl is the instantiated template while actualStateDecl is the concrete struct
+        // (Transit) that holds the "reactions" and "local_reactions" type aliases.
+        CXXRecordDecl* actualStateDecl = nullptr;
+
         if (args.size() >= 1 && args[0].getKind() == TemplateArgument::Type &&
             !args[0].getAsType()->isDependentType())
+        {
             info.name = getTypeName(args[0].getAsType(), policy_);
+            if (const auto* rec = args[0].getAsType()->getAs<RecordType>())
+            {
+                if (auto* rd = dyn_cast<CXXRecordDecl>(rec->getDecl()))
+                    if (rd->hasDefinition())
+                        actualStateDecl = rd->getDefinition();
+            }
+        }
         else
+        {
             info.name = decl->getQualifiedNameAsString();
+        }
 
         if (args.size() >= 2 && args[1].getKind() == TemplateArgument::Type)
             info.parent = getTypeName(args[1].getAsType(), policy_);
@@ -445,10 +509,31 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
         if (sn.size() >= 9 && sn.compare(sn.size() - 9, 9, "Selection") == 0)
             info.is_choice = true;
 
-        extractReactionsFromDecl(decl, info.reactions);
+        // Determine which declaration to extract reactions from.  When the actual state
+        // class (from args[0]) differs from decl (template intermediary), we must look
+        // at the actual class for "reactions", "local_reactions", etc.
+        CXXRecordDecl* reactDecl =
+            (actualStateDecl && actualStateDecl != decl) ? actualStateDecl : decl;
+
+        extractReactionsFromDecl(reactDecl, info.reactions);
+
+        // Fallback for the mpl::copy<local_reactions, front_inserter<Base::common_reactions>>
+        // pattern: if the "reactions" alias in the actual state class couldn't be resolved
+        // (e.g. the type is wrapped in complex metaprogramming sugar), fall back to
+        // extracting from "local_reactions" (in the actual state class) plus
+        // "common_reactions" (in the template intermediary base class).
+        if (info.reactions.empty() && reactDecl != decl)
+        {
+            extractReactionsFromAlias(reactDecl, info.reactions, "local_reactions");
+            extractReactionsFromAlias(decl, info.reactions, "common_reactions");
+        }
 
         if (info.is_choice)
-            extractChoicesFromDecl(decl, info.choices);
+        {
+            extractChoicesFromDecl(reactDecl, info.choices);
+            if (info.choices.empty() && reactDecl != decl)
+                extractChoicesFromDecl(decl, info.choices);
+        }
 
         std::lock_guard<std::mutex> lock(g_mutex);
         // Always store the entry, overwriting any stub that was registered earlier via
@@ -480,13 +565,16 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
         }
     }
 
-    void extractReactionsFromDecl(CXXRecordDecl* decl, std::vector<ReactionInfo>& reactions)
+    /// Extract reactions from a named type alias in a class declaration.
+    /// @param aliasName  The alias to look for ("reactions", "local_reactions", "common_reactions").
+    void extractReactionsFromAlias(CXXRecordDecl* decl, std::vector<ReactionInfo>& reactions,
+                                   const std::string& aliasName)
     {
         for (const auto* d : decl->decls())
         {
-            // Handle both "typedef ... reactions" and "using reactions = ..."
+            // Handle both "typedef ... X" and "using X = ..."
             const TypedefNameDecl* alias = dyn_cast<TypedefNameDecl>(d);
-            if (!alias || alias->getName() != "reactions")
+            if (!alias || alias->getName() != aliasName)
                 continue;
 
             QualType underlying = alias->getUnderlyingType();
@@ -496,6 +584,21 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
             if (!tst)
                 if (const auto* et = underlying->getAs<ElaboratedType>())
                     tst = et->getNamedType()->getAs<TemplateSpecializationType>();
+
+            // If direct resolution failed, try the canonical (fully desugared) type.
+            // This handles cases like:
+            //   using reactions = typename boost::mpl::copy<local_reactions,
+            //                        boost::mpl::front_inserter<Base::common_reactions>>::type;
+            // where the underlying type involves complex type sugar but the canonical
+            // type may resolve to a concrete boost::mpl::list<...>.
+            if (!tst)
+            {
+                QualType canonical = underlying.getCanonicalType();
+                tst = canonical->getAs<TemplateSpecializationType>();
+                if (!tst)
+                    if (const auto* et = canonical->getAs<ElaboratedType>())
+                        tst = et->getNamedType()->getAs<TemplateSpecializationType>();
+            }
             if (!tst)
                 continue;
 
@@ -504,9 +607,10 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
                 continue;
 
             const std::string tmpl_name = td->getQualifiedNameAsString();
-            if (tmpl_name.rfind("boost::mpl::list", 0) == 0)
+            if (tmpl_name.rfind("boost::mpl::list", 0) == 0 ||
+                tmpl_name.rfind("boost::mpl::l_item", 0) == 0)
             {
-                // boost::mpl::list<...> — extract each element in the list
+                // boost::mpl::list<...> or boost::mpl::l_item<...> — extract each element
                 extractReactionsFromMplList(tst, reactions, policy_);
             }
             else
@@ -518,6 +622,11 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
                     reactions.push_back(r);
             }
         }
+    }
+
+    void extractReactionsFromDecl(CXXRecordDecl* decl, std::vector<ReactionInfo>& reactions)
+    {
+        extractReactionsFromAlias(decl, reactions, "reactions");
     }
 
     /// Walk the react() method's switch statement in a *Selection state to extract

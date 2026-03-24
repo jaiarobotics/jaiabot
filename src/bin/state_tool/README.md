@@ -157,6 +157,10 @@ Key data structures:
 
 The visitor walks each `CXXRecordDecl` looking for base classes that are specializations of `boost::statechart::state` or `boost::statechart::state_machine`.  For reactions, it locates the `using reactions = ...` typedef/alias inside the class and inspects the `boost::mpl::list<...>` template arguments.  Each argument is matched against known `boost::statechart::*` reaction templates via `TemplateSpecializationType::getTemplateName()`.
 
+**Template intermediary support**: When a state inherits `boost::statechart::state` through a template base class (e.g. `IvPSensorPauseCommon<Transit, Movement, ...>`), the `Self` type argument (`args[0]`) identifies the actual state class.  The tool resolves the actual state class's `CXXRecordDecl` and extracts reactions from it rather than from the template instantiation.
+
+**`mpl::copy` merged reactions**: Some states define `local_reactions` and merge with the base template's `common_reactions` using `typename boost::mpl::copy<local_reactions, boost::mpl::front_inserter<Base::common_reactions>>::type`.  If the merged `reactions` type alias cannot be resolved directly (complex metaprogramming sugar), the tool falls back to extracting from `local_reactions` in the actual state class plus `common_reactions` in the template base class.  The `extractReactionsFromMplList()` function also handles `boost::mpl::l_item<size, head, tail>` linked-list nodes (the internal representation used by MPL algorithms).
+
 ### Choice transition extraction (for *Selection states)
 
 For states detected as choice pseudostates (name ending in `"Selection"`), `extractChoicesFromDecl()` iterates over the class's `react()` methods and walks each function body looking for a `SwitchStmt`.  For each `CaseStmt` in the switch, it extracts the case condition (typically a `DeclRefExpr` to an enum constant via `extractCaseCondition()`) and the transit target type (found by recursively searching for a `CXXMemberCallExpr` calling `transit<T>()` via `findTransitTarget()`).  The extracted pairs are stored in `StateInfo::choices`.
