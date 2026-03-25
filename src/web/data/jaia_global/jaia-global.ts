@@ -46,7 +46,6 @@ export class JaiaGlobal {
     private controllingClientID: string;
     private metadata: Metadata;
     private isUpgradeAvailable: boolean;
-    private isInternetConnected: boolean;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
@@ -64,7 +63,6 @@ export class JaiaGlobal {
         this.defaultTaskParameters = defaultTaskParameters;
         this.metadata = {};
         this.isUpgradeAvailable = false;
-        this.isInternetConnected = false;
     }
 
     getSelectedNode() {
@@ -136,14 +134,6 @@ export class JaiaGlobal {
 
     setIsUpgradeAvailable(isUpgradeAvailable: boolean) {
         this.isUpgradeAvailable = isUpgradeAvailable;
-    }
-
-    getIsInternetConnected() {
-        return this.isInternetConnected;
-    }
-
-    setIsInternetConnected(isInternetConnected: boolean) {
-        this.isInternetConnected = isInternetConnected;
     }
 
     resetSelectedWaypoint() {

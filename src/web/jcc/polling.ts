@@ -164,9 +164,7 @@ export async function pollGitHub() {
             );
             jaiaGlobal.setIsUpgradeAvailable(isUpgradeAvailable);
         }
-        jaiaGlobal.setIsInternetConnected(true);
     } catch (error) {
-        jaiaGlobal.setIsInternetConnected(false);
         console.error(error);
     }
     gitHubRequestInFlight = false;

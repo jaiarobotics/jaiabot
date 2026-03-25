@@ -3,7 +3,6 @@ import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
 import NotificationDot from "../NotificationDot/NotificationDot";
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { Version } from "../../types/protobuf-types";
 
 import Icon from "@mdi/react";
@@ -41,11 +40,11 @@ export default function JaiaAbout() {
      * @returns {HTMLElement} Description of notification dot
      */
     const getNotificationDotHelperElement = () => {
-        if (!jaiaGlobal.getIsInternetConnected()) {
+        if (!navigator.onLine) {
             return <p>No Internet Connection</p>;
         }
 
-        if (jaiaGlobal.getIsUpgradeAvailable()) {
+        if (jaiaContext.jaiaGlobal.getIsUpgradeAvailable()) {
             return (
                 <a href="jcu/" target="_blank" rel="noopener noreferrer">
                     Upgrade Available
