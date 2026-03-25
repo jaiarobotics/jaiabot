@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 
 import requests
-import json
-import datetime
 import os
-import argparse
-from time import time
+import pytest
 
 import jaiabot.messages.rest_api_pb2 as rest_api
 import google.protobuf.json_format as json_format
-
+from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
 
 try: 
     api_key=os.environ['JAIA_REST_API_PRIVATE_KEY']
@@ -35,34 +32,68 @@ def run_request(request: rest_api.APIRequest) -> rest_api.APIResponse:
     print(response)
     print("\n\n")
 
+    assert not response.HasField("error"), f"API returned an error: {response.error}"
+
     return response
 
 
-def get_all_task_packets_for_bot(bot_id: int) -> rest_api.TaskPacketQueryResults:
+all_task_packets: list[TaskPacket] = []
+all_bot_ids: list[int] = []
+first_packet_start_time: int = 0
+last_packet_start_time: int = 0
+
+
+def setup_module():
+    global all_task_packets, all_bot_ids, first_packet_start_time, last_packet_start_time
+
     request = rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
-            bots=[bot_id]
+            all=True,
         ),
         task_packets=rest_api.TaskPacketQuery()
     )
 
     response = run_request(request)
-    return response.task_packets
+
+    all_task_packets = list(response.task_packets.packets)
+    all_bot_ids = [task_packet.bot_id for task_packet in response.task_packets.packets]
+    first_packet_start_time = min([packet.start_time for packet in all_task_packets])
+    last_packet_start_time = max([packet.start_time for packet in all_task_packets])
+
+    print(f"Retrieved {len(all_task_packets)} total task packets")
+    assert len(all_task_packets) > 0, "Expected at least one task packet"
 
 
-all_task_packets = get_all_task_packets_for_bot(1).packets
-print(f"Retrieved {len(all_task_packets)} total task packets for bot 1")
-assert len(all_task_packets) > 0, "Expected at least one task packet for bot 1"
+setup_module()
+
+
+def test_bot_id_querying():
+
+    for i in range(0, min(len(all_bot_ids), 2)):
+        bot_subset = all_bot_ids[:i+1]
+        print(f'Testing multibot querying with bot IDs: {bot_subset}')
+
+        response = run_request(rest_api.APIRequest(
+            target=rest_api.APIRequest.Nodes(
+                bots=bot_subset
+            ),
+            task_packets=rest_api.TaskPacketQuery()
+        ))
+
+        assert len(response.task_packets.packets) > 0, "Expected at least one task packet for the specified bots"
+
+        for packet in response.task_packets.packets:
+            assert packet.bot_id in bot_subset, f"{packet}\nTask packet bot ID does not match the specified bot IDs"
+
+        print(f"Successfully retrieved {len(response.task_packets.packets)} task packets for bots {bot_subset}")
 
 
 def test_time_range_filtering():
-    first_packet_start_time = min([packet.start_time for packet in all_task_packets])
-    last_packet_start_time = max([packet.start_time for packet in all_task_packets])
     middle_time = (first_packet_start_time + last_packet_start_time) // 2
 
     response = run_request(rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
-            bots=[1]
+            all=True
         ),
         task_packets=rest_api.TaskPacketQuery(
             start_time=first_packet_start_time,
@@ -93,7 +124,7 @@ def test_mission_name_filtering():
 
     response = run_request(rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
-            bots=[1]
+            all=True
         ),
         task_packets=rest_api.TaskPacketQuery(
             mission_name=[mission_name]
@@ -115,7 +146,7 @@ def test_mission_name_filtering():
 
     response = run_request(rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
-            bots=[1]
+            all=True
         ),
         task_packets=rest_api.TaskPacketQuery(
             mission_name=[mission_name, mission_name_2]
@@ -137,7 +168,7 @@ def test_mission_summary_querying():
 
     response = run_request(rest_api.APIRequest(
         target=rest_api.APIRequest.Nodes(
-            bots=[1]
+            all=True
         ),
         missions=rest_api.MissionQuery(
             start_time=first_packet_start_time, # Task packets are sorted descending by start time, so the last packet has the earliest start time.  This means we should get all missions that started after that time, which should be all of them.
@@ -151,6 +182,8 @@ def test_mission_summary_querying():
 
 
 if __name__ == "__main__":
+    setup_module()
+    test_bot_id_querying()
     test_time_range_filtering()
     test_mission_name_filtering()
     test_mission_summary_querying()

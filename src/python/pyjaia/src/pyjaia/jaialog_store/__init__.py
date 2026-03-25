@@ -8,20 +8,21 @@ import re
 import datetime
 import os
 
-import kmz
-
-from objects import *
-from moos_messages import *
+from pyjaia import kmz
 from pprint import pprint
 from pathlib import Path
-from jaia_h5 import JaiaH5FileSet
 from typing import *
 
-import log_conversion
+from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
 
-# JAIA message types as python dataclasses
-from jaia_messages import *
+
+# JAIA packages
+from .jaia_messages import *
+from .objects import *
+from .jaia_h5 import JaiaH5FileSet
+from .moos_messages import *
+import pyjaia.jaialog_store.log_conversion as log_conversion
 
 
 def itemsmatching(file: h5py.File, regular_expression: re.Pattern):
@@ -74,13 +75,13 @@ UTIME_PATH = 'goby::health::report/goby.middleware.protobuf.VehicleHealth/_utime
 class LogDescription:
     '''Metadata pertaining to a log'''
 
-    bot: str
-    fleet: str
+    bot: str = ''
+    fleet: str = ''
     
-    filename: str
+    filename: str = ''
     '''File stem for this log (without path, .goby or .h5 extension)'''
 
-    timestamp: float
+    timestamp: float = 0
     '''UNIX timestamp of the date (from the filename)'''
 
     duration: Optional[float] = None
@@ -95,7 +96,7 @@ class LogDescription:
 class LogDirectory:
     '''A list of available logs with their metadata, and the available space on the storage device'''
 
-    availableSpace: int
+    availableSpace: int = 0
     '''Available storage space (in bytes)'''
 
     logs: List[LogDescription] = field(default_factory=list)
@@ -106,13 +107,13 @@ class LogDirectory:
 class FileDownload:
     '''A file to be downloaded by the client'''
 
-    filename: str
+    filename: str = ''
     '''Filename for the downloaded file'''
 
-    content: bytes
+    content: bytes = b''
     '''Content of the file'''
 
-    mimetype: str
+    mimetype: str = ''
     '''MIME type of the file'''
 
 

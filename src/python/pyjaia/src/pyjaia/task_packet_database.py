@@ -1,11 +1,12 @@
+from google.protobuf.json_format import ParseDict
 from typing import *
+
+from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
 from .utils import get_task_packet_id, utime
 from datetime import datetime
 import glob
 import json
 import logging
-from pprint import pprint
-from os.path import getmtime
 import sqlite3
 import random
 import os
@@ -19,6 +20,10 @@ from jaiabot.messages.mission_pb2 import MissionSummary
 l = logging.getLogger('task_packet_database')
 
 
+# UTIME_PADDING is a small amount of time (in microseconds) that we pad the start and end times with when querying, 
+# to account for rounding from the dccl.time2 encoding
+UTIME_PADDING = 1_000_000
+
 def dccl_time_round(utime: int, round_to: int=1_000_000) -> int:
     """Rounds a unix microsecond timestamp to the nearest round_to microseconds.
     This accounts for how dccl rounds time values to/from the bots.
@@ -31,6 +36,19 @@ def dccl_time_round(utime: int, round_to: int=1_000_000) -> int:
         int: The rounded unix microsecond timestamp.
     """
     return (utime + round_to // 2) // round_to * round_to
+
+
+def sql_set_placeholders(values: list[Any]) -> str:
+    """Returns a string of SQL placeholders for the given list of values.  For example, if the input list has 3 values, the output will be "(?, ?, ?)".
+
+    Args:
+        values (list[Any]): The list of values to create placeholders for.
+
+    Returns:
+        str: A string of SQL placeholders for the given list of values.
+    """
+    placeholders = ", ".join(["?"] * len(values))
+    return f'({placeholders})'
 
 
 class TaskPacketDatabase:
@@ -188,12 +206,12 @@ class TaskPacketDatabase:
         with self._lock:
             self._update()
 
-    def query_task_packets(self, 
+    def query_task_packets_as_dicts(self, 
                            bot_ids: Union[Iterable[int], None]=None, 
                            start_utime: Union[int, None]=None, 
                            end_utime: Union[int, None]=None, 
-                           included: Union[bool, None]=None, 
-                           mission_names: Union[str, List[str], None]=None) -> List[Dict]:
+                           included: Union[bool, None]=True, 
+                           mission_names: Union[Iterable[str], None]=None) -> List[Dict]:
         """Queries the task packets.
 
         Args:
@@ -201,9 +219,9 @@ class TaskPacketDatabase:
             start_utime (Union[int, None]): Start of time window (or None if no minimum time)
             end_utime (Union[int, None]): End of time window (or None if no maximum time)
             included (Union[bool, None]): Included or excluded task packets (None for both types)
-            mission_names (Union[str, List[str], None]): Mission name(s) to filter by (None for all)
+            mission_names (Union[Iterable[str], None]): Mission name(s) to filter by (None for all)
         Returns:
-            list[dict]: A list of task packets that match the criteria.
+            list[dict]: A list of task packet dictionaries that match the criteria.
         """
 
         with self._lock:
@@ -213,21 +231,18 @@ class TaskPacketDatabase:
             parameters = []
             from_clause = ' from task_packets'
 
-            if bot_ids is not None:
-                bot_ids = list(bot_ids)
-                if len(bot_ids) == 0:
-                    return []
-
-                conditionals.append(f'bot_id in ({",".join(["?"] * len(bot_ids))})')
+            bot_ids = list(bot_ids) if bot_ids is not None else []
+            if len(bot_ids) > 0:
+                conditionals.append(f'bot_id in {sql_set_placeholders(bot_ids)}')
                 parameters.extend(bot_ids)
 
             if start_utime is not None:
                 conditionals.append(f'utime >= ?')
-                parameters.append(start_utime)
+                parameters.append(start_utime - UTIME_PADDING)
 
             if end_utime is not None:
                 conditionals.append(f'utime <= ?')
-                parameters.append(end_utime)
+                parameters.append(end_utime + UTIME_PADDING)
 
             if included is not None:
                 conditionals.append(f'included = ?')
@@ -235,15 +250,11 @@ class TaskPacketDatabase:
                 from_clause += ' natural join included'
 
             if mission_names is not None:
-                if isinstance(mission_names, str):
-                    mission_names = [mission_names]
-                else:
-                    mission_names = list(mission_names)
-
+                mission_names = list(mission_names)
                 if len(mission_names) == 0:
                     return []
 
-                conditionals.append(f'mission_name in ({",".join(["?"] * len(mission_names))})')
+                conditionals.append(f'mission_name in {sql_set_placeholders(mission_names)}')
                 parameters.extend(mission_names)
                 from_clause += ' natural join mission_name'
 
@@ -282,12 +293,9 @@ class TaskPacketDatabase:
             conditionals = []
             parameters = []
 
-            if bot_ids is not None:
-                bot_ids = list(bot_ids)
-                if len(bot_ids) == 0:
-                    return []
-                
-                conditionals.append(f'bot_id in ({",".join(["?"] * len(bot_ids))})')
+            bot_ids = list(bot_ids) if bot_ids is not None else []
+            if len(bot_ids) > 0:
+                conditionals.append(f'bot_id in {sql_set_placeholders(bot_ids)}')
                 parameters.extend(bot_ids)
 
             if start_utime is not None:
@@ -325,6 +333,30 @@ class TaskPacketDatabase:
             return sorted(mission_summaries.values(), key=lambda ms: ms.start_time)
 
 
+    def query_task_packets(self, 
+                           bot_ids: Union[Iterable[int], None]=None, 
+                           start_utime: Union[int, None]=None, 
+                           end_utime: Union[int, None]=None, 
+                           included: Union[bool, None]=True,
+                           mission_names: Union[Iterable[str], None]=None) -> List[TaskPacket]:
+        """Queries the task packets and returns them as protobuf objects.
+
+        Args:
+            bot_ids (Union[Iterable[int], None]): List of bot_ids.
+            start_utime (Union[int, None]): Start of time window (or None if no minimum time)
+            end_utime (Union[int, None]): End of time window (or None if no maximum time)
+            included (Union[bool, None]): Included or excluded task packets (None for both types)
+            mission_names (Union[Iterable[str], None]): List of mission names to filter by (None for all missions)
+
+        Returns:
+            list[TaskPacket]: A list of task packets that match the criteria, as protobuf objects.
+        """
+        taskpacket_dicts = self.query_task_packets_as_dicts(bot_ids=bot_ids, start_utime=start_utime, end_utime=end_utime, included=included, mission_names=mission_names)
+
+        return [ParseDict(tp_dict, TaskPacket(), ignore_unknown_fields=True) for tp_dict in taskpacket_dicts]
+
+
+
     def get_task_packets(self, start_date: datetime, end_date: datetime):
         """Selects TaskPackets between the provided date bounds
         Args:
@@ -338,8 +370,8 @@ class TaskPacketDatabase:
         end_utime = utime(end_date) if end_date else None
 
         result = {
-            "included": self.query_task_packets(bot_ids=None, start_utime=start_utime, end_utime=end_utime, included=True),
-            "excluded": self.query_task_packets(bot_ids=None, start_utime=start_utime, end_utime=end_utime, included=False)
+            "included": self.query_task_packets_as_dicts(bot_ids=None, start_utime=start_utime, end_utime=end_utime, included=True),
+            "excluded": self.query_task_packets_as_dicts(bot_ids=None, start_utime=start_utime, end_utime=end_utime, included=False)
         }
 
         return result
