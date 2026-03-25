@@ -21,6 +21,7 @@ set(SENSOR_PROTOS
 # All messages used by microcontrollers (C code)
 set(MCU_PROTOS
   ${SENSOR_PROTOS}
+  storm_mcu.proto
   arduino.proto
   feather.proto
 )
@@ -100,7 +101,7 @@ if(NOT CMAKE_CROSSCOMPILING)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
   check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x7bc1fd7f61f085b0")
-  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0xc2b6ff5101df098c")
+  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x80b6115a16159498")
   check_dccl_md5_hash("jaiabot.protobuf.Command" "0x857fbdfb129d20e2")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x6694c32d91a8b1c7")
 endif()

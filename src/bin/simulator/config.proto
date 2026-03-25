@@ -28,6 +28,7 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/moos/protobuf/moos_gateway_config.proto";
 import "goby/middleware/protobuf/udp_config.proto";
+import "goby/middleware/protobuf/pty_config.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
 import "jaiabot/messages/node.proto";
 
@@ -232,4 +233,10 @@ message StormSimThread
     }
 
     repeated SimFailure failures = 10;
+
+    required goby.middleware.protobuf.PTYConfig mcu_pty = 20;
+    optional float air_data_sample_rate = 21 [
+        default = 1,
+        (dccl.field) = { units { derived_dimensions: "frequency" } }
+    ];
 }

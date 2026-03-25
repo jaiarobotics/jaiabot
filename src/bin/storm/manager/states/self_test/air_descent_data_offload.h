@@ -29,11 +29,24 @@ struct AirDescentDataOffload
 {
     using StateBase = boost::statechart::state<AirDescentDataOffload, SelfTest>;
 
-    AirDescentDataOffload(typename StateBase::my_context c) : StateBase(c) {}
+    AirDescentDataOffload(typename StateBase::my_context c) : StateBase(c)
+    {
+        protobuf::StormMCURequest request;
+        request.set_type(protobuf::StormMCURequest::AIR_DESCENT_DATA_REQUEST);
+        this->app().send_to_mcu(request);
+    }
     ~AirDescentDataOffload() {}
 
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvAirDescentDataTransmitted, Wrapup>,
-                         boost::statechart::transition<EvAirDescentDataTimeout, Wrapup>>;
+    void mcu_response(const EvMCUResponse& ev)
+    {
+        goby::glog.is_debug1() && goby::glog << group("statechart") << "[mcu resp] "
+                                             << ev.resp.ShortDebugString() << std::endl;
+    }
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvAirDescentDataTransmitted, Wrapup>,
+        boost::statechart::transition<EvAirDescentDataTimeout, Wrapup>,
+        boost::statechart::in_state_reaction<EvMCUResponse, AirDescentDataOffload,
+                                             &AirDescentDataOffload::mcu_response>>;
 };
 #endif

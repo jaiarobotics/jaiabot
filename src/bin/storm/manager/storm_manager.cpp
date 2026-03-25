@@ -36,10 +36,16 @@ namespace middleware = goby::middleware;
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
+#include "jaiabot/messages/storm_mcu.pb.h"
+#include "jaiabot/serial/mcu.h"
 #include "states.h"
 // intentionally left blank
 #include "state_machine.h"
 #include "storm_manager.h"
+
+// raw IOData
+constexpr goby::middleware::Group mcu_serial_in{"jaiabot::storm::mcu_serial_in"};
+constexpr goby::middleware::Group mcu_serial_out{"jaiabot::storm::mcu_serial_out"};
 
 // Main thread
 void jaiabot::apps::StormManager::initialize()
@@ -63,7 +69,7 @@ jaiabot::apps::StormManager::StormManager()
 {
     glog.add_group("statechart", goby::util::Colors::yellow);
 
-    interthread().subscribe<jaiabot::groups::storm_state_change>(
+    interthread().subscribe<jaiabot::groups::storm::state_change>(
         [this](const jaiabot::protobuf::StormMissionStateChange& state_change)
         {
             const auto& state_name =
@@ -133,6 +139,17 @@ jaiabot::apps::StormManager::StormManager()
             machine_->process_event(statechart::EvPressure(
                 raw_pressure_.mean(), raw_pressure_.median(), raw_pressure_.stddev()));
         });
+
+    // receive data from MCU
+    interthread().subscribe<mcu_serial_in>([this](const goby::middleware::protobuf::IOData& io_msg)
+                                           { receive_from_mcu(io_msg); });
+
+    using MCUSerialThread =
+        goby::middleware::io::SerialThreadCOBS<mcu_serial_in, mcu_serial_out,
+                                               goby::middleware::io::PubSubLayer::INTERTHREAD,
+                                               goby::middleware::io::PubSubLayer::INTERTHREAD>;
+
+    launch_thread<MCUSerialThread>(cfg().mcu_serial());
 }
 
 jaiabot::apps::StormManager::~StormManager() {}
@@ -158,7 +175,7 @@ void jaiabot::apps::StormManager::publish_mission_report(protobuf::StormMissionS
     protobuf::StormMissionReport report;
     report.set_state(state);
 
-    interprocess().publish<jaiabot::groups::storm_mission_report>(report);
+    interprocess().publish<jaiabot::groups::storm::mission_report>(report);
 }
 
 void jaiabot::apps::StormManager::process_mission_manager_state(protobuf::MissionState state)
@@ -193,4 +210,33 @@ void jaiabot::apps::StormManager::process_mission_manager_state(protobuf::Missio
 
         default: break;
     }
+}
+
+void jaiabot::apps::StormManager::receive_from_mcu(const goby::middleware::protobuf::IOData& io_msg)
+{
+    glog.is_debug1() && glog << "Received bytes from MCU: " << goby::util::hex_encode(io_msg.data())
+                             << std::endl;
+    try
+    {
+        auto mcu_response = jaiabot::serial::decode_from_mcu<protobuf::StormMCUResponse>(io_msg);
+        glog.is_verbose() && glog << "Received data from MCU: " << mcu_response.ShortDebugString()
+                                  << std::endl;
+        // publish for logging
+        interprocess().publish<jaiabot::groups::storm::mcu_pb_data_in>(mcu_response);
+        // post for state machine
+        machine_->process_event(statechart::EvMCUResponse(mcu_response));
+    }
+    catch (std::exception& e)
+    {
+        glog.is_warn() && glog << "Failed to decode message from MCU: " << e.what() << std::endl;
+    }
+}
+
+void jaiabot::apps::StormManager::send_to_mcu(const protobuf::StormMCURequest& request)
+{
+    glog.is_verbose() && glog << "Send data to MCU: " << request.ShortDebugString() << std::endl;
+    auto io_msg = jaiabot::serial::encode_for_mcu(request);
+    glog.is_debug1() && glog << "Sending bytes to MCU: " << goby::util::hex_encode(io_msg->data())
+                             << std::endl;
+    interthread().publish<mcu_serial_out>(io_msg);
 }

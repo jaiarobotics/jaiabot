@@ -32,7 +32,9 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/simulator.pb.h"
 #include "jaiabot/messages/storm.pb.h"
+#include "jaiabot/messages/storm_mcu.pb.h"
 #include "jaiabot/messages/udp_gateway.pb.h"
+#include "jaiabot/serial/mcu.h"
 
 #include "storm_sim_thread.h"
 
@@ -61,6 +63,22 @@ jaiabot::apps::StormSimThread::StormSimThread(const jaiabot::config::StormSimThr
 
     for (auto failure : cfg.failures())
         failures_.try_emplace(failure.type(), std::bernoulli_distribution(failure.probability()));
+
+    interthread().subscribe<groups::storm_mcu_serial_in>(
+        [this](const goby::middleware::protobuf::IOData& io_msg)
+        {
+            try
+            {
+                auto req = jaiabot::serial::decode_from_mcu<protobuf::StormMCURequest>(io_msg);
+                mcu_rx(req);
+            }
+            catch (std::exception& e)
+            {
+                glog.is_warn() && glog
+                                      << "Failed to decode message from storm manager: " << e.what()
+                                      << std::endl;
+            }
+        });
 }
 
 void jaiabot::apps::StormSimThread::handle_dive_nav(std::shared_ptr<const SimNav> dv_nav)
@@ -136,6 +154,7 @@ void jaiabot::apps::StormSimThread::compute_air_descent(
         state_.stage = protobuf::IN_WATER;
         state_.nav.depth = 0 * si::meters;
         state_.in_water_start = now;
+        state_.air_descent_end = goby::time::SystemClock::now();
     }
 }
 
@@ -200,4 +219,30 @@ void jaiabot::apps::StormSimThread::compute_in_water_nav(
             // normal mission
         }
     }
+}
+
+void jaiabot::apps::StormSimThread::mcu_rx(const protobuf::StormMCURequest& mcu_req)
+{
+    glog.is_debug1() && glog << group("storm") << "[mcu_req] " << mcu_req.ShortDebugString()
+                             << std::endl;
+
+    switch (mcu_req.type())
+    {
+        case protobuf::StormMCURequest::AIR_DESCENT_DATA_REQUEST: send_air_descent_data(); break;
+    }
+}
+
+void jaiabot::apps::StormSimThread::send_air_descent_data()
+{
+    protobuf::StormMCUResponse metadata_response;
+    auto& metadata = *metadata_response.mutable_air_descent_metadata();
+    metadata.set_start_time_with_units(
+        goby::time::convert<goby::time::MicroTime>(state_.air_descent_start));
+    metadata.set_end_time_with_units(
+        goby::time::convert<goby::time::MicroTime>(state_.air_descent_end));
+    metadata.set_sample_rate_with_units(cfg().air_data_sample_rate_with_units());
+    metadata.set_num_packets(1);
+
+    interthread().publish<groups::storm_mcu_serial_out>(
+        jaiabot::serial::encode_for_mcu(metadata_response));
 }

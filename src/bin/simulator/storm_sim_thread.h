@@ -23,12 +23,20 @@
 #ifndef JAIABOT_SRC_BIN_SIMULATOR_STORM_SIM_THREAD_H
 #define JAIABOT_SRC_BIN_SIMULATOR_STORM_SIM_THREAD_H
 
+#include <goby/middleware/group.h>
 #include <random>
 
 #include "simulator_thread.h"
 
 namespace jaiabot
 {
+
+namespace groups
+{
+constexpr goby::middleware::Group storm_mcu_serial_in{"jaiabot::storm::mcu_serial_in"};
+constexpr goby::middleware::Group storm_mcu_serial_out{"jaiabot::storm::mcu_serial_out"};
+} // namespace groups
+
 namespace apps
 {
 
@@ -40,6 +48,9 @@ class StormSimThread : public SimulatorThread<jaiabot::config::StormSimThread>
 
     struct StormSimState
     {
+        goby::time::SystemClock::time_point air_descent_start{goby::time::SystemClock::now()};
+        goby::time::SystemClock::time_point air_descent_end{goby::time::SystemClock::now()};
+
         protobuf::StormMissionSimulatorStage stage{protobuf::AIR_DESCENT};
         goby::time::SteadyClock::time_point in_water_start{goby::time::SteadyClock::now()};
         SimNav nav;
@@ -57,6 +68,9 @@ class StormSimThread : public SimulatorThread<jaiabot::config::StormSimThread>
                              const boost::units::quantity<boost::units::si::time>& dt);
     void compute_in_water_nav(const goby::time::SteadyClock::time_point& now,
                               const boost::units::quantity<boost::units::si::time>& dt);
+    void mcu_rx(const protobuf::StormMCURequest& mcu_req);
+
+    void send_air_descent_data();
 
   private:
     StormSimState state_;

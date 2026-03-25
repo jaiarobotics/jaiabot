@@ -25,6 +25,7 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
+#include <goby/middleware/io/cobs/serial.h>
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
@@ -45,6 +46,9 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     StormManager();
     ~StormManager();
 
+    // so states can send directly to MCU
+    void send_to_mcu(const protobuf::StormMCURequest& request);
+
   private:
     void initialize() override;
     void finalize() override;
@@ -53,6 +57,8 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
 
     void publish_mission_report(protobuf::StormMissionState state);
     void process_mission_manager_state(protobuf::MissionState state);
+
+    void receive_from_mcu(const goby::middleware::protobuf::IOData& io_msg);
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 

@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
+import "goby/middleware/protobuf/serial_config.proto";
 
 import "dccl/option_extensions.proto";
 
@@ -30,4 +31,7 @@ message StormManager
         optional uint32 gps_altitude = 3 [default = 10];
     }
     optional RollingStatsSampleCount rolling_stats_sample_count = 20;
+
+    optional goby.middleware.protobuf.SerialConfig mcu_serial = 30;
+
 }

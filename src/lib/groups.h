@@ -60,7 +60,6 @@ constexpr goby::middleware::Group aml_in{"jaiabot::sensors::aml::in"};
 constexpr goby::middleware::Group aml_out{"jaiabot::sensors::aml::out"};
 constexpr goby::middleware::Group aml{"jaiabot::sensors::aml"};
 
-
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};
@@ -147,9 +146,13 @@ constexpr goby::middleware::Group script_step_end{"jaiabot::script_step_end"};
 // PPK recorder
 constexpr goby::middleware::Group ppk{"jaiabot::ppk"};
 
-// storm manager
-constexpr goby::middleware::Group storm_mission_report{"jaiabot::storm_mission_report"};
-constexpr goby::middleware::Group storm_state_change{"jaiabot::storm_state_change"};
+// STORM variant
+namespace storm
+{
+constexpr goby::middleware::Group mission_report{"jaiabot::storm::mission_report"};
+constexpr goby::middleware::Group state_change{"jaiabot::storm::state_change"};
+constexpr goby::middleware::Group mcu_pb_data_in{"jaiabot::storm::mcu_pb_data_in"};
+} // namespace storm
 
 } // namespace groups
 } // namespace jaiabot

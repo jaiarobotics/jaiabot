@@ -98,5 +98,11 @@ storm_config {
 #    type:   #  (STUCK_IN_TUBE_UNRESOLVABLE, 
 #            # PARACHUTE_NOT_DETACHED_UNRESOLVABLE)
 #    probability: 1  #  0-1 for 0-100% chance of failure happening
-#  }
+  #  }
+
+  mcu_pty {
+      port: "/tmp/tty_storm_mcu"
+      baud: 19200
+  }
+
 }

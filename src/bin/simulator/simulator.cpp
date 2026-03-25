@@ -56,6 +56,8 @@
 #include "simulator_thread.h"
 #include "storm_sim_thread.h"
 
+#include <goby/middleware/io/cobs/pty.h>
+
 using goby::glog;
 namespace si = boost::units::si;
 namespace config = jaiabot::config;
@@ -138,7 +140,14 @@ jaiabot::apps::Simulator::Simulator()
 
         switch (cfg().bot_type())
         {
-            case protobuf::STORM: launch_thread<StormSimThread>(cfg().storm_config()); break;
+            case protobuf::STORM:
+                using MCUPtyThread = goby::middleware::io::PTYThreadCOBS<
+                    groups::storm_mcu_serial_in, groups::storm_mcu_serial_out,
+                    goby::middleware::io::PubSubLayer::INTERTHREAD,
+                    goby::middleware::io::PubSubLayer::INTERTHREAD>;
+                launch_thread<MCUPtyThread>(cfg().storm_config().mcu_pty());
+                launch_thread<StormSimThread>(cfg().storm_config());
+                break;
 
             default: break;
         }

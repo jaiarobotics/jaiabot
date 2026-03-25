@@ -10,6 +10,7 @@ import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/link.proto";
 import "jaiabot/messages/storm.proto";
+import "jaiabot/messages/storm_mcu.proto";
 import "jaiabot/messages/node.proto";
 
 package jaiabot.protobuf;
@@ -643,12 +644,18 @@ message TaskPacket
     // Link traversed
     optional Link link = 5 [(dccl.field).omit = true];
 
-    optional DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
+    oneof vertical_data
+    {
+        DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
+        StormAirDescentData storm_air_descent = 12;
+    }
+
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    // The command_time is the time that the command associated with this task was sent from the Hub.
-    // This is used, along with the bot_id, to populate the mission_name on the Hub.
+    // The command_time is the time that the command associated with this task
+    // was sent from the Hub. This is used, along with the bot_id, to populate
+    // the mission_name on the Hub.
     optional uint64 mission_command_time = 71 [
         (dccl.field) = {
             codec: "dccl.time2"
@@ -658,7 +665,6 @@ message TaskPacket
     ];
     optional string mission_name = 72
         [(dccl.field).omit = true];  // not sent, restored on Hub from map
-
 }
 
 message ContactUpdate

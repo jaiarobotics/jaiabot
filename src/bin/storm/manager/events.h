@@ -109,6 +109,12 @@ struct EvGPSAltitude : boost::statechart::event<EvGPSAltitude>
 };
 STATECHART_EVENT(EvLoop)
 
+struct EvMCUResponse : boost::statechart::event<EvMCUResponse>
+{
+    EvMCUResponse(const jaiabot::protobuf::StormMCUResponse& resp) : resp(resp) {}
+    jaiabot::protobuf::StormMCUResponse resp;
+};
+
 #undef STATECHART_EVENT
 
 } // namespace statechart

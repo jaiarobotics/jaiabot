@@ -83,3 +83,9 @@ initial_mission {
     }
   }
 }
+
+
+mcu_serial { 
+  port: "/tmp/tty_storm_mcu" 
+  baud: 19200
+}

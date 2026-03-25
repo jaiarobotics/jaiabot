@@ -93,7 +93,7 @@ struct Notify : public AppMethodsAccess<Derived>
         protobuf::StormMissionStateChange state_change;
         state_change.set_state(state);
         state_change.set_direction(protobuf::StormMissionStateChange::ENTERED);
-        this->interprocess().template publish<groups::storm_state_change>(state_change, {pub_cfg});
+        this->interprocess().template publish<groups::storm::state_change>(state_change, {pub_cfg});
     }
     ~Notify()
     {
@@ -102,7 +102,7 @@ struct Notify : public AppMethodsAccess<Derived>
         protobuf::StormMissionStateChange state_change;
         state_change.set_state(state);
         state_change.set_direction(protobuf::StormMissionStateChange::EXITED);
-        this->interprocess().template publish<groups::storm_state_change>(state_change, {pub_cfg});
+        this->interprocess().template publish<groups::storm::state_change>(state_change, {pub_cfg});
     }
 };
 

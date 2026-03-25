@@ -661,7 +661,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
     if (cfg().bot_type() == protobuf::STORM)
     {
-        interprocess().subscribe<jaiabot::groups::storm_mission_report>(
+        interprocess().subscribe<jaiabot::groups::storm::mission_report>(
             [this](const protobuf::StormMissionReport& report)
             { latest_bot_status_.mutable_storm()->set_mission_state(report.state()); });
     }
