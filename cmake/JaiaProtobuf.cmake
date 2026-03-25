@@ -59,7 +59,6 @@ function(jaiabot_protobuf_generate)
       PROTOC_OUT_DIR ${protoc_out_dir}
       IMPORT_DIRS ${project_PROTO_IMPORT_DIRS} ${args_IMPORT_DIRS}
       PROTOS ${args_PROTOS}
-      GENERATE_EXTENSIONS .py .pyi
     )
   else()
     message(FATAL_ERROR "Unsupported LANGUAGE ${args_LANGUAGE} given to jaiabot_protobuf_generate")
