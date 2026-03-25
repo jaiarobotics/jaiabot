@@ -171,7 +171,8 @@ class Interface:
 
                 if 'bot_offload' in hubStatus:
                     if hubStatus['bot_offload'].get('offload_succeeded') is True:
-                        self.task_packet_database._update()
+                        pass
+                        # self.task_packet_database._update()
 
                 # Set the time of last status to now
                 hubStatus['lastStatusReceivedTime'] = now_utime()
