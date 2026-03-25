@@ -1,7 +1,8 @@
 from typing import *
-
-import jaia_messages
 import logging
+
+# Jaia packages
+from pyjaia.jaialog_store import jaia_messages
 
 
 def read_file(file_path: str) -> List[jaia_messages.TaskPacket]:

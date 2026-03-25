@@ -3,8 +3,8 @@
 from typing import *
 from pprint import *
 from datetime import *
+from pyjaia import jaialog_store
 
-import web.jdv.server.jaialog_store as jaialog_store
 import taskpacketfile
 import argparse
 import dateutil.parser
