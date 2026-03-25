@@ -7,7 +7,7 @@ import {
     TaskParameters,
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
-import { Metadata } from "../../types/protobuf-types";
+import { Metadata, Version } from "../../types/protobuf-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 export interface JaiaGlobalSnapshot {
@@ -37,6 +37,12 @@ const defaultTaskParameters: TaskParameters = {
     },
 };
 
+const defaultGitHubVersion = {
+    major: "",
+    minor: "",
+    patch: "",
+};
+
 export class JaiaGlobal {
     private selectedNode: SelectedNode;
     private selectedWaypoint: SelectedWaypoint;
@@ -45,6 +51,7 @@ export class JaiaGlobal {
     private defaultTaskParameters: TaskParameters;
     private controllingClientID: string;
     private metadata: Metadata;
+    private gitHubVersion: Version;
     private isUpgradeAvailable: boolean;
 
     constructor() {
@@ -62,6 +69,7 @@ export class JaiaGlobal {
         this.mapMode = MapModes.DEFAULT;
         this.defaultTaskParameters = defaultTaskParameters;
         this.metadata = {};
+        this.gitHubVersion = defaultGitHubVersion;
         this.isUpgradeAvailable = false;
     }
 
@@ -126,6 +134,14 @@ export class JaiaGlobal {
 
     setMetadata(metadata: Metadata) {
         this.metadata = metadata;
+    }
+
+    getGitHubVersion() {
+        return this.gitHubVersion;
+    }
+
+    setGitHubVersion(version: Version) {
+        this.gitHubVersion = version;
     }
 
     getIsUpgradeAvailable() {

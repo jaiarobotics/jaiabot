@@ -12,7 +12,7 @@ import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { NO_COMMS_STATUS_AGE } from "../utils/constants";
-import { Version } from "../types/protobuf-types";
+import { Metadata, Version } from "../types/protobuf-types";
 import SoundEffects from "../style/audio/sound-effects";
 
 const MAX_REQUEST_TIME = 10000; // ms;
@@ -32,7 +32,6 @@ const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/l
 let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
 let metadataRequestInFlight = false;
-let gitHubRequestInFlight = false;
 
 let statusRequestStartTime = new Date().getTime();
 
@@ -131,8 +130,13 @@ export async function pollMetadata() {
         if (!res.ok) {
             console.error(`Metadata response status: ${res.status}`);
         } else {
-            const metadata = await res.json();
+            const metadata: Metadata = await res.json();
+            const isUpgradeAvailable = compareVersions(
+                metadata.jaiabot_version,
+                jaiaGlobal.getGitHubVersion(),
+            );
             jaiaGlobal.setMetadata(metadata);
+            jaiaGlobal.setIsUpgradeAvailable(isUpgradeAvailable);
         }
     } catch (error) {
         console.error(error);
@@ -147,27 +151,27 @@ export async function pollMetadata() {
  * @returns {void}
  */
 export async function pollGitHub() {
-    if (gitHubRequestInFlight) {
+    if (!navigator.onLine) {
         return;
     }
+
+    // We already retrieved the version from GitHub
+    if (jaiaGlobal.getGitHubVersion().major !== "") {
+        return;
+    }
+
     try {
-        gitHubRequestInFlight = true;
         const res = await fetch(GITHUB_URL);
         if (!res.ok) {
             console.error(`GitHub response status: ${res.status}`);
         } else {
             const json = await res.json();
             const gitHubVersion = deconstructTagName(json.tag_name);
-            const isUpgradeAvailable = compareVersions(
-                jaiaGlobal.getMetadata()?.jaiabot_version,
-                gitHubVersion,
-            );
-            jaiaGlobal.setIsUpgradeAvailable(isUpgradeAvailable);
+            jaiaGlobal.setGitHubVersion(gitHubVersion);
         }
     } catch (error) {
         console.error(error);
     }
-    gitHubRequestInFlight = false;
 }
 
 /**
