@@ -39,9 +39,10 @@ struct InWaterDetection : boost::statechart::state<InWaterDetection, SelfTest>,
 
     using local_reactions =
         boost::mpl::list<boost::statechart::transition<EvWaterDetected, LaunchTubeDetection>>;
+    using common_reactions = ThresholdBase::common_reactions; // typedef for jaia_state_tool
 
-    using reactions = typename boost::mpl::copy<
-        local_reactions, boost::mpl::front_inserter<ThresholdBase::common_reactions>>::type;
+    using reactions = typename boost::mpl::copy<local_reactions,
+                                                boost::mpl::front_inserter<common_reactions>>::type;
 };
 
 #endif
