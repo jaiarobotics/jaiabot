@@ -8,7 +8,7 @@ import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
 import Mission from "../../data/mission_set/mission";
 
-import { point, rhumbDistance, Units } from "@turf/turf";
+import { distance, point, Units } from "@turf/turf";
 
 /**
  * Provides a class name that corresponds to styles illustrating comms health
@@ -65,10 +65,10 @@ export function getDistanceToHub(botGPS: GPS, hubGPS: GPS) {
         return "N/A";
     }
 
-    const botLocation = point([botGPS.getLat(), botGPS.getLon()]);
-    const hubLocation = point([hubGPS.getLat(), hubGPS.getLon()]);
+    const botLocation = point([botGPS.getLon(), botGPS.getLat()]);
+    const hubLocation = point([hubGPS.getLon(), hubGPS.getLat()]);
     const options = { units: "meters" as Units };
-    return rhumbDistance(botLocation, hubLocation, options).toFixed(1);
+    return distance(botLocation, hubLocation, options).toFixed(1);
 }
 
 /**
