@@ -24,7 +24,6 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import {
     getDistanceToHub,
     getStatusAgeClassName,
-    getWaypontHelperText,
     getBotOffloadPercent,
     getRepeatProgress,
     getDistToWaypoint,
@@ -114,7 +113,6 @@ export default function BotDetails() {
                             ⨯
                         </div>
                     </div>
-                    <h3 className="details-help-text">{getWaypontHelperText(mission)}</h3>
                     <div className="details-toolbar">
                         <StopButton bot={bot} />
                         <StartMissionButton
