@@ -72,22 +72,6 @@ export function getDistanceToHub(botGPS: GPS, hubGPS: GPS) {
 }
 
 /**
- * Provides helper text to operators for creating waypoints
- *
- * @param {Mission} mission Determines what message to display based on properties
- * @returns {string} Helper text for adding waypoints
- *
- * @notes Edit mode toggle and related items will not be functional
- * until mission management refactor is complete
- */
-export function getWaypontHelperText(mission: Mission) {
-    if (!mission || missionSet.getMissionIDInEditMode() === mission.getMissionID()) {
-        return "Click on the map to create waypoints";
-    }
-    return "Click edit toggle to create waypoint";
-}
-
-/**
  * Provides data offload percentage
  *
  * @param {number} botID Used to grab the correct offload data from the Hub
