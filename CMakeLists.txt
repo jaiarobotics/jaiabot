@@ -82,6 +82,14 @@ if(export_goby_interfaces)
   set(YML_OUT_DIR ${project_SHARE_DIR}/jaiabot/interfaces)
 endif()
 
+# settings for jaia_state_tool (boost::statechart state diagram generation)
+option(build_state_diagrams "Build Graphviz and Mermaid state diagrams (PDF) from boost::statechart code (requires Clang 18 dev libraries; optionally graphviz dot and/or mmdc for PDF rendering)" OFF)
+
+if(build_state_diagrams)
+  include(JaiaStateTool)
+  set(STATE_DIAGRAM_OUT_DIR ${project_SHARE_DIR}/jaiabot/state_diagrams)
+endif()
+
 
 find_program(ARDUINO_CLI arduino-cli)
 if(ARDUINO_CLI)
