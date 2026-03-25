@@ -13,9 +13,7 @@ import OfflineMaps from "./OfflineMaps/OfflineMaps";
 import QueryBotStatus from "./QueryBotStatus/QueryBotStatus";
 import LayerSwitcherMenu from "./LayerSwitcherMenu/LayerSwitcherMenu";
 import { trackPod } from "../../openlayers/controls/track-pod";
-import { jaiaAPI } from "../../utils/jaia-api";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
-import { Metadata } from "../../types/protobuf-types";
 
 import "./SettingsPanel.less";
 

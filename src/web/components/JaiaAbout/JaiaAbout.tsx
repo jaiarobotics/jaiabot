@@ -2,7 +2,7 @@ import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
-import NotificationDot from "../NotificatioDot/NotificationDot";
+import NotificationDot from "../NotificationDot/NotificationDot";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { Version } from "../../types/protobuf-types";
 

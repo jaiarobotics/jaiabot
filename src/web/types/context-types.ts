@@ -185,8 +185,3 @@ export enum TaskPacketVisibility {
     EXCLUDE = 1,
     INCLUDE = 2,
 }
-
-export enum NotificationColors {
-    RED = "red",
-    YELLOW = "yellow",
-}

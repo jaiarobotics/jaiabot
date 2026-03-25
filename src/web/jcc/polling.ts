@@ -34,6 +34,8 @@ let taskPacketRequestInFlight = false;
 let metadataRequestInFlight = false;
 let gitHubRequestInFlight = false;
 
+let statusRequestStartTime = new Date().getTime();
+
 /**
  * Hits the status endpoint and updates the data model and openlayers
  * with information from the response
@@ -41,10 +43,9 @@ let gitHubRequestInFlight = false;
  * @returns {void}
  */
 export async function pollStatus() {
-    const startTime = new Date().getTime();
     if (statusRequestInFlight) {
-        const endTime = new Date().getTime();
-        const duration = endTime - startTime;
+        const now = new Date().getTime();
+        const duration = now - statusRequestStartTime;
         if (duration > MAX_REQUEST_TIME) {
             updateWarning(CONGESTION_WARNING, true);
         }
@@ -52,6 +53,7 @@ export async function pollStatus() {
     }
     try {
         statusRequestInFlight = true;
+        statusRequestStartTime = new Date().getTime();
         const response = await fetch(STATUS_URL);
         if (!response.ok) {
             console.error(`Response status: ${response.status}`);
@@ -72,7 +74,7 @@ export async function pollStatus() {
         console.error(error);
     }
     const endTime = new Date().getTime();
-    const duration = endTime - startTime;
+    const duration = endTime - statusRequestStartTime;
     if (duration > MAX_REQUEST_TIME) {
         updateWarning(CONGESTION_WARNING, true);
     } else {
@@ -243,6 +245,10 @@ function updateTaskLayers() {
  */
 function updateWarning(id: string, isDisconnected: boolean) {
     const connectionWarning = document.getElementById(id);
+    if (!connectionWarning) {
+        return;
+    }
+
     if (isDisconnected) {
         connectionWarning.style.visibility = "visible";
     } else {
@@ -280,20 +286,20 @@ function handleBotSoundEffects(prevStatusAge: number, newStatusAge: number) {
  * @returns {Version} Tag broken into major, minor, and patch
  */
 function deconstructTagName(tagName: string) {
+    const gitHubVersion: Version = {
+        major: "",
+        minor: "",
+        patch: "",
+    };
     if (tagName) {
         const version = tagName.split(".");
-        const gitHubVersion: Version = {
-            major: "",
-            minor: "",
-            patch: "",
-        };
         if (version.length === VERSION_LENGTH) {
             gitHubVersion.major = version[0];
             gitHubVersion.minor = version[1];
             gitHubVersion.patch = version[2];
         }
-        return gitHubVersion;
     }
+    return gitHubVersion;
 }
 
 /**

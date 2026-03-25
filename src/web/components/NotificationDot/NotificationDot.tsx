@@ -14,7 +14,7 @@ export default function NotificationDot(props: Props) {
     const jaiaContext = useContext(JaiaContext);
 
     if (!jaiaContext) {
-        return;
+        return null;
     }
 
     if (!jaiaContext.jaiaGlobal.getIsInternetConnected()) {

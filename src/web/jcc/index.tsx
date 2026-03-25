@@ -8,7 +8,7 @@ import {
 } from "../utils/constants";
 import { pollGitHub, pollMetadata, pollStatus, pollTaskPackets } from "./polling";
 
-// Make inital calls
+// Make initial calls
 pollStatus();
 pollTaskPackets();
 pollMetadata();
