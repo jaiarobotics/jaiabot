@@ -44,7 +44,6 @@ def extract_drift_segments(stationkeep_df, log):
             segment_df = stationkeep_df.iloc[momentum_clear_index:end_idx]
             drift_seg = {
                 "epoch_time": segment_df['ts'].to_numpy(),
-                "pressure":   segment_df['pressure'].to_numpy(),
                 "speed":      segment_df['speed'].to_numpy(),
                 "latitude":   segment_df['lat'].to_numpy(),
                 "longitude":  segment_df['lon'].to_numpy(),
@@ -55,24 +54,16 @@ def extract_drift_segments(stationkeep_df, log):
     
     return drifts
 
-def create_pressure_mask(pressure, threshold_bar=0.05):
-    """Creates a boolean mask for pressure values greater than a threshold. 0.05 bar selected as rough "wetness" filter."""
-    return pressure > threshold_bar
-
 def create_speed_mask(speed, threshold_mps=1.25):
     """Creates a boolean mask for speed values below a threshold. 1.25 m/s selected as rough "surfing" (bot carried by wave) speed threshold."""
     return speed < threshold_mps
 
-def filter_current_data(drift, log, use_pressure=False, use_speed=True):
+def filter_current_data(drift, log, use_speed=True):
     """
     Computes filters for a single drift segment and returns the mask to filter data.
     """
     final_mask = np.ones_like(drift["epoch_time"], dtype=bool)
     log.info(f"Number of points in driftlet before filtering: {len(final_mask)}")
-
-    if use_pressure:
-        final_mask &= create_pressure_mask(drift["pressure"])
-        log.info(f"Number of points filtered by pressure mask: {np.sum(np.logical_not(create_pressure_mask(drift["pressure"])))}")
 
     if use_speed:
         final_mask &= create_speed_mask(drift["speed"])

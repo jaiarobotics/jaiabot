@@ -31,7 +31,6 @@ class FSM_STATES(Enum):
 # i8 = int64, i4 = int32, f8 = float64
 GPS_DTYPE = [('ts', 'i8'), ('lat', 'f8'), ('lon', 'f8'), ('speed', 'f8')]
 ARDUINO_DTYPE = [('ts', 'i8'), ('motor', 'i4')]
-PRESSURE_DTYPE = [('ts', 'i8'), ('pressure', 'f8')]
 
 # --- Mission States to Ignore for Ending a Station-Keep ---
 PAUSED_MISSION_STATES = {
@@ -80,7 +79,6 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
     with h5py.File(h5_log_path, 'w') as f:
         if data_buffers['gps']: f.create_dataset("gps", data=np.array(data_buffers['gps'], dtype=GPS_DTYPE))
         if data_buffers['arduino']: f.create_dataset("arduino", data=np.array(data_buffers['arduino'], dtype=ARDUINO_DTYPE))
-        if data_buffers['pressure']: f.create_dataset("pressure", data=np.array(data_buffers['pressure'], dtype=PRESSURE_DTYPE))
 
     # --- Process the logged data ---
     log.info("Processing logged data...")
@@ -138,27 +136,25 @@ def process_logged_data(h5_log_path, log):
     """Processes logged data from an HDF5 file to compute current statistics."""
     try:
         with h5py.File(h5_log_path, 'r') as f:
-            if "gps" not in f or "arduino" not in f or "pressure" not in f:
+            if "gps" not in f or "arduino" not in f:
                 log.error("HDF5 file is missing required datasets.")
                 return {}
 
             gps_df = pd.DataFrame(f["gps"][:])
             arduino_df = pd.DataFrame(f["arduino"][:])
-            pressure_df = pd.DataFrame(f["pressure"][:])
 
-        if gps_df.empty or arduino_df.empty or pressure_df.empty:
+        if gps_df.empty or arduino_df.empty:
             log.warning(f"One or more datasets in '{h5_log_path}' were empty.")
             return {}
 
         # Convert nanosecond timestamps (int64) to seconds as float64.
         # Using float64 seconds is sufficient for the expected mission durations
         # and matches the f8 (float64) timestamp precision used elsewhere.
-        for df in [gps_df, arduino_df, pressure_df]:
+        for df in [gps_df, arduino_df]:
             df['ts'] = df['ts'].astype('float64') / 1_000_000_000.0
 
         motor_interp = np.interp(gps_df['ts'], arduino_df['ts'], arduino_df['motor'], left=np.nan, right=np.nan)
-        pressure_interp = np.interp(gps_df['ts'], pressure_df['ts'], pressure_df['pressure'], left=np.nan, right=np.nan)
-        stationkeep_df = gps_df.assign(motor=motor_interp, pressure=pressure_interp).dropna()
+        stationkeep_df = gps_df.assign(motor=motor_interp).dropna()
 
         log.info(f"Number of points in Station Keep: {stationkeep_df.shape[0]}")
         drift_segments = cal.extract_drift_segments(stationkeep_df, log)
@@ -221,7 +217,7 @@ def main(args):
                     log.info("Start signal received. Switching to LOGGING mode.")
                     current_state = FSM_STATES.LOGGING
                     start_time_us = int(time.time() * 1_000_000)
-                    data_buffers = {'gps': [], 'arduino': [], 'pressure': []}
+                    data_buffers = {'gps': [], 'arduino': []}
             
             # === LOGGING MODE ===
             elif current_state == FSM_STATES.LOGGING:
@@ -236,9 +232,6 @@ def main(args):
                     case 'arduino_response':
                         if payload.arduino_response.HasField('motor'):
                             data_buffers['arduino'].append((int(current_ts * 1e9), payload.arduino_response.motor))
-                    case 'pressure_temperature_data':
-                        if payload.pressure_temperature_data.HasField('pressure_raw'):
-                            data_buffers['pressure'].append((int(current_ts * 1e9), payload.pressure_temperature_data.pressure_raw))
                     case 'mission_report':
                         if (payload.mission_report.state != MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP and
                                 payload.mission_report.state not in PAUSED_MISSION_STATES):
@@ -256,7 +249,7 @@ def main(args):
             time.sleep(HEARTBEAT_INTERVAL_SECONDS)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Log GPS, pressure, and Arduino status motor data to compute current estimate during Station Keep')
+    parser = argparse.ArgumentParser(description='Log GPS and Arduino status motor data to compute current estimate during Station Keep')
     parser.add_argument('-p', '--udp_gateway_port', default=20000, type=int, help='The UDP gateway port to send surob surge current estimate TaskPacket to (default: 20000)')
     parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
     parser.add_argument('--delete_temporary_h5s', action=argparse.BooleanOptionalAction, default=True, help='Whether to delete temporary logging h5s after sending current estimate')
