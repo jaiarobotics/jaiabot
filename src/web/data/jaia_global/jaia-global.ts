@@ -14,8 +14,8 @@ export interface JaiaGlobalSnapshot {
     selectedNode: SelectedNode;
     selectedWaypoint: SelectedWaypoint;
     selectedTaskPacket: SelectedTaskPacket;
-    defaultTaskParameters: TaskParameters;
     mapMode: MapModes;
+    defaultTaskParameters: TaskParameters;
 }
 
 const defaultTaskParameters: TaskParameters = {

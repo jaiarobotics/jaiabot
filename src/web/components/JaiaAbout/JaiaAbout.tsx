@@ -11,6 +11,11 @@ import { mdiClose } from "@mdi/js";
 import JaiaLogo from "../../style/icons/jaia-logo.png";
 import "./JaiaAbout.less";
 
+const COMPANY_WEBSITE = "https://jaia.tech";
+const PHONE_NUMBER = "+1 (401) 214-9232";
+const COMPANY_ADDRESS = "22 Burnside St Bristol RI 02809";
+const DOC_WEBSITE = "http://docs.jaia.tech";
+
 /**
  * Displays company and version information in the JCC
  */
@@ -32,6 +37,8 @@ export default function JaiaAbout() {
         if (version.major && version.minor && version.patch) {
             return `${version.major}.${version.minor}.${version.patch}`;
         }
+
+        return "---";
     };
 
     /**
@@ -77,17 +84,17 @@ export default function JaiaAbout() {
             </div>
             <div className="jaia-about-row">
                 <div className="label">Website:</div>
-                <a href="https://www.jaia.tech" target="_blank" rel="noopener noreferrer">
+                <a href={COMPANY_WEBSITE} target="_blank" rel="noopener noreferrer">
                     www.jaia.tech
                 </a>
             </div>
             <div className="jaia-about-row">
                 <div className="label">Phone:</div>
-                <div className="input">+1 (401) 214-9232</div>
+                <div className="input">{PHONE_NUMBER}</div>
             </div>
             <div className="jaia-about-row">
                 <div className="label">Address:</div>
-                <div className="input">22 Burnside St Bristol RI 02809</div>
+                <div className="input">{COMPANY_ADDRESS}</div>
             </div>
             <div className="jaia-about-row">
                 <div className="label">Software Version:</div>
@@ -97,7 +104,7 @@ export default function JaiaAbout() {
             </div>
             <div className="jaia-about-row">
                 <div className="label">Documentation:</div>
-                <a href="http://52.36.157.57/index.html" target="_blank" rel="noopener noreferrer">
+                <a href={DOC_WEBSITE} target="_blank" rel="noopener noreferrer">
                     JaiaDocs
                 </a>
             </div>
