@@ -16,8 +16,7 @@ import { Draw } from "ol/interaction";
 import "../styles/styles.css";
 import { CustomAlert, CustomAlertProps } from "../shared/CustomAlert";
 
-import { DeviceMetadata } from "../shared/JAIAProtobuf";
-import { Button } from "@mui/base";
+import Button from "@mui/material/Button";
 import { InformationDialog } from "./InformationDialog";
 
 function exceptionCatcher(exception: Error) {
@@ -62,8 +61,8 @@ interface State {
     isInformationDialogVisible: boolean;
 }
 
-export class App extends React.Component {
-    state: State;
+export class App extends React.Component<AppProps, State> {
+    declare state: State;
     map: JaiaMap;
     plot_div_element: any;
     seriesDescriptors: SeriesDescriptor[];
@@ -274,6 +273,7 @@ export class App extends React.Component {
                     <a href={href}>{chosenLogName}</a>
                     <Button
                         className="plotButton"
+                        variant="text"
                         style={{
                             display: logs_are_displayed ? "flex" : "none",
                             alignItems: "center",

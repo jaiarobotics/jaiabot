@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from "react";
 
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
-import { ThemeProvider } from "@emotion/react";
+import { ThemeProvider } from "@mui/material";
 
 import { JaiaContext } from "../../context/JaiaContext";
 import MoveHub from "./MoveHub/MoveHub";
