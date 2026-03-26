@@ -637,7 +637,7 @@ message CurrentPacket
     required double heading_stdev = 4 [
         (dccl.field) = {
             min: 0.1
-            max: 15.0
+            max: 45.0
             precision: 1
             units {
                 derived_dimensions: "plane_angle"
