@@ -41,4 +41,6 @@ Please visit our website to learn more: [Jaia Robotics](https://www.jaia.tech)
 | **Goby**      | **3.2**                     |
 | **Wt**        | **4.11**                    |
 | **Node.js**   | **22.14**                   |
-| **Languages**   | **C++, Python, TypeScript, Shell**                   |
+| **Languages**   | **C++, Python, TypeScript, Shell**    
+
+               |
