@@ -262,10 +262,6 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
                 double pressure_raw = envelope.pressure_temperature_data().pressure_raw();
                 pressure_temperature_data.set_pressure_raw_with_units(pressure_raw * si::milli *
                                                                       goby::util::seawater::bar);
-
-                jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
-                *surob_currents_payload.mutable_pressure_temperature_data() = pressure_temperature_data;
-                send_surob_currents_payload(surob_currents_payload);
             }
 
             if (envelope.pressure_temperature_data().has_temperature())
