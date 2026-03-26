@@ -354,15 +354,12 @@ def surob_results_request(jaia_request):
 
     start_time_us = jaia_request.surob_results_request.start_time
     end_time_us = jaia_request.surob_results_request.end_time
-    report_time_us = (start_time_us+end_time_us)/2
 
     start_time_s = start_time_us/1_000_000
     end_time_s = end_time_us/1_000_000
-    report_time_s = report_time_us/1_000_000
 
     start_timestamp = datetime.fromtimestamp(start_time_s, tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     end_timestamp = datetime.fromtimestamp(end_time_s, tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    report_timestamp = datetime.fromtimestamp(report_time_s, tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
     with common.shared_data.data_lock:
         if jaia_request.target.all:
@@ -381,6 +378,9 @@ def surob_results_request(jaia_request):
         return jaia_response
 
     alongshore_bearing_deg = shore_normal_to_alongshore_bearing_deg(shore_normal_bearing_deg(shoreline_point, offshore_point))
+
+    min_start_time_us = end_time_us
+    max_end_time_us = start_time_us
 
     max_alongshore_current_speed_knots = None
     max_alongshore_current_speed_std_knots = None
@@ -441,6 +441,13 @@ def surob_results_request(jaia_request):
                     max_alongshore_current_speed_knots = alongshore_current_speed_knots
                     max_alongshore_current_speed_std_knots = alongshore_current_speed_std_knots
                     max_alongshore_current_flank = alongshore_current_flank
+
+                curr_start_time_us = task_packet.start_time
+                curr_end_time_us = task_packet.end_time
+                if curr_start_time_us < min_start_time_us:
+                    min_start_time_us = curr_start_time_us
+                if curr_end_time_us > max_end_time_us:
+                    max_end_time_us = curr_end_time_us
             
             if task_packet.HasField("wave"):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
@@ -483,6 +490,13 @@ def surob_results_request(jaia_request):
                     station_keep_furthest_from_shoreline_pt_sig_wave_period_s = task_packet.wave.period
                     station_keep_furthest_from_shoreline_sig_pt_wave_period_uncertainty_s = task_packet.wave.period_uncertainty
 
+                curr_start_time_us = task_packet.start_time
+                curr_end_time_us = task_packet.end_time
+                if curr_start_time_us < min_start_time_us:
+                    min_start_time_us = curr_start_time_us
+                if curr_end_time_us > max_end_time_us:
+                    max_end_time_us = curr_end_time_us
+
         elif task_packet.type == MissionTask.TaskType.SURFACE_DRIFT:
             # consider sig wave period values
             if task_packet.HasField("wave"):
@@ -518,6 +532,13 @@ def surob_results_request(jaia_request):
                 # append sig wave period values, if multiple are received, average for final result
                 surface_drift_sig_wave_periods_s.append(task_packet.wave.period)
                 surface_drift_sig_wave_period_uncertainties_s.append(task_packet.wave.period_uncertainty)
+
+                curr_start_time_us = task_packet.start_time
+                curr_end_time_us = task_packet.end_time
+                if curr_start_time_us < min_start_time_us:
+                    min_start_time_us = curr_start_time_us
+                if curr_end_time_us > max_end_time_us:
+                    max_end_time_us = curr_end_time_us
 
     if max_alongshore_current_speed_knots is None:
         jaia_response.surob_results.surob_results_found = False
@@ -560,6 +581,11 @@ def surob_results_request(jaia_request):
     breaker_period = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=sig_wave_period_s_to_report, uncert=sig_wave_period_uncertainty_s_to_report, units=WAVE_PERIOD_UNITS)
     littoral_current_local = jaiabot.messages.surob_results_pb2.LittoralCurrent(value=max_alongshore_current_speed_knots, uncert=np.power(max_alongshore_current_speed_std_knots, 2), flank=max_alongshore_current_flank, units=LITTORAL_CURRENT_UNITS)
     surob = jaiabot.messages.surob_results_pb2.Surob(sig_breaker_height=sig_breaker_height, breaker_period=breaker_period, littoral_current_local=littoral_current_local)
+    
+    report_time_us = (min_start_time_us+max_end_time_us)/2
+    report_time_s = report_time_us/1_000_000
+    report_timestamp = datetime.fromtimestamp(report_time_s, tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
     reports = [jaiabot.messages.surob_results_pb2.Report(time=report_timestamp, surob=surob)]
 
     geojson = jaiabot.messages.surob_results_pb2.FeatureCollection(type=FEATURE_COLLECTION_TYPE)
