@@ -9,3 +9,5 @@ load_shared_library: "libjaiabot_moos_gateway_plugin.so.1"
 
 # exclude internal groups
 group_regex: "$goby_logger_group_regex"
+
+log_at_startup: $log_on_startup
