@@ -106,6 +106,7 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
     goby::middleware::protobuf::TransporterConfig latest_command_sub_cfg_;
     goby::middleware::protobuf::TransporterConfig latest_contact_update_sub_cfg_;
+    goby::middleware::protobuf::TransporterConfig latest_hub_status_sub_cfg_;
 
     // Store when we get a new hub
     int32_t hub_id_{0};

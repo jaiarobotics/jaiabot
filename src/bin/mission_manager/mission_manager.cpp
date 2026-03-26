@@ -43,6 +43,8 @@ namespace middleware = goby::middleware;
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/hub.pb.h"
 
 // Mission Manager app
 #include "states.h"
@@ -559,6 +561,47 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
     // also subscribe to commands originating on the bot, e.g. from jaiabot_mission_repeater
     interprocess().subscribe<jaiabot::groups::self_command, protobuf::Command>(command_callback);
+
+
+    /**
+     * HUB STATUS Subscription
+     * 
+     */
+    if (cfg().has_hub_status_sub_cfg())
+    {
+        auto on_hub_status_subscribed =
+                [this](const goby::middleware::intervehicle::protobuf::Subscription& sub,
+                    const goby::middleware::intervehicle::protobuf::AckData& ack)
+            {
+                glog.is_debug1() && glog << "Received acknowledgment:\n\t" << ack.ShortDebugString()
+                                        << "\nfor subscription:\n\t" << sub.ShortDebugString()
+                                        << std::endl;
+            };
+
+        latest_hub_status_sub_cfg_ = cfg().hub_status_sub_cfg();
+
+        // set hub_status publisher to the hub that triggered this subscribe
+        latest_hub_status_sub_cfg_.mutable_intervehicle()->clear_publisher_id();
+        latest_hub_status_sub_cfg_.mutable_intervehicle()->add_publisher_id(hub_modem_id);
+
+
+        goby::middleware::Subscriber<jaiabot::protobuf::HubStatus> subscriber(
+                latest_hub_status_sub_cfg_,
+                intervehicle::default_subscriber_group_func<jaiabot::protobuf::HubStatus>,
+                on_hub_status_subscribed,
+                {/*expire func*/});
+
+        intervehicle().subscribe<jaiabot::groups::hub_status, protobuf::HubStatus>(
+            [this](const protobuf::HubStatus& hub_status)
+            {
+                glog.is_debug1() && glog << "Received hub status: "
+                                            << hub_status.ShortDebugString() << std::endl;
+
+                // republish for logging
+                interprocess().publish<jaiabot::groups::hub_status>(hub_status);
+            },
+            subscriber);
+    }
 
     if (cfg().has_contact_update_sub_cfg())
     {

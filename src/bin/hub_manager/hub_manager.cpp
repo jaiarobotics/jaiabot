@@ -651,6 +651,8 @@ void jaiabot::apps::HubManager::loop()
         glog.is_debug1() &&
             glog << "Publishing hub status: " << latest_hub_status_.ShortDebugString() << std::endl;
         interprocess().publish<jaiabot::groups::hub_status>(latest_hub_status_);
+        intervehicle().publish<jaiabot::groups::hub_status>(
+            latest_hub_status_, intervehicle::default_publisher<decltype(latest_hub_status_)>);
     }
 
     if (is_virtualhub_)

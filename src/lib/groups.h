@@ -79,9 +79,6 @@ constexpr goby::middleware::Group mission_dive{"jaiabot::mission_dive"};
 constexpr goby::middleware::Group self_command{"jaiabot::self_command"};
 constexpr goby::middleware::Group state_change{"jaiabot::state_change"};
 
-// hub manager
-constexpr goby::middleware::Group hub_status{"jaiabot::hub_status"};
-
 // health
 constexpr goby::middleware::Group linux_hardware_status{"jaiabot::linux_hardware_status"};
 constexpr goby::middleware::Group time_status{"jaiabot::time_status"};
@@ -95,6 +92,9 @@ constexpr goby::middleware::Group motor_status{"jaiabot::motor_status"};
 // The group used is an API version integer that allows us to check for incompatible
 // versions of Jaiabot running on various hubs/bots
 constexpr goby::middleware::Group bot_status{"jaiabot::bot_status",
+                                             jaiabot::INTERVEHICLE_API_VERSION};
+
+constexpr goby::middleware::Group hub_status{"jaiabot::hub_status",
                                              jaiabot::INTERVEHICLE_API_VERSION};
 constexpr goby::middleware::Group hub_command{"jaiabot::hub_command"};
 constexpr goby::middleware::Group task_packet{"jaiabot::task_packet",
