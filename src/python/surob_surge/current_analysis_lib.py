@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 # --- Constants for Analysis ---
 DRIFT_ARDUINO_VALUE = 1500
@@ -66,8 +67,9 @@ def filter_current_data(drift, log, use_speed=True):
     log.info(f"Number of points in driftlet before filtering: {len(final_mask)}")
 
     if use_speed:
-        final_mask &= create_speed_mask(drift["speed"])
-        log.info(f"Number of points filtered by speed mask: {np.sum(np.logical_not(create_speed_mask(drift["speed"])))}")
+        speed_mask = create_speed_mask(drift["speed"])
+        final_mask &= speed_mask
+        log.info(f"Number of points filtered by speed mask: {np.sum(np.logical_not(speed_mask))}")
 
     log.info(f"Number of points in driftlet after filtering: {np.sum(final_mask)}")
     return {**drift, "final_mask": final_mask}
@@ -84,7 +86,7 @@ def compute_drift_statistics(drift, log):
     speed_valid = drift["speed"][mask]
 
     stats = {
-        "heading_line": np.nan, "speed_mean": np.nan, 
+        "heading_angle": np.nan, 
         "speed_mode_rayleigh": np.nan, "R2": np.nan,
         "filtered_lon": filtered_lon, "filtered_lat": filtered_lat,
     }
@@ -123,78 +125,71 @@ def compute_drift_statistics(drift, log):
         line_vector *= -1
 
     dlon_line, dlat_line = line_vector
-    stats["heading_line"] = calculate_heading_from_components(dlon_line, dlat_line)
-    log.info(f"Driftlet heading: {stats["heading_line"]} degrees.")
+    stats["heading_angle"] = calculate_heading_from_components(dlon_line, dlat_line)
+    log.info(f"Driftlet heading: {stats["heading_angle"]} degrees.")
 
     return stats
 
-def wrap_degrees_180(degrees):
-    """Wraps degrees to the range [-180, 180]."""
-    return (degrees + 180) % 360 - 180
-
-def calculate_std_about_value(values, center):
-    """Calculates standard deviation about a fixed center value."""
-    values = np.asarray(values, dtype=float)
-    mask = np.isfinite(values) & np.isfinite(center)
-    return np.sqrt(np.mean((values[mask] - center) ** 2)) if mask.sum() >= 2 else np.nan
-
-def calculate_circular_std_about_value_deg(angles_deg, center_deg):
-    """Calculates circular standard deviation (in degrees) about a fixed center angle."""
-    angles = np.asarray(angles_deg, dtype=float)
-    if not np.isfinite(center_deg): return np.nan
-    mask = np.isfinite(angles)
-    if mask.sum() < 2: return np.nan
-    residuals = wrap_degrees_180(angles[mask] - center_deg)
-    return np.sqrt(np.mean(residuals ** 2))
-
-def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
+def summarize_station_keep_drifts(drifts, log):
     """
-    Computes statistics for each drift, filters by R², and calculates overall averages.
+    Computes statistics for each drift, weights by R², and calculates overall averages.
     """
     if not drifts:
+        log.warn(f"Can't compute average drift for this station keep, no driftlets provided.")
         return {}
 
     drift_stats_list = [compute_drift_statistics(filter_current_data(d, log), log) for d in drifts]
-    good_drifts_stats = [ # TODO: replace with weighting by R2 value to improve current estimate availability
-        s
-        for s in drift_stats_list
-        if (
-            (r2_value := s.get("R2", np.nan)) is not None
-            and not np.isnan(r2_value)
-            and r2_value > r2_threshold
-        )
-    ]
+    good_drift_stats_df = pd.DataFrame(columns=["weight", "speed_mode_mps", "heading_rad"])
+    for drift_stats_dict in drift_stats_list:
+        good_drift_stats_df.loc[len(good_drift_stats_df)] = [drift_stats_dict.get("R2", np.nan), drift_stats_dict.get("speed_mode_rayleigh", np.nan), np.deg2rad(drift_stats_dict.get("heading_angle", np.nan))]
+    good_drift_stats_df = good_drift_stats_df.dropna()
 
-    if not good_drifts_stats:
-        log.warn(f"No good driftlets for this station keep! All R^2 fits are < {r2_threshold}.")
+    if good_drift_stats_df.empty:
+        log.warn(f"Can't compute average drift for this station keep, all provided driftlets missing at least one of the following: R2 Weight, Rayleigh Speed Mode, or Heading Angle.")
         return {}
 
-    log.info(f"Number of good driftlets for this station keep: {len(good_drifts_stats)}")
+    weights = good_drift_stats_df["weight"].to_numpy()
+    magnitudes_mps = good_drift_stats_df["speed_mode_mps"].to_numpy()
+    directions_rad = good_drift_stats_df["heading_rad"].to_numpy()
 
-    headings = np.array([s["heading_line"] for s in good_drifts_stats if np.isfinite(s["heading_line"])])
-    speed_modes = np.array([s["speed_mode_rayleigh"] for s in good_drifts_stats if np.isfinite(s["speed_mode_rayleigh"])])
-
-    mean_heading = (np.rad2deg(np.arctan2(np.nanmean(np.sin(np.deg2rad(headings))), np.nanmean(np.cos(np.deg2rad(headings))))) + 360) % 360 if headings.size > 0 else np.nan
-    avg_mode_speed = np.nanmean(speed_modes) if speed_modes.size > 0 else np.nan
+    W = np.sum(weights)
     
-    speed_stdev = calculate_std_about_value(speed_modes, avg_mode_speed) 
-    heading_stdev = calculate_circular_std_about_value_deg(headings, mean_heading)
+    x_comps_mps = magnitudes_mps*np.cos(directions_rad)
+    y_comps_mps = magnitudes_mps*np.sin(directions_rad)
+
+    x_comp_weighted_mean_mps = np.sum(weights*x_comps_mps)/W
+    y_comp_weighted_mean_mps = np.sum(weights*y_comps_mps)/W
+
+    magnitude_weighted_mean_mps = np.linalg.norm([x_comp_weighted_mean_mps, y_comp_weighted_mean_mps], 2)
+    direction_weighted_mean_deg = np.rad2deg(np.arctan2(y_comp_weighted_mean_mps, x_comp_weighted_mean_mps))
 
     log.info(f"Mean driftlet stats for this station keep:")
-    log.info(f"Average Mode Speed: {avg_mode_speed} m/s.")
-    log.info(f"Mean Heading: {mean_heading} degrees.")
-    if np.isnan(speed_stdev) or np.isnan(heading_stdev):
+    log.info(f"Weighted Average Mode Speed: {magnitude_weighted_mean_mps} m/s.")
+    log.info(f"Weighted Mean Heading: {direction_weighted_mean_deg} degrees.")
+
+    if len(good_drift_stats_df) == 1:
         log.warn(f"Speed and direction standard deviations could not be calculated for this station keep! Too few driftlets. Using default standard deviation values instead.")
         speed_stdev = DEFAULT_SPEED_STDEV_MPS
         heading_stdev = DEFAULT_DIRECTION_STDEV_DEG
     else:
+        magnitude_weighted_variance_mps_squared = np.sum(weights*np.square(magnitudes_mps-magnitude_weighted_mean_mps))/W
+        magnitude_weighted_stdev_mps = np.sqrt(magnitude_weighted_variance_mps_squared)
+
+        cosine_weighted_mean = np.sum(weights*np.cos(directions_rad))/W
+        sine_weighted_mean = np.sum(weights*np.sin(directions_rad))/W
+        resultant_length_weighted_mean = np.linalg.norm([cosine_weighted_mean, sine_weighted_mean], 2)
+        direction_weighted_circular_variance_rad_squared = 1.0 - resultant_length_weighted_mean
+        direction_weighted_circular_stdev_deg = np.rad2deg(np.sqrt(-2.0*np.log(direction_weighted_circular_variance_rad_squared)))
+        
+        speed_stdev = magnitude_weighted_stdev_mps
+        heading_stdev = direction_weighted_circular_stdev_deg
         log.info(f"Mode Speed STD: {speed_stdev} m/s.")
         log.info(f"Heading STD: {heading_stdev} degrees.")
 
     # Collect non-empty filtered latitude/longitude arrays
     lat_arrays = []
     lon_arrays = []
-    for s in good_drifts_stats:
+    for s in drift_stats_list:
         lat = s.get("filtered_lat")
         lon = s.get("filtered_lon")
         # Skip if missing or empty
@@ -217,11 +212,11 @@ def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
         mean_lon = np.nan
         log.warn(f"Couldn't compute a mean location for this Station Keep!")
     return {
-        "mean_heading": mean_heading,
-        "avg_mode_speed": avg_mode_speed,
-        "speed_stdev": speed_stdev,
-        "heading_stdev": heading_stdev,
-        "n_good_drifts": len(good_drifts_stats),
+        "speed_mean_mps": magnitude_weighted_mean_mps,
+        "heading_mean_deg": direction_weighted_mean_deg,
+        "speed_stdev_mps": speed_stdev,
+        "heading_stdev_deg": heading_stdev,
+        "n_good_drifts": len(drift_stats_list),
         "mean_lat": mean_lat,
         "mean_lon": mean_lon
     }
