@@ -70,7 +70,8 @@ class StormSimThread : public SimulatorThread<jaiabot::config::StormSimThread>
                               const boost::units::quantity<boost::units::si::time>& dt);
     void mcu_rx(const protobuf::StormMCURequest& mcu_req);
 
-    void send_air_descent_data();
+    void send_air_descent_metadata();
+    void send_air_descent_data(int packet_index);
 
   private:
     StormSimState state_;
@@ -79,6 +80,10 @@ class StormSimThread : public SimulatorThread<jaiabot::config::StormSimThread>
 
     std::default_random_engine generator_;
     std::map<config::StormSimThread::SimFailureType, std::bernoulli_distribution> failures_;
+
+    goby::time::SteadyClock::time_point last_air_datum_time_;
+    const goby::time::SteadyClock::duration air_datum_dt_;
+    std::vector<std::shared_ptr<const SimOceanography>> air_descent_data_;
 };
 std::ostream& operator<<(std::ostream& os, const StormSimThread::StormSimState& s);
 

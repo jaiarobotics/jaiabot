@@ -124,7 +124,9 @@ void jaiabot::apps::OceanographicSimThread::handle_sim_nav(const SimNav& nav)
         double z = -nav.depth / si::meters;
         pressure = (pressure_f(z) - pressure_f(0)) * si::pascals;
 
-        temperature = 25 * boost::units::absolute<boost::units::celsius::temperature>();
+        // https://www.grc.nasa.gov/www/k-12/airplane/atmosmet.html
+        temperature =
+            (15.04 - .00649 * z) * boost::units::absolute<boost::units::celsius::temperature>();
         conductivity = 0 * jaiabot::units::microsiemens_per_cm;
         salinity = -1;
     }

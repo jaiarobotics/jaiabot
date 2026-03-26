@@ -83,7 +83,7 @@ dive_config
 
 storm_config {
     #   launch_altitude: 3000 # m
-  launch_altitude: 300 # m
+  launch_altitude: 3000 # m
   air_descent_rate: 30 # m/s
   pitch_during_air_descent: 89 # deg 
   delay {  
@@ -104,5 +104,5 @@ storm_config {
       port: "/tmp/tty_storm_mcu"
       baud: 19200
   }
-
+  air_data_sample_rate: 10  #  (optional) (default=1)
 }

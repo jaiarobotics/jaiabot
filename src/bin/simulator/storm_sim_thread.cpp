@@ -54,7 +54,10 @@ std::ostream& jaiabot::apps::operator<<(std::ostream& os, const StormSimThread::
 
 jaiabot::apps::StormSimThread::StormSimThread(const jaiabot::config::StormSimThread& cfg)
     : SimulatorThread<jaiabot::config::StormSimThread>(cfg, "storm_simulator",
-                                                       0 * boost::units::si::hertz)
+                                                       0 * boost::units::si::hertz),
+      air_datum_dt_(goby::time::convert_duration<goby::time::SteadyClock::duration>(
+          1.0f / cfg.air_data_sample_rate_with_units()))
+
 {
     glog.add_group("storm", goby::util::Colors::magenta);
 
@@ -63,6 +66,17 @@ jaiabot::apps::StormSimThread::StormSimThread(const jaiabot::config::StormSimThr
 
     for (auto failure : cfg.failures())
         failures_.try_emplace(failure.type(), std::bernoulli_distribution(failure.probability()));
+
+    interthread().subscribe<sim_oceanography>(
+        [this](std::shared_ptr<const SimOceanography> air_data)
+        {
+            auto now = goby::time::SteadyClock::now();
+            if (now >= last_air_datum_time_ + air_datum_dt_)
+            {
+                air_descent_data_.push_back(air_data);
+                last_air_datum_time_ = now;
+            }
+        });
 
     interthread().subscribe<groups::storm_mcu_serial_in>(
         [this](const goby::middleware::protobuf::IOData& io_msg)
@@ -155,6 +169,9 @@ void jaiabot::apps::StormSimThread::compute_air_descent(
         state_.nav.depth = 0 * si::meters;
         state_.in_water_start = now;
         state_.air_descent_end = goby::time::SystemClock::now();
+
+        // stop recording "air data"
+        interthread().unsubscribe<sim_oceanography, SimOceanography>();
     }
 }
 
@@ -228,11 +245,16 @@ void jaiabot::apps::StormSimThread::mcu_rx(const protobuf::StormMCURequest& mcu_
 
     switch (mcu_req.type())
     {
-        case protobuf::StormMCURequest::AIR_DESCENT_DATA_REQUEST: send_air_descent_data(); break;
+        case protobuf::StormMCURequest::AIR_DESCENT_METADATA_REQUEST:
+            send_air_descent_metadata();
+            break;
+        case protobuf::StormMCURequest::AIR_DESCENT_DATA_REQUEST:
+            send_air_descent_data(mcu_req.packet_index());
+            break;
     }
 }
 
-void jaiabot::apps::StormSimThread::send_air_descent_data()
+void jaiabot::apps::StormSimThread::send_air_descent_metadata()
 {
     protobuf::StormMCUResponse metadata_response;
     auto& metadata = *metadata_response.mutable_air_descent_metadata();
@@ -241,8 +263,47 @@ void jaiabot::apps::StormSimThread::send_air_descent_data()
     metadata.set_end_time_with_units(
         goby::time::convert<goby::time::MicroTime>(state_.air_descent_end));
     metadata.set_sample_rate_with_units(cfg().air_data_sample_rate_with_units());
-    metadata.set_num_packets(1);
+
+    const int samples_per_packet = jaiabot::protobuf::StormAirDescentData::descriptor()
+                                       ->FindFieldByName("sample")
+                                       ->options()
+                                       .GetExtension(dccl::field)
+                                       .max_repeat();
+
+    int num_samples = air_descent_data_.size();
+    int num_packets = num_samples / samples_per_packet;
+    if (num_samples % samples_per_packet != 0)
+        num_packets += 1;
+
+    metadata.set_num_packets(num_packets);
 
     interthread().publish<groups::storm_mcu_serial_out>(
         jaiabot::serial::encode_for_mcu(metadata_response));
+}
+
+void jaiabot::apps::StormSimThread::send_air_descent_data(int packet_index)
+{
+    protobuf::StormMCUResponse data_response;
+    auto& data = *data_response.mutable_air_descent_data();
+    data.set_packet_index(packet_index);
+
+    const int samples_per_packet = jaiabot::protobuf::StormAirDescentData::descriptor()
+                                       ->FindFieldByName("sample")
+                                       ->options()
+                                       .GetExtension(dccl::field)
+                                       .max_repeat();
+
+    int num_samples = air_descent_data_.size();
+
+    for (int s = 0; s < samples_per_packet; ++s)
+    {
+        auto i = (packet_index * samples_per_packet + s);
+        if (i >= num_samples)
+            break;
+        auto& samp = *data.add_sample();
+        samp.set_temperature_with_units(air_descent_data_[i]->temperature);
+    }
+
+    interthread().publish<groups::storm_mcu_serial_out>(
+        jaiabot::serial::encode_for_mcu(data_response));
 }

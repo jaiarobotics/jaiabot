@@ -38,10 +38,14 @@ message StormMCURequest
 {
     enum Type
     {
-        AIR_DESCENT_DATA_REQUEST = 1;
+        AIR_DESCENT_METADATA_REQUEST = 1;
+        AIR_DESCENT_DATA_REQUEST = 2;
     }
 
     required Type type = 1;
+
+    // for AIR_DESCENT_DATA_REQUEST
+    optional int32 packet_index = 2;
 }
 
 // sent once before streaming data in StormAirDescentData
