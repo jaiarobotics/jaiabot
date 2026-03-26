@@ -4,8 +4,8 @@ import numpy as np
 DRIFT_ARDUINO_VALUE = 1500
 MIN_DRIFT_LEN_PTS = 50 # 50 gps pts ~= 10s duration @ 5hz
 MOTOR_STOP_MOMENTUM_PERIOD_S = 1.5 # TODO: determine upper bound for vehicle to come to a stop from full throttle, current value is somewhat arbitrary
-DEFAULT_SPEED_UNCERTAINTY_MPS = 0.1
-DEFAULT_DIRECTION_UNCERTAINTY_DEG = 45.0
+DEFAULT_SPEED_STDEV_MPS = 0.1
+DEFAULT_DIRECTION_STDEV_DEG = 45.0
 
 # --- Data Analysis Functions ---
 
@@ -81,8 +81,8 @@ def filter_current_data(drift, log, use_pressure=False, use_speed=True):
     log.info(f"Number of points in driftlet after filtering: {np.sum(final_mask)}")
     return {**drift, "final_mask": final_mask}
 
-def calculate_bearing_from_components(east_component, north_component):
-    """Converts east/north components to a bearing in degrees [0, 360)."""
+def calculate_heading_from_components(east_component, north_component):
+    """Converts east/north components to a heading in degrees [0, 360)."""
     return np.rad2deg((np.pi / 2 - np.arctan2(north_component, east_component)) % (2 * np.pi))
 
 def compute_drift_statistics(drift, log):
@@ -93,7 +93,7 @@ def compute_drift_statistics(drift, log):
     speed_valid = drift["speed"][mask]
 
     stats = {
-        "bearing_line": np.nan, "speed_mean": np.nan, 
+        "heading_line": np.nan, "speed_mean": np.nan, 
         "speed_mode_rayleigh": np.nan, "R2": np.nan,
         "filtered_lon": filtered_lon, "filtered_lat": filtered_lat,
     }
@@ -132,8 +132,8 @@ def compute_drift_statistics(drift, log):
         line_vector *= -1
 
     dlon_line, dlat_line = line_vector
-    stats["bearing_line"] = calculate_bearing_from_components(dlon_line, dlat_line)
-    log.info(f"Driftlet bearing: {stats["bearing_line"]} degrees.")
+    stats["heading_line"] = calculate_heading_from_components(dlon_line, dlat_line)
+    log.info(f"Driftlet heading: {stats["heading_line"]} degrees.")
 
     return stats
 
@@ -180,25 +180,25 @@ def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
 
     log.info(f"Number of good driftlets for this station keep: {len(good_drifts_stats)}")
 
-    bearings = np.array([s["bearing_line"] for s in good_drifts_stats if np.isfinite(s["bearing_line"])])
+    headings = np.array([s["heading_line"] for s in good_drifts_stats if np.isfinite(s["heading_line"])])
     speed_modes = np.array([s["speed_mode_rayleigh"] for s in good_drifts_stats if np.isfinite(s["speed_mode_rayleigh"])])
 
-    mean_bearing = (np.rad2deg(np.arctan2(np.nanmean(np.sin(np.deg2rad(bearings))), np.nanmean(np.cos(np.deg2rad(bearings))))) + 360) % 360 if bearings.size > 0 else np.nan
+    mean_heading = (np.rad2deg(np.arctan2(np.nanmean(np.sin(np.deg2rad(headings))), np.nanmean(np.cos(np.deg2rad(headings))))) + 360) % 360 if headings.size > 0 else np.nan
     avg_mode_speed = np.nanmean(speed_modes) if speed_modes.size > 0 else np.nan
     
-    speed_uncertainty = calculate_std_about_value(speed_modes, avg_mode_speed) 
-    bearing_uncertainty = calculate_circular_std_about_value_deg(bearings, mean_bearing)
+    speed_stdev = calculate_std_about_value(speed_modes, avg_mode_speed) 
+    heading_stdev = calculate_circular_std_about_value_deg(headings, mean_heading)
 
     log.info(f"Mean driftlet stats for this station keep:")
     log.info(f"Average Mode Speed: {avg_mode_speed} m/s.")
-    log.info(f"Mean Bearing: {mean_bearing} degrees.")
-    if np.isnan(speed_uncertainty) or np.isnan(bearing_uncertainty):
-        log.warn(f"Speed and direction standard deviations could not be calculated for this station keep! Too few driftlets. Using default uncertainty values instead.")
-        speed_uncertainty = DEFAULT_SPEED_UNCERTAINTY_MPS
-        bearing_uncertainty = DEFAULT_DIRECTION_UNCERTAINTY_DEG
+    log.info(f"Mean Heading: {mean_heading} degrees.")
+    if np.isnan(speed_stdev) or np.isnan(heading_stdev):
+        log.warn(f"Speed and direction standard deviations could not be calculated for this station keep! Too few driftlets. Using default standard deviation values instead.")
+        speed_stdev = DEFAULT_SPEED_STDEV_MPS
+        heading_stdev = DEFAULT_DIRECTION_STDEV_DEG
     else:
-        log.info(f"Mode Speed STD: {speed_uncertainty} m/s.")
-        log.info(f"Bearing STD: {bearing_uncertainty} degrees.")
+        log.info(f"Mode Speed STD: {speed_stdev} m/s.")
+        log.info(f"Heading STD: {heading_stdev} degrees.")
 
     # Collect non-empty filtered latitude/longitude arrays
     lat_arrays = []
@@ -226,10 +226,10 @@ def summarize_station_keep_drifts(drifts, log, r2_threshold=0.5):
         mean_lon = np.nan
         log.warn(f"Couldn't compute a mean location for this Station Keep!")
     return {
-        "mean_bearing": mean_bearing,
+        "mean_heading": mean_heading,
         "avg_mode_speed": avg_mode_speed,
-        "speed_uncertainty": speed_uncertainty,
-        "bearing_uncertainty": bearing_uncertainty,
+        "speed_stdev": speed_stdev,
+        "heading_stdev": heading_stdev,
         "n_good_drifts": len(good_drifts_stats),
         "mean_lat": mean_lat,
         "mean_lon": mean_lon
