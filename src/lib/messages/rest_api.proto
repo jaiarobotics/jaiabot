@@ -18,10 +18,24 @@ message TaskPacketQuery
         [(jaia.field).rest_api = {
             doc: "End of time range as a Unix timestamp in microseconds.  If not set, returns an open-ended search, ending at the latest available data."
         }];
-    repeated string mission_name = 3
+    repeated string mission_name = 4
         [(jaia.field).rest_api = {
             doc: "If set, only return task packets associated with the given mission name(s)."
         }];
+    optional bool included_only = 3
+        [default = true, (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Whether to only return included (non-excluded) task packets."
+        }];
+    
+    enum Format {
+        JSON = 0 [(jaia.ev).rest_api = { presence: GUARANTEED }];
+        KMZ = 1 [(jaia.ev).rest_api = { presence: GUARANTEED }];
+        CSV = 2 [(jaia.ev).rest_api = { presence: GUARANTEED }];
+        GEOJSON_CONTOURS = 3 [(jaia.ev).rest_api = { presence: GUARANTEED }];
+    }
+
+    optional Format format = 16 [default = JSON, (jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message TaskPacketQueryResults

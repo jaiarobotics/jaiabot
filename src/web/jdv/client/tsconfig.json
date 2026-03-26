@@ -10,8 +10,8 @@
         "outDir": "typescript/",
         "rootDir": "../../",
         "jsx": "react",
-        "target": "ES2021",
-        "lib": ["ES2021", "dom"],
+        "target": "ES2024",
+        "lib": ["ES2024", "dom"],
         "esModuleInterop": true
     },
     "include": ["."]

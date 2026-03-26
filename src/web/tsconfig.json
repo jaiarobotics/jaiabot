@@ -10,9 +10,9 @@
         "outDir": "dist",
         "rootDir": ".",
         "jsx": "react-jsx",
-        "target": "ES2021",
+        "target": "ES2024",
         "esModuleInterop": true,
-        "lib": ["ES2021", "dom"],
+        "lib": ["ES2024", "dom"],
         "types": ["@testing-library/jest-dom", "@types/plotly.js", "@types/webpack-env", "node"],
         "resolveJsonModule": true
     },

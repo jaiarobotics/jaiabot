@@ -555,7 +555,7 @@ export function Plots(props: PlotsProps) {
 
     useEffect(refreshPlotData, [props.chosenLogs, props.plots, props.visibleTimeRange]);
 
-    var actionBar: JSX.Element | null;
+    var actionBar: React.JSX.Element | null;
 
     if (props.chosenLogs.length > 0) {
         actionBar = (
@@ -749,7 +749,7 @@ export function Plots(props: PlotsProps) {
     ) : null;
     //////////////////////
 
-    var pathSelector: JSX.Element | null;
+    var pathSelector: React.JSX.Element | null;
     if (isPathSelectorDisplayed) {
         pathSelector = (
             <PathSelector
@@ -784,7 +784,7 @@ export function Plots(props: PlotsProps) {
         );
     });
 
-    var openPlotSet: JSX.Element | null;
+    var openPlotSet: React.JSX.Element | null;
 
     openPlotSet = isOpenPlotSetDisplayed ? (
         <OpenPlotSet
