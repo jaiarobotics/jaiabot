@@ -53,6 +53,7 @@ export class JaiaGlobal {
     private metadata: Metadata;
     private gitHubVersion: Version;
     private isUpgradeAvailable: boolean;
+    private isConnectedToInternet: boolean;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
@@ -71,6 +72,7 @@ export class JaiaGlobal {
         this.metadata = {};
         this.gitHubVersion = defaultGitHubVersion;
         this.isUpgradeAvailable = false;
+        this.isConnectedToInternet = false;
     }
 
     getSelectedNode() {
@@ -150,6 +152,14 @@ export class JaiaGlobal {
 
     setIsUpgradeAvailable(isUpgradeAvailable: boolean) {
         this.isUpgradeAvailable = isUpgradeAvailable;
+    }
+
+    getIsConnectedToInternet() {
+        return this.isConnectedToInternet;
+    }
+
+    setIsConnectedToInternet(isConnectedToInternet: boolean) {
+        this.isConnectedToInternet = isConnectedToInternet;
     }
 
     resetSelectedWaypoint() {

@@ -47,7 +47,7 @@ export default function JaiaAbout() {
      * @returns {HTMLElement} Description of notification dot
      */
     const getNotificationDotHelperElement = () => {
-        if (!navigator.onLine) {
+        if (!jaiaContext.jaiaGlobal.getIsConnectedToInternet()) {
             return <p>No Internet Connection</p>;
         }
 

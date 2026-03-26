@@ -17,7 +17,7 @@ export default function NotificationDot(props: Props) {
         return null;
     }
 
-    if (!navigator.onLine) {
+    if (!jaiaContext.jaiaGlobal.getIsConnectedToInternet()) {
         return <div className={`notification-dot ${props.className} yellow`}></div>;
     }
 

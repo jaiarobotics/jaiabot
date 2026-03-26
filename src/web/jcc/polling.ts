@@ -151,7 +151,7 @@ export async function pollMetadata() {
  * @returns {void}
  */
 export async function pollGitHub() {
-    if (!navigator.onLine) {
+    if (!jaiaGlobal.getIsConnectedToInternet()) {
         return;
     }
 
@@ -171,6 +171,24 @@ export async function pollGitHub() {
         }
     } catch (error) {
         console.error(error);
+    }
+}
+
+/**
+ * Pings Google to check for Internet connectivity
+ *
+ * @returns {void}
+ */
+export async function pollInternet() {
+    try {
+        await fetch("https://www.google.com", {
+            mode: "no-cors",
+            cache: "no-store",
+            signal: AbortSignal.timeout(1000),
+        });
+        jaiaGlobal.setIsConnectedToInternet(true);
+    } catch {
+        jaiaGlobal.setIsConnectedToInternet(false);
     }
 }
 

@@ -8,6 +8,7 @@ export const NO_COMMS_STATUS_AGE = 30; // seconds
 export const DATA_MODEL_POLL_TIME = 500; // milliseconds
 export const TASK_PACKET_POLL_TIME = 1000; // milliseconds
 export const METADATA_POLL_TIME = 10_000; // milliseconds
+export const INTERNET_POLL_TIME = 15_000; // millisecondss
 export const GITHUB_POLL_TIME = 120_000; // milliseconds
 export const OSM_MAX_ZOOM = 19;
 export const ARC_GIS_MAX_ZOOM = 19;
