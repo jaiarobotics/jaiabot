@@ -442,7 +442,7 @@ def surob_results_request(jaia_request):
                     max_alongshore_current_speed_std_knots = alongshore_current_speed_std_knots
                     max_alongshore_current_flank = alongshore_current_flank
             
-            elif task_packet.HasField("wave"):
+            if task_packet.HasField("wave"):
                 hs_ft = meters_to_feet(task_packet.wave.significant_wave_height)
                 hs_std_ft = meters_to_feet(task_packet.wave.hs_uncertainty)
                 
