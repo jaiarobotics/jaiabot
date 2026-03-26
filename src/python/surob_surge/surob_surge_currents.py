@@ -89,10 +89,10 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
         log.warning("No results to send.")
     else:
         # Extract required current values and ensure they are finite before sending.
-        speed = results.get("avg_mode_speed", np.nan)
-        speed_stdev = results.get("speed_stdev", np.nan)
-        heading = results.get("mean_heading", np.nan)
-        heading_stdev = results.get("heading_stdev", np.nan)
+        speed = results.get("speed_mean_mps", np.nan)
+        speed_stdev = results.get("speed_stdev_mps", np.nan)
+        heading = results.get("heading_mean_deg", np.nan)
+        heading_stdev = results.get("heading_stdev_deg", np.nan)
 
         if not (np.isfinite(speed) and np.isfinite(speed_stdev) and np.isfinite(heading) and np.isfinite(heading_stdev)):
             log.warning(
