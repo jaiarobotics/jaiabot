@@ -270,8 +270,9 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
             const waypoint = new Waypoint();
             waypoint.setLocation(goal.location);
             const task = new Task();
-            task.setType(goal.task.type);
-            switch (goal.task.type) {
+            const originalTask = goal.task?.type ?? TaskType.NONE;
+            task.setType(originalTask);
+            switch (task.getType()) {
                 case TaskType.DIVE:
                     task.setDiveParameters({
                         max_depth: goal.task.dive?.max_depth,
