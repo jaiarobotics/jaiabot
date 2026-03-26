@@ -58,6 +58,8 @@ export default function JaiaAbout() {
                 </a>
             );
         }
+
+        return <p>Connected to Internet</p>;
     };
 
     /**
