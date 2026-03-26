@@ -4,19 +4,14 @@
 
 from queue import Queue
 from typing import *
-from pathlib import Path
-from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
-from google.protobuf.json_format import ParseDict, MessageToDict
-from google.protobuf.message import Message
+from google.protobuf.json_format import MessageToDict
 import threading
 import logging
-import bisect
-import glob
-import json
+
+# Jaia
+from common.time import utc_now_microseconds
 from pyjaia.task_packet_database import TaskPacketDatabase
 
-
-from common.time import utc_now_microseconds
 
 log = logging.getLogger()
 
@@ -42,26 +37,6 @@ class Data:
 
     def __init__(self) -> None:
         pass
-
-
-    def get_task_packets(self, bot_ids: Union[Iterable[int], None], start_time_microseconds: Union[int, None], end_time_microseconds: Union[int, None]):
-        """Gets a list of task packets occurring during a timespan.
-
-        Args:
-            start_time_microseconds (Union[int, None]): The start of the timespan, as a Unix microsecond timestamp.  None means open-ended start time.
-            end_time_microseconds (Union[int, None]): The end of the timespan, as a Unix microsecond timestamp.  None means open-ended end time.
-
-        Returns:
-            List[TaskPacket]: A list of the task packets, sorted ascending by start_time.
-        """
-        # This function returns dictionary representations of the task packets
-        # Let's expand the range by 1 second on either end, to account for dccl rounding
-        task_packet_dicts = self.task_packet_database.query_task_packets(bot_ids=bot_ids, start_utime=start_time_microseconds - 1_000_000, end_utime=end_time_microseconds + 1_000_000)
-
-        # Convert the dicts into TaskPacket protobuf message objects
-        task_packets: List[Message] = list([ParseDict(tp_dict, TaskPacket()) for tp_dict in task_packet_dicts])
-
-        return task_packets
 
 
     def process_portal_to_client_message(self, hub_id, msg):

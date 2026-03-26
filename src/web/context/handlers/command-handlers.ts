@@ -80,13 +80,11 @@ function manageGhostLayer(botID: number, missionID: number) {
         }
     }
 
-    missionSet
-        .getMission(missionID)
-        .setGhostParameters({
-            hasStarted: true,
-            botID: botID,
-            repeats: missionSet.getMission(missionID).getRepeats(),
-        });
+    missionSet.getMission(missionID).setGhostParameters({
+        hasStarted: true,
+        botID: botID,
+        repeats: missionSet.getMission(missionID).getRepeats(),
+    });
     missionSet.addGhostMission(missionID);
     ghostMissionLayer.updateFeatures();
 }
