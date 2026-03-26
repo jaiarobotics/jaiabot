@@ -23,7 +23,7 @@ SOCKET_TIMEOUT_SECONDS = 1
 HEARTBEAT_INTERVAL_SECONDS = 5
 SAVE_DIR = os.path.join("/var", "log", "jaiabot", "surob_surge_waves")
 
-DEFAULT_PERIOD_STD_S = 2.0 # TODO: investigate why default value in jaia_dccl.proto doesn't work, value is reported as NaN in h5
+DEFAULT_PERIOD_STD_S = np.sqrt(2.0) # value selected to appear as 2 seconds squared variance in surob json
 
 class FSM_STATES(Enum):
     WAITING = 0
@@ -93,11 +93,11 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
         if np.isfinite(results.get("Hs_gps", np.nan)):
             wave_packet.significant_wave_height = results["Hs_gps"]
         if np.isfinite(results.get("Hs_gps_std", np.nan)):
-            wave_packet.hs_uncertainty = results["Hs_gps_std"]
+            wave_packet.hs_stdev = results["Hs_gps_std"]
         if np.isfinite(results.get("Tp_gps", np.nan)):
             wave_packet.period = results["Tp_gps"]
             # period std is not computed, reported as a fixed value of 2s
-            wave_packet.period_uncertainty = DEFAULT_PERIOD_STD_S
+            wave_packet.period_stdev = DEFAULT_PERIOD_STD_S
         if np.isfinite(results.get("mean_lat", np.nan)) and np.isfinite(results.get("mean_lon", np.nan)):
             wave_packet.location.lat = results["mean_lat"]
             wave_packet.location.lon = results["mean_lon"]
