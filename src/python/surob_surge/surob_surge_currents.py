@@ -92,22 +92,22 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
     else:
         # Extract required current values and ensure they are finite before sending.
         speed = results.get("avg_mode_speed", np.nan)
-        speed_uncertainty = results.get("speed_uncertainty", np.nan)
-        heading = results.get("mean_bearing", np.nan)
-        heading_uncertainty = results.get("bearing_uncertainty", np.nan)
+        speed_stdev = results.get("speed_stdev", np.nan)
+        heading = results.get("mean_heading", np.nan)
+        heading_stdev = results.get("heading_stdev", np.nan)
 
-        if not (np.isfinite(speed) and np.isfinite(speed_uncertainty) and np.isfinite(heading) and np.isfinite(heading_uncertainty)):
+        if not (np.isfinite(speed) and np.isfinite(speed_stdev) and np.isfinite(heading) and np.isfinite(heading_stdev)):
             log.warning(
                 "Current results contain non-finite required values; not sending TaskPacket "
-                f"(speed={speed}, speed_uncertainty={speed_uncertainty}, heading={heading}, heading_uncertainty={heading_uncertainty})."
+                f"(speed={speed}, speed_stdev={speed_stdev}, heading={heading}, heading_stdev={heading_stdev})."
             )
         else:
             current_packet = CurrentPacket()
             # All required fields are finite; set them unconditionally.
             current_packet.speed = float(speed)
-            current_packet.speed_uncertainty = float(speed_uncertainty)
+            current_packet.speed_stdev = float(speed_stdev)
             current_packet.heading = float(heading)
-            current_packet.heading_uncertainty = float(heading_uncertainty)
+            current_packet.heading_stdev = float(heading_stdev)
 
             # Location is optional; set only if finite.
             if np.isfinite(results.get("mean_lat", np.nan)) and np.isfinite(results.get("mean_lon", np.nan)):
