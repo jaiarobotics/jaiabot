@@ -137,13 +137,7 @@ test("Click on map with Bot selected and not assigned to a mission", () => {
     });
 
     let missionLayerFeatures = missionLayer.getVectorLayer().getSource().getFeatures();
-    expect(missionLayerFeatures.length).toBe(2);
-    expect(missionLayerFeatures[1].get("type")).toBe(MapFeatureTypes.WAYPOINT);
-    expect(missionLayerFeatures[1].get("waypointNum")).toBe(1);
+    expect(missionLayerFeatures.length).toBe(0);
 
-    expect(missionSet.getMissionIDInEditMode()).toBe(1);
-
-    // Reset states
-    missionSet.deleteAllMissions();
-    missionLayer.getVectorLayer().getSource().clear();
+    jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
 });

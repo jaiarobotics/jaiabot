@@ -27,7 +27,7 @@ import {
 
 import "./MissionsList.less";
 
-interface MissionAccordionTitleProps {
+interface Props {
     missionID: number;
 }
 
@@ -192,7 +192,7 @@ export default function MissionsList() {
     );
 }
 
-function MissionAccordionTitle(props: MissionAccordionTitleProps) {
+function MissionAccordionTitle(props: Props) {
     const assignedBotID = missionsManager.getBotID(props.missionID) ?? -1;
     return (
         <div className="mission-accordion-title">
