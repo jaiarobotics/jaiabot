@@ -21,6 +21,7 @@ import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import SurveyPlanner from "../components/SurveyPlanner/SurveyPlanner";
+import NotificationDot from "../components/NotificationDot/NotificationDot";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
 import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 import SimulationBanner from "../components/SimulationBanner/SimulationBanner";
@@ -68,6 +69,7 @@ export default function App() {
                 <Panel />
                 <RemoteControl />
                 <SimulationBanner />
+                <NotificationDot className="jaia-about-button" />
                 <TakeControl />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>

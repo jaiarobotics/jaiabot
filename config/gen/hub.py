@@ -261,12 +261,18 @@ elif common.app == 'jaiabot_simulator':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      hub_gpsd_device=common.hub.gpsd_device())) 
-elif common.app == 'goby_logger':    
+elif common.app == 'goby_logger':
+    log_on_startup='true'
+    if is_cloudhub:
+        # avoid running out of disk space
+        log_on_startup='false'        
+    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir,
-                                     goby_logger_group_regex=logger.group_regex))
+                                     goby_logger_group_regex=logger.group_regex,
+                                     log_on_startup=log_on_startup))
 elif common.app == 'jaiabot_hub_manager':
     print(config.template_substitute(templates_dir+'/hub/jaiabot_hub_manager.pb.cfg.in',
                                      app_block=app_common,
