@@ -33,6 +33,10 @@ message Transmission
     // RSSI of the received packet in -dBm (e.g. 65 = -65 dBm).
     // Populated by the XBee driver from the DB AT command response.
     optional int32 rssi = 1;
+
+    // Hub ID of the packet sender (only present when the sender is a hub).
+    // Set from XBeePacket.hub_id, which the hub embeds when it has hub_id configured.
+    optional int32 hub_id = 2;
 }
 
 extend goby.acomms.protobuf.ModemTransmission

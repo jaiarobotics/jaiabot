@@ -654,10 +654,22 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 rx_msg.data().GetExtension(jaiabot::protobuf::transmission).has_rssi() &&
                 rx_msg.data().has_src())
             {
-                int32_t rssi = rx_msg.data().GetExtension(jaiabot::protobuf::transmission).rssi();
+                const auto& tx = rx_msg.data().GetExtension(jaiabot::protobuf::transmission);
+                int32_t rssi = tx.rssi();
                 latest_bot_status_.set_xbee_rssi(rssi);
-                glog.is_debug2() && glog << "XBee RSSI from src " << rx_msg.data().src() << ": "
-                                         << rssi << " dBm" << std::endl;
+                if (tx.has_hub_id())
+                {
+                    latest_bot_status_.set_xbee_rssi_hub_id(tx.hub_id());
+                    glog.is_debug2() &&
+                        glog << "XBee RSSI from Hub " << tx.hub_id() << " (modem_id "
+                             << rx_msg.data().src() << "): " << rssi << " dBm" << std::endl;
+                }
+                else
+                {
+                    glog.is_debug2() && glog << "XBee RSSI from src (modem_id "
+                                             << rx_msg.data().src() << "): " << rssi
+                                             << " dBm" << std::endl;
+                }
             }
         });
 }

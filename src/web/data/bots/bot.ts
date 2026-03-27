@@ -22,6 +22,7 @@ export default class Bot {
     private batteryPercent: number;
     private wifiLinkQuality: number;
     private xbeeRssi: number;
+    private xbeeRssiHubId: number;
     private statusAge: number;
     private engineering: Engineering;
     private mode: BotModes;
@@ -116,6 +117,14 @@ export default class Bot {
 
     setXbeeRssi(xbeeRssi: number) {
         this.xbeeRssi = xbeeRssi;
+    }
+
+    getXbeeRssiHubId() {
+        return this.xbeeRssiHubId;
+    }
+
+    setXbeeRssiHubId(xbeeRssiHubId: number) {
+        this.xbeeRssiHubId = xbeeRssiHubId;
     }
 
     // microseconds

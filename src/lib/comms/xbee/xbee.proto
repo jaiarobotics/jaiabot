@@ -33,4 +33,9 @@ message XBeePacket
 
     optional bytes data = 10
         [(dccl.field) = { codec: "dccl.var_bytes" max_length: 242 }];
+
+    // Hub ID of the transmitting hub (only set when the sender is a hub).
+    // Allows the receiving bot to tag RSSI readings with the source hub_id.
+    optional int32 hub_id = 11
+        [(dccl.field) = { codec: "dccl.presence" min: 0, max: 30 }];
 };

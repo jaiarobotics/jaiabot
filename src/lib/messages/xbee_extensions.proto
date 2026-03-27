@@ -73,6 +73,11 @@ message Config
         (goby.field).description = 
             "This is used to determine if a simulated XBee needs to be launched"
     ];
+
+    // Hub ID of this device. Only set for hubs; bots leave this unset.
+    // When set, the hub embeds its hub_id in every XBeePacket so that receiving bots
+    // can tag RSSI readings with the correct hub_id.
+    optional int32 hub_id = 17;
 }
 
 extend goby.acomms.protobuf.DriverConfig
