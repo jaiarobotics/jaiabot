@@ -35,6 +35,9 @@
 #include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/util/linebasedcomms/gps_sentence.h>
 
+#include <fstream>
+#include <sstream>
+
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
@@ -166,6 +169,8 @@ class HubManager : public ApplicationBase
     std::set<int> bot_to_gps_ids_;
 
     std::map<int, goby::time::MicroTime> known_bots_;
+    // Per-bot RSSI (bot -> hub signal strength), measured by the hub's XBee driver
+    std::map<int, int32_t> bot_xbee_rssi_;
 
     // map mission id to mission name for logging purposes
     std::map<std::pair<BotID, MissionCommandTime>, std::string>
@@ -639,11 +644,51 @@ void jaiabot::apps::HubManager::loop()
     }
 
     latest_hub_status_.clear_known_bot();
+
+    // Read per-source RSSI from file written by the hub's XBee driver.
+    // Format: "<node_id> <rssi_dbm>" per line.
+    if (!cfg().xbee_rssi_file().empty())
+    {
+        std::ifstream rssi_file(cfg().xbee_rssi_file());
+        if (rssi_file.is_open())
+        {
+            bot_xbee_rssi_.clear();
+            std::string line;
+            while (std::getline(rssi_file, line))
+            {
+                if (line.empty())
+                    continue;
+                std::istringstream iss(line);
+                std::string node_id_str;
+                int32_t rssi_val = 0;
+                if (iss >> node_id_str >> rssi_val && rssi_val >= 40 && rssi_val <= 110)
+                {
+                    try
+                    {
+                        int node_id_int = std::stoi(node_id_str);
+                        // node_id is the modem_id; convert to bot_id
+                        int bot_id = jaiabot::comms::bot_id_from_modem_id(node_id_int,
+                                                                           cfg().subnet_mask());
+                        bot_xbee_rssi_[bot_id] = rssi_val;
+                    }
+                    catch (const std::exception&)
+                    {
+                        // skip lines that can't be parsed
+                    }
+                }
+            }
+        }
+    }
+
     for (const auto& known_bot_p : known_bots_)
     {
         auto* known_bot = latest_hub_status_.add_known_bot();
         known_bot->set_id(known_bot_p.first);
         known_bot->set_last_status_time_with_units(known_bot_p.second);
+        if (bot_xbee_rssi_.count(known_bot_p.first))
+        {
+            known_bot->set_xbee_rssi(bot_xbee_rssi_.at(known_bot_p.first));
+        }
     }
 
     if (latest_hub_status_.IsInitialized())

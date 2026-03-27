@@ -89,7 +89,8 @@ class XBeeDevice
                  const bool& use_encryption, const std::string& encryption_password,
                  const std::string& mesh_unicast_retries, const std::string& unicast_mac_retries,
                  const std::string& network_delay_slots,
-                 const std::string& broadcast_multi_transmits, int fleet, unsigned subnet_mask);
+                 const std::string& broadcast_multi_transmits, int fleet, unsigned subnet_mask,
+                 const std::string& xbee_rssi_location);
     void shutdown();
 
     void send_packet(const NodeId& dest, const std::string& s);
@@ -181,6 +182,9 @@ class XBeeDevice
     // Query Transmission Failure Count
     void query_tr();
 
+    // Write per-source RSSI data to file
+    void write_rssi_file();
+
     // Check if we received diagnostics
     bool received_rssi_{false};
     bool received_er_{false};
@@ -209,6 +213,13 @@ class XBeeDevice
     uint16_t transmission_failure_count_{0};
 
     std::string my_xbee_info_location_{""};
+
+    // Per-source RSSI tracking: maps source serial number to RSSI in -dBm
+    SerialNumber last_received_src_serial_{0};
+    std::map<SerialNumber, uint32_t> rssi_per_src_;
+
+    // File path for writing RSSI data
+    std::string xbee_rssi_file_location_{""};
 };
 } // namespace comms
 } // namespace jaiabot

@@ -355,6 +355,13 @@ message BotStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
+    // RSSI of the last packet received from the hub by this bot (hub -> bot signal strength),
+    // measured in -dBm (e.g. 65 means -65 dBm). Not omitted so it is transmitted over the radio.
+    optional int32 xbee_rssi = 60 [
+        (dccl.field) = { min: 0 max: 110 precision: 0 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
     optional uint64 received_time = 59 [
         (dccl.field) = {
             omit: true

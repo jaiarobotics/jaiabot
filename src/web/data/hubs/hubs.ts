@@ -102,6 +102,10 @@ export class Hubs {
             hub.setBotOffload(hubStatus.bot_offload);
         }
 
+        if (hubStatus.known_bot != null) {
+            hub.setKnownBots(hubStatus.known_bot);
+        }
+
         // HubSensors
         // GPS
         if (hubStatus.location?.lat) {

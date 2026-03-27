@@ -100,12 +100,14 @@ export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",
     COMMANDS = "commands",
     LINKS = "links",
+    XBEE_RSSI = "xbeeRssi",
 }
 
 export interface HubAccordionStates {
     quickLook: boolean;
     commands: boolean;
     links: boolean;
+    xbeeRssi: boolean;
 }
 
 export const enum BotAccordionNames {

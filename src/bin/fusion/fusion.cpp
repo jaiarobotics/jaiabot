@@ -49,6 +49,7 @@
 
 #include "wmm/WMM.h"
 #include <cmath>
+#include <fstream>
 #include <math.h>
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
@@ -674,6 +675,31 @@ void jaiabot::apps::Fusion::loop()
         goby::time::SystemClock::unwarp(goby::time::SystemClock::now()));
 
     latest_bot_status_.set_time_with_units(unwarped_time);
+
+    // Read XBee RSSI from file written by the XBee driver.
+    // The file contains "<node_id> <rssi_dbm>" lines; we take the first valid entry
+    // since on a bot there is only one source (the hub).
+    if (!cfg().xbee_rssi_file().empty())
+    {
+        std::ifstream rssi_file(cfg().xbee_rssi_file());
+        if (rssi_file.is_open())
+        {
+            std::string node_id;
+            int32_t rssi_val = 0;
+            if (rssi_file >> node_id >> rssi_val && rssi_val >= 40 && rssi_val <= 110)
+            {
+                latest_bot_status_.set_xbee_rssi(rssi_val);
+            }
+            else
+            {
+                latest_bot_status_.clear_xbee_rssi();
+            }
+        }
+        else
+        {
+            latest_bot_status_.clear_xbee_rssi();
+        }
+    }
 
     if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
         now)

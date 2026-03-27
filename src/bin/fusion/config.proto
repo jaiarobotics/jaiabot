@@ -106,4 +106,7 @@ message Fusion
 
     required string bot_gpsd_device = 50;  // gpsd device for bot itself
 
+    // Path to the XBee RSSI file written by the XBee driver.
+    // Each line contains "<node_id> <rssi_dbm>" for a source that has been heard.
+    optional string xbee_rssi_file = 51 [default = "/tmp/jaiabot_xbee_rssi"];
 }

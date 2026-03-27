@@ -206,6 +206,10 @@ export default function BotDetails() {
                                             <td>{bot.getWifiLinkQuality() ?? ""}</td>
                                         </tr>
                                         <tr>
+                                            <td>XBee RSSI (hub → bot)</td>
+                                            <td>{bot.getXbeeRssi() != null ? `-${bot.getXbeeRssi()} dBm` : ""}</td>
+                                        </tr>
+                                        <tr>
                                             <td>Data Logging</td>
                                             <td>
                                                 {isBotLogging(missionStatus?.missionState)

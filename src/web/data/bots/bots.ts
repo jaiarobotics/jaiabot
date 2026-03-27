@@ -111,6 +111,10 @@ export class Bots {
             bot.setWifiLinkQuality(botStatus.wifi_link_quality_percentage);
         }
 
+        if (botStatus.xbee_rssi != null) {
+            bot.setXbeeRssi(botStatus.xbee_rssi);
+        }
+
         if (botStatus.portalStatusAge) {
             bot.setStatusAge(botStatus.portalStatusAge);
         }

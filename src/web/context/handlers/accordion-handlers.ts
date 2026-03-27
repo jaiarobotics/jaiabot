@@ -27,6 +27,9 @@ export function handleClickedHubAccordion(mutableState: JaiaContextType, action:
         case HubAccordionNames.LINKS:
             hubAccordionStates.links = !hubAccordionStates.links;
             break;
+        case HubAccordionNames.XBEE_RSSI:
+            hubAccordionStates.xbeeRssi = !hubAccordionStates.xbeeRssi;
+            break;
     }
     return mutableState;
 }

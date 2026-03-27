@@ -1025,6 +1025,7 @@ export interface BotStatus {
     pdop?: number;
     data_offload_percentage?: number;
     wifi_link_quality_percentage?: number;
+    xbee_rssi?: number;
 }
 
 export interface EstimatedDrift {
@@ -1204,6 +1205,13 @@ export interface HubStatus {
     bot_ids_in_radio_file?: number[];
     linux_hardware_status?: LinuxHardwareStatus;
     bot_offload?: BotOffloadData;
+    known_bot?: KnownBot[];
+}
+
+export interface KnownBot {
+    id: number;
+    last_status_time?: number;
+    xbee_rssi?: number;
 }
 
 interface BotOffloadData {

@@ -209,7 +209,7 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
                     encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location,
                     use_encryption, encryption_password, mesh_unicast_retries, unicast_mac_retries,
                     network_delay_slots, broadcast_multi_transmits, config_extension().fleet_id(),
-                    config_extension().subnet_mask());
+                    config_extension().subnet_mask(), config_extension().xbee_rssi_location());
 }
 
 void jaiabot::comms::XBeeDriver::shutdown()
