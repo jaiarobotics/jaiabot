@@ -101,6 +101,12 @@ message SurobMissionPlanRequest // TODO: after surob field exercise, expose shor
             presence: GUARANTEED,
             doc: "Value of constraint to be applied when planning. If constraint_type is PLANNING_CONSTRAINT_TIME, this is the maximum mission length in minutes. If constraint_type is PLANNING_CONSTRAINT_RESOLUTION, this is the target distance between surob samples in meters."
         }];
+
+    optional float shoreline_offset = 5
+        [default = 25.0, (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Distance offshore from shoreline point to place first measurement, in meters. Default is 25 meters."
+        }];
 }
 
 message MissionPlanResponse
@@ -246,8 +252,8 @@ message APIRequest
             presence: GUARANTEED,
             doc: "Send a shoreline and offshore point to the hub to generate a mission plan for the fleet. Expect a response of type 'mission_plan_response'. Mission plans can either be time-constrained with a specified maximum duration in minutes (more bots = higher resolution), or resolution-constrained, with a target distance between surob samples in meters (more bots = faster mission)."
             example {
-                request: '{"target": {"all": true}, "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "PLANNING_CONSTRAINT_TIME", "constraint_value": "60.0"}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
-                response: '{"mission_plan_response": {"planned_successfully": true, "jaiabot_commands": [{"bot_id": 1, "time": 1769788798116, "type": "MISSION_PLAN", "plan": {}}, {"bot_id": 2, "time": 1769788798116, "type": "MISSION_PLAN", "plan": {}}, ...]}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "PLANNING_CONSTRAINT_TIME", "constraint_value": "60"}, "target": {"all": true}}}'
+                request: '{"target": {"all": true}, "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "PLANNING_CONSTRAINT_TIME", "constraint_value": 60.0, "shoreline_offset": 50}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
+                response: '{"mission_plan_response": {"planned_successfully": true, "jaiabot_commands": [{"bot_id": 1, "time": 1769788798116, "type": "MISSION_PLAN", "plan": {}}, {"bot_id": 2, "time": 1769788798116, "type": "MISSION_PLAN", "plan": {}}, ...]}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "PLANNING_CONSTRAINT_TIME", "constraint_value": 60.0, , "shoreline_offset": 50}, "target": {"all": true}}}'
             }
         }];
         SurobResultsRequest surob_results_request = 31 [(jaia.field).rest_api = {

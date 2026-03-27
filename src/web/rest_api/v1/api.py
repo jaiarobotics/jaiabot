@@ -248,20 +248,37 @@ def surob_mission_plan_request(jaia_request: APIRequest) -> APIResponse:
         jaia_response.mission_plan.planned_successfully = False
         jaia_response.mission_plan.error_message = "No active bots found."
         return jaia_response
+
     try:
-        params = MissionParameters(
-            shoreline_lat=shoreline_point[0],
-            shoreline_lon=shoreline_point[1],
-            offshore_lat=offshore_point[0],
-            offshore_lon=offshore_point[1],
-            num_bots=len(bots),
-            measurement_time=SUROB_MEASUREMENT_TIME_M,
-            planning_mode=("time" if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else ("resolution" if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None)),
-            mission_duration=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else None),
-            target_resolution=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None),
-            station_keep_time=SUROB_STATION_KEEP_TIME_M,
-            bot_ids=bots
-        )
+        if jaia_request.surob_mission_plan_request.HasField('shoreline_offset'):
+            params = MissionParameters(
+                shoreline_lat=shoreline_point[0],
+                shoreline_lon=shoreline_point[1],
+                offshore_lat=offshore_point[0],
+                offshore_lon=offshore_point[1],
+                num_bots=len(bots),
+                measurement_time=SUROB_MEASUREMENT_TIME_M,
+                planning_mode=("time" if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else ("resolution" if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None)),
+                mission_duration=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else None),
+                target_resolution=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None),
+                station_keep_time=SUROB_STATION_KEEP_TIME_M,
+                shoreline_offset=jaia_request.surob_mission_plan_request.shoreline_offset,
+                bot_ids=bots
+            )
+        else:
+            params = MissionParameters(
+                shoreline_lat=shoreline_point[0],
+                shoreline_lon=shoreline_point[1],
+                offshore_lat=offshore_point[0],
+                offshore_lon=offshore_point[1],
+                num_bots=len(bots),
+                measurement_time=SUROB_MEASUREMENT_TIME_M,
+                planning_mode=("time" if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else ("resolution" if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None)),
+                mission_duration=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else None),
+                target_resolution=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None),
+                station_keep_time=SUROB_STATION_KEEP_TIME_M,
+                bot_ids=bots
+            )
     except ValueError:
         # bad mission parameter(s)
         jaia_response.mission_plan.planned_successfully = False
