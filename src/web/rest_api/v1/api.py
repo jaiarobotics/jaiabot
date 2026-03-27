@@ -5,11 +5,11 @@ import numpy as np
 from datetime import datetime, timezone
 from google.protobuf.json_format import ParseDict, ParseError
 
-import jaiabot.messages.rest_api_pb2
-import jaiabot.messages.hub_pb2
-import jaiabot.messages.jaia_dccl_pb2
 import jaiabot.messages.rest_api_pb2 as rest_api
 from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse
+
+import jaiabot.messages.hub_pb2
+import jaiabot.messages.jaia_dccl_pb2
 import jaiabot.messages.portal_pb2
 import jaiabot.messages.surob_results_pb2
 
@@ -220,13 +220,13 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
 
     return jaia_response
 
-def surob_mission_plan_request(jaia_request):
+def surob_mission_plan_request(jaia_request: APIRequest) -> APIResponse:
     SUROB_MEASUREMENT_TIME_M = 7.0 # 5 minutes per station keep + 2 minute budget for dives, actual time may be lower
     SUROB_STATION_KEEP_TIME_M = 5.0
 
     MAX_WAYPOINTS = 80 # should match https://github.com/jaiarobotics/jaiabot/blob/2.y/src/web/utils/constants.ts#L32
     
-    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+    jaia_response = APIResponse()
 
     shoreline_point = (jaia_request.surob_mission_plan_request.shoreline_point.lat,jaia_request.surob_mission_plan_request.shoreline_point.lon)
     offshore_point = (jaia_request.surob_mission_plan_request.offshore_point.lat,jaia_request.surob_mission_plan_request.offshore_point.lon)
@@ -256,9 +256,9 @@ def surob_mission_plan_request(jaia_request):
             offshore_lon=offshore_point[1],
             num_bots=len(bots),
             measurement_time=SUROB_MEASUREMENT_TIME_M,
-            planning_mode=("time" if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else ("resolution" if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None)),
-            mission_duration=(constraint_value if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else None),
-            target_resolution=(constraint_value if constraint_type == jaiabot.messages.rest_api_pb2.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None),
+            planning_mode=("time" if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else ("resolution" if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None)),
+            mission_duration=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else None),
+            target_resolution=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None),
             station_keep_time=SUROB_STATION_KEEP_TIME_M,
             bot_ids=bots
         )
@@ -302,7 +302,7 @@ def surob_mission_plan_request(jaia_request):
 
     return jaia_response
 
-def surob_results_request(jaia_request):
+def surob_results_request(jaia_request: APIRequest) -> APIResponse:
     # string constants for surob results proto
     CURRENT_SPEED_UNITS = "fps"
     # No cf standard name for magnitude of current vector with direction sea_water_velocity_to_direction
@@ -334,16 +334,16 @@ def surob_results_request(jaia_request):
 
     rng = np.random.default_rng()
 
-    def meters_to_feet(m):
+    def meters_to_feet(m: float) -> float:
         m_to_f_conversion_factor = 3.28084
         return m*m_to_f_conversion_factor
     
-    def mps_to_knots(mps):
+    def mps_to_knots(mps: float) -> float:
         mps_to_knots_conversion_factor = 1.943844492
         return mps*mps_to_knots_conversion_factor
 
     # adapted from: https://www.movable-type.co.uk/scripts/latlong.html
-    def shore_normal_bearing_deg(shoreline_point, offshore_point):
+    def shore_normal_bearing_deg(shoreline_point: tuple[float, float], offshore_point: tuple[float, float]) -> float:
         shoreline_lat_rad = np.deg2rad(shoreline_point[0])
         shoreline_lon_rad = np.deg2rad(shoreline_point[1])
 
@@ -356,13 +356,13 @@ def surob_results_request(jaia_request):
         shore_normal_angle_rad = np.arctan2(y, x)
         return (np.rad2deg(shore_normal_angle_rad) + 360.0) % 360.0
 
-    def shore_normal_to_alongshore_bearing_deg(shore_normal_bearing_deg):
+    def shore_normal_to_alongshore_bearing_deg(shore_normal_bearing_deg: float) -> float:
         # alongshore bearing 90 degrees CW of shore normal bearing
         return ((shore_normal_bearing_deg - 90.0) + 360.0) % 360.0
     
     # Finds estimate of alongshore component of current measurement through Monte Carlo Analysis. Samples n_samples currents from normal distributions of the speed and heading angle.
     # Then gets the alongshore component of each sample and reports the mean and std of the sample alongshore components for the alongshore speed and uncertainty.
-    def currents_monte_carlo_analysis_knots(current_speed_mps, current_std_mps, current_heading_deg, current_heading_std_deg, alongshore_bearing_deg, n_samples=200):
+    def currents_monte_carlo_analysis_knots(current_speed_mps: float, current_std_mps: float, current_heading_deg: float, current_heading_std_deg: float, alongshore_bearing_deg: float, n_samples: int = 200) -> tuple[float, float, str]:
         current_sample_speeds_mps = rng.normal(current_speed_mps, current_std_mps, n_samples)
         current_sample_headings_deg = rng.normal(current_heading_deg, current_heading_std_deg, n_samples)
 
@@ -377,7 +377,7 @@ def surob_results_request(jaia_request):
         return abs(mps_to_knots(alongshore_component_mean_mps)), mps_to_knots(alongshore_component_std_mps), ("right" if alongshore_component_mean_mps > 0 else "left")
 
     # adapted from https://www.geeksforgeeks.org/dsa/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
-    def haversine(point_1, point_2):
+    def haversine_m(point_1: tuple[float, float], point_2: tuple[float, float]) -> float:
         lat1 = point_1[0]
         lon1 = point_1[1]
 
@@ -399,7 +399,7 @@ def surob_results_request(jaia_request):
         c = 2 * np.arcsin(np.sqrt(a))
         return radius_m * c
 
-    jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
+    jaia_response = APIResponse()
 
     shoreline_point = (jaia_request.surob_results_request.shoreline_point.lat,jaia_request.surob_results_request.shoreline_point.lon)
     offshore_point = (jaia_request.surob_results_request.offshore_point.lat,jaia_request.surob_results_request.offshore_point.lon)
@@ -535,7 +535,7 @@ def surob_results_request(jaia_request):
                     max_sig_wave_height_ft = hs_ft
                     max_sig_wave_height_std_ft = hs_std_ft
         
-                distance_to_shoreline_pt_m = haversine(shoreline_point, (task_packet.wave.location.lat, task_packet.wave.location.lon))
+                distance_to_shoreline_pt_m = haversine_m(shoreline_point, (task_packet.wave.location.lat, task_packet.wave.location.lon))
 
                 if station_keep_furthest_from_shoreline_pt_distance_m is None or distance_to_shoreline_pt_m > station_keep_furthest_from_shoreline_pt_distance_m:
                     station_keep_furthest_from_shoreline_pt_distance_m = distance_to_shoreline_pt_m
