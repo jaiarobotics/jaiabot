@@ -9,6 +9,7 @@ PSD_MIN_NPERSEG = 64
 PSD_OVERLAP_FRAC = 0.5
 MIN_STATION_KEEP_LENGTH_M = 4.5 # min station keep length for Surob mission plan is 5 minutes, give some margin for clipped ends
 MIN_STATION_KEEP_LENGTH_S = MIN_STATION_KEEP_LENGTH_M*60
+DEFAULT_PERIOD_STD_S = np.sqrt(2.0) # value selected to appear as 2 seconds squared variance in surob json
 
 # ============================================================
 # General helper functions
@@ -128,9 +129,7 @@ def hs_from_altitude_psd(altitude, log, *, fs, fmin=0.05, fmax=0.30):
     f_alt, Salt = _welch_psd(alt_hp_fill, fs=fs)
 
     band = (f_alt >= fmin) & (f_alt <= fmax)
-    log.info("Attempting np.trapz call here.")
     m0 = np.trapz(Salt[band], f_alt[band])
-    log.info("Completed np.trapz call here.")
     Hs = 4.0 * np.sqrt(m0)
 
     Tp, _ = peak_period_from_psd(f_alt, Salt, fmin=fmin, fmax=fmax)
@@ -239,6 +238,7 @@ def process_station_keep_dict_gps_only(
     out["Hs_gps"] = Hs
     out["Tp_gps"] = Tp
     out["Hs_gps_std"] = Hs_std
+    out["Tp_default_std"] = DEFAULT_PERIOD_STD_S
     out["mean_lat"] = mean_lat
     out["mean_lon"] = mean_lon
 
