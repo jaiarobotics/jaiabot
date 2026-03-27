@@ -13,5 +13,4 @@ echo_enabled: $echo_enabled
 salinity_enabled: $salinity_enabled
 bar30_enabled: $bar30_enabled
 tsys01_enabled: $tsys01_enabled
-surob_surge_currents_enabled: $surob_surge_currents_enabled
-surob_surge_waves_enabled: $surob_surge_waves_enabled
+surob_surge_enabled: $surob_surge_enabled

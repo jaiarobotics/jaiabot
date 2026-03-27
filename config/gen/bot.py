@@ -73,8 +73,7 @@ echo_enabled=(bot_type == "ECHO")
 salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
 
-surob_surge_currents_enabled=(bot_type == "HYDRO" or bot_type == "ECHO")
-surob_surge_waves_enabled=(bot_type == "HYDRO" or bot_type == "ECHO")
+surob_surge_enabled=(bot_type == "HYDRO" or bot_type == "ECHO")
 
 jaia_motor_harness_type="NONE"
 
@@ -325,8 +324,7 @@ elif common.app == 'jaiabot_udp_gateway':
                                      salinity_enabled=str(salinity_enabled).lower(),
                                      bar30_enabled=str(bar30_enabled).lower(),
                                      tsys01_enabled=str(tsys01_enabled).lower(),
-                                     surob_surge_currents_enabled=str(surob_surge_currents_enabled).lower(),
-                                     surob_surge_waves_enabled=str(surob_surge_waves_enabled).lower()))
+                                     surob_surge_enabled=str(surob_surge_enabled).lower()))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,

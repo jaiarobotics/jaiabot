@@ -14,14 +14,14 @@ package jaiabot.protobuf;
 
 message UDPGatewayEnvelope
 {
-    message SurobCurrentsPayload
+    message SurobPayload
     {
         oneof payload
         {
-            // current estimate from Python app
+            // current and wave estimates from Python app
             TaskPacket task_packet = 1;
-            
-            // data messages sent to Python app, logged to compute current estimate
+
+             // data messages sent to Python app, logged to compute current estimate
             ArduinoResponse arduino_response = 2;
             goby.middleware.protobuf.gpsd.TimePositionVelocity time_position_velocity = 3;
 
@@ -30,24 +30,6 @@ message UDPGatewayEnvelope
 
             // packet sent by Python app on startup and on regular interval to direct udp_gateway app to Python app address
             bool heartbeat = 5;
-        }
-    }
-
-    message SurobWavesPayload
-    {
-        oneof payload
-        {
-            // wave estimate from Python app
-            TaskPacket task_packet = 1;
-            
-            // data messages sent to Python app, logged to compute wave estimate
-            goby.middleware.protobuf.gpsd.TimePositionVelocity time_position_velocity = 2;
-
-            // mission state sent to Python app to start/stop data logging
-            MissionReport mission_report = 3;
-
-            // packet sent by Python app on startup and on regular interval to direct udp_gateway app to Python app address
-            bool heartbeat = 4;
         }
     }
     
@@ -65,8 +47,7 @@ message UDPGatewayEnvelope
         EchoCommand echo_command = 6;
         EchoData echo_data = 7;
 
-        SurobCurrentsPayload surob_currents_payload = 8;
-        SurobWavesPayload surob_waves_payload = 9;
+        SurobPayload surob_payload = 8;
     }
 
 }
