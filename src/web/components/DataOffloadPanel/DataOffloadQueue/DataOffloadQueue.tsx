@@ -1,4 +1,4 @@
-import CircularProgress from "@mui/joy/CircularProgress";
+import CircularProgress from "@mui/material/CircularProgress";
 import { useContext } from "react";
 import { JaiaContext } from "../../../context/JaiaContext";
 import "./DataOffloadQueue.less";
@@ -65,7 +65,7 @@ function QueueItem(props: Props) {
     return (
         <div className="queue-item">
             <div>Bot {props.botID}</div>
-            <CircularProgress determinate value={props.offloadPercentage} color="danger" />
+            <CircularProgress variant="determinate" value={props.offloadPercentage} color="error" />
         </div>
     );
 }
