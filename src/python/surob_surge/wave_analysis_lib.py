@@ -210,7 +210,7 @@ def process_station_keep_dict_gps_only(
         log.warning(f"Timeseries in GPS dataset had length < 2.")
         return out
     if tpv_time[-1] - tpv_time[0] < MIN_STATION_KEEP_LENGTH_S:
-        log.warning(f"Timeseries in GPS dataset did not excede minimum length of {MIN_STATION_KEEP_LENGTH_S} seconds. Actual length was {tpv_time[-1] - tpv_time[0]} seconds.")
+        log.warning(f"Timeseries in GPS dataset did not exceed minimum length of {MIN_STATION_KEEP_LENGTH_S} seconds. Actual length was {tpv_time[-1] - tpv_time[0]} seconds.")
         return out
 
     gps_fs = fs_from_epoch_rounded(tpv_time) if tpv_time.size else np.nan
