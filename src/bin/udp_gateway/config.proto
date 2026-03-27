@@ -64,14 +64,10 @@ message UDPGateway
     // Bar30
     optional bool bar30_enabled = 23 [default = true];
 
-    // Surob Currents
-    optional bool surob_surge_currents_enabled = 24 [default = true];
-    optional int32 surob_surge_currents_heartbeat_report_timeout_seconds = 25 [default = 20];
-
-    // Surob Waves
-    optional bool surob_surge_waves_enabled = 26 [default = true];
-    optional int32 surob_surge_waves_heartbeat_report_timeout_seconds = 27 [default = 20];
+    // Surob Currents and Waves
+    optional bool surob_surge_enabled = 24 [default = true];
+    optional int32 surob_surge_heartbeat_report_timeout_seconds = 25 [default = 20];
 
     optional bool in_simulation = 11 [default = true];
-    optional int32 bot_id = 28; 
+    optional int32 bot_id = 26; 
 }

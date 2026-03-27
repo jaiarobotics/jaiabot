@@ -78,9 +78,8 @@ class UDPGateway
 
     void send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command);
     void send_echo_command(const jaiabot::protobuf::EchoCommand& echo_command);
-    void send_surob_currents_payload(const jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload& surob_currents_payload);
-    void send_surob_waves_payload(
-        const jaiabot::protobuf::UDPGatewayEnvelope::SurobWavesPayload& surob_waves_payload);
+    void
+    send_surob_payload(const jaiabot::protobuf::UDPGatewayEnvelope::SurobPayload& surob_payload);
 
     void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
     void process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_src);
@@ -113,13 +112,9 @@ class UDPGateway
         goby::time::SteadyClock::now()};
     goby::middleware::protobuf::UDPEndPoint echo_udp_src_;
 
-    // surob currents data tracking
-    goby::time::SteadyClock::time_point last_surob_surge_currents_time_{std::chrono::seconds(0)};
-    goby::middleware::protobuf::UDPEndPoint surob_currents_udp_src_;
-
-    // surob waves data tracking
-    goby::time::SteadyClock::time_point last_surob_surge_waves_time_{std::chrono::seconds(0)};
-    goby::middleware::protobuf::UDPEndPoint surob_waves_udp_src_;
+    // surob data tracking
+    goby::time::SteadyClock::time_point last_surob_surge_time_{std::chrono::seconds(0)};
+    goby::middleware::protobuf::UDPEndPoint surob_surge_udp_src_;
 };
 
 } // namespace apps
@@ -181,33 +176,25 @@ jaiabot::apps::UDPGateway::UDPGateway()
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         {
-            jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
-            *surob_currents_payload.mutable_arduino_response() = arduino_response;
-            send_surob_currents_payload(surob_currents_payload);
+            jaiabot::protobuf::UDPGatewayEnvelope::SurobPayload surob_payload;
+            *surob_payload.mutable_arduino_response() = arduino_response;
+            send_surob_payload(surob_payload);
         });
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& mission_report)
         {
-            jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
-            *surob_currents_payload.mutable_mission_report() = mission_report;
-            send_surob_currents_payload(surob_currents_payload);
-
-            jaiabot::protobuf::UDPGatewayEnvelope::SurobWavesPayload surob_waves_payload;
-            *surob_waves_payload.mutable_mission_report() = mission_report;
-            send_surob_waves_payload(surob_waves_payload);
+            jaiabot::protobuf::UDPGatewayEnvelope::SurobPayload surob_payload;
+            *surob_payload.mutable_mission_report() = mission_report;
+            send_surob_payload(surob_payload);
         });
 
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
         {
-            jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload surob_currents_payload;
-            *surob_currents_payload.mutable_time_position_velocity() = tpv;
-            send_surob_currents_payload(surob_currents_payload);
-
-            jaiabot::protobuf::UDPGatewayEnvelope::SurobWavesPayload surob_waves_payload;
-            *surob_waves_payload.mutable_time_position_velocity() = tpv;
-            send_surob_waves_payload(surob_waves_payload);
+            jaiabot::protobuf::UDPGatewayEnvelope::SurobPayload surob_payload;
+            *surob_payload.mutable_time_position_velocity() = tpv;
+            send_surob_payload(surob_payload);
         });
 
     // handle rf disable commands to make sure task packets are not sent
@@ -290,52 +277,19 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             glog.is_debug1() && glog << "Received EchoData" << endl;
             break;
         }
-        case jaiabot::protobuf::UDPGatewayEnvelope::kSurobCurrentsPayload:
+        case jaiabot::protobuf::UDPGatewayEnvelope::kSurobPayload:
         {
-            glog.is_debug1() && glog << "Received SurobCurrentsPayload" << endl;
-            if (envelope.surob_currents_payload().has_heartbeat())
+            glog.is_debug1() && glog << "Received SurobPayload" << endl;
+            if (envelope.surob_payload().has_heartbeat())
             {
-                last_surob_surge_currents_time_ = goby::time::SteadyClock::now();
-                surob_currents_udp_src_ = udp_src;
+                last_surob_surge_time_ = goby::time::SteadyClock::now();
+                surob_surge_udp_src_ = udp_src;
             }
-            if (envelope.surob_currents_payload().has_task_packet())
+            if (envelope.surob_payload().has_task_packet())
             {
-                auto task_packet = envelope.surob_currents_payload().task_packet();
-                last_surob_surge_currents_time_ = goby::time::SteadyClock::now();
-                surob_currents_udp_src_ = udp_src;
-                task_packet.set_bot_id(cfg().bot_id());
-
-                if (this->rf_enabled_)
-                {
-                    glog.is_debug1() && glog << "(RF Enabled) Publishing task packet "
-                                                "intervehicle: "
-                                             << task_packet.DebugString() << std::endl;
-                    intervehicle().publish<groups::task_packet>(
-                        task_packet, intervehicle::default_publisher<protobuf::TaskPacket>);
-                }
-                else
-                {
-                    glog.is_debug1() && glog << "(RF Disabled) Publishing task packet "
-                                                "interprocess: "
-                                             << task_packet.DebugString() << std::endl;
-                    interprocess().publish<groups::task_packet>(task_packet);
-                }
-            }
-            break;
-        }
-        case jaiabot::protobuf::UDPGatewayEnvelope::kSurobWavesPayload:
-        {
-            glog.is_debug1() && glog << "Received SurobWavesPayload" << endl;
-            if (envelope.surob_waves_payload().has_heartbeat())
-            {
-                last_surob_surge_waves_time_ = goby::time::SteadyClock::now();
-                surob_waves_udp_src_ = udp_src;
-            }
-            if (envelope.surob_waves_payload().has_task_packet())
-            {
-                auto task_packet = envelope.surob_waves_payload().task_packet();
-                last_surob_surge_waves_time_ = goby::time::SteadyClock::now();
-                surob_waves_udp_src_ = udp_src;
+                auto task_packet = envelope.surob_payload().task_packet();
+                last_surob_surge_time_ = goby::time::SteadyClock::now();
+                surob_surge_udp_src_ = udp_src;
                 task_packet.set_bot_id(cfg().bot_id());
 
                 if (this->rf_enabled_)
@@ -397,18 +351,12 @@ void jaiabot::apps::UDPGateway::send_echo_command(const jaiabot::protobuf::EchoC
     send_envelope(envelope, echo_udp_src_);
 }
 
-void jaiabot::apps::UDPGateway::send_surob_currents_payload(const jaiabot::protobuf::UDPGatewayEnvelope::SurobCurrentsPayload& surob_currents_payload) {
-    auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
-    *envelope.mutable_surob_currents_payload() = surob_currents_payload;
-    send_envelope(envelope, surob_currents_udp_src_);
-}
-
-void jaiabot::apps::UDPGateway::send_surob_waves_payload(
-    const jaiabot::protobuf::UDPGatewayEnvelope::SurobWavesPayload& surob_waves_payload)
+void jaiabot::apps::UDPGateway::send_surob_payload(
+    const jaiabot::protobuf::UDPGatewayEnvelope::SurobPayload& surob_payload)
 {
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
-    *envelope.mutable_surob_waves_payload() = surob_waves_payload;
-    send_envelope(envelope, surob_waves_udp_src_);
+    *envelope.mutable_surob_payload() = surob_payload;
+    send_envelope(envelope, surob_surge_udp_src_);
 }
 
 void jaiabot::apps::UDPGateway::loop()
@@ -517,28 +465,15 @@ void jaiabot::apps::UDPGateway::check_last_report(
         }
     }
 
-    // Surob Surge Currents Heartbeat timeout check
-    if (cfg().surob_surge_currents_enabled() &&
-        last_surob_surge_currents_time_ +
-                std::chrono::seconds(
-                    cfg().surob_surge_currents_heartbeat_report_timeout_seconds()) <
+    // Surob Surge Heartbeat timeout check
+    if (cfg().surob_surge_enabled() &&
+        last_surob_surge_time_ +
+                std::chrono::seconds(cfg().surob_surge_heartbeat_report_timeout_seconds()) <
             goby::time::SteadyClock::now())
     {
-        glog.is_warn() && glog << "Timeout on Surob Surge Currents" << std::endl;
+        glog.is_warn() && glog << "Timeout on Surob Surge" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__NOT_RESPONDING__SUROB_SURGE_CURRENTS);
-    }
-
-    // Surob Surge Waves Heartbeat timeout check
-    if (cfg().surob_surge_waves_enabled() &&
-        last_surob_surge_waves_time_ +
-                std::chrono::seconds(cfg().surob_surge_waves_heartbeat_report_timeout_seconds()) <
-            goby::time::SteadyClock::now())
-    {
-        glog.is_warn() && glog << "Timeout on Surob Surge Waves" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__NOT_RESPONDING__SUROB_SURGE_WAVES);
+            ->add_warning(protobuf::WARNING__NOT_RESPONDING__SUROB_SURGE);
     }
 }
