@@ -104,5 +104,5 @@ storm_config {
       port: "/tmp/tty_storm_mcu"
       baud: 19200
   }
-  air_data_sample_rate: 10  #  (optional) (default=1)
+  air_data_sample_rate: 2  # Hz (optional) (default=1)
 }

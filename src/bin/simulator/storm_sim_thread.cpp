@@ -71,10 +71,10 @@ jaiabot::apps::StormSimThread::StormSimThread(const jaiabot::config::StormSimThr
         [this](std::shared_ptr<const SimOceanography> air_data)
         {
             auto now = goby::time::SteadyClock::now();
-            if (now >= last_air_datum_time_ + air_datum_dt_)
+            if (now >= next_air_datum_time_)
             {
                 air_descent_data_.push_back(air_data);
-                last_air_datum_time_ = now;
+                next_air_datum_time_ += air_datum_dt_;
             }
         });
 

@@ -202,6 +202,7 @@ message MissionTask
         STATION_KEEP = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
         SURFACE_DRIFT = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
         CONSTANT_HEADING = 4 [(jaia.ev).rest_api.presence = GUARANTEED];
+        STORM_AIR_DESCENT = 5 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
     optional TaskType type = 1
         [default = NONE, (jaia.field).rest_api.presence = GUARANTEED];

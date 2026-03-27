@@ -81,7 +81,7 @@ class StormSimThread : public SimulatorThread<jaiabot::config::StormSimThread>
     std::default_random_engine generator_;
     std::map<config::StormSimThread::SimFailureType, std::bernoulli_distribution> failures_;
 
-    goby::time::SteadyClock::time_point last_air_datum_time_;
+    goby::time::SteadyClock::time_point next_air_datum_time_{goby::time::SteadyClock::now()};
     const goby::time::SteadyClock::duration air_datum_dt_;
     std::vector<std::shared_ptr<const SimOceanography>> air_descent_data_;
 };

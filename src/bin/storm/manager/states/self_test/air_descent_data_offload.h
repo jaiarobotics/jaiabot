@@ -36,6 +36,7 @@ struct AirDescentDataOffload
     void mcu_response(const EvMCUResponse& ev);
     void loop(const EvLoop& ev);
     void try_send_to_mcu();
+    void try_send_to_shore();
 
   public:
     using reactions =
@@ -50,9 +51,15 @@ struct AirDescentDataOffload
     std::unique_ptr<StormAirDescentMetadata> air_descent_metadata_;
     // packet index -> data
     std::map<int, StormAirDescentData> air_descent_data_;
+    bool data_offloaded_from_mcu_{false};
 
     // how often to send requests to the MCU
     constexpr static goby::time::SteadyClock::duration mcu_send_interval_{std::chrono::seconds(1)};
     goby::time::SteadyClock::time_point next_mcu_send_time_{goby::time::SteadyClock::now()};
+
+    goby::time::SteadyClock::time_point offload_timeout_{
+        goby::time::SteadyClock::now() +
+        goby::time::convert_duration<goby::time::SteadyClock::duration>(
+            this->machine().mission().data_offload_timeout_minutes_with_units())};
 };
 #endif
