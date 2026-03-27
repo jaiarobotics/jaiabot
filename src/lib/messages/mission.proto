@@ -176,6 +176,14 @@ message MissionReport
         [(dccl.field) = { min: 0 max: 100 precision: 0 }];
     optional int32 repeat_index = 16
         [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
+    optional uint32 command_from_hub_id = 70
+        [(dccl.field) = { min: 0 max: 30 }];
+    optional uint64 mission_command_time = 71 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" },
+        }
+    ];
 }
 
 message MissionTask
@@ -418,6 +426,8 @@ message MissionPlan
         (dccl.field) = { min: 1 max: 100 }
     ];
 
+    optional string mission_name = 11 [(dccl.field).omit = true]; // not sent over radio, only saved to the hub
+
 }
 
 message IvPBehaviorUpdate
@@ -557,4 +567,13 @@ message MissionTpvMeetsGpsReq
     };
 
     optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv = 1;
+}
+
+// Represents a summary of a mission, for use in mission querying results.
+message MissionSummary
+{
+    optional string mission_name = 1;
+    optional uint64 start_time = 2;
+    optional uint64 end_time = 3;
+    optional uint32 task_packet_count = 4;
 }

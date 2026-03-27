@@ -362,6 +362,17 @@ message BotStatus
         },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
+
+    optional uint64 mission_command_time = 71 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    optional string mission_name = 72
+        [(dccl.field).omit = true];  // not sent, restored on Hub from map
 }
 
 message DriftPacket

@@ -123,7 +123,7 @@ export default class Mission {
         }
     }
 
-    packageMissionForHub() {
+    packageMissionForHub(missionSetName: string) {
         const missionPlan: MissionPlan = {
             start: MissionStart.START_IMMEDIATELY,
             movement: MovementType.TRANSIT,
@@ -133,6 +133,7 @@ export default class Mission {
             },
             speeds: this.speeds,
             repeats: this.repeats,
+            mission_name: missionSetName,
         };
 
         if (this.bottomDepthSafetyParams) {

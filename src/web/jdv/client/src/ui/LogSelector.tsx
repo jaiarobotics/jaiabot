@@ -71,9 +71,8 @@ interface LogSelectorState {
 }
 
 // Dropdown menu showing all of the available logs to choose from
-export default class LogSelector extends React.Component {
-    props: LogSelectorProps;
-    state: LogSelectorState;
+export default class LogSelector extends React.Component<LogSelectorProps, LogSelectorState> {
+    declare state: LogSelectorState;
 
     refreshTimer: NodeJS.Timeout;
 

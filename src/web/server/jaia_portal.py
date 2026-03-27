@@ -1,11 +1,8 @@
-import glob
-import json
 import bisect
 import socket
 import threading
 import ipaddress
 import itertools
-import collections
 
 import pyjaia.contours
 import pyjaia.drift_interpolation
@@ -238,11 +235,20 @@ class Interface:
 
     def post_command(self, command_dict, clientId):
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
+
         logging.debug(f'Sending command: {command}')
         command.time = now_utime()
+
+        if (
+                command.type == Command.MISSION_PLAN
+                and command.HasField('plan')
+                and command.plan.HasField('mission_name')
+            ):
+            self.task_packet_database.add_mission_command(command.plan.mission_name, command.bot_id, command.time)
+
         msg = ClientToPortalMessage()
         msg.command.CopyFrom(command)
-        
+
         if self.send_message_to_portal(msg):
             self.setControllingClientId(clientId)
             return {'status': 'ok'}
@@ -252,7 +258,7 @@ class Interface:
     def post_single_waypoint_mission(self, single_waypoint_mission_dict, clientId):
         logging.debug(f'Sending single waypoint coordinate: {single_waypoint_mission_dict}')
 
-        if 'lat' and 'lon' in single_waypoint_mission_dict:
+        if 'lat' in single_waypoint_mission_dict and 'lon' in single_waypoint_mission_dict:
             command_dict = {'bot_id': 1, 'time': now_utime(), 'type': 'MISSION_PLAN', 
                             'plan': {'start': 'START_IMMEDIATELY', 'movement': 'TRANSIT', 
                             'goal': [{'location': {'lat': single_waypoint_mission_dict["lat"], 'lon': single_waypoint_mission_dict["lon"]}}], 
