@@ -29,7 +29,7 @@ def extract_drift_segments(stationkeep_df, log):
     drifts = []
     for start_idx, end_idx in zip(drift_starts, drift_ends):
         if (end_idx - start_idx) < MIN_DRIFT_LEN_PTS:
-            log.warn(f"Driftlet was too short! Number of points {end_idx - start_idx}")
+            log.warning(f"Driftlet was too short! Number of points {end_idx - start_idx}")
             continue
 
         log.info(f"Driftlet length: {end_idx - start_idx} points.")
@@ -51,7 +51,7 @@ def extract_drift_segments(stationkeep_df, log):
             }
             drifts.append(drift_seg)
         else:
-            log.warn(f"Driftlet ended before momentum was cleared!")
+            log.warning(f"Driftlet ended before momentum was cleared!")
     
     return drifts
 
@@ -109,7 +109,7 @@ def compute_drift_statistics(drift, log):
     # Guard against zero-variance data that would cause np.polyfit to emit RankWarning or fail
     # If all latitudes or all scaled longitudes are identical, the linear fit is ill-posed.
     if np.nanmin(filtered_lat) == np.nanmax(filtered_lat) or np.nanmin(scaled_filtered_lon) == np.nanmax(scaled_filtered_lon):
-        log.warn(f"Cannot perform polyfit for lat/lon coords. Zero variance in latitude or longitude data for this driftlet.")
+        log.warning(f"Cannot perform polyfit for lat/lon coords. Zero variance in latitude or longitude data for this driftlet.")
         return stats
     a, b = np.polyfit(scaled_filtered_lon, filtered_lat, 1)
 
@@ -117,7 +117,7 @@ def compute_drift_statistics(drift, log):
     ss_res = np.sum((filtered_lat - lat_pred) ** 2)
     ss_tot = np.sum((filtered_lat - np.mean(filtered_lat)) ** 2)
     stats["R2"] = 1.0 - ss_res / ss_tot if ss_tot > 0 else np.nan
-    log.info(f"Driftlet R^2 fit: {stats["R2"]}")
+    log.info(f"Driftlet R^2 fit: {stats['R2']}")
 
     line_vector = np.array([1.0, a])
     net_displacement = np.array([scaled_filtered_lon[-1] - scaled_filtered_lon[0], filtered_lat[-1] - filtered_lat[0]])
@@ -126,7 +126,7 @@ def compute_drift_statistics(drift, log):
 
     dlon_line, dlat_line = line_vector
     stats["heading_angle"] = calculate_heading_from_components(dlon_line, dlat_line)
-    log.info(f"Driftlet heading: {stats["heading_angle"]} degrees.")
+    log.info(f"Driftlet heading: {stats['heading_angle']} degrees.")
 
     return stats
 
@@ -135,7 +135,7 @@ def summarize_station_keep_drifts(drifts, log):
     Computes statistics for each drift, weights by R², and calculates overall averages.
     """
     if not drifts:
-        log.warn(f"Can't compute average drift for this station keep, no driftlets provided.")
+        log.warning(f"Can't compute average drift for this station keep, no driftlets provided.")
         return {}
 
     drift_stats_list = [compute_drift_statistics(filter_current_data(d, log), log) for d in drifts]
@@ -145,7 +145,7 @@ def summarize_station_keep_drifts(drifts, log):
     good_drift_stats_df = good_drift_stats_df.dropna()
 
     if good_drift_stats_df.empty:
-        log.warn(f"Can't compute average drift for this station keep, all provided driftlets missing at least one of the following: R2 Weight, Rayleigh Speed Mode, or Heading Angle.")
+        log.warning(f"Can't compute average drift for this station keep, all provided driftlets missing at least one of the following: R2 Weight, Rayleigh Speed Mode, or Heading Angle.")
         return {}
 
     weights = good_drift_stats_df["weight"].to_numpy()
@@ -153,6 +153,10 @@ def summarize_station_keep_drifts(drifts, log):
     directions_rad = good_drift_stats_df["heading_rad"].to_numpy()
 
     W = np.sum(weights)
+
+    if W <= 0: # very unlikely
+        log.warning(f"Can't compute average drift for this station keep, all provided driflets have 0 R2 correlation.")
+        return {}
     
     x_comps_mps = magnitudes_mps*np.cos(directions_rad)
     y_comps_mps = magnitudes_mps*np.sin(directions_rad)
@@ -162,13 +166,14 @@ def summarize_station_keep_drifts(drifts, log):
 
     magnitude_weighted_mean_mps = np.linalg.norm([x_comp_weighted_mean_mps, y_comp_weighted_mean_mps], 2)
     direction_weighted_mean_deg = np.rad2deg(np.arctan2(y_comp_weighted_mean_mps, x_comp_weighted_mean_mps))
+    direction_weighted_mean_deg = direction_weighted_mean_deg % 360
 
     log.info(f"Mean driftlet stats for this station keep:")
     log.info(f"Weighted Average Mode Speed: {magnitude_weighted_mean_mps} m/s.")
     log.info(f"Weighted Mean Heading: {direction_weighted_mean_deg} degrees.")
 
     if len(good_drift_stats_df) == 1:
-        log.warn(f"Speed and direction standard deviations could not be calculated for this station keep! Too few driftlets. Using default standard deviation values instead.")
+        log.warning(f"Speed and direction standard deviations could not be calculated for this station keep! Too few driftlets. Using default standard deviation values instead.")
         speed_stdev = DEFAULT_SPEED_STDEV_MPS
         heading_stdev = DEFAULT_DIRECTION_STDEV_DEG
     else:
@@ -178,8 +183,10 @@ def summarize_station_keep_drifts(drifts, log):
         cosine_weighted_mean = np.sum(weights*np.cos(directions_rad))/W
         sine_weighted_mean = np.sum(weights*np.sin(directions_rad))/W
         resultant_length_weighted_mean = np.linalg.norm([cosine_weighted_mean, sine_weighted_mean], 2)
-        direction_weighted_circular_variance_rad_squared = 1.0 - resultant_length_weighted_mean
-        direction_weighted_circular_stdev_deg = np.rad2deg(np.sqrt(-2.0*np.log(direction_weighted_circular_variance_rad_squared)))
+        resultant_length_weighted_mean = np.clip(resultant_length_weighted_mean, 1e-15, 1.0)
+        direction_weighted_circular_stdev_rad = np.sqrt(-2.0*np.log(resultant_length_weighted_mean))
+        direction_weighted_circular_stdev_deg = np.rad2deg(direction_weighted_circular_stdev_rad)
+        direction_weighted_circular_stdev_deg = direction_weighted_circular_stdev_deg % 360
         
         speed_stdev = magnitude_weighted_stdev_mps
         heading_stdev = direction_weighted_circular_stdev_deg
@@ -210,7 +217,7 @@ def summarize_station_keep_drifts(drifts, log):
         # No position data available from good drifts
         mean_lat = np.nan
         mean_lon = np.nan
-        log.warn(f"Couldn't compute a mean location for this Station Keep!")
+        log.warning(f"Couldn't compute a mean location for this Station Keep!")
     return {
         "speed_mean_mps": magnitude_weighted_mean_mps,
         "heading_mean_deg": direction_weighted_mean_deg,
