@@ -235,4 +235,3 @@ enum StormMissionSimulatorStage
     AIR_DESCENT = 1;
     IN_WATER = 2;
 }
-

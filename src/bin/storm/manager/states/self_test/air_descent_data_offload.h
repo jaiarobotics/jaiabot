@@ -23,6 +23,17 @@
 #ifdef JAIABOT_STORM_MANAGER_FWD_DECL
 struct AirDescentDataOffload;
 #else
+
+// run function if weak pointer is valid
+struct lifetime_token
+{
+};
+template <typename F> void if_alive(const std::weak_ptr<lifetime_token>& weak, F&& f)
+{
+    if (!weak.expired())
+        std::forward<F>(f)();
+}
+
 struct AirDescentDataOffload
     : boost::statechart::state<AirDescentDataOffload, SelfTest>,
       Notify<AirDescentDataOffload, protobuf::SELF_TEST__AIR_DESCENT_DATA_OFFLOAD>
@@ -61,5 +72,9 @@ struct AirDescentDataOffload
         goby::time::SteadyClock::now() +
         goby::time::convert_duration<goby::time::SteadyClock::duration>(
             this->machine().mission().data_offload_timeout_minutes_with_units())};
+
+    // use to track existence of this state for ack/expired functions that might be called
+    // after we've left the state due to timeout
+    std::shared_ptr<lifetime_token> lifetime_{std::make_shared<lifetime_token>()};
 };
 #endif

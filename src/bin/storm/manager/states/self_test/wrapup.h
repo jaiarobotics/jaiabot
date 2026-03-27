@@ -28,7 +28,11 @@ struct Wrapup : boost::statechart::state<Wrapup, SelfTest>,
 {
     using StateBase = boost::statechart::state<Wrapup, SelfTest>;
 
-    Wrapup(typename StateBase::my_context c) : StateBase(c) {}
+    Wrapup(typename StateBase::my_context c) : StateBase(c)
+    {
+        // currently this state is a no-op, but exists to make a single clean final substate of SelfTest
+        post_event(EvSelfTestComplete());
+    }
     ~Wrapup() {}
 
     using reactions =

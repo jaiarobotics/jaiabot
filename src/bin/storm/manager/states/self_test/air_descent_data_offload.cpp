@@ -81,6 +81,8 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::loop(const EvLoop& e
 
     if (now >= offload_timeout_)
     {
+        this->machine().insert_warning(
+            protobuf::WARNING__STORM_SELF_TEST__AIR_DESCENT_DATA_OFFLOAD_TIMEOUT);
         post_event(EvAirDescentDataTimeout());
     }
 }
@@ -108,8 +110,12 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::try_send_to_shore()
     // see comment in src/lib/intervehicle.h
     auto dummy_group_func = [](protobuf::TaskPacket&, const goby::middleware::Group&) {};
 
-    auto acked_func = [this](const protobuf::TaskPacket& msg,
-                             const goby::middleware::intervehicle::protobuf::AckData& ack)
+    std::weak_ptr<lifetime_token> weak_lifetime = lifetime_;
+    auto self =
+        this; // make uses of "this" explicit in ack/expired to ensure they are guarded by the lifetime_ token
+    auto acked_func =
+        [self, weak_lifetime](const protobuf::TaskPacket& msg,
+                              const goby::middleware::intervehicle::protobuf::AckData& ack)
     {
         int packet_index = msg.storm_air_descent().packet_index();
         glog.is_verbose() &&
@@ -117,27 +123,39 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::try_send_to_shore()
                  << "[iridium] Ack received for air descent packet: " << packet_index
                  << ", ack: " << ack.ShortDebugString() << std::endl;
 
-        air_descent_data_.erase(packet_index);
-        if (air_descent_data_.empty())
-        {
-            glog.is_verbose() && glog << group("statechart")
-                                      << "[iridium] All packets sent and ack'd" << std::endl;
-            post_event(EvAirDescentDataTransmitted());
-        }
-        else
-        {
-            try_send_to_shore();
-        }
+        // only run if we're still in this state (and "self" is valid)
+        if_alive(weak_lifetime,
+                 [&]
+                 {
+                     self->air_descent_data_.erase(packet_index);
+                     if (self->air_descent_data_.empty())
+                     {
+                         glog.is_verbose() && glog << group("statechart")
+                                                   << "[iridium] All packets sent and ack'd"
+                                                   << std::endl;
+                         self->post_event(EvAirDescentDataTransmitted());
+                     }
+                     else
+                     {
+                         self->try_send_to_shore();
+                     }
+                 });
     };
 
-    auto expired_func = [this](const protobuf::TaskPacket& msg,
-                               const goby::middleware::intervehicle::protobuf::ExpireData& expire)
+    auto expired_func =
+        [self, weak_lifetime](const protobuf::TaskPacket& msg,
+                              const goby::middleware::intervehicle::protobuf::ExpireData& expire)
     {
         glog.is_warn() && glog << group("statechart")
                                << "[iridium] Expiry received for air descent packet: "
                                << msg.storm_air_descent().packet_index() << std::endl;
-        // don't give up - retry
-        try_send_to_shore();
+
+        // only run if we're still in this state (and "self" is valid)
+        if_alive(weak_lifetime,
+                 [&]
+                 {
+                     self->try_send_to_shore(); // don't give up - retry
+                 });
     };
 
     goby::middleware::Publisher<protobuf::TaskPacket> air_descent_publisher(

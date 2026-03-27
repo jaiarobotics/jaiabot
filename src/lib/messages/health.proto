@@ -88,8 +88,7 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_UDP_GATEWAY = 43
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_PPK = 44
-        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_PPK = 44 [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -360,8 +359,18 @@ enum Warning
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__MISSING_DATA__AML_DATA = 808
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__INIT_FAILED__AML = 809
-        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__INIT_FAILED__AML = 809 [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // from jaiabot_storm_manager
+    WARNING__STORM_SELF_TEST__LAUNCH_TUBE_BELIEVED_STUCK__RECOVERY_SUCCESSFUL =
+        900;  // TODO - implement
+    WARNING__STORM_SELF_TEST__LAUNCH_TUBE_BELIEVED_STUCK__RECOVERY_TIMEOUT =
+        901;  // TODO - implement
+    WARNING__STORM_SELF_TEST__PARACHUTE_BELIEVED_ATTACHED__RECOVERY_SUCCESSFUL =
+        902;  // TODO - implement
+    WARNING__STORM_SELF_TEST__PARACHUTE_BELIEVED_ATTACHED__RECOVERY_UNSUCCESSFUL =
+        903;  // TODO - implement
+    WARNING__STORM_SELF_TEST__AIR_DESCENT_DATA_OFFLOAD_TIMEOUT = 904;
 }
 
 message LinuxHardwareStatus
