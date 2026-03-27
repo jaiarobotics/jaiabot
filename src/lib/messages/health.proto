@@ -152,6 +152,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_CTD_MANAGER = 131
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_STORM_MANAGER = 132
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
     ERROR__MISSING_DATA__GPS_FIX = 200
