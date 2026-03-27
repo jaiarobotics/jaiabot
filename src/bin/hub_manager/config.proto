@@ -112,8 +112,4 @@ message HubManager
     repeated protobuf.Link link_to_subscribe_on =
         51;  // when subscribing to managed bots, use these links, otherwise
              // wait for bots to subscribe first
-
-    // Path to the XBee RSSI file written by the XBee driver.
-    // Each line contains "<node_id> <rssi_dbm>" for a source that has been heard.
-    optional string xbee_rssi_file = 52 [default = "/tmp/jaiabot_xbee_rssi"];
 }

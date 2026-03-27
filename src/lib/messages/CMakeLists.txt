@@ -40,6 +40,7 @@ protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_IN
   hub.proto
   dive_debug.proto
   xbee_extensions.proto
+  modem_message_extensions.proto
   simulator.proto
   echo.proto
   tsys01.proto

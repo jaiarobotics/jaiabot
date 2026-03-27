@@ -61,6 +61,7 @@
 
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/messages/link.pb.h"
+#include "jaiabot/messages/modem_message_extensions.pb.h"
 
 using goby::glog;
 using goby::util::hex_encode;
@@ -209,7 +210,7 @@ void jaiabot::comms::XBeeDriver::startup(const goby::acomms::protobuf::DriverCon
                     encode_modem_id(driver_cfg_.modem_id()), network_id, xbee_info_location,
                     use_encryption, encryption_password, mesh_unicast_retries, unicast_mac_retries,
                     network_delay_slots, broadcast_multi_transmits, config_extension().fleet_id(),
-                    config_extension().subnet_mask(), config_extension().xbee_rssi_location());
+                    config_extension().subnet_mask());
 }
 
 void jaiabot::comms::XBeeDriver::shutdown()
@@ -440,6 +441,18 @@ bool jaiabot::comms::XBeeDriver::parse_modem_message(std::string in,
 
         if (packet->has_data())
             out->add_frame(packet->data());
+
+        // Attach last known RSSI for this source to the ModemTransmission extension.
+        // The RSSI value may have been populated in device_.do_work() from a prior DB query
+        // fired when the previous packet from this source arrived.
+        int32_t rssi = device_.get_rssi(encode_modem_id(packet->src()));
+        if (rssi > 0)
+        {
+            glog.is_debug3() && glog << group(glog_in_group())
+                                     << "Attaching RSSI " << rssi << " dBm for src "
+                                     << packet->src() << std::endl;
+            out->MutableExtension(jaiabot::protobuf::transmission)->set_rssi(rssi);
+        }
 
         return true;
     }

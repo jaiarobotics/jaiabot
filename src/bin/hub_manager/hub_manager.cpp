@@ -35,9 +35,6 @@
 #include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/util/linebasedcomms/gps_sentence.h>
 
-#include <fstream>
-#include <sstream>
-
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "config.pb.h"
@@ -50,6 +47,7 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/link.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/modem_message_extensions.pb.h"
 #include "jaiabot/messages/comms.pb.h"
 
 using goby::glog;
@@ -355,6 +353,34 @@ jaiabot::apps::HubManager::HubManager()
             }
         });
 
+    // Subscribe to modem receive events to extract per-bot XBee RSSI (bot -> hub signal strength).
+    // The XBee driver attaches the RSSI of each received packet to the ModemTransmission
+    // extension, following the same pattern used by hub_id (see PR #408).
+    interprocess().subscribe<goby::middleware::intervehicle::groups::modem_receive>(
+        [this](const goby::middleware::intervehicle::protobuf::ModemTransmissionWithLinkID& rx_msg)
+        {
+            if (rx_msg.data().HasExtension(jaiabot::protobuf::transmission) &&
+                rx_msg.data().GetExtension(jaiabot::protobuf::transmission).has_rssi() &&
+                rx_msg.data().has_src())
+            {
+                int src_modem_id = rx_msg.data().src();
+                try
+                {
+                    int bot_id = jaiabot::comms::bot_id_from_modem_id(src_modem_id,
+                                                                       cfg().subnet_mask());
+                    bot_xbee_rssi_[bot_id] =
+                        rx_msg.data().GetExtension(jaiabot::protobuf::transmission).rssi();
+                    glog.is_debug2() && glog << "Bot " << bot_id
+                                             << " XBee RSSI: " << bot_xbee_rssi_.at(bot_id)
+                                             << " dBm" << std::endl;
+                }
+                catch (const std::exception&)
+                {
+                    // src is not a bot modem_id (e.g., broadcast) - skip
+                }
+            }
+        });
+
     if (is_virtualhub_)
         update_vfleet_shutdown_time();
 }
@@ -644,41 +670,6 @@ void jaiabot::apps::HubManager::loop()
     }
 
     latest_hub_status_.clear_known_bot();
-
-    // Read per-source RSSI from file written by the hub's XBee driver.
-    // Format: "<node_id> <rssi_dbm>" per line.
-    if (!cfg().xbee_rssi_file().empty())
-    {
-        std::ifstream rssi_file(cfg().xbee_rssi_file());
-        if (rssi_file.is_open())
-        {
-            bot_xbee_rssi_.clear();
-            std::string line;
-            while (std::getline(rssi_file, line))
-            {
-                if (line.empty())
-                    continue;
-                std::istringstream iss(line);
-                std::string node_id_str;
-                int32_t rssi_val = 0;
-                if (iss >> node_id_str >> rssi_val && rssi_val >= 40 && rssi_val <= 110)
-                {
-                    try
-                    {
-                        int node_id_int = std::stoi(node_id_str);
-                        // node_id is the modem_id; convert to bot_id
-                        int bot_id = jaiabot::comms::bot_id_from_modem_id(node_id_int,
-                                                                           cfg().subnet_mask());
-                        bot_xbee_rssi_[bot_id] = rssi_val;
-                    }
-                    catch (const std::exception&)
-                    {
-                        // skip lines that can't be parsed
-                    }
-                }
-            }
-        }
-    }
 
     for (const auto& known_bot_p : known_bots_)
     {

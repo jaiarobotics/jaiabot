@@ -28,12 +28,6 @@ message Config
             "Location to write a file with serial number and node id to be used by jaiabot_metadata."
     ];
 
-    optional string xbee_rssi_location = 6 [
-        default = "/tmp/jaiabot_xbee_rssi",
-        (goby.field).description =
-            "Location to write a file with per-source RSSI data. Each line is '<node_id> <rssi_dbm>'."
-    ];
-
     optional bool use_xbee_encryption = 7 [
         default = false,
         (goby.field).description =

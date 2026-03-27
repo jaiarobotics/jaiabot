@@ -80,8 +80,7 @@ void jaiabot::comms::XBeeDevice::startup(
     const uint16_t network_id, const std::string& xbee_info_location, const bool& use_encryption,
     const std::string& encryption_password, const std::string& mesh_unicast_retries,
     const std::string& unicast_mac_retries, const std::string& network_delay_slots,
-    const std::string& broadcast_multi_transmits, int fleet, unsigned subnet_mask,
-    const std::string& xbee_rssi_location)
+    const std::string& broadcast_multi_transmits, int fleet, unsigned subnet_mask)
 {
     std::string enable_encryption = "0";
     if (use_encryption)
@@ -91,7 +90,6 @@ void jaiabot::comms::XBeeDevice::startup(
 
     my_node_id = _my_node_id;
     my_xbee_info_location_ = xbee_info_location;
-    xbee_rssi_file_location_ = xbee_rssi_location;
     glog_group = "xbee id" + my_node_id;
     glog.add_group(glog_group, goby::util::Colors::yellow);
 
@@ -421,38 +419,15 @@ void jaiabot::comms::XBeeDevice::query_rssi()
     frame_id++;
 }
 
-void jaiabot::comms::XBeeDevice::write_rssi_file()
+int32_t jaiabot::comms::XBeeDevice::get_rssi(const NodeId& node_id) const
 {
-    if (xbee_rssi_file_location_.empty())
-        return;
-
-    std::ofstream rssi_file(xbee_rssi_file_location_);
-    if (!rssi_file.is_open())
-    {
-        glog.is_warn() && glog << group(glog_group)
-                               << "Failed to open RSSI file for writing: "
-                               << xbee_rssi_file_location_ << endl;
-        return;
-    }
-
-    // Write per-source RSSI as "<node_id> <rssi_dbm>" lines.
-    // Node ID is looked up via the serial-to-node_id map.
-    for (const auto& src_rssi : rssi_per_src_)
-    {
-        std::string node_id;
-        for (const auto& pair : node_id_to_serial_number_map)
-        {
-            if (pair.second == src_rssi.first)
-            {
-                node_id = pair.first;
-                break;
-            }
-        }
-        if (!node_id.empty())
-        {
-            rssi_file << node_id << " " << src_rssi.second << "\n";
-        }
-    }
+    auto serial_it = node_id_to_serial_number_map.find(node_id);
+    if (serial_it == node_id_to_serial_number_map.end())
+        return 0;
+    auto rssi_it = rssi_per_src_.find(serial_it->second);
+    if (rssi_it == rssi_per_src_.end())
+        return 0;
+    return static_cast<int32_t>(rssi_it->second);
 }
 
 /*
@@ -920,23 +895,14 @@ void jaiabot::comms::XBeeDevice::process_frame_at_command_response(const string&
             rssi_query_count_++;
             received_rssi_ = true;
 
-            // Store per-source RSSI and write to file
+            // Store per-source RSSI for later retrieval via get_rssi()
             if (last_received_src_serial_ != 0)
             {
                 rssi_per_src_[last_received_src_serial_] = current_rssi_;
 
-                // Reverse-lookup NodeId from serial number
-                for (const auto& pair : node_id_to_serial_number_map)
-                {
-                    if (pair.second == last_received_src_serial_)
-                    {
-                        glog.is_debug3() &&
-                            glog << group(glog_group) << "RSSI for NodeId " << pair.first << ": "
-                                 << current_rssi_ << " dBm" << endl;
-                        break;
-                    }
-                }
-                write_rssi_file();
+                glog.is_debug3() && glog << group(glog_group) << "RSSI for src serial 0x"
+                                         << std::hex << last_received_src_serial_ << std::dec
+                                         << ": " << current_rssi_ << " dBm" << endl;
             }
         }
     }
@@ -1022,7 +988,7 @@ void jaiabot::comms::XBeeDevice::process_frame_receive_packet(const string& resp
     auto data_size = response_size - 12;
 
     // Store source serial number for RSSI association
-    last_received_src_serial_ = big_to_native(*((SerialNumber*)response->src));
+    last_received_src_serial_ = big_to_native(*reinterpret_cast<const SerialNumber*>(response->src));
 
     // Query RSSI for this received packet so we can track signal strength per source
     query_rssi();

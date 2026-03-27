@@ -44,12 +44,12 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 
 #include "jaiabot/messages/sensor/salinity.pb.h"
+#include "jaiabot/messages/modem_message_extensions.pb.h"
 #include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/utils/specific_conductivity.h"
 
 #include "wmm/WMM.h"
 #include <cmath>
-#include <fstream>
 #include <math.h>
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
@@ -643,6 +643,23 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 latest_bot_status_.clear_wifi_link_quality_percentage();
             }
         });
+
+    // Subscribe to modem receive events to extract XBee RSSI (hub -> bot signal strength).
+    // The XBee driver attaches the RSSI of each received packet to the ModemTransmission
+    // extension, following the same pattern used by hub_id (see PR #408).
+    interprocess().subscribe<goby::middleware::intervehicle::groups::modem_receive>(
+        [this](const goby::middleware::intervehicle::protobuf::ModemTransmissionWithLinkID& rx_msg)
+        {
+            if (rx_msg.data().HasExtension(jaiabot::protobuf::transmission) &&
+                rx_msg.data().GetExtension(jaiabot::protobuf::transmission).has_rssi() &&
+                rx_msg.data().has_src())
+            {
+                int32_t rssi = rx_msg.data().GetExtension(jaiabot::protobuf::transmission).rssi();
+                latest_bot_status_.set_xbee_rssi(rssi);
+                glog.is_debug2() && glog << "XBee RSSI from src " << rx_msg.data().src() << ": "
+                                         << rssi << " dBm" << std::endl;
+            }
+        });
 }
 
 void jaiabot::apps::Fusion::init_node_status()
@@ -675,31 +692,6 @@ void jaiabot::apps::Fusion::loop()
         goby::time::SystemClock::unwarp(goby::time::SystemClock::now()));
 
     latest_bot_status_.set_time_with_units(unwarped_time);
-
-    // Read XBee RSSI from file written by the XBee driver.
-    // The file contains "<node_id> <rssi_dbm>" lines; we take the first valid entry
-    // since on a bot there is only one source (the hub).
-    if (!cfg().xbee_rssi_file().empty())
-    {
-        std::ifstream rssi_file(cfg().xbee_rssi_file());
-        if (rssi_file.is_open())
-        {
-            std::string node_id;
-            int32_t rssi_val = 0;
-            if (rssi_file >> node_id >> rssi_val && rssi_val >= 40 && rssi_val <= 110)
-            {
-                latest_bot_status_.set_xbee_rssi(rssi_val);
-            }
-            else
-            {
-                latest_bot_status_.clear_xbee_rssi();
-            }
-        }
-        else
-        {
-            latest_bot_status_.clear_xbee_rssi();
-        }
-    }
 
     if (last_health_report_time_ + std::chrono::seconds(cfg().health_report_timeout_seconds()) <
         now)
