@@ -60,6 +60,8 @@ RUN apt-get update && \
             goby3-interfaces:amd64 \
             libnanopb-dev:arm64 \
             nanopb:amd64 \
+            libopencv-core-dev:arm64 libopencv-imgproc-dev:arm64 \
+            libopencv-dnn-dev:arm64 libopencv-videoio-dev:arm64 libopencv-imgcodecs-dev:arm64 \
             python3-protobuf:amd64 \
             wget:amd64 \
             curl:amd64 \

@@ -17,6 +17,11 @@ else
     exit 1
 fi
 
+echo "🟢 Installing OpenCV runtime dependencies"
+sudo apt-get install -y --no-install-recommends \
+    libopencv-core-dev libopencv-imgproc-dev \
+    libopencv-dnn-dev libopencv-videoio-dev libopencv-imgcodecs-dev
+
 echo "🟢 Creating python virtual environment (venv)"
 pushd ${HOME}/jaiabot/${build_dir}/share/jaiabot/python
     /usr/bin/python3 -m venv venv/ --system-site-packages

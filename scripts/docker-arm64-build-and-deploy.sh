@@ -92,6 +92,10 @@ else
         ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./config ./scripts \
         ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
+        # Sync model files to their runtime locations
+        rsync -za --mkpath ./src/bin/obstacle_detector/best.onnx \
+        ${botuser}@"$remote":/var/log/jaiabot/
+
         # Login to the target, and deploy the software
         ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c \"./jaiabot/scripts/arm64-deploy.sh ${build_dir}\""
 

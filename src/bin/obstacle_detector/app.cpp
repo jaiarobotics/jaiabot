@@ -37,6 +37,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/obstacle.pb.h"
 
@@ -296,7 +297,7 @@ class MJPEGServer
                 "<style>"
                 "*{box-sizing:border-box;margin:0;padding:0}"
                 "html,body{width:100%;height:100%;background:#000;overflow:hidden}"
-                "img{display:block;width:100%;height:100%;object-fit:contain}"
+                "img{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:contain}"
                 "</style></head>"
                 "<body><img src='/video_feed'></body></html>";
             ba::write(sock, ba::buffer(html), ec);
@@ -380,6 +381,9 @@ class ObstacleDetector : public zeromq::SingleThreadApplication<config::Obstacle
 
     std::atomic<int> capture_fps_{0};
     std::atomic<int> inference_fps_{0};
+
+    // IMU pitch (bow-up positive, degrees) — negative contribution to cam_angle_deg
+    std::atomic<double> imu_pitch_deg_{0.0};
 };
 
 } // namespace apps
@@ -400,6 +404,11 @@ jaiabot::apps::ObstacleDetector::ObstacleDetector()
 {
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("camera", goby::util::Colors::blue);
+
+    interprocess().subscribe<groups::imu>([this](const protobuf::IMUData& imu_data) {
+        if (imu_data.has_euler_angles() && imu_data.euler_angles().has_pitch())
+            imu_pitch_deg_.store(imu_data.euler_angles().pitch());
+    });
 
     mjpeg_server_ = std::make_unique<MJPEGServer>((uint16_t)cfg().http_port());
     capture_thread_ = std::thread(&ObstacleDetector::capture_thread_func, this);
@@ -436,7 +445,9 @@ jaiabot::apps::ObstacleDetector::pixel_to_local(double u, double v)
 
     double fov_v = fov_h * (img_h / img_w);
     double alpha_v = (cy / (img_h / 2.0)) * (fov_v / 2.0);
-    double total_angle_rad = (cam_angle + alpha_v) * DEG_TO_RAD;
+    // Subtract IMU pitch: bow-up tilt (positive pitch) tilts camera upward (reduces effective downward angle)
+    double effective_cam_angle = cam_angle - imu_pitch_deg_.load();
+    double total_angle_rad = (effective_cam_angle + alpha_v) * DEG_TO_RAD;
 
     if (total_angle_rad <= 0.05) return std::nullopt;
 
@@ -578,7 +589,10 @@ void jaiabot::apps::ObstacleDetector::capture_thread_func()
             cv::Mat overlay = display.clone();
             for (const auto& t : tracks)
             {
-                cv::Rect r(t.x1, t.y1, t.x2 - t.x1, t.y2 - t.y1);
+                int rx1 = std::max(t.x1, 0), ry1 = std::max(t.y1, 0);
+                int rx2 = std::min(t.x2, W), ry2 = std::min(t.y2, H);
+                if (rx2 <= rx1 || ry2 <= ry1) continue;
+                cv::Rect r(rx1, ry1, rx2 - rx1, ry2 - ry1);
                 auto color = confidence_color(t.confidence);
                 cv::rectangle(overlay, r, color, cv::FILLED);
             }
@@ -587,7 +601,10 @@ void jaiabot::apps::ObstacleDetector::capture_thread_func()
 
         for (const auto& t : tracks)
         {
-            cv::Rect r(t.x1, t.y1, t.x2 - t.x1, t.y2 - t.y1);
+            int rx1 = std::max(t.x1, 0), ry1 = std::max(t.y1, 0);
+            int rx2 = std::min(t.x2, W), ry2 = std::min(t.y2, H);
+            if (rx2 <= rx1 || ry2 <= ry1) continue;
+            cv::Rect r(rx1, ry1, rx2 - rx1, ry2 - ry1);
             auto color = confidence_color(t.confidence);
             // Full rectangle outline + bracket corners for visibility
             cv::rectangle(display, r, color * 0.5, 1);
@@ -598,7 +615,7 @@ void jaiabot::apps::ObstacleDetector::capture_thread_func()
             if (t.dist_m >= 0.f)
                 label += "  " + std::to_string(static_cast<int>(t.dist_m)) + "m";
 
-            draw_label_bg(display, label, {t.x1, std::max(t.y1 - 4, 0)}, 0.55, color, {20, 20, 20});
+            draw_label_bg(display, label, {rx1, std::max(ry1 - 4, 0)}, 0.55, color, {20, 20, 20});
 
             // Distance bar: horizontal bar below the box whose width represents proximity.
             // Full width = 0m (right on top of bot), zero width = max_dist_m or beyond.
@@ -606,20 +623,20 @@ void jaiabot::apps::ObstacleDetector::capture_thread_func()
             {
                 constexpr float max_dist_m = 25.f; // matches pObstacleMgr alert_range
                 float proximity = 1.f - std::min(t.dist_m / max_dist_m, 1.f); // 1=close, 0=far
-                int bar_y = std::min(t.y2 + 4, H - 6);
-                int bar_w = static_cast<int>((t.x2 - t.x1) * proximity);
-                int bar_x = t.x1 + (t.x2 - t.x1 - bar_w) / 2; // centered under box
+                int bar_y = std::min(ry2 + 4, H - 6);
+                int bar_w = static_cast<int>((rx2 - rx1) * proximity);
+                int bar_x = rx1 + (rx2 - rx1 - bar_w) / 2; // centered under box
                 if (bar_w > 2)
                 {
                     cv::rectangle(display, {bar_x, bar_y, bar_w, 5}, color, cv::FILLED);
-                    cv::rectangle(display, {t.x1, bar_y, t.x2 - t.x1, 5}, {60, 60, 60}, 1);
+                    cv::rectangle(display, {rx1, bar_y, rx2 - rx1, 5}, {60, 60, 60}, 1);
                 }
                 // Large distance readout centered inside the box
                 std::string dist_str = std::to_string(static_cast<int>(t.dist_m)) + "m";
                 int dbline = 0;
                 auto dsz = cv::getTextSize(dist_str, cv::FONT_HERSHEY_SIMPLEX, 0.9, 2, &dbline);
-                int dx = t.x1 + (t.x2 - t.x1 - dsz.width) / 2;
-                int dy = t.y1 + (t.y2 - t.y1 + dsz.height) / 2;
+                int dx = rx1 + (rx2 - rx1 - dsz.width) / 2;
+                int dy = ry1 + (ry2 - ry1 + dsz.height) / 2;
                 cv::putText(display, dist_str, {dx, dy}, cv::FONT_HERSHEY_SIMPLEX, 0.9,
                             {20, 20, 20}, 4); // dark shadow
                 cv::putText(display, dist_str, {dx, dy}, cv::FONT_HERSHEY_SIMPLEX, 0.9,

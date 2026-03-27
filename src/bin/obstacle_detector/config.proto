@@ -32,7 +32,7 @@ message ObstacleDetector
     optional double cam_height_m = 20 [default = 0.5];
 
     // Camera geometry: tilt angle downward from horizon in degrees
-    optional double cam_angle_deg = 21 [default = 15.0];
+    optional double cam_angle_deg = 21 [default = 0.0];
 
     // Camera horizontal field of view in degrees
     // DeepWater Exploration exploreHD: 138deg in air, ~82deg in water
