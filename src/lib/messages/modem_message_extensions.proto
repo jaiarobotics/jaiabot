@@ -30,12 +30,9 @@ package jaiabot.protobuf;
 // Published on the goby::middleware::intervehicle::groups::modem_receive interprocess group.
 message Transmission
 {
-    // Field 1 is reserved for HubInfo hub (added by PR #408).
-    reserved 1;
-
     // RSSI of the received packet in -dBm (e.g. 65 = -65 dBm).
     // Populated by the XBee driver from the DB AT command response.
-    optional int32 rssi = 2;
+    optional int32 rssi = 1;
 }
 
 extend goby.acomms.protobuf.ModemTransmission
