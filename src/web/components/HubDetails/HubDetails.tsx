@@ -11,6 +11,7 @@ import {
     formatLatitude,
     formatLongitude,
 } from "../../shared/Utilities";
+import { KnownBot } from "../../shared/JAIAProtobuf";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 import { getIPPrefix } from "../../shared/IPPrefix";
 import { HubAccordionNames } from "../../types/context-types";
@@ -225,7 +226,7 @@ export default function HubDetails() {
                     </Accordion>
                 </ThemeProvider>
 
-                {hub.getKnownBots()?.some((kb) => kb.xbee_rssi != null) && (
+                {hub.getKnownBots()?.some((kb: KnownBot) => kb.xbee_rssi != null) && (
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
                             expanded={jaiaContext.hubAccordionStates.xbeeRssi}
@@ -251,8 +252,8 @@ export default function HubDetails() {
                                     <tbody>
                                         {hub
                                             .getKnownBots()
-                                            ?.filter((kb) => kb.xbee_rssi != null)
-                                            .map((kb) => (
+                                            ?.filter((kb: KnownBot) => kb.xbee_rssi != null)
+                                            .map((kb: KnownBot) => (
                                                 <tr key={kb.id}>
                                                     <td>Bot {kb.id}</td>
                                                     <td>-{kb.xbee_rssi} dBm</td>
