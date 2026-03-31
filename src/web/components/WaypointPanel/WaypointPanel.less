@@ -32,10 +32,19 @@
 .waypoint-toggle-container {
     padding: 9px;
 
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: max-content min-content;
+    column-gap: 9px;
+    row-gap: 3px;
+    align-items: center;
     background-color: @cc-accordian-color;
     border: 1px solid #d3d3d3;
+}
+
+.waypoint-toggle-container svg {
+    height: 38px;
+    width: 30px;
+    margin-left: 1px;
 }
 
 .waypoint-button-container {
@@ -57,17 +66,6 @@
     border: 1px solid #d3d3d3;
     border-radius: 3px;
     text-align: center;
-}
-
-.waypoint-button-container .delete-button {
-    grid-column: 1 / 3;
-}
-
-.toggle-row {
-    grid-column: 1 / 3;
-    display: flex;
-    align-items: center;
-    gap: 15px;
 }
 
 .waypoint-panel-container .button-row {

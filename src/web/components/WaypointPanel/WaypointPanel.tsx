@@ -146,29 +146,26 @@ export default function WaypointPanel() {
                 <div>{jaiaContext.jaiaGlobal.getSelectedWaypoint().missionID}</div>
             </div>
             <div className="waypoint-toggle-container">
-                <div className="toggle-row">
-                    <div className="label">Edit Mission:</div>
-                    <JaiaToggle
-                        checked={() =>
-                            jaiaContext.missionSet.getMissionIDInEditMode() ===
-                            jaiaContext.jaiaGlobal.getSelectedWaypoint().missionID
-                        }
-                        onClick={() => handleEditModeClick()}
-                    />
-                </div>
-                <div className="toggle-row">
-                    <div className="label">Tap to Move:</div>
-                    <JaiaToggle
-                        checked={() => jaiaContext.jaiaGlobal.getSelectedWaypoint().isMoveable}
-                        disabled={() => isTapToMoveDisabled()}
-                        onClick={() => handleTapToMoveClick()}
-                    />
-                </div>
+                <div className="label">Edit Mission:</div>
+                <JaiaToggle
+                    checked={() =>
+                        jaiaContext.missionSet.getMissionIDInEditMode() ===
+                        jaiaContext.jaiaGlobal.getSelectedWaypoint().missionID
+                    }
+                    onClick={() => handleEditModeClick()}
+                />
+                <div className="label">Tap to Move:</div>
+                <JaiaToggle
+                    checked={() => jaiaContext.jaiaGlobal.getSelectedWaypoint().isMoveable}
+                    disabled={() => isTapToMoveDisabled()}
+                    onClick={() => handleTapToMoveClick()}
+                />
+                <div>Delete:</div>
+                <Icon path={mdiDelete} color="white" />
             </div>
             <div className="waypoint-button-container">
                 <button>Location</button>
                 <button>Task</button>
-                <button className="delete-button">Delete</button>
             </div>
             <div className="button-row">
                 <button onClick={() => handleClosePanelClick(PanelActions.CANCEL)}>Cancel</button>
