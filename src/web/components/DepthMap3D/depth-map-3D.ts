@@ -16,7 +16,7 @@ export function getColorScale() {
 /**
  * Passes the dive data from the Bots to plotly for a 3D rendering
  *
- * @returns {boolean} True if the plot is generated, false otherwise
+ * @returns {Promise<boolean>} True if the plot is generated, false otherwise
  */
 export async function buildDepthMap() {
     const root = document.getElementById(DEPTH_MAP_3D_NAME);
