@@ -22,3 +22,5 @@ arduino_version_table {
 }
 
 $jaiabot_driver_arduino_bounds
+
+vehicle_db_path: "/var/log/jaiabot/db/vehicle_bot${bot_id}_fleet${fleet_id}.db"
