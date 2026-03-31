@@ -25,6 +25,8 @@
 #include <algorithm>
 #include <goby/zeromq/application/multi_thread.h>
 
+#include "sqlite3.h"
+
 using namespace std;
 
 #include "config.pb.h"
@@ -59,6 +61,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 {
   public:
     ArduinoDriver();
+    ~ArduinoDriver();
 
   private:
     void loop() override;
@@ -72,6 +75,11 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     bool isVersionLessThanOrEqual(const std::string& version1, const std::string& version2);
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
     int calculateMotorMicroseconds(const int& input);
+
+    // Motor usage database
+    void open_vehicle_database();
+    void update_vehicle_database(int32_t motor_micros, uint64_t usage_micros);
+    sqlite3* vehicle_db_;
 
     int64_t lastAckTime_;
 
@@ -132,6 +140,9 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);
     glog.add_group("arduino", goby::util::Colors::blue);
+
+    // Open the vehicle database for logging motor usage
+    open_vehicle_database();
 
     using SerialThread = jaiabot::lora::SerialThreadFletcher16<serial_in, serial_out>;
     launch_thread<SerialThread>(cfg().serial_arduino());
@@ -226,7 +237,7 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                 glog << group("main") << "Arduino Driver Connected: " << is_driver_connected_
                      << "Arduino Driver Compatible: " << is_driver_compatible_
                      << ", Arduino Version: " << arduino_response.version()
-                     << ", Arduino Driver Has Verision: "
+                     << ", Arduino Driver Has Version: "
                      << arduino_version_compatibility_.count(arduino_response.version())
                      << std::endl;
 
@@ -309,6 +320,8 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
         }
     });
 }
+
+jaiabot::apps::ArduinoDriver::~ArduinoDriver() { sqlite3_close(vehicle_db_); }
 
 /**
  * @brief Updates the bounds configuration for the Arduino actuators
@@ -544,6 +557,22 @@ void jaiabot::apps::ArduinoDriver::publish_arduino_commands()
         }
     }
 
+    // Log the motor usage
+    static jaiabot::protobuf::ArduinoActuators previous_actuators;
+    static int64_t previous_actuators_time = 0;
+
+    if (arduino_actuators.has_motor())
+    {
+        if (previous_actuators_time != 0 && previous_actuators.has_motor())
+        {
+            auto previous_actuators_duration = now_microseconds() - previous_actuators_time;
+            update_vehicle_database(previous_actuators.motor(), previous_actuators_duration);
+        }
+
+        previous_actuators = arduino_actuators;
+        previous_actuators_time = now_microseconds();
+    }
+
     glog.is_debug1() && glog << group("arduino")
                              << "Arduino Command: " << arduino_cmd.ShortDebugString() << std::endl;
 
@@ -598,11 +627,73 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
         arduino_debug.set_arduino_not_responding(true);
         interprocess().publish<groups::arduino_debug>(arduino_debug);
 
-        // Pulbish to arduino to attempt to get a response
+        // Publish to arduino to attempt to get a response
         publish_arduino_commands();
 
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
+    }
+}
+
+void jaiabot::apps::ArduinoDriver::open_vehicle_database()
+{
+    char* err_msg = nullptr;
+
+    int rc = sqlite3_open(cfg().vehicle_db_path().c_str(), &vehicle_db_);
+    if (rc != SQLITE_OK)
+    {
+        glog.is_warn() && glog << "Can't open database: " << sqlite3_errmsg(vehicle_db_)
+                               << std::endl;
+        sqlite3_close(vehicle_db_);
+        vehicle_db_ = nullptr;
+    }
+
+    char sql[] = "CREATE TABLE IF NOT EXISTS motor_usage(motor_micros INTEGER PRIMARY KEY, "
+                 "usage_micros INTEGER);";
+
+    rc = sqlite3_exec(vehicle_db_, sql, 0, 0, &err_msg);
+    if (rc != SQLITE_OK)
+    {
+        glog.is_warn() && glog << "SQL error: " << err_msg << std::endl;
+        sqlite3_free(err_msg);
+        sqlite3_close(vehicle_db_);
+        vehicle_db_ = nullptr;
+        return;
+    }
+
+    glog.is_verbose() && glog << "Database created successfully." << std::endl;
+}
+
+void jaiabot::apps::ArduinoDriver::update_vehicle_database(int32_t motor_micros,
+                                                           uint64_t usage_micros)
+{
+    char* err_msg = nullptr;
+
+    if (vehicle_db_ == nullptr)
+    {
+        glog.is_debug1() && glog << "Database is not open." << std::endl;
+        return;
+    }
+
+    const int32_t MOTOR_MICROS_BIN = 50; // Bin size for motor microseconds
+    int32_t binned_motor_micros =
+        (motor_micros / MOTOR_MICROS_BIN) * MOTOR_MICROS_BIN; // Bin the motor microseconds
+
+    std::string sql = "INSERT INTO motor_usage (motor_micros, usage_micros) VALUES (" +
+                      std::to_string(binned_motor_micros) + ", " + std::to_string(usage_micros) +
+                      ") ON CONFLICT(motor_micros) DO UPDATE SET "
+                      "usage_micros = usage_micros + " +
+                      std::to_string(usage_micros) + ";";
+
+    auto rc = sqlite3_exec(vehicle_db_, sql.c_str(), 0, 0, &err_msg);
+    if (rc != SQLITE_OK)
+    {
+        glog.is_warn() && glog << "SQL error: " << err_msg << std::endl;
+        sqlite3_free(err_msg);
+    }
+    else
+    {
+        glog.is_debug1() && glog << "Database updated successfully." << std::endl;
     }
 }
