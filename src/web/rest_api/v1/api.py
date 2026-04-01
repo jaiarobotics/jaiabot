@@ -480,8 +480,9 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
                 curr_current_speed = jaiabot.messages.surob_results_pb2.ValueUncertUnits(value=meters_to_feet(task_packet.current.speed), 
                                                                                          uncert=np.power(meters_to_feet(task_packet.current.speed_stdev), 2), 
                                                                                          units=CURRENT_SPEED_UNITS)
+                current_dir_circular_var_deg = np.rad2deg(np.power(np.deg2rad(task_packet.current.heading_stdev), 2)/2.0)
                 curr_current_direction = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=task_packet.current.heading, 
-                                                                                               uncert=np.power(task_packet.current.heading_stdev, 2), 
+                                                                                               uncert=current_dir_circular_var_deg,
                                                                                                units=CURRENT_DIRECTION_UNITS, 
                                                                                                cf_standard_name=CURRENT_DIRECTION_CF_STANDARD_NAME)
                 curr_current_measurement = jaiabot.messages.surob_results_pb2.CurrentMeasurement(current_speed=curr_current_speed, 
