@@ -35,7 +35,7 @@ def dccl_time_round(utime: int, round_to: int=1_000_000) -> int:
     Returns:
         int: The rounded unix microsecond timestamp.
     """
-    return (utime + round_to // 2) // round_to * round_to
+    return (int(utime) + round_to // 2) // round_to * round_to
 
 
 def sql_set_placeholders(values: list[Any]) -> str:
