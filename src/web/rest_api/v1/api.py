@@ -436,7 +436,7 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
         else:
             bot_ids = jaia_request.target.bots
 
-        task_packets = common.shared_data.data.get_task_packets(bot_ids, start_time_us, end_time_us)
+        task_packets = common.shared_data.data.task_packet_database.query_task_packets(bot_ids, start_time_us, end_time_us, included=True, mission_names=None)
 
     if len(task_packets) == 0:
         jaia_response.surob_results.surob_results_found = False
