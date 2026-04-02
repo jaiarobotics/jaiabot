@@ -361,13 +361,11 @@ message BotStatus
     {
         // RSSI in dBm (e.g. -65 means -65 dBm).
         optional int32 rssi_dbm = 1 [
-            (dccl.field) = { min: -110 max: 0 precision: 0 },
-            (jaia.field).rest_api.presence = GUARANTEED
+            (dccl.field) = { min: -110 max: 0 precision: 0 }
         ];
         // Hub ID of the packet sender.
         optional int32 hub_id = 2 [
-            (dccl.field) = { min: 0 max: 30 precision: 0 },
-            (jaia.field).rest_api.presence = GUARANTEED
+            (dccl.field) = { min: 0 max: 30 precision: 0 }
         ];
     }
     optional XBeeMetadata xbee = 60;
