@@ -651,23 +651,23 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         [this](const goby::middleware::intervehicle::protobuf::ModemTransmissionWithLinkID& rx_msg)
         {
             if (rx_msg.data().HasExtension(jaiabot::protobuf::transmission) &&
-                rx_msg.data().GetExtension(jaiabot::protobuf::transmission).has_rssi() &&
+                rx_msg.data().GetExtension(jaiabot::protobuf::transmission).has_rssi_dbm() &&
                 rx_msg.data().has_src())
             {
                 const auto& tx = rx_msg.data().GetExtension(jaiabot::protobuf::transmission);
-                int32_t rssi = tx.rssi();
-                latest_bot_status_.set_xbee_rssi(rssi);
+                int32_t rssi_dbm = tx.rssi_dbm();
+                latest_bot_status_.mutable_xbee()->set_rssi_dbm(rssi_dbm);
                 if (tx.has_hub_id())
                 {
-                    latest_bot_status_.set_xbee_rssi_hub_id(tx.hub_id());
+                    latest_bot_status_.mutable_xbee()->set_hub_id(tx.hub_id());
                     glog.is_debug2() &&
                         glog << "XBee RSSI from Hub " << tx.hub_id() << " (modem_id "
-                             << rx_msg.data().src() << "): " << rssi << " dBm" << std::endl;
+                             << rx_msg.data().src() << "): " << rssi_dbm << " dBm" << std::endl;
                 }
                 else
                 {
                     glog.is_debug2() && glog << "XBee RSSI from src (modem_id "
-                                             << rx_msg.data().src() << "): " << rssi
+                                             << rx_msg.data().src() << "): " << rssi_dbm
                                              << " dBm" << std::endl;
                 }
             }

@@ -355,19 +355,20 @@ message BotStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    // RSSI of the last packet received from the hub by this bot (hub -> bot signal strength),
-    // measured in -dBm (e.g. 65 means -65 dBm). Not omitted so it is transmitted over the radio.
-    optional int32 xbee_rssi = 60 [
-        (dccl.field) = { min: 0 max: 110 precision: 0 },
-        (jaia.field).rest_api.presence = GUARANTEED
-    ];
-
-    // Hub ID associated with the xbee_rssi reading above (the hub whose packet gave the RSSI).
-    // Not omitted so it travels back to the hub over the radio.
-    optional int32 xbee_rssi_hub_id = 61 [
-        (dccl.field) = { min: 0 max: 30 precision: 0 },
-        (jaia.field).rest_api.presence = GUARANTEED
-    ];
+    // XBee signal metadata from the last packet received from the hub by this bot
+    // (hub -> bot signal strength). Transmitted back to the hub over the radio.
+    message XBeeMetadata
+    {
+        // RSSI in dBm (e.g. -65 means -65 dBm).
+        optional int32 rssi_dbm = 1 [
+            (dccl.field) = { min: -110 max: 0 precision: 0 }
+        ];
+        // Hub ID of the packet sender.
+        optional int32 hub_id = 2 [
+            (dccl.field) = { min: 0 max: 30 precision: 0 }
+        ];
+    }
+    optional XBeeMetadata xbee = 60;
 
     optional uint64 received_time = 59 [
         (dccl.field) = {

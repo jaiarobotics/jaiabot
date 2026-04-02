@@ -105,7 +105,7 @@ export default function BotDetails() {
         if (rssi == null) return "";
         const hubId = bot.getXbeeRssiHubId();
         const hubLabel = hubId != null ? `Hub ${hubId} ` : "";
-        return `${hubLabel}-${rssi} dBm`;
+        return `${hubLabel}${rssi} dBm`;
     }
 
     return (

@@ -256,7 +256,7 @@ export default function HubDetails() {
                                             .map((kb: KnownBot) => (
                                                 <tr key={kb.id}>
                                                     <td>Bot {kb.id}</td>
-                                                    <td>-{kb.xbee_rssi} dBm</td>
+                                                    <td>{kb.xbee_rssi} dBm</td>
                                                 </tr>
                                             ))}
                                     </tbody>

@@ -28,6 +28,7 @@
 
 #include <boost/asio.hpp> // for serial_port
 #include <map>            // for map
+#include <utility>        // for std::pair
 #include <queue>
 #include <string> // for string
 
@@ -109,8 +110,9 @@ class XBeeDevice
     // Get Diagnostics
     void send_diagnostic_commands();
 
-    // Return the last known RSSI (in -dBm) for a given node_id, or 0 if not yet available.
-    int32_t get_rssi(const NodeId& node_id) const;
+    // Return {true, rssi_dbm} for the given node_id if RSSI is available, or {false, 0} if not.
+    // rssi_dbm is a negative value in dBm (e.g. -65 for -65 dBm).
+    std::pair<bool, int32_t> get_rssi(const NodeId& node_id) const;
 
   private:
     static const SerialNumber broadcast_serial_number;
@@ -213,7 +215,8 @@ class XBeeDevice
 
     std::string my_xbee_info_location_{""};
 
-    // Per-source RSSI tracking: maps source serial number to RSSI in -dBm
+    // Per-source RSSI tracking: maps source serial number to raw RSSI magnitude
+    // (positive integer from the XBee DB command; negated in get_rssi() to produce dBm value).
     SerialNumber last_received_src_serial_{0};
     std::map<SerialNumber, uint32_t> rssi_per_src_;
 };

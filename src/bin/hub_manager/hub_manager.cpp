@@ -168,7 +168,7 @@ class HubManager : public ApplicationBase
 
     std::map<int, goby::time::MicroTime> known_bots_;
     // Per-bot RSSI (bot -> hub signal strength), measured by the hub's XBee driver
-    std::map<int, int32_t> bot_xbee_rssi_;
+    std::map<int, int32_t> bot_xbee_rssi_dbm_;
 
     // map mission id to mission name for logging purposes
     std::map<std::pair<BotID, MissionCommandTime>, std::string>
@@ -360,7 +360,7 @@ jaiabot::apps::HubManager::HubManager()
         [this](const goby::middleware::intervehicle::protobuf::ModemTransmissionWithLinkID& rx_msg)
         {
             if (rx_msg.data().HasExtension(jaiabot::protobuf::transmission) &&
-                rx_msg.data().GetExtension(jaiabot::protobuf::transmission).has_rssi() &&
+                rx_msg.data().GetExtension(jaiabot::protobuf::transmission).has_rssi_dbm() &&
                 rx_msg.data().has_src())
             {
                 int src_modem_id = rx_msg.data().src();
@@ -368,10 +368,10 @@ jaiabot::apps::HubManager::HubManager()
                 {
                     int bot_id = jaiabot::comms::bot_id_from_modem_id(src_modem_id,
                                                                        cfg().subnet_mask());
-                    bot_xbee_rssi_[bot_id] =
-                        rx_msg.data().GetExtension(jaiabot::protobuf::transmission).rssi();
+                    bot_xbee_rssi_dbm_[bot_id] =
+                        rx_msg.data().GetExtension(jaiabot::protobuf::transmission).rssi_dbm();
                     glog.is_debug2() && glog << "Bot " << bot_id
-                                             << " XBee RSSI: " << bot_xbee_rssi_.at(bot_id)
+                                             << " XBee RSSI: " << bot_xbee_rssi_dbm_.at(bot_id)
                                              << " dBm" << std::endl;
                 }
                 catch (const std::exception&)
@@ -676,9 +676,9 @@ void jaiabot::apps::HubManager::loop()
         auto* known_bot = latest_hub_status_.add_known_bot();
         known_bot->set_id(known_bot_p.first);
         known_bot->set_last_status_time_with_units(known_bot_p.second);
-        if (bot_xbee_rssi_.count(known_bot_p.first))
+        if (bot_xbee_rssi_dbm_.count(known_bot_p.first))
         {
-            known_bot->set_xbee_rssi(bot_xbee_rssi_.at(known_bot_p.first));
+            known_bot->set_xbee_rssi(bot_xbee_rssi_dbm_.at(known_bot_p.first));
         }
     }
 

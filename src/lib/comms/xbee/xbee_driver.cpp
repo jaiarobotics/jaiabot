@@ -449,13 +449,13 @@ bool jaiabot::comms::XBeeDriver::parse_modem_message(std::string in,
         // Attach last known RSSI for this source to the ModemTransmission extension.
         // The RSSI value may have been populated in device_.do_work() from a prior DB query
         // fired when the previous packet from this source arrived.
-        int32_t rssi = device_.get_rssi(encode_modem_id(packet->src()));
-        if (rssi > 0)
+        auto [rssi_valid, rssi_dbm] = device_.get_rssi(encode_modem_id(packet->src()));
+        if (rssi_valid)
         {
             glog.is_debug3() && glog << group(glog_in_group())
-                                     << "Attaching RSSI " << rssi << " dBm for src "
+                                     << "Attaching RSSI " << rssi_dbm << " dBm for src "
                                      << packet->src() << std::endl;
-            out->MutableExtension(jaiabot::protobuf::transmission)->set_rssi(rssi);
+            out->MutableExtension(jaiabot::protobuf::transmission)->set_rssi_dbm(rssi_dbm);
         }
 
         // If the packet carries a hub_id (set by the transmitting hub), attach it
