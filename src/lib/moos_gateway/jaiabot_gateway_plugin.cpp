@@ -12,12 +12,14 @@ extern "C"
     {
         handler->launch_thread<jaiabot::moos::AllMessagesForLoggingTranslation>();
         handler->launch_thread<jaiabot::moos::IvPHelmTranslation>();
+        handler->launch_thread<jaiabot::moos::ExclusionZoneTranslation>();
     }
 
     void goby3_moos_gateway_unload(
         goby::zeromq::MultiThreadApplication<goby::apps::moos::protobuf::GobyMOOSGatewayConfig>*
             handler)
     {
+        handler->join_thread<jaiabot::moos::ExclusionZoneTranslation>();
         handler->join_thread<jaiabot::moos::IvPHelmTranslation>();
         handler->join_thread<jaiabot::moos::AllMessagesForLoggingTranslation>();
     }

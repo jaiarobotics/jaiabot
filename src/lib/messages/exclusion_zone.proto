@@ -1,0 +1,51 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+// A single exclusion zone polygon
+message ExclusionZone
+{
+    option (dccl.msg).unit_system = "si";
+
+    // Label is not transmitted over radio; used for display only
+    optional string label = 1 [(dccl.field).omit = true];
+
+    // Up to 30 vertices per zone.
+    // DCCL budget: 30 × 57 bits (GeographicCoordinate) ≈ 215 bytes < 250-byte XBee limit
+    repeated GeographicCoordinate vertices = 2 [
+        (dccl.field).max_repeat = 30,
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+}
+
+// One zone per XBee fragment — mirrors MissionPlan fragment_index / expected_fragments
+message ExclusionZoneFragment
+{
+    option (dccl.msg).unit_system = "si";
+
+    required ExclusionZone zone = 1;
+
+    // Supports up to 32 zones total (fragment_index 0–31)
+    optional uint32 fragment_index     = 7 [
+        (dccl.field) = { min: 0 max: 31 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional uint32 expected_fragments = 8 [
+        (dccl.field) = { min: 1 max: 32 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+}
+
+// WiFi-only container: all zones in one shot, no DCCL size limit.
+// The corresponding Command field uses (dccl.field).omit = true.
+message ExclusionZones
+{
+    option (dccl.msg).unit_system = "si";
+
+    repeated ExclusionZone zone = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}

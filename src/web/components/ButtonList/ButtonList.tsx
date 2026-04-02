@@ -20,6 +20,7 @@ import {
     mdiHelp,
     mdiProgressDownload,
     mdiRuler,
+    mdiVectorPolygon,
     mdiViewList,
     mdiArrowULeftTop,
     mdiSquareEditOutline,
@@ -136,6 +137,19 @@ export default function ButtonList(props: Props) {
                     onClick={() => handleButtonClick(ButtonTypes.PANEL, ButtonNames.MISSIONS_PANEL)}
                 >
                     <Icon path={mdiViewList} size={MDI_BUTTON_SIZE} title="Missions Panel" />
+                </Button>
+                <Button
+                    className={getSelectedClassName(ButtonNames.OBSTACLE_ZONES_PANEL)}
+                    aria-label="obstacle-zones-panel"
+                    onClick={() =>
+                        handleButtonClick(ButtonTypes.PANEL, ButtonNames.OBSTACLE_ZONES_PANEL)
+                    }
+                >
+                    <Icon
+                        path={mdiVectorPolygon}
+                        size={MDI_BUTTON_SIZE}
+                        title="Obstacle Zones Panel"
+                    />
                 </Button>
                 <RallyButton />
                 <Button

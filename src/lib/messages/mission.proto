@@ -577,3 +577,12 @@ message MissionSummary
     optional uint64 end_time = 3;
     optional uint32 task_packet_count = 4;
 }
+
+// Pre-built MOOS OBSTACLE_ALERT strings produced by mission_manager after
+// converting exclusion zone lat/lon vertices to local MOOS x/y using its
+// geodesy object.  The MOOS gateway forwards these directly to OBSTACLE_ALERT
+// without any coordinate conversion.
+message IvPObstacleUpdate
+{
+    repeated string obstacle_alert = 1;
+}

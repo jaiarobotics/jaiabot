@@ -68,6 +68,42 @@ class IvPHelmTranslation : public goby::moos::Translator
 
 }; // namespace moos
 
+// Forwards pre-converted EXCLUSION_ZONE_ALERT strings from mission_manager to MOOS.
+// Coordinate conversion (lat/lon → local x/y) is done in mission_manager using
+// its geodesy object, so no datum tracking is needed here.
+// Alerts are re-posted when transit starts so pHelmIvP spawns the avoidance behavior
+// right as it enters DRIVE mode (templating=spawn only triggers on new postings).
+class ExclusionZoneTranslation : public goby::moos::Translator
+{
+  public:
+    ExclusionZoneTranslation(const goby::apps::moos::protobuf::GobyMOOSGatewayConfig& cfg)
+        : goby::moos::Translator(cfg)
+    {
+        goby().interprocess().subscribe<jaiabot::groups::mission_ivp_obstacle_update>(
+            [this](const protobuf::IvPObstacleUpdate& update) {
+                last_update_ = update;
+                post_alerts();
+            });
+
+        // Re-post when a transit begins — that is when MOOS_MANUAL_OVERRIDE goes false
+        // and pHelmIvP enters DRIVE mode, so the template spawn fires on a fresh posting.
+        goby().interprocess().subscribe<jaiabot::groups::mission_ivp_behavior_update>(
+            [this](const protobuf::IvPBehaviorUpdate& update) {
+                if (update.has_transit() && update.transit().active())
+                    post_alerts();
+            });
+    }
+
+  private:
+    void post_alerts()
+    {
+        for (const auto& alert : last_update_.obstacle_alert())
+            moos().comms().Notify("GIVEN_OBSTACLE", alert);
+    }
+
+    protobuf::IvPObstacleUpdate last_update_;
+};
+
 class AllMessagesForLoggingTranslation : public goby::moos::Translator
 {
   public:

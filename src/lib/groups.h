@@ -68,12 +68,17 @@ constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};
 // high control
 constexpr goby::middleware::Group desired_setpoints{"jaiabot::desired_setpoints"};
 
+// exclusion zones
+constexpr goby::middleware::Group exclusion_zones{"jaiabot::exclusion_zones"};
+
 // mission manager
 constexpr goby::middleware::Group mission_report{"jaiabot::mission_report"};
 constexpr goby::middleware::Group mission_ivp_behavior_update{
     "jaiabot::mission_ivp_behavior_update"};
 constexpr goby::middleware::Group mission_ivp_behavior_report{
     "jaiabot::mission_ivp_behavior_report"};
+constexpr goby::middleware::Group mission_ivp_obstacle_update{
+    "jaiabot::mission_ivp_obstacle_update"};
 constexpr goby::middleware::Group powerstate_command{"jaiabot::powerstate_command"};
 constexpr goby::middleware::Group mission_dive{"jaiabot::mission_dive"};
 constexpr goby::middleware::Group self_command{"jaiabot::self_command"};

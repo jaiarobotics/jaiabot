@@ -30,7 +30,45 @@ ProcessConfig = pHelmIvP
   domain     = course:0:359:360
   domain     = speed:0:3:31
   domain     = depth:0:200:201
+
+  // Platform model generator for BHV_AvoidObstacleV24 obstacle avoidance
+  // Note: alg=holo is broken in MOOS-IvP 24.8 (missing setPose call).
+  // Using dubins as workaround. radius=5 is tight turn for JaiaBot.
+  pmgen = alg=dubins#radius=5
 }
+
+//------------------------------------------
+// pObstacleMgr config block
+
+ProcessConfig = pObstacleMgr
+{
+  AppTick   = 4
+  CommsTick = 4
+
+  // 1. Where to look for your Python/YOLO points
+  point_var = TRACKED_FEATURE
+
+  // 2. Memory Management (How long to remember an obstacle)
+  max_pts_per_cluster = 20
+  max_age_per_point   = 20
+
+  // Operator-drawn exclusion zones use a 24h duration. given_max_duration must be >= the
+  // duration posted in GIVEN_OBSTACLE (86400). active=false is used to remove them explicitly.
+  given_max_duration = 86400
+
+  // Alert configuration: tells pObstacleMgr to post obstacle updates to BHV_AvoidObstacleV24
+  alert = name=avoid_obs_, update_var=OBSTACLE_ALERT, alert_range=25
+
+  // 3. Range Settings
+  alert_range  = 25
+  ignore_range = -1  // off — GIVEN_OBSTACLE zones must be accepted regardless of distance
+
+  // 4. Visuals (optional, helpful for pMarineViewer)
+  post_dist_to_polys = true
+  post_view_polys = true
+  obstacles_color = red
+}
+
 
 //------------------------------------------
 // pNodeReporter config block

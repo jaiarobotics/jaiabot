@@ -90,7 +90,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_PPK = 44
         [(jaia.ev).rest_api.presence = GUARANTEED];
-
+    ERROR__FAILED__MOOS_POBSTACLEMGR = 45
+        [(jaia.ev).rest_api.presence = GUARANTEED];
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
     ERROR__NOT_RESPONDING__UNKNOWN_APP = 100

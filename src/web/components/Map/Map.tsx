@@ -12,6 +12,7 @@ import { toLonLat } from "ol/proj";
 import { map } from "../../openlayers/maps/map";
 import { view } from "../../openlayers/views/view";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
+import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { styleControlButtons } from "../../openlayers/controls/controls";
 import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
@@ -35,6 +36,7 @@ export default function Map() {
         map.on("click", (event: MapBrowserEvent<PointerEvent>) => {
             handleMapClick(event);
         });
+        exclusionZoneLayer.setDispatch(jaiaDispatch);
         styleControlButtons();
     }, []);
 
@@ -64,6 +66,9 @@ export default function Map() {
                 return;
             case MapModes.HUB_LOCATION_SELECT:
                 handleHubLocationSelectClick(event.coordinate);
+                return;
+            case MapModes.EXCLUSION_ZONE_DRAWING:
+                // Polygon draw interaction handles its own click events
                 return;
         }
 

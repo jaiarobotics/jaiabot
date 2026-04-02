@@ -55,6 +55,15 @@ import {
 import { handleClickedUndo } from "./handlers/history-handlers";
 import { handleChangeGridPlanningState } from "./handlers/survey-handlers";
 import { handleMoveHub, handleToggleSelectHubLocation } from "./handlers/simulation-handlers";
+import {
+    handleAddExclusionZone,
+    handleDeleteExclusionZone,
+    handleAssignExclusionZone,
+    handleClearExclusionZones,
+    handleLoadExclusionZones,
+    handleRestoreExclusionZoneSnapshot,
+    handleToggleExclusionZoneDrawing,
+} from "./handlers/exclusion-zone-handlers";
 
 // Standard profile for action handling functions
 type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType; // Configuration for handling JaiaActions
@@ -162,4 +171,19 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         { handler: handleToggleSelectHubLocation, tracked: false },
     ],
     [JaiaActions.MOVE_HUB, { handler: handleMoveHub, tracked: false }],
+
+    // Exclusion Zone Actions
+    [JaiaActions.ADD_EXCLUSION_ZONE, { handler: handleAddExclusionZone, tracked: false }],
+    [JaiaActions.DELETE_EXCLUSION_ZONE, { handler: handleDeleteExclusionZone, tracked: false }],
+    [JaiaActions.ASSIGN_EXCLUSION_ZONE, { handler: handleAssignExclusionZone, tracked: false }],
+    [JaiaActions.CLEAR_EXCLUSION_ZONES, { handler: handleClearExclusionZones, tracked: false }],
+    [JaiaActions.LOAD_EXCLUSION_ZONES, { handler: handleLoadExclusionZones, tracked: false }],
+    [
+        JaiaActions.RESTORE_EXCLUSION_ZONE_SNAPSHOT,
+        { handler: handleRestoreExclusionZoneSnapshot, tracked: false },
+    ],
+    [
+        JaiaActions.TOGGLE_EXCLUSION_ZONE_DRAWING,
+        { handler: handleToggleExclusionZoneDrawing, tracked: false },
+    ],
 ]);

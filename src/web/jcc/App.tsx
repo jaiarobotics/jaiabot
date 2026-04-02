@@ -18,6 +18,7 @@ import RallyPanel from "../components/RallyPanel/RallyPanel";
 import DepthMap3D from "../components/DepthMap3D/DepthMap3D";
 import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
 import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
+import ObstacleZonesPanel from "../components/ObstacleZonesPanel/ObstacleZonesPanel";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import SurveyPlanner from "../components/SurveyPlanner/SurveyPlanner";
@@ -111,6 +112,8 @@ function Panel() {
     switch (jaiaContext.visiblePanel) {
         case ButtonNames.MISSIONS_PANEL:
             return <MissionsPanel />;
+        case ButtonNames.OBSTACLE_ZONES_PANEL:
+            return <ObstacleZonesPanel />;
         case ButtonNames.WAYPOINT_PANEL:
             return <WaypointPanel />;
         case ButtonNames.HELP_PANEL:

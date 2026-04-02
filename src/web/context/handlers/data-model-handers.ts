@@ -13,6 +13,8 @@ import { taskPackets } from "../../data/task_packets/task-packets";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
 import { rallyPoints } from "../../data/rally_points/rally-points";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
+import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { saveHistory } from "./history-handlers";
 
@@ -50,6 +52,10 @@ const defaultMapLayerAccordionStates = {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleInit(mutableState: JaiaContextType) {
+    exclusionZoneSet.clearZones();
+    exclusionZoneLayer.setZones(exclusionZoneSet.getZones());
+    localStorage.removeItem("exclusionZoneSetCurrent");
+
     const completeInit: JaiaContextType = {
         bots: bots,
         hubs: hubs,
@@ -59,6 +65,7 @@ export function handleInit(mutableState: JaiaContextType) {
         jaiaGlobal: jaiaGlobal,
         missionsManager: missionsManager,
         taskPackets: taskPackets,
+        exclusionZoneSet: exclusionZoneSet,
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
         hubAccordionStates: defaultHubAccordionStates,

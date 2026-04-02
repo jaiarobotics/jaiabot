@@ -7,6 +7,10 @@ import {
 import { GridPlan, GridPlanningStates, GridPanSnapshot } from "../data/survey_planner/grid-plan";
 import { RallyPoints, RallyPointsSnapshot } from "../data/rally_points/rally-points";
 import { JaiaGlobal, JaiaGlobalSnapshot } from "../data/jaia_global/jaia-global";
+import {
+    ExclusionZoneSet,
+    ExclusionZoneSetSnapshot,
+} from "../data/exclusion_zones/exclusion-zone-set";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
 import { TaskPackets } from "../data/task_packets/task-packets";
@@ -19,7 +23,7 @@ import {
     NodeTypes,
     TaskParameterPair,
 } from "./jaia-system-types";
-import { Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
+import { Speeds, Command, GeographicCoordinate, TaskType, ExclusionZone } from "./protobuf-types";
 
 // Type used to captue the JCC context
 export interface JaiaContextType {
@@ -31,6 +35,7 @@ export interface JaiaContextType {
     rallyPoints: RallyPoints;
     jaiaGlobal: JaiaGlobal;
     missionsManager: MissionsManager;
+    exclusionZoneSet: ExclusionZoneSet;
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
@@ -67,6 +72,7 @@ export interface JaiaAction {
     botID?: number;
     missionID?: number;
     rallyID?: number;
+    zoneID?: number;
 
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
@@ -89,6 +95,9 @@ export interface JaiaAction {
     isMissionAccordionExpanded?: boolean;
 
     command?: Command;
+    exclusionZone?: ExclusionZone;
+    exclusionZones?: ExclusionZone[];
+    exclusionZoneSnapshot?: ExclusionZoneSetSnapshot;
     missionSpeeds?: Speeds;
     missionRepeats?: number;
     missionSetName?: string;
@@ -161,6 +170,7 @@ export const enum ButtonNames {
     JAIA_ABOUT_PANEL = "jaia_about_panel",
     MEASURE_TOOL = "measure_tool",
     MISSIONS_PANEL = "missions_panel",
+    OBSTACLE_ZONES_PANEL = "obstacle_zones_panel",
     RALLY_PANEL = "rally_panel",
     SETTINGS_PANEL = "settings_panel",
     SURVEY_TOOL = "survey_tool",

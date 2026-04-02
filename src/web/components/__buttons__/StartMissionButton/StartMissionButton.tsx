@@ -15,6 +15,7 @@ import Mission from "../../../data/mission_set/mission";
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
+import { sendExclusionZonesForBot } from "../../../context/handlers/exclusion-zone-handlers";
 
 import { mdiPlay } from "@mdi/js";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
@@ -122,6 +123,7 @@ export default function StartMissionButton(props: Props) {
             };
             const response = await sendBotCommand(startMissionCommand);
             if (response && response.status === "ok") {
+                sendExclusionZonesForBot(props.bot.getBotID());
                 jaiaDispatch({ type: JaiaActions.SENT_COMMAND, command: startMissionCommand });
             }
         }
