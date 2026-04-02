@@ -95,6 +95,19 @@ export default function BotDetails() {
         });
     }
 
+    /**
+     * Formats the XBee RSSI reading for display, including the source hub ID when available.
+     *
+     * @returns {string} e.g. "Hub 0 -65 dBm", "-65 dBm", or "" if no reading
+     */
+    function formatXbeeRssi() {
+        const rssi = bot.getXbeeRssi();
+        if (rssi == null) return "";
+        const hubId = bot.getXbeeRssiHubId();
+        const hubLabel = hubId != null ? `Hub ${hubId} ` : "";
+        return `${hubLabel}-${rssi} dBm`;
+    }
+
     return (
         <React.Fragment>
             <div className="node-details">
@@ -204,6 +217,10 @@ export default function BotDetails() {
                                         <tr>
                                             <td>Wi-Fi Link Quality</td>
                                             <td>{bot.getWifiLinkQuality() ?? ""}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>XBee RSSI (hub → bot)</td>
+                                            <td>{formatXbeeRssi()}</td>
                                         </tr>
                                         <tr>
                                             <td>Data Logging</td>

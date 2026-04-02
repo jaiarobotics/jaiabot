@@ -109,6 +109,9 @@ class XBeeDevice
     // Get Diagnostics
     void send_diagnostic_commands();
 
+    // Return the last known RSSI (in -dBm) for a given node_id, or 0 if not yet available.
+    int32_t get_rssi(const NodeId& node_id) const;
+
   private:
     static const SerialNumber broadcast_serial_number;
 
@@ -209,6 +212,10 @@ class XBeeDevice
     uint16_t transmission_failure_count_{0};
 
     std::string my_xbee_info_location_{""};
+
+    // Per-source RSSI tracking: maps source serial number to RSSI in -dBm
+    SerialNumber last_received_src_serial_{0};
+    std::map<SerialNumber, uint32_t> rssi_per_src_;
 };
 } // namespace comms
 } // namespace jaiabot

@@ -44,6 +44,7 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 
 #include "jaiabot/messages/sensor/salinity.pb.h"
+#include "jaiabot/messages/modem_message_extensions.pb.h"
 #include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/utils/specific_conductivity.h"
 
@@ -640,6 +641,35 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             else
             {
                 latest_bot_status_.clear_wifi_link_quality_percentage();
+            }
+        });
+
+    // Subscribe to modem receive events to extract XBee RSSI (hub -> bot signal strength).
+    // The XBee driver attaches the RSSI of each received packet to the ModemTransmission
+    // extension, following the same pattern used by hub_id (see PR #408).
+    interprocess().subscribe<goby::middleware::intervehicle::groups::modem_receive>(
+        [this](const goby::middleware::intervehicle::protobuf::ModemTransmissionWithLinkID& rx_msg)
+        {
+            if (rx_msg.data().HasExtension(jaiabot::protobuf::transmission) &&
+                rx_msg.data().GetExtension(jaiabot::protobuf::transmission).has_rssi() &&
+                rx_msg.data().has_src())
+            {
+                const auto& tx = rx_msg.data().GetExtension(jaiabot::protobuf::transmission);
+                int32_t rssi = tx.rssi();
+                latest_bot_status_.set_xbee_rssi(rssi);
+                if (tx.has_hub_id())
+                {
+                    latest_bot_status_.set_xbee_rssi_hub_id(tx.hub_id());
+                    glog.is_debug2() &&
+                        glog << "XBee RSSI from Hub " << tx.hub_id() << " (modem_id "
+                             << rx_msg.data().src() << "): " << rssi << " dBm" << std::endl;
+                }
+                else
+                {
+                    glog.is_debug2() && glog << "XBee RSSI from src (modem_id "
+                                             << rx_msg.data().src() << "): " << rssi
+                                             << " dBm" << std::endl;
+                }
             }
         });
 }

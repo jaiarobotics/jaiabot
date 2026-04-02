@@ -20,6 +20,7 @@ const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
     links: false,
+    xbeeRssi: false,
 };
 
 const defaultBotAccordionStates: BotAccordionStates = {

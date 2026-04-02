@@ -184,7 +184,8 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
                                             encryption_password=xbee_encryption_password,
                                             fleet_id=fleet_index,
                                             sub_buffer=sub_buffer_config,
-                                            ack_timeout=ack_timeout)
+                                            ack_timeout=ack_timeout,
+                                            xbee_hub_id='')
 
 if common.CommsMode.WIFI in common.jaia_comms_modes:
     default_hub_id=1

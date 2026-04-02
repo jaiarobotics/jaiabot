@@ -61,6 +61,7 @@
 
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/messages/link.pb.h"
+#include "jaiabot/messages/modem_message_extensions.pb.h"
 
 using goby::glog;
 using goby::util::hex_encode;
@@ -391,6 +392,10 @@ void jaiabot::comms::XBeeDriver::serialize_modem_message(
     if (in.frame_size())
         packet.set_data(in.frame(0));
 
+    // Hubs embed their hub_id so receiving bots can tag RSSI with the correct hub.
+    if (config_extension().has_hub_id())
+        packet.set_hub_id(config_extension().hub_id());
+
     std::vector<char> packet_bytes = goby::middleware::SerializerParserHelper<
         xbee::protobuf::XBeePacket, goby::middleware::MarshallingScheme::DCCL>::serialize(packet);
 
@@ -440,6 +445,28 @@ bool jaiabot::comms::XBeeDriver::parse_modem_message(std::string in,
 
         if (packet->has_data())
             out->add_frame(packet->data());
+
+        // Attach last known RSSI for this source to the ModemTransmission extension.
+        // The RSSI value may have been populated in device_.do_work() from a prior DB query
+        // fired when the previous packet from this source arrived.
+        int32_t rssi = device_.get_rssi(encode_modem_id(packet->src()));
+        if (rssi > 0)
+        {
+            glog.is_debug3() && glog << group(glog_in_group())
+                                     << "Attaching RSSI " << rssi << " dBm for src "
+                                     << packet->src() << std::endl;
+            out->MutableExtension(jaiabot::protobuf::transmission)->set_rssi(rssi);
+        }
+
+        // If the packet carries a hub_id (set by the transmitting hub), attach it
+        // so that the receiving bot can tag the RSSI reading with the correct hub.
+        if (packet->has_hub_id())
+        {
+            glog.is_debug3() && glog << group(glog_in_group())
+                                     << "Attaching hub_id " << packet->hub_id()
+                                     << " from XBeePacket" << std::endl;
+            out->MutableExtension(jaiabot::protobuf::transmission)->set_hub_id(packet->hub_id());
+        }
 
         return true;
     }

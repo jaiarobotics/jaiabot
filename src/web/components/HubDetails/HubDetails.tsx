@@ -11,6 +11,7 @@ import {
     formatLatitude,
     formatLongitude,
 } from "../../shared/Utilities";
+import { KnownBot } from "../../shared/JAIAProtobuf";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 import { getIPPrefix } from "../../shared/IPPrefix";
 import { HubAccordionNames } from "../../types/context-types";
@@ -224,6 +225,46 @@ export default function HubDetails() {
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
+
+                {hub.getKnownBots()?.some((kb: KnownBot) => kb.xbee_rssi != null) && (
+                    <ThemeProvider theme={accordionTheme}>
+                        <Accordion
+                            expanded={jaiaContext.hubAccordionStates.xbeeRssi}
+                            onChange={() => {
+                                handleAccordionClick(HubAccordionNames.XBEE_RSSI);
+                            }}
+                            className="accordion-container"
+                        >
+                            <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                className="accordion-summary"
+                            >
+                                <Typography>XBee RSSI (bot → hub)</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Bot ID</th>
+                                            <th>RSSI</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {hub
+                                            .getKnownBots()
+                                            ?.filter((kb: KnownBot) => kb.xbee_rssi != null)
+                                            .map((kb: KnownBot) => (
+                                                <tr key={kb.id}>
+                                                    <td>Bot {kb.id}</td>
+                                                    <td>-{kb.xbee_rssi} dBm</td>
+                                                </tr>
+                                            ))}
+                                    </tbody>
+                                </table>
+                            </AccordionDetails>
+                        </Accordion>
+                    </ThemeProvider>
+                )}
 
                 <ThemeProvider theme={accordionTheme}>
                     <Accordion

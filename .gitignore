@@ -21,3 +21,4 @@ __pycache__
 id_ecdsa
 id_ed25519
 id_rsa
+CMakeFiles/

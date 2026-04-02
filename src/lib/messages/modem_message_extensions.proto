@@ -1,0 +1,45 @@
+// Copyright 2025:
+//   JaiaRobotics LLC
+// File authors:
+//   JaiaRobotics
+//
+//
+// This file is part of the JaiaBot Project Libraries
+// ("The Jaia Libraries").
+//
+// The Jaia Libraries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 2.1 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Libraries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the Jaia Libraries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+
+import "goby/acomms/protobuf/modem_message.proto";
+
+package jaiabot.protobuf;
+
+// Extra fields attached to each received goby ModemTransmission by the XBee driver.
+// Published on the goby::middleware::intervehicle::groups::modem_receive interprocess group.
+message Transmission
+{
+    // RSSI of the received packet in -dBm (e.g. 65 = -65 dBm).
+    // Populated by the XBee driver from the DB AT command response.
+    optional int32 rssi = 1;
+
+    // Hub ID of the packet sender (only present when the sender is a hub).
+    // Set from XBeePacket.hub_id, which the hub embeds when it has hub_id configured.
+    optional int32 hub_id = 2;
+}
+
+extend goby.acomms.protobuf.ModemTransmission
+{
+    optional Transmission transmission = 1500;
+}

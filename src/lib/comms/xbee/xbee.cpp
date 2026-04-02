@@ -419,6 +419,17 @@ void jaiabot::comms::XBeeDevice::query_rssi()
     frame_id++;
 }
 
+int32_t jaiabot::comms::XBeeDevice::get_rssi(const NodeId& node_id) const
+{
+    auto serial_it = node_id_to_serial_number_map.find(node_id);
+    if (serial_it == node_id_to_serial_number_map.end())
+        return 0;
+    auto rssi_it = rssi_per_src_.find(serial_it->second);
+    if (rssi_it == rssi_per_src_.end())
+        return 0;
+    return static_cast<int32_t>(rssi_it->second);
+}
+
 /*
 ER (Receive Count Error)
 
@@ -883,6 +894,16 @@ void jaiabot::comms::XBeeDevice::process_frame_at_command_response(const string&
                                      << endl;
             rssi_query_count_++;
             received_rssi_ = true;
+
+            // Store per-source RSSI for later retrieval via get_rssi()
+            if (last_received_src_serial_ != 0)
+            {
+                rssi_per_src_[last_received_src_serial_] = current_rssi_;
+
+                glog.is_debug3() && glog << group(glog_group) << "RSSI for src serial 0x"
+                                         << std::hex << last_received_src_serial_ << std::dec
+                                         << ": " << current_rssi_ << " dBm" << endl;
+            }
         }
     }
 
@@ -965,6 +986,12 @@ void jaiabot::comms::XBeeDevice::process_frame_receive_packet(const string& resp
     auto response = (const ReceivePacket*)response_string.c_str();
     auto response_size = response_string.size();
     auto data_size = response_size - 12;
+
+    // Store source serial number for RSSI association
+    last_received_src_serial_ = big_to_native(*reinterpret_cast<const SerialNumber*>(response->src));
+
+    // Query RSSI for this received packet so we can track signal strength per source
+    query_rssi();
 
     auto serialized_packet = string((char*)&response->received_data_start, data_size);
     glog.is_debug1() && glog << group(glog_group)

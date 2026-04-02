@@ -3,6 +3,7 @@ import {
     Error,
     GeographicCoordinate,
     HealthState,
+    KnownBot,
     LinuxHardwareStatus,
     Warning,
 } from "../../types/protobuf-types";
@@ -19,6 +20,7 @@ export default class Hub {
     private linuxHardwareStatus: LinuxHardwareStatus;
     private botOffload: BotOffloadData;
     private statusAge: number;
+    private knownBots: KnownBot[];
 
     constructor() {
         // Init base sensors
@@ -99,5 +101,13 @@ export default class Hub {
 
     setStatusAge(statusAge: number) {
         this.statusAge = statusAge;
+    }
+
+    getKnownBots() {
+        return this.knownBots;
+    }
+
+    setKnownBots(knownBots: KnownBot[]) {
+        this.knownBots = knownBots;
     }
 }
