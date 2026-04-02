@@ -7,14 +7,17 @@ import logging
 import os
 import sys
 
-import jaialog_store
-import moos_messages
+
 import pyjaia.contours
 import pyjaia.drift_interpolation
 import pyjaia.utils
 
 from pathlib import *
 import traceback
+
+# Jaia packages
+from pyjaia import jaialog_store
+from pyjaia.jaialog_store import moos_messages
 
 
 l = logging.getLogger(os.path.basename(__file__))

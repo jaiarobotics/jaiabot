@@ -1,8 +1,14 @@
-from jaia_messages import *
-from pprint import pprint
+from datetime import datetime
+from importlib.resources import files, as_file
+
+from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
 import math
 import zipfile
-from typing import Iterable, List
+from typing import Iterable, List, Union
+
+
+def micros_to_string(micros: Union[float, str], format_string=r'%b %-d, %Y, %I:%M:%S %p'):
+    return datetime.fromtimestamp(float(micros) / 1e6).strftime(format_string)
 
 
 def kmlPlacemarkStringListFromTaskPacket(task_packet: TaskPacket) -> List[str]:
@@ -19,10 +25,6 @@ def kmlPlacemarkStringListFromTaskPacket(task_packet: TaskPacket) -> List[str]:
 
     placemarks: list[str] = []
 
-    # Bail if this task packet is the less precise DCCL copy
-    if (task_packet._scheme_ != 1):
-        return []
-    
     bot_id = task_packet.bot_id
 
     if task_packet.dive and task_packet.dive.depth_achieved != 0:
@@ -93,8 +95,6 @@ def kmlPlacemarkStringListFromTaskPacket(task_packet: TaskPacket) -> List[str]:
             Speed: {speed_string}<br />
             Heading: {drift.estimated_drift.heading or 0.0:.2f} deg<br />
             Significant-Wave-Height {drift.significant_wave_height or 0.0:.2f} m<br />
-            Wave-Height {drift.wave_height or 0.0:.2f} m<br />
-            Wave-Period {drift.wave_period or 0.0:.2f} s<br />
         '''
 
         drift_placemark_string = f'''
@@ -165,7 +165,7 @@ def kmlFromTaskPackets(task_packets: Iterable[TaskPacket]):
 
 
 def writeTaskPacketsToKMZ(task_packets: Iterable[TaskPacket], output_kmz_path: str):
-    """Creates a kmz file at output_kmz_path, containing placemarks for the input task_packets
+    """Creates a KMZ file at output_kmz_path, containing placemarks for the input task_packets
 
     Args:
         task_packets (Iterable[TaskPacket]): task packets to include in the file
@@ -176,8 +176,25 @@ def writeTaskPacketsToKMZ(task_packets: Iterable[TaskPacket], output_kmz_path: s
         kml_file_string = kmlFromTaskPackets(task_packets)
         output_kmz_file.writestr('doc.kml', kml_file_string)
 
-        output_kmz_file.write('kmz_files/bottomStrike.png', 'files/bottomStrike.png')
-        output_kmz_file.write('kmz_files/arrowHead.png', 'files/arrowHead.png')
+        data = files(__package__) / "data"
+
+        with as_file(data / "bottomStrike.png") as bottom_strike_path, as_file(data / "arrowHead.png") as arrow_head_path:
+            output_kmz_file.write(str(bottom_strike_path), 'files/bottomStrike.png')
+            output_kmz_file.write(str(arrow_head_path), 'files/arrowHead.png')
+
+
+def getKMZ(task_packets: Iterable[TaskPacket]) -> bytes:
+    """Returns a KMZ file as a byte string, containing placemarks for the input task packets
+
+    Args:
+        task_packets (Iterable[TaskPacket]): task packets to include in the file
+    Results:
+        bytes: KMZ file as a byte string
+    """
+    writeTaskPacketsToKMZ(task_packets, '/tmp/temp.kmz')
+    with open('/tmp/temp.kmz', 'rb') as kmz_file:
+        kmz_data = kmz_file.read()
+    return kmz_data
 
 
 if __name__ == '__main__':

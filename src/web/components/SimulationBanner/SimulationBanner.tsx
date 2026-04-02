@@ -1,37 +1,20 @@
-import { useEffect, useState } from "react";
-import { METADATA_POLL_TIME } from "../../utils/constants";
-import { jaiaAPI } from "../../utils/jaia-api";
+import { useContext } from "react";
+import { JaiaContext } from "../../context/JaiaContext";
 import "./SimulationBanner.less";
 
 /**
  * Displays the simulation indicator in the JCC
  */
 export default function SimulationBanner() {
-    const [simulationMode, setSimulationMode] = useState(false);
+    const jaiaContext = useContext(JaiaContext);
 
-    /**
-     * Retrieves the metadata message from the server to
-     * update the simulationMode property
-     *
-     * @returns {void}
-     */
-    const fetchSimulationMode = async () => {
-        try {
-            const metadata = await jaiaAPI.getMetadata();
-            setSimulationMode(metadata.is_simulation);
-        } catch (error) {
-            console.error("Error fetching metadata for simulation banner:", error);
-        }
-    };
+    if (!jaiaContext) {
+        return null;
+    }
 
-    useEffect(() => {
-        // Start at time 0
-        fetchSimulationMode();
-        const interval = setInterval(fetchSimulationMode, METADATA_POLL_TIME);
-        return () => clearInterval(interval);
-    }, []);
+    if (jaiaContext.jaiaGlobal.getMetadata()?.is_simulation) {
+        return <div className="simulation-banner">Simulation</div>;
+    }
 
-    if (!simulationMode) return;
-
-    return <div className="simulation-banner">Simulation</div>;
+    return null;
 }

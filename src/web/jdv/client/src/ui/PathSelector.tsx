@@ -63,9 +63,8 @@ function push_series_to_recents(series_descriptor: SeriesDescriptor) {
  * A selection dialog for choosing a path from a set of logs.
  *
  */
-export default class PathSelector extends React.Component {
-    props: PathSelectorProps;
-    state: PathSelectorState;
+export default class PathSelector extends React.Component<PathSelectorProps, PathSelectorState> {
+    declare state: PathSelectorState;
 
     constructor(props: PathSelectorProps) {
         super(props);
