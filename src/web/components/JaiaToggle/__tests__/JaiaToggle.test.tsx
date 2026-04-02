@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, prettyDOM, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
 import JaiaToggle from "../JaiaToggle";
@@ -18,7 +18,7 @@ describe("JaiaToggle", () => {
         };
 
         render(<JaiaToggle {...props} />);
-        const toggle: HTMLInputElement = screen.getByRole("checkbox");
+        const toggle: HTMLInputElement = screen.getByRole("switch");
 
         await userEvent.click(toggle);
         expect(isChecked).toBe(true);
@@ -38,7 +38,7 @@ describe("JaiaToggle", () => {
         };
 
         render(<JaiaToggle {...props} />);
-        const toggle: HTMLInputElement = screen.getByRole("checkbox");
+        const toggle: HTMLInputElement = screen.getByRole("switch");
 
         expect(toggle.disabled).toBe(true);
     });

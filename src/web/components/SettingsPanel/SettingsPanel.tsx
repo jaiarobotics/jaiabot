@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
-import { ThemeProvider } from "@emotion/react";
+import { ThemeProvider } from "@mui/material";
 
+import { JaiaContext } from "../../context/JaiaContext";
 import MoveHub from "./MoveHub/MoveHub";
 import JaiaToggle from "../../components/JaiaToggle/JaiaToggle";
 import ScanForBot from "./ScanForBot/ScanForBot";
@@ -16,11 +17,16 @@ import { accordionTheme, addDropdownListener } from "../../utils/style";
 
 import "./SettingsPanel.less";
 
+interface Props {
+    isSimulation: boolean;
+}
+
 /**
  * Contains general configurations for the JCC and Jaia System
  */
 
 export default function SettingsPanel() {
+    const jaiaContext = useContext(JaiaContext);
     const [isTrackingPod, setIsTrackingPod] = useState(trackPod.isTracking());
 
     useEffect(() => {
@@ -99,19 +105,31 @@ export default function SettingsPanel() {
                             <OfflineMaps />
                         </AccordionDetails>
                     </Accordion>
-                    <Accordion className="accordion-container">
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            className="accordion-summary"
-                        >
-                            <Typography>Simulation</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <MoveHub />
-                        </AccordionDetails>
-                    </Accordion>
+
+                    <SimulationAccordion
+                        isSimulation={jaiaContext.jaiaGlobal.getMetadata()?.is_simulation}
+                    />
                 </ThemeProvider>
             </div>
         </div>
     );
+}
+
+/**
+ * Only renders the simulation settings in the sim environment
+ */
+function SimulationAccordion(props: Props) {
+    if (props.isSimulation) {
+        return (
+            <Accordion className="accordion-container">
+                <AccordionSummary expandIcon={<ExpandMoreIcon />} className="accordion-summary">
+                    <Typography>Simulation</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                    <MoveHub />
+                </AccordionDetails>
+            </Accordion>
+        );
+    }
+    return null;
 }
