@@ -257,6 +257,8 @@ message MissionManager
     optional int32 min_subsurface_current_vector_hold_time = 95 [default = 10];
     optional int32 min_subsurface_current_vector_drift_time = 96 [default = 15];
 
-    // states that are managed external (their transitions are delegated to an external app)
+    // states that are managed external (their transitions are delegated to an
+    // external app)
     repeated jaiabot.protobuf.MissionState delegated_states = 97;
+    optional bool send_task_packets_to_hub = 98 [default = true];
 }

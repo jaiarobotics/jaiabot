@@ -150,6 +150,29 @@ jaiabot::apps::StormManager::StormManager()
                                                goby::middleware::io::PubSubLayer::INTERTHREAD>;
 
     launch_thread<MCUSerialThread>(cfg().mcu_serial());
+
+    // receive dynamic update command
+    interprocess().subscribe<jaiabot::groups::hub_command>([this](const protobuf::Command& command)
+                                                           { handle_command(command); });
+
+    // keep track of our own position so we can dive in place
+    interprocess().subscribe<jaiabot::groups::bot_status>(
+        [this](const protobuf::BotStatus& status)
+        {
+            if (status.has_location())
+                machine_->set_latest_location(status.location());
+        });
+
+    // queue up TaskPackets
+    interprocess().subscribe<jaiabot::groups::task_packet>(
+        [this](const protobuf::TaskPacket& task_packet)
+        {
+            if (!task_packet.has_storm_id()) // reject our own publications
+            {
+                machine_->task_packet_queue().push_back(task_packet);
+                machine_->add_id(machine_->task_packet_queue().back());
+            }
+        });
 }
 
 jaiabot::apps::StormManager::~StormManager() {}
@@ -239,4 +262,62 @@ void jaiabot::apps::StormManager::send_to_mcu(const protobuf::StormMCURequest& r
     glog.is_debug1() && glog << "Sending bytes to MCU: " << goby::util::hex_encode(io_msg->data())
                              << std::endl;
     interthread().publish<mcu_serial_out>(io_msg);
+}
+
+void jaiabot::apps::StormManager::handle_command(const protobuf::Command& command)
+{
+    switch (command.type())
+    {
+        default: break; // handled elsewhere, usually jaiabot_mission_manager
+        case protobuf::Command::STORM_DYNAMIC_MISSION_UPDATE:
+        {
+            if (!command.has_storm())
+            {
+                glog.is_warn() && glog << "Invalid STORM_DYNAMIC_MISSION_UPDATE: missing "
+                                          "command_data field 'storm'"
+                                       << std::endl;
+                return;
+            }
+            else
+            {
+                handle_storm_mission_update(command.storm());
+            }
+        }
+    }
+}
+
+void jaiabot::apps::StormManager::handle_storm_mission_update(
+    const protobuf::StormMissionUpdate& storm_mission_update)
+{
+    switch (storm_mission_update.type())
+    {
+        case protobuf::StormMissionUpdate::UPDATE_MISSION:
+            if (!storm_mission_update.has_new_mission())
+            {
+                glog.is_warn() &&
+                    glog << "Invalid STORM_DYNAMIC_MISSION_UPDATE [UPDATE_MISSION]: missing "
+                            "update_data field 'new_mission'"
+                         << std::endl;
+                return;
+            }
+            else
+            {
+                glog.is_verbose() && glog << "Set new mission to: "
+                                          << storm_mission_update.new_mission().ShortDebugString()
+                                          << std::endl;
+                machine_->set_mission(storm_mission_update.new_mission());
+                machine_->process_event(statechart::EvRemoteMissionReceived());
+            }
+            break;
+
+        case protobuf::StormMissionUpdate::ABORT:
+        case protobuf::StormMissionUpdate::PAUSE:
+        case protobuf::StormMissionUpdate::RESUME:
+        case protobuf::StormMissionUpdate::DELAY:
+            glog.is_warn() &&
+                glog << "Invalid STORM_DYNAMIC_MISSION_UPDATE ["
+                     << protobuf::StormMissionUpdate::UpdateType_Name(storm_mission_update.type())
+                     << "]: Unimplemented" << std::endl;
+            break;
+    }
 }

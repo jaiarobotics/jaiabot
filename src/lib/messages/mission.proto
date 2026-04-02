@@ -181,12 +181,10 @@ message MissionReport
         [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
     optional uint32 command_from_hub_id = 70
         [(dccl.field) = { min: 0 max: 30 }];
-    optional uint64 mission_command_time = 71 [
-        (dccl.field) = {
-            codec: "dccl.time2"
-            units { prefix: "micro" derived_dimensions: "time" },
-        }
-    ];
+    optional uint64 mission_command_time = 71 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" },
+    }];
 }
 
 message MissionTask
@@ -376,6 +374,7 @@ message MissionPlan
             [default = true, (jaia.field).rest_api.presence = GUARANTEED];
         optional GeographicCoordinate location = 2
             [(jaia.field).rest_api.presence = GUARANTEED];
+        optional bool sleep_once_goal_reached = 3 [default = false];
     }
     optional Recovery recovery = 4
         [(jaia.field).rest_api.presence = GUARANTEED];
@@ -430,8 +429,9 @@ message MissionPlan
         (dccl.field) = { min: 1 max: 100 }
     ];
 
-    optional string mission_name = 11 [(dccl.field).omit = true]; // not sent over radio, only saved to the hub
-
+    optional string mission_name = 11
+        [(dccl.field).omit =
+             true];  // not sent over radio, only saved to the hub
 }
 
 message IvPBehaviorUpdate

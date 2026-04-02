@@ -108,3 +108,15 @@ struct Notify : public AppMethodsAccess<Derived>
 
 } // namespace statechart
 } // namespace jaiabot
+
+namespace jaiabot::protobuf
+{
+inline bool operator==(const TaskPacket& lhs, const TaskPacket& rhs)
+{
+    // consider packets without ID to never be equal
+    if (!lhs.has_storm_id() || !rhs.has_storm_id())
+        return false;
+    else
+        return lhs.storm_id() == rhs.storm_id();
+}
+} // namespace jaiabot::protobuf

@@ -23,6 +23,9 @@
 #ifdef JAIABOT_STORM_MANAGER_FWD_DECL
 struct SleepPrep;
 #else
+
+#include "jaiabot/groups.h"
+
 struct SleepPrep
     : boost::statechart::state<SleepPrep, StormManagerStateMachine, sleep_prep::DataOffload>,
       AppMethodsAccess<SleepPrep>
@@ -31,7 +34,14 @@ struct SleepPrep
         boost::statechart::state<SleepPrep, StormManagerStateMachine, sleep_prep::DataOffload>;
 
     SleepPrep(typename StateBase::my_context c) : StateBase(c) {}
-    ~SleepPrep() {}
+    ~SleepPrep()
+    {
+        // inform jaiabot_mission_manager of the result of this delegated state
+        protobuf::MissionStateDelegateResponse resp;
+        resp.set_state(protobuf::IN_MISSION__UNDERWAY__SLEEP__PREP);
+        resp.set_event(protobuf::MissionStateDelegateResponse::EV_SHUTDOWN);
+        interprocess().publish<::jaiabot::groups::state_delegate_response>(resp);
+    }
 
     using reactions = boost::mpl::list<>;
 };

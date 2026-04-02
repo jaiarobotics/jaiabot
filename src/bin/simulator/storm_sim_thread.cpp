@@ -251,6 +251,14 @@ void jaiabot::apps::StormSimThread::mcu_rx(const protobuf::StormMCURequest& mcu_
         case protobuf::StormMCURequest::AIR_DESCENT_DATA_REQUEST:
             send_air_descent_data(mcu_req.packet_index());
             break;
+        case protobuf::StormMCURequest::SLEEP_REQUEST:
+        {
+            protobuf::StormMCUResponse sleep_response;
+            sleep_response.set_sleep_initiated(true);
+            interthread().publish<groups::storm_mcu_serial_out>(
+                jaiabot::serial::encode_for_mcu(sleep_response));
+        }
+        break;
     }
 }
 

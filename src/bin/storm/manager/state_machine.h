@@ -70,12 +70,28 @@ struct StormManagerStateMachine
     void set_mission(const jaiabot::protobuf::StormMission& mission) { mission_ = mission; };
     const jaiabot::protobuf::StormMission& mission() { return mission_; }
 
+    void set_latest_location(const protobuf::GeographicCoordinate& loc) { latest_location_ = loc; };
+    const protobuf::GeographicCoordinate& latest_location() { return latest_location_; }
+
+    void add_id(protobuf::TaskPacket& task_packet) { task_packet.set_storm_id(task_packet_id_++); }
+    std::deque<protobuf::TaskPacket>& task_packet_queue() { return task_packet_queue_; }
+
+    // how often to send requests to the MCU
+    constexpr static goby::time::SteadyClock::duration mcu_send_interval()
+    {
+        return std::chrono::seconds(1);
+    }
+
   private:
     apps::StormManager& app_;
     jaiabot::protobuf::StormMissionState state_{jaiabot::protobuf::STARTING_UP};
     std::set<jaiabot::protobuf::Warning> warnings_;
 
     jaiabot::protobuf::StormMission mission_;
+    protobuf::GeographicCoordinate latest_location_;
+
+    int task_packet_id_{0};
+    std::deque<protobuf::TaskPacket> task_packet_queue_;
 };
 
 } // namespace statechart

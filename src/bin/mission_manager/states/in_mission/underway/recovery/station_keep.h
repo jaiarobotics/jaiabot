@@ -30,8 +30,7 @@ struct StationKeep : IvPSensorPauseCommon<StationKeep, Recovery,
     using Base = IvPSensorPauseCommon<StationKeep, Recovery,
                                       protobuf::IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP>;
 
-    StationKeep(typename StateBase::my_context c)
-    : Base(c)
+    StationKeep(typename StateBase::my_context c) : Base(c)
     {
         auto recovery = this->machine().mission_plan().recovery();
         IvPBehaviorUpdate update;
@@ -51,13 +50,15 @@ struct StationKeep : IvPSensorPauseCommon<StationKeep, Recovery,
                 this->machine().geodesy());
         }
         this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
+
+        if (recovery.sleep_once_goal_reached())
+            post_event(EvSleep());
     }
 
     ~StationKeep()
     {
         IvPBehaviorUpdate update;
-        IvPBehaviorUpdate::StationkeepUpdate& stationkeep =
-            *update.mutable_stationkeep();
+        IvPBehaviorUpdate::StationkeepUpdate& stationkeep = *update.mutable_stationkeep();
 
         stationkeep.set_active(false);
         this->interprocess().publish<groups::mission_ivp_behavior_update>(update);

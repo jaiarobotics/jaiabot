@@ -587,14 +587,12 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
             if (command_valid)
             {
                 handle_command(out_command);
-                // republish for logging purposes
                 interprocess().publish<jaiabot::groups::hub_command>(out_command);
             }
         }
         else
         {
             handle_command(input_command);
-            // republish for logging purposes
             interprocess().publish<jaiabot::groups::hub_command>(input_command);
         }
     };
@@ -602,7 +600,7 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
     intervehicle().subscribe_dynamic<protobuf::Command>(
         command_callback, *groups::hub_command_this_bot, command_subscriber);
 
-    // also subscribe to commands originating on the bot, e.g. from jaiabot_mission_repeater
+    // also subscribe to commands originating on the bot, e.g. from jaiabot_mission_repeater or jaiabot_storm_manager
     interprocess().subscribe<jaiabot::groups::self_command, protobuf::Command>(command_callback);
 
     if (cfg().has_contact_update_sub_cfg())

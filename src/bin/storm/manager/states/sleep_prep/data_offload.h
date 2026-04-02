@@ -24,14 +24,35 @@
 struct DataOffload;
 #else
 struct DataOffload : boost::statechart::state<DataOffload, SleepPrep>,
-                     Notify<DataOffload, protobuf::SLEEP_PREP__DATA_OFFLOAD>
+                     Notify<DataOffload, protobuf::SLEEP_PREP__DATA_OFFLOAD>,
+                     TaskPacketCommon<DataOffload, EvDataOffloadComplete>
+
 {
     using StateBase = boost::statechart::state<DataOffload, SleepPrep>;
 
-    DataOffload(typename StateBase::my_context c) : StateBase(c) {}
+    friend class TaskPacketCommon<DataOffload, EvDataOffloadComplete>;
+
+    DataOffload(typename StateBase::my_context c) : StateBase(c) { try_send_to_shore(); }
     ~DataOffload() {}
 
-    using reactions = boost::mpl::list<boost::statechart::transition<EvDataOffloadComplete, Wrapup>,
-                                       boost::statechart::transition<EvDataOffloadTimeout, Wrapup>>;
+  private:
+    void loop(const EvLoop& ev)
+    {
+        auto now = goby::time::SteadyClock::now();
+        if (now >= offload_timeout_)
+            post_event(EvDataOffloadTimeout());
+    }
+
+  public:
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvDataOffloadComplete, Wrapup>,
+        boost::statechart::transition<EvDataOffloadTimeout, Wrapup>,
+        boost::statechart::in_state_reaction<EvLoop, DataOffload, &DataOffload::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point offload_timeout_{
+        goby::time::SteadyClock::now() +
+        goby::time::convert_duration<goby::time::SteadyClock::duration>(
+            this->machine().mission().data_offload_timeout_minutes_with_units())};
 };
 #endif

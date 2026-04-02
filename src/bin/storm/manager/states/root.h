@@ -20,11 +20,15 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace jaiabot::statechart {
-#include "starting_up.h"
+namespace jaiabot::statechart
+{
+
+#include "task_packet_common.h"
+
 #include "activating.h"
-#include "self_test.h"
 #include "mission_planning.h"
 #include "mission_running.h"
+#include "self_test.h"
 #include "sleep_prep.h"
-}
+#include "starting_up.h"
+} // namespace jaiabot::statechart

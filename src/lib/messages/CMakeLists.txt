@@ -101,7 +101,7 @@ if(NOT CMAKE_CROSSCOMPILING)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
   check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x40bd086e8a3877dc")
-  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x02089eb7f0b64f55")
-  check_dccl_md5_hash("jaiabot.protobuf.Command" "0x41e0ecd69c426fff")
+  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x4924b4b3812c7881")
+  check_dccl_md5_hash("jaiabot.protobuf.Command" "0xc71179cf53ed9504")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x6694c32d91a8b1c7")
 endif()

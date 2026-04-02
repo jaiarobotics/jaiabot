@@ -32,8 +32,23 @@ struct WaitForRemoteMission
     WaitForRemoteMission(typename StateBase::my_context c) : StateBase(c) {}
     ~WaitForRemoteMission() {}
 
+    void loop(const EvLoop& ev)
+    {
+        auto now = goby::time::SteadyClock::now();
+        if (now >= new_mission_timeout_)
+            post_event(EvRemoteMissionTimeout());
+    }
+
     using reactions =
         boost::mpl::list<boost::statechart::transition<EvRemoteMissionTimeout, SendMission>,
-                         boost::statechart::transition<EvRemoteMissionReceived, SendMission>>;
+                         boost::statechart::transition<EvRemoteMissionReceived, SendMission>,
+                         boost::statechart::in_state_reaction<EvLoop, WaitForRemoteMission,
+                                                              &WaitForRemoteMission::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point new_mission_timeout_{
+        goby::time::SteadyClock::now() +
+        goby::time::convert_duration<goby::time::SteadyClock::duration>(
+            this->machine().mission().remote_mission_wait_minutes_with_units())};
 };
 #endif

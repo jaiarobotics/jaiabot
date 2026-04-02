@@ -134,7 +134,8 @@ message StormMission
     {
         required Threshold threshold = 1;
     }
-    required InWaterDetectionParams in_water = 60;
+    optional InWaterDetectionParams in_water =
+        60;  // required for initial mission, unused for updates
 
     message LaunchTubeDetectionParams
     {
@@ -160,7 +161,8 @@ message StormMission
 
         repeated Action recovery_action = 3 [(dccl.field) = { max_repeat: 10 }];
     }
-    required LaunchTubeDetectionParams launch_tube = 61;
+    optional LaunchTubeDetectionParams launch_tube =
+        61;  // required for initial mission, unused for updates
 
     message ParachuteAttachmentDetectionParams
     {
@@ -169,7 +171,8 @@ message StormMission
         // TBD
     }
 
-    required ParachuteAttachmentDetectionParams parachute = 62;
+    optional ParachuteAttachmentDetectionParams parachute =
+        62;  // required for initial mission, unused for updates
 }
 
 message StormMissionUpdate
@@ -177,6 +180,8 @@ message StormMissionUpdate
     enum UpdateType
     {
         UPDATE_MISSION = 1;
+
+        // TODO: Implement
         ABORT = 2;
         PAUSE = 3;
         RESUME = 4;

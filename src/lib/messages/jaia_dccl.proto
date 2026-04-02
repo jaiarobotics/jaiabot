@@ -644,6 +644,9 @@ message TaskPacket
     // Link traversed
     optional Link link = 5 [(dccl.field).omit = true];
 
+    // used by storm manager to ensure all packets are ack'd
+    optional int32 storm_id = 6 [(dccl.field) = { min: 0 max: 10000 }];
+
     oneof vertical_data
     {
         DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];

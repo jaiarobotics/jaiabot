@@ -337,9 +337,12 @@ elif common.app == 'jaiabot_fusion':
 elif common.app == 'jaiabot_mission_manager':
 
     delegated_states=''
+    send_task_packets_to_hub="true"
     if storm_enabled:
         # delegated to jaiabot_storm_manager
         delegated_states='delegated_states: [IN_MISSION__UNDERWAY__SLEEP__PREP, PRE_DEPLOYMENT__SELF_TEST]'
+        # TaskPacket intervehicle publish is handled by jaiabot_storm_manager
+        send_task_packets_to_hub="false"
         
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
@@ -354,7 +357,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
                                      subnet_mask=common.comms.subnet_mask,
                                      camera_available=common.camera_available,
-                                     delegated_states=delegated_states))
+                                     delegated_states=delegated_states,
+                                     send_task_packets_to_hub=send_task_packets_to_hub))
 
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',

@@ -40,12 +40,17 @@ message StormMCURequest
     {
         AIR_DESCENT_METADATA_REQUEST = 1;
         AIR_DESCENT_DATA_REQUEST = 2;
+        SLEEP_REQUEST = 3;
     }
 
     required Type type = 1;
 
     // for AIR_DESCENT_DATA_REQUEST
     optional int32 packet_index = 2;
+
+    // for SLEEP_REQUEST
+    optional int32 sleep_for_minutes = 3
+        [(dccl.field) = { units { unit: "metric::minute" } }];
 }
 
 // sent once before streaming data in StormAirDescentData
@@ -79,5 +84,6 @@ message StormMCUResponse
     {
         StormAirDescentMetadata air_descent_metadata = 1;
         StormAirDescentData air_descent_data = 2;
+        bool sleep_initiated = 3 [default = false];
     }
 }

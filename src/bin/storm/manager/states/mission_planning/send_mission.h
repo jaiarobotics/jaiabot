@@ -23,12 +23,42 @@
 #ifdef JAIABOT_STORM_MANAGER_FWD_DECL
 struct SendMission;
 #else
+
+#include "jaiabot/groups.h"
+
 struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
                      Notify<SendMission, protobuf::MISSION_PLANNING__SEND_MISSION>
 {
     using StateBase = boost::statechart::state<SendMission, MissionPlanning>;
 
-    SendMission(typename StateBase::my_context c) : StateBase(c) {}
+    SendMission(typename StateBase::my_context c) : StateBase(c)
+    {
+        // create a regular mission and send it over to jaiabot_mission_manager
+        protobuf::Command command;
+        command.set_bot_id(cfg().bot_id());
+        command.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+        command.set_type(protobuf::Command::MISSION_PLAN);
+
+        auto& mission_plan = *command.mutable_plan();
+        mission_plan.set_start(protobuf::MissionPlan::START_IMMEDIATELY);
+        mission_plan.set_movement(protobuf::MissionPlan::TRANSIT);
+
+        auto& goal = *mission_plan.add_goal();
+        *goal.mutable_location() = this->machine().latest_location();
+
+        auto& task = *goal.mutable_task();
+        task.set_type(protobuf::MissionTask::DIVE);
+        *task.mutable_dive() = this->machine().mission().dive();
+
+        auto& recovery = *mission_plan.mutable_recovery();
+        recovery.set_recover_at_final_goal(true);
+        recovery.set_sleep_once_goal_reached(true);
+
+        goby::glog.is_verbose() && goby::glog << group("statechart")
+                                              << "Sending command: " << command.ShortDebugString()
+                                              << std::endl;
+        this->interprocess().publish<::jaiabot::groups::self_command>(command);
+    }
     ~SendMission() {}
 
     using reactions =

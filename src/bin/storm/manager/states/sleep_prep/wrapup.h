@@ -31,6 +31,38 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
     Wrapup(typename StateBase::my_context c) : StateBase(c) {}
     ~Wrapup() {}
 
-    using reactions = boost::mpl::list<boost::statechart::termination<EvSleepReady>>;
+    void loop(const EvLoop& ev)
+    {
+        auto now = goby::time::SteadyClock::now();
+
+        if (now >= next_mcu_send_time_)
+        {
+            try_send_to_mcu();
+            next_mcu_send_time_ = now + this->machine().mcu_send_interval();
+        }
+    }
+
+    void try_send_to_mcu()
+    {
+        protobuf::StormMCURequest request;
+        request.set_type(protobuf::StormMCURequest::SLEEP_REQUEST);
+        request.set_sleep_for_minutes_with_units(
+            this->machine().mission().sleep_for_minutes_with_units());
+        this->app().send_to_mcu(request);
+    }
+
+    void mcu_response(const EvMCUResponse& ev)
+    {
+        if (ev.resp.sleep_initiated())
+            post_event(EvSleepReady());
+    }
+
+    using reactions = boost::mpl::list<
+        boost::statechart::termination<EvSleepReady>,
+        boost::statechart::in_state_reaction<EvMCUResponse, Wrapup, &Wrapup::mcu_response>,
+        boost::statechart::in_state_reaction<EvLoop, Wrapup, &Wrapup::loop>>;
+
+  private:
+    goby::time::SteadyClock::time_point next_mcu_send_time_{goby::time::SteadyClock::now()};
 };
 #endif

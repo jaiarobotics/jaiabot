@@ -56,8 +56,16 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::mcu_response(const E
                                           << "All air descent data received from MCU" << std::endl;
 
                 data_offloaded_from_mcu_ = true;
+                convert_air_descent_data_to_task_packets();
                 try_send_to_shore();
             }
+
+            break;
+
+        case protobuf::StormMCUResponse::kSleepInitiated: // this is for Sleep state...
+            glog.is_warn() && glog << group("statechart")
+                                   << "[mcu resp] Unexpected sleep initiated response!"
+                                   << std::endl;
 
             break;
 
@@ -75,7 +83,7 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::loop(const EvLoop& e
         if (now >= next_mcu_send_time_)
         {
             try_send_to_mcu();
-            next_mcu_send_time_ = now + mcu_send_interval_;
+            next_mcu_send_time_ = now + this->machine().mcu_send_interval();
         }
     }
 
@@ -105,88 +113,37 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::try_send_to_mcu()
     }
 }
 
-void jaiabot::statechart::self_test::AirDescentDataOffload::try_send_to_shore()
+void jaiabot::statechart::self_test::AirDescentDataOffload::
+    convert_air_descent_data_to_task_packets()
 {
-    // see comment in src/lib/intervehicle.h
-    auto dummy_group_func = [](protobuf::TaskPacket&, const goby::middleware::Group&) {};
-
-    std::weak_ptr<lifetime_token> weak_lifetime = lifetime_;
-    auto self =
-        this; // make uses of "this" explicit in ack/expired to ensure they are guarded by the lifetime_ token
-    auto acked_func =
-        [self, weak_lifetime](const protobuf::TaskPacket& msg,
-                              const goby::middleware::intervehicle::protobuf::AckData& ack)
+    for (const auto& [id, air_data] : air_descent_data_)
     {
-        int packet_index = msg.storm_air_descent().packet_index();
-        glog.is_verbose() &&
-            glog << group("statechart")
-                 << "[iridium] Ack received for air descent packet: " << packet_index
-                 << ", ack: " << ack.ShortDebugString() << std::endl;
+        protobuf::TaskPacket task_packet;
+        task_packet.set_bot_id(this->cfg().bot_id());
+        task_packet.set_type(protobuf::MissionTask::STORM_AIR_DESCENT);
+        *task_packet.mutable_storm_air_descent() = air_data;
 
-        // only run if we're still in this state (and "self" is valid)
-        if_alive(weak_lifetime,
-                 [&]
-                 {
-                     self->air_descent_data_.erase(packet_index);
-                     if (self->air_descent_data_.empty())
-                     {
-                         glog.is_verbose() && glog << group("statechart")
-                                                   << "[iridium] All packets sent and ack'd"
-                                                   << std::endl;
-                         self->post_event(EvAirDescentDataTransmitted());
-                     }
-                     else
-                     {
-                         self->try_send_to_shore();
-                     }
-                 });
-    };
+        const std::uint64_t samples_per_packet = protobuf::StormAirDescentData::descriptor()
+                                                     ->FindFieldByName("sample")
+                                                     ->options()
+                                                     .GetExtension(dccl::field)
+                                                     .max_repeat();
 
-    auto expired_func =
-        [self, weak_lifetime](const protobuf::TaskPacket& msg,
-                              const goby::middleware::intervehicle::protobuf::ExpireData& expire)
-    {
-        glog.is_warn() && glog << group("statechart")
-                               << "[iridium] Expiry received for air descent packet: "
-                               << msg.storm_air_descent().packet_index() << std::endl;
+        // use the overall start/end time to determine start/end time for each packet
+        goby::time::MicroTime full_packet_duration(static_cast<float>(samples_per_packet) /
+                                                   air_descent_metadata_->sample_rate_with_units());
+        auto start_time = air_descent_metadata_->start_time_with_units() +
+                          static_cast<goby::time::MicroTime::value_type>(
+                              task_packet.storm_air_descent().packet_index()) *
+                              full_packet_duration;
 
-        // only run if we're still in this state (and "self" is valid)
-        if_alive(weak_lifetime,
-                 [&]
-                 {
-                     self->try_send_to_shore(); // don't give up - retry
-                 });
-    };
-
-    goby::middleware::Publisher<protobuf::TaskPacket> air_descent_publisher(
-        {}, dummy_group_func, acked_func, expired_func);
-
-    protobuf::TaskPacket task_packet;
-    task_packet.set_bot_id(this->cfg().bot_id());
-
-    task_packet.set_type(protobuf::MissionTask::STORM_AIR_DESCENT);
-    *task_packet.mutable_storm_air_descent() = air_descent_data_.begin()->second;
-
-    const std::uint64_t samples_per_packet = protobuf::StormAirDescentData::descriptor()
-                                                 ->FindFieldByName("sample")
-                                                 ->options()
-                                                 .GetExtension(dccl::field)
-                                                 .max_repeat();
-
-    // use the overall start/end time to determine start/end time for each packet
-    goby::time::MicroTime full_packet_duration(static_cast<float>(samples_per_packet) /
-                                               air_descent_metadata_->sample_rate_with_units());
-    auto start_time = air_descent_metadata_->start_time_with_units() +
-                      static_cast<goby::time::MicroTime::value_type>(
-                          task_packet.storm_air_descent().packet_index()) *
-                          full_packet_duration;
-
-    goby::time::MicroTime this_packet_duration(
-        static_cast<float>(task_packet.storm_air_descent().sample_size()) /
-        air_descent_metadata_->sample_rate_with_units());
-    auto end_time = start_time + this_packet_duration;
-    task_packet.set_start_time_with_units(start_time);
-    task_packet.set_end_time_with_units(end_time);
-
-    intervehicle().publish<groups::task_packet>(task_packet, air_descent_publisher);
+        goby::time::MicroTime this_packet_duration(
+            static_cast<float>(task_packet.storm_air_descent().sample_size()) /
+            air_descent_metadata_->sample_rate_with_units());
+        auto end_time = start_time + this_packet_duration;
+        task_packet.set_start_time_with_units(start_time);
+        task_packet.set_end_time_with_units(end_time);
+        this->machine().add_id(task_packet);
+        this->machine().task_packet_queue().push_back(task_packet);
+    }
 }

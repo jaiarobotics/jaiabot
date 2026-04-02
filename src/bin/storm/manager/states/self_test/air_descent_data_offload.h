@@ -23,22 +23,14 @@
 #ifdef JAIABOT_STORM_MANAGER_FWD_DECL
 struct AirDescentDataOffload;
 #else
-
-// run function if weak pointer is valid
-struct lifetime_token
-{
-};
-template <typename F> void if_alive(const std::weak_ptr<lifetime_token>& weak, F&& f)
-{
-    if (!weak.expired())
-        std::forward<F>(f)();
-}
-
 struct AirDescentDataOffload
     : boost::statechart::state<AirDescentDataOffload, SelfTest>,
-      Notify<AirDescentDataOffload, protobuf::SELF_TEST__AIR_DESCENT_DATA_OFFLOAD>
+      Notify<AirDescentDataOffload, protobuf::SELF_TEST__AIR_DESCENT_DATA_OFFLOAD>,
+      TaskPacketCommon<AirDescentDataOffload, EvAirDescentDataTransmitted>
 {
     using StateBase = boost::statechart::state<AirDescentDataOffload, SelfTest>;
+
+    friend class TaskPacketCommon<AirDescentDataOffload, EvAirDescentDataTransmitted>;
 
     AirDescentDataOffload(typename StateBase::my_context c) : StateBase(c) {}
     ~AirDescentDataOffload() {}
@@ -47,7 +39,7 @@ struct AirDescentDataOffload
     void mcu_response(const EvMCUResponse& ev);
     void loop(const EvLoop& ev);
     void try_send_to_mcu();
-    void try_send_to_shore();
+    void convert_air_descent_data_to_task_packets();
 
   public:
     using reactions =
@@ -64,17 +56,11 @@ struct AirDescentDataOffload
     std::map<int, StormAirDescentData> air_descent_data_;
     bool data_offloaded_from_mcu_{false};
 
-    // how often to send requests to the MCU
-    constexpr static goby::time::SteadyClock::duration mcu_send_interval_{std::chrono::seconds(1)};
     goby::time::SteadyClock::time_point next_mcu_send_time_{goby::time::SteadyClock::now()};
 
     goby::time::SteadyClock::time_point offload_timeout_{
         goby::time::SteadyClock::now() +
         goby::time::convert_duration<goby::time::SteadyClock::duration>(
             this->machine().mission().data_offload_timeout_minutes_with_units())};
-
-    // use to track existence of this state for ack/expired functions that might be called
-    // after we've left the state due to timeout
-    std::shared_ptr<lifetime_token> lifetime_{std::make_shared<lifetime_token>()};
 };
 #endif

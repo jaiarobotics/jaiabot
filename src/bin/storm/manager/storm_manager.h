@@ -59,6 +59,8 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     void process_mission_manager_state(protobuf::MissionState state);
 
     void receive_from_mcu(const goby::middleware::protobuf::IOData& io_msg);
+    void handle_command(const protobuf::Command& command);
+    void handle_storm_mission_update(const protobuf::StormMissionUpdate& storm_mission_update);
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 

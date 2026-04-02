@@ -43,7 +43,8 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
 
         task_packet_.set_bot_id(cfg().bot_id());
 
-        task_packet_.set_start_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+        task_packet_.set_start_time_with_units(
+            goby::time::SystemClock::now<goby::time::MicroTime>());
         boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
         task_packet_.set_type(current_task ? current_task->type() : protobuf::MissionTask::NONE);
         task_packet_.set_mission_command_time(this->machine().mission_command_time());
@@ -109,16 +110,18 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
                 task_packet_file.close();
             }
 
-            if (this->machine().rf_disable())
+            if (this->machine().rf_disable() || !this->cfg().send_task_packets_to_hub())
             {
-                glog.is_debug2() && glog << "(RF Disabled) Publishing task packet interprocess: "
-                                         << task_packet_.DebugString() << std::endl;
+                glog.is_debug2() &&
+                    glog << "(Not sending TaskPackets to Hub) Publishing task packet interprocess: "
+                         << task_packet_.DebugString() << std::endl;
                 interprocess().publish<groups::task_packet>(task_packet_);
             }
             else
             {
-                glog.is_debug2() && glog << "(RF Enabled) Publishing task packet intervehicle: "
-                                         << task_packet_.DebugString() << std::endl;
+                glog.is_debug2() &&
+                    glog << "(Sending TaskPackets to Hub) Publishing task packet intervehicle: "
+                         << task_packet_.DebugString() << std::endl;
                 intervehicle().publish<groups::task_packet>(
                     task_packet_, intervehicle::default_publisher<protobuf::TaskPacket>);
             }
