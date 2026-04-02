@@ -419,15 +419,15 @@ void jaiabot::comms::XBeeDevice::query_rssi()
     frame_id++;
 }
 
-int32_t jaiabot::comms::XBeeDevice::get_rssi(const NodeId& node_id) const
+std::pair<bool, int32_t> jaiabot::comms::XBeeDevice::get_rssi(const NodeId& node_id) const
 {
     auto serial_it = node_id_to_serial_number_map.find(node_id);
     if (serial_it == node_id_to_serial_number_map.end())
-        return 0;
+        return {false, 0};
     auto rssi_it = rssi_per_src_.find(serial_it->second);
     if (rssi_it == rssi_per_src_.end())
-        return 0;
-    return static_cast<int32_t>(rssi_it->second);
+        return {false, 0};
+    return {true, -static_cast<int32_t>(rssi_it->second)};
 }
 
 /*

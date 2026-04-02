@@ -1027,7 +1027,7 @@ export interface BotStatus {
     pdop?: number;
     data_offload_percentage?: number;
     wifi_link_quality_percentage?: number;
-    xbee_rssi?: number;
+    xbee?: { rssi_dbm?: number; hub_id?: number };
 }
 
 export interface EstimatedDrift {

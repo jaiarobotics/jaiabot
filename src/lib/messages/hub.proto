@@ -67,7 +67,7 @@ message HubStatus
             (jaia.field).rest_api.presence = GUARANTEED
         ];
         // RSSI of the last bot_status received from this bot (bot -> hub signal strength),
-        // measured in -dBm (e.g. 65 means -65 dBm). Measured and stored locally by the hub.
+        // measured in dBm (e.g. -65 means -65 dBm). Measured and stored locally by the hub.
         optional int32 xbee_rssi = 3 [(jaia.field).rest_api.presence = GUARANTEED];
     }
     repeated KnownBot known_bot = 15
