@@ -1,6 +1,5 @@
 syntax = "proto2";
 
-import "dccl/option_extensions.proto";
 import "jaiabot/messages/jaia_dccl.proto";
 import "jaiabot/messages/link.proto";
 
