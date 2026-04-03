@@ -40,7 +40,9 @@ jobs:
           rm -f /usr/local/bin/cmake
           which cmake
           cmake --version          
-          
+
+## Uncomment if you want to test that the build works (dependencies installed correctly
+## Otherwise leave commented to reduce overhead to start Copilot.
 #      - name: Test build
 #        run: |
 #          export VERBOSE=1
