@@ -37,6 +37,8 @@
 
 #include <goby/zeromq/application/multi_thread.h>
 
+#include <dccl/codecs2/field_codec_default.h>
+
 #include "config.pb.h"
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/groups.h"
@@ -65,15 +67,34 @@ using BotID = uint32_t;
 using MissionCommandTime = uint64_t;
 
 /*
- * This function rounds a timestamp to the nearest DCCL time2 resolution (default 1 second).
- * This is so we can map the incoming mission_command_time, which will have made a round-trip
- * through the dccl.time2 codec to the mission_command_time stored on the Hub for matching
- * with the mission name.
+ * Concrete subclass of DCCL's TimeCodecBase<uint64, 1000000> (i.e. the dccl.time2 codec
+ * for uint64 microsecond fields) with the default field-option values hardcoded so that
+ * pre_encode/post_decode can be called without a registered protobuf field descriptor.
+ * Default settings: num_days = 1 (max = 86400 s), precision = 0 (1-second resolution).
  */
-std::uint64_t dccl_time2_round(std::uint64_t ts_micros,
-                               std::uint64_t resolution_micros = 1000000ULL)
+class Time2Codec : public dccl::v2::TimeCodecBase<dccl::uint64, 1000000>
 {
-    return ((ts_micros + resolution_micros / 2) / resolution_micros) * resolution_micros;
+  private:
+    double max() override { return 86400.0; } // num_days=1, SECONDS_IN_DAY=86400
+    double precision() override { return 0.0; } // precision=0 → 1-second resolution
+};
+
+/*
+ * This function performs a round trip of a timestamp through DCCL's dccl.time2 codec
+ * (TimeCodecBase<uint64, 1000000>) so that it is rounded exactly the same way that DCCL
+ * would round it during encode/decode.  This is so we can map the incoming
+ * mission_command_time, which will have made a round-trip through the dccl.time2 codec,
+ * to the mission_command_time stored on the Hub for matching with the mission name.
+ */
+std::uint64_t dccl_time2_round(std::uint64_t ts_micros)
+{
+    static Time2Codec codec;
+    // pre_encode: convert microseconds to fractional seconds within the day period
+    double encoded = codec.pre_encode(static_cast<dccl::uint64>(ts_micros));
+    // quantize to 1-second resolution (what DefaultNumericFieldCodec::encode does with precision=0)
+    encoded = dccl::quantize(encoded, 1.0);
+    // post_decode: reconstruct the full microsecond timestamp
+    return static_cast<std::uint64_t>(codec.post_decode(encoded));
 }
 
 class HubManager : public ApplicationBase
