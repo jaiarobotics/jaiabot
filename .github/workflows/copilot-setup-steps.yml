@@ -27,9 +27,10 @@ jobs:
     # If you do not check out your code, Copilot will do this for you.
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5      
-        fetch-depth: 0 # required to ensure we have tags
-        
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # required to ensure we have tags
+
       - name: Install build tools
         run: |
           ./scripts/setup-tools-build.sh
