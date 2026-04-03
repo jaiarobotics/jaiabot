@@ -41,7 +41,7 @@ jobs:
           which cmake
           cmake --version          
           
-      - name: Test build
-        run: |
-          export VERBOSE=1
-          ./build.sh
+#      - name: Test build
+#        run: |
+#          export VERBOSE=1
+#          ./build.sh
