@@ -680,6 +680,9 @@ void jaiabot::apps::HubManager::loop()
         known_bot->set_last_status_time_with_units(known_bot_p.second);
     }
 
+    latest_hub_status_.clear_active_link();
+    for (auto link : active_links_) { latest_hub_status_.add_active_link(link); }
+
     if (latest_hub_status_.IsInitialized())
     {
         glog.is_debug1() && glog << group("hub_status") << "Publishing hub status: "
@@ -796,7 +799,8 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
 
     latest_bot_mission_state_[dccl_nav.bot_id()] = dccl_nav.mission_state();
 
-    known_bots_[dccl_nav.bot_id()] = rewarped_dccl_nav_time;
+    if (rewarped_dccl_nav_time > known_bots_[dccl_nav.bot_id()])
+        known_bots_[dccl_nav.bot_id()] = rewarped_dccl_nav_time;
 
     // publish for opencpn interface
     if (node_status.IsInitialized())

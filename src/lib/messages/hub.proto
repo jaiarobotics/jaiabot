@@ -5,6 +5,7 @@ import "jaiabot/messages/health.proto";
 import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
 import "jaiabot/messages/option_extensions.proto";
+import "jaiabot/messages/link.proto";
 
 package jaiabot.protobuf;
 
@@ -69,4 +70,6 @@ message HubStatus
     }
     repeated KnownBot known_bot = 15
         [(jaia.field).rest_api.presence = GUARANTEED];
+
+    repeated Link active_link = 16;
 }
