@@ -173,8 +173,8 @@ echo ">>>>>> Allocated Elastic IP Address with Allocation ID: $EIP_ALLOCATION_ID
 PUBLIC_IPV4_ADDRESS=$(run ".Addresses[0].PublicIp" aws ec2 describe-addresses --allocation-ids $EIP_ALLOCATION_ID)
 
 ## Launch the actual VM (CloudHub)
-USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/cloud-init-user-data.sh.in"
-USER_DATA_SCRIPT="/tmp/cloud-init-user-data.sh"
+USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/cloudhub-user-data.sh.in"
+USER_DATA_SCRIPT="/tmp/cloudhub-user-data.sh"
 
 # replace some {{MACROS}} in the user data
 cp ${USER_DATA_SCRIPT_IN} ${USER_DATA_SCRIPT}
@@ -242,7 +242,16 @@ EOFF
 fi 
 
 USER_DATA_FILE=${USER_DATA_FIRST_BOOT_DIR}/user-data
-cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_COMMON}:cloud-config -a ${USER_DATA_FIRST_BOOT}:cloud-config > ${USER_DATA_FILE}
+USER_DATA_YAML_IN="${SCRIPT_PATH}/cloudhub-user-data.yaml.in"
+USER_DATA_YAML="${USER_DATA_FIRST_BOOT_DIR}/cloudhub-user-data.yaml"
+
+cp ${USER_DATA_YAML_IN} ${USER_DATA_YAML}
+for placeholder in "${!replacements[@]}"; do
+    value=${replacements[$placeholder]}
+    sed -i "s|$placeholder|$value|g" "${USER_DATA_YAML}"
+done
+
+cloud-init devel make-mime -a ${USER_DATA_SCRIPT}:x-shellscript -a ${USER_DATA_YAML}:cloud-config -a ${USER_DATA_COMMON}:cloud-config -a ${USER_DATA_FIRST_BOOT}:cloud-config > ${USER_DATA_FILE}
 
 # Find the newest AMI matching the tags
 AMI_ID=$(run "." aws ec2 describe-images --filters "Name=tag:jaiabot-rootfs-gen_repository,Values=${REPO}" "Name=tag:jaiabot-rootfs-gen_repository_version,Values=${REPO_VERSION}" --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId')
