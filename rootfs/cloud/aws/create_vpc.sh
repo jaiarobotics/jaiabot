@@ -151,6 +151,12 @@ echo ">>>>>> Allowed SSH (port 22) on Security Group"
 run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=udp,FromPort=51820,ToPort=51821,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
 echo ">>>>>> Allowed UDP ports 51820-51821 (Wireguard) on Security Group"
 
+run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
+echo ">>>>>> Allowed HTTP (port 80) on Security Group"
+
+run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
+echo ">>>>>> Allowed HTTPS (port 443) on Security Group"
+
 # Create a Security Group for VirtualFleet with no ingress rules allowed
 VIRTUALFLEET_SECURITY_GROUP_ID=$(run '.GroupId' aws ec2 create-security-group --group-name "jaia__SecurityGroup_VirtualFleet__${JAIA_CUSTOMER_NAME}" --description "jaia__${JAIA_CUSTOMER_NAME} VirtualFleet Security Group" --vpc-id $VPC_ID)
 echo ">>>>>> Created VirtualFleet Security Group with ID: $VIRTUALFLEET_SECURITY_GROUP_ID"
