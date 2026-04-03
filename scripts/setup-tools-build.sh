@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -u -e
+
 script_dir=$(dirname $BASH_SOURCE)
 set -a; source ${script_dir}/common-versions.env; set +a 
 
@@ -15,7 +17,7 @@ sudo apt-get -y update
 # Install the required dependencies
 sudo apt-get -y install dccl4-apps libdccl4-dev libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev gpsd libnanopb-dev nanopb rsync python3-venv python3-protobuf python3-netifaces python3-dev gdal-bin
 # Install the build tools necessary
-sudo apt-get -y install cmake g++ npm clang-format clang graphviz doxygen libstdc++14-dev
+sudo apt-get -y install cmake g++ npm clang-format clang graphviz doxygen libstdc++-14-dev
 # Install Arduino command line interface for local compilation of ino files into hex
 curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo BINDIR=/usr/local/bin sh && \
     arduino-cli config init --overwrite && \
@@ -36,8 +38,8 @@ fi
 
 # We have to source the "~/.nvm/nvm.sh" script in order to set the paths to use the
 #   nvm versions of webpack and npm
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 # Now we use nvm to install the correct version of node FIRST, so npm is compatible
 nvm install ${NODE_VERSION}
