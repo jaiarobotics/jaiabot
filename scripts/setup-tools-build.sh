@@ -2,26 +2,35 @@
 
 set -u -e
 
-set -x
+if [ "$(id -u)" -eq 0 ]; then
+    SUDO=""
+elif command -v sudo >/dev/null 2>&1; then
+    SUDO="sudo"
+else
+    echo "This script requires root or sudo."
+    exit 1
+fi
 
 script_dir=$(dirname $BASH_SOURCE)
 set -a; source ${script_dir}/common-versions.env; set +a 
 
 # Prereqs
-sudo apt-get -y install gnupg lsb-release curl
+$SUDO apt-get -y update
+$SUDO apt-get -y install gnupg lsb-release curl git
 # Add packages.gobysoft.org mirror to your apt sources
 default_version=${jaia_version_release_branch}
-echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/${default_version}/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_continuous.list
+echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/${default_version}/ `lsb_release -c -s`/" | $SUDO tee /etc/apt/sources.list.d/gobysoft_continuous.list
+echo "deb-src http://packages.jaia.tech/ubuntu/continuous/${default_version}/ `lsb_release -c -s`/" | $SUDO tee /etc/apt/sources.list.d/jaiabot_continuous.list
 # Install the public key for packages.gobysoft.org
-sudo apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F8D3FE
+$SUDO apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 19478082E2F8D3FE
+$SUDO apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 954A004CD5D8CF32
 # Update apt
-sudo apt-get -y update
+$SUDO apt-get -y update
 # Install the required dependencies
-sudo apt-get -y install dccl4-apps libdccl4-dev libgoby3-dev libgoby3-moos-dev libgoby3-gui-dev gpsd libnanopb-dev nanopb rsync python3-venv python3-protobuf python3-netifaces python3-dev gdal-bin
-# Install the build tools necessary
-sudo apt-get -y install cmake g++ npm clang-format clang graphviz doxygen libstdc++-14-dev
+$SUDO apt-get -y build-dep jaiabot --install-recommends
+
 # Install Arduino command line interface for local compilation of ino files into hex
-curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo BINDIR=/usr/local/bin sh && \
+curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | $SUDO BINDIR=/usr/local/bin sh -s ${jaia_version_arduino_cli} && \
     arduino-cli config init --overwrite && \
     arduino-cli core update-index && \
     arduino-cli core install arduino:avr
@@ -30,8 +39,15 @@ curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.
 curl https://raw.githubusercontent.com/creationix/nvm/${jaia_version_nvm}/install.sh | bash
 
 export NODE_VERSION=${jaia_version_nodejs}
-export NVM_DIR="${HOME}/.nvm"
 
+if [ -n "${XDG_CONFIG_HOME-}" ] && [ -d "${XDG_CONFIG_HOME}/nvm" ]; then
+    export NVM_DIR="${XDG_CONFIG_HOME}/nvm"
+elif [ -d "${HOME}/.nvm" ]; then
+    export NVM_DIR="${HOME}/.nvm"
+else
+    echo "Error: Neither \$XDG_CONFIG_HOME/nvm nor \$HOME/.nvm exists." >&2
+    exit 1
+fi
 
 # We have to source the "~/.nvm/nvm.sh" script in order to set the paths to use the
 #   nvm versions of webpack and npm
