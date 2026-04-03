@@ -2,11 +2,13 @@
 
 set -u -e
 
+set -x
+
 script_dir=$(dirname $BASH_SOURCE)
 set -a; source ${script_dir}/common-versions.env; set +a 
 
-# Install packages to allow apt to use a repository over HTTPS:
-sudo apt-get -y install apt-transport-https ca-certificates curl gnupg lsb-release
+# Install GnuPG to be able to install signing key
+sudo apt-get -y install gnupg
 # Add packages.gobysoft.org mirror to your apt sources
 default_version=${jaia_version_release_branch}
 echo "deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/${default_version}/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_continuous.list
@@ -32,7 +34,7 @@ export NODE_VERSION=${jaia_version_nodejs}
 if [ -z "${XDG_CONFIG_HOME-}" ]; then
     export NVM_DIR="${HOME}/.nvm"
 else
-    export NVM_DIR="${XDG_CONFIG_HOME}/nvm"
+    export NVM_DIR="${XDG_CONFIG_HOME}/.nvm"
 fi
 
 
