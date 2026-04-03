@@ -6,13 +6,14 @@ import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/jaia_dccl.proto";
 import "jaiabot/messages/metadata.proto";
 import "jaiabot/messages/mission.proto";
+import "jaiabot/messages/command_comms_result.proto";
 
 package jaiabot.protobuf;
 
 /****************************************************************
-* No need to set restrictions on these messages because they are
-* not being sent over the radio.
-*****************************************************************/
+ * No need to set restrictions on these messages because they are
+ * not being sent over the radio.
+ *****************************************************************/
 
 message ClientToPortalMessage
 {
@@ -39,8 +40,9 @@ message PortalToClientMessage
     optional TaskPacket task_packet = 4;
     optional DeviceMetadata device_metadata = 5;
 
-    // For sending a bot's currently active mission back to all the clients, so they can update their GUI to show the active missions for each bot
+    // For sending a bot's currently active mission back to all the clients, so
+    // they can update their GUI to show the active missions for each bot
     optional MissionPlan active_mission_plan = 6;
     optional ContactUpdate contact_update = 7;
-
+    optional CommandCommsResult command_comms_result = 8;
 }

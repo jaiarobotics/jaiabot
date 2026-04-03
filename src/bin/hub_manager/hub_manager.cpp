@@ -42,12 +42,13 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
+#include "jaiabot/messages/command_comms_result.pb.h"
+#include "jaiabot/messages/comms.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/hub.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/link.pb.h"
 #include "jaiabot/messages/mission.pb.h"
-#include "jaiabot/messages/comms.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -120,6 +121,17 @@ class HubManager : public ApplicationBase
 
     void publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data);
 
+    void set_mission_name_for_bot_command_time(const BotID bot_id,
+                                               const MissionCommandTime mission_command_time,
+                                               const std::string& mission_name);
+
+    std::string
+    get_mission_name_for_bot_command_time(const BotID bot_id,
+                                          const MissionCommandTime mission_command_time);
+
+    void process_ack_or_expire(const protobuf::Command& orig_msg,
+                               protobuf::CommandCommsResult::CommsResult result);
+
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
@@ -171,12 +183,14 @@ class HubManager : public ApplicationBase
     std::map<std::pair<BotID, MissionCommandTime>, std::string>
         bot_id_and_command_time_to_mission_name_;
 
-    void set_mission_name_for_bot_command_time(const BotID bot_id,
-                                               const MissionCommandTime mission_command_time,
-                                               const std::string& mission_name);
-    std::string
-    get_mission_name_for_bot_command_time(const BotID bot_id,
-                                          const MissionCommandTime mission_command_time);
+    // map command to expected fragments for result back to web_portal
+    struct CommandPending
+    {
+        protobuf::Command command; // the original command
+        std::set<std::uint32_t>
+            unacked_fragments_; // indices for fragments that haven't been acked (empty set for unfragmented commands)
+    };
+    std::map<MissionCommandTime, CommandPending> commands_pending_result_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -597,8 +611,8 @@ void jaiabot::apps::HubManager::loop()
         latest_hub_status_.mutable_bot_offload()->set_data_offload_percentage(
             data_offload_percentage_);
         for (int bot_id : bots_pending_data_offload_)
-        { 
-            latest_hub_status_.mutable_bot_offload()->add_bots_pending(bot_id); 
+        {
+            latest_hub_status_.mutable_bot_offload()->add_bots_pending(bot_id);
         }
 
         if (offload_complete_)
@@ -964,6 +978,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     // Check message type if it is Mission Plan then check the goal size
     // if the goal size is less than the max -> handle as usual
     // Otherwise create command fragments
+    std::set<std::uint32_t> unacked_fragments_;
     if (command.type() == Command::MISSION_PLAN && command.plan().goal_size() > goal_max_size)
     {
         double command_fragments_expected =
@@ -982,7 +997,6 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
             command_fragment.set_bot_id(command.bot_id());
             command_fragment.set_time(command.time());
             command_fragment.set_type(Command::MISSION_PLAN_FRAGMENT);
-
             auto mutable_plan = command_fragment.mutable_plan();
 
             // The initial fragment is going to have more data
@@ -1020,6 +1034,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
             }
 
             mutable_plan->set_fragment_index(fragment_index);
+            unacked_fragments_.insert(fragment_index);
 
             mutable_plan->set_expected_fragments(command_fragments_expected);
 
@@ -1070,6 +1085,27 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         }
     }
 
+    // store this command and (if relevant, set of fragments)
+    // so we can assemble the acks for fragmented commands and send one ack/expire back to web_portal
+    // Goby currently returns DCCL-rounded messages in ack, so we store the rounded timestamp here
+    commands_pending_result_[dccl_time2_round(command.time())] =
+        CommandPending({command, unacked_fragments_});
+
+    // see intervehicle.h comment for default_publisher
+    auto dummy_group_func = [](protobuf::Command&, const goby::middleware::Group&) {};
+
+    auto on_command_ack = [this](const protobuf::Command& orig_msg,
+                                 const goby::middleware::intervehicle::protobuf::AckData& ack_msg)
+    { process_ack_or_expire(orig_msg, protobuf::CommandCommsResult::SUCCESS); };
+
+    auto on_command_expire =
+        [this](const protobuf::Command& orig_msg,
+               const goby::middleware::intervehicle::protobuf::ExpireData& expire_msg)
+    { process_ack_or_expire(orig_msg, protobuf::CommandCommsResult::FAILURE); };
+
+    goby::middleware::Publisher<protobuf::Command> command_publisher(
+        {}, dummy_group_func, on_command_ack, on_command_expire);
+
     if (!command_fragments.empty())
     {
         // Loop through each fragment and send
@@ -1080,7 +1116,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
 
             intervehicle().publish_dynamic(
                 command_fragment, intervehicle::hub_command_group(command_fragment.bot_id()),
-                intervehicle::default_publisher<Command>);
+                command_publisher);
         }
     }
     else
@@ -1089,7 +1125,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                                  << "Sending command: " << command.ShortDebugString() << std::endl;
 
         intervehicle().publish_dynamic(command, intervehicle::hub_command_group(command.bot_id()),
-                                       intervehicle::default_publisher<Command>);
+                                       command_publisher);
     }
 }
 
@@ -1213,23 +1249,87 @@ void jaiabot::apps::HubManager::publish_hub2hub_data(jaiabot::protobuf::Hub2HubD
         *hub2hub_data, intervehicle::default_publisher<jaiabot::protobuf::Hub2HubData>);
 }
 
-void jaiabot::apps::HubManager::handle_ctd_offload_command(const jaiabot::protobuf::CommandForHub& command) 
+void jaiabot::apps::HubManager::handle_ctd_offload_command(
+    const jaiabot::protobuf::CommandForHub& command)
 {
     std::string bot_ip = cfg().class_b_network() + "." + std::to_string(cfg().fleet_id()) + "." +
                          std::to_string((cfg().bot_start_ip() + command.scan_for_bot_id()));
-    
+
     if (cfg().use_localhost_for_data_offload())
         bot_ip = "127.0.0.1";
-    
-    std::string offload_command = cfg().ctd_offload_script()  + " -bot_id " + std::to_string(command.scan_for_bot_id()) +
-                                  " -bot_ip " + bot_ip + " 2>&1";
+
+    std::string offload_command = cfg().ctd_offload_script() + " -bot_id " +
+                                  std::to_string(command.scan_for_bot_id()) + " -bot_ip " + bot_ip +
+                                  " 2>&1";
 
     glog.is_debug1() && glog << "Offload command: " << offload_command << std::endl;
 
     FILE* pipe = popen(offload_command.c_str(), "r");
     if (!pipe)
     {
-        glog.is_warn() && glog << "Error opening pipe to CTD offload command: "
-                                << strerror(errno) << std::endl;
+        glog.is_warn() && glog << "Error opening pipe to CTD offload command: " << strerror(errno)
+                               << std::endl;
+    }
+}
+
+void jaiabot::apps::HubManager::process_ack_or_expire(
+    const protobuf::Command& orig_msg, protobuf::CommandCommsResult::CommsResult result)
+{
+    auto command_time_dccl = dccl_time2_round(orig_msg.time());
+    auto pending_it = commands_pending_result_.find(command_time_dccl);
+
+    auto publish_result = [this, &pending_it, &result]()
+    {
+        protobuf::CommandCommsResult result_msg;
+        *result_msg.mutable_orig_command() = pending_it->second.command;
+        result_msg.set_result(result);
+        interprocess().publish<groups::hub_command_result>(result_msg);
+        commands_pending_result_.erase(pending_it);
+    };
+
+    if (pending_it != commands_pending_result_.end())
+    {
+        if (orig_msg.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
+        {
+            glog.is_debug1() &&
+                glog << "Received comms " << protobuf::CommandCommsResult::CommsResult_Name(result)
+                     << " for MISSION_PLAN_FRAGMENT: " << orig_msg.plan().fragment_index()
+                     << std::endl;
+
+            if (result == protobuf::CommandCommsResult::FAILURE)
+            {
+                // any fragment expire is a full message failure
+                publish_result();
+            }
+            else
+            {
+                pending_it->second.unacked_fragments_.erase(orig_msg.plan().fragment_index());
+                if (pending_it->second.unacked_fragments_.empty())
+                {
+                    // all fragments acked, success
+                    publish_result();
+                }
+            }
+        }
+        else
+        {
+            glog.is_debug1() && glog << "Received comms "
+                                     << protobuf::CommandCommsResult::CommsResult_Name(result)
+                                     << " for unfragmented Command" << std::endl;
+
+            // unfragmented message maps onto singular ack/expire
+            publish_result();
+        }
+    }
+    else
+    {
+        // possible to get some extra fragment acks/expires after we failed a message due to a failed fragment
+        if (orig_msg.type() != protobuf::Command::MISSION_PLAN_FRAGMENT)
+        {
+            glog.is_warn() && glog << "Received comms result "
+                                   << protobuf::CommandCommsResult::CommsResult_Name(result)
+                                   << " that we weren't expecting for command message: "
+                                   << orig_msg.ShortDebugString() << std::endl;
+        }
     }
 }
