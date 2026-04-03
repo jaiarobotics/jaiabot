@@ -1,4 +1,7 @@
 #cloud-config
 
 packages:
+  - ca-certificates
+  - curl
   - docker-compose
+  - yq
