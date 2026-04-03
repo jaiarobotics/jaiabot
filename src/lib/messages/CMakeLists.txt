@@ -60,7 +60,10 @@ set(JAIABOT_PROTOS
   ctd.proto
   udp_gateway.proto
   ppk.proto
+<<<<<<< task/2.y/iridium-ux-improvement-ack-expire
   command_comms_result.proto
+=======
+>>>>>>> 2.y
 )
 
 list(TRANSFORM JAIABOT_PROTOS PREPEND "jaiabot/messages/")
