@@ -105,7 +105,7 @@ lldap.f${FLEET_ID}.cloud.jaia.tech {
 
 f${FLEET_ID}.cloud.jaia.tech {
         import authelia_forward_auth
-        reverse_proxy [${JCC_HUB_IP}]:80
+        reverse_proxy localhost:80
 }
 EOF
 
