@@ -34,7 +34,7 @@ $SUDO apt-get -y install libais-dev
 
 # Install Arduino command line interface for local compilation of ino files into hex
 export BINDIR=/usr/local/bin
-curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | $SUDO sh -s ${jaia_version_arduino_cli} && \
+curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | $SUDO env BINDIR="$BINDIR" sh -s ${jaia_version_arduino_cli} && \
     arduino-cli config init --overwrite && \
     arduino-cli core update-index && \
     arduino-cli core install arduino:avr
