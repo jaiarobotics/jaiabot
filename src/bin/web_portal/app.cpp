@@ -100,6 +100,8 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
     void send_message_to_client(const jaiabot::protobuf::PortalToClientMessage& message);
 
     jaiabot::protobuf::DeviceMetadata device_metadata_;
+    uint32_t local_hub_id_{0};
+    bool local_hub_id_set_{false};
 };
 
 } // namespace apps
@@ -156,6 +158,8 @@ jaiabot::apps::WebPortal::WebPortal()
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_bot_status() = bot_status;
+            if (local_hub_id_set_)
+                message.set_hub_id(local_hub_id_);
 
             // If this bot has an active mission, let's attach that too
             if (active_mission_plans.count(bot_status.bot_id()) > 0)
@@ -174,8 +178,13 @@ jaiabot::apps::WebPortal::WebPortal()
                                      << "Received Hub status: " << hub_status.ShortDebugString()
                                      << endl;
 
+            // Capture the local hub_id from hub_status
+            local_hub_id_ = hub_status.hub_id();
+            local_hub_id_set_ = true;
+
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_hub_status() = hub_status;
+            message.set_hub_id(local_hub_id_);
             send_message_to_client(message);
         });
 
@@ -188,6 +197,8 @@ jaiabot::apps::WebPortal::WebPortal()
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_engineering_status() = engineering_status;
+            if (local_hub_id_set_)
+                message.set_hub_id(local_hub_id_);
 
             send_message_to_client(message);
         });
@@ -198,6 +209,8 @@ jaiabot::apps::WebPortal::WebPortal()
         {
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_task_packet() = task_packet;
+            if (local_hub_id_set_)
+                message.set_hub_id(local_hub_id_);
 
             send_message_to_client(message);
         });
@@ -216,6 +229,8 @@ jaiabot::apps::WebPortal::WebPortal()
         {
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_contact_update() = contact_update;
+            if (local_hub_id_set_)
+                message.set_hub_id(local_hub_id_);
 
             send_message_to_client(message);
         });
@@ -226,7 +241,53 @@ jaiabot::apps::WebPortal::WebPortal()
         {
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_command_comms_result() = cmd_result;
+            if (local_hub_id_set_)
+                message.set_hub_id(local_hub_id_);
             send_message_to_client(message);
+        });
+
+    // Subscribe to Hub2HubData from other hubs (re-published on interprocess by hub_manager)
+    interprocess().subscribe<jaiabot::groups::hub2hub_data>(
+        [this](const jaiabot::protobuf::Hub2HubData& hub2hub_data)
+        {
+            glog.is_debug2() && glog << group("main")
+                                     << "Received Hub2HubData: " << hub2hub_data.ShortDebugString()
+                                     << endl;
+
+            const uint32_t remote_hub_id = hub2hub_data.hub_id();
+
+            if (hub2hub_data.has_bot_status())
+            {
+                jaiabot::protobuf::PortalToClientMessage message;
+                *message.mutable_bot_status() = hub2hub_data.bot_status();
+                message.set_hub_id(remote_hub_id);
+                send_message_to_client(message);
+            }
+            else if (hub2hub_data.has_task_packet())
+            {
+                jaiabot::protobuf::PortalToClientMessage message;
+                *message.mutable_task_packet() = hub2hub_data.task_packet();
+                message.set_hub_id(remote_hub_id);
+                send_message_to_client(message);
+            }
+            else if (hub2hub_data.has_command_for_bot())
+            {
+                // Forward command from remote hub to local hub_manager to send to the bot
+                handle_command(hub2hub_data.command_for_bot());
+
+                // Also notify JCC clients of the remote command
+                jaiabot::protobuf::PortalToClientMessage message;
+                *message.mutable_remote_command() = hub2hub_data.command_for_bot();
+                message.set_hub_id(remote_hub_id);
+                send_message_to_client(message);
+            }
+            else if (hub2hub_data.has_command_comms_result())
+            {
+                jaiabot::protobuf::PortalToClientMessage message;
+                *message.mutable_command_comms_result() = hub2hub_data.command_comms_result();
+                message.set_hub_id(remote_hub_id);
+                send_message_to_client(message);
+            }
         });
 }
 

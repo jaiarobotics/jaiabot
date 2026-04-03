@@ -889,6 +889,11 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
 
     // Publish interprocess for other goby apps
     interprocess().publish<jaiabot::groups::task_packet>(task_packet_copy);
+
+    // Share task packet with other hubs via Hub2HubData
+    jaiabot::protobuf::Hub2HubData hub2hub_data;
+    *hub2hub_data.mutable_task_packet() = task_packet_copy;
+    publish_hub2hub_data(&hub2hub_data);
 }
 
 void jaiabot::apps::HubManager::handle_command_for_hub(
@@ -987,6 +992,15 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
     {
         set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
                                               command.plan().mission_name());
+    }
+
+    // Share locally-originated commands with other hubs via Hub2HubData
+    // (skip if the command was relayed from another hub to avoid loops)
+    if (!input_command.has_from_hub_id())
+    {
+        jaiabot::protobuf::Hub2HubData hub2hub_data;
+        *hub2hub_data.mutable_command_for_bot() = command;
+        publish_hub2hub_data(&hub2hub_data);
     }
 
     std::vector<Command> command_fragments;
@@ -1355,6 +1369,11 @@ void jaiabot::apps::HubManager::process_ack_or_expire(
         result_msg.set_result(result);
         result_msg.set_link(link);
         interprocess().publish<groups::hub_command_result>(result_msg);
+
+        // Share comms result with other hubs via Hub2HubData
+        jaiabot::protobuf::Hub2HubData hub2hub_data;
+        *hub2hub_data.mutable_command_comms_result() = result_msg;
+        publish_hub2hub_data(&hub2hub_data);
 
         pending_it->second.unacked_fragments_by_link.erase(link);
         if (pending_it->second.unacked_fragments_by_link.empty())

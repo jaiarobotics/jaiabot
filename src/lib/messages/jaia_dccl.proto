@@ -700,5 +700,18 @@ message Hub2HubData
         BotStatus bot_status = 10;
         TaskPacket task_packet = 11;
         Command command_for_bot = 12;
+        CommandCommsResult command_comms_result = 13;
     }
+}
+
+message CommandCommsResult
+{
+    enum CommsResult
+    {
+        SUCCESS = 1;
+        FAILURE = 2;
+    }
+    required CommsResult result = 1;
+    required Link link = 2;
+    required Command orig_command = 3;
 }
