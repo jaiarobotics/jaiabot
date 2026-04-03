@@ -31,17 +31,17 @@ jobs:
         with:
           fetch-depth: 0 # required to ensure we have tags
 
-      - name: Check CMake version
-        run: |
-          which cmake
-          cmake --version          
-          
       - name: Install build tools
         run: |
           ./scripts/setup-tools-build.sh
 
+      - name: Remove Github built-in cmake and check version
+        run: |
+          rm -f /usr/local/bin/cmake
+          which cmake
+          cmake --version          
+          
       - name: Test build
         run: |
           export VERBOSE=1
-          export JAIA_BUILD_NPROC=1
           ./build.sh
