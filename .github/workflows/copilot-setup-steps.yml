@@ -38,4 +38,5 @@ jobs:
       - name: Test build
         run: |
           export VERBOSE=1
+          export JAIA_BUILD_NPROC=1
           ./build.sh
