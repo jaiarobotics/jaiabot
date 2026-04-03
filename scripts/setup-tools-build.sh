@@ -28,9 +28,13 @@ $SUDO apt-key adv --recv-key --keyserver hkp://keyserver.ubuntu.com:80 954A004CD
 $SUDO apt-get -y update
 # Install the required dependencies
 $SUDO apt-get -y build-dep jaiabot --install-recommends
+# (BUG) Need non-soversioned lib?
+# gmake[2]: *** No rule to make target '/usr/lib/x86_64-linux-gnu/libais.so', needed by 'lib/libjaiabot_messages.so.2.6.0+0+ge328122e'.  Stop.
+$SUDO apt-get -y install libais-dev
 
 # Install Arduino command line interface for local compilation of ino files into hex
-curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | $SUDO BINDIR=/usr/local/bin sh -s ${jaia_version_arduino_cli} && \
+export BINDIR=/usr/local/bin
+curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | $SUDO sh -s ${jaia_version_arduino_cli} && \
     arduino-cli config init --overwrite && \
     arduino-cli core update-index && \
     arduino-cli core install arduino:avr

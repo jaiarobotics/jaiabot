@@ -37,4 +37,5 @@ jobs:
 
       - name: Test build
         run: |
+          export VERBOSE=1
           ./build.sh
