@@ -1,6 +1,0 @@
-syntax = "proto2";
-
-// CommandCommsResult is defined in jaia_dccl.proto
-import "jaiabot/messages/jaia_dccl.proto";
-
-package jaiabot.protobuf;

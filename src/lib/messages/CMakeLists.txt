@@ -60,7 +60,6 @@ set(JAIABOT_PROTOS
   ctd.proto
   udp_gateway.proto
   ppk.proto
-  command_comms_result.proto
 )
 
 list(TRANSFORM JAIABOT_PROTOS PREPEND "jaiabot/messages/")

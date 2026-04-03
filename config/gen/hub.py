@@ -320,4 +320,5 @@ elif common.app == 'log_file':
 else:
     print(config.template_substitute(templates_dir + f'/hub/{common.app}.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block=interprocess_common))
+                                     interprocess_block=interprocess_common,
+                                     hub_id=hub_index))

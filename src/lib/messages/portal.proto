@@ -6,7 +6,6 @@ import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/jaia_dccl.proto";
 import "jaiabot/messages/metadata.proto";
 import "jaiabot/messages/mission.proto";
-import "jaiabot/messages/command_comms_result.proto";
 
 package jaiabot.protobuf;
 

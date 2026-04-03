@@ -42,7 +42,6 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
-#include "jaiabot/messages/command_comms_result.pb.h"
 #include "jaiabot/messages/comms.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/hub.pb.h"
