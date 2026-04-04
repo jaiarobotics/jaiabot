@@ -30,10 +30,11 @@ export default function ZonesList() {
     return (
         <div id="zones-list">
             {Array.from(zones.entries()).map(([zoneID, zone]) => {
-                const assignedBotID = jaiaContext.exclusionZoneSet.getAssignment(zoneID);
+                const assignedBotIDs = jaiaContext.exclusionZoneSet.getAssignment(zoneID);
                 const label = zone.label ?? `Zone ${zoneID}`;
-                const assignment =
-                    assignedBotID === UNASSIGNED_ID ? "All Bots" : `Bot-${assignedBotID}`;
+                const assignment = assignedBotIDs.includes(UNASSIGNED_ID)
+                    ? "All Bots"
+                    : assignedBotIDs.map((id) => `Bot-${id}`).join(", ");
 
                 return (
                     <ThemeProvider theme={accordionTheme} key={zoneID}>

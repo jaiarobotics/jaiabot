@@ -70,6 +70,7 @@ export interface JaiaSnapshot {
 export interface JaiaAction {
     type: JaiaActions;
     botID?: number;
+    botIDs?: number[];
     missionID?: number;
     rallyID?: number;
     zoneID?: number;
@@ -80,6 +81,7 @@ export interface JaiaAction {
 
     waypoint?: Waypoint;
     location?: GeographicCoordinate;
+    locations?: GeographicCoordinate[];
     task?: Task;
     taskType?: TaskType;
     taskParameterPairs?: TaskParameterPair[];

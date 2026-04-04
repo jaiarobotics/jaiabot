@@ -54,6 +54,7 @@ namespace middleware = goby::middleware;
 #include "mission_manager_state_machine.h"
 #include "mission_manager.h"
 #include "groups.h"
+#include "exclusion_zone_router.h"
 #include "utils.h"
 
 
@@ -908,16 +909,20 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
             if (mission_is_feasible)
             {
+                // Route waypoints around any active exclusion zones before the state
+                // machine stores the plan. Inserted bypass goals have name="route_bypass"
+                // and no task; they are transparent to the rest of the mission logic.
+                auto routed_plan = mission_routing::route_around_exclusion_zones(
+                    command.plan(), current_exclusion_zones_);
+
                 // pass mission plan through event so that the mission plan in MissionManagerStateMachine only gets updated if this event is handled
-                machine_->process_event(statechart::EvMissionFeasible(command.plan()));
+                machine_->process_event(statechart::EvMissionFeasible(routed_plan));
                 // these are left over from the last mission command, erase them
                 machine_->erase_infeasible_mission_warnings();
 
-                // Re-publish stored exclusion zones so the MOOS gateway recomputes
-                // OBSTACLE_ALERT using the datum origin just set by this mission plan.
-                // Handles the case where zones are sent before the mission plan.
-                if (current_exclusion_zones_.zone_size() > 0)
-                            publish_obstacle_alerts();
+                // Exclusion zones are now handled via route planning (route_around_exclusion_zones)
+                // rather than as GIVEN_OBSTACLEs in pObstacleMgr. publish_obstacle_alerts() is
+                // intentionally not called here; infrastructure remains for camera obstacles.
             }
             else
             {
@@ -995,9 +1000,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             break;
 
         case protobuf::Command::EXCLUSION_ZONES:
-            // WiFi path: full zone set arrives in one command
+            // WiFi path: full zone set arrives in one command. Stored for use by
+            // route_around_exclusion_zones() at next mission plan; not forwarded to
+            // pObstacleMgr (exclusion zones are handled via route planning, not GIVEN_OBSTACLEs).
             current_exclusion_zones_ = command.exclusion_zones();
-            publish_obstacle_alerts();
             break;
 
         case protobuf::Command::EXCLUSION_ZONES_FRAGMENT:
@@ -1173,7 +1179,7 @@ bool jaiabot::apps::MissionManager::handle_exclusion_zone_fragment(
         glog.is_debug1() && glog << "Exclusion zones reassembled: "
                                  << current_exclusion_zones_.zone_size() << " zone(s)" << std::endl;
 
-        publish_obstacle_alerts();
+        // Zones stored for route planning; not forwarded to pObstacleMgr.
         return true;
     }
     return false;
@@ -1271,105 +1277,4 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
     return false;
 }
 
-void jaiabot::apps::MissionManager::publish_obstacle_alerts()
-{
-    if (!machine_->has_geodesy())
-        return;
-
-    // Helper to produce a stable label for a zone (DCCL omits the label field over radio,
-    // so the bot always falls back to this index-based name).
-    auto zone_label = [](const protobuf::ExclusionZone& zone, int i) {
-        return zone.has_label() ? zone.label() : "excl_zone_" + std::to_string(i);
-    };
-
-    protobuf::IvPObstacleUpdate update;
-    std::set<std::string> new_labels;
-
-    // Deactivate zones no longer in the incoming set, and build the new label set,
-    // in a single pass over the current zones.
-    for (int i = 0; i < current_exclusion_zones_.zone_size(); ++i)
-        new_labels.insert(zone_label(current_exclusion_zones_.zone(i), i));
-
-    for (const auto& label : active_exclusion_zone_labels_)
-    {
-        if (!new_labels.count(label))
-            // pObstacleMgr requires a valid pts field and duration for deactivation.
-            update.add_obstacle_alert("pts={0,0:1,0:0,1},active=false,label=" + label + ",duration=86400");
-    }
-
-    // Publish active zones with a 24h duration. given_max_duration=86400 in pObstacleMgr
-    // matches this value. active=false is used to remove zones explicitly when cleared.
-    for (int i = 0; i < current_exclusion_zones_.zone_size(); ++i)
-    {
-        const auto& zone = current_exclusion_zones_.zone(i);
-
-        // Convert all vertices to local x/y, then compute the convex hull using
-        // Andrew's monotone chain algorithm. pObstacleMgr requires a strictly convex,
-        // consistently-wound polygon; angle-sorting alone fails when points are
-        // nearly collinear (creating a false concavity). The convex hull removes
-        // any interior/collinear points and produces a CCW polygon.
-        struct XYPt
-        {
-            double x, y;
-        };
-        std::vector<XYPt> xy_pts;
-        for (int j = 0; j < zone.vertices_size(); ++j)
-        {
-            const auto& v = zone.vertices(j);
-            auto xy = machine_->geodesy().convert({v.lat_with_units(), v.lon_with_units()});
-            xy_pts.push_back({xy.x.value(), xy.y.value()});
-        }
-        if (xy_pts.size() < 3)
-            continue;
-
-        // Andrew's monotone chain convex hull — O(n log n), output in CCW order
-        std::sort(xy_pts.begin(), xy_pts.end(), [](const XYPt& a, const XYPt& b) {
-            return a.x < b.x || (a.x == b.x && a.y < b.y);
-        });
-        auto cross = [](const XYPt& O, const XYPt& A, const XYPt& B) {
-            return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
-        };
-        std::vector<XYPt> hull;
-        // Lower hull
-        for (const auto& p : xy_pts)
-        {
-            while (hull.size() >= 2 && cross(hull[hull.size() - 2], hull[hull.size() - 1], p) <= 0)
-                hull.pop_back();
-            hull.push_back(p);
-        }
-        // Upper hull
-        size_t lower_size = hull.size();
-        for (int j = (int)xy_pts.size() - 2; j >= 0; --j)
-        {
-            while (hull.size() > lower_size &&
-                   cross(hull[hull.size() - 2], hull[hull.size() - 1], xy_pts[j]) <= 0)
-                hull.pop_back();
-            hull.push_back(xy_pts[j]);
-        }
-        hull.pop_back(); // last point == first point
-        xy_pts = hull;
-        if (xy_pts.size() < 3)
-            continue;
-
-        std::string pts;
-        for (size_t j = 0; j < xy_pts.size(); ++j)
-        {
-            if (j > 0)
-                pts += ":";
-            pts += std::to_string(xy_pts[j].x) + "," + std::to_string(xy_pts[j].y);
-        }
-        update.add_obstacle_alert("pts={" + pts + "},label=" + zone_label(zone, i) +
-                                  ",duration=86400");
-    }
-
-    active_exclusion_zone_labels_ = new_labels;
-
-    if (update.obstacle_alert_size() > 0)
-    {
-        glog.is_debug1() && glog << group("main") << "Publishing "
-                                 << update.obstacle_alert_size() << " GIVEN_OBSTACLE update(s)"
-                                 << std::endl;
-        interprocess().publish<jaiabot::groups::mission_ivp_obstacle_update>(update);
-    }
-}
 

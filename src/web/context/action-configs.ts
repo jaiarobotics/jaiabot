@@ -16,6 +16,7 @@ import {
 } from "./handlers/mission-handlers";
 import {
     handleAddWaypoint,
+    handleAddWaypointsBulk,
     handleDeleteWaypoint,
     handleMoveWaypoint,
     handleSelectTask,
@@ -92,6 +93,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
 
     // Waypoint & Task Actions
     [JaiaActions.ADD_WAYPOINT, { handler: handleAddWaypoint, tracked: true }],
+    [JaiaActions.ADD_WAYPOINTS_BULK, { handler: handleAddWaypointsBulk, tracked: true }],
     [JaiaActions.DELETE_WAYPOINT, { handler: handleDeleteWaypoint, tracked: true }],
     [JaiaActions.MOVE_WAYPOINT, { handler: handleMoveWaypoint, tracked: true }],
     [JaiaActions.SELECT_TASK, { handler: handleSelectTask, tracked: true }],

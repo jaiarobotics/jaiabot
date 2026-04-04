@@ -35,6 +35,8 @@ ProcessConfig = pHelmIvP
   // Note: alg=holo is a stub in 24.8 (no spoke geometry, CPA always 0).
   // Must use dubins. radius=1.3 is tight turn for JaiaBot.
   pmgen = alg=dubins#radius=5
+
+
 }
 
 //------------------------------------------
@@ -68,7 +70,6 @@ ProcessConfig = pObstacleMgr
   post_view_polys = true
   obstacles_color = red
 }
-
 
 //------------------------------------------
 // pNodeReporter config block

@@ -44,6 +44,25 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
 }
 
 /**
+ * Adds multiple waypoints to the mission in edit mode in a single tracked operation.
+ * Used to insert bypass waypoints + the destination together as one undo step.
+ */
+export function handleAddWaypointsBulk(mutableState: JaiaContextType, action: JaiaAction) {
+    const missionIDInEditMode = missionSet.getMissionIDInEditMode();
+    if (missionIDInEditMode === UNASSIGNED_ID) return mutableState;
+
+    const mission = missionSet.getMission(missionIDInEditMode);
+    for (const location of action.locations ?? []) {
+        if (mission.getWaypoints().length < MAX_WAYPOINTS) {
+            mission.addWaypoint(location);
+        }
+    }
+
+    missionLayer.updateFeatures();
+    return mutableState;
+}
+
+/**
  * Makes call to remove a waypoint from a mission
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications

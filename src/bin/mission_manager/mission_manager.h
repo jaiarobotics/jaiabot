@@ -68,10 +68,6 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
                                  protobuf::Command& out_command);
     bool handle_exclusion_zone_fragment(const protobuf::Command& input_command_fragment);
 
-    // Converts current_exclusion_zones_ lat/lon vertices to MOOS local x/y using
-    // the mission state machine's geodesy, then publishes IvPObstacleUpdate.
-    // No-op if geodesy has not been set yet (no mission plan received).
-    void publish_obstacle_alerts();
     void handle_bottom_dive_safety_params(const protobuf::BottomDepthSafetyParams);
 
     bool health_considered_ok(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
@@ -90,10 +86,9 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
 
     // Tracks incoming EXCLUSION_ZONES_FRAGMENT commands keyed by time → fragment_index → Command
     std::map<uint64_t, std::map<uint8_t, protobuf::Command>> track_exclusion_zone_fragments_;
-    // Current complete set of exclusion zones (re-published on mission start)
+    // Current complete set of exclusion zones — used by route_around_exclusion_zones() at
+    // mission plan time to insert bypass waypoints.
     protobuf::ExclusionZones current_exclusion_zones_;
-    // Labels currently active in pObstacleMgr; used to post active=false when zones are cleared
-    std::set<std::string> active_exclusion_zone_labels_;
 
     std::set<jaiabot::config::MissionManager::EngineeringTestMode> test_modes_;
     std::set<jaiabot::protobuf::Error> ignore_errors_;

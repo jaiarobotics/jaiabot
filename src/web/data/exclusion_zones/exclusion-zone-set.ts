@@ -5,7 +5,7 @@ import { UNASSIGNED_ID } from "../../utils/constants";
 export interface ExclusionZoneSetSnapshot {
     zones: [number, ExclusionZone][];
     nextZoneID: number;
-    zoneAssignments: [number, number][];
+    zoneAssignments: [number, number[]][];
 }
 
 /**
@@ -16,7 +16,7 @@ export interface ExclusionZoneSetSnapshot {
 export class ExclusionZoneSet {
     private zones: Map<number, ExclusionZone>;
     private nextZoneID: number;
-    private zoneAssignments: Map<number, number>; // zoneID → botID; UNASSIGNED_ID means "all bots"
+    private zoneAssignments: Map<number, number[]>; // zoneID → botIDs; [UNASSIGNED_ID] means "all bots"
 
     constructor() {
         this.zones = new Map();
@@ -37,7 +37,7 @@ export class ExclusionZoneSet {
     addZone(zone: ExclusionZone) {
         const id = this.nextZoneID;
         this.zones.set(id, zone);
-        this.zoneAssignments.set(id, UNASSIGNED_ID); // default: all bots
+        this.zoneAssignments.set(id, [UNASSIGNED_ID]); // default: all bots
         this.nextZoneID++;
         return id;
     }
@@ -55,13 +55,14 @@ export class ExclusionZoneSet {
 
     // ── Assignments ────────────────────────────────────────────────────────
 
-    getAssignment(zoneID: number): number {
-        return this.zoneAssignments.get(zoneID) ?? UNASSIGNED_ID;
+    /** Returns the bot IDs assigned to this zone. [UNASSIGNED_ID] means all bots. */
+    getAssignment(zoneID: number): number[] {
+        return this.zoneAssignments.get(zoneID) ?? [UNASSIGNED_ID];
     }
 
-    setAssignment(zoneID: number, botID: number) {
+    setAssignment(zoneID: number, botIDs: number[]) {
         if (this.zones.has(zoneID)) {
-            this.zoneAssignments.set(zoneID, botID);
+            this.zoneAssignments.set(zoneID, botIDs.length > 0 ? botIDs : [UNASSIGNED_ID]);
         }
     }
 
@@ -78,7 +79,13 @@ export class ExclusionZoneSet {
     restoreFromSnapshot(snapshot: ExclusionZoneSetSnapshot) {
         this.zones = new Map(snapshot.zones ?? []);
         this.nextZoneID = snapshot.nextZoneID ?? 1;
-        this.zoneAssignments = new Map(snapshot.zoneAssignments ?? []);
+        // Migrate old format (single number) to new format (number[])
+        this.zoneAssignments = new Map(
+            (snapshot.zoneAssignments ?? []).map(([id, assignment]) => [
+                id,
+                Array.isArray(assignment) ? assignment : [assignment as unknown as number],
+            ]),
+        );
     }
 }
 
