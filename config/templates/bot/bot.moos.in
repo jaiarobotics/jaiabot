@@ -32,8 +32,8 @@ ProcessConfig = pHelmIvP
   domain     = depth:0:200:201
 
   // Platform model generator for BHV_AvoidObstacleV24 obstacle avoidance
-  // Note: alg=holo is broken in MOOS-IvP 24.8 (missing setPose call).
-  // Using dubins as workaround. radius=5 is tight turn for JaiaBot.
+  // Note: alg=holo is a stub in 24.8 (no spoke geometry, CPA always 0).
+  // Must use dubins. radius=1.3 is tight turn for JaiaBot.
   pmgen = alg=dubins#radius=5
 }
 
@@ -57,10 +57,10 @@ ProcessConfig = pObstacleMgr
   given_max_duration = 86400
 
   // Alert configuration: tells pObstacleMgr to post obstacle updates to BHV_AvoidObstacleV24
-  alert = name=avoid_obs_, update_var=OBSTACLE_ALERT, alert_range=25
+  alert = name=avoid_obs_, update_var=OBSTACLE_ALERT, alert_range=40
 
   // 3. Range Settings
-  alert_range  = 25
+  alert_range  = 40
   ignore_range = -1  // off — GIVEN_OBSTACLE zones must be accepted regardless of distance
 
   // 4. Visuals (optional, helpful for pMarineViewer)

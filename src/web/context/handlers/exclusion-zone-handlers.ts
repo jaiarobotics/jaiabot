@@ -13,6 +13,15 @@ function syncLayer() {
 }
 
 /**
+ * Sends the current exclusion zone set to all known bots.
+ */
+function sendExclusionZonesToAllBots(state: JaiaContextType) {
+    for (const [botID] of state.bots.getBots()) {
+        sendExclusionZonesForBot(botID);
+    }
+}
+
+/**
  * Adds a drawn polygon to the exclusion zone set and returns to default map mode
  */
 export function handleAddExclusionZone(mutableState: JaiaContextType, action: JaiaAction) {
@@ -20,6 +29,7 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
     exclusionZoneSet.addZone(action.exclusionZone);
     syncLayer();
     handleMapModeChange(MapModes.DEFAULT);
+    sendExclusionZonesToAllBots(mutableState);
     return mutableState;
 }
 
@@ -30,6 +40,7 @@ export function handleDeleteExclusionZone(mutableState: JaiaContextType, action:
     if (action.zoneID === undefined) return mutableState;
     exclusionZoneSet.deleteZone(action.zoneID);
     syncLayer();
+    sendExclusionZonesToAllBots(mutableState);
     return mutableState;
 }
 
@@ -48,6 +59,7 @@ export function handleAssignExclusionZone(mutableState: JaiaContextType, action:
 export function handleClearExclusionZones(mutableState: JaiaContextType) {
     exclusionZoneSet.clearZones();
     syncLayer();
+    sendExclusionZonesToAllBots(mutableState);
     return mutableState;
 }
 
@@ -90,8 +102,6 @@ export function sendExclusionZonesForBot(botID: number) {
             zoneList.push(zone);
         }
     }
-
-    if (zoneList.length === 0) return;
 
     jaiaAPI.postCommand({
         bot_id: botID,

@@ -10,22 +10,24 @@ initialize   OBSTACLE_ALERT = none
 Behavior = BHV_AvoidObstacleV24
 {
   name       = avoid_obs_
-  pwt        = 200
+  pwt        = 275
   condition  = MOOS_MANUAL_OVERRIDE = false
   condition  = JAIABOT_WAYPOINT_ACTIVE = true
   updates    = OBSTACLE_ALERT
   templating = spawn
+  use_refinery = true
   duration     = no-time-limit
   allowable_ttc = 10
-  min_util_cpa_dist = 5
-  max_util_cpa_dist = 10
-  pwt_outer_dist = 20
-  pwt_inner_dist = 8
+  min_util_cpa_dist = 10
+  max_util_cpa_dist = 20
+  pwt_outer_dist = 25
+  pwt_inner_dist = 15
   completed_dist = 30
 }
 
 Behavior = BHV_Waypoint
 { 
+
   name      = jaia_transit
   pwt       = 100
   condition = JAIABOT_WAYPOINT_ACTIVE = true

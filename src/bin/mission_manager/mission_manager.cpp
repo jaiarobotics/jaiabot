@@ -1293,8 +1293,8 @@ void jaiabot::apps::MissionManager::publish_obstacle_alerts()
     for (const auto& label : active_exclusion_zone_labels_)
     {
         if (!new_labels.count(label))
-            // pObstacleMgr requires a valid pts field even for deactivation; content is ignored.
-            update.add_obstacle_alert("pts={0,0:1,0:0,1},active=false,label=" + label);
+            // pObstacleMgr requires a valid pts field and duration for deactivation.
+            update.add_obstacle_alert("pts={0,0:1,0:0,1},active=false,label=" + label + ",duration=86400");
     }
 
     // Publish active zones with a 24h duration. given_max_duration=86400 in pObstacleMgr
