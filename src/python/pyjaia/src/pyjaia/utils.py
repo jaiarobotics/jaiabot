@@ -65,7 +65,7 @@ def get_task_packet_id(task_packet: Dict) -> str:
     # Combine the bot_id and start_time (rounded to the nearest second)
     bot_id = task_packet["bot_id"]
     SECOND = 1_000_000
-    start_time = int(task_packet["start_time"]) #round(int(task_packet["start_time"]) / SECOND)
+    start_time = round(int(task_packet["start_time"]) / SECOND)
 
     return str(bot_id) + '_' + str(start_time)
 
