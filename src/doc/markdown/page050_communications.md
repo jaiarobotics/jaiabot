@@ -165,8 +165,6 @@ All Hub2HubData processing takes place in `jaiabot_hub_manager`. When it receive
 - **`command_comms_result`**: Publishes the result on the interprocess `hub_command_result` group. `jaiabot_web_portal` receives it via its normal `hub_command_result` subscription and forwards it to JCC.
 - **`hub_status`**: Publishes the status on the interprocess `hub_status` group. `jaiabot_web_portal` receives it via its normal `hub_status` subscription and forwards it to JCC.
 
-All `PortalToClientMessage` messages include a `hub_id` field that identifies the originating hub. For locally-generated messages, `hub_id` is set from the application configuration (populated via `config/gen/hub.py`). For messages that originated from a remote hub, `hub_id` is carried through the interprocess data (e.g. the `BotStatus.hub_id` or `CommandCommsResult` fields) and set accordingly before sending to JCC. This allows JCC to distinguish which hub generated each message.
-
 
 ## Iridium
 
