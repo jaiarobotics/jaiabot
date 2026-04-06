@@ -546,7 +546,7 @@ class JaiabotMissionPlanner:
                     distance_from_shore=drift_distance,
                     latitude=drift_lat,
                     longitude=drift_lon,
-                    drift_duration=self.params.station_keep_time,
+                    drift_duration=self.params.surface_drift_time,
                 ),
                 self.params.bot_ids[0],
             )
@@ -567,7 +567,7 @@ class JaiabotMissionPlanner:
             distance_from_shore=drift_distance,
             latitude=drift_lat,
             longitude=drift_lon,
-            drift_duration=self.params.station_keep_time,
+            drift_duration=self.params.surface_drift_time,
         )
 
         return drift_location, drift_bot_id
