@@ -48,4 +48,6 @@ message CommsManager
     }
 
     repeated SubscribeRule subscribe = 3;
+
+    required uint32 subnet_mask = 4;
 }

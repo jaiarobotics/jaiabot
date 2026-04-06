@@ -198,6 +198,8 @@ message BotStatus
     // Link traversed
     optional Link link = 8 [(dccl.field).omit = true];
 
+    repeated Link active_link = 9 [(dccl.field).max_repeat = 10];
+
     optional GeographicCoordinate location = 10
         [(jaia.field).rest_api.presence = GUARANTEED];
 
