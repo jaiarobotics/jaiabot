@@ -8,7 +8,7 @@ import logging
 
 from time import sleep
 
-log_filename = f"celsius_log__{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+log_filename = f"/home/jaia/celsius_log__{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 
 logging.basicConfig(
     filename=log_filename,
@@ -64,8 +64,7 @@ class TSYS01(object):
             k =  ((k & 0xFF) << 8) | (k >> 8) # SMBus is little-endian for word transfers, we need to swap MSB and LSB
             self._k.append(k)
 
-        print(f"K Values: {self._k}")
-
+        logging.info(f"K Values: {self._k}")
         return True
 
     def read(self):
@@ -102,4 +101,4 @@ class TSYS01(object):
             1  * self._k[1] * 10**-6  * adc16   +                 \
             -1.5 * self._k[0] * 10**-2
         
-        logging.info(f"Raw ADC: {adc}, Temperature: {self._temperature:.2f} C")
+        logging.info(f"Raw ADC: {adc}, ADC16: {adc16:.4f}, Temperature: {self._temperature:.4f} C")
