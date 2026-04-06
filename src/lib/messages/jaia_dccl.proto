@@ -9,6 +9,7 @@ import "jaiabot/messages/health.proto";
 import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/link.proto";
+import "jaiabot/messages/hub.proto";
 
 package jaiabot.protobuf;
 
@@ -704,6 +705,7 @@ message Hub2HubData
         TaskPacket task_packet = 11;
         Command command_for_bot = 12;
         CommandCommsResult command_comms_result = 13;
+        HubStatus hub_status = 14;
     }
 }
 

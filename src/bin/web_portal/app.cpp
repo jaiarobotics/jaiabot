@@ -36,7 +36,6 @@
 #include <vector>
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
-using namespace std;
 using goby::glog;
 namespace si = boost::units::si;
 namespace config = jaiabot::config;
@@ -69,8 +68,8 @@ class UDPEndPointHash
   public:
     size_t operator()(const UDPEndPoint& p) const
     {
-        string key = p.addr() + to_string(p.port());
-        return hash<string>()(key);
+        std::string key = p.addr() + std::to_string(p.port());
+        return std::hash<std::string>()(key);
     }
 };
 
@@ -87,9 +86,9 @@ class WebPortal : public zeromq::MultiThreadApplication<config::WebPortal>
     WebPortal();
 
   private:
-    unordered_set<goby::middleware::protobuf::UDPEndPoint, UDPEndPointHash> client_endpoints;
+    std::unordered_set<goby::middleware::protobuf::UDPEndPoint, UDPEndPointHash> client_endpoints;
 
-    map<BotId, jaiabot::protobuf::MissionPlan> active_mission_plans;
+    std::map<BotId, jaiabot::protobuf::MissionPlan> active_mission_plans;
 
     void loop() override;
 
@@ -130,15 +129,15 @@ jaiabot::apps::WebPortal::WebPortal()
         goby::middleware::io::UDPOneToManyThread<web_portal_udp_in, web_portal_udp_out>;
     launch_thread<UDPThread>(cfg().udp_config());
 
-    glog.is_debug1() && glog << group("main") << "Web Portal Started" << endl;
-    glog.is_debug1() && glog << group("main") << "Config:" << cfg().ShortDebugString() << endl;
+    glog.is_debug1() && glog << group("main") << "Web Portal Started" << std::endl;
+    glog.is_debug1() && glog << group("main") << "Config:" << cfg().ShortDebugString() << std::endl;
 
     ///////////// INPUT from Client
     interthread().subscribe<web_portal_udp_in>(
         [this](const goby::middleware::protobuf::IOData& io_data)
         {
             glog.is_debug2() && glog << group("main") << "Data: " << io_data.ShortDebugString()
-                                     << endl;
+                                     << std::endl;
 
             jaiabot::protobuf::ClientToPortalMessage command;
             if (command.ParseFromString(io_data.data()))
@@ -150,7 +149,7 @@ jaiabot::apps::WebPortal::WebPortal()
             {
                 glog.is_warn() && glog << group("main")
                                        << "Could not parse incoming message from client: "
-                                       << io_data.ShortDebugString() << endl;
+                                       << io_data.ShortDebugString() << std::endl;
             }
         });
 
@@ -160,7 +159,7 @@ jaiabot::apps::WebPortal::WebPortal()
         {
             glog.is_debug2() && glog << group("bot_status")
                                      << "Received BotStatus: " << bot_status.ShortDebugString()
-                                     << endl;
+                                     << std::endl;
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_bot_status() = bot_status;
@@ -181,7 +180,7 @@ jaiabot::apps::WebPortal::WebPortal()
         {
             glog.is_debug2() && glog << group("hub_status")
                                      << "Received Hub status: " << hub_status.ShortDebugString()
-                                     << endl;
+                                     << std::endl;
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_hub_status() = hub_status;
@@ -194,7 +193,7 @@ jaiabot::apps::WebPortal::WebPortal()
         [this](const jaiabot::protobuf::Engineering& engineering_status)
         {
             glog.is_debug1() && glog << group("eng") << "Sending engineering_status to client: "
-                                     << engineering_status.ShortDebugString() << endl;
+                                     << engineering_status.ShortDebugString() << std::endl;
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_engineering_status() = engineering_status;
@@ -208,7 +207,7 @@ jaiabot::apps::WebPortal::WebPortal()
         [this](const jaiabot::protobuf::TaskPacket& task_packet)
         {
             glog.is_debug1() && glog << group("task_packet") << "Sending task_packet to client: "
-                                     << task_packet.ShortDebugString() << endl;
+                                     << task_packet.ShortDebugString() << std::endl;
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_task_packet() = task_packet;
@@ -222,7 +221,7 @@ jaiabot::apps::WebPortal::WebPortal()
         [this](const jaiabot::protobuf::DeviceMetadata& metadata)
         {
             glog.is_debug1() && glog << group("metadata") << "Sending task_packet to client: "
-                                     << metadata.ShortDebugString() << endl;
+                                     << metadata.ShortDebugString() << std::endl;
 
             jaiabot::protobuf::PortalToClientMessage message;
             device_metadata_ = metadata;
@@ -233,7 +232,7 @@ jaiabot::apps::WebPortal::WebPortal()
         [this](const jaiabot::protobuf::ContactUpdate contact_update)
         {
             glog.is_debug1() && glog << group("contact") << "Sending contact_update to client: "
-                                     << contact_update.ShortDebugString() << endl;
+                                     << contact_update.ShortDebugString() << std::endl;
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_contact_update() = contact_update;
@@ -247,7 +246,7 @@ jaiabot::apps::WebPortal::WebPortal()
         [this](const jaiabot::protobuf::CommandCommsResult& cmd_result)
         {
             glog.is_debug1() && glog << group("cmd_result") << "Sending command result to client: "
-                                     << cmd_result.ShortDebugString() << endl;
+                                     << cmd_result.ShortDebugString() << std::endl;
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_command_comms_result() = cmd_result;
@@ -256,98 +255,25 @@ jaiabot::apps::WebPortal::WebPortal()
         });
 
     // Subscribe to Hub2HubData from other hubs (re-published on interprocess by hub_manager)
-    interprocess().subscribe<jaiabot::groups::hub2hub_data>(
-        [this](const jaiabot::protobuf::Hub2HubData& hub2hub_data)
+    interprocess().subscribe<jaiabot::groups::remote_hub_command>(
+        [this](const jaiabot::protobuf::Command& remote_command)
         {
-            const uint32_t remote_hub_id = hub2hub_data.hub_id();
+            glog.is_debug2() && glog << group("command") << "Received Command from remote hub "
+                                     << remote_command.from_hub_id() << ": "
+                                     << remote_command.ShortDebugString() << std::endl;
 
-            // ignore our own hub2hub data
-            if (remote_hub_id == cfg().hub_id())
-                return;
-
-            glog.is_debug2() && glog << group("main")
-                                     << "Received Hub2HubData: " << hub2hub_data.ShortDebugString()
-                                     << endl;
-
-            switch (hub2hub_data.contents_case())
-            {
-                case jaiabot::protobuf::Hub2HubData::kBotStatus:
-                {
-                    jaiabot::protobuf::PortalToClientMessage message;
-                    *message.mutable_bot_status() = hub2hub_data.bot_status();
-                    if (hub2hub_data.has_bot_link())
-                        message.mutable_bot_status()->set_link(hub2hub_data.bot_link());
-
-                    glog.is_debug2() && glog << group("bot_status")
-                                             << "Received BotStatus (via hub " << remote_hub_id
-                                             << "): " << message.bot_status().ShortDebugString()
-                                             << endl;
-
-                    message.set_hub_id(remote_hub_id);
-                    send_message_to_client(message);
-                    break;
-                }
-                case jaiabot::protobuf::Hub2HubData::kTaskPacket:
-                {
-                    jaiabot::protobuf::PortalToClientMessage message;
-                    *message.mutable_task_packet() = hub2hub_data.task_packet();
-                    if (hub2hub_data.has_bot_link())
-                        message.mutable_task_packet()->set_link(hub2hub_data.bot_link());
-
-                    glog.is_debug1() &&
-                        glog << group("task_packet") << "Sending task_packet to client (via hub "
-                             << remote_hub_id << "): " << message.task_packet().ShortDebugString()
-                             << endl;
-
-                    message.set_hub_id(remote_hub_id);
-                    send_message_to_client(message);
-                    break;
-                }
-                case jaiabot::protobuf::Hub2HubData::kCommandForBot:
-                {
-                    // Forward command from remote hub to local hub_manager to send to the bot
-                    glog.is_debug1() &&
-                        glog << group("command") << "Sending command for bot (via hub "
-                             << remote_hub_id
-                             << "): " << hub2hub_data.command_for_bot().ShortDebugString() << endl;
-                    handle_command(hub2hub_data.command_for_bot());
-
-                    // Also notify JCC clients of the remote command
-                    jaiabot::protobuf::PortalToClientMessage message;
-                    *message.mutable_remote_command() = hub2hub_data.command_for_bot();
-                    message.set_hub_id(remote_hub_id);
-
-                    glog.is_debug1() &&
-                        glog << group("command") << "Forwarding command for bot to client (via hub "
-                             << remote_hub_id
-                             << "): " << message.remote_command().ShortDebugString() << endl;
-
-                    send_message_to_client(message);
-                    break;
-                }
-                case jaiabot::protobuf::Hub2HubData::kCommandCommsResult:
-                {
-                    jaiabot::protobuf::PortalToClientMessage message;
-                    *message.mutable_command_comms_result() = hub2hub_data.command_comms_result();
-
-                    glog.is_debug1() &&
-                        glog << group("cmd_result") << "Sending command result to client: (via hub "
-                             << remote_hub_id
-                             << "): " << message.command_comms_result().ShortDebugString() << endl;
-
-                    message.set_hub_id(remote_hub_id);
-                    send_message_to_client(message);
-                    break;
-                }
-                case jaiabot::protobuf::Hub2HubData::CONTENTS_NOT_SET: break;
-            }
+            // Notify JCC clients of the remote command
+            jaiabot::protobuf::PortalToClientMessage message;
+            *message.mutable_remote_command() = remote_command;
+            send_message_to_client(message);
         });
 }
 
 void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientToPortalMessage& msg)
 {
     glog.is_verbose() && glog << group("main")
-                              << "Received message from client: " << msg.ShortDebugString() << endl;
+                              << "Received message from client: " << msg.ShortDebugString()
+                              << std::endl;
 
     // Republish the message on interprocess, to get it into the logs
     interprocess().publish<jaiabot::groups::web_portal>(msg);
@@ -357,7 +283,7 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
         auto engineering_command = msg.engineering_command();
 
         glog.is_debug2() && glog << group("eng") << "Sending engineering_command: "
-                                 << msg.engineering_command().ShortDebugString() << endl;
+                                 << msg.engineering_command().ShortDebugString() << std::endl;
 
         intervehicle().publish_dynamic(
             engineering_command,
@@ -369,7 +295,7 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
     {
         glog.is_debug1() && glog << group("command")
                                  << "Sending command for bot: " << msg.command().ShortDebugString()
-                                 << endl;
+                                 << std::endl;
 
         handle_command(msg.command());
     }
@@ -377,7 +303,7 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
     if (msg.has_command_for_hub())
     {
         glog.is_debug1() && glog << group("command") << "Sending command for hub: "
-                                 << msg.command_for_hub().ShortDebugString() << endl;
+                                 << msg.command_for_hub().ShortDebugString() << std::endl;
 
         handle_command_for_hub(msg.command_for_hub());
     }
@@ -390,14 +316,14 @@ void jaiabot::apps::WebPortal::loop()
         jaiabot::protobuf::PortalToClientMessage message;
         *message.mutable_device_metadata() = device_metadata_;
         glog.is_debug2() && glog << group("main") << "Sending metadata to client: "
-                                 << device_metadata_.ShortDebugString() << endl;
+                                 << device_metadata_.ShortDebugString() << std::endl;
         send_message_to_client(message);
     }
     else
     {
         glog.is_debug2() && glog << group("main")
                                  << "Query for metadata: " << device_metadata_.ShortDebugString()
-                                 << endl;
+                                 << std::endl;
         jaiabot::protobuf::QueryDeviceMetaData query_device_metadata;
         interprocess().publish<groups::metadata>(query_device_metadata);
     }
@@ -410,14 +336,14 @@ void jaiabot::apps::WebPortal::send_message_to_client(
     {
         glog.is_debug2() && glog << group("main")
                                  << "Sending message to client: " << message.ShortDebugString()
-                                 << endl;
+                                 << std::endl;
 
-        auto io_data = make_shared<goby::middleware::protobuf::IOData>();
+        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
         io_data->mutable_udp_dest()->set_addr(dest.addr());
         io_data->mutable_udp_dest()->set_port(dest.port());
 
         // Serialize for the UDP packet
-        string data;
+        std::string data;
         message.SerializeToString(&data);
         io_data->set_data(data);
 
@@ -425,7 +351,7 @@ void jaiabot::apps::WebPortal::send_message_to_client(
         interthread().publish<web_portal_udp_out>(io_data);
 
         glog.is_debug2() && glog << group("main") << "Sent: " << io_data->ShortDebugString()
-                                 << endl;
+                                 << std::endl;
     }
 }
 
@@ -435,7 +361,7 @@ void jaiabot::apps::WebPortal::handle_command(const jaiabot::protobuf::Command& 
 
     glog.is_debug2() && glog << group("main")
                              << "Sending command to hub_manager: " << command.ShortDebugString()
-                             << endl;
+                             << std::endl;
 
     interprocess().publish<jaiabot::groups::hub_command_full>(command);
 
@@ -449,7 +375,7 @@ void jaiabot::apps::WebPortal::handle_command_for_hub(
     const jaiabot::protobuf::CommandForHub& command_for_hub)
 {
     glog.is_debug2() && glog << group("main") << "Sending command to hub_manager for hub: "
-                             << command_for_hub.ShortDebugString() << endl;
+                             << command_for_hub.ShortDebugString() << std::endl;
 
     interprocess().publish<jaiabot::groups::hub_command_full>(command_for_hub);
 }

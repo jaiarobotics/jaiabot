@@ -135,6 +135,7 @@ constexpr goby::middleware::Group simulator_command{"jaiabot::simulator_command"
 
 // web_portal
 constexpr goby::middleware::Group web_portal("jaiabot::web_portal");
+constexpr goby::middleware::Group remote_hub_command{"jaiabot::remote_hub_command"};
 
 // Camera
 constexpr goby::middleware::Group camera{"jaiabot::camera"};
