@@ -2,47 +2,59 @@ try:
     import smbus
 except:
     print('Try sudo apt-get install python-smbus')
-    
+
+from datetime import datetime
+import logging
+
 from time import sleep
+
+log_filename = f"celsius_log__{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+
+logging.basicConfig(
+    filename=log_filename,
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 # Valid units
 UNITS_Centigrade = 1
 UNITS_Farenheit  = 2
 UNITS_Kelvin     = 3
 
-    
+
 class TSYS01(object):
-    
+
     # Registers
     _TSYS01_ADDR        = 0x77
     _TSYS01_PROM_READ   = 0xA0
     _TSYS01_RESET       = 0x1E
     _TSYS01_CONVERT     = 0x48
     _TSYS01_READ        = 0x00
-    
-    def __init__(self, bus=1):
+
+    def __init__(self, bus=0):
         # Degrees C
         self._temperature = 0
         self._k = []
-        
+
         try:
             self._bus = smbus.SMBus(bus)
         except:
             print("Bus %d is not available."%bus)
             print("Available busses are listed as /dev/i2c*")
             self._bus = None
-        
-        
+
+
     def init(self):
         if self._bus is None:
             "No bus!"
             return False
-        
+
         self._bus.write_byte(self._TSYS01_ADDR, self._TSYS01_RESET)
-        
+
         # Wait for reset to complete
         sleep(0.1)
-        
+
         self._k = []
 
         # Read calibration values
@@ -51,20 +63,22 @@ class TSYS01(object):
             k = self._bus.read_word_data(self._TSYS01_ADDR, prom)
             k =  ((k & 0xFF) << 8) | (k >> 8) # SMBus is little-endian for word transfers, we need to swap MSB and LSB
             self._k.append(k)
-            
+
+        print(f"K Values: {self._k}")
+
         return True
-        
+
     def read(self):
         if self._bus is None:
             print("No bus!")
             return False
-        
+
         # Request conversion
         self._bus.write_byte(self._TSYS01_ADDR, self._TSYS01_CONVERT)
-    
+
         # Max conversion time = 9.04 ms
         sleep(0.01)
-        
+
         adc = self._bus.read_i2c_block_data(self._TSYS01_ADDR, self._TSYS01_READ, 3)
         adc = adc[0] << 16 | adc[1] << 8 | adc[2]
         self._calculate(adc)
@@ -82,10 +96,9 @@ class TSYS01(object):
     # Cribbed from datasheet
     def _calculate(self, adc):
         adc16 = adc/256
+        logging.info(f"Raw ADC: {adc}")
         self._temperature = -2 * self._k[4] * 10**-21 * adc16**4 + \
             4  * self._k[3] * 10**-16 * adc16**3 +                \
             -2 * self._k[2] * 10**-11 * adc16**2 +                \
             1  * self._k[1] * 10**-6  * adc16   +                 \
             -1.5 * self._k[0] * 10**-2
-            
-        
