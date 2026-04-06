@@ -96,70 +96,47 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
         end_time=end_time_us,
         type=task_type
     )
-
-    if task_type == MissionTask.TaskType.STATION_KEEP:
-        # Process for both currents and waves
-        log.info("Processing for currents...")
-        current_results = process_currents_data(h5_log_path, log)
-        if current_results:
-            speed = current_results.get("speed_mean_mps", np.nan)
-            speed_stdev = current_results.get("speed_stdev_mps", np.nan)
-            heading = current_results.get("heading_mean_deg", np.nan)
-            heading_stdev = current_results.get("heading_stdev_deg", np.nan)
-
-            if np.isfinite(speed) and np.isfinite(speed_stdev) and np.isfinite(heading) and np.isfinite(heading_stdev):
-                current_packet = CurrentPacket(speed=float(speed), speed_stdev=float(speed_stdev), 
-                                               heading=float(heading), heading_stdev=float(heading_stdev))
-                if np.isfinite(current_results.get("mean_lat", np.nan)) and np.isfinite(current_results.get("mean_lon", np.nan)):
-                    current_packet.location.lat = current_results["mean_lat"]
-                    current_packet.location.lon = current_results["mean_lon"]
-                task_packet.current.CopyFrom(current_packet)
-            else:
-                log.warning(f"Current results contain non-finite values; not including in TaskPacket.")
-        else:
-            log.warning("No current results were generated.")
         
-        log.info("Processing for waves...")
-        wave_results = process_waves_data(h5_log_path, log)
-        if wave_results:
-            hs = wave_results.get("Hs_gps", np.nan)
-            hs_stdev = wave_results.get("Hs_gps_std", np.nan)
-            period = wave_results.get("Tp_gps", np.nan)
-            period_stdev=wave_results.get("Tp_default_std", np.nan)
+    # Process for both currents and waves
+    log.info("Processing for currents...")
+    current_results = process_currents_data(h5_log_path, log)
+    if current_results:
+        speed = current_results.get("speed_mean_mps", np.nan)
+        speed_stdev = current_results.get("speed_stdev_mps", np.nan)
+        heading = current_results.get("heading_mean_deg", np.nan)
+        heading_stdev = current_results.get("heading_stdev_deg", np.nan)
 
-            if np.isfinite(hs) and np.isfinite(hs_stdev) and np.isfinite(period) and np.isfinite(period_stdev):
-                wave_packet = WavePacket(significant_wave_height=float(hs), hs_stdev=float(hs_stdev), 
-                                         period=float(period), period_stdev=period_stdev)
-                if np.isfinite(wave_results.get("mean_lat", np.nan)) and np.isfinite(wave_results.get("mean_lon", np.nan)):
-                    wave_packet.location.lat = wave_results["mean_lat"]
-                    wave_packet.location.lon = wave_results["mean_lon"]
-                task_packet.wave.CopyFrom(wave_packet)
-            else:
-                log.warning(f"Wave results contain non-finite values; not including in TaskPacket")
+        if np.isfinite(speed) and np.isfinite(speed_stdev) and np.isfinite(heading) and np.isfinite(heading_stdev):
+            current_packet = CurrentPacket(speed=float(speed), speed_stdev=float(speed_stdev), 
+                                           heading=float(heading), heading_stdev=float(heading_stdev))
+            if np.isfinite(current_results.get("mean_lat", np.nan)) and np.isfinite(current_results.get("mean_lon", np.nan)):
+                current_packet.location.lat = current_results["mean_lat"]
+                current_packet.location.lon = current_results["mean_lon"]
+            task_packet.current.CopyFrom(current_packet)
         else:
-            log.warning("No wave results were generated.")
+            log.warning(f"Current results contain non-finite values; not including in TaskPacket.")
+    else:
+        log.warning("No current results were generated.")
+        
+    log.info("Processing for waves...")
+    wave_results = process_waves_data(h5_log_path, log)
+    if wave_results:
+        hs = wave_results.get("Hs_gps", np.nan)
+        hs_stdev = wave_results.get("Hs_gps_std", np.nan)
+        period = wave_results.get("Tp_gps", np.nan)
+        period_stdev=wave_results.get("Tp_default_std", np.nan)
 
-    elif task_type == MissionTask.TaskType.SURFACE_DRIFT:
-        # Process for waves only
-        log.info("Processing for waves...")
-        wave_results = process_waves_data(h5_log_path, log)
-        if wave_results:
-            hs = wave_results.get("Hs_gps", np.nan)
-            hs_stdev = wave_results.get("Hs_gps_std", np.nan)
-            period = wave_results.get("Tp_gps", np.nan)
-            period_stdev=wave_results.get("Tp_default_std", np.nan)
-
-            if np.isfinite(hs) and np.isfinite(hs_stdev) and np.isfinite(period) and np.isfinite(period_stdev):
-                wave_packet = WavePacket(significant_wave_height=float(hs), hs_stdev=float(hs_stdev), 
-                                         period=float(period), period_stdev=period_stdev)
-                if np.isfinite(wave_results.get("mean_lat", np.nan)) and np.isfinite(wave_results.get("mean_lon", np.nan)):
-                    wave_packet.location.lat = wave_results["mean_lat"]
-                    wave_packet.location.lon = wave_results["mean_lon"]
-                task_packet.wave.CopyFrom(wave_packet)
-            else:
-                log.warning(f"Wave results contain non-finite values; not including in TaskPacket")
+        if np.isfinite(hs) and np.isfinite(hs_stdev) and np.isfinite(period) and np.isfinite(period_stdev):
+            wave_packet = WavePacket(significant_wave_height=float(hs), hs_stdev=float(hs_stdev), 
+                                     period=float(period), period_stdev=period_stdev)
+            if np.isfinite(wave_results.get("mean_lat", np.nan)) and np.isfinite(wave_results.get("mean_lon", np.nan)):
+                wave_packet.location.lat = wave_results["mean_lat"]
+                wave_packet.location.lon = wave_results["mean_lon"]
+            task_packet.wave.CopyFrom(wave_packet)
         else:
-            log.warning("No wave results were generated.")
+            log.warning(f"Wave results contain non-finite values; not including in TaskPacket")
+    else:
+       log.warning("No wave results were generated.")
             
     # --- Send the final TaskPacket ---
     if not task_packet.HasField("current") and not task_packet.HasField("wave"):
@@ -254,7 +231,7 @@ def main(args):
         return 1
 
     # --- State Machine Variables ---
-    current_state = FSM_STATES.WAITING
+    current_fsm_state = FSM_STATES.WAITING
     last_heartbeat_time = 0
     data_buffers = {}
     start_time_us = 0
@@ -278,21 +255,21 @@ def main(args):
             payload_type = payload.WhichOneof('payload')
 
             # === WAITING MODE ===
-            if current_state == FSM_STATES.WAITING:
+            if current_fsm_state == FSM_STATES.WAITING:
                 if payload_type == 'mission_report':
                     if payload.mission_report.state == MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP:
                         log.info("Station Keep started. Switching to LOGGING_STATION_KEEP mode.")
-                        current_state = FSM_STATES.LOGGING_STATION_KEEP
+                        current_fsm_state = FSM_STATES.LOGGING_STATION_KEEP
                         start_time_us = int(time.time() * 1_000_000)
                         data_buffers = {'gps': [], 'arduino': []}
                     elif payload.mission_report.state == MissionState.IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT:
                         log.info("Surface Drift started. Switching to LOGGING_SURFACE_DRIFT mode.")
-                        current_state = FSM_STATES.LOGGING_SURFACE_DRIFT
+                        current_fsm_state = FSM_STATES.LOGGING_SURFACE_DRIFT
                         start_time_us = int(time.time() * 1_000_000)
-                        data_buffers = {'gps': []}
+                        data_buffers = {'gps': [], 'arduino': []}
             
             # === LOGGING MODES ===
-            elif current_state == FSM_STATES.LOGGING_STATION_KEEP or current_state == FSM_STATES.LOGGING_SURFACE_DRIFT:
+            elif current_fsm_state == FSM_STATES.LOGGING_STATION_KEEP or current_fsm_state == FSM_STATES.LOGGING_SURFACE_DRIFT:
                 current_ts = time.time()
                 match payload_type:
                     case 'time_position_velocity':
@@ -306,17 +283,17 @@ def main(args):
                         data_buffers['gps'].append((ts_ns, lat, lon, speed, alt, epv))
                     
                     case 'arduino_response':
-                        if current_state == FSM_STATES.LOGGING_STATION_KEEP and payload.arduino_response.HasField('motor'):
+                        if payload.arduino_response.HasField('motor'):
                             data_buffers['arduino'].append((int(current_ts * 1e9), payload.arduino_response.motor))
 
                     case 'mission_report':
                         end_task = False
                         task_type = None
-                        if (current_state == FSM_STATES.LOGGING_STATION_KEEP and payload.mission_report.state != MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP and payload.mission_report.state not in PAUSED_MISSION_STATES):
+                        if (current_fsm_state == FSM_STATES.LOGGING_STATION_KEEP and payload.mission_report.state != MissionState.IN_MISSION__UNDERWAY__TASK__STATION_KEEP and payload.mission_report.state not in PAUSED_MISSION_STATES):
                             log.info(f"Station Keep ended. New state: {MissionState.Name(payload.mission_report.state)}. Processing data...")
                             end_task = True
                             task_type = MissionTask.TaskType.STATION_KEEP
-                        elif (current_state == FSM_STATES.LOGGING_SURFACE_DRIFT and payload.mission_report.state != MissionState.IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT and payload.mission_report.state not in PAUSED_MISSION_STATES):
+                        elif (current_fsm_state == FSM_STATES.LOGGING_SURFACE_DRIFT and payload.mission_report.state != MissionState.IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT and payload.mission_report.state not in PAUSED_MISSION_STATES):
                             log.info(f"Surface Drift ended. New state: {MissionState.Name(payload.mission_report.state)}. Processing data...")
                             end_task = True
                             task_type = MissionTask.TaskType.SURFACE_DRIFT
@@ -325,13 +302,13 @@ def main(args):
                             end_time_us = int(current_ts * 1_000_000)
                             process_and_send_results(sock, udp_gateway_address, start_time_us, end_time_us, data_buffers, task_type, log, cleanup=args.delete_temporary_h5s)
                             log.info("Processing complete. Switching back to WAITING mode.")
-                            current_state = FSM_STATES.WAITING
+                            current_fsm_state = FSM_STATES.WAITING
                     case _:
                         log.warning(f"Received unexpected payload type during logging: {payload_type}")
 
         except Exception:
             log.exception("An unhandled error occurred in the main loop")
-            current_state = FSM_STATES.WAITING
+            current_fsm_state = FSM_STATES.WAITING
             time.sleep(HEARTBEAT_INTERVAL_SECONDS)
 
 if __name__ == "__main__":
