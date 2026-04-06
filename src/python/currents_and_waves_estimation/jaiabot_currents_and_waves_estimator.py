@@ -22,7 +22,10 @@ import wave_analysis_lib as wal
 BUFFER_SIZE = 1024
 SOCKET_TIMEOUT_SECONDS = 1
 HEARTBEAT_INTERVAL_SECONDS = 5
-SAVE_DIR = os.path.join("/var", "log", "jaiabot", "surob_surge")
+APP_NAME = 'jaiabot_currents_and_waves_estimator'
+BOT_ID = 0
+JAIABOT_BOT_BASE_DIR = os.path.join("/var", "log", "jaiabot", "bot")
+JAIABOT_BOT_ID_DIR = os.path.join(JAIABOT_BOT_BASE_DIR, str(BOT_ID)) # /var/log/jaiabot/bot/[bot_id]
 
 class FSM_STATES(Enum):
     WAITING = 0
@@ -64,7 +67,7 @@ def try_parse(data, message_type):
 def send_heartbeat(sock, addr, log):
     """Sends a heartbeat packet to the gateway address."""
     envelope = UDPGatewayEnvelope()
-    envelope.surob_payload.heartbeat = True
+    envelope.currents_and_waves_estimator_payload.heartbeat = True
     try:
         sock.sendto(envelope.SerializeToString(), addr)
         log.info(f"Heartbeat sent to {addr}.")
@@ -73,7 +76,7 @@ def send_heartbeat(sock, addr, log):
 
 def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffers, task_type, log, cleanup=True):
     """Writes buffered data to HDF5, processes it, and sends the final results."""
-    processing_dir = os.path.join(SAVE_DIR, str(int(time.time())))
+    processing_dir = os.path.join(JAIABOT_BOT_ID_DIR, str(int(time.time())))
     os.makedirs(processing_dir, exist_ok=True)
     h5_log_path = os.path.join(processing_dir, "log.h5")
 
@@ -88,7 +91,7 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
     # --- Process the logged data ---
     log.info("Processing logged data...")
     task_packet = TaskPacket(
-        bot_id=0,  # To be set by the receiving udp_gateway app
+        bot_id=BOT_ID,
         start_time=start_time_us,
         end_time=end_time_us,
         type=task_type
@@ -163,7 +166,7 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
         log.warning("No results to send in TaskPacket.")
     else:
         envelope = UDPGatewayEnvelope()
-        envelope.surob_payload.task_packet.CopyFrom(task_packet)
+        envelope.currents_and_waves_estimator_payload.task_packet.CopyFrom(task_packet)
         try:
             sock.sendto(envelope.SerializeToString(), addr)
             log.info("Results sent successfully.")
@@ -226,18 +229,28 @@ def process_waves_data(h5_log_path, log):
 
 def main(args):
     """Main loop to listen for tasks, log data, compute estimates, and send results."""
-    os.makedirs(SAVE_DIR, exist_ok=True)
-    logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s', filename=os.path.join(SAVE_DIR, f'surob_surge_{str(int(time.time()))}.log'), filemode='w')
-    log = logging.getLogger('surob_surge')
+    global JAIABOT_BOT_ID_DIR, BOT_ID
+    BOT_ID = args.bot_id
+    JAIABOT_BOT_ID_DIR = os.path.join(JAIABOT_BOT_BASE_DIR, str(BOT_ID))
+    os.makedirs(JAIABOT_BOT_ID_DIR, exist_ok=True)
+
+    curr_log_filepath = os.path.join(JAIABOT_BOT_ID_DIR, f'{APP_NAME}_{str(int(time.time()))}.log')
+    logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s', filename=curr_log_filepath, filemode='w')
+    log = logging.getLogger(APP_NAME)
     log.setLevel(args.logging_level)
 
+    latest_log_symlink_path = os.path.join(JAIABOT_BOT_ID_DIR, f'{APP_NAME}_latest.log')
+    if os.path.lexists(latest_log_symlink_path):
+        os.unlink(latest_log_symlink_path)
+    os.symlink(curr_log_filepath, latest_log_symlink_path)
+    
     try:
         sock = setup_socket(0, SOCKET_TIMEOUT_SECONDS)
         listening_port = sock.getsockname()[1]
         udp_gateway_address = ('localhost', args.udp_gateway_port)
         log.info(f"Service initialized. Listening on port {listening_port}. Sending results and heartbeats to {udp_gateway_address}.")
     except Exception as e:
-        log.exception(f"Initialization failed: {e}")
+        log.exception(f"UDP initialization failed: {e}")
         return 1
 
     # --- State Machine Variables ---
@@ -258,10 +271,10 @@ def main(args):
             except socket.timeout:
                 continue
 
-            if not (envelope := try_parse(data, UDPGatewayEnvelope)) or not envelope.HasField('surob_payload'):
+            if not (envelope := try_parse(data, UDPGatewayEnvelope)) or not envelope.HasField('currents_and_waves_estimator_payload'):
                 continue
             
-            payload = envelope.surob_payload
+            payload = envelope.currents_and_waves_estimator_payload
             payload_type = payload.WhichOneof('payload')
 
             # === WAITING MODE ===
@@ -323,8 +336,9 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Log sensor data during Station Keep or Surface Drift to compute current and/or wave estimates.')
-    parser.add_argument('-p', '--udp_gateway_port', default=20000, type=int, help='The UDP gateway port to send surob surge TaskPackets to (default: 20000)')
+    parser.add_argument('-p', '--udp_gateway_port', default=20000, type=int, help='The UDP gateway port to send current and wave TaskPackets to (default: 20000)')
     parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
+    parser.add_argument('-b', '--bot_id', default=0, type=int, help='Jaiabot bot_id of the bot the app is running on.')
     parser.add_argument('--delete_temporary_h5s', action=argparse.BooleanOptionalAction, default=True, help='Whether to delete temporary logging h5s after sending estimates')
     
     args = parser.parse_args()

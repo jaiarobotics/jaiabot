@@ -21,8 +21,8 @@ gobyd <(../../gen/bot.py gobyd)
 # Start Echo sensor simulator
 [kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/echo/jaiabot_echo.py $(../../gen/bot.py jaiabot_echo.py) --simulator -l DEBUG
 
-# Start Surob Surge Currents and Waves estimator
-[kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/surob_surge/surob_surge.py $(../../gen/bot.py surob_surge.py) -l DEBUG
+# Start the currents and waves estimator
+[kill=SIGTERM] ../../../src/python/venv/bin/python3 ../../../src/python/currents_and_waves_estimation/jaiabot_currents_and_waves_estimator.py $(../../gen/bot.py jaiabot_currents_and_waves_estimator.py)
 
 
 # Run the health check function

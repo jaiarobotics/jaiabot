@@ -14,7 +14,7 @@ package jaiabot.protobuf;
 
 message UDPGatewayEnvelope
 {
-    message SurobPayload
+    message CurrentsAndWavesEstimatorPayload
     {
         oneof payload
         {
@@ -47,7 +47,7 @@ message UDPGatewayEnvelope
         EchoCommand echo_command = 6;
         EchoData echo_data = 7;
 
-        SurobPayload surob_payload = 8;
+        CurrentsAndWavesEstimatorPayload currents_and_waves_estimator_payload = 8;
     }
 
 }
