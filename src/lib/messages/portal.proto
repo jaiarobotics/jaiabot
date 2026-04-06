@@ -45,8 +45,5 @@ message PortalToClientMessage
     optional ContactUpdate contact_update = 7;
     optional CommandCommsResult command_comms_result = 8;
 
-    // The hub_id of the hub that generated this message (local hub or remote hub via Hub2HubData)
-    optional uint32 hub_id = 9;
-    // A command received from a remote hub via Hub2HubData
-    optional Command remote_command = 10;
+    optional Command remote_command = 9;
 }

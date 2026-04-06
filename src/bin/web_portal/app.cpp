@@ -163,7 +163,6 @@ jaiabot::apps::WebPortal::WebPortal()
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_bot_status() = bot_status;
-            message.set_hub_id(cfg().hub_id());
 
             // If this bot has an active mission, let's attach that too
             if (active_mission_plans.count(bot_status.bot_id()) > 0)
@@ -184,7 +183,6 @@ jaiabot::apps::WebPortal::WebPortal()
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_hub_status() = hub_status;
-            message.set_hub_id(cfg().hub_id());
             send_message_to_client(message);
         });
 
@@ -197,8 +195,6 @@ jaiabot::apps::WebPortal::WebPortal()
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_engineering_status() = engineering_status;
-            message.set_hub_id(cfg().hub_id());
-
             send_message_to_client(message);
         });
 
@@ -211,8 +207,6 @@ jaiabot::apps::WebPortal::WebPortal()
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_task_packet() = task_packet;
-            message.set_hub_id(cfg().hub_id());
-
             send_message_to_client(message);
         });
 
@@ -236,8 +230,6 @@ jaiabot::apps::WebPortal::WebPortal()
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_contact_update() = contact_update;
-            message.set_hub_id(cfg().hub_id());
-
             send_message_to_client(message);
         });
 
@@ -250,7 +242,6 @@ jaiabot::apps::WebPortal::WebPortal()
 
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_command_comms_result() = cmd_result;
-            message.set_hub_id(cfg().hub_id());
             send_message_to_client(message);
         });
 
