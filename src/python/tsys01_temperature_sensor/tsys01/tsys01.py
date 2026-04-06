@@ -96,9 +96,10 @@ class TSYS01(object):
     # Cribbed from datasheet
     def _calculate(self, adc):
         adc16 = adc/256
-        logging.info(f"Raw ADC: {adc}")
         self._temperature = -2 * self._k[4] * 10**-21 * adc16**4 + \
             4  * self._k[3] * 10**-16 * adc16**3 +                \
             -2 * self._k[2] * 10**-11 * adc16**2 +                \
             1  * self._k[1] * 10**-6  * adc16   +                 \
             -1.5 * self._k[0] * 10**-2
+        
+        logging.info(f"Raw ADC: {adc}, Temperature: {self._temperature:.2f} C")
