@@ -117,6 +117,14 @@ jaiabot::apps::WebPortal::WebPortal()
     : zeromq::MultiThreadApplication<config::WebPortal>(0.1 * si::hertz)
 {
     glog.add_group("main", goby::util::Colors::yellow);
+    glog.add_group("bot_status", goby::util::Colors::green);
+    glog.add_group("eng", goby::util::Colors::blue);
+    glog.add_group("hub_status", goby::util::Colors::lt_blue);
+    glog.add_group("task_packet", goby::util::Colors::magenta);
+    glog.add_group("metadata", goby::util::Colors::lt_magenta);
+    glog.add_group("contact", goby::util::Colors::cyan);
+    glog.add_group("cmd_result", goby::util::Colors::white);
+    glog.add_group("command", goby::util::Colors::lt_white);
 
     using UDPThread =
         goby::middleware::io::UDPOneToManyThread<web_portal_udp_in, web_portal_udp_out>;
@@ -150,7 +158,7 @@ jaiabot::apps::WebPortal::WebPortal()
     interprocess().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
         [this](const jaiabot::protobuf::BotStatus& bot_status)
         {
-            glog.is_debug2() && glog << group("main")
+            glog.is_debug2() && glog << group("bot_status")
                                      << "Received BotStatus: " << bot_status.ShortDebugString()
                                      << endl;
 
@@ -171,7 +179,7 @@ jaiabot::apps::WebPortal::WebPortal()
     interprocess().subscribe<jaiabot::groups::hub_status>(
         [this](const jaiabot::protobuf::HubStatus& hub_status)
         {
-            glog.is_debug2() && glog << group("main")
+            glog.is_debug2() && glog << group("hub_status")
                                      << "Received Hub status: " << hub_status.ShortDebugString()
                                      << endl;
 
@@ -185,7 +193,7 @@ jaiabot::apps::WebPortal::WebPortal()
     interprocess().subscribe<jaiabot::groups::engineering_status>(
         [this](const jaiabot::protobuf::Engineering& engineering_status)
         {
-            glog.is_debug1() && glog << "Sending engineering_status to client: "
+            glog.is_debug1() && glog << group("eng") << "Sending engineering_status to client: "
                                      << engineering_status.ShortDebugString() << endl;
 
             jaiabot::protobuf::PortalToClientMessage message;
@@ -199,6 +207,9 @@ jaiabot::apps::WebPortal::WebPortal()
     interprocess().subscribe<jaiabot::groups::task_packet>(
         [this](const jaiabot::protobuf::TaskPacket& task_packet)
         {
+            glog.is_debug1() && glog << group("task_packet") << "Sending task_packet to client: "
+                                     << task_packet.ShortDebugString() << endl;
+
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_task_packet() = task_packet;
             message.set_hub_id(cfg().hub_id());
@@ -210,6 +221,9 @@ jaiabot::apps::WebPortal::WebPortal()
     interprocess().subscribe<jaiabot::groups::metadata>(
         [this](const jaiabot::protobuf::DeviceMetadata& metadata)
         {
+            glog.is_debug1() && glog << group("metadata") << "Sending task_packet to client: "
+                                     << metadata.ShortDebugString() << endl;
+
             jaiabot::protobuf::PortalToClientMessage message;
             device_metadata_ = metadata;
         });
@@ -218,6 +232,9 @@ jaiabot::apps::WebPortal::WebPortal()
     interprocess().subscribe<jaiabot::groups::contact_update>(
         [this](const jaiabot::protobuf::ContactUpdate contact_update)
         {
+            glog.is_debug1() && glog << group("contact") << "Sending contact_update to client: "
+                                     << contact_update.ShortDebugString() << endl;
+
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_contact_update() = contact_update;
             message.set_hub_id(cfg().hub_id());
@@ -229,6 +246,9 @@ jaiabot::apps::WebPortal::WebPortal()
     interprocess().subscribe<jaiabot::groups::hub_command_result>(
         [this](const jaiabot::protobuf::CommandCommsResult& cmd_result)
         {
+            glog.is_debug1() && glog << group("cmd_result") << "Sending command result to client: "
+                                     << cmd_result.ShortDebugString() << endl;
+
             jaiabot::protobuf::PortalToClientMessage message;
             *message.mutable_command_comms_result() = cmd_result;
             message.set_hub_id(cfg().hub_id());
@@ -239,11 +259,15 @@ jaiabot::apps::WebPortal::WebPortal()
     interprocess().subscribe<jaiabot::groups::hub2hub_data>(
         [this](const jaiabot::protobuf::Hub2HubData& hub2hub_data)
         {
+            const uint32_t remote_hub_id = hub2hub_data.hub_id();
+
+            // ignore our own hub2hub data
+            if (remote_hub_id == cfg().hub_id())
+                return;
+
             glog.is_debug2() && glog << group("main")
                                      << "Received Hub2HubData: " << hub2hub_data.ShortDebugString()
                                      << endl;
-
-            const uint32_t remote_hub_id = hub2hub_data.hub_id();
 
             switch (hub2hub_data.contents_case())
             {
@@ -251,6 +275,14 @@ jaiabot::apps::WebPortal::WebPortal()
                 {
                     jaiabot::protobuf::PortalToClientMessage message;
                     *message.mutable_bot_status() = hub2hub_data.bot_status();
+                    if (hub2hub_data.has_bot_link())
+                        message.mutable_bot_status()->set_link(hub2hub_data.bot_link());
+
+                    glog.is_debug2() && glog << group("bot_status")
+                                             << "Received BotStatus (via hub " << remote_hub_id
+                                             << "): " << message.bot_status().ShortDebugString()
+                                             << endl;
+
                     message.set_hub_id(remote_hub_id);
                     send_message_to_client(message);
                     break;
@@ -259,6 +291,14 @@ jaiabot::apps::WebPortal::WebPortal()
                 {
                     jaiabot::protobuf::PortalToClientMessage message;
                     *message.mutable_task_packet() = hub2hub_data.task_packet();
+                    if (hub2hub_data.has_bot_link())
+                        message.mutable_task_packet()->set_link(hub2hub_data.bot_link());
+
+                    glog.is_debug1() &&
+                        glog << group("task_packet") << "Sending task_packet to client (via hub "
+                             << remote_hub_id << "): " << message.task_packet().ShortDebugString()
+                             << endl;
+
                     message.set_hub_id(remote_hub_id);
                     send_message_to_client(message);
                     break;
@@ -266,12 +306,22 @@ jaiabot::apps::WebPortal::WebPortal()
                 case jaiabot::protobuf::Hub2HubData::kCommandForBot:
                 {
                     // Forward command from remote hub to local hub_manager to send to the bot
+                    glog.is_debug1() &&
+                        glog << group("command") << "Sending command for bot (via hub "
+                             << remote_hub_id
+                             << "): " << hub2hub_data.command_for_bot().ShortDebugString() << endl;
                     handle_command(hub2hub_data.command_for_bot());
 
                     // Also notify JCC clients of the remote command
                     jaiabot::protobuf::PortalToClientMessage message;
                     *message.mutable_remote_command() = hub2hub_data.command_for_bot();
                     message.set_hub_id(remote_hub_id);
+
+                    glog.is_debug1() &&
+                        glog << group("command") << "Forwarding command for bot to client (via hub "
+                             << remote_hub_id
+                             << "): " << message.remote_command().ShortDebugString() << endl;
+
                     send_message_to_client(message);
                     break;
                 }
@@ -279,6 +329,12 @@ jaiabot::apps::WebPortal::WebPortal()
                 {
                     jaiabot::protobuf::PortalToClientMessage message;
                     *message.mutable_command_comms_result() = hub2hub_data.command_comms_result();
+
+                    glog.is_debug1() &&
+                        glog << group("cmd_result") << "Sending command result to client: (via hub "
+                             << remote_hub_id
+                             << "): " << message.command_comms_result().ShortDebugString() << endl;
+
                     message.set_hub_id(remote_hub_id);
                     send_message_to_client(message);
                     break;
@@ -300,8 +356,8 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
     {
         auto engineering_command = msg.engineering_command();
 
-        glog.is_debug2() && glog << group("main") << "Sending engineering_command: "
-                                 << engineering_command.ShortDebugString() << endl;
+        glog.is_debug2() && glog << group("eng") << "Sending engineering_command: "
+                                 << msg.engineering_command().ShortDebugString() << endl;
 
         intervehicle().publish_dynamic(
             engineering_command,
@@ -311,11 +367,18 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
 
     if (msg.has_command())
     {
+        glog.is_debug1() && glog << group("command")
+                                 << "Sending command for bot: " << msg.command().ShortDebugString()
+                                 << endl;
+
         handle_command(msg.command());
     }
 
     if (msg.has_command_for_hub())
     {
+        glog.is_debug1() && glog << group("command") << "Sending command for hub: "
+                                 << msg.command_for_hub().ShortDebugString() << endl;
+
         handle_command_for_hub(msg.command_for_hub());
     }
 }

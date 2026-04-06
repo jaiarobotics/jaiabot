@@ -591,7 +591,7 @@ message DivePacket
     }
 
     optional SubsurfaceCurrentVector subsurface_current = 21
-        [(jaia.field).rest_api.presence = GUARANTEED]; 
+        [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message TaskPacket
@@ -640,8 +640,9 @@ message TaskPacket
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    // The command_time is the time that the command associated with this task was sent from the Hub.
-    // This is used, along with the bot_id, to populate the mission_name on the Hub.
+    // The command_time is the time that the command associated with this task
+    // was sent from the Hub. This is used, along with the bot_id, to populate
+    // the mission_name on the Hub.
     optional uint64 mission_command_time = 71 [
         (dccl.field) = {
             codec: "dccl.time2"
@@ -651,7 +652,6 @@ message TaskPacket
     ];
     optional string mission_name = 72
         [(dccl.field).omit = true];  // not sent, restored on Hub from map
-
 }
 
 message ContactUpdate
@@ -694,6 +694,9 @@ message Hub2HubData
         units { prefix: "micro" derived_dimensions: "time" }
         precision: -5  // deci-second precision
     }];
+
+    optional Link bot_link = 3;  // which link did this originally come over
+                                 // from the bot (for BotStatus/TaskPacket)?
 
     oneof contents
     {

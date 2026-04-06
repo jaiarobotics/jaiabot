@@ -752,6 +752,8 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
     // republish for other hubs
     jaiabot::protobuf::Hub2HubData hub2hub_data;
     *hub2hub_data.mutable_bot_status() = dccl_nav;
+    if (dccl_nav.has_link())
+        hub2hub_data.set_bot_link(dccl_nav.link());
     publish_hub2hub_data(&hub2hub_data);
 
     goby::middleware::frontseat::protobuf::NodeStatus node_status;
@@ -892,6 +894,8 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     // Share task packet with other hubs via Hub2HubData
     jaiabot::protobuf::Hub2HubData hub2hub_data;
     *hub2hub_data.mutable_task_packet() = task_packet_copy;
+    if (task_packet_copy.has_link())
+        hub2hub_data.set_bot_link(task_packet_copy.link());
     publish_hub2hub_data(&hub2hub_data);
 }
 
