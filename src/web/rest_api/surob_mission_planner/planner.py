@@ -32,6 +32,7 @@ class MissionParameters:
     dive_depth: float = 50.0  # Maximum dive depth in meters (bottom dive default)
     transit_speed: float = 2.0  # Transit speed in m/s (default from spreadsheet)
     station_keep_time: float = 5.0  # Station keeping duration in minutes
+    surface_drift_time: float = 5.0 # Surface drift duration in minutes 
     planning_mode: str = "time"  # 'time' or 'resolution'
     shoreline_offset: float = 25.0  # Offset from shoreline in meters (shifts all points offshore)
     drift_offset_fraction: float = (
@@ -272,7 +273,7 @@ class JaiabotMissionPlanner:
                 measurement_time_sec_total = self._calculate_total_measurement_time(
                     num_measurements
                 )
-                drift_time_sec = self.params.station_keep_time * 60
+                drift_time_sec = self.params.surface_drift_time * 60
 
                 # Create drift location, home location, and bot behaviors
                 drift_location, drift_bot_id = self._create_drift_location(locations, spacing)
@@ -349,7 +350,7 @@ class JaiabotMissionPlanner:
         # Calculate time components
         transit_time_sec = self._calculate_transit_time(num_measurements, spacing)
         measurement_time_sec = self._calculate_total_measurement_time(num_measurements)
-        drift_time_sec = self.params.station_keep_time * 60
+        drift_time_sec = self.params.surface_drift_time * 60
 
         # Create drift location, home location, and bot behaviors
         drift_location, drift_bot_id = self._create_drift_location(locations, spacing)
@@ -399,7 +400,7 @@ class JaiabotMissionPlanner:
         """
         transit_time_sec = self._calculate_transit_time(num_measurements, spacing)
         measurement_time_sec = self._calculate_total_measurement_time(num_measurements)
-        drift_time_sec = self.params.station_keep_time * 60  # One bot drifts
+        drift_time_sec = self.params.surface_drift_time * 60  # One bot drifts
         # Post-drift dive time (dive_time = measurement_time - station_keep_time)
         post_drift_dive_sec = (
             max(0, self.params.measurement_time - self.params.station_keep_time) * 60

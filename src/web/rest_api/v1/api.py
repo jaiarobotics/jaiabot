@@ -223,6 +223,7 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
 def surob_mission_plan_request(jaia_request: APIRequest) -> APIResponse:
     SUROB_MEASUREMENT_TIME_M = 7.0 # 5 minutes per station keep + 2 minute budget for dives, actual time may be lower
     SUROB_STATION_KEEP_TIME_M = 5.0
+    SUROB_SURFACE_DRIFT_TIME_M = 2.0
 
     MAX_WAYPOINTS = 80 # should match https://github.com/jaiarobotics/jaiabot/blob/2.y/src/web/utils/constants.ts#L32
     
@@ -262,6 +263,7 @@ def surob_mission_plan_request(jaia_request: APIRequest) -> APIResponse:
                 mission_duration=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else None),
                 target_resolution=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None),
                 station_keep_time=SUROB_STATION_KEEP_TIME_M,
+                surface_drift_time=SUROB_SURFACE_DRIFT_TIME_M,
                 shoreline_offset=jaia_request.surob_mission_plan_request.shoreline_offset,
                 bot_ids=bots
             )
@@ -277,6 +279,7 @@ def surob_mission_plan_request(jaia_request: APIRequest) -> APIResponse:
                 mission_duration=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_TIME else None),
                 target_resolution=(constraint_value if constraint_type == rest_api.SurobMissionPlanRequest.PlanningConstraint.PLANNING_CONSTRAINT_RESOLUTION else None),
                 station_keep_time=SUROB_STATION_KEEP_TIME_M,
+                surface_drift_time=SUROB_SURFACE_DRIFT_TIME_M,
                 bot_ids=bots
             )
     except ValueError:
