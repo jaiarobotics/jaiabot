@@ -1,9 +1,9 @@
 # even though the C++ code doesn't use this info, it still needs to generate it to compile correctly
-set(NANOPB_PROTO /usr/lib/python3/dist-packages/proto/nanopb.proto)
-configure_file(${NANOPB_PROTO} ${project_INC_DIR}/nanopb.proto COPYONLY)
-protobuf_generate_cpp_full(NANOPB_PROTO_SRCS NANOPB_PROTO_HDRS "" ${project_INC_DIR} ${project_INC_DIR}/nanopb.proto)
 
-set(SENSOR_MESSAGES
+jaiabot_protobuf_make_symlinks(LINK NANOPB)
+
+# Sensor messages
+set(SENSOR_PROTOS
   sensor/pressure_temperature.proto
   sensor/salinity.proto
   sensor/sensor_core.proto
@@ -18,14 +18,21 @@ set(SENSOR_MESSAGES
   sensor/aml.proto
 )
 
-protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_INC_DIR}
+# All messages used by microcontrollers (C code)
+set(MCU_PROTOS
+  ${SENSOR_PROTOS}
+  arduino.proto
+  feather.proto
+)
+
+# All messages for C++ and Python generation
+set(JAIABOT_PROTOS
+  ${MCU_PROTOS}
   example.proto
   geographic_coordinate.proto
   camera_driver.proto
-  control_surfaces.proto
   high_control.proto
   control_surfaces.proto
-  feather.proto
   imu.proto
   mission.proto
   jaia_dccl.proto
@@ -34,7 +41,6 @@ protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_IN
   portal.proto
   metadata.proto
   moos.proto
-  arduino.proto
   bounds.proto
   health.proto
   hub.proto
@@ -58,46 +64,20 @@ protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_IN
   ${SENSOR_MESSAGES}
 )
 
-add_library(jaiabot_messages SHARED ${PROTO_SRCS} ${PROTO_HDRS} ${NANOPB_PROTO_SRCS} ${NANOPB_PROTO_HDRS})
-target_link_libraries(jaiabot_messages ${PROTOBUF_LIBRARIES} goby)
+list(TRANSFORM JAIABOT_PROTOS PREPEND "jaiabot/messages/")
+list(TRANSFORM MCU_PROTOS PREPEND "jaiabot/messages/")
 
-project_install_lib(jaiabot_messages)
+set(CXX_PROTOS ${JAIABOT_PROTOS}
+  nanopb.proto)
 
-####
-#Nanopb
-###
-configure_file(${NANOPB_PROTO} ${project_INC_DIR}/nanopb/nanopb.proto COPYONLY)
-protobuf_include_dirs(${project_INC_DIR}/nanopb)
+add_jaiabot_library(TARGET jaiabot_messages
+  TARGET_TYPE LIB
+  OUT_VAR PROTOS_CPP
+  PROTOS ${CXX_PROTOS}
+  LINK_LIBRARIES protobuf::libprotobuf goby)
 
-# we need to generate a nanopb version of these external messages as upstream doesn't provide a nanopb version
-configure_file(${DCCL_INCLUDE_DIR}/dccl/option_extensions.proto ${project_INC_DIR}/nanopb/dccl/option_extensions.proto COPYONLY)
-configure_file(${PROTOBUF_INCLUDE_DIRS}/google/protobuf/descriptor.proto ${project_INC_DIR}/nanopb/google/protobuf/descriptor.proto COPYONLY)
-
-protobuf_generate_nanopb_c_full(DCCL_PROTO_C_SRCS DCCL_PROTO_C_HDRS "dccl" ${project_INC_DIR} option_extensions.proto)
-
-protobuf_generate_nanopb_c_full(PROTO_C_SRCS PROTO_C_HDRS "jaiabot/messages" ${project_INC_DIR}
-  arduino.proto
-  feather.proto
-  ${SENSOR_MESSAGES}
-  )
-
-add_library(jaiabot_messages_c SHARED
-  ${NANOPB_PROTO_C_SRCS} ${NANOPB_PROTO_C_HDRS}
-  ${GOOGLE_PROTO_C_SRCS} ${GOOGLE_PROTO_C_HDRS}
-  ${DCCL_PROTO_C_SRCS} ${DCCL_PROTO_C_HDRS}
-  ${PROTO_C_SRCS} ${PROTO_C_HDRS}
-  )
-target_link_libraries(jaiabot_messages_c nanopb::protobuf-nanopb-static)
-
-# make sure we don't accidentally include C++ headers for generated protobufs when compiling with C by clearing and re-adding only desired include directories in the correct order (so nanopb generated headers come before others)
-set_target_properties(jaiabot_messages_c PROPERTIES INCLUDE_DIRECTORIES "")
-target_include_directories(jaiabot_messages_c
-    PRIVATE ${project_INC_DIR}/nanopb
-    PRIVATE ${project_INC_DIR}
-)
-
-project_install_lib(jaiabot_messages_c)
-
+add_subdirectory(nanopb)
+add_subdirectory(python)
 
 function(check_dccl_md5_hash DCCL_NAME EXPECTED_HASH)
   add_custom_command(

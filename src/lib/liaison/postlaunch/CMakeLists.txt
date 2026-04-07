@@ -1,13 +1,6 @@
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR} config.proto)
-
-add_library(jaiabot_liaison SHARED jaiabot_liaison_load.cpp liaison_jaiabot.cpp ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries(jaiabot_liaison goby goby_zeromq ${Boost_LIBRARIES} jaiabot_messages  Wt::Wt)
-target_compile_options(jaiabot_liaison PRIVATE -Wno-return-type-c-linkage)
-
-if(export_goby_interfaces)
-  generate_interfaces(jaiabot_liaison)
-endif()
-
-project_install_lib(jaiabot_liaison)
-
-set_property(TARGET jaiabot_liaison PROPERTY CXX_STANDARD 14)
+add_jaiabot_library(TARGET jaiabot_liaison
+  SOURCES jaiabot_liaison_load.cpp liaison_jaiabot.cpp
+  PRIVATE_PROTOS config.proto
+  LINK_LIBRARIES goby goby_zeromq ${Boost_LIBRARIES} jaiabot_messages Wt::Wt
+  COMPILE_OPTIONS -Wno-return-type-c-linkage
+  CXX_STANDARD 17)

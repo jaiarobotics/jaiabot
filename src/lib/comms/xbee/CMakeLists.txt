@@ -1,31 +1,10 @@
-set(APP xbee_driver_tester)
+add_jaiabot_library(TARGET jaiabot_xbee
+  SOURCES xbee.cpp xbee_driver.cpp
+  PROTOS jaiabot/comms/xbee/xbee.proto
+  LINK_LIBRARIES goby jaiabot_messages)
 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${CMAKE_CURRENT_BINARY_DIR}
-  xbee.proto)
-
-add_executable(${APP}
-  main.cpp xbee.cpp xbee_driver.cpp driver_tester.cpp
-  ${PROTO_SRCS} ${PROTO_HDRS})
-
-add_library(jaiabot_xbee SHARED
-    xbee.cpp
-    xbee_driver.cpp
-    ${PROTO_SRCS} ${PROTO_HDRS})
-
-project_install_lib(jaiabot_xbee)
-  
-target_link_libraries(${APP}
-  goby
-  goby_zeromq
-  jaiabot_messages)
-
-target_link_libraries(jaiabot_xbee
-  goby
-  jaiabot_messages
-)
-
-if(export_goby_interfaces)
-  generate_interfaces(${APP})
-endif()
-
-# project_install_bin(${APP})
+add_jaiabot_application(TARGET xbee_driver_tester
+  SOURCES main.cpp xbee.cpp xbee_driver.cpp driver_tester.cpp
+  LINK_DEFAULT_LIBRARIES
+  LINK_LIBRARIES jaiabot_xbee
+  SKIP_INSTALL)
