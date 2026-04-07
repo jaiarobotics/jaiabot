@@ -100,6 +100,8 @@ export class Hubs {
 
         if (hubStatus.bot_offload) {
             hub.setBotOffload(hubStatus.bot_offload);
+        } else {
+            hub.setBotOffload(undefined);
         }
 
         // HubSensors
