@@ -6,6 +6,7 @@ import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HealthState } from "../../types/protobuf-types";
 import { isDisconnected } from "../BotDetails/bot-details";
+import { CLOUD_HUB_ID } from "../../utils/constants";
 import "./NodeList.less";
 
 /**
@@ -89,7 +90,9 @@ export default function NodeList() {
                     {hubs.length > 1 ? (
                         <div className="hub-label">
                             <span className="hub-text">HUB</span>
-                            <span className="hub-number">{hub.getHubID()}</span>
+                            <span className="hub-number">
+                                {hub.getHubID() === CLOUD_HUB_ID ? "Cloud" : hub.getHubID()}
+                            </span>
                         </div>
                     ) : (
                         "HUB"

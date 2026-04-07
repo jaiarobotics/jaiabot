@@ -1,4 +1,5 @@
 export const UNASSIGNED_ID = -1;
+export const CLOUD_HUB_ID = 30;
 export const NO_CONSTRAINT = -1;
 export const DEFAULT_LANES = 5;
 export const DETAILS_DECIMALS = 2;
