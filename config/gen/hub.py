@@ -310,7 +310,8 @@ elif common.app == 'jaiabot_comms_manager':
     print(config.template_substitute(templates_dir+'/jaiabot_comms_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     subscribes=subscribes_block))
+                                     subscribes=subscribes_block,
+                                     subnet_mask=common.comms.subnet_mask))
 elif common.app == 'gpsd':
     # Run for forwarding contacts
     devices_str = "-N " + " ".join([f"udp://0.0.0.0:{port}" for port in range(33001, 33004)])
