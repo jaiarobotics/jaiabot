@@ -12,7 +12,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { view } from "../views/view";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { CLOUD_HUB_ID, TEXT_OFFSET_RADIUS } from "../../utils/constants";
+import { CLOUD_HUB_ID } from "../../utils/constants";
 
 // Style
 import { MapIconColors } from "../../utils/style";
@@ -51,12 +51,12 @@ function generateHubStyle(hub: Hub) {
         }),
         text: new Text({
             text: `HUB\n${hubLabel}`,
-            font: "bold 11pt sans-serif",
+            font: "bold 9pt sans-serif",
             fill: new Fill({
                 color: "black",
             }),
             offsetX: 0,
-            offsetY: TEXT_OFFSET_RADIUS,
+            offsetY: 0,
         }),
     });
 }
