@@ -16,6 +16,18 @@ import { getIPPrefix } from "../../shared/IPPrefix";
 import { HubAccordionNames } from "../../types/context-types";
 import { NodeTypes, SystemButtonTypes } from "../../types/jaia-system-types";
 import { CLOUD_HUB_ID } from "../../utils/constants";
+
+// Styles
+import Button from "@mui/material/Button";
+import Accordion from "@mui/material/Accordion";
+import Typography from "@mui/material/Typography";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import { ThemeProvider } from "@mui/material";
+import { Icon } from "@mdi/react";
+import { mdiChartLine, mdiWifiCog, mdiWrenchCog } from "@mdi/js";
+
 import "./HubDetails.less";
 
 export default function HubDetails() {
