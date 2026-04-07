@@ -44,7 +44,7 @@ export default function DataOffloadAllButton(props: Props) {
         const updatedBotReadyStates = new Map<DisabledCodes, number[]>(initBotReadyStates());
 
         for (const [botID, bot] of props.bots.entries()) {
-            if (isCommsDropped(bot.getStatusAge())) {
+            if (isCommsDropped(bot.getStatusAge(), bot.getLink())) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (
                 !(
