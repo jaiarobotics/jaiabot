@@ -44,8 +44,8 @@ message Command
         (jaia.field).rest_api.presence = OMITTED  // written by API server
     ];
 
-    // Special case: not sent in message - written upon receipt based on the
-    // Link traversed
+    // Special case: not sent in message - written upon receipt
+    // link: which link this message traversed from hub to bot
     optional Link link = 3 [(dccl.field).omit = true];
 
     optional uint32 from_hub_id = 4 [(dccl.field) = { min: 0 max: 30 }];
@@ -194,10 +194,11 @@ message BotStatus
     }
     optional BotType bot_type = 7 [(jaia.field).rest_api.presence = GUARANTEED];
 
-    // Special case: not sent in message - written upon receipt based on the
-    // Link traversed
+    // Special case: not sent in message - written upon receipt
+    // link: which link this message traversed from bot to hub
     optional Link link = 8 [(dccl.field).omit = true];
 
+    // list of all active links on the Bot (based on BotStatus subscription messages)
     repeated Link active_link = 9 [(dccl.field).max_repeat = 10];
 
     optional GeographicCoordinate location = 10
