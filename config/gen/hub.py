@@ -257,8 +257,13 @@ elif common.app == 'goby_gps':
                                      gpsd_port=common.hub.gpsd_port(hub_index),
                                      gpsd_device=common.hub.gpsd_device()))
 elif common.app == 'jaiabot_simulator':
+    # start the hubs in a slightly offset location
+    lat = 41.662680 + (hub_index-1) * 0.001
+    lon = -71.273018 + (hub_index-1) * 0.001
     print(config.template_substitute(templates_dir+'/hub/jaiabot_simulator.pb.cfg.in',
                                      app_block=app_common,
+                                     lat=lat,
+                                     lon=lon,
                                      interprocess_block = interprocess_common,
                                      hub_gpsd_device=common.hub.gpsd_device())) 
 elif common.app == 'goby_logger':
