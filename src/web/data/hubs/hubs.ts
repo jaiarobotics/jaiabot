@@ -1,4 +1,5 @@
 import { PortalHubStatus } from "../../shared/PortalStatus";
+import { UNASSIGNED_ID } from "../../utils/constants";
 import Hub from "./hub";
 
 /**
@@ -62,7 +63,7 @@ export class Hubs {
             hub.setHubID(hubStatus.hub_id);
         }
 
-        if (hubStatus.fleet_id >= 0) {
+        if (hubStatus.fleet_id && hubStatus.fleet_id >= 0) {
             hub.setFleetID(hubStatus.fleet_id);
         }
 
@@ -101,7 +102,7 @@ export class Hubs {
         if (hubStatus.bot_offload) {
             hub.setBotOffload(hubStatus.bot_offload);
         } else {
-            hub.setBotOffload(undefined);
+            hub.setBotOffload({ bot_id: UNASSIGNED_ID });
         }
 
         // HubSensors
