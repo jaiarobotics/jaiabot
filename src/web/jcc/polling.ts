@@ -11,12 +11,14 @@ import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
-import { NO_COMMS_STATUS_AGE } from "../utils/constants";
+import { NO_COMMS_STATUS_AGE, IRIDIUM_NO_COMMS_STATUS_AGE } from "../utils/constants";
 import { Metadata, Version } from "../types/protobuf-types";
+import { Link } from "../shared/JAIAProtobuf";
 import SoundEffects from "../style/audio/sound-effects";
 
 const MAX_REQUEST_TIME = 10000; // ms;
-const DISCONNECT_THRESHOLD = NO_COMMS_STATUS_AGE * 1e6;
+const XBEE_WIFI_DISCONNECT_THRESHOLD = NO_COMMS_STATUS_AGE * 1e6;
+const IRIDIUM_DISCONNECT_THRESHOLD = IRIDIUM_NO_COMMS_STATUS_AGE * 1e6;
 const VERSION_LENGTH = 3;
 
 const CONNECTION_WARNING = "connection-warning";
@@ -202,7 +204,7 @@ function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
     const botIDs = Object.keys(botStatuses);
     for (let botID of botIDs) {
         const prevStatusAge = bots.getBot(Number(botID))?.getStatusAge();
-        handleBotSoundEffects(prevStatusAge, botStatuses[botID].portalStatusAge);
+        handleBotSoundEffects(prevStatusAge, botStatuses[botID].portalStatusAge, botStatuses[botID].link);
         bots.setBot(botStatuses[botID]);
     }
     bots.setTick(bots.getTick() + 1);
@@ -281,20 +283,24 @@ function updateWarning(id: string, isDisconnected: boolean) {
  *
  * @param {number} prevStatusAge Used to mark first moment of comms connect/disconnect
  * @param {number} newStatusAge Used to check for Bot connection status
+ * @param {Link} link The link type from the last BotStatus message
  * @returns {void}
  */
-function handleBotSoundEffects(prevStatusAge: number, newStatusAge: number) {
+function handleBotSoundEffects(prevStatusAge: number, newStatusAge: number, link?: Link) {
     if (!prevStatusAge) {
         return;
     }
 
-    const isBotDisconnected = newStatusAge > DISCONNECT_THRESHOLD;
+    const disconnectThreshold =
+        link === Link.LINK_IRIDIUM ? IRIDIUM_DISCONNECT_THRESHOLD : XBEE_WIFI_DISCONNECT_THRESHOLD;
 
-    if (isBotDisconnected && prevStatusAge < DISCONNECT_THRESHOLD) {
+    const isBotDisconnected = newStatusAge > disconnectThreshold;
+
+    if (isBotDisconnected && prevStatusAge < disconnectThreshold) {
         SoundEffects.botDisconnect.play();
     }
 
-    if (!isBotDisconnected && prevStatusAge >= DISCONNECT_THRESHOLD) {
+    if (!isBotDisconnected && prevStatusAge >= disconnectThreshold) {
         SoundEffects.botReconnect.play();
     }
 }

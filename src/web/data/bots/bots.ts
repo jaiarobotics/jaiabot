@@ -115,6 +115,10 @@ export class Bots {
             bot.setStatusAge(botStatus.portalStatusAge);
         }
 
+        if (botStatus.link) {
+            bot.setLink(botStatus.link);
+        }
+
         if (botStatus.engineering) {
             bot.setEngineering(botStatus.engineering);
         }
