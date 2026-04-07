@@ -12,7 +12,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { view } from "../views/view";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { TEXT_OFFSET_RADIUS } from "../../utils/constants";
+import { CLOUD_HUB_ID, TEXT_OFFSET_RADIUS } from "../../utils/constants";
 
 // Style
 import { MapIconColors } from "../../utils/style";
@@ -40,6 +40,8 @@ export function generateHubFeature(hubID: number) {
 }
 
 function generateHubStyle(hub: Hub) {
+    const hubID = hub.getHubID();
+    const hubLabel = hubID === CLOUD_HUB_ID ? "Cloud" : String(hubID);
     return new Style({
         image: new Icon({
             src: hubIcon,
@@ -48,7 +50,7 @@ function generateHubStyle(hub: Hub) {
             rotateWithView: true,
         }),
         text: new Text({
-            text: "HUB",
+            text: `HUB\n${hubLabel}`,
             font: "bold 11pt sans-serif",
             fill: new Fill({
                 color: "black",
