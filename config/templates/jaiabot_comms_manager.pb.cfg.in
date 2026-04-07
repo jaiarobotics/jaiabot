@@ -2,3 +2,4 @@ $app_block
 $interprocess_block
 
 $subscribes
+subnet_mask: $subnet_mask
