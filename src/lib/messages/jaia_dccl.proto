@@ -9,6 +9,7 @@ import "jaiabot/messages/health.proto";
 import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/link.proto";
+import "jaiabot/messages/hub.proto";
 
 package jaiabot.protobuf;
 
@@ -594,7 +595,7 @@ message DivePacket
     }
 
     optional SubsurfaceCurrentVector subsurface_current = 21
-        [(jaia.field).rest_api.presence = GUARANTEED]; 
+        [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
 message TaskPacket
@@ -643,8 +644,9 @@ message TaskPacket
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    // The command_time is the time that the command associated with this task was sent from the Hub.
-    // This is used, along with the bot_id, to populate the mission_name on the Hub.
+    // The command_time is the time that the command associated with this task
+    // was sent from the Hub. This is used, along with the bot_id, to populate
+    // the mission_name on the Hub.
     optional uint64 mission_command_time = 71 [
         (dccl.field) = {
             codec: "dccl.time2"
@@ -654,7 +656,6 @@ message TaskPacket
     ];
     optional string mission_name = 72
         [(dccl.field).omit = true];  // not sent, restored on Hub from map
-
 }
 
 message ContactUpdate
@@ -698,10 +699,27 @@ message Hub2HubData
         precision: -5  // deci-second precision
     }];
 
+    optional Link bot_link = 3;  // which link did this originally come over
+                                 // from the bot (for BotStatus/TaskPacket)?
+
     oneof contents
     {
         BotStatus bot_status = 10;
         TaskPacket task_packet = 11;
         Command command_for_bot = 12;
+        CommandCommsResult command_comms_result = 13;
+        HubStatus hub_status = 14;
     }
+}
+
+message CommandCommsResult
+{
+    enum CommsResult
+    {
+        SUCCESS = 1;
+        FAILURE = 2;
+    }
+    required CommsResult result = 1;
+    required Link link = 2;
+    required Command orig_command = 3;
 }

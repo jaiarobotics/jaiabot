@@ -42,7 +42,6 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
-#include "jaiabot/messages/command_comms_result.pb.h"
 #include "jaiabot/messages/comms.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/hub.pb.h"
@@ -86,9 +85,11 @@ class HubManager : public ApplicationBase
   private:
     void loop() override;
 
-    void handle_bot_nav(jaiabot::protobuf::BotStatus dccl_nav);
-    void handle_command(const jaiabot::protobuf::Command& input_command);
-    void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
+    void handle_bot_nav(jaiabot::protobuf::BotStatus dccl_nav, bool from_other_hub = false);
+    void handle_command(const jaiabot::protobuf::Command& input_command,
+                        bool from_other_hub = false);
+    void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet,
+                            bool from_other_hub = false);
     void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& input_command_for_hub);
     void
     handle_hardware_status(const jaiabot::protobuf::LinuxHardwareStatus& linux_hardware_status);
@@ -120,6 +121,7 @@ class HubManager : public ApplicationBase
     void start_dataoffload(int bot_id);
 
     void publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data);
+    void handle_hub2hub_data(const jaiabot::protobuf::Hub2HubData& hub2hub_data);
 
     void set_mission_name_for_bot_command_time(const BotID bot_id,
                                                const MissionCommandTime mission_command_time,
@@ -613,12 +615,68 @@ void jaiabot::apps::HubManager::hub2hub_subscribe(int other_hub_id)
     intervehicle().subscribe<jaiabot::groups::hub2hub_data, jaiabot::protobuf::Hub2HubData>(
         [this](const jaiabot::protobuf::Hub2HubData& data)
         {
-            glog.is_verbose() && glog << group("hub2hub")
-                                      << "Received Hub2Hub data: " << data.ShortDebugString()
-                                      << std::endl;
+            handle_hub2hub_data(data);
             interprocess().publish<jaiabot::groups::hub2hub_data>(data);
         },
         subscriber);
+}
+
+void jaiabot::apps::HubManager::handle_hub2hub_data(
+    const jaiabot::protobuf::Hub2HubData& hub2hub_data)
+{
+    const uint32_t remote_hub_id = hub2hub_data.hub_id();
+
+    // ignore our own hub2hub data
+    if (remote_hub_id == cfg().hub_id())
+        return;
+
+    glog.is_debug2() && glog << group("hub2hub")
+                             << "Received Hub2HubData: " << hub2hub_data.ShortDebugString()
+                             << std::endl;
+
+    switch (hub2hub_data.contents_case())
+    {
+        case jaiabot::protobuf::Hub2HubData::kBotStatus:
+        {
+            auto message = hub2hub_data.bot_status();
+            if (hub2hub_data.has_bot_link())
+                message.set_link(hub2hub_data.bot_link());
+            handle_bot_nav(message, true);
+            break;
+        }
+        case jaiabot::protobuf::Hub2HubData::kTaskPacket:
+        {
+            auto message = hub2hub_data.task_packet();
+            if (hub2hub_data.has_bot_link())
+                message.set_link(hub2hub_data.bot_link());
+            handle_task_packet(message, true);
+            break;
+        }
+        case jaiabot::protobuf::Hub2HubData::kCommandForBot:
+        {
+            handle_command(hub2hub_data.command_for_bot(), true);
+
+            auto remote_command = hub2hub_data.command_for_bot();
+            remote_command.set_from_hub_id(hub2hub_data.hub_id());
+            interprocess().publish<jaiabot::groups::remote_hub_command>(remote_command);
+
+            break;
+        }
+
+        case jaiabot::protobuf::Hub2HubData::kCommandCommsResult:
+        {
+            interprocess().publish<groups::hub_command_result>(hub2hub_data.command_comms_result());
+            break;
+        }
+
+        case jaiabot::protobuf::Hub2HubData::kHubStatus:
+        {
+            interprocess().publish<jaiabot::groups::hub_status>(hub2hub_data.hub_status());
+            break;
+        }
+
+        case jaiabot::protobuf::Hub2HubData::CONTENTS_NOT_SET: break;
+    }
 }
 
 void jaiabot::apps::HubManager::loop()
@@ -688,6 +746,11 @@ void jaiabot::apps::HubManager::loop()
         glog.is_debug1() && glog << group("hub_status") << "Publishing hub status: "
                                  << latest_hub_status_.ShortDebugString() << std::endl;
         interprocess().publish<jaiabot::groups::hub_status>(latest_hub_status_);
+
+        // republish for other hubs
+        jaiabot::protobuf::Hub2HubData hub2hub_data;
+        *hub2hub_data.mutable_hub_status() = latest_hub_status_;
+        publish_hub2hub_data(&hub2hub_data);
     }
 
     if (is_virtualhub_)
@@ -732,10 +795,21 @@ void jaiabot::apps::HubManager::loop()
     latest_hub_status_.clear_bot_offload();
 }
 
-void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl_nav)
+void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl_nav,
+                                               bool from_other_hub)
 {
     glog.is_debug1() && glog << group("bot_nav")
                              << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
+
+    if (!from_other_hub)
+    {
+        // republish for other hubs
+        jaiabot::protobuf::Hub2HubData hub2hub_data;
+        *hub2hub_data.mutable_bot_status() = dccl_nav;
+        if (dccl_nav.has_link())
+            hub2hub_data.set_bot_link(dccl_nav.link());
+        publish_hub2hub_data(&hub2hub_data);
+    }
 
     // don't shut down the hub while we have bots reporting to us
     if (is_virtualhub_)
@@ -749,11 +823,6 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
 
     // republish for liaison / logger, etc.
     interprocess().publish<jaiabot::groups::bot_status>(dccl_nav);
-
-    // republish for other hubs
-    jaiabot::protobuf::Hub2HubData hub2hub_data;
-    *hub2hub_data.mutable_bot_status() = dccl_nav;
-    publish_hub2hub_data(&hub2hub_data);
 
     goby::middleware::frontseat::protobuf::NodeStatus node_status;
 
@@ -848,11 +917,22 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
     }
 }
 
-void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet)
+void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet,
+                                                   bool from_other_hub)
 {
     glog.is_debug1() && glog << group("task_packet")
                              << "Received Task Packet: " << task_packet.ShortDebugString()
                              << std::endl;
+
+    if (!from_other_hub)
+    {
+        // Share task packet with other hubs via Hub2HubData
+        jaiabot::protobuf::Hub2HubData hub2hub_data;
+        *hub2hub_data.mutable_task_packet() = task_packet;
+        if (task_packet.has_link())
+            hub2hub_data.set_bot_link(task_packet.link());
+        publish_hub2hub_data(&hub2hub_data);
+    }
 
     if (task_packet_id_to_prev_timestamp_.count(task_packet.bot_id()))
     {
@@ -866,7 +946,6 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
                                      << "Repeat taskpacket received! Ignoring..." << std::endl;
             return;
         }
-
         // Store the previous taskpacket time
         task_packet_id_to_prev_timestamp_.at(task_packet.bot_id()) = task_packet.start_time();
     }
@@ -947,11 +1026,20 @@ void jaiabot::apps::HubManager::handle_command_for_hub(
     }
 }
 
-void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command& input_command)
+void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command& input_command,
+                                               bool from_other_hub)
 {
     glog.is_debug1() && glog << group("main")
                              << "Received Full Command: " << input_command.ShortDebugString()
                              << std::endl;
+
+    if (!from_other_hub)
+    {
+        jaiabot::protobuf::Hub2HubData hub2hub_data;
+        *hub2hub_data.mutable_command_for_bot() = input_command;
+        publish_hub2hub_data(&hub2hub_data);
+    }
+
     if (is_virtualhub_)
         update_vfleet_shutdown_time();
 
@@ -1355,6 +1443,11 @@ void jaiabot::apps::HubManager::process_ack_or_expire(
         result_msg.set_result(result);
         result_msg.set_link(link);
         interprocess().publish<groups::hub_command_result>(result_msg);
+
+        // Share comms result with other hubs via Hub2HubData
+        jaiabot::protobuf::Hub2HubData hub2hub_data;
+        *hub2hub_data.mutable_command_comms_result() = result_msg;
+        publish_hub2hub_data(&hub2hub_data);
 
         pending_it->second.unacked_fragments_by_link.erase(link);
         if (pending_it->second.unacked_fragments_by_link.empty())

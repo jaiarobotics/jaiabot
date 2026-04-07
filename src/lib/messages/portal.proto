@@ -6,7 +6,6 @@ import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/jaia_dccl.proto";
 import "jaiabot/messages/metadata.proto";
 import "jaiabot/messages/mission.proto";
-import "jaiabot/messages/command_comms_result.proto";
 
 package jaiabot.protobuf;
 
@@ -45,4 +44,6 @@ message PortalToClientMessage
     optional MissionPlan active_mission_plan = 6;
     optional ContactUpdate contact_update = 7;
     optional CommandCommsResult command_comms_result = 8;
+
+    optional Command remote_command = 9;
 }

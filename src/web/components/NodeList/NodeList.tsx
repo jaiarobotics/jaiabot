@@ -86,7 +86,14 @@ export default function NodeList() {
                         hub.getStatusAge(),
                     )}
                 >
-                    {"HUB"}
+                    {hubs.length > 1 ? (
+                        <div className="hub-label">
+                            <span className="hub-text">HUB</span>
+                            <span className="hub-number">{hub.getHubID()}</span>
+                        </div>
+                    ) : (
+                        "HUB"
+                    )}
                 </div>
             ))}
             {bots.map((bot) => (
