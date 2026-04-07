@@ -158,7 +158,7 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
         
 subscribes_block=''
 
-if common.comms.has_cloudhub_vpn(fleet_index):
+if common.comms.has_cloudhub_vpn(fleet_index) or is_simulation():
     subscribes_block+='''subscribe {
     link: LINK_HUB2HUB
     subscribe_on_start: true
