@@ -316,6 +316,11 @@ elif common.app == 'gpsd':
     # Run for forwarding contacts
     devices_str = "-N " + " ".join([f"udp://0.0.0.0:{port}" for port in range(33001, 33004)])
     print('-S {} {}'.format(common.hub.gpsd_port(hub_index), devices_str))
+elif common.app == 'jaiabot_web_portal':
+    print(config.template_substitute(templates_dir + f'/hub/jaiabot_web_portal.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common,
+                                     port=common.udp.web_portal_udp_port(hub_index)))
 elif common.app == 'log_file':
     print(log_file_dir)
 else:

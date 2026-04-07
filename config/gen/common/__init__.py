@@ -41,6 +41,16 @@ def is_simulation():
 def is_runtime():
     return jaia_mode == Mode.RUNTIME
 
+if is_simulation():
+    class SimType(Enum):
+        SINGLE_HOST = "single_host" # All hubs/bots run on one simulator machine
+        MULTI_HOST= "multi_host"    # Each hub/bot has its own virtual machine
+    try:
+        jaia_sim_type=SimType(os.environ['jaia_sim_type'])
+    except:    
+        jaia_sim_type=SimType.MULTI_HOST
+            
+            
 is_vfleet=False
 datasource_file = "/var/lib/cloud/instance/datasource"
 try:
