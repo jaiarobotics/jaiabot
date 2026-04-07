@@ -51,7 +51,7 @@ export function getStatusAgeClassName(portalStatusAge: number, link?: Link) {
  *
  * @param {number} portalStatusAge Time since last communcation between Bot and Hub (microseconds)
  * @param {Link} link The link type from the last BotStatus message
- * @returns {boolean} True if the Bot has communicated with the Hub in the last 30 seconds
+ * @returns {boolean} True if the Bot has communicated with the Hub within the link-specific timeout (30s for XBEE/WIFI, 180s for Iridium)
  */
 export function isDisconnected(portalStatusAge: number, link?: Link) {
     const healthFailedTimeout = getNoCommsTimeout(link);
