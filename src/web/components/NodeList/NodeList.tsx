@@ -89,16 +89,12 @@ export default function NodeList() {
                         hub.getStatusAge(),
                     )}
                 >
-                    {hubs.length > 1 ? (
-                        <div className="hub-label">
-                            <span className="hub-text">HUB</span>
-                            <span className="hub-number">
-                                {hub.getHubID() === CLOUD_HUB_ID ? "Cloud" : hub.getHubID()}
-                            </span>
-                        </div>
-                    ) : (
-                        "HUB"
-                    )}
+                    <div className="hub-label">
+                        <span className="hub-text">HUB</span>
+                        <span className="hub-number">
+                            {hub.getHubID() === CLOUD_HUB_ID ? "Cloud" : hub.getHubID()}
+                        </span>
+                    </div>
                 </div>
             ))}
             {bots.map((bot) => (

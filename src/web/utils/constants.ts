@@ -5,6 +5,7 @@ export const DEFAULT_LANES = 5;
 export const DETAILS_DECIMALS = 2;
 export const LAT_LON_DECIMALS = 5;
 export const TEXT_OFFSET_RADIUS = 11;
+export const HUB_TEXT_OFFSET_RADIUS = 10;
 export const NO_COMMS_STATUS_AGE = 30; // seconds
 export const IRIDIUM_NO_COMMS_STATUS_AGE = 180; // seconds (3 minutes)
 export const DATA_MODEL_POLL_TIME = 500; // milliseconds
