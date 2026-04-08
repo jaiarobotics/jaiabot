@@ -26,9 +26,6 @@
     max-height: @panel-max-height;
     overflow-y: auto;
 
-    background-color: @overlay-background;
-    padding: 6px;
-
     .node-item {
         display: flex;
         align-items: center;
@@ -87,6 +84,11 @@
         flex-direction: row;
         align-items: center;
         gap: 4px;
+
+        background-color: @overlay-background;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 12px;
+        padding: 6px;
 
         // Propagate color styles when node-item is inside the row container
         > div.node-item.tracked {
