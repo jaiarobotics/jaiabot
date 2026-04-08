@@ -1146,7 +1146,7 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
                 // Check if the line contains progress information
                 std::string percent_complete_str = "";
                 percent_complete_str.append(buffer.begin(), buffer.begin() + bytes_read);
-                size_t pos = percent_complete_str.find("%");
+                size_t pos = percent_complete_str.rfind("%");
                 if (pos != std::string::npos)
                 {
                     if (pos >= 3)
