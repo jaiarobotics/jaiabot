@@ -1,6 +1,5 @@
 import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
-import { JaiaActions } from "../../../context/jaia-actions";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { StopAllBotsDialog } from "./StopAllBotsDialog";
@@ -15,7 +14,7 @@ import Bot from "../../../data/bots/bot";
 import { DialogActions } from "../../../types/context-types";
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { Link } from "../../../shared/JAIAProtobuf";
-import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommandWithTracking } from "../../../utils/commands";
 import { microsecondsToSeconds } from "../../../utils/conversions";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { getNoCommsTimeout } from "../../BotDetails/bot-details";
@@ -97,13 +96,7 @@ export default function StopAllBotsButton(props: Props) {
                     bot_id: botID,
                     type: CommandType.STOP,
                 };
-                const response = await sendBotCommand(stopCommand);
-                if (response && response.status === "ok") {
-                    jaiaDispatch({
-                        type: JaiaActions.SENT_COMMAND,
-                        command: stopCommand,
-                    });
-                }
+                await sendBotCommandWithTracking(stopCommand, jaiaDispatch);
             }
         }
     };

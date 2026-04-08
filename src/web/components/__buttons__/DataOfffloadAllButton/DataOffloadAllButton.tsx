@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { JaiaDispatchContext } from "../../../context/JaiaContext";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { DataOffloadAllDialog } from "./DataOffloadAllDialog";
@@ -11,7 +12,7 @@ import { mdiDownloadMultiple } from "@mdi/js";
 import Bot from "../../../data/bots/bot";
 
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
-import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommandWithTracking } from "../../../utils/commands";
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
 import { isCommsDropped } from "../button-utils";
@@ -27,6 +28,7 @@ type DisabledCodeGroup = [DisabledCodes, number[]];
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function DataOffloadAllButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [botReadyStates, setBotReadyStates] = useState(
         new Map<DisabledCodes, number[]>(initBotReadyStates()),
@@ -95,7 +97,7 @@ export default function DataOffloadAllButton(props: Props) {
      * @param {DialogActions} dialogAction The operators action on the dialog box
      * @returns {void}
      */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
@@ -104,7 +106,7 @@ export default function DataOffloadAllButton(props: Props) {
                     bot_id: botID,
                     type: CommandType.RECOVERED,
                 };
-                sendBotCommand(dataOffloadCommand);
+                await sendBotCommandWithTracking(dataOffloadCommand, jaiaDispatch);
             }
         }
     };

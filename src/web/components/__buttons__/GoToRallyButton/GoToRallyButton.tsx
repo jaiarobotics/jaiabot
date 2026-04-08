@@ -23,7 +23,7 @@ import {
 } from "../../../types/protobuf-types";
 import { ButtonNames, ButtonTypes } from "../../../types/context-types";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
-import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommandWithTracking } from "../../../utils/commands";
 import { isCommsDropped, isCritiallyLowBattery } from "../button-utils";
 
 interface Props {
@@ -109,8 +109,8 @@ export default function GoToRallyButton(props: Props) {
 
         if (dialogAction === DialogActions.CONFIRMED) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
-                const res = await sendBotCommand(getRallyCommand(botID));
-                if (res.status === "ok") {
+                const success = await sendBotCommandWithTracking(getRallyCommand(botID), jaiaDispatch);
+                if (success) {
                     jaiaDispatch({ type: JaiaActions.SEND_RALLY_MISSION });
                 }
             }

@@ -18,7 +18,7 @@ import { missionsManager } from "../../../data/missions_manager/missions-manager
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { Link } from "../../../shared/JAIAProtobuf";
 import { ButtonNames, ButtonTypes, DialogActions } from "../../../types/context-types";
-import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
+import { isCommandAvailable, isControllingClient, sendBotCommandWithTracking } from "../../../utils/commands";
 import { microsecondsToSeconds } from "../../../utils/conversions";
 import {
     MDI_BUTTON_SIZE,
@@ -126,10 +126,7 @@ export default function StartAllMissionsButton(props: Props) {
                     type: CommandType.MISSION_PLAN,
                     plan: missionPlan,
                 };
-                const res = await sendBotCommand(startMissionCommand);
-                if (res.status === "ok") {
-                    jaiaDispatch({ type: JaiaActions.SENT_COMMAND, command: startMissionCommand });
-                }
+                await sendBotCommandWithTracking(startMissionCommand, jaiaDispatch);
             }
         }
     };

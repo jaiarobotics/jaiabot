@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
 import Gamepad from "react-gamepad";
@@ -16,7 +16,8 @@ import {
     DiveParameters,
     DriftParameters,
 } from "../../types/protobuf-types";
-import { sendBotCommand, sendEngineeringCommand } from "../../utils/commands";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { sendBotCommandWithTracking, sendEngineeringCommand } from "../../utils/commands";
 import { error, success } from "../../utils/notifications";
 import { SelectChangeEvent } from "@mui/material";
 
@@ -53,6 +54,7 @@ const RC_COMMAND_TIMEOUT = 500; // milliseconds
  * Creates panel to manually control a Bot
  */
 export default function RemoteControlPanel(props: RemoteControlPanelProps) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const defaultParams = jaiaGlobal.getDefaultTaskParameters();
 
     const [controlType, setControlType] = useState(ControlTypes.DUAL);
@@ -252,11 +254,11 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 surface_drift: driftParameters,
             },
         };
-        const res = await sendBotCommand(rcDiveCommand);
-        if (res.message) {
-            error("Unable to send RC dive command");
-        } else {
+        const succeeded = await sendBotCommandWithTracking(rcDiveCommand, jaiaDispatch);
+        if (succeeded) {
             success("Beginning RC dive");
+        } else {
+            error("Unable to send RC dive command");
         }
     };
 

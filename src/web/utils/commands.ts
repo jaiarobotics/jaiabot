@@ -77,12 +77,12 @@ export function sendBotCommand(command: Command) {
  *
  * @param {Command} command Command message to be sent to Bot
  * @param {React.Dispatch<JaiaAction>} dispatch JaiaContext dispatch function
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} True if the command was sent successfully
  */
 export async function sendBotCommandWithTracking(
     command: Command,
     dispatch: React.Dispatch<JaiaAction>,
-): Promise<void> {
+): Promise<boolean> {
     const commandTime = Date.now();
 
     dispatch({ type: JaiaActions.COMMAND_PENDING, botID: command.bot_id, commandTime });
@@ -100,6 +100,8 @@ export async function sendBotCommandWithTracking(
         commandTime,
         commandSuccess: success,
     });
+
+    return success;
 }
 
 /**
