@@ -122,9 +122,9 @@ test("Send indicator is rendered for each bot with idle status by default", () =
     const bot2Indicator = screen.getByTestId("send-indicator-2");
     const bot5Indicator = screen.getByTestId("send-indicator-5");
 
-    expect(bot1Indicator.className).toContain("send-indicator--idle");
-    expect(bot2Indicator.className).toContain("send-indicator--idle");
-    expect(bot5Indicator.className).toContain("send-indicator--idle");
+    expect(bot1Indicator.className).toContain("bot-icon-btn--idle");
+    expect(bot2Indicator.className).toContain("bot-icon-btn--idle");
+    expect(bot5Indicator.className).toContain("bot-icon-btn--idle");
 });
 
 test("Send indicator reflects bot command status", () => {
@@ -154,9 +154,9 @@ test("Send indicator reflects bot command status", () => {
     // Each render adds one indicator; take the last (most recent render)
     const last = (arr: HTMLElement[]) => arr[arr.length - 1];
 
-    expect(last(indicators1).className).toContain("send-indicator--pending");
-    expect(last(indicators2).className).toContain("send-indicator--success");
-    expect(last(indicators5).className).toContain("send-indicator--failed");
+    expect(last(indicators1).className).toContain("bot-icon-btn--pending");
+    expect(last(indicators2).className).toContain("bot-icon-btn--success");
+    expect(last(indicators5).className).toContain("bot-icon-btn--failed");
 
     // Reset for other tests
     bot1.setCommandStatus(BotCommandStatus.IDLE);

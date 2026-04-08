@@ -81,28 +81,33 @@ export default function NodeList() {
     return (
         <div id="nodeList" data-testid="nodeList">
             {hubs.map((hub) => (
-                <div
-                    key={`hub-${hub.getHubID()}`}
-                    onClick={() => handleClick(NodeTypes.HUB, hub.getHubID())}
-                    className={getClassName(
-                        NodeTypes.HUB,
-                        hub.getHubID(),
-                        hub.getHealthState(),
-                        hub.getStatusAge(),
-                    )}
-                >
-                    <div className="hub-label">
-                        <span className="hub-text">HUB</span>
-                        <span className="hub-number">
-                            {hub.getHubID() === CLOUD_HUB_ID ? "Cloud" : hub.getHubID()}
-                        </span>
+                <div key={`hub-${hub.getHubID()}`} className="hub-row">
+                    <div
+                        onClick={() => handleClick(NodeTypes.HUB, hub.getHubID())}
+                        className={getClassName(
+                            NodeTypes.HUB,
+                            hub.getHubID(),
+                            hub.getHealthState(),
+                            hub.getStatusAge(),
+                        )}
+                    >
+                        <div className="hub-label">
+                            <span className="hub-text">HUB</span>
+                            <span className="hub-number">
+                                {hub.getHubID() === CLOUD_HUB_ID ? "Cloud" : hub.getHubID()}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="bot-icon-panel">
+                        <div className="bot-icon-slot bot-icon-slot--empty" />
+                        <div className="bot-icon-slot bot-icon-slot--empty" />
                     </div>
                 </div>
             ))}
             {bots.map((bot) => (
                 <div
                     key={`bot-${bot.getBotID()}`}
-                    className="bot-node-container"
+                    className="bot-row"
                     data-testid={`bot-node-container-${bot.getBotID()}`}
                 >
                     <div
@@ -117,13 +122,17 @@ export default function NodeList() {
                     >
                         {bot.getBotID()}
                     </div>
-                    <label
-                        className={`send-indicator send-indicator--${bot.getCommandStatus()}`}
-                        aria-label={`send-indicator-bot-${bot.getBotID()}`}
-                        data-testid={`send-indicator-${bot.getBotID()}`}
-                    >
-                        <SendOutlinedIcon fontSize="small" />
-                    </label>
+                    <div className="bot-icon-panel">
+                        <button
+                            className={`bot-icon-btn bot-icon-btn--${bot.getCommandStatus()}`}
+                            aria-label={`send-indicator-bot-${bot.getBotID()}`}
+                            data-testid={`send-indicator-${bot.getBotID()}`}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <SendOutlinedIcon style={{ fontSize: 16 }} />
+                        </button>
+                        <div className="bot-icon-slot bot-icon-slot--empty" />
+                    </div>
                 </div>
             ))}
         </div>
