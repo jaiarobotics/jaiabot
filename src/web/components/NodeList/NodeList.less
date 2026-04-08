@@ -157,29 +157,4 @@
             border-radius: 4px;
         }
     }
-
-    .send-indicator {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: transparent;
-        pointer-events: none;
-        user-select: none;
-
-        &--idle {
-            color: transparent;
-        }
-
-        &--pending {
-            animation: send-flicker 0.6s ease-in-out infinite;
-        }
-
-        &--success {
-            color: @good-color;
-        }
-
-        &--failed {
-            color: @error-color;
-        }
-    }
 }
