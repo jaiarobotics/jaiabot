@@ -144,7 +144,7 @@ export default function BotDetails() {
                             <AccordionDetails>
                                 <table>
                                     <tbody>
-                                        <tr className={getStatusAgeClassName(bot.getStatusAge())}>
+                                        <tr className={getStatusAgeClassName(bot.getStatusAge(), bot.getLink())}>
                                             <td>Status Age</td>
                                             <td>
                                                 {convertMicrosecondsToSeconds(

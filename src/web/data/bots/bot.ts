@@ -8,6 +8,7 @@ import {
     HealthState,
     Warning,
 } from "../../types/protobuf-types";
+import { Link } from "../../shared/JAIAProtobuf";
 import BotSensors from "./bot-sensors";
 
 export enum BotCommandStatus {
@@ -29,6 +30,7 @@ export default class Bot {
     private batteryPercent: number;
     private wifiLinkQuality: number;
     private statusAge: number;
+    private link: Link;
     private engineering: Engineering;
     private mode: BotModes;
     private commandStatus: BotCommandStatus = BotCommandStatus.IDLE;
@@ -126,6 +128,14 @@ export default class Bot {
     // microseconds
     setStatusAge(statusAge: number) {
         this.statusAge = statusAge;
+    }
+
+    getLink() {
+        return this.link;
+    }
+
+    setLink(link: Link) {
+        this.link = link;
     }
 
     getEngineering() {

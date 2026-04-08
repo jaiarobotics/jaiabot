@@ -37,7 +37,8 @@ def parseDate(date):
 parser = argparse.ArgumentParser()
 parser.add_argument("hostname", type=str, nargs="?", default=os.environ.get("JCC_HUB_IP"), help="goby hostname to send and receive protobuf messages")
 parser.add_argument("-r", dest='read_only', action='store_true', help="start a read-only client that cannot send commands")
-parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
+parser.add_argument("-p", dest='portal_port', type=int, default=40000, help="port to send and receive protobuf messages with jaiabot_web_portal")
+parser.add_argument("-P", dest='web_port', type=int, default=40001, help="HTTP port for web browser connection")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 parser.add_argument("-a", dest='appRoot', type=str, default='../', help="Root directory from which to serve the client apps")
 parser.add_argument("-m", dest='mapDirectory', type=str, default='~/maps/', help="Directory to find offline map sets")
@@ -52,7 +53,7 @@ if args.hostname is None:
     logging.warning('no ip specified, using localhost')    
     args.hostname = "localhost"
 
-jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
+jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.portal_port), read_only=args.read_only)
 
 app = Flask(__name__)
 app.config['COMPRESS_MIMETYPES'] = [
@@ -444,4 +445,5 @@ def get_ctd_profiles(bot_id: str):
             return Response(status=HTTPStatus.OK)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=40001, debug=False)
+    print(f"JCC: connect to http://127.0.0.1:{args.web_port}")
+    app.run(host='0.0.0.0', port=args.web_port, debug=False)

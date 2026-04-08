@@ -8,3 +8,8 @@ message IntervehicleSubscribeRequest
 {
     required Link link = 1;
 }
+
+message ActiveLinks
+{
+    repeated Link active_link = 1;
+}

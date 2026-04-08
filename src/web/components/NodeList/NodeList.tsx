@@ -6,8 +6,10 @@ import { JaiaContextType, JaiaAction } from "../../types/context-types";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HealthState } from "../../types/protobuf-types";
+import { Link } from "../../shared/JAIAProtobuf";
 import { isDisconnected } from "../BotDetails/bot-details";
 import { BotCommandStatus } from "../../data/bots/bot";
+import { CLOUD_HUB_ID } from "../../utils/constants";
 import "./NodeList.less";
 
 /**
@@ -53,6 +55,7 @@ export default function NodeList() {
         nodeID: number,
         healthState: HealthState,
         statusAge: number,
+        link?: Link,
     ) {
         const faultLevel: Map<HealthState, number> = new Map([
             [HealthState.HEALTH__OK, 0],
@@ -66,7 +69,7 @@ export default function NodeList() {
         const selectedClass =
             selectedNode.type === nodeType && selectedNode.id === nodeID ? "selected" : "";
 
-        const disconnectedClass = isDisconnected(statusAge) ? "disconnected" : "";
+        const disconnectedClass = isDisconnected(statusAge, link) ? "disconnected" : "";
 
         return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass} ${disconnectedClass}`;
     }
@@ -88,7 +91,12 @@ export default function NodeList() {
                         hub.getStatusAge(),
                     )}
                 >
-                    {"HUB"}
+                    <div className="hub-label">
+                        <span className="hub-text">HUB</span>
+                        <span className="hub-number">
+                            {hub.getHubID() === CLOUD_HUB_ID ? "Cloud" : hub.getHubID()}
+                        </span>
+                    </div>
                 </div>
             ))}
             {bots.map((bot) => (
@@ -104,6 +112,7 @@ export default function NodeList() {
                             bot.getBotID(),
                             bot.getHealthState(),
                             bot.getStatusAge(),
+                            bot.getLink(),
                         )}
                     >
                         {bot.getBotID()}

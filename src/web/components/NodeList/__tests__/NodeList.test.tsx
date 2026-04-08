@@ -51,55 +51,70 @@ beforeEach(() => {
 test("Verify all nodes are displayed correctly", () => {
     const nodeList = screen.getByTestId("nodeList");
 
-    // Hub is a direct child div
-    const hubNode = within(nodeList).getByText("HUB");
-    expect(hubNode.className).toContain("hub-item");
+    // Query only the direct top-level node items to avoid matching inner hub-label spans
+    const nodeItems = within(nodeList)
+        .getAllByRole("generic")
+        .filter((el) => el.classList.contains("node-item"));
 
-    // Bot containers are rendered
-    const botContainers = within(nodeList).getAllByTestId(/^bot-node-container-/);
-    expect(botContainers).toHaveLength(3);
+    expect(nodeItems).toHaveLength(4);
 
-    // Bot IDs in order
-    const botIds = botContainers.map((c) => within(c).getByRole("generic").textContent);
-    expect(botIds).toEqual(["1", "2", "5"]);
+    // Hub textContent is now "HUB1" (hub-text "HUB" + hub-number "1" concatenated)
+    expect(nodeItems.map((div) => div.textContent)).toEqual(["HUB1", "1", "2", "5"]);
+
+    expect(nodeItems.map((div) => div.className)).toEqual([
+        "node-item hub-item faultLevel0  ",
+        "node-item bot-item faultLevel0  ",
+        "node-item bot-item faultLevel1  ",
+        "node-item bot-item faultLevel2  disconnected",
+    ]);
 });
 
 test("Verify node selection updates style", async () => {
     const nodeList = screen.getByTestId("nodeList");
 
-    const hubNode = within(nodeList).getByText("HUB");
-    expect(hubNode.className).not.toContain("selected");
+    // Filter to only top-level node items, same as above
+    const nodeItems = within(nodeList)
+        .getAllByRole("generic")
+        .filter((el) => el.classList.contains("node-item"));
 
-    // Select the Hub
-    await userEvent.click(hubNode);
-    expect(hubNode.className).toContain("selected");
+    expect(nodeItems).toHaveLength(4);
 
-    // Select bot 5 container's bot item
-    const bot5Container = screen.getByTestId("bot-node-container-5");
-    const bot5Item = within(bot5Container).getByRole("generic");
-    await userEvent.click(bot5Item);
-    expect(bot5Item.className).toContain("selected");
-    expect(hubNode.className).not.toContain("selected");
+    // Verify nothing is selected
+    expect(nodeItems.map((div) => div.className)).not.toContain("selected");
 
-    // Deselect bot 5
-    await userEvent.click(bot5Item);
-    expect(bot5Item.className).not.toContain("selected");
+    // Select the Hub and verify it is selected
+    await userEvent.click(nodeItems[0]);
+    expect(nodeItems[0].className).toContain("selected");
+
+    // Select a Bot and verify selection changed
+    await userEvent.click(nodeItems[3]);
+    expect(nodeItems[3].className).toContain("selected");
+    expect(nodeItems[0].className).not.toContain("selected");
+
+    // Deselect the Bot and verify nothing is selected
+    await userEvent.click(nodeItems[3]);
+    expect(nodeItems.map((div) => div.className)).not.toContain("selected");
 });
 
 test("Nodes should be displayed in correct order (Hub first, then Bots sorted by ID)", () => {
     const nodeList = screen.getByTestId("nodeList");
 
-    // Hub comes first
-    const hubNode = within(nodeList).getByText("HUB");
-    expect(hubNode).toBeTruthy();
+    // Filter to only top-level node items
+    const nodeItems = within(nodeList)
+        .getAllByRole("generic")
+        .filter((el) => el.classList.contains("node-item"));
 
-    // Bot containers are in ascending order
-    const botContainers = within(nodeList).getAllByTestId(/^bot-node-container-/);
-    const botIds = botContainers.map((c) =>
-        Number(within(c).getByRole("generic").textContent),
-    );
-    const sortedBotIds = [...botIds].sort((a, b) => a - b);
-    expect(botIds).toEqual(sortedBotIds);
+    const textContent = nodeItems.map((div) => div.textContent);
+
+    // Hub now renders "HUB" + hub ID concatenated via child spans
+    expect(textContent[0]).toBe("HUB1");
+
+    // Check that Bot IDs are in ascending order
+    const botTexts = textContent.slice(1); // Remove the hub
+    const botIDs = botTexts.map((text) => Number(text));
+    const sortedBotIds = [...botIDs].sort((a, b) => a - b);
+
+    expect(botIDs).toEqual(sortedBotIds);
 });
 
 test("Send indicator is rendered for each bot with idle status by default", () => {
