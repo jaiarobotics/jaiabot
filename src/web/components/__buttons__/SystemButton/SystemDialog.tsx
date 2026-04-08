@@ -44,6 +44,9 @@ export function SystemDialog(props: DialogProps) {
         if (props.disabledCode === DisabledCodes.NONE) {
             return "";
         }
+        if (props.disabledCode === DisabledCodes.AWAITING_ACK) {
+            return "Cannot send command. Comms have dropped and we are still waiting on an acknowledgement from the previous command.";
+        }
         // Note: alert dialogs are only used for Bot buttons
         const endMsg = "command cannot be sent because the Bot needs to be stopped.";
         switch (props.systemButton) {

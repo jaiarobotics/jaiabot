@@ -6,15 +6,20 @@ import { DisabledCodes } from "../disabled-codes";
 
 import { Button } from "@mui/material";
 
-import Bot from "../../../data/bots/bot";
+import Bot, { BotCommandStatus } from "../../../data/bots/bot";
 import { BotModes } from "../../../types/jaia-system-types";
 import { DialogActions } from "../../../types/context-types";
 import { Command, CommandType, MissionStart, MovementType } from "../../../types/protobuf-types";
-import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
+import {
+    isCommandAvailable,
+    isControllingClient,
+    sendBotCommandWithTracking,
+} from "../../../utils/commands";
+import { NO_COMMS_STATUS_AGE } from "../../../utils/constants";
+import { microsecondsToSeconds } from "../../../utils/conversions";
 
 import rcModeIcon from "../../../style/icons/controller.svg";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
-import { JaiaActions } from "../../../context/jaia-actions";
 
 import "./RemoteControlButton.less";
 
@@ -63,6 +68,12 @@ export default function RemoteControlButton(props: Props) {
             return DisabledCodes.NONE__EXIT_RC;
         }
 
+        if (microsecondsToSeconds(props.bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+            if (props.bot.getCommandStatus() === BotCommandStatus.PENDING) {
+                return DisabledCodes.AWAITING_ACK;
+            }
+        }
+
         if (
             !isCommandAvailable(
                 CommandType.REMOTE_CONTROL_TASK,
@@ -101,14 +112,7 @@ export default function RemoteControlButton(props: Props) {
 
         if (dialogAction === DialogActions.CONFIRMED) {
             const command = rcActive ? getExitRCCommand(props.bot) : getEnterRCCommand(props.bot);
-            const response = await sendBotCommand(command);
-            if (response && response.status === "ok") {
-                jaiaDispatch({
-                    type: JaiaActions.SENT_COMMAND,
-                    botID: props.bot.getBotID(),
-                    command: command,
-                });
-            }
+            await sendBotCommandWithTracking(command, jaiaDispatch);
         }
     };
 

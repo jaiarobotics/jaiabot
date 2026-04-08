@@ -7,4 +7,8 @@ export const messages: ReadonlyMap<DisabledCodes, string> = new Map([
     [DisabledCodes.NO_MISSION, "The Bot does not have an assigned mission."],
     [DisabledCodes.DOWNLOAD_QUEUE, "The Bot is in the download queue."],
     [DisabledCodes.LOW_BATTERY, "The Bot has a critically low battery."],
+    [
+        DisabledCodes.AWAITING_ACK,
+        "Cannot send command. Comms have dropped and we are still waiting on an acknowledgement from the previous command.",
+    ],
 ]);

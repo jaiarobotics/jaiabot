@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { ActivateDialog } from "./ActivateDialog";
@@ -8,12 +8,17 @@ import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 
-import Bot from "../../../data/bots/bot";
+import Bot, { BotCommandStatus } from "../../../data/bots/bot";
 import { DialogActions } from "../../../types/context-types";
 import { Command, CommandType, MissionState } from "../../../types/protobuf-types";
 import { MDI_BUTTON_SIZE, NO_COMMS_STATUS_AGE } from "../../../utils/constants";
 import { microsecondsToSeconds } from "../../../utils/conversions";
-import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
+import {
+    isCommandAvailable,
+    isControllingClient,
+    sendBotCommandWithTracking,
+} from "../../../utils/commands";
+import { JaiaDispatchContext } from "../../../context/JaiaContext";
 
 interface Props {
     bot: Bot;
@@ -24,6 +29,7 @@ interface Props {
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function ActivateButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
@@ -49,6 +55,9 @@ export default function ActivateButton(props: Props) {
      */
     const getDisabledCode = () => {
         if (microsecondsToSeconds(props.bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+            if (props.bot.getCommandStatus() === BotCommandStatus.PENDING) {
+                return DisabledCodes.AWAITING_ACK;
+            }
             return DisabledCodes.NO_COMMS;
         }
 
@@ -96,7 +105,7 @@ export default function ActivateButton(props: Props) {
                 bot_id: props.bot.getBotID(),
                 type: CommandType.ACTIVATE,
             };
-            sendBotCommand(activateCommand);
+            sendBotCommandWithTracking(activateCommand, jaiaDispatch);
         }
     };
 

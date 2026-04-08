@@ -1,6 +1,5 @@
 import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
-import { JaiaActions } from "../../../context/jaia-actions";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { StopDialog } from "./StopDialog";
@@ -10,12 +9,17 @@ import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiStop } from "@mdi/js";
 
-import Bot from "../../../data/bots/bot";
+import Bot, { BotCommandStatus } from "../../../data/bots/bot";
 
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
-import { MDI_BUTTON_SIZE } from "../../../utils/constants";
-import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
+import { MDI_BUTTON_SIZE, NO_COMMS_STATUS_AGE } from "../../../utils/constants";
+import { microsecondsToSeconds } from "../../../utils/conversions";
+import {
+    isCommandAvailable,
+    isControllingClient,
+    sendBotCommandWithTracking,
+} from "../../../utils/commands";
 
 interface Props {
     bot: Bot;
@@ -51,6 +55,11 @@ export default function StopButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
+        if (microsecondsToSeconds(props.bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+            if (props.bot.getCommandStatus() === BotCommandStatus.PENDING) {
+                return DisabledCodes.AWAITING_ACK;
+            }
+        }
         if (!isCommandAvailable(CommandType.STOP, props.bot.getMissionStatus().missionState)) {
             return DisabledCodes.MISSION_STATE;
         }
@@ -89,14 +98,7 @@ export default function StopButton(props: Props) {
                 bot_id: props.bot.getBotID(),
                 type: CommandType.STOP,
             };
-            const response = await sendBotCommand(stopCommand);
-            if (response && response.status === "ok") {
-                jaiaDispatch({
-                    type: JaiaActions.SENT_COMMAND,
-                    botID: props.bot.getBotID(),
-                    command: stopCommand,
-                });
-            }
+            await sendBotCommandWithTracking(stopCommand, jaiaDispatch);
         }
     };
 

@@ -30,7 +30,7 @@ import {
     handleDeleteRallyPoint,
     handleSendRallyMission,
 } from "./handlers/rally-point-handlers";
-import { handleSentCommand } from "./handlers/command-handlers";
+import { handleSentCommand, handleCommandPending, handleCommandAckReceived } from "./handlers/command-handlers";
 import {
     handleClosedRallyPanel,
     handleClosedDetails,
@@ -120,8 +120,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.DELETE_RALLY_POINT, { handler: handleDeleteRallyPoint, tracked: true }],
     [JaiaActions.SEND_RALLY_MISSION, { handler: handleSendRallyMission, tracked: false }],
 
-    // Command Action
+    // Command Actions
     [JaiaActions.SENT_COMMAND, { handler: handleSentCommand, tracked: false }],
+    [JaiaActions.COMMAND_PENDING, { handler: handleCommandPending, tracked: false }],
+    [JaiaActions.COMMAND_ACK_RECEIVED, { handler: handleCommandAckReceived, tracked: false }],
 
     // Panel Actions
     [JaiaActions.CLOSED_RALLY_PANEL, { handler: handleClosedRallyPanel, tracked: false }],

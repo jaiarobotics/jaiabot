@@ -1,4 +1,5 @@
 import React, { useContext } from "react";
+import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import { JaiaActions } from "../../context/jaia-actions";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaContextType, JaiaAction } from "../../types/context-types";
@@ -6,6 +7,7 @@ import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HealthState } from "../../types/protobuf-types";
 import { isDisconnected } from "../BotDetails/bot-details";
+import { BotCommandStatus } from "../../data/bots/bot";
 import "./NodeList.less";
 
 /**
@@ -92,15 +94,27 @@ export default function NodeList() {
             {bots.map((bot) => (
                 <div
                     key={`bot-${bot.getBotID()}`}
-                    onClick={() => handleClick(NodeTypes.BOT, bot.getBotID())}
-                    className={getClassName(
-                        NodeTypes.BOT,
-                        bot.getBotID(),
-                        bot.getHealthState(),
-                        bot.getStatusAge(),
-                    )}
+                    className="bot-node-container"
+                    data-testid={`bot-node-container-${bot.getBotID()}`}
                 >
-                    {bot.getBotID()}
+                    <div
+                        onClick={() => handleClick(NodeTypes.BOT, bot.getBotID())}
+                        className={getClassName(
+                            NodeTypes.BOT,
+                            bot.getBotID(),
+                            bot.getHealthState(),
+                            bot.getStatusAge(),
+                        )}
+                    >
+                        {bot.getBotID()}
+                    </div>
+                    <label
+                        className={`send-indicator send-indicator--${bot.getCommandStatus()}`}
+                        aria-label={`send-indicator-bot-${bot.getBotID()}`}
+                        data-testid={`send-indicator-${bot.getBotID()}`}
+                    >
+                        <SendOutlinedIcon fontSize="small" />
+                    </label>
                 </div>
             ))}
         </div>

@@ -1,6 +1,5 @@
 import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
-import { JaiaActions } from "../../../context/jaia-actions";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { StartMissionDialog } from "./StartMissionDialog";
@@ -9,12 +8,16 @@ import { DisabledCodes } from "../disabled-codes";
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 
-import Bot from "../../../data/bots/bot";
+import Bot, { BotCommandStatus } from "../../../data/bots/bot";
 import Mission from "../../../data/mission_set/mission";
 
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
-import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
+import {
+    isCommandAvailable,
+    isControllingClient,
+    sendBotCommandWithTracking,
+} from "../../../utils/commands";
 
 import { mdiPlay } from "@mdi/js";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
@@ -63,6 +66,9 @@ export default function StartMissionButton(props: Props) {
      */
     const getDisabledCode = () => {
         if (microsecondsToSeconds(props.bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+            if (props.bot.getCommandStatus() === BotCommandStatus.PENDING) {
+                return DisabledCodes.AWAITING_ACK;
+            }
             return DisabledCodes.NO_COMMS;
         }
 
@@ -120,10 +126,7 @@ export default function StartMissionButton(props: Props) {
                 type: CommandType.MISSION_PLAN,
                 plan: missionPlan,
             };
-            const response = await sendBotCommand(startMissionCommand);
-            if (response && response.status === "ok") {
-                jaiaDispatch({ type: JaiaActions.SENT_COMMAND, command: startMissionCommand });
-            }
+            await sendBotCommandWithTracking(startMissionCommand, jaiaDispatch);
         }
     };
 

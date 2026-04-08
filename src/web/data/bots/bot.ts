@@ -10,6 +10,13 @@ import {
 } from "../../types/protobuf-types";
 import BotSensors from "./bot-sensors";
 
+export enum BotCommandStatus {
+    IDLE = "idle",
+    PENDING = "pending",
+    SUCCESS = "success",
+    FAILED = "failed",
+}
+
 export default class Bot {
     private botID: number;
     private botType: BotType;
@@ -24,6 +31,8 @@ export default class Bot {
     private statusAge: number;
     private engineering: Engineering;
     private mode: BotModes;
+    private commandStatus: BotCommandStatus = BotCommandStatus.IDLE;
+    private latestCommandTime: number = 0;
 
     constructor() {
         // Init base sensors
@@ -133,6 +142,22 @@ export default class Bot {
 
     setMode(mode: BotModes) {
         this.mode = mode;
+    }
+
+    getCommandStatus() {
+        return this.commandStatus;
+    }
+
+    setCommandStatus(status: BotCommandStatus) {
+        this.commandStatus = status;
+    }
+
+    getLatestCommandTime() {
+        return this.latestCommandTime;
+    }
+
+    setLatestCommandTime(time: number) {
+        this.latestCommandTime = time;
     }
 
     private initializeSensors() {

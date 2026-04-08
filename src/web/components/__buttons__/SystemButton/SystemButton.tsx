@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { SystemDialog } from "./SystemDialog";
@@ -8,18 +8,20 @@ import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
 import { mdiPower, mdiRestart, mdiRestartAlert } from "@mdi/js";
 
-import Bot from "../../../data/bots/bot";
+import Bot, { BotCommandStatus } from "../../../data/bots/bot";
 import Hub from "../../../data/hubs/hub";
 import { DialogActions } from "../../../types/context-types";
 import { SystemButtonTypes } from "../../../types/jaia-system-types";
 import { CommandType, HubCommandType } from "../../../types/protobuf-types";
-import { MDI_BUTTON_SIZE } from "../../../utils/constants";
+import { MDI_BUTTON_SIZE, NO_COMMS_STATUS_AGE } from "../../../utils/constants";
+import { microsecondsToSeconds } from "../../../utils/conversions";
 import {
     isCommandAvailable,
     isControllingClient,
-    sendBotCommand,
+    sendBotCommandWithTracking,
     sendHubCommand,
 } from "../../../utils/commands";
+import { JaiaDispatchContext } from "../../../context/JaiaContext";
 
 interface Props {
     node: Bot | Hub;
@@ -43,6 +45,7 @@ const hubCommands: Map<SystemButtonTypes, HubCommandType> = new Map([
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function SystemButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
@@ -138,6 +141,11 @@ export default function SystemButton(props: Props) {
         if (props.node instanceof Hub) {
             return DisabledCodes.NONE;
         }
+        if (microsecondsToSeconds(props.node.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+            if (props.node.getCommandStatus() === BotCommandStatus.PENDING) {
+                return DisabledCodes.AWAITING_ACK;
+            }
+        }
         if (
             !isCommandAvailable(
                 getCommandType(props.node, props.type),
@@ -176,10 +184,13 @@ export default function SystemButton(props: Props) {
         if (dialogAction !== DialogActions.CONFIRMED) return;
 
         if (props.node instanceof Bot) {
-            sendBotCommand({
-                bot_id: props.node.getBotID(),
-                type: getCommandType(props.node, props.type),
-            });
+            sendBotCommandWithTracking(
+                {
+                    bot_id: props.node.getBotID(),
+                    type: getCommandType(props.node, props.type),
+                },
+                jaiaDispatch,
+            );
         } else if (props.node instanceof Hub) {
             sendHubCommand({
                 hub_id: props.node.getHubID(),

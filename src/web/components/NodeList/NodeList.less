@@ -5,6 +5,16 @@
     color: if(luminance(@col) > 45, black, white);
 }
 
+@keyframes send-flicker {
+    0%,
+    100% {
+        color: @selected-color;
+    }
+    50% {
+        color: white;
+    }
+}
+
 #nodeList {
     position: absolute;
 
@@ -62,5 +72,57 @@
     }
     > div.node-item.controlled {
         .node-bgcolor(@controlled-color);
+    }
+
+    .bot-node-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+
+        // Propagate selected outline styles when bot-item is inside the container
+        > div.node-item.tracked {
+            .node-bgcolor(@tracked-color);
+        }
+        > div.node-item.faultLevel1 {
+            .node-bgcolor(@warning-color);
+        }
+        > div.node-item.faultLevel2 {
+            .node-bgcolor(@error-color);
+        }
+        > div.node-item.disconnected {
+            .node-bgcolor(@disconnected);
+        }
+        > div.node-item.selected {
+            outline: 5px solid @selected-color;
+        }
+        > div.node-item.controlled {
+            .node-bgcolor(@controlled-color);
+        }
+    }
+
+    .send-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: transparent;
+        pointer-events: none;
+        user-select: none;
+
+        &--idle {
+            color: transparent;
+        }
+
+        &--pending {
+            animation: send-flicker 0.6s ease-in-out infinite;
+        }
+
+        &--success {
+            color: @good-color;
+        }
+
+        &--failed {
+            color: @error-color;
+        }
     }
 }

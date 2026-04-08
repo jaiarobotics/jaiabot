@@ -7,6 +7,9 @@ import {
     MissionState,
 } from "../types/protobuf-types";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
+import { JaiaActions } from "../context/jaia-actions";
+import { JaiaAction } from "../types/context-types";
+import React from "react";
 
 /**
  * commandStates is a map of command types to regular expressions
@@ -65,6 +68,38 @@ export function isCommandAvailable(commandType: CommandType, missionState: Missi
  */
 export function sendBotCommand(command: Command) {
     return jaiaAPI.postCommand(command);
+}
+
+/**
+ * Sends a command to a Bot and dispatches COMMAND_PENDING before the call and
+ * COMMAND_ACK_RECEIVED + SENT_COMMAND (on success) after. Use this for all
+ * per-bot commands so the NodeList send indicator stays up-to-date.
+ *
+ * @param {Command} command Command message to be sent to Bot
+ * @param {React.Dispatch<JaiaAction>} dispatch JaiaContext dispatch function
+ * @returns {Promise<void>}
+ */
+export async function sendBotCommandWithTracking(
+    command: Command,
+    dispatch: React.Dispatch<JaiaAction>,
+): Promise<void> {
+    const commandTime = Date.now();
+
+    dispatch({ type: JaiaActions.COMMAND_PENDING, botID: command.bot_id, commandTime });
+
+    const response = await sendBotCommand(command);
+    const success = response && response.status === "ok";
+
+    if (success) {
+        dispatch({ type: JaiaActions.SENT_COMMAND, command });
+    }
+
+    dispatch({
+        type: JaiaActions.COMMAND_ACK_RECEIVED,
+        botID: command.bot_id,
+        commandTime,
+        commandSuccess: success,
+    });
 }
 
 /**

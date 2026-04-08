@@ -1,4 +1,5 @@
 import { bots } from "../../data/bots/bots";
+import { BotCommandStatus } from "../../data/bots/bot";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { BotModes } from "../../types/jaia-system-types";
@@ -87,4 +88,40 @@ function manageGhostLayer(botID: number, missionID: number) {
     });
     missionSet.addGhostMission(missionID);
     ghostMissionLayer.updateFeatures();
+}
+
+/**
+ * Marks a Bot's command status as pending and records the command time
+ * so the send indicator in NodeList begins flickering
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Includes botID and commandTime
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleCommandPending(mutableState: JaiaContextType, action: JaiaAction) {
+    const bot = bots.getBot(action.botID);
+    if (bot) {
+        bot.setCommandStatus(BotCommandStatus.PENDING);
+        bot.setLatestCommandTime(action.commandTime);
+    }
+    return mutableState;
+}
+
+/**
+ * Updates a Bot's command status to success or failed once an ACK is received.
+ * Ignores the ACK if it does not match the most recently tracked command time,
+ * so that only the latest command result is reflected in the send indicator.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Includes botID, commandTime, and commandSuccess
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleCommandAckReceived(mutableState: JaiaContextType, action: JaiaAction) {
+    const bot = bots.getBot(action.botID);
+    if (bot && action.commandTime === bot.getLatestCommandTime()) {
+        bot.setCommandStatus(
+            action.commandSuccess ? BotCommandStatus.SUCCESS : BotCommandStatus.FAILED,
+        );
+    }
+    return mutableState;
 }
