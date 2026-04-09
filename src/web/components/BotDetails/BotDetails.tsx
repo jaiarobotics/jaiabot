@@ -242,7 +242,7 @@ export default function BotDetails() {
                                 <table>
                                     <tbody>
                                         {bot.getActiveLinks().length > 0 ? (
-                                            bot.getActiveLinks().map((link) => {
+                                            bot.getActiveLinks().map((link: string) => {
                                                 const statusAge =
                                                     bot.getActiveLinkStatusAges()[link] ?? -1;
 

@@ -274,7 +274,7 @@ export default function HubDetails() {
                             <table>
                                 <tbody>
                                     {hub.getActiveLinks().length > 0 ? (
-                                        hub.getActiveLinks().map((link) => {
+                                        hub.getActiveLinks().map((link: string) => {
                                             const statusAge =
                                                 hub.getActiveLinkStatusAges()[link] ?? -1;
 
