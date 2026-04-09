@@ -150,7 +150,14 @@ export default function FleetDetails() {
                             <Typography>Quick Look</Typography>
                         </AccordionSummary>
                         <AccordionDetails>
-                            <table>
+                            <table className="quick-look-table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Total</th>
+                                        <th>Health</th>
+                                    </tr>
+                                </thead>
                                 <tbody>
                                     <tr>
                                         <td>Bots</td>
