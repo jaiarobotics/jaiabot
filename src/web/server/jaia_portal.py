@@ -30,6 +30,7 @@ BOT_PATH_UTIME_THRESHOLD = 2_000_000
 COMMAND_GROUP_WINDOW_UTIME = 2_000_000
 MAX_COMMAND_TRACKING_ENTRIES = 500
 MAX_COMMAND_COMMS_RESULTS = 1000
+MAX_COMMAND_ROLLUPS = 500
 
 
 def protobufMessageToDict(message):
@@ -507,7 +508,21 @@ class Interface:
             'acked_success': set(),
             'acked_failure': set(),
         }
+        self.prune_command_rollups()
         return group_id
+
+
+    def prune_command_rollups(self):
+        if len(self.command_rollups) <= MAX_COMMAND_ROLLUPS:
+            return
+
+        sorted_rollups = sorted(
+            self.command_rollups.items(),
+            key=lambda item: item[1].get('sent_time', 0),
+            reverse=True,
+        )
+
+        self.command_rollups = dict(sorted_rollups[:MAX_COMMAND_ROLLUPS])
 
     def track_sent_command(self, command, clientId):
         command_key = self.get_command_key(command)
@@ -574,6 +589,7 @@ class Interface:
             rollup['acked_success'].discard(entry['bot_id'])
 
     def get_command_tracking_summary(self):
+        self.prune_command_rollups()
         commands = sorted(self.command_tracking.values(), key=lambda x: x['sent_time'], reverse=True)
 
         rollups = []
