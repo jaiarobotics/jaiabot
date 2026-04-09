@@ -62,6 +62,10 @@ class Interface:
     # MetaData
     metadata = {}
 
+    # Rolling list of CommandCommsResult messages (max 200)
+    command_comms_results: List[dict] = []
+    MAX_COMMS_RESULTS = 200
+
     # Task packet database
     task_packet_database = TaskPacketDatabase()
 
@@ -188,6 +192,14 @@ class Interface:
                 contact_update = protobufMessageToDict(msg.contact_update)
                 contact_id = contact_update['contact']
                 self.contacts[contact_id] = contact_update
+
+            if msg.HasField('command_comms_result'):
+                comms_result = protobufMessageToDict(msg.command_comms_result)
+                # Append to rolling buffer, capped at MAX_COMMS_RESULTS
+                self.command_comms_results.append(comms_result)
+                if len(self.command_comms_results) > self.MAX_COMMS_RESULTS:
+                    self.command_comms_results = self.command_comms_results[-self.MAX_COMMS_RESULTS:]
+                logging.debug(f'Received CommandCommsResult: {comms_result}')
                 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -407,7 +419,8 @@ class Interface:
             'hubs': self.hubs,
             'bots': self.bots,
             'contacts': self.contacts,
-            'messages': self.messages
+            'messages': self.messages,
+            'command_comms_results': list(self.command_comms_results)
         }
 
         try:

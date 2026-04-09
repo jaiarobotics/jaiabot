@@ -55,12 +55,14 @@ test("Verify all nodes are displayed correctly", () => {
         .getAllByRole("generic")
         .filter((el) => el.classList.contains("node-item"));
 
-    expect(nodeItems).toHaveLength(4);
+    // Fleet node + 1 Hub + 3 Bots = 5
+    expect(nodeItems).toHaveLength(5);
 
-    // Hub textContent is now "HUB1" (hub-text "HUB" + hub-number "1" concatenated)
-    expect(nodeItems.map((div) => div.textContent)).toEqual(["HUB1", "1", "2", "5"]);
+    // Fleet is first, then Hub, then Bots in ascending ID order
+    expect(nodeItems.map((div) => div.textContent)).toEqual(["FLEET1", "HUB1", "1", "2", "5"]);
 
     expect(nodeItems.map((div) => div.className)).toEqual([
+        "node-item fleet-item faultLevel2 ",
         "node-item hub-item faultLevel0  ",
         "node-item bot-item faultLevel0  ",
         "node-item bot-item faultLevel1  ",
@@ -76,26 +78,32 @@ test("Verify node selection updates style", async () => {
         .getAllByRole("generic")
         .filter((el) => el.classList.contains("node-item"));
 
-    expect(nodeItems).toHaveLength(4);
+    // Fleet + Hub + 3 Bots = 5
+    expect(nodeItems).toHaveLength(5);
 
     // Verify nothing is selected
     expect(nodeItems.map((div) => div.className)).not.toContain("selected");
 
-    // Select the Hub and verify it is selected
+    // Select the Fleet node and verify it is selected
     await userEvent.click(nodeItems[0]);
     expect(nodeItems[0].className).toContain("selected");
 
-    // Select a Bot and verify selection changed
-    await userEvent.click(nodeItems[3]);
-    expect(nodeItems[3].className).toContain("selected");
+    // Select the Hub and verify selection changed
+    await userEvent.click(nodeItems[1]);
+    expect(nodeItems[1].className).toContain("selected");
     expect(nodeItems[0].className).not.toContain("selected");
 
+    // Select a Bot and verify selection changed
+    await userEvent.click(nodeItems[4]);
+    expect(nodeItems[4].className).toContain("selected");
+    expect(nodeItems[1].className).not.toContain("selected");
+
     // Deselect the Bot and verify nothing is selected
-    await userEvent.click(nodeItems[3]);
+    await userEvent.click(nodeItems[4]);
     expect(nodeItems.map((div) => div.className)).not.toContain("selected");
 });
 
-test("Nodes should be displayed in correct order (Hub first, then Bots sorted by ID)", () => {
+test("Nodes should be displayed in correct order (Fleet first, Hub second, then Bots sorted by ID)", () => {
     const nodeList = screen.getByTestId("nodeList");
 
     // Filter to only top-level node items
@@ -105,11 +113,14 @@ test("Nodes should be displayed in correct order (Hub first, then Bots sorted by
 
     const textContent = nodeItems.map((div) => div.textContent);
 
+    // Fleet node is first
+    expect(textContent[0]).toBe("FLEET1");
+
     // Hub now renders "HUB" + hub ID concatenated via child spans
-    expect(textContent[0]).toBe("HUB1");
+    expect(textContent[1]).toBe("HUB1");
 
     // Check that Bot IDs are in ascending order
-    const botTexts = textContent.slice(1); // Remove the hub
+    const botTexts = textContent.slice(2); // Remove fleet and hub
     const botIDs = botTexts.map((text) => Number(text));
     const sortedBotIds = [...botIDs].sort((a, b) => a - b);
 

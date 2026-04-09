@@ -3,8 +3,31 @@ import {
     JaiaAction,
     HubAccordionNames,
     BotAccordionNames,
+    FleetAccordionNames,
     MapLayerAccordionNames,
 } from "../../types/context-types";
+
+/**
+ * Opens and closes the Fleet details accordions
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param  {JaiaAction} action including fleetAccordionName of Accordion to open or close
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleClickedFleetAccordion(mutableState: JaiaContextType, action: JaiaAction) {
+    if (!action.fleetAccordionName) throw new Error("Invalid fleetAccordionName");
+
+    let fleetAccordionStates = mutableState.fleetAccordionStates;
+    switch (action.fleetAccordionName) {
+        case FleetAccordionNames.QUICKLOOK:
+            fleetAccordionStates.quickLook = !fleetAccordionStates.quickLook;
+            break;
+        case FleetAccordionNames.COMMANDS:
+            fleetAccordionStates.commands = !fleetAccordionStates.commands;
+            break;
+    }
+    return mutableState;
+}
 
 /**
  * Opens and closes the Hub details accordions

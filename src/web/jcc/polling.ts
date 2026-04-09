@@ -1,5 +1,6 @@
 import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
+import { fleet } from "../data/fleet/fleet";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
@@ -63,6 +64,9 @@ export async function pollStatus() {
             updateBots(json.bots);
             updateHubs(json.hubs);
             updateJaiaGlobal(json.controllingClientId);
+            if (json.command_comms_results) {
+                fleet.setCommandCommsResults(json.command_comms_results);
+            }
             updateOpenLayers();
             if (json.messages.error && json.messages.error === HUB_CONNECTION_ERROR) {
                 updateWarning(CONNECTION_WARNING, true);

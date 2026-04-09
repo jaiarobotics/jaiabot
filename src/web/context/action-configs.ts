@@ -40,6 +40,7 @@ import {
 import {
     handleClickedHubAccordion,
     handleClickedBotAccordion,
+    handleClickedFleetAccordion,
     handleClickedMapLayersAccordion,
     handleClickedMissionAccordion,
 } from "./handlers/accordion-handlers";
@@ -135,6 +136,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     // Accordion Actions
     [JaiaActions.CLICKED_HUB_ACCORDION, { handler: handleClickedHubAccordion, tracked: false }],
     [JaiaActions.CLICKED_BOT_ACCORDION, { handler: handleClickedBotAccordion, tracked: false }],
+    [JaiaActions.CLICKED_FLEET_ACCORDION, { handler: handleClickedFleetAccordion, tracked: false }],
     [
         JaiaActions.CLICKED_MAP_LAYERS_ACCORDION,
         { handler: handleClickedMapLayersAccordion, tracked: false },

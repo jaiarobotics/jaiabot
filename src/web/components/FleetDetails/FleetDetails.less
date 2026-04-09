@@ -1,0 +1,76 @@
+@import "../../style/stylesheets/vars.less";
+
+.health-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.health-ok {
+    background-color: @good-color;
+    color: black;
+}
+
+.health-degraded {
+    background-color: @warning-color;
+    color: black;
+}
+
+.health-failed {
+    background-color: @error-color;
+    color: white;
+}
+
+.fleet-no-commands {
+    color: @cc-text-color-light;
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+.command-ack-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+
+    th {
+        color: @cc-text-color-light;
+        text-align: left;
+        padding: 4px 6px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    td {
+        padding: 5px 6px;
+        vertical-align: top;
+    }
+
+    tr.row-has-failure td {
+        background-color: rgba(204, 5, 5, 0.15);
+    }
+
+    tr.row-all-success td {
+        background-color: rgba(6, 192, 6, 0.08);
+    }
+}
+
+.cmd-time {
+    white-space: nowrap;
+    font-size: 0.82rem;
+    opacity: 0.8;
+}
+
+.cmd-type {
+    font-weight: 600;
+}
+
+.result-success {
+    color: @good-color;
+    font-weight: 600;
+}
+
+.result-failure {
+    color: @error-color;
+    font-weight: 600;
+}

@@ -96,6 +96,7 @@ function captureContextData(context: JaiaContextType) {
         visiblePanel: context.visiblePanel,
         hubAccordionStates: context.hubAccordionStates,
         botAccordionStates: context.botAccordionStates,
+        fleetAccordionStates: context.fleetAccordionStates,
         mapLayerAccordionStates: context.mapLayerAccordionStates,
         missionAccordionStates: context.missionAccordionStates,
     };
@@ -115,6 +116,7 @@ function restoreCotextData(mutableState: JaiaContextType, snapshot: JaiaContextD
     mutableState.visiblePanel = restored.visiblePanel;
     mutableState.hubAccordionStates = restored.hubAccordionStates;
     mutableState.botAccordionStates = restored.botAccordionStates;
+    mutableState.fleetAccordionStates = restored.fleetAccordionStates;
     mutableState.mapLayerAccordionStates = restored.mapLayerAccordionStates;
     mutableState.missionAccordionStates = restored.missionAccordionStates;
 }

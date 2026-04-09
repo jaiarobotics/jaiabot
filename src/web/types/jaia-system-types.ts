@@ -11,6 +11,7 @@ export enum NodeTypes {
     NONE = "NONE",
     BOT = "BOT",
     HUB = "HUB",
+    FLEET = "FLEET",
 }
 
 export interface SelectedNode {

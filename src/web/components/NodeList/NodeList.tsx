@@ -61,8 +61,8 @@ export default function NodeList() {
             [HealthState.HEALTH__FAILED, 2],
         ]);
 
-        const nodeTypeClass = nodeType === NodeTypes.BOT ? "bot-item" : "hub-item";
-        const faultLevelClass = "faultLevel" + faultLevel.get(healthState);
+        const nodeTypeClass = nodeType === NodeTypes.BOT ? "bot-item" : nodeType === NodeTypes.HUB ? "hub-item" : "fleet-item";
+        const faultLevelClass = "faultLevel" + (faultLevel.get(healthState) ?? 0);
         const selectedNode = jaiaContext.jaiaGlobal.getSelectedNode();
         const selectedClass =
             selectedNode.type === nodeType && selectedNode.id === nodeID ? "selected" : "";
@@ -72,12 +72,51 @@ export default function NodeList() {
         return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass} ${disconnectedClass}`;
     }
 
+    /**
+     * Computes the worst health state across all bots and hubs for the fleet node.
+     */
+    function getFleetHealthState(): HealthState {
+        const allHealthStates: HealthState[] = [
+            ...hubs.map((h) => h.getHealthState()),
+            ...bots.map((b) => b.getHealthState()),
+        ].filter(Boolean);
+
+        if (allHealthStates.includes(HealthState.HEALTH__FAILED)) {
+            return HealthState.HEALTH__FAILED;
+        }
+        if (allHealthStates.includes(HealthState.HEALTH__DEGRADED)) {
+            return HealthState.HEALTH__DEGRADED;
+        }
+        return HealthState.HEALTH__OK;
+    }
+
     if (hubs.length === 0 && bots.length === 0) {
         return;
     }
 
+    const fleetHealthState = getFleetHealthState();
+    const selectedNode = jaiaContext.jaiaGlobal.getSelectedNode();
+    const fleetSelectedClass =
+        selectedNode.type === NodeTypes.FLEET ? "selected" : "";
+    const fleetFaultLevel: Map<HealthState, number> = new Map([
+        [HealthState.HEALTH__OK, 0],
+        [HealthState.HEALTH__DEGRADED, 1],
+        [HealthState.HEALTH__FAILED, 2],
+    ]);
+    const fleetFaultLevelClass = "faultLevel" + (fleetFaultLevel.get(fleetHealthState) ?? 0);
+
     return (
         <div id="nodeList" data-testid="nodeList">
+            <div
+                key="fleet-1"
+                onClick={() => handleClick(NodeTypes.FLEET, 1)}
+                className={`node-item fleet-item ${fleetFaultLevelClass} ${fleetSelectedClass}`}
+            >
+                <div className="fleet-label">
+                    <span className="fleet-text">FLEET</span>
+                    <span className="fleet-number">1</span>
+                </div>
+            </div>
             {hubs.map((hub) => (
                 <div
                     key={`hub-${hub.getHubID()}`}

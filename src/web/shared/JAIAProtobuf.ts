@@ -1261,3 +1261,14 @@ export interface DeviceMetadata {
     hub_id?: number;
     bot_id?: number;
 }
+
+export enum CommsResult {
+    SUCCESS = "SUCCESS",
+    FAILURE = "FAILURE",
+}
+
+export interface CommandCommsResult {
+    result?: CommsResult;
+    link?: Link;
+    orig_command?: Command;
+}
