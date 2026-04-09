@@ -35,10 +35,10 @@
     }
 
     th {
-        color: @cc-text-color-light;
+        color: @cc-accordian-color;
         text-align: left;
         padding: 4px 6px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.15);
     }
 
     td {
@@ -48,21 +48,26 @@
 }
 
 .fleet-no-commands {
-    color: @cc-text-color-light;
+    color: @cc-accordian-color;
     font-style: italic;
     font-size: 0.95rem;
 }
 
 .command-ack-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.9rem;
 
+    th:nth-child(1) { width: 24%; }
+    th:nth-child(2) { width: 30%; }
+    th:nth-child(3) { width: 46%; }
+
     th {
-        color: @cc-text-color-light;
+        color: @cc-accordian-color;
         text-align: left;
         padding: 4px 6px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.15);
     }
 
     td {
@@ -89,12 +94,8 @@
     font-weight: 600;
 }
 
-.result-success {
-    color: @good-color;
-    font-weight: 600;
-}
-
-.result-failure {
+.failed-bots {
+    font-size: 0.82rem;
     color: @error-color;
-    font-weight: 600;
+    margin-top: 2px;
 }

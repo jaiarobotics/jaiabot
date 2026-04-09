@@ -103,14 +103,6 @@ export default function FleetDetails() {
     }
 
     /**
-     * Returns a human-readable link name
-     */
-    function formatLink(link?: string): string {
-        if (!link) return "Unknown";
-        return link.startsWith("LINK_") ? link.slice(5) : link;
-    }
-
-    /**
      * Returns a summary string for a command result group
      */
     function groupSummary(group: CommandResultGroup): string {
@@ -122,6 +114,16 @@ export default function FleetDetails() {
             return `${acked}/${total} bot${total !== 1 ? "s" : ""} ACKed`;
         }
         return `${acked}/${total} bot${total !== 1 ? "s" : ""} ACKed, ${failed} failed`;
+    }
+
+    /**
+     * Returns the bot IDs that failed in a command result group
+     */
+    function failedBotIds(group: CommandResultGroup): number[] {
+        return group.results
+            .filter((r) => r.result !== CommsResult.SUCCESS)
+            .map((r) => r.orig_command?.bot_id)
+            .filter((id): id is number => id != null);
     }
 
     return (
@@ -203,7 +205,7 @@ export default function FleetDetails() {
                                         <tr>
                                             <th>Time</th>
                                             <th>Command</th>
-                                            <th>Result</th>
+                                            <th>Acks</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -219,24 +221,12 @@ export default function FleetDetails() {
                                                     {group.commandType}
                                                 </td>
                                                 <td className="cmd-result">
-                                                    {group.totalBots > 1 ? (
-                                                        <span>{groupSummary(group)}</span>
-                                                    ) : (
-                                                        <span>
-                                                            <span
-                                                                className={
-                                                                    group.results[0]?.result === CommsResult.SUCCESS
-                                                                        ? "result-success"
-                                                                        : "result-failure"
-                                                                }
-                                                            >
-                                                                {group.results[0]?.result === CommsResult.SUCCESS
-                                                                    ? "ACKed"
-                                                                    : "Failed"}
-                                                            </span>
-                                                            {" via "}
-                                                            {formatLink(group.results[0]?.link)}
-                                                        </span>
+                                                    <div>{groupSummary(group)}</div>
+                                                    {failedBotIds(group).length > 0 && (
+                                                        <div className="failed-bots">
+                                                            Failed: Bot{" "}
+                                                            {failedBotIds(group).join(", Bot ")}
+                                                        </div>
                                                     )}
                                                 </td>
                                             </tr>
