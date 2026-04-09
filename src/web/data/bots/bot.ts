@@ -24,6 +24,8 @@ export default class Bot {
     private wifiLinkQuality: number;
     private statusAge: number;
     private link: Link;
+    private activeLinks: Link[];
+    private activeLinkStatusAges: { [link: string]: number };
     private engineering: Engineering;
     private mode: BotModes;
 
@@ -127,6 +129,22 @@ export default class Bot {
 
     setLink(link: Link) {
         this.link = link;
+    }
+
+    getActiveLinks() {
+        return this.activeLinks ?? [];
+    }
+
+    setActiveLinks(activeLinks: Link[]) {
+        this.activeLinks = activeLinks;
+    }
+
+    getActiveLinkStatusAges() {
+        return this.activeLinkStatusAges ?? {};
+    }
+
+    setActiveLinkStatusAges(activeLinkStatusAges: { [link: string]: number }) {
+        this.activeLinkStatusAges = activeLinkStatusAges;
     }
 
     getEngineering() {
