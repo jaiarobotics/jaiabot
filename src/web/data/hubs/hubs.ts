@@ -105,6 +105,14 @@ export class Hubs {
             hub.setBotOffload({ bot_id: UNASSIGNED_ID });
         }
 
+        if (hubStatus.active_link) {
+            hub.setActiveLinks(hubStatus.active_link);
+        }
+
+        if (hubStatus.linkStatusAges) {
+            hub.setLinkStatusAges(hubStatus.linkStatusAges);
+        }
+
         // HubSensors
         // GPS
         if (hubStatus.location?.lat) {

@@ -26,6 +26,8 @@ export default class Bot {
     private link: Link;
     private engineering: Engineering;
     private mode: BotModes;
+    private activeLinks: Link[];
+    private linkStatusAges: { [link: string]: number };
 
     constructor() {
         // Init base sensors
@@ -143,6 +145,22 @@ export default class Bot {
 
     setMode(mode: BotModes) {
         this.mode = mode;
+    }
+
+    getActiveLinks() {
+        return this.activeLinks;
+    }
+
+    setActiveLinks(activeLinks: Link[]) {
+        this.activeLinks = activeLinks;
+    }
+
+    getLinkStatusAges() {
+        return this.linkStatusAges;
+    }
+
+    setLinkStatusAges(linkStatusAges: { [link: string]: number }) {
+        this.linkStatusAges = linkStatusAges;
     }
 
     private initializeSensors() {

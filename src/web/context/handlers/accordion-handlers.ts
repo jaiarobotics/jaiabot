@@ -27,6 +27,9 @@ export function handleClickedHubAccordion(mutableState: JaiaContextType, action:
         case HubAccordionNames.LINKS:
             hubAccordionStates.links = !hubAccordionStates.links;
             break;
+        case HubAccordionNames.COMM_LINKS:
+            hubAccordionStates.commLinks = !hubAccordionStates.commLinks;
+            break;
     }
     return mutableState;
 }
@@ -66,6 +69,9 @@ export function handleClickedBotAccordion(mutableState: JaiaContextType, action:
             break;
         case BotAccordionNames.SENSOR:
             botAccordionStates.sensor = !botAccordionStates.sensor;
+            break;
+        case BotAccordionNames.COMM_LINKS:
+            botAccordionStates.commLinks = !botAccordionStates.commLinks;
             break;
     }
     return mutableState;

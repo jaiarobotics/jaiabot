@@ -5,10 +5,12 @@ export interface PortalBotStatus extends BotStatus {
     portalStatusAge?: number;
     isDisconnected?: boolean;
     engineering?: Engineering;
+    linkStatusAges?: { [link: string]: number };
 }
 
 export interface PortalHubStatus extends HubStatus {
     portalStatusAge: number;
+    linkStatusAges?: { [link: string]: number };
 }
 
 export interface PodStatus {

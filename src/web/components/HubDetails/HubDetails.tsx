@@ -16,8 +16,6 @@ import { getIPPrefix } from "../../shared/IPPrefix";
 import { HubAccordionNames } from "../../types/context-types";
 import { NodeTypes, SystemButtonTypes } from "../../types/jaia-system-types";
 import { CLOUD_HUB_ID } from "../../utils/constants";
-
-// Styles
 import Button from "@mui/material/Button";
 import Accordion from "@mui/material/Accordion";
 import Typography from "@mui/material/Typography";
@@ -278,6 +276,58 @@ export default function HubDetails() {
                             <Button className="jaia-button" onClick={() => openUpgradePage()}>
                                 <Icon path={mdiWrenchCog} title="Upgrade"></Icon>
                             </Button>
+                        </AccordionDetails>
+                    </Accordion>
+                </ThemeProvider>
+
+                <ThemeProvider theme={accordionTheme}>
+                    <Accordion
+                        expanded={jaiaContext.hubAccordionStates.commLinks}
+                        onChange={() => {
+                            handleAccordionClick(HubAccordionNames.COMM_LINKS);
+                        }}
+                        className="accordion-container"
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            className="accordion-summary"
+                        >
+                            <Typography>Comm Links</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <table>
+                                <tbody>
+                                    {hub.getActiveLinks()?.length > 0 ? (
+                                        hub.getActiveLinks().map((link) => {
+                                            const linkAge = hub.getLinkStatusAges()?.[link];
+                                            const ageSeconds =
+                                                linkAge !== undefined
+                                                    ? convertMicrosecondsToSeconds(
+                                                          linkAge,
+                                                      ).toFixed(1)
+                                                    : "N/A";
+                                            const ageClassName =
+                                                linkAge !== undefined
+                                                    ? getStatusAgeClassName(linkAge)
+                                                    : "";
+                                            return (
+                                                <tr key={link} className={ageClassName}>
+                                                 <td>{String(link).replace("LINK_", "")}</td>
+                                                    <td>
+                                                        {ageSeconds !== "N/A"
+                                                            ? `${ageSeconds} s`
+                                                            : "N/A"}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={2}>No active links</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>

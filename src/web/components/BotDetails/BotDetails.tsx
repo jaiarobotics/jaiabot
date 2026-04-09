@@ -474,6 +474,62 @@ export default function BotDetails() {
                             </AccordionDetails>
                         </Accordion>
                     </ThemeProvider>
+
+                    <ThemeProvider theme={accordionTheme}>
+                        <Accordion
+                            expanded={jaiaContext.botAccordionStates.commLinks}
+                            onChange={() => {
+                                handleAccordionClick(BotAccordionNames.COMM_LINKS);
+                            }}
+                            className="accordion-container"
+                        >
+                            <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                className="accordion-summary"
+                            >
+                                <Typography>Comm Links</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <table>
+                                    <tbody>
+                                        {bot.getActiveLinks()?.length > 0 ? (
+                                            bot.getActiveLinks().map((link) => {
+                                                const linkAge =
+                                                    bot.getLinkStatusAges()?.[link];
+                                                const ageSeconds =
+                                                    linkAge !== undefined
+                                                        ? convertMicrosecondsToSeconds(
+                                                              linkAge,
+                                                          ).toFixed(1)
+                                                        : "N/A";
+                                                const ageClassName =
+                                                    linkAge !== undefined
+                                                        ? getStatusAgeClassName(
+                                                              linkAge,
+                                                              link,
+                                                          )
+                                                        : "";
+                                                return (
+                                                    <tr key={link} className={ageClassName}>
+                                                        <td>{String(link).replace("LINK_", "")}</td>
+                                                        <td>
+                                                            {ageSeconds !== "N/A"
+                                                                ? `${ageSeconds} s`
+                                                                : "N/A"}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={2}>No active links</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </AccordionDetails>
+                        </Accordion>
+                    </ThemeProvider>
                 </div>
             </div>
         </React.Fragment>

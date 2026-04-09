@@ -119,6 +119,14 @@ export class Bots {
             bot.setLink(botStatus.link);
         }
 
+        if (botStatus.active_link) {
+            bot.setActiveLinks(botStatus.active_link);
+        }
+
+        if (botStatus.linkStatusAges) {
+            bot.setLinkStatusAges(botStatus.linkStatusAges);
+        }
+
         if (botStatus.engineering) {
             bot.setEngineering(botStatus.engineering);
         }

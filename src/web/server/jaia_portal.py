@@ -56,6 +56,12 @@ class Interface:
     # Dict from bot_id => list of BotPathPoints
     bot_paths: Dict[str, Deque[BotPathPoint]] = {}
 
+    # Dict from bot_id => {link_name => last_received_utime}
+    bot_link_last_received_times: Dict[int, Dict[str, int]] = {}
+
+    # Dict from hub_id => {link_name => last_seen_utime}
+    hub_link_last_seen_times: Dict[int, Dict[str, int]] = {}
+
     # ClientId that is currently in control
     controllingClientId = None
 
@@ -140,6 +146,14 @@ class Interface:
                 botStatus['lastStatusReceivedTime'] = now_utime()
 
                 bot_id = botStatus['bot_id']
+
+                # Track per-link last received time using the link this message traversed
+                if msg.bot_status.HasField('link'):
+                    link_name = Link.Name(msg.bot_status.link)
+                    if bot_id not in self.bot_link_last_received_times:
+                        self.bot_link_last_received_times[bot_id] = {}
+                    self.bot_link_last_received_times[bot_id][link_name] = now_utime()
+
                 self.bots[bot_id] = botStatus
 
                 # Add position to bot_paths
@@ -173,7 +187,17 @@ class Interface:
                 # Set the time of last status to now
                 hubStatus['lastStatusReceivedTime'] = now_utime()
 
-                self.hubs[hubStatus['hub_id']] = hubStatus
+                hub_id = hubStatus['hub_id']
+
+                # Track per-link last seen time for each active link reported in hub status
+                if msg.hub_status.active_link:
+                    if hub_id not in self.hub_link_last_seen_times:
+                        self.hub_link_last_seen_times[hub_id] = {}
+                    for link_val in msg.hub_status.active_link:
+                        link_name = Link.Name(link_val)
+                        self.hub_link_last_seen_times[hub_id][link_name] = now_utime()
+
+                self.hubs[hub_id] = hubStatus
 
             if msg.HasField('task_packet'):
                 logging.info('Task packet received')
@@ -394,10 +418,25 @@ class Interface:
             # Add the time since last status
             hub['portalStatusAge'] = now_utime() - hub['lastStatusReceivedTime']
 
+            # Compute per-link status ages for hub
+            hub_id = hub.get('hub_id')
+            if hub_id in self.hub_link_last_seen_times:
+                hub['linkStatusAges'] = {
+                    link: now_utime() - last_time
+                    for link, last_time in self.hub_link_last_seen_times[hub_id].items()
+                }
 
         for bot in self.bots.values():
             # Add the time since last status
             bot['portalStatusAge'] = now_utime() - bot['lastStatusReceivedTime']
+
+            # Compute per-link status ages for bot
+            bot_id = bot.get('bot_id')
+            if bot_id in self.bot_link_last_received_times:
+                bot['linkStatusAges'] = {
+                    link: now_utime() - last_time
+                    for link, last_time in self.bot_link_last_received_times[bot_id].items()
+                }
 
             if bot['bot_id'] in self.bots_engineering:
                 bot['engineering'] = self.bots_engineering[bot['bot_id']]
@@ -427,6 +466,14 @@ class Interface:
             # Add the time since last status
             if not 'portalStatusAge' in hub:
                 hub['portalStatusAge'] = now_utime() - hub['lastStatusReceivedTime']
+
+            # Compute per-link status ages for hub
+            hub_id = hub.get('hub_id')
+            if hub_id in self.hub_link_last_seen_times:
+                hub['linkStatusAges'] = {
+                    link: now_utime() - last_time
+                    for link, last_time in self.hub_link_last_seen_times[hub_id].items()
+                }
         
         return self.hubs
 

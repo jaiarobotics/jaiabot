@@ -20,6 +20,7 @@ const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
     links: false,
+    commLinks: false,
 };
 
 const defaultBotAccordionStates: BotAccordionStates = {
@@ -31,6 +32,7 @@ const defaultBotAccordionStates: BotAccordionStates = {
     gps: false,
     imu: false,
     sensor: false,
+    commLinks: false,
 };
 
 const defaultMapLayerAccordionStates = {

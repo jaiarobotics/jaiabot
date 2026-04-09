@@ -100,12 +100,14 @@ export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",
     COMMANDS = "commands",
     LINKS = "links",
+    COMM_LINKS = "commLinks",
 }
 
 export interface HubAccordionStates {
     quickLook: boolean;
     commands: boolean;
     links: boolean;
+    commLinks: boolean;
 }
 
 export const enum BotAccordionNames {
@@ -117,6 +119,7 @@ export const enum BotAccordionNames {
     GPS = "gps",
     IMU = "imu",
     SENSOR = "sensor",
+    COMM_LINKS = "commLinks",
 }
 
 export interface BotAccordionStates {
@@ -128,6 +131,7 @@ export interface BotAccordionStates {
     gps: boolean;
     imu: boolean;
     sensor: boolean;
+    commLinks: boolean;
 }
 
 export const enum MapLayerAccordionNames {
