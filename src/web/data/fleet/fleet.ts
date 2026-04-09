@@ -83,7 +83,46 @@ export class Fleet {
         }
 
         groups.sort((a, b) => b.timestamp - a.timestamp);
-        return groups.slice(0, MAX_COMMAND_GROUPS);
+
+        const dedupedGroups: CommandResultGroup[] = [];
+        const dedupeWindowMs = 10_000;
+        for (const group of groups) {
+            const botSignature = Array.from(
+                new Set(
+                    group.results
+                        .map((result) => result.orig_command?.bot_id)
+                        .filter((botID): botID is number => botID != null),
+                ),
+            )
+                .sort((a, b) => a - b)
+                .join(",");
+
+            const duplicate = dedupedGroups.find((existing) => {
+                const existingBotSignature = Array.from(
+                    new Set(
+                        existing.results
+                            .map((result) => result.orig_command?.bot_id)
+                            .filter((botID): botID is number => botID != null),
+                    ),
+                )
+                    .sort((a, b) => a - b)
+                    .join(",");
+
+                return (
+                    existing.commandType === group.commandType &&
+                    existingBotSignature === botSignature &&
+                    existing.successCount === group.successCount &&
+                    existing.failureCount === group.failureCount &&
+                    Math.abs(existing.timestamp - group.timestamp) <= dedupeWindowMs
+                );
+            });
+
+            if (!duplicate) {
+                dedupedGroups.push(group);
+            }
+        }
+
+        return dedupedGroups.slice(0, MAX_COMMAND_GROUPS);
     }
 }
 
