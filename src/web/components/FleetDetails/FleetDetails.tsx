@@ -3,7 +3,7 @@ import { JaiaActions } from "../../context/jaia-actions";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaAction, FleetAccordionNames } from "../../types/context-types";
 import { HealthState } from "../../types/protobuf-types";
-import { fleet, CommandResultGroup, CommsResult } from "../../data/fleet/fleet";
+import { fleet, CommandResultGroup } from "../../data/fleet/fleet";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 import { NodeTypes } from "../../types/jaia-system-types";
 
@@ -95,12 +95,6 @@ export default function FleetDetails() {
         return `${acked}/${total} bot${total !== 1 ? "s" : ""} ACKed, ${failed} failed`;
     }
 
-    function failedBotIds(group: CommandResultGroup): number[] {
-        return group.results
-            .filter((r) => r.result !== CommsResult.SUCCESS)
-            .map((r) => r.orig_command?.bot_id)
-            .filter((id): id is number => id != null);
-    }
 
     return (
         <div className="node-details">
@@ -202,9 +196,9 @@ export default function FleetDetails() {
                                                 </td>
                                                 <td className="cmd-result">
                                                     <div>{groupSummary(group)}</div>
-                                                    {failedBotIds(group).length > 0 && (
+                                                    {group.failedBotIDs.length > 0 && (
                                                         <div className="failed-bots">
-                                                            Failed: Bot {failedBotIds(group).join(", Bot ")}
+                                                            Failed: Bot {group.failedBotIDs.join(", Bot ")}
                                                         </div>
                                                     )}
                                                 </td>

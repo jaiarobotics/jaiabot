@@ -6,7 +6,6 @@ import {
     PortalBotStatus,
     PortalHubStatus,
     CommandTrackingSnapshot,
-    CommandCommsResult,
 } from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
@@ -68,11 +67,7 @@ export async function pollStatus() {
             const json = await response.json();
             updateBots(json.bots);
             updateHubs(json.hubs);
-            updateJaiaGlobal(
-                json.controllingClientId,
-                json.command_tracking,
-                json.command_comms_results,
-            );
+            updateJaiaGlobal(json.controllingClientId, json.command_tracking);
             updateOpenLayers();
             if (json.messages.error && json.messages.error === HUB_CONNECTION_ERROR) {
                 updateWarning(CONNECTION_WARNING, true);
@@ -242,11 +237,11 @@ function updateHubs(hubStatuses: { [hubId: string]: PortalHubStatus }) {
 function updateJaiaGlobal(
     controllingClientID: string,
     commandTracking?: CommandTrackingSnapshot,
-    commandCommsResults?: CommandCommsResult[],
 ) {
+    const tracking = commandTracking ?? { commands: [], rollups: [] };
     jaiaGlobal.setControllingClientID(controllingClientID);
-    jaiaGlobal.setCommandTracking(commandTracking ?? { commands: [], rollups: [] });
-    fleet.setCommandCommsResults(commandCommsResults ?? []);
+    jaiaGlobal.setCommandTracking(tracking);
+    fleet.setCommandTracking(tracking);
 }
 
 /**

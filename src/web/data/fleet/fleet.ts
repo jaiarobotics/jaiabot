@@ -1,32 +1,23 @@
 import { HealthState } from "../../types/protobuf-types";
-import { CommandCommsResult } from "../../shared/PortalStatus";
+import { CommandTrackingSnapshot } from "../../shared/PortalStatus";
 
-export enum CommsResult {
-    SUCCESS = "SUCCESS",
-    FAILURE = "FAILURE",
-}
-
-const FLEET_COMMAND_GROUP_WINDOW_MS = 3_000;
 const MAX_COMMAND_GROUPS = 50;
 
 export interface CommandResultGroup {
+    key: string;
     commandType: string;
     timestamp: number;
-    results: CommandCommsResult[];
     successCount: number;
     failureCount: number;
     totalBots: number;
+    failedBotIDs: number[];
 }
 
 export class Fleet {
-    private commandCommsResults: CommandCommsResult[] = [];
+    private commandTracking: CommandTrackingSnapshot = { commands: [], rollups: [] };
 
-    getCommandCommsResults(): CommandCommsResult[] {
-        return this.commandCommsResults;
-    }
-
-    setCommandCommsResults(results: CommandCommsResult[]) {
-        this.commandCommsResults = results ?? [];
+    setCommandTracking(commandTracking?: CommandTrackingSnapshot) {
+        this.commandTracking = commandTracking ?? { commands: [], rollups: [] };
     }
 
     computeWorstHealthState(healthStates: HealthState[]): HealthState {
@@ -40,127 +31,34 @@ export class Fleet {
     }
 
     getCommandResultGroups(): CommandResultGroup[] {
-        const groups: CommandResultGroup[] = [];
-        const seenKeys = new Set<string>();
-
-        for (const result of this.commandCommsResults) {
-            const commandType = result.orig_command?.type ?? "UNKNOWN";
-            const botId = result.orig_command?.bot_id;
-            const commandTime =
-                result.orig_command?.time != null ? result.orig_command.time / 1000 : Date.now();
-
-            const dedupKey = `${botId}_${result.orig_command?.time}`;
-            if (seenKeys.has(dedupKey)) {
-                continue;
-            }
-            seenKeys.add(dedupKey);
-
-            const existingGroup = groups.find(
-                (g) =>
-                    g.commandType === commandType &&
-                    Math.abs(g.timestamp - commandTime) <= FLEET_COMMAND_GROUP_WINDOW_MS &&
-                    !g.results.some((r) => r.orig_command?.bot_id === botId),
-            );
-
-            if (existingGroup) {
-                existingGroup.results.push(result);
-                if (result.result === CommsResult.SUCCESS) {
-                    existingGroup.successCount++;
-                } else if (result.result === CommsResult.FAILURE) {
-                    existingGroup.failureCount++;
-                }
-                existingGroup.totalBots = existingGroup.results.length;
-            } else {
-                groups.push({
-                    commandType,
-                    timestamp: commandTime,
-                    results: [result],
-                    successCount: result.result === CommsResult.SUCCESS ? 1 : 0,
-                    failureCount: result.result === CommsResult.FAILURE ? 1 : 0,
-                    totalBots: 1,
-                });
-            }
-        }
-
-        groups.sort((a, b) => b.timestamp - a.timestamp);
-
-        const dedupedGroups: CommandResultGroup[] = [];
-        const dedupeWindowMs = 10_000;
-        for (const group of groups) {
-            const botSignature = Array.from(
-                new Set(
-                    group.results
-                        .map((result) => result.orig_command?.bot_id)
-                        .filter((botID): botID is number => botID != null),
-                ),
-            )
-                .sort((a, b) => a - b)
-                .join(",");
-
-            const duplicate = dedupedGroups.find((existing) => {
-                const existingBotSignature = Array.from(
+        const groups = this.commandTracking.rollups
+            .map((rollup) => {
+                const failedBotIDs = Array.from(
                     new Set(
-                        existing.results
-                            .map((result) => result.orig_command?.bot_id)
-                            .filter((botID): botID is number => botID != null),
+                        this.commandTracking.commands
+                            .filter(
+                                (command) =>
+                                    command.group_id === rollup.group_id &&
+                                    command.ack_result === "FAILURE" &&
+                                    command.bot_id != null,
+                            )
+                            .map((command) => command.bot_id),
                     ),
-                )
-                    .sort((a, b) => a - b)
-                    .join(",");
+                ).sort((a, b) => a - b);
 
-                return (
-                    existing.commandType === group.commandType &&
-                    existingBotSignature === botSignature &&
-                    existing.successCount === group.successCount &&
-                    existing.failureCount === group.failureCount &&
-                    Math.abs(existing.timestamp - group.timestamp) <= dedupeWindowMs
-                );
-            });
+                return {
+                    key: rollup.group_id,
+                    commandType: rollup.command_type,
+                    timestamp: rollup.sent_time,
+                    successCount: rollup.ack_success,
+                    failureCount: rollup.ack_failure,
+                    totalBots: rollup.total_targets,
+                    failedBotIDs,
+                };
+            })
+            .sort((a, b) => b.timestamp - a.timestamp);
 
-            if (!duplicate) {
-                dedupedGroups.push(group);
-            }
-        }
-
-
-        const stableGroups = dedupedGroups.filter((group) => {
-            if (group.totalBots > 1) {
-                return true;
-            }
-
-            const groupBots = new Set(
-                group.results
-                    .map((result) => result.orig_command?.bot_id)
-                    .filter((botID): botID is number => botID != null),
-            );
-
-            return !dedupedGroups.some((other) => {
-                if (
-                    other === group ||
-                    other.commandType !== group.commandType ||
-                    other.totalBots <= group.totalBots ||
-                    Math.abs(other.timestamp - group.timestamp) > dedupeWindowMs
-                ) {
-                    return false;
-                }
-
-                const otherBots = new Set(
-                    other.results
-                        .map((result) => result.orig_command?.bot_id)
-                        .filter((botID): botID is number => botID != null),
-                );
-
-                for (const botID of groupBots) {
-                    if (!otherBots.has(botID)) {
-                        return false;
-                    }
-                }
-
-                return true;
-            });
-        });
-
-        return stableGroups.slice(0, MAX_COMMAND_GROUPS);
+        return groups.slice(0, MAX_COMMAND_GROUPS);
     }
 }
 
