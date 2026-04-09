@@ -211,7 +211,7 @@ export default function FleetDetails() {
                                                     {idx + 1}
                                                 </td>
                                                 <td className="cmd-type">
-                                                    {group.commandType}
+                                                    {group.commandType.replace(/_/g, " ")}
                                                 </td>
                                                 <td className="cmd-result">
                                                     <div>{groupSummary(group)}</div>

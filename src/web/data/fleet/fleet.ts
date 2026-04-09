@@ -2,7 +2,7 @@ import { HealthState } from "../../types/protobuf-types";
 import { CommandCommsResult, CommsResult } from "../../shared/JAIAProtobuf";
 
 // Groups command comms results that arrived within this window (ms) with the same command type
-const FLEET_COMMAND_GROUP_WINDOW_MS = 15_000;
+const FLEET_COMMAND_GROUP_WINDOW_MS = 3_000;
 const MAX_COMMAND_GROUPS = 50;
 
 export interface CommandResultGroup {
@@ -54,27 +54,24 @@ export class Fleet {
             const commandTime =
                 result.orig_command?.time != null ? result.orig_command.time / 1000 : Date.now();
 
-            // Try to add to an existing group within the time window
+            // Try to add to an existing group within the time window that doesn't already
+            // contain this bot. If this bot is already in every matching group (i.e., it's a
+            // second batch of the same command type), a new group will be created below.
             const existingGroup = groups.find(
                 (g) =>
                     g.commandType === commandType &&
-                    Math.abs(g.timestamp - commandTime) <= FLEET_COMMAND_GROUP_WINDOW_MS,
+                    Math.abs(g.timestamp - commandTime) <= FLEET_COMMAND_GROUP_WINDOW_MS &&
+                    !g.results.some((r) => r.orig_command?.bot_id === botId),
             );
 
             if (existingGroup) {
-                // Avoid double-counting the same bot in the same group
-                const alreadyHasBot = existingGroup.results.some(
-                    (r) => r.orig_command?.bot_id === botId,
-                );
-                if (!alreadyHasBot) {
-                    existingGroup.results.push(result);
-                    if (result.result === CommsResult.SUCCESS) {
-                        existingGroup.successCount++;
-                    } else {
-                        existingGroup.failureCount++;
-                    }
-                    existingGroup.totalBots = existingGroup.results.length;
+                existingGroup.results.push(result);
+                if (result.result === CommsResult.SUCCESS) {
+                    existingGroup.successCount++;
+                } else {
+                    existingGroup.failureCount++;
                 }
+                existingGroup.totalBots = existingGroup.results.length;
             } else {
                 groups.push({
                     commandType,
