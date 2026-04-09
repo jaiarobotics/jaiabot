@@ -107,7 +107,7 @@ export default function FleetDetails() {
      */
     function formatLink(link?: string): string {
         if (!link) return "Unknown";
-        return link.replace("LINK_", "");
+        return link.startsWith("LINK_") ? link.slice(5) : link;
     }
 
     /**
