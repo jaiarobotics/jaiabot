@@ -96,13 +96,6 @@ export default function FleetDetails() {
     const commandGroups = fleet.getCommandResultGroups();
 
     /**
-     * Formats a timestamp (ms) as a local time string
-     */
-    function formatTime(timestampMs: number): string {
-        return new Date(timestampMs).toLocaleTimeString();
-    }
-
-    /**
      * Returns a summary string for a command result group
      */
     function groupSummary(group: CommandResultGroup): string {
@@ -203,7 +196,7 @@ export default function FleetDetails() {
                                 <table className="command-ack-table">
                                     <thead>
                                         <tr>
-                                            <th>Time</th>
+                                            <th>#</th>
                                             <th>Command</th>
                                             <th>Acks</th>
                                         </tr>
@@ -214,8 +207,8 @@ export default function FleetDetails() {
                                                 key={idx}
                                                 className={group.failureCount > 0 ? "row-has-failure" : "row-all-success"}
                                             >
-                                                <td className="cmd-time">
-                                                    {formatTime(group.timestamp)}
+                                                <td className="cmd-counter">
+                                                    {idx + 1}
                                                 </td>
                                                 <td className="cmd-type">
                                                     {group.commandType}
