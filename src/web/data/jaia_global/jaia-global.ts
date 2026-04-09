@@ -8,6 +8,7 @@ import {
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
 import { Metadata, Version } from "../../types/protobuf-types";
+import { CommandTrackingSnapshot } from "../../shared/PortalStatus";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 export interface JaiaGlobalSnapshot {
@@ -54,6 +55,7 @@ export class JaiaGlobal {
     private gitHubVersion: Version;
     private isUpgradeAvailable: boolean;
     private isConnectedToInternet: boolean;
+    private commandTracking: CommandTrackingSnapshot;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
@@ -73,6 +75,7 @@ export class JaiaGlobal {
         this.gitHubVersion = defaultGitHubVersion;
         this.isUpgradeAvailable = false;
         this.isConnectedToInternet = false;
+        this.commandTracking = { commands: [], rollups: [] };
     }
 
     getSelectedNode() {
@@ -162,6 +165,14 @@ export class JaiaGlobal {
         this.isConnectedToInternet = isConnectedToInternet;
     }
 
+
+    getCommandTracking() {
+        return this.commandTracking;
+    }
+
+    setCommandTracking(commandTracking: CommandTrackingSnapshot) {
+        this.commandTracking = commandTracking;
+    }
     resetSelectedWaypoint() {
         this.selectedWaypoint = {
             waypointNum: UNASSIGNED_ID,

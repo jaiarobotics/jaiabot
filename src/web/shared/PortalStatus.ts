@@ -16,6 +16,8 @@ export interface PodStatus {
     bots: { [key: string]: PortalBotStatus };
     contacts: { [key: string]: ContactStatus };
     controllingClientId: string;
+    command_tracking?: CommandTrackingSnapshot;
+    command_comms_results?: CommandCommsResult[];
 }
 
 export interface Version {
@@ -39,4 +41,45 @@ export interface Metadata {
 
 export function isRemoteControlled(mission_state?: MissionState) {
     return mission_state?.includes("REMOTE_CONTROL") || false;
+}
+
+
+export interface CommandTrackingEntry {
+    command_key: string;
+    group_id: string;
+    bot_id: number;
+    command_type: string;
+    command_time: number;
+    sent_time: number;
+    client_id?: string;
+    acked: boolean;
+    ack_result?: string;
+    ack_link?: string;
+    updated_time?: number;
+}
+
+export interface CommandTrackingRollup {
+    group_id: string;
+    command_type: string;
+    sent_time: number;
+    total_targets: number;
+    ack_success: number;
+    ack_failure: number;
+    pending: number;
+}
+
+export interface CommandTrackingSnapshot {
+    commands: CommandTrackingEntry[];
+    rollups: CommandTrackingRollup[];
+}
+
+
+export interface CommandCommsResult {
+    result?: string;
+    link?: string;
+    orig_command?: {
+        bot_id?: number;
+        time?: number;
+        type?: string;
+    };
 }

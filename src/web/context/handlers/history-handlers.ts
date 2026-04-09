@@ -97,6 +97,7 @@ function captureContextData(context: JaiaContextType) {
         hubAccordionStates: context.hubAccordionStates,
         botAccordionStates: context.botAccordionStates,
         mapLayerAccordionStates: context.mapLayerAccordionStates,
+        fleetAccordionStates: context.fleetAccordionStates,
         missionAccordionStates: context.missionAccordionStates,
     };
     return cloneDeep(snapshot);
@@ -116,5 +117,6 @@ function restoreCotextData(mutableState: JaiaContextType, snapshot: JaiaContextD
     mutableState.hubAccordionStates = restored.hubAccordionStates;
     mutableState.botAccordionStates = restored.botAccordionStates;
     mutableState.mapLayerAccordionStates = restored.mapLayerAccordionStates;
+    mutableState.fleetAccordionStates = restored.fleetAccordionStates;
     mutableState.missionAccordionStates = restored.missionAccordionStates;
 }

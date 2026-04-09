@@ -55,12 +55,13 @@ test("Verify all nodes are displayed correctly", () => {
         .getAllByRole("generic")
         .filter((el) => el.classList.contains("node-item"));
 
-    expect(nodeItems).toHaveLength(4);
+    expect(nodeItems).toHaveLength(5);
 
     // Hub textContent is now "HUB1" (hub-text "HUB" + hub-number "1" concatenated)
-    expect(nodeItems.map((div) => div.textContent)).toEqual(["HUB1", "1", "2", "5"]);
+    expect(nodeItems.map((div) => div.textContent)).toEqual(["FLEET1", "HUB1", "1", "2", "5"]);
 
     expect(nodeItems.map((div) => div.className)).toEqual([
+        "node-item fleet-item faultLevel1  ",
         "node-item hub-item faultLevel0  ",
         "node-item bot-item faultLevel0  ",
         "node-item bot-item faultLevel1  ",
@@ -76,22 +77,22 @@ test("Verify node selection updates style", async () => {
         .getAllByRole("generic")
         .filter((el) => el.classList.contains("node-item"));
 
-    expect(nodeItems).toHaveLength(4);
+    expect(nodeItems).toHaveLength(5);
 
     // Verify nothing is selected
     expect(nodeItems.map((div) => div.className)).not.toContain("selected");
 
-    // Select the Hub and verify it is selected
+    // Select the Fleet and verify it is selected
     await userEvent.click(nodeItems[0]);
     expect(nodeItems[0].className).toContain("selected");
 
     // Select a Bot and verify selection changed
-    await userEvent.click(nodeItems[3]);
-    expect(nodeItems[3].className).toContain("selected");
+    await userEvent.click(nodeItems[4]);
+    expect(nodeItems[4].className).toContain("selected");
     expect(nodeItems[0].className).not.toContain("selected");
 
     // Deselect the Bot and verify nothing is selected
-    await userEvent.click(nodeItems[3]);
+    await userEvent.click(nodeItems[4]);
     expect(nodeItems.map((div) => div.className)).not.toContain("selected");
 });
 
@@ -105,11 +106,12 @@ test("Nodes should be displayed in correct order (Hub first, then Bots sorted by
 
     const textContent = nodeItems.map((div) => div.textContent);
 
-    // Hub now renders "HUB" + hub ID concatenated via child spans
-    expect(textContent[0]).toBe("HUB1");
+    // Fleet and Hub labels should lead the list
+    expect(textContent[0]).toBe("FLEET1");
+    expect(textContent[1]).toBe("HUB1");
 
     // Check that Bot IDs are in ascending order
-    const botTexts = textContent.slice(1); // Remove the hub
+    const botTexts = textContent.slice(2); // Remove fleet and hub
     const botIDs = botTexts.map((text) => Number(text));
     const sortedBotIds = [...botIDs].sort((a, b) => a - b);
 
