@@ -31,6 +31,7 @@ COMMAND_GROUP_WINDOW_UTIME = 2_000_000
 MAX_COMMAND_TRACKING_ENTRIES = 500
 MAX_COMMAND_COMMS_RESULTS = 1000
 MAX_COMMAND_ROLLUPS = 500
+COMMAND_ACK_MATCH_WINDOW_UTIME = 10_000_000
 
 
 def protobufMessageToDict(message):
@@ -548,6 +549,29 @@ class Interface:
             oldest_key = min(self.command_tracking, key=lambda key: self.command_tracking[key]['sent_time'])
             del self.command_tracking[oldest_key]
 
+
+    def find_command_tracking_entry(self, command_type, command_time, bot_id):
+        command_key = f"{int(command_time)}:{command_type}:{int(bot_id)}"
+        entry = self.command_tracking.get(command_key)
+        if entry is not None:
+            return entry
+
+        candidate_entries = []
+        for tracked_entry in self.command_tracking.values():
+            if (
+                tracked_entry.get('bot_id') == int(bot_id)
+                and tracked_entry.get('command_type') == command_type
+            ):
+                time_delta = abs(int(tracked_entry.get('command_time', 0)) - int(command_time))
+                if time_delta <= COMMAND_ACK_MATCH_WINDOW_UTIME:
+                    candidate_entries.append((time_delta, tracked_entry))
+
+        if not candidate_entries:
+            return None
+
+        candidate_entries.sort(key=lambda item: item[0])
+        return candidate_entries[0][1]
+
     def track_command_comms_result(self, command_comms_result):
         result_dict = protobufMessageToDict(command_comms_result)
         self.command_comms_results.insert(0, result_dict)
@@ -565,9 +589,7 @@ class Interface:
         if isinstance(command_type, int):
             command_type = Command.CommandType.Name(command_type)
 
-        command_key = f"{int(command_time)}:{command_type}:{int(bot_id)}"
-
-        entry = self.command_tracking.get(command_key)
+        entry = self.find_command_tracking_entry(command_type, command_time, bot_id)
         if entry is None:
             return
 
