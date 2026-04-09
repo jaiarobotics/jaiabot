@@ -22,8 +22,6 @@ export interface PortalBotStatus extends BotStatus {
 }
 
 export interface PortalHubStatus extends HubStatus {
-    active_link?: Link[];
-    active_link_status_age?: LinkStatusAges;
     portalStatusAge: number;
 }
 

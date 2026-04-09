@@ -19,7 +19,6 @@ import { saveHistory } from "./history-handlers";
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
-    commLinks: false,
     links: false,
 };
 

@@ -213,12 +213,6 @@ class Interface:
                 hubStatus['lastStatusReceivedTime'] = now_utime()
 
                 hub_id = hubStatus['hub_id']
-                prior_hub_status = self.hubs.get(hub_id)
-                if prior_hub_status and 'activeLinkLastStatusReceivedTimes' in prior_hub_status:
-                    hubStatus['activeLinkLastStatusReceivedTimes'] = prior_hub_status[
-                        'activeLinkLastStatusReceivedTimes'
-                    ]
-                self.update_active_link_received_times(hubStatus)
                 self.hubs[hub_id] = hubStatus
 
             if msg.HasField('task_packet'):
@@ -439,7 +433,6 @@ class Interface:
         for hub in self.hubs.values():
             # Add the time since last status
             hub['portalStatusAge'] = now_utime() - hub['lastStatusReceivedTime']
-            self.update_active_link_status_ages(hub)
 
 
         for bot in self.bots.values():
@@ -475,7 +468,6 @@ class Interface:
             # Add the time since last status
             if not 'portalStatusAge' in hub:
                 hub['portalStatusAge'] = now_utime() - hub['lastStatusReceivedTime']
-            self.update_active_link_status_ages(hub)
         
         return self.hubs
 

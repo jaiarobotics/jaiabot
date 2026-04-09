@@ -6,7 +6,6 @@ import {
     LinuxHardwareStatus,
     Warning,
 } from "../../types/protobuf-types";
-import { Link } from "../../shared/JAIAProtobuf";
 import HubSensors from "./hub-sensors";
 
 export default class Hub {
@@ -20,8 +19,6 @@ export default class Hub {
     private linuxHardwareStatus: LinuxHardwareStatus;
     private botOffload: BotOffloadData;
     private statusAge: number;
-    private activeLinks: Link[];
-    private activeLinkStatusAges: { [link: string]: number };
 
     constructor() {
         // Init base sensors
@@ -102,21 +99,5 @@ export default class Hub {
 
     setStatusAge(statusAge: number) {
         this.statusAge = statusAge;
-    }
-
-    getActiveLinks() {
-        return this.activeLinks ?? [];
-    }
-
-    setActiveLinks(activeLinks: Link[]) {
-        this.activeLinks = activeLinks;
-    }
-
-    getActiveLinkStatusAges() {
-        return this.activeLinkStatusAges ?? {};
-    }
-
-    setActiveLinkStatusAges(activeLinkStatusAges: { [link: string]: number }) {
-        this.activeLinkStatusAges = activeLinkStatusAges;
     }
 }

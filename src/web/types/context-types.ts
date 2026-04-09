@@ -99,14 +99,12 @@ export interface JaiaAction {
 export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",
     COMMANDS = "commands",
-    COMM_LINKS = "commLinks",
     LINKS = "links",
 }
 
 export interface HubAccordionStates {
     quickLook: boolean;
     commands: boolean;
-    commLinks: boolean;
     links: boolean;
 }
 

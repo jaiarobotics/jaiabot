@@ -24,9 +24,6 @@ export function handleClickedHubAccordion(mutableState: JaiaContextType, action:
         case HubAccordionNames.COMMANDS:
             hubAccordionStates.commands = !hubAccordionStates.commands;
             break;
-        case HubAccordionNames.COMM_LINKS:
-            hubAccordionStates.commLinks = !hubAccordionStates.commLinks;
-            break;
         case HubAccordionNames.LINKS:
             hubAccordionStates.links = !hubAccordionStates.links;
             break;

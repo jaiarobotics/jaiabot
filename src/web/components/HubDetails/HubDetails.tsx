@@ -93,10 +93,6 @@ export default function HubDetails() {
         return "";
     }
 
-    function formatLinkName(link: string) {
-        return link.replace("LINK_", "").replaceAll("_", " ");
-    }
-
     /**
      * Provides the hub CPU load average for 1, 5, and 15 min intervals
      *
@@ -252,54 +248,6 @@ export default function HubDetails() {
                             <SystemButton node={hub} type={SystemButtonTypes.SHUTDOWN} />
                             <SystemButton node={hub} type={SystemButtonTypes.REBOOT} />
                             <SystemButton node={hub} type={SystemButtonTypes.RESTART_SERVICES} />
-                        </AccordionDetails>
-                    </Accordion>
-                </ThemeProvider>
-
-                <ThemeProvider theme={accordionTheme}>
-                    <Accordion
-                        expanded={jaiaContext.hubAccordionStates.commLinks}
-                        onChange={() => {
-                            handleAccordionClick(HubAccordionNames.COMM_LINKS);
-                        }}
-                        className="accordion-container"
-                    >
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}
-                            className="accordion-summary"
-                        >
-                            <Typography>Comm Links</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <table>
-                                <tbody>
-                                    {hub.getActiveLinks().length > 0 ? (
-                                        hub.getActiveLinks().map((link: string) => {
-                                            const statusAge =
-                                                hub.getActiveLinkStatusAges()[link] ?? -1;
-
-                                            return (
-                                                <tr
-                                                    key={link}
-                                                    className={getStatusAgeClassName(statusAge)}
-                                                >
-                                                    <td>{formatLinkName(link)}</td>
-                                                    <td>
-                                                        {statusAge >= 0
-                                                            ? `${convertMicrosecondsToSeconds(statusAge).toFixed(1)} s`
-                                                            : "N/A"}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    ) : (
-                                        <tr>
-                                            <td>No active links</td>
-                                            <td>N/A</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>
