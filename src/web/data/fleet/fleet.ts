@@ -44,15 +44,31 @@ export class Fleet {
     /**
      * Groups command comms results by command type and time proximity, returning
      * an array of summarized groups sorted newest-first.
+     *
+     * The hub firmware emits one CommandCommsResult per radio link that carries the
+     * ack (XBee, WiFi, Iridium, …).  We deduplicate by (bot_id, orig_command.time)
+     * before grouping so that a single command acknowledged on multiple links is only
+     * counted once.
      */
     getCommandResultGroups(): CommandResultGroup[] {
         const groups: CommandResultGroup[] = [];
+
+        // Track (bot_id, command_time) pairs we have already counted so that acks
+        // arriving on multiple radio links for the same command are deduplicated.
+        const seenKeys = new Set<string>();
 
         for (const result of this.commandCommsResults) {
             const commandType = result.orig_command?.type ?? "UNKNOWN";
             const botId = result.orig_command?.bot_id;
             const commandTime =
                 result.orig_command?.time != null ? result.orig_command.time / 1000 : Date.now();
+
+            // Skip if we've already counted an ack for this exact (bot, command) pair.
+            const dedupKey = `${botId}_${result.orig_command?.time}`;
+            if (seenKeys.has(dedupKey)) {
+                continue;
+            }
+            seenKeys.add(dedupKey);
 
             // Try to add to an existing group within the time window that doesn't already
             // contain this bot. If this bot is already in every matching group (i.e., it's a
