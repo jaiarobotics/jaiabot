@@ -2,7 +2,11 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
-import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
+import {
+    PortalBotStatus,
+    PortalHubStatus,
+    CommandTrackingSnapshot,
+} from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { ghostMissionLayer, missionLayer } from "../openlayers/layers/vector/mission-layer";
@@ -62,7 +66,7 @@ export async function pollStatus() {
             const json = await response.json();
             updateBots(json.bots);
             updateHubs(json.hubs);
-            updateJaiaGlobal(json.controllingClientId);
+            updateJaiaGlobal(json.controllingClientId, json.command_tracking);
             updateOpenLayers();
             if (json.messages.error && json.messages.error === HUB_CONNECTION_ERROR) {
                 updateWarning(CONNECTION_WARNING, true);
@@ -229,8 +233,14 @@ function updateHubs(hubStatuses: { [hubId: string]: PortalHubStatus }) {
  * @param {string} controllingClientID ID from the server
  * @returns {void}
  */
-function updateJaiaGlobal(controllingClientID: string) {
+function updateJaiaGlobal(
+    controllingClientID: string,
+    commandTracking?: CommandTrackingSnapshot,
+) {
     jaiaGlobal.setControllingClientID(controllingClientID);
+    if (commandTracking) {
+        jaiaGlobal.setCommandTracking(commandTracking);
+    }
 }
 
 /**

@@ -12,6 +12,7 @@ import NodeList from "../components/NodeList/NodeList";
 import JaiaAbout from "../components/JaiaAbout/JaiaAbout";
 import HubDetails from "../components/HubDetails/HubDetails";
 import BotDetails from "../components/BotDetails/BotDetails";
+import FleetDetails from "../components/FleetDetails/FleetDetails";
 import ButtonList from "../components/ButtonList/ButtonList";
 import HelpWindow from "../components/HelpWindow/HelpWindow";
 import RallyPanel from "../components/RallyPanel/RallyPanel";
@@ -93,6 +94,8 @@ function Details() {
             return <HubDetails />;
         case NodeTypes.BOT:
             return <BotDetails />;
+        case NodeTypes.FLEET:
+            return <FleetDetails />;
         default:
             return;
     }

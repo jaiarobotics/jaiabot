@@ -11,7 +11,7 @@ import { CLOUD_HUB_ID } from "../../utils/constants";
 import "./NodeList.less";
 
 /**
- * Displays the Hub and Bot tabs on the left side of the JCC
+ * Displays the Fleet, Hub, and Bot tabs on the left side of the JCC
  */
 export default function NodeList() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
@@ -24,12 +24,28 @@ export default function NodeList() {
     const hubs = Array.from(jaiaContext.hubs.getHubs().values());
     const bots = Array.from(jaiaContext.bots.getBots().values());
 
+    const fleetID = hubs[0]?.getFleetID() ?? 1;
+
+    const allHealthStates = [
+        ...hubs.map((hub) => hub.getHealthState()),
+        ...bots.map((bot) => bot.getHealthState()),
+    ].filter((healthState) => healthState !== undefined);
+
+    const fleetHealthState =
+        allHealthStates.length === 0
+            ? HealthState.HEALTH__OK
+            : allHealthStates.reduce((maxState, state) =>
+                  state > maxState ? state : maxState,
+              );
+
+    const fleetStatusAge = Math.max(
+        0,
+        ...hubs.map((hub) => hub.getStatusAge()),
+        ...bots.map((bot) => bot.getStatusAge()),
+    );
+
     /**
      * Dispatches the CLICKED_NODE action to JaiaContext for further handling
-     *
-     * @param {NodeTypes} nodeType Indicates Bot or Hub
-     * @param {number} nodeID Provides Bot or Hub ID
-     * @returns {void}
      */
     const handleClick = (nodeType: NodeTypes, nodeID: number) => {
         JaiaDispatch({
@@ -38,16 +54,6 @@ export default function NodeList() {
         });
     };
 
-    /**
-     * Creates the class name that applies the correct style to a node item
-     * based on type, selection, and health
-     *
-     * @param {NodeTypes} nodeType Indicates Bot or Hub
-     * @param {number} nodeID Provides ID of Bot or Hub
-     * @param {HealthState} healthState Determines color of node item
-     * @param {number} statusAge Indicates comms with the node (microsecodns)
-     * @returns {string} Class name that sets correct style
-     */
     function getClassName(
         nodeType: NodeTypes,
         nodeID: number,
@@ -61,7 +67,12 @@ export default function NodeList() {
             [HealthState.HEALTH__FAILED, 2],
         ]);
 
-        const nodeTypeClass = nodeType === NodeTypes.BOT ? "bot-item" : "hub-item";
+        const nodeTypeClass =
+            nodeType === NodeTypes.BOT
+                ? "bot-item"
+                : nodeType === NodeTypes.HUB
+                  ? "hub-item"
+                  : "fleet-item";
         const faultLevelClass = "faultLevel" + faultLevel.get(healthState);
         const selectedNode = jaiaContext.jaiaGlobal.getSelectedNode();
         const selectedClass =
@@ -78,6 +89,16 @@ export default function NodeList() {
 
     return (
         <div id="nodeList" data-testid="nodeList">
+            <div
+                key={`fleet-${fleetID}`}
+                onClick={() => handleClick(NodeTypes.FLEET, fleetID)}
+                className={getClassName(NodeTypes.FLEET, fleetID, fleetHealthState, fleetStatusAge)}
+            >
+                <div className="fleet-label">
+                    <span className="fleet-text">FLEET</span>
+                    <span className="fleet-number">{fleetID}</span>
+                </div>
+            </div>
             {hubs.map((hub) => (
                 <div
                     key={`hub-${hub.getHubID()}`}
