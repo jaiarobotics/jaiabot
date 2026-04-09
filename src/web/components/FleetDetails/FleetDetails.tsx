@@ -97,7 +97,7 @@ export default function FleetDetails() {
 
     function failedBotIds(group: CommandResultGroup): number[] {
         return group.results
-            .filter((r) => r.ack_result !== CommsResult.SUCCESS)
+            .filter((r) => r.result !== CommsResult.SUCCESS)
             .map((r) => r.orig_command?.bot_id)
             .filter((id): id is number => id != null);
     }
