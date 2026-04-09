@@ -189,6 +189,17 @@ class Interface:
                 bot_id = botStatus['bot_id']
                 prior_bot_status = self.bots.get(bot_id)
                 if self.is_stale_status(prior_bot_status, botStatus):
+                    # Do not replace core bot state with stale data, but still mark
+                    # the reporting link as recently heard-from for Comm Links age.
+                    reporting_link = botStatus.get('link')
+                    if prior_bot_status and reporting_link is not None:
+                        if 'activeLinkLastStatusReceivedTimes' not in prior_bot_status:
+                            prior_bot_status['activeLinkLastStatusReceivedTimes'] = {}
+                        prior_bot_status['activeLinkLastStatusReceivedTimes'][reporting_link] = now_utime()
+                        if 'active_link' not in prior_bot_status:
+                            prior_bot_status['active_link'] = []
+                        if reporting_link not in prior_bot_status['active_link']:
+                            prior_bot_status['active_link'].append(reporting_link)
                     logging.warning(f'Ignoring stale bot status for bot {bot_id}: time={botStatus.get("time")} < stored={prior_bot_status.get("time")}')
                 else:
                     # Set the time of last status to now
