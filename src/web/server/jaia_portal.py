@@ -115,6 +115,55 @@ class Interface:
             except socket.timeout:
                 self.ping_portal()
 
+    def update_active_link_received_times(self, status: dict):
+        """Updates per-link last-received times for active links in a status dict."""
+        if 'active_link' not in status:
+            return
+
+        active_links = status.get('active_link', [])
+        if 'activeLinkLastStatusReceivedTimes' not in status:
+            status['activeLinkLastStatusReceivedTimes'] = {}
+
+        last_received = status['activeLinkLastStatusReceivedTimes']
+        now = now_utime()
+        reporting_link = status.get('link')
+
+        # Stamp only the link that delivered this status message.
+        if reporting_link is not None:
+            last_received[reporting_link] = now
+            return
+
+        # If no explicit reporting link is present but there is exactly one active link,
+        # treat it as the reporting link.
+        if len(active_links) == 1:
+            last_received[active_links[0]] = now
+
+    def update_active_link_status_ages(self, status: dict):
+        """Calculates age in microseconds for each active link in a status dict."""
+        active_links = status.get('active_link', [])
+        last_received = status.get('activeLinkLastStatusReceivedTimes', {})
+        now = now_utime()
+
+        status['active_link_status_age'] = {
+            link: now - last_received[link] for link in active_links if link in last_received
+        }
+
+    def is_stale_status(self, prior_status: dict, new_status: dict):
+        """Returns True when incoming status is older than currently stored status."""
+        if not prior_status:
+            return False
+
+        prior_time = prior_status.get('time')
+        new_time = new_status.get('time')
+
+        if prior_time is None or new_time is None:
+            return False
+
+        try:
+            return int(new_time) < int(prior_time)
+        except (TypeError, ValueError):
+            return False
+
     def process_portal_to_client_message(self, data):
         if len(data) > 0:
 
@@ -135,12 +184,34 @@ class Interface:
 
             if msg.HasField('bot_status'):
                 botStatus = protobufMessageToDict(msg.bot_status)
-
-                # Set the time of last status to now
-                botStatus['lastStatusReceivedTime'] = now_utime()
+                accepted_bot_status = False
 
                 bot_id = botStatus['bot_id']
-                self.bots[bot_id] = botStatus
+                prior_bot_status = self.bots.get(bot_id)
+                if self.is_stale_status(prior_bot_status, botStatus):
+                    # Do not replace core bot state with stale data, but still mark
+                    # the reporting link as recently heard-from for Comm Links age.
+                    reporting_link = botStatus.get('link')
+                    if prior_bot_status and reporting_link is not None:
+                        if 'activeLinkLastStatusReceivedTimes' not in prior_bot_status:
+                            prior_bot_status['activeLinkLastStatusReceivedTimes'] = {}
+                        prior_bot_status['activeLinkLastStatusReceivedTimes'][reporting_link] = now_utime()
+                        if 'active_link' not in prior_bot_status:
+                            prior_bot_status['active_link'] = []
+                        if reporting_link not in prior_bot_status['active_link']:
+                            prior_bot_status['active_link'].append(reporting_link)
+                    logging.warning(f'Ignoring stale bot status for bot {bot_id}: time={botStatus.get("time")} < stored={prior_bot_status.get("time")}')
+                else:
+                    # Set the time of last status to now
+                    botStatus['lastStatusReceivedTime'] = now_utime()
+
+                    if prior_bot_status and 'activeLinkLastStatusReceivedTimes' in prior_bot_status:
+                        botStatus['activeLinkLastStatusReceivedTimes'] = prior_bot_status[
+                            'activeLinkLastStatusReceivedTimes'
+                        ]
+                    self.update_active_link_received_times(botStatus)
+                    self.bots[bot_id] = botStatus
+                    accepted_bot_status = True
 
                 # Add position to bot_paths
                 #if msg.bot_status.HasField('location'):
@@ -155,7 +226,7 @@ class Interface:
                 #    if msg.bot_status.time - last_bot_path_point_time >= BOT_PATH_UTIME_THRESHOLD:
                 #        bot_path.append(BotPathPoint(msg.bot_status.time, bot_location.lon, bot_location.lat))
 
-                if msg.HasField('active_mission_plan'):
+                if accepted_bot_status and msg.HasField('active_mission_plan'):
                     self.process_active_mission_plan(bot_id, msg.active_mission_plan)
 
             if msg.HasField('engineering_status'):
@@ -165,15 +236,19 @@ class Interface:
 
             if msg.HasField('hub_status'):
                 hubStatus = protobufMessageToDict(msg.hub_status)
+                hub_id = hubStatus['hub_id']
+                prior_hub_status = self.hubs.get(hub_id)
+                if self.is_stale_status(prior_hub_status, hubStatus):
+                    logging.warning(f'Ignoring stale hub status for hub {hub_id}: time={hubStatus.get("time")} < stored={prior_hub_status.get("time")}')
+                else:
+                    if 'bot_offload' in hubStatus:
+                        if hubStatus['bot_offload'].get('offload_succeeded') is True:
+                            self.task_packet_database._update()
 
-                if 'bot_offload' in hubStatus:
-                    if hubStatus['bot_offload'].get('offload_succeeded') is True:
-                        self.task_packet_database._update()
+                    # Set the time of last status to now
+                    hubStatus['lastStatusReceivedTime'] = now_utime()
 
-                # Set the time of last status to now
-                hubStatus['lastStatusReceivedTime'] = now_utime()
-
-                self.hubs[hubStatus['hub_id']] = hubStatus
+                    self.hubs[hub_id] = hubStatus
 
             if msg.HasField('task_packet'):
                 logging.info('Task packet received')
@@ -398,6 +473,7 @@ class Interface:
         for bot in self.bots.values():
             # Add the time since last status
             bot['portalStatusAge'] = now_utime() - bot['lastStatusReceivedTime']
+            self.update_active_link_status_ages(bot)
 
             if bot['bot_id'] in self.bots_engineering:
                 bot['engineering'] = self.bots_engineering[bot['bot_id']]
