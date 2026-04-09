@@ -158,6 +158,16 @@ export function getDistToWaypoint(missionStatus: MissionStatus) {
 }
 
 /**
+ * Formats a Link enum value for display by removing the 'LINK_' prefix
+ *
+ * @param {string} link The Link enum value (e.g. 'LINK_XBEE')
+ * @returns {string} The formatted link name (e.g. 'XBEE')
+ */
+export function formatLinkName(link: string): string {
+    return link.replace("LINK_", "");
+}
+
+/**
  * Loops through the ghost missions to check if a Bot is carrying out a mission
  *
  * @param {number} botID Bot of interest

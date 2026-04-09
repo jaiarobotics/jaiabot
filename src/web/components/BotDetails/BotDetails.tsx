@@ -29,6 +29,7 @@ import {
     getDistToWaypoint,
     isBotLogging,
     searchGhostMissions,
+    formatLinkName,
 } from "./bot-details";
 
 import { accordionTheme, addDropdownListener } from "../../utils/style";
@@ -511,7 +512,7 @@ export default function BotDetails() {
                                                         : "";
                                                 return (
                                                     <tr key={link} className={ageClassName}>
-                                                        <td>{String(link).replace("LINK_", "")}</td>
+                                                        <td>{formatLinkName(String(link))}</td>
                                                         <td>
                                                             {ageSeconds !== "N/A"
                                                                 ? `${ageSeconds} s`

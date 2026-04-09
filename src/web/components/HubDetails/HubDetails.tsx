@@ -13,6 +13,7 @@ import {
 } from "../../shared/Utilities";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 import { getIPPrefix } from "../../shared/IPPrefix";
+import { formatLinkName } from "../BotDetails/bot-details";
 import { HubAccordionNames } from "../../types/context-types";
 import { NodeTypes, SystemButtonTypes } from "../../types/jaia-system-types";
 import { CLOUD_HUB_ID } from "../../utils/constants";
@@ -312,7 +313,7 @@ export default function HubDetails() {
                                                     : "";
                                             return (
                                                 <tr key={link} className={ageClassName}>
-                                                 <td>{String(link).replace("LINK_", "")}</td>
+                                                 <td>{formatLinkName(String(link))}</td>
                                                     <td>
                                                         {ageSeconds !== "N/A"
                                                             ? `${ageSeconds} s`
