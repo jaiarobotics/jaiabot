@@ -126,8 +126,17 @@ class Interface:
 
         last_received = status['activeLinkLastStatusReceivedTimes']
         now = now_utime()
-        for link in active_links:
-            last_received[link] = now
+        reporting_link = status.get('link')
+
+        # Stamp only the link that delivered this status message.
+        if reporting_link is not None:
+            last_received[reporting_link] = now
+            return
+
+        # If no explicit reporting link is present but there is exactly one active link,
+        # treat it as the reporting link.
+        if len(active_links) == 1:
+            last_received[active_links[0]] = now
 
     def update_active_link_status_ages(self, status: dict):
         """Calculates age in microseconds for each active link in a status dict."""
