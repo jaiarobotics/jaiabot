@@ -122,7 +122,45 @@ export class Fleet {
             }
         }
 
-        return dedupedGroups.slice(0, MAX_COMMAND_GROUPS);
+
+        const stableGroups = dedupedGroups.filter((group) => {
+            if (group.totalBots > 1) {
+                return true;
+            }
+
+            const groupBots = new Set(
+                group.results
+                    .map((result) => result.orig_command?.bot_id)
+                    .filter((botID): botID is number => botID != null),
+            );
+
+            return !dedupedGroups.some((other) => {
+                if (
+                    other === group ||
+                    other.commandType !== group.commandType ||
+                    other.totalBots <= group.totalBots ||
+                    Math.abs(other.timestamp - group.timestamp) > dedupeWindowMs
+                ) {
+                    return false;
+                }
+
+                const otherBots = new Set(
+                    other.results
+                        .map((result) => result.orig_command?.bot_id)
+                        .filter((botID): botID is number => botID != null),
+                );
+
+                for (const botID of groupBots) {
+                    if (!otherBots.has(botID)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+        });
+
+        return stableGroups.slice(0, MAX_COMMAND_GROUPS);
     }
 }
 
