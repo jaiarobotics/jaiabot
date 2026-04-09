@@ -95,6 +95,18 @@ export class Hubs {
             hub.setStatusAge(hubStatus.portalStatusAge);
         }
 
+        if (hubStatus.active_link) {
+            hub.setActiveLinks(hubStatus.active_link);
+        } else {
+            hub.setActiveLinks([]);
+        }
+
+        if (hubStatus.active_link_status_age) {
+            hub.setActiveLinkStatusAges(hubStatus.active_link_status_age);
+        } else {
+            hub.setActiveLinkStatusAges({});
+        }
+
         if (hubStatus.linux_hardware_status) {
             hub.setLinuxHardwareStatus(hubStatus.linux_hardware_status);
         }

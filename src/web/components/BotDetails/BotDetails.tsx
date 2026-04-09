@@ -38,6 +38,7 @@ import {
     formatAttitudeAngle,
     convertMicrosecondsToSeconds,
 } from "../../shared/Utilities";
+import type { Link } from "../../shared/JAIAProtobuf";
 
 // MDI and MUI
 import { ThemeProvider } from "@mui/material";
@@ -93,6 +94,10 @@ export default function BotDetails() {
             type: JaiaActions.CLICKED_BOT_ACCORDION,
             botAccordionName: accordionName,
         });
+    }
+
+    function formatLinkName(link: string) {
+        return link.replace("LINK_", "").replaceAll("_", " ");
     }
 
     return (
@@ -213,6 +218,57 @@ export default function BotDetails() {
                                                     .toUpperCase()}
                                             </td>
                                         </tr>
+                                    </tbody>
+                                </table>
+                            </AccordionDetails>
+                        </Accordion>
+                    </ThemeProvider>
+
+                    <ThemeProvider theme={accordionTheme}>
+                        <Accordion
+                            expanded={jaiaContext.botAccordionStates.commLinks}
+                            onChange={() => {
+                                handleAccordionClick(BotAccordionNames.COMM_LINKS);
+                            }}
+                            className="accordion-container"
+                        >
+                            <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                className="accordion-summary"
+                            >
+                                <Typography>Comm Links</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <table>
+                                    <tbody>
+                                        {bot.getActiveLinks().length > 0 ? (
+                                            bot.getActiveLinks().map((link) => {
+                                                const statusAge =
+                                                    bot.getActiveLinkStatusAges()[link] ?? -1;
+
+                                                return (
+                                                    <tr
+                                                        key={link}
+                                                        className={getStatusAgeClassName(
+                                                            statusAge,
+                                                            link as Link,
+                                                        )}
+                                                    >
+                                                        <td>{formatLinkName(link)}</td>
+                                                        <td>
+                                                            {statusAge >= 0
+                                                                ? `${convertMicrosecondsToSeconds(statusAge).toFixed(1)} s`
+                                                                : "N/A"}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr>
+                                                <td>No active links</td>
+                                                <td>N/A</td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </AccordionDetails>

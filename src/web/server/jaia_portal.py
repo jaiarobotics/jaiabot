@@ -115,6 +115,30 @@ class Interface:
             except socket.timeout:
                 self.ping_portal()
 
+    def update_active_link_received_times(self, status: dict):
+        """Updates per-link last-received times for active links in a status dict."""
+        if 'active_link' not in status:
+            return
+
+        active_links = status.get('active_link', [])
+        if 'activeLinkLastStatusReceivedTimes' not in status:
+            status['activeLinkLastStatusReceivedTimes'] = {}
+
+        last_received = status['activeLinkLastStatusReceivedTimes']
+        now = now_utime()
+        for link in active_links:
+            last_received[link] = now
+
+    def update_active_link_status_ages(self, status: dict):
+        """Calculates age in microseconds for each active link in a status dict."""
+        active_links = status.get('active_link', [])
+        last_received = status.get('activeLinkLastStatusReceivedTimes', {})
+        now = now_utime()
+
+        status['active_link_status_age'] = {
+            link: now - last_received[link] for link in active_links if link in last_received
+        }
+
     def process_portal_to_client_message(self, data):
         if len(data) > 0:
 
@@ -140,6 +164,12 @@ class Interface:
                 botStatus['lastStatusReceivedTime'] = now_utime()
 
                 bot_id = botStatus['bot_id']
+                prior_bot_status = self.bots.get(bot_id)
+                if prior_bot_status and 'activeLinkLastStatusReceivedTimes' in prior_bot_status:
+                    botStatus['activeLinkLastStatusReceivedTimes'] = prior_bot_status[
+                        'activeLinkLastStatusReceivedTimes'
+                    ]
+                self.update_active_link_received_times(botStatus)
                 self.bots[bot_id] = botStatus
 
                 # Add position to bot_paths
@@ -173,7 +203,14 @@ class Interface:
                 # Set the time of last status to now
                 hubStatus['lastStatusReceivedTime'] = now_utime()
 
-                self.hubs[hubStatus['hub_id']] = hubStatus
+                hub_id = hubStatus['hub_id']
+                prior_hub_status = self.hubs.get(hub_id)
+                if prior_hub_status and 'activeLinkLastStatusReceivedTimes' in prior_hub_status:
+                    hubStatus['activeLinkLastStatusReceivedTimes'] = prior_hub_status[
+                        'activeLinkLastStatusReceivedTimes'
+                    ]
+                self.update_active_link_received_times(hubStatus)
+                self.hubs[hub_id] = hubStatus
 
             if msg.HasField('task_packet'):
                 logging.info('Task packet received')
@@ -393,11 +430,13 @@ class Interface:
         for hub in self.hubs.values():
             # Add the time since last status
             hub['portalStatusAge'] = now_utime() - hub['lastStatusReceivedTime']
+            self.update_active_link_status_ages(hub)
 
 
         for bot in self.bots.values():
             # Add the time since last status
             bot['portalStatusAge'] = now_utime() - bot['lastStatusReceivedTime']
+            self.update_active_link_status_ages(bot)
 
             if bot['bot_id'] in self.bots_engineering:
                 bot['engineering'] = self.bots_engineering[bot['bot_id']]
@@ -427,6 +466,7 @@ class Interface:
             # Add the time since last status
             if not 'portalStatusAge' in hub:
                 hub['portalStatusAge'] = now_utime() - hub['lastStatusReceivedTime']
+            self.update_active_link_status_ages(hub)
         
         return self.hubs
 

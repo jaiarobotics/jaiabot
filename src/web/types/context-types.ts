@@ -99,17 +99,20 @@ export interface JaiaAction {
 export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",
     COMMANDS = "commands",
+    COMM_LINKS = "commLinks",
     LINKS = "links",
 }
 
 export interface HubAccordionStates {
     quickLook: boolean;
     commands: boolean;
+    commLinks: boolean;
     links: boolean;
 }
 
 export const enum BotAccordionNames {
     QUICKLOOK = "quickLook",
+    COMM_LINKS = "commLinks",
     COMMANDS = "commands",
     ADVANCED_COMMANDS = "advanced_commands",
     HEALTH = "health",
@@ -121,6 +124,7 @@ export const enum BotAccordionNames {
 
 export interface BotAccordionStates {
     quickLook: boolean;
+    commLinks: boolean;
     commands: boolean;
     advancedCommands: boolean;
     health: boolean;

@@ -19,11 +19,13 @@ import { saveHistory } from "./history-handlers";
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
+    commLinks: false,
     links: false,
 };
 
 const defaultBotAccordionStates: BotAccordionStates = {
     quickLook: false,
+    commLinks: false,
     commands: false,
     advancedCommands: false,
     health: false,
