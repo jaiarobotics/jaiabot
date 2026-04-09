@@ -121,6 +121,9 @@ class Interface:
             except socket.timeout:
                 self.ping_portal()
 
+            except Exception as e:
+                logging.error(f'Exception in portal receive loop: {e}')
+
     def process_portal_to_client_message(self, data):
         if len(data) > 0:
 
@@ -149,10 +152,13 @@ class Interface:
 
                 # Track per-link last received time using the link this message traversed
                 if msg.bot_status.HasField('link'):
-                    link_name = Link.Name(msg.bot_status.link)
-                    if bot_id not in self.bot_link_last_received_times:
-                        self.bot_link_last_received_times[bot_id] = {}
-                    self.bot_link_last_received_times[bot_id][link_name] = now_utime()
+                    try:
+                        link_name = Link.Name(msg.bot_status.link)
+                        if bot_id not in self.bot_link_last_received_times:
+                            self.bot_link_last_received_times[bot_id] = {}
+                        self.bot_link_last_received_times[bot_id][link_name] = now_utime()
+                    except ValueError:
+                        logging.warning(f'Unknown link value {msg.bot_status.link} in bot_status')
 
                 self.bots[bot_id] = botStatus
 
@@ -194,8 +200,11 @@ class Interface:
                     if hub_id not in self.hub_link_last_seen_times:
                         self.hub_link_last_seen_times[hub_id] = {}
                     for link_val in msg.hub_status.active_link:
-                        link_name = Link.Name(link_val)
-                        self.hub_link_last_seen_times[hub_id][link_name] = now_utime()
+                        try:
+                            link_name = Link.Name(link_val)
+                            self.hub_link_last_seen_times[hub_id][link_name] = now_utime()
+                        except ValueError:
+                            logging.warning(f'Unknown link value {link_val} in hub_status.active_link')
 
                 self.hubs[hub_id] = hubStatus
 
