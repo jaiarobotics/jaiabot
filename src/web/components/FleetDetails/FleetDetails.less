@@ -25,8 +25,14 @@
 
 .quick-look-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.9rem;
+
+    th,
+    td {
+        width: 33.33%;
+    }
 
     th {
         color: @cc-text-color-light;
