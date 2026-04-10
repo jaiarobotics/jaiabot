@@ -535,6 +535,24 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
     auto command_callback = [this](const protobuf::Command& input_command)
     {
+        glog.is_debug1() && glog << "Received Command: " << input_command.ShortDebugString()
+                                     << std::endl;
+
+        // Make sure the command is not a repeat
+        // If it is, then we should not handle the command and exit
+        if (prev_command_times_.count(input_command.time()))
+        {
+            glog.is_debug1() && glog << "Repeat command received! Ignoring..." << std::endl;
+            return;
+        }
+
+        // Keep track of the previous command times to avoid duplicates
+        // (typically from multiple links)
+        // if our buffer overflows, remove the smallest (oldest) timestamp
+        while (prev_command_times_.size() >= command_history_max_count_)
+            prev_command_times_.erase(prev_command_times_.begin());
+        prev_command_times_.insert(input_command.time());
+
         if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
         {
             protobuf::Command out_command;
@@ -799,21 +817,6 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
     if (command.has_from_hub_id())
         set_hub_id(command.from_hub_id());
-
-    // Make sure the command is not a repeat
-    // If it is, then we should not handle the command and exit
-    if (prev_command_times_.count(command.time()))
-    {
-        glog.is_debug1() && glog << "Repeat command received! Ignoring..." << std::endl;
-        return;
-    }
-
-    // Keep track of the previous command times to avoid duplicates
-    // (typically from multiple links)
-    // if our buffer overflows, remove the smallest (oldest) timestamp
-    while (prev_command_times_.size() >= command_history_max_count_)
-        prev_command_times_.erase(prev_command_times_.begin());
-    prev_command_times_.insert(command.time());
 
     switch (command.type())
     {
