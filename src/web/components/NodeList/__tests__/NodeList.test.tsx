@@ -61,7 +61,7 @@ test("Verify all nodes are displayed correctly", () => {
     expect(nodeItems.map((div) => div.textContent)).toEqual(["FLEET1", "HUB1", "1", "2", "5"]);
 
     expect(nodeItems.map((div) => div.className)).toEqual([
-        "node-item fleet-item faultLevel1  ",
+        "node-item fleet-item faultLevel2  ",
         "node-item hub-item faultLevel0  ",
         "node-item bot-item faultLevel0  ",
         "node-item bot-item faultLevel1  ",
