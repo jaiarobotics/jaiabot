@@ -29,7 +29,6 @@ import logging
 BOT_PATH_UTIME_THRESHOLD = 2_000_000
 COMMAND_GROUP_WINDOW_UTIME = 2_000_000
 MAX_COMMAND_TRACKING_ENTRIES = 500
-MAX_COMMAND_COMMS_RESULTS = 1000
 MAX_COMMAND_ROLLUPS = 500
 COMMAND_ACK_MATCH_WINDOW_UTIME = 10_000_000
 
@@ -76,9 +75,6 @@ class Interface:
     # Dict from group_id => rollup tracking
     command_rollups = {}
 
-    # Recent raw command comms results
-    command_comms_results = []
-
     def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
 
@@ -109,13 +105,12 @@ class Interface:
         if read_only:
             logging.warning('This client is READ-ONLY.  You cannot send commands.')
 
-        # Lock protecting command_tracking, command_rollups, and command_comms_results
+        # Lock protecting command_tracking and command_rollups
         self._command_lock = threading.Lock()
 
         # Instance-level command tracking (override class-level defaults)
         self.command_tracking = {}
         self.command_rollups = {}
-        self.command_comms_results = []
 
         # Messages to display on the client end
         self.messages = {}
@@ -669,9 +664,6 @@ class Interface:
             command_type = Command.CommandType.Name(command_type)
 
         with self._command_lock:
-            self.command_comms_results.insert(0, result_dict)
-            self.command_comms_results = self.command_comms_results[:MAX_COMMAND_COMMS_RESULTS]
-
             if command_type is None or command_time is None or bot_id is None:
                 return
 
