@@ -1034,6 +1034,7 @@ export interface BotStatus {
     data_offload_percentage?: number;
     wifi_link_quality_percentage?: number;
     link?: Link;
+    active_link?: Link[];
 }
 
 export interface EstimatedDrift {
