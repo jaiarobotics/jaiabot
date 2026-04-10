@@ -2,6 +2,7 @@ import {
     JaiaContextType,
     JaiaAction,
     HubAccordionNames,
+    FleetAccordionNames,
     BotAccordionNames,
     MapLayerAccordionNames,
 } from "../../types/context-types";
@@ -26,6 +27,22 @@ export function handleClickedHubAccordion(mutableState: JaiaContextType, action:
             break;
         case HubAccordionNames.LINKS:
             hubAccordionStates.links = !hubAccordionStates.links;
+            break;
+    }
+    return mutableState;
+}
+
+
+export function handleClickedFleetAccordion(mutableState: JaiaContextType, action: JaiaAction) {
+    if (!action.fleetAccordionName) throw new Error("Invalid accordionName");
+
+    let fleetAccordionStates = mutableState.fleetAccordionStates;
+    switch (action.fleetAccordionName) {
+        case FleetAccordionNames.QUICKLOOK:
+            fleetAccordionStates.quickLook = !fleetAccordionStates.quickLook;
+            break;
+        case FleetAccordionNames.COMMANDS:
+            fleetAccordionStates.commands = !fleetAccordionStates.commands;
             break;
     }
     return mutableState;

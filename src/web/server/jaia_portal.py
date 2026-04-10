@@ -27,6 +27,11 @@ import logging
 
 # Threshold time interval for adding bot locations to the bot_path list (microseconds)
 BOT_PATH_UTIME_THRESHOLD = 2_000_000
+COMMAND_GROUP_WINDOW_UTIME = 2_000_000
+MAX_COMMAND_TRACKING_ENTRIES = 500
+MAX_COMMAND_COMMS_RESULTS = 1000
+MAX_COMMAND_ROLLUPS = 500
+COMMAND_ACK_MATCH_WINDOW_UTIME = 10_000_000
 
 
 def protobufMessageToDict(message):
@@ -65,8 +70,18 @@ class Interface:
     # Task packet database
     task_packet_database = TaskPacketDatabase()
 
+    # Dict from command key => command tracking entry
+    command_tracking = {}
+
+    # Dict from group_id => rollup tracking
+    command_rollups = {}
+
+    # Recent raw command comms results
+    command_comms_results = []
+
     def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
+        self.command_tracking_lock = threading.Lock()
 
         try:
             # Resolve the hostname to an IP address
@@ -188,6 +203,9 @@ class Interface:
                 contact_update = protobufMessageToDict(msg.contact_update)
                 contact_id = contact_update['contact']
                 self.contacts[contact_id] = contact_update
+
+            if msg.HasField('command_comms_result'):
+                self.track_command_comms_result(msg.command_comms_result)
                 
             # If we were disconnected, then report successful reconnection
             if self.pingCount > 1:
@@ -236,7 +254,8 @@ class Interface:
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
 
         logging.debug(f'Sending command: {command}')
-        command.time = now_utime()
+        if command.time <= 0:
+            command.time = now_utime()
 
         if (
                 command.type == Command.MISSION_PLAN
@@ -249,6 +268,7 @@ class Interface:
         msg.command.CopyFrom(command)
 
         if self.send_message_to_portal(msg):
+            self.track_sent_command(command, clientId)
             self.setControllingClientId(clientId)
             return {'status': 'ok'}
         else:
@@ -407,7 +427,8 @@ class Interface:
             'hubs': self.hubs,
             'bots': self.bots,
             'contacts': self.contacts,
-            'messages': self.messages
+            'messages': self.messages,
+            'command_tracking': self.get_command_tracking_summary(),
         }
 
         try:
@@ -461,6 +482,178 @@ class Interface:
         self.send_message_to_portal(msg)
 
         return {'status': 'ok'}
+
+    def get_command_key(self, command):
+        command_type = Command.CommandType.Name(int(command.type))
+        return f"{int(command.time)}:{command_type}:{int(command.bot_id)}"
+
+    def get_command_group_id(self, command, clientId):
+        command_type = int(command.type)
+        now = now_utime()
+        with self.command_tracking_lock:
+            for group in self.command_rollups.values():
+                if (
+                    group['command_type'] == command_type
+                    and group.get('client_id') == clientId
+                    and now - group['sent_time'] <= COMMAND_GROUP_WINDOW_UTIME
+                ):
+                    return group['group_id']
+
+            group_id = f"{clientId}:{command_type}:{command.time}"
+            self.command_rollups[group_id] = {
+                'group_id': group_id,
+                'command_type': command_type,
+                'sent_time': command.time,
+                'client_id': clientId,
+                'command_keys': set(),
+                'targets': set(),
+                'acked_success': set(),
+                'acked_failure': set(),
+            }
+            self.prune_command_rollups(lock_held=True)
+            return group_id
+
+
+    def prune_command_rollups(self, lock_held=False):
+        if not lock_held:
+            with self.command_tracking_lock:
+                self.prune_command_rollups(lock_held=True)
+            return
+
+        if len(self.command_rollups) <= MAX_COMMAND_ROLLUPS:
+            return
+
+        sorted_rollups = sorted(
+            self.command_rollups.items(),
+            key=lambda item: item[1].get('sent_time', 0),
+            reverse=True,
+        )
+
+        self.command_rollups = dict(sorted_rollups[:MAX_COMMAND_ROLLUPS])
+
+    def track_sent_command(self, command, clientId):
+        command_key = self.get_command_key(command)
+        group_id = self.get_command_group_id(command, clientId)
+
+        entry = {
+            'command_key': command_key,
+            'group_id': group_id,
+            'bot_id': int(command.bot_id),
+            'command_type': Command.CommandType.Name(int(command.type)),
+            'command_time': int(command.time),
+            'sent_time': now_utime(),
+            'client_id': clientId,
+            'acked': False,
+        }
+        with self.command_tracking_lock:
+            self.command_tracking[command_key] = entry
+
+            rollup = self.command_rollups[group_id]
+            rollup['command_keys'].add(command_key)
+            rollup['targets'].add(int(command.bot_id))
+
+            if len(self.command_tracking) > MAX_COMMAND_TRACKING_ENTRIES:
+                oldest_key = min(self.command_tracking, key=lambda key: self.command_tracking[key]['sent_time'])
+                del self.command_tracking[oldest_key]
+
+
+    def find_command_tracking_entry(self, command_type, command_time, bot_id):
+        command_key = f"{int(command_time)}:{command_type}:{int(bot_id)}"
+        with self.command_tracking_lock:
+            entry = self.command_tracking.get(command_key)
+            if entry is not None:
+                return entry
+
+            candidate_entries = []
+            for tracked_entry in self.command_tracking.values():
+                if (
+                    tracked_entry.get('bot_id') == int(bot_id)
+                    and tracked_entry.get('command_type') == command_type
+                ):
+                    time_delta = abs(int(tracked_entry.get('command_time', 0)) - int(command_time))
+                    if time_delta <= COMMAND_ACK_MATCH_WINDOW_UTIME:
+                        candidate_entries.append((time_delta, tracked_entry))
+
+            if not candidate_entries:
+                return None
+
+            candidate_entries.sort(key=lambda item: item[0])
+            return candidate_entries[0][1]
+
+    def track_command_comms_result(self, command_comms_result):
+        result_dict = protobufMessageToDict(command_comms_result)
+        with self.command_tracking_lock:
+            self.command_comms_results.insert(0, result_dict)
+            self.command_comms_results = self.command_comms_results[:MAX_COMMAND_COMMS_RESULTS]
+
+        orig_command_dict = result_dict.get('orig_command', {})
+
+        command_type = orig_command_dict.get('type')
+        command_time = orig_command_dict.get('time')
+        bot_id = orig_command_dict.get('bot_id')
+
+        if command_type is None or command_time is None or bot_id is None:
+            return
+
+        if isinstance(command_type, int):
+            command_type = Command.CommandType.Name(command_type)
+
+        entry = self.find_command_tracking_entry(command_type, command_time, bot_id)
+        if entry is None:
+            return
+
+        ack_result = result_dict.get('result')
+        entry['acked'] = True
+        entry['ack_result'] = ack_result
+        entry['ack_link'] = result_dict.get('link')
+        entry['updated_time'] = now_utime()
+
+        with self.command_tracking_lock:
+            rollup = self.command_rollups.get(entry['group_id'])
+            if rollup is None:
+                return
+
+            if ack_result == 'SUCCESS':
+                rollup['acked_success'].add(entry['bot_id'])
+                rollup['acked_failure'].discard(entry['bot_id'])
+            elif ack_result == 'FAILURE':
+                rollup['acked_failure'].add(entry['bot_id'])
+                rollup['acked_success'].discard(entry['bot_id'])
+
+    def get_command_tracking_summary(self):
+        with self.command_tracking_lock:
+            self.prune_command_rollups(lock_held=True)
+            commands = sorted(self.command_tracking.values(), key=lambda x: x['sent_time'], reverse=True)
+
+            rollups = []
+            for rollup in self.command_rollups.values():
+                total_targets = len(rollup['targets'])
+                ack_success = len(rollup['acked_success'])
+                ack_failure = len(rollup['acked_failure'])
+                pending = max(total_targets - ack_success - ack_failure, 0)
+                rollups.append({
+                    'group_id': rollup['group_id'],
+                    'command_type': Command.CommandType.Name(rollup['command_type']),
+                    'sent_time': rollup['sent_time'],
+                    'total_targets': total_targets,
+                    'ack_success': ack_success,
+                    'ack_failure': ack_failure,
+                    'pending': pending,
+                })
+
+        rollups = [rollup for rollup in rollups if rollup['total_targets'] > 1]
+        rollups.sort(key=lambda item: item['sent_time'], reverse=True)
+
+        serialized_commands = []
+        for command in commands[:100]:
+            serialized = dict(command)
+            serialized['command_type'] = command['command_type']
+            serialized_commands.append(serialized)
+
+        return {
+            'commands': serialized_commands,
+            'rollups': rollups[:30],
+        }
 
     def process_task_packet(self, task_packet_message):
         task_packet = protobufMessageToDict(task_packet_message)

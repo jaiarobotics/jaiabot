@@ -2,7 +2,11 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
-import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
+import {
+    PortalBotStatus,
+    PortalHubStatus,
+    CommandTrackingSnapshot,
+} from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
 import { ghostMissionLayer, missionLayer } from "../openlayers/layers/vector/mission-layer";
@@ -15,6 +19,7 @@ import { NO_COMMS_STATUS_AGE, IRIDIUM_NO_COMMS_STATUS_AGE } from "../utils/const
 import { Metadata, Version } from "../types/protobuf-types";
 import { Link } from "../shared/JAIAProtobuf";
 import SoundEffects from "../style/audio/sound-effects";
+import { fleet } from "../data/fleet/fleet";
 
 const MAX_REQUEST_TIME = 10000; // ms;
 const XBEE_WIFI_DISCONNECT_THRESHOLD = NO_COMMS_STATUS_AGE * 1e6;
@@ -62,7 +67,7 @@ export async function pollStatus() {
             const json = await response.json();
             updateBots(json.bots);
             updateHubs(json.hubs);
-            updateJaiaGlobal(json.controllingClientId);
+            updateJaiaGlobal(json.controllingClientId, json.command_tracking);
             updateOpenLayers();
             if (json.messages.error && json.messages.error === HUB_CONNECTION_ERROR) {
                 updateWarning(CONNECTION_WARNING, true);
@@ -229,8 +234,14 @@ function updateHubs(hubStatuses: { [hubId: string]: PortalHubStatus }) {
  * @param {string} controllingClientID ID from the server
  * @returns {void}
  */
-function updateJaiaGlobal(controllingClientID: string) {
+function updateJaiaGlobal(
+    controllingClientID: string,
+    commandTracking?: CommandTrackingSnapshot,
+) {
+    const tracking = commandTracking ?? { commands: [], rollups: [] };
     jaiaGlobal.setControllingClientID(controllingClientID);
+    jaiaGlobal.setCommandTracking(tracking);
+    fleet.setCommandTracking(tracking);
 }
 
 /**
