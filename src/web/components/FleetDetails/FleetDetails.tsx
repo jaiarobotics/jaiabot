@@ -35,7 +35,7 @@ export default function FleetDetails() {
 
     const hubs = Array.from(jaiaContext.hubs.getHubs().values());
     const bots = Array.from(jaiaContext.bots.getBots().values());
-    const fleetID = selectedNode.id || hubs[0]?.getFleetID() || 1;
+    const fleetID = selectedNode.id ?? hubs[0]?.getFleetID() ?? 1;
 
     function handleClosePanel() {
         jaiaDispatch({ type: JaiaActions.CLOSED_DETAILS });
@@ -74,7 +74,6 @@ export default function FleetDetails() {
         }
     }
 
-
     const botHealthState = fleet.computeWorstHealthState(
         bots.map((b) => b.getHealthState()).filter(Boolean) as HealthState[],
     );
@@ -94,7 +93,6 @@ export default function FleetDetails() {
 
         return `${acked}/${total} bot${total !== 1 ? "s" : ""} ACKed, ${failed} failed`;
     }
-
 
     return (
         <div className="node-details">
@@ -198,7 +196,8 @@ export default function FleetDetails() {
                                                     <div>{groupSummary(group)}</div>
                                                     {group.failedBotIDs.length > 0 && (
                                                         <div className="failed-bots">
-                                                            Failed: Bot {group.failedBotIDs.join(", Bot ")}
+                                                            Failed: Bot{" "}
+                                                            {group.failedBotIDs.join(", Bot ")}
                                                         </div>
                                                     )}
                                                 </td>
