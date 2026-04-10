@@ -81,7 +81,7 @@ class Interface:
 
     def __init__(self, goby_host=('localhost', 40000), read_only=False):
         self.goby_host = goby_host
-        self.command_tracking_lock = threading.Lock()
+        self.command_tracking_lock = threading.RLock()
 
         try:
             # Resolve the hostname to an IP address
@@ -422,13 +422,19 @@ class Interface:
             if bot['bot_id'] in self.bots_engineering:
                 bot['engineering'] = self.bots_engineering[bot['bot_id']]
 
+        try:
+            command_tracking_summary = self.get_command_tracking_summary()
+        except Exception as exc:
+            logging.exception(f"Failed to build command tracking summary: {exc}")
+            command_tracking_summary = {'commands': [], 'rollups': []}
+
         status = {
             'controllingClientId': self.controllingClientId,
             'hubs': self.hubs,
             'bots': self.bots,
             'contacts': self.contacts,
             'messages': self.messages,
-            'command_tracking': self.get_command_tracking_summary(),
+            'command_tracking': command_tracking_summary,
         }
 
         try:
@@ -548,7 +554,19 @@ class Interface:
         with self.command_tracking_lock:
             self.command_tracking[command_key] = entry
 
-            rollup = self.command_rollups[group_id]
+            rollup = self.command_rollups.get(group_id)
+            if rollup is None:
+                rollup = {
+                    'group_id': group_id,
+                    'command_type': int(command.type),
+                    'sent_time': int(command.time),
+                    'client_id': clientId,
+                    'command_keys': set(),
+                    'targets': set(),
+                    'acked_success': set(),
+                    'acked_failure': set(),
+                }
+                self.command_rollups[group_id] = rollup
             rollup['command_keys'].add(command_key)
             rollup['targets'].add(int(command.bot_id))
 
