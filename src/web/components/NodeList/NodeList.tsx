@@ -33,11 +33,16 @@ export default function NodeList() {
         [HealthState.HEALTH__FAILED, 2],
     ]);
 
+    const connectedNodes = [...hubs, ...bots].filter(
+        (node) => !isDisconnected(node.getStatusAge(), "getLink" in node ? node.getLink() : undefined),
+    );
+
     const fleetHealthState = fleet.computeWorstHealthState(
-        [
-            ...hubs.map((hub) => hub.getHealthState()),
-            ...bots.map((bot) => bot.getHealthState()),
-        ].filter(Boolean) as HealthState[],
+        connectedNodes.length > 0
+            ? (connectedNodes
+                  .map((node) => node.getHealthState())
+                  .filter(Boolean) as HealthState[])
+            : [HealthState.HEALTH__OK],
     );
 
     const fleetStatusAge = Math.max(

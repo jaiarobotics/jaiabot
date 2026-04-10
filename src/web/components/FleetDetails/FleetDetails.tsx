@@ -188,7 +188,9 @@ export default function FleetDetails() {
                                                         : "row-all-success"
                                                 }
                                             >
-                                                <td className="cmd-counter">{idx + 1}</td>
+                                                <td className="cmd-counter">
+                                                    {commandGroups.length - idx}
+                                                </td>
                                                 <td className="cmd-type">
                                                     {group.commandType.replace(/_/g, " ")}
                                                 </td>
