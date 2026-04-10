@@ -664,6 +664,7 @@ class Interface:
                 if (
                     tracked_entry.get('bot_id') == int(bot_id)
                     and tracked_entry.get('command_type') == command_type
+                    and not tracked_entry.get('acked', False)
                 ):
                     time_delta = abs(int(tracked_entry.get('command_time', 0)) - int(command_time))
                     if time_delta <= COMMAND_ACK_MATCH_WINDOW_UTIME:
