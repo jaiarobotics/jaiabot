@@ -1,0 +1,104 @@
+@import "../../style/stylesheets/vars.less";
+
+.health-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.health-ok {
+    background-color: @good-color;
+    color: black;
+}
+
+.health-degraded {
+    background-color: @warning-color;
+    color: black;
+}
+
+.health-failed {
+    background-color: @error-color;
+    color: white;
+}
+
+.quick-look-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+
+    th,
+    td {
+        width: 33.33%;
+    }
+
+    th {
+        color: @cc-accordian-color;
+        text-align: center;
+        padding: 4px 6px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+    }
+
+    td {
+        padding: 5px 6px;
+        text-align: center;
+        vertical-align: middle;
+    }
+}
+
+.fleet-no-commands {
+    color: @cc-accordian-color;
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+.command-ack-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+
+    th:nth-child(1) {
+        width: 10%;
+    }
+    th:nth-child(2) {
+        width: 35%;
+    }
+    th:nth-child(3) {
+        width: 55%;
+    }
+
+    th {
+        color: @cc-accordian-color;
+        text-align: center;
+        padding: 4px 6px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+    }
+
+    td {
+        padding: 5px 6px;
+        text-align: center;
+        vertical-align: top;
+    }
+
+    tr.row-has-failure td {
+        background-color: rgba(204, 5, 5, 0.15);
+    }
+
+    tr.row-all-success td {
+        background-color: rgba(6, 192, 6, 0.08);
+    }
+}
+
+.cmd-type {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.failed-bots {
+    font-size: 0.82rem;
+    color: @error-color;
+    margin-top: 2px;
+}

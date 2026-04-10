@@ -8,10 +8,11 @@ import { HealthState } from "../../types/protobuf-types";
 import { Link } from "../../shared/JAIAProtobuf";
 import { isDisconnected } from "../BotDetails/bot-details";
 import { CLOUD_HUB_ID } from "../../utils/constants";
+import { fleet } from "../../data/fleet/fleet";
 import "./NodeList.less";
 
 /**
- * Displays the Hub and Bot tabs on the left side of the JCC
+ * Displays the Fleet, Hub, and Bot tabs on the left side of the JCC
  */
 export default function NodeList() {
     const jaiaContext: JaiaContextType = useContext(JaiaContext);
@@ -24,12 +25,32 @@ export default function NodeList() {
     const hubs = Array.from(jaiaContext.hubs.getHubs().values());
     const bots = Array.from(jaiaContext.bots.getBots().values());
 
+    const fleetID = hubs[0]?.getFleetID() ?? 1;
+
+    const healthSeverity: Map<HealthState, number> = new Map([
+        [HealthState.HEALTH__OK, 0],
+        [HealthState.HEALTH__DEGRADED, 1],
+        [HealthState.HEALTH__FAILED, 2],
+    ]);
+
+    const fleetHealthState = fleet.computeWorstHealthState(
+        [
+            ...hubs.map((hub) => hub.getHealthState()),
+            ...bots.map((bot) => bot.getHealthState()),
+        ].filter(Boolean) as HealthState[],
+    );
+
+    const fleetStatusAge = Math.max(
+        0,
+        ...hubs.map((hub) => hub.getStatusAge()),
+        ...bots.map((bot) => bot.getStatusAge()),
+    );
+    const fleetDisconnected = [...hubs, ...bots].every((node) =>
+        isDisconnected(node.getStatusAge(), "getLink" in node ? node.getLink() : undefined),
+    );
+
     /**
      * Dispatches the CLICKED_NODE action to JaiaContext for further handling
-     *
-     * @param {NodeTypes} nodeType Indicates Bot or Hub
-     * @param {number} nodeID Provides Bot or Hub ID
-     * @returns {void}
      */
     const handleClick = (nodeType: NodeTypes, nodeID: number) => {
         JaiaDispatch({
@@ -38,36 +59,29 @@ export default function NodeList() {
         });
     };
 
-    /**
-     * Creates the class name that applies the correct style to a node item
-     * based on type, selection, and health
-     *
-     * @param {NodeTypes} nodeType Indicates Bot or Hub
-     * @param {number} nodeID Provides ID of Bot or Hub
-     * @param {HealthState} healthState Determines color of node item
-     * @param {number} statusAge Indicates comms with the node (microsecodns)
-     * @returns {string} Class name that sets correct style
-     */
     function getClassName(
         nodeType: NodeTypes,
         nodeID: number,
         healthState: HealthState,
         statusAge: number,
         link?: Link,
+        disconnectedOverride?: boolean,
     ) {
-        const faultLevel: Map<HealthState, number> = new Map([
-            [HealthState.HEALTH__OK, 0],
-            [HealthState.HEALTH__DEGRADED, 1],
-            [HealthState.HEALTH__FAILED, 2],
-        ]);
+        const faultLevel = healthSeverity;
 
-        const nodeTypeClass = nodeType === NodeTypes.BOT ? "bot-item" : "hub-item";
+        const nodeTypeClass =
+            nodeType === NodeTypes.BOT
+                ? "bot-item"
+                : nodeType === NodeTypes.HUB
+                  ? "hub-item"
+                  : "fleet-item";
         const faultLevelClass = "faultLevel" + faultLevel.get(healthState);
         const selectedNode = jaiaContext.jaiaGlobal.getSelectedNode();
         const selectedClass =
             selectedNode.type === nodeType && selectedNode.id === nodeID ? "selected" : "";
 
-        const disconnectedClass = isDisconnected(statusAge, link) ? "disconnected" : "";
+        const disconnected = disconnectedOverride ?? isDisconnected(statusAge, link);
+        const disconnectedClass = disconnected ? "disconnected" : "";
 
         return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass} ${disconnectedClass}`;
     }
@@ -78,6 +92,23 @@ export default function NodeList() {
 
     return (
         <div id="nodeList" data-testid="nodeList">
+            <div
+                key={`fleet-${fleetID}`}
+                onClick={() => handleClick(NodeTypes.FLEET, fleetID)}
+                className={getClassName(
+                    NodeTypes.FLEET,
+                    fleetID,
+                    fleetHealthState,
+                    fleetStatusAge,
+                    undefined,
+                    fleetDisconnected,
+                )}
+            >
+                <div className="fleet-label">
+                    <span className="fleet-text">FLEET</span>
+                    <span className="fleet-number">{fleetID}</span>
+                </div>
+            </div>
             {hubs.map((hub) => (
                 <div
                     key={`hub-${hub.getHubID()}`}

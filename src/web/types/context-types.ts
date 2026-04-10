@@ -37,6 +37,7 @@ export interface JaiaContextType {
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     mapLayerAccordionStates: MapLayerAccordionStates;
+    fleetAccordionStates: FleetAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
     previousTick: number;
 }
@@ -48,6 +49,7 @@ export interface JaiaContextDataSnapshot {
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     mapLayerAccordionStates: MapLayerAccordionStates;
+    fleetAccordionStates: FleetAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
 }
 
@@ -83,6 +85,7 @@ export interface JaiaAction {
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
     mapLayerAccordionName?: MapLayerAccordionNames;
+    fleetAccordionName?: FleetAccordionNames;
     panelAction?: PanelActions;
     buttonType?: ButtonTypes;
     buttonName?: ButtonNames;
@@ -106,6 +109,17 @@ export interface HubAccordionStates {
     quickLook: boolean;
     commands: boolean;
     links: boolean;
+}
+
+
+export const enum FleetAccordionNames {
+    QUICKLOOK = "quickLook",
+    COMMANDS = "commands",
+}
+
+export interface FleetAccordionStates {
+    quickLook: boolean;
+    commands: boolean;
 }
 
 export const enum BotAccordionNames {

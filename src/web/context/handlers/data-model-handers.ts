@@ -3,6 +3,7 @@ import {
     ButtonNames,
     HubAccordionStates,
     BotAccordionStates,
+    FleetAccordionStates,
 } from "../../types/context-types";
 import { JaiaActions } from "../jaia-actions";
 import { bots } from "../../data/bots/bots";
@@ -20,6 +21,11 @@ const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
     links: false,
+};
+
+const defaultFleetAccordionStates: FleetAccordionStates = {
+    quickLook: false,
+    commands: false,
 };
 
 const defaultBotAccordionStates: BotAccordionStates = {
@@ -64,6 +70,7 @@ export function handleInit(mutableState: JaiaContextType) {
         hubAccordionStates: defaultHubAccordionStates,
         botAccordionStates: defaultBotAccordionStates,
         mapLayerAccordionStates: defaultMapLayerAccordionStates,
+        fleetAccordionStates: defaultFleetAccordionStates,
         missionAccordionStates: {},
         previousTick: bots.getTick(),
     };
