@@ -30,6 +30,7 @@ const defaultFleetAccordionStates: FleetAccordionStates = {
 
 const defaultBotAccordionStates: BotAccordionStates = {
     quickLook: false,
+    commLinks: false,
     commands: false,
     advancedCommands: false,
     health: false,

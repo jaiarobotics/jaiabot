@@ -1,7 +1,21 @@
-import { HubStatus, BotStatus, MissionPlan, Engineering, MissionState, ContactStatus } from "./JAIAProtobuf";
+import {
+    HubStatus,
+    BotStatus,
+    MissionPlan,
+    Engineering,
+    MissionState,
+    ContactStatus,
+    Link,
+} from "./JAIAProtobuf";
+
+export interface LinkStatusAges {
+    [link: string]: number;
+}
 
 export interface PortalBotStatus extends BotStatus {
     active_mission_plan?: MissionPlan;
+    active_link?: Link[];
+    active_link_status_age?: LinkStatusAges;
     portalStatusAge?: number;
     isDisconnected?: boolean;
     engineering?: Engineering;
