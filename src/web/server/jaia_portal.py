@@ -109,6 +109,14 @@ class Interface:
         if read_only:
             logging.warning('This client is READ-ONLY.  You cannot send commands.')
 
+        # Lock protecting command_tracking, command_rollups, and command_comms_results
+        self._command_lock = threading.Lock()
+
+        # Instance-level command tracking (override class-level defaults)
+        self.command_tracking = {}
+        self.command_rollups = {}
+        self.command_comms_results = []
+
         # Messages to display on the client end
         self.messages = {}
 
@@ -504,7 +512,6 @@ class Interface:
             'contacts': self.contacts,
             'messages': self.messages,
             'command_tracking': self.get_command_tracking_summary(),
-            'command_comms_results': self.command_comms_results
         }
 
         try:
@@ -602,28 +609,29 @@ class Interface:
         self.command_rollups = dict(sorted_rollups[:MAX_COMMAND_ROLLUPS])
 
     def track_sent_command(self, command, clientId):
-        command_key = self.get_command_key(command)
-        group_id = self.get_command_group_id(command, clientId)
+        with self._command_lock:
+            command_key = self.get_command_key(command)
+            group_id = self.get_command_group_id(command, clientId)
 
-        entry = {
-            'command_key': command_key,
-            'group_id': group_id,
-            'bot_id': int(command.bot_id),
-            'command_type': Command.CommandType.Name(int(command.type)),
-            'command_time': int(command.time),
-            'sent_time': now_utime(),
-            'client_id': clientId,
-            'acked': False,
-        }
-        self.command_tracking[command_key] = entry
+            entry = {
+                'command_key': command_key,
+                'group_id': group_id,
+                'bot_id': int(command.bot_id),
+                'command_type': Command.CommandType.Name(int(command.type)),
+                'command_time': int(command.time),
+                'sent_time': now_utime(),
+                'client_id': clientId,
+                'acked': False,
+            }
+            self.command_tracking[command_key] = entry
 
-        rollup = self.command_rollups[group_id]
-        rollup['command_keys'].add(command_key)
-        rollup['targets'].add(int(command.bot_id))
+            rollup = self.command_rollups[group_id]
+            rollup['command_keys'].add(command_key)
+            rollup['targets'].add(int(command.bot_id))
 
-        if len(self.command_tracking) > MAX_COMMAND_TRACKING_ENTRIES:
-            oldest_key = min(self.command_tracking, key=lambda key: self.command_tracking[key]['sent_time'])
-            del self.command_tracking[oldest_key]
+            if len(self.command_tracking) > MAX_COMMAND_TRACKING_ENTRIES:
+                oldest_key = min(self.command_tracking, key=lambda key: self.command_tracking[key]['sent_time'])
+                del self.command_tracking[oldest_key]
 
 
     def find_command_tracking_entry(self, command_type, command_time, bot_id):
@@ -650,8 +658,6 @@ class Interface:
 
     def track_command_comms_result(self, command_comms_result):
         result_dict = protobufMessageToDict(command_comms_result)
-        self.command_comms_results.insert(0, result_dict)
-        self.command_comms_results = self.command_comms_results[:MAX_COMMAND_COMMS_RESULTS]
 
         orig_command_dict = result_dict.get('orig_command', {})
 
@@ -659,61 +665,66 @@ class Interface:
         command_time = orig_command_dict.get('time')
         bot_id = orig_command_dict.get('bot_id')
 
-        if command_type is None or command_time is None or bot_id is None:
-            return
-
         if isinstance(command_type, int):
             command_type = Command.CommandType.Name(command_type)
 
-        entry = self.find_command_tracking_entry(command_type, command_time, bot_id)
-        if entry is None:
-            return
+        with self._command_lock:
+            self.command_comms_results.insert(0, result_dict)
+            self.command_comms_results = self.command_comms_results[:MAX_COMMAND_COMMS_RESULTS]
 
-        ack_result = result_dict.get('result')
-        entry['acked'] = True
-        entry['ack_result'] = ack_result
-        entry['ack_link'] = result_dict.get('link')
-        entry['updated_time'] = now_utime()
+            if command_type is None or command_time is None or bot_id is None:
+                return
 
-        rollup = self.command_rollups.get(entry['group_id'])
-        if rollup is None:
-            return
+            entry = self.find_command_tracking_entry(command_type, command_time, bot_id)
+            if entry is None:
+                return
 
-        if ack_result == 'SUCCESS':
-            rollup['acked_success'].add(entry['bot_id'])
-            rollup['acked_failure'].discard(entry['bot_id'])
-        elif ack_result == 'FAILURE':
-            rollup['acked_failure'].add(entry['bot_id'])
-            rollup['acked_success'].discard(entry['bot_id'])
+            ack_result = result_dict.get('result')
+            entry['acked'] = True
+            entry['ack_result'] = ack_result
+            entry['ack_link'] = result_dict.get('link')
+            entry['updated_time'] = now_utime()
+
+            rollup = self.command_rollups.get(entry['group_id'])
+            if rollup is None:
+                return
+
+            if ack_result == 'SUCCESS':
+                rollup['acked_success'].add(entry['bot_id'])
+                rollup['acked_failure'].discard(entry['bot_id'])
+            elif ack_result == 'FAILURE':
+                rollup['acked_failure'].add(entry['bot_id'])
+                rollup['acked_success'].discard(entry['bot_id'])
 
     def get_command_tracking_summary(self):
-        self.prune_command_rollups()
-        commands = sorted(self.command_tracking.values(), key=lambda x: x['sent_time'], reverse=True)
+        with self._command_lock:
+            self.prune_command_rollups()
+            commands = sorted(self.command_tracking.values(), key=lambda x: x['sent_time'], reverse=True)
 
-        rollups = []
-        for rollup in self.command_rollups.values():
-            total_targets = len(rollup['targets'])
-            ack_success = len(rollup['acked_success'])
-            ack_failure = len(rollup['acked_failure'])
-            pending = max(total_targets - ack_success - ack_failure, 0)
-            rollups.append({
-                'group_id': rollup['group_id'],
-                'command_type': Command.CommandType.Name(rollup['command_type']),
-                'sent_time': rollup['sent_time'],
-                'total_targets': total_targets,
-                'ack_success': ack_success,
-                'ack_failure': ack_failure,
-                'pending': pending,
-            })
+            rollups = []
+            for rollup in self.command_rollups.values():
+                total_targets = len(rollup['targets'])
+                ack_success = len(rollup['acked_success'])
+                ack_failure = len(rollup['acked_failure'])
+                pending = max(total_targets - ack_success - ack_failure, 0)
+                rollups.append({
+                    'group_id': rollup['group_id'],
+                    'command_type': Command.CommandType.Name(rollup['command_type']),
+                    'sent_time': rollup['sent_time'],
+                    'total_targets': total_targets,
+                    'ack_success': ack_success,
+                    'ack_failure': ack_failure,
+                    'pending': pending,
+                })
 
-        rollups = [rollup for rollup in rollups if rollup['total_targets'] > 1]
-        rollups.sort(key=lambda item: item['sent_time'], reverse=True)
+            rollups = [rollup for rollup in rollups if rollup['total_targets'] > 1]
+            rollups.sort(key=lambda item: item['sent_time'], reverse=True)
 
-        serialized_commands = []
-        for command in commands[:100]:
-            serialized = dict(command)
-            serialized['command_type'] = command['command_type']
-            serialized_commands.append(serialized)
+            serialized_commands = []
+            for command in commands[:100]:
+                serialized = dict(command)
+                serialized['command_type'] = command['command_type']
+                serialized_commands.append(serialized)
 
         return {
             'commands': serialized_commands,

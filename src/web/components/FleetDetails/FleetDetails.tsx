@@ -21,7 +21,7 @@ export default function FleetDetails() {
     const jaiaDispatch: React.Dispatch<JaiaAction> = useContext(JaiaDispatchContext);
 
     useEffect(() => {
-        addDropdownListener("accordion-container", "fleet-details-accordions-container");
+        addDropdownListener("fleet-details-accordion-container", "fleet-details-accordions-container");
     }, []);
 
     if (!jaiaContext) {
@@ -112,7 +112,7 @@ export default function FleetDetails() {
                     <Accordion
                         expanded={jaiaContext.fleetAccordionStates.quickLook}
                         onChange={() => handleAccordionClick(FleetAccordionNames.QUICKLOOK)}
-                        className="accordion-container"
+                        className="fleet-details-accordion-container"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
@@ -160,7 +160,7 @@ export default function FleetDetails() {
                     <Accordion
                         expanded={jaiaContext.fleetAccordionStates.commands}
                         onChange={() => handleAccordionClick(FleetAccordionNames.COMMANDS)}
-                        className="accordion-container"
+                        className="fleet-details-accordion-container"
                     >
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}

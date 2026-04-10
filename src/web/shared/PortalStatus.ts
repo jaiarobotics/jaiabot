@@ -31,7 +31,6 @@ export interface PodStatus {
     contacts: { [key: string]: ContactStatus };
     controllingClientId: string;
     command_tracking?: CommandTrackingSnapshot;
-    command_comms_results?: CommandCommsResult[];
 }
 
 export interface Version {
@@ -87,13 +86,3 @@ export interface CommandTrackingSnapshot {
     rollups: CommandTrackingRollup[];
 }
 
-
-export interface CommandCommsResult {
-    result?: string;
-    link?: string;
-    orig_command?: {
-        bot_id?: number;
-        time?: number;
-        type?: string;
-    };
-}
