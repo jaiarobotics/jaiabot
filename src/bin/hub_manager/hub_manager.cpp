@@ -151,6 +151,10 @@ class HubManager : public ApplicationBase
     // potential memory leak on very long missions
     constexpr static std::size_t history_max_count_{100};
 
+    // Map from bot_id => (link => last received time)
+    std::map<uint32_t, std::map<Link, goby::time::SteadyClock::time_point>>
+        bot_status_link_last_received_;
+
     bool is_virtualhub_;
     goby::time::SteadyClock::time_point vfleet_shutdown_time_{
         goby::time::SteadyClock::time_point::max()};
@@ -841,11 +845,30 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
     // If it is, then we should not handle the bot_status and exit
     auto& prev_times = bot_status_id_to_prev_timestamps_[dccl_nav.bot_id()];
 
+    // Update the last-received time for this link on a fresh status
+    // Even if we determine it's a duplicate based on the timestamp,
+    // we still want to update the last-received time for this link to ensure accurate tracking of link age
+    if (dccl_nav.has_link())
+        bot_status_link_last_received_[dccl_nav.bot_id()][dccl_nav.link()] =
+            goby::time::SteadyClock::now();
+
     if (prev_times.count(dccl_nav.time()))
     {
         glog.is_debug1() && glog << group("bot_status")
                                 << "Repeat Bot Status received! Ignoring..." << std::endl;
+
         return;
+    }
+
+    // Always stamp the current link last-received times into the proto
+    // so the portal always has up-to-date link age data
+    auto& link_times = bot_status_link_last_received_[dccl_nav.bot_id()];
+    dccl_nav.clear_link_last_received_time();
+    for (const auto& [link, time_point] : link_times)
+    {
+        auto* entry = dccl_nav.add_link_last_received_time();
+        entry->set_link(link);
+        entry->set_time(goby::time::convert<goby::time::MicroTime>(time_point).value());
     }
 
     // Keep track of previous bot status times per bot to avoid duplicates

@@ -367,6 +367,23 @@ message BotStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
+    // Map of link => last time a status was received on that link (written on hub upon receipt)
+    message LinkLastReceivedTime {
+        required Link link = 1 [(dccl.field).omit = true];
+        required uint64 time = 2 [
+            (dccl.field) = {
+                omit: true  // hub-side only, not transmitted over air
+                units { prefix: "micro" derived_dimensions: "time" }
+            }
+        ];
+    }
+    repeated LinkLastReceivedTime link_last_received_time = 60 [
+        (dccl.field) = {
+            omit: true
+            max_repeat: 10
+        }
+    ];
+
     optional uint64 mission_command_time = 71 [
         (dccl.field) = {
             codec: "dccl.time2"
