@@ -327,6 +327,32 @@ export class JaiaAPI {
     postMissionFilesCreate(descriptor: any) {
         return this.post("missionfiles/create", descriptor);
     }
+
+    // ── Exclusion zone hub storage ──────────────────────────────────────────
+
+    async listExclusionZones(): Promise<string[]> {
+        const response = await this.get("jaia/v0/exclusion-zones");
+        return response?.result ?? [];
+    }
+
+    async saveExclusionZone(name: string, snapshot: any): Promise<void> {
+        await this.post(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`, snapshot);
+    }
+
+    async loadExclusionZone(name: string): Promise<any | null> {
+        try {
+            return await this.get(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`);
+        } catch {
+            return null;
+        }
+    }
+
+    async deleteExclusionZone(name: string): Promise<void> {
+        await fetch(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`, {
+            method: "DELETE",
+            headers: this.headers,
+        });
+    }
 }
 
 /**

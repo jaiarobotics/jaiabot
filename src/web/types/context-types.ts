@@ -78,7 +78,7 @@ export interface PendingWaypointRemoval {
     priorZone?: { zoneID: number; zone: ExclusionZone };
 }
 
-// Type used to captue the JCC context
+// Type used to capture the JCC context
 export interface JaiaContextType {
     bots: Bots;
     hubs: Hubs;
@@ -102,7 +102,7 @@ export interface JaiaContextType {
     previousTick: number;
 }
 
-// snapshot of contect data not held in data model
+// snapshot of context data not held in data model
 export interface JaiaContextDataSnapshot {
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;

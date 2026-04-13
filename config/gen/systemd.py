@@ -518,7 +518,7 @@ jaiabot_apps = [
      'description': 'pHelmIvP Autonomy Engine',
      'template': 'moos-app.service.in',
      'error_on_fail': 'ERROR__FAILED__MOOS_PHELMIVP',
-     'runs_on': [Type.BOT]},  
+     'runs_on': [Type.BOT]},    
     {'exe': 'uProcessWatch',
      'description': 'uProcessWatch MOOS Health monitor',
      'template': 'moos-app.service.in',

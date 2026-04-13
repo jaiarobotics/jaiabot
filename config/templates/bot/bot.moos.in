@@ -30,9 +30,7 @@ ProcessConfig = pHelmIvP
   domain     = course:0:359:360
   domain     = speed:0:3:31
   domain     = depth:0:200:201
-
 }
-
 
 //------------------------------------------
 // pNodeReporter config block

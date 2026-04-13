@@ -563,7 +563,7 @@ export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: Ja
 
 export function handleSetPlacementError(mutableState: JaiaContextType) {
     mutableState.placementError =
-        "Cannot place a waypoint inside an exclusion zone or its safety buffer.";
+        "Cannot place a point inside an exclusion zone or its safety buffer.";
     return mutableState;
 }
 

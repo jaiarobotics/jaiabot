@@ -8,7 +8,7 @@
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/moos.pb.h"
 
-#include "jaiabot_gateway_config.pb.h"
+#include "jaiabot/moos_gateway/jaiabot_gateway_config.pb.h"
 namespace jaiabot
 {
 namespace moos
@@ -67,7 +67,6 @@ class IvPHelmTranslation : public goby::moos::Translator
     std::unique_ptr<protobuf::IvPBehaviorUpdate> pending_bhv_update_;
 
 }; // namespace moos
-
 
 class AllMessagesForLoggingTranslation : public goby::moos::Translator
 {

@@ -577,4 +577,3 @@ message MissionSummary
     optional uint64 end_time = 3;
     optional uint32 task_packet_count = 4;
 }
-

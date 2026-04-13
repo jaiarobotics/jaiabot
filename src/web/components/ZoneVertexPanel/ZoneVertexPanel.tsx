@@ -14,6 +14,7 @@ import { CoordinateTypes } from "../../types/jaia-system-types";
 import { MapModes } from "../../types/openlayers-types";
 
 import Icon from "@mdi/react";
+
 import { mdiDelete } from "@mdi/js";
 import { Button } from "@mui/material";
 

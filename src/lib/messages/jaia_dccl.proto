@@ -81,7 +81,6 @@ message Command
         RESTART_ALL_SERVICES = 40;
         REBOOT_COMPUTER = 41;
         SHUTDOWN_COMPUTER = 42;
-
     }
 
     required CommandType type = 10
@@ -103,7 +102,6 @@ message Command
 
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;
-
     }
 }
 

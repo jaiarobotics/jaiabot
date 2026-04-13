@@ -54,7 +54,6 @@ const defaultMapLayerAccordionStates = {
 export function handleInit(mutableState: JaiaContextType) {
     exclusionZoneSet.clearZones();
     exclusionZoneLayer.setZones(exclusionZoneSet.getZones());
-    localStorage.removeItem("exclusionZoneSetCurrent");
 
     const completeInit: JaiaContextType = {
         bots: bots,

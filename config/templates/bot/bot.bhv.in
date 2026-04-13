@@ -4,9 +4,9 @@ initialize   JAIABOT_STATIONKEEP_ACTIVE = false
 initialize   JAIABOT_CONSTANTHEADING_ACTIVE = false
 initialize   JAIABOT_CONSTANTSPEED_ACTIVE = false
 initialize   JAIABOT_TRAIL_ACTIVE = false
+
 Behavior = BHV_Waypoint
 { 
-
   name      = jaia_transit
   pwt       = 100
   condition = JAIABOT_WAYPOINT_ACTIVE = true

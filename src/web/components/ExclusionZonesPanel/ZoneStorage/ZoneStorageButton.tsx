@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@mui/material";
 import Icon from "@mdi/react";
@@ -10,10 +10,10 @@ import { DialogActions } from "../../../types/context-types";
 import { JCC_CONTAINER, MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import {
-    saveToLocalStorage,
-    loadSnapshotFromLocalStorage,
-    deleteFromLocalStorage,
-    listSavedZoneSets,
+    saveToHub,
+    loadSnapshotFromHub,
+    deleteFromHub,
+    listSavedZoneSetsFromHub,
     exportZonesToFile,
     importZonesFromFile,
     ImportZoneResultType,
@@ -67,10 +67,20 @@ interface DialogProps {
 function ZoneStorageDialog(props: DialogProps) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [saveName, setSaveName] = useState("");
-    const [savedNames, setSavedNames] = useState(() => listSavedZoneSets());
+    const [savedNames, setSavedNames] = useState<string[]>([]);
     const [secondaryDialog, setSecondaryDialog] = useState<SecondaryDialogType>(null);
 
-    const refreshNames = () => setSavedNames(listSavedZoneSets());
+    const refreshNames = () => {
+        listSavedZoneSetsFromHub()
+            .then(setSavedNames)
+            .catch(() => setSavedNames([]));
+    };
+
+    // Load names from hub when dialog opens
+    useEffect(() => {
+        refreshNames();
+    }, []);
+
     const hasZones = exclusionZoneSet.getZones().size > 0;
 
     // ── Save ────────────────────────────────────────────────────────────────
@@ -84,13 +94,12 @@ function ZoneStorageDialog(props: DialogProps) {
             setSecondaryDialog("save-no-name");
             return;
         }
-        if (listSavedZoneSets().includes(saveName.trim())) {
+        if (savedNames.includes(saveName.trim())) {
             setSecondaryDialog("save-overwrite");
             return;
         }
-        // No conflicts — save directly (matches mission save behavior)
-        saveToLocalStorage(saveName.trim());
-        refreshNames();
+        // No conflicts — save directly
+        saveToHub(saveName.trim()).then(refreshNames);
     };
 
     // ── Load ────────────────────────────────────────────────────────────────
@@ -137,34 +146,37 @@ function ZoneStorageDialog(props: DialogProps) {
 
         switch (current) {
             case "save-overwrite":
-                saveToLocalStorage(saveName.trim());
-                refreshNames();
+                saveToHub(saveName.trim()).then(refreshNames);
                 break;
 
             case "confirm-load": {
-                if (!listSavedZoneSets().includes(saveName.trim())) {
+                if (!savedNames.includes(saveName.trim())) {
                     setSecondaryDialog("load-not-found");
                     return;
                 }
-                const snapshot = loadSnapshotFromLocalStorage(saveName.trim());
-                if (snapshot) {
-                    jaiaDispatch({
-                        type: JaiaActions.RESTORE_EXCLUSION_ZONE_SNAPSHOT,
-                        exclusionZoneSnapshot: snapshot,
-                    });
-                    props.onClose();
-                }
+                loadSnapshotFromHub(saveName.trim()).then((snapshot) => {
+                    if (snapshot) {
+                        jaiaDispatch({
+                            type: JaiaActions.RESTORE_EXCLUSION_ZONE_SNAPSHOT,
+                            exclusionZoneSnapshot: snapshot,
+                        });
+                        props.onClose();
+                    } else {
+                        setSecondaryDialog("load-not-found");
+                    }
+                });
                 break;
             }
 
             case "confirm-delete":
-                if (!listSavedZoneSets().includes(saveName.trim())) {
+                if (!savedNames.includes(saveName.trim())) {
                     setSecondaryDialog("delete-not-found");
                     return;
                 }
-                deleteFromLocalStorage(saveName.trim());
-                setSaveName("");
-                refreshNames();
+                deleteFromHub(saveName.trim()).then(() => {
+                    setSaveName("");
+                    refreshNames();
+                });
                 break;
 
             case "confirm-import": {

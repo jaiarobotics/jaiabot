@@ -22,10 +22,6 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-// Standard
-#include <algorithm>
-#include <cmath>
-
 // Boost
 #include <boost/units/systems/si/frequency.hpp>
 namespace si = boost::units::si;
@@ -982,7 +978,6 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                 glog << "MISSION_PLAN_FRAGMENT command not processed by handle_command()"
                      << std::endl;
             break;
-
     }
 }
 
@@ -1110,12 +1105,11 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
     return false;
 }
 
-
 /**
  * Passes Safety Return Path (SRP) values to the state machine
- *
+ *  
  * @param {jaiabot::apps::MissionManager} handle_bottom_dive_safety_params Contains the SRP values
- * @returns {void}
+ * @returns {void} 
  */
 void jaiabot::apps::MissionManager::handle_bottom_dive_safety_params(
     jaiabot::protobuf::BottomDepthSafetyParams params)
@@ -1202,5 +1196,4 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
     }
     return false;
 }
-
 

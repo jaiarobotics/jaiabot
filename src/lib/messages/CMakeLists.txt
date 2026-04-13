@@ -21,7 +21,6 @@ set(SENSOR_MESSAGES
 protobuf_generate_cpp_full(PROTO_SRCS PROTO_HDRS "jaiabot/messages" ${project_INC_DIR}
   example.proto
   geographic_coordinate.proto
-  exclusion_zone.proto
   camera_driver.proto
   control_surfaces.proto
   high_control.proto
@@ -116,12 +115,11 @@ if(NOT CMAKE_CROSSCOMPILING)
   # to ensure that CMake checks that we don't accidentally change the DCCL message without updating PROJECT_INTERVEHICLE_API_VERSION if necessary.
 
   # When updating a DCCL message, just make sure to increment PROJECT_INTERVEHICLE_API_VERSION in jaiabot/cmake/JaiaVersions.cmake
-  # and update the hash here (dccl -l <build>/lib/libjaiabot_messages.so --analyze -m <name> --hash_only)
+  # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  # TODO: restore hash checks after collecting hashes from newly-built library
-  #check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "PENDING")
-  #check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "PENDING")
-  #check_dccl_md5_hash("jaiabot.protobuf.Command" "PENDING")
-  #check_dccl_md5_hash("jaiabot.protobuf.Engineering" "PENDING")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x8ce7f94bf9303937")
+  check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0xc2b6ff5101df098c")
+  check_dccl_md5_hash("jaiabot.protobuf.Command" "0x14ebbe8ed8aed722")
+  check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x6694c32d91a8b1c7")
 endif()

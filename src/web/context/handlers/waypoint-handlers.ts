@@ -34,7 +34,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     if (missionIDInEditMode !== UNASSIGNED_ID) {
         if (action.location && isLocationBlockedByZone(action.location)) {
             mutableState.placementError =
-                "Cannot place a waypoint inside an exclusion zone or its safety buffer.";
+                "Cannot place a point inside an exclusion zone or its safety buffer.";
             return mutableState;
         }
 
@@ -117,7 +117,7 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.location && isLocationBlockedByZone(action.location)) {
         mutableState.placementError =
-            "Cannot place a waypoint inside an exclusion zone or its safety buffer.";
+            "Cannot place a point inside an exclusion zone or its safety buffer.";
         return mutableState;
     }
 

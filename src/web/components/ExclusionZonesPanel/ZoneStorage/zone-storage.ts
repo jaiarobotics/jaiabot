@@ -2,6 +2,7 @@ import {
     exclusionZoneSet,
     ExclusionZoneSetSnapshot,
 } from "../../../data/exclusion_zones/exclusion-zone-set";
+import { jaiaAPI } from "../../../utils/jaia-api";
 
 const NAMED_SETS_KEY = "exclusionZoneSets";
 const EXCLUSION_ZONE_SET_VERSION = "1.0";
@@ -22,7 +23,16 @@ export interface ImportZoneResult {
     resultType: ImportZoneResultType;
 }
 
+// ── localStorage (unused) ──────────────────────────────────────────────────
+// These functions were written when zone storage mirrored the mission-set
+// localStorage pattern. The dialog was later switched to hub-only persistence
+// (saveToHub / loadSnapshotFromHub). These functions are kept in case a
+// browser-local fallback is needed in future but are not called anywhere.
+
 /**
+ * @deprecated Not called — zone storage uses hub API. Kept as a potential
+ * browser-local fallback. See saveToHub for the active implementation.
+ *
  * Saves the current zone set to localStorage under the given name
  */
 export function saveToLocalStorage(name: string) {
@@ -32,6 +42,8 @@ export function saveToLocalStorage(name: string) {
 }
 
 /**
+ * @deprecated Not called — zone storage uses hub API. See loadSnapshotFromHub.
+ *
  * Loads a named zone set snapshot from localStorage
  */
 export function loadSnapshotFromLocalStorage(name: string): ExclusionZoneSetSnapshot | null {
@@ -40,6 +52,8 @@ export function loadSnapshotFromLocalStorage(name: string): ExclusionZoneSetSnap
 }
 
 /**
+ * @deprecated Not called — zone storage uses hub API. See deleteFromHub.
+ *
  * Deletes a named zone set from localStorage
  */
 export function deleteFromLocalStorage(name: string): boolean {
@@ -51,12 +65,46 @@ export function deleteFromLocalStorage(name: string): boolean {
 }
 
 /**
+ * @deprecated Not called — zone storage uses hub API. See listSavedZoneSetsFromHub.
+ *
  * Returns all saved zone set names sorted alphabetically
  */
 export function listSavedZoneSets(): string[] {
     const stored = JSON.parse(localStorage.getItem(NAMED_SETS_KEY) || "{}");
     return Object.keys(stored).sort((a, b) => a.localeCompare(b));
 }
+
+// ── Hub storage (server-side persistence) ──────────────────────────────────
+
+/**
+ * Returns all saved zone set names from the hub, sorted alphabetically
+ */
+export async function listSavedZoneSetsFromHub(): Promise<string[]> {
+    return jaiaAPI.listExclusionZones();
+}
+
+/**
+ * Saves the current zone set to the hub under the given name
+ */
+export async function saveToHub(name: string): Promise<void> {
+    await jaiaAPI.saveExclusionZone(name, exclusionZoneSet.captureSnapshot());
+}
+
+/**
+ * Loads a named zone set snapshot from the hub
+ */
+export async function loadSnapshotFromHub(name: string): Promise<ExclusionZoneSetSnapshot | null> {
+    return jaiaAPI.loadExclusionZone(name) as Promise<ExclusionZoneSetSnapshot | null>;
+}
+
+/**
+ * Deletes a named zone set from the hub
+ */
+export async function deleteFromHub(name: string): Promise<void> {
+    await jaiaAPI.deleteExclusionZone(name);
+}
+
+// ── File export / import ────────────────────────────────────────────────────
 
 /**
  * Exports the current zone set to a JSON file download

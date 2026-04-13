@@ -140,10 +140,12 @@ export default function Map() {
 
     const handleAddRallyPoint = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
-        jaiaDispatch({
-            type: JaiaActions.ADD_RALLY_POINT,
-            location: { lon: lonLat[0], lat: lonLat[1] },
-        });
+        const location = { lon: lonLat[0], lat: lonLat[1] };
+        if (isLocationBlockedByZone(location)) {
+            jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+            return;
+        }
+        jaiaDispatch({ type: JaiaActions.ADD_RALLY_POINT, location });
     };
 
     const handleSurveyPlanningClick = (coordinate: Coordinate) => {
@@ -153,6 +155,10 @@ export default function Map() {
 
         switch (gridPlan.getState()) {
             case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
+                if (isLocationBlockedByZone(location)) {
+                    jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+                    return;
+                }
                 gridPlan.setMissionStart(location);
                 gridLayer
                     .getVectorLayer()
@@ -161,6 +167,10 @@ export default function Map() {
                 nextState = GridPlanningStates.ACCEPTING_MISSION_END_LOCATION;
                 break;
             case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
+                if (isLocationBlockedByZone(location)) {
+                    jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+                    return;
+                }
                 gridPlan.setMissionEnd(location);
                 gridLayer
                     .getVectorLayer()
