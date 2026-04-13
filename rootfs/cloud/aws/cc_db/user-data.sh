@@ -13,7 +13,7 @@ cat <<EOF > ${setup_script}
 #!/bin/bash
 # Prereqs
 # 1. ssh key (ssh -A ...) with access to https://github.com/jaiarobotics/jaia-database
-# 2. file '/home/jaia/jaiaparts.sql' exported from prior database
+# 2. file '/home/jaia/jaiaparts.sql' exported from prior database ('jaia-database/grab-copy-of-production-db.sh')
 
 set -e -u
 
@@ -27,7 +27,7 @@ fi
 
 cd /opt
 sudo chown jaia /opt
-git clone git@github.com:jaiarobotics/jaia-database.git -b ubuntu24.04
+git clone git@github.com:jaiarobotics/jaia-database.git 
 python3 -m venv venv
 . venv/bin/activate
 pip install -r jaia-database/requirements.txt
