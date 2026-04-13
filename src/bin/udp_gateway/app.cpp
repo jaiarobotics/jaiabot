@@ -22,10 +22,10 @@
 
 #include <dccl/codec.h>
 #include <goby/middleware/io/udp_point_to_point.h>
+#include <goby/middleware/marshalling/protobuf.h>
 #include <goby/util/constants.h>
 #include <goby/util/seawater/units.h>
 #include <goby/zeromq/application/multi_thread.h>
-#include <goby/middleware/marshalling/protobuf.h>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
@@ -192,7 +192,8 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
                 pressure_temperature_data.set_temperature_with_units(
                     temperature * boost::units::absolute<boost::units::celsius::temperature>());
             }
-            interprocess().publish<jaiabot::groups::pressure_temperature>(pressure_temperature_data);
+            interprocess().publish<jaiabot::groups::pressure_temperature>(
+                pressure_temperature_data);
             last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
             break;
         }
@@ -304,7 +305,7 @@ void jaiabot::apps::UDPGateway::check_last_report(
     }
 
     // Salinity data timeout check
-    if (last_salinity_data_time_ +
+    if (cfg().salinity_enabled() && last_salinity_data_time_ +
         std::chrono::seconds(cfg().salinity_data_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {
@@ -316,7 +317,7 @@ void jaiabot::apps::UDPGateway::check_last_report(
     }
 
     // Pressure temperature data timeout check
-    if (last_pressure_temperature_data_time_ +
+    if (cfg().bar30_enabled() && last_pressure_temperature_data_time_ +
         std::chrono::seconds(cfg().pressure_temperature_data_report_timeout_seconds()) <
         goby::time::SteadyClock::now())
     {

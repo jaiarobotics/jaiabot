@@ -38,8 +38,6 @@ struct PoweredAscent
 
         powered_ascent_motor_off_timeout_ = start_timeout + powered_ascent_motor_off_duration_;
 
-        last_depth_ = context<Dive>().dive_packet().depth_achieved_with_units();
-
         loop(EvLoop());
     }
 

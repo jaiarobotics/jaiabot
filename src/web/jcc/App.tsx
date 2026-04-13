@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 
 import { gridPlan } from "../data/survey_planner/grid-plan";
@@ -21,6 +21,7 @@ import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import SurveyPlanner from "../components/SurveyPlanner/SurveyPlanner";
+import NotificationDot from "../components/NotificationDot/NotificationDot";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
 import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 import SimulationBanner from "../components/SimulationBanner/SimulationBanner";
@@ -29,11 +30,22 @@ import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPa
 
 import "./App.less";
 
+// 400 ms is intentionally conservative to avoid flicker or partially rendered content on slower devices.
+const LOADING_SCREEN_REMOVAL_DELAY_MS = 400;
+
 /**
  * The root of the JCC interface
  */
 export default function App() {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    useEffect(() => {
+        // Remove the initial HTML loading screen when React mounts and is ready
+        const initialLoadingScreen = document.getElementById("initial-loading-screen");
+        if (initialLoadingScreen) {
+            setTimeout(() => initialLoadingScreen.remove(), LOADING_SCREEN_REMOVAL_DELAY_MS);
+        }
+    }, []);
 
     /**
      * Places the JCC in full-screen mode on mobile devices
@@ -57,6 +69,7 @@ export default function App() {
                 <Panel />
                 <RemoteControl />
                 <SimulationBanner />
+                <NotificationDot className="jaia-about-button" />
                 <TakeControl />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>

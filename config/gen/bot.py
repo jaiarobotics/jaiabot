@@ -14,6 +14,7 @@ from pathlib import Path
 jaia_electronics_stack='0'
 jaia_imu_type='bno055'
 jaia_arduino_type='spi'
+jaia_pam_connection_type='none'
 
 if "jaia_electronics_stack" in os.environ:
     jaia_electronics_stack=os.environ['jaia_electronics_stack']
@@ -57,6 +58,9 @@ elif jaia_arduino_type == 'usb':
 else:
     jaia_arduino_dev_location="/dev/ttyAMA1"
 
+if "jaia_pam_connection_type" in os.environ:
+    jaia_pam_connection_type=os.environ['jaia_pam_connection_type']
+
 jaia_data_offload_ignore_type="NONE"
 
 if "jaia_data_offload_ignore_type" in os.environ:
@@ -65,6 +69,9 @@ if "jaia_data_offload_ignore_type" in os.environ:
 bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 
 echo_enabled=(bot_type == "ECHO")
+# Ignore health warnings from UDP gateway if data comes from BIO payload board
+salinity_enabled=(bot_type != "BIO")
+bar30_enabled=(bot_type != "BIO")
 
 jaia_motor_harness_type="NONE"
 
@@ -117,7 +124,10 @@ verbosities = \
   'jaiabot_driver_camera':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_mission_repeater':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'jaiabot_comms_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
+  'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_aml_sensor_driver':                    { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_ctd_manager':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_ppk':                                  { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -276,7 +286,8 @@ elif common.app == 'goby_logger':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir,
-                                     goby_logger_group_regex=logger.group_regex))
+                                     goby_logger_group_regex=logger.group_regex,
+                                     log_on_startup='true'))
 elif common.app == 'goby_liaison':
     liaison_port=30000
     if is_simulation():
@@ -307,6 +318,8 @@ elif common.app == 'jaiabot_udp_gateway':
                                      in_simulation=is_simulation(),
                                      udp_gateway_port=udp_gateway_port,
                                      echo_enabled=str(echo_enabled).lower(),
+                                     salinity_enabled=str(salinity_enabled).lower(),
+                                     bar30_enabled=str(bar30_enabled).lower(),
                                      tsys01_enabled=str(tsys01_enabled).lower()))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
@@ -415,13 +428,25 @@ elif common.app == 'jaiabot_turner_c_fluor_sensor_driver':
                                      app_block=app_common,
                                      interprocess_block=interprocess_common,
                                      fluorometer_coefficients=fluorometer_coefficients))
+elif common.app == 'jaiabot_aml_sensor_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_aml_sensor_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common))
+elif common.app == 'jaiabot_ctd_manager':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_ctd_manager.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     fleet_id=fleet_index,
+                                     use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
+                                     fleet_id=fleet_index,
                                      jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds,
                                      jaia_arduino_dev_location=jaia_arduino_dev_location,
                                      udp_gateway_port=udp_gateway_port,
                                      imu_type=imu_type,
-                                     pressure_sensor_type=pressure_sensor_type))
+                                     pressure_sensor_type=pressure_sensor_type,
+                                     log_file_dir=log_file_dir))

@@ -24,11 +24,11 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import {
     getDistanceToHub,
     getStatusAgeClassName,
-    getWaypontHelperText,
     getBotOffloadPercent,
     getRepeatProgress,
     getDistToWaypoint,
     isBotLogging,
+    searchGhostMissions,
 } from "./bot-details";
 
 import { accordionTheme, addDropdownListener } from "../../utils/style";
@@ -58,15 +58,17 @@ export default function BotDetails() {
     });
 
     const hub = jaiaContext.hubs.getHubs().values().next()?.value;
-
     const botID = jaiaContext.jaiaGlobal.getSelectedNode().id;
     const bot = jaiaContext.bots.getBot(botID);
-
-    const missionID = missionsManager.getMissionID(botID);
-    const mission = jaiaContext.missionSet.getMission(missionID);
-
     if (!bot || !hub) {
         return;
+    }
+
+    const missionID = missionsManager.getMissionID(botID);
+    let mission = jaiaContext.missionSet.getMission(missionID);
+    if (!mission) {
+        // Mission can still be undefined if ghost mission does not exist
+        mission = searchGhostMissions(botID);
     }
 
     const missionStatus: MissionStatus = bot.getMissionStatus();
@@ -111,10 +113,13 @@ export default function BotDetails() {
                             ⨯
                         </div>
                     </div>
-                    <h3 className="details-help-text">{getWaypontHelperText(mission)}</h3>
                     <div className="details-toolbar">
                         <StopButton bot={bot} />
-                        <StartMissionButton bot={bot} mission={mission} />
+                        <StartMissionButton
+                            bot={bot}
+                            mission={mission}
+                            missionSetName={jaiaContext.missionSet.getName()}
+                        />
                         <DeleteMissionButton
                             deleteAll={false}
                             missionID={mission?.getMissionID()}

@@ -1,11 +1,8 @@
-import importlib
 from typing import List, Union, AbstractSet, Dict
 from pathlib import Path
-from objects import jaialog_get_object_list
 from pyjaia.series import *
 from pyjaia.logtools import JaiaLogH5
 from threading import Lock
-import path_descriptors
 
 import h5py
 import logging
@@ -13,12 +10,16 @@ import os
 import re
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
-import google.protobuf.message
 from google.protobuf.json_format import MessageToDict
 
 # Import the available message types for the getObjects function
 from jaiabot.messages.jaia_dccl_pb2 import *
 from jaiabot.messages.metadata_pb2 import *
+
+# Jaia packages
+from . import objects
+from . import path_descriptors
+
 
 l = logging.getLogger('jaia_h5')
 
@@ -183,7 +184,7 @@ class JaiaH5FileSet:
 
                     
                     command_path = hub_command_path + '/jaiabot.protobuf.Command'
-                    commands = jaialog_get_object_list(log_file.log[command_path], repeated_members={"goal"})
+                    commands = objects.jaialog_get_object_list(log_file.log[command_path], repeated_members={"goal"})
 
                     try:
                         bot_id = commands[0]['bot_id']
@@ -290,7 +291,7 @@ class JaiaH5FileSet:
                     task_packet_group_path = path
 
                     task_packet_path = task_packet_group_path + '/jaiabot.protobuf.TaskPacket'
-                    task_packets = jaialog_get_object_list(log_file.log[task_packet_path], repeated_members={"measurement"})
+                    task_packets = objects.jaialog_get_object_list(log_file.log[task_packet_path], repeated_members={"measurement"})
 
                     results += task_packets
 

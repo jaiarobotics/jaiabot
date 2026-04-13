@@ -7,9 +7,8 @@ import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { buildDepthMap } from "./depth-map-3D";
 import { DEPTH_MAP_3D_NAME } from "../../utils/constants";
 
-const Plotly = require("plotly.js-dist");
-
 interface Props {
+    windowPosition: string;
     setWindowPosition: React.Dispatch<React.SetStateAction<string>>;
     onClose: () => void;
 }
@@ -36,7 +35,11 @@ export default function DepthMap3D() {
 
     return (
         <div className={`depth-map-3D-container ${windowPosition}`}>
-            <MenuBar setWindowPosition={setWindowPosition} onClose={onClose} />
+            <MenuBar
+                windowPosition={windowPosition}
+                setWindowPosition={setWindowPosition}
+                onClose={onClose}
+            />
             <div id={DEPTH_MAP_3D_NAME}></div>
         </div>
     );
@@ -52,9 +55,14 @@ function MenuBar(props: Props) {
      * @param {string} windowPosition Where to place the 3D depth map
      * @returns {void}
      */
-    const handleClick = (windowPosition: string) => {
+    const handleClick = async (nextPosition: string) => {
+        if (nextPosition === props.windowPosition) {
+            return;
+        }
+        // @ts-ignore - plotly.js-dist has no type declarations
+        const Plotly = (await import("plotly.js-dist")).default;
         Plotly.purge(DEPTH_MAP_3D_NAME);
-        props.setWindowPosition(windowPosition);
+        props.setWindowPosition(nextPosition);
     };
 
     return (

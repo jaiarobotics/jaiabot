@@ -3,6 +3,7 @@
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
 //   Ed Sanville <edsanville@gmail.com>
+//   Matthew Ferro <matt.ferro@jaia@tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -32,16 +33,6 @@ struct PoweredDescent
         typename StateBase::my_context c)
         : StateBase(c)
     {
-        // This makes sure we capture the pressure before the dive begins
-        // Then we can adjust pressure accordingly
-        this->machine().set_start_of_dive_pressure(this->machine().current_pressure());
-
-        // Calculate and set the depth of our pressure sensor at the start of our dive according to the vehicle's pitch and waterline 
-        this->machine().calculate_start_of_dive_depth(this->machine().latest_pitch()); 
-
-        glog.is_debug1() && glog << "Start of Dive Pitch: " << this->machine().latest_pitch().value() << " degrees" <<std::endl;
-        glog.is_debug1() && glog << "Start of Dive Depth: " << this->machine().start_of_dive_depth() << " meters" <<std::endl;
-
         // Start the timeout for detecting the bottom
         goby::time::SteadyClock::time_point start_timeout = goby::time::SteadyClock::now();
         // duration granularity is seconds
@@ -155,12 +146,15 @@ struct PoweredDescent
                 << ((now - last_depth_change_time_) >
                     static_cast<decltype(now)>(cfg().bottoming_timeout_with_units()))
                 << std::endl;
-
+ 
         if (boost::units::abs(ev.depth - context<Dive>().goal_depth()) <
             cfg().dive_depth_eps_with_units())
         {
-            // Set depth achieved if we have reached our goal depth
-            context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+            // Set depth achieved if we have reached our goal depth AND are deeper than current depth achieved
+            if (ev.depth > context<Dive>().dive_packet().depth_achieved_with_units())
+            {
+                context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+            }
             dive_pdescent_debug.set_depth_reached(true);
             post_event(EvDepthTargetReached());
         }
@@ -194,14 +188,17 @@ struct PoweredDescent
             {
                 context<Dive>().set_seafloor_reached(ev.depth);
 
-                // Set depth achieved if we had a bottoming timeout
-                context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+                // Set depth achieved if we had a bottoming timeout AND are deeper than our current depth achieved
+                if (ev.depth > context<Dive>().dive_packet().depth_achieved_with_units())
+                {
+                    context<Dive>().dive_packet().set_depth_achieved_with_units(ev.depth);
+                }
 
-                // Set the max_acceration
+                // Set the max_acceleration
                 context<Dive>().dive_packet().set_max_acceleration_with_units(
                     this->machine().latest_max_acceleration());
 
-                //Commenting out max acceperation hard/soft determination for bottom type to switch to ascent-based logic
+                //Commenting out max acceleration hard/soft determination for bottom type to switch to ascent-based logic
                 // // Determine Hard/Soft
                 // if (this->machine().latest_max_acceleration().value() >=
                 //     cfg().hard_bottom_type_acceleration())

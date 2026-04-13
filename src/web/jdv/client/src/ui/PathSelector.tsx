@@ -9,6 +9,7 @@ interface PathSelectorProps {
     logs: string[];
     didCancel: () => void;
     didSelectPath: (path: string) => void;
+    seriesDescriptors: SeriesDescriptor[];
 }
 
 interface PathSelectorState {
@@ -62,9 +63,8 @@ function push_series_to_recents(series_descriptor: SeriesDescriptor) {
  * A selection dialog for choosing a path from a set of logs.
  *
  */
-export default class PathSelector extends React.Component {
-    props: PathSelectorProps;
-    state: PathSelectorState;
+export default class PathSelector extends React.Component<PathSelectorProps, PathSelectorState> {
+    declare state: PathSelectorState;
 
     constructor(props: PathSelectorProps) {
         super(props);
@@ -81,9 +81,7 @@ export default class PathSelector extends React.Component {
     }
 
     load_series_descriptors() {
-        LogApi.getAllSeriesDescriptors(this.state.logs).then((series_descriptors) => {
-            this.setState({ search_index: new PathIndex(series_descriptors) });
-        });
+        this.setState({ search_index: new PathIndex(this.props.seriesDescriptors) });
     }
 
     componentDidMount() {

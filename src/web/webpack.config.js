@@ -97,17 +97,22 @@ module.exports = (env, argv) => {
             path: path.resolve(env.OUTPUT_DIR, "jcc/"),
             filename: "[name].js",
             clean: true,
+            // Explicit relative public path so lazy chunk URLs resolve correctly
+            // against the document URL even when client.js is loaded from a blob URL.
+            publicPath: "./",
         },
         plugins: [
             new HtmlWebpackPlugin({
                 template: path.resolve(__dirname, "jcc/public/index.html"),
-                favicon: path.resolve(__dirname, "jcc/public/favicon.png"),
                 excludeChunks: ["customLayerWorker"],
+                inject: true,
             }),
             new CopyWebpackPlugin({
                 patterns: [
                     path.resolve(__dirname, "jcc/public/favicon.png"),
                     path.resolve(__dirname, "jcc/public/manifest.json"),
+                    path.resolve(__dirname, "jcc/public/loading.css"),
+                    path.resolve(__dirname, "jcc/public/loading-logo.svg"),
                 ],
                 options: {},
             }),

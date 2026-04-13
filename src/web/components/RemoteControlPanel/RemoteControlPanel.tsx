@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
+import Gamepad from "react-gamepad";
 
 import JaiaToggle from "../JaiaToggle/JaiaToggle";
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
@@ -74,7 +75,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         return () => {
             clearInterval(rcCommandInterval);
         };
-    }, [throttleDirection, throttleMagnitude, rudderDirection, rudderMagnitude]);
+    }, [controlType, throttleDirection, throttleMagnitude, rudderDirection, rudderMagnitude]);
 
     /**
      * Sends RC commands periodically unless in dive mode.
@@ -88,109 +89,55 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     };
 
     /**
-     * Updates throttle and rudder values when the analog stick moves
+     * Handles axis input from both analog sticks and gamepad
      *
-     * @param {IJoystickUpdateEvent} event Contains the direction + magnitude of the movement
-     * @param {AnalogStickTypes} analogStickType Which analog stick moved
+     * @param {number} value Raw axis value (-1 to 1)
+     * @param {AnalogStickTypes} axisType Which axis (LEFT for throttle, RIGHT for rudder)
      * @returns {void}
      */
-    const handleAnalogStickMove = (
-        event: IJoystickUpdateEvent,
-        analogStickType: AnalogStickTypes,
-    ) => {
-        switch (analogStickType) {
-            case AnalogStickTypes.SINGLE:
-                setAnalogStickDirection(event, AnalogStickTypes.SINGLE);
-                setAnalogStickMagnitude(event.y, AnalogStickTypes.LEFT);
-                setAnalogStickMagnitude(event.x, AnalogStickTypes.RIGHT);
-                break;
+    const handleAxisInput = (value: number, axisType: AnalogStickTypes) => {
+        const absValue = Math.abs(value) * 100;
 
-            case AnalogStickTypes.LEFT:
-                setAnalogStickDirection(event, AnalogStickTypes.LEFT);
-                setAnalogStickMagnitude(event.y, AnalogStickTypes.LEFT);
-                break;
-
-            case AnalogStickTypes.RIGHT:
-                setAnalogStickDirection(event, AnalogStickTypes.RIGHT);
-                setAnalogStickMagnitude(event.x, AnalogStickTypes.RIGHT);
-                break;
-        }
-    };
-
-    /**
-     * Updates the throttle and rudder directions in state
-     *
-     * @param {IJoystickUpdateEvent} event Contains the direction of the movement
-     * @param {AnalogStickTypes} analogStickType Which analog stick moved
-     * @returns {void}
-     */
-    const setAnalogStickDirection = (
-        event: IJoystickUpdateEvent,
-        analogStickType: AnalogStickTypes,
-    ) => {
-        switch (analogStickType) {
-            case AnalogStickTypes.SINGLE:
-                // Throttle
-                if (event.y > 0) {
-                    setThrottleDirection("FORWARD");
-                } else if (event.y < 0) {
-                    setThrottleDirection("BACKWARD");
-                }
-                // Rudder
-                if (event.x > 0) {
-                    setRudderDirection("RIGHT");
-                } else if (event.x < 0) {
-                    setRudderDirection("LEFT");
-                }
-                break;
-            case AnalogStickTypes.LEFT:
-                setThrottleDirection(event.direction);
-                break;
-            case AnalogStickTypes.RIGHT:
-                setRudderDirection(event.direction);
-                break;
-        }
-    };
-
-    /**
-     * Updates throttle and rudder magnitudes in state
-     *
-     * @param {number} position Where the user moved the analog stick
-     * @param {AnalogStickTypes} analogStickType Which analog stick moved
-     * @returns {void}
-     */
-    const setAnalogStickMagnitude = (position: number, analogStickType: AnalogStickTypes) => {
-        const absPosition = Math.abs(position) * 100;
-        const isNegative = position < 0;
-        let magnitude = 0;
-
-        if (absPosition > RCZones.DEAD && position < RCZones.LOW) {
-            magnitude = 1;
-        }
-
-        if (absPosition >= RCZones.LOW && position <= RCZones.HIGH) {
-            magnitude = 2;
-        }
-
-        if (absPosition > RCZones.HIGH) {
-            magnitude = 3;
-            if (analogStickType === AnalogStickTypes.LEFT && !rcOverdrive) {
-                magnitude = 2;
+        if (absValue > RCZones.DEAD) {
+            // Set direction
+            if (axisType === AnalogStickTypes.LEFT) {
+                setThrottleDirection(value > 0 ? "FORWARD" : "BACKWARD");
+            } else if (axisType === AnalogStickTypes.RIGHT) {
+                setRudderDirection(value > 0 ? "RIGHT" : "LEFT");
             }
-        }
 
-        if (isNegative && analogStickType === AnalogStickTypes.LEFT) {
-            // Only one speed in reverse
-            magnitude = 1;
-        }
+            // Set magnitude
+            let magnitude = 0;
+            if (absValue < RCZones.LOW) {
+                magnitude = 1;
+            } else if (absValue >= RCZones.LOW && absValue <= RCZones.HIGH) {
+                magnitude = 2;
+            } else {
+                magnitude = 3;
+                if (axisType === AnalogStickTypes.LEFT && !rcOverdrive) {
+                    magnitude = 2;
+                }
+            }
 
-        switch (analogStickType) {
-            case AnalogStickTypes.LEFT:
+            // Only one speed in reverse for throttle
+            if (value < 0 && axisType === AnalogStickTypes.LEFT) {
+                magnitude = 1;
+            }
+
+            if (axisType === AnalogStickTypes.LEFT) {
                 setThrottleMagnitude(magnitude);
-                break;
-            case AnalogStickTypes.RIGHT:
+            } else if (axisType === AnalogStickTypes.RIGHT) {
                 setRudderMagnitude(magnitude);
-                break;
+            }
+        } else {
+            // Reset when in dead zone
+            if (axisType === AnalogStickTypes.LEFT) {
+                setThrottleDirection("");
+                setThrottleMagnitude(0);
+            } else if (axisType === AnalogStickTypes.RIGHT) {
+                setRudderDirection("");
+                setRudderMagnitude(0);
+            }
         }
     };
 
@@ -336,62 +283,111 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
     switch (controlType) {
         case ControlTypes.SINGLE:
             return (
-                <div className="remote-control-panel">
-                    <AnalogStick
-                        analogStickType={AnalogStickTypes.SINGLE}
-                        handleAnalogStickMove={(event) =>
-                            handleAnalogStickMove(event, AnalogStickTypes.SINGLE)
-                        }
-                        onAnalogStickStop={onAnalogStickStop}
-                    />
-                    <div className="rc-dashboard">
-                        <div className="selection-controls">
-                            {RCSelectMenu}
-                            {RCOverdrive}
+                <>
+                    {/* Gamepad component listens for Xbox controller input in background */}
+                    <Gamepad
+                        onAxisChange={(axisName, value) => {
+                            if (axisName === "LeftStickY") {
+                                handleAxisInput(value, AnalogStickTypes.LEFT);
+                            } else if (axisName === "RightStickX") {
+                                handleAxisInput(value, AnalogStickTypes.RIGHT);
+                            }
+                        }}
+                    >
+                        {/* Empty div required by react-gamepad library */}
+                        <div></div>
+                    </Gamepad>
+                    <div className="remote-control-panel">
+                        <AnalogStick
+                            analogStickType={AnalogStickTypes.SINGLE}
+                            handleAnalogStickMove={(event) => {
+                                handleAxisInput(event.y, AnalogStickTypes.LEFT);
+                                handleAxisInput(event.x, AnalogStickTypes.RIGHT);
+                            }}
+                            onAnalogStickStop={onAnalogStickStop}
+                        />
+                        <div className="rc-dashboard">
+                            <div className="selection-controls">
+                                {RCSelectMenu}
+                                {RCOverdrive}
+                            </div>
+                            {RCDashboard}
                         </div>
-                        {RCDashboard}
                     </div>
-                </div>
+                </>
             );
         case ControlTypes.DUAL:
             return (
-                <div className="remote-control-panel">
-                    <AnalogStick
-                        analogStickType={AnalogStickTypes.LEFT}
-                        handleAnalogStickMove={(event) =>
-                            handleAnalogStickMove(event, AnalogStickTypes.LEFT)
-                        }
-                        onAnalogStickStop={onAnalogStickStop}
-                    />
-                    <div className="rc-dashboard">
-                        <div className="selection-controls">
-                            {RCSelectMenu}
-                            {RCOverdrive}
+                <>
+                    {/* Gamepad component listens for Xbox controller input in background */}
+                    <Gamepad
+                        onAxisChange={(axisName, value) => {
+                            if (axisName === "LeftStickY") {
+                                handleAxisInput(value, AnalogStickTypes.LEFT);
+                            } else if (axisName === "RightStickX") {
+                                handleAxisInput(value, AnalogStickTypes.RIGHT);
+                            }
+                        }}
+                    >
+                        {/* Empty div required by react-gamepad library */}
+                        <div></div>
+                    </Gamepad>
+                    <div className="remote-control-panel">
+                        <AnalogStick
+                            analogStickType={AnalogStickTypes.LEFT}
+                            handleAnalogStickMove={(event) =>
+                                handleAxisInput(event.y, AnalogStickTypes.LEFT)
+                            }
+                            onAnalogStickStop={onAnalogStickStop}
+                        />
+                        <div className="rc-dashboard">
+                            <div className="selection-controls">
+                                {RCSelectMenu}
+                                {RCOverdrive}
+                            </div>
+                            {RCDashboard}
                         </div>
-                        {RCDashboard}
+                        <AnalogStick
+                            analogStickType={AnalogStickTypes.RIGHT}
+                            handleAnalogStickMove={(event) =>
+                                handleAxisInput(event.x, AnalogStickTypes.RIGHT)
+                            }
+                            onAnalogStickStop={onAnalogStickStop}
+                        />
                     </div>
-                    <AnalogStick
-                        analogStickType={AnalogStickTypes.RIGHT}
-                        handleAnalogStickMove={(event) =>
-                            handleAnalogStickMove(event, AnalogStickTypes.RIGHT)
-                        }
-                        onAnalogStickStop={onAnalogStickStop}
-                    />
-                </div>
+                </>
             );
         case ControlTypes.DIVE:
             return (
-                <div className="remote-control-panel dive">
-                    <DiveInputs rcDiveParameters={rcDiveParameters} onChange={handleRCDiveChange} />
-                    <div className="rc-dashboard dive">
-                        {RCSelectMenu}
-                        <DiveCommand
+                <>
+                    {/* Gamepad component listens for Xbox controller input in background */}
+                    <Gamepad
+                        onAxisChange={(axisName, value) => {
+                            if (axisName === "LeftStickY") {
+                                handleAxisInput(value, AnalogStickTypes.LEFT);
+                            } else if (axisName === "RightStickX") {
+                                handleAxisInput(value, AnalogStickTypes.RIGHT);
+                            }
+                        }}
+                    >
+                        {/* Empty div required by react-gamepad library */}
+                        <div></div>
+                    </Gamepad>
+                    <div className="remote-control-panel dive">
+                        <DiveInputs
                             rcDiveParameters={rcDiveParameters}
-                            botId={props.botID}
-                            handleRCDiveCommand={handleRCDiveCommand}
+                            onChange={handleRCDiveChange}
                         />
+                        <div className="rc-dashboard dive">
+                            {RCSelectMenu}
+                            <DiveCommand
+                                rcDiveParameters={rcDiveParameters}
+                                botId={props.botID}
+                                handleRCDiveCommand={handleRCDiveCommand}
+                            />
+                        </div>
                     </div>
-                </div>
+                </>
             );
     }
 }

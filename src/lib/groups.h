@@ -33,11 +33,6 @@ namespace groups
 {
 constexpr goby::middleware::Group example{"jaiabot::example"};
 
-// lora
-constexpr goby::middleware::Group lora_rx{"jaiabot::lora_rx"};
-constexpr goby::middleware::Group lora_tx{"jaiabot::lora_tx"};
-constexpr goby::middleware::Group lora_report{"jaiabot::lora_report"};
-
 // sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
@@ -51,6 +46,7 @@ constexpr goby::middleware::Group ph{"jaiabot::ph"};
 constexpr goby::middleware::Group fluorometer{"jaiabot::fluorometer"};
 constexpr goby::middleware::Group echo{"jaiabot::echo"};
 constexpr goby::middleware::Group tsys01{"jaiabot::tsys01"};
+constexpr goby::middleware::Group ctd{"jaiabot::ctd"};
 
 constexpr goby::middleware::Group mcu_pb_data_out{
     "jaiabot::sensors::mcu_pb_data_out"}; // parsed SensorRequest
@@ -59,6 +55,11 @@ constexpr goby::middleware::Group mcu_pb_data_in{
 constexpr goby::middleware::Group mcu_command{"jaiabot_sensors::mcu_command"};
 constexpr goby::middleware::Group mcu_calibration_command{
     "jaiabot_sensors::mcu_calibration_command"};
+
+constexpr goby::middleware::Group aml_in{"jaiabot::sensors::aml::in"};
+constexpr goby::middleware::Group aml_out{"jaiabot::sensors::aml::out"};
+constexpr goby::middleware::Group aml{"jaiabot::sensors::aml"};
+
 
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
@@ -139,6 +140,9 @@ constexpr goby::middleware::Group camera{"jaiabot::camera"};
 // mission repeater
 constexpr goby::middleware::Group script_step_begin{"jaiabot::script_step_begin"};
 constexpr goby::middleware::Group script_step_end{"jaiabot::script_step_end"};
+
+// PPK recorder
+constexpr goby::middleware::Group ppk{"jaiabot::ppk"};
 
 } // namespace groups
 } // namespace jaiabot

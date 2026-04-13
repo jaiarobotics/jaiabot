@@ -13,11 +13,10 @@ interface OpenPlotSetState {
 }
 
 // Dropdown menu showing all of the available logs to choose from
-export class OpenPlotSet extends React.Component {
-    props: OpenPlotSetProps;
-    state: OpenPlotSetState;
+export class OpenPlotSet extends React.Component<OpenPlotSetProps, OpenPlotSetState> {
+    declare state: OpenPlotSetState;
 
-    constructor(props: OpenPlotSet) {
+    constructor(props: OpenPlotSetProps) {
         super(props);
 
         this.state = {

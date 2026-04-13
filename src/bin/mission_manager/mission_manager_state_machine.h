@@ -3,6 +3,7 @@
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
 //   Ed Sanville <edsanville@gmail.com>
+//   Michael Twomey <michael.twomey@jaia.tech>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -41,7 +42,8 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/imu.pb.h"
-
+#include "jaiabot/messages/ctd.pb.h"
+#include "jaiabot/messages/ppk.pb.h"
 
 namespace jaiabot
 {
@@ -321,6 +323,12 @@ struct MissionManagerStateMachine
     void set_hub_id(const int32_t& hub_id) { hub_id_ = hub_id; }
     const int32_t& hub_id() { return hub_id_; }
 
+    void set_mission_command_time(const uint64_t& mission_command_time)
+    {
+        mission_command_time_ = mission_command_time;
+    }
+    const uint64_t& mission_command_time() { return mission_command_time_; }
+
     void set_data_offload_exclude(const std::string& data_offload_exclude)
     {
         data_offload_exclude_ = data_offload_exclude;
@@ -366,6 +374,7 @@ struct MissionManagerStateMachine
     std::string data_time_string_{""};
     int32_t hub_id_{0};
     std::string data_offload_exclude_{""};
+    uint64_t mission_command_time_{0};
 };
 
 } // namespace statechart

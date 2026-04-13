@@ -22,7 +22,7 @@ import common.streaming_client as streaming_client
 import common.shared_data as shared_data
 import common.endpoint_parse as endpoint_parse
 
-from jaiabot.messages.rest_api_pb2 import APIConfig
+from jaiabot.messages.rest_api_pb2 import APIConfig, APIResponse, APIRequest
 
 # Arguments
 parser = argparse.ArgumentParser()
@@ -123,7 +123,14 @@ def jaia_api_short(version):
         if not check_api_key(jaia_request.api_key, jaia_request.WhichOneof("action")):
             abort(403) # forbidden
 
-        jaia_response.CopyFrom(process_request(version, jaia_request))
+        response = process_request(version, jaia_request)
+
+        if isinstance(response, APIResponse):
+            jaia_response.CopyFrom(response)
+        else:
+            # If the response is not an API Response, then return as-is
+            # For example, this allows the KMZ endpoint to return raw KMZ bytes instead of JSON
+            return response
         
     except APIException as e:  
         jaia_response.error.code = e.code
@@ -185,7 +192,14 @@ def jaia_api_long(version, action, target_str):
         if not check_api_key(jaia_request.api_key, action):
             abort(403) # forbidden
 
-        jaia_response.CopyFrom(process_request(version, jaia_request))
+        response = process_request(version, jaia_request)
+
+        if isinstance(response, APIResponse):
+            jaia_response.CopyFrom(response)
+        else:
+            # If the response is not an API Response, then return as-is
+            # For example, this allows the KMZ endpoint to return raw KMZ bytes instead of JSON
+            return response
         
     except APIException as e:  
         jaia_response.error.code = e.code
@@ -258,7 +272,7 @@ def process_request(version, jaia_request):
     api_module = importlib.import_module("v" + str(version) + ".api")
     return api_module.process_request(jaia_request)
 
-def finalize_response(jaia_response, jaia_request):
+def finalize_response(jaia_response: APIResponse, jaia_request: APIRequest):
     jaia_response.request.CopyFrom(jaia_request)
     return google.protobuf.json_format.MessageToDict(jaia_response, preserving_proto_field_name=True)
 
