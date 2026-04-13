@@ -183,6 +183,7 @@ export default function ZoneVertexPanel() {
         const selectedVertex = getSelectedZoneVertex();
         jaiaDispatch({
             type: JaiaActions.TOGGLE_ZONE_EDIT_MODE,
+
             zoneID: selectedVertex.zoneID,
         });
     };
