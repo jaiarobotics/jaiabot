@@ -4,27 +4,6 @@ initialize   JAIABOT_STATIONKEEP_ACTIVE = false
 initialize   JAIABOT_CONSTANTHEADING_ACTIVE = false
 initialize   JAIABOT_CONSTANTSPEED_ACTIVE = false
 initialize   JAIABOT_TRAIL_ACTIVE = false
-initialize   OBSTACLE_ALERT = none
-
-// Camera-detected obstacles and operator-drawn exclusion zones, both via pObstacleMgr
-Behavior = BHV_AvoidObstacleV24
-{
-  name       = avoid_obs_
-  pwt        = 275
-  condition  = MOOS_MANUAL_OVERRIDE = false
-  condition  = JAIABOT_WAYPOINT_ACTIVE = true
-  updates    = OBSTACLE_ALERT
-  templating = spawn
-  use_refinery = true
-  duration     = no-time-limit
-  allowable_ttc = 10
-  min_util_cpa_dist = 10
-  max_util_cpa_dist = 20
-  pwt_outer_dist = 25
-  pwt_inner_dist = 15
-  completed_dist = 30
-}
-
 Behavior = BHV_Waypoint
 { 
 

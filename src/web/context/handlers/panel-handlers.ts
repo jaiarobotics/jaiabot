@@ -1,10 +1,12 @@
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { rallyPoints } from "../../data/rally_points/rally-points";
+import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
+import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType, PanelActions } from "../../types/context-types";
@@ -69,5 +71,39 @@ export function handleClosedTaskPacketPanel(mutableState: JaiaContextType, actio
 export function handleClosedRallyPanel(mutableState: JaiaContextType) {
     mutableState.visiblePanel = ButtonNames.NONE;
     rallyPoints.setSelectedRallyPointID(UNASSIGNED_ID);
+    return mutableState;
+}
+
+/**
+ * Handles cleanup when the zone vertex panel closes
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Action containing panel action type
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, action: JaiaAction) {
+    if (
+        action.panelAction === PanelActions.CANCEL &&
+        action.locations &&
+        action.zoneID !== undefined
+    ) {
+        // Restore the full pre-edit vertex snapshot. Using the full list avoids the
+        // bug where hull reindexing after a move would cause the single-vertex revert
+        // to target the wrong index.
+        const zone = exclusionZoneSet.getZone(action.zoneID);
+        if (zone) {
+            exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: action.locations });
+            exclusionZoneLayer.setZones(exclusionZoneSet.getZones());
+        }
+        // Clear any pending dialogs triggered by the now-cancelled edits.
+        if (mutableState.pendingWaypointRemoval?.priorZone) {
+            mutableState.pendingWaypointRemoval = null;
+        }
+        if (mutableState.pendingReroute?.priorZone) {
+            mutableState.pendingReroute = null;
+        }
+    }
+    jaiaGlobal.resetSelectedZoneVertex();
+    mutableState.visiblePanel = ButtonNames.NONE;
     return mutableState;
 }

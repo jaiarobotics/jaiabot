@@ -25,6 +25,59 @@ import {
 } from "./jaia-system-types";
 import { Speeds, Command, GeographicCoordinate, TaskType, ExclusionZone } from "./protobuf-types";
 
+export interface PendingRerouteProposal {
+    missionID: number;
+    newWaypoints: Waypoint[];
+    bypassCount: number;
+    /** Zone IDs whose buffers the original (clean) route crossed. */
+    involvedZoneIDs: number[];
+}
+
+export interface PendingReroute {
+    proposals: PendingRerouteProposal[];
+    totalBypassCount: number;
+    /** Zone ID that triggered this reroute (zone-draw path). Zone is deleted on cancel. */
+    triggeringZoneID?: number;
+    /**
+     * Set when a zone vertex was moved: the zone's original shape before the move.
+     * On cancel, the zone is restored to this shape instead of being deleted.
+     * Mutually exclusive with triggeringZoneID.
+     */
+    priorZone?: { zoneID: number; zone: ExclusionZone };
+}
+
+export interface PendingWaypointRemovalProposal {
+    missionID: number;
+    /** Clean waypoints to keep (bypass waypoints stripped, inside-zone waypoints removed). */
+    newWaypoints: Waypoint[];
+    removedCount: number;
+}
+
+export interface PendingWaypointRemoval {
+    proposals: PendingWaypointRemovalProposal[];
+    totalRemovedCount: number;
+    /** Pre-computed reroutes against the post-removal state, shown in the same dialog. */
+    followUpReroute?: PendingReroute;
+    /**
+     * Set when a single zone was drawn: that zone is removed on cancel.
+     * Mutually exclusive with offendingZoneIDs and priorZone.
+     */
+    triggeringZoneID?: number;
+    /**
+     * Set when zones were loaded/restored: the specific zone IDs whose buffers
+     * contain waypoints. Only those zones are removed on cancel, leaving any
+     * non-conflicting loaded zones in place.
+     * Mutually exclusive with triggeringZoneID and priorZone.
+     */
+    offendingZoneIDs?: number[];
+    /**
+     * Set when a zone vertex was moved: the zone's original shape before the move.
+     * On cancel, the zone is restored to this shape instead of being deleted.
+     * Mutually exclusive with triggeringZoneID and offendingZoneIDs.
+     */
+    priorZone?: { zoneID: number; zone: ExclusionZone };
+}
+
 // Type used to captue the JCC context
 export interface JaiaContextType {
     bots: Bots;
@@ -36,6 +89,9 @@ export interface JaiaContextType {
     jaiaGlobal: JaiaGlobal;
     missionsManager: MissionsManager;
     exclusionZoneSet: ExclusionZoneSet;
+    pendingReroute: PendingReroute | null;
+    pendingWaypointRemoval: PendingWaypointRemoval | null;
+    placementError: string | null;
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
@@ -64,6 +120,7 @@ export interface JaiaSnapshot {
     jaiaGlobalSnapshot: JaiaGlobalSnapshot;
     missionsManagerSnapshot: MissionsManagerSnapshot;
     jaiaContextDataSnapshot: JaiaContextDataSnapshot;
+    exclusionZoneSetSnapshot: ExclusionZoneSetSnapshot;
 }
 
 // Type used for actions dispatched to the context provider
@@ -80,6 +137,7 @@ export interface JaiaAction {
     clickedTaskPacket?: SelectedTaskPacket;
 
     waypoint?: Waypoint;
+    waypoints?: Waypoint[];
     location?: GeographicCoordinate;
     locations?: GeographicCoordinate[];
     task?: Task;
@@ -95,6 +153,8 @@ export interface JaiaAction {
     buttonType?: ButtonTypes;
     buttonName?: ButtonNames;
     isMissionAccordionExpanded?: boolean;
+
+    vertexIndex?: number;
 
     command?: Command;
     exclusionZone?: ExclusionZone;
@@ -172,13 +232,14 @@ export const enum ButtonNames {
     JAIA_ABOUT_PANEL = "jaia_about_panel",
     MEASURE_TOOL = "measure_tool",
     MISSIONS_PANEL = "missions_panel",
-    OBSTACLE_ZONES_PANEL = "obstacle_zones_panel",
+    EXCLUSION_ZONES_PANEL = "exclusion_zones_panel",
     RALLY_PANEL = "rally_panel",
     SETTINGS_PANEL = "settings_panel",
     SURVEY_TOOL = "survey_tool",
     START_ALL_MISSIONS = "start_all_missions",
     TASK_PACKET_PANEL = "task_packet_panel",
     WAYPOINT_PANEL = "waypoint_panel",
+    ZONE_VERTEX_PANEL = "zone_vertex_panel",
     DEPTH_MAP_3D = "depth_map_3d",
 }
 

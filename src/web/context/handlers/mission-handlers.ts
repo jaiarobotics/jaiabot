@@ -10,6 +10,7 @@ import { NodeTypes } from "../../types/jaia-system-types";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers } from "./handler-utils";
+import { detectWaypointRemovals, detectMissionReroutes } from "./exclusion-zone-handlers";
 
 /**
  * Makes a call to add a new, default mission to the data model
@@ -174,5 +175,16 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
     missionSet.setMissionSpeeds(action.missionSetSnapshot.missionSpeeds);
     mutableState.missionAccordionStates = {};
     missionLayer.updateFeatures();
+
+    // Check for waypoints that fall inside existing exclusion zones.
+    const pendingRemoval = detectWaypointRemovals();
+    if (pendingRemoval) {
+        mutableState.pendingWaypointRemoval = pendingRemoval;
+        return mutableState;
+    }
+
+    const pendingReroute = detectMissionReroutes();
+    if (pendingReroute) mutableState.pendingReroute = pendingReroute;
+
     return mutableState;
 }

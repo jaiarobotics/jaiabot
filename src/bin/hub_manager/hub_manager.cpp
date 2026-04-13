@@ -43,7 +43,6 @@
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/engineering.pb.h"
-#include "jaiabot/messages/exclusion_zone.pb.h"
 #include "jaiabot/messages/hub.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/link.pb.h"
@@ -1068,32 +1067,6 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         for (auto frag : command_fragments)
         {
             glog.is_debug2() && glog << "fragment: " << frag.DebugString() << std::endl;
-        }
-    }
-    else if (command.type() == Command::EXCLUSION_ZONES && command.has_exclusion_zones() &&
-             command.exclusion_zones().zone_size() > 0)
-    {
-        // Exclusion zones: one zone per EXCLUSION_ZONES_FRAGMENT (mirrors mission plan pattern).
-        // The full ExclusionZones field is omit=true in DCCL, so we always fragment for
-        // the intervehicle layer regardless of link type.
-        int zone_count = command.exclusion_zones().zone_size();
-        glog.is_debug1() && glog << group("main") << "Fragmenting " << zone_count
-                                 << " exclusion zone(s) into EXCLUSION_ZONES_FRAGMENT commands"
-                                 << std::endl;
-
-        for (int i = 0; i < zone_count; ++i)
-        {
-            Command command_fragment;
-            command_fragment.set_bot_id(command.bot_id());
-            command_fragment.set_time(command.time());
-            command_fragment.set_type(Command::EXCLUSION_ZONES_FRAGMENT);
-
-            auto* frag = command_fragment.mutable_exclusion_zones_fragment();
-            *frag->mutable_zone() = command.exclusion_zones().zone(i);
-            frag->set_fragment_index(i);
-            frag->set_expected_fragments(zone_count);
-
-            command_fragments.push_back(command_fragment);
         }
     }
 

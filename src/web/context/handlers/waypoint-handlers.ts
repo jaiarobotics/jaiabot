@@ -17,6 +17,8 @@ import {
 import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
+import { isLocationBlockedByZone } from "../../utils/exclusion-zone-router";
+import { detectMissionReroutes } from "./exclusion-zone-handlers";
 import { syncTaskLayers } from "./handler-utils";
 
 /**
@@ -28,10 +30,14 @@ import { syncTaskLayers } from "./handler-utils";
  */
 export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     const missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    const selectedNode = jaiaGlobal.getSelectedNode();
 
     if (missionIDInEditMode !== UNASSIGNED_ID) {
-        // Add waypoint to mission in edit mode
+        if (action.location && isLocationBlockedByZone(action.location)) {
+            mutableState.placementError =
+                "Cannot place a waypoint inside an exclusion zone or its safety buffer.";
+            return mutableState;
+        }
+
         const mission = missionSet.getMission(missionIDInEditMode);
         if (mission.getWaypoints().length < MAX_WAYPOINTS) {
             mission.addWaypoint(action.location);
@@ -39,6 +45,13 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     }
 
     missionLayer.updateFeatures();
+
+    // Safety net: if the pre-add routing check in Map.tsx missed a crossing
+    // (e.g. due to float-precision edge cases), catch it here after the add
+    // so the operator still gets a chance to apply bypasses rather than
+    // silently leaving a through-zone segment in the mission.
+    const pending = detectMissionReroutes();
+    if (pending) mutableState.pendingReroute = pending;
 
     return mutableState;
 }
@@ -52,9 +65,19 @@ export function handleAddWaypointsBulk(mutableState: JaiaContextType, action: Ja
     if (missionIDInEditMode === UNASSIGNED_ID) return mutableState;
 
     const mission = missionSet.getMission(missionIDInEditMode);
-    for (const location of action.locations ?? []) {
-        if (mission.getWaypoints().length < MAX_WAYPOINTS) {
-            mission.addWaypoint(location);
+
+    if (action.waypoints) {
+        // Waypoint objects already built (e.g. with route_bypass names set).
+        for (const wp of action.waypoints) {
+            if (mission.getWaypoints().length < MAX_WAYPOINTS) {
+                mission.addWaypoints([wp]);
+            }
+        }
+    } else {
+        for (const location of action.locations ?? []) {
+            if (mission.getWaypoints().length < MAX_WAYPOINTS) {
+                mission.addWaypoint(location);
+            }
         }
     }
 
@@ -92,6 +115,12 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
+    if (action.location && isLocationBlockedByZone(action.location)) {
+        mutableState.placementError =
+            "Cannot place a waypoint inside an exclusion zone or its safety buffer.";
+        return mutableState;
+    }
+
     const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
     mission.moveWaypoint(
         mutableState.jaiaGlobal.getSelectedWaypoint().waypointNum,
@@ -99,6 +128,10 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
     );
 
     missionLayer.updateFeatures();
+
+    // After moving a waypoint, check whether the new path crosses any exclusion zones.
+    const pending = detectMissionReroutes();
+    if (pending) mutableState.pendingReroute = pending;
 
     return mutableState;
 }

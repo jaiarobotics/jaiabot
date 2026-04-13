@@ -1,30 +1,24 @@
 import cloneDeep from "lodash/cloneDeep";
 import { ExclusionZone } from "../../types/protobuf-types";
-import { UNASSIGNED_ID } from "../../utils/constants";
 
 export interface ExclusionZoneSetSnapshot {
     zones: [number, ExclusionZone][];
     nextZoneID: number;
-    zoneAssignments: [number, number[]][];
 }
 
 /**
  * Data model for operator-defined obstacle exclusion zones.
- * Mirrors the MissionSet pattern: holds zones + per-zone bot assignments.
+ * All zones apply to all bots — there is no per-bot assignment.
  * Cleared on every server reconnect (INIT); persisted by name via ZoneStorageButton.
  */
 export class ExclusionZoneSet {
     private zones: Map<number, ExclusionZone>;
     private nextZoneID: number;
-    private zoneAssignments: Map<number, number[]>; // zoneID → botIDs; [UNASSIGNED_ID] means "all bots"
 
     constructor() {
         this.zones = new Map();
         this.nextZoneID = 1;
-        this.zoneAssignments = new Map();
     }
-
-    // ── Zones ──────────────────────────────────────────────────────────────
 
     getZones() {
         return this.zones;
@@ -35,57 +29,34 @@ export class ExclusionZoneSet {
     }
 
     addZone(zone: ExclusionZone) {
-        const id = this.nextZoneID;
+        const id = this.nextZoneID++;
         this.zones.set(id, zone);
-        this.zoneAssignments.set(id, [UNASSIGNED_ID]); // default: all bots
-        this.nextZoneID++;
         return id;
+    }
+
+    updateZone(zoneID: number, zone: ExclusionZone) {
+        this.zones.set(zoneID, zone);
     }
 
     deleteZone(zoneID: number) {
         this.zones.delete(zoneID);
-        this.zoneAssignments.delete(zoneID);
     }
 
     clearZones() {
         this.zones.clear();
-        this.zoneAssignments.clear();
         this.nextZoneID = 1;
     }
-
-    // ── Assignments ────────────────────────────────────────────────────────
-
-    /** Returns the bot IDs assigned to this zone. [UNASSIGNED_ID] means all bots. */
-    getAssignment(zoneID: number): number[] {
-        return this.zoneAssignments.get(zoneID) ?? [UNASSIGNED_ID];
-    }
-
-    setAssignment(zoneID: number, botIDs: number[]) {
-        if (this.zones.has(zoneID)) {
-            this.zoneAssignments.set(zoneID, botIDs.length > 0 ? botIDs : [UNASSIGNED_ID]);
-        }
-    }
-
-    // ── Snapshot / restore ─────────────────────────────────────────────────
 
     captureSnapshot(): ExclusionZoneSetSnapshot {
         return cloneDeep({
             zones: Array.from(this.zones.entries()),
             nextZoneID: this.nextZoneID,
-            zoneAssignments: Array.from(this.zoneAssignments.entries()),
         });
     }
 
     restoreFromSnapshot(snapshot: ExclusionZoneSetSnapshot) {
         this.zones = new Map(snapshot.zones ?? []);
         this.nextZoneID = snapshot.nextZoneID ?? 1;
-        // Migrate old format (single number) to new format (number[])
-        this.zoneAssignments = new Map(
-            (snapshot.zoneAssignments ?? []).map(([id, assignment]) => [
-                id,
-                Array.isArray(assignment) ? assignment : [assignment as unknown as number],
-            ]),
-        );
     }
 }
 

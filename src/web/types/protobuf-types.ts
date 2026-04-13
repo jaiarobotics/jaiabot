@@ -962,17 +962,11 @@ export enum CommandType {
     RESTART_ALL_SERVICES = "RESTART_ALL_SERVICES",
     REBOOT_COMPUTER = "REBOOT_COMPUTER",
     SHUTDOWN_COMPUTER = "SHUTDOWN_COMPUTER",
-    EXCLUSION_ZONES = "EXCLUSION_ZONES",
-    EXCLUSION_ZONES_FRAGMENT = "EXCLUSION_ZONES_FRAGMENT",
 }
 
 export interface ExclusionZone {
     label?: string;
     vertices?: GeographicCoordinate[];
-}
-
-export interface ExclusionZones {
-    zone?: ExclusionZone[];
 }
 
 export interface Command {
@@ -982,7 +976,6 @@ export interface Command {
     plan?: MissionPlan;
     rc?: RemoteControl;
     rc_task?: MissionTask;
-    exclusion_zones?: ExclusionZones;
 }
 
 export enum HubCommandType {

@@ -23,10 +23,15 @@ import { MAP_FEATURE_HIT_TOLERANCE, UNASSIGNED_ID } from "../../utils/constants"
 import { locationToConstantHeadingParams } from "../../utils/conversions";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
-import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
+import Waypoint from "../../data/waypoints/waypoint";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { bots } from "../../data/bots/bots";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
-import { routeAroundExclusionZones } from "../../utils/exclusion-zone-router";
+import {
+    routeAroundExclusionZones,
+    isLocationBlockedByZone,
+} from "../../utils/exclusion-zone-router";
 
 import "./Map.less";
 
@@ -34,6 +39,7 @@ interface ZoneCrossingDialogState {
     /** Locations to add: bypass waypoints (if any) followed by the destination */
     locations: GeographicCoordinate[];
     bypassCount: number;
+    waypointNumber: number;
 }
 
 export default function Map() {
@@ -81,6 +87,12 @@ export default function Map() {
             return;
         }
 
+        // A zone vertex is awaiting relocation — move it, no feature hit-test needed.
+        if (jaiaGlobal.getSelectedZoneVertex()?.isMoveable) {
+            handleMoveZoneVertexClick(event.coordinate);
+            return;
+        }
+
         const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature, {
             hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
         });
@@ -98,6 +110,9 @@ export default function Map() {
                 case MapFeatureTypes.RALLY_POINT:
                     handleRallyPointClick(feature);
                     return;
+                case MapFeatureTypes.ZONE_VERTEX:
+                    handleZoneVertexClick(feature);
+                    return;
                 case MapFeatureTypes.DIVE:
                     handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
                     return;
@@ -110,6 +125,12 @@ export default function Map() {
                 default:
                     return;
             }
+        }
+
+        // Zone edit mode takes priority: any empty-map click adds a vertex.
+        if (jaiaGlobal.getZoneInEditMode() !== null) {
+            handleAddZoneVertexClick(event.coordinate);
+            return;
         }
 
         if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
@@ -232,6 +253,7 @@ export default function Map() {
     };
 
     const handleWaypointClick = (feature: Feature<Geometry>) => {
+        if (feature.get("isBypass")) return;
         const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
         if (
             feature.get("missionID") !== selectedWaypoint.missionID ||
@@ -286,6 +308,31 @@ export default function Map() {
         });
     };
 
+    const handleZoneVertexClick = (feature: Feature) => {
+        jaiaDispatch({
+            type: JaiaActions.SELECT_ZONE_VERTEX,
+            zoneID: feature.get("zoneID") as number,
+            vertexIndex: feature.get("vertexIndex") as number,
+        });
+    };
+
+    const handleMoveZoneVertexClick = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        jaiaDispatch({
+            type: JaiaActions.MOVE_ZONE_VERTEX,
+            location: { lon: lonLat[0], lat: lonLat[1] },
+        });
+    };
+
+    const handleAddZoneVertexClick = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        jaiaDispatch({
+            type: JaiaActions.ADD_ZONE_VERTEX,
+            zoneID: jaiaGlobal.getZoneInEditMode()!,
+            location: { lon: lonLat[0], lat: lonLat[1] },
+        });
+    };
+
     /**
      * Adds a waypoint to the current mission, routing around any exclusion zones
      * that the new segment would cross. If a crossing is detected, shows a dialog
@@ -295,24 +342,48 @@ export default function Map() {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const newLocation: GeographicCoordinate = { lon: lonLat[0], lat: lonLat[1] };
 
+        if (isLocationBlockedByZone(newLocation)) {
+            jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+            return;
+        }
+
         const missionID = missionSet.getMissionIDInEditMode();
         const mission = missionSet.getMission(missionID);
         const waypoints = mission?.getWaypoints() ?? [];
-        const botID = missionsManager.getBotID(missionID);
 
-        // Need at least one existing waypoint to form a segment to check.
+        // Determine start of the segment to check:
+        // - if waypoints exist, use the last one
+        // - if this is the first waypoint, use the bot's current position (if assigned)
+        let fromLocation: GeographicCoordinate | undefined;
         if (waypoints.length >= 1) {
-            const fromLocation = waypoints[waypoints.length - 1].getLocation();
+            fromLocation = waypoints[waypoints.length - 1].getLocation();
+        } else {
+            const botID = missionsManager.getBotID(missionID);
+            fromLocation = bots.getBot(botID)?.getLocation();
+        }
+
+        if (fromLocation) {
             const miniPlan = {
                 goal: [{ location: fromLocation }, { location: newLocation }],
             };
-            const result = routeAroundExclusionZones(miniPlan, botID);
+            // Use the first clean waypoint as the projection origin so bypass
+            // lat/lon values match those produced by detectMissionReroutes,
+            // which also uses the first clean waypoint as origin.
+            const firstCleanLoc = waypoints
+                .filter((wp) => wp.getName() !== "route_bypass")[0]
+                ?.getLocation();
+            const result = routeAroundExclusionZones(miniPlan, 15, firstCleanLoc ?? fromLocation);
 
             if (result.bypassCount > 0) {
-                // result.plan.goal = [from, bypass..., newLocation]
-                // We add everything after 'from': the bypasses + the new destination.
                 const locations = result.plan.goal.slice(1).map((g) => g.location!);
-                setZoneCrossing({ locations, bypassCount: result.bypassCount });
+                const userWaypointCount = waypoints.filter(
+                    (wp) => wp.getName() !== "route_bypass",
+                ).length;
+                setZoneCrossing({
+                    locations,
+                    bypassCount: result.bypassCount,
+                    waypointNumber: userWaypointCount + 1,
+                });
                 return;
             }
         }
@@ -322,10 +393,17 @@ export default function Map() {
 
     const onZoneCrossingConfirm = () => {
         if (!zoneCrossing) return;
-        jaiaDispatch({
-            type: JaiaActions.ADD_WAYPOINTS_BULK,
-            locations: zoneCrossing.locations,
+        // Build Waypoint objects so bypass waypoints carry their name through to the map layer.
+        const waypoints = zoneCrossing.locations.map((loc, i) => {
+            const wp = new Waypoint();
+            wp.setLocation(loc);
+            // All locations except the last are bypass waypoints.
+            if (i < zoneCrossing.locations.length - 1) {
+                wp.setName("route_bypass");
+            }
+            return wp;
         });
+        jaiaDispatch({ type: JaiaActions.ADD_WAYPOINTS_BULK, waypoints });
         setZoneCrossing(null);
     };
 
@@ -341,7 +419,7 @@ export default function Map() {
                     <div className="jaia-dialog">
                         <h1>Exclusion Zone Crossed</h1>
                         <p>
-                            This waypoint crosses an exclusion zone.{" "}
+                            Waypoint {zoneCrossing.waypointNumber} crosses an exclusion zone.{" "}
                             <strong>{zoneCrossing.bypassCount}</strong> bypass waypoint
                             {zoneCrossing.bypassCount !== 1 ? "s" : ""} will be added to route
                             around it.

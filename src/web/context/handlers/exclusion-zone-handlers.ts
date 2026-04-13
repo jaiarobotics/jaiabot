@@ -1,170 +1,228 @@
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
-import { bots } from "../../data/bots/bots";
 import { missionSet } from "../../data/mission_set/mission-set";
-import { missionsManager } from "../../data/missions_manager/missions-manager";
-import Waypoint from "../../data/waypoints/waypoint";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
-import { JaiaContextType, JaiaAction } from "../../types/context-types";
+import {
+    JaiaContextType,
+    JaiaAction,
+    PendingReroute,
+    PendingRerouteProposal,
+    PendingWaypointRemoval,
+    PendingWaypointRemovalProposal,
+    ButtonNames,
+} from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
-import { CommandType, ExclusionZone } from "../../types/protobuf-types";
-import { UNASSIGNED_ID } from "../../utils/constants";
-import { jaiaAPI } from "../../utils/jaia-api";
-import { routeAroundExclusionZones } from "../../utils/exclusion-zone-router";
+import {
+    routeAroundExclusionZones,
+    getBlockingZoneIDs,
+    toConvexHull,
+} from "../../utils/exclusion-zone-router";
+import Waypoint from "../../data/waypoints/waypoint";
+import { GeographicCoordinate } from "../../types/protobuf-types";
+
+/** Floating-point tolerance for lat/lon comparisons after hull projection roundtrips (~1 cm). */
+const COORD_EPSILON = 1e-7;
+
+function coordsMatch(a: GeographicCoordinate, b: GeographicCoordinate): boolean {
+    return (
+        Math.abs((a.lat ?? 0) - (b.lat ?? 0)) < COORD_EPSILON &&
+        Math.abs((a.lon ?? 0) - (b.lon ?? 0)) < COORD_EPSILON
+    );
+}
 
 function syncLayer() {
     exclusionZoneLayer.setZones(exclusionZoneSet.getZones());
 }
 
-/**
- * Sends the current exclusion zone list (filtered for this bot) to a specific bot.
- * Always sends even when the list is empty so the bot can deactivate removed zones.
- */
-export function sendExclusionZonesForBot(botID: number) {
-    const zones = exclusionZoneSet.getZones();
-    const zoneList: ExclusionZone[] = [];
-
-    for (const [zoneID, zone] of zones) {
-        const assignedBotIDs = exclusionZoneSet.getAssignment(zoneID);
-        if (assignedBotIDs.includes(UNASSIGNED_ID) || assignedBotIDs.includes(botID)) {
-            zoneList.push(zone);
-        }
+/** Returns true if two waypoint lists are identical (same locations in same order). */
+function waypointListsMatch(a: Waypoint[], b: Waypoint[]): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+        const la = a[i].getLocation();
+        const lb = b[i].getLocation();
+        if (la?.lat !== lb?.lat || la?.lon !== lb?.lon) return false;
     }
-
-    jaiaAPI.postCommand({
-        bot_id: botID,
-        time: Date.now() * 1000,
-        type: CommandType.EXCLUSION_ZONES,
-        exclusion_zones: { zone: zoneList },
-    });
+    return true;
 }
 
 /**
- * Sends zone updates only to the bots that are actually affected.
- * If assignedBotIDs contains UNASSIGNED_ID the zone affects all bots,
- * otherwise only the listed bots receive an update.
+ * Core reroute detection. Accepts an optional override map so the caller can
+ * supply post-removal waypoints for affected missions without mutating the data
+ * model. Missions with overrides skip the identity checks (their waypoints have
+ * already been logically modified by the removal step).
  */
-function sendZonesToAffectedBots(assignedBotIDs: number[]) {
-    if (assignedBotIDs.includes(UNASSIGNED_ID)) {
-        for (const [botID] of bots.getBots()) {
-            sendExclusionZonesForBot(botID);
-        }
-    } else {
-        for (const botID of assignedBotIDs) {
-            sendExclusionZonesForBot(botID);
-        }
-    }
-}
-
-/** Sends zone updates to every known bot (used when the full set changes). */
-function sendZonesToAllBots() {
-    for (const [botID] of bots.getBots()) {
-        sendExclusionZonesForBot(botID);
-    }
-}
-
-/**
- * Re-routes all missions that are affected by the given bot IDs.
- * Called when a zone is added or reassigned so that existing waypoint paths
- * that now cross a zone get bypass waypoints inserted automatically.
- *
- * Bypass goals (name="route_bypass") are inserted as plain waypoints with no
- * task; original waypoints keep their locations and tasks unchanged.
- */
-function rerouteAffectedMissions(affectedBotIDs: number[]) {
-    const allBots = affectedBotIDs.includes(UNASSIGNED_ID);
+function detectReroutesWithOverrides(overrides: Map<number, Waypoint[]>): PendingReroute | null {
+    const proposals: PendingRerouteProposal[] = [];
 
     for (const [missionID, mission] of missionSet.getMissions()) {
-        const botID = missionsManager.getBotID(missionID);
-        if (!allBots && !affectedBotIDs.includes(botID)) continue;
+        const hasOverride = overrides.has(missionID);
+        const currentWaypoints = mission.getWaypoints();
+        const cleanWaypoints = hasOverride
+            ? overrides.get(missionID)!
+            : currentWaypoints.filter((wp) => wp.getName() !== "route_bypass");
 
-        const plan = mission.packageMissionForHub("");
-        const result = routeAroundExclusionZones(plan, botID);
+        if (cleanWaypoints.length < 2) continue;
+
+        const cleanPlan = { goal: cleanWaypoints.map((wp) => wp.packageWaypointForHub()) };
+        const result = routeAroundExclusionZones(cleanPlan);
+
         if (result.bypassCount === 0) continue;
 
-        // Reconstruct waypoint list: preserve original waypoints (with tasks),
-        // insert new empty Waypoint objects for each bypass goal.
-        const originalWaypoints = mission.getWaypoints();
         const newWaypoints: Waypoint[] = [];
         let origIdx = 0;
-
         for (const goal of result.plan.goal ?? []) {
             if (goal.name === "route_bypass") {
                 const wp = new Waypoint();
                 wp.setLocation(goal.location!);
+                wp.setName("route_bypass");
                 newWaypoints.push(wp);
             } else {
-                if (origIdx < originalWaypoints.length) {
-                    newWaypoints.push(originalWaypoints[origIdx]);
+                if (origIdx < cleanWaypoints.length) {
+                    newWaypoints.push(cleanWaypoints[origIdx]);
                 }
                 origIdx++;
             }
         }
 
-        mission.setWaypoints(newWaypoints);
+        if (!hasOverride) {
+            // Skip if the re-routed plan is identical to what's already in the mission.
+            if (waypointListsMatch(newWaypoints, currentWaypoints)) continue;
+            // Skip if no net change from the clean waypoints (no bypass needed).
+            if (waypointListsMatch(newWaypoints, cleanWaypoints)) continue;
+        }
+
+        proposals.push({
+            missionID,
+            newWaypoints,
+            bypassCount: result.bypassCount,
+            involvedZoneIDs: result.involvedZoneIDs,
+        });
     }
 
-    missionLayer.updateFeatures();
+    if (proposals.length === 0) return null;
+
+    return {
+        proposals,
+        totalBypassCount: proposals.reduce((sum, p) => sum + p.bypassCount, 0),
+    };
 }
 
 /**
- * Adds a drawn polygon to the exclusion zone set and returns to default map mode.
- * New zones default to All Bots, so every bot is notified.
+ * Scans all missions for zone crossings and returns reroute proposals.
+ * Returns null if no missions are affected.
  */
+export function detectMissionReroutes(): PendingReroute | null {
+    return detectReroutesWithOverrides(new Map());
+}
+
+/**
+ * Scans all missions for waypoints that fall inside the safety buffer of any
+ * active exclusion zone. Works on clean (bypass-stripped) waypoints so that
+ * auto-generated bypass waypoints are never flagged. Returns removal proposals,
+ * or null if no missions are affected.
+ */
+export function detectWaypointRemovals(triggeringZoneID?: number): PendingWaypointRemoval | null {
+    const proposals: PendingWaypointRemovalProposal[] = [];
+    const offendingZoneIDSet = new Set<number>();
+
+    for (const [missionID, mission] of missionSet.getMissions()) {
+        const cleanWaypoints = mission
+            .getWaypoints()
+            .filter((wp) => wp.getName() !== "route_bypass");
+
+        const keepWaypoints = cleanWaypoints.filter((wp) => {
+            const loc = wp.getLocation();
+            if (!loc) return true;
+            const blockingIDs = getBlockingZoneIDs(loc);
+            if (blockingIDs.length === 0) return true;
+            blockingIDs.forEach((id) => offendingZoneIDSet.add(id));
+            return false;
+        });
+
+        const removedCount = cleanWaypoints.length - keepWaypoints.length;
+        if (removedCount === 0) continue;
+
+        proposals.push({ missionID, newWaypoints: keepWaypoints, removedCount });
+    }
+
+    if (proposals.length === 0) return null;
+
+    // Pre-compute reroutes against the post-removal state so both can be shown
+    // in a single dialog without a second round-trip through the data model.
+    const overrides = new Map(proposals.map((p) => [p.missionID, p.newWaypoints]));
+    const followUpReroute = detectReroutesWithOverrides(overrides) ?? undefined;
+
+    const result: PendingWaypointRemoval = {
+        proposals,
+        totalRemovedCount: proposals.reduce((sum, p) => sum + p.removedCount, 0),
+        followUpReroute,
+    };
+
+    if (triggeringZoneID !== undefined) {
+        result.triggeringZoneID = triggeringZoneID;
+    } else {
+        // Zone load/restore path: record which specific zones are at fault.
+        result.offendingZoneIDs = Array.from(offendingZoneIDSet);
+    }
+
+    return result;
+}
+
 export function handleAddExclusionZone(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZone) return mutableState;
-    exclusionZoneSet.addZone(action.exclusionZone);
+    const zoneID = exclusionZoneSet.addZone(action.exclusionZone);
     syncLayer();
     handleMapModeChange(MapModes.DEFAULT);
-    sendZonesToAllBots(); // default assignment is All Bots
-    rerouteAffectedMissions([UNASSIGNED_ID]); // new zones default to all bots
+
+    // Waypoints inside the zone take priority — warn before rerouting.
+    const pendingRemoval = detectWaypointRemovals(zoneID);
+    if (pendingRemoval) {
+        mutableState.pendingWaypointRemoval = pendingRemoval;
+        return mutableState;
+    }
+
+    const pending = detectMissionReroutes();
+    if (pending) {
+        // Only proposals where the newly-added zone is actually one of the zones
+        // causing the crossing should be attributed to this draw. Reroutes caused
+        // purely by pre-existing zones stay silent — they will be addressed when
+        // the offending zone is interacted with directly.
+        const relevant = pending.proposals.filter((p) => p.involvedZoneIDs.includes(zoneID));
+        if (relevant.length > 0) {
+            mutableState.pendingReroute = {
+                proposals: relevant,
+                totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
+                triggeringZoneID: zoneID,
+            };
+        }
+    }
     return mutableState;
 }
 
-/**
- * Deletes one exclusion zone by ID.
- * Only the bots that were receiving this zone need to be updated.
- */
 export function handleDeleteExclusionZone(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined) return mutableState;
-    const affected = exclusionZoneSet.getAssignment(action.zoneID); // read before delete
+    // Clear vertex selection and edit mode if they belonged to the deleted zone.
+    if (jaiaGlobal.getSelectedZoneVertex()?.zoneID === action.zoneID) {
+        jaiaGlobal.resetSelectedZoneVertex();
+    }
+    if (jaiaGlobal.getZoneInEditMode() === action.zoneID) {
+        jaiaGlobal.setZoneInEditMode(null);
+    }
     exclusionZoneSet.deleteZone(action.zoneID);
     syncLayer();
-    sendZonesToAffectedBots(affected);
     return mutableState;
 }
 
-/**
- * Assigns (or reassigns) a zone to a new set of bots.
- * Both the old and new assigned bots must receive an updated zone list.
- */
-export function handleAssignExclusionZone(mutableState: JaiaContextType, action: JaiaAction) {
-    if (action.zoneID === undefined || action.botIDs === undefined) return mutableState;
-    const oldAssignment = exclusionZoneSet.getAssignment(action.zoneID);
-    exclusionZoneSet.setAssignment(action.zoneID, action.botIDs);
-    // Union of old + new — either side may include UNASSIGNED_ID (all bots)
-    const affected = [...new Set([...oldAssignment, ...action.botIDs])];
-    sendZonesToAffectedBots(affected);
-    // Newly assigned bots may now have crossings — re-route their missions.
-    rerouteAffectedMissions(action.botIDs);
-    return mutableState;
-}
-
-/**
- * Clears all exclusion zones — every bot that had any zone must be notified.
- */
 export function handleClearExclusionZones(mutableState: JaiaContextType) {
     exclusionZoneSet.clearZones();
+    jaiaGlobal.resetSelectedZoneVertex();
+    jaiaGlobal.setZoneInEditMode(null);
     syncLayer();
-    sendZonesToAllBots();
     return mutableState;
 }
 
-/**
- * Replaces all zones from a snapshot (e.g. loaded from storage or imported file).
- */
 export function handleLoadExclusionZones(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZones) return mutableState;
     exclusionZoneSet.clearZones();
@@ -172,14 +230,18 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
         exclusionZoneSet.addZone(zone);
     }
     syncLayer();
-    sendZonesToAllBots();
-    rerouteAffectedMissions([UNASSIGNED_ID]);
+
+    const pendingRemoval = detectWaypointRemovals();
+    if (pendingRemoval) {
+        mutableState.pendingWaypointRemoval = pendingRemoval;
+        return mutableState;
+    }
+
+    const pending = detectMissionReroutes();
+    if (pending) mutableState.pendingReroute = pending;
     return mutableState;
 }
 
-/**
- * Toggles EXCLUSION_ZONE_DRAWING map mode on/off
- */
 export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) {
     const updatedMode =
         jaiaGlobal.getMapMode() !== MapModes.EXCLUSION_ZONE_DRAWING
@@ -189,9 +251,6 @@ export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) 
     return mutableState;
 }
 
-/**
- * Restores zones from a full snapshot (used by ZoneStorage load/import)
- */
 export function handleRestoreExclusionZoneSnapshot(
     mutableState: JaiaContextType,
     action: JaiaAction,
@@ -199,7 +258,316 @@ export function handleRestoreExclusionZoneSnapshot(
     if (!action.exclusionZoneSnapshot) return mutableState;
     exclusionZoneSet.restoreFromSnapshot(action.exclusionZoneSnapshot);
     syncLayer();
-    sendZonesToAllBots();
-    rerouteAffectedMissions([UNASSIGNED_ID]);
+
+    const pendingRemoval = detectWaypointRemovals();
+    if (pendingRemoval) {
+        mutableState.pendingWaypointRemoval = pendingRemoval;
+        return mutableState;
+    }
+
+    const pending = detectMissionReroutes();
+    if (pending) mutableState.pendingReroute = pending;
+    return mutableState;
+}
+
+export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
+    const pending = mutableState.pendingReroute;
+    if (!pending) return mutableState;
+    for (const proposal of pending.proposals) {
+        const mission = missionSet.getMission(proposal.missionID);
+        if (mission) mission.setWaypoints(proposal.newWaypoints);
+    }
+    missionLayer.updateFeatures();
+    mutableState.pendingReroute = null;
+    return mutableState;
+}
+
+export function handleCancelMissionReroute(mutableState: JaiaContextType) {
+    const { triggeringZoneID, priorZone } = mutableState.pendingReroute ?? {};
+    mutableState.pendingReroute = null;
+    if (priorZone !== undefined) {
+        // Zone vertex move: restore the zone to its shape before the move.
+        exclusionZoneSet.updateZone(priorZone.zoneID, priorZone.zone);
+        syncLayer();
+    } else if (triggeringZoneID !== undefined) {
+        // Zone draw: remove the newly added zone entirely.
+        exclusionZoneSet.deleteZone(triggeringZoneID);
+        syncLayer();
+    }
+    return mutableState;
+}
+
+export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
+    const pending = mutableState.pendingWaypointRemoval;
+    if (!pending) return mutableState;
+
+    for (const proposal of pending.proposals) {
+        const mission = missionSet.getMission(proposal.missionID);
+        if (mission) mission.setWaypoints(proposal.newWaypoints);
+    }
+
+    // Apply pre-computed follow-up reroutes in the same operation.
+    if (pending.followUpReroute) {
+        for (const proposal of pending.followUpReroute.proposals) {
+            const mission = missionSet.getMission(proposal.missionID);
+            if (mission) mission.setWaypoints(proposal.newWaypoints);
+        }
+    }
+
+    missionLayer.updateFeatures();
+    mutableState.pendingWaypointRemoval = null;
+    return mutableState;
+}
+
+export function handleCancelWaypointRemoval(mutableState: JaiaContextType) {
+    const pending = mutableState.pendingWaypointRemoval;
+    mutableState.pendingWaypointRemoval = null;
+    if (!pending) return mutableState;
+
+    if (pending.priorZone !== undefined) {
+        // Zone vertex move: restore the zone to its original shape.
+        exclusionZoneSet.updateZone(pending.priorZone.zoneID, pending.priorZone.zone);
+        syncLayer();
+    } else if (pending.triggeringZoneID !== undefined) {
+        // Zone draw: remove the single zone that was just added.
+        exclusionZoneSet.deleteZone(pending.triggeringZoneID);
+        syncLayer();
+    } else if (pending.offendingZoneIDs) {
+        // Zone load/restore: remove only the zones that contained waypoints.
+        // Non-conflicting zones from the same load remain.
+        for (const zoneID of pending.offendingZoneIDs) {
+            exclusionZoneSet.deleteZone(zoneID);
+        }
+        syncLayer();
+    } else {
+        // Mission load or survey planner: delete only the conflicting missions.
+        for (const proposal of pending.proposals) {
+            missionSet.deleteMission(proposal.missionID);
+        }
+        missionLayer.updateFeatures();
+    }
+
+    return mutableState;
+}
+
+/**
+ * Selects (or deselects) a zone vertex for editing.
+ * The selected vertex is highlighted on the map; the next map click will move it.
+ */
+export function handleSelectZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
+    if (action.zoneID === undefined || action.vertexIndex === undefined) return mutableState;
+
+    const current = jaiaGlobal.getSelectedZoneVertex();
+    if (current?.zoneID === action.zoneID && current?.vertexIndex === action.vertexIndex) {
+        // Same vertex clicked again — deselect and close panel.
+        jaiaGlobal.resetSelectedZoneVertex();
+        mutableState.visiblePanel = ButtonNames.NONE;
+    } else {
+        jaiaGlobal.setSelectedZoneVertex({
+            zoneID: action.zoneID,
+            vertexIndex: action.vertexIndex,
+            isMoveable: false,
+        });
+        mutableState.visiblePanel = ButtonNames.ZONE_VERTEX_PANEL;
+    }
+    // Redraw to update the highlight without touching the data model.
+    exclusionZoneLayer.updateFeatures();
+    return mutableState;
+}
+
+/**
+ * Moves the currently selected zone vertex to a new location, re-convex-hulls
+ * the zone, and triggers mission reroute/waypoint-removal detection.
+ * If any waypoints fall inside the new zone shape the move is staged and the
+ * operator is shown the waypoint-removal dialog; cancelling reverts the zone.
+ */
+export function handleMoveZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
+    const selected = jaiaGlobal.getSelectedZoneVertex();
+    if (!selected || !action.location) return mutableState;
+
+    const zone = exclusionZoneSet.getZone(selected.zoneID);
+    if (!zone?.vertices) return mutableState;
+
+    // Snapshot the original zone so we can revert if the operator cancels.
+    const priorZone = { zoneID: selected.zoneID, zone: { ...zone, vertices: [...zone.vertices] } };
+
+    // Replace the vertex then recompute the convex hull so the zone stays convex.
+    const newVertices = [...zone.vertices];
+    newVertices[selected.vertexIndex] = action.location;
+    const { vertices: hullVertices } = toConvexHull({ vertices: newVertices });
+
+    exclusionZoneSet.updateZone(selected.zoneID, { ...zone, vertices: hullVertices });
+
+    // Re-select the moved vertex at its new index so lat/lon inputs stay active.
+    // Use epsilon comparison because the hull projection roundtrip introduces float drift.
+    const newIdx = hullVertices.findIndex((v) => coordsMatch(v, action.location));
+    if (newIdx >= 0) {
+        jaiaGlobal.setSelectedZoneVertex({
+            zoneID: selected.zoneID,
+            vertexIndex: newIdx,
+            isMoveable: selected.isMoveable,
+        });
+    } else {
+        // Hull didn't keep the vertex (e.g. it collapsed onto an existing one). Keep the
+        // current selection so subsequent edits still have a valid selected vertex.
+        jaiaGlobal.setSelectedZoneVertex({
+            zoneID: selected.zoneID,
+            vertexIndex: selected.vertexIndex,
+            isMoveable: selected.isMoveable,
+        });
+    }
+    syncLayer();
+
+    // Waypoints inside the enlarged zone take priority — warn before rerouting.
+    const pendingRemoval = detectWaypointRemovals(selected.zoneID);
+    if (pendingRemoval) {
+        // Overwrite triggeringZoneID with priorZone so cancel restores rather than deletes.
+        delete pendingRemoval.triggeringZoneID;
+        pendingRemoval.priorZone = priorZone;
+        mutableState.pendingWaypointRemoval = pendingRemoval;
+        return mutableState;
+    }
+
+    // Trigger mission reroute check (same pattern as handleAddExclusionZone).
+    const pending = detectMissionReroutes();
+    if (pending) {
+        const relevant = pending.proposals.filter((p) =>
+            p.involvedZoneIDs.includes(selected.zoneID),
+        );
+        if (relevant.length > 0) {
+            mutableState.pendingReroute = {
+                proposals: relevant,
+                totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
+                priorZone,
+            };
+        }
+    }
+
+    return mutableState;
+}
+
+/**
+ * Toggles edit mode for a zone. Only one zone can be in edit mode at a time.
+ * Switching to a different zone clears any selected vertex from the previous one.
+ */
+export function handleToggleZoneEditMode(mutableState: JaiaContextType, action: JaiaAction) {
+    if (action.zoneID === undefined) return mutableState;
+    const current = jaiaGlobal.getZoneInEditMode();
+    if (current !== null && current !== action.zoneID) {
+        // Switching from one zone to a different zone — clear vertex selection from the previous zone.
+        jaiaGlobal.resetSelectedZoneVertex();
+    }
+    const turningOff = current === action.zoneID;
+    jaiaGlobal.setZoneInEditMode(turningOff ? null : action.zoneID);
+    // Deactivate tap-to-move when edit mode is turned off.
+    if (turningOff) {
+        const selected = jaiaGlobal.getSelectedZoneVertex();
+        if (selected?.isMoveable) {
+            jaiaGlobal.setSelectedZoneVertex({ ...selected, isMoveable: false });
+        }
+    }
+    exclusionZoneLayer.updateFeatures();
+    return mutableState;
+}
+
+/**
+ * Toggles the "tap to move" state for the currently selected zone vertex.
+ * When active, the next map click will reposition the vertex.
+ */
+export function handleToggleZoneVertexTapToMove(mutableState: JaiaContextType) {
+    const current = jaiaGlobal.getSelectedZoneVertex();
+    if (!current) return mutableState;
+    jaiaGlobal.setSelectedZoneVertex({ ...current, isMoveable: !current.isMoveable });
+    exclusionZoneLayer.updateFeatures();
+    return mutableState;
+}
+
+/**
+ * Adds a new vertex at the clicked map location and re-convex-hulls the zone so
+ * the vertex is sorted into its correct position on the hull. Mirrors the draw
+ * experience: click anywhere to expand the zone to include that point.
+ * Triggers waypoint-removal and reroute detection the same way a vertex move does.
+ */
+export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
+    if (action.zoneID === undefined || !action.location) return mutableState;
+    const zone = exclusionZoneSet.getZone(action.zoneID);
+    if (!zone?.vertices || zone.vertices.length < 3) return mutableState;
+
+    // Snapshot for cancel/revert.
+    const priorZone = { zoneID: action.zoneID, zone: { ...zone, vertices: [...zone.vertices] } };
+
+    const { vertices: hullVertices } = toConvexHull({
+        vertices: [...zone.vertices, action.location],
+    });
+    exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: hullVertices });
+
+    // Select the newly added vertex so the operator can inspect or move it.
+    // Use epsilon comparison because the hull projection roundtrip introduces float drift.
+    const newIdx = hullVertices.findIndex((v) => coordsMatch(v, action.location));
+    if (newIdx >= 0) {
+        jaiaGlobal.setSelectedZoneVertex({
+            zoneID: action.zoneID,
+            vertexIndex: newIdx,
+            isMoveable: false,
+        });
+        mutableState.visiblePanel = ButtonNames.ZONE_VERTEX_PANEL;
+    }
+
+    syncLayer();
+
+    const pendingRemoval = detectWaypointRemovals(action.zoneID);
+    if (pendingRemoval) {
+        delete pendingRemoval.triggeringZoneID;
+        pendingRemoval.priorZone = priorZone;
+        mutableState.pendingWaypointRemoval = pendingRemoval;
+        return mutableState;
+    }
+
+    const pending = detectMissionReroutes();
+    if (pending) {
+        const relevant = pending.proposals.filter((p) =>
+            p.involvedZoneIDs.includes(action.zoneID!),
+        );
+        if (relevant.length > 0) {
+            mutableState.pendingReroute = {
+                proposals: relevant,
+                totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
+                priorZone,
+            };
+        }
+    }
+
+    return mutableState;
+}
+
+/**
+ * Deletes a vertex from a zone. Requires at least 3 vertices to remain.
+ * Re-convex-hulls after deletion and triggers reroute detection.
+ */
+export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
+    if (action.zoneID === undefined || action.vertexIndex === undefined) return mutableState;
+    const zone = exclusionZoneSet.getZone(action.zoneID);
+    if (!zone?.vertices || zone.vertices.length <= 3) return mutableState;
+
+    const newVertices = zone.vertices.filter((_, i) => i !== action.vertexIndex);
+    const { vertices: hullVertices } = toConvexHull({ vertices: newVertices });
+    exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: hullVertices });
+    jaiaGlobal.resetSelectedZoneVertex();
+    syncLayer();
+
+    const pending = detectMissionReroutes();
+    if (pending) mutableState.pendingReroute = { ...pending, triggeringZoneID: undefined };
+
+    return mutableState;
+}
+
+export function handleSetPlacementError(mutableState: JaiaContextType) {
+    mutableState.placementError =
+        "Cannot place a waypoint inside an exclusion zone or its safety buffer.";
+    return mutableState;
+}
+
+export function handleClearPlacementError(mutableState: JaiaContextType) {
+    mutableState.placementError = null;
     return mutableState;
 }

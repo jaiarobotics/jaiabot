@@ -11,6 +11,17 @@ interface ExclusionZoneFile {
     snapshot: ExclusionZoneSetSnapshot;
 }
 
+export enum ImportZoneResultType {
+    SUCCESS = "SUCCESS",
+    CANCELLED = "CANCELLED",
+    INVALID_FORMAT = "INVALID_FORMAT",
+}
+
+export interface ImportZoneResult {
+    snapshot: ExclusionZoneSetSnapshot | null;
+    resultType: ImportZoneResultType;
+}
+
 /**
  * Saves the current zone set to localStorage under the given name
  */
@@ -67,9 +78,10 @@ export function exportZonesToFile(name: string) {
 }
 
 /**
- * Prompts the user to pick a JSON file and returns the parsed snapshot
+ * Prompts the user to pick a JSON file and returns the parsed snapshot with a result type.
+ * Mirrors the LoadSnapshotResult pattern used by mission-set-storage.
  */
-export function importZonesFromFile(): Promise<ExclusionZoneSetSnapshot | null> {
+export function importZonesFromFile(): Promise<ImportZoneResult> {
     return new Promise((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
@@ -78,7 +90,7 @@ export function importZonesFromFile(): Promise<ExclusionZoneSetSnapshot | null> 
         input.onchange = async (event: Event) => {
             const file = (event.target as HTMLInputElement)?.files?.[0];
             if (!file) {
-                resolve(null);
+                resolve({ snapshot: null, resultType: ImportZoneResultType.CANCELLED });
                 return;
             }
             try {
@@ -87,14 +99,17 @@ export function importZonesFromFile(): Promise<ExclusionZoneSetSnapshot | null> 
                     parsed?.version === EXCLUSION_ZONE_SET_VERSION &&
                     parsed.snapshot !== undefined
                 ) {
-                    resolve(parsed.snapshot);
+                    resolve({
+                        snapshot: parsed.snapshot,
+                        resultType: ImportZoneResultType.SUCCESS,
+                    });
                 } else {
                     console.error("Obstacle zone file format invalid:", parsed);
-                    resolve(null);
+                    resolve({ snapshot: null, resultType: ImportZoneResultType.INVALID_FORMAT });
                 }
             } catch (error) {
                 console.error("Error reading obstacle zone file:", error);
-                resolve(null);
+                resolve({ snapshot: null, resultType: ImportZoneResultType.INVALID_FORMAT });
             }
         };
 

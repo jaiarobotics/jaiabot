@@ -23,7 +23,6 @@ declare -a ProcessArray=(
     moos_gen.sh
     MOOSDB
     pHelmIvP
-    pObstacleMgr
     pMarineViewer
     uProcessWatch
     pNodeReporter

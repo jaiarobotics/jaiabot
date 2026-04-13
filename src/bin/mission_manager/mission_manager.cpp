@@ -43,7 +43,6 @@ namespace middleware = goby::middleware;
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/engineering.pb.h"
-#include "jaiabot/messages/exclusion_zone.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
@@ -54,7 +53,6 @@ namespace middleware = goby::middleware;
 #include "mission_manager_state_machine.h"
 #include "mission_manager.h"
 #include "groups.h"
-#include "exclusion_zone_router.h"
 #include "utils.h"
 
 
@@ -552,10 +550,6 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
                 interprocess().publish<jaiabot::groups::hub_command>(out_command);
             }
         }
-        else if (input_command.type() == protobuf::Command::EXCLUSION_ZONES_FRAGMENT)
-        {
-            handle_exclusion_zone_fragment(input_command);
-        }
         else
         {
             handle_command(input_command);
@@ -909,20 +903,10 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
 
             if (mission_is_feasible)
             {
-                // Route waypoints around any active exclusion zones before the state
-                // machine stores the plan. Inserted bypass goals have name="route_bypass"
-                // and no task; they are transparent to the rest of the mission logic.
-                auto routed_plan = mission_routing::route_around_exclusion_zones(
-                    command.plan(), current_exclusion_zones_);
-
                 // pass mission plan through event so that the mission plan in MissionManagerStateMachine only gets updated if this event is handled
-                machine_->process_event(statechart::EvMissionFeasible(routed_plan));
+                machine_->process_event(statechart::EvMissionFeasible(command.plan()));
                 // these are left over from the last mission command, erase them
                 machine_->erase_infeasible_mission_warnings();
-
-                // Exclusion zones are now handled via route planning (route_around_exclusion_zones)
-                // rather than as GIVEN_OBSTACLEs in pObstacleMgr. publish_obstacle_alerts() is
-                // intentionally not called here; infrastructure remains for camera obstacles.
             }
             else
             {
@@ -999,19 +983,6 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                      << std::endl;
             break;
 
-        case protobuf::Command::EXCLUSION_ZONES:
-            // WiFi path: full zone set arrives in one command. Stored for use by
-            // route_around_exclusion_zones() at next mission plan; not forwarded to
-            // pObstacleMgr (exclusion zones are handled via route planning, not GIVEN_OBSTACLEs).
-            current_exclusion_zones_ = command.exclusion_zones();
-            break;
-
-        case protobuf::Command::EXCLUSION_ZONES_FRAGMENT:
-            // earlier logic (command_callback) handles reassembly; this should not be reached
-            glog.is_warn() &&
-                glog << "EXCLUSION_ZONES_FRAGMENT command not processed by handle_command()"
-                     << std::endl;
-            break;
     }
 }
 
@@ -1139,51 +1110,6 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
     return false;
 }
 
-/**
- * Accumulates incoming EXCLUSION_ZONES_FRAGMENT commands.
- * When all expected fragments have arrived, reassembles them into a complete ExclusionZones
- * and publishes to the exclusion_zones group (which the MOOS gateway translates to OBSTACLE_ALERT).
- */
-bool jaiabot::apps::MissionManager::handle_exclusion_zone_fragment(
-    const protobuf::Command& input_command_fragment)
-{
-    const auto& frag = input_command_fragment.exclusion_zones_fragment();
-    const uint64_t key_time = input_command_fragment.time();
-    const uint8_t frag_index = static_cast<uint8_t>(frag.fragment_index());
-    const uint32_t expected = frag.expected_fragments();
-
-    glog.is_debug1() && glog << "Received exclusion zone fragment " << (int)frag_index << " of "
-                             << expected << std::endl;
-
-    // Only track one in-flight set at a time (mirrors mission plan behaviour)
-    if (!track_exclusion_zone_fragments_.count(key_time))
-    {
-        track_exclusion_zone_fragments_.clear();
-        track_exclusion_zone_fragments_[key_time] = {};
-    }
-
-    track_exclusion_zone_fragments_[key_time][frag_index] = input_command_fragment;
-
-    if (track_exclusion_zone_fragments_[key_time].size() == expected)
-    {
-        // All fragments received — reassemble in order
-        current_exclusion_zones_.Clear();
-        for (uint32_t i = 0; i < expected; ++i)
-        {
-            *current_exclusion_zones_.add_zone() =
-                track_exclusion_zone_fragments_[key_time][static_cast<uint8_t>(i)]
-                    .exclusion_zones_fragment()
-                    .zone();
-        }
-
-        glog.is_debug1() && glog << "Exclusion zones reassembled: "
-                                 << current_exclusion_zones_.zone_size() << " zone(s)" << std::endl;
-
-        // Zones stored for route planning; not forwarded to pObstacleMgr.
-        return true;
-    }
-    return false;
-}
 
 /**
  * Passes Safety Return Path (SRP) values to the state machine

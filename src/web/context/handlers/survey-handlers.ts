@@ -11,6 +11,7 @@ import { DEFAULT_MISSION_SET_NAME, MISSION_ENDPOINTS, UNASSIGNED_ID } from "../.
 import { MapModes } from "../../types/openlayers-types";
 import { TaskType } from "../../types/protobuf-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
+import { detectMissionReroutes, detectWaypointRemovals } from "./exclusion-zone-handlers";
 
 /**
  * Makes map and grid plan changes based on survey state change
@@ -91,6 +92,15 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             handleMapModeChange(MapModes.DEFAULT);
             mutableState.visiblePanel = ButtonNames.NONE;
             missionLayer.updateFeatures();
+
+            const pendingRemoval = detectWaypointRemovals();
+            if (pendingRemoval) {
+                mutableState.pendingWaypointRemoval = pendingRemoval;
+                break;
+            }
+
+            const pending = detectMissionReroutes();
+            if (pending) mutableState.pendingReroute = pending;
             break;
     }
     return mutableState;

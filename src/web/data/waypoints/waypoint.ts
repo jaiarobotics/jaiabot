@@ -5,6 +5,7 @@ import { GeographicCoordinate, Goal } from "../../types/protobuf-types";
 export default class Waypoint {
     private location: GeographicCoordinate;
     private task: Task;
+    private name?: string;
 
     constructor() {
         this.task = new Task();
@@ -26,11 +27,23 @@ export default class Waypoint {
         this.task = task;
     }
 
+    setName(name: string) {
+        this.name = name;
+    }
+
+    getName() {
+        return this.name;
+    }
+
     packageWaypointForHub() {
         const goal: Goal = {
             location: this.location,
             task: this.task.packageTaskForHub(),
         };
+
+        if (this.name !== undefined) {
+            goal.name = this.name;
+        }
 
         return goal;
     }

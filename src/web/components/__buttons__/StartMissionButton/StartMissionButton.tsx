@@ -4,7 +4,6 @@ import { JaiaActions } from "../../../context/jaia-actions";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { StartMissionDialog } from "./StartMissionDialog";
-import { RouteAdjustmentDialog } from "./RouteAdjustmentDialog";
 import { DisabledCodes } from "../disabled-codes";
 
 import { Icon } from "@mdi/react";
@@ -16,7 +15,6 @@ import Mission from "../../../data/mission_set/mission";
 import { Command, CommandType, MissionPlan } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { routeAroundExclusionZones } from "../../../utils/exclusion-zone-router";
 
 import { mdiPlay } from "@mdi/js";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
@@ -42,10 +40,6 @@ export default function StartMissionButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
-    const [routeDialogState, setRouteDialogState] = useState<"hidden" | "calculating" | "ready">(
-        "hidden",
-    );
-    const [routedPlan, setRoutedPlan] = useState<MissionPlan | null>(null);
 
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
@@ -121,45 +115,11 @@ export default function StartMissionButton(props: Props) {
         }
     };
 
-    /**
-     * Closes the dialog box then acts based on the type of button clicked.
-     * If the plan intersects an exclusion zone, shows the route adjustment
-     * dialog before sending.
-     */
     const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
-
         if (dialogAction !== DialogActions.CONFIRMED) return;
-
         const missionPlan = props.mission.packageMissionForHub(props.missionSetName);
-        const botID = props.bot.getBotID();
-
-        // Check for zone intersections asynchronously so the spinner can render.
-        setRouteDialogState("calculating");
-        await new Promise((resolve) => setTimeout(resolve, 0)); // yield to React
-
-        const result = routeAroundExclusionZones(missionPlan, botID);
-
-        if (result.bypassCount === 0) {
-            // No intersections — send immediately without a confirmation dialog.
-            setRouteDialogState("hidden");
-            await sendPlan(missionPlan);
-        } else {
-            // Intersections found — show the confirmation dialog with bypass info.
-            setRoutedPlan(result.plan);
-            setRouteDialogState("ready");
-        }
-    };
-
-    const onRouteConfirm = async () => {
-        setRouteDialogState("hidden");
-        if (routedPlan) await sendPlan(routedPlan);
-        setRoutedPlan(null);
-    };
-
-    const onRouteCancel = () => {
-        setRouteDialogState("hidden");
-        setRoutedPlan(null);
+        await sendPlan(missionPlan);
     };
 
     return (
@@ -176,16 +136,6 @@ export default function StartMissionButton(props: Props) {
                 disabledCode={getDisabledCode()}
                 onClose={onDialogClose}
             />
-            {routeDialogState !== "hidden" && (
-                <RouteAdjustmentDialog
-                    state={routeDialogState}
-                    bypassCount={
-                        routedPlan?.goal?.filter((g) => g.name === "route_bypass").length ?? 0
-                    }
-                    onConfirm={onRouteConfirm}
-                    onCancel={onRouteCancel}
-                />
-            )}
             <TakeControlDialog
                 isVisible={isTakeControlVisible}
                 setIsTakeControlVisible={setIsTakeControlVisible}

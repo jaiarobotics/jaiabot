@@ -30,6 +30,7 @@ export enum MapFeatureTypes {
     DRIFT = "DRIFT",
     // Type name comes from server side
     DEPTH_CONTOUR = "depth-contour",
+    ZONE_VERTEX = "ZONE_VERTEX",
 }
 
 export enum MapModes {

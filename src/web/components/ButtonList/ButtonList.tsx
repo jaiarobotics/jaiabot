@@ -139,10 +139,10 @@ export default function ButtonList(props: Props) {
                     <Icon path={mdiViewList} size={MDI_BUTTON_SIZE} title="Missions Panel" />
                 </Button>
                 <Button
-                    className={getSelectedClassName(ButtonNames.OBSTACLE_ZONES_PANEL)}
-                    aria-label="obstacle-zones-panel"
+                    className={getSelectedClassName(ButtonNames.EXCLUSION_ZONES_PANEL)}
+                    aria-label="exclusion-zones-panel"
                     onClick={() =>
-                        handleButtonClick(ButtonTypes.PANEL, ButtonNames.OBSTACLE_ZONES_PANEL)
+                        handleButtonClick(ButtonTypes.PANEL, ButtonNames.EXCLUSION_ZONES_PANEL)
                     }
                 >
                     <Icon
