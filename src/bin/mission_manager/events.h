@@ -108,6 +108,10 @@ STATECHART_EVENT(EvIMURestart)
 STATECHART_EVENT(EvIMURestartCompleted)
 STATECHART_EVENT(EvBottomDepthAbort)
 
+// Battery events
+STATECHART_EVENT(EvBatteryCritical)
+STATECHART_EVENT(EvBatteryLow)
+
 STATECHART_EVENT(EvLoop)
 struct EvVehicleDepth : boost::statechart::event<EvVehicleDepth>
 {
