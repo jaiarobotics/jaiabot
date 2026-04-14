@@ -428,6 +428,36 @@ message MissionPlan
 
     optional string mission_name = 11 [(dccl.field).omit = true]; // not sent over radio, only saved to the hub
 
+    // Protocols for low battery situations. These are used to determine how the vehicle should respond when it 
+    // detects that its battery is low, and allow for different responses depending on how low the battery is.
+
+    message BatteryLowProtocol
+    {
+        enum Action
+        {
+            NONE = 0 [(jaia.ev).rest_api.presence = GUARANTEED];
+            STOP_AND_BROADCAST = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+            STATION_KEEP = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
+            DRIVE_TO_HUB = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
+            DRIVE_TO_LOCATION = 4 [(jaia.ev).rest_api.presence = GUARANTEED];
+            DRIVE_TO_END_SKIPPING_TASKS = 5 [(jaia.ev).rest_api.presence = GUARANTEED];
+        }
+
+        optional Action action = 1
+            [default = STOP_AND_BROADCAST, (jaia.field).rest_api.presence = GUARANTEED];
+        // For DRIVE_TO_LOCATION, we may want a series of Geographic Locations.  Another possibility
+        // would be an algorithm to determine a safe path back to the starting location.
+
+        // optional GeographicCoordinate location = 2
+        //     [(jaia.field).rest_api.presence = GUARANTEED];
+    }
+
+    optional BatteryLowProtocol very_low_battery_protocol = 12
+        [(jaia.field).rest_api.presence = GUARANTEED];
+
+    optional BatteryLowProtocol critically_low_battery_protocol = 13
+        [(jaia.field).rest_api.presence = GUARANTEED];
+
 }
 
 message IvPBehaviorUpdate
