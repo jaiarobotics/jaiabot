@@ -38,7 +38,9 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
         boost::statechart::transition<EvReturnToHome, underway::Recovery>,
         boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>,
         boost::statechart::transition<EvPause, pause::Manual>,
-        boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>>;
+        boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>,
+        boost::statechart::transition<EvBatteryLow, battery::Low>,
+        boost::statechart::transition<EvBatteryCritical, battery::Critical>>;
 };
 
 namespace underway {

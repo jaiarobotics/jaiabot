@@ -197,7 +197,7 @@ struct InMission
 
 namespace inmission {
 
-    #include "inmission/underway.h"
-    #include "inmission/pause.h"
-
+#include "inmission/battery.h"
+#include "inmission/pause.h"
+#include "inmission/underway.h"
 }

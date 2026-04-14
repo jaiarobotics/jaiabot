@@ -69,6 +69,9 @@ enum MissionState
     IN_MISSION__PAUSE__MANUAL = 162 [(jaia.ev).rest_api.presence = GUARANTEED];
     IN_MISSION__PAUSE__RESOLVE_NO_FORWARD_PROGRESS = 163;
 
+    IN_MISSION__BATTERY__LOW = 170 [(jaia.ev).rest_api.presence = GUARANTEED];
+    IN_MISSION__BATTERY__CRITICAL = 171 [(jaia.ev).rest_api.presence = GUARANTEED];
+
     POST_DEPLOYMENT__RECOVERED = 200 [(jaia.ev).rest_api.presence = GUARANTEED];
     POST_DEPLOYMENT__DATA_OFFLOAD = 202
         [(jaia.ev).rest_api.presence = GUARANTEED];
