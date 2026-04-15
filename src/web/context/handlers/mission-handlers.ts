@@ -154,8 +154,12 @@ export function handleChangeMissionSetName(mutableState: JaiaContextType, action
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    // Clear current mission set and reset mission assignments
+    // Clear current mission set, ghost missions, and reset mission assignments.
+    // Ghost missions must be cleared here because they use the same IDs as regular
+    // missions. If not cleared, the newly loaded missions render on top of stale
+    // ghost missions with the same IDs, causing doubled waypoint numbers on the map.
     missionSet.deleteAllMissions();
+    missionSet.deleteAllGhostMissions();
     missionsManager.unassignAll();
 
     // Rebuild mission set from json snapshot
@@ -173,6 +177,6 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
     missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
     missionSet.setMissionSpeeds(action.missionSetSnapshot.missionSpeeds);
     mutableState.missionAccordionStates = {};
-    missionLayer.updateFeatures();
+    syncOpenLayers();
     return mutableState;
 }
