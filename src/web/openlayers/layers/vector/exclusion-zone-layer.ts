@@ -13,9 +13,9 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { layersZIndexes } from "../zindex";
 import { LayerTitles, MapFeatureTypes } from "../../../types/openlayers-types";
 import { JaiaActions } from "../../../context/jaia-actions";
-import { ExclusionZone } from "../../../types/protobuf-types";
 import { toConvexHull, getZoneBufferVertices } from "../../../utils/exclusion-zone-router";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
+import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
 
 const ZONE_FILL = "rgba(220, 0, 0, 0.15)";
@@ -30,7 +30,6 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
     private draw: Draw | null = null;
     private dispatch: ((action: { type: JaiaActions; [key: string]: unknown }) => void) | null =
         null;
-    private zones: Map<number, ExclusionZone> = new Map();
 
     constructor() {
         super(
@@ -52,17 +51,6 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
 
     getDraw() {
         return this.draw;
-    }
-
-    /**
-     * Updates the displayed zones and redraws the layer
-     *
-     * @param {Map<number, ExclusionZone>} zones Updated zone map from the data model
-     * @returns {void}
-     */
-    setZones(zones: Map<number, ExclusionZone>) {
-        this.zones = zones;
-        this.updateFeatures();
     }
 
     /**
@@ -100,10 +88,10 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
 
             if (!this.dispatch || vertices.length < 3) return;
 
-            const { vertices: hullVertices } = toConvexHull({ vertices });
-
             // Always store the convex hull vertices — handles both non-convex shapes
             // and self-intersecting bow ties silently without a confirmation dialog.
+            const { vertices: hullVertices } = toConvexHull({ vertices });
+
             this.dispatch({
                 type: JaiaActions.ADD_EXCLUSION_ZONE,
                 exclusionZone: { vertices: hullVertices },
@@ -131,10 +119,9 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
         this.getVectorLayer().getSource().clear();
 
         let zoneNum = 0;
-        const editZoneID = jaiaGlobal.getZoneInEditMode();
         const selected = jaiaGlobal.getSelectedZoneVertex();
 
-        this.zones.forEach((zone, zoneID) => {
+        exclusionZoneSet.getZones().forEach((zone, zoneID) => {
             if (!zone.vertices || zone.vertices.length < 3) return;
             zoneNum++;
 

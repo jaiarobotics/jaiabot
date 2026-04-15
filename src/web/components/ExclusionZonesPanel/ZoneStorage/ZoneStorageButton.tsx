@@ -21,7 +21,11 @@ import {
 
 import "../../MissionsPanel/MissionSetStorage/MissionSetStorage.less";
 
-export default function ZoneStorageButton() {
+interface ZoneStorageButtonProps {
+    zoneSetName: string;
+}
+
+export default function ZoneStorageButton({ zoneSetName }: ZoneStorageButtonProps) {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     return (
@@ -33,7 +37,12 @@ export default function ZoneStorageButton() {
             >
                 <Icon path={mdiFolder} size={MDI_BUTTON_SIZE} title="Obstacle Zone Storage" />
             </Button>
-            {isDialogVisible && <ZoneStorageDialog onClose={() => setIsDialogVisible(false)} />}
+            {isDialogVisible && (
+                <ZoneStorageDialog
+                    zoneSetName={zoneSetName}
+                    onClose={() => setIsDialogVisible(false)}
+                />
+            )}
         </div>
     );
 }
@@ -51,6 +60,8 @@ type SecondaryDialogType =
     | "export-no-name" // alert: name field is empty
     | "confirm-import" // confirm clear-and-import
     | "import-invalid" // alert: bad file format
+    | "load-no-name" // alert: name field is empty
+    | "delete-no-name" // alert: name field is empty
     | null;
 
 interface SecondaryContent {
@@ -61,12 +72,13 @@ interface SecondaryContent {
 }
 
 interface DialogProps {
+    zoneSetName: string;
     onClose: () => void;
 }
 
 function ZoneStorageDialog(props: DialogProps) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
-    const [saveName, setSaveName] = useState("");
+    const [saveName, setSaveName] = useState(props.zoneSetName);
     const [savedNames, setSavedNames] = useState<string[]>([]);
     const [secondaryDialog, setSecondaryDialog] = useState<SecondaryDialogType>(null);
 
@@ -99,20 +111,32 @@ function ZoneStorageDialog(props: DialogProps) {
             return;
         }
         // No conflicts — save directly
-        saveToHub(saveName.trim()).then(refreshNames);
+        saveToHub(saveName.trim()).then(() => {
+            jaiaDispatch({
+                type: JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
+                exclusionZoneSetName: saveName.trim(),
+            });
+            refreshNames();
+        });
     };
 
     // ── Load ────────────────────────────────────────────────────────────────
 
     const handleLoad = () => {
-        // Always show dialog first (matches mission load behavior)
+        if (!saveName.trim()) {
+            setSecondaryDialog("load-no-name");
+            return;
+        }
         setSecondaryDialog("confirm-load");
     };
 
     // ── Delete ──────────────────────────────────────────────────────────────
 
     const handleDelete = () => {
-        // Always show dialog first (matches mission delete behavior)
+        if (!saveName.trim()) {
+            setSecondaryDialog("delete-no-name");
+            return;
+        }
         setSecondaryDialog("confirm-delete");
     };
 
@@ -146,7 +170,13 @@ function ZoneStorageDialog(props: DialogProps) {
 
         switch (current) {
             case "save-overwrite":
-                saveToHub(saveName.trim()).then(refreshNames);
+                saveToHub(saveName.trim()).then(() => {
+                    jaiaDispatch({
+                        type: JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
+                        exclusionZoneSetName: saveName.trim(),
+                    });
+                    refreshNames();
+                });
                 break;
 
             case "confirm-load": {
@@ -156,6 +186,10 @@ function ZoneStorageDialog(props: DialogProps) {
                 }
                 loadSnapshotFromHub(saveName.trim()).then((snapshot) => {
                     if (snapshot) {
+                        jaiaDispatch({
+                            type: JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
+                            exclusionZoneSetName: saveName.trim(),
+                        });
                         jaiaDispatch({
                             type: JaiaActions.RESTORE_EXCLUSION_ZONE_SNAPSHOT,
                             exclusionZoneSnapshot: snapshot,
@@ -270,6 +304,18 @@ function ZoneStorageDialog(props: DialogProps) {
                     message: "The file could not be imported, it is an invalid format.",
                     isConfirm: false,
                 };
+            case "load-no-name":
+                return {
+                    title: "Alert",
+                    message: "Please enter or select a zone set name before loading.",
+                    isConfirm: false,
+                };
+            case "delete-no-name":
+                return {
+                    title: "Alert",
+                    message: "Please enter or select a zone set name before deleting.",
+                    isConfirm: false,
+                };
             default:
                 return null;
         }
@@ -280,7 +326,7 @@ function ZoneStorageDialog(props: DialogProps) {
     return createPortal(
         <div className="jaia-dialog-container">
             <div className="blocking-overlay">
-                <div className="jaia-dialog mission-set-storage">
+                <div className="jaia-dialog set-storage">
                     <h1>Obstacle Zone Storage</h1>
                     <div className="input-container">
                         <label>Zone Set Name</label>
@@ -290,14 +336,14 @@ function ZoneStorageDialog(props: DialogProps) {
                             onChange={(e) => setSaveName(e.target.value)}
                         />
                     </div>
-                    <div className="mission-sets-container">
+                    <div className="stored-sets-container">
                         <label>Stored Zone Sets</label>
-                        <ul className="mission-set-names">
+                        <ul className="stored-set-names">
                             {savedNames.map((name) => (
                                 <li
                                     key={name}
                                     className={
-                                        "mission-set-row" + (name === saveName ? " selected" : "")
+                                        "stored-set-row" + (name === saveName ? " selected" : "")
                                     }
                                     onClick={() => setSaveName(name)}
                                 >
@@ -307,15 +353,44 @@ function ZoneStorageDialog(props: DialogProps) {
                         </ul>
                     </div>
                     <div className="button-row">
-                        <button onClick={handleDelete} disabled={!saveName.trim()}>
-                            Delete
-                        </button>
-                        <button onClick={handleSave} disabled={!saveName.trim()}>
-                            Save
-                        </button>
-                        <button onClick={handleLoad} disabled={!saveName.trim()}>
-                            Load
-                        </button>
+                        <button onClick={handleDelete}>Delete</button>
+                        <button onClick={handleSave}>Save</button>
+                        <button onClick={handleLoad}>Load</button>
+                        {secondary && (
+                            <div
+                                className={`secondary-dialog ${secondary.isConfirm ? "" : "alert"}`}
+                            >
+                                <h1>{secondary.title}</h1>
+                                <p>{secondary.message}</p>
+                                {secondary.isConfirm ? (
+                                    <div className="dialog-button-row">
+                                        <button
+                                            className="dialog-button"
+                                            onClick={() => onSecondaryClose(DialogActions.NONE)}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            className="dialog-button"
+                                            onClick={() =>
+                                                onSecondaryClose(DialogActions.CONFIRMED)
+                                            }
+                                        >
+                                            {secondary.confirmLabel}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="dialog-button-row">
+                                        <button
+                                            className="dialog-button"
+                                            onClick={() => onSecondaryClose(DialogActions.NONE)}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className="line-break"></div>
                     <div className="button-row">
@@ -323,37 +398,6 @@ function ZoneStorageDialog(props: DialogProps) {
                         <button onClick={handleImport}>Import</button>
                     </div>
                     <button onClick={props.onClose}>Close</button>
-                    {secondary && (
-                        <div className={`secondary-dialog ${secondary.isConfirm ? "" : "alert"}`}>
-                            <h1>{secondary.title}</h1>
-                            <p>{secondary.message}</p>
-                            {secondary.isConfirm ? (
-                                <div className="dialog-button-row">
-                                    <button
-                                        className="dialog-button"
-                                        onClick={() => onSecondaryClose(DialogActions.NONE)}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        className="dialog-button"
-                                        onClick={() => onSecondaryClose(DialogActions.CONFIRMED)}
-                                    >
-                                        {secondary.confirmLabel}
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="dialog-button-row">
-                                    <button
-                                        className="dialog-button"
-                                        onClick={() => onSecondaryClose(DialogActions.NONE)}
-                                    >
-                                        Close
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
             </div>
         </div>,

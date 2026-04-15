@@ -14,9 +14,9 @@ import { gridPlan } from "../../data/survey_planner/grid-plan";
 import { rallyPoints } from "../../data/rally_points/rally-points";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
-import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { saveHistory } from "./history-handlers";
+import { syncOpenLayers } from "./handler-utils";
 
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
@@ -52,8 +52,11 @@ const defaultMapLayerAccordionStates = {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleInit(mutableState: JaiaContextType) {
-    exclusionZoneSet.clearZones();
-    exclusionZoneLayer.setZones(exclusionZoneSet.getZones());
+    // Note: exclusionZoneSet is intentionally not cleared here, matching the
+    // pattern used by missionSet. INIT fires only on page load, not on hub
+    // reconnect, so clearing here would have the same practical effect — but
+    // we omit it to keep the two data models consistent.
+    syncOpenLayers();
 
     const completeInit: JaiaContextType = {
         bots: bots,
@@ -67,7 +70,7 @@ export function handleInit(mutableState: JaiaContextType) {
         exclusionZoneSet: exclusionZoneSet,
         pendingReroute: null,
         pendingWaypointRemoval: null,
-        placementError: null,
+        placementError: "",
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
         hubAccordionStates: defaultHubAccordionStates,

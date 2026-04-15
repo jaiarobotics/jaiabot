@@ -8,8 +8,11 @@ import { GridPlan, GridPlanningStates, GridPanSnapshot } from "../data/survey_pl
 import { RallyPoints, RallyPointsSnapshot } from "../data/rally_points/rally-points";
 import { JaiaGlobal, JaiaGlobalSnapshot } from "../data/jaia_global/jaia-global";
 import {
+    ExclusionZone,
     ExclusionZoneSet,
     ExclusionZoneSetSnapshot,
+    PendingReroute,
+    PendingWaypointRemoval,
 } from "../data/exclusion_zones/exclusion-zone-set";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
@@ -23,60 +26,7 @@ import {
     NodeTypes,
     TaskParameterPair,
 } from "./jaia-system-types";
-import { Speeds, Command, GeographicCoordinate, TaskType, ExclusionZone } from "./protobuf-types";
-
-export interface PendingRerouteProposal {
-    missionID: number;
-    newWaypoints: Waypoint[];
-    bypassCount: number;
-    /** Zone IDs whose buffers the original (clean) route crossed. */
-    involvedZoneIDs: number[];
-}
-
-export interface PendingReroute {
-    proposals: PendingRerouteProposal[];
-    totalBypassCount: number;
-    /** Zone ID that triggered this reroute (zone-draw path). Zone is deleted on cancel. */
-    triggeringZoneID?: number;
-    /**
-     * Set when a zone vertex was moved: the zone's original shape before the move.
-     * On cancel, the zone is restored to this shape instead of being deleted.
-     * Mutually exclusive with triggeringZoneID.
-     */
-    priorZone?: { zoneID: number; zone: ExclusionZone };
-}
-
-export interface PendingWaypointRemovalProposal {
-    missionID: number;
-    /** Clean waypoints to keep (bypass waypoints stripped, inside-zone waypoints removed). */
-    newWaypoints: Waypoint[];
-    removedCount: number;
-}
-
-export interface PendingWaypointRemoval {
-    proposals: PendingWaypointRemovalProposal[];
-    totalRemovedCount: number;
-    /** Pre-computed reroutes against the post-removal state, shown in the same dialog. */
-    followUpReroute?: PendingReroute;
-    /**
-     * Set when a single zone was drawn: that zone is removed on cancel.
-     * Mutually exclusive with offendingZoneIDs and priorZone.
-     */
-    triggeringZoneID?: number;
-    /**
-     * Set when zones were loaded/restored: the specific zone IDs whose buffers
-     * contain waypoints. Only those zones are removed on cancel, leaving any
-     * non-conflicting loaded zones in place.
-     * Mutually exclusive with triggeringZoneID and priorZone.
-     */
-    offendingZoneIDs?: number[];
-    /**
-     * Set when a zone vertex was moved: the zone's original shape before the move.
-     * On cancel, the zone is restored to this shape instead of being deleted.
-     * Mutually exclusive with triggeringZoneID and offendingZoneIDs.
-     */
-    priorZone?: { zoneID: number; zone: ExclusionZone };
-}
+import { Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
 
 // Type used to capture the JCC context
 export interface JaiaContextType {
@@ -91,7 +41,7 @@ export interface JaiaContextType {
     exclusionZoneSet: ExclusionZoneSet;
     pendingReroute: PendingReroute | null;
     pendingWaypointRemoval: PendingWaypointRemoval | null;
-    placementError: string | null;
+    placementError: string;
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
@@ -127,7 +77,6 @@ export interface JaiaSnapshot {
 export interface JaiaAction {
     type: JaiaActions;
     botID?: number;
-    botIDs?: number[];
     missionID?: number;
     rallyID?: number;
     zoneID?: number;
@@ -163,6 +112,7 @@ export interface JaiaAction {
     missionSpeeds?: Speeds;
     missionRepeats?: number;
     missionSetName?: string;
+    exclusionZoneSetName?: string;
     missionSetSnapshot?: MissionSetSnapshot;
     gridPlanningState?: GridPlanningStates;
 }

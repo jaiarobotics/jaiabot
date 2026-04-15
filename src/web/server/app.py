@@ -280,7 +280,7 @@ def save_exclusion_zone(name: str):
     except ValueError as e:
         return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
     EXCLUSION_ZONES_DIR.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(request.json))
+    path.write_text(request.get_data(as_text=True))
     return JSONResponse({"status": "ok"})
 
 

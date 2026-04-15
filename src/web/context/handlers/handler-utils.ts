@@ -6,6 +6,7 @@ import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../../openlayers/layers/vector/contour-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
+import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { bots } from "../../data/bots/bots";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 
@@ -20,6 +21,7 @@ export function syncOpenLayers() {
     missionLayer.updateFeatures();
     ghostMissionLayer.updateFeatures();
     rallyLayer.updateFeatures();
+    exclusionZoneLayer.updateFeatures();
 }
 
 export function syncTaskLayers() {

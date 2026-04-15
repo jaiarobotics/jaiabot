@@ -76,6 +76,7 @@ import {
     handleToggleZoneVertexTapToMove,
     handleSetPlacementError,
     handleClearPlacementError,
+    handleChangeExclusionZoneSetName,
 } from "./handlers/exclusion-zone-handlers";
 
 // Standard profile for action handling functions
@@ -101,6 +102,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.CHANGE_MISSION_SPEEDS, { handler: handleChangeMissionSpeeds, tracked: true }],
     [JaiaActions.CHANGE_MISSION_REPEATS, { handler: handleChangeMissionRepeats, tracked: true }],
     [JaiaActions.CHANGE_MISSION_SET_NAME, { handler: handleChangeMissionSetName, tracked: true }],
+    [
+        JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
+        { handler: handleChangeExclusionZoneSetName, tracked: true },
+    ],
     [JaiaActions.LOAD_MISSION_SET, { handler: handleLoadMissionSet, tracked: true }],
 
     // Waypoint & Task Actions

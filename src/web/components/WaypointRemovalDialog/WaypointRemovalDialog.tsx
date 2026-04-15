@@ -16,6 +16,25 @@ export default function WaypointRemovalDialog() {
 
     const reroute = pending.followUpReroute;
 
+    const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_WAYPOINT_REMOVAL });
+    const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_WAYPOINT_REMOVAL });
+
+    const renderRemovalList = () =>
+        pending.proposals.map((p) => (
+            <li key={p.missionID}>
+                Mission {p.missionID}: <strong>{p.removedCount}</strong> waypoint
+                {p.removedCount !== 1 ? "s" : ""} removed
+            </li>
+        ));
+
+    const renderRerouteList = () =>
+        reroute?.proposals.map((p) => (
+            <li key={p.missionID}>
+                Mission {p.missionID}: <strong>{p.bypassCount}</strong> bypass waypoint
+                {p.bypassCount !== 1 ? "s" : ""}
+            </li>
+        ));
+
     return (
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" />
@@ -27,14 +46,7 @@ export default function WaypointRemovalDialog() {
                     {pending.totalRemovedCount !== 1 ? "s" : ""} fall inside an exclusion zone and
                     will be removed:
                 </p>
-                <ul style={{ margin: "8px 0 12px 16px", padding: 0 }}>
-                    {pending.proposals.map((p) => (
-                        <li key={p.missionID}>
-                            Mission {p.missionID}: <strong>{p.removedCount}</strong> waypoint
-                            {p.removedCount !== 1 ? "s" : ""} removed
-                        </li>
-                    ))}
-                </ul>
+                <ul style={{ margin: "8px 0 12px 16px", padding: 0 }}>{renderRemovalList()}</ul>
 
                 {reroute && (
                     <>
@@ -44,27 +56,16 @@ export default function WaypointRemovalDialog() {
                             {reroute.totalBypassCount !== 1 ? "s" : ""} will be added:
                         </p>
                         <ul style={{ margin: "8px 0 12px 16px", padding: 0 }}>
-                            {reroute.proposals.map((p) => (
-                                <li key={p.missionID}>
-                                    Mission {p.missionID}: <strong>{p.bypassCount}</strong> bypass
-                                    waypoint{p.bypassCount !== 1 ? "s" : ""}
-                                </li>
-                            ))}
+                            {renderRerouteList()}
                         </ul>
                     </>
                 )}
 
                 <div className="dialog-button-row">
-                    <button
-                        className="dialog-button"
-                        onClick={() => jaiaDispatch({ type: JaiaActions.CANCEL_WAYPOINT_REMOVAL })}
-                    >
+                    <button className="dialog-button" onClick={handleCancel}>
                         Cancel
                     </button>
-                    <button
-                        className="dialog-button"
-                        onClick={() => jaiaDispatch({ type: JaiaActions.CONFIRM_WAYPOINT_REMOVAL })}
-                    >
+                    <button className="dialog-button" onClick={handleConfirm}>
                         Update Plan
                     </button>
                 </div>

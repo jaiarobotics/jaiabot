@@ -6,12 +6,11 @@ import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
-import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType, PanelActions } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { syncTaskLayers } from "./handler-utils";
+import { syncOpenLayers, syncTaskLayers } from "./handler-utils";
 
 /**
  * Closes the Bot or Hub details panel
@@ -93,7 +92,7 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
         const zone = exclusionZoneSet.getZone(action.zoneID);
         if (zone) {
             exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: action.locations });
-            exclusionZoneLayer.setZones(exclusionZoneSet.getZones());
+            syncOpenLayers();
         }
         // Clear any pending dialogs triggered by the now-cancelled edits.
         if (mutableState.pendingWaypointRemoval?.priorZone) {

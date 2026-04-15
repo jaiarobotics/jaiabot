@@ -101,6 +101,10 @@ export class JaiaAPI {
         return this.hit("GET", endpoint);
     }
 
+    delete(endpoint: string) {
+        return this.hit("DELETE", endpoint);
+    }
+
     /**
      * Gets clientID provided by the server for the web session
      *
@@ -348,10 +352,7 @@ export class JaiaAPI {
     }
 
     async deleteExclusionZone(name: string): Promise<void> {
-        await fetch(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`, {
-            method: "DELETE",
-            headers: this.headers,
-        });
+        await this.delete(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`);
     }
 }
 

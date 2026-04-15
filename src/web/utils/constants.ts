@@ -41,3 +41,4 @@ export const TASK_MAX_SPEED_CONSTRAINT = 3;
 export const JCC_CONTAINER = "jcc";
 export const MAP_FEATURE_HIT_TOLERANCE = 15; // px
 export const DEFAULT_MISSION_SET_NAME = "";
+export const METERS_PER_DEG = 111320; // metres per degree of latitude (approximate, good to 0.1% at all latitudes)

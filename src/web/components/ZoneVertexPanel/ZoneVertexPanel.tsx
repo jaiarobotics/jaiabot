@@ -8,6 +8,7 @@ import JaiaToggle from "../JaiaToggle/JaiaToggle";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 
 import { validateCoordinate } from "../../utils/input";
+import { UNASSIGNED_ID } from "../../utils/constants";
 
 import { PanelActions } from "../../types/context-types";
 import { CoordinateTypes } from "../../types/jaia-system-types";
@@ -30,6 +31,13 @@ export default function ZoneVertexPanel() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
+    const [latInput, setLatInput] = useState("");
+    const [lonInput, setLonInput] = useState("");
+    // Snapshot of all zone vertices captured when the panel first opens for this zone.
+    // Keyed by zoneID so it resets when the operator switches to a different zone.
+    const [priorZoneID, setPriorZoneID] = useState<number | null>(null);
+    const [priorZoneVertices, setPriorZoneVertices] = useState(null);
+
     /**
      * Gets the selected zone vertex data
      */
@@ -42,7 +50,7 @@ export default function ZoneVertexPanel() {
      */
     const getZone = () => {
         const selectedVertex = getSelectedZoneVertex();
-        if (!selectedVertex) return undefined;
+        if (selectedVertex.zoneID === UNASSIGNED_ID) return undefined;
         return jaiaContext.exclusionZoneSet.getZone(selectedVertex.zoneID);
     };
 
@@ -53,7 +61,7 @@ export default function ZoneVertexPanel() {
         const selectedVertex = getSelectedZoneVertex();
         const zone = getZone();
         if (
-            !selectedVertex ||
+            selectedVertex.zoneID === UNASSIGNED_ID ||
             !zone ||
             !zone.vertices ||
             selectedVertex.vertexIndex >= zone.vertices.length
@@ -64,12 +72,8 @@ export default function ZoneVertexPanel() {
         return { lat: vertex.lat, lon: vertex.lon };
     };
 
-    const [latInput, setLatInput] = useState(getVertexLocation().lat.toString());
-    const [lonInput, setLonInput] = useState(getVertexLocation().lon.toString());
-    // Snapshot of all zone vertices captured when the panel first opens for this zone.
-    // Keyed by zoneID so it resets when the operator switches to a different zone.
-    const [priorZoneID, setPriorZoneID] = useState<number | null>(null);
-    const [priorZoneVertices, setPriorZoneVertices] = useState(null);
+    const selectedZoneID = jaiaContext.jaiaGlobal.getSelectedZoneVertex().zoneID;
+    const selectedVertexIndex = jaiaContext.jaiaGlobal.getSelectedZoneVertex().vertexIndex;
 
     useEffect(() => {
         const currentVertex = jaiaContext.jaiaGlobal.getSelectedZoneVertex();
@@ -89,7 +93,7 @@ export default function ZoneVertexPanel() {
             setLatInput(location.lat.toString());
             setLonInput(location.lon.toString());
         }
-    });
+    }, [selectedZoneID, selectedVertexIndex]);
 
     /**
      * Compares two selected zone vertex objects
@@ -167,7 +171,7 @@ export default function ZoneVertexPanel() {
         setLonInput(updatedLatLon[1]);
 
         const selectedVertex = getSelectedZoneVertex();
-        if (!selectedVertex) return;
+        if (selectedVertex.zoneID === UNASSIGNED_ID) return;
 
         jaiaDispatch({
             type: JaiaActions.MOVE_ZONE_VERTEX,
@@ -239,7 +243,7 @@ export default function ZoneVertexPanel() {
     const selectedVertex = getSelectedZoneVertex();
     const zone = getZone();
 
-    if (!selectedVertex || !zone) {
+    if (selectedVertex.zoneID === UNASSIGNED_ID || !zone) {
         return null;
     }
 

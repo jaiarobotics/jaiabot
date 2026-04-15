@@ -17,14 +17,17 @@ export default function MissionRerouteDialog() {
     const missionCount = pending.proposals.length;
     const bypassCount = pending.totalBypassCount;
 
+    const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_MISSION_REROUTE });
+    const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_MISSION_REROUTE });
+
     return (
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" />
             <div className="jaia-dialog">
                 <h1>Route Update Required</h1>
                 <p>
-                    Zone changes affect <strong>{missionCount}</strong> mission
-                    {missionCount !== 1 ? "s" : ""}. The following bypass waypoints will be added:
+                    {missionCount} mission{missionCount !== 1 ? "s" : ""} cross an exclusion zone.
+                    The following bypass waypoints will be added:
                 </p>
                 <ul style={{ margin: "8px 0 12px 16px", padding: 0 }}>
                     {pending.proposals.map((p) => (
@@ -39,16 +42,10 @@ export default function MissionRerouteDialog() {
                     auto-bypass waypoints will be replaced.
                 </p>
                 <div className="dialog-button-row">
-                    <button
-                        className="dialog-button"
-                        onClick={() => jaiaDispatch({ type: JaiaActions.CANCEL_MISSION_REROUTE })}
-                    >
+                    <button className="dialog-button" onClick={handleCancel}>
                         Keep Original
                     </button>
-                    <button
-                        className="dialog-button"
-                        onClick={() => jaiaDispatch({ type: JaiaActions.CONFIRM_MISSION_REROUTE })}
-                    >
+                    <button className="dialog-button" onClick={handleConfirm}>
                         Update Route
                     </button>
                 </div>

@@ -7,11 +7,15 @@
  */
 
 import { GeographicCoordinate, Goal, MissionPlan } from "../types/protobuf-types";
-import { ExclusionZone } from "../types/protobuf-types";
-import { exclusionZoneSet } from "../data/exclusion_zones/exclusion-zone-set";
-
-// Metres per degree of latitude (approximate, good to 0.1% at all latitudes)
-const METERS_PER_DEG = 111320;
+import { METERS_PER_DEG } from "./constants";
+import {
+    ExclusionZone,
+    exclusionZoneSet,
+    PendingReroute,
+    PendingRerouteProposal,
+} from "../data/exclusion_zones/exclusion-zone-set";
+import { missionSet } from "../data/mission_set/mission-set";
+import Waypoint from "../data/waypoints/waypoint";
 
 interface XYPt {
     x: number;
@@ -268,7 +272,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] | null 
     return path.slice(0, -1).map((idx) => nodes[idx]);
 }
 
-export interface RouteResult {
+interface RouteResult {
     /** Modified plan with bypass waypoints inserted */
     plan: MissionPlan;
     /** Number of bypass waypoints inserted */
@@ -504,4 +508,80 @@ export function toConvexHull(zone: ExclusionZone): {
     const wasConvexified = !isConvexPolygon(pts);
     const vertices = hull.map((p) => toLatLon(origin, p));
     return { vertices, wasConvexified };
+}
+
+/** Returns true if two waypoint lists are identical (same locations in same order). */
+function waypointListsMatch(a: Waypoint[], b: Waypoint[]): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+        const la = a[i].getLocation();
+        const lb = b[i].getLocation();
+        if (la?.lat !== lb?.lat || la?.lon !== lb?.lon) return false;
+    }
+    return true;
+}
+
+/**
+ * Core reroute detection. Accepts an optional override map so the caller can
+ * supply post-removal waypoints for affected missions without mutating the data
+ * model. Missions with overrides skip the identity checks (their waypoints have
+ * already been logically modified by the removal step).
+ */
+export function detectReroutesWithOverrides(
+    overrides: Map<number, Waypoint[]>,
+): PendingReroute | null {
+    const proposals: PendingRerouteProposal[] = [];
+
+    for (const [missionID, mission] of missionSet.getMissions()) {
+        const hasOverride = overrides.has(missionID);
+        const currentWaypoints = mission.getWaypoints();
+        const cleanWaypoints = hasOverride
+            ? overrides.get(missionID)!
+            : currentWaypoints.filter((wp) => !wp.getIsBypass());
+
+        if (cleanWaypoints.length < 2) continue;
+
+        const cleanPlan = { goal: cleanWaypoints.map((wp) => wp.packageWaypointForHub()) };
+        const result = routeAroundExclusionZones(cleanPlan);
+
+        if (result.bypassCount === 0) continue;
+
+        // NOTE: this assumes the router preserves non-bypass goals in the same
+        // order as cleanWaypoints. If routeAroundExclusionZones ever reorders
+        // goals, origIdx will map to the wrong clean waypoint.
+        const newWaypoints: Waypoint[] = [];
+        let origIdx = 0;
+        for (const goal of result.plan.goal ?? []) {
+            if (goal.name === "route_bypass") {
+                const wp = new Waypoint();
+                wp.setLocation(goal.location!);
+                wp.setIsBypass(true);
+                newWaypoints.push(wp);
+            } else {
+                if (origIdx < cleanWaypoints.length) {
+                    newWaypoints.push(cleanWaypoints[origIdx]);
+                }
+                origIdx++;
+            }
+        }
+
+        if (!hasOverride) {
+            if (waypointListsMatch(newWaypoints, currentWaypoints)) continue;
+            if (waypointListsMatch(newWaypoints, cleanWaypoints)) continue;
+        }
+
+        proposals.push({
+            missionID,
+            newWaypoints,
+            bypassCount: result.bypassCount,
+            involvedZoneIDs: result.involvedZoneIDs,
+        });
+    }
+
+    if (proposals.length === 0) return null;
+
+    return {
+        proposals,
+        totalBypassCount: proposals.reduce((sum, p) => sum + p.bypassCount, 0),
+    };
 }

@@ -964,11 +964,6 @@ export enum CommandType {
     SHUTDOWN_COMPUTER = "SHUTDOWN_COMPUTER",
 }
 
-export interface ExclusionZone {
-    label?: string;
-    vertices?: GeographicCoordinate[];
-}
-
 export interface Command {
     bot_id?: number;
     time?: number;

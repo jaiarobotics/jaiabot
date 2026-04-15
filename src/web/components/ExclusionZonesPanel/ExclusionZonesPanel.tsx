@@ -20,6 +20,15 @@ export default function ExclusionZonesPanel() {
 
     const isDrawing = jaiaGlobal.getMapMode() === MapModes.EXCLUSION_ZONE_DRAWING;
     const zoneCount = jaiaContext?.exclusionZoneSet?.getZones().size ?? 0;
+    const zoneSetName = jaiaContext?.exclusionZoneSet?.getName() ?? "";
+
+    const handleDrawClick = () => jaiaDispatch({ type: JaiaActions.TOGGLE_EXCLUSION_ZONE_DRAWING });
+    const handleClearClick = () => jaiaDispatch({ type: JaiaActions.CLEAR_EXCLUSION_ZONES });
+    const handleNameChange = (name: string) =>
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
+            exclusionZoneSetName: name,
+        });
 
     return (
         <div className="jaia-panel exclusion-zones-panel">
@@ -28,9 +37,7 @@ export default function ExclusionZonesPanel() {
                 <Button
                     className={"jaia-button" + (isDrawing ? " selected" : "")}
                     aria-label="draw-exclusion-zone"
-                    onClick={() =>
-                        jaiaDispatch({ type: JaiaActions.TOGGLE_EXCLUSION_ZONE_DRAWING })
-                    }
+                    onClick={handleDrawClick}
                 >
                     <Icon
                         path={mdiVectorPolygon}
@@ -41,7 +48,7 @@ export default function ExclusionZonesPanel() {
                 <Button
                     className="jaia-button"
                     aria-label="clear-exclusion-zones"
-                    onClick={() => jaiaDispatch({ type: JaiaActions.CLEAR_EXCLUSION_ZONES })}
+                    onClick={handleClearClick}
                     disabled={zoneCount === 0}
                 >
                     <Icon
@@ -50,8 +57,16 @@ export default function ExclusionZonesPanel() {
                         title="Clear all exclusion zones"
                     />
                 </Button>
-                <ZoneStorageButton />
+                <ZoneStorageButton zoneSetName={zoneSetName} />
             </div>
+            {zoneCount > 0 && (
+                <input
+                    className="set-name"
+                    placeholder="Zone Set Name"
+                    value={zoneSetName}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                />
+            )}
             <ZonesList />
         </div>
     );

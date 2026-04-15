@@ -22,8 +22,8 @@ export interface JaiaGlobalSnapshot {
     selectedTaskPacket: SelectedTaskPacket;
     mapMode: MapModes;
     defaultTaskParameters: TaskParameters;
-    selectedZoneVertex: SelectedZoneVertex | null;
-    zoneInEditMode: number | null;
+    selectedZoneVertex: SelectedZoneVertex;
+    zoneInEditMode: number;
 }
 
 const defaultTaskParameters: TaskParameters = {
@@ -55,8 +55,8 @@ export class JaiaGlobal {
     private selectedNode: SelectedNode;
     private selectedWaypoint: SelectedWaypoint;
     private selectedTaskPacket: SelectedTaskPacket;
-    private selectedZoneVertex: SelectedZoneVertex | null;
-    private zoneInEditMode: number | null;
+    private selectedZoneVertex: SelectedZoneVertex;
+    private zoneInEditMode: number;
     private mapMode: MapModes;
     private defaultTaskParameters: TaskParameters;
     private controllingClientID: string;
@@ -77,8 +77,12 @@ export class JaiaGlobal {
             startTime: 0,
             type: MapFeatureTypes.NONE,
         };
-        this.selectedZoneVertex = null;
-        this.zoneInEditMode = null;
+        this.selectedZoneVertex = {
+            zoneID: UNASSIGNED_ID,
+            vertexIndex: UNASSIGNED_ID,
+            isMoveable: false,
+        };
+        this.zoneInEditMode = UNASSIGNED_ID;
         this.mapMode = MapModes.DEFAULT;
         this.defaultTaskParameters = defaultTaskParameters;
         this.metadata = {};
@@ -191,14 +195,18 @@ export class JaiaGlobal {
     }
 
     resetSelectedZoneVertex() {
-        this.selectedZoneVertex = null;
+        this.selectedZoneVertex = {
+            zoneID: UNASSIGNED_ID,
+            vertexIndex: UNASSIGNED_ID,
+            isMoveable: false,
+        };
     }
 
     getZoneInEditMode() {
         return this.zoneInEditMode;
     }
 
-    setZoneInEditMode(zoneID: number | null) {
+    setZoneInEditMode(zoneID: number) {
         this.zoneInEditMode = zoneID;
     }
 
@@ -242,8 +250,12 @@ export class JaiaGlobal {
         this.selectedTaskPacket = restored.selectedTaskPacket;
         this.mapMode = restored.mapMode;
         this.defaultTaskParameters = restored.defaultTaskParameters;
-        this.selectedZoneVertex = restored.selectedZoneVertex ?? null;
-        this.zoneInEditMode = restored.zoneInEditMode ?? null;
+        this.selectedZoneVertex = restored.selectedZoneVertex ?? {
+            zoneID: UNASSIGNED_ID,
+            vertexIndex: UNASSIGNED_ID,
+            isMoveable: false,
+        };
+        this.zoneInEditMode = restored.zoneInEditMode ?? UNASSIGNED_ID;
     }
 }
 

@@ -33,6 +33,8 @@ import {
     isLocationBlockedByZone,
 } from "../../utils/exclusion-zone-router";
 
+import ZoneCrossingDialog from "../ZoneCrossingDialog/ZoneCrossingDialog";
+
 import "./Map.less";
 
 interface ZoneCrossingDialogState {
@@ -53,7 +55,7 @@ export default function Map() {
         });
         exclusionZoneLayer.setDispatch(jaiaDispatch);
         styleControlButtons();
-    }, []);
+    }, [jaiaDispatch]);
 
     /**
      * Distributes map clicks to appropriate handlers
@@ -79,6 +81,7 @@ export default function Map() {
                 handleHubLocationSelectClick(event.coordinate);
                 return;
             case MapModes.EXCLUSION_ZONE_DRAWING:
+                // OpenLayers draw interaction handles clicks directly; suppress React handler.
                 return;
         }
 
@@ -88,7 +91,7 @@ export default function Map() {
         }
 
         // A zone vertex is awaiting relocation — move it, no feature hit-test needed.
-        if (jaiaGlobal.getSelectedZoneVertex()?.isMoveable) {
+        if (jaiaGlobal.getSelectedZoneVertex().isMoveable) {
             handleMoveZoneVertexClick(event.coordinate);
             return;
         }
@@ -128,11 +131,12 @@ export default function Map() {
         }
 
         // Zone edit mode takes priority: any empty-map click adds a vertex.
-        if (jaiaGlobal.getZoneInEditMode() !== null) {
+        if (jaiaGlobal.getZoneInEditMode() !== UNASSIGNED_ID) {
             handleAddZoneVertexClick(event.coordinate);
             return;
         }
 
+        // Prevent generating false ADD_WAYPOINT actions
         if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
             handleAddWaypointClick(event.coordinate);
         }
@@ -379,16 +383,12 @@ export default function Map() {
             // Use the first clean waypoint as the projection origin so bypass
             // lat/lon values match those produced by detectMissionReroutes,
             // which also uses the first clean waypoint as origin.
-            const firstCleanLoc = waypoints
-                .filter((wp) => wp.getName() !== "route_bypass")[0]
-                ?.getLocation();
+            const firstCleanLoc = waypoints.filter((wp) => !wp.getIsBypass())[0]?.getLocation();
             const result = routeAroundExclusionZones(miniPlan, 15, firstCleanLoc ?? fromLocation);
 
             if (result.bypassCount > 0) {
                 const locations = result.plan.goal.slice(1).map((g) => g.location!);
-                const userWaypointCount = waypoints.filter(
-                    (wp) => wp.getName() !== "route_bypass",
-                ).length;
+                const userWaypointCount = waypoints.filter((wp) => !wp.getIsBypass()).length;
                 setZoneCrossing({
                     locations,
                     bypassCount: result.bypassCount,
@@ -409,7 +409,7 @@ export default function Map() {
             wp.setLocation(loc);
             // All locations except the last are bypass waypoints.
             if (i < zoneCrossing.locations.length - 1) {
-                wp.setName("route_bypass");
+                wp.setIsBypass(true);
             }
             return wp;
         });
@@ -424,26 +424,12 @@ export default function Map() {
             <div id="map" data-testid="map"></div>
 
             {zoneCrossing && (
-                <div className="jaia-dialog-container">
-                    <div className="blocking-overlay" />
-                    <div className="jaia-dialog">
-                        <h1>Exclusion Zone Crossed</h1>
-                        <p>
-                            Waypoint {zoneCrossing.waypointNumber} crosses an exclusion zone.{" "}
-                            <strong>{zoneCrossing.bypassCount}</strong> bypass waypoint
-                            {zoneCrossing.bypassCount !== 1 ? "s" : ""} will be added to route
-                            around it.
-                        </p>
-                        <div className="dialog-button-row">
-                            <button className="dialog-button" onClick={onZoneCrossingCancel}>
-                                Cancel
-                            </button>
-                            <button className="dialog-button" onClick={onZoneCrossingConfirm}>
-                                Add Waypoint
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ZoneCrossingDialog
+                    waypointNumber={zoneCrossing.waypointNumber}
+                    bypassCount={zoneCrossing.bypassCount}
+                    onConfirm={onZoneCrossingConfirm}
+                    onCancel={onZoneCrossingCancel}
+                />
             )}
         </div>
     );

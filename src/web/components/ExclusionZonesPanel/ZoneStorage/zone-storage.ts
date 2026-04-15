@@ -1,11 +1,9 @@
 import {
     exclusionZoneSet,
     ExclusionZoneSetSnapshot,
+    EXCLUSION_ZONE_SET_VERSION,
 } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { jaiaAPI } from "../../../utils/jaia-api";
-
-const NAMED_SETS_KEY = "exclusionZoneSets";
-const EXCLUSION_ZONE_SET_VERSION = "1.0";
 
 interface ExclusionZoneFile {
     version: string;
@@ -21,57 +19,6 @@ export enum ImportZoneResultType {
 export interface ImportZoneResult {
     snapshot: ExclusionZoneSetSnapshot | null;
     resultType: ImportZoneResultType;
-}
-
-// ── localStorage (unused) ──────────────────────────────────────────────────
-// These functions were written when zone storage mirrored the mission-set
-// localStorage pattern. The dialog was later switched to hub-only persistence
-// (saveToHub / loadSnapshotFromHub). These functions are kept in case a
-// browser-local fallback is needed in future but are not called anywhere.
-
-/**
- * @deprecated Not called — zone storage uses hub API. Kept as a potential
- * browser-local fallback. See saveToHub for the active implementation.
- *
- * Saves the current zone set to localStorage under the given name
- */
-export function saveToLocalStorage(name: string) {
-    const stored = JSON.parse(localStorage.getItem(NAMED_SETS_KEY) || "{}");
-    stored[name] = exclusionZoneSet.captureSnapshot();
-    localStorage.setItem(NAMED_SETS_KEY, JSON.stringify(stored));
-}
-
-/**
- * @deprecated Not called — zone storage uses hub API. See loadSnapshotFromHub.
- *
- * Loads a named zone set snapshot from localStorage
- */
-export function loadSnapshotFromLocalStorage(name: string): ExclusionZoneSetSnapshot | null {
-    const stored = JSON.parse(localStorage.getItem(NAMED_SETS_KEY) || "{}");
-    return stored[name] ?? null;
-}
-
-/**
- * @deprecated Not called — zone storage uses hub API. See deleteFromHub.
- *
- * Deletes a named zone set from localStorage
- */
-export function deleteFromLocalStorage(name: string): boolean {
-    const stored = JSON.parse(localStorage.getItem(NAMED_SETS_KEY) || "{}");
-    if (!(name in stored)) return false;
-    delete stored[name];
-    localStorage.setItem(NAMED_SETS_KEY, JSON.stringify(stored));
-    return true;
-}
-
-/**
- * @deprecated Not called — zone storage uses hub API. See listSavedZoneSetsFromHub.
- *
- * Returns all saved zone set names sorted alphabetically
- */
-export function listSavedZoneSets(): string[] {
-    const stored = JSON.parse(localStorage.getItem(NAMED_SETS_KEY) || "{}");
-    return Object.keys(stored).sort((a, b) => a.localeCompare(b));
 }
 
 // ── Hub storage (server-side persistence) ──────────────────────────────────

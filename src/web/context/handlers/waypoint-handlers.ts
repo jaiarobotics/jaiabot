@@ -18,7 +18,7 @@ import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { isLocationBlockedByZone } from "../../utils/exclusion-zone-router";
-import { detectMissionReroutes } from "./exclusion-zone-handlers";
+import { detectMissionReroutes } from "../../data/exclusion_zones/exclusion-zone-detection";
 import { syncTaskLayers } from "./handler-utils";
 
 /**

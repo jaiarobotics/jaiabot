@@ -68,8 +68,8 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
             ButtonNames.EXCLUSION_ZONES_PANEL,
             ButtonNames.ZONE_VERTEX_PANEL,
         ]);
-        if (!zonePanels.has(nextPanel) && jaiaGlobal.getZoneInEditMode() !== null) {
-            jaiaGlobal.setZoneInEditMode(null);
+        if (!zonePanels.has(nextPanel) && jaiaGlobal.getZoneInEditMode() !== UNASSIGNED_ID) {
+            jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
             jaiaGlobal.resetSelectedZoneVertex();
             exclusionZoneLayer.updateFeatures();
         }

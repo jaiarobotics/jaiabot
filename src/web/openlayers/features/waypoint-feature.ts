@@ -51,7 +51,7 @@ export function generateWaypointFeature(
         geometry: new Point(fromLonLat(coordinate, view.getProjection())),
     });
 
-    const isBypass = mission.getWaypoint(waypointNum).getName() === "route_bypass";
+    const isBypass = mission.getWaypoint(waypointNum).getIsBypass();
     feature.set("type", MapFeatureTypes.WAYPOINT);
     feature.set("waypointNum", waypointNum);
     feature.set("missionID", mission.getMissionID());
