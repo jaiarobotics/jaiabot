@@ -11,6 +11,7 @@ import { MapModes } from "../../types/openlayers-types";
 import { toConvexHull } from "../../utils/exclusion-zone-router";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers } from "./handler-utils";
+import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import {
     detectMissionReroutes,
     detectWaypointRemovals,
@@ -19,7 +20,7 @@ import {
 export function handleAddExclusionZone(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZone) return mutableState;
     const zoneID = exclusionZoneSet.addZone(action.exclusionZone);
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
     handleMapModeChange(MapModes.DEFAULT);
 
     // Waypoints inside the zone take priority — warn before rerouting.
@@ -57,7 +58,7 @@ export function handleDeleteExclusionZone(mutableState: JaiaContextType, action:
         jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
     }
     exclusionZoneSet.deleteZone(action.zoneID);
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
     return mutableState;
 }
 
@@ -65,7 +66,7 @@ export function handleClearExclusionZones(mutableState: JaiaContextType) {
     exclusionZoneSet.clearZones();
     jaiaGlobal.resetSelectedZoneVertex();
     jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
     return mutableState;
 }
 
@@ -75,7 +76,7 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
     for (const zone of action.exclusionZones) {
         exclusionZoneSet.addZone(zone);
     }
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
 
     const pendingRemoval = detectWaypointRemovals(undefined, true);
     if (pendingRemoval) {
@@ -103,7 +104,7 @@ export function handleRestoreExclusionZoneSnapshot(
 ) {
     if (!action.exclusionZoneSnapshot) return mutableState;
     exclusionZoneSet.restoreFromSnapshot(action.exclusionZoneSnapshot);
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
 
     const pendingRemoval = detectWaypointRemovals(undefined, true);
     if (pendingRemoval) {
@@ -217,7 +218,7 @@ export function handleSelectZoneVertex(mutableState: JaiaContextType, action: Ja
         mutableState.visiblePanel = ButtonNames.ZONE_VERTEX_PANEL;
     }
     // Redraw to update the highlight without touching the data model.
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
     return mutableState;
 }
 
@@ -248,7 +249,7 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
         vertexIndex: newIdx,
         isMoveable: selected.isMoveable,
     });
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
 
     // Waypoints inside the enlarged zone take priority — warn before rerouting.
     const pendingRemoval = detectWaypointRemovals(selected.zoneID);
@@ -300,7 +301,7 @@ export function handleToggleZoneEditMode(mutableState: JaiaContextType, action: 
             jaiaGlobal.setSelectedZoneVertex({ ...selected, isMoveable: false });
         }
     }
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
     return mutableState;
 }
 
@@ -312,7 +313,7 @@ export function handleToggleZoneVertexTapToMove(mutableState: JaiaContextType) {
     const current = jaiaGlobal.getSelectedZoneVertex();
     if (!current) return mutableState;
     jaiaGlobal.setSelectedZoneVertex({ ...current, isMoveable: !current.isMoveable });
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
     return mutableState;
 }
 
@@ -341,7 +342,7 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
         mutableState.visiblePanel = ButtonNames.ZONE_VERTEX_PANEL;
     }
 
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
 
     const pendingRemoval = detectWaypointRemovals(action.zoneID);
     if (pendingRemoval) {
@@ -383,7 +384,7 @@ export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: Ja
     const { vertices: hullVertices } = toConvexHull({ vertices: newVertices });
     exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: hullVertices });
     jaiaGlobal.resetSelectedZoneVertex();
-    syncOpenLayers();
+    exclusionZoneLayer.updateFeatures();
 
     const pending = detectMissionReroutes();
     if (pending) mutableState.pendingReroute = { ...pending, triggeringZoneID: undefined };
