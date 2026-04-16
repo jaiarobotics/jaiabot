@@ -38,37 +38,28 @@ export default function ZoneVertexPanel() {
     const [priorZoneID, setPriorZoneID] = useState<number | null>(null);
     const [priorZoneVertices, setPriorZoneVertices] = useState(null);
 
-    /**
-     * Gets the selected zone vertex data
-     */
     const getSelectedZoneVertex = () => {
         return jaiaContext.jaiaGlobal.getSelectedZoneVertex();
     };
 
-    /**
-     * Gets the zone that contains the selected vertex
-     */
     const getZone = () => {
         const selectedVertex = getSelectedZoneVertex();
         if (selectedVertex.zoneID === UNASSIGNED_ID) return undefined;
         return jaiaContext.exclusionZoneSet.getZone(selectedVertex.zoneID);
     };
 
-    /**
-     * Gets the vertex coordinates
-     */
     const getVertexLocation = () => {
         const selectedVertex = getSelectedZoneVertex();
         const zone = getZone();
         if (
             selectedVertex.zoneID === UNASSIGNED_ID ||
             !zone ||
-            !zone.vertices ||
-            selectedVertex.vertexIndex >= zone.vertices.length
+            !zone.drawnVertices ||
+            selectedVertex.vertexIndex >= zone.drawnVertices.length
         ) {
             return { lat: 0, lon: 0 };
         }
-        const vertex = zone.vertices[selectedVertex.vertexIndex];
+        const vertex = zone.drawnVertices[selectedVertex.vertexIndex];
         return { lat: vertex.lat, lon: vertex.lon };
     };
 
@@ -83,7 +74,7 @@ export default function ZoneVertexPanel() {
         if (priorZoneID !== currentZoneID) {
             setPriorZoneID(currentZoneID);
             const zone = getZone();
-            setPriorZoneVertices(zone?.vertices ? cloneDeep(zone.vertices) : null);
+            setPriorZoneVertices(zone?.drawnVertices ? cloneDeep(zone.drawnVertices) : null);
         }
 
         // Update input fields whenever the selected vertex changes (index or zone).
@@ -95,9 +86,6 @@ export default function ZoneVertexPanel() {
         }
     }, [selectedZoneID, selectedVertexIndex]);
 
-    /**
-     * Compares two selected zone vertex objects
-     */
     const compareSelectedZoneVertices = (a: any, b: any) => {
         return a?.zoneID === b?.zoneID && a?.vertexIndex === b?.vertexIndex;
     };
@@ -144,10 +132,6 @@ export default function ZoneVertexPanel() {
         return lonInput;
     };
 
-    /**
-     * Updates the coordinate input fields and dispatches a vertex move when
-     * both lat and lon are valid numbers (mirrors WaypointPanel's approach).
-     */
     const handleCoordinateChange = (evt: ChangeEvent<HTMLInputElement>) => {
         let lat = latInput;
         let lon = lonInput;
@@ -181,9 +165,6 @@ export default function ZoneVertexPanel() {
         });
     };
 
-    /**
-     * Dispatches action to toggle the zone edit mode
-     */
     const handleEditZoneClick = () => {
         const selectedVertex = getSelectedZoneVertex();
         jaiaDispatch({
@@ -193,18 +174,12 @@ export default function ZoneVertexPanel() {
         });
     };
 
-    /**
-     * Dispatches action to toggle tap to move for the vertex
-     */
     const handleTapToMoveClick = () => {
         jaiaDispatch({
             type: JaiaActions.TOGGLE_ZONE_VERTEX_TAP_TO_MOVE,
         });
     };
 
-    /**
-     * Checks if tap to move should be disabled
-     */
     const isTapToMoveDisabled = () => {
         if (jaiaContext.jaiaGlobal.getMapMode() === MapModes.CONSTANT_HEADING_SELECT) {
             return true;
@@ -213,9 +188,6 @@ export default function ZoneVertexPanel() {
         return jaiaContext.jaiaGlobal.getZoneInEditMode() !== selectedVertex.zoneID;
     };
 
-    /**
-     * Handles deleting the vertex
-     */
     const handleDeleteVertex = () => {
         const selectedVertex = getSelectedZoneVertex();
         jaiaDispatch({

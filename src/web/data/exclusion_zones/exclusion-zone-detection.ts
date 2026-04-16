@@ -5,13 +5,33 @@ import {
     PendingWaypointRemovalProposal,
 } from "./exclusion-zone-set";
 import { detectReroutesWithOverrides, getBlockingZoneIDs } from "../../utils/exclusion-zone-router";
+import { MAX_WAYPOINTS } from "../../utils/constants";
+
+/**
+ * Marks proposals whose rerouted plan would exceed MAX_WAYPOINTS as isOverLimit.
+ * Over-limit proposals are kept so their involvedZoneIDs are available for
+ * per-zone filtering. totalBypassCount reflects feasible proposals only.
+ */
+function markOverLimit(reroute: PendingReroute): PendingReroute {
+    const proposals = reroute.proposals.map((p) =>
+        p.newWaypoints.length > MAX_WAYPOINTS ? { ...p, isOverLimit: true as const } : p,
+    );
+    const totalBypassCount = proposals
+        .filter((p) => !p.isOverLimit)
+        .reduce((sum, p) => sum + p.bypassCount, 0);
+    return { ...reroute, proposals, totalBypassCount };
+}
 
 /**
  * Scans all missions for zone crossings and returns reroute proposals.
  * Returns null if no missions are affected.
+ * Proposals exceeding MAX_WAYPOINTS are marked isOverLimit so callers can
+ * decide how to handle them (e.g. remove the mission, skip the zone).
  */
 export function detectMissionReroutes(): PendingReroute | null {
-    return detectReroutesWithOverrides(new Map());
+    const reroute = detectReroutesWithOverrides(new Map());
+    if (!reroute) return null;
+    return markOverLimit(reroute);
 }
 
 /**
@@ -50,7 +70,8 @@ export function detectWaypointRemovals(
     // Pre-compute reroutes against the post-removal state so both can be shown
     // in a single dialog without a second round-trip through the data model.
     const overrides = new Map(proposals.map((p) => [p.missionID, p.newWaypoints]));
-    const followUpReroute = detectReroutesWithOverrides(overrides) ?? undefined;
+    const rawFollowUpReroute = detectReroutesWithOverrides(overrides);
+    const followUpReroute = rawFollowUpReroute ? markOverLimit(rawFollowUpReroute) : undefined;
 
     const result: PendingWaypointRemoval = {
         proposals,

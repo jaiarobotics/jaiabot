@@ -68,6 +68,15 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
 
     syncOpenLayers();
 
+    // Check whether the duplicated mission's waypoints conflict with existing exclusion zones.
+    const pendingRemoval = detectWaypointRemovals();
+    if (pendingRemoval) {
+        mutableState.pendingWaypointRemoval = pendingRemoval;
+    } else {
+        const pendingReroute = detectMissionReroutes();
+        if (pendingReroute) mutableState.pendingReroute = pendingReroute;
+    }
+
     return mutableState;
 }
 

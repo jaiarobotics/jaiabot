@@ -3,7 +3,10 @@ import { GeographicCoordinate } from "../../types/protobuf-types";
 
 export interface ExclusionZone {
     label?: string;
+    /** Convex hull — used for all routing, detection, and buffer computation. */
     vertices?: GeographicCoordinate[];
+    /** Original user-drawn polygon — used for display and vertex editing only. */
+    drawnVertices?: GeographicCoordinate[];
 }
 
 export const EXCLUSION_ZONE_SET_VERSION = "1.0";
@@ -84,32 +87,38 @@ export class ExclusionZoneSet {
      */
     moveVertex(zoneID: number, vertexIndex: number, newLocation: GeographicCoordinate): number {
         const zone = this.zones.get(zoneID);
-        if (!zone?.vertices) return vertexIndex;
+        if (!zone?.drawnVertices) return vertexIndex;
 
-        const newVertices = [...zone.vertices];
-        newVertices[vertexIndex] = newLocation;
-        const { vertices: hullVertices } = toConvexHull({ vertices: newVertices });
-        this.updateZone(zoneID, { ...zone, vertices: hullVertices });
+        const newDrawnVertices = [...zone.drawnVertices];
+        newDrawnVertices[vertexIndex] = newLocation;
+        const { vertices: hullVertices } = toConvexHull({ vertices: newDrawnVertices });
+        this.updateZone(zoneID, {
+            ...zone,
+            drawnVertices: newDrawnVertices,
+            vertices: hullVertices,
+        });
 
-        const newIdx = hullVertices.findIndex((v) => coordsMatch(v, newLocation));
+        const newIdx = newDrawnVertices.findIndex((v) => coordsMatch(v, newLocation));
         return newIdx >= 0 ? newIdx : vertexIndex;
     }
 
     /**
      * Adds a new vertex to the zone, re-computes the convex hull, and returns
-     * the index of the new vertex in the hull. Returns -1 if the zone is not found.
+     * the index of the new vertex in drawnVertices. Returns -1 if the zone is not found.
      */
     addVertex(zoneID: number, newLocation: GeographicCoordinate): number {
         const zone = this.zones.get(zoneID);
-        if (!zone?.vertices || zone.vertices.length < 3) return -1;
+        if (!zone?.drawnVertices || zone.drawnVertices.length < 3) return -1;
 
-        const { vertices: hullVertices } = toConvexHull({
-            vertices: [...zone.vertices, newLocation],
+        const newDrawnVertices = [...zone.drawnVertices, newLocation];
+        const { vertices: hullVertices } = toConvexHull({ vertices: newDrawnVertices });
+        this.updateZone(zoneID, {
+            ...zone,
+            drawnVertices: newDrawnVertices,
+            vertices: hullVertices,
         });
-        this.updateZone(zoneID, { ...zone, vertices: hullVertices });
 
-        const newIdx = hullVertices.findIndex((v) => coordsMatch(v, newLocation));
-        return newIdx;
+        return newDrawnVertices.length - 1;
     }
 
     captureSnapshot(): ExclusionZoneSetSnapshot {
@@ -141,10 +150,16 @@ export interface PendingRerouteProposal {
     bypassCount: number;
     /** Zone IDs whose buffers the original (clean) route crossed. */
     involvedZoneIDs: number[];
+    /**
+     * True when newWaypoints.length > MAX_WAYPOINTS.
+     * This proposal cannot be applied — the operator must reduce mission waypoints first.
+     */
+    isOverLimit?: boolean;
 }
 
 export interface PendingReroute {
     proposals: PendingRerouteProposal[];
+    /** Bypass count summed over feasible (non-over-limit) proposals only. */
     totalBypassCount: number;
     /** Zone ID that triggered this reroute (zone-draw path). Zone is deleted on cancel. */
     triggeringZoneID?: number;
@@ -154,6 +169,17 @@ export interface PendingReroute {
      * Mutually exclusive with triggeringZoneID.
      */
     priorZone?: { zoneID: number; zone: ExclusionZone };
+    /**
+     * Set for zone load/restore: IDs of zones that were successfully loaded.
+     * On cancel ("Revert all"), all of these are deleted so nothing from the load remains.
+     */
+    loadedZoneIDs?: number[];
+    /**
+     * Set for zone load/restore: IDs of zones that were blocked because routing around
+     * them would exceed MAX_WAYPOINTS. These were never added to exclusionZoneSet.
+     * Shown in the dialog so the operator knows which zones were skipped.
+     */
+    skippedZoneIDs?: number[];
 }
 
 export interface PendingWaypointRemovalProposal {

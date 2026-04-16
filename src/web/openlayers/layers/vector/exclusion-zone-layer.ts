@@ -39,12 +39,7 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
         this.getVectorLayer().setStyle(this.getZoneStyle.bind(this));
     }
 
-    /**
-     * Registers the React dispatch function so the draw interaction can dispatch actions
-     *
-     * @param {Function} dispatch The jaiaDispatch function from context
-     * @returns {void}
-     */
+    /** Wires up the React dispatch so the draw interaction can fire actions. */
     setDispatch(dispatch: (action: { type: JaiaActions; [key: string]: unknown }) => void) {
         this.dispatch = dispatch;
     }
@@ -56,8 +51,6 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
     /**
      * Creates a polygon Draw interaction. When the operator finishes drawing,
      * dispatches ADD_EXCLUSION_ZONE with the polygon vertices in lat/lon.
-     *
-     * @returns {Draw} The Draw interaction to add to the map
      */
     createDrawInteraction() {
         this.draw = new Draw({
@@ -88,33 +81,23 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
 
             if (!this.dispatch || vertices.length < 3) return;
 
-            // Always store the convex hull vertices — handles both non-convex shapes
-            // and self-intersecting bow ties silently without a confirmation dialog.
             const { vertices: hullVertices } = toConvexHull({ vertices });
 
             this.dispatch({
                 type: JaiaActions.ADD_EXCLUSION_ZONE,
-                exclusionZone: { vertices: hullVertices },
+                exclusionZone: { vertices: hullVertices, drawnVertices: vertices },
             });
         });
 
         return this.draw;
     }
 
-    /**
-     * Removes the Draw interaction reference (the map is responsible for removing it from the map)
-     *
-     * @returns {void}
-     */
+    /** Clears the stored Draw interaction reference. */
     clearDrawInteraction() {
         this.draw = null;
     }
 
-    /**
-     * Redraws all exclusion zone polygons and their editable vertex handles.
-     *
-     * @returns {void}
-     */
+    /** Redraws all exclusion zone polygons and their editable vertex handles. */
     override updateFeatures() {
         this.getVectorLayer().getSource().clear();
 
@@ -135,7 +118,7 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
                 this.getVectorLayer().getSource().addFeature(bufferFeature);
             }
 
-            // Draw the exclusion zone polygon.
+            // Draw the convex hull polygon (solid — used for routing and avoidance).
             const coords3857 = zone.vertices.map((v) => fromLonLat([v.lon, v.lat]));
             coords3857.push(coords3857[0]); // close ring
 
@@ -145,8 +128,19 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
             feature.set("label", zone.label ?? `Zone ${zoneNum}`);
             this.getVectorLayer().getSource().addFeature(feature);
 
-            // Draw vertex handles for all zones (not just the one in edit mode)
-            zone.vertices.forEach((v, i) => {
+            // Draw the original user-drawn polygon (dashed — for reference and editing).
+            if (zone.drawnVertices && zone.drawnVertices.length >= 3) {
+                const drawnCoords = zone.drawnVertices.map((v) => fromLonLat([v.lon, v.lat]));
+                drawnCoords.push(drawnCoords[0]);
+                const drawnFeature = new Feature({ geometry: new Polygon([drawnCoords]) });
+                drawnFeature.set("isDrawnPolygon", true);
+                drawnFeature.set("zoneID", zoneID);
+                this.getVectorLayer().getSource().addFeature(drawnFeature);
+            }
+
+            // Draw vertex handles on drawnVertices so the operator edits the drawn shape.
+            const editVertices = zone.drawnVertices ?? zone.vertices;
+            editVertices.forEach((v, i) => {
                 const coord = fromLonLat([v.lon, v.lat]);
                 const vertexFeature = new Feature({ geometry: new Point(coord) });
                 vertexFeature.set("type", MapFeatureTypes.ZONE_VERTEX);
@@ -181,6 +175,16 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
             return new Style({
                 fill: new Fill({ color: BUFFER_FILL }),
                 stroke: new Stroke({ color: BUFFER_STROKE, width: 1.5, lineDash: [5, 5] }),
+            });
+        }
+
+        if (feature.get("isDrawnPolygon")) {
+            const zoneID = feature.get("zoneID") as number;
+            const isEditing = zoneID === jaiaGlobal.getZoneInEditMode();
+            const strokeColor = isEditing ? ZONE_EDIT_STROKE : ZONE_STROKE;
+            return new Style({
+                fill: new Fill({ color: "transparent" }),
+                stroke: new Stroke({ color: strokeColor, width: 1.5, lineDash: [4, 4] }),
             });
         }
 

@@ -9,6 +9,7 @@ import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/exclude
 import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { bots } from "../../data/bots/bots";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { missionSet } from "../../data/mission_set/mission-set";
 
 /**
  * Repaints the map layers using the latest data
@@ -22,6 +23,20 @@ export function syncOpenLayers() {
     ghostMissionLayer.updateFeatures();
     rallyLayer.updateFeatures();
     exclusionZoneLayer.updateFeatures();
+}
+
+/**
+ * Strips bypass waypoints from any mission not represented in the given proposal set.
+ * Call this after zone changes that may have eliminated previously necessary detours.
+ * Missions with active proposals keep their current waypoints until the operator confirms.
+ */
+export function stripStaleBypasses(activeMissionIDs: Set<number> = new Set()) {
+    for (const [missionID, mission] of missionSet.getMissions()) {
+        if (activeMissionIDs.has(missionID)) continue;
+        const all = mission.getWaypoints();
+        const clean = all.filter((wp) => !wp.getIsBypass());
+        if (clean.length !== all.length) mission.setWaypoints(clean);
+    }
 }
 
 export function syncTaskLayers() {

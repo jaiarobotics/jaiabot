@@ -11,6 +11,7 @@ import { MapFeatureTypes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType, PanelActions } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers, syncTaskLayers } from "./handler-utils";
+import { toConvexHull } from "../../utils/exclusion-zone-router";
 
 /**
  * Closes the Bot or Hub details panel
@@ -74,11 +75,9 @@ export function handleClosedRallyPanel(mutableState: JaiaContextType) {
 }
 
 /**
- * Handles cleanup when the zone vertex panel closes
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action Action containing panel action type
- * @returns {JaiaContextType} Updated mutable state object
+ * Handles cleanup when the zone vertex panel closes. On cancel, restores the
+ * full vertex list from the snapshot taken when the panel opened and clears
+ * any pending dialogs that were triggered by edits in this session.
  */
 export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, action: JaiaAction) {
     if (
@@ -91,7 +90,13 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
         // to target the wrong index.
         const zone = exclusionZoneSet.getZone(action.zoneID);
         if (zone) {
-            exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: action.locations });
+            // Restore drawnVertices and recompute the hull so both arrays are consistent.
+            const { vertices: hullVertices } = toConvexHull({ vertices: action.locations });
+            exclusionZoneSet.updateZone(action.zoneID, {
+                ...zone,
+                drawnVertices: action.locations,
+                vertices: hullVertices,
+            });
             syncOpenLayers();
         }
         // Clear any pending dialogs triggered by the now-cancelled edits.
