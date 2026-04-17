@@ -37,7 +37,7 @@
 
 #include <functional>
 
-#include "xbee.pb.h"
+#include "jaiabot/comms/xbee/xbee.pb.h"
 
 namespace jaiabot
 {
