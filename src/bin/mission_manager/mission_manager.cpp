@@ -37,6 +37,7 @@ namespace middleware = goby::middleware;
 // Jaiabot
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
+using namespace jaiabot::health;
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
@@ -226,6 +227,18 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
         {
+            const auto errors = VehicleHealth_get_all_errors(vehicle_health);
+
+            // Battery events
+            if (errors.contains(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY))
+            {
+                machine_->process_event(statechart::EvBatteryCritical());
+            }
+            else if (errors.contains(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY))
+            {
+                machine_->process_event(statechart::EvBatteryLow());
+            }
+
             if (health_considered_ok(vehicle_health))
             {
                 // consider the system started when it reports a non-failed health report (as at least all the expected apps have responded)
@@ -1178,7 +1191,7 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
     {
         jaiabot::protobuf::BotStatus status;
         // check if we would be OK if the ignored errors didn't exist
-        jaiabot::health::populate_status_from_health(status, vehicle_health, false);
+        populate_status_from_health(status, vehicle_health, false);
 
         for (auto e : status.error())
         {

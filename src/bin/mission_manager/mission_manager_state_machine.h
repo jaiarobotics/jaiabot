@@ -28,6 +28,7 @@
 #include <boost/statechart/state_machine.hpp>
 
 // Goby
+#include <goby/middleware/protobuf/coroner.pb.h>
 #include <goby/util/seawater.h>
 
 // Mission Manager app
@@ -335,6 +336,15 @@ struct MissionManagerStateMachine
     }
     const std::string& data_offload_exclude() { return data_offload_exclude_; }
 
+    void set_vehicle_health(const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+    {
+        vehicle_health_ = vehicle_health;
+    }
+    const goby::middleware::protobuf::VehicleHealth& vehicle_health() const
+    {
+        return vehicle_health_;
+    }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -375,6 +385,9 @@ struct MissionManagerStateMachine
     int32_t hub_id_{0};
     std::string data_offload_exclude_{""};
     uint64_t mission_command_time_{0};
+
+    // The last received vehicle health report
+    goby::middleware::protobuf::VehicleHealth vehicle_health_;
 };
 
 } // namespace statechart

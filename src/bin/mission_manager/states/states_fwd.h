@@ -53,6 +53,16 @@ namespace jaiabot
                 struct ResolveNoForwardProgress;
             } // namespace pause
             struct Underway;
+
+            struct Battery;
+            namespace battery
+            {
+                struct Low;
+                struct Critical;
+                struct StopAndBroadcast;
+                struct StationKeep;
+            } // namespace battery
+
             namespace underway
             {
                 struct Replan;
