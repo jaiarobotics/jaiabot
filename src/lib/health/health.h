@@ -48,14 +48,17 @@ namespace health
  * @param thread_health The ThreadHealth object to extract errors from.
  * @return std::set<protobuf::Error> A set of all errors.
  */
-std::set<protobuf::Error> ThreadHealth_get_all_errors(const goby::middleware::protobuf::ThreadHealth& thread_health) {
+inline std::set<protobuf::Error>
+ThreadHealth_get_all_errors(const goby::middleware::protobuf::ThreadHealth& thread_health)
+{
     std::set<protobuf::Error> errors;
     const auto& jaiabot_health = thread_health.GetExtension(jaiabot::protobuf::jaiabot_thread);
 
-    for (auto error : jaiabot_health.error())
+    for (const auto& error : jaiabot_health.error())
         errors.insert(static_cast<jaiabot::protobuf::Error>(error));
 
-    for (auto child : thread_health.child()) {
+    for (const auto& child : thread_health.child())
+    {
         auto child_errors = ThreadHealth_get_all_errors(child);
         errors.insert(child_errors.begin(), child_errors.end());
     }
@@ -63,21 +66,23 @@ std::set<protobuf::Error> ThreadHealth_get_all_errors(const goby::middleware::pr
     return errors;
 }
 
-
 /**
  * @brief Get all warnings from a ThreadHealth object, including child threads.
  *
  * @param thread_health The ThreadHealth object to extract warnings from.
  * @return std::set<protobuf::Warning> A set of all warnings.
  */
-std::set<protobuf::Warning> ThreadHealth_get_all_warnings(const goby::middleware::protobuf::ThreadHealth& thread_health) {
+inline std::set<protobuf::Warning>
+ThreadHealth_get_all_warnings(const goby::middleware::protobuf::ThreadHealth& thread_health)
+{
     std::set<protobuf::Warning> warnings;
     const auto& jaiabot_health = thread_health.GetExtension(jaiabot::protobuf::jaiabot_thread);
 
-    for (auto warning : jaiabot_health.warning())
+    for (const auto& warning : jaiabot_health.warning())
         warnings.insert(static_cast<jaiabot::protobuf::Warning>(warning));
 
-    for (auto child : thread_health.child()) {
+    for (const auto& child : thread_health.child())
+    {
         auto child_warnings = ThreadHealth_get_all_warnings(child);
         warnings.insert(child_warnings.begin(), child_warnings.end());
     }
@@ -85,14 +90,15 @@ std::set<protobuf::Warning> ThreadHealth_get_all_warnings(const goby::middleware
     return warnings;
 }
 
-
 /**
  * @brief Get all errors from a VehicleHealth object, including all processes and threads.
  *
  * @param vehicle_health The VehicleHealth object to extract errors from.
  * @return std::set<protobuf::Error> A set of all errors.
  */
-std::set<protobuf::Error> VehicleHealth_get_all_errors(const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+inline std::set<protobuf::Error>
+VehicleHealth_get_all_errors(const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+{
     std::set<protobuf::Error> errors;
 
     for (const auto& proc : vehicle_health.process()) {
@@ -103,14 +109,15 @@ std::set<protobuf::Error> VehicleHealth_get_all_errors(const goby::middleware::p
     return errors;
 }
 
-
 /**
  * @brief Get all warnings from a VehicleHealth object, including all processes and threads.
  *
  * @param vehicle_health The VehicleHealth object to extract warnings from.
  * @return std::set<protobuf::Warning> A set of all warnings.
  */
-std::set<protobuf::Warning> VehicleHealth_get_all_warnings(const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
+inline std::set<protobuf::Warning>
+VehicleHealth_get_all_warnings(const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+{
     std::set<protobuf::Warning> warnings;
 
     for (const auto& proc : vehicle_health.process()) {
@@ -120,7 +127,6 @@ std::set<protobuf::Warning> VehicleHealth_get_all_warnings(const goby::middlewar
 
     return warnings;
 }
-
 
 template <typename HuborBotStatus>
 void populate_status_from_health(HuborBotStatus& status,
