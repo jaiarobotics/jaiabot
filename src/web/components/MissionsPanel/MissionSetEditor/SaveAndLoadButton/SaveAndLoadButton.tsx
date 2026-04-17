@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
 import { listSavedMissionSets } from "../../MissionSetStorage/mission-set-storage";
+import { saveSnapshotToLocalStorage } from "../../MissionSetStorage/mission-set-storage";
+import { combineMissionSets } from "../mission-set-editor";
 import { DisabledCodes } from "./save-and-load-messages";
 import { SaveAndLoadDialog } from "./SaveAndLoadDialog";
 
@@ -12,6 +16,7 @@ interface Props {
 }
 
 export default function SaveAndLoadButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext) as ((action: unknown) => void) | null;
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     const getDisabledCode = (): DisabledCodes => {
@@ -31,7 +36,15 @@ export default function SaveAndLoadButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            // TODO: implement combine, save, and load logic
+            const name = props.editorName.trim();
+            const snapshot = combineMissionSets(props.leftList, props.desiredMissionCount, name);
+            saveSnapshotToLocalStorage(name, snapshot);
+            if (jaiaDispatch) {
+                jaiaDispatch({
+                    type: JaiaActions.LOAD_MISSION_SET,
+                    missionSetSnapshot: snapshot,
+                });
+            }
             props.onClose();
         }
     };

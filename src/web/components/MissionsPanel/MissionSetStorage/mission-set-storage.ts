@@ -21,6 +21,19 @@ export interface LoadSnapshotResult {
 }
 
 /**
+ * Saves a pre-built mission set snapshot directly to local storage
+ *
+ * @param {string} name Name to use for storing the mission set
+ * @param {MissionSetSnapshot} snapshot Snapshot to save
+ * @returns {void}
+ */
+export function saveSnapshotToLocalStorage(name: string, snapshot: MissionSetSnapshot) {
+    const missionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
+    missionSets[name] = { ...snapshot, name };
+    localStorage.setItem("missionSets", JSON.stringify(missionSets));
+}
+
+/**
  * Saves the current mission set to local storage
  *
  * @param {string} name Name to use for storing the mission set
@@ -28,10 +41,7 @@ export interface LoadSnapshotResult {
  */
 export function saveToLocalStorage(name: string) {
     missionSet.setName(name);
-    // Read the saved mission sets from  local storage (or start fresh)
-    const missionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    missionSets[name] = missionSet.captureSnapshot();
-    localStorage.setItem("missionSets", JSON.stringify(missionSets));
+    saveSnapshotToLocalStorage(name, missionSet.captureSnapshot());
 }
 
 /**
