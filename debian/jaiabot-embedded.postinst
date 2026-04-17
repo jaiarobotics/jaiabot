@@ -111,6 +111,9 @@ JAIA_IMU_INSTALL_TYPE=$RET
 db_get jaiabot-embedded/arduino_type
 JAIA_ARDUINO_TYPE=$RET
 
+db_get jaiabot-embedded/pam_connection_type
+JAIA_PAM_CONNECTION_TYPE=$RET
+
 db_get jaiabot-embedded/data_offload_ignore_type
 JAIA_DATA_OFFLOAD_IGNORE_TYPE=$RET
 
@@ -129,6 +132,14 @@ JAIA_RF_ENCRYPTION_PASSWORD=$RET
 db_get jaiabot-embedded/comms_links
 JAIA_COMMS_LINKS="$(echo $RET | sed 's/,/ /g')"
 
+db_get jaiabot-embedded/camera_positions
+JAIA_CAMERA_POSITIONS="$(echo $RET | sed 's/,/ /g')"
+
+db_get jaiabot-embedded/dccl_encryption_password
+JAIA_DCCL_ENCRYPTION_PASSWORD=$RET
+
+db_get jaiabot-embedded/additional_sensors
+JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
 
 /usr/share/jaiabot/config/gen/systemd.py ${JAIA_TYPE} \
                                          --enable \
@@ -147,6 +158,7 @@ JAIA_COMMS_LINKS="$(echo $RET | sed 's/,/ /g')"
                                          --user_role=${JAIA_USER_ROLE} \
                                          --imu_type=${JAIA_IMU_TYPE} \
                                          --arduino_type=${JAIA_ARDUINO_TYPE} \
+                                         --pam_connection_type=${JAIA_PAM_CONNECTION_TYPE} \
                                          --bot_type=${JAIA_BOT_TYPE} \
                                          --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \
                                          --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE} \
@@ -154,7 +166,10 @@ JAIA_COMMS_LINKS="$(echo $RET | sed 's/,/ /g')"
                                          --temperature_sensor_type=${JAIA_TEMPERATURE_SENSOR_TYPE} \
                                          --pressure_sensor_type=${JAIA_PRESSURE_SENSOR_TYPE} \
                                          --rf_encryption_password=${JAIA_RF_ENCRYPTION_PASSWORD} \
-                                         --comms_links ${JAIA_COMMS_LINKS}
+                                         --comms_links ${JAIA_COMMS_LINKS} \
+                                         --camera_positions ${JAIA_CAMERA_POSITIONS} \
+                                         --dccl_encryption_password=${JAIA_DCCL_ENCRYPTION_PASSWORD} \
+                                         --additional_sensors ${JAIA_ADDITIONAL_SENSORS}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 
@@ -225,9 +240,12 @@ fi
 
 echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' jaiabot-embedded)" > /etc/jaiabot/software_version
 
-#DEBHELPER#
+if [ ! -f /etc/apt/apt.conf.d/99disable-auto-upgrades ]; then
+    echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/99disable-auto-upgrades
+    echo 'APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99disable-auto-upgrades
+    systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
+fi
 
-# Remove Goby intervehicle subscription file from hub to prevent non-connected bots from appearing in JCC
-[ -e /var/log/jaiabot/hub/goby_intervehicle_subscriptions_hub.pb.txt ] && rm /var/log/jaiabot/hub/goby_intervehicle_subscriptions_hub.pb.txt
+#DEBHELPER#
 
 exit 0

@@ -54,12 +54,14 @@ except FileNotFoundError:
 class CommsMode(Enum):
      WIFI = "wifi"
      XBEE = "xbee"
+     IRIDIUM = "iridium"
 
 jaia_comms_modes=[]
 try:
-    modes=os.environ['jaia_comms_mode'].split(",")
-    for mode in modes:
-        jaia_comms_modes.append(CommsMode(mode))
+    modes=os.environ['jaia_comms_mode']
+    if modes:
+        for mode in modes.split(","):
+            jaia_comms_modes.append(CommsMode(mode))
 except:
     config.fail('Must set jaia_comms_mode environmental variable to one or more (comma-delimited) of these options: ' + ", ".join(e.value for e in CommsMode))
 
@@ -85,9 +87,37 @@ def app_block(verbosities, debug_log_file_dir, omit_debug_log=False):
     else:
         file_log='file_log { file_dir: "' + debug_log_file_dir + '" verbosity: ' + log_verbosity + ' }'
 
-        
+    try:
+        dccl_passphrase=os.environ['jaia_dccl_encryption_password']
+        if dccl_passphrase != '':
+            intervehicle_cfg=f'intervehicle_cfg {{ dccl_passphrase: "{dccl_passphrase}" }}'
+        else:
+            intervehicle_cfg=''   
+    except KeyError:
+        intervehicle_cfg=''
+    
     return config.template_substitute(jaia_templates_dir+'/_app.pb.cfg.in',
                                       app=app,
                                       tty_verbosity = tty_verbosity,
                                       file_log=file_log,
-                                      simulation=simulation_block)
+                                      simulation=simulation_block,
+                                      intervehicle_cfg=intervehicle_cfg)
+
+class CameraPositions(Enum):
+     AFT = "aft"
+     FORE = "fore"
+     OUTWARD = 'outward'
+     NO_CAMERA = "none"
+
+jaia_camera_positions=[]
+try:
+    modes=os.environ['jaia_camera_positions']
+    if modes:
+        for mode in modes.split(","):
+            jaia_camera_positions.append(CameraPositions(mode))
+
+    camera_available = False
+    if CameraPositions.NO_CAMERA.value not in jaia_camera_positions:
+        camera_available = True
+except KeyError:
+    camera_available = False

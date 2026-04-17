@@ -581,7 +581,9 @@ void jaiabot::comms::XBeeDevice::enter_command_mode()
     write("+++");
 
     this->async_read_with_timeout(
-        buffer, delimiter, timeout_seconds, [this](const std::string& result) {
+        buffer, delimiter, timeout_seconds,
+        [this](const std::string& result)
+        {
             glog.is_debug1() && glog << group(glog_group) << "Result: " << result
                                      << "\nResult is empty: " << result.empty() << std::endl;
 
@@ -632,18 +634,21 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
     timer->expires_from_now(boost::posix_time::seconds(timeout_seconds));
 
     // Set up the timer's asynchronous wait operation
-    timer->async_wait([&](const boost::system::error_code& ec) {
-        if (!ec)
+    timer->async_wait(
+        [&](const boost::system::error_code& ec)
         {
-            // Timer expired, handle timeout
-            handler("timeout");
-        }
-    });
+            if (!ec)
+            {
+                // Timer expired, handle timeout
+                handler("timeout");
+            }
+        });
 
     // Initiate an asynchronous read operation on the serial port
     boost::asio::async_read_until(
         *port, boost::asio::dynamic_buffer(buffer), delimiter,
-        [&](const boost::system::error_code& ec, std::size_t bytes_transferred) {
+        [&](const boost::system::error_code& ec, std::size_t bytes_transferred)
+        {
             if (!ec)
             {
                 // Cancel the timer if read is successful
@@ -672,7 +677,9 @@ std::string jaiabot::comms::XBeeDevice::convertToHex(const std::string& str)
 {
     std::ostringstream hexStream;
     for (unsigned char c : str)
-    { hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << " "; }
+    {
+        hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << " ";
+    }
     return hexStream.str();
 }
 
@@ -1108,21 +1115,18 @@ SerialNumber jaiabot::comms::XBeeDevice::get_serial_number(const NodeId& node_id
     else
     {
         int node_id_int = std::atoi(node_id.c_str());
-        if (node_id_int != jaiabot::comms::hub_base_modem_id)
+        if (node_id_int == jaiabot::comms::hub_base_modem_id)
+        {
+            // add hub
+            add_peer(node_id, jaiabot::comms::NodeType::HUB, jaiabot::comms::default_hub_id);
+        }
+        else
         {
             // add bot
             add_peer(node_id, jaiabot::comms::NodeType::BOT,
                      jaiabot::comms::bot_id_from_modem_id(node_id_int, subnet_mask_));
-            return get_serial_number(node_id);
         }
-        else
-        {
-            // no hub ID?
-            glog.is_warn() && glog << group(glog_group)
-                                   << "No active hub configured; hub SerialNumber unavailable."
-                                   << std::endl;
-            return 0;
-        }
+        return get_serial_number(node_id);
     }
 }
 
@@ -1174,10 +1178,9 @@ void jaiabot::comms::XBeeDevice::send_packet(const NodeId& dest, const string& d
     send_packet(dest_ser, data);
 }
 
-void jaiabot::comms::XBeeDevice::add_peer(const NodeId node_id, NodeType type, int bot_or_hub_id,
-                                          int fleet_id /*= fleet_id_*/)
+void jaiabot::comms::XBeeDevice::add_peer(const NodeId node_id, NodeType type, int bot_or_hub_id)
 {
-    const SerialNumber serial_number = serial_from_node_data(type, fleet_id, bot_or_hub_id);
+    const SerialNumber serial_number = serial_from_node_data(type, fleet_id_, bot_or_hub_id);
 
     glog.is_verbose() && glog << group(glog_group) << "serial_number= " << std::hex << serial_number
                               << std::dec << " node_id= " << node_id << endl;

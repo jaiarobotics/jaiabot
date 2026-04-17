@@ -106,6 +106,11 @@ const config = {
 
     // A preset that is used as a base for Jest's configuration
     preset: "ts-jest",
+    globals: {
+        "ts-jest": {
+            tsconfig: "tsconfig.test.json",
+        },
+    },
 
     // Run tests from one or more projects
     // projects: undefined,
@@ -171,6 +176,8 @@ const config = {
     // The regexp pattern or array of patterns that Jest uses to detect test files
     // testRegex: [],
 
+    // Only treat files in __tests__ directories with test in the file name as tests
+    testRegex: "__tests__/.*test\\.[jt]sx?$",
     // This option allows the use of a custom results processor
     // testResultsProcessor: undefined,
 

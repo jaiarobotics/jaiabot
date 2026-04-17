@@ -29,7 +29,8 @@ const baseConfig = {
                 },
             },
             { test: /\.css$/, use: ["style-loader", "css-loader"] },
-            { test: /\.(png|svg|jpg|jpeg|gif)$/, type: "asset/resource" },
+            { test: /\.(png|jpg|jpeg|gif)$/, type: "asset/resource" },
+            { test: /\.svg$/, type: "asset/inline" },
             {
                 test: /\.less$/,
                 use: [
@@ -90,29 +91,28 @@ module.exports = (env, argv) => {
      */
     const jccConfig = {
         entry: {
-            client: path.resolve(__dirname, "jcc/index.js"),
-            customLayerRasterWorker: [
-                path.resolve(
-                    __dirname,
-                    "openlayers/map/layers/geotiffs/CustomLayerRasterWorker.ts",
-                ),
-            ],
+            client: path.resolve(__dirname, "jcc/index.tsx"),
         },
         output: {
             path: path.resolve(env.OUTPUT_DIR, "jcc/"),
             filename: "[name].js",
             clean: true,
+            // Explicit relative public path so lazy chunk URLs resolve correctly
+            // against the document URL even when client.js is loaded from a blob URL.
+            publicPath: "./",
         },
         plugins: [
             new HtmlWebpackPlugin({
                 template: path.resolve(__dirname, "jcc/public/index.html"),
-                favicon: path.resolve(__dirname, "jcc/public/favicon.png"),
                 excludeChunks: ["customLayerWorker"],
+                inject: true,
             }),
             new CopyWebpackPlugin({
                 patterns: [
                     path.resolve(__dirname, "jcc/public/favicon.png"),
                     path.resolve(__dirname, "jcc/public/manifest.json"),
+                    path.resolve(__dirname, "jcc/public/loading.css"),
+                    path.resolve(__dirname, "jcc/public/loading-logo.svg"),
                 ],
                 options: {},
             }),

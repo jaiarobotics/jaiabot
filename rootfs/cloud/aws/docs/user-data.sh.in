@@ -1,0 +1,6 @@
+#!/bin/bash
+
+rm -rf /var/www/html
+ln -s /usr/share/doc/jaiabot/html /var/www/html
+ln -s /usr/share/doc/jaiabot/figures /var/www/figures
+

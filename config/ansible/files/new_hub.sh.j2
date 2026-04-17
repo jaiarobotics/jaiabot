@@ -1,0 +1,11 @@
+#!/bin/bash
+
+## Regenerate inventory
+/etc/jaiabot/init/jaia-create-ansible-inventory.sh -b "{{ bots | join(",") }}" -h "{{ hubs | join(",") }}" > /etc/jaiabot/inventory.yml
+
+## Regenerate hub authorized keys
+cat <<EOF > /etc/jaiabot/ssh/hub_authorized_keys
+{%- for h in ssh.hub %}
+{{ h.publicKey }}
+{%- endfor %}
+EOF

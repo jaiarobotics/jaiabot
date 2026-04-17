@@ -47,6 +47,7 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/link.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/comms.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -60,6 +61,21 @@ namespace apps
 constexpr goby::middleware::Group bot_gps_in{"bot_gps_in"};
 constexpr goby::middleware::Group bot_gps_out{"bot_gps_out"};
 
+using BotID = uint32_t;
+using MissionCommandTime = uint64_t;
+
+/*
+ * This function rounds a timestamp to the nearest DCCL time2 resolution (default 1 second).
+ * This is so we can map the incoming mission_command_time, which will have made a round-trip
+ * through the dccl.time2 codec to the mission_command_time stored on the Hub for matching
+ * with the mission name.
+ */
+std::uint64_t dccl_time2_round(std::uint64_t ts_micros,
+                               std::uint64_t resolution_micros = 1000000ULL)
+{
+    return ((ts_micros + resolution_micros / 2) / resolution_micros) * resolution_micros;
+}
+
 class HubManager : public ApplicationBase
 {
   public:
@@ -69,7 +85,7 @@ class HubManager : public ApplicationBase
   private:
     void loop() override;
 
-    void handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav);
+    void handle_bot_nav(jaiabot::protobuf::BotStatus dccl_nav);
     void handle_command(const jaiabot::protobuf::Command& input_command);
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
     void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& input_command_for_hub);
@@ -80,6 +96,8 @@ class HubManager : public ApplicationBase
         const goby::middleware::intervehicle::protobuf::SubscriptionReport& report);
 
     void intervehicle_subscribe(int bot_id, std::set<jaiabot::protobuf::Link> links);
+    void hub2hub_subscribe(int other_hub_id);
+    void handle_ctd_offload_command(const jaiabot::protobuf::CommandForHub& command);
 
     void update_vfleet_shutdown_time()
     {
@@ -99,6 +117,8 @@ class HubManager : public ApplicationBase
     }
 
     void start_dataoffload(int bot_id);
+
+    void publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data);
 
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
@@ -146,6 +166,17 @@ class HubManager : public ApplicationBase
     std::set<int> bot_to_gps_ids_;
 
     std::map<int, goby::time::MicroTime> known_bots_;
+
+    // map mission id to mission name for logging purposes
+    std::map<std::pair<BotID, MissionCommandTime>, std::string>
+        bot_id_and_command_time_to_mission_name_;
+
+    void set_mission_name_for_bot_command_time(const BotID bot_id,
+                                               const MissionCommandTime mission_command_time,
+                                               const std::string& mission_name);
+    std::string
+    get_mission_name_for_bot_command_time(const BotID bot_id,
+                                          const MissionCommandTime mission_command_time);
 };
 } // namespace apps
 } // namespace jaiabot
@@ -161,13 +192,6 @@ jaiabot::apps::HubManager::HubManager()
 {
     latest_hub_status_.set_hub_id(cfg().hub_id());
     latest_hub_status_.set_fleet_id(cfg().fleet_id());
-
-    auto add_expected_bot_id = [this](int id) {
-        managed_bot_ids_.insert(id);
-        latest_hub_status_.mutable_bot_ids_in_radio_file()->Add(id);
-    };
-
-    for (auto id : cfg().expected_bots().id()) add_expected_bot_id(id);
 
     for (auto contact_gps : cfg().contact_gps())
     {
@@ -212,8 +236,6 @@ jaiabot::apps::HubManager::HubManager()
 
     for (auto link : cfg().link_to_subscribe_on())
         links_to_subscribe_on_.insert(static_cast<jaiabot::protobuf::Link>(link));
-
-    for (auto id : managed_bot_ids_) intervehicle_subscribe(id, links_to_subscribe_on_);
 
     interprocess().subscribe<jaiabot::groups::hub_command_full>(
         [this](const protobuf::Command& input_command) { handle_command(input_command); });
@@ -311,8 +333,21 @@ jaiabot::apps::HubManager::HubManager()
         { handle_subscription_report(report); });
 
     interprocess().subscribe<jaiabot::groups::linux_hardware_status>(
-        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status) {
-            handle_hardware_status(hardware_status);
+        [this](const jaiabot::protobuf::LinuxHardwareStatus& hardware_status)
+        { handle_hardware_status(hardware_status); });
+
+    interprocess().subscribe<jaiabot::groups::intervehicle_subscribe_request>(
+        [this](const jaiabot::protobuf::IntervehicleSubscribeRequest& req)
+        {
+            if (req.link() == jaiabot::protobuf::LINK_HUB2HUB)
+            {
+                // subscribe to other hubs
+                for (int other_hub_id : cfg().expected_hubs().id())
+                {
+                    if (other_hub_id != cfg().hub_id())
+                        hub2hub_subscribe(other_hub_id);
+                }
+            }
         });
 
     if (is_virtualhub_)
@@ -365,8 +400,58 @@ void jaiabot::apps::HubManager::handle_subscription_report(
                                  ? protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_BOT
                                  : protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB);
 
+            if (status.has_mission_command_time())
+            {
+                status.set_mission_name(
+                    get_mission_name_for_bot_command_time(bot_id, status.mission_command_time()));
+            }
+
             interprocess().publish<jaiabot::groups::bot_status>(status);
         }
+    }
+}
+
+void jaiabot::apps::HubManager::set_mission_name_for_bot_command_time(
+    const BotID bot_id, const MissionCommandTime mission_command_time,
+    const std::string& mission_name)
+{
+    auto mission_command_time_dccl = dccl_time2_round(mission_command_time);
+    auto bot_and_command_time = std::make_pair(bot_id, mission_command_time_dccl);
+
+    bot_id_and_command_time_to_mission_name_[bot_and_command_time] = mission_name;
+
+    glog.is_debug1() && glog << group("main")
+                             << "Set mission name for Bot command time: Bot ID = " << bot_id
+                             << ", Command Time = " << mission_command_time_dccl
+                             << ", Mission Name = " << mission_name << std::endl;
+}
+
+std::string jaiabot::apps::HubManager::get_mission_name_for_bot_command_time(
+    const BotID bot_id, const MissionCommandTime mission_command_time)
+{
+    auto mission_command_time_dccl = dccl_time2_round(mission_command_time);
+    auto bot_and_command_time = std::make_pair(bot_id, mission_command_time_dccl);
+
+    if (bot_id_and_command_time_to_mission_name_.count(bot_and_command_time))
+    {
+        return bot_id_and_command_time_to_mission_name_.at(bot_and_command_time);
+    }
+    else
+    {
+        glog.is_warn() && glog << group("main") << "Bot ID = " << bot_id
+                               << ", Command Time = " << mission_command_time_dccl
+                               << " not found in bot_id_and_command_time_to_mission_name_ mapping"
+                               << std::endl;
+
+        for (auto pair : bot_id_and_command_time_to_mission_name_)
+        {
+            glog.is_warn() && glog << group("main")
+                                   << "Known Bot and command time: Bot ID = " << pair.first.first
+                                   << ", Command Time = " << pair.first.second
+                                   << ", Mission Name = " << pair.second << std::endl;
+        }
+
+        return "UNKNOWN_MISSION";
     }
 }
 
@@ -390,11 +475,13 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
         {
             auto set_link_data =
                 [this](jaiabot::protobuf::BotStatus& msg,
-                       const goby::middleware::intervehicle::protobuf::Header& header) {
-                    jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
-                };
+                       const goby::middleware::intervehicle::protobuf::Header& header)
+            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
 
-            goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().status_sub_cfg();
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg;
+            *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
+                jaiabot::comms::buffer_for_link(cfg().status_buffer(), link);
+
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
             goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
                 subscriber_cfg,
@@ -410,12 +497,13 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
         {
             auto set_link_data =
                 [this](jaiabot::protobuf::TaskPacket& msg,
-                       const goby::middleware::intervehicle::protobuf::Header& header) {
-                    jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
-                };
+                       const goby::middleware::intervehicle::protobuf::Header& header)
+            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
 
-            goby::middleware::protobuf::TransporterConfig subscriber_cfg =
-                cfg().task_packet_sub_cfg();
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg;
+            *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
+                jaiabot::comms::buffer_for_link(cfg().task_packet_buffer(), link);
+
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
 
             goby::middleware::Subscriber<jaiabot::protobuf::TaskPacket> subscriber(
@@ -426,21 +514,19 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
             glog.is_debug1() && glog << "Subscribing to task_packet" << std::endl;
 
             intervehicle().subscribe<jaiabot::groups::task_packet, jaiabot::protobuf::TaskPacket>(
-                [this](const jaiabot::protobuf::TaskPacket& task_packet) {
-                    handle_task_packet(task_packet);
-                },
-                subscriber);
+                [this](const jaiabot::protobuf::TaskPacket& task_packet)
+                { handle_task_packet(task_packet); }, subscriber);
         }
 
         {
             auto set_link_data =
                 [this](jaiabot::protobuf::Engineering& msg,
-                       const goby::middleware::intervehicle::protobuf::Header& header) {
-                    jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask());
-                };
+                       const goby::middleware::intervehicle::protobuf::Header& header)
+            { jaiabot::comms::set_link_type(msg, header.src(), cfg().subnet_mask()); };
 
-            goby::middleware::protobuf::TransporterConfig subscriber_cfg =
-                cfg().engineering_status_sub_cfg();
+            goby::middleware::protobuf::TransporterConfig subscriber_cfg;
+            *subscriber_cfg.mutable_intervehicle()->mutable_buffer() =
+                jaiabot::comms::buffer_for_link(cfg().engineering_status_buffer(), link);
 
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
 
@@ -453,7 +539,8 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
 
             intervehicle()
                 .subscribe<jaiabot::groups::engineering_status, jaiabot::protobuf::Engineering>(
-                    [this](const jaiabot::protobuf::Engineering& input_engineering_status) {
+                    [this](const jaiabot::protobuf::Engineering& input_engineering_status)
+                    {
                         glog.is_debug1() && glog << "Received input_engineering_status: "
                                                  << input_engineering_status.ShortDebugString()
                                                  << std::endl;
@@ -475,6 +562,31 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
     }
 }
 
+void jaiabot::apps::HubManager::hub2hub_subscribe(int other_hub_id)
+{
+    goby::middleware::protobuf::TransporterConfig subscriber_cfg;
+    *subscriber_cfg.mutable_intervehicle()->mutable_buffer() = cfg().hub2hub_buffer();
+    auto publisher_modem_id = jaiabot::comms::hub_modem_id(
+        cfg().subnet_mask(), jaiabot::protobuf::LINK_HUB2HUB, other_hub_id);
+    subscriber_cfg.mutable_intervehicle()->add_publisher_id(publisher_modem_id);
+
+    goby::middleware::Subscriber<jaiabot::protobuf::Hub2HubData> subscriber(
+        subscriber_cfg,
+        intervehicle::default_subscriber_group_func<jaiabot::protobuf::Hub2HubData>);
+
+    glog.is_debug1() && glog << "Subscribing to hub2hub_data from hub: " << other_hub_id
+                             << std::endl;
+
+    intervehicle().subscribe<jaiabot::groups::hub2hub_data, jaiabot::protobuf::Hub2HubData>(
+        [this](const jaiabot::protobuf::Hub2HubData& data)
+        {
+            glog.is_verbose() && glog << "Received Hub2Hub data: " << data.ShortDebugString()
+                                      << std::endl;
+            interprocess().publish<jaiabot::groups::hub2hub_data>(data);
+        },
+        subscriber);
+}
+
 void jaiabot::apps::HubManager::loop()
 {
     latest_hub_status_.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
@@ -484,6 +596,10 @@ void jaiabot::apps::HubManager::loop()
         latest_hub_status_.mutable_bot_offload()->set_bot_id(current_offload_bot_id_);
         latest_hub_status_.mutable_bot_offload()->set_data_offload_percentage(
             data_offload_percentage_);
+        for (int bot_id : bots_pending_data_offload_)
+        { 
+            latest_hub_status_.mutable_bot_offload()->add_bots_pending(bot_id); 
+        }
 
         if (offload_complete_)
         {
@@ -579,7 +695,7 @@ void jaiabot::apps::HubManager::loop()
     latest_hub_status_.clear_bot_offload();
 }
 
-void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatus& dccl_nav)
+void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl_nav)
 {
     glog.is_debug1() && glog << group("bot_nav")
                              << "Received DCCL nav: " << dccl_nav.ShortDebugString() << std::endl;
@@ -588,8 +704,19 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
     if (is_virtualhub_)
         update_vhub_shutdown_time();
 
+    if (dccl_nav.has_mission_command_time())
+    {
+        dccl_nav.set_mission_name(get_mission_name_for_bot_command_time(
+            dccl_nav.bot_id(), dccl_nav.mission_command_time()));
+    }
+
     // republish for liaison / logger, etc.
     interprocess().publish<jaiabot::groups::bot_status>(dccl_nav);
+
+    // republish for other hubs
+    jaiabot::protobuf::Hub2HubData hub2hub_data;
+    *hub2hub_data.mutable_bot_status() = dccl_nav;
+    publish_hub2hub_data(&hub2hub_data);
 
     goby::middleware::frontseat::protobuf::NodeStatus node_status;
 
@@ -616,8 +743,8 @@ void jaiabot::apps::HubManager::handle_bot_nav(const jaiabot::protobuf::BotStatu
         node_status.mutable_speed()->set_over_ground_with_units(
             dccl_nav.speed().over_ground_with_units());
 
-    if (dccl_nav.has_depth())
-        node_status.mutable_global_fix()->set_depth_with_units(dccl_nav.depth_with_units());
+    if (dccl_nav.has_sensor_depth())
+        node_status.mutable_global_fix()->set_depth_with_units(dccl_nav.sensor_depth_with_units());
 
     // check for data offload
 
@@ -710,8 +837,18 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
             std::make_pair(task_packet.bot_id(), task_packet.start_time()));
     }
 
+    // Set the mission_name of the task packet based on the current mission id to name mapping for logging purposes
+    jaiabot::protobuf::TaskPacket task_packet_copy = task_packet;
+
+    // Use the last_command_time and the bot_id to fill in the mission_name field
+    if (task_packet.has_bot_id() && task_packet.has_mission_command_time())
+    {
+        task_packet_copy.set_mission_name(get_mission_name_for_bot_command_time(
+            task_packet.bot_id(), task_packet.mission_command_time()));
+    }
+
     // Publish interprocess for other goby apps
-    interprocess().publish<jaiabot::groups::task_packet>(task_packet);
+    interprocess().publish<jaiabot::groups::task_packet>(task_packet_copy);
 }
 
 void jaiabot::apps::HubManager::handle_command_for_hub(
@@ -763,6 +900,9 @@ void jaiabot::apps::HubManager::handle_command_for_hub(
         case protobuf::CommandForHub::RESTART_ALL_SERVICES:
             interprocess().publish<jaiabot::groups::powerstate_command>(input_command_for_hub);
             break;
+        case protobuf::CommandForHub::CTD_DATA_OFFLOAD:
+            handle_ctd_offload_command(input_command_for_hub);
+            break;
         default: break;
     }
 }
@@ -777,6 +917,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
 
     using protobuf::Command;
     auto command = input_command;
+    command.set_from_hub_id(cfg().hub_id());
 
     // check that timestamp is unique within DCCL rounding and bump forward by a second
     // if necessary so that mission manager doesn't reject valid commands
@@ -801,6 +942,12 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
         command.set_time_with_units(t3 * boost::units::si::micro * boost::units::si::seconds);
     }
     last_command_timestamp_ = command.time_with_units<goby::time::MicroTime>();
+
+    if (command.has_plan())
+    {
+        set_mission_name_for_bot_command_time(command.bot_id(), command.time(),
+                                              command.plan().mission_name());
+    }
 
     std::vector<Command> command_fragments;
 
@@ -836,41 +983,45 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
             command_fragment.set_time(command.time());
             command_fragment.set_type(Command::MISSION_PLAN_FRAGMENT);
 
+            auto mutable_plan = command_fragment.mutable_plan();
+
             // The initial fragment is going to have more data
-            if (command.plan().has_start() && fragment_index == 0)
+            if (fragment_index == 0)
             {
-                command_fragment.mutable_plan()->set_start(command.plan().start());
+                if (command.plan().has_start())
+                {
+                    mutable_plan->set_start(command.plan().start());
+                }
+                if (command.plan().has_movement())
+                {
+                    mutable_plan->set_movement(command.plan().movement());
+                }
+                if (command.plan().has_recovery())
+                {
+                    *mutable_plan->mutable_recovery() = command.plan().recovery();
+                }
+                if (command.plan().has_speeds())
+                {
+                    *mutable_plan->mutable_speeds() = command.plan().speeds();
+                }
+                if (command.plan().has_repeats())
+                {
+                    mutable_plan->set_repeats(command.plan().repeats());
+                }
+                if (command.plan().has_bottom_depth_safety_params())
+                {
+                    *mutable_plan->mutable_bottom_depth_safety_params() =
+                        command.plan().bottom_depth_safety_params();
+                }
+                if (command.plan().has_mission_name())
+                {
+                    mutable_plan->set_mission_name(command.plan().mission_name());
+                }
             }
 
-            if (command.plan().has_movement() && fragment_index == 0)
-            {
-                command_fragment.mutable_plan()->set_movement(command.plan().movement());
-            }
+            mutable_plan->set_fragment_index(fragment_index);
 
-            if (command.plan().has_recovery() && fragment_index == 0)
-            {
-                *command_fragment.mutable_plan()->mutable_recovery() = command.plan().recovery();
-            }
-
-            if (command.plan().has_speeds() && fragment_index == 0)
-            {
-                *command_fragment.mutable_plan()->mutable_speeds() = command.plan().speeds();
-            }
-
-            if (command.plan().has_repeats() && fragment_index == 0)
-            {
-                command_fragment.mutable_plan()->set_repeats(command.plan().repeats());
-            }
-
-            if (command.plan().has_bottom_depth_safety_params() && fragment_index == 0)
-            {
-                *command_fragment.mutable_plan()->mutable_bottom_depth_safety_params() =
-                    command.plan().bottom_depth_safety_params();
-            }
-
-            command_fragment.mutable_plan()->set_fragment_index(fragment_index);
-
-            command_fragment.mutable_plan()->set_expected_fragments(command_fragments_expected);
+            mutable_plan->set_expected_fragments(command_fragments_expected);
 
             goal_max_index = goal_max_index + goal_max_size;
 
@@ -889,7 +1040,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                                              << ", Total goal size: " << command.plan().goal_size()
                                              << std::endl;
 
-                    protobuf::MissionPlan::Goal* goal = command_fragment.mutable_plan()->add_goal();
+                    protobuf::MissionPlan::Goal* goal = mutable_plan->add_goal();
                     if (command.plan().goal(goal_index).has_name())
                     {
                         goal->set_name(command.plan().goal(goal_index).name());
@@ -967,7 +1118,8 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     std::string offload_command = cfg().data_offload_script() + " " + cfg().log_staging_dir() +
                                   " " + cfg().log_offload_dir() + " " + bot_ip + " 2>&1";
 
-    auto offload_func = [this, offload_command]() {
+    auto offload_func = [this, offload_command]()
+    {
         // reset data offload global variables
         offload_complete_ = false;
         offload_success_ = false;
@@ -994,7 +1146,7 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
                 // Check if the line contains progress information
                 std::string percent_complete_str = "";
                 percent_complete_str.append(buffer.begin(), buffer.begin() + bytes_read);
-                size_t pos = percent_complete_str.find("%");
+                size_t pos = percent_complete_str.rfind("%");
                 if (pos != std::string::npos)
                 {
                     if (pos >= 3)
@@ -1051,4 +1203,33 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
     };
 
     offload_thread_.reset(new std::thread(offload_func));
+}
+
+void jaiabot::apps::HubManager::publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data)
+{
+    hub2hub_data->set_hub_id(cfg().hub_id());
+    hub2hub_data->set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    intervehicle().publish<jaiabot::groups::hub2hub_data>(
+        *hub2hub_data, intervehicle::default_publisher<jaiabot::protobuf::Hub2HubData>);
+}
+
+void jaiabot::apps::HubManager::handle_ctd_offload_command(const jaiabot::protobuf::CommandForHub& command) 
+{
+    std::string bot_ip = cfg().class_b_network() + "." + std::to_string(cfg().fleet_id()) + "." +
+                         std::to_string((cfg().bot_start_ip() + command.scan_for_bot_id()));
+    
+    if (cfg().use_localhost_for_data_offload())
+        bot_ip = "127.0.0.1";
+    
+    std::string offload_command = cfg().ctd_offload_script()  + " -bot_id " + std::to_string(command.scan_for_bot_id()) +
+                                  " -bot_ip " + bot_ip + " 2>&1";
+
+    glog.is_debug1() && glog << "Offload command: " << offload_command << std::endl;
+
+    FILE* pipe = popen(offload_command.c_str(), "r");
+    if (!pipe)
+    {
+        glog.is_warn() && glog << "Error opening pipe to CTD offload command: "
+                                << strerror(errno) << std::endl;
+    }
 }

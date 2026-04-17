@@ -8,15 +8,14 @@ import os
 import argparse
 from jaiabot.messages.camera_driver_pb2 import *
 import logging
-import datetime
+from datetime import datetime
 from typing import *
 from jaia_serial import JaiaSerial
 import subprocess
 import signal
 
 
-CAMERA_DRIVER_VERSION = 1
-
+CAMERA_DRIVER_VERSION = 2
 
 def parse_args():
     parser = argparse.ArgumentParser(description='JaiaBot Camera Driver')
@@ -32,7 +31,7 @@ def parse_args():
 
 
 def now_string():
-    return datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    return datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 
 
 class MockCamera:
@@ -55,13 +54,13 @@ class Camera:
     def __init__(self):
         self.image_capture_interval = None
         self.last_image_capture = 0.0
-        self.videoprocess = None
+        self.rpicam_proc = None
         self.directory = '/var/log/jaiabot/camera/'
 
 
     @property
     def output_dir(self):
-        dir = self.directory + datetime.datetime.now().strftime('%Y-%m-%d')
+        dir = self.directory + datetime.now().strftime('%Y-%m-%d')
         os.makedirs(dir, exist_ok=True)
         return dir
 
@@ -69,36 +68,46 @@ class Camera:
     def do_command(self, command: CameraCommand):
         log.info(f'Doing command: {command}')
 
+        if command.datetime != "" and command.type != CameraCommand.CameraCommandType.STOP_VIDEO:            
+            try:
+                os.system(f'date --set "{command.datetime}"')
+                log.info(f"Set date to {command.datetime}")
+            except Exception as e:
+                log.warning(f"Failed to set date to {command.datetime}: {e}")
+
         if command.type == CameraCommand.CameraCommandType.START_IMAGES:
             self.image_capture_interval = command.image_capture_interval
             
 
         elif command.type == CameraCommand.CameraCommandType.STOP_IMAGES:
             self.image_capture_interval = None
-            
-
+                    
         elif command.type == CameraCommand.CameraCommandType.START_VIDEO:
-            cmd = [
-                'libcamera-vid', 
-                '--codec', 'libav', 
-                '-t', '600sec', 
-                '-o', f'{self.output_dir}/video-{now_string()}.mp4'
+            # Start recording video with MP4 output. Timeout of 0 prevents the process from exiting after its 4 second default. 
+            video_cmd = [
+                "rpicam-vid",
+                "--codec", "libav",
+                "--libav-format", "mp4",
+                "--timeout", "0",
+                "--width", "1920",
+                "--height", "1080",
+                "--bitrate", "5000000",
+                "--intra", "30",
+                "--framerate", "30",
+                "--output", f"{self.output_dir}/video-{now_string()}.mp4"
             ]
-            self.videoprocess = subprocess.Popen(cmd, stderr=subprocess.DEVNULL)
+            self.rpicam_proc = subprocess.Popen(video_cmd)
 
-        
         elif command.type == CameraCommand.CameraCommandType.STOP_VIDEO:
-            log.info('Sending SIGINT to libcamera-vid')
-            self.videoprocess.send_signal(signal.SIGINT)
-            try:
-                self.videoprocess.wait(timeout=30)
-            except subprocess.TimeoutExpired:
-                log.info('Sending SIGTERM to libcamera-vid')
-                self.videoprocess.terminate()
-                self.videoprocess.wait(timeout=0.2)
-                log.info('Done')
-
-            
+            # Check if we have an rpicam-vid process running before we try to kill it, otherwise we end up corrupting video files
+            if self.rpicam_proc and self.rpicam_proc.poll() is None:
+                log.info("Stop video")
+                self.rpicam_proc.send_signal(signal.SIGINT)
+                try:
+                    self.rpicam_proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.rpicam_proc.kill()
+        
         else:
             log.warning(f'Unknown CameraCommand.type: {command.type}')
 
@@ -108,8 +117,7 @@ class Camera:
             t = time.time()
             if t - self.last_image_capture > self.image_capture_interval:
                 self.last_image_capture = t
-                os.system(f'libcamera-still -t 1 -o {self.output_dir}/image-{now_string()}.jpg')
-
+                os.system(f'rpicam-still --timeout 1 --autofocus-mode auto --output {self.output_dir}/image-{now_string()}.jpg')
 
 def main():
     if args.simulate:

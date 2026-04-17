@@ -19,16 +19,16 @@ function write_preseed()
     
     ### mount disks
     ## BOOT
-    local VBOX_MOUNT_PATH="/tmp/vbox-jaia/${DISKUUID}"
+    local VBOX_MOUNT_PATH="${tmp_dir}/vbox-jaia/${DISKUUID}"
     mkdir -p "${VBOX_MOUNT_PATH}"
     vboximg-mount -i "${DISKUUID}" --rw --root "${VBOX_MOUNT_PATH}"
     sudo mount "${VBOX_MOUNT_PATH}/vol0" /mnt
  
-    tmp_boot="/tmp/import_vms"
+    tmp_boot="${tmp_dir}/import_vms"
     rm -rf ${tmp_boot}
     mkdir -p ${tmp_boot}/jaiabot/init
     cp /mnt/jaiabot/init/* ${tmp_boot}/jaiabot/init
-    jaia admin fleet generate /tmp/fleet.cfg --mode simulation ${BOT_OR_HUB} ${N} --bootdir ${tmp_boot}
+    jaia admin fleet generate ${tmp_dir}/fleet.cfg --mode simulation ${BOT_OR_HUB} ${N} --bootdir ${tmp_boot}
     sudo cp ${tmp_boot}/jaiabot/init/* /mnt/jaiabot/init/
     
     sudo umount /mnt

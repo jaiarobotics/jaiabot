@@ -5,9 +5,25 @@ load_protobuf {
     }
 } 
 
-load_protobuf {
-    name: "jaiabot.protobuf.CameraCommand" 
+load_protobuf {  #  (repeated)
+    name: "jaiabot.protobuf.CameraCommand"  #  (required)
     publish_to {
         group: "jaiabot::camera"
     }
 }
+
+load_protobuf {  #  (repeated)
+    name: "jaiabot.protobuf.PPKCommand"  #  (required)
+    publish_to {
+        group: "jaiabot::ppk"
+    }
+}
+
+#load_protobuf {  #  (repeated)
+#    name: "jaiabot.protobuf.Command"  #  (required)
+#    publish_to {
+#        group: "jaiabot::self_command"
+#        group_numeric: 15  # jaiabot::INTERVEHICLE_API_VERSION
+#        layer: LAYER_INTERPROCESS
+#    }
+#} 

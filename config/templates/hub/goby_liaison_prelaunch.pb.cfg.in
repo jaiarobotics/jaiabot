@@ -47,7 +47,7 @@ add_commander_tab: false
             display_name: "Hub ID for offline/hub cache updates"
             static_value: "$this_hub_index"
         }
-        
+        $limit        
     }
     ansible_playbook {
         file: "check-version.yml" 
@@ -67,7 +67,8 @@ add_commander_tab: false
         output_var {
             name: "jaiabot_upgrade_available"
             display_name: "Minor Upgrade available?"
-        }        
+        }
+        $limit
     }
 
     # Can't be run on hub, or else we remove the code and config running goby_liaison_prelaunch...
@@ -91,6 +92,7 @@ add_commander_tab: false
             name: "jaiabot_current_version"
             display_name: "Current JaiaBot Version"
         }
+        $limit
     }
     ansible_playbook {
         file: "upgrade-all.yml" 
@@ -101,6 +103,7 @@ add_commander_tab: false
             name: "jaiabot_current_version"
             display_name: "Current JaiaBot Version"
         }
+        $limit
     }
 
     ansible_playbook {
@@ -128,13 +131,14 @@ add_commander_tab: false
         }
         
         causes_hub_reboot: true
+        $limit
     }
 
     
     ansible_playbook {
         file: "check-vpn-status.yml" 
         name: "Check for VPN Status"
-        section: "VPN"
+        section: "Security"
         role: USER
         output_var {
             name: "jaiabot_vpn_active_state"
@@ -144,12 +148,13 @@ add_commander_tab: false
             name: "jaiabot_vpn_enable_state"
             display_name: "Check VPN Enable State?"
         }
+        $limit
     }
 
     ansible_playbook {
         file: "change-vpn-state.yml" 
         name: "Change VPN State"
-        section: "VPN"
+        section: "Security"
         role: USER
         input_var {
             name: "state"
@@ -159,13 +164,37 @@ add_commander_tab: false
             value: "enable"
             value: "disable"
         }
+        $limit
     }
-
+    
+    ansible_playbook {
+        file: "update-dccl-password.yml" 
+        name: "Update Communications End-to-End Encryption Password"
+        section: "Security"
+        role: USER
+        input_var {
+            name: "action"
+            display_name: "Action"
+            value: "generate_new_password"
+            value: "copy_hub_password_to_all"
+            value: "clear_password"
+        }
+        $limit
+    }
+    
+    ansible_playbook {
+        file: "reboot-all.yml" 
+        name: "Reboot All"
+        section: "Reboot"
+        role: USER
+        causes_hub_reboot: true
+    }
     ansible_playbook {
         file: "reboot-bots.yml" 
         name: "Reboot Bots"
         section: "Reboot"
         role: USER
+        $limit
     }
     ansible_playbook {
         file: "reboot-hubs.yml" 
@@ -173,6 +202,7 @@ add_commander_tab: false
         section: "Reboot"
         role: USER
         causes_hub_reboot: true
+        $limit
     }    
 
     ansible_playbook {
@@ -181,6 +211,7 @@ add_commander_tab: false
         section: "Factory"
         role: ADVANCED
         confirmation_required: true
+        $limit
     }    
 
     ansible_playbook {
@@ -189,21 +220,50 @@ add_commander_tab: false
         section: "Factory"
         role: DEVELOPER
         confirmation_required: true
+        $limit
     }
 
     ansible_playbook {
         file: "change-comms-links.yml" 
         name: "Change Communications Links in use"
+        section: "Communications"
         role: USER
         input_var {
             name: "comms_link"
             display_name: "Comms Links"
             value: "xbee"
             value: "wifi"
+            value: "iridium"
             value: "xbee,wifi"
+            value: "xbee,iridium"
+            value: "wifi,iridium"
+            value: "xbee,iridium,wifi"
         }
+        $limit
     }
     
 
+    ansible_playbook {
+        file: "pair-new-bot.yml" 
+        name: "Pair new Bot"
+        section: "Fleet Changes"
+        role: USER
+        input_var {
+            name: "bot_id"
+            display_name: "New Bot ID"
+            value: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117", "118", "119", "120", "121", "122", "123", "124", "125", "126", "127", "128", "129", "130", "131", "132", "133", "134", "135", "136", "137", "138", "139", "140", "141", "142", "143", "144", "145", "146", "147", "148", "149", "150"]
+        }
+        causes_hub_reboot: true
+    }
+
+    ansible_playbook {
+        file: "pair-new-hub.yml"
+        name: "Pair new Hub (Requires Major Upgrade image to be connected to this Hub via USB Key or CD)"
+        section: "Fleet Changes"
+        role: USER
+    }
+
+
+    
     $vfleet_playbooks
 }

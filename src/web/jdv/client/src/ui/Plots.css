@@ -1,0 +1,51 @@
+.plotButton {
+    vertical-align: middle;
+    width: auto;
+    padding: 8pt;
+    border: none;
+    border-radius: 4pt;
+    background-color: #0000;
+}
+
+.plotButton:hover {
+    background-color: lightgray;
+}
+
+.plotButtonBar {
+    background-color: #f0f0f0;
+    margin: 4pt;
+
+    label {
+        padding-left: 1em;
+        padding-right: 1em;
+    }
+}
+
+#plotInfoDialog {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translate(-50%, -20%);
+    background-color: white;
+    border: 2pt solid black;
+    z-index: 1000;
+    padding: 16pt;
+    width: 400pt;
+    max-height: 80%;
+    box-shadow: 0 4pt 8pt rgba(0, 0, 0, 0.2);
+}
+
+#plotInfoDialog p {
+    text-align: justify;
+}
+
+#plotInfoDialogHeader {
+    width: 100%;
+    justify-content: stretch;
+    align-items: center;
+}
+
+#plotInfoDialog .text {
+    max-height: 60vh;
+    overflow-y: auto;
+}

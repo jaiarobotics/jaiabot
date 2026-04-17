@@ -1,0 +1,13 @@
+$app_block
+$interprocess_block
+
+udp_config { 
+    bind_port: $udp_gateway_port
+}
+
+in_simulation: $in_simulation
+
+echo_enabled: $echo_enabled
+salinity_enabled: $salinity_enabled
+bar30_enabled: $bar30_enabled
+tsys01_enabled: $tsys01_enabled

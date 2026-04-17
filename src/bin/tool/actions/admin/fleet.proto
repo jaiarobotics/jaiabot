@@ -66,6 +66,16 @@ message FleetTool
             full_help_msg: "Update existing jaiabot_updates ISO (USB/CD image) with fleet config.\n"
                            "Usage: \"jaia admin fleet update_iso [fleet.cfg] [updates.iso] [output_updates.iso (optional)]\""
             }];        
+        create_cloudhub = 6 [(goby.ev).cfg = {
+            short_help_msg: "Create VPC and CloudHub",
+            external_command: "jaia-create-cloudhub.py",
+            external_help_param: "--help"
+        }];
+        delete_cloudhub = 7 [(goby.ev).cfg = {
+            short_help_msg: "Delete VPC and CloudHub",
+            external_command: "jaia-delete-cloudhub.py",
+            external_help_param: "--help"
+        }];
     }
 
     optional Action action = 2 [

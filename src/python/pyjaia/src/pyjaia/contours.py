@@ -10,6 +10,10 @@ from pprint import pprint
 from math import *
 from .constrain import *
 
+from google.protobuf.json_format import MessageToDict
+
+from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
+
 
 @dataclass
 class BottomDive:
@@ -35,7 +39,11 @@ def getBottomDives(taskPackets: List[Dict]):
         if 'dive' in taskPacket:
             dive = taskPacket['dive']
             if 'bottom_dive' in dive and dive['bottom_dive'] == 1:
-                bottomDives.append(BottomDive(dive['start_location']['lon'], dive['start_location']['lat'], dive['depth_achieved']))
+                try:
+                    bottomDives.append(BottomDive(dive['start_location']['lon'], dive['start_location']['lat'], dive['depth_achieved']))
+                except KeyError as e:
+                    logging.warning(f"Missing key in dive data: {e}, {dive=}", exc_info=True)
+                    continue
 
     return bottomDives
 
@@ -140,11 +148,19 @@ def getSimplices(bottomDives: List[BottomDive]):
     meshPoints = [[d.lon, d.lat] for d in bottomDives]
 
     try:
-        tri = Delaunay(np.array(meshPoints), qhull_options="Qbb Qc Qz Q12")
+        # Qt -> triangulate the points (no non-simplicial facets such as squares)
+        # Qz -> add a point at infinity to allow unique triangulation of co-spherical points 
+        #    (a single triangle is co-spherical, so this helps)
+        # Qbb -> scale the input to avoid precision errors
+        # Qc -> keep coplanar points together
+        # Q12 -> allow wide facets and wide dupridge
+        tri = Delaunay(np.array(meshPoints), qhull_options="Qt Qz Qbb Qc Q12")
         return tri.simplices
     except Exception as e:
-        logging.warning(f'While doing Delaunay triangulation: {e}')
-        logging.warning('Do you have co-linear mesh points?')
+        # If the above options cannot produce a triangulation, log and return no simplices
+        # This typically only happens when all points are colinear, in which case no contours can be generated anyway
+        logging.warning('Could not compute Delaunay triangulation for bottom dives, likely due to colinear points.')
+        logging.debug(f'While doing Delaunay triangulation: {e}')
         return []
 
 
@@ -274,9 +290,18 @@ def taskPacketsToColorMap(taskPackets: List[Dict]):
         dict[str, any]: A GeoJSON dictionary representing a depth color map for the bottom dives contained in `taskPackets`.
     """
     bottomDives = getBottomDives(taskPackets)
+    if len(bottomDives) < 3:
+        logging.warning(f'Not enough bottom dives to make contours, need at least 3 but only have {len(bottomDives)}')
+        return geojson([]) # Not enough bottom dives to make contours
+
+    contourValues = getContourValues(bottomDives)
+    if len(contourValues) == 0:
+        logging.warning('No contours to display')
+        return geojson([]) # No contours to display
 
     simplices = getSimplices(bottomDives)
-    contourValues = getContourValues(bottomDives)
+    if len(simplices) == 0:
+        logging.warning('No simplices')
 
     polygons: List[Dict] = []
 
@@ -284,4 +309,8 @@ def taskPacketsToColorMap(taskPackets: List[Dict]):
         polygons.extend(getColorMapPolygons([bottomDives[i] for i in simplex], contourValues))
 
     return geojson(polygons)
+
+
+def task_packets_to_geojson(task_packets: list[TaskPacket]):
+    return taskPacketsToColorMap([MessageToDict(packet, preserving_proto_field_name=True) for packet in task_packets])
 

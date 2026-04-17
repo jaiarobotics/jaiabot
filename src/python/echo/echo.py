@@ -12,17 +12,6 @@ from threading import *
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('echo')
 
-try:
-    uart = serial.Serial("/dev/ttyAMA3", 115200)
-    physical_device_available = True
-except ModuleNotFoundError:
-    log.warning('ModuleNotFoundError, so physical device not available')
-    physical_device_available = False
-except NotImplementedError:
-    log.warning('NotImplementedError, so physical device not available')
-    physical_device_available = False
-except serial.serialutil.SerialException:
-    log.warning('SerialException, so physical device not available')
 
 class EchoState(Enum):
     BOOTING = 0
@@ -51,23 +40,46 @@ class EchoCommands(Enum):
 class Echo:
     _lock: Lock
 
-    def __init__(self):
+    def __init__(self, connection_type):
         log.info('Device: MAI')
-
-        if not physical_device_available:
-            log.error('No physical device available')
-            exit(1)
 
         self.is_setup = False
         self.echo_state = None
+        self.connection_type = connection_type
+        self.uart = None
+        self.sensor = None
         self._lock = Lock()
+
 
     def setup(self):
         if not self.is_setup:
             try:
                 log.debug('We are not setup')
+                
+                if self.connection_type == "uart":
+                    self.uart = "/dev/pam-stack" # /dev/ttyAMA5
+                elif self.connection_type == "usb":
+                    self.uart = "/dev/ttyACM0"
+                else:
+                    log.error('Invalid PAM connection type specified')
+                    exit(1)
 
-                self.sensor = uart
+                try:
+                    self.sensor = serial.Serial(f"{self.uart}", 115200)
+                    physical_device_available = True
+                except ModuleNotFoundError:
+                    log.warning('ModuleNotFoundError, so physical device not available')
+                    physical_device_available = False
+                except NotImplementedError:
+                    log.warning('NotImplementedError, so physical device not available')
+                    physical_device_available = False
+                except serial.serialutil.SerialException:
+                    log.warning('SerialException, so physical device not available')
+                    physical_device_available = False
+
+                if not physical_device_available:
+                    log.error('No physical device available')
+                    exit(1)
 
                 log.debug('Connected, now lets enable output')
 
@@ -167,3 +179,25 @@ class Echo:
         except Exception as error:
             log.warning("Error trying to stop device")
             
+
+class EchoSimulator:
+    def __init__(self):
+        log.info('Device: Simulator')
+
+    def setup(self):
+        pass
+
+    def sendCMD(self, message):
+        pass
+
+    def getStatus(self):
+        pass
+
+    def getState(self):
+        return EchoState.READY.value
+
+    def startDevice(self):
+        pass
+    
+    def stopDevice(self):
+        pass            

@@ -14,9 +14,13 @@ from pathlib import Path
 jaia_electronics_stack='0'
 jaia_imu_type='bno055'
 jaia_arduino_type='spi'
+jaia_pam_connection_type='none'
 
 if "jaia_electronics_stack" in os.environ:
     jaia_electronics_stack=os.environ['jaia_electronics_stack']
+
+jaia_temperature_sensor_type = os.environ.get('jaia_temperature_sensor_type', default='bar30')
+tsys01_enabled = jaia_temperature_sensor_type == 'tsys01'
 
 if jaia_electronics_stack == '0':
     helm_app_tick=1
@@ -54,15 +58,20 @@ elif jaia_arduino_type == 'usb':
 else:
     jaia_arduino_dev_location="/dev/ttyAMA1"
 
+if "jaia_pam_connection_type" in os.environ:
+    jaia_pam_connection_type=os.environ['jaia_pam_connection_type']
+
 jaia_data_offload_ignore_type="NONE"
 
 if "jaia_data_offload_ignore_type" in os.environ:
     jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
 
-if "jaia_bot_type" in os.environ:
-    bot_type = os.environ["jaia_bot_type"]
-else:
-    bot_type = "HYDRO"
+bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
+
+echo_enabled=(bot_type == "ECHO")
+# Ignore health warnings from UDP gateway if data comes from BIO payload board
+salinity_enabled=(bot_type != "BIO")
+bar30_enabled=(bot_type != "BIO")
 
 jaia_motor_harness_type="NONE"
 
@@ -95,30 +104,30 @@ node_id=common.bot.bot_index_to_node_id(bot_index)
 verbosities = \
 { 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
   'goby_intervehicle_portal':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_liaison':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
-  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'goby_liaison':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'goby_gps':                                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_logger':                                  { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'goby_coroner':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_health':                               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
-  'jaiabot_metadata':                             { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'VERBOSE' }},
-  'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1' },  'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
-  'goby_moos_gateway':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'DEBUG1'  }, 'simulation': { 'tty': 'WARN', 'log': 'DEBUG1' }},
-  'jaiabot_sensors':                              { 'runtime': { 'tty': 'WARN', 'log': 'VERBOSE'  }, 'simulation': { 'tty': 'DEBUG1', 'log': 'DEBUG1' }},
-  'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'WARN'}},
+  'goby_coroner':                                 { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_health':                               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  },  'simulation': {'tty': 'WARN', 'log': 'WARN'}},
+  'jaiabot_metadata':                             { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_fusion':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'goby_moos_gateway':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_mission_manager':                      { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'jaiabot_sensors':                              { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'jaiabot_pid_control':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET'  },  'simulation': {'tty': 'WARN', 'log': 'QUIET'}},
   'jaiabot_simulator':                            { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_bluerobotics_pressure_sensor_driver':  { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_atlas_scientific_ezo_ec_driver':       { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_echo_driver':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_adafruit_BNO055_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_adafruit_BNO085_driver':               { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'QUIET' }},
-  'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'QUIET', 'log': 'DEBUG1' }},
+  'jaiabot_udp_gateway':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'jaiabot_driver_arduino':                       { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'jaiabot_engineering':                          { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'goby_terminate':                               { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_failure_reporter':                     { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_driver_camera':                        { 'runtime': { 'tty': 'WARN', 'log': 'QUIET' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_mission_repeater':                     { 'runtime': { 'tty': 'WARN', 'log': 'VERBOSE' },  'simulation': { 'tty': 'DEBUG2', 'log': 'DEBUG2' }},
-  'jaiabot_tsys01_temperature_sensor_driver':     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }}
+  'jaiabot_driver_camera':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'jaiabot_mission_repeater':                     { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'jaiabot_comms_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_aml_sensor_driver':                    { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_ctd_manager':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_ppk':                                  { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -142,10 +151,11 @@ except FileNotFoundError:
     fluorometer_coefficients = 'fluorometer_coefficients {}'
 
 ack_timeout=10
+iridium_ack_timeout=120
 sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cfg.in')
 link_block=''
+subscribes_block=''
 if common.CommsMode.XBEE in common.jaia_comms_modes:
-    subscribe_to_hub_on_start=''
     if is_simulation():
         xbee_serial_port='/tmp/xbeebot' + str(bot_index)
     else:
@@ -155,13 +165,20 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
         xbee_encryption_password=os.environ['jaia_rf_encryption_password']
     except:    
         xbee_encryption_password=""
+
+    subscribes_block+='''subscribe {
+    link: LINK_XBEE
+    subscribe_on_start: true
+    resubscribe: true
+    resubscribe_interval: 60
+}\n'''
+
         
     link_block += config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
                                             subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.xbee_modem_id(node_id),
+                                            modem_id=common.comms.modem_id("xbee",node_id),
                                             mac_slots=common.comms.xbee_mac_slots(node_id),
                                             serial_port=xbee_serial_port,
-                                            xbee_hub_id='',
                                             is_in_sim=is_simulation(),
                                             use_encryption='true' if xbee_encryption_password else 'false',
                                             encryption_password=xbee_encryption_password,
@@ -170,21 +187,48 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
                                             ack_timeout=ack_timeout)
 
 if common.CommsMode.WIFI in common.jaia_comms_modes:
-    # used for virtualfleet as until we have an inventory file we don't send any hub subscriptions out without an Xbee config.
     default_hub_id=1
 
-    subscribe_to_hub_on_start='subscribe_to_hub_on_start { hub_id: 1 modem_id: ' + str(common.comms.wifi_modem_id(common.comms.hub_node_id)) + ' changed: true }'
-    link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
-                                            subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.wifi_modem_id(node_id),
-                                            local_port=common.udp.wifi_udp_port(node_id),
-                                            wifi_hub_id='',
-                                            remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),
-                                            hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
-                                            mac_slots=common.comms.wifi_mac_slots(node_id),
-                                            sub_buffer=sub_buffer_config,
-                                            ack_timeout=ack_timeout)
+    subscribes_block+='''subscribe {
+    link: LINK_WIFI
+    subscribe_on_start: true
+    resubscribe: true
+    resubscribe_interval: 60
+}\n'''
 
+    link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
+                                             subnet_mask=common.comms.subnet_mask,                                            
+                                             modem_id=common.comms.modem_id("wifi",node_id),
+                                             local_port=common.udp.wifi_udp_port(node_id),
+                                             remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),
+                                             hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
+                                             mac_slots=common.comms.wifi_mac_slots(node_id),
+                                             sub_buffer=sub_buffer_config,
+                                             ack_timeout=ack_timeout,
+                                             ipv6='')
+
+
+if common.CommsMode.IRIDIUM in common.jaia_comms_modes:    
+    if is_simulation():
+        iridium_serial_port='/tmp/iridium' + str(bot_index)
+    else:
+        iridium_serial_port='/dev/iridium'
+
+    subscribes_block+='''subscribe {
+    link: LINK_IRIDIUM
+    subscribe_on_start: true
+    resubscribe: true
+    resubscribe_interval: 150
+}\n'''
+        
+    link_block += config.template_substitute(templates_dir+'/link_iridium.pb.cfg.in',
+                                             subnet_mask=common.comms.subnet_mask,                                            
+                                             modem_id=common.comms.modem_id("iridium",node_id),
+                                             serial_port=iridium_serial_port,
+                                             mac_slots=common.comms.iridium_mac_slots(node_id),
+                                             sub_buffer=sub_buffer_config,
+                                             ack_timeout=iridium_ack_timeout)
+    
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
 
 liaison_bind_addr='0.0.0.0'
@@ -192,7 +236,7 @@ if common.is_vfleet:
     liaison_bind_addr='0::0'
 
 # IMU config
-imu_port = common.udp.imu_port(node_id)
+udp_gateway_port = common.udp.udp_gateway_port(node_id)
 imu_detection_solution='REPORT_IMU'
 
 if is_simulation():
@@ -207,17 +251,20 @@ if imu_install_type == "retrofit":
 else:
     total_imu_issue_checks = 4
 
+
+pressure_sensor_type = 'sim' if is_simulation() else 'bar30'
+
+
 if common.app == 'gobyd':    
     print(config.template_substitute(templates_dir+'/gobyd.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     required_clients='required_client: "gobyd" required_client: "jaiabot_fusion" required_client: "jaiabot_mission_manager" required_client: "jaiabot_engineering" required_client: "goby_intervehicle_portal"' # these are all required in the gobyd "hold" so that the initial hub info isn't published before they're ready (allowing persist to disk of last hub in use)
+                                     required_clients='required_client: "gobyd" required_client: "jaiabot_comms_manager" required_client: "jaiabot_mission_manager" required_client: "jaiabot_engineering" required_client: "goby_intervehicle_portal"' # these are all required in the gobyd "hold" so that the initial subscribe request from jaiabot_comms_manager is received by all the intervehicle subscribers
                                      ))
 elif common.app == 'goby_intervehicle_portal':    
     print(config.template_substitute(templates_dir+'/goby_intervehicle_portal.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     persist_subscriptions='', # no persistent subscriptions on the bot as we get our subscriptions from the hub whenever we subscribe to the hub
                                      link_block=link_block))
 elif common.app == 'goby_coroner':    
     print(config.template_substitute(templates_dir+'/goby_coroner.pb.cfg.in',
@@ -239,7 +286,8 @@ elif common.app == 'goby_logger':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir,
-                                     goby_logger_group_regex=logger.group_regex))
+                                     goby_logger_group_regex=logger.group_regex,
+                                     log_on_startup='true'))
 elif common.app == 'goby_liaison':
     liaison_port=30000
     if is_simulation():
@@ -262,49 +310,17 @@ elif common.app == 'jaiabot_simulator':
                                      interprocess_block = interprocess_common,
                                      moos_port=common.bot.moos_simulator_port(node_id),
                                      gpsd_simulator_udp_port=common.bot.gpsd_simulator_udp_port(node_id),
-                                     pressure_udp_port=common.udp.bar30_cpp_udp_port(node_id),
-                                     salinity_udp_port=common.udp.atlas_ezo_cpp_udp_port(node_id)))
-elif common.app == 'jaiabot_bluerobotics_pressure_sensor_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_bluerobotics_pressure_sensor_driver.pb.cfg.in',
+                                     udp_gateway_port=udp_gateway_port))
+elif common.app == 'jaiabot_udp_gateway':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_udp_gateway.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bind_port=common.udp.bar30_cpp_udp_port(node_id),
-                                     remote_port=common.udp.bar30_py_udp_port(node_id),
-                                     blue_robotics_pressure_report_in_simulation=is_simulation()))
-elif common.app == 'jaiabot_tsys01_temperature_sensor_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_tsys01_temperature_sensor_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     bind_port=common.udp.tsys01_cpp_udp_port(),
-                                     remote_port=common.udp.tsys01_py_udp_port()))
-elif common.app == 'jaiabot_adafruit_BNO055_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO055_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     adafruit_bno055_report_in_simulation=is_simulation(),
-                                     imu_port=imu_port))
-elif common.app == 'jaiabot_adafruit_BNO085_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_adafruit_BNO085_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     adafruit_bno085_report_in_simulation=is_simulation(),
-                                     imu_port=imu_port))
-elif common.app == 'jaiabot_atlas_scientific_ezo_ec_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_atlas_scientific_ezo_ec_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     bind_port=common.udp.atlas_ezo_cpp_udp_port(node_id),
-                                     remote_port=common.udp.atlas_ezo_py_udp_port(node_id),
-                                     atlas_salinity_report_in_simulation=is_simulation()))
-elif common.app == 'jaiabot_echo_driver':
-    print(config.template_substitute(templates_dir+'/bot/jaiabot_echo_driver.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     echo_report_in_simulation=is_simulation()))
-elif common.app == 'salinity-subscriber':
-    print(config.template_substitute(templates_dir+'/bot/salinity-subscriber.pb.cfg.in',
-                                     app_block=app_common,
-                                     interprocess_block = interprocess_common))
+                                     in_simulation=is_simulation(),
+                                     udp_gateway_port=udp_gateway_port,
+                                     echo_enabled=str(echo_enabled).lower(),
+                                     salinity_enabled=str(salinity_enabled).lower(),
+                                     bar30_enabled=str(bar30_enabled).lower(),
+                                     tsys01_enabled=str(tsys01_enabled).lower()))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,
@@ -325,11 +341,12 @@ elif common.app == 'jaiabot_mission_manager':
                                      bot_log_staging_dir=common.bot_log_staging_dir,
                                      bot_log_archive_dir=common.bot_log_archive_dir,
                                      mission_manager_in_simulation=is_simulation(),
-                                     subscribe_to_hub_on_start=subscribe_to_hub_on_start,
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
                                      fleet_id=fleet_index,
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
-                                     subnet_mask=common.comms.subnet_mask))
+                                     subnet_mask=common.comms.subnet_mask,
+                                     camera_available=common.camera_available))
+
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
                                      app_block=app_common,
@@ -342,7 +359,6 @@ elif common.app == 'jaiabot_engineering':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
-                                     subscribe_to_hub_on_start=subscribe_to_hub_on_start,
                                      subnet_mask=common.comms.subnet_mask))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
@@ -402,12 +418,35 @@ elif common.app == 'jaiabot_driver_camera':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      serial_camera_port=common.bot.serial_camera_port(bot_index)))
+elif common.app == 'jaiabot_comms_manager':
+    print(config.template_substitute(templates_dir+'/jaiabot_comms_manager.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     subscribes=subscribes_block))
+elif common.app == 'jaiabot_turner_c_fluor_sensor_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_turner_c_fluor_sensor_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common,
+                                     fluorometer_coefficients=fluorometer_coefficients))
+elif common.app == 'jaiabot_aml_sensor_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_aml_sensor_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common))
+elif common.app == 'jaiabot_ctd_manager':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_ctd_manager.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     fleet_id=fleet_index,
+                                     use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bot_id=bot_index,
+                                     fleet_id=fleet_index,
                                      jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds,
                                      jaia_arduino_dev_location=jaia_arduino_dev_location,
-                                     imu_port=imu_port,
-                                     imu_type=imu_type))
+                                     udp_gateway_port=udp_gateway_port,
+                                     imu_type=imu_type,
+                                     pressure_sensor_type=pressure_sensor_type,
+                                     log_file_dir=log_file_dir))

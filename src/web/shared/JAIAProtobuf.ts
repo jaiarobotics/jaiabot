@@ -1051,6 +1051,11 @@ export enum BottomType {
     SOFT = "SOFT",
 }
 
+export interface SubsurfaceCurrentVector {
+    velocity?: number;
+    heading?: number;
+}
+
 export interface DivePacket {
     dive_rate?: number;
     unpowered_rise_rate?: number;
@@ -1063,6 +1068,7 @@ export interface DivePacket {
     reached_min_depth?: boolean;
     bottom_type?: BottomType;
     max_acceleration?: number;
+    subsurface_current?: SubsurfaceCurrentVector;
 }
 
 export interface TaskPacket {
@@ -1211,4 +1217,38 @@ export interface ContactStatus {
     location: GeographicCoordinate;
     speed_over_ground?: number;
     heading_or_cog?: number;
+}
+
+export interface XbeeInfo {
+    node_id?: string;
+    serial_number?: string;
+}
+
+export interface Version {
+    major: string;
+    minor: string;
+    patch: string;
+    git_hash?: string;
+    git_branch?: string;
+    deb_repository?: string;
+    deb_release_branch?: string;
+}
+
+export interface DeviceMetadata {
+    name?: string;
+    jaiabot_version?: Version;
+    goby_version?: string;
+    moos_version?: string;
+    ivp_version?: string;
+    xbee_node_id?: string;
+    xbee_serial_number?: string;
+    raspi_firmware_version?: string;
+    jaiabot_image_version?: string;
+    jaiabot_image_build_date?: string;
+    jaiabot_image_first_boot_date?: string;
+    intervehicle_api_version?: number;
+    is_simulation?: boolean;
+    fleet_id?: number;
+    hub_id?: number;
+    bot_id?: number;
 }
