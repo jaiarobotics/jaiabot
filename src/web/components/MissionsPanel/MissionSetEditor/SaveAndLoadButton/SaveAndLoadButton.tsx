@@ -16,9 +16,9 @@ export default function SaveAndLoadButton(props: Props) {
 
     const getDisabledCode = (): DisabledCodes => {
         if (!props.editorName.trim()) return DisabledCodes.NO_NAME;
-        if (props.leftList.length === 0) return DisabledCodes.NO_MISSIONS;
+        if (props.leftList.length < 2) return DisabledCodes.NO_MISSIONS;
         if (!props.desiredMissionCount || props.desiredMissionCount < 1)
-            return DisabledCodes.NO_BOT_COUNT;
+            return DisabledCodes.NO_MISSION_COUNT;
         if (listSavedMissionSets().includes(props.editorName.trim()))
             return DisabledCodes.OVERWRITE;
         return DisabledCodes.NONE;

@@ -5,7 +5,10 @@ import { mdiArrowLeft, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
 import { Button } from "@mui/material";
 
 import { JCC_CONTAINER } from "../../../utils/constants";
-import { listSavedMissionSets } from "../MissionSetStorage/mission-set-storage";
+import {
+    listSavedMissionSets,
+    loadSnapshotFromLocalStorage,
+} from "../MissionSetStorage/mission-set-storage";
 import { formatNumericalInput } from "../../../utils/input";
 import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
 
@@ -24,8 +27,9 @@ interface LeftListItemProps {
 
 interface RightListItemProps {
     name: string;
+    index: number;
     isSelected: boolean;
-    onSelect: (name: string) => void;
+    onSelect: (index: number) => void;
 }
 
 export function MissionSetEditorDialog(props: DialogProps) {
@@ -33,10 +37,12 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const [desiredMissionCount, setDesiredMissionCount] = useState(0);
     const [leftList, setLeftList] = useState<string[]>([]);
     const [selectedLeftIndex, setSelectedLeftIndex] = useState<number | null>(null);
-    const [selectedRightName, setSelectedRightName] = useState<string | null>(null);
+    const [selectedRightIndex, setSelectedRightIndex] = useState<number | null>(null);
 
-    const handleRightItemClick = (name: string) => {
-        setSelectedRightName((prev) => (prev === name ? null : name));
+    const savedMissionSets = listSavedMissionSets();
+
+    const handleRightItemClick = (index: number) => {
+        setSelectedRightIndex((prev) => (prev === index ? null : index));
     };
 
     const handleLeftItemClick = (index: number) => {
@@ -44,7 +50,8 @@ export function MissionSetEditorDialog(props: DialogProps) {
     };
 
     const handleAdd = () => {
-        if (!selectedRightName) return;
+        if (selectedRightIndex === null) return;
+        const selectedRightName = savedMissionSets[selectedRightIndex];
         if (selectedLeftIndex !== null) {
             const next = [...leftList];
             next.splice(selectedLeftIndex, 0, selectedRightName);
@@ -52,6 +59,10 @@ export function MissionSetEditorDialog(props: DialogProps) {
             setSelectedLeftIndex(selectedLeftIndex);
         } else {
             setLeftList((prev) => [...prev, selectedRightName]);
+        }
+        const missionCount = loadSnapshotFromLocalStorage(selectedRightName).missions.length;
+        if (missionCount > desiredMissionCount) {
+            setDesiredMissionCount(missionCount);
         }
     };
 
@@ -79,8 +90,14 @@ export function MissionSetEditorDialog(props: DialogProps) {
 
     const handleDelete = () => {
         if (selectedLeftIndex === null) return;
-        setLeftList((prev) => prev.filter((_, i) => i !== selectedLeftIndex));
+        const remaining = leftList.filter((_, i) => i !== selectedLeftIndex);
+        setLeftList(remaining);
         setSelectedLeftIndex(null);
+        const maxCount = remaining.reduce((max, name) => {
+            const count = loadSnapshotFromLocalStorage(name).missions.length;
+            return Math.max(max, count);
+        }, 0);
+        setDesiredMissionCount(maxCount);
     };
 
     const hasLeftSelection = selectedLeftIndex !== null;
@@ -155,7 +172,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <div className="editor-arrow-column">
                             <Button
                                 className="jaia-button editor-add-button"
-                                disabled={!selectedRightName}
+                                disabled={selectedRightIndex === null}
                                 onClick={handleAdd}
                             >
                                 <div className="editor-add-button-content">
@@ -167,11 +184,12 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <div className="editor-list-column">
                             <label>Stored Mission Sets</label>
                             <ul className="editor-source-list">
-                                {listSavedMissionSets().map((name) => (
+                                {savedMissionSets.map((name, index) => (
                                     <RightListItem
                                         key={name}
                                         name={name}
-                                        isSelected={selectedRightName === name}
+                                        index={index}
+                                        isSelected={selectedRightIndex === index}
                                         onSelect={handleRightItemClick}
                                     />
                                 ))}
@@ -209,7 +227,7 @@ function RightListItem(props: RightListItemProps) {
     return (
         <li
             className={`editor-source-item${props.isSelected ? " selected" : ""}`}
-            onClick={() => props.onSelect(props.name)}
+            onClick={() => props.onSelect(props.index)}
         >
             {props.name}
         </li>
