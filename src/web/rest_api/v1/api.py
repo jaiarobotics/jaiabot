@@ -658,7 +658,10 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
     report_time_s = report_time_us/1_000_000
     report_timestamp = datetime.fromtimestamp(report_time_s, tz=timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
-    reports = [jaiabot.messages.surob_results_pb2.Report(time=report_timestamp, surob=surob)]
+    report_meta_location = jaiabot.messages.surob_results_pb2.MetaLocation(latitude=jaia_request.surob_results_request.shoreline_point.lat, longitude=jaia_request.surob_results_request.shoreline_point.lon)
+    report_meta = jaiabot.messages.surob_results_pb2.Meta(location=report_meta_location)
+
+    reports = [jaiabot.messages.surob_results_pb2.Report(time=report_timestamp, meta=report_meta, surob=surob)]
 
     geojson = jaiabot.messages.surob_results_pb2.FeatureCollection(type=FEATURE_COLLECTION_TYPE)
     geojson.features.extend(features)

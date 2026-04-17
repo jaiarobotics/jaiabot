@@ -1,4 +1,5 @@
 syntax = "proto2";
+
 package jaiabot.protobuf;
 
 message ValueUncertUnits {
@@ -20,9 +21,19 @@ message Surob {
     optional LittoralCurrent littoral_current_local = 3;
 }
 
+message MetaLocation {
+    optional double latitude = 1;
+    optional double longitude = 2;
+}
+
+message Meta {
+    optional MetaLocation location = 1;
+}
+
 message Report {
     optional string time = 1;
-    optional Surob surob = 2;
+    optional Meta meta = 2;
+    optional Surob surob = 3;
 }
 
 message ValueUncertUnitsCF {
