@@ -69,10 +69,16 @@ function distributeMissionsToSlots(missions: Mission[], slotCount: number): Miss
  * @param {number} desiredCount Number of output missions
  * @returns {number} Maximum waypoints in any single output mission
  */
-export function getMaxWaypointsPerOutputMission(names: string[], desiredCount: number): number {
+export function getMaxWaypointsPerOutputMission(
+    names: string[],
+    desiredCount: number,
+    snapshotCache: Map<string, MissionSetSnapshot>,
+): number {
     if (names.length === 0 || desiredCount < 1) return 0;
 
-    const snapshots = names.map((name) => loadSnapshotFromLocalStorage(name));
+    const snapshots = names.map(
+        (name) => snapshotCache.get(name) ?? loadSnapshotFromLocalStorage(name),
+    );
     const missionArrays = snapshots.map((snapshot) =>
         snapshot.missions.map(([_, mission]) => mission),
     );

@@ -22,10 +22,10 @@ export function SaveAndLoadDialog(props: DialogProps) {
         props.disabledCode !== DisabledCodes.NONE && props.disabledCode !== DisabledCodes.OVERWRITE;
 
     const getDialogMessage = () => {
-        if (props.disabledCode === DisabledCodes.NONE) {
-            return `Save and load the combined mission set "${props.editorName}"?`;
-        }
-        if (props.disabledCode === DisabledCodes.OVERWRITE) {
+        if (
+            props.disabledCode === DisabledCodes.NONE ||
+            props.disabledCode === DisabledCodes.OVERWRITE
+        ) {
             return messages.get(props.disabledCode) + props.editorName;
         }
         return messages.get(props.disabledCode);

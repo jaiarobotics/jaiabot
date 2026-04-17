@@ -16,7 +16,7 @@ interface Props {
 }
 
 export default function SaveAndLoadButton(props: Props) {
-    const jaiaDispatch = useContext(JaiaDispatchContext) as ((action: unknown) => void) | null;
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     const getDisabledCode = (): DisabledCodes => {

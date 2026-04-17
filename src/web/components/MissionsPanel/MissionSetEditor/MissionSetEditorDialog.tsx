@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "@mdi/react";
 import { mdiArrowLeft, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
@@ -9,6 +9,7 @@ import {
     listSavedMissionSets,
     loadSnapshotFromLocalStorage,
 } from "../MissionSetStorage/mission-set-storage";
+import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { getMaxWaypointsPerOutputMission } from "./mission-set-editor";
 import { formatNumericalInput } from "../../../utils/input";
 import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
@@ -41,6 +42,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const [selectedRightIndex, setSelectedRightIndex] = useState<number | null>(null);
     const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
     const [userHasOverriddenCount, setUserHasOverriddenCount] = useState(false);
+    const snapshotCache = useRef<Map<string, MissionSetSnapshot>>(new Map());
 
     const savedMissionSets = listSavedMissionSets();
 
@@ -56,6 +58,13 @@ export function MissionSetEditorDialog(props: DialogProps) {
         if (selectedRightIndex === null) return;
         const selectedRightName = savedMissionSets[selectedRightIndex];
 
+        if (!snapshotCache.current.has(selectedRightName)) {
+            snapshotCache.current.set(
+                selectedRightName,
+                loadSnapshotFromLocalStorage(selectedRightName),
+            );
+        }
+
         const projectedList =
             selectedLeftIndex !== null
                 ? [
@@ -65,10 +74,16 @@ export function MissionSetEditorDialog(props: DialogProps) {
                   ]
                 : [...leftList, selectedRightName];
 
-        const addedMissionCount = loadSnapshotFromLocalStorage(selectedRightName).missions.length;
+        const addedMissionCount = snapshotCache.current.get(selectedRightName)!.missions.length;
         const projectedMissionCount = Math.max(desiredMissionCount, addedMissionCount);
 
-        if (getMaxWaypointsPerOutputMission(projectedList, projectedMissionCount) > MAX_WAYPOINTS) {
+        if (
+            getMaxWaypointsPerOutputMission(
+                projectedList,
+                projectedMissionCount,
+                snapshotCache.current,
+            ) > MAX_WAYPOINTS
+        ) {
             setIsWaypointWarningVisible(true);
             return;
         }
@@ -111,7 +126,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
         setSelectedLeftIndex(null);
         if (!userHasOverriddenCount) {
             const maxCount = remaining.reduce((max, name) => {
-                const count = loadSnapshotFromLocalStorage(name).missions.length;
+                const count = snapshotCache.current.get(name)!.missions.length;
                 return Math.max(max, count);
             }, 0);
             setDesiredMissionCount(maxCount);
@@ -147,8 +162,11 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                     if (
                                         leftList.length > 0 &&
                                         newCount > 0 &&
-                                        getMaxWaypointsPerOutputMission(leftList, newCount) >
-                                            MAX_WAYPOINTS
+                                        getMaxWaypointsPerOutputMission(
+                                            leftList,
+                                            newCount,
+                                            snapshotCache.current,
+                                        ) > MAX_WAYPOINTS
                                     ) {
                                         setIsWaypointWarningVisible(true);
                                         return;
