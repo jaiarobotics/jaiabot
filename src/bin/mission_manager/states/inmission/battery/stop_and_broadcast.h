@@ -21,22 +21,18 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-struct Battery : boost::statechart::state<Battery, InMission, battery::Low>, AppMethodsAccess<Battery>
+struct StopAndBroadcast : boost::statechart::state<StopAndBroadcast, Battery>,
+      Notify<StopAndBroadcast, protobuf::IN_MISSION__BATTERY__STOP_AND_BROADCAST>
 {
-    using StateBase = boost::statechart::state<Battery, InMission, battery::Low>;
+    using StateBase = boost::statechart::state<StopAndBroadcast, Battery>;
 
-    Battery(typename StateBase::my_context c) : StateBase(c)
+    StopAndBroadcast(typename StateBase::my_context c) : StateBase(c)
     {
-        goby::glog.is_debug1() && goby::glog << "Battery" << std::endl;
+        goby::glog.is_debug1() && goby::glog << "StopAndBroadcast" << std::endl;
+
+        protobuf::DesiredSetpoints setpoint_msg;
+        setpoint_msg.set_type(protobuf::SETPOINT_STOP);
+        interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
     }
-    ~Battery() { goby::glog.is_debug1() && goby::glog << "~Battery" << std::endl; }
+    ~StopAndBroadcast() { goby::glog.is_debug1() && goby::glog << "~StopAndBroadcast" << std::endl; }
 };
-
-namespace battery {
-
-    #include "battery/low.h"
-    #include "battery/critical.h"
-
-#include "battery/station_keep.h"
-#include "battery/stop_and_broadcast.h"
-}

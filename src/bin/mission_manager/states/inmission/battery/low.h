@@ -23,7 +23,7 @@
 
 struct Low
     : boost::statechart::state<Low, Battery>,
-      Notify<Low, protobuf::IN_MISSION__BATTERY__LOW, protobuf::SETPOINT_STOP>
+      Notify<Low, protobuf::IN_MISSION__BATTERY__LOW>
 {
     using StateBase = boost::statechart::state<Low, Battery>;
 
@@ -31,10 +31,35 @@ struct Low
     Low(typename StateBase::my_context c) : StateBase(c)
     {
         glog.is_warn() && glog << "Battery low!" << std::endl;
+
+        const jaiabot::protobuf::MissionPlan::BatteryLowProtocol protocol = this->machine().mission_plan().very_low_battery_protocol();
+
+        switch (protocol.action())
+        {
+        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::STOP_AND_BROADCAST:
+            glog.is_warn() && glog << "Critical battery protocol: STOP_AND_BROADCAST" << std::endl;
+            this->post_event(EvLowBatteryStopAndBroadcast());
+            break;
+        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::STATION_KEEP:
+            glog.is_warn() && glog << "Critical battery protocol: STATION_KEEP" << std::endl;
+            this->post_event(EvLowBatteryStationKeep());
+            break;
+        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::DRIVE_TO_HUB:
+            glog.is_warn() && glog << "Critical battery protocol: DRIVE_TO_HUB" << std::endl;
+            break;
+        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::DRIVE_TO_LOCATION:
+            glog.is_warn() && glog << "Critical battery protocol: DRIVE_TO_LOCATION" << std::endl;
+            break;
+        default:
+            glog.is_warn() && glog << "Critical battery protocol: UNKNOWN" << std::endl;
+            break;
+        }
+        
     }
 
     ~Low(){};
 
-    using reactions = boost::mpl::list<>;
+    using reactions = boost::mpl::list<boost::statechart::transition<EvLowBatteryStopAndBroadcast, StopAndBroadcast>,
+                                       boost::statechart::transition<EvLowBatteryStationKeep, StationKeep>>;
 
 };

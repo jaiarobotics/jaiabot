@@ -59,6 +59,8 @@ namespace jaiabot
             {
                 struct Low;
                 struct Critical;
+                struct StopAndBroadcast;
+                struct StationKeep;
             } // namespace battery
 
             namespace underway
