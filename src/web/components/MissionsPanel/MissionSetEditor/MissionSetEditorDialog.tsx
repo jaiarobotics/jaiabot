@@ -4,11 +4,12 @@ import Icon from "@mdi/react";
 import { mdiArrowLeft, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
 import { Button } from "@mui/material";
 
-import { JCC_CONTAINER } from "../../../utils/constants";
+import { JCC_CONTAINER, MAX_WAYPOINTS } from "../../../utils/constants";
 import {
     listSavedMissionSets,
     loadSnapshotFromLocalStorage,
 } from "../MissionSetStorage/mission-set-storage";
+import { getMaxWaypointsPerOutputMission } from "./mission-set-editor";
 import { formatNumericalInput } from "../../../utils/input";
 import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
 
@@ -38,6 +39,8 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const [leftList, setLeftList] = useState<string[]>([]);
     const [selectedLeftIndex, setSelectedLeftIndex] = useState<number | null>(null);
     const [selectedRightIndex, setSelectedRightIndex] = useState<number | null>(null);
+    const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
+    const [userHasOverriddenCount, setUserHasOverriddenCount] = useState(false);
 
     const savedMissionSets = listSavedMissionSets();
 
@@ -52,17 +55,30 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const handleAdd = () => {
         if (selectedRightIndex === null) return;
         const selectedRightName = savedMissionSets[selectedRightIndex];
-        if (selectedLeftIndex !== null) {
-            const next = [...leftList];
-            next.splice(selectedLeftIndex, 0, selectedRightName);
-            setLeftList(next);
-            setSelectedLeftIndex(selectedLeftIndex);
-        } else {
-            setLeftList((prev) => [...prev, selectedRightName]);
+
+        const projectedList =
+            selectedLeftIndex !== null
+                ? [
+                      ...leftList.slice(0, selectedLeftIndex),
+                      selectedRightName,
+                      ...leftList.slice(selectedLeftIndex),
+                  ]
+                : [...leftList, selectedRightName];
+
+        const addedMissionCount = loadSnapshotFromLocalStorage(selectedRightName).missions.length;
+        const projectedMissionCount = Math.max(desiredMissionCount, addedMissionCount);
+
+        if (getMaxWaypointsPerOutputMission(projectedList, projectedMissionCount) > MAX_WAYPOINTS) {
+            setIsWaypointWarningVisible(true);
+            return;
         }
-        const missionCount = loadSnapshotFromLocalStorage(selectedRightName).missions.length;
-        if (missionCount > desiredMissionCount) {
-            setDesiredMissionCount(missionCount);
+
+        setLeftList(projectedList);
+        if (selectedLeftIndex !== null) {
+            setSelectedLeftIndex(selectedLeftIndex);
+        }
+        if (!userHasOverriddenCount && addedMissionCount > desiredMissionCount) {
+            setDesiredMissionCount(addedMissionCount);
         }
     };
 
@@ -93,11 +109,13 @@ export function MissionSetEditorDialog(props: DialogProps) {
         const remaining = leftList.filter((_, i) => i !== selectedLeftIndex);
         setLeftList(remaining);
         setSelectedLeftIndex(null);
-        const maxCount = remaining.reduce((max, name) => {
-            const count = loadSnapshotFromLocalStorage(name).missions.length;
-            return Math.max(max, count);
-        }, 0);
-        setDesiredMissionCount(maxCount);
+        if (!userHasOverriddenCount) {
+            const maxCount = remaining.reduce((max, name) => {
+                const count = loadSnapshotFromLocalStorage(name).missions.length;
+                return Math.max(max, count);
+            }, 0);
+            setDesiredMissionCount(maxCount);
+        }
     };
 
     const hasLeftSelection = selectedLeftIndex !== null;
@@ -124,24 +142,39 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                 type="number"
                                 min={1}
                                 value={formatNumericalInput(desiredMissionCount)}
-                                onChange={(evt) => setDesiredMissionCount(Number(evt.target.value))}
+                                onChange={(evt) => {
+                                    const newCount = Number(evt.target.value);
+                                    if (
+                                        leftList.length > 0 &&
+                                        newCount > 0 &&
+                                        getMaxWaypointsPerOutputMission(leftList, newCount) >
+                                            MAX_WAYPOINTS
+                                    ) {
+                                        setIsWaypointWarningVisible(true);
+                                        return;
+                                    }
+                                    setUserHasOverriddenCount(true);
+                                    setDesiredMissionCount(newCount);
+                                }}
                             />
                         </div>
                     </div>
                     <div className="editor-lists-section">
                         <div className="editor-list-column">
                             <label>Combined Mission Set</label>
-                            <ul className="editor-list">
-                                {leftList.map((name, index) => (
-                                    <LeftListItem
-                                        key={`${name}-${index}`}
-                                        name={name}
-                                        index={index}
-                                        isSelected={selectedLeftIndex === index}
-                                        onSelect={handleLeftItemClick}
-                                    />
-                                ))}
-                            </ul>
+                            <div className="editor-list-scroll">
+                                <ul className="editor-list">
+                                    {leftList.map((name, index) => (
+                                        <LeftListItem
+                                            key={`${name}-${index}`}
+                                            name={name}
+                                            index={index}
+                                            isSelected={selectedLeftIndex === index}
+                                            onSelect={handleLeftItemClick}
+                                        />
+                                    ))}
+                                </ul>
+                            </div>
                             <div className="editor-controls-row">
                                 <Button
                                     className="jaia-button"
@@ -183,19 +216,30 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         </div>
                         <div className="editor-list-column">
                             <label>Stored Mission Sets</label>
-                            <ul className="editor-source-list">
-                                {savedMissionSets.map((name, index) => (
-                                    <RightListItem
-                                        key={name}
-                                        name={name}
-                                        index={index}
-                                        isSelected={selectedRightIndex === index}
-                                        onSelect={handleRightItemClick}
-                                    />
-                                ))}
-                            </ul>
+                            <div className="editor-list-scroll">
+                                <ul className="editor-source-list">
+                                    {savedMissionSets.map((name, index) => (
+                                        <RightListItem
+                                            key={name}
+                                            name={name}
+                                            index={index}
+                                            isSelected={selectedRightIndex === index}
+                                            onSelect={handleRightItemClick}
+                                        />
+                                    ))}
+                                </ul>
+                            </div>
                         </div>
                     </div>
+                    {isWaypointWarningVisible && (
+                        <div className="secondary-dialog alert">
+                            <h1>Alert</h1>
+                            <p>{`Adding this mission set would exceed the maximum of ${MAX_WAYPOINTS} waypoints per mission.`}</p>
+                            <button onClick={() => setIsWaypointWarningVisible(false)}>
+                                Close
+                            </button>
+                        </div>
+                    )}
                     <div className="editor-button-row">
                         <SaveAndLoadButton
                             editorName={editorName}

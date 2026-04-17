@@ -1,7 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
-import { UNASSIGNED_ID } from "../../../utils/constants";
+import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../../utils/constants";
 import { loadSnapshotFromLocalStorage } from "../MissionSetStorage/mission-set-storage";
 
 /**
@@ -9,8 +9,8 @@ import { loadSnapshotFromLocalStorage } from "../MissionSetStorage/mission-set-s
  *
  * When the set has more missions than slots, missions are chained sequentially
  * so each slot receives one or more missions' worth of waypoints.
- * When the set has fewer missions than slots, missions are cycled so every
- * slot still receives at least one source mission.
+ * When the set has fewer missions than slots, missions are cycled so every slot
+ * still receives a contribution (e.g. a single transit mission repeats for all bots).
  *
  * @param {Mission[]} missions Source missions from a single mission set
  * @param {number} slotCount Number of output slots (desiredMissionCount)
@@ -34,7 +34,8 @@ function distributeMissionsToSlots(missions: Mission[], slotCount: number): Miss
             }
         }
     } else {
-        // Cycle: repeat source missions across the extra slots
+        // Cycle: repeat source missions across extra slots so every output mission
+        // receives a contribution (e.g. a single transit mission repeats for all bots)
         for (let slot = 0; slot < slotCount; slot++) {
             result[slot].push(missions[slot % n]);
         }
@@ -59,6 +60,42 @@ function distributeMissionsToSlots(missions: Mission[], slotCount: number): Miss
  * @param {string} newName Name for the new combined mission set
  * @returns {MissionSetSnapshot} Snapshot ready to save and/or load
  */
+/**
+ * Returns the maximum waypoint count across all output missions that would result
+ * from combining the given mission sets with the specified output count.
+ * Used to validate against MAX_WAYPOINTS before saving.
+ *
+ * @param {string[]} names Ordered list of saved mission set names
+ * @param {number} desiredCount Number of output missions
+ * @returns {number} Maximum waypoints in any single output mission
+ */
+export function getMaxWaypointsPerOutputMission(names: string[], desiredCount: number): number {
+    if (names.length === 0 || desiredCount < 1) return 0;
+
+    const snapshots = names.map((name) => loadSnapshotFromLocalStorage(name));
+    const missionArrays = snapshots.map((snapshot) =>
+        snapshot.missions.map(([_, mission]) => mission),
+    );
+    const distributedSets = missionArrays.map((missions) =>
+        distributeMissionsToSlots(missions, desiredCount),
+    );
+
+    let maxWaypoints = 0;
+    for (let slot = 0; slot < desiredCount; slot++) {
+        const slotTotal = distributedSets.reduce(
+            (sum, distributedSet) =>
+                sum +
+                distributedSet[slot].reduce((s, mission) => s + mission.getWaypoints().length, 0),
+            0,
+        );
+        maxWaypoints = Math.max(maxWaypoints, slotTotal);
+    }
+
+    return maxWaypoints;
+}
+
+export { MAX_WAYPOINTS };
+
 export function combineMissionSets(
     names: string[],
     desiredCount: number,
