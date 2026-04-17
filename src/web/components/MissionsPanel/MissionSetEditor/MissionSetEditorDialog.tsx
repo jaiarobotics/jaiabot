@@ -1,0 +1,217 @@
+import { useState } from "react";
+import { createPortal } from "react-dom";
+import Icon from "@mdi/react";
+import { mdiArrowLeft, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
+import { Button } from "@mui/material";
+
+import { JCC_CONTAINER } from "../../../utils/constants";
+import { listSavedMissionSets } from "../MissionSetStorage/mission-set-storage";
+import { formatNumericalInput } from "../../../utils/input";
+import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
+
+import "./MissionSetEditor.less";
+
+interface DialogProps {
+    onClose: () => void;
+}
+
+interface LeftListItemProps {
+    name: string;
+    index: number;
+    isSelected: boolean;
+    onSelect: (index: number) => void;
+}
+
+interface RightListItemProps {
+    name: string;
+    isSelected: boolean;
+    onSelect: (name: string) => void;
+}
+
+export function MissionSetEditorDialog(props: DialogProps) {
+    const [editorName, setEditorName] = useState("");
+    const [desiredMissionCount, setDesiredMissionCount] = useState(0);
+    const [leftList, setLeftList] = useState<string[]>([]);
+    const [selectedLeftIndex, setSelectedLeftIndex] = useState<number | null>(null);
+    const [selectedRightName, setSelectedRightName] = useState<string | null>(null);
+
+    const handleRightItemClick = (name: string) => {
+        setSelectedRightName((prev) => (prev === name ? null : name));
+    };
+
+    const handleLeftItemClick = (index: number) => {
+        setSelectedLeftIndex((prev) => (prev === index ? null : index));
+    };
+
+    const handleAdd = () => {
+        if (!selectedRightName) return;
+        if (selectedLeftIndex !== null) {
+            const next = [...leftList];
+            next.splice(selectedLeftIndex, 0, selectedRightName);
+            setLeftList(next);
+            setSelectedLeftIndex(selectedLeftIndex);
+        } else {
+            setLeftList((prev) => [...prev, selectedRightName]);
+        }
+    };
+
+    const handleMoveUp = () => {
+        if (selectedLeftIndex === null || selectedLeftIndex === 0) return;
+        const next = [...leftList];
+        [next[selectedLeftIndex - 1], next[selectedLeftIndex]] = [
+            next[selectedLeftIndex],
+            next[selectedLeftIndex - 1],
+        ];
+        setLeftList(next);
+        setSelectedLeftIndex(selectedLeftIndex - 1);
+    };
+
+    const handleMoveDown = () => {
+        if (selectedLeftIndex === null || selectedLeftIndex === leftList.length - 1) return;
+        const next = [...leftList];
+        [next[selectedLeftIndex], next[selectedLeftIndex + 1]] = [
+            next[selectedLeftIndex + 1],
+            next[selectedLeftIndex],
+        ];
+        setLeftList(next);
+        setSelectedLeftIndex(selectedLeftIndex + 1);
+    };
+
+    const handleDelete = () => {
+        if (selectedLeftIndex === null) return;
+        setLeftList((prev) => prev.filter((_, i) => i !== selectedLeftIndex));
+        setSelectedLeftIndex(null);
+    };
+
+    const hasLeftSelection = selectedLeftIndex !== null;
+    const addButtonLabel = hasLeftSelection ? "Insert" : "Add";
+
+    return createPortal(
+        <div className="jaia-dialog-container">
+            <div className="blocking-overlay" onClick={() => {}}>
+                <div className="jaia-dialog mission-set-editor">
+                    <h1>Mission Set Editor</h1>
+                    <div className="editor-top-row">
+                        <div className="input-container editor-name-input">
+                            <label>New Mission Set Name</label>
+                            <input
+                                type="text"
+                                placeholder="Required"
+                                value={editorName}
+                                onChange={(evt) => setEditorName(evt.target.value)}
+                            />
+                        </div>
+                        <div className="input-container editor-count-input">
+                            <label>Number of Missions</label>
+                            <input
+                                type="number"
+                                min={1}
+                                value={formatNumericalInput(desiredMissionCount)}
+                                onChange={(evt) => setDesiredMissionCount(Number(evt.target.value))}
+                            />
+                        </div>
+                    </div>
+                    <div className="editor-lists-section">
+                        <div className="editor-list-column">
+                            <label>Combined Mission Set</label>
+                            <ul className="editor-list">
+                                {leftList.map((name, index) => (
+                                    <LeftListItem
+                                        key={`${name}-${index}`}
+                                        name={name}
+                                        index={index}
+                                        isSelected={selectedLeftIndex === index}
+                                        onSelect={handleLeftItemClick}
+                                    />
+                                ))}
+                            </ul>
+                            <div className="editor-controls-row">
+                                <Button
+                                    className="jaia-button"
+                                    disabled={!hasLeftSelection || selectedLeftIndex === 0}
+                                    onClick={handleMoveUp}
+                                >
+                                    <Icon path={mdiArrowUp} size={0.8} title="Move up" />
+                                </Button>
+                                <Button
+                                    className="jaia-button"
+                                    disabled={
+                                        !hasLeftSelection ||
+                                        selectedLeftIndex === leftList.length - 1
+                                    }
+                                    onClick={handleMoveDown}
+                                >
+                                    <Icon path={mdiArrowDown} size={0.8} title="Move down" />
+                                </Button>
+                                <Button
+                                    className="jaia-button"
+                                    disabled={!hasLeftSelection}
+                                    onClick={handleDelete}
+                                >
+                                    <Icon path={mdiDelete} size={0.8} title="Delete" />
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="editor-arrow-column">
+                            <Button
+                                className="jaia-button editor-add-button"
+                                disabled={!selectedRightName}
+                                onClick={handleAdd}
+                            >
+                                <div className="editor-add-button-content">
+                                    <Icon path={mdiArrowLeft} size={1} title={addButtonLabel} />
+                                    <span>{addButtonLabel}</span>
+                                </div>
+                            </Button>
+                        </div>
+                        <div className="editor-list-column">
+                            <label>Stored Mission Sets</label>
+                            <ul className="editor-source-list">
+                                {listSavedMissionSets().map((name) => (
+                                    <RightListItem
+                                        key={name}
+                                        name={name}
+                                        isSelected={selectedRightName === name}
+                                        onSelect={handleRightItemClick}
+                                    />
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="editor-button-row">
+                        <SaveAndLoadButton
+                            editorName={editorName}
+                            desiredMissionCount={desiredMissionCount}
+                            leftList={leftList}
+                            onClose={props.onClose}
+                        />
+                        <button onClick={props.onClose}>Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>,
+        document.getElementById(JCC_CONTAINER)!,
+    );
+}
+
+function LeftListItem(props: LeftListItemProps) {
+    return (
+        <li
+            className={`editor-list-item${props.isSelected ? " selected" : ""}`}
+            onClick={() => props.onSelect(props.index)}
+        >
+            {props.name}
+        </li>
+    );
+}
+
+function RightListItem(props: RightListItemProps) {
+    return (
+        <li
+            className={`editor-source-item${props.isSelected ? " selected" : ""}`}
+            onClick={() => props.onSelect(props.name)}
+        >
+            {props.name}
+        </li>
+    );
+}
