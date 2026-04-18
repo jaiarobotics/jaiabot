@@ -50,6 +50,7 @@ function distributeMissionsToSlots(missions: Mission[], slotCount: number): Miss
  *
  * @param {string[]} names Ordered list of saved mission set names
  * @param {number} desiredCount Number of output missions
+ * @param {Map<string, MissionSetSnapshot>} snapshotCache Cache of loaded snapshots
  * @returns {number} Maximum waypoints in any single output mission
  */
 export function getMaxWaypointsPerOutputMission(
