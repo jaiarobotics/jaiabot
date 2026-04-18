@@ -1,7 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
-import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../../utils/constants";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
 /**
  * Distributes an array of missions across a fixed number of output slots.
@@ -16,6 +16,8 @@ import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../../utils/constants";
  * @returns {Mission[][]} Array of length slotCount, each element being the source missions for that slot
  */
 function distributeMissionsToSlots(missions: Mission[], slotCount: number): Mission[][] {
+    // slotCount >= 1 is guaranteed by callers; both getMaxWaypointsPerOutputMission and
+    // combineMissionSets enforce desiredCount >= 1 before reaching here.
     const result: Mission[][] = Array.from({ length: slotCount }, (): Mission[] => []);
     const n = missions.length;
 
@@ -60,6 +62,8 @@ export function getMaxWaypointsPerOutputMission(
 ): number {
     if (names.length === 0 || desiredCount < 1) return 0;
 
+    // All names in leftList are loaded into snapshotCache by handleAdd before being added,
+    // so every get() is guaranteed to hit.
     const snapshots = names.map((name) => snapshotCache.get(name)!);
     const missionArrays = snapshots.map((snapshot) =>
         snapshot.missions.map(([_, mission]: [number, Mission]) => mission),
@@ -81,8 +85,6 @@ export function getMaxWaypointsPerOutputMission(
 
     return maxWaypoints;
 }
-
-export { MAX_WAYPOINTS };
 
 /**
  * Combines multiple saved mission sets into a single new mission set snapshot.
@@ -107,6 +109,9 @@ export function combineMissionSets(
     newName: string,
     snapshotCache: Map<string, MissionSetSnapshot>,
 ): MissionSetSnapshot {
+    // desiredCount is validated >= 1 by SaveAndLoadButton.getDisabledCode() before this is called.
+    // All names in leftList are loaded into snapshotCache by handleAdd before being added,
+    // so every get() is guaranteed to hit.
     const snapshots = names.map((name) => snapshotCache.get(name)!);
 
     const missionArrays = snapshots.map((snapshot) =>

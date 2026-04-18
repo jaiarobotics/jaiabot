@@ -181,7 +181,11 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <div className="editor-list-column">
                             <label>Combined Mission Set</label>
                             <div className="editor-list-scroll">
-                                <ul className="editor-list">
+                                <ul
+                                    className="editor-list"
+                                    role="listbox"
+                                    aria-label="Combined Mission Set"
+                                >
                                     {leftList.map((name, index) => (
                                         <LeftListItem
                                             key={`${name}-${index}`}
@@ -235,7 +239,11 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <div className="editor-list-column">
                             <label>Stored Mission Sets</label>
                             <div className="editor-list-scroll">
-                                <ul className="editor-source-list">
+                                <ul
+                                    className="editor-source-list"
+                                    role="listbox"
+                                    aria-label="Stored Mission Sets"
+                                >
                                     {savedMissionSets.map((name, index) => (
                                         <RightListItem
                                             key={name}
@@ -279,6 +287,8 @@ function LeftListItem(props: LeftListItemProps) {
     return (
         <li
             className={`editor-list-item${props.isSelected ? " selected" : ""}`}
+            role="option"
+            aria-selected={props.isSelected}
             onClick={() => props.onSelect(props.index)}
         >
             {props.name}
@@ -290,6 +300,8 @@ function RightListItem(props: RightListItemProps) {
     return (
         <li
             className={`editor-source-item${props.isSelected ? " selected" : ""}`}
+            role="option"
+            aria-selected={props.isSelected}
             onClick={() => props.onSelect(props.index)}
         >
             {props.name}
