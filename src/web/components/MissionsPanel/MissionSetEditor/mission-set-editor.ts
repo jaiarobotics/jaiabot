@@ -44,22 +44,6 @@ function distributeMissionsToSlots(missions: Mission[], slotCount: number): Miss
 }
 
 /**
- * Combines multiple saved mission sets into a single new mission set snapshot.
- *
- * For each output mission slot, missions from all source sets are interleaved by
- * position and their waypoints are concatenated in left-list order:
- *   output[0].waypoints = set[0][0].waypoints + set[1][0].waypoints + ...
- *   output[1].waypoints = set[0][1].waypoints + set[1][1].waypoints + ...
- *
- * Source sets with more missions than desiredCount are chained (multiple source
- * missions concatenated per slot). Source sets with fewer missions are cycled.
- *
- * @param {string[]} names Ordered list of saved mission set names to combine
- * @param {number} desiredCount Number of missions in the resulting set
- * @param {string} newName Name for the new combined mission set
- * @returns {MissionSetSnapshot} Snapshot ready to save and/or load
- */
-/**
  * Returns the maximum waypoint count across all output missions that would result
  * from combining the given mission sets with the specified output count.
  * Used to validate against MAX_WAYPOINTS before saving.
@@ -99,6 +83,23 @@ export function getMaxWaypointsPerOutputMission(
 
 export { MAX_WAYPOINTS };
 
+/**
+ * Combines multiple saved mission sets into a single new mission set snapshot.
+ *
+ * For each output mission slot, missions from all source sets are interleaved by
+ * position and their waypoints are concatenated in left-list order:
+ *   output[0].waypoints = set[0][0].waypoints + set[1][0].waypoints + ...
+ *   output[1].waypoints = set[0][1].waypoints + set[1][1].waypoints + ...
+ *
+ * Source sets with more missions than desiredCount are chained (multiple source
+ * missions concatenated per slot). Source sets with fewer missions are cycled.
+ *
+ * @param {string[]} names Ordered list of saved mission set names to combine
+ * @param {number} desiredCount Number of missions in the resulting set
+ * @param {string} newName Name for the new combined mission set
+ * @param {Map<string, MissionSetSnapshot>} snapshotCache Cache of loaded snapshots
+ * @returns {MissionSetSnapshot} Snapshot ready to save and/or load
+ */
 export function combineMissionSets(
     names: string[],
     desiredCount: number,
