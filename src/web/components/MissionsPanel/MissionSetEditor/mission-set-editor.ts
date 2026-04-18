@@ -2,7 +2,6 @@ import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../../utils/constants";
-import { loadSnapshotFromLocalStorage } from "../MissionSetStorage/mission-set-storage";
 
 /**
  * Distributes an array of missions across a fixed number of output slots.
@@ -76,11 +75,9 @@ export function getMaxWaypointsPerOutputMission(
 ): number {
     if (names.length === 0 || desiredCount < 1) return 0;
 
-    const snapshots = names.map(
-        (name) => snapshotCache.get(name) ?? loadSnapshotFromLocalStorage(name),
-    );
+    const snapshots = names.map((name) => snapshotCache.get(name)!);
     const missionArrays = snapshots.map((snapshot) =>
-        snapshot.missions.map(([_, mission]) => mission),
+        snapshot.missions.map(([_, mission]: [number, Mission]) => mission),
     );
     const distributedSets = missionArrays.map((missions) =>
         distributeMissionsToSlots(missions, desiredCount),
@@ -106,11 +103,12 @@ export function combineMissionSets(
     names: string[],
     desiredCount: number,
     newName: string,
+    snapshotCache: Map<string, MissionSetSnapshot>,
 ): MissionSetSnapshot {
-    const snapshots = names.map((name) => loadSnapshotFromLocalStorage(name));
+    const snapshots = names.map((name) => snapshotCache.get(name)!);
 
     const missionArrays = snapshots.map((snapshot) =>
-        snapshot.missions.map(([_, mission]) => cloneDeep(mission)),
+        snapshot.missions.map(([_, mission]: [number, Mission]) => cloneDeep(mission)),
     );
 
     const distributedSets = missionArrays.map((missions) =>
