@@ -199,8 +199,21 @@ message BotStatus
     // link: which link this message traversed from bot to hub
     optional Link link = 8 [(dccl.field).omit = true];
 
+    // Active links with last-received time per link (time written on hub upon receipt, not transmitted over air)
+    message ActiveLink {
+        required Link link = 1;
+        optional uint64 last_received_time = 2 [
+            (dccl.field) = {
+                omit: true
+                units { prefix: "micro" derived_dimensions: "time" }
+            }
+        ];
+    }
+
     // list of all active links on the Bot (based on BotStatus subscription messages)
-    repeated Link active_link = 9 [(dccl.field).max_repeat = 10];
+    repeated ActiveLink active_links = 9 [
+        (dccl.field).max_repeat = 10
+    ];
 
     optional GeographicCoordinate location = 10
         [(jaia.field).rest_api.presence = GUARANTEED];
@@ -365,23 +378,6 @@ message BotStatus
             units { prefix: "micro" derived_dimensions: "time" }
         },
         (jaia.field).rest_api.presence = GUARANTEED
-    ];
-
-    // Map of link => last time a status was received on that link (written on hub upon receipt)
-    message LinkLastReceivedTime {
-        required Link link = 1 [(dccl.field).omit = true];
-        required uint64 time = 2 [
-            (dccl.field) = {
-                omit: true  // hub-side only, not transmitted over air
-                units { prefix: "micro" derived_dimensions: "time" }
-            }
-        ];
-    }
-    repeated LinkLastReceivedTime link_last_received_time = 60 [
-        (dccl.field) = {
-            omit: true
-            max_repeat: 10
-        }
     ];
 
     optional uint64 mission_command_time = 71 [

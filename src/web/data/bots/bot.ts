@@ -7,8 +7,9 @@ import {
     GeographicCoordinate,
     HealthState,
     Warning,
+    ActiveLink,
+    Link,
 } from "../../types/protobuf-types";
-import { Link } from "../../shared/JAIAProtobuf";
 import BotSensors from "./bot-sensors";
 
 export default class Bot {
@@ -24,7 +25,7 @@ export default class Bot {
     private wifiLinkQuality: number;
     private statusAge: number;
     private link: Link;
-    private activeLinks: Link[];
+    private activeLinks: ActiveLink[];
     private activeLinkStatusAges: { [link: string]: number };
     private engineering: Engineering;
     private mode: BotModes;
@@ -87,8 +88,6 @@ export default class Bot {
         return this.botSensors;
     }
 
-    // setBotSensors does not exists because the sensor init is handled when the Bot type is received
-
     getLocation() {
         return this.location;
     }
@@ -131,15 +130,15 @@ export default class Bot {
         this.link = link;
     }
 
-    getActiveLinks() {
+    getActiveLinks(): ActiveLink[] {
         return this.activeLinks ?? [];
     }
 
-    setActiveLinks(activeLinks: Link[]) {
+    setActiveLinks(activeLinks: ActiveLink[]) {
         this.activeLinks = activeLinks;
     }
 
-    getActiveLinkStatusAges() {
+    getActiveLinkStatusAges(): { [link: string]: number } {
         return this.activeLinkStatusAges ?? {};
     }
 

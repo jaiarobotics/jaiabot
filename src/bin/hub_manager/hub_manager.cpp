@@ -152,7 +152,7 @@ class HubManager : public ApplicationBase
     constexpr static std::size_t history_max_count_{100};
 
     // Map from bot_id => (link => last received time)
-    std::map<uint32_t, std::map<Link, goby::time::SteadyClock::time_point>>
+    std::map<uint32_t, std::map<jaiabot::protobuf::Link, goby::time::MicroTime>>
         bot_status_link_last_received_;
 
     bool is_virtualhub_;
@@ -850,12 +850,14 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
     // we still want to update the last-received time for this link to ensure accurate tracking of link age
     if (dccl_nav.has_link())
         bot_status_link_last_received_[dccl_nav.bot_id()][dccl_nav.link()] =
-            goby::time::SteadyClock::now();
+            goby::time::SystemClock::now<goby::time::MicroTime>();
 
     if (prev_times.count(dccl_nav.time()))
     {
         glog.is_debug1() && glog << group("bot_status")
-                                << "Repeat Bot Status received! Ignoring..." << std::endl;
+                                << "Repeat Bot Status received on link: " 
+                                << jaiabot::protobuf::Link_Name(dccl_nav.link()) 
+                                << "! Ignoring..." << std::endl;
 
         return;
     }
@@ -863,12 +865,11 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
     // Always stamp the current link last-received times into the proto
     // so the portal always has up-to-date link age data
     auto& link_times = bot_status_link_last_received_[dccl_nav.bot_id()];
-    dccl_nav.clear_link_last_received_time();
-    for (const auto& [link, time_point] : link_times)
+    for (auto& active_link : *dccl_nav.mutable_active_links())
     {
-        auto* entry = dccl_nav.add_link_last_received_time();
-        entry->set_link(link);
-        entry->set_time(goby::time::convert<goby::time::MicroTime>(time_point).value());
+        auto it = link_times.find(active_link.link());
+        if (it != link_times.end())
+            active_link.set_last_received_time(it->second.value());
     }
 
     // Keep track of previous bot status times per bot to avoid duplicates
