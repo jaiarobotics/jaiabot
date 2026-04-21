@@ -148,7 +148,7 @@ class HubManager : public ApplicationBase
     // Map bot id to previouse eng status timestamp to ignore duplicates
     std::map<uint16_t, std::set<uint64_t>> eng_status_id_to_prev_timestamps_;
     // only store up to the last N previous command times to avoid
-    // potential memory leak on very long missions
+    // large memory usage
     constexpr static std::size_t history_max_count_{100};
 
     // Map from bot_id => (link => last received time)

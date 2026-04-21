@@ -70,7 +70,7 @@ class JaiabotEngineering : public ApplicationBase
     // Store previous commands time to ensure commands ignore duplicates
     std::set<uint64_t> prev_command_times_;
     // only store up to the last N previous command times to avoid
-    // potential memory leak on very long missions
+    // large memory usage
     constexpr static std::size_t command_history_max_count_{100};
 };
 } // namespace apps
