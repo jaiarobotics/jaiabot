@@ -302,7 +302,9 @@ void jaiabot::apps::WebPortal::process_client_message(jaiabot::protobuf::ClientT
 
 void jaiabot::apps::WebPortal::loop()
 {
-    if (device_metadata_.has_jaiabot_version() && device_metadata_.has_is_simulation())
+    if (device_metadata_.has_jaiabot_version() 
+        && device_metadata_.has_simulation_warp() 
+        && device_metadata_.has_is_simulation())
     {
         jaiabot::protobuf::PortalToClientMessage message;
         *message.mutable_device_metadata() = device_metadata_;

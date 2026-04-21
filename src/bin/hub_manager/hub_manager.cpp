@@ -862,7 +862,7 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
         return;
     }
 
-    // Always stamp the current link last-received times into the proto
+    // Stamp all last-received times into the proto
     // so the portal always has up-to-date link age data
     auto& link_times = bot_status_link_last_received_[dccl_nav.bot_id()];
     for (auto& active_link : *dccl_nav.mutable_active_links())
