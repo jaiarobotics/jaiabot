@@ -591,7 +591,7 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
                         auto engineering_status = input_engineering_status;
 
                         // Make sure the engineering_status is not a repeat
-                        // If it is, then we should not handle the bot_status and exit
+                        // If it is, then we should not handle it and exit
                         auto& prev_times = eng_status_id_to_prev_timestamps_[engineering_status.bot_id()];
 
                         if (prev_times.count(engineering_status.time()))
@@ -842,7 +842,7 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
     }
 
     // Make sure the bot_status is not a repeat
-    // If it is, then we should not handle the bot_status and exit
+    // If it is, then we should not handle it and exit
     auto& prev_times = bot_status_id_to_prev_timestamps_[dccl_nav.bot_id()];
 
     // Update the last-received time for this link on a fresh status
@@ -1004,7 +1004,7 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     }
 
     // Make sure the taskpacket is not a repeat
-    // If it is, then we should not handle the taskpacket and exit
+    // If it is, then we should not handle it and exit
     auto& prev_times = task_packet_id_to_prev_timestamps_[task_packet.bot_id()];
 
     if (prev_times.count(task_packet.start_time()))
