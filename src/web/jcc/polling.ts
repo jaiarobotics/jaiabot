@@ -13,12 +13,9 @@ import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { NO_COMMS_STATUS_AGE, IRIDIUM_NO_COMMS_STATUS_AGE } from "../utils/constants";
 import { Metadata, Version } from "../types/protobuf-types";
-import { Link } from "../shared/JAIAProtobuf";
 import SoundEffects from "../style/audio/sound-effects";
 
 const MAX_REQUEST_TIME = 10000; // ms;
-const XBEE_WIFI_DISCONNECT_THRESHOLD = NO_COMMS_STATUS_AGE * 1e6;
-const IRIDIUM_DISCONNECT_THRESHOLD = IRIDIUM_NO_COMMS_STATUS_AGE * 1e6;
 const VERSION_LENGTH = 3;
 
 const CONNECTION_WARNING = "connection-warning";
@@ -203,9 +200,11 @@ export async function pollInternet() {
 function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
     const botIDs = Object.keys(botStatuses);
     for (let botID of botIDs) {
-        const prevStatusAge = bots.getBot(Number(botID))?.getStatusAge();
-        handleBotSoundEffects(prevStatusAge, botStatuses[botID].portalStatusAge, botStatuses[botID].link);
+        const numericBotID = Number(botID);
+        const wasCommsDropped = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
         bots.setBot(botStatuses[botID]);
+        botStatuses[botID].isDisconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
+        handleBotSoundEffects(wasCommsDropped, botStatuses[botID].isDisconnected);
     }
     bots.setTick(bots.getTick() + 1);
 }
@@ -279,28 +278,20 @@ function updateWarning(id: string, isDisconnected: boolean) {
 }
 
 /**
- * Plays disconnect and reconnect sounds based on Bot's status age
+ * Plays disconnect and reconnect sounds based on Bot's comms state transitions
  *
- * @param {number} prevStatusAge Used to mark first moment of comms connect/disconnect
- * @param {number} newStatusAge Used to check for Bot connection status
- * @param {Link} link The link type from the last BotStatus message
+ * @param {boolean} wasCommsDropped Previous comms dropped state
+ * @param {boolean} isCommsDropped Current comms dropped state
  * @returns {void}
  */
-function handleBotSoundEffects(prevStatusAge: number, newStatusAge: number, link?: Link) {
-    if (!prevStatusAge) {
-        return;
-    }
-
-    const disconnectThreshold =
-        link === Link.LINK_IRIDIUM ? IRIDIUM_DISCONNECT_THRESHOLD : XBEE_WIFI_DISCONNECT_THRESHOLD;
-
-    const isBotDisconnected = newStatusAge > disconnectThreshold;
-
-    if (isBotDisconnected && prevStatusAge < disconnectThreshold) {
+function handleBotSoundEffects(wasCommsDropped: boolean, isCommsDropped: boolean) {
+    // Transition from connected to disconnected
+    if (isCommsDropped && !wasCommsDropped) {
         SoundEffects.botDisconnect.play();
     }
 
-    if (!isBotDisconnected && prevStatusAge >= disconnectThreshold) {
+    // Transition from disconnected to connected
+    if (!isCommsDropped && wasCommsDropped) {
         SoundEffects.botReconnect.play();
     }
 }

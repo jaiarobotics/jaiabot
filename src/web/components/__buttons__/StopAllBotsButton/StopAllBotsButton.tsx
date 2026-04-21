@@ -14,11 +14,8 @@ import Bot from "../../../data/bots/bot";
 
 import { DialogActions } from "../../../types/context-types";
 import { Command, CommandType } from "../../../types/protobuf-types";
-import { Link } from "../../../shared/JAIAProtobuf";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { microsecondsToSeconds } from "../../../utils/conversions";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
-import { getNoCommsTimeout } from "../../BotDetails/bot-details";
 
 interface Props {
     bots: Map<number, Bot>;
@@ -49,7 +46,7 @@ export default function StopAllBotsButton(props: Props) {
         const updatedBotReadyStates = new Map<DisabledCodes, number[]>(initBotReadyStates());
 
         for (const [botID, bot] of props.bots.entries()) {
-            if (isCommsDropped(bot.getStatusAge(), bot.getLink())) {
+            if (bot.isCommsDropped()) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (!isCommandAvailable(CommandType.STOP, bot.getMissionStatus().missionState)) {
                 updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
@@ -145,15 +142,4 @@ function initBotReadyStates() {
         [DisabledCodes.MISSION_STATE, []],
     ];
     return botReadyStates;
-}
-
-/**
- * Checks the supplied status age against the no comms threshold
- *
- * @param {number} statusAge Bot's status age in microseconds
- * @param {Link} link The link type from the last BotStatus message
- * @returns {boolean} True if the Bot does not have comms with the Hub
- */
-function isCommsDropped(statusAge: number, link?: Link) {
-    return microsecondsToSeconds(statusAge) > getNoCommsTimeout(link);
 }

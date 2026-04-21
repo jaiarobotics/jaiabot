@@ -83,11 +83,11 @@ export default function HubDetails() {
         const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
 
         if (statusAgeSeconds > healthFailedTimeout) {
-            return "healthFailed";
+            return "health-state-failed";
         }
 
         if (statusAgeSeconds > healthDegradedTimeout) {
-            return "healthDegraded";
+            return "health-state-degraded";
         }
 
         return "";

@@ -10,6 +10,8 @@ import {
     ActiveLink,
     Link,
 } from "../../types/protobuf-types";
+import { IRIDIUM_NO_COMMS_STATUS_AGE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
+import { microsecondsToSeconds } from "../../utils/conversions";
 import BotSensors from "./bot-sensors";
 
 export default class Bot {
@@ -160,6 +162,20 @@ export default class Bot {
 
     setMode(mode: BotModes) {
         this.mode = mode;
+    }
+
+    /**
+     * Determines if the Bot has lost comms with the Hub based on the age of the portal status and link type
+     * Takes into account link type (Iridium has a longer timeout)
+     *
+     * @returns true if the bot has lost comms with the hub
+     */
+    isCommsDropped(): boolean {
+        const commsTimeout =
+            this.getLink() === Link.LINK_IRIDIUM
+                ? IRIDIUM_NO_COMMS_STATUS_AGE
+                : NO_COMMS_STATUS_AGE;
+        return microsecondsToSeconds(this.getStatusAge()) > commsTimeout;
     }
 
     private initializeSensors() {

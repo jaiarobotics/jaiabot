@@ -38,7 +38,6 @@ import {
     formatAttitudeAngle,
     convertMicrosecondsToSeconds,
 } from "../../shared/Utilities";
-import type { Link } from "../../shared/JAIAProtobuf";
 
 // MDI and MUI
 import { ThemeProvider } from "@mui/material";
@@ -152,7 +151,7 @@ export default function BotDetails() {
                                         <tr
                                             className={getStatusAgeClassName(
                                                 bot.getStatusAge(),
-                                                bot.getLink(),
+                                                bot.isCommsDropped(),
                                             )}
                                         >
                                             <td>Status Age</td>
@@ -325,7 +324,7 @@ export default function BotDetails() {
                                                         key={link}
                                                         className={getStatusAgeClassName(
                                                             statusAge,
-                                                            link as Link,
+                                                            bot.isCommsDropped(),
                                                         )}
                                                     >
                                                         <td>{formatLinkName(link)}</td>
