@@ -12,7 +12,6 @@ import Bot from "../../../data/bots/bot";
 import { DialogActions } from "../../../types/context-types";
 import { Command, CommandType, MissionState } from "../../../types/protobuf-types";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
-import { microsecondsToSeconds } from "../../../utils/conversions";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 
 interface Props {

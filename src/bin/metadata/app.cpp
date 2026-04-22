@@ -74,8 +74,8 @@ void jaiabot::apps::Metadata::publish_metadata()
 
     // Set is_simulation, if present in the config
     metadata.set_is_simulation(cfg().has_is_simulation() && cfg().is_simulation());
-    auto test = goby::time::SimulatorSettings::warp_factor;
-    metadata.set_simulation_warp(goby::time::SimulatorSettings::warp_factor);
+    auto warp_factor = goby::time::SimulatorSettings::warp_factor;
+    metadata.set_simulation_warp(warp_factor > 0 ? warp_factor : 1);
     metadata.set_simulation_reference_time(
         goby::time::convert<goby::time::MicroTime>(goby::time::SimulatorSettings::reference_time)
             .value());

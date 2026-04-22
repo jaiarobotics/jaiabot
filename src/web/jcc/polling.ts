@@ -11,7 +11,6 @@ import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
-import { NO_COMMS_STATUS_AGE, IRIDIUM_NO_COMMS_STATUS_AGE } from "../utils/constants";
 import { Metadata, Version } from "../types/protobuf-types";
 import SoundEffects from "../style/audio/sound-effects";
 

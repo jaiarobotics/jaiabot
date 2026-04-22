@@ -2,7 +2,6 @@
 import { MissionState } from "../../types/protobuf-types";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
-import { Link } from "../../shared/JAIAProtobuf";
 
 import { missionSet } from "../../data/mission_set/mission-set";
 import Hub from "../../data/hubs/hub";

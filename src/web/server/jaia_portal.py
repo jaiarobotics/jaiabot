@@ -419,7 +419,7 @@ class Interface:
                   if 'last_received_time' in entry]
             
             if link_times:
-                bot['portalStatusAge'] = (now - max(link_times)) / warp_factor
+                bot['portalStatusAge'] = int((now - max(link_times)) / warp_factor)
 
             self.update_active_link_status_ages(bot, warp_factor)
 
