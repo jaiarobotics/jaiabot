@@ -221,9 +221,9 @@ def command_for_hub(jaia_request: APIRequest) -> APIResponse:
     return jaia_response
 
 def surob_mission_plan_request(jaia_request: APIRequest) -> APIResponse:
-    SUROB_MEASUREMENT_TIME_M = 7.0 # 5 minutes per station keep + 2 minute budget for dives, actual time may be lower
-    SUROB_STATION_KEEP_TIME_M = 5.0
+    SUROB_STATION_KEEP_TIME_M = 10.0
     SUROB_SURFACE_DRIFT_TIME_M = 2.0
+    SUROB_MEASUREMENT_TIME_M = SUROB_STATION_KEEP_TIME_M + 2.0 # add 2 minute budget for dives, actual time may be lower
 
     MAX_WAYPOINTS = 80 # should match https://github.com/jaiarobotics/jaiabot/blob/2.y/src/web/utils/constants.ts#L32
     
