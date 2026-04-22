@@ -1008,6 +1008,11 @@ export enum Link {
     LINK_HUB2HUB = "LINK_HUB2HUB",
 }
 
+export interface ActiveLink {
+    link?: Link;
+    last_received_time?: number;
+}
+
 export interface BotStatus {
     bot_id?: number;
     time?: number;
@@ -1034,7 +1039,8 @@ export interface BotStatus {
     data_offload_percentage?: number;
     wifi_link_quality_percentage?: number;
     link?: Link;
-    active_link?: Link[];
+    active_links?: ActiveLink[];
+    active_link_status_age?: { [link: string]: number };
 }
 
 export interface EstimatedDrift {

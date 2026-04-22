@@ -720,8 +720,12 @@ void jaiabot::apps::Fusion::loop()
         latest_engineering_status.mutable_rf_disable_options()->set_rf_disable_timeout_mins(
             rf_disabled_timeout_mins_);
 
-        latest_bot_status_.clear_active_link();
-        for (auto link : active_links_) latest_bot_status_.add_active_link(link);
+        latest_bot_status_.clear_active_links();
+        for (auto link : active_links_)
+        {
+            auto* active_link = latest_bot_status_.add_active_links();
+            active_link->set_link(link);
+        }
 
         // If we get an engineering query for bot status
         if (latest_engineering_status.query_bot_status())

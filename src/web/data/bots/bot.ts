@@ -7,8 +7,11 @@ import {
     GeographicCoordinate,
     HealthState,
     Warning,
+    ActiveLink,
+    Link,
 } from "../../types/protobuf-types";
-import { Link } from "../../shared/JAIAProtobuf";
+import { IRIDIUM_NO_COMMS_STATUS_AGE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
+import { microsecondsToSeconds } from "../../utils/conversions";
 import BotSensors from "./bot-sensors";
 
 export default class Bot {
@@ -24,7 +27,7 @@ export default class Bot {
     private wifiLinkQuality: number;
     private statusAge: number;
     private link: Link;
-    private activeLinks: Link[];
+    private activeLinks: ActiveLink[];
     private activeLinkStatusAges: { [link: string]: number };
     private engineering: Engineering;
     private mode: BotModes;
@@ -87,8 +90,6 @@ export default class Bot {
         return this.botSensors;
     }
 
-    // setBotSensors does not exists because the sensor init is handled when the Bot type is received
-
     getLocation() {
         return this.location;
     }
@@ -131,15 +132,15 @@ export default class Bot {
         this.link = link;
     }
 
-    getActiveLinks() {
+    getActiveLinks(): ActiveLink[] {
         return this.activeLinks ?? [];
     }
 
-    setActiveLinks(activeLinks: Link[]) {
+    setActiveLinks(activeLinks: ActiveLink[]) {
         this.activeLinks = activeLinks;
     }
 
-    getActiveLinkStatusAges() {
+    getActiveLinkStatusAges(): { [link: string]: number } {
         return this.activeLinkStatusAges ?? {};
     }
 
@@ -161,6 +162,20 @@ export default class Bot {
 
     setMode(mode: BotModes) {
         this.mode = mode;
+    }
+
+    /**
+     * Determines if the Bot has lost comms with the Hub based on the age of the portal status and link type
+     * Takes into account link type (Iridium has a longer timeout)
+     *
+     * @returns true if the bot has lost comms with the hub
+     */
+    isCommsDropped(): boolean {
+        const commsTimeout =
+            this.getLink() === Link.LINK_IRIDIUM
+                ? IRIDIUM_NO_COMMS_STATUS_AGE
+                : NO_COMMS_STATUS_AGE;
+        return microsecondsToSeconds(this.getStatusAge()) > commsTimeout;
     }
 
     private initializeSensors() {

@@ -14,7 +14,6 @@ import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
-import { isCommsDropped } from "../button-utils";
 
 interface Props {
     bots: Map<number, Bot>;
@@ -44,7 +43,7 @@ export default function DataOffloadAllButton(props: Props) {
         const updatedBotReadyStates = new Map<DisabledCodes, number[]>(initBotReadyStates());
 
         for (const [botID, bot] of props.bots.entries()) {
-            if (isCommsDropped(bot.getStatusAge(), bot.getLink())) {
+            if (bot.isCommsDropped()) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (
                 !(

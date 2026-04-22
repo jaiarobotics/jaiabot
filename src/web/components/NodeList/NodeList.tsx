@@ -5,8 +5,6 @@ import { JaiaContextType, JaiaAction } from "../../types/context-types";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { HealthState } from "../../types/protobuf-types";
-import { Link } from "../../shared/JAIAProtobuf";
-import { isDisconnected } from "../BotDetails/bot-details";
 import { CLOUD_HUB_ID } from "../../utils/constants";
 import "./NodeList.less";
 
@@ -45,15 +43,14 @@ export default function NodeList() {
      * @param {NodeTypes} nodeType Indicates Bot or Hub
      * @param {number} nodeID Provides ID of Bot or Hub
      * @param {HealthState} healthState Determines color of node item
-     * @param {number} statusAge Indicates comms with the node (microsecodns)
+     * @param {boolean} isCommsDropped Indicates whether the node is currently experiencing dropped comms
      * @returns {string} Class name that sets correct style
      */
     function getClassName(
         nodeType: NodeTypes,
         nodeID: number,
         healthState: HealthState,
-        statusAge: number,
-        link?: Link,
+        isCommsDropped?: boolean,
     ) {
         const faultLevel: Map<HealthState, number> = new Map([
             [HealthState.HEALTH__OK, 0],
@@ -67,7 +64,7 @@ export default function NodeList() {
         const selectedClass =
             selectedNode.type === nodeType && selectedNode.id === nodeID ? "selected" : "";
 
-        const disconnectedClass = isDisconnected(statusAge, link) ? "disconnected" : "";
+        const disconnectedClass = isCommsDropped ? "disconnected" : "";
 
         return `node-item ${nodeTypeClass} ${faultLevelClass} ${selectedClass} ${disconnectedClass}`;
     }
@@ -86,7 +83,7 @@ export default function NodeList() {
                         NodeTypes.HUB,
                         hub.getHubID(),
                         hub.getHealthState(),
-                        hub.getStatusAge(),
+                        hub.isCommsDropped(),
                     )}
                 >
                     <div className="hub-label">
@@ -105,8 +102,7 @@ export default function NodeList() {
                         NodeTypes.BOT,
                         bot.getBotID(),
                         bot.getHealthState(),
-                        bot.getStatusAge(),
-                        bot.getLink(),
+                        bot.isCommsDropped(),
                     )}
                 >
                     {bot.getBotID()}

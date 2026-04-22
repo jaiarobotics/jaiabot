@@ -142,7 +142,18 @@ class HubManager : public ApplicationBase
     std::set<jaiabot::protobuf::Link> links_to_subscribe_on_;
 
     // Map bot id to previouse task packet timestamp to ignore duplicates
-    std::map<uint16_t, uint64_t> task_packet_id_to_prev_timestamp_;
+    std::map<uint16_t, std::set<uint64_t>> task_packet_id_to_prev_timestamps_;
+    // Map bot id to previouse bot status timestamp to ignore duplicates
+    std::map<uint16_t, std::set<uint64_t>> bot_status_id_to_prev_timestamps_;
+    // Map bot id to previouse eng status timestamp to ignore duplicates
+    std::map<uint16_t, std::set<uint64_t>> eng_status_id_to_prev_timestamps_;
+    // only store up to the last N previous command times to avoid
+    // large memory usage
+    constexpr static std::size_t history_max_count_{100};
+
+    // Map from bot_id => (link => last received time)
+    std::map<uint32_t, std::map<jaiabot::protobuf::Link, goby::time::MicroTime>>
+        bot_status_link_last_received_;
 
     bool is_virtualhub_;
     goby::time::SteadyClock::time_point vfleet_shutdown_time_{
@@ -579,6 +590,25 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
 
                         auto engineering_status = input_engineering_status;
 
+                        // Make sure the engineering_status is not a repeat
+                        // If it is, then we should not handle it and exit
+                        auto& prev_times = eng_status_id_to_prev_timestamps_[engineering_status.bot_id()];
+
+                        if (prev_times.count(engineering_status.time()))
+                        {
+                            glog.is_debug1() && glog << group("engineering_status")
+                                                    << "Repeat Engineering Status received! Ignoring..." << std::endl;
+                            return;
+                        }
+
+                        // Keep track of previous engineering status times per bot to avoid duplicates
+                        // (typically from multiple comms links: iridium, wifi, xbee)
+                        // If our buffer overflows, remove the smallest (oldest) timestamp
+                        while (prev_times.size() >= history_max_count_)
+                            prev_times.erase(prev_times.begin());
+
+                        prev_times.insert(engineering_status.time());
+
                         // rewarp the time if needed
                         engineering_status.set_time_with_units(
                             goby::time::convert<goby::time::MicroTime>(
@@ -811,6 +841,45 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
         publish_hub2hub_data(&hub2hub_data);
     }
 
+    // Make sure the bot_status is not a repeat
+    // If it is, then we should not handle it and exit
+    auto& prev_times = bot_status_id_to_prev_timestamps_[dccl_nav.bot_id()];
+
+    // Update the last-received time for this link on a fresh status
+    // Even if we determine it's a duplicate based on the timestamp,
+    // we still want to update the last-received time for this link to ensure accurate tracking of link age
+    if (dccl_nav.has_link())
+        bot_status_link_last_received_[dccl_nav.bot_id()][dccl_nav.link()] =
+            goby::time::SystemClock::now<goby::time::MicroTime>();
+
+    if (prev_times.count(dccl_nav.time()))
+    {
+        glog.is_debug1() && glog << group("bot_status")
+                                << "Repeat Bot Status received on link: " 
+                                << jaiabot::protobuf::Link_Name(dccl_nav.link()) 
+                                << "! Ignoring..." << std::endl;
+
+        return;
+    }
+
+    // Stamp all last-received times into the proto
+    // so the portal always has up-to-date link age data
+    auto& link_times = bot_status_link_last_received_[dccl_nav.bot_id()];
+    for (auto& active_link : *dccl_nav.mutable_active_links())
+    {
+        auto it = link_times.find(active_link.link());
+        if (it != link_times.end())
+            active_link.set_last_received_time(it->second.value());
+    }
+
+    // Keep track of previous bot status times per bot to avoid duplicates
+    // (typically from multiple comms links: iridium, wifi, xbee)
+    // If our buffer overflows, remove the smallest (oldest) timestamp
+    while (prev_times.size() >= history_max_count_)
+        prev_times.erase(prev_times.begin());
+
+    prev_times.insert(dccl_nav.time());
+
     // don't shut down the hub while we have bots reporting to us
     if (is_virtualhub_)
         update_vhub_shutdown_time();
@@ -934,27 +1003,24 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
         publish_hub2hub_data(&hub2hub_data);
     }
 
-    if (task_packet_id_to_prev_timestamp_.count(task_packet.bot_id()))
-    {
-        auto prev_time = task_packet_id_to_prev_timestamp_.at(task_packet.bot_id());
+    // Make sure the taskpacket is not a repeat
+    // If it is, then we should not handle it and exit
+    auto& prev_times = task_packet_id_to_prev_timestamps_[task_packet.bot_id()];
 
-        // Make sure the taskpacket is not a repeat
-        // If it is, then we should not handle the taskpacket and exit
-        if (prev_time == task_packet.start_time())
-        {
-            glog.is_debug1() && glog << group("task_packet")
-                                     << "Repeat taskpacket received! Ignoring..." << std::endl;
-            return;
-        }
-        // Store the previous taskpacket time
-        task_packet_id_to_prev_timestamp_.at(task_packet.bot_id()) = task_packet.start_time();
-    }
-    else
+    if (prev_times.count(task_packet.start_time()))
     {
-        // Insert new bot id to previous task packet time
-        task_packet_id_to_prev_timestamp_.insert(
-            std::make_pair(task_packet.bot_id(), task_packet.start_time()));
+        glog.is_debug1() && glog << group("task_packet")
+                                << "Repeat taskpacket received! Ignoring..." << std::endl;
+        return;
     }
+
+    // Keep track of previous task packet times per bot to avoid duplicates
+    // (typically from multiple comms links: iridium, wifi, xbee)
+    // If our buffer overflows, remove the smallest (oldest) timestamp
+    while (prev_times.size() >= history_max_count_)
+        prev_times.erase(prev_times.begin());
+
+    prev_times.insert(task_packet.start_time());
 
     // Set the mission_name of the task packet based on the current mission id to name mapping for logging purposes
     jaiabot::protobuf::TaskPacket task_packet_copy = task_packet;

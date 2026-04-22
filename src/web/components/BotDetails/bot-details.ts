@@ -2,40 +2,25 @@
 import { MissionState } from "../../types/protobuf-types";
 import { MissionStatus } from "../../types/jaia-system-types";
 import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
-import { Link } from "../../shared/JAIAProtobuf";
 
 import { missionSet } from "../../data/mission_set/mission-set";
 import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
-import Mission from "../../data/mission_set/mission";
 
 import { point, rhumbDistance, Units } from "@turf/turf";
-import { IRIDIUM_NO_COMMS_STATUS_AGE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
-
-/**
- * Returns the no-comms timeout in seconds based on the link type.
- * Iridium link uses a 3-minute timeout; all other links use 30 seconds.
- *
- * @param {Link} link The link type from the last BotStatus message
- * @returns {number} Timeout in seconds
- */
-export function getNoCommsTimeout(link?: Link): number {
-    return link === Link.LINK_IRIDIUM ? IRIDIUM_NO_COMMS_STATUS_AGE : NO_COMMS_STATUS_AGE;
-}
 
 /**
  * Provides a class name that corresponds to styles illustrating comms health
  *
  * @param {number} portalStatusAge Time since last communication between Bot and Hub (microseconds)
- * @param {Link} link The link type from the last BotStatus message
+ * @param {boolean} isCommsDropped Whether or not the Bot is currently experiencing dropped comms
  * @returns {string} Class name that dictates the style of the status age
  */
-export function getStatusAgeClassName(portalStatusAge: number, link?: Link) {
-    const healthFailedTimeout = getNoCommsTimeout(link);
+export function getStatusAgeClassName(portalStatusAge: number, isCommsDropped?: boolean) {
     const healthDegradedTimeout = 10;
     const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
 
-    if (statusAgeSeconds >= healthFailedTimeout) {
+    if (isCommsDropped) {
         return "health-state-failed";
     }
 
@@ -44,24 +29,6 @@ export function getStatusAgeClassName(portalStatusAge: number, link?: Link) {
     }
 
     return "";
-}
-
-/**
- * Checks whether the Bot and Hub are communcating
- *
- * @param {number} portalStatusAge Time since last communcation between Bot and Hub (microseconds)
- * @param {Link} link The link type from the last BotStatus message
- * @returns {boolean} True if the Bot has communicated with the Hub within the link-specific timeout (30s for XBEE/WIFI, 180s for Iridium)
- */
-export function isDisconnected(portalStatusAge: number, link?: Link) {
-    const healthFailedTimeout = getNoCommsTimeout(link);
-    const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
-
-    if (statusAgeSeconds >= healthFailedTimeout) {
-        return true;
-    }
-
-    return false;
 }
 
 /**
