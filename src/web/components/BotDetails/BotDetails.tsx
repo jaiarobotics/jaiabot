@@ -95,6 +95,10 @@ export default function BotDetails() {
         });
     }
 
+    function formatLinkName(link: string) {
+        return link.replace("LINK_", "").replaceAll("_", " ");
+    }
+
     return (
         <React.Fragment>
             <div className="node-details">
@@ -144,7 +148,12 @@ export default function BotDetails() {
                             <AccordionDetails>
                                 <table>
                                     <tbody>
-                                        <tr className={getStatusAgeClassName(bot.getStatusAge())}>
+                                        <tr
+                                            className={getStatusAgeClassName(
+                                                bot.getStatusAge(),
+                                                bot.isCommsDropped(),
+                                            )}
+                                        >
                                             <td>Status Age</td>
                                             <td>
                                                 {convertMicrosecondsToSeconds(
@@ -286,6 +295,51 @@ export default function BotDetails() {
                             </AccordionSummary>
                             <AccordionDetails>
                                 <HealthRow />
+                            </AccordionDetails>
+                        </Accordion>
+                    </ThemeProvider>
+
+                    <ThemeProvider theme={accordionTheme}>
+                        <Accordion
+                            expanded={jaiaContext.botAccordionStates.commLinks}
+                            onChange={() => {
+                                handleAccordionClick(BotAccordionNames.COMM_LINKS);
+                            }}
+                            className="accordion-container"
+                        >
+                            <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                className="accordion-summary"
+                            >
+                                <Typography>Comm Links</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <table>
+                                    <tbody>
+                                        {Object.entries(bot.getActiveLinkStatusAges()).length >
+                                        0 ? (
+                                            Object.entries(bot.getActiveLinkStatusAges()).map(
+                                                ([link, statusAge]) => (
+                                                    <tr
+                                                        key={link}
+                                                        className={getStatusAgeClassName(
+                                                            statusAge,
+                                                            bot.isCommsDropped(),
+                                                        )}
+                                                    >
+                                                        <td>{formatLinkName(link)}</td>
+                                                        <td>{`${convertMicrosecondsToSeconds(statusAge).toFixed(0)} s`}</td>
+                                                    </tr>
+                                                ),
+                                            )
+                                        ) : (
+                                            <tr>
+                                                <td>No active links</td>
+                                                <td>N/A</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </AccordionDetails>
                         </Accordion>
                     </ThemeProvider>

@@ -6,6 +6,8 @@ import {
     LinuxHardwareStatus,
     Warning,
 } from "../../types/protobuf-types";
+import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
+import { microsecondsToSeconds } from "../../utils/conversions";
 import HubSensors from "./hub-sensors";
 
 export default class Hub {
@@ -99,5 +101,14 @@ export default class Hub {
 
     setStatusAge(statusAge: number) {
         this.statusAge = statusAge;
+    }
+
+    /**
+     * Determines if the hub has lost comms with the client
+     *
+     * @returns true if the hub has lost comms with the client
+     */
+    isCommsDropped(): boolean {
+        return microsecondsToSeconds(this.getStatusAge()) > NO_COMMS_STATUS_AGE;
     }
 }
