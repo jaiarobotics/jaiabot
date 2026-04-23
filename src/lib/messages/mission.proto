@@ -7,6 +7,10 @@ import "jaiabot/messages/option_extensions.proto";
 
 package jaiabot.protobuf;
 
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
 enum MissionState
 {
     PRE_DEPLOYMENT__STARTING_UP = 0 [(jaia.ev).rest_api.presence = GUARANTEED];
@@ -78,27 +82,46 @@ enum MissionState
     POST_DEPLOYMENT__FAILED = 205 [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
+enum MissionStart
+{
+    START_IMMEDIATELY = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+    START_ON_COMMAND = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
+    // START_IN_WATER_DETECT = 3;
+    // START_AFTER_DELAY = 4;
+}
+
+enum MovementType
+{
+    TRANSIT = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
+    REMOTE_CONTROL = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
+    TRAIL = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
+}
+
+// ---------------------------------------------------------------------------
+// Shared top-level messages (used by both MissionPlan and MissionPlanV2)
+// ---------------------------------------------------------------------------
+
 message Speeds
 {
     option (dccl.msg) = {
         unit_system: "si"
     };
 
-    optional double transit = 1 [
+    optional uint32 transit = 1 [
         default = 2,
         (dccl.field) = {
-            min: 0.1,
-            max: 3.0,
-            precision: 1,
+            min: 1,
+            max: 3,
+            precision: 0,
             units { base_dimensions: "LT^-1" }
         }
     ];
-    optional double stationkeep_outer = 2 [
-        default = 0.5,
+    optional uint32 stationkeep_outer = 2 [
+        default = 1,
         (dccl.field) = {
-            min: 0.1,
-            max: 3.0,
-            precision: 1,
+            min: 1,
+            max: 3,
+            precision: 0,
             units { base_dimensions: "LT^-1" }
         }
     ];
@@ -130,12 +153,11 @@ message BottomDepthSafetyParams
         }
     ];
 
-    required double constant_heading_speed = 3 [
-        default = 2,
+    required uint32 constant_heading_speed = 3 [
+        default = 3,
         (dccl.field) = {
-            min: 0,
-            max: 3.0,
-            precision: 1,
+            min: 1,
+            max: 3,
             units { base_dimensions: "LT^-1" }
         }
     ];
@@ -144,47 +166,67 @@ message BottomDepthSafetyParams
         default = -1,
         (dccl.field) = {
             min: -1,
-            max: 60,
+            max: 10,
             precision: 1,
-            units { base_dimensions: "LT^-1" }
+            units { base_dimensions: "L" }
         }
     ];
 }
 
-message MissionReport
+message Goal
+{
+    optional string name = 1 [(dccl.field).omit = true];
+    required GeographicCoordinate location = 2
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional MissionTask task = 3
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional bool moveWptMode = 4 [(dccl.field).omit = true];
+}
+
+message Recovery
+{
+    optional bool recover_at_final_goal = 1
+        [default = true, (jaia.field).rest_api.presence = GUARANTEED];
+    optional GeographicCoordinate location = 2
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message TrailParam
 {
     option (dccl.msg) = {
         unit_system: "si"
     };
 
-    required MissionState state = 10;
-    optional int32 active_goal = 11;
-    optional GeographicCoordinate active_goal_location = 12;
-    optional double distance_to_active_goal = 13 [(dccl.field) = {
-        min: 0
-        max: 1000
-        precision: 1
-        units: { derived_dimensions: "length" }
-    }];
-    optional uint32 active_goal_timeout = 14 [(dccl.field) = {
-        min: 0
-        max: 3600
-        precision: 0
-        units { base_dimensions: "T" }
-    }];
-    optional int32 data_offload_percentage = 15
-        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
-    optional int32 repeat_index = 16
-        [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
-    optional uint32 command_from_hub_id = 70
-        [(dccl.field) = { min: 0 max: 30 }];
-    optional uint64 mission_command_time = 71 [
+    optional int32 contact = 1
+        [default = 0, (dccl.field) = { min: 0, max: 7 }];
+
+    optional double angle = 2 [
+        default = 180,
         (dccl.field) = {
-            codec: "dccl.time2"
-            units { prefix: "micro" derived_dimensions: "time" },
+            min: 0
+            max: 360
+            precision: 0
+            units {
+                derived_dimensions: "plane_angle"
+                system: "angle::degree"
+            }
+        }
+    ];
+    optional bool angle_relative = 3 [default = true];
+    optional double range = 4 [
+        default = 50,
+        (dccl.field) = {
+            min: 0
+            max: 500
+            precision: 0
+            units: { derived_dimensions: "length" }
         }
     ];
 }
+
+// ---------------------------------------------------------------------------
+// MissionTask
+// ---------------------------------------------------------------------------
 
 message MissionTask
 {
@@ -239,10 +281,6 @@ message MissionTask
             [default = false, (jaia.field).rest_api.presence = GUARANTEED];
     }
 
-    // for type == DIVE
-    optional DiveParameters dive = 2
-        [(jaia.field).rest_api.presence = GUARANTEED];
-
     message DriftParameters
     {
         optional int32 drift_time = 3 [
@@ -256,10 +294,6 @@ message MissionTask
             (jaia.field).rest_api.presence = GUARANTEED
         ];
     }
-
-    // for type == SURFACE_DRIFT and type == DIVE
-    optional DriftParameters surface_drift = 3
-        [(jaia.field).rest_api.presence = GUARANTEED];
 
     message ConstantHeadingParameters
     {
@@ -287,23 +321,16 @@ message MissionTask
             (jaia.field).rest_api.presence = GUARANTEED
         ];
 
-        optional double constant_heading_speed = 3 [
+        optional uint32 constant_heading_speed = 3 [
             default = 2,
             (dccl.field) = {
-                min: 0.1,
-                max: 3.0,
-                precision: 1,
+                min: 1,
+                max: 3,
                 units { base_dimensions: "LT^-1" }
             },
             (jaia.field).rest_api.presence = GUARANTEED
         ];
     }
-
-    // for type == CONSTANT_HEADING
-    optional ConstantHeadingParameters constant_heading = 4
-        [(jaia.field).rest_api.presence = GUARANTEED];
-    optional bool start_echo = 5
-        [default = false, (jaia.field).rest_api.presence = GUARANTEED];
 
     message StationKeepParameters
     {
@@ -319,10 +346,29 @@ message MissionTask
         ];
     }
 
+    // for type == DIVE
+    optional DiveParameters dive = 2
+        [(jaia.field).rest_api.presence = GUARANTEED];
+
+    // for type == SURFACE_DRIFT and type == DIVE
+    optional DriftParameters surface_drift = 3
+        [(jaia.field).rest_api.presence = GUARANTEED];
+
+    // for type == CONSTANT_HEADING
+    optional ConstantHeadingParameters constant_heading = 4
+        [(jaia.field).rest_api.presence = GUARANTEED];
+
+    optional bool start_echo = 5
+        [default = false, (jaia.field).rest_api.presence = GUARANTEED];
+
     // for type == STATION_KEEP
     optional StationKeepParameters station_keep = 6
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
+
+// ---------------------------------------------------------------------------
+// MissionPlan (deprecated since 2.y, will be removed in 3.0.0 - use MissionPlanV2)
+// ---------------------------------------------------------------------------
 
 message MissionPlan
 {
@@ -330,49 +376,19 @@ message MissionPlan
         unit_system: "si"
     };
 
-    enum MissionStart
-    {
-        START_IMMEDIATELY = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
-        START_ON_COMMAND = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
-        // START_IN_WATER_DETECT = 3;
-        // START_AFTER_DELAY = 4;
-    }
     optional MissionStart start = 1 [
         default = START_ON_COMMAND,
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    enum MovementType
-    {
-        TRANSIT = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
-        REMOTE_CONTROL = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
-        TRAIL = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
-    }
     optional MovementType movement = 2
         [default = TRANSIT, (jaia.field).rest_api.presence = GUARANTEED];
-
-    message Goal
-    {
-        optional string name = 1 [(dccl.field).omit = true];
-        required GeographicCoordinate location = 2
-            [(jaia.field).rest_api.presence = GUARANTEED];
-        optional MissionTask task = 3
-            [(jaia.field).rest_api.presence = GUARANTEED];
-        optional bool moveWptMode = 4;
-    }
 
     repeated Goal goal = 3 [
         (dccl.field).max_repeat = 10,
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
-    message Recovery
-    {
-        optional bool recover_at_final_goal = 1
-            [default = true, (jaia.field).rest_api.presence = GUARANTEED];
-        optional GeographicCoordinate location = 2
-            [(jaia.field).rest_api.presence = GUARANTEED];
-    }
     optional Recovery recovery = 4
         [(jaia.field).rest_api.presence = GUARANTEED];
 
@@ -381,39 +397,6 @@ message MissionPlan
         [(jaia.field).rest_api.presence = GUARANTEED];
     optional uint32 fragment_index = 7 [(dccl.field) = { min: 0 max: 7 }];
     optional uint32 expected_fragments = 8 [(dccl.field) = { min: 1 max: 8 }];
-
-    message TrailParam
-    {
-        option (dccl.msg) = {
-            unit_system: "si"
-        };
-
-        optional int32 contact = 1
-            [default = 0, (dccl.field) = { min: 0, max: 7 }];
-
-        optional double angle = 2 [
-            default = 180,
-            (dccl.field) = {
-                min: 0
-                max: 360
-                precision: 0
-                units {
-                    derived_dimensions: "plane_angle"
-                    system: "angle::degree"
-                }
-            }
-        ];
-        optional bool angle_relative = 3 [default = true];
-        optional double range = 4 [
-            default = 50,
-            (dccl.field) = {
-                min: 0
-                max: 500
-                precision: 0
-                units: { derived_dimensions: "length" }
-            }
-        ];
-    }
 
     oneof movement_params
     {
@@ -427,33 +410,164 @@ message MissionPlan
     ];
 
     optional string mission_name = 11 [(dccl.field).omit = true]; // not sent over radio, only saved to the hub
-
 }
+
+// ---------------------------------------------------------------------------
+// MissionPlanV2
+// ---------------------------------------------------------------------------
+
+message MissionPlanV2
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    // A Section groups a contiguous range of goals (by global index) and
+    // carries the metadata that applies to that range.
+    message Section
+    {
+        enum SectionType
+        {
+            TRANSIT = 1; // ingress, egress, or inter-survey transit
+            SURVEY  = 2;
+        }
+        required SectionType type = 1;
+
+        // Start of this section (inclusive). End is inferred from the
+        // next section's start_goal_index, or the total goal count for
+        // the last section.
+        required uint32 start_goal_index = 2
+            [(dccl.field) = { min: 1, max: 80 }];
+
+        // Per-section transit speed override (m/s).
+        // Omit to use plan-level speeds.transit.
+        optional uint32 speed = 4 [
+            default = 2,
+            (dccl.field) = {
+                min: 1,
+                max: 3,
+                precision: 0,
+                units { base_dimensions: "LT^-1" }
+            }
+        ];
+
+        optional BottomDepthSafetyParams bottom_depth_safety_params = 5;
+
+        // Global goal indices marking the start of each survey lane within
+        // this section. 
+        repeated uint32 lane_start_goal_indices = 6
+            [(dccl.field) = { max_repeat: 8, min: 1, max: 80 }];
+    }
+
+    optional MissionStart start = 1 [
+        default = START_ON_COMMAND,
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    optional MovementType movement = 2
+        [default = TRANSIT, (jaia.field).rest_api.presence = GUARANTEED];
+
+
+    // All goals for this plan, in order, indexed 1-80 globally.
+    repeated Goal goal = 3 [
+        (dccl.field).max_repeat = 10,
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    optional Recovery recovery = 4
+        [(jaia.field).rest_api.presence = GUARANTEED];
+
+    // Plan-level speeds. speeds.transit is the default when a section omits
+    // its own speed. speeds.stationkeep_outer applies plan-wide.
+    optional Speeds speeds = 5 [(jaia.field).rest_api.presence = GUARANTEED];
+
+    // Sections in mission execution order. Non-overlapping goal index
+    // ranges are enforced by the UI before sending.
+    repeated Section section = 6
+        [(dccl.field).max_repeat = 5, (jaia.field).rest_api.presence = GUARANTEED];
+
+    optional uint32 fragment_index = 7 [(dccl.field) = { min: 0 max: 7 }];
+    optional uint32 expected_fragments = 8 [(dccl.field) = { min: 1 max: 8 }];
+
+    optional uint32 repeats = 9 [
+        default = 1,
+        (jaia.field).rest_api.presence = GUARANTEED,
+        (dccl.field) = { min: 1 max: 100 }
+    ];
+
+    oneof movement_params
+    {
+        TrailParam trail = 10;
+    }
+
+    optional string mission_name = 11 [(dccl.field).omit = true]; // not sent over radio, only saved to the hub
+}
+
+// ---------------------------------------------------------------------------
+// MissionReport
+// ---------------------------------------------------------------------------
+
+message MissionReport
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required MissionState state = 10;
+    optional int32 active_goal = 11;
+    optional GeographicCoordinate active_goal_location = 12;
+    optional double distance_to_active_goal = 13 [(dccl.field) = {
+        min: 0
+        max: 1000
+        precision: 1
+        units: { derived_dimensions: "length" }
+    }];
+    optional uint32 active_goal_timeout = 14 [(dccl.field) = {
+        min: 0
+        max: 3600
+        precision: 0
+        units { base_dimensions: "T" }
+    }];
+    optional int32 data_offload_percentage = 15
+        [(dccl.field) = { min: 0 max: 100 precision: 0 }];
+    optional int32 repeat_index = 16
+        [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
+    optional uint32 command_from_hub_id = 70
+        [(dccl.field) = { min: 0 max: 30 }];
+    optional uint64 mission_command_time = 71 [
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" },
+        }
+    ];
+}
+
+// ---------------------------------------------------------------------------
+// IvP Behavior messages
+// ---------------------------------------------------------------------------
 
 message IvPBehaviorUpdate
 {
     message TransitUpdate
     {
-        // unit dimensions must match those used by MOOS-IvP
         option (dccl.msg) = {
             unit_system: "si"
         };
         required bool active = 1;
 
         optional double x = 2
-            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+            [(dccl.field).units = { base_dimensions: "L" }];
         optional double y = 3
-            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+            [(dccl.field).units = { base_dimensions: "L" }];
         optional double speed = 4 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
-        ];  // meters/second
+        ];
 
         optional int32 slip_radius = 5;
     }
 
     message StationkeepUpdate
     {
-        // unit dimensions must match those used by MOOS-IvP
         option (dccl.msg) = {
             unit_system: "si"
         };
@@ -461,21 +575,20 @@ message IvPBehaviorUpdate
         required bool active = 1;
 
         optional double x = 2
-            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+            [(dccl.field).units = { base_dimensions: "L" }];
         optional double y = 3
-            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+            [(dccl.field).units = { base_dimensions: "L" }];
         optional double outer_speed = 4 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
-        ];  // meters/second
+        ];
         optional double transit_speed = 5 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
-        ];  // meters/second
+        ];
         optional bool center_activate = 6 [default = false];
     }
 
     message ConstantHeadingUpdate
     {
-        // unit dimensions must match those used by MOOS-IvP
         option (dccl.msg) = {
             unit_system: "si"
         };
@@ -492,7 +605,6 @@ message IvPBehaviorUpdate
 
     message ConstantSpeedUpdate
     {
-        // unit dimensions must match those used by MOOS-IvP
         option (dccl.msg) = {
             unit_system: "si"
         };
@@ -501,39 +613,38 @@ message IvPBehaviorUpdate
 
         optional double speed = 2 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
-        ];  // meters/second
+        ];
     }
 
     message TrailUpdate
     {
-        // unit dimensions must match those used by MOOS-IvP
         option (dccl.msg) = {
             unit_system: "si"
         };
 
         required bool active = 1;
 
-        optional MissionPlan.TrailParam param = 2;
+        // Updated: was MissionPlan.TrailParam, now top-level TrailParam
+        optional TrailParam param = 2;
     }
 
     message ContactUpdate
     {
-        // unit dimensions must match those used by MOOS-IvP
         option (dccl.msg) = {
             unit_system: "si"
         };
         optional int32 contact = 1;
         optional double x = 2
-            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+            [(dccl.field).units = { base_dimensions: "L" }];
         optional double y = 3
-            [(dccl.field).units = { base_dimensions: "L" }];  // meters
+            [(dccl.field).units = { base_dimensions: "L" }];
         optional double speed = 4 [
             (dccl.field).units = { base_dimensions: "LT^-1" }
-        ];  // meters/second
+        ];
         optional double heading_or_cog = 5 [(dccl.field).units = {
             derived_dimensions: "plane_angle"
             system: "angle::degree"
-        }];  // degrees
+        }];
     }
 
     oneof behavior
@@ -569,7 +680,6 @@ message MissionTpvMeetsGpsReq
     optional goby.middleware.protobuf.gpsd.TimePositionVelocity tpv = 1;
 }
 
-// Represents a summary of a mission, for use in mission querying results.
 message MissionSummary
 {
     optional string mission_name = 1;

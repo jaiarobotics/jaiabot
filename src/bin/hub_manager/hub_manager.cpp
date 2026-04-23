@@ -1235,7 +1235,7 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                                              << ", Total goal size: " << command.plan().goal_size()
                                              << std::endl;
 
-                    protobuf::MissionPlan::Goal* goal = mutable_plan->add_goal();
+                    protobuf::Goal* goal = mutable_plan->add_goal();
                     if (command.plan().goal(goal_index).has_name())
                     {
                         goal->set_name(command.plan().goal(goal_index).name());

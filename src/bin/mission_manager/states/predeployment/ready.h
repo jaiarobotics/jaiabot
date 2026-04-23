@@ -37,7 +37,7 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
             const auto plan = mission_feasible_event->plan;
             // reset the datum on the initial mission
             this->machine().set_mission_plan(plan, true);
-            if (plan.start() == protobuf::MissionPlan::START_IMMEDIATELY)
+            if (plan.start() == protobuf::START_IMMEDIATELY)
                 post_event(EvDeployed());
         }
         else if (mission_feasible_override_event)
@@ -48,7 +48,7 @@ struct Ready : boost::statechart::state<Ready, PreDeployment>,
             const auto plan = mission_feasible_override_event->plan;
             // reset the datum on the initial mission
             this->machine().set_mission_plan(plan, true);
-            if (plan.start() == protobuf::MissionPlan::START_IMMEDIATELY)
+            if (plan.start() == protobuf::START_IMMEDIATELY)
                 post_event(EvDeployed());
         }
     }

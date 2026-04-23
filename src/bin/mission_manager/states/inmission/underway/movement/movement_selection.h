@@ -40,9 +40,9 @@ struct MovementSelection : boost::statechart::state<MovementSelection, Movement>
     {
         switch (this->machine().mission_plan().movement())
         {
-            case protobuf::MissionPlan::TRANSIT: return transit<Transit>();
-            case protobuf::MissionPlan::REMOTE_CONTROL: return transit<RemoteControl>();
-            case protobuf::MissionPlan::TRAIL: return transit<Trail>();
+            case protobuf::TRANSIT: return transit<Transit>();
+            case protobuf::REMOTE_CONTROL: return transit<RemoteControl>();
+            case protobuf::TRAIL: return transit<Trail>();
         }
 
         // should never reach here but if does, abort the mission

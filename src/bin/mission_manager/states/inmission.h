@@ -56,17 +56,17 @@ struct InMission
 
     int repeat_index() const { return repeat_index_; }
 
-    boost::optional<protobuf::MissionPlan::Goal> current_goal() const
+    boost::optional<protobuf::Goal> current_goal() const
     {
         if (goal_index() >= this->machine().mission_plan().goal_size() ||
             goal_index() == RECOVERY_GOAL_INDEX)
             return boost::none;
         else
-            return boost::optional<protobuf::MissionPlan::Goal>(
+            return boost::optional<protobuf::Goal>(
                 this->machine().mission_plan().goal(goal_index()));
     }
 
-    protobuf::MissionPlan::Goal final_goal() const
+    protobuf::Goal final_goal() const
     {
         const auto& mission_plan = this->machine().mission_plan();
         return mission_plan.goal(mission_plan.goal_size() - 1);

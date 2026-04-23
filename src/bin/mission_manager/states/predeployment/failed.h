@@ -66,7 +66,7 @@ struct Failed : boost::statechart::state<Failed, PreDeployment>,
 
     void isFeasibleMissionRC(const EvMissionFeasible& ev)
     {
-        if (ev.plan.movement() == protobuf::MissionPlan_MovementType_REMOTE_CONTROL)
+        if (ev.plan.movement() == protobuf::REMOTE_CONTROL)
         {
             goby::glog.is_debug1() && goby::glog << "Mission Plan is rc, override failed state."
                                                  << std::endl;

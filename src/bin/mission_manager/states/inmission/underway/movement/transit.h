@@ -32,7 +32,7 @@ struct Transit
     typename StateBase::my_context c)
     : Base(c)
     {
-        boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
+        boost::optional<protobuf::Goal> goal = context<InMission>().current_goal();
         int slip_radius = cfg().waypoint_with_no_task_slip_radius();
 
         if (goal)

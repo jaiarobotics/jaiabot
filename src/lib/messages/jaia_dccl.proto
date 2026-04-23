@@ -90,6 +90,7 @@ message Command
     oneof command_data
     {
         // required for type == MISSION_PLAN
+        // deprecated since 2.6, will be removed in 3.y - use plan_v2
         MissionPlan plan = 20 [(jaia.field).rest_api = {
             presence: GUARANTEED,
             doc: "Used with \"command\": { \"type\" : \"MISSION_PLAN\" }"
@@ -103,6 +104,11 @@ message Command
 
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;
+
+        MissionPlanV2 plan_v2 = 32 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Used with \"command\": { \"type\" : \"MISSION_PLAN\" }"
+        }];
     }
 }
 
@@ -144,11 +150,11 @@ message CommandForHub
 message BotStatus
 {
     /*
-    Actual maximum size of message: 48 bytes / 384 bits
+    Actual maximum size of message: 54 bytes / 432 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................369
-        padding to full byte...................7
+        body.................................420
+        padding to full byte...................4
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {

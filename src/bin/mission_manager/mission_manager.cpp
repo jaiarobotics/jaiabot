@@ -844,8 +844,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             }
 
             // must have at least one goal
-            if (command.plan().movement() == protobuf::MissionPlan::TRANSIT &&
-                command.plan().goal_size() == 0)
+            if (command.plan().movement() == protobuf::TRANSIT && command.plan().goal_size() == 0)
             {
                 glog.is_warn() && glog << "Infeasible mission: Must have at least one goal in "
                                           "a TRANSIT mission"
@@ -1087,7 +1086,7 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
                 for (int goal_index = 0; goal_index < fragment.second.plan().goal_size();
                      goal_index++)
                 {
-                    protobuf::MissionPlan::Goal* goal = out_command.mutable_plan()->add_goal();
+                    protobuf::Goal* goal = out_command.mutable_plan()->add_goal();
                     if (fragment.second.plan().goal(goal_index).has_name())
                     {
                         goal->set_name(fragment.second.plan().goal(goal_index).name());

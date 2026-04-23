@@ -31,7 +31,7 @@ struct StationKeep
     typename StateBase::my_context c)
     : Base(c)
     {
-        boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
+        boost::optional<protobuf::Goal> goal = context<InMission>().current_goal();
 
         IvPBehaviorUpdate update;
 

@@ -32,7 +32,7 @@ struct ConstantHeading
     typename StateBase::my_context c)
     : StateBase(c)
     {
-        boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
+        boost::optional<protobuf::Goal> goal = context<InMission>().current_goal();
 
         boost::units::quantity<boost::units::si::plane_angle> heading(
             (goal.get().task().constant_heading().constant_heading() * boost::units::degree::degrees));
