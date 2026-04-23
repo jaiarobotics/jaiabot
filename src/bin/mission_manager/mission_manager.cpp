@@ -535,6 +535,9 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
     auto command_callback = [this](const protobuf::Command& input_command)
     {
+        glog.is_debug1() && glog << "Received Command: " << input_command.ShortDebugString()
+                                     << std::endl;
+
         if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
         {
             protobuf::Command out_command;

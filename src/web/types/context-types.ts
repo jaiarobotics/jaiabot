@@ -110,6 +110,7 @@ export interface HubAccordionStates {
 
 export const enum BotAccordionNames {
     QUICKLOOK = "quickLook",
+    COMM_LINKS = "commLinks",
     COMMANDS = "commands",
     ADVANCED_COMMANDS = "advanced_commands",
     HEALTH = "health",
@@ -121,6 +122,7 @@ export const enum BotAccordionNames {
 
 export interface BotAccordionStates {
     quickLook: boolean;
+    commLinks: boolean;
     commands: boolean;
     advancedCommands: boolean;
     health: boolean;
