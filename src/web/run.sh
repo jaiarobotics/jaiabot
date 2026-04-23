@@ -29,10 +29,15 @@ pushd ${JAIA_DIR}/scripts/git-hooks/init/pre-commit/ > /dev/null
 popd > /dev/null
 
 
+# Determine ports
+hub_id=${jaia_hub_index:-1}
+portal_port=$((40001 - hub_id))
+web_port=$((40000 + hub_id))
+
 # Start server
-echo 🟢 Starting server
+echo 🟢 Starting server for hub ${hub_id}
 pushd server > /dev/null
-    ./app.py -a ${BUILD_DIR} $1 &
+    ./app.py -p ${portal_port} -P ${web_port} -a ${BUILD_DIR} $1 &
 popd > /dev/null
 
 

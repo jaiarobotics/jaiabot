@@ -46,6 +46,9 @@ export function handleClickedBotAccordion(mutableState: JaiaContextType, action:
         case BotAccordionNames.QUICKLOOK:
             botAccordionStates.quickLook = !botAccordionStates.quickLook;
             break;
+        case BotAccordionNames.COMM_LINKS:
+            botAccordionStates.commLinks = !botAccordionStates.commLinks;
+            break;
         case BotAccordionNames.COMMANDS:
             botAccordionStates.commands = !botAccordionStates.commands;
             break;
