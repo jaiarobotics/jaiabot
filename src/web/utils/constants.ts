@@ -1,10 +1,13 @@
 export const UNASSIGNED_ID = -1;
+export const CLOUD_HUB_ID = 30;
 export const NO_CONSTRAINT = -1;
 export const DEFAULT_LANES = 5;
 export const DETAILS_DECIMALS = 2;
 export const LAT_LON_DECIMALS = 5;
 export const TEXT_OFFSET_RADIUS = 11;
+export const HUB_TEXT_OFFSET_RADIUS = 10;
 export const NO_COMMS_STATUS_AGE = 30; // seconds
+export const IRIDIUM_NO_COMMS_STATUS_AGE = 180; // seconds (3 minutes)
 export const DATA_MODEL_POLL_TIME = 500; // milliseconds
 export const TASK_PACKET_POLL_TIME = 1000; // milliseconds
 export const METADATA_POLL_TIME = 10_000; // milliseconds

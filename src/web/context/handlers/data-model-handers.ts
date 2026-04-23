@@ -26,6 +26,7 @@ const defaultHubAccordionStates: HubAccordionStates = {
 
 const defaultBotAccordionStates: BotAccordionStates = {
     quickLook: false,
+    commLinks: false,
     commands: false,
     advancedCommands: false,
     health: false,
