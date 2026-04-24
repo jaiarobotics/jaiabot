@@ -358,8 +358,9 @@ describe("routeAroundExclusionZones", () => {
     test("routes correctly around a concave L-shaped zone", () => {
         const zone = lShapeZone(41.0, -72.0, 0.001);
         exclusionZoneSet.addZone(zone);
-        // Path through the middle of the L
-        const p = plan(goal(41.0, -72.0005), goal(41.001, -72.0005));
+        // Path runs from well west to well east, crossing the bottom bar of the L
+        // Start and end are outside the zone and its 15m buffer
+        const p = plan(goal(41.0003, -72.003), goal(41.0003, -71.997));
         const result = routeAroundExclusionZones(p, 15);
 
         expect(result.bypassCount).toBeGreaterThan(0);
