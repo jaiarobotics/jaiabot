@@ -7,10 +7,9 @@ export interface ExclusionZone {
 }
 
 export const EXCLUSION_ZONE_SET_VERSION = "1.0";
-import { toConvexHull } from "../../utils/exclusion-zone-router";
 import Waypoint from "../waypoints/waypoint";
 
-/** Floating-point tolerance for lat/lon comparisons after hull projection roundtrips (~1 cm). */
+/** Floating-point tolerance for lat/lon comparisons (~1 cm). */
 const COORD_EPSILON = 1e-7;
 
 function coordsMatch(a: GeographicCoordinate, b: GeographicCoordinate): boolean {
@@ -78,8 +77,8 @@ export class ExclusionZoneSet {
     }
 
     /**
-     * Replaces a vertex at the given index, re-computes the convex hull, and
-     * returns the new index of the moved vertex in the hull.
+     * Replaces a vertex at the given index and stores the updated raw vertices.
+     * Returns the index of the moved vertex (unchanged — no hull reordering).
      * Returns the original index if the zone is not found.
      */
     moveVertex(zoneID: number, vertexIndex: number, newLocation: GeographicCoordinate): number {
@@ -88,28 +87,48 @@ export class ExclusionZoneSet {
 
         const newVertices = [...zone.vertices];
         newVertices[vertexIndex] = newLocation;
-        const { vertices: hullVertices } = toConvexHull({ vertices: newVertices });
-        this.updateZone(zoneID, { ...zone, vertices: hullVertices });
-
-        const newIdx = hullVertices.findIndex((v) => coordsMatch(v, newLocation));
-        return newIdx >= 0 ? newIdx : vertexIndex;
+        this.updateZone(zoneID, { ...zone, vertices: newVertices });
+        return vertexIndex;
     }
 
     /**
-     * Adds a new vertex to the zone, re-computes the convex hull, and returns
-     * the index of the new vertex in the hull. Returns -1 if the zone is not found.
+     * Appends a new vertex to the zone at the closest edge and returns its index.
+     * The vertex is inserted between the two existing vertices whose connecting
+     * segment is closest to the new location, so the polygon boundary grows
+     * naturally rather than the vertex being appended at the end.
+     * Returns -1 if the zone is not found.
      */
     addVertex(zoneID: number, newLocation: GeographicCoordinate): number {
         const zone = this.zones.get(zoneID);
         if (!zone?.vertices || zone.vertices.length < 3) return -1;
 
-        const { vertices: hullVertices } = toConvexHull({
-            vertices: [...zone.vertices, newLocation],
-        });
-        this.updateZone(zoneID, { ...zone, vertices: hullVertices });
+        const verts = zone.vertices;
+        const n = verts.length;
 
-        const newIdx = hullVertices.findIndex((v) => coordsMatch(v, newLocation));
-        return newIdx;
+        // Find the edge whose midpoint is closest to the new location.
+        // This gives a visually sensible insertion point for both convex
+        // and concave polygons without needing a hull reorder.
+        let bestEdge = 0;
+        let bestDist = Infinity;
+        for (let i = 0; i < n; i++) {
+            const a = verts[i];
+            const b = verts[(i + 1) % n];
+            const mx = ((a.lon ?? 0) + (b.lon ?? 0)) / 2;
+            const my = ((a.lat ?? 0) + (b.lat ?? 0)) / 2;
+            const dx = (newLocation.lon ?? 0) - mx;
+            const dy = (newLocation.lat ?? 0) - my;
+            const d = dx * dx + dy * dy;
+            if (d < bestDist) {
+                bestDist = d;
+                bestEdge = i;
+            }
+        }
+
+        // Insert after bestEdge so the polygon order is preserved.
+        const insertIdx = bestEdge + 1;
+        const newVertices = [...verts.slice(0, insertIdx), newLocation, ...verts.slice(insertIdx)];
+        this.updateZone(zoneID, { ...zone, vertices: newVertices });
+        return insertIdx;
     }
 
     captureSnapshot(): ExclusionZoneSetSnapshot {

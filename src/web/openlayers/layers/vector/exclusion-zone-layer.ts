@@ -13,7 +13,7 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { layersZIndexes } from "../zindex";
 import { LayerTitles, MapFeatureTypes } from "../../../types/openlayers-types";
 import { JaiaActions } from "../../../context/jaia-actions";
-import { toConvexHull, getZoneBufferVertices } from "../../../utils/exclusion-zone-router";
+import { getZoneBufferVertices } from "../../../utils/exclusion-zone-router";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
@@ -75,7 +75,7 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
 
             // OpenLayers closes the ring by repeating the first vertex — skip it.
             // Also deduplicate consecutive identical vertices (double-click to finish
-            // registers the last vertex twice, causing false non-convex detection).
+            // registers the last vertex twice).
             const allVertices = coords3857.slice(0, -1).map((coord) => {
                 const lonLat = toLonLat(coord);
                 return { lat: lonLat[1], lon: lonLat[0] };
@@ -88,13 +88,11 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
 
             if (!this.dispatch || vertices.length < 3) return;
 
-            // Always store the convex hull vertices — handles both non-convex shapes
-            // and self-intersecting bow ties silently without a confirmation dialog.
-            const { vertices: hullVertices } = toConvexHull({ vertices });
-
+            // Dispatch raw vertices — the router handles concave shapes directly
+            // via Clipper2, so no hull reduction is needed at draw time.
             this.dispatch({
                 type: JaiaActions.ADD_EXCLUSION_ZONE,
-                exclusionZone: { vertices: hullVertices },
+                exclusionZone: { vertices },
             });
         });
 

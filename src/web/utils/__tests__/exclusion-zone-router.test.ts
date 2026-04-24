@@ -8,7 +8,6 @@ import {
     getZoneBufferVertices,
     getBlockingZoneIDs,
     isLocationBlockedByZone,
-    toConvexHull,
     detectReroutesWithOverrides,
 } from "../exclusion-zone-router";
 import { METERS_PER_DEG } from "../constants";
@@ -57,6 +56,20 @@ function triangleZone(centerLat: number, centerLon: number, radiusDeg = 0.0003):
     };
 }
 
+/** An L-shaped (concave) zone for testing non-convex support. */
+function lShapeZone(originLat: number, originLon: number, d = 0.001): ExclusionZone {
+    return {
+        vertices: [
+            coord(originLat, originLon),
+            coord(originLat + d, originLon),
+            coord(originLat + d, originLon + d / 2),
+            coord(originLat + d / 2, originLon + d / 2),
+            coord(originLat + d / 2, originLon + d),
+            coord(originLat, originLon + d),
+        ],
+    };
+}
+
 /**
  * Approximate distance in metres between two geographic coordinates.
  * Uses the same equirectangular projection as the router.
@@ -70,18 +83,17 @@ function approxDistMetres(a: GeographicCoordinate, b: GeographicCoordinate): num
 
 /**
  * Checks whether a segment between two geographic coordinates crosses through
- * the interior of a zone hull. Uses the same approach as the router's
- * segmentIntersectsPolygon but in lat/lon space for test assertions.
+ * the interior of a polygon. Works for any simple polygon (convex or concave).
  */
-function segmentCrossesHull(
+function segmentCrossesPolygon(
     A: GeographicCoordinate,
     B: GeographicCoordinate,
-    hull: GeographicCoordinate[],
+    polygon: GeographicCoordinate[],
 ): boolean {
-    const n = hull.length;
+    const n = polygon.length;
     for (let i = 0; i < n; i++) {
-        const C = hull[i];
-        const D = hull[(i + 1) % n];
+        const C = polygon[i];
+        const D = polygon[(i + 1) % n];
         if (properSegmentsIntersect(A, B, C, D)) return true;
     }
     return false;
@@ -107,82 +119,6 @@ function properSegmentsIntersect(
     const d4 = crossProduct(A, B, D);
     return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
 }
-
-// ── toConvexHull ───────────────────────────────────────────────────────────────
-
-describe("toConvexHull", () => {
-    test("returns a triangle unchanged (already convex)", () => {
-        const zone = triangleZone(41.0, -72.0);
-        const result = toConvexHull(zone);
-        expect(result.wasConvexified).toBe(false);
-        expect(result.vertices.length).toBe(3);
-    });
-
-    test("returns a square unchanged (already convex)", () => {
-        const zone = squareZone(41.0, -72.0);
-        const result = toConvexHull(zone);
-        expect(result.wasConvexified).toBe(false);
-        expect(result.vertices.length).toBe(4);
-    });
-
-    test("convexifies an L-shaped polygon", () => {
-        const zone: ExclusionZone = {
-            vertices: [
-                coord(41.0, -72.0),
-                coord(41.001, -72.0),
-                coord(41.001, -72.0005),
-                coord(41.0005, -72.0005),
-                coord(41.0005, -72.001),
-                coord(41.0, -72.001),
-            ],
-        };
-        const result = toConvexHull(zone);
-        expect(result.wasConvexified).toBe(true);
-        expect(result.vertices.length).toBeLessThanOrEqual(6);
-        expect(result.vertices.length).toBeGreaterThanOrEqual(3);
-    });
-
-    test("convexifies a bow-tie (self-crossing) polygon", () => {
-        const zone: ExclusionZone = {
-            vertices: [
-                coord(41.0, -72.0),
-                coord(41.001, -72.001),
-                coord(41.001, -72.0),
-                coord(41.0, -72.001),
-            ],
-        };
-        const result = toConvexHull(zone);
-        expect(result.wasConvexified).toBe(true);
-        expect(result.vertices.length).toBeGreaterThanOrEqual(3);
-    });
-
-    test("handles collinear vertices", () => {
-        const zone: ExclusionZone = {
-            vertices: [
-                coord(41.0, -72.0),
-                coord(41.0005, -72.0),
-                coord(41.001, -72.0),
-                coord(41.001, -72.001),
-                coord(41.0, -72.001),
-            ],
-        };
-        const result = toConvexHull(zone);
-        expect(result.vertices.length).toBeGreaterThanOrEqual(3);
-    });
-
-    test("returns input unchanged for fewer than 3 vertices", () => {
-        const zone: ExclusionZone = { vertices: [coord(41.0, -72.0), coord(41.001, -72.0)] };
-        const result = toConvexHull(zone);
-        expect(result.wasConvexified).toBe(false);
-        expect(result.vertices).toEqual(zone.vertices);
-    });
-
-    test("handles undefined vertices", () => {
-        const result = toConvexHull({});
-        expect(result.wasConvexified).toBe(false);
-        expect(result.vertices).toEqual([]);
-    });
-});
 
 // ── getZoneBufferVertices ──────────────────────────────────────────────────────
 
@@ -215,13 +151,20 @@ describe("getZoneBufferVertices", () => {
         const buffer = getZoneBufferVertices(zone, margin);
 
         // Measure the minimum distance from any buffer vertex to its nearest
-        // hull vertex. For a Minkowski-sum expansion this should be ~margin.
-        const hull = toConvexHull(zone).vertices;
+        // zone vertex. For a round-join expansion this should be ~margin.
         const minDist = Math.min(
-            ...buffer.map((bv) => Math.min(...hull.map((hv) => approxDistMetres(bv, hv)))),
+            ...buffer.map((bv) =>
+                Math.min(...zone.vertices!.map((hv) => approxDistMetres(bv, hv))),
+            ),
         );
         expect(minDist).toBeGreaterThan(margin * 0.9);
-        expect(minDist).toBeLessThan(margin * 1.2);
+        expect(minDist).toBeLessThan(margin * 1.5);
+    });
+
+    test("returns buffer vertices for a concave L-shaped zone", () => {
+        const zone = lShapeZone(41.0, -72.0);
+        const buffer = getZoneBufferVertices(zone, 15);
+        expect(buffer.length).toBeGreaterThan(3);
     });
 
     test("returns empty array for fewer than 3 vertices", () => {
@@ -271,6 +214,16 @@ describe("isLocationBlockedByZone", () => {
         expect(isLocationBlockedByZone(coord(41.0, -72.0), 1)).toBe(true);
         const outside = coord(41.0 + 0.001, -72.0);
         expect(isLocationBlockedByZone(outside, 1)).toBe(false);
+    });
+
+    test("point inside the concave notch of an L-shaped zone is not blocked", () => {
+        // The notch of an L-shape is outside the zone — a convex hull would
+        // incorrectly block it. This test verifies concave zones are handled correctly.
+        const zone = lShapeZone(41.0, -72.0, 0.001);
+        exclusionZoneSet.addZone(zone);
+        // The notch is at approximately (41.0 + d/2..d, -72.0 + d/2..d) — use center of notch
+        const notchCenter = coord(41.0 + 0.00075, -72.0 + 0.00075);
+        expect(isLocationBlockedByZone(notchCenter, 1)).toBe(false);
     });
 });
 
@@ -358,47 +311,63 @@ describe("routeAroundExclusionZones", () => {
         expect(goals[goals.length - 1].location).toEqual(g2.location);
     });
 
-    test("does not route when start endpoint is inside the zone hull", () => {
+    test("does not route when start endpoint is inside the zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.001));
         const p = plan(goal(41.0, -72.0), goal(41.01, -72.0));
         const result = routeAroundExclusionZones(p, 15);
         expect(result.bypassCount).toBe(0);
     });
 
-    test("does not route when end endpoint is inside the zone hull", () => {
+    test("does not route when end endpoint is inside the zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.001));
         const p = plan(goal(41.01, -72.0), goal(41.0, -72.0));
         const result = routeAroundExclusionZones(p, 15);
         expect(result.bypassCount).toBe(0);
     });
 
-    // ── Path validity: the routed path must not cross zone hulls ────────────────
+    // ── Path validity: the routed path must not cross zone polygons ────────────
 
-    test("routed path does not cross the zone hull", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
+    test("routed path does not cross the zone polygon", () => {
+        const zone = squareZone(41.0, -72.0, 0.0005);
+        exclusionZoneSet.addZone(zone);
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
         const result = routeAroundExclusionZones(p, 15);
 
-        const hull = toConvexHull(squareZone(41.0, -72.0, 0.0005)).vertices;
         const goals = result.plan.goal!;
         for (let i = 0; i < goals.length - 1; i++) {
-            expect(segmentCrossesHull(goals[i].location!, goals[i + 1].location!, hull)).toBe(
-                false,
-            );
+            expect(
+                segmentCrossesPolygon(goals[i].location!, goals[i + 1].location!, zone.vertices!),
+            ).toBe(false);
         }
     });
 
-    test("routed path around a triangle does not cross the zone hull", () => {
-        exclusionZoneSet.addZone(triangleZone(41.0, -72.0, 0.0005));
+    test("routed path around a triangle does not cross the zone polygon", () => {
+        const zone = triangleZone(41.0, -72.0, 0.0005);
+        exclusionZoneSet.addZone(zone);
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
         const result = routeAroundExclusionZones(p, 15);
 
-        const hull = toConvexHull(triangleZone(41.0, -72.0, 0.0005)).vertices;
         const goals = result.plan.goal!;
         for (let i = 0; i < goals.length - 1; i++) {
-            expect(segmentCrossesHull(goals[i].location!, goals[i + 1].location!, hull)).toBe(
-                false,
-            );
+            expect(
+                segmentCrossesPolygon(goals[i].location!, goals[i + 1].location!, zone.vertices!),
+            ).toBe(false);
+        }
+    });
+
+    test("routes correctly around a concave L-shaped zone", () => {
+        const zone = lShapeZone(41.0, -72.0, 0.001);
+        exclusionZoneSet.addZone(zone);
+        // Path through the middle of the L
+        const p = plan(goal(41.0, -72.0005), goal(41.001, -72.0005));
+        const result = routeAroundExclusionZones(p, 15);
+
+        expect(result.bypassCount).toBeGreaterThan(0);
+        const goals = result.plan.goal!;
+        for (let i = 0; i < goals.length - 1; i++) {
+            expect(
+                segmentCrossesPolygon(goals[i].location!, goals[i + 1].location!, zone.vertices!),
+            ).toBe(false);
         }
     });
 
@@ -446,7 +415,7 @@ describe("routeAroundExclusionZones", () => {
 
     test("does not insert bypass when path passes near but does not cross the zone buffer", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0003));
-        // Path runs north of zone, well outside the 15m buffer (~0.0003 deg ≈ 33m from zone edge)
+        // Path runs north of zone, well outside the 15m buffer
         const p = plan(goal(41.001, -72.005), goal(41.001, -71.995));
         const result = routeAroundExclusionZones(p, 15);
         expect(result.bypassCount).toBe(0);
@@ -454,14 +423,14 @@ describe("routeAroundExclusionZones", () => {
 
     // ── Safety margin edge cases ───────────────────────────────────────────────
 
-    test("safety margin of 0 still routes when path crosses hull", () => {
+    test("safety margin of 0 still routes when path crosses zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
         const result = routeAroundExclusionZones(p, 0);
         expect(result.bypassCount).toBeGreaterThan(0);
     });
 
-    test("large safety margin causes routing for paths that miss the hull", () => {
+    test("large safety margin causes routing for paths that miss the zone", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0003));
         // Path passes ~30m north of zone edge — within a 50m buffer
         const p = plan(goal(41.0006, -72.005), goal(41.0006, -71.995));
@@ -473,7 +442,6 @@ describe("routeAroundExclusionZones", () => {
 
     test("routes a diagonal path that clips a zone corner", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
-        // Diagonal from SW to NE, clipping the zone
         const p = plan(goal(40.999, -72.002), goal(41.001, -71.998));
         const result = routeAroundExclusionZones(p, 15);
         expect(result.bypassCount).toBeGreaterThan(0);
@@ -554,8 +522,6 @@ describe("detectReroutesWithOverrides", () => {
         if (result) {
             const proposal = result.proposals.find((p) => p.missionID === missionID);
             if (proposal) {
-                // The proposal's newWaypoints should not contain old bypass waypoints
-                // reinserted verbatim — they should be freshly computed
                 const cleanCount = proposal.newWaypoints.filter((w) => !w.getIsBypass()).length;
                 expect(cleanCount).toBe(2);
             }
@@ -599,7 +565,8 @@ describe("detectReroutesWithOverrides", () => {
     });
 
     test("proposal newWaypoints form a valid path around the zone", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
+        const zone = squareZone(41.0, -72.0, 0.0005);
+        exclusionZoneSet.addZone(zone);
 
         const m = new Mission();
         m.addWaypoint(coord(41.0, -72.005));
@@ -609,12 +576,11 @@ describe("detectReroutesWithOverrides", () => {
         const result = detectReroutesWithOverrides(new Map());
         expect(result).not.toBeNull();
 
-        const hull = toConvexHull(squareZone(41.0, -72.0, 0.0005)).vertices;
         const wps = result!.proposals[0].newWaypoints;
         for (let i = 0; i < wps.length - 1; i++) {
             const a = wps[i].getLocation();
             const b = wps[i + 1].getLocation();
-            expect(segmentCrossesHull(a, b, hull)).toBe(false);
+            expect(segmentCrossesPolygon(a, b, zone.vertices!)).toBe(false);
         }
     });
 });

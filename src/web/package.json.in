@@ -22,7 +22,8 @@
         "react-gamepad": "^1.0.3",
         "react-joystick-component": "^6.2.1",
         "reset-css": "^5.0.2",
-        "toastr": "^2.1.4"
+        "toastr": "^2.1.4",
+        "clipper2-ts": "^2.0.1"
     },
     "devDependencies": {
         "@babel/core": "^7.29.0",

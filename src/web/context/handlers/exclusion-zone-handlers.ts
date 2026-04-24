@@ -8,7 +8,6 @@ import {
     PendingWaypointRemoval,
 } from "../../data/exclusion_zones/exclusion-zone-set";
 import { MapModes } from "../../types/openlayers-types";
-import { toConvexHull } from "../../utils/exclusion-zone-router";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers } from "./handler-utils";
 import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
@@ -223,8 +222,8 @@ export function handleSelectZoneVertex(mutableState: JaiaContextType, action: Ja
 }
 
 /**
- * Moves the currently selected zone vertex to a new location, re-convex-hulls
- * the zone, and triggers mission reroute/waypoint-removal detection.
+ * Moves the currently selected zone vertex to a new location and triggers
+ * mission reroute/waypoint-removal detection.
  * If any waypoints fall inside the new zone shape the move is staged and the
  * operator is shown the waypoint-removal dialog; cancelling reverts the zone.
  */
@@ -238,7 +237,7 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
     // Snapshot the original zone so we can revert if the operator cancels.
     const priorZone = { zoneID: selected.zoneID, zone: { ...zone, vertices: [...zone.vertices] } };
 
-    // Delegate geometry mutation to the data model; get back the new hull index.
+    // moveVertex now stores raw vertices in place — vertexIndex is stable.
     const newIdx = exclusionZoneSet.moveVertex(
         selected.zoneID,
         selected.vertexIndex,
@@ -254,7 +253,6 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
     // Waypoints inside the enlarged zone take priority — warn before rerouting.
     const pendingRemoval = detectWaypointRemovals(selected.zoneID);
     if (pendingRemoval) {
-        // Overwrite triggeringZoneID with priorZone so cancel restores rather than deletes.
         mutableState.pendingWaypointRemoval = {
             ...pendingRemoval,
             triggeringZoneID: undefined,
@@ -318,10 +316,9 @@ export function handleToggleZoneVertexTapToMove(mutableState: JaiaContextType) {
 }
 
 /**
- * Adds a new vertex at the clicked map location and re-convex-hulls the zone so
- * the vertex is sorted into its correct position on the hull. Mirrors the draw
- * experience: click anywhere to expand the zone to include that point.
- * Triggers waypoint-removal and reroute detection the same way a vertex move does.
+ * Adds a new vertex at the clicked map location, inserted at the closest edge
+ * so the polygon boundary grows naturally. Triggers waypoint-removal and
+ * reroute detection the same way a vertex move does.
  */
 export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined || !action.location) return mutableState;
@@ -331,7 +328,6 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
     // Snapshot for cancel/revert.
     const priorZone = { zoneID: action.zoneID, zone: { ...zone, vertices: [...zone.vertices] } };
 
-    // Delegate geometry mutation to the data model; get back the new hull index.
     const newIdx = exclusionZoneSet.addVertex(action.zoneID, action.location);
     if (newIdx >= 0) {
         jaiaGlobal.setSelectedZoneVertex({
@@ -372,8 +368,9 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
 }
 
 /**
- * Deletes a vertex from a zone. Requires at least 3 vertices to remain.
- * Re-convex-hulls after deletion and triggers reroute detection.
+ * Deletes a vertex from a zone. Requires at least 4 vertices to remain
+ * (minimum 3 after deletion). Raw vertex order is preserved; no hull reorder.
+ * Triggers reroute detection after deletion.
  */
 export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined || action.vertexIndex === undefined) return mutableState;
@@ -381,8 +378,7 @@ export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: Ja
     if (!zone?.vertices || zone.vertices.length <= 3) return mutableState;
 
     const newVertices = zone.vertices.filter((_, i) => i !== action.vertexIndex);
-    const { vertices: hullVertices } = toConvexHull({ vertices: newVertices });
-    exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: hullVertices });
+    exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: newVertices });
     jaiaGlobal.resetSelectedZoneVertex();
     exclusionZoneLayer.updateFeatures();
 
