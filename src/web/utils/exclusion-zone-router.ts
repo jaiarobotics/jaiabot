@@ -6,7 +6,7 @@
  * before sending the mission plan to the bot.
  */
 
-import { Clipper, JoinType, EndType } from "clipper2-ts";
+import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
 import { GeographicCoordinate, Goal, MissionPlan } from "../types/protobuf-types";
 import { METERS_PER_DEG } from "./constants";
 import {
@@ -120,14 +120,16 @@ function segmentIntersectsPolygon(A: XYPt, B: XYPt, poly: XYPt[]): boolean {
  * Clipper2 returns no result (e.g. degenerate input).
  */
 function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
-    const result = Clipper.inflatePaths(
-        [poly.map((p) => ({ x: p.x, y: p.y }))],
-        margin,
-        JoinType.Round,
-        EndType.Polygon,
-    );
+    const input = [poly.map((p) => ({ x: p.x, y: p.y }))];
+    const cleaned = Clipper.union(input, [], FillRule.NonZero);
+    const subject = cleaned.length > 0 ? cleaned : input;
+
+    const result = Clipper.inflatePaths(subject, margin, JoinType.Round, EndType.Polygon);
     if (!result || result.length === 0 || result[0].length === 0) return poly;
-    return result[0].map((p: { x: number; y: number }) => ({ x: p.x, y: p.y }));
+    // Union all inflated rings into one outline.
+    const merged = Clipper.union(result, [], FillRule.NonZero);
+    if (!merged || merged.length === 0) return poly;
+    return merged[0].map((p: { x: number; y: number }) => ({ x: p.x, y: p.y }));
 }
 
 function distSq(A: XYPt, B: XYPt): number {
