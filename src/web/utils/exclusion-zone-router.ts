@@ -48,12 +48,32 @@ function cross(O: XYPt, A: XYPt, B: XYPt): number {
     return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
 }
 
+function onSegment(A: XYPt, B: XYPt, P: XYPt): boolean {
+    const EPS = 1e-9;
+    return (
+        Math.min(A.x, B.x) - EPS <= P.x &&
+        P.x <= Math.max(A.x, B.x) + EPS &&
+        Math.min(A.y, B.y) - EPS <= P.y &&
+        P.y <= Math.max(A.y, B.y) + EPS
+    );
+}
+
 function segmentsIntersect(A: XYPt, B: XYPt, C: XYPt, D: XYPt): boolean {
+    const EPS = 1e-9;
     const d1 = cross(C, D, A);
     const d2 = cross(C, D, B);
     const d3 = cross(A, B, C);
     const d4 = cross(A, B, D);
-    return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+    const properIntersect =
+        ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+    if (properIntersect) return true;
+
+    // Treat boundary contact as blocked so the path does not graze zone edges.
+    if (Math.abs(d1) <= EPS && onSegment(C, D, A)) return true;
+    if (Math.abs(d2) <= EPS && onSegment(C, D, B)) return true;
+    if (Math.abs(d3) <= EPS && onSegment(A, B, C)) return true;
+    if (Math.abs(d4) <= EPS && onSegment(A, B, D)) return true;
+    return false;
 }
 
 function pointInPolygon(P: XYPt, poly: XYPt[]): boolean {
@@ -97,7 +117,7 @@ function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
     const cleaned = Clipper.union(input, [], FillRule.NonZero);
     const subject = cleaned.length > 0 ? cleaned : input;
 
-    const result = Clipper.inflatePaths(subject, margin, JoinType.Miter, EndType.Polygon);
+    const result = Clipper.inflatePaths(subject, margin, JoinType.Round, EndType.Polygon);
     if (!result || result.length === 0 || result[0].length === 0) return poly;
 
     const merged = Clipper.union(result, [], FillRule.NonZero);
@@ -127,6 +147,7 @@ interface ZoneGeom {
 // ── A* grid pathfinding ────────────────────────────────────────────────────────
 
 const GRID_CELL_SIZE = 5; // metres per grid cell
+const DEFAULT_SAFETY_MARGIN_METERS = 15;
 
 interface GridNode {
     g: number;
@@ -143,13 +164,17 @@ interface GridNode {
  */
 function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: number): XYPt[] {
     const GRID_PADDING = safetyMargin;
+    const PLANNING_CLEARANCE = GRID_CELL_SIZE * 0.5;
+    // Use a slightly inflated collision boundary during grid planning so the
+    // discretized route does not visually clip a few meters into the buffer.
+    const collisionPolys = zoneGeoms.map((zg) => expandPolygon(zg.expanded, PLANNING_CLEARANCE));
 
     // Check if direct path is clear.
-    const directBlocked = zoneGeoms.some(
-        (zg) =>
-            segmentIntersectsPolygon(A, B, zg.expanded) ||
-            pointInPolygon(A, zg.expanded) ||
-            pointInPolygon(B, zg.expanded),
+    const directBlocked = collisionPolys.some(
+        (poly) =>
+            segmentIntersectsPolygon(A, B, poly) ||
+            pointInPolygon(A, poly) ||
+            pointInPolygon(B, poly),
     );
     // Suppress if either endpoint is inside the raw zone (unroutable).
     const aInRaw = zoneGeoms.some((zg) => pointInPolygon(A, zg.raw));
@@ -158,7 +183,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
     if (!directBlocked) return [];
 
     // Build grid over the bounding box of A, B, and all zone extents.
-    const allPts = [A, B, ...zoneGeoms.flatMap((zg) => zg.expanded)];
+    const allPts = [A, B, ...collisionPolys.flat()];
     const minX = Math.min(...allPts.map((p) => p.x)) - GRID_PADDING;
     const minY = Math.min(...allPts.map((p) => p.y)) - GRID_PADDING;
     const maxX = Math.max(...allPts.map((p) => p.x)) + GRID_PADDING;
@@ -173,7 +198,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
         for (let col = 0; col < cols; col++) {
             const cx = minX + col * GRID_CELL_SIZE;
             const cy = minY + row * GRID_CELL_SIZE;
-            if (zoneGeoms.some((zg) => pointInPolygon({ x: cx, y: cy }, zg.expanded))) {
+            if (collisionPolys.some((poly) => pointInPolygon({ x: cx, y: cy }, poly))) {
                 blocked[row * cols + col] = 1;
             }
         }
@@ -224,7 +249,10 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
     const heuristic = (idx: number): number => {
         const col = idx % cols;
         const row = Math.floor(idx / cols);
-        return Math.sqrt((col - goalFree.col) ** 2 + (row - goalFree.row) ** 2);
+        const dx = Math.abs(col - goalFree.col);
+        const dy = Math.abs(row - goalFree.row);
+        // Octile distance is admissible for 8-neighbour grids.
+        return Math.max(dx, dy) + (Math.SQRT2 - 1) * Math.min(dx, dy);
     };
 
     nodes.set(startIdx, { g: 0, f: heuristic(startIdx), parent: null });
@@ -271,14 +299,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
             const nIdx = cellToIdx(nc, nr);
             if (blocked[nIdx]) continue;
 
-            // Penalize backtracking — moving away from goal.
-            const currentDistToGoal = Math.sqrt(
-                (col - goalFree.col) ** 2 + (row - goalFree.row) ** 2,
-            );
-            const newDistToGoal = Math.sqrt((nc - goalFree.col) ** 2 + (nr - goalFree.row) ** 2);
-            const backtrackPenalty = newDistToGoal > currentDistToGoal ? 2.0 : 0;
-
-            const ng = currentNode.g + dirCosts[d] + backtrackPenalty;
+            const ng = currentNode.g + dirCosts[d];
             const existing = nodes.get(nIdx);
             if (existing && existing.g <= ng) continue;
 
@@ -313,12 +334,8 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
     while (i < fullPath.length - 1) {
         let farthest = i + 1;
         for (let j = i + 2; j < fullPath.length; j++) {
-            const clear = !zoneGeoms.some((zg) =>
-                segmentIntersectsPolygon(
-                    simplified[simplified.length - 1],
-                    fullPath[j],
-                    zg.expanded,
-                ),
+            const clear = !collisionPolys.some((poly) =>
+                segmentIntersectsPolygon(simplified[simplified.length - 1], fullPath[j], poly),
             );
             if (clear) farthest = j;
             else break;
@@ -345,7 +362,7 @@ interface RouteResult {
  */
 export function routeAroundExclusionZones(
     plan: MissionPlan,
-    safetyMargin = 15,
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
     originOverride?: GeographicCoordinate,
 ): RouteResult {
     const goals = plan.goal ?? [];
@@ -398,12 +415,13 @@ export function routeAroundExclusionZones(
         );
         if (blockingZones.length === 0) continue;
 
+        // Route around all zones so generated bypasses remain globally valid.
         const bypassPts = findBypassPath(A, B, zoneGeoms, safetyMargin);
 
         const MIN_BYPASS_DIST_FROM_DEST = GRID_CELL_SIZE * 2; // bypass points within 10m of B are redundant
         const filteredBypass = bypassPts.filter((pt) => dist(pt, B) > MIN_BYPASS_DIST_FROM_DEST);
         if (filteredBypass.length > 0) {
-            for (const pt of bypassPts) {
+            for (const pt of filteredBypass) {
                 result.push({ xy: pt, goal: { name: "route_bypass" }, isBypass: true });
                 totalInserted++;
             }
@@ -431,7 +449,7 @@ export function routeAroundExclusionZones(
  */
 export function getZoneBufferVertices(
     zone: ExclusionZone,
-    safetyMargin = 15,
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): GeographicCoordinate[] {
     if (!zone.vertices || zone.vertices.length < 3) return [];
     const origin = zone.vertices[0];
@@ -444,7 +462,10 @@ export function getZoneBufferVertices(
  * Returns the IDs of every zone whose safety-margin buffer contains the given
  * location.
  */
-export function getBlockingZoneIDs(location: GeographicCoordinate, safetyMargin = 15): number[] {
+export function getBlockingZoneIDs(
+    location: GeographicCoordinate,
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
+): number[] {
     const ids: number[] = [];
     for (const [zoneID, zone] of exclusionZoneSet.getZones()) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
@@ -462,7 +483,7 @@ export function getBlockingZoneIDs(location: GeographicCoordinate, safetyMargin 
  */
 export function isLocationBlockedByZone(
     location: GeographicCoordinate,
-    safetyMargin = 15,
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): boolean {
     return getBlockingZoneIDs(location, safetyMargin).length > 0;
 }

@@ -120,6 +120,17 @@ function properSegmentsIntersect(
     return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
 }
 
+function interpolate(
+    a: GeographicCoordinate,
+    b: GeographicCoordinate,
+    t: number,
+): GeographicCoordinate {
+    return {
+        lat: a.lat! + (b.lat! - a.lat!) * t,
+        lon: a.lon! + (b.lon! - a.lon!) * t,
+    };
+}
+
 // ── getZoneBufferVertices ──────────────────────────────────────────────────────
 
 describe("getZoneBufferVertices", () => {
@@ -446,6 +457,45 @@ describe("routeAroundExclusionZones", () => {
         const p = plan(goal(40.999, -72.002), goal(41.001, -71.998));
         const result = routeAroundExclusionZones(p, 15);
         expect(result.bypassCount).toBeGreaterThan(0);
+    });
+
+    test("reroutes when a path runs just outside the zone edge but inside buffer", () => {
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
+        // Segment sits just south of the raw zone edge (~1.1m), so endpoints are
+        // not in the raw zone, but it is still inside a 15m safety buffer.
+        const p = plan(goal(40.99949, -72.0005), goal(40.99949, -71.9995));
+        const result = routeAroundExclusionZones(p, 15);
+        expect(result.bypassCount).toBeGreaterThan(0);
+    });
+
+    test("does not keep bypass waypoints that are too close to destination", () => {
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
+        const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
+        const result = routeAroundExclusionZones(p, 15);
+
+        const destination = result.plan.goal![result.plan.goal!.length - 1].location!;
+        const bypasses = result.plan.goal!.filter((g) => g.name === "route_bypass");
+        for (const bypass of bypasses) {
+            const distanceToDest = approxDistMetres(bypass.location!, destination);
+            expect(distanceToDest).toBeGreaterThan(9.99);
+        }
+    });
+
+    test("routed path samples stay outside the buffer boundary", () => {
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
+        const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
+        const margin = 15;
+        const result = routeAroundExclusionZones(p, margin);
+        const goals = result.plan.goal!;
+
+        for (let i = 0; i < goals.length - 1; i++) {
+            const a = goals[i].location!;
+            const b = goals[i + 1].location!;
+            for (let t = 0; t <= 1.0; t += 0.1) {
+                const sample = interpolate(a, b, t);
+                expect(isLocationBlockedByZone(sample, margin)).toBe(false);
+            }
+        }
     });
 });
 
