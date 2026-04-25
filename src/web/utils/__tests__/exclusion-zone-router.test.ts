@@ -481,6 +481,37 @@ describe("routeAroundExclusionZones", () => {
         }
     });
 
+    test("compacts bypass clusters that are only one grid-step apart", () => {
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
+        const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
+        const result = routeAroundExclusionZones(p, 15);
+        const bypasses = result.plan.goal!.filter((g) => g.name === "route_bypass");
+
+        for (let i = 0; i < bypasses.length - 1; i++) {
+            const d = approxDistMetres(bypasses[i].location!, bypasses[i + 1].location!);
+            expect(d).toBeGreaterThan(5.5);
+        }
+    });
+
+    test("avoids obvious local backtracking in simple single-zone reroutes", () => {
+        exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
+        const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
+        const result = routeAroundExclusionZones(p, 15);
+        const goals = result.plan.goal!;
+        const destination = goals[goals.length - 1].location!;
+        const bypasses = goals.filter((g) => g.name === "route_bypass");
+
+        let prevDist: number | null = null;
+        for (const bypass of bypasses) {
+            const d = approxDistMetres(bypass.location!, destination);
+            if (prevDist !== null) {
+                // Allow a small tolerance; reject obvious local backtracking.
+                expect(d).toBeLessThanOrEqual(prevDist + 1.5);
+            }
+            prevDist = d;
+        }
+    });
+
     test("routed path samples stay outside the buffer boundary", () => {
         exclusionZoneSet.addZone(squareZone(41.0, -72.0, 0.0005));
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
