@@ -142,7 +142,8 @@ interface GridNode {
  * Grid approach is robust for any zone shape — concave, complex, or irregular.
  */
 function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: number): XYPt[] {
-    const GRID_PADDING = safetyMargin + 0;
+    const GRID_PADDING = safetyMargin;
+
     // Check if direct path is clear.
     const directBlocked = zoneGeoms.some(
         (zg) =>
@@ -156,7 +157,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
     if (aInRaw || bInRaw) return [];
     if (!directBlocked) return [];
 
-    // Build grid over the bounding box of A, B, and all blocking zone extents.
+    // Build grid over the bounding box of A, B, and all zone extents.
     const allPts = [A, B, ...zoneGeoms.flatMap((zg) => zg.expanded)];
     const minX = Math.min(...allPts.map((p) => p.x)) - GRID_PADDING;
     const minY = Math.min(...allPts.map((p) => p.y)) - GRID_PADDING;
@@ -243,7 +244,6 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
 
     let found = false;
     while (open.size > 0) {
-        // Pick lowest-f open node.
         let current = -1;
         let bestF = Infinity;
         for (const idx of open) {
@@ -271,7 +271,14 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
             const nIdx = cellToIdx(nc, nr);
             if (blocked[nIdx]) continue;
 
-            const ng = currentNode.g + dirCosts[d];
+            // Penalize backtracking — moving away from goal.
+            const currentDistToGoal = Math.sqrt(
+                (col - goalFree.col) ** 2 + (row - goalFree.row) ** 2,
+            );
+            const newDistToGoal = Math.sqrt((nc - goalFree.col) ** 2 + (nr - goalFree.row) ** 2);
+            const backtrackPenalty = newDistToGoal > currentDistToGoal ? 2.0 : 0;
+
+            const ng = currentNode.g + dirCosts[d] + backtrackPenalty;
             const existing = nodes.get(nIdx);
             if (existing && existing.g <= ng) continue;
 
@@ -297,27 +304,28 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
         cur = n.parent;
     }
 
-    // Prepend/append actual A and B.
     const fullPath = [A, ...gridPath, B];
 
-    // Line-of-sight simplification: walk forward, keeping only points
-    // where we can't see the next point directly from the last kept point.
+    // Line-of-sight simplification: greedily skip as far ahead as possible
+    // from each kept point while the direct segment is clear of all buffers.
     const simplified: XYPt[] = [fullPath[0]];
-    let kept = 0;
-    for (let j = 1; j < fullPath.length; j++) {
-        const from = simplified[simplified.length - 1];
-        const to = fullPath[j];
-        const blocked = zoneGeoms.some(
-            (zg) =>
-                segmentIntersectsPolygon(from, to, zg.expanded) ||
-                segmentIntersectsPolygon(from, to, zg.raw),
-        );
-        if (blocked && j > kept + 1) {
-            simplified.push(fullPath[j - 1]);
-            kept = j - 1;
+    let i = 0;
+    while (i < fullPath.length - 1) {
+        let farthest = i + 1;
+        for (let j = i + 2; j < fullPath.length; j++) {
+            const clear = !zoneGeoms.some((zg) =>
+                segmentIntersectsPolygon(
+                    simplified[simplified.length - 1],
+                    fullPath[j],
+                    zg.expanded,
+                ),
+            );
+            if (clear) farthest = j;
+            else break;
         }
+        i = farthest;
+        simplified.push(fullPath[i]);
     }
-    simplified.push(fullPath[fullPath.length - 1]);
 
     // Return only the intermediate points (not A and B themselves).
     return simplified.slice(1, -1);
@@ -391,7 +399,10 @@ export function routeAroundExclusionZones(
         if (blockingZones.length === 0) continue;
 
         const bypassPts = findBypassPath(A, B, zoneGeoms, safetyMargin);
-        if (bypassPts.length > 0) {
+
+        const MIN_BYPASS_DIST_FROM_DEST = GRID_CELL_SIZE * 2; // bypass points within 10m of B are redundant
+        const filteredBypass = bypassPts.filter((pt) => dist(pt, B) > MIN_BYPASS_DIST_FROM_DEST);
+        if (filteredBypass.length > 0) {
             for (const pt of bypassPts) {
                 result.push({ xy: pt, goal: { name: "route_bypass" }, isBypass: true });
                 totalInserted++;
