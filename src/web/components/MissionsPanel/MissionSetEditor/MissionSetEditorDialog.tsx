@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "@mdi/react";
-import { mdiArrowLeft, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
+import { mdiArrowRight, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
 import { Button } from "@mui/material";
 
 import { JCC_CONTAINER, MAX_WAYPOINTS } from "../../../utils/constants";
@@ -152,7 +152,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                             />
                         </div>
                         <div className="input-container editor-count-input">
-                            <label>Number of Missions</label>
+                            <label>Number of Bots</label>
                             <input
                                 type="number"
                                 min={1}
@@ -178,6 +178,38 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         </div>
                     </div>
                     <div className="editor-lists-section">
+                        <div className="editor-list-column">
+                            <label>Stored Mission Sets</label>
+                            <div className="editor-list-scroll">
+                                <ul
+                                    className="editor-source-list"
+                                    role="listbox"
+                                    aria-label="Stored Mission Sets"
+                                >
+                                    {savedMissionSets.map((name, index) => (
+                                        <RightListItem
+                                            key={name}
+                                            name={name}
+                                            index={index}
+                                            isSelected={selectedRightIndex === index}
+                                            onSelect={handleRightItemClick}
+                                        />
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="editor-arrow-column">
+                            <Button
+                                className="jaia-button editor-add-button"
+                                disabled={selectedRightIndex === null}
+                                onClick={handleAdd}
+                            >
+                                <div className="editor-add-button-content">
+                                    <Icon path={mdiArrowRight} size={1} title={addButtonLabel} />
+                                    <span>{addButtonLabel}</span>
+                                </div>
+                            </Button>
+                        </div>
                         <div className="editor-list-column">
                             <label>Combined Mission Set</label>
                             <div className="editor-list-scroll">
@@ -222,38 +254,6 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                 >
                                     <Icon path={mdiDelete} size={0.8} title="Delete" />
                                 </Button>
-                            </div>
-                        </div>
-                        <div className="editor-arrow-column">
-                            <Button
-                                className="jaia-button editor-add-button"
-                                disabled={selectedRightIndex === null}
-                                onClick={handleAdd}
-                            >
-                                <div className="editor-add-button-content">
-                                    <Icon path={mdiArrowLeft} size={1} title={addButtonLabel} />
-                                    <span>{addButtonLabel}</span>
-                                </div>
-                            </Button>
-                        </div>
-                        <div className="editor-list-column">
-                            <label>Stored Mission Sets</label>
-                            <div className="editor-list-scroll">
-                                <ul
-                                    className="editor-source-list"
-                                    role="listbox"
-                                    aria-label="Stored Mission Sets"
-                                >
-                                    {savedMissionSets.map((name, index) => (
-                                        <RightListItem
-                                            key={name}
-                                            name={name}
-                                            index={index}
-                                            isSelected={selectedRightIndex === index}
-                                            onSelect={handleRightItemClick}
-                                        />
-                                    ))}
-                                </ul>
                             </div>
                         </div>
                     </div>
