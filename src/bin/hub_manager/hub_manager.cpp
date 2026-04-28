@@ -1473,11 +1473,15 @@ void jaiabot::apps::HubManager::handle_ctd_offload_command(
     if (cfg().use_localhost_for_data_offload())
         bot_ip = "127.0.0.1";
 
-    std::string offload_command = cfg().ctd_offload_script() + " -bot_id " +
-                                  std::to_string(command.scan_for_bot_id()) + " -bot_ip " + bot_ip +
-                                  " 2>&1";
+    std::string bot_id_str = std::to_string(command.scan_for_bot_id());
+    std::string ctd_src = cfg().ctd_bot_log_dir() + "/" + bot_id_str + "/ctd";
+    std::string ctd_dest = cfg().log_offload_dir() + "/ctd/" + bot_id_str;
 
-    glog.is_debug1() && glog << group("main") << "Offload command: " << offload_command
+    // Transfer only *.unb files and delete them from the bot after successful transfer
+    std::string offload_command = cfg().data_offload_script() + " " + ctd_src + " " + ctd_dest +
+                                  " " + bot_ip + " *.unb true 2>&1";
+
+    glog.is_debug1() && glog << group("main") << "CTD offload command: " << offload_command
                              << std::endl;
 
     FILE* pipe = popen(offload_command.c_str(), "r");

@@ -196,7 +196,6 @@ set(scripts_to_install
   data-offload/jaiabot-predataoffload.sh
   data-offload/jaiabot-postdataoffload.sh
   data-offload/jaiahub-dataoffload-cloudhub.sh
-  data-offload/ctd-offload.sh
   # Firmware scripts
   jaia_firm_backup_date.sh
   reset-bio-payload-board.sh
