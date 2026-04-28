@@ -286,7 +286,8 @@ elif common.app == 'goby_logger':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      goby_logger_dir=log_file_dir,
-                                     goby_logger_group_regex=logger.group_regex))
+                                     goby_logger_group_regex=logger.group_regex,
+                                     log_on_startup='true'))
 elif common.app == 'goby_liaison':
     liaison_port=30000
     if is_simulation():
@@ -421,7 +422,8 @@ elif common.app == 'jaiabot_comms_manager':
     print(config.template_substitute(templates_dir+'/jaiabot_comms_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     subscribes=subscribes_block))
+                                     subscribes=subscribes_block,
+                                     subnet_mask=common.comms.subnet_mask))
 elif common.app == 'jaiabot_turner_c_fluor_sensor_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_turner_c_fluor_sensor_driver.pb.cfg.in',
                                      app_block=app_common,

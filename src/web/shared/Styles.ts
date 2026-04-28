@@ -7,7 +7,6 @@ import { Circle as CircleStyle, Fill, Icon, Style, Text } from "ol/style";
 import { Coordinate } from "ol/coordinate";
 import { PortalBotStatus } from "./PortalStatus";
 import { colorNameToHex } from "./Color";
-import * as turf from "@turf/turf";
 
 // We use "require" here, so we can use the "as" keyword to tell TypeScript the types of these resource variables
 const driftMapIcon = require("./driftMapIcon.svg") as string;
