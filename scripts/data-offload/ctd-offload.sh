@@ -24,27 +24,18 @@ if [[ "$bot_id" -eq 0 ]]; then
 fi
 
 destination_dir="/var/log/jaiabot/bot_offload/ctd/${bot_id}"
-ctd_dir="/var/log/jaiabot/bot/${bot_id}/ctd/"
+ctd_dir="/var/log/jaiabot/bot/${bot_id}/ctd"
 archive_dir="/var/log/jaiabot/archive"
 
+# Use the shared hub data offload script, restricting the transfer to *.unb files only
+jaiahub-dataoffload.sh "${ctd_dir}" "${destination_dir}" "${bot_ip}" "*.unb"
 
-if [[ ! -d "${destination_dir}" ]]; then
-  mkdir -p "${destination_dir}"
-fi
-
+# Archive the offloaded CTD files on the bot
 if [[ "${bot_ip}" == "127.0.0.1" ]]; then
-    userat=""
-    nice -n 10 rsync -azh --info=progress2 --timeout=15  "${ctd_dir}" "${destination_dir}"
-    mkdir -p ${archive_dir}
-    mv "${ctd_dir}"/* "${archive_dir}"
-
+    mkdir -p "${archive_dir}"
+    find "${ctd_dir}" -maxdepth 1 -type f -exec mv {} "${archive_dir}/" \;
 else
-    userat="jaia@"
-    if nice -n 10 rsync -azh --info=progress2 --timeout=15 "${userat}${bot_ip}:${ctd_dir}" "${destination_dir}"
-    then
-        ssh "${userat}${bot_ip}" \
-            "mkdir -p ${archive_dir} && mv ${ctd_dir}/* ${archive_dir}"
-    else
-        echo "rsync failed"
-    fi
+    # shellcheck disable=SC2029  # client-side expansion of bot paths is intentional
+    ssh "jaia@${bot_ip}" \
+        "mkdir -p ${archive_dir} && find ${ctd_dir} -maxdepth 1 -type f -exec mv {} ${archive_dir}/ \;"
 fi
