@@ -24,7 +24,7 @@ import {
 import { ButtonNames, ButtonTypes } from "../../../types/context-types";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { isCommsDropped, isCritiallyLowBattery } from "../button-utils";
+import { isCritiallyLowBattery } from "../button-utils";
 
 interface Props {
     bots: Map<number, Bot>;
@@ -57,7 +57,7 @@ export default function GoToRallyButton(props: Props) {
         const updatedBotReadyStates = new Map<DisabledCodes, number[]>(initBotReadyStates());
 
         for (const [botID, bot] of props.bots.entries()) {
-            if (isCommsDropped(bot.getStatusAge())) {
+            if (bot.isCommsDropped()) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (
                 !isCommandAvailable(CommandType.START_MISSION, bot.getMissionStatus().missionState)

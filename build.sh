@@ -56,10 +56,13 @@ script_dir=$(dirname $0)
 ARCH=$(dpkg --print-architecture)
 
 # Make sure we're using the nvm versions of npm and webpack
-if [ -z "${XDG_CONFIG_HOME-}" ]; then
+if [ -n "${XDG_CONFIG_HOME-}" ] && [ -d "${XDG_CONFIG_HOME}/nvm" ]; then
+    export NVM_DIR="${XDG_CONFIG_HOME}/nvm"
+elif [ -d "${HOME}/.nvm" ]; then
     export NVM_DIR="${HOME}/.nvm"
 else
-    export NVM_DIR="${XDG_CONFIG_HOME}/nvm"
+    echo "Error: Neither \$XDG_CONFIG_HOME/nvm nor \$HOME/.nvm exists." >&2
+    exit 1
 fi
 
 source ${NVM_DIR}/nvm.sh
