@@ -1477,10 +1477,10 @@ void jaiabot::apps::HubManager::handle_ctd_offload_command(
     std::string ctd_src = cfg().ctd_bot_log_dir() + "/" + bot_id_str + "/ctd";
     std::string ctd_dest = cfg().log_offload_dir() + "/ctd/" + bot_id_str;
 
-    // Transfer only files matching ctd_file_filter and delete them from the bot after transfer
+    // Transfer only files matching ctd_file_filter
     std::string offload_command = cfg().data_offload_script() + " " + ctd_src + " " + ctd_dest +
                                   " " + bot_ip + " --include=" + cfg().ctd_file_filter() +
-                                  " --exclude=* --remove-source-files 2>&1";
+                                  " --exclude=* 2>&1";
 
     glog.is_debug1() && glog << group("main") << "CTD offload command: " << offload_command
                              << std::endl;
