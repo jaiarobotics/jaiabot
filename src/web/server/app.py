@@ -404,7 +404,7 @@ def get_ctd_profiles():
     files = list(dir.glob("*.unb")) if dir.exists() else []
 
     if len(files) == 0:
-        return HTTPStatus.NO_CONTENT
+        return Response(status=HTTPStatus.NO_CONTENT)
 
     zip_file = io.BytesIO()
     with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zf:

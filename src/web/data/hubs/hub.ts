@@ -136,6 +136,7 @@ export default class Hub {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
+        a.download = "jaia-ctd.zip";
         document.body.appendChild(a);
         a.click();
         a.remove();
