@@ -3,13 +3,6 @@ import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { MAX_WAYPOINTS } from "../../utils/constants";
 
-/**
- * Shown when zone/mission actions produce route crossings that need operator review.
- *
- * For zone loads, loadedZoneIDs tracks what was added so "Revert all" can clean
- * everything up. skippedZoneIDs are zones that were already removed before this
- * dialog was shown. For mission actions, over-limit missions are deleted on confirm.
- */
 export default function MissionRerouteDialog() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -18,9 +11,22 @@ export default function MissionRerouteDialog() {
     if (!pending) return null;
 
     const isZoneLoad = pending.loadedZoneIDs !== undefined;
-    const feasible = pending.proposals.filter((p) => !p.isOverLimit);
+    const isMissionLoad = pending.loadedMissionIDs !== undefined;
+
+    const feasible = pending.proposals.filter((p) => !p.isOverLimit && !p.isImpossible);
     const overLimit = pending.proposals.filter((p) => p.isOverLimit);
-    const skipped = pending.skippedZoneIDs ?? [];
+    const impossible = pending.proposals.filter((p) => p.isImpossible);
+
+    const skippedZones = pending.skippedZoneIDs ?? [];
+    const loadedZones = pending.loadedZoneIDs ?? [];
+    const skippedMissions = pending.skippedMissionIDs ?? [];
+    const loadedMissions = pending.loadedMissionIDs ?? [];
+
+    const canProceed = isZoneLoad
+        ? loadedZones.length > 0
+        : isMissionLoad
+          ? loadedMissions.length > 0
+          : true;
 
     const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_MISSION_REROUTE });
     const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_MISSION_REROUTE });
@@ -31,66 +37,101 @@ export default function MissionRerouteDialog() {
             <div className="jaia-dialog">
                 <h1>Route Update Required</h1>
 
-                {skipped.length > 0 && (
+                {/* Zone load */}
+                {isZoneLoad && loadedZones.length > 0 && (
+                    <p>
+                        <strong>{loadedZones.length}</strong> zone
+                        {loadedZones.length !== 1 ? "s" : ""} loaded
+                        {pending.totalBypassCount > 0 && (
+                            <>
+                                {" "}
+                                with <strong>{pending.totalBypassCount}</strong> bypass waypoint
+                                {pending.totalBypassCount !== 1 ? "s" : ""}
+                            </>
+                        )}
+                        .
+                    </p>
+                )}
+                {isZoneLoad && skippedZones.length > 0 && (
                     <>
-                        <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
-                            {skipped.length} zone{skipped.length !== 1 ? "s" : ""} could not be
-                            loaded — routing around {skipped.length !== 1 ? "them" : "it"} would
-                            exceed the {MAX_WAYPOINTS}-waypoint limit:
+                        <p className="dialog-warn">
+                            <strong>{skippedZones.length}</strong> zone
+                            {skippedZones.length !== 1 ? "s" : ""} could not be loaded — routing
+                            around {skippedZones.length !== 1 ? "them" : "it"} would exceed the{" "}
+                            {MAX_WAYPOINTS}-waypoint limit:
                         </p>
-                        <ul
-                            style={{
-                                margin: "8px 0 12px 16px",
-                                padding: 0,
-                                color: "#f87171",
-                                fontSize: "0.85rem",
-                            }}
-                        >
-                            {skipped.map((id) => (
+                        <ul className="dialog-warn-list">
+                            {skippedZones.map((id) => (
                                 <li key={id}>Zone {id}</li>
                             ))}
                         </ul>
                     </>
                 )}
 
-                {feasible.length > 0 && (
+                {/* Mission load */}
+                {isMissionLoad && loadedMissions.length > 0 && (
+                    <p>
+                        <strong>{loadedMissions.length}</strong> mission
+                        {loadedMissions.length !== 1 ? "s" : ""} loaded
+                        {pending.totalBypassCount > 0 && (
+                            <>
+                                {" "}
+                                with <strong>{pending.totalBypassCount}</strong> bypass waypoint
+                                {pending.totalBypassCount !== 1 ? "s" : ""}
+                            </>
+                        )}
+                        .
+                    </p>
+                )}
+                {isMissionLoad && skippedMissions.length > 0 && (
                     <>
-                        <p>
-                            The following mission{feasible.length !== 1 ? "s" : ""} will be
-                            rerouted:
+                        <p className="dialog-warn">
+                            <strong>{skippedMissions.length}</strong> mission
+                            {skippedMissions.length !== 1 ? "s" : ""} could not be loaded — routing
+                            around existing zones would exceed the {MAX_WAYPOINTS}-waypoint limit:
                         </p>
-                        <ul style={{ margin: "8px 0 12px 16px", padding: 0 }}>
-                            {feasible.map((p) => (
-                                <li key={p.missionID}>
-                                    Mission {p.missionID}: <strong>{p.bypassCount}</strong> bypass
-                                    waypoint
-                                    {p.bypassCount !== 1 ? "s" : ""} added
-                                </li>
+                        <ul className="dialog-warn-list">
+                            {skippedMissions.map((id) => (
+                                <li key={id}>Mission {id}</li>
                             ))}
                         </ul>
-                        <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-                            Total: {pending.totalBypassCount} bypass waypoint
-                            {pending.totalBypassCount !== 1 ? "s" : ""}. Existing auto-bypass
-                            waypoints will be replaced.
-                        </p>
                     </>
                 )}
 
-                {overLimit.length > 0 && (
+                {/* Non-load: reroute summary */}
+                {!isZoneLoad && !isMissionLoad && feasible.length > 0 && (
+                    <p>
+                        <strong>{pending.totalBypassCount}</strong> bypass waypoint
+                        {pending.totalBypassCount !== 1 ? "s" : ""} will be added to route around
+                        the exclusion zone.
+                    </p>
+                )}
+
+                {/* Impossible reroutes */}
+                {impossible.length > 0 && (
                     <>
-                        <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+                        <p className="dialog-warn">
+                            The following mission{impossible.length !== 1 ? "s" : ""} have no clear
+                            route around the zone — move the conflicting waypoints further away or
+                            resize the zone:
+                        </p>
+                        <ul className="dialog-warn-list">
+                            {impossible.map((p) => (
+                                <li key={p.missionID}>Mission {p.missionID}</li>
+                            ))}
+                        </ul>
+                    </>
+                )}
+
+                {/* Over-limit missions (non-load contexts only) */}
+                {!isMissionLoad && overLimit.length > 0 && (
+                    <>
+                        <p className="dialog-warn">
                             The following mission{overLimit.length !== 1 ? "s" : ""} will be removed
                             from the plan — adding bypass waypoints would exceed the {MAX_WAYPOINTS}
                             -waypoint limit:
                         </p>
-                        <ul
-                            style={{
-                                margin: "8px 0 12px 16px",
-                                padding: 0,
-                                color: "#f87171",
-                                fontSize: "0.85rem",
-                            }}
-                        >
+                        <ul className="dialog-warn-list">
                             {overLimit.map((p) => (
                                 <li key={p.missionID}>
                                     Mission {p.missionID}: needs{" "}
@@ -104,11 +145,13 @@ export default function MissionRerouteDialog() {
 
                 <div className="dialog-button-row">
                     <button className="dialog-button" onClick={handleCancel}>
-                        {isZoneLoad ? "Revert all" : "Revert"}
+                        {isZoneLoad || isMissionLoad ? "Revert All" : "Revert"}
                     </button>
-                    <button className="dialog-button" onClick={handleConfirm}>
-                        {isZoneLoad ? "Proceed" : "Update Route"}
-                    </button>
+                    {canProceed && (
+                        <button className="dialog-button" onClick={handleConfirm}>
+                            {isZoneLoad || isMissionLoad ? "Proceed" : "Update Route"}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

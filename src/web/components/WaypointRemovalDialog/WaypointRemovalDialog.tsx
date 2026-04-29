@@ -30,10 +30,10 @@ export default function WaypointRemovalDialog() {
 
                 <p>
                     <strong>{pending.totalRemovedCount}</strong> waypoint
-                    {pending.totalRemovedCount !== 1 ? "s" : ""} fall inside an exclusion zone and
-                    will be removed:
+                    {pending.totalRemovedCount !== 1 ? "s" : ""} inside an exclusion zone will be
+                    removed:
                 </p>
-                <ul style={{ margin: "8px 0 12px 16px", padding: 0 }}>
+                <ul className="dialog-list">
                     {pending.proposals.map((p) => (
                         <li key={p.missionID}>
                             Mission {p.missionID}: <strong>{p.removedCount}</strong> waypoint
@@ -43,38 +43,21 @@ export default function WaypointRemovalDialog() {
                 </ul>
 
                 {rerouteFeasible.length > 0 && (
-                    <>
-                        <p>
-                            The updated route also crosses a zone. The following missions will be
-                            rerouted:
-                        </p>
-                        <ul style={{ margin: "8px 0 12px 16px", padding: 0 }}>
-                            {rerouteFeasible.map((p) => (
-                                <li key={p.missionID}>
-                                    Mission {p.missionID}: <strong>{p.bypassCount}</strong> bypass
-                                    waypoint{p.bypassCount !== 1 ? "s" : ""} added
-                                </li>
-                            ))}
-                        </ul>
-                    </>
+                    <p>
+                        The updated route also crosses a zone and will add{" "}
+                        <strong>{reroute!.totalBypassCount}</strong> bypass waypoint
+                        {reroute!.totalBypassCount !== 1 ? "s" : ""}.
+                    </p>
                 )}
 
                 {rerouteOverLimit.length > 0 && (
                     <>
-                        <p style={{ fontSize: "0.85rem", color: "#f87171" }}>
+                        <p className="dialog-warn">
                             The following mission{rerouteOverLimit.length !== 1 ? "s" : ""} still
                             cross a zone after waypoint removal but cannot be rerouted — adding
-                            bypass waypoints would exceed the {MAX_WAYPOINTS}-waypoint limit. Reduce
-                            their waypoints to resolve:
+                            bypass waypoints would exceed the {MAX_WAYPOINTS}-waypoint limit:
                         </p>
-                        <ul
-                            style={{
-                                margin: "8px 0 12px 16px",
-                                padding: 0,
-                                color: "#f87171",
-                                fontSize: "0.85rem",
-                            }}
-                        >
+                        <ul className="dialog-warn-list">
                             {rerouteOverLimit.map((p) => (
                                 <li key={p.missionID}>
                                     Mission {p.missionID}: needs{" "}
