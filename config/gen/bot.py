@@ -90,7 +90,6 @@ except:
 
 log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
 
-
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
