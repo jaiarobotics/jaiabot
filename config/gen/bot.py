@@ -90,6 +90,7 @@ except:
 
 log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
 
+
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
 templates_dir=common.jaia_templates_dir
@@ -437,8 +438,7 @@ elif common.app == 'jaiabot_ctd_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_ctd_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     fleet_id=fleet_index,
-                                     use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),))
+                                     log_dir=log_file_dir))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
