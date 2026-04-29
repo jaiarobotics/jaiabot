@@ -7,9 +7,11 @@ import {
     Warning,
 } from "../../types/protobuf-types";
 import { jaiaAPI } from "../../utils/jaia-api";
-import { NO_COMMS_STATUS_AGE, NO_CONTENT_SIZE } from "../../utils/constants";
+import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import HubSensors from "./hub-sensors";
+
+const HTTP_NO_CONTENT = 204;
 
 export default class Hub {
     private hubID: number;
@@ -120,20 +122,20 @@ export default class Hub {
     /**
      * Gets the CTD files from the Hub and downloads them to the client computer
      *
-     * @param {number} botID Identifies which files to get
      * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
      * @returns {void}
      */
     async getCTDFiles() {
         const res = await jaiaAPI.getCTDProfiles();
-        const blob = await res.blob();
-        if (blob.size == NO_CONTENT_SIZE) {
+
+        if (res.status === HTTP_NO_CONTENT) {
             return;
         }
+
+        const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "jaia-ctd";
         document.body.appendChild(a);
         a.click();
         a.remove();

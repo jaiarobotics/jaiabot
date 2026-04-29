@@ -402,6 +402,10 @@ def get_ctd_profiles():
     """
     dir = Path("/var/log/jaiabot/bot_offload")
     files = list(dir.glob("*.unb")) if dir.exists() else []
+
+    if len(files) == 0:
+        return HTTPStatus.NO_CONTENT
+
     zip_file = io.BytesIO()
     with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zf:
         for path in files:
@@ -414,7 +418,7 @@ def get_ctd_profiles():
     ctd_archive.mkdir(parents=True, exist_ok=True)
     for ctd_file in files:
         shutil.move(str(ctd_file), ctd_archive / ctd_file.name);
-
+    
     return send_file(
         zip_file,
         as_attachment=True,
