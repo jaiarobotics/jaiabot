@@ -15,8 +15,6 @@ import "./DataOffloadPanel.less";
  * Displays the data offload queue and buttons to download task packet data
  */
 export default function DataOffloadPanel() {
-    const [isCTDPanelVisible, setIsCTDPanelVisible] = useState(false);
-
     /**
      * Initiates KMZ download of task packet data
      *
@@ -41,10 +39,6 @@ export default function DataOffloadPanel() {
         downloadFile(csvFilename, await getCSV(taskPackets.getIncludedTaskPackets()), "text/csv");
     };
 
-    const handleDownloadCTD = () => {
-        setIsCTDPanelVisible(true);
-    };
-
     return (
         <div className="jaia-panel data-offload-panel">
             <div className="jaia-panel-title">Data Offload</div>
@@ -54,9 +48,6 @@ export default function DataOffloadPanel() {
                 </button>
                 <button onClick={(event) => handleDownloadKMZ(event)} aria-label={"download-kmz"}>
                     KMZ
-                </button>
-                <button onClick={handleDownloadCTD} aria-label={"download-ctd"}>
-                    CTD
                 </button>
             </div>
             <Accordion className="accordion-container">
