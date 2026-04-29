@@ -403,7 +403,7 @@ def get_ctd_profiles(bot_id: str):
     Args:
         bot_id (int): Indicates which CTD to make accessible
     """
-    dir = Path("/var/log/jaiabot/bot_offload/ctd/") / bot_id
+    dir = Path("/var/log/jaiabot/bot_offload")
     if request.method == "GET":
         files = list(dir.glob("*.unb")) if dir.exists() else []
         file = io.BytesIO()

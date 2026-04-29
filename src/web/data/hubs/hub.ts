@@ -6,6 +6,7 @@ import {
     LinuxHardwareStatus,
     Warning,
 } from "../../types/protobuf-types";
+import { jaiaAPI } from "../../utils/jaia-api";
 import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import HubSensors from "./hub-sensors";
@@ -93,6 +94,10 @@ export default class Hub {
 
     setBotOffload(botOffload: BotOffloadData) {
         this.botOffload = botOffload;
+
+        if (this.botOffload.offload_succeeded) {
+            this.getCTDFiles(this.botOffload.bot_id);
+        }
     }
 
     getStatusAge() {
@@ -110,5 +115,25 @@ export default class Hub {
      */
     isCommsDropped(): boolean {
         return microsecondsToSeconds(this.getStatusAge()) > NO_COMMS_STATUS_AGE;
+    }
+
+    /**
+     * Gets the CTD files from the Hub and downloads them to the client computer
+     *
+     * @param {number} botID Identifies which files to get
+     * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
+     * @returns {void}
+     */
+    async getCTDFiles(botID: number) {
+        const res = await jaiaAPI.getCTDProfiles(botID);
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `ctd-bot-${botID}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
     }
 }
