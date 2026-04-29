@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import DataOffloadQueue from "./DataOffloadQueue/DataOffloadQueue";
-import CTDOffload from "./CTDOffload/CTDOffload";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 
@@ -68,10 +67,6 @@ export default function DataOffloadPanel() {
                     <DataOffloadQueue />
                 </AccordionDetails>
             </Accordion>
-            <CTDOffload
-                isVisible={isCTDPanelVisible}
-                closeCTDPanel={() => setIsCTDPanelVisible(false)}
-            />
         </div>
     );
 }
