@@ -7,7 +7,7 @@ import {
     Warning,
 } from "../../types/protobuf-types";
 import { jaiaAPI } from "../../utils/jaia-api";
-import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
+import { NO_COMMS_STATUS_AGE, NO_CONTENT_SIZE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import HubSensors from "./hub-sensors";
 
@@ -95,8 +95,8 @@ export default class Hub {
     setBotOffload(botOffload: BotOffloadData) {
         this.botOffload = botOffload;
 
-        if (this.botOffload.offload_succeeded) {
-            this.getCTDFiles(this.botOffload.bot_id);
+        if (this.botOffload.offload_succeeded && !this.botOffload.bots_pending) {
+            this.getCTDFiles();
         }
     }
 
@@ -124,13 +124,16 @@ export default class Hub {
      * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
      * @returns {void}
      */
-    async getCTDFiles(botID: number) {
-        const res = await jaiaAPI.getCTDProfiles(botID);
+    async getCTDFiles() {
+        const res = await jaiaAPI.getCTDProfiles();
         const blob = await res.blob();
+        if (blob.size == NO_CONTENT_SIZE) {
+            return;
+        }
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `ctd-bot-${botID}`;
+        a.download = "jaia-ctd";
         document.body.appendChild(a);
         a.click();
         a.remove();
