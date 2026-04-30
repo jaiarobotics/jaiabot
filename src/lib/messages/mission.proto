@@ -428,24 +428,22 @@ message MissionPlan
 
     optional string mission_name = 11 [(dccl.field).omit = true]; // not sent over radio, only saved to the hub
 
-    // A Section groups a contiguous range of goals (by global index) and
+    // A Segment groups a contiguous range of goals (by global index) and
     // carries the metadata that applies to that range.
-    message Section
+    message Segment
     {
-        enum SectionType
-        {
-            TRANSIT = 1; // ingress, egress, or inter-survey transit
-            SURVEY  = 2;
-        }
-        required SectionType type = 1;
-
-        // Start of this section (inclusive). End is inferred from the
-        // next section's start_goal_index, or the total goal count for
-        // the last section.
+        // Start of this segment (inclusive). End is inferred from the
+        // next segment's start_goal_index, or the total goal count for
+        // the last segment.
         required uint32 start_goal_index = 2
             [(dccl.field) = { min: 1, max: 80 }];
 
-        // Per-section transit speed override (m/s).
+        // Global goal indices marking the start of each survey lane within
+        // this segment.
+        repeated uint32 lane_start_goal_indices = 6
+            [(dccl.field) = { max_repeat: 7, min: 1, max: 80 }];
+
+        // Per-segment transit speed override (m/s).
         // Omit to use plan-level speeds.transit.
         optional uint32 speed = 4 [
             default = 2,
@@ -458,16 +456,11 @@ message MissionPlan
         ];
 
         optional BottomDepthSafetyParams bottom_depth_safety_params = 5;
-
-        // Global goal indices marking the start of each survey lane within
-        // this section. 
-        repeated uint32 lane_start_goal_indices = 6
-            [(dccl.field) = { max_repeat: 7, min: 1, max: 80 }];
     }
 
-    // Sections in mission execution order. Non-overlapping goal index
+    // Segments in mission execution order. Non-overlapping goal index
     // ranges are enforced by the UI before sending.
-    repeated Section section = 12
+    repeated Segment segment = 12
         [(dccl.field).max_repeat = 5, (jaia.field).rest_api.presence = GUARANTEED];
 
 }
