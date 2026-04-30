@@ -18,17 +18,12 @@ import { missionsManager } from "../../../data/missions_manager/missions-manager
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { ButtonNames, ButtonTypes, DialogActions } from "../../../types/context-types";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { microsecondsToSeconds } from "../../../utils/conversions";
-import {
-    MDI_BUTTON_SIZE,
-    MIN_BATTERY_PERCENT,
-    NO_COMMS_STATUS_AGE,
-    UNASSIGNED_ID,
-} from "../../../utils/constants";
+import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
 
 interface Props {
     bots: Map<number, Bot>;
     missions: Map<number, Mission>;
+    missionSetName: string;
 }
 
 type DisabledCodeGroup = [DisabledCodes, number[]];
@@ -56,7 +51,7 @@ export default function StartAllMissionsButton(props: Props) {
         const updatedBotReadyStates = new Map<DisabledCodes, number[]>(initBotReadyStates());
 
         for (const [botID, bot] of props.bots.entries()) {
-            if (isCommsDropped(bot.getStatusAge())) {
+            if (bot.isCommsDropped()) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (
                 !isCommandAvailable(CommandType.START_MISSION, bot.getMissionStatus().missionState)
@@ -115,10 +110,14 @@ export default function StartAllMissionsButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
                 const missionID = missionsManager.getMissionID(botID);
+                const missionPlan = props.missions
+                    .get(missionID)
+                    .packageMissionForHub(props.missionSetName);
+
                 const startMissionCommand: Command = {
                     bot_id: botID,
                     type: CommandType.MISSION_PLAN,
-                    plan: props.missions.get(missionID).packageMissionForHub(),
+                    plan: missionPlan,
                 };
                 const res = await sendBotCommand(startMissionCommand);
                 if (res.status === "ok") {
@@ -168,16 +167,6 @@ function initBotReadyStates() {
         [DisabledCodes.LOW_BATTERY, []],
     ];
     return botReadyStates;
-}
-
-/**
- * Checks the supplied status age against the no comms threshold
- *
- * @param {number} statusAge Bot's status age in microseconds
- * @returns {boolean} True if the Bot does not have comms with the Hub
- */
-function isCommsDropped(statusAge: number) {
-    return microsecondsToSeconds(statusAge) > NO_COMMS_STATUS_AGE;
 }
 
 /**

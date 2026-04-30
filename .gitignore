@@ -1,4 +1,6 @@
 build/*
+CMakeCache.txt
+CMakeFiles/
 config/launch/simulation/all.launch
 config/launch/simulation/preseed.goby
 __pycache__

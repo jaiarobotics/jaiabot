@@ -18,17 +18,12 @@ import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../.
 
 import { mdiPlay } from "@mdi/js";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import {
-    MDI_BUTTON_SIZE,
-    MIN_BATTERY_PERCENT,
-    NO_COMMS_STATUS_AGE,
-    UNASSIGNED_ID,
-} from "../../../utils/constants";
-import { microsecondsToSeconds } from "../../../utils/conversions";
+import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
 
 interface Props {
     bot: Bot;
     mission: Mission;
+    missionSetName: string;
 }
 
 /**
@@ -61,7 +56,7 @@ export default function StartMissionButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
-        if (microsecondsToSeconds(props.bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+        if (props.bot.isCommsDropped()) {
             return DisabledCodes.NO_COMMS;
         }
 
@@ -112,10 +107,12 @@ export default function StartMissionButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
+            const missionPlan = props.mission.packageMissionForHub(props.missionSetName);
+
             const startMissionCommand: Command = {
                 bot_id: props.bot.getBotID(),
                 type: CommandType.MISSION_PLAN,
-                plan: props.mission.packageMissionForHub(),
+                plan: missionPlan,
             };
             const response = await sendBotCommand(startMissionCommand);
             if (response && response.status === "ok") {

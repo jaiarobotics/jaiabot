@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import DataOffloadQueue from "./DataOffloadQueue/DataOffloadQueue";
 import CTDOffload from "./CTDOffload/CTDOffload";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -23,7 +23,11 @@ export default function DataOffloadPanel() {
      *
      * @returns {void}
      */
-    const handleDownloadKMZ = async () => {
+    const handleDownloadKMZ = async (event: React.MouseEvent<Element, MouseEvent>) => {
+        event.stopPropagation();
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
         const kmzFilename = getKMZFilename(taskPackets.getIncludedTaskPackets());
         downloadFile(kmzFilename, await getKMZ(taskPackets.getIncludedTaskPackets()));
     };
@@ -49,7 +53,7 @@ export default function DataOffloadPanel() {
                 <button onClick={handleDownloadCSV} aria-label={"download-csv"}>
                     CSV
                 </button>
-                <button onClick={handleDownloadKMZ} aria-label={"download-kmz"}>
+                <button onClick={(event) => handleDownloadKMZ(event)} aria-label={"download-kmz"}>
                     KMZ
                 </button>
                 <button onClick={handleDownloadCTD} aria-label={"download-ctd"}>
