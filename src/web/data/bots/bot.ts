@@ -21,7 +21,7 @@ export default class Bot {
     private location: GeographicCoordinate;
     private batteryPercent: number;
     private wifiLinkQuality: number;
-    private xbeeRssi: number;
+    private xbeeRssiDbm: number;
     private xbeeRssiHubId: number;
     private statusAge: number;
     private engineering: Engineering;
@@ -111,12 +111,12 @@ export default class Bot {
         this.wifiLinkQuality = wifiLinkQuality;
     }
 
-    getXbeeRssi() {
-        return this.xbeeRssi;
+    getXbeeRssiDbm() {
+        return this.xbeeRssiDbm;
     }
 
-    setXbeeRssi(xbeeRssi: number) {
-        this.xbeeRssi = xbeeRssi;
+    setXbeeRssiDbm(xbeeRssiDbm: number) {
+        this.xbeeRssiDbm = xbeeRssiDbm;
     }
 
     getXbeeRssiHubId() {

@@ -1207,7 +1207,7 @@ export interface HubStatus {
 export interface KnownBot {
     id: number;
     last_status_time?: number;
-    xbee_rssi?: number;
+    xbee_rssi_dbm?: number;
 }
 
 export interface BotOffloadData {

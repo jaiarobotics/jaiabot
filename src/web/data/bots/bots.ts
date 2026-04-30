@@ -112,7 +112,7 @@ export class Bots {
         }
 
         if (botStatus.xbee?.rssi_dbm != null) {
-            bot.setXbeeRssi(botStatus.xbee.rssi_dbm);
+            bot.setXbeeRssiDbm(botStatus.xbee.rssi_dbm);
         }
 
         if (botStatus.xbee?.hub_id != null) {

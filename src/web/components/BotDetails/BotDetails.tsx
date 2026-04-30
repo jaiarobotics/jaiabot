@@ -101,7 +101,7 @@ export default function BotDetails() {
      * @returns {string} e.g. "Hub 0 -65 dBm", "-65 dBm", or "" if no reading
      */
     function formatXbeeRssi() {
-        const rssi = bot.getXbeeRssi();
+        const rssi = bot.getXbeeRssiDbm();
         if (rssi == null) return "";
         const hubId = bot.getXbeeRssiHubId();
         const hubLabel = hubId != null ? `Hub ${hubId} ` : "";

@@ -226,7 +226,7 @@ export default function HubDetails() {
                     </Accordion>
                 </ThemeProvider>
 
-                {hub.getKnownBots()?.some((kb: KnownBot) => kb.xbee_rssi != null) && (
+                {hub.getKnownBots()?.some((kb: KnownBot) => kb.xbee_rssi_dbm != null) && (
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
                             expanded={jaiaContext.hubAccordionStates.xbeeRssi}
@@ -252,11 +252,11 @@ export default function HubDetails() {
                                     <tbody>
                                         {hub
                                             .getKnownBots()
-                                            ?.filter((kb: KnownBot) => kb.xbee_rssi != null)
+                                            ?.filter((kb: KnownBot) => kb.xbee_rssi_dbm != null)
                                             .map((kb: KnownBot) => (
                                                 <tr key={kb.id}>
                                                     <td>Bot {kb.id}</td>
-                                                    <td>{kb.xbee_rssi} dBm</td>
+                                                    <td>{kb.xbee_rssi_dbm} dBm</td>
                                                 </tr>
                                             ))}
                                     </tbody>

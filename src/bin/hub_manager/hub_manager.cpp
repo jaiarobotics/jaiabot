@@ -678,7 +678,7 @@ void jaiabot::apps::HubManager::loop()
         known_bot->set_last_status_time_with_units(known_bot_p.second);
         if (bot_xbee_rssi_dbm_.count(known_bot_p.first))
         {
-            known_bot->set_xbee_rssi(bot_xbee_rssi_dbm_.at(known_bot_p.first));
+            known_bot->set_xbee_rssi_dbm(bot_xbee_rssi_dbm_.at(known_bot_p.first));
         }
     }
 
