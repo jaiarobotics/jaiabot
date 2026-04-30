@@ -301,6 +301,17 @@ export function convertHTMLStrDateToISO(strDate: string) {
 }
 
 /**
+ * Converts an XBee RSSI value (in dBm, negative) to a link quality percentage (0–100).
+ * Maps -40 dBm (excellent) to 100% and -100 dBm (very poor) to 0%.
+ *
+ * @param {number} rssiDbm RSSI value in dBm (e.g. -65)
+ * @returns {number} Link quality as an integer percentage (0–100)
+ */
+export function rssiDbmToLinkQuality(rssiDbm: number): number {
+    return Math.max(0, Math.min(100, Math.round(((rssiDbm + 100) / 60) * 100)));
+}
+
+/**
  * Prevents negative values from being entered by operator
  *
  * @param {number} value Input value to be checked

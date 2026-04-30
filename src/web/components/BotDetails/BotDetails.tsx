@@ -37,6 +37,7 @@ import {
     formatLongitude,
     formatAttitudeAngle,
     convertMicrosecondsToSeconds,
+    rssiDbmToLinkQuality,
 } from "../../shared/Utilities";
 
 // MDI and MUI
@@ -96,16 +97,17 @@ export default function BotDetails() {
     }
 
     /**
-     * Formats the XBee RSSI reading for display, including the source hub ID when available.
+     * Formats the XBee link quality for display, including the source hub ID when available.
      *
-     * @returns {string} e.g. "Hub 0 -65 dBm", "-65 dBm", or "" if no reading
+     * @returns {string} e.g. "Hub 0 75%", "75%", or "" if no reading
      */
-    function formatXbeeRssi() {
-        const rssi = bot.getXbeeRssiDbm();
-        if (rssi == null) return "";
+    function formatXbeeLinkQuality() {
+        const rssiDbm = bot.getXbeeRssiDbm();
+        if (rssiDbm == null) return "";
+        const quality = rssiDbmToLinkQuality(rssiDbm);
         const hubId = bot.getXbeeRssiHubId();
         const hubLabel = hubId != null ? `Hub ${hubId} ` : "";
-        return `${hubLabel}${rssi} dBm`;
+        return `${hubLabel}${quality}%`;
     }
 
     return (
@@ -219,8 +221,8 @@ export default function BotDetails() {
                                             <td>{bot.getWifiLinkQuality() ?? ""}</td>
                                         </tr>
                                         <tr>
-                                            <td>XBee RSSI (hub → bot)</td>
-                                            <td>{formatXbeeRssi()}</td>
+                                            <td>XBee Link Quality (hub → bot)</td>
+                                            <td>{formatXbeeLinkQuality()}</td>
                                         </tr>
                                         <tr>
                                             <td>Data Logging</td>

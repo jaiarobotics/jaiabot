@@ -10,6 +10,7 @@ import {
     convertMicrosecondsToSeconds,
     formatLatitude,
     formatLongitude,
+    rssiDbmToLinkQuality,
 } from "../../shared/Utilities";
 import { KnownBot } from "../../shared/JAIAProtobuf";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
@@ -239,14 +240,14 @@ export default function HubDetails() {
                                 expandIcon={<ExpandMoreIcon />}
                                 className="accordion-summary"
                             >
-                                <Typography>XBee RSSI (bot → hub)</Typography>
+                                <Typography>XBee Link Quality (bot → hub)</Typography>
                             </AccordionSummary>
                             <AccordionDetails>
                                 <table>
                                     <thead>
                                         <tr>
                                             <th>Bot ID</th>
-                                            <th>RSSI</th>
+                                            <th>Link Quality</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -256,7 +257,7 @@ export default function HubDetails() {
                                             .map((kb: KnownBot) => (
                                                 <tr key={kb.id}>
                                                     <td>Bot {kb.id}</td>
-                                                    <td>{kb.xbee_rssi_dbm} dBm</td>
+                                                    <td>{rssiDbmToLinkQuality(kb.xbee_rssi_dbm!)}%</td>
                                                 </tr>
                                             ))}
                                     </tbody>
