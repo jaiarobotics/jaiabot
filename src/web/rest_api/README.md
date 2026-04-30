@@ -47,7 +47,7 @@ rest_api/
 │   ├── api_exception.py     # Error handling
 │   ├── shared_data.py       # Thread-safe data storage
 │   ├── streaming_client.py  # Talks to the web portal
-│   ├── target.py            # Parses "bots:1,2" or "all" targets
+│   ├── target.py            # Parses "b1,b2" or "all" targets
 │   └── ...
 │
 └── test/                     # Tests
@@ -194,7 +194,30 @@ Imagine we want to add a `reboot_bot` endpoint that reboots a specific bot.
 
 Edit `src/lib/messages/rest_api.proto`. This is where **all** API messages are defined.
 
-**A) Add the request type to `APIRequest`:**
+**A) Define what your request looks like:**
+
+```protobuf
+message RebootBotRequest {
+    optional bool force = 1 [
+        default = false,
+        (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Force immediate reboot without graceful shutdown"
+        }
+    ];
+}
+```
+
+**B) Define what your response looks like:**
+
+```protobuf
+message RebootBotResult {
+    required bool success = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string message = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+}
+```
+
+**C) Add the request type to `APIRequest`:**
 
 ```protobuf
 message APIRequest {
@@ -216,21 +239,7 @@ message APIRequest {
 }
 ```
 
-**B) Define what your request looks like:**
-
-```protobuf
-message RebootBotRequest {
-    optional bool force = 1 [
-        default = false,
-        (jaia.field).rest_api = {
-            presence: GUARANTEED,
-            doc: "Force immediate reboot without graceful shutdown"
-        }
-    ];
-}
-```
-
-**C) Add the response type to `APIResponse`:**
+**D) Add the response type to `APIResponse`:**
 
 ```protobuf
 message APIResponse {
@@ -248,19 +257,11 @@ message APIResponse {
 }
 ```
 
-**D) Define what your response looks like:**
-
-```protobuf
-message RebootBotResult {
-    required bool success = 1 [(jaia.field).rest_api.presence = GUARANTEED];
-    optional string message = 2 [(jaia.field).rest_api.presence = GUARANTEED];
-}
-```
-
 **💡 Pro Tips:**
 - Field numbers must be unique within each message
 - Use `presence: GUARANTEED` so the field always shows up in JSON (even if empty)
 - The `doc` field is used for auto-generated documentation
+- Define your request/response messages (A & B) before adding them to APIRequest/APIResponse (C & D)
 - Look at existing actions (like `command` or `status`) as examples
 
 ### Step 2: Rebuild the Proto Files
@@ -384,7 +385,7 @@ And in `test/long_api_test.py`:
 ```python
 # Test the URL-based format
 run_request(
-    "/jaia/v1/reboot_bot/bots:1",
+    "/jaia/v1/reboot_bot/b1",
     {"force": True},
     expected_response_subset={
         "reboot_bot_result": {"success": True}
@@ -431,12 +432,12 @@ curl -X POST http://localhost:9092/jaia/v1 \
   }'
 
 # Using the long format (URL-based)
-curl -X POST http://localhost:9092/jaia/v1/reboot_bot/bots:1 \
+curl -X POST http://localhost:9092/jaia/v1/reboot_bot/b1 \
   -H "Content-Type: application/json" \
   -d '{"force": true}'
 
 # Or even simpler with GET (for simple actions)
-curl "http://localhost:9092/jaia/v1/reboot_bot/bots:1?force=true"
+curl "http://localhost:9092/jaia/v1/reboot_bot/b1?force=true"
 ```
 
 ### Optional: Add API Permissions
@@ -523,13 +524,13 @@ curl -X POST http://localhost:9092/jaia/v1 \
 curl "http://localhost:9092/jaia/v1/status/all"
 
 # Get status of specific bots
-curl "http://localhost:9092/jaia/v1/status/bots:1,2"
+curl "http://localhost:9092/jaia/v1/status/b1,b2"
 
 # Get status of specific hubs
-curl "http://localhost:9092/jaia/v1/status/hubs:1"
+curl "http://localhost:9092/jaia/v1/status/h1"
 
 # Command with JSON body
-curl -X POST http://localhost:9092/jaia/v1/command/bots:1,2 \
+curl -X POST http://localhost:9092/jaia/v1/command/b1,b2 \
   -H "Content-Type: application/json" \
   -d '{"type": "STOP"}'
 
@@ -539,9 +540,9 @@ curl "http://localhost:9092/jaia/v1/status/all?api_key=abc123"
 
 **Target Syntax:**
 - `all` - All bots and hubs
-- `bots:1,2,3` - Specific bots
-- `hubs:1,2` - Specific hubs
-- `bots:1;hubs:2` - Specific bots AND hubs
+- `b1,b2,b3` - Specific bots (use b prefix with bot IDs)
+- `h1,h2` - Specific hubs (use h prefix with hub IDs)
+- `b1,b2,h1` - Mix of bots and hubs
 
 ## How It Works (Under the Hood)
 
