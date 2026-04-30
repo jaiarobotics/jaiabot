@@ -181,7 +181,10 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
                         parsed.snapshot,
                         parsed.version,
                     );
-                    loadSnapshotResult.resultType = LoadResultType.CURRENT_FORMAT;
+                    loadSnapshotResult.resultType =
+                        parsed.version === MISSION_SET_VERSION
+                            ? LoadResultType.CURRENT_FORMAT
+                            : LoadResultType.OLD_FORMAT;
                     resolve(loadSnapshotResult);
                     return;
                 }
