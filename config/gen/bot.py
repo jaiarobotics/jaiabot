@@ -273,6 +273,8 @@ elif common.app == 'goby_coroner':
 elif common.app == 'jaiabot_health':
     ignore_powerstate_changes=is_simulation() and not common.is_vfleet
     print(config.template_substitute(templates_dir+'/bot/jaiabot_health.pb.cfg.in',
+                                     bot_id=bot_index,
+                                     fleet_id=fleet_index,
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bind_port=common.udp.motor_cpp_udp_port(),
