@@ -29,7 +29,7 @@ export interface LoadSnapshotResult {
  */
 export function saveSnapshotToLocalStorage(name: string, snapshot: MissionSetSnapshot) {
     const missionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    missionSets[name] = { ...snapshot, name };
+    missionSets[name] = { ...snapshot, name, version: MISSION_SET_VERSION };
     localStorage.setItem("missionSets", JSON.stringify(missionSets));
 }
 
@@ -56,14 +56,20 @@ export function saveToLocalStorage(name: string) {
 export function loadSnapshotFromLocalStorage(saveName: string) {
     const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
     const targetSet = allMissionSets[saveName] || {};
+    const version: string = targetSet.version ?? "2.0";
     const missions: [number, Mission][] = [];
     if (Array.isArray(targetSet.missions)) {
         missions.push(
             ...targetSet.missions.map(([missionID, serializedMission]: [any, any]) => [
                 Number(missionID),
-                Mission.fromJSON(serializedMission),
+                Mission.fromJSON(migrateMission(serializedMission, version)),
             ]),
         );
+    }
+
+    // 2.0 → 2.1: missions now carry their own speeds; stamp from snapshot-level missionSpeeds
+    if (version === "2.0" && targetSet.missionSpeeds) {
+        missions.forEach(([, mission]) => mission.setSpeeds(targetSet.missionSpeeds));
     }
 
     const snapshot: MissionSetSnapshot = {
@@ -175,7 +181,10 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
 
                 // Check version of parsed file
                 if (isCurrentMissionFile(parsed)) {
-                    loadSnapshotResult.snapshot = extractMissionSetSnapshot(parsed.snapshot);
+                    loadSnapshotResult.snapshot = extractMissionSetSnapshot(
+                        parsed.snapshot,
+                        parsed.version,
+                    );
                     loadSnapshotResult.resultType = LoadResultType.CURRENT_FORMAT;
                     resolve(loadSnapshotResult);
                     return;
@@ -207,7 +216,7 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
  * @returns {Boolean} True if current format
  */
 function isCurrentMissionFile(value: any) {
-    return value && value.version === MISSION_SET_VERSION && value.snapshot !== undefined;
+    return value && value.version !== undefined && value.snapshot !== undefined;
 }
 
 /**
@@ -220,11 +229,39 @@ function isLegacyMissionFile(value: any): boolean {
     return value && value.runs !== undefined;
 }
 
+// Migrates a 2.0 mission to 2.1: bottomDepthSafetyParams moves into segments[0]
+function migrateMission_2_0(rawMission: any): any {
+    if (rawMission.bottomDepthSafetyParams) {
+        const { bottomDepthSafetyParams, ...rest } = rawMission;
+        return {
+            ...rest,
+            segments: [
+                { start_goal_index: 1, bottom_depth_safety_params: bottomDepthSafetyParams },
+            ],
+        };
+    }
+    return rawMission;
+}
+
+// Each entry migrates from that version to the next, applied in order
+const MISSION_MIGRATIONS: [string, (m: any) => any][] = [["2.0", migrateMission_2_0]];
+
+// Applies all needed migrations from fromVersion up to current
+function migrateMission(rawMission: any, fromVersion: string): any {
+    let mission = rawMission;
+    let applying = false;
+    for (const [version, migrate] of MISSION_MIGRATIONS) {
+        if (version === fromVersion) applying = true;
+        if (applying) mission = migrate(mission);
+    }
+    return mission;
+}
+
 /**
  * Extracts a mission set from a raw snapshot data
  *
  * @param {any} rawMissionSet Raw mission set data parsed from file
- * @param {number} version Optional version number for future use
+ * @param {string} version Version string of the data being loaded
  * @returns {MissionSetSnapshot} Snapshot of mission set
  *
  * @notes
@@ -232,16 +269,22 @@ function isLegacyMissionFile(value: any): boolean {
  * contains a mission set version. Changes to the MissionSet interface
  * may affect this function.
  */
-function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
+function extractMissionSetSnapshot(rawMissionSet: any, version: string = MISSION_SET_VERSION) {
     const missionsArray: [number, Mission][] = [];
     if (Array.isArray(rawMissionSet.missions)) {
         missionsArray.push(
-            ...rawMissionSet.missions.map(([missionID, serializedMission]: [number, string]) => [
+            ...rawMissionSet.missions.map(([missionID, serializedMission]: [number, any]) => [
                 0, // Ignore original key
-                Mission.fromJSON(serializedMission),
+                Mission.fromJSON(migrateMission(serializedMission, version)),
             ]),
         );
     }
+
+    // 2.0 → 2.1: missions now carry their own speeds; stamp from snapshot-level missionSpeeds
+    if (version === "2.0" && rawMissionSet.missionSpeeds) {
+        missionsArray.forEach(([, mission]) => mission.setSpeeds(rawMissionSet.missionSpeeds));
+    }
+
     const snapshot: MissionSetSnapshot = {
         missions: missionsArray,
         nextMissionID: rawMissionSet.nextMissionID ?? 1,
