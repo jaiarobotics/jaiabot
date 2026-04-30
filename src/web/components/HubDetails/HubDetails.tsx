@@ -14,7 +14,8 @@ import {
 import { accordionTheme, addDropdownListener } from "../../utils/style";
 import { getIPPrefix } from "../../shared/IPPrefix";
 import { HubAccordionNames } from "../../types/context-types";
-import { SystemButtonTypes } from "../../types/jaia-system-types";
+import { NodeTypes, SystemButtonTypes } from "../../types/jaia-system-types";
+import { CLOUD_HUB_ID } from "../../utils/constants";
 
 // Styles
 import Button from "@mui/material/Button";
@@ -39,7 +40,11 @@ export default function HubDetails() {
         addDropdownListener("accordion-container", "hub-details-accordions-container");
     }, []);
 
-    const hub = jaiaContext.hubs.getHubs().values().next()?.value;
+    const selectedNode = jaiaContext.jaiaGlobal.getSelectedNode();
+    const hub =
+        selectedNode.type === NodeTypes.HUB
+            ? jaiaContext.hubs.getHub(selectedNode.id)
+            : jaiaContext.hubs.getHubs().values().next()?.value;
 
     if (!hub) {
         return;
@@ -78,11 +83,11 @@ export default function HubDetails() {
         const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
 
         if (statusAgeSeconds > healthFailedTimeout) {
-            return "healthFailed";
+            return "health-state-failed";
         }
 
         if (statusAgeSeconds > healthDegradedTimeout) {
-            return "healthDegraded";
+            return "health-state-degraded";
         }
 
         return "";
@@ -152,7 +157,7 @@ export default function HubDetails() {
         <div className="node-details">
             <div className="details-heading">
                 <div className="title-bar">
-                    <h2>{`Hub ${hub.getHubID()}`}</h2>
+                    <h2>{`Hub ${hub.getHubID() === CLOUD_HUB_ID ? "Cloud" : hub.getHubID()}`}</h2>
                     <div className="close-button" onClick={handleClosePanel}>
                         ⨯
                     </div>

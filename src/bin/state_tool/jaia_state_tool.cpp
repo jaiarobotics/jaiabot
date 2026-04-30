@@ -522,7 +522,7 @@ class StateChartVisitor : public RecursiveASTVisitor<StateChartVisitor>
         // (e.g. the type is wrapped in complex metaprogramming sugar), fall back to
         // extracting from "local_reactions" (in the actual state class) plus
         // "common_reactions" (in the template intermediary base class).
-        if (info.reactions.empty())
+        if (info.reactions.empty() && reactDecl != decl)
         {
             extractReactionsFromAlias(reactDecl, info.reactions, "local_reactions");
             extractReactionsFromAlias(decl, info.reactions, "common_reactions");

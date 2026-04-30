@@ -436,7 +436,8 @@ elif common.app == 'jaiabot_comms_manager':
     print(config.template_substitute(templates_dir+'/jaiabot_comms_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     subscribes=subscribes_block))
+                                     subscribes=subscribes_block,
+                                     subnet_mask=common.comms.subnet_mask))
 elif common.app == 'jaiabot_turner_c_fluor_sensor_driver':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_turner_c_fluor_sensor_driver.pb.cfg.in',
                                      app_block=app_common,

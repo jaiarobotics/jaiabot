@@ -113,6 +113,8 @@ constexpr goby::middleware::Group hub2hub_data{"jaiabot::hub2hub_data",
 
 // DCCL (interprocess)
 constexpr goby::middleware::Group hub_command_full{"jaiabot::hub_command_full"};
+constexpr goby::middleware::Group hub_command_result{
+    "jaiabot::hub_command_result"}; // ack or expire
 
 // Arduino
 constexpr goby::middleware::Group arduino_from_pi{"jaiabot::arduino_from_pi"};
@@ -129,12 +131,14 @@ constexpr goby::middleware::Group helm_ivp{"jaiabot::helm_ivp"};
 // Bot Comms
 constexpr goby::middleware::Group intervehicle_subscribe_request{
     "jaiabot::intervehicle_subscribe_request"};
+constexpr goby::middleware::Group bot_comms_status{"jaiabot::bot_comms_status"};
 
 // simulator
 constexpr goby::middleware::Group simulator_command{"jaiabot::simulator_command"};
 
 // web_portal
 constexpr goby::middleware::Group web_portal("jaiabot::web_portal");
+constexpr goby::middleware::Group remote_hub_command{"jaiabot::remote_hub_command"};
 
 // Camera
 constexpr goby::middleware::Group camera{"jaiabot::camera"};
