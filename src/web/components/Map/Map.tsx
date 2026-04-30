@@ -59,6 +59,9 @@ export default function Map() {
 
     /**
      * Distributes map clicks to appropriate handlers
+     *
+     * @param {MapBrowserEvent<PointerEvent>} event Contains data associated with map click
+     * @returns {void}
      */
     const handleMapClick = (event: MapBrowserEvent<PointerEvent>) => {
         const mapMode = jaiaGlobal.getMapMode();
@@ -67,6 +70,7 @@ export default function Map() {
                 handleAddRallyPoint(event.coordinate);
                 return;
             case MapModes.MEASURE:
+                // Measurement clicks handled by measure layer (src/web/openlayers/layers)
                 return;
             case MapModes.SURVEY_PLANNING:
                 handleSurveyPlanningClick(event.coordinate);
@@ -90,7 +94,8 @@ export default function Map() {
             return;
         }
 
-        // A zone vertex is awaiting relocation — move it, no feature hit-test needed.
+        // A zone vertex is awaiting relocation — the click destination is all we need, so skip
+        // the feature lookup below that identifies what was clicked (bot, waypoint, zone, etc.).
         if (jaiaGlobal.getSelectedZoneVertex().isMoveable) {
             handleMoveZoneVertexClick(event.coordinate);
             return;

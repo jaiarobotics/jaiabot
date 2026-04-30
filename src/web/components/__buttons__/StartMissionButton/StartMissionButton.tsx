@@ -97,6 +97,12 @@ export default function StartMissionButton(props: Props) {
         }
     };
 
+    /**
+     * Sends a mission plan to the bot
+     *
+     * @param {MissionPlan} plan The mission plan to send
+     * @returns {void}
+     */
     const sendPlan = async (plan: MissionPlan) => {
         const startMissionCommand: Command = {
             bot_id: props.bot.getBotID(),
@@ -109,6 +115,12 @@ export default function StartMissionButton(props: Props) {
         }
     };
 
+    /**
+     * Closes the dialog box then acts based on the type of button clicked
+     *
+     * @param {DialogActions} dialogAction Indicates which button was clicked
+     * @returns {void}
+     */
     const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction !== DialogActions.CONFIRMED) return;
