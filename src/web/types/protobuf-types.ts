@@ -711,7 +711,7 @@ export interface MissionPlan {
     repeats?: number;
     trail?: TrailParameters;
     mission_name?: string;
-    segment?: Segment[];
+    segments?: Segment[];
 }
 
 export interface TransitUpdate {

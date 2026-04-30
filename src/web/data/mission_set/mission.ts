@@ -147,7 +147,7 @@ export default class Mission {
             speeds: this.speeds,
             repeats: this.repeats,
             mission_name: missionSetName,
-            segment: this.segments,
+            segments: this.segments,
         };
 
         return missionPlan;

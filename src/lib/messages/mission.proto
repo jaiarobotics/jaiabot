@@ -460,7 +460,7 @@ message MissionPlan
 
     // Segments in mission execution order. Non-overlapping goal index
     // ranges are enforced by the UI before sending.
-    repeated Segment segment = 12
+    repeated Segment segments = 12
         [(dccl.field).max_repeat = 5, (jaia.field).rest_api.presence = GUARANTEED];
 
 }
