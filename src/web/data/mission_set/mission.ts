@@ -5,6 +5,7 @@ import {
     MissionPlan,
     MissionStart,
     MovementType,
+    Segment,
     Speeds,
 } from "../../types/protobuf-types";
 import Waypoint from "../waypoints/waypoint";
@@ -17,7 +18,7 @@ export default class Mission {
     private waypoints: Waypoint[];
     private speeds: Speeds;
     private repeats: number;
-    private bottomDepthSafetyParams: BottomDepthSafetyParams;
+    private segments: Segment[];
     private ghostParameters: GhostParameters;
 
     constructor() {
@@ -25,6 +26,7 @@ export default class Mission {
         // speeds set by missionSet singleton
         this.waypoints = [];
         this.repeats = 1;
+        this.segments = [{ start_goal_index: 1 }];
         this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID, repeats: 1 };
     }
 
@@ -62,11 +64,22 @@ export default class Mission {
     }
 
     getBottomDepthSafetyParams() {
-        return this.bottomDepthSafetyParams;
+        return this.segments[0].bottom_depth_safety_params;
     }
 
     setBottomDepthSafetyParams(bottomDepthSafetyParams: BottomDepthSafetyParams) {
-        this.bottomDepthSafetyParams = bottomDepthSafetyParams;
+        this.segments[0] = {
+            ...this.segments[0],
+            bottom_depth_safety_params: bottomDepthSafetyParams,
+        };
+    }
+
+    getSegments() {
+        return this.segments;
+    }
+
+    setSegments(segments: Segment[]) {
+        this.segments = segments;
     }
 
     getGhostParameters() {
@@ -134,11 +147,8 @@ export default class Mission {
             speeds: this.speeds,
             repeats: this.repeats,
             mission_name: missionSetName,
+            segment: this.segments,
         };
-
-        if (this.bottomDepthSafetyParams) {
-            missionPlan.bottomDepthSafetyParams = this.bottomDepthSafetyParams;
-        }
 
         return missionPlan;
     }
