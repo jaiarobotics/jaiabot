@@ -57,27 +57,23 @@ export function loadSnapshotFromLocalStorage(saveName: string) {
     const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
     const targetSet = allMissionSets[saveName] || {};
     const version: string = targetSet.version ?? "2.0";
+    const migrated = migrateSnapshot(targetSet, version);
     const missions: [number, Mission][] = [];
-    if (Array.isArray(targetSet.missions)) {
+    if (Array.isArray(migrated.missions)) {
         missions.push(
-            ...targetSet.missions.map(([missionID, serializedMission]: [any, any]) => [
+            ...migrated.missions.map(([missionID, serializedMission]: [any, any]) => [
                 Number(missionID),
-                Mission.fromJSON(migrateMission(serializedMission, version)),
+                Mission.fromJSON(serializedMission),
             ]),
         );
     }
 
-    // 2.0 → 2.1: missions now carry their own speeds; stamp from snapshot-level missionSpeeds
-    if (version === "2.0" && targetSet.missionSpeeds) {
-        missions.forEach(([, mission]) => mission.setSpeeds(targetSet.missionSpeeds));
-    }
-
     const snapshot: MissionSetSnapshot = {
         missions: missions,
-        nextMissionID: targetSet.nextMissionID ?? 0,
-        missionIDInEditMode: targetSet.missionIDInEditMode ?? UNASSIGNED_ID,
-        missionSpeeds: targetSet.missionSpeeds ?? {},
-        name: targetSet.name ?? "",
+        nextMissionID: migrated.nextMissionID ?? 0,
+        missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
+        missionSpeeds: migrated.missionSpeeds ?? {},
+        name: migrated.name ?? "",
     };
     return snapshot;
 }
@@ -229,32 +225,47 @@ function isLegacyMissionFile(value: any): boolean {
     return value && value.runs !== undefined;
 }
 
-// Migrates a 2.0 mission to 2.1: bottomDepthSafetyParams moves into segments[0]
-function migrateMission_2_0(rawMission: any): any {
-    if (rawMission.bottomDepthSafetyParams) {
-        const { bottomDepthSafetyParams, ...rest } = rawMission;
-        return {
-            ...rest,
-            segments: [
-                { start_goal_index: 1, bottom_depth_safety_params: bottomDepthSafetyParams },
-            ],
-        };
-    }
-    return rawMission;
+// Migrates a raw snapshot from 2.0 to 2.1.
+// Per-mission changes are handled here as internal details.
+function migrateSnapshot_2_0(rawSnapshot: any): any {
+    if (!Array.isArray(rawSnapshot.missions)) return rawSnapshot;
+    return {
+        ...rawSnapshot,
+        missions: rawSnapshot.missions.map(([id, mission]: [any, any]) => {
+            // bottomDepthSafetyParams moves from mission-level into segments[0]
+            if (mission.bottomDepthSafetyParams) {
+                const { bottomDepthSafetyParams, ...rest } = mission;
+                mission = {
+                    ...rest,
+                    segments: [
+                        {
+                            start_goal_index: 1,
+                            bottom_depth_safety_params: bottomDepthSafetyParams,
+                        },
+                    ],
+                };
+            }
+            // Stamp snapshot-level missionSpeeds onto missions that don't have their own
+            if (rawSnapshot.missionSpeeds && !mission.speeds) {
+                mission = { ...mission, speeds: rawSnapshot.missionSpeeds };
+            }
+            return [id, mission];
+        }),
+    };
 }
 
 // Each entry migrates from that version to the next, applied in order
-const MISSION_MIGRATIONS: [string, (m: any) => any][] = [["2.0", migrateMission_2_0]];
+const SNAPSHOT_MIGRATIONS: [string, (s: any) => any][] = [["2.0", migrateSnapshot_2_0]];
 
-// Applies all needed migrations from fromVersion up to current
-function migrateMission(rawMission: any, fromVersion: string): any {
-    let mission = rawMission;
+// Applies all needed snapshot migrations from fromVersion up to current
+function migrateSnapshot(rawSnapshot: any, fromVersion: string): any {
+    let snapshot = rawSnapshot;
     let applying = false;
-    for (const [version, migrate] of MISSION_MIGRATIONS) {
+    for (const [version, migrate] of SNAPSHOT_MIGRATIONS) {
         if (version === fromVersion) applying = true;
-        if (applying) mission = migrate(mission);
+        if (applying) snapshot = migrate(snapshot);
     }
-    return mission;
+    return snapshot;
 }
 
 /**
@@ -270,27 +281,23 @@ function migrateMission(rawMission: any, fromVersion: string): any {
  * may affect this function.
  */
 function extractMissionSetSnapshot(rawMissionSet: any, version: string = MISSION_SET_VERSION) {
+    const migrated = migrateSnapshot(rawMissionSet, version);
     const missionsArray: [number, Mission][] = [];
-    if (Array.isArray(rawMissionSet.missions)) {
+    if (Array.isArray(migrated.missions)) {
         missionsArray.push(
-            ...rawMissionSet.missions.map(([missionID, serializedMission]: [number, any]) => [
+            ...migrated.missions.map(([, serializedMission]: [number, any]) => [
                 0, // Ignore original key
-                Mission.fromJSON(migrateMission(serializedMission, version)),
+                Mission.fromJSON(serializedMission),
             ]),
         );
     }
 
-    // 2.0 → 2.1: missions now carry their own speeds; stamp from snapshot-level missionSpeeds
-    if (version === "2.0" && rawMissionSet.missionSpeeds) {
-        missionsArray.forEach(([, mission]) => mission.setSpeeds(rawMissionSet.missionSpeeds));
-    }
-
     const snapshot: MissionSetSnapshot = {
         missions: missionsArray,
-        nextMissionID: rawMissionSet.nextMissionID ?? 1,
-        missionIDInEditMode: rawMissionSet.missionIDInEditMode ?? UNASSIGNED_ID,
-        missionSpeeds: rawMissionSet.missionSpeeds ?? { transit: 2, stationkeep_outer: 2 },
-        name: rawMissionSet.name ?? "",
+        nextMissionID: migrated.nextMissionID ?? 1,
+        missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
+        missionSpeeds: migrated.missionSpeeds ?? { transit: 2, stationkeep_outer: 2 },
+        name: migrated.name ?? "",
     };
 
     return snapshot;
