@@ -1,5 +1,5 @@
 import Mission from "../../../../data/mission_set/mission";
-import { missionSet } from "../../../../data/mission_set/mission-set";
+import { missionSet, MISSION_SET_VERSION } from "../../../../data/mission_set/mission-set";
 import { missionA, missionB, missionC } from "../../../../data/tests/__mocks__/mission-mock";
 import {
     locationA,
@@ -12,9 +12,12 @@ import { TaskType } from "../../../../types/protobuf-types";
 import { TaskParameterKeys } from "../../../../types/jaia-system-types";
 import {
     saveToLocalStorage,
+    saveSnapshotToLocalStorage,
     deleteFromLocalStorage,
     listSavedMissionSets,
     loadSnapshotFromLocalStorage,
+    LoadResultType,
+    loadSnapshotFromFile,
 } from "../mission-set-storage";
 import { UNASSIGNED_ID } from "../../../../utils/constants";
 
@@ -147,5 +150,133 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(missionSetSnapshot.missionIDInEditMode).toEqual(UNASSIGNED_ID);
         expect(missionSetSnapshot.missionSpeeds).toEqual({});
         expect(missionSetSnapshot.name).toBe("");
+    });
+
+    test("Migrate 2.0 localStorage: bottomDepthSafetyParams moves into segments[0]", () => {
+        const srp = { max_safety_depth: 10, safety_depth_heading: 180 };
+        const v20MissionSets = {
+            "Old-Set": {
+                name: "Old-Set",
+                nextMissionID: 2,
+                missionIDInEditMode: UNASSIGNED_ID,
+                missionSpeeds: { transit: 2, stationkeep_outer: 2 },
+                missions: [
+                    [
+                        1,
+                        {
+                            waypoints: [{ location: locationA }],
+                            bottomDepthSafetyParams: srp,
+                        },
+                    ],
+                ],
+                // no version field — treated as 2.0
+            },
+        };
+        localStorage.setItem("missionSets", JSON.stringify(v20MissionSets));
+
+        const snapshot = loadSnapshotFromLocalStorage("Old-Set");
+
+        expect(snapshot.missions.length).toBe(1);
+        const [, mission] = snapshot.missions[0];
+        expect(mission.getBottomDepthSafetyParams()).toEqual(srp);
+        expect(mission.getSegments()[0].bottom_depth_safety_params).toEqual(srp);
+    });
+
+    test("Migrate 2.0 localStorage: snapshot-level missionSpeeds stamped onto missions without speeds", () => {
+        const speeds = { transit: 3, stationkeep_outer: 2 };
+        const v20MissionSets = {
+            "Old-Set": {
+                name: "Old-Set",
+                nextMissionID: 2,
+                missionIDInEditMode: UNASSIGNED_ID,
+                missionSpeeds: speeds,
+                missions: [
+                    [1, { waypoints: [{ location: locationA }] }],
+                    [
+                        2,
+                        {
+                            waypoints: [{ location: locationB }],
+                            speeds: { transit: 1, stationkeep_outer: 1 },
+                        },
+                    ],
+                ],
+                // no version field — treated as 2.0
+            },
+        };
+        localStorage.setItem("missionSets", JSON.stringify(v20MissionSets));
+
+        const snapshot = loadSnapshotFromLocalStorage("Old-Set");
+
+        const [, mission1] = snapshot.missions[0];
+        expect(mission1.getSpeeds()).toEqual(speeds);
+
+        // Mission that already has speeds should keep its own
+        const [, mission2] = snapshot.missions[1];
+        expect(mission2.getSpeeds()).toEqual({ transit: 1, stationkeep_outer: 1 });
+    });
+
+    test("loadSnapshotFromFile returns OLD_FORMAT for version 2.0 file", async () => {
+        const fileContent = JSON.stringify({
+            version: "2.0",
+            snapshot: {
+                name: "File-Set",
+                nextMissionID: 2,
+                missionIDInEditMode: UNASSIGNED_ID,
+                missionSpeeds: { transit: 2, stationkeep_outer: 2 },
+                missions: [[1, { waypoints: [{ location: locationC }] }]],
+            },
+        });
+        const file = new File([fileContent], "file-set.json", { type: "application/json" });
+        // jsdom may not implement File.prototype.text — mock it directly on the instance
+        (file as any).text = () => Promise.resolve(fileContent);
+
+        // Simulate file input selection
+        const mockInput = document.createElement("input");
+        jest.spyOn(document, "createElement").mockReturnValueOnce(mockInput);
+
+        const resultPromise = loadSnapshotFromFile();
+        // Trigger the onchange handler with the mock file
+        Object.defineProperty(mockInput, "files", { value: [file] });
+        mockInput.dispatchEvent(new Event("change"));
+
+        const result = await resultPromise;
+        expect(result.resultType).toBe(LoadResultType.OLD_FORMAT);
+        expect(result.snapshot).not.toBeNull();
+        expect(result.snapshot!.missions.length).toBe(1);
+    });
+
+    test("loadSnapshotFromFile returns CURRENT_FORMAT for current version file", async () => {
+        const fileContent = JSON.stringify({
+            version: MISSION_SET_VERSION,
+            snapshot: {
+                name: "Current-Set",
+                nextMissionID: 2,
+                missionIDInEditMode: UNASSIGNED_ID,
+                missionSpeeds: { transit: 2, stationkeep_outer: 2 },
+                missions: [
+                    [
+                        1,
+                        {
+                            waypoints: [{ location: locationD }],
+                            segments: [{ start_goal_index: 1 }],
+                        },
+                    ],
+                ],
+            },
+        });
+        const file = new File([fileContent], "current-set.json", { type: "application/json" });
+        (file as any).text = () => Promise.resolve(fileContent);
+
+        const mockInput = document.createElement("input");
+        jest.spyOn(document, "createElement").mockReturnValueOnce(mockInput);
+
+        const resultPromise = loadSnapshotFromFile();
+        Object.defineProperty(mockInput, "files", { value: [file] });
+        mockInput.dispatchEvent(new Event("change"));
+
+        const result = await resultPromise;
+        expect(result.resultType).toBe(LoadResultType.CURRENT_FORMAT);
+        expect(result.snapshot).not.toBeNull();
+        expect(result.snapshot!.missions.length).toBe(1);
     });
 });
