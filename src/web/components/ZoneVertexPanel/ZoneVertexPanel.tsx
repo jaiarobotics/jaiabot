@@ -54,12 +54,12 @@ export default function ZoneVertexPanel() {
         if (
             selectedVertex.zoneID === UNASSIGNED_ID ||
             !zone ||
-            !zone.drawnVertices ||
-            selectedVertex.vertexIndex >= zone.drawnVertices.length
+            !zone.vertices ||
+            selectedVertex.vertexIndex >= zone.vertices.length
         ) {
             return { lat: 0, lon: 0 };
         }
-        const vertex = zone.drawnVertices[selectedVertex.vertexIndex];
+        const vertex = zone.vertices[selectedVertex.vertexIndex];
         return { lat: vertex.lat, lon: vertex.lon };
     };
 
@@ -74,7 +74,7 @@ export default function ZoneVertexPanel() {
         if (priorZoneID !== currentZoneID) {
             setPriorZoneID(currentZoneID);
             const zone = getZone();
-            setPriorZoneVertices(zone?.drawnVertices ? cloneDeep(zone.drawnVertices) : null);
+            setPriorZoneVertices(zone?.vertices ? cloneDeep(zone.vertices) : null);
         }
 
         // Update input fields whenever the selected vertex changes (index or zone).

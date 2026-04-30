@@ -16,6 +16,7 @@ export default function MissionRerouteDialog() {
     const feasible = pending.proposals.filter((p) => !p.isOverLimit && !p.isImpossible);
     const overLimit = pending.proposals.filter((p) => p.isOverLimit);
     const impossible = pending.proposals.filter((p) => p.isImpossible);
+    const hasFeasibleReroute = feasible.length > 0;
 
     const skippedZones = pending.skippedZoneIDs ?? [];
     const loadedZones = pending.loadedZoneIDs ?? [];
@@ -57,8 +58,8 @@ export default function MissionRerouteDialog() {
                         <p className="dialog-warn">
                             <strong>{skippedZones.length}</strong> zone
                             {skippedZones.length !== 1 ? "s" : ""} could not be loaded — routing
-                            around {skippedZones.length !== 1 ? "them" : "it"} would exceed the{" "}
-                            {MAX_WAYPOINTS}-waypoint limit:
+                            around {skippedZones.length !== 1 ? "them" : "it"} is impossible or
+                            would exceed the {MAX_WAYPOINTS}-waypoint limit:
                         </p>
                         <ul className="dialog-warn-list">
                             {skippedZones.map((id) => (
@@ -88,7 +89,8 @@ export default function MissionRerouteDialog() {
                         <p className="dialog-warn">
                             <strong>{skippedMissions.length}</strong> mission
                             {skippedMissions.length !== 1 ? "s" : ""} could not be loaded — routing
-                            around existing zones would exceed the {MAX_WAYPOINTS}-waypoint limit:
+                            around existing zones is impossible or would exceed the {MAX_WAYPOINTS}
+                            -waypoint limit:
                         </p>
                         <ul className="dialog-warn-list">
                             {skippedMissions.map((id) => (
@@ -101,10 +103,15 @@ export default function MissionRerouteDialog() {
                 {/* Non-load: reroute summary */}
                 {!isZoneLoad && !isMissionLoad && feasible.length > 0 && (
                     <p>
+                        The mission{feasible.length !== 1 ? "s" : ""} ha
+                        {feasible.length !== 1 ? "ve" : "s"} been rerouted to include{" "}
                         <strong>{pending.totalBypassCount}</strong> bypass waypoint
-                        {pending.totalBypassCount !== 1 ? "s" : ""} will be added to route around
-                        the exclusion zone.
+                        {pending.totalBypassCount !== 1 ? "s" : ""}.
                     </p>
+                )}
+
+                {!isZoneLoad && !isMissionLoad && feasible.length === 0 && (
+                    <p className="dialog-warn">None of the missions can be rerouted.</p>
                 )}
 
                 {/* Impossible reroutes */}
@@ -145,9 +152,11 @@ export default function MissionRerouteDialog() {
 
                 <div className="dialog-button-row">
                     <button className="dialog-button" onClick={handleCancel}>
-                        {isZoneLoad || isMissionLoad ? "Revert All" : "Revert"}
+                        {isZoneLoad || isMissionLoad || !hasFeasibleReroute
+                            ? "Revert All"
+                            : "Revert"}
                     </button>
-                    {canProceed && (
+                    {canProceed && hasFeasibleReroute && (
                         <button className="dialog-button" onClick={handleConfirm}>
                             {isZoneLoad || isMissionLoad ? "Proceed" : "Update Route"}
                         </button>

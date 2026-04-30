@@ -8,7 +8,6 @@ import {
     getZoneBufferVertices,
     getBlockingZoneIDs,
     isLocationBlockedByZone,
-    toConvexHull,
     detectReroutesWithOverrides,
 } from "../exclusion-zone-router";
 import { METERS_PER_DEG } from "../constants";
@@ -108,89 +107,13 @@ function properSegmentsIntersect(
     return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
 }
 
-// ── toConvexHull ───────────────────────────────────────────────────────────────
-
-describe("toConvexHull", () => {
-    test("returns a triangle unchanged (already convex)", () => {
-        const zone = triangleZone(41.0, -72.0);
-        const result = toConvexHull(zone);
-        expect(result.wasConvexified).toBe(false);
-        expect(result.vertices.length).toBe(3);
-    });
-
-    test("returns a square unchanged (already convex)", () => {
-        const zone = squareZone(41.0, -72.0);
-        const result = toConvexHull(zone);
-        expect(result.wasConvexified).toBe(false);
-        expect(result.vertices.length).toBe(4);
-    });
-
-    test("convexifies an L-shaped polygon", () => {
-        const zone: ExclusionZone = {
-            vertices: [
-                coord(41.0, -72.0),
-                coord(41.001, -72.0),
-                coord(41.001, -72.0005),
-                coord(41.0005, -72.0005),
-                coord(41.0005, -72.001),
-                coord(41.0, -72.001),
-            ],
-        };
-        const result = toConvexHull(zone);
-        expect(result.wasConvexified).toBe(true);
-        expect(result.vertices.length).toBeLessThanOrEqual(6);
-        expect(result.vertices.length).toBeGreaterThanOrEqual(3);
-    });
-
-    test("convexifies a bow-tie (self-crossing) polygon", () => {
-        const zone: ExclusionZone = {
-            vertices: [
-                coord(41.0, -72.0),
-                coord(41.001, -72.001),
-                coord(41.001, -72.0),
-                coord(41.0, -72.001),
-            ],
-        };
-        const result = toConvexHull(zone);
-        expect(result.wasConvexified).toBe(true);
-        expect(result.vertices.length).toBeGreaterThanOrEqual(3);
-    });
-
-    test("handles collinear vertices", () => {
-        const zone: ExclusionZone = {
-            vertices: [
-                coord(41.0, -72.0),
-                coord(41.0005, -72.0),
-                coord(41.001, -72.0),
-                coord(41.001, -72.001),
-                coord(41.0, -72.001),
-            ],
-        };
-        const result = toConvexHull(zone);
-        expect(result.vertices.length).toBeGreaterThanOrEqual(3);
-    });
-
-    test("returns input unchanged for fewer than 3 vertices", () => {
-        const zone: ExclusionZone = { vertices: [coord(41.0, -72.0), coord(41.001, -72.0)] };
-        const result = toConvexHull(zone);
-        expect(result.wasConvexified).toBe(false);
-        expect(result.vertices).toEqual(zone.vertices);
-    });
-
-    test("handles undefined vertices", () => {
-        const result = toConvexHull({});
-        expect(result.wasConvexified).toBe(false);
-        expect(result.vertices).toEqual([]);
-    });
-});
-
 // ── getZoneBufferVertices ──────────────────────────────────────────────────────
 
 describe("getZoneBufferVertices", () => {
     test("returns buffer vertices for a triangle", () => {
         const zone = triangleZone(41.0, -72.0);
         const buffer = getZoneBufferVertices(zone, 15);
-        expect(buffer.length).toBeGreaterThan(3);
+        expect(buffer.length).toBeGreaterThanOrEqual(3);
     });
 
     test("buffer vertices are further from centroid than original vertices", () => {
@@ -216,7 +139,7 @@ describe("getZoneBufferVertices", () => {
 
         // Measure the minimum distance from any buffer vertex to its nearest
         // hull vertex. For a Minkowski-sum expansion this should be ~margin.
-        const hull = toConvexHull(zone).vertices;
+        const hull = zone.vertices!;
         const minDist = Math.min(
             ...buffer.map((bv) => Math.min(...hull.map((hv) => approxDistMetres(bv, hv)))),
         );
@@ -379,7 +302,7 @@ describe("routeAroundExclusionZones", () => {
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
         const result = routeAroundExclusionZones(p, 15);
 
-        const hull = toConvexHull(squareZone(41.0, -72.0, 0.0005)).vertices;
+        const hull = squareZone(41.0, -72.0, 0.0005).vertices!;
         const goals = result.plan.goal!;
         for (let i = 0; i < goals.length - 1; i++) {
             expect(segmentCrossesHull(goals[i].location!, goals[i + 1].location!, hull)).toBe(
@@ -393,7 +316,7 @@ describe("routeAroundExclusionZones", () => {
         const p = plan(goal(41.0, -72.005), goal(41.0, -71.995));
         const result = routeAroundExclusionZones(p, 15);
 
-        const hull = toConvexHull(triangleZone(41.0, -72.0, 0.0005)).vertices;
+        const hull = triangleZone(41.0, -72.0, 0.0005).vertices!;
         const goals = result.plan.goal!;
         for (let i = 0; i < goals.length - 1; i++) {
             expect(segmentCrossesHull(goals[i].location!, goals[i + 1].location!, hull)).toBe(
@@ -609,7 +532,7 @@ describe("detectReroutesWithOverrides", () => {
         const result = detectReroutesWithOverrides(new Map());
         expect(result).not.toBeNull();
 
-        const hull = toConvexHull(squareZone(41.0, -72.0, 0.0005)).vertices;
+        const hull = squareZone(41.0, -72.0, 0.0005).vertices!;
         const wps = result!.proposals[0].newWaypoints;
         for (let i = 0; i < wps.length - 1; i++) {
             const a = wps[i].getLocation();

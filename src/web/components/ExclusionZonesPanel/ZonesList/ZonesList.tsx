@@ -7,7 +7,6 @@ import { mdiTrashCan } from "@mdi/js";
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import JaiaToggle from "../../JaiaToggle/JaiaToggle";
-import { GeographicCoordinate } from "../../../types/protobuf-types";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 
 import "./ZonesList.less";

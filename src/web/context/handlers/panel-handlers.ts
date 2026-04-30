@@ -11,7 +11,6 @@ import { MapFeatureTypes } from "../../types/openlayers-types";
 import { ButtonNames, JaiaAction, JaiaContextType, PanelActions } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers, syncTaskLayers } from "./handler-utils";
-import { toConvexHull } from "../../utils/exclusion-zone-router";
 
 /**
  * Closes the Bot or Hub details panel
@@ -85,18 +84,9 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
         action.locations &&
         action.zoneID !== undefined
     ) {
-        // Restore the full pre-edit vertex snapshot. Using the full list avoids the
-        // bug where hull reindexing after a move would cause the single-vertex revert
-        // to target the wrong index.
         const zone = exclusionZoneSet.getZone(action.zoneID);
         if (zone) {
-            // Restore drawnVertices and recompute the hull so both arrays are consistent.
-            const { vertices: hullVertices } = toConvexHull({ vertices: action.locations });
-            exclusionZoneSet.updateZone(action.zoneID, {
-                ...zone,
-                drawnVertices: action.locations,
-                vertices: hullVertices,
-            });
+            exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: action.locations });
             syncOpenLayers();
         }
         // Clear any pending dialogs triggered by the now-cancelled edits.

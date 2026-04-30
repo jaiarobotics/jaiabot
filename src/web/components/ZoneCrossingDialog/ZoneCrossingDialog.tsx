@@ -17,9 +17,8 @@ export default function ZoneCrossingDialog({
             <div className="jaia-dialog">
                 <h1>Route Crosses a Zone</h1>
                 <p>
-                    The path to waypoint {waypointNumber} crosses an exclusion zone —{" "}
-                    <strong>{bypassCount}</strong> bypass waypoint
-                    {bypassCount !== 1 ? "s" : ""} will be added to route around it.
+                    The path to waypoint {waypointNumber} has been rerouted to include{" "}
+                    <strong>{bypassCount}</strong> bypass waypoint{bypassCount !== 1 ? "s" : ""}.
                 </p>
                 <div className="dialog-button-row">
                     <button className="dialog-button" onClick={onCancel}>

@@ -19,7 +19,7 @@ import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-
 import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
 import { ButtonNames, ButtonTypes } from "../../types/context-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
-import { MAP_FEATURE_HIT_TOLERANCE, UNASSIGNED_ID } from "../../utils/constants";
+import { MAP_FEATURE_HIT_TOLERANCE, MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { locationToConstantHeadingParams } from "../../utils/conversions";
 import { GeographicCoordinate } from "../../types/protobuf-types";
 
@@ -385,9 +385,16 @@ export default function Map() {
             // which also uses the first clean waypoint as origin.
             const firstCleanLoc = waypoints.filter((wp) => !wp.getIsBypass())[0]?.getLocation();
             const result = routeAroundExclusionZones(miniPlan, 15, firstCleanLoc ?? fromLocation);
+            const locations = result.plan.goal.slice(1).map((g) => g.location!);
+
+            // Let the normal waypoint-add handler reject impossible or over-limit
+            // placements so the user gets a placement error instead of a confirm dialog.
+            if (result.isRoutingImpossible || waypoints.length + locations.length > MAX_WAYPOINTS) {
+                jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location: newLocation });
+                return;
+            }
 
             if (result.bypassCount > 0) {
-                const locations = result.plan.goal.slice(1).map((g) => g.location!);
                 const userWaypointCount = waypoints.filter((wp) => !wp.getIsBypass()).length;
                 setZoneCrossing({
                     locations,

@@ -16,8 +16,12 @@ export default function WaypointRemovalDialog() {
     if (!pending) return null;
 
     const reroute = pending.followUpReroute;
-    const rerouteFeasible = reroute?.proposals.filter((p) => !p.isOverLimit) ?? [];
+    const rerouteFeasible =
+        reroute?.proposals.filter((p) => !p.isOverLimit && !p.isImpossible) ?? [];
     const rerouteOverLimit = reroute?.proposals.filter((p) => p.isOverLimit) ?? [];
+    const rerouteImpossible = reroute?.proposals.filter((p) => p.isImpossible) ?? [];
+    const hasFollowUpReroute = !!reroute;
+    const hasFeasibleFollowUp = hasFollowUpReroute && rerouteFeasible.length > 0;
 
     const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_WAYPOINT_REMOVAL });
     const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_WAYPOINT_REMOVAL });
@@ -44,9 +48,16 @@ export default function WaypointRemovalDialog() {
 
                 {rerouteFeasible.length > 0 && (
                     <p>
-                        The updated route also crosses a zone and will add{" "}
+                        The following mission
+                        {rerouteFeasible.length !== 1 ? "s have" : " has"} been rerouted to include{" "}
                         <strong>{reroute!.totalBypassCount}</strong> bypass waypoint
                         {reroute!.totalBypassCount !== 1 ? "s" : ""}.
+                    </p>
+                )}
+
+                {hasFollowUpReroute && rerouteFeasible.length === 0 && (
+                    <p className="dialog-warn">
+                        None of the remaining missions can be rerouted with the current zone layout.
                     </p>
                 )}
 
@@ -69,13 +80,30 @@ export default function WaypointRemovalDialog() {
                     </>
                 )}
 
+                {rerouteImpossible.length > 0 && (
+                    <>
+                        <p className="dialog-warn">
+                            The following mission{rerouteImpossible.length !== 1 ? "s" : ""} still
+                            cross a zone after waypoint removal and cannot be rerouted with the
+                            current zone layout:
+                        </p>
+                        <ul className="dialog-warn-list">
+                            {rerouteImpossible.map((p) => (
+                                <li key={p.missionID}>Mission {p.missionID}</li>
+                            ))}
+                        </ul>
+                    </>
+                )}
+
                 <div className="dialog-button-row">
                     <button className="dialog-button" onClick={handleCancel}>
-                        Revert
+                        {hasFollowUpReroute && !hasFeasibleFollowUp ? "Revert All" : "Revert"}
                     </button>
-                    <button className="dialog-button" onClick={handleConfirm}>
-                        Update Plan
-                    </button>
+                    {(!hasFollowUpReroute || hasFeasibleFollowUp) && (
+                        <button className="dialog-button" onClick={handleConfirm}>
+                            Update Plan
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

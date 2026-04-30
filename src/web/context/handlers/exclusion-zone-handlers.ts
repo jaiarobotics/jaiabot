@@ -1,13 +1,18 @@
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { missionSet } from "../../data/mission_set/mission-set";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
-import { toConvexHull } from "../../utils/exclusion-zone-router";
 import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
-import { syncOpenLayers, stripStaleBypasses } from "./handler-utils";
+import {
+    syncOpenLayers,
+    stripStaleBypasses,
+    stripBypassesInsideZoneWithSnapshot,
+} from "./handler-utils";
 import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
+import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import {
     detectMissionReroutes,
     detectWaypointRemovals,
@@ -16,6 +21,16 @@ import {
 function overLimitError(missionIDs: number[]): string {
     const list = missionIDs.map((id) => `Mission ${id}`).join(", ");
     return `${list} ${missionIDs.length === 1 ? "has" : "have"} too many waypoints to route around this zone. Reduce waypoints below ${MAX_WAYPOINTS} first, then retry.`;
+}
+
+function impossibleRouteError(missionIDs: number[]): string {
+    const list = missionIDs.map((id) => `Mission ${id}`).join(", ");
+    return `No clear path exists around this zone for ${list}. Move the conflicting waypoints further from the zone or reshape the zone.`;
+}
+
+function followUpUnroutableError(missionIDs: number[]): string {
+    const list = missionIDs.map((id) => `Mission ${id}`).join(", ");
+    return `After removing enclosed waypoints, ${list} ${missionIDs.length === 1 ? "has" : "have"} too many remaining waypoints to route around this zone (limit ${MAX_WAYPOINTS}). Reduce waypoints in ${missionIDs.length === 1 ? "that mission" : "those missions"} first, then retry.`;
 }
 
 export function handleAddExclusionZone(mutableState: JaiaContextType, action: JaiaAction) {
@@ -27,21 +42,54 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
     // Waypoints inside the zone take priority — warn before rerouting.
     const pendingRemoval = detectWaypointRemovals(zoneID);
     if (pendingRemoval) {
+        const unroutable = pendingRemoval.followUpReroute?.proposals.filter(
+            (p) => p.isOverLimit || p.isImpossible,
+        );
+        if (unroutable?.length) {
+            exclusionZoneSet.deleteZone(zoneID);
+            exclusionZoneLayer.updateFeatures();
+            mutableState.placementError = followUpUnroutableError(
+                unroutable.map((p) => p.missionID),
+            );
+            return mutableState;
+        }
         mutableState.pendingWaypointRemoval = pendingRemoval;
+        mutableState.pendingReroute = null;
         return mutableState;
     }
 
+    // Strip any bypass waypoints now sitting inside this new zone before re-routing,
+    // so the router works from clean waypoints and finds a valid path around all zones.
+    const { affected: bypassAffected, priorMissionWaypoints } =
+        stripBypassesInsideZoneWithSnapshot(zoneID);
+    if (bypassAffected.size > 0) missionLayer.updateFeatures();
+
     const pending = detectMissionReroutes();
     if (pending) {
-        // Only attribute crossings caused by this new zone. Crossings from
-        // pre-existing zones are handled when those zones are interacted with directly.
-        const relevant = pending.proposals.filter((p) => p.involvedZoneIDs.includes(zoneID));
+        // Include missions whose clean segment crosses this zone AND missions whose
+        // bypass waypoints were inside this zone (the bypass-strip above may have
+        // exposed crossings that only involve pre-existing zones).
+        const relevant = pending.proposals.filter(
+            (p) => p.involvedZoneIDs.includes(zoneID) || bypassAffected.has(p.missionID),
+        );
         const overLimit = relevant.filter((p) => p.isOverLimit);
+        const impossible = relevant.filter((p) => p.isImpossible);
         if (overLimit.length > 0) {
-            // Can't route around this zone — undo the draw.
+            for (const [missionID, waypoints] of priorMissionWaypoints) {
+                missionSet.getMission(missionID)?.setWaypoints(waypoints);
+            }
             exclusionZoneSet.deleteZone(zoneID);
             exclusionZoneLayer.updateFeatures();
             mutableState.placementError = overLimitError(overLimit.map((p) => p.missionID));
+            return mutableState;
+        }
+        if (impossible.length > 0) {
+            for (const [missionID, waypoints] of priorMissionWaypoints) {
+                missionSet.getMission(missionID)?.setWaypoints(waypoints);
+            }
+            exclusionZoneSet.deleteZone(zoneID);
+            exclusionZoneLayer.updateFeatures();
+            mutableState.placementError = impossibleRouteError(impossible.map((p) => p.missionID));
             return mutableState;
         }
         if (relevant.length > 0) {
@@ -49,6 +97,9 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
                 proposals: relevant,
                 totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
                 triggeringZoneID: zoneID,
+                priorMissionWaypoints: Array.from(priorMissionWaypoints.entries()).map(
+                    ([missionID, waypoints]) => ({ missionID, waypoints }),
+                ),
             };
         }
     }
@@ -81,6 +132,7 @@ export function handleClearExclusionZones(mutableState: JaiaContextType) {
 
 export function handleLoadExclusionZones(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZones) return mutableState;
+    const priorExclusionZoneSetSnapshot = exclusionZoneSet.captureSnapshot();
     exclusionZoneSet.clearZones();
     const allLoadedIDs: number[] = [];
     for (const zone of action.exclusionZones) {
@@ -90,15 +142,37 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
 
     const pendingRemoval = detectWaypointRemovals(undefined, true);
     if (pendingRemoval) {
-        mutableState.pendingWaypointRemoval = pendingRemoval;
-        return mutableState;
+        // If the follow-up reroute (after removing enclosed waypoints) would be unroutable,
+        // exclude those offending zones from the load entirely instead of showing the dialog.
+        const unroutableFollowUp = pendingRemoval.followUpReroute?.proposals.filter(
+            (p) => p.isOverLimit || p.isImpossible,
+        );
+        if (unroutableFollowUp?.length && pendingRemoval.offendingZoneIDs?.length) {
+            for (const id of pendingRemoval.offendingZoneIDs) exclusionZoneSet.deleteZone(id);
+            exclusionZoneLayer.updateFeatures();
+            // Re-detect with the remaining zones.
+            const retriedRemoval = detectWaypointRemovals(undefined, true);
+            if (retriedRemoval) {
+                mutableState.pendingWaypointRemoval = {
+                    ...retriedRemoval,
+                    priorExclusionZoneSetSnapshot,
+                };
+                return mutableState;
+            }
+        } else {
+            mutableState.pendingWaypointRemoval = {
+                ...pendingRemoval,
+                priorExclusionZoneSetSnapshot,
+            };
+            return mutableState;
+        }
     }
 
     const rawPending = detectMissionReroutes();
     if (rawPending) {
         const skippedZoneIDSet = new Set<number>();
         rawPending.proposals
-            .filter((p) => p.isOverLimit)
+            .filter((p) => p.isOverLimit || p.isImpossible)
             .forEach((p) => p.involvedZoneIDs.forEach((id) => skippedZoneIDSet.add(id)));
 
         if (skippedZoneIDSet.size > 0) {
@@ -115,6 +189,7 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
             totalBypassCount: cleanPending?.totalBypassCount ?? 0,
             loadedZoneIDs,
             skippedZoneIDs,
+            priorExclusionZoneSetSnapshot,
         };
         return mutableState;
     }
@@ -136,12 +211,16 @@ export function handleRestoreExclusionZoneSnapshot(
     action: JaiaAction,
 ) {
     if (!action.exclusionZoneSnapshot) return mutableState;
+    const priorExclusionZoneSetSnapshot = exclusionZoneSet.captureSnapshot();
     exclusionZoneSet.restoreFromSnapshot(action.exclusionZoneSnapshot);
     exclusionZoneLayer.updateFeatures();
 
     const pendingRemoval = detectWaypointRemovals(undefined, true);
     if (pendingRemoval) {
-        mutableState.pendingWaypointRemoval = pendingRemoval;
+        mutableState.pendingWaypointRemoval = {
+            ...pendingRemoval,
+            priorExclusionZoneSetSnapshot,
+        };
         return mutableState;
     }
 
@@ -149,7 +228,7 @@ export function handleRestoreExclusionZoneSnapshot(
     if (rawPending) {
         const skippedZoneIDSet = new Set<number>();
         rawPending.proposals
-            .filter((p) => p.isOverLimit)
+            .filter((p) => p.isOverLimit || p.isImpossible)
             .forEach((p) => p.involvedZoneIDs.forEach((id) => skippedZoneIDSet.add(id)));
 
         if (skippedZoneIDSet.size > 0) {
@@ -167,6 +246,7 @@ export function handleRestoreExclusionZoneSnapshot(
             totalBypassCount: cleanPending?.totalBypassCount ?? 0,
             loadedZoneIDs,
             skippedZoneIDs,
+            priorExclusionZoneSetSnapshot,
         };
         return mutableState;
     }
@@ -177,11 +257,16 @@ export function handleRestoreExclusionZoneSnapshot(
 export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
     const pending = mutableState.pendingReroute;
     if (!pending) return mutableState;
+    const isMissionLoad = pending.loadedMissionIDs !== undefined;
     for (const proposal of pending.proposals) {
         if (proposal.isOverLimit) {
-            // Can't reroute without exceeding MAX_WAYPOINTS; removing is better
-            // than leaving a mission with a route that crosses a zone.
-            missionSet.deleteMission(proposal.missionID);
+            // For mission load the over-limit missions were already deleted upfront.
+            if (!isMissionLoad) missionSet.deleteMission(proposal.missionID);
+            continue;
+        }
+        if (proposal.isImpossible) {
+            // Impossible reroutes must not remain loaded in a zone-crossing state.
+            if (!isMissionLoad) missionSet.deleteMission(proposal.missionID);
             continue;
         }
         const mission = missionSet.getMission(proposal.missionID);
@@ -193,11 +278,40 @@ export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
 }
 
 export function handleCancelMissionReroute(mutableState: JaiaContextType) {
-    const { triggeringZoneID, priorZone, loadedZoneIDs } = mutableState.pendingReroute ?? {};
+    const {
+        triggeringZoneID,
+        priorZone,
+        loadedZoneIDs,
+        loadedMissionIDs,
+        priorMissionWaypoints,
+        priorMissionSetSnapshot,
+        priorMissionsManagerSnapshot,
+        priorExclusionZoneSetSnapshot,
+    } = mutableState.pendingReroute ?? {};
     mutableState.pendingReroute = null;
+    if (priorMissionSetSnapshot && priorMissionsManagerSnapshot) {
+        missionSet.restoreFromSnapshot(priorMissionSetSnapshot);
+        missionsManager.restoreFromSnapshot(priorMissionsManagerSnapshot);
+    }
+    if (priorExclusionZoneSetSnapshot) {
+        exclusionZoneSet.restoreFromSnapshot(priorExclusionZoneSetSnapshot);
+    }
+    if (priorMissionWaypoints) {
+        for (const { missionID, waypoints } of priorMissionWaypoints) {
+            missionSet.getMission(missionID)?.setWaypoints(waypoints);
+        }
+    }
+    if (priorMissionSetSnapshot || priorExclusionZoneSetSnapshot) {
+        syncOpenLayers();
+        return mutableState;
+    }
     if (loadedZoneIDs !== undefined) {
         // Zone load: revert means nothing from this load stays.
         for (const id of loadedZoneIDs) exclusionZoneSet.deleteZone(id);
+        syncOpenLayers();
+    } else if (loadedMissionIDs !== undefined) {
+        // Mission load: revert means none of the loaded missions stay.
+        for (const id of loadedMissionIDs) missionSet.deleteMission(id);
         syncOpenLayers();
     } else if (priorZone !== undefined) {
         // Zone vertex move: restore the zone to its shape before the move.
@@ -220,10 +334,15 @@ export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
         if (mission) mission.setWaypoints(proposal.newWaypoints);
     }
 
-    // Apply feasible follow-up reroutes in the same operation (skip over-limit).
+    // Apply feasible follow-up reroutes in the same operation.
+    // Missions that are still unroutable after removal must not remain loaded
+    // in a zone-crossing state.
     if (pending.followUpReroute) {
         for (const proposal of pending.followUpReroute.proposals) {
-            if (proposal.isOverLimit) continue;
+            if (proposal.isOverLimit || proposal.isImpossible) {
+                missionSet.deleteMission(proposal.missionID);
+                continue;
+            }
             const mission = missionSet.getMission(proposal.missionID);
             if (mission) mission.setWaypoints(proposal.newWaypoints);
         }
@@ -231,6 +350,9 @@ export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
 
     syncOpenLayers();
     mutableState.pendingWaypointRemoval = null;
+    // Clear any stale reroute from a previous action — the follow-up reroute
+    // above already covered all routing needs for the current mission state.
+    mutableState.pendingReroute = null;
     return mutableState;
 }
 
@@ -238,6 +360,18 @@ export function handleCancelWaypointRemoval(mutableState: JaiaContextType) {
     const pending = mutableState.pendingWaypointRemoval;
     mutableState.pendingWaypointRemoval = null;
     if (!pending) return mutableState;
+
+    if (pending.priorMissionSetSnapshot && pending.priorMissionsManagerSnapshot) {
+        missionSet.restoreFromSnapshot(pending.priorMissionSetSnapshot);
+        missionsManager.restoreFromSnapshot(pending.priorMissionsManagerSnapshot);
+        syncOpenLayers();
+        return mutableState;
+    }
+    if (pending.priorExclusionZoneSetSnapshot) {
+        exclusionZoneSet.restoreFromSnapshot(pending.priorExclusionZoneSetSnapshot);
+        syncOpenLayers();
+        return mutableState;
+    }
 
     if (pending.priorZone !== undefined) {
         // Zone vertex move: restore the zone to its original shape.
@@ -301,16 +435,12 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
     if (!selected || !action.location) return mutableState;
 
     const zone = exclusionZoneSet.getZone(selected.zoneID);
-    if (!zone?.drawnVertices) return mutableState;
+    if (!zone?.vertices) return mutableState;
 
     // Snapshot so we can restore on cancel.
     const priorZone = {
         zoneID: selected.zoneID,
-        zone: {
-            ...zone,
-            drawnVertices: [...zone.drawnVertices],
-            vertices: [...(zone.vertices ?? [])],
-        },
+        zone: { ...zone, vertices: [...zone.vertices] },
     };
 
     const newIdx = exclusionZoneSet.moveVertex(
@@ -328,26 +458,55 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
     // Waypoints inside the enlarged zone take priority — warn before rerouting.
     const pendingRemoval = detectWaypointRemovals(selected.zoneID);
     if (pendingRemoval) {
+        const unroutable = pendingRemoval.followUpReroute?.proposals.filter(
+            (p) => p.isOverLimit || p.isImpossible,
+        );
+        if (unroutable?.length) {
+            exclusionZoneSet.updateZone(priorZone.zoneID, priorZone.zone);
+            exclusionZoneLayer.updateFeatures();
+            mutableState.placementError = followUpUnroutableError(
+                unroutable.map((p) => p.missionID),
+            );
+            return mutableState;
+        }
         // Use priorZone (not triggeringZoneID) so cancel restores the shape rather than deleting the zone.
         mutableState.pendingWaypointRemoval = {
             ...pendingRemoval,
             triggeringZoneID: undefined,
             priorZone,
         };
+        mutableState.pendingReroute = null;
         return mutableState;
     }
 
+    const { affected: bypassAffected, priorMissionWaypoints } = stripBypassesInsideZoneWithSnapshot(
+        selected.zoneID,
+    );
+    if (bypassAffected.size > 0) missionLayer.updateFeatures();
+
     const pending = detectMissionReroutes();
     if (pending) {
-        const relevant = pending.proposals.filter((p) =>
-            p.involvedZoneIDs.includes(selected.zoneID),
+        const relevant = pending.proposals.filter(
+            (p) => p.involvedZoneIDs.includes(selected.zoneID) || bypassAffected.has(p.missionID),
         );
         const overLimit = relevant.filter((p) => p.isOverLimit);
+        const impossible = relevant.filter((p) => p.isImpossible);
         if (overLimit.length > 0) {
-            // Can't route around this zone shape — restore the zone to its prior shape.
+            for (const [missionID, waypoints] of priorMissionWaypoints) {
+                missionSet.getMission(missionID)?.setWaypoints(waypoints);
+            }
             exclusionZoneSet.updateZone(priorZone.zoneID, priorZone.zone);
             exclusionZoneLayer.updateFeatures();
             mutableState.placementError = overLimitError(overLimit.map((p) => p.missionID));
+            return mutableState;
+        }
+        if (impossible.length > 0) {
+            for (const [missionID, waypoints] of priorMissionWaypoints) {
+                missionSet.getMission(missionID)?.setWaypoints(waypoints);
+            }
+            exclusionZoneSet.updateZone(priorZone.zoneID, priorZone.zone);
+            exclusionZoneLayer.updateFeatures();
+            mutableState.placementError = impossibleRouteError(impossible.map((p) => p.missionID));
             return mutableState;
         }
         if (relevant.length > 0) {
@@ -355,6 +514,9 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
                 proposals: relevant,
                 totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
                 priorZone,
+                priorMissionWaypoints: Array.from(priorMissionWaypoints.entries()).map(
+                    ([missionID, waypoints]) => ({ missionID, waypoints }),
+                ),
             };
         }
     }
@@ -410,16 +572,12 @@ export function handleToggleZoneVertexTapToMove(mutableState: JaiaContextType) {
 export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined || !action.location) return mutableState;
     const zone = exclusionZoneSet.getZone(action.zoneID);
-    if (!zone?.drawnVertices || zone.drawnVertices.length < 3) return mutableState;
+    if (!zone?.vertices || zone.vertices.length < 3) return mutableState;
 
     // Snapshot for cancel/revert.
     const priorZone = {
         zoneID: action.zoneID,
-        zone: {
-            ...zone,
-            drawnVertices: [...zone.drawnVertices],
-            vertices: [...(zone.vertices ?? [])],
-        },
+        zone: { ...zone, vertices: [...zone.vertices] },
     };
 
     const newIdx = exclusionZoneSet.addVertex(action.zoneID, action.location);
@@ -436,25 +594,55 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
 
     const pendingRemoval = detectWaypointRemovals(action.zoneID);
     if (pendingRemoval) {
+        const unroutable = pendingRemoval.followUpReroute?.proposals.filter(
+            (p) => p.isOverLimit || p.isImpossible,
+        );
+        if (unroutable?.length) {
+            exclusionZoneSet.updateZone(priorZone.zoneID, priorZone.zone);
+            exclusionZoneLayer.updateFeatures();
+            mutableState.placementError = followUpUnroutableError(
+                unroutable.map((p) => p.missionID),
+            );
+            return mutableState;
+        }
         // Use priorZone so cancel restores the shape rather than deleting the zone.
         mutableState.pendingWaypointRemoval = {
             ...pendingRemoval,
             triggeringZoneID: undefined,
             priorZone,
         };
+        mutableState.pendingReroute = null;
         return mutableState;
     }
 
+    const { affected: bypassAffected, priorMissionWaypoints } = stripBypassesInsideZoneWithSnapshot(
+        action.zoneID!,
+    );
+    if (bypassAffected.size > 0) missionLayer.updateFeatures();
+
     const pending = detectMissionReroutes();
     if (pending) {
-        const relevant = pending.proposals.filter((p) =>
-            p.involvedZoneIDs.includes(action.zoneID!),
+        const relevant = pending.proposals.filter(
+            (p) => p.involvedZoneIDs.includes(action.zoneID!) || bypassAffected.has(p.missionID),
         );
         const overLimit = relevant.filter((p) => p.isOverLimit);
+        const impossible = relevant.filter((p) => p.isImpossible);
         if (overLimit.length > 0) {
+            for (const [missionID, waypoints] of priorMissionWaypoints) {
+                missionSet.getMission(missionID)?.setWaypoints(waypoints);
+            }
             exclusionZoneSet.updateZone(priorZone.zoneID, priorZone.zone);
             exclusionZoneLayer.updateFeatures();
             mutableState.placementError = overLimitError(overLimit.map((p) => p.missionID));
+            return mutableState;
+        }
+        if (impossible.length > 0) {
+            for (const [missionID, waypoints] of priorMissionWaypoints) {
+                missionSet.getMission(missionID)?.setWaypoints(waypoints);
+            }
+            exclusionZoneSet.updateZone(priorZone.zoneID, priorZone.zone);
+            exclusionZoneLayer.updateFeatures();
+            mutableState.placementError = impossibleRouteError(impossible.map((p) => p.missionID));
             return mutableState;
         }
         if (relevant.length > 0) {
@@ -462,6 +650,9 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
                 proposals: relevant,
                 totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
                 priorZone,
+                priorMissionWaypoints: Array.from(priorMissionWaypoints.entries()).map(
+                    ([missionID, waypoints]) => ({ missionID, waypoints }),
+                ),
             };
         }
     }
@@ -476,20 +667,21 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
 export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined || action.vertexIndex === undefined) return mutableState;
     const zone = exclusionZoneSet.getZone(action.zoneID);
-    if (!zone?.drawnVertices || zone.drawnVertices.length <= 3) return mutableState;
+    if (!zone?.vertices || zone.vertices.length <= 3) return mutableState;
+    const priorZone = {
+        zoneID: action.zoneID,
+        zone: { ...zone, vertices: [...zone.vertices] },
+    };
 
-    const newDrawnVertices = zone.drawnVertices.filter((_, i) => i !== action.vertexIndex);
-    const { vertices: hullVertices } = toConvexHull({ vertices: newDrawnVertices });
     exclusionZoneSet.updateZone(action.zoneID, {
         ...zone,
-        drawnVertices: newDrawnVertices,
-        vertices: hullVertices,
+        vertices: zone.vertices.filter((_, i) => i !== action.vertexIndex),
     });
     jaiaGlobal.resetSelectedZoneVertex();
     exclusionZoneLayer.updateFeatures();
 
     const pending = detectMissionReroutes();
-    if (pending) mutableState.pendingReroute = { ...pending, triggeringZoneID: undefined };
+    if (pending) mutableState.pendingReroute = { ...pending, priorZone };
 
     const activeMissionIDs = new Set(pending?.proposals.map((p) => p.missionID) ?? []);
     stripStaleBypasses(activeMissionIDs);

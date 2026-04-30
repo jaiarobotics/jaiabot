@@ -10,6 +10,9 @@ import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zon
 import { bots } from "../../data/bots/bots";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
+import { getBlockingZoneIDs } from "../../utils/exclusion-zone-router";
+import cloneDeep from "lodash/cloneDeep";
+import Waypoint from "../../data/waypoints/waypoint";
 
 /**
  * Repaints the map layers using the latest data
@@ -23,6 +26,41 @@ export function syncOpenLayers() {
     ghostMissionLayer.updateFeatures();
     rallyLayer.updateFeatures();
     exclusionZoneLayer.updateFeatures();
+}
+
+/**
+ * Strips bypass waypoints from any mission where a bypass falls inside the
+ * safety buffer of the given zone. Returns the set of affected mission IDs.
+ * Must be called BEFORE detectMissionReroutes() so the router works from
+ * clean waypoints when re-planning around the new/modified zone.
+ */
+export function stripBypassesInsideZone(zoneID: number): Set<number> {
+    return stripBypassesInsideZoneWithSnapshot(zoneID).affected;
+}
+
+/**
+ * Same as stripBypassesInsideZone() but also captures mission waypoint snapshots
+ * before mutation so callers can restore on cancel/revert.
+ */
+export function stripBypassesInsideZoneWithSnapshot(zoneID: number): {
+    affected: Set<number>;
+    priorMissionWaypoints: Map<number, Waypoint[]>;
+} {
+    const affected = new Set<number>();
+    const priorMissionWaypoints = new Map<number, Waypoint[]>();
+    for (const [missionID, mission] of missionSet.getMissions()) {
+        const all = mission.getWaypoints();
+        const hasBlockedBypass = all.some((wp) => {
+            if (!wp.getIsBypass()) return false;
+            const loc = wp.getLocation();
+            return loc ? getBlockingZoneIDs(loc).includes(zoneID) : false;
+        });
+        if (!hasBlockedBypass) continue;
+        priorMissionWaypoints.set(missionID, cloneDeep(all));
+        mission.setWaypoints(all.filter((wp) => !wp.getIsBypass()));
+        affected.add(missionID);
+    }
+    return { affected, priorMissionWaypoints };
 }
 
 /**

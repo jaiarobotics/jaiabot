@@ -25,6 +25,8 @@ import {
  */
 export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
     gridPlan.setState(action.gridPlanningState);
+    const priorMissionSetSnapshot = missionSet.captureSnapshot();
+    const priorMissionsManagerSnapshot = missionsManager.captureSnapshot();
 
     switch (action.gridPlanningState) {
         case GridPlanningStates.ACCEPTING_GRID_DRAWING:
@@ -98,10 +100,20 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 
             const pendingRemoval = detectWaypointRemovals();
             if (pendingRemoval) {
-                mutableState.pendingWaypointRemoval = pendingRemoval;
+                mutableState.pendingWaypointRemoval = {
+                    ...pendingRemoval,
+                    priorMissionSetSnapshot,
+                    priorMissionsManagerSnapshot,
+                };
             } else {
                 const pending = detectMissionReroutes();
-                if (pending) mutableState.pendingReroute = pending;
+                if (pending) {
+                    mutableState.pendingReroute = {
+                        ...pending,
+                        priorMissionSetSnapshot,
+                        priorMissionsManagerSnapshot,
+                    };
+                }
             }
             break;
     }

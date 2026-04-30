@@ -1,27 +1,15 @@
 import cloneDeep from "lodash/cloneDeep";
 import { GeographicCoordinate } from "../../types/protobuf-types";
+import { MissionSetSnapshot } from "../mission_set/mission-set";
+import { MissionsManagerSnapshot } from "../missions_manager/missions-manager";
 
 export interface ExclusionZone {
     label?: string;
-    /** Convex hull — used for all routing, detection, and buffer computation. */
     vertices?: GeographicCoordinate[];
-    /** Original user-drawn polygon — used for display and vertex editing only. */
-    drawnVertices?: GeographicCoordinate[];
 }
 
 export const EXCLUSION_ZONE_SET_VERSION = "1.0";
-import { toConvexHull } from "../../utils/exclusion-zone-router";
 import Waypoint from "../waypoints/waypoint";
-
-/** Floating-point tolerance for lat/lon comparisons after hull projection roundtrips (~1 cm). */
-const COORD_EPSILON = 1e-7;
-
-function coordsMatch(a: GeographicCoordinate, b: GeographicCoordinate): boolean {
-    return (
-        Math.abs((a.lat ?? 0) - (b.lat ?? 0)) < COORD_EPSILON &&
-        Math.abs((a.lon ?? 0) - (b.lon ?? 0)) < COORD_EPSILON
-    );
-}
 
 export interface ExclusionZoneSetSnapshot {
     zones: [number, ExclusionZone][];
@@ -80,45 +68,25 @@ export class ExclusionZoneSet {
         this.name = "";
     }
 
-    /**
-     * Replaces a vertex at the given index, re-computes the convex hull, and
-     * returns the new index of the moved vertex in the hull.
-     * Returns the original index if the zone is not found.
-     */
+    /** Replaces the vertex at vertexIndex and returns the same index. */
     moveVertex(zoneID: number, vertexIndex: number, newLocation: GeographicCoordinate): number {
         const zone = this.zones.get(zoneID);
-        if (!zone?.drawnVertices) return vertexIndex;
+        if (!zone?.vertices) return vertexIndex;
 
-        const newDrawnVertices = [...zone.drawnVertices];
-        newDrawnVertices[vertexIndex] = newLocation;
-        const { vertices: hullVertices } = toConvexHull({ vertices: newDrawnVertices });
-        this.updateZone(zoneID, {
-            ...zone,
-            drawnVertices: newDrawnVertices,
-            vertices: hullVertices,
-        });
-
-        const newIdx = newDrawnVertices.findIndex((v) => coordsMatch(v, newLocation));
-        return newIdx >= 0 ? newIdx : vertexIndex;
+        const newVertices = [...zone.vertices];
+        newVertices[vertexIndex] = newLocation;
+        this.updateZone(zoneID, { ...zone, vertices: newVertices });
+        return vertexIndex;
     }
 
-    /**
-     * Adds a new vertex to the zone, re-computes the convex hull, and returns
-     * the index of the new vertex in drawnVertices. Returns -1 if the zone is not found.
-     */
+    /** Appends a new vertex and returns its index. Returns -1 if the zone is not found. */
     addVertex(zoneID: number, newLocation: GeographicCoordinate): number {
         const zone = this.zones.get(zoneID);
-        if (!zone?.drawnVertices || zone.drawnVertices.length < 3) return -1;
+        if (!zone?.vertices || zone.vertices.length < 3) return -1;
 
-        const newDrawnVertices = [...zone.drawnVertices, newLocation];
-        const { vertices: hullVertices } = toConvexHull({ vertices: newDrawnVertices });
-        this.updateZone(zoneID, {
-            ...zone,
-            drawnVertices: newDrawnVertices,
-            vertices: hullVertices,
-        });
-
-        return newDrawnVertices.length - 1;
+        const newVertices = [...zone.vertices, newLocation];
+        this.updateZone(zoneID, { ...zone, vertices: newVertices });
+        return newVertices.length - 1;
     }
 
     captureSnapshot(): ExclusionZoneSetSnapshot {
@@ -155,6 +123,11 @@ export interface PendingRerouteProposal {
      * This proposal cannot be applied — the operator must reduce mission waypoints first.
      */
     isOverLimit?: boolean;
+    /**
+     * True when A* cannot find any path around the blocking zone(s).
+     * The operator must move the conflicting waypoints or resize the zone.
+     */
+    isImpossible?: boolean;
 }
 
 export interface PendingReroute {
@@ -170,6 +143,16 @@ export interface PendingReroute {
      */
     priorZone?: { zoneID: number; zone: ExclusionZone };
     /**
+     * Waypoint snapshots captured before temporary bypass stripping used for
+     * zone-based reroute previews. Restored on cancel/error so revert is
+     * lossless and cannot leave missions newly crossing zones.
+     */
+    priorMissionWaypoints?: Array<{ missionID: number; waypoints: Waypoint[] }>;
+    /** Full mission-state snapshots for operations that replace/insert missions. */
+    priorMissionSetSnapshot?: MissionSetSnapshot;
+    priorMissionsManagerSnapshot?: MissionsManagerSnapshot;
+    priorExclusionZoneSetSnapshot?: ExclusionZoneSetSnapshot;
+    /**
      * Set for zone load/restore: IDs of zones that were successfully loaded.
      * On cancel ("Revert all"), all of these are deleted so nothing from the load remains.
      */
@@ -180,6 +163,16 @@ export interface PendingReroute {
      * Shown in the dialog so the operator knows which zones were skipped.
      */
     skippedZoneIDs?: number[];
+    /**
+     * Set for mission load: IDs of missions that were successfully loaded.
+     * On cancel ("Revert all"), all of these are deleted so nothing from the load remains.
+     */
+    loadedMissionIDs?: number[];
+    /**
+     * Set for mission load: IDs of missions that could not be loaded because rerouting
+     * around existing zones would exceed MAX_WAYPOINTS. These are deleted before the dialog.
+     */
+    skippedMissionIDs?: number[];
 }
 
 export interface PendingWaypointRemovalProposal {
@@ -212,4 +205,8 @@ export interface PendingWaypointRemoval {
      * Mutually exclusive with triggeringZoneID and offendingZoneIDs.
      */
     priorZone?: { zoneID: number; zone: ExclusionZone };
+    /** Full mission-state snapshots for operations that replace/insert missions. */
+    priorMissionSetSnapshot?: MissionSetSnapshot;
+    priorMissionsManagerSnapshot?: MissionsManagerSnapshot;
+    priorExclusionZoneSetSnapshot?: ExclusionZoneSetSnapshot;
 }

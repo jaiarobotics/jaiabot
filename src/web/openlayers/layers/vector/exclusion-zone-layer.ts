@@ -13,7 +13,7 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { layersZIndexes } from "../zindex";
 import { LayerTitles, MapFeatureTypes } from "../../../types/openlayers-types";
 import { JaiaActions } from "../../../context/jaia-actions";
-import { toConvexHull, getZoneBufferVertices } from "../../../utils/exclusion-zone-router";
+import { getZoneBufferVertices } from "../../../utils/exclusion-zone-router";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
@@ -81,11 +81,9 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
 
             if (!this.dispatch || vertices.length < 3) return;
 
-            const { vertices: hullVertices } = toConvexHull({ vertices });
-
             this.dispatch({
                 type: JaiaActions.ADD_EXCLUSION_ZONE,
-                exclusionZone: { vertices: hullVertices, drawnVertices: vertices },
+                exclusionZone: { vertices },
             });
         });
 
@@ -118,7 +116,7 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
                 this.getVectorLayer().getSource().addFeature(bufferFeature);
             }
 
-            // Draw the convex hull polygon (solid — used for routing and avoidance).
+            // Draw the zone polygon.
             const coords3857 = zone.vertices.map((v) => fromLonLat([v.lon, v.lat]));
             coords3857.push(coords3857[0]); // close ring
 
@@ -128,18 +126,8 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
             feature.set("label", zone.label ?? `Zone ${zoneNum}`);
             this.getVectorLayer().getSource().addFeature(feature);
 
-            // Draw the original user-drawn polygon (dashed — for reference and editing).
-            if (zone.drawnVertices && zone.drawnVertices.length >= 3) {
-                const drawnCoords = zone.drawnVertices.map((v) => fromLonLat([v.lon, v.lat]));
-                drawnCoords.push(drawnCoords[0]);
-                const drawnFeature = new Feature({ geometry: new Polygon([drawnCoords]) });
-                drawnFeature.set("isDrawnPolygon", true);
-                drawnFeature.set("zoneID", zoneID);
-                this.getVectorLayer().getSource().addFeature(drawnFeature);
-            }
-
-            // Draw vertex handles on drawnVertices so the operator edits the drawn shape.
-            const editVertices = zone.drawnVertices ?? zone.vertices;
+            // Draw vertex handles for editing.
+            const editVertices = zone.vertices;
             editVertices.forEach((v, i) => {
                 const coord = fromLonLat([v.lon, v.lat]);
                 const vertexFeature = new Feature({ geometry: new Point(coord) });

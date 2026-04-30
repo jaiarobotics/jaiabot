@@ -208,13 +208,13 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         JaiaActions.TOGGLE_EXCLUSION_ZONE_DRAWING,
         { handler: handleToggleExclusionZoneDrawing, tracked: false },
     ],
-    [JaiaActions.CONFIRM_MISSION_REROUTE, { handler: handleConfirmMissionReroute, tracked: false }],
-    [JaiaActions.CANCEL_MISSION_REROUTE, { handler: handleCancelMissionReroute, tracked: false }],
+    [JaiaActions.CONFIRM_MISSION_REROUTE, { handler: handleConfirmMissionReroute, tracked: true }],
+    [JaiaActions.CANCEL_MISSION_REROUTE, { handler: handleCancelMissionReroute, tracked: true }],
     [
         JaiaActions.CONFIRM_WAYPOINT_REMOVAL,
-        { handler: handleConfirmWaypointRemoval, tracked: false },
+        { handler: handleConfirmWaypointRemoval, tracked: true },
     ],
-    [JaiaActions.CANCEL_WAYPOINT_REMOVAL, { handler: handleCancelWaypointRemoval, tracked: false }],
+    [JaiaActions.CANCEL_WAYPOINT_REMOVAL, { handler: handleCancelWaypointRemoval, tracked: true }],
 
     [JaiaActions.SELECT_ZONE_VERTEX, { handler: handleSelectZoneVertex, tracked: false }],
     [JaiaActions.ADD_ZONE_VERTEX, { handler: handleAddZoneVertex, tracked: true }],

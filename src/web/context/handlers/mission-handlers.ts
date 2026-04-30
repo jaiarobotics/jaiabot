@@ -59,6 +59,8 @@ export function handleDeleteMission(mutableState: JaiaContextType, action: JaiaA
  */
 export function handleDuplicateMission(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
+    const priorMissionSetSnapshot = missionSet.captureSnapshot();
+    const priorMissionsManagerSnapshot = missionsManager.captureSnapshot();
 
     // Create a complete clone of the existing mission
     const missionCopy = cloneDeep(missionSet.getMission(action.missionID));
@@ -71,10 +73,20 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     // Check whether the duplicated mission's waypoints conflict with existing exclusion zones.
     const pendingRemoval = detectWaypointRemovals();
     if (pendingRemoval) {
-        mutableState.pendingWaypointRemoval = pendingRemoval;
+        mutableState.pendingWaypointRemoval = {
+            ...pendingRemoval,
+            priorMissionSetSnapshot,
+            priorMissionsManagerSnapshot,
+        };
     } else {
         const pendingReroute = detectMissionReroutes();
-        if (pendingReroute) mutableState.pendingReroute = pendingReroute;
+        if (pendingReroute) {
+            mutableState.pendingReroute = {
+                ...pendingReroute,
+                priorMissionSetSnapshot,
+                priorMissionsManagerSnapshot,
+            };
+        }
     }
 
     return mutableState;
@@ -167,11 +179,11 @@ export function handleChangeMissionSetName(mutableState: JaiaContextType, action
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    // Clear current mission set and reset mission assignments
+    const priorMissionSetSnapshot = missionSet.captureSnapshot();
+    const priorMissionsManagerSnapshot = missionsManager.captureSnapshot();
     missionSet.deleteAllMissions();
     missionsManager.unassignAll();
 
-    // Rebuild mission set from json snapshot
     if (Array.isArray(action.missionSetSnapshot.missions)) {
         action.missionSetSnapshot.missions.forEach(
             ([missonID, serializedMission]: [number, any]) => {
@@ -181,20 +193,49 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
         );
     }
 
-    // Restore other fields via setters
     missionSet.setName(action.missionSetSnapshot.name);
     missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
     missionSet.setMissionSpeeds(action.missionSetSnapshot.missionSpeeds);
     mutableState.missionAccordionStates = {};
     missionLayer.updateFeatures();
 
-    // Check for waypoints that fall inside existing exclusion zones.
     const pendingRemoval = detectWaypointRemovals();
     if (pendingRemoval) {
-        mutableState.pendingWaypointRemoval = pendingRemoval;
-    } else {
-        const pendingReroute = detectMissionReroutes();
-        if (pendingReroute) mutableState.pendingReroute = pendingReroute;
+        mutableState.pendingWaypointRemoval = {
+            ...pendingRemoval,
+            priorMissionSetSnapshot,
+            priorMissionsManagerSnapshot,
+        };
+        return mutableState;
+    }
+
+    const rawPending = detectMissionReroutes();
+    if (rawPending) {
+        // Missions whose reroute is unroutable are removed upfront — never presented as loaded.
+        const skippedMissionIDSet = new Set<number>();
+        rawPending.proposals
+            .filter((p) => p.isOverLimit || p.isImpossible)
+            .forEach((p) => skippedMissionIDSet.add(p.missionID));
+
+        const allLoadedIDs = Array.from(missionSet.getMissions().keys());
+
+        if (skippedMissionIDSet.size > 0) {
+            for (const id of skippedMissionIDSet) missionSet.deleteMission(id);
+            missionLayer.updateFeatures();
+        }
+
+        const loadedMissionIDs = allLoadedIDs.filter((id) => !skippedMissionIDSet.has(id));
+        const skippedMissionIDs = Array.from(skippedMissionIDSet);
+
+        const cleanPending = detectMissionReroutes();
+        mutableState.pendingReroute = {
+            proposals: cleanPending?.proposals ?? [],
+            totalBypassCount: cleanPending?.totalBypassCount ?? 0,
+            loadedMissionIDs,
+            skippedMissionIDs,
+            priorMissionSetSnapshot,
+            priorMissionsManagerSnapshot,
+        };
     }
 
     return mutableState;

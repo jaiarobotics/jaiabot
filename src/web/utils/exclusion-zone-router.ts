@@ -1,11 +1,12 @@
 /**
  * Client-side route planning around exclusion zones.
  *
- * Mirrors the logic in src/bin/mission_manager/exclusion_zone_router.h but
- * runs in the browser so the UI can preview and confirm bypass waypoints
- * before sending the mission plan to the bot.
+ * Uses A* grid pathfinding to route around exclusion zones, which correctly
+ * handles concave zones of any complexity. The grid approach is more robust
+ * than visibility graph methods for large, irregular real-world zones.
  */
 
+import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
 import { GeographicCoordinate, Goal, MissionPlan } from "../types/protobuf-types";
 import { METERS_PER_DEG } from "./constants";
 import {
@@ -47,68 +48,49 @@ function cross(O: XYPt, A: XYPt, B: XYPt): number {
     return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
 }
 
-function convexHull(pts: XYPt[]): XYPt[] {
-    if (pts.length < 3) return [];
-    const sorted = [...pts].sort((a, b) => a.x - b.x || a.y - b.y);
-    const hull: XYPt[] = [];
-    for (const p of sorted) {
-        while (hull.length >= 2 && cross(hull[hull.length - 2], hull[hull.length - 1], p) <= 0)
-            hull.pop();
-        hull.push(p);
-    }
-    const lower = hull.length;
-    for (let i = sorted.length - 2; i >= 0; i--) {
-        while (
-            hull.length > lower &&
-            cross(hull[hull.length - 2], hull[hull.length - 1], sorted[i]) <= 0
-        )
-            hull.pop();
-        hull.push(sorted[i]);
-    }
-    hull.pop();
-    return hull.length >= 3 ? hull : [];
+function onSegment(A: XYPt, B: XYPt, P: XYPt): boolean {
+    const EPS = 1e-9;
+    return (
+        Math.min(A.x, B.x) - EPS <= P.x &&
+        P.x <= Math.max(A.x, B.x) + EPS &&
+        Math.min(A.y, B.y) - EPS <= P.y &&
+        P.y <= Math.max(A.y, B.y) + EPS
+    );
 }
 
 function segmentsIntersect(A: XYPt, B: XYPt, C: XYPt, D: XYPt): boolean {
+    const EPS = 1e-9;
     const d1 = cross(C, D, A);
     const d2 = cross(C, D, B);
     const d3 = cross(A, B, C);
     const d4 = cross(A, B, D);
-    return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+    const properIntersect =
+        ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+    if (properIntersect) return true;
+
+    // Treat boundary contact as blocked so the path does not graze zone edges.
+    if (Math.abs(d1) <= EPS && onSegment(C, D, A)) return true;
+    if (Math.abs(d2) <= EPS && onSegment(C, D, B)) return true;
+    if (Math.abs(d3) <= EPS && onSegment(A, B, C)) return true;
+    if (Math.abs(d4) <= EPS && onSegment(A, B, D)) return true;
+    return false;
 }
 
 function pointInPolygon(P: XYPt, poly: XYPt[]): boolean {
+    let inside = false;
     const n = poly.length;
-    for (let i = 0; i < n; i++) {
-        if (cross(poly[i], poly[(i + 1) % n], P) <= 0) return false;
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+        const xi = poly[i].x,
+            yi = poly[i].y;
+        const xj = poly[j].x,
+            yj = poly[j].y;
+        const intersect = yi > P.y !== yj > P.y && P.x < ((xj - xi) * (P.y - yi)) / (yj - yi) + xi;
+        if (intersect) inside = !inside;
     }
-    return true;
-}
-
-// Strict-interior check with a small tolerance: returns true only when P is
-// strictly inside `poly` by more than `eps` (cross-product units ≈ m² for
-// equirectangular XY).  Boundary-exact points (cross = 0 for an edge) and
-// epsilon-adjacent points return false.
-//
-// Expanded-polygon vertices all sit exactly on the expanded boundary, so using
-// this check instead of a "relaxed" one is what lets the visibility-graph
-// Dijkstra accept the A→V and V→V' edges it needs to route around a zone.
-// A purely strict `cross > 0` test is fragile because adjacent-edge samples
-// can land with tiny positive cross products after float arithmetic; the eps
-// guard keeps those connectable.
-function pointStrictlyInsidePolygon(P: XYPt, poly: XYPt[], eps = 1e-3): boolean {
-    const n = poly.length;
-    for (let i = 0; i < n; i++) {
-        if (cross(poly[i], poly[(i + 1) % n], P) <= eps) return false;
-    }
-    return true;
+    return inside;
 }
 
 function segmentIntersectsPolygon(A: XYPt, B: XYPt, poly: XYPt[]): boolean {
-    // For convex polygons a point inside always produces a proper edge crossing
-    // when the segment exits, so endpoint containment is redundant — and causes
-    // false positives when a float-recovered bypass vertex lands epsilon inside
-    // the boundary.  Check proper edge crossings only.
     const n = poly.length;
     for (let i = 0; i < n; i++) {
         if (segmentsIntersect(A, B, poly[i], poly[(i + 1) % n])) return true;
@@ -116,222 +98,320 @@ function segmentIntersectsPolygon(A: XYPt, B: XYPt, poly: XYPt[]): boolean {
     return false;
 }
 
-function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
-    const n = poly.length;
-
-    // Compute outward unit normal for each edge.
-    // The convex hull is CCW, so the outward normal of edge A→B is the edge
-    // direction rotated 90° clockwise: (dy, -dx) / |edge|.
-    const normals: XYPt[] = poly.map((v, i) => {
-        const next = poly[(i + 1) % n];
-        const dx = next.x - v.x;
-        const dy = next.y - v.y;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 1e-10) return { x: 0, y: 0 };
-        return { x: dy / len, y: -dx / len };
-    });
-
-    // Minkowski sum: replace each hull vertex with a circular arc of radius
-    // `margin` centred on that vertex, sweeping CCW from the outward normal of
-    // the incoming edge to the outward normal of the outgoing edge.
-    //
-    // This guarantees exactly `margin` clearance at every vertex and ≥ `margin`
-    // everywhere else — unlike a miter join, which overshoots by margin/sin(θ/2)
-    // at sharp angles.
-    const TWO_PI = 2 * Math.PI;
-    const STEP = Math.PI / 6; // 30° — balances accuracy vs. vertex count
-
-    const result: XYPt[] = [];
-    for (let i = 0; i < n; i++) {
-        const v = poly[i];
-        const prevIdx = (i - 1 + n) % n;
-        const nPrev = normals[prevIdx];
-        const nCurr = normals[i];
-
-        const startAngle = Math.atan2(nPrev.y, nPrev.x);
-        const endAngle = Math.atan2(nCurr.y, nCurr.x);
-
-        // CCW angular sweep from the incoming edge normal to the outgoing edge normal.
-        const sweep = (((endAngle - startAngle) % TWO_PI) + TWO_PI) % TWO_PI;
-
-        const nSteps = Math.max(1, Math.round(sweep / STEP));
-        for (let s = 0; s <= nSteps; s++) {
-            const angle = startAngle + (sweep * s) / nSteps;
-            result.push({
-                x: v.x + Math.cos(angle) * margin,
-                y: v.y + Math.sin(angle) * margin,
-            });
-        }
-    }
-
-    return result;
-}
-
 function distSq(A: XYPt, B: XYPt): number {
     return (A.x - B.x) ** 2 + (A.y - B.y) ** 2;
 }
 
+function dist(A: XYPt, B: XYPt): number {
+    return Math.sqrt(distSq(A, B));
+}
+
+// ── Buffer expansion ───────────────────────────────────────────────────────────
+
+/**
+ * Expands a polygon outward by `margin` metres using Clipper2's inflatePaths.
+ * Returns a single expanded polygon with consistent winding (centroid inside).
+ */
+function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
+    const input = [poly.map((p) => ({ x: p.x, y: p.y }))];
+    const cleaned = Clipper.union(input, [], FillRule.NonZero);
+    const subject = cleaned.length > 0 ? cleaned : input;
+
+    const result = Clipper.inflatePaths(subject, margin, JoinType.Round, EndType.Polygon);
+    if (!result || result.length === 0 || result[0].length === 0) return poly;
+
+    const merged = Clipper.union(result, [], FillRule.NonZero);
+    if (!merged || merged.length === 0) return poly;
+
+    const simplified = Clipper.ramerDouglasPeuckerPaths(merged, margin * 0.25);
+    const output = simplified.length > 0 ? simplified[0] : merged[0];
+    const pts = output.map((p: { x: number; y: number }) => ({ x: p.x, y: p.y }));
+
+    // Ensure consistent winding — centroid must be inside.
+    const centroid = {
+        x: pts.reduce((s: number, p: XYPt) => s + p.x, 0) / pts.length,
+        y: pts.reduce((s: number, p: XYPt) => s + p.y, 0) / pts.length,
+    };
+    return pointInPolygon(centroid, pts) ? pts : [...pts].reverse();
+}
+
+// ── Zone geometry ──────────────────────────────────────────────────────────────
+
 interface ZoneGeom {
-    hull: XYPt[];
+    /** Raw user-drawn vertices (possibly concave). */
+    raw: XYPt[];
+    /** Expanded safety buffer polygon. */
     expanded: XYPt[];
 }
 
-/**
- * Finds the shortest path from A to B that avoids all zone hulls, using a
- * visibility graph over the expanded polygon vertices (Dijkstra's algorithm).
- *
- * Returns the intermediate bypass XY points (excluding A and B themselves),
- * or null if no clear path exists. Returns an empty array if the direct
- * A→B segment is already clear (no bypass needed).
- *
- * Only zones whose expanded polygon intersects the A→B corridor are used to
- * provide bypass vertices. This avoids spurious detours through unrelated
- * zones when the shortest visibility-graph path happens to clip their vertices.
- */
-function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[]): XYPt[] | null {
-    // Short-circuit: if the direct segment doesn't cross any zone, no bypass needed.
-    const directBlockers = zoneGeoms.filter((zg) => segmentNeedsRouting(A, B, zg));
-    if (directBlockers.length === 0) return [];
+// ── A* grid pathfinding ────────────────────────────────────────────────────────
 
-    // Only blocking zones contribute candidate bypass vertices, but all zones are
-    // used for collision checks so the path doesn't accidentally cross a nearby one.
-    const nodes: XYPt[] = [A, B];
-    for (const zg of directBlockers) {
-        for (const v of zg.expanded) {
-            if (!zoneGeoms.some((z) => pointInPolygon(v, z.hull))) {
-                nodes.push(v);
+const GRID_CELL_SIZE = 5; // metres per grid cell
+const DEFAULT_SAFETY_MARGIN_METERS = 15;
+const MIN_BYPASS_SPACING = GRID_CELL_SIZE * 1.5;
+const BACKTRACK_TOLERANCE = GRID_CELL_SIZE * 1.5;
+
+interface GridNode {
+    g: number;
+    f: number;
+    parent: number | null;
+}
+
+/**
+ * Finds a clear path from A to B avoiding all expanded zone polygons using A*
+ * on a regular grid. Returns intermediate bypass points (excluding A and B),
+ * or [] if no bypass is needed or the direct path is already clear.
+ *
+ * Grid approach is robust for any zone shape — concave, complex, or irregular.
+ */
+function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: number): XYPt[] {
+    const tryFindBypass = (planningClearance: number): XYPt[] => {
+        const GRID_PADDING = safetyMargin;
+        const collisionPolys =
+            planningClearance > 0
+                ? zoneGeoms.map((zg) => expandPolygon(zg.expanded, planningClearance))
+                : zoneGeoms.map((zg) => zg.expanded);
+
+        // Check if direct path is clear.
+        const directBlocked = collisionPolys.some(
+            (poly) =>
+                segmentIntersectsPolygon(A, B, poly) ||
+                pointInPolygon(A, poly) ||
+                pointInPolygon(B, poly),
+        );
+        // Suppress if either endpoint is inside the raw zone (unroutable).
+        const aInRaw = zoneGeoms.some((zg) => pointInPolygon(A, zg.raw));
+        const bInRaw = zoneGeoms.some((zg) => pointInPolygon(B, zg.raw));
+        if (aInRaw || bInRaw) return [];
+        if (!directBlocked) return [];
+
+        // Build grid over the bounding box of A, B, and all zone extents.
+        const allPts = [A, B, ...collisionPolys.flat()];
+        const minX = Math.min(...allPts.map((p) => p.x)) - GRID_PADDING;
+        const minY = Math.min(...allPts.map((p) => p.y)) - GRID_PADDING;
+        const maxX = Math.max(...allPts.map((p) => p.x)) + GRID_PADDING;
+        const maxY = Math.max(...allPts.map((p) => p.y)) + GRID_PADDING;
+
+        const cols = Math.ceil((maxX - minX) / GRID_CELL_SIZE) + 1;
+        const rows = Math.ceil((maxY - minY) / GRID_CELL_SIZE) + 1;
+
+        // Mark blocked cells — any cell whose centre is inside an expanded polygon.
+        const blocked = new Uint8Array(cols * rows);
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const cx = minX + col * GRID_CELL_SIZE;
+                const cy = minY + row * GRID_CELL_SIZE;
+                if (collisionPolys.some((poly) => pointInPolygon({ x: cx, y: cy }, poly))) {
+                    blocked[row * cols + col] = 1;
+                }
             }
         }
-    }
 
-    // canConnect: true if the segment nodes[i]→nodes[j] crosses no hull and no
-    // expanded polygon (except at the endpoints themselves, which may sit exactly
-    // on the expanded boundary).
-    //
-    // Midpoint check: two expanded-boundary vertices share a chord that lies
-    // entirely inside the expanded polygon without crossing any edge, so the
-    // edge-crossing test alone would allow it.  The midpoint of such a chord is
-    // strictly inside the polygon, whereas the midpoint of a legitimate
-    // adjacent-vertex edge sits exactly on the boundary (cross = 0 → false).
-    // This also handles the degenerate case where a chord passes through a hull
-    // vertex collinearly (cross products cancel to 0).
-    const canConnect = (i: number, j: number): boolean => {
-        const P = nodes[i];
-        const Q = nodes[j];
-        for (const zg of zoneGeoms) {
-            // Uses the same enhanced detection as the outer "needs routing" test,
-            // so Dijkstra never accepts a direct P→Q that the detector flagged as
-            // crossing. Without this, strict edge-crossing misses (endpoints on
-            // the boundary, tangent segments, etc.) let the algorithm pick A→B
-            // directly and return an empty bypass list.
-            if (segmentNeedsRouting(P, Q, zg)) return false;
+        const ptToCell = (p: XYPt): { col: number; row: number } => ({
+            col: Math.round((p.x - minX) / GRID_CELL_SIZE),
+            row: Math.round((p.y - minY) / GRID_CELL_SIZE),
+        });
+
+        const cellToIdx = (col: number, row: number): number => row * cols + col;
+
+        const startCell = ptToCell(A);
+        const goalCell = ptToCell(B);
+
+        // If start or goal cell is blocked, nudge to nearest free cell.
+        const findFreeNear = (col: number, row: number): { col: number; row: number } | null => {
+            for (let r = 0; r <= 5; r++) {
+                for (let dc = -r; dc <= r; dc++) {
+                    for (let dr = -r; dr <= r; dr++) {
+                        if (Math.abs(dc) !== r && Math.abs(dr) !== r) continue;
+                        const nc = col + dc,
+                            nr = row + dr;
+                        if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
+                        if (!blocked[cellToIdx(nc, nr)]) return { col: nc, row: nr };
+                    }
+                }
+            }
+            return null;
+        };
+
+        const startFree = blocked[cellToIdx(startCell.col, startCell.row)]
+            ? findFreeNear(startCell.col, startCell.row)
+            : startCell;
+        const goalFree = blocked[cellToIdx(goalCell.col, goalCell.row)]
+            ? findFreeNear(goalCell.col, goalCell.row)
+            : goalCell;
+
+        if (!startFree || !goalFree) return [];
+
+        const startIdx = cellToIdx(startFree.col, startFree.row);
+        const goalIdx = cellToIdx(goalFree.col, goalFree.row);
+
+        // A* with 8-directional movement.
+        const nodes = new Map<number, GridNode>();
+        const open = new Set<number>();
+
+        const heuristic = (idx: number): number => {
+            const col = idx % cols;
+            const row = Math.floor(idx / cols);
+            const dx = Math.abs(col - goalFree.col);
+            const dy = Math.abs(row - goalFree.row);
+            // Octile distance is admissible for 8-neighbour grids.
+            return Math.max(dx, dy) + (Math.SQRT2 - 1) * Math.min(dx, dy);
+        };
+
+        nodes.set(startIdx, { g: 0, f: heuristic(startIdx), parent: null });
+        open.add(startIdx);
+
+        const directions = [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+            [1, 1],
+            [1, -1],
+            [-1, 1],
+            [-1, -1],
+        ];
+        const dirCosts = [1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2];
+
+        let found = false;
+        while (open.size > 0) {
+            let current = -1;
+            let bestF = Infinity;
+            for (const idx of open) {
+                const n = nodes.get(idx)!;
+                if (n.f < bestF) {
+                    bestF = n.f;
+                    current = idx;
+                }
+            }
+            if (current === -1) break;
+            if (current === goalIdx) {
+                found = true;
+                break;
+            }
+
+            open.delete(current);
+            const currentNode = nodes.get(current)!;
+            const col = current % cols;
+            const row = Math.floor(current / cols);
+
+            for (let d = 0; d < directions.length; d++) {
+                const nc = col + directions[d][0];
+                const nr = row + directions[d][1];
+                if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
+                const nIdx = cellToIdx(nc, nr);
+                if (blocked[nIdx]) continue;
+
+                const ng = currentNode.g + dirCosts[d];
+                const existing = nodes.get(nIdx);
+                if (existing && existing.g <= ng) continue;
+
+                nodes.set(nIdx, { g: ng, f: ng + heuristic(nIdx), parent: current });
+                open.add(nIdx);
+            }
         }
-        return true;
+
+        if (!found) return [];
+
+        // Reconstruct grid path.
+        const gridPath: XYPt[] = [];
+        let cur = goalIdx;
+        while (cur !== startIdx) {
+            const n = nodes.get(cur);
+            if (!n || n.parent === null) return [];
+            const col = cur % cols;
+            const row = Math.floor(cur / cols);
+            gridPath.unshift({
+                x: minX + col * GRID_CELL_SIZE,
+                y: minY + row * GRID_CELL_SIZE,
+            });
+            cur = n.parent;
+        }
+
+        const fullPath = [A, ...gridPath, B];
+
+        // Line-of-sight simplification: from each kept point, find the farthest
+        // reachable point along the full path whose direct segment is clear.
+        // Scanning all remaining points (no early break) handles elongated zones
+        // where intermediate segments are blocked but far points are reachable.
+        const simplified: XYPt[] = [fullPath[0]];
+        let i = 0;
+        while (i < fullPath.length - 1) {
+            let farthest = i + 1;
+            for (let j = i + 2; j < fullPath.length; j++) {
+                const clear = !collisionPolys.some((poly) =>
+                    segmentIntersectsPolygon(simplified[simplified.length - 1], fullPath[j], poly),
+                );
+                if (clear) farthest = j;
+            }
+            i = farthest;
+            simplified.push(fullPath[i]);
+        }
+
+        if (simplified.length < 2) return [];
+
+        // Spacing cleanup: if two consecutive kept points are very close, drop the
+        // middle one when the direct jump to the following point is still clear.
+        // This trims 5m "stair-step" artifacts without sacrificing clearance.
+        const compact: XYPt[] = [simplified[0]];
+        for (let k = 1; k < simplified.length - 1; k++) {
+            const prev = compact[compact.length - 1];
+            const curr = simplified[k];
+            const next = simplified[k + 1];
+            const closeToPrev = dist(prev, curr) < MIN_BYPASS_SPACING;
+            const canSkip = !collisionPolys.some(
+                (poly) =>
+                    segmentIntersectsPolygon(prev, next, poly) ||
+                    pointInPolygon(prev, poly) ||
+                    pointInPolygon(next, poly),
+            );
+            if (closeToPrev && canSkip) continue;
+            compact.push(curr);
+        }
+        compact.push(simplified[simplified.length - 1]);
+        if (compact.length < 2) return [];
+
+        // Progress cleanup: remove local "backtrack" points (farther from goal than
+        // the previous kept point) when skipping remains collision-free.
+        const progressSmoothed: XYPt[] = [compact[0]];
+        for (let k = 1; k < compact.length - 1; k++) {
+            const prev = progressSmoothed[progressSmoothed.length - 1];
+            const curr = compact[k];
+            const next = compact[k + 1];
+            const isBacktrack = dist(curr, B) > dist(prev, B) + BACKTRACK_TOLERANCE;
+            const canSkip = !collisionPolys.some(
+                (poly) =>
+                    segmentIntersectsPolygon(prev, next, poly) ||
+                    pointInPolygon(prev, poly) ||
+                    pointInPolygon(next, poly),
+            );
+            if (isBacktrack && canSkip) continue;
+            progressSmoothed.push(curr);
+        }
+        progressSmoothed.push(compact[compact.length - 1]);
+
+        // Return only the intermediate points (not A and B themselves).
+        return progressSmoothed.slice(1, -1);
     };
 
-    // Dijkstra from node 0 (A) to node 1 (B).
-    const dist = new Array<number>(nodes.length).fill(Infinity);
-    const prev = new Array<number>(nodes.length).fill(-1);
-    dist[0] = 0;
+    // First pass: small adaptive epsilon to avoid discretization edge clipping.
+    const adaptiveClearance = Math.max(1, GRID_CELL_SIZE * 0.5);
+    const firstPass = tryFindBypass(adaptiveClearance);
+    if (firstPass.length > 0) return firstPass;
 
-    // Simple priority queue via a sorted array (node counts are small).
-    const queue = new Set<number>();
-    for (let i = 0; i < nodes.length; i++) queue.add(i);
-
-    while (queue.size > 0) {
-        // Pick the unvisited node with the smallest tentative distance.
-        let u = -1;
-        for (const n of queue) {
-            if (u === -1 || dist[n] < dist[u]) u = n;
-        }
-        if (u === -1 || dist[u] === Infinity) break;
-        queue.delete(u);
-
-        if (u === 1) break; // reached B
-
-        for (const v of queue) {
-            if (!canConnect(u, v)) continue;
-            const d = dist[u] + Math.sqrt(distSq(nodes[u], nodes[v]));
-            if (d < dist[v]) {
-                dist[v] = d;
-                prev[v] = u;
-            }
-        }
-    }
-
-    if (prev[1] === -1 && dist[1] === Infinity) return null; // no path found
-
-    // Reconstruct path from B back to A.
-    const path: number[] = [];
-    for (let cur = 1; cur !== 0; cur = prev[cur]) {
-        if (cur === -1) return null;
-        path.unshift(cur);
-    }
-    // path is now [... intermediates ..., 1]; drop the final node (B=1) and
-    // return only the intermediate bypass nodes.
-    return path.slice(0, -1).map((idx) => nodes[idx]);
+    // Fallback: retry against the true safety boundary (no extra planning buffer)
+    // to reduce false "impossible" classifications in tight corridors.
+    return tryFindBypass(0);
 }
+
+// ── Public API ─────────────────────────────────────────────────────────────────
 
 interface RouteResult {
-    /** Modified plan with bypass waypoints inserted */
     plan: MissionPlan;
-    /** Number of bypass waypoints inserted */
     bypassCount: number;
-    /** IDs of zones that caused at least one bypass insertion. */
     involvedZoneIDs: number[];
-}
-
-/**
- * Sample N evenly-spaced interior points along the segment (excluding
- * endpoints) and return true if any lies strictly inside `poly`.
- * Robust against strict-intersection failures when endpoints are exactly
- * on polygon edges or vertices (cross product = 0).
- *
- * Uses the strict-interior check so that samples lying on a polygon edge
- * (e.g. a chord between two adjacent expanded-boundary vertices) do not
- * register as "inside" — otherwise every adjacent-vertex edge in the
- * visibility graph would be considered blocked and Dijkstra could not
- * walk around the buffer.
- */
-function segmentSamplesHitPolygon(A: XYPt, B: XYPt, poly: XYPt[], samples = 11): boolean {
-    for (let i = 1; i <= samples; i++) {
-        const t = i / (samples + 1);
-        const p: XYPt = { x: A.x + (B.x - A.x) * t, y: A.y + (B.y - A.y) * t };
-        if (pointStrictlyInsidePolygon(p, poly)) return true;
-    }
-    return false;
-}
-
-/**
- * Returns true if the segment A→B needs to route around the given zone.
- *
- * Uses three complementary checks to avoid the failure modes of each alone:
- *   1. Proper edge crossing via segmentIntersectsPolygon — catches the common case.
- *   2. Strict endpoint-inside check — catches endpoints sitting properly inside
- *      the expanded buffer (rare in practice because new waypoints are pre-blocked
- *      by `isLocationBlockedByZone`, but covers edge cases in the pre-add pipeline).
- *   3. Interior-sample check — catches degenerate geometries where the segment
- *      grazes a vertex or lies collinear with an edge so strict cross-product
- *      comparisons return 0 and miss the crossing entirely.
- *
- * Boundary-exact endpoints (e.g. the expanded-polygon vertices used as
- * candidate bypass nodes) must NOT be treated as "inside" — the visibility
- * graph in `findBypassPath` relies on being able to draw edges from A to
- * those boundary vertices to find a route.  Earlier versions used a relaxed
- * "inside" check here that also flagged boundary-exact points as inside;
- * that made `canConnect` reject every A→V edge, leaving Dijkstra unable to
- * reach B and causing routing to silently return a 0-bypass result.
- *
- * Suppresses routing if either endpoint is inside the raw hull (a waypoint
- * already inside the zone cannot be routed around).
- */
-function segmentNeedsRouting(A: XYPt, B: XYPt, zg: ZoneGeom): boolean {
-    if (pointInPolygon(A, zg.hull) || pointInPolygon(B, zg.hull)) return false;
-    if (segmentIntersectsPolygon(A, B, zg.expanded)) return true;
-    if (pointStrictlyInsidePolygon(A, zg.expanded)) return true;
-    if (pointStrictlyInsidePolygon(B, zg.expanded)) return true;
-    if (segmentSamplesHitPolygon(A, B, zg.expanded)) return true;
-    return false;
+    /** True when a zone blocks a segment but A* cannot find any path around it. */
+    isRoutingImpossible?: boolean;
 }
 
 /**
@@ -340,7 +420,7 @@ function segmentNeedsRouting(A: XYPt, B: XYPt, zg: ZoneGeom): boolean {
  */
 export function routeAroundExclusionZones(
     plan: MissionPlan,
-    safetyMargin = 15,
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
     originOverride?: GeographicCoordinate,
 ): RouteResult {
     const goals = plan.goal ?? [];
@@ -351,27 +431,17 @@ export function routeAroundExclusionZones(
     );
     if (zoneEntries.length === 0) return { plan, bypassCount: 0, involvedZoneIDs: [] };
 
-    // Use the override if provided, otherwise fall back to the first goal.
-    // Callers should pass the first clean waypoint of the full mission so that
-    // bypass lat/lon values are always computed from the same origin, making
-    // them comparable across routing calls.
     const origin = originOverride ?? goals[0].location!;
 
-    // Pre-compute convex hulls and expanded polygons, keeping the zoneID alongside.
-    interface IdentifiedZoneGeom extends ZoneGeom {
-        zoneID: number;
-    }
-    const zoneGeoms: IdentifiedZoneGeom[] = [];
+    const zoneGeoms: Array<ZoneGeom & { zoneID: number }> = [];
     for (const [zoneID, zone] of zoneEntries) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
-        const pts = zone.vertices.map((v) => toXY(origin, v));
-        const hull = convexHull(pts);
-        if (hull.length < 3) continue;
-        zoneGeoms.push({ zoneID, hull, expanded: expandPolygon(hull, safetyMargin) });
+        const raw = zone.vertices.map((v) => toXY(origin, v));
+        if (raw.length < 3) continue;
+        zoneGeoms.push({ zoneID, raw, expanded: expandPolygon(raw, safetyMargin) });
     }
     if (zoneGeoms.length === 0) return { plan, bypassCount: 0, involvedZoneIDs: [] };
 
-    // Work entirely in XY space to avoid float round-trip errors.
     interface WorkingGoal {
         xy: XYPt;
         goal: Goal;
@@ -385,6 +455,7 @@ export function routeAroundExclusionZones(
     }));
 
     let totalInserted = 0;
+    let routingImpossible = false;
     const involved = new Set<number>();
     const result: WorkingGoal[] = [];
 
@@ -393,23 +464,43 @@ export function routeAroundExclusionZones(
         const A = working[i].xy;
         const B = working[i + 1].xy;
 
-        const blockingZones = zoneGeoms.filter((zg) => segmentNeedsRouting(A, B, zg));
+        const blockingZones = zoneGeoms.filter(
+            (zg) =>
+                !pointInPolygon(A, zg.raw) &&
+                !pointInPolygon(B, zg.raw) &&
+                (segmentIntersectsPolygon(A, B, zg.expanded) ||
+                    pointInPolygon(A, zg.expanded) ||
+                    pointInPolygon(B, zg.expanded)),
+        );
         if (blockingZones.length === 0) continue;
 
-        const bypassPts = findBypassPath(A, B, zoneGeoms);
-        if (bypassPts && bypassPts.length > 0) {
+        // Route around all zones so generated bypasses remain globally valid.
+        const bypassPts = findBypassPath(A, B, zoneGeoms, safetyMargin) ?? [];
+
+        if (bypassPts.length > 0) {
             for (const pt of bypassPts) {
                 result.push({ xy: pt, goal: { name: "route_bypass" }, isBypass: true });
                 totalInserted++;
             }
             for (const zg of blockingZones) involved.add(zg.zoneID);
+        } else {
+            // Zone blocks this segment but no clear path exists around it.
+            routingImpossible = true;
+            for (const zg of blockingZones) involved.add(zg.zoneID);
         }
     }
     result.push(working[working.length - 1]);
 
-    if (totalInserted === 0) return { plan, bypassCount: 0, involvedZoneIDs: [] };
+    if (totalInserted === 0 && !routingImpossible)
+        return { plan, bypassCount: 0, involvedZoneIDs: [] };
+    if (routingImpossible)
+        return {
+            plan,
+            bypassCount: 0,
+            involvedZoneIDs: Array.from(involved),
+            isRoutingImpossible: true,
+        };
 
-    // Convert back to Goals only at the very end.
     const finalGoals: Goal[] = result.map((w) =>
         w.isBypass ? { location: toLatLon(origin, w.xy), name: "route_bypass" } : w.goal,
     );
@@ -427,29 +518,30 @@ export function routeAroundExclusionZones(
  */
 export function getZoneBufferVertices(
     zone: ExclusionZone,
-    safetyMargin = 15,
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): GeographicCoordinate[] {
     if (!zone.vertices || zone.vertices.length < 3) return [];
     const origin = zone.vertices[0];
-    const pts = zone.vertices.map((v) => toXY(origin, v));
-    const hull = convexHull(pts);
-    if (hull.length < 3) return [];
-    return expandPolygon(hull, safetyMargin).map((p) => toLatLon(origin, p));
+    const raw = zone.vertices.map((v) => toXY(origin, v));
+    if (raw.length < 3) return [];
+    return expandPolygon(raw, safetyMargin).map((p) => toLatLon(origin, p));
 }
 
 /**
  * Returns the IDs of every zone whose safety-margin buffer contains the given
- * location. Used to identify which specific zones are responsible for a
- * waypoint conflict so only those zones can be removed on cancel.
+ * location.
  */
-export function getBlockingZoneIDs(location: GeographicCoordinate, safetyMargin = 15): number[] {
+export function getBlockingZoneIDs(
+    location: GeographicCoordinate,
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
+): number[] {
     const ids: number[] = [];
     for (const [zoneID, zone] of exclusionZoneSet.getZones()) {
-        const bufferVerts = getZoneBufferVertices(zone, safetyMargin);
-        if (bufferVerts.length < 3) continue;
-        const origin = bufferVerts[0];
-        const poly = bufferVerts.map((v) => toXY(origin, v));
-        if (pointInPolygon(toXY(origin, location), poly)) ids.push(zoneID);
+        if (!zone.vertices || zone.vertices.length < 3) continue;
+        const origin = zone.vertices[0];
+        const raw = zone.vertices.map((v) => toXY(origin, v));
+        const expanded = expandPolygon(raw, safetyMargin);
+        if (pointInPolygon(toXY(origin, location), expanded)) ids.push(zoneID);
     }
     return ids;
 }
@@ -460,54 +552,9 @@ export function getBlockingZoneIDs(location: GeographicCoordinate, safetyMargin 
  */
 export function isLocationBlockedByZone(
     location: GeographicCoordinate,
-    safetyMargin = 15,
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): boolean {
     return getBlockingZoneIDs(location, safetyMargin).length > 0;
-}
-
-/**
- * Returns true if the polygon defined by pts (in order) is convex.
- * Works by checking that all cross products of consecutive edge pairs have the
- * same sign — a sign change means a concave vertex (or a self-crossing bow tie).
- */
-function isConvexPolygon(pts: XYPt[]): boolean {
-    const n = pts.length;
-    if (n < 3) return false;
-    let sign = 0;
-    for (let i = 0; i < n; i++) {
-        const O = pts[i];
-        const A = pts[(i + 1) % n];
-        const B = pts[(i + 2) % n];
-        const c = cross(O, A, B);
-        if (Math.abs(c) < 1e-10) continue; // collinear — skip
-        const s = c > 0 ? 1 : -1;
-        if (sign === 0) sign = s;
-        else if (s !== sign) return false;
-    }
-    return true;
-}
-
-/**
- * Converts a zone's vertices to their convex hull.
- * Returns the convex hull vertices and whether the zone was non-convex.
- * Uses the first vertex as the local projection origin (accurate for small zones).
- */
-export function toConvexHull(zone: ExclusionZone): {
-    vertices: GeographicCoordinate[];
-    wasConvexified: boolean;
-} {
-    const verts = zone.vertices ?? [];
-    if (verts.length < 3) return { vertices: verts, wasConvexified: false };
-
-    const origin = verts[0];
-    const pts = verts.map((v) => toXY(origin, v));
-    const hull = convexHull(pts);
-
-    // Non-convex if the polygon fails the convexity check (catches bow ties and
-    // other self-crossing shapes that have the same vertex count as their hull).
-    const wasConvexified = !isConvexPolygon(pts);
-    const vertices = hull.map((p) => toLatLon(origin, p));
-    return { vertices, wasConvexified };
 }
 
 /** Returns true if two waypoint lists are identical (same locations in same order). */
@@ -524,8 +571,7 @@ function waypointListsMatch(a: Waypoint[], b: Waypoint[]): boolean {
 /**
  * Core reroute detection. Accepts an optional override map so the caller can
  * supply post-removal waypoints for affected missions without mutating the data
- * model. Missions with overrides skip the identity checks (their waypoints have
- * already been logically modified by the removal step).
+ * model.
  */
 export function detectReroutesWithOverrides(
     overrides: Map<number, Waypoint[]>,
@@ -544,11 +590,19 @@ export function detectReroutesWithOverrides(
         const cleanPlan = { goal: cleanWaypoints.map((wp) => wp.packageWaypointForHub()) };
         const result = routeAroundExclusionZones(cleanPlan);
 
-        if (result.bypassCount === 0) continue;
+        if (result.bypassCount === 0 && !result.isRoutingImpossible) continue;
 
-        // NOTE: this assumes the router preserves non-bypass goals in the same
-        // order as cleanWaypoints. If routeAroundExclusionZones ever reorders
-        // goals, origIdx will map to the wrong clean waypoint.
+        if (result.isRoutingImpossible) {
+            proposals.push({
+                missionID,
+                newWaypoints: cleanWaypoints,
+                bypassCount: 0,
+                involvedZoneIDs: result.involvedZoneIDs,
+                isImpossible: true,
+            });
+            continue;
+        }
+
         const newWaypoints: Waypoint[] = [];
         let origIdx = 0;
         for (const goal of result.plan.goal ?? []) {
