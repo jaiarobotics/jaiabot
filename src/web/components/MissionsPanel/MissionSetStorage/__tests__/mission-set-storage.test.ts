@@ -12,7 +12,6 @@ import { TaskType } from "../../../../types/protobuf-types";
 import { TaskParameterKeys } from "../../../../types/jaia-system-types";
 import {
     saveToLocalStorage,
-    saveSnapshotToLocalStorage,
     deleteFromLocalStorage,
     listSavedMissionSets,
     loadSnapshotFromLocalStorage,
