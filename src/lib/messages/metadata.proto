@@ -68,6 +68,13 @@ message DeviceMetadata
     optional uint32 hub_id = 15 [(jaia.field).rest_api.presence = GUARANTEED];
     optional uint32 bot_id = 16 [(jaia.field).rest_api.presence = OMITTED];
 
+    optional uint32 simulation_warp = 17 [
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional uint64 simulation_reference_time = 18 [
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
 }
 
 message QueryDeviceMetaData

@@ -106,6 +106,11 @@ const config = {
 
     // A preset that is used as a base for Jest's configuration
     preset: "ts-jest",
+    globals: {
+        "ts-jest": {
+            tsconfig: "tsconfig.test.json",
+        },
+    },
 
     // Run tests from one or more projects
     // projects: undefined,

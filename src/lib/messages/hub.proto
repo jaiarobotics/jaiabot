@@ -5,6 +5,7 @@ import "jaiabot/messages/health.proto";
 import "goby/middleware/protobuf/coroner.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
 import "jaiabot/messages/option_extensions.proto";
+import "jaiabot/messages/link.proto";
 
 package jaiabot.protobuf;
 
@@ -14,40 +15,51 @@ message HubStatus
         unit_system: "si"
     };
 
-    required uint32 hub_id = 1 [(jaia.field).rest_api.presence = GUARANTEED];
-    required uint32 fleet_id = 2 [(jaia.field).rest_api.presence = GUARANTEED];
+    required uint32 hub_id = 1 [
+        (dccl.field) = { min: 0 max: 30 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    required uint32 fleet_id = 2 [
+        (dccl.field) = { min: 0 max: 255 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
     required uint64 time = 3 [
-        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } },
+        (dccl.field) = {
+            codec: "dccl.time2"
+            units { prefix: "micro" derived_dimensions: "time" }
+        },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
     optional goby.middleware.protobuf.HealthState health_state = 4
         [(jaia.field).rest_api.presence = GUARANTEED];
     repeated Error error = 5 [
-        (dccl.field).max_repeat = 255,
+        (dccl.field).max_repeat = 5,
         (jaia.field).rest_api.presence = GUARANTEED
-    ];  // set max_repeat to a high value as we're not sending this over DCCL
-    // for now, but populate_status_from_health uses this value
+    ];
     repeated Warning warning = 6 [
-        (dccl.field).max_repeat = 255,
+        (dccl.field).max_repeat = 5,
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
     optional GeographicCoordinate location = 10
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    repeated uint32 bot_ids_in_radio_file = 11 [(dccl.field).max_repeat = 255];
+    repeated uint32 bot_ids_in_radio_file = 11 [(dccl.field).omit = true];
 
-    optional LinuxHardwareStatus linux_hardware_status = 12;
+    optional LinuxHardwareStatus linux_hardware_status = 12
+        [(dccl.field).omit = true];
 
     message BotOffloadData
     {
-        required uint32 bot_id = 1;
-        optional uint32 data_offload_percentage = 2;
+        required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
+        optional uint32 data_offload_percentage = 2
+            [(dccl.field) = { min: 0 max: 100 }];
         optional bool offload_succeeded = 3;
-        repeated uint32 bots_pending = 4;
+        repeated uint32 bots_pending = 4
+            [(dccl.field) = { min: 0 max: 255 max_repeat: 255 }];
     }
-    optional BotOffloadData bot_offload = 13;
+    optional BotOffloadData bot_offload = 13 [(dccl.field).omit = true];
 
     optional uint64 received_time = 14 [
         (dccl.field) = {
@@ -59,14 +71,22 @@ message HubStatus
 
     message KnownBot
     {
-        required uint32 id = 1 [(jaia.field).rest_api.presence = GUARANTEED];
+        required uint32 id = 1 [
+            (dccl.field) = { min: 0 max: 255 },
+            (jaia.field).rest_api.presence = GUARANTEED
+        ];
         required uint64 last_status_time = 2 [
             (dccl.field) = {
+                codec: "dccl.time2"
                 units { prefix: "micro" derived_dimensions: "time" }
             },
             (jaia.field).rest_api.presence = GUARANTEED
         ];
     }
-    repeated KnownBot known_bot = 15
-        [(jaia.field).rest_api.presence = GUARANTEED];
+    repeated KnownBot known_bot = 15 [
+        (jaia.field).rest_api.presence = GUARANTEED,
+        (dccl.field) = { max_repeat: 255 }
+    ];
+
+    repeated Link active_link = 16 [(dccl.field).max_repeat = 10];
 }
