@@ -9,11 +9,12 @@ import JaiaToggle from "../JaiaToggle/JaiaToggle";
 
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import Waypoint from "../../data/waypoints/waypoint";
 
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 
-import { CoordinateTypes, SelectedWaypoint } from "../../types/jaia-system-types";
+import { CoordinateTypes, MGRSComponents, SelectedWaypoint } from "../../types/jaia-system-types";
 import { PanelActions } from "../../types/context-types";
 import { TaskType } from "../../types/protobuf-types";
 import { MapModes } from "../../types/openlayers-types";
@@ -23,6 +24,10 @@ import { mdiDelete } from "@mdi/js";
 import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 
 import "./WaypointPanel.less";
+
+interface Props {
+    waypoint: Waypoint;
+}
 
 // Stored outside of component to prevent unnecessary resetting of variable
 let originalSelectedWaypoint = { ...jaiaGlobal.getSelectedWaypoint() };
@@ -167,6 +172,7 @@ export default function WaypointPanel() {
                 <button>Location</button>
                 <button>Task</button>
             </div>
+            <LocationInput waypoint={getWaypoint()} />
             <div className="button-row">
                 <button onClick={() => handleClosePanelClick(PanelActions.CANCEL)}>Cancel</button>
                 <button onClick={() => handleClosePanelClick(PanelActions.DONE)}>Done</button>
@@ -190,4 +196,39 @@ function compareSelectedWaypoints(waypointA: SelectedWaypoint, waypointB: Select
         return true;
     }
     return false;
+}
+
+function LocationInput(props: Props) {
+    return (
+        <div className="waypoint-location-container">
+            <label>GZD</label>
+            <input
+                name={MGRSComponents.GZD}
+                value={props.waypoint.getMGRSLocation().gridZoneDesignator}
+                className="jaia-input location"
+                autoComplete="off"
+            />
+            <label>Square ID</label>
+            <input
+                name={MGRSComponents.SQUARE_ID}
+                value={props.waypoint.getMGRSLocation().squareIdentifier}
+                className="jaia-input location"
+                autoComplete="off"
+            />
+            <label>Easting</label>
+            <input
+                name={MGRSComponents.EASTING}
+                value={props.waypoint.getMGRSLocation().easting}
+                className="jaia-input location"
+                autoComplete="off"
+            />
+            <label>Northing</label>
+            <input
+                name={MGRSComponents.NORTHING}
+                value={props.waypoint.getMGRSLocation().northing}
+                className="jaia-input location"
+                autoComplete="off"
+            />
+        </div>
+    );
 }

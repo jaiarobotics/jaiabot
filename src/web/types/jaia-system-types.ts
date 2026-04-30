@@ -68,6 +68,20 @@ export interface GhostParameters {
     isGhost?: boolean;
 }
 
+export interface MGRS {
+    gridZoneDesignator: string;
+    squareIdentifier: string;
+    easting: string;
+    northing: string;
+}
+
+export enum MGRSComponents {
+    GZD = "GZD",
+    SQUARE_ID = "SQUARE_ID",
+    EASTING = "EASTING",
+    NORTHING = "NORTHING",
+}
+
 export enum SystemButtonTypes {
     SHUTDOWN = 1,
     REBOOT = 2,
