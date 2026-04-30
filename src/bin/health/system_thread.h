@@ -14,8 +14,10 @@
 
 #include <boost/units/systems/si.hpp>
 #include <goby/zeromq/application/multi_thread.h>
+#include <sqlite3.h>
 
 #include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/arduino.pb.h"
 
 #include "config.pb.h"
 
@@ -119,7 +121,7 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
 {
   public:
     MotorStatusThread(const jaiabot::config::MotorStatusConfig& cfg);
-    ~MotorStatusThread() {}
+    ~MotorStatusThread();
 
   private:
     void issue_status_summary() override;
@@ -131,6 +133,12 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
     goby::time::SteadyClock::time_point last_motor_rpm_report_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_motor_thermistor_report_time_{std::chrono::seconds(0)};
     double rpm_value_{0};
+
+    // Motor usage database
+    void open_vehicle_database();
+    void log_motor(int32_t motor_micros, uint64_t usage_micros);
+    void log_usage(const jaiabot::protobuf::ArduinoResponse& arduino_response);
+    sqlite3* vehicle_db_;
 
     // Original and extended map of resistance (Ohms) to temperature (°F)
     std::map<float, float> resistance_to_temperature_ = {

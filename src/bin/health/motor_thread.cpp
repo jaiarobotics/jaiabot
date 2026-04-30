@@ -33,12 +33,16 @@
 
 using goby::glog;
 
+#define now_microseconds() (goby::time::SystemClock::now<goby::time::MicroTime>().value())
+
 constexpr int thermistor_ohms_neutral = 10000;
 constexpr int thermistor_voltage = 5;
 
 jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::MotorStatusConfig& cfg)
     : HealthMonitorThread(cfg, "motor_status", 5.0 * boost::units::si::hertz)
 {
+    open_vehicle_database();
+
     status_.set_motor_harness_type(cfg.motor_harness_type());
 
     interthread().subscribe<jaiabot::groups::motor_udp_in>(
@@ -93,6 +97,8 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
                     status_.set_rpm(0);
                 }
             }
+
+            log_usage(arduino_response);
         });
 }
 
@@ -138,4 +144,94 @@ void jaiabot::apps::MotorStatusThread::health(goby::middleware::protobuf::Thread
     }
 
     health.set_state(health_state);
+}
+
+void jaiabot::apps::MotorStatusThread::open_vehicle_database()
+{
+    char* err_msg = nullptr;
+
+    int rc = sqlite3_open(cfg().vehicle_db_path().c_str(), &vehicle_db_);
+    if (rc != SQLITE_OK)
+    {
+        glog.is_warn() && glog << "Can't open database: " << sqlite3_errmsg(vehicle_db_)
+                               << std::endl;
+        sqlite3_close(vehicle_db_);
+        vehicle_db_ = nullptr;
+    }
+
+    char sql[] = "CREATE TABLE IF NOT EXISTS motor_usage(motor_micros INTEGER PRIMARY KEY, "
+                 "usage_micros INTEGER);";
+
+    rc = sqlite3_exec(vehicle_db_, sql, 0, 0, &err_msg);
+    if (rc != SQLITE_OK)
+    {
+        glog.is_warn() && glog << "SQL error: " << err_msg << std::endl;
+        sqlite3_free(err_msg);
+        sqlite3_close(vehicle_db_);
+        vehicle_db_ = nullptr;
+        return;
+    }
+
+    glog.is_verbose() && glog << "Database created successfully." << std::endl;
+}
+
+void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros,
+                                                           uint64_t usage_micros)
+{
+    char* err_msg = nullptr;
+
+    if (vehicle_db_ == nullptr)
+    {
+        glog.is_debug1() && glog << "Database is not open." << std::endl;
+        return;
+    }
+
+    const int32_t MOTOR_MICROS_BIN = 50; // Bin size for motor microseconds
+    int32_t binned_motor_micros =
+        (motor_micros / MOTOR_MICROS_BIN) * MOTOR_MICROS_BIN; // Bin the motor microseconds
+
+    std::string sql = "INSERT INTO motor_usage (motor_micros, usage_micros) VALUES (" +
+                      std::to_string(binned_motor_micros) + ", " + std::to_string(usage_micros) +
+                      ") ON CONFLICT(motor_micros) DO UPDATE SET "
+                      "usage_micros = usage_micros + " +
+                      std::to_string(usage_micros) + ";";
+
+    auto rc = sqlite3_exec(vehicle_db_, sql.c_str(), 0, 0, &err_msg);
+    if (rc != SQLITE_OK)
+    {
+        glog.is_warn() && glog << "SQL error: " << err_msg << std::endl;
+        sqlite3_free(err_msg);
+    }
+    else
+    {
+        glog.is_debug1() && glog << "Database updated successfully." << std::endl;
+    }
+}
+
+void jaiabot::apps::MotorStatusThread::log_usage(const jaiabot::protobuf::ArduinoResponse& arduino_response) {
+
+    // Log the motor usage
+    static jaiabot::protobuf::ArduinoResponse previous_response;
+    static int64_t previous_response_time = 0;
+
+    if (arduino_response.has_motor())
+    {
+        if (previous_response_time != 0 && previous_response.has_motor())
+        {
+            auto previous_response_duration = now_microseconds() - previous_response_time;
+            log_motor(previous_response.motor(), previous_response_duration);
+        }
+
+        previous_response = arduino_response;
+        previous_response_time = now_microseconds();
+    }
+
+}
+
+jaiabot::apps::MotorStatusThread::~MotorStatusThread()
+{
+    if (vehicle_db_ != nullptr)
+    {
+        sqlite3_close(vehicle_db_);
+    }
 }

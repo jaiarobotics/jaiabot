@@ -32,4 +32,5 @@ linux_hw {
 
 motor {
     motor_harness_type: $motor_harness_type
+    vehicle_db_path: "/var/log/jaiabot/db/vehicle_bot${bot_id}_fleet${fleet_id}.db"
 }

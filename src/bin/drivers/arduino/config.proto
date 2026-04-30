@@ -52,6 +52,4 @@ message ArduinoDriverConfig
     optional int32 arduino_report_timeout_seconds = 22 [default = 2];
 
     optional int32 arduino_restart_timeout_seconds = 23 [default = 10];
-
-    optional string vehicle_db_path = 30 [default = "/var/log/jaiabot/db/vehicle.db"];
 }

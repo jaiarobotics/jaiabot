@@ -11,7 +11,7 @@ target_link_libraries(${APP}
   goby_zeromq
   jaiabot_messages
   jaiabot_messages_c
-  sqlite3)
+  )
 
 if(export_goby_interfaces)
   generate_interfaces(${APP})
