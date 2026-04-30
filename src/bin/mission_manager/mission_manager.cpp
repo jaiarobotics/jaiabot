@@ -535,6 +535,9 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
     auto command_callback = [this](const protobuf::Command& input_command)
     {
+        glog.is_debug1() && glog << "Received Command: " << input_command.ShortDebugString()
+                                     << std::endl;
+
         if (input_command.type() == protobuf::Command::MISSION_PLAN_FRAGMENT)
         {
             protobuf::Command out_command;
@@ -647,7 +650,8 @@ void jaiabot::apps::MissionManager::publish_mission_report(protobuf::MissionStat
 
     const auto* in_mission = machine_->state_cast<const statechart::InMission*>();
 
-    if (in_mission) {
+    if (in_mission)
+    {
         report.set_command_from_hub_id(machine_->hub_id());
         report.set_mission_command_time(machine_->mission_command_time());
     }

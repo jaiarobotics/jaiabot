@@ -10,7 +10,6 @@ import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 
 import Bot from "../../../data/bots/bot";
 
-import { isCommsDropped } from "../button-utils";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 import { Command, CommandType, MissionState } from "../../../types/protobuf-types";
@@ -44,7 +43,7 @@ export default function ActivateAllButton(props: Props) {
         const updatedBotReadyStates = new Map<DisabledCodes, number[]>(initBotReadyStates());
 
         for (const [botID, bot] of props.bots.entries()) {
-            if (isCommsDropped(bot.getStatusAge())) {
+            if (bot.isCommsDropped()) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (
                 bot.getMissionStatus().missionState === MissionState.PRE_DEPLOYMENT__STARTING_UP

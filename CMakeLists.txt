@@ -8,16 +8,17 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Limit cascading C++ errors (GCC / Clang only)
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-   add_compile_options(-fmax-errors=3)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  add_compile_options(-fmax-errors=3)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-ferror-limit=3)
 endif()
 
 # determine version of jaiabot
 include(JaiaVersions)
 
 # find Protobuf
-find_package(ProtobufLocal REQUIRED)
-include_directories(${PROTOBUF_INCLUDE_DIRS})
+include(JaiaProtobuf)
 
 # find NanoPB
 find_package( Nanopb REQUIRED )
@@ -28,7 +29,6 @@ get_target_property(DCCL_INCLUDE_DIR dccl INTERFACE_INCLUDE_DIRECTORIES)
 
 message("Using DCCL in ${DCCL_INCLUDE_DIR}")
 include_directories("${DCCL_INCLUDE_DIR}")
-protobuf_include_dirs("${DCCL_INCLUDE_DIR}")
 
 # find MOOS
 find_package(MOOS 10 REQUIRED)
@@ -37,7 +37,6 @@ find_package(MOOS 10 REQUIRED)
 find_package(GOBY 3.0 REQUIRED zeromq moos)
 
 include_directories("${GOBY_INCLUDE_DIR}")
-protobuf_include_dirs("${GOBY_INCLUDE_DIR}")
 
 # create variables for various directories
 get_filename_component(project_SRC_DIR src ABSOLUTE)
@@ -69,7 +68,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${project_LIB_DIR} CACHE PATH
 
 # include our local include directory
 include_directories(${project_INC_DIR})
-protobuf_include_dirs(${project_INC_DIR})
 
 # settings for goby_clang_tool
 option(build_doc "Build documentation (requires Doxygen)" OFF)
@@ -82,6 +80,14 @@ endif()
 if(export_goby_interfaces)
   include(GobyClangTool)
   set(YML_OUT_DIR ${project_SHARE_DIR}/jaiabot/interfaces)
+endif()
+
+# settings for jaia_state_tool (boost::statechart state diagram generation)
+option(build_state_diagrams "Build Graphviz and Mermaid state diagrams (PDF) from boost::statechart code (requires Clang 18 dev libraries; optionally graphviz dot and/or mmdc for PDF rendering)" OFF)
+
+if(build_state_diagrams)
+  include(JaiaStateTool)
+  set(STATE_DIAGRAM_OUT_DIR ${project_SHARE_DIR}/jaiabot/state_diagrams)
 endif()
 
 

@@ -1,11 +1,22 @@
-import jaiabot.messages.portal_pb2
 import jaiabot.messages.rest_api_pb2 as rest_api
+from jaiabot.messages.rest_api_pb2 import TaskPacketQuery, APIRequest, APIResponse
+import jaiabot.messages.portal_pb2
+
+from pyjaia.kmz import getKMZ
+from pyjaia.csv import task_packets_to_csv
+from pyjaia.contours import task_packets_to_geojson
 
 import common.shared_data
 from common.time import utc_now_microseconds
 from common.api_exception import APIException
 
-def process_request(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
+
+import logging
+
+l = logging.getLogger(__name__)
+
+
+def process_request(jaia_request: APIRequest) -> APIResponse:
     action = jaia_request.WhichOneof("action")
     # call function in this module with the same name as action
     if action in globals():
@@ -17,8 +28,8 @@ def send_client_to_portal_message(hub_id, msg):
     # queue.Queue is threadsafe
     common.shared_data.get_queue(hub_id).put(msg)
 
-def status(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
-    jaia_response = rest_api.APIResponse()
+def status(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
 
     with common.shared_data.data_lock:
         if jaia_request.target.all:
@@ -49,8 +60,8 @@ def status(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
                     empty.time=0
     return jaia_response
 
-def metadata(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
-    jaia_response = rest_api.APIResponse()
+def metadata(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
     with common.shared_data.data_lock:
         # We only serve hub metadata as this isn't currently sent over XBee
         if jaia_request.target.bots:
@@ -71,25 +82,44 @@ def metadata(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
 
     return jaia_response
 
-def task_packets(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
-    jaia_response = rest_api.APIResponse()
+
+def task_packets(jaia_request: APIRequest):
+    if jaia_request.target.all:
+        bot_ids = None
+    else:
+        bot_ids = jaia_request.target.bots
+
+    start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else None
+    end_time = jaia_request.task_packets.end_time if jaia_request.task_packets.HasField('end_time') else None
+    mission_names = list(jaia_request.task_packets.mission_name) or None
+
     with common.shared_data.data_lock:
-        if jaia_request.target.all:
-            bot_ids = None
-        else:
-            bot_ids = jaia_request.target.bots
+        task_packets = common.shared_data.data.task_packet_database.query_task_packets(bot_ids, start_time, end_time, included=jaia_request.task_packets.included_only or None, mission_names=mission_names)
 
-        start_time = jaia_request.task_packets.start_time if jaia_request.task_packets.HasField('start_time') else None
-        end_time = jaia_request.task_packets.end_time if jaia_request.task_packets.HasField('end_time') else None
-        mission_names = list(jaia_request.task_packets.mission_name) or None
-
-        task_packets = common.shared_data.data.get_task_packets(bot_ids, start_time, end_time, mission_names)
+    if jaia_request.task_packets.format == TaskPacketQuery.JSON:
+        jaia_response = APIResponse()
         jaia_response.task_packets.packets.extend(task_packets)
-    return jaia_response
+        return jaia_response
+
+    elif jaia_request.task_packets.format == TaskPacketQuery.KMZ:
+        kmz_data = getKMZ(task_packets)
+        return kmz_data, {'Content-Type': 'application/vnd.google-earth.kmz'}
+
+    elif jaia_request.task_packets.format == TaskPacketQuery.CSV:
+        csv_string = task_packets_to_csv(task_packets)
+        return csv_string, {'Content-Type': 'text/csv'}
+
+    elif jaia_request.task_packets.format == TaskPacketQuery.GEOJSON_CONTOURS:
+        geojson_contours = task_packets_to_geojson(task_packets)
+        return geojson_contours, {'Content-Type': 'application/vnd.geo+json'}
+
+    else:
+        l.warning("Invalid format type for task packets: " + str(jaia_request.task_packets.format))
+        raise APIException(rest_api.API_ERROR__INVALID_TYPE, "Invalid format type for task packets: " + str(jaia_request.task_packets.format))
 
 
-def missions(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
-    jaia_response = rest_api.APIResponse()
+def missions(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
     with common.shared_data.data_lock:
         if jaia_request.target.all:
             bot_ids = None
@@ -99,13 +129,13 @@ def missions(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
         start_time = jaia_request.missions.start_time if jaia_request.missions.HasField('start_time') else None
         end_time = jaia_request.missions.end_time if jaia_request.missions.HasField('end_time') else None
 
-        mission_summaries = common.shared_data.data.get_mission_summaries(bot_ids, start_time, end_time)
+        mission_summaries = common.shared_data.data.task_packet_database.query_mission_summaries(bot_ids, start_time, end_time)
         jaia_response.missions.mission_summaries.extend(mission_summaries)
     return jaia_response
 
 
-def command(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
-    jaia_response = rest_api.APIResponse()
+def command(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
 
     # Bots to send Command to
     bots = list()
@@ -147,8 +177,9 @@ def command(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
     
     return jaia_response
 
-def command_for_hub(jaia_request: rest_api.APIRequest) -> rest_api.APIResponse:
-    jaia_response = rest_api.APIResponse()
+
+def command_for_hub(jaia_request: APIRequest) -> APIResponse:
+    jaia_response = APIResponse()
 
     # Hubs to send CommandForHub to
     hubs = list()    
