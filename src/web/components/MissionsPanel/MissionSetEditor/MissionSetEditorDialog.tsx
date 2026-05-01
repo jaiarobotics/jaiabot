@@ -61,7 +61,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
         if (!snapshotCache.current.has(selectedRightName)) {
             snapshotCache.current.set(
                 selectedRightName,
-                loadSnapshotFromLocalStorage(selectedRightName),
+                loadSnapshotFromLocalStorage(selectedRightName).snapshot!,
             );
         }
 

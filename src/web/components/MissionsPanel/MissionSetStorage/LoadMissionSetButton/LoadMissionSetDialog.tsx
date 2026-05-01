@@ -38,7 +38,7 @@ export function LoadMissionSetDialog(props: DialogProps) {
      * @returns {string} The text to be displayed in the dialog
      */
     const getDialogMessage = () => {
-        if (props.disabledCode !== DisabledCodes.NONE) {
+        if (props.disabledCode === DisabledCodes.FILE_NOT_FOUND) {
             return messages.get(props.disabledCode) + props.saveName;
         }
         return messages.get(props.disabledCode);
