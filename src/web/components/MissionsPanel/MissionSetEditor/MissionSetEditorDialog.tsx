@@ -133,6 +133,21 @@ export function MissionSetEditorDialog(props: DialogProps) {
         }
     };
 
+    const handleDesiredMissionCountChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
+        const newCount = Number(evt.target.value);
+        if (
+            leftList.length > 0 &&
+            newCount > 0 &&
+            getMaxWaypointsPerOutputMission(leftList, newCount, snapshotCache.current) >
+                MAX_WAYPOINTS
+        ) {
+            setIsWaypointWarningVisible(true);
+            return;
+        }
+        setUserHasOverriddenCount(true);
+        setDesiredMissionCount(newCount);
+    };
+
     const hasLeftSelection = selectedLeftIndex !== null;
     const addButtonLabel = hasLeftSelection ? "Insert" : "Add";
 
@@ -157,23 +172,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                 type="number"
                                 min={1}
                                 value={formatNumericalInput(desiredMissionCount)}
-                                onChange={(evt) => {
-                                    const newCount = Number(evt.target.value);
-                                    if (
-                                        leftList.length > 0 &&
-                                        newCount > 0 &&
-                                        getMaxWaypointsPerOutputMission(
-                                            leftList,
-                                            newCount,
-                                            snapshotCache.current,
-                                        ) > MAX_WAYPOINTS
-                                    ) {
-                                        setIsWaypointWarningVisible(true);
-                                        return;
-                                    }
-                                    setUserHasOverriddenCount(true);
-                                    setDesiredMissionCount(newCount);
-                                }}
+                                onChange={handleDesiredMissionCountChange}
                             />
                         </div>
                     </div>
