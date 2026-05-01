@@ -56,10 +56,11 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         saveToLocalStorage("Test-Mission-Set");
 
         // Retrieve the serialized mission set from localStorage
-        const missionSetSnapshot = loadSnapshotFromLocalStorage("Test-Mission-Set");
+        const loadResult = loadSnapshotFromLocalStorage("Test-Mission-Set");
+        expect(loadResult.resultType).toBe(LoadResultType.CURRENT_FORMAT);
 
         // Update the mission set data
-        missionSet.restoreFromSnapshot(missionSetSnapshot);
+        missionSet.restoreFromSnapshot(loadResult.snapshot!);
 
         // Verfiy we got what we expected
         expect(missionSet.getMissions().size).toEqual(2);
@@ -115,10 +116,10 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(listSavedMissionSets()[1]).toEqual("Test-Mission-Set-B");
 
         // Retrieve the first mission set from localStorage
-        let missionSetSnapshot = loadSnapshotFromLocalStorage("Test-Mission-Set-A");
+        const loadResultA = loadSnapshotFromLocalStorage("Test-Mission-Set-A");
 
         // Update the mission set data
-        missionSet.restoreFromSnapshot(missionSetSnapshot);
+        missionSet.restoreFromSnapshot(loadResultA.snapshot!);
 
         expect(missionSet.getMissions().size).toEqual(2);
 
@@ -142,13 +143,13 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(deleteFromLocalStorage("Test-Mission-Set-C")).toEqual(false);
 
         // Try to retrieve a mission set that is not saved
-        missionSetSnapshot = loadSnapshotFromLocalStorage("Test-Mission-Set");
+        const missingResult = loadSnapshotFromLocalStorage("Test-Mission-Set");
         // Verify defaults
-        expect(missionSetSnapshot.missions).toEqual([]);
-        expect(missionSetSnapshot.nextMissionID).toBe(0);
-        expect(missionSetSnapshot.missionIDInEditMode).toEqual(UNASSIGNED_ID);
-        expect(missionSetSnapshot.missionSpeeds).toEqual({});
-        expect(missionSetSnapshot.name).toBe("");
+        expect(missingResult.snapshot!.missions).toEqual([]);
+        expect(missingResult.snapshot!.nextMissionID).toBe(0);
+        expect(missingResult.snapshot!.missionIDInEditMode).toEqual(UNASSIGNED_ID);
+        expect(missingResult.snapshot!.missionSpeeds).toEqual({});
+        expect(missingResult.snapshot!.name).toBe("");
     });
 
     test("Migrate 2.0 localStorage: bottomDepthSafetyParams moves into segments[0]", () => {
@@ -173,10 +174,11 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         };
         localStorage.setItem("missionSets", JSON.stringify(v20MissionSets));
 
-        const snapshot = loadSnapshotFromLocalStorage("Old-Set");
+        const loadResult = loadSnapshotFromLocalStorage("Old-Set");
+        expect(loadResult.resultType).toBe(LoadResultType.OLD_FORMAT);
 
-        expect(snapshot.missions.length).toBe(1);
-        const [, mission] = snapshot.missions[0];
+        expect(loadResult.snapshot!.missions.length).toBe(1);
+        const [, mission] = loadResult.snapshot!.missions[0];
         expect(mission.getBottomDepthSafetyParams()).toEqual(srp);
         expect(mission.getSegments()[0].bottom_depth_safety_params).toEqual(srp);
     });
@@ -204,13 +206,14 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         };
         localStorage.setItem("missionSets", JSON.stringify(v20MissionSets));
 
-        const snapshot = loadSnapshotFromLocalStorage("Old-Set");
+        const loadResult = loadSnapshotFromLocalStorage("Old-Set");
+        expect(loadResult.resultType).toBe(LoadResultType.OLD_FORMAT);
 
-        const [, mission1] = snapshot.missions[0];
+        const [, mission1] = loadResult.snapshot!.missions[0];
         expect(mission1.getSpeeds()).toEqual(speeds);
 
         // Mission that already has speeds should keep its own
-        const [, mission2] = snapshot.missions[1];
+        const [, mission2] = loadResult.snapshot!.missions[1];
         expect(mission2.getSpeeds()).toEqual({ transit: 1, stationkeep_outer: 1 });
     });
 

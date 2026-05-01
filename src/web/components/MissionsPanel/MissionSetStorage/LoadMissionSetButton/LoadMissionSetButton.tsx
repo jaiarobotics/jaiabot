@@ -2,7 +2,11 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
-import { listSavedMissionSets, loadSnapshotFromLocalStorage } from "../mission-set-storage";
+import {
+    listSavedMissionSets,
+    loadSnapshotFromLocalStorage,
+    LoadResultType,
+} from "../mission-set-storage";
 import { DisabledCodes } from "./load-messages";
 import { LoadMissionSetDialog } from "./LoadMissionSetDialog";
 
@@ -18,13 +22,14 @@ interface Props {
 export default function LoadMissionSetButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
+    const [disabledCode, setDisabledCode] = useState(DisabledCodes.NONE);
 
     /**
-     * Checks the mission set and applies the appropriate disable code
+     * Checks the mission set and returns the appropriate disabled code
      *
      * @returns {DisabledCodes} The applicable disabled code based on the mission set conditions
      */
-    const getDisabledCode = () => {
+    const getInitialDisabledCode = () => {
         if (!listSavedMissionSets().includes(props.saveName)) return DisabledCodes.FILE_NOT_FOUND;
         return DisabledCodes.NONE;
     };
@@ -35,11 +40,14 @@ export default function LoadMissionSetButton(props: Props) {
      * @returns {void}
      */
     const onButtonClick = () => {
+        setDisabledCode(getInitialDisabledCode());
         setIsDialogVisible(true);
     };
 
     /**
-     * Closes the dialog and dispatches an event with the mission set snapshot
+     * Closes the dialog and dispatches an event with the mission set snapshot.
+     * Re-opens the dialog with an old format warning if the loaded mission set
+     * required migration.
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
@@ -48,11 +56,17 @@ export default function LoadMissionSetButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            const missionSetSnapshot = loadSnapshotFromLocalStorage(props.saveName);
+            const loadResult = loadSnapshotFromLocalStorage(props.saveName);
             jaiaDispatch({
                 type: JaiaActions.LOAD_MISSION_SET,
-                missionSetSnapshot: missionSetSnapshot,
+                missionSetSnapshot: loadResult.snapshot,
             });
+
+            if (loadResult.resultType === LoadResultType.OLD_FORMAT) {
+                setDisabledCode(DisabledCodes.OLD_FORMAT);
+                setIsDialogVisible(true);
+                return;
+            }
 
             props.onClose();
         }
@@ -65,7 +79,7 @@ export default function LoadMissionSetButton(props: Props) {
             </button>
             <LoadMissionSetDialog
                 isVisible={isDialogVisible}
-                disabledCode={getDisabledCode()}
+                disabledCode={disabledCode}
                 saveName={props.saveName}
                 onClose={onDialogClose}
             />

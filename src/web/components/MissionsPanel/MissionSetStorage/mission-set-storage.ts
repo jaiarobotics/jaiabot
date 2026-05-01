@@ -53,7 +53,7 @@ export function saveToLocalStorage(name: string) {
  * @notes
  * Called by UI code, snapshot is sent to the reducer/action handler
  */
-export function loadSnapshotFromLocalStorage(saveName: string) {
+export function loadSnapshotFromLocalStorage(saveName: string): LoadSnapshotResult {
     const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
     const targetSet = allMissionSets[saveName] || {};
     const version: string = targetSet.version ?? "2.0";
@@ -75,7 +75,14 @@ export function loadSnapshotFromLocalStorage(saveName: string) {
         missionSpeeds: migrated.missionSpeeds ?? {},
         name: migrated.name ?? "",
     };
-    return snapshot;
+
+    return {
+        snapshot,
+        resultType:
+            version === MISSION_SET_VERSION
+                ? LoadResultType.CURRENT_FORMAT
+                : LoadResultType.OLD_FORMAT,
+    };
 }
 
 /**
