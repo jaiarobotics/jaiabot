@@ -179,6 +179,15 @@ export default class Mission {
             waypoint.setLocation(serializedWaypoint.location);
             return waypoint;
         });
+        mission.segments = (mission.segments ?? []).map((seg: any) => ({
+            ...seg,
+            ...(seg.lane_start_goal_indices && {
+                lane_start_goal_indices: [...seg.lane_start_goal_indices],
+            }),
+            ...(seg.bottom_depth_safety_params && {
+                bottom_depth_safety_params: { ...seg.bottom_depth_safety_params },
+            }),
+        }));
         return mission;
     }
 }

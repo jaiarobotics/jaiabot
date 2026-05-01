@@ -121,7 +121,7 @@ export function combineMissionSets(
     const snapshots = names.map((name) => snapshotCache.get(name)!);
 
     const missionArrays = snapshots.map((snapshot) =>
-        snapshot.missions.map(([_, mission]: [number, Mission]) => cloneDeep(mission)),
+        snapshot.missions.map(([_, mission]: [number, Mission]) => mission),
     );
 
     const distributedSets = missionArrays.map((missions) =>
@@ -151,7 +151,7 @@ export function combineMissionSets(
 
                 for (const sourceMission of sourceMissions) {
                     laneStartIndices.push(waypointOffset + 1);
-                    combined.addWaypoints(sourceMission.getWaypoints());
+                    combined.addWaypoints(cloneDeep(sourceMission.getWaypoints()));
 
                     const speeds = sourceMission.getSpeeds();
                     if (speeds) {
@@ -173,12 +173,12 @@ export function combineMissionSets(
                     start_goal_index: segmentStart,
                     lane_start_goal_indices: laneStartIndices,
                 };
-                if (mergedSRP) seg.bottom_depth_safety_params = mergedSRP;
+                if (mergedSRP) seg.bottom_depth_safety_params = cloneDeep(mergedSRP);
                 combinedSegments.push(seg);
             } else {
                 // Single mission: take its segments with goal indices offset, no lane indices added.
                 const sourceMission = sourceMissions[0];
-                combined.addWaypoints(sourceMission.getWaypoints());
+                combined.addWaypoints(cloneDeep(sourceMission.getWaypoints()));
 
                 const speeds = sourceMission.getSpeeds();
                 if (speeds) {
@@ -196,6 +196,9 @@ export function combineMissionSets(
                         lane_start_goal_indices: seg.lane_start_goal_indices?.map(
                             (i) => i + waypointOffset,
                         ),
+                        ...(seg.bottom_depth_safety_params && {
+                            bottom_depth_safety_params: { ...seg.bottom_depth_safety_params },
+                        }),
                     });
                 }
 
