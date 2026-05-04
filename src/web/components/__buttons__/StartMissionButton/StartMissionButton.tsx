@@ -18,13 +18,7 @@ import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../.
 
 import { mdiPlay } from "@mdi/js";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import {
-    MDI_BUTTON_SIZE,
-    MIN_BATTERY_PERCENT,
-    NO_COMMS_STATUS_AGE,
-    UNASSIGNED_ID,
-} from "../../../utils/constants";
-import { microsecondsToSeconds } from "../../../utils/conversions";
+import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
 
 interface Props {
     bot: Bot;
@@ -62,7 +56,7 @@ export default function StartMissionButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
-        if (microsecondsToSeconds(props.bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+        if (props.bot.isCommsDropped()) {
             return DisabledCodes.NO_COMMS;
         }
 

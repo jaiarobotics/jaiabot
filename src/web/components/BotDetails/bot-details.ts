@@ -6,7 +6,6 @@ import { convertMicrosecondsToSeconds } from "../../shared/Utilities";
 import { missionSet } from "../../data/mission_set/mission-set";
 import Hub from "../../data/hubs/hub";
 import GPS from "../../data/sensors/gps";
-import Mission from "../../data/mission_set/mission";
 
 import { point, rhumbDistance, Units } from "@turf/turf";
 
@@ -14,14 +13,14 @@ import { point, rhumbDistance, Units } from "@turf/turf";
  * Provides a class name that corresponds to styles illustrating comms health
  *
  * @param {number} portalStatusAge Time since last communication between Bot and Hub (microseconds)
+ * @param {boolean} isCommsDropped Whether or not the Bot is currently experiencing dropped comms
  * @returns {string} Class name that dictates the style of the status age
  */
-export function getStatusAgeClassName(portalStatusAge: number) {
-    const healthFailedTimeout = 30;
+export function getStatusAgeClassName(portalStatusAge: number, isCommsDropped?: boolean) {
     const healthDegradedTimeout = 10;
     const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
 
-    if (statusAgeSeconds >= healthFailedTimeout) {
+    if (isCommsDropped) {
         return "health-state-failed";
     }
 
@@ -30,23 +29,6 @@ export function getStatusAgeClassName(portalStatusAge: number) {
     }
 
     return "";
-}
-
-/**
- * Checks whether the Bot and Hub are communcating
- *
- * @param {number} portalStatusAge Time since last communcation between Bot and Hub (microseconds)
- * @returns {boolean} True if the Bot has communicated with the Hub in the last 30 seconds
- */
-export function isDisconnected(portalStatusAge: number) {
-    const healthFailedTimeout = 30;
-    const statusAgeSeconds = convertMicrosecondsToSeconds(portalStatusAge);
-
-    if (statusAgeSeconds >= healthFailedTimeout) {
-        return true;
-    }
-
-    return false;
 }
 
 /**

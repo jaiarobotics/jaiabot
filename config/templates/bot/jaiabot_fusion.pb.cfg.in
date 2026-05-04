@@ -39,7 +39,7 @@ imu_detect_horizontal_pitch: 45 # (default=45 degrees)
 imu_issue_solution: $imu_detection_solution
 
 # Set the period to send bot status in milliseconds
-bot_status_period_ms: $bot_status_period # default ((bot_index * 10) + 1000 milliseconds)
+bot_status_period_ms: $bot_status_period
 
 include_course_error_detection_states: IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT
 include_course_error_detection_states: IN_MISSION__UNDERWAY__TASK__STATION_KEEP

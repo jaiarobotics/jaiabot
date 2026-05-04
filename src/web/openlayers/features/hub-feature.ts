@@ -12,7 +12,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { view } from "../views/view";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { TEXT_OFFSET_RADIUS } from "../../utils/constants";
+import { CLOUD_HUB_ID, HUB_TEXT_OFFSET_RADIUS } from "../../utils/constants";
 
 // Style
 import { MapIconColors } from "../../utils/style";
@@ -40,23 +40,42 @@ export function generateHubFeature(hubID: number) {
 }
 
 function generateHubStyle(hub: Hub) {
-    return new Style({
+    const hubID = hub.getHubID();
+    const hubLabel = hubID === CLOUD_HUB_ID ? "Cloud" : String(hubID);
+
+    // Main icon style
+    const iconStyle = new Style({
         image: new Icon({
             src: hubIcon,
             color: getHubIconColor(hub),
             anchor: [0.5, 0.5],
             rotateWithView: true,
         }),
+    });
+
+    // "HUB" label
+    const hubTextStyle = new Style({
         text: new Text({
             text: "HUB",
-            font: "bold 11pt sans-serif",
-            fill: new Fill({
-                color: "black",
-            }),
+            font: "bold 9pt sans-serif",
+            fill: new Fill({ color: "black" }),
             offsetX: 0,
-            offsetY: TEXT_OFFSET_RADIUS,
+            offsetY: -HUB_TEXT_OFFSET_RADIUS,
         }),
     });
+
+    // Number label
+    const labelTextStyle = new Style({
+        text: new Text({
+            text: `${hubLabel}`,
+            font: "bold 9pt sans-serif",
+            fill: new Fill({ color: "black" }),
+            offsetX: 0,
+            offsetY: HUB_TEXT_OFFSET_RADIUS,
+        }),
+    });
+
+    return [iconStyle, hubTextStyle, labelTextStyle];
 }
 
 function getHubIconColor(hub: Hub) {

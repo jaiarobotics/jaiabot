@@ -64,6 +64,7 @@ launchdelay=100
 
 cat <<EOF > ${preseedfile}
 export jaia_mode=simulation
+export jaia_sim_type=single_host
 export jaia_comms_mode=${jaia_comms_mode}
 source "$(dirname ${BASH_SOURCE:-${(%):-%x}})/../../preseed.goby"
 EOF

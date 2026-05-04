@@ -17,3 +17,7 @@ add_subdirectory(comms_manager)
 add_subdirectory(ctd_manager)
 add_subdirectory(udp_gateway)
 add_subdirectory(ppk)
+
+if(build_state_diagrams)
+  add_subdirectory(state_tool)
+endif()

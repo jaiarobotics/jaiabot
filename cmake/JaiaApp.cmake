@@ -56,6 +56,10 @@ function(add_jaiabot_application)
       generate_interfaces(${args_TARGET})
     endif()
 
+    if(build_state_diagrams)
+      generate_state_diagram(${args_TARGET})
+    endif()
+
     if(NOT args_SKIP_INSTALL)
       project_install_bin(${args_TARGET})
     endif()
