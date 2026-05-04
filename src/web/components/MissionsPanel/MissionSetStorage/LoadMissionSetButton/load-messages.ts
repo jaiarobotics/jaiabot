@@ -9,6 +9,6 @@ export const messages: ReadonlyMap<DisabledCodes, string> = new Map([
     [DisabledCodes.FILE_NOT_FOUND, "There is no mission set with name: "],
     [
         DisabledCodes.OLD_FORMAT,
-        "This mission set was saved in an older format and has been automatically migrated. Please re-save to update to the latest version.",
+        "This mission set was saved in an older format and has been migrated. Please re-save to update to the latest version.",
     ],
 ]);
