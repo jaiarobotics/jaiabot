@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import { missionsManager } from "../../../../data/missions_manager/missions-manager";
 import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
@@ -61,6 +62,8 @@ export default function LoadMissionSetButton(props: Props) {
                 type: JaiaActions.LOAD_MISSION_SET,
                 missionSetSnapshot: loadResult.snapshot,
             });
+
+            missionsManager.autoAssign();
 
             if (loadResult.resultType === LoadResultType.OLD_FORMAT) {
                 setDisabledCode(DisabledCodes.OLD_FORMAT);

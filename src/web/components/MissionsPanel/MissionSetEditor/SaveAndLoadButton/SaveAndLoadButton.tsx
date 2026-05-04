@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import { missionsManager } from "../../../../data/missions_manager/missions-manager";
 import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
@@ -52,6 +53,7 @@ export default function SaveAndLoadButton(props: Props) {
                     missionSetSnapshot: snapshot,
                 });
             }
+            missionsManager.autoAssign();
             props.onClose();
         }
     };
