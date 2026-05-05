@@ -34,9 +34,14 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
     }
     ~Underway() { goby::glog.is_debug1() && goby::glog << "~Underway" << std::endl; }
 
-    void do_battery_protocol(const jaiabot::protobuf::MissionPlan::BatteryLowProtocol::Action& protocol_action)
+    /**
+     * @brief Handle the battery protocol by posting the appropriate event to the state machine.
+     * 
+     * @param protocol The battery low protocol to execute.
+     */
+    void do_battery_protocol(const jaiabot::protobuf::MissionPlan::BatteryLowProtocol& protocol)
     {
-        switch (protocol_action)
+        switch (protocol.action())
         {
         case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::NONE:
             glog.is_warn() && glog << "Battery protocol: NONE" << std::endl;
@@ -61,16 +66,26 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
         }
     }
 
+    /**
+     * @brief Handle the very low battery event by executing the corresponding battery protocol.
+     * 
+     * @param ev The very low battery event.
+     */
     void battery_low(const EvBatteryLow &) {
         glog.is_warn() && glog << "Battery low!" << std::endl;
         const auto protocol = this->machine().mission_plan().very_low_battery_protocol();
-        do_battery_protocol(protocol.action());
+        do_battery_protocol(protocol);
     }
 
+    /**
+     * @brief Handle the critically low battery event by executing the corresponding battery protocol.
+     * 
+     * @param ev The critically low battery event.
+     */
     void battery_critical(const EvBatteryCritical &) {
         glog.is_warn() && glog << "Battery critical!" << std::endl;
         const auto protocol = this->machine().mission_plan().critically_low_battery_protocol();
-        do_battery_protocol(protocol.action());
+        do_battery_protocol(protocol);
     }
 
     using reactions = boost::mpl::list<
@@ -79,13 +94,14 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
         boost::statechart::transition<EvPause, pause::Manual>,
         boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>,
 
+        // Battery events
         boost::statechart::in_state_reaction<EvBatteryLow, Underway, &Underway::battery_low>,
-        boost::statechart::in_state_reaction<EvBatteryCritical, Underway, &Underway::battery_critical>,
+        boost::statechart::in_state_reaction<EvBatteryCritical, Underway,
+                                             &Underway::battery_critical>,
 
+        // Battery protocol events
         boost::statechart::transition<EvLowBatteryStationKeep, battery::StationKeep>,
-        boost::statechart::transition<EvLowBatteryStopAndBroadcast, battery::StopAndBroadcast>
-        >;
-
+        boost::statechart::transition<EvLowBatteryStopAndBroadcast, battery::StopAndBroadcast>>;
 };
 
 namespace underway {
