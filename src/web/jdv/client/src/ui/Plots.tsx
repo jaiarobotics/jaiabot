@@ -52,7 +52,7 @@ export interface PlotsProps {
 // Colors used for stat lines — kept as constants so they are consistent
 // across the plot traces, annotations, and the info dialog legend.
 const MEAN_LINE_COLOR = "red";
-const STD_LINE_COLOR = "purple";
+const STD_LINE_COLOR = "orange";
 
 // Plotly's default color cycle — used to explicitly assign data trace colors
 // so that the extra stat traces don't shift the color assignments.
@@ -312,13 +312,9 @@ export function Plots(props: PlotsProps) {
         refreshSubplotTitles();
     }, [showMean, showStd]);
 
-    // Build stat annotations below each subplot and divider lines between subplots.
-    const buildSubplotOverlays = (
-        plots: Plot[],
-        visibleTimeRange: number[] | null,
-    ): { annotations: any[]; shapes: any[] } => {
+    // Build stat annotations as top-right overlays within each subplot.
+    const buildSubplotOverlays = (plots: Plot[], visibleTimeRange: number[] | null): any[] => {
         const annotations: any[] = [];
-        const shapes: any[] = [];
 
         for (let [plot_index, series] of plots.entries()) {
             const yDomainRef = plot_index === 0 ? "y domain" : `y${plot_index + 1} domain`;
@@ -327,20 +323,19 @@ export function Plots(props: PlotsProps) {
                 const t_start = visibleTimeRange ? visibleTimeRange[0] : Number.MIN_SAFE_INTEGER;
                 const t_end = visibleTimeRange ? visibleTimeRange[1] : Number.MAX_SAFE_INTEGER;
 
-                const visible_y: number[] = [];
-                for (let i = 0; i < series._utime_.length; i++) {
-                    if (series._utime_[i] >= t_start && series._utime_[i] <= t_end) {
-                        visible_y.push(series.series_y[i]);
-                    }
-                }
-                const filtered = visible_y.filter((y) => y !== null && y !== undefined);
+                const start_index = bisect(series._utime_, (t) => t_start - t)?.index ?? 0;
+                const end_index =
+                    bisect(series._utime_, (t) => t_end - t)?.index ?? series._utime_.length;
+                const visible_y = series.series_y
+                    .slice(start_index, Math.min(end_index + 2, series._utime_.length))
+                    .filter((y): y is number => y !== null);
 
                 let mean = 0;
                 let std = 0;
-                if (filtered.length > 0) {
-                    mean = filtered.reduce((a, b) => a + b, 0) / filtered.length;
+                if (visible_y.length > 0) {
+                    mean = visible_y.reduce((a, b) => a + b, 0) / visible_y.length;
                     const variance =
-                        filtered.reduce((sum, y) => sum + (y - mean) ** 2, 0) / filtered.length;
+                        visible_y.reduce((sum, y) => sum + (y - mean) ** 2, 0) / visible_y.length;
                     std = Math.sqrt(variance);
                 }
 
@@ -374,14 +369,14 @@ export function Plots(props: PlotsProps) {
             }
         }
 
-        return { annotations, shapes };
+        return annotations;
     };
 
     const refreshSubplotTitles = () => {
         const { plots, visibleTimeRange } = props;
         if (plots.length === 0) return;
-        const { annotations, shapes } = buildSubplotOverlays(plots, visibleTimeRange);
-        Plotly.relayout("plot", { annotations, shapes });
+        const annotations = buildSubplotOverlays(plots, visibleTimeRange);
+        Plotly.relayout("plot", { annotations });
     };
 
     const refreshPlotData = () => {
@@ -503,21 +498,17 @@ export function Plots(props: PlotsProps) {
             const t_start = visibleTimeRange ? visibleTimeRange[0] : Number.MIN_SAFE_INTEGER;
             const t_end = visibleTimeRange ? visibleTimeRange[1] : Number.MAX_SAFE_INTEGER;
 
-            const visible_y: number[] = [];
-            for (let i = 0; i < series._utime_.length; i++) {
-                if (series._utime_[i] >= t_start && series._utime_[i] <= t_end) {
-                    visible_y.push(series.series_y[i]);
-                }
-            }
-            const visible_y_filtered = visible_y.filter((y) => y !== null && y !== undefined);
+            const [stat_start, stat_end] = getIndexRange(series, t_start, t_end);
+            const visible_y = series.series_y
+                .slice(stat_start, stat_end)
+                .filter((y): y is number => y !== null);
 
             let mean = 0;
             let std = 0;
-            if (visible_y_filtered.length > 0) {
-                mean = visible_y_filtered.reduce((a, b) => a + b, 0) / visible_y_filtered.length;
+            if (visible_y.length > 0) {
+                mean = visible_y.reduce((a, b) => a + b, 0) / visible_y.length;
                 const variance =
-                    visible_y_filtered.reduce((sum, y) => sum + (y - mean) ** 2, 0) /
-                    visible_y_filtered.length;
+                    visible_y.reduce((sum, y) => sum + (y - mean) ** 2, 0) / visible_y.length;
                 std = Math.sqrt(variance);
             }
 
@@ -549,8 +540,8 @@ export function Plots(props: PlotsProps) {
         }
 
         Plotly.restyle("plot", update);
-        const overlays = buildSubplotOverlays(plots, visibleTimeRange);
-        Plotly.relayout("plot", { annotations: overlays.annotations, shapes: overlays.shapes });
+        const annotations = buildSubplotOverlays(plots, visibleTimeRange);
+        Plotly.relayout("plot", { annotations });
     };
 
     useEffect(refreshPlotData, [props.chosenLogs, props.plots, props.visibleTimeRange]);
@@ -714,7 +705,7 @@ export function Plots(props: PlotsProps) {
                     toolbar to toggle these overlay lines on or off independently. A colour-coded
                     info box in the top-right corner of each plot displays the current numeric
                     values of the mean (in <span style={{ color: MEAN_LINE_COLOR }}>red</span>) and
-                    standard deviation (in <span style={{ color: STD_LINE_COLOR }}>purple</span>).
+                    standard deviation (in <span style={{ color: STD_LINE_COLOR }}>orange</span>).
                 </p>
                 <h3>Plot Downsampling</h3>
                 <p>

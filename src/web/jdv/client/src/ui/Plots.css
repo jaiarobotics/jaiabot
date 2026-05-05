@@ -90,21 +90,6 @@
     flex-shrink: 0;
 }
 
-/* ── Line legend list inside the info dialog ── */
-
-.lineLegendList {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 8pt 0;
-}
-
-.lineLegendList li {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 6pt;
-}
-
 /* Base swatch style shared by all legend entries */
 .lineLegendSwatch {
     display: inline-block;
