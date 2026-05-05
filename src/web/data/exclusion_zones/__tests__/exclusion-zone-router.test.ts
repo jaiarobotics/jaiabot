@@ -1,8 +1,8 @@
-import { GeographicCoordinate, MissionPlan } from "../../types/protobuf-types";
-import { exclusionZoneSet, ExclusionZone } from "../../data/exclusion_zones/exclusion-zone-set";
-import { missionSet } from "../../data/mission_set/mission-set";
-import Mission from "../../data/mission_set/mission";
-import Waypoint from "../../data/waypoints/waypoint";
+import { GeographicCoordinate, MissionPlan } from "../../../types/protobuf-types";
+import { exclusionZoneSet, ExclusionZone } from "../exclusion-zone-set";
+import { missionSet } from "../../mission_set/mission-set";
+import Mission from "../../mission_set/mission";
+import Waypoint from "../../waypoints/waypoint";
 import {
     routeAroundExclusionZones,
     getZoneBufferVertices,
@@ -10,7 +10,7 @@ import {
     isLocationBlockedByZone,
     detectReroutesWithOverrides,
 } from "../exclusion-zone-router";
-import { METERS_PER_DEG } from "../constants";
+import { METERS_PER_DEG } from "../../../utils/constants";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 

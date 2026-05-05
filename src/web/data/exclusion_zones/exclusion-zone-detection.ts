@@ -4,7 +4,7 @@ import {
     PendingWaypointRemoval,
     PendingWaypointRemovalProposal,
 } from "./exclusion-zone-set";
-import { detectReroutesWithOverrides, getBlockingZoneIDs } from "../../utils/exclusion-zone-router";
+import { detectReroutesWithOverrides, getBlockingZoneIDs } from "./exclusion-zone-router";
 import { MAX_WAYPOINTS } from "../../utils/constants";
 
 /**

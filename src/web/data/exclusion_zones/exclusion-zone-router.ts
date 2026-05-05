@@ -7,16 +7,16 @@
  */
 
 import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
-import { GeographicCoordinate, Goal, MissionPlan } from "../types/protobuf-types";
-import { METERS_PER_DEG } from "./constants";
+import { GeographicCoordinate, Goal, MissionPlan } from "../../types/protobuf-types";
+import { METERS_PER_DEG } from "../../utils/constants";
 import {
     ExclusionZone,
     exclusionZoneSet,
     PendingReroute,
     PendingRerouteProposal,
-} from "../data/exclusion_zones/exclusion-zone-set";
-import { missionSet } from "../data/mission_set/mission-set";
-import Waypoint from "../data/waypoints/waypoint";
+} from "./exclusion-zone-set";
+import { missionSet } from "../mission_set/mission-set";
+import Waypoint from "../waypoints/waypoint";
 
 interface XYPt {
     x: number;

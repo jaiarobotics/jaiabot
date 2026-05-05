@@ -13,7 +13,7 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { layersZIndexes } from "../zindex";
 import { LayerTitles, MapFeatureTypes } from "../../../types/openlayers-types";
 import { JaiaActions } from "../../../context/jaia-actions";
-import { getZoneBufferVertices } from "../../../utils/exclusion-zone-router";
+import { getZoneBufferVertices } from "../../../data/exclusion_zones/exclusion-zone-router";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { OpenLayersColors } from "../../../style/openlayers/colors";

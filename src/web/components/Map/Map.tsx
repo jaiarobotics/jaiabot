@@ -31,7 +31,7 @@ import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-pla
 import {
     routeAroundExclusionZones,
     isLocationBlockedByZone,
-} from "../../utils/exclusion-zone-router";
+} from "../../data/exclusion_zones/exclusion-zone-router";
 
 import ZoneCrossingDialog from "../ZoneCrossingDialog/ZoneCrossingDialog";
 
