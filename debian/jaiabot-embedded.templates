@@ -98,8 +98,8 @@ Description: What type of bot is your system?
 
 Template: jaiabot-embedded/data_offload_ignore_type
 Type: select
-Choices: goby, taskpacket, none
-Default: none
+Choices: goby, taskpacket, unb, none
+Default: unb
 Description: What data types to ignore when sending data to the hub?
 
 Template: jaiabot-embedded/imu_install_type
