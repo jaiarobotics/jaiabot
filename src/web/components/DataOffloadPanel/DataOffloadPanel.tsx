@@ -4,10 +4,10 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material";
 
 // Utilities
-import { downloadFile } from "../../utils/download/download";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { getCSV, getCSVFilename } from "../../utils/download/csv-export";
 import { getKMZ, getKMZFilename } from "../../utils/download/kmz-export";
+import { downloadFile, getCTDFiles } from "../../utils/download/download";
 
 import "./DataOffloadPanel.less";
 
@@ -48,6 +48,9 @@ export default function DataOffloadPanel() {
                 </button>
                 <button onClick={(event) => handleDownloadKMZ(event)} aria-label={"download-kmz"}>
                     KMZ
+                </button>
+                <button onClick={getCTDFiles} aria-label={"download-kmz"}>
+                    CTD
                 </button>
             </div>
             <Accordion className="accordion-container">

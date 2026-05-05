@@ -1,3 +1,8 @@
+import { jaiaAPI } from "../jaia-api";
+import { warning } from "../notifications";
+
+const HTTP_NO_CONTENT = 204;
+
 /**
  * Triggers a browser download of data as a file
  *
@@ -23,4 +28,29 @@ export function downloadFile(
 
     // Release the object URL to avoid memory leaks
     URL.revokeObjectURL(link.href);
+}
+
+/**
+ * Gets the CTD files from the Hub and downloads them to the client computer
+ *
+ * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
+ * @returns {void}
+ */
+export async function getCTDFiles() {
+    const res = await jaiaAPI.getCTDProfiles();
+
+    if (res.status === HTTP_NO_CONTENT) {
+        warning("No new CTD profiles on the Hub");
+        return;
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "jaia-ctd.zip";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
 }

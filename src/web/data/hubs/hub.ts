@@ -6,12 +6,9 @@ import {
     LinuxHardwareStatus,
     Warning,
 } from "../../types/protobuf-types";
-import { jaiaAPI } from "../../utils/jaia-api";
 import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import HubSensors from "./hub-sensors";
-
-const HTTP_NO_CONTENT = 204;
 
 export default class Hub {
     private hubID: number;
@@ -96,10 +93,6 @@ export default class Hub {
 
     setBotOffload(botOffload: BotOffloadData) {
         this.botOffload = botOffload;
-
-        if (this.botOffload.offload_succeeded && !this.botOffload.bots_pending) {
-            this.getCTDFiles();
-        }
     }
 
     getStatusAge() {
@@ -117,29 +110,5 @@ export default class Hub {
      */
     isCommsDropped(): boolean {
         return microsecondsToSeconds(this.getStatusAge()) > NO_COMMS_STATUS_AGE;
-    }
-
-    /**
-     * Gets the CTD files from the Hub and downloads them to the client computer
-     *
-     * @param {boolean} deleteCTDFiles Clear the files from the Hub after download
-     * @returns {void}
-     */
-    async getCTDFiles() {
-        const res = await jaiaAPI.getCTDProfiles();
-
-        if (res.status === HTTP_NO_CONTENT) {
-            return;
-        }
-
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "jaia-ctd.zip";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
     }
 }
