@@ -34,13 +34,58 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
     }
     ~Underway() { goby::glog.is_debug1() && goby::glog << "~Underway" << std::endl; }
 
+    void do_battery_protocol(const jaiabot::protobuf::MissionPlan::BatteryLowProtocol::Action& protocol_action)
+    {
+        switch (protocol_action)
+        {
+        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::NONE:
+            glog.is_warn() && glog << "Battery protocol: NONE" << std::endl;
+            break;
+        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::STOP_AND_BROADCAST:
+            glog.is_warn() && glog << "Battery protocol: STOP_AND_BROADCAST" << std::endl;
+            this->post_event(EvLowBatteryStopAndBroadcast());
+            break;
+        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::STATION_KEEP:
+            glog.is_warn() && glog << "Battery protocol: STATION_KEEP" << std::endl;
+            this->post_event(EvLowBatteryStationKeep());
+            break;
+        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::DRIVE_TO_HUB:
+            glog.is_warn() && glog << "Battery protocol: DRIVE_TO_HUB" << std::endl;
+            break;
+        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::DRIVE_TO_LOCATION:
+            glog.is_warn() && glog << "Battery protocol: DRIVE_TO_LOCATION" << std::endl;
+            break;
+        default:
+            glog.is_warn() && glog << "Battery protocol: UNKNOWN" << std::endl;
+            break;
+        }
+    }
+
+    void battery_low(const EvBatteryLow &) {
+        glog.is_warn() && glog << "Battery low!" << std::endl;
+        const auto protocol = this->machine().mission_plan().very_low_battery_protocol();
+        do_battery_protocol(protocol.action());
+    }
+
+    void battery_critical(const EvBatteryCritical &) {
+        glog.is_warn() && glog << "Battery critical!" << std::endl;
+        const auto protocol = this->machine().mission_plan().critically_low_battery_protocol();
+        do_battery_protocol(protocol.action());
+    }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvReturnToHome, underway::Recovery>,
         boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>,
         boost::statechart::transition<EvPause, pause::Manual>,
         boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>,
-        boost::statechart::transition<EvBatteryLow, battery::Low>,
-        boost::statechart::transition<EvBatteryCritical, battery::Critical>>;
+
+        boost::statechart::in_state_reaction<EvBatteryLow, Underway, &Underway::battery_low>,
+        boost::statechart::in_state_reaction<EvBatteryCritical, Underway, &Underway::battery_critical>,
+
+        boost::statechart::transition<EvLowBatteryStationKeep, battery::StationKeep>,
+        boost::statechart::transition<EvLowBatteryStopAndBroadcast, battery::StopAndBroadcast>
+        >;
+
 };
 
 namespace underway {

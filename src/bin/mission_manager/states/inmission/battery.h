@@ -33,10 +33,6 @@ struct Battery : boost::statechart::state<Battery, InMission, battery::Low>, App
 };
 
 namespace battery {
-
-    #include "battery/low.h"
-    #include "battery/critical.h"
-
 #include "battery/station_keep.h"
 #include "battery/stop_and_broadcast.h"
 }
