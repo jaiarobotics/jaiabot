@@ -84,8 +84,9 @@ export class MissionSet {
     setMissionSpeeds(missionSpeeds: Speeds) {
         this.missionSpeeds = { ...missionSpeeds };
 
-        for (const [missionID, mission] of this.missions.entries()) {
-            mission.setSpeeds(this.missionSpeeds);
+        for (const mission of this.missions.values()) {
+            mission.setTransitSpeed(this.missionSpeeds.transit ?? 2);
+            mission.setStationkeepSpeed(this.missionSpeeds.stationkeep_outer ?? 2);
         }
     }
 
@@ -93,7 +94,8 @@ export class MissionSet {
         const missionID = this.getNextMissionID();
         this.missions.set(missionID, mission);
         mission.setMissionID(missionID);
-        mission.setSpeeds(this.missionSpeeds);
+        mission.setTransitSpeed(this.missionSpeeds.transit ?? 2);
+        mission.setStationkeepSpeed(this.missionSpeeds.stationkeep_outer ?? 2);
         this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
         return missionID;
