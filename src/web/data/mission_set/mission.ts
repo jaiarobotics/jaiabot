@@ -6,7 +6,6 @@ import {
     MissionStart,
     MovementType,
     Segment,
-    Speeds,
 } from "../../types/protobuf-types";
 import Waypoint from "../waypoints/waypoint";
 import Task from "../tasks/task";
@@ -16,7 +15,7 @@ import { UNASSIGNED_ID } from "../../utils/constants";
 export default class Mission {
     private missionID: number;
     private waypoints: Waypoint[];
-    private speeds: Speeds;
+    private stationkeepSpeed: number;
     private repeats: number;
     private segments: Segment[];
     private ghostParameters: GhostParameters;
@@ -25,6 +24,7 @@ export default class Mission {
         // missionID assigned by missionSet singleton
         // speeds set by missionSet singleton
         this.waypoints = [];
+        this.stationkeepSpeed = 2;
         this.repeats = 1;
         this.segments = [{ start_goal_index: 1 }];
         this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID, repeats: 1 };
@@ -56,11 +56,11 @@ export default class Mission {
     }
 
     getStationkeepSpeed(): number {
-        return this.speeds?.stationkeep_outer ?? 2;
+        return this.stationkeepSpeed;
     }
 
     setStationkeepSpeed(speed: number) {
-        this.speeds = { stationkeep_outer: speed };
+        this.stationkeepSpeed = speed;
     }
 
     getRepeats() {
@@ -199,11 +199,16 @@ export default class Mission {
                 bottom_depth_safety_params: { ...seg.bottom_depth_safety_params },
             }),
         }));
-        // Migrate legacy mission-level transit speed into segments[0]
+        // Migrate legacy mission-level speeds into the new fields
         const legacySpeeds = (serializedMission as any).speeds;
-        if (legacySpeeds?.transit !== undefined && mission.segments.length > 0) {
-            if (mission.segments[0].speed === undefined) {
-                mission.segments[0] = { ...mission.segments[0], speed: legacySpeeds.transit };
+        if (legacySpeeds !== undefined) {
+            if (legacySpeeds.transit !== undefined && mission.segments.length > 0) {
+                if (mission.segments[0].speed === undefined) {
+                    mission.segments[0] = { ...mission.segments[0], speed: legacySpeeds.transit };
+                }
+            }
+            if (legacySpeeds.stationkeep_outer !== undefined) {
+                mission.setStationkeepSpeed(legacySpeeds.stationkeep_outer);
             }
         }
         return mission;
