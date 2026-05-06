@@ -39,6 +39,19 @@ export default function DataOffloadPanel() {
         downloadFile(csvFilename, await getCSV(taskPackets.getIncludedTaskPackets()), "text/csv");
     };
 
+    /**
+     * Downloads a ZIP file of CTD cast data in the UNB format (University of New Brunswick)
+     *
+     * @returns {void}
+     */
+    const handleDownloadCTD = (event: React.MouseEvent<Element, MouseEvent>) => {
+        event.stopPropagation();
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        }
+        getCTDFiles();
+    };
+
     return (
         <div className="jaia-panel data-offload-panel">
             <div className="jaia-panel-title">Data Offload</div>
@@ -49,7 +62,7 @@ export default function DataOffloadPanel() {
                 <button onClick={(event) => handleDownloadKMZ(event)} aria-label={"download-kmz"}>
                     KMZ
                 </button>
-                <button onClick={getCTDFiles} aria-label={"download-kmz"}>
+                <button onClick={(event) => handleDownloadCTD(event)} aria-label={"download-ctd"}>
                     CTD
                 </button>
             </div>
