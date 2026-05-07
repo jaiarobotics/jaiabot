@@ -210,11 +210,13 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(loadResult.resultType).toBe(LoadResultType.OLD_FORMAT);
 
         const [, mission1] = loadResult.snapshot!.missions[0];
-        expect(mission1.getSpeeds()).toEqual(speeds);
+        expect(mission1.getTransitSpeed()).toBe(speeds.transit);
+        expect(mission1.getStationkeepSpeed()).toBe(speeds.stationkeep_outer);
 
         // Mission that already has speeds should keep its own
         const [, mission2] = loadResult.snapshot!.missions[1];
-        expect(mission2.getSpeeds()).toEqual({ transit: 1, stationkeep_outer: 1 });
+        expect(mission2.getTransitSpeed()).toBe(1);
+        expect(mission2.getStationkeepSpeed()).toBe(1);
     });
 
     test("loadSnapshotFromFile returns OLD_FORMAT for version 2.0 file", async () => {

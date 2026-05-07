@@ -12,7 +12,8 @@ function makeMission(waypointCount: number, speeds = DEFAULT_SPEEDS): Mission {
     for (let i = 0; i < waypointCount; i++) {
         mission.addWaypoint(locationA);
     }
-    mission.setSpeeds(speeds);
+    mission.setTransitSpeed(speeds.transit ?? 2);
+    mission.setStationkeepSpeed(speeds.stationkeep_outer ?? 2);
     return mission;
 }
 
@@ -134,17 +135,29 @@ describe("combineMissionSets", () => {
         }
     });
 
-    test("transit + survey: survey segment start_goal_index is offset by transit waypoint count", () => {
+    test("transit + survey: survey SRP segment start_goal_index is offset by transit waypoint count", () => {
+        const srp: BottomDepthSafetyParams = {
+            constant_heading: "90",
+            constant_heading_time: "30",
+            constant_heading_speed: "2",
+            safety_depth: "20",
+        };
+        const survey0 = makeMission(3);
+        survey0.setBottomDepthSafetyParams(srp);
+        const survey1 = makeMission(3);
+        survey1.setBottomDepthSafetyParams(srp);
+
         const cache = makeCache([
             ["transit", [makeMission(2)]],
-            ["survey", [makeMission(3), makeMission(3)]],
+            ["survey", [survey0, survey1]],
         ]);
         const result = combineMissionSets(["transit", "survey"], 2, "out", cache);
 
         const [, mission] = result.missions[0];
         const segments = mission.getSegments();
-        expect(segments[0].start_goal_index).toBe(1); // transit starts at beginning
-        expect(segments[1].start_goal_index).toBe(3); // survey starts after 2 transit wp: 2+1=3
+        expect(segments[0].start_goal_index).toBe(1); // leading speed segment
+        expect(segments[1].start_goal_index).toBe(3); // survey SRP offset by 2 transit wp: 1+2=3
+        expect(segments[1].bottom_depth_safety_params).toEqual(srp);
     });
 
     test("chain case: lane_start_goal_indices populated when missions from same set are chained into one slot", () => {
@@ -170,10 +183,19 @@ describe("combineMissionSets", () => {
     });
 
     test("transit + chained survey: segment offsets and lane indices account for transit waypoints", () => {
-        // Transit: 1 mission (2 wp); Survey: 4 missions (2 wp each), 2 slots → each slots chains 2 survey missions
+        // Transit: 1 mission (2 wp); Survey: 4 missions (2 wp each), 2 slots → each slot chains 2 survey missions
+        const srp: BottomDepthSafetyParams = {
+            constant_heading: "90",
+            constant_heading_time: "30",
+            constant_heading_speed: "2",
+            safety_depth: "20",
+        };
+        const surveyMissions = [makeMission(2), makeMission(2), makeMission(2), makeMission(2)];
+        surveyMissions[0].setBottomDepthSafetyParams(srp);
+
         const cache = makeCache([
             ["transit", [makeMission(2)]],
-            ["survey", [makeMission(2), makeMission(2), makeMission(2), makeMission(2)]],
+            ["survey", surveyMissions],
         ]);
         const result = combineMissionSets(["transit", "survey"], 2, "out", cache);
 
@@ -181,13 +203,14 @@ describe("combineMissionSets", () => {
         const segments = mission.getSegments();
         expect(segments.length).toBe(2);
 
-        // Transit segment: no lane indices, starts at 1
+        // Leading speed segment: no lane indices, starts at 1
         expect(segments[0].start_goal_index).toBe(1);
         expect(segments[0].lane_start_goal_indices).toBeUndefined();
 
-        // Survey segment: starts after 2 transit wp, lane indices also offset by 2
+        // Chained survey segment: starts after 2 transit wp, lane indices also offset by 2
         expect(segments[1].start_goal_index).toBe(3); // 2 transit wp + 1
         expect(segments[1].lane_start_goal_indices).toEqual([3, 5]); // [2+1, 2+2+1]
+        expect(segments[1].bottom_depth_safety_params).toEqual(srp);
     });
 
     test("single source missions per slot: no lane_start_goal_indices on any segment", () => {
@@ -220,8 +243,8 @@ describe("combineMissionSets", () => {
         const result = combineMissionSets(["A", "B"], 1, "out", cache);
 
         const [, mission] = result.missions[0];
-        expect(mission.getSpeeds().transit).toBe(3);
-        expect(mission.getSpeeds().stationkeep_outer).toBe(3);
+        expect(mission.getTransitSpeed()).toBe(3);
+        expect(mission.getStationkeepSpeed()).toBe(3);
     });
 
     test("speeds: overall max across all slots recorded in snapshot missionSpeeds", () => {

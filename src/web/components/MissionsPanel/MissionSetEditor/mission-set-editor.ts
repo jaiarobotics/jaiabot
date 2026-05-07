@@ -1,8 +1,8 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
-import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
+import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { Segment } from "../../../types/protobuf-types";
-import { UNASSIGNED_ID } from "../../../utils/constants";
+import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
 
 /**
  * Distributes an array of missions across a fixed number of output slots.
@@ -103,6 +103,10 @@ export function getMaxWaypointsPerOutputMission(
  * Source sets with more missions than desiredCount are chained (multiple source
  * missions concatenated per slot). Source sets with fewer missions are cycled.
  *
+ * Every combined output mission has a single leading segment at start_goal_index 1
+ * carrying the max transit speed from all source missions. Additional segments are
+ * appended only when a source mission contributes bottom_depth_safety_params.
+ *
  * @param {string[]} names Ordered list of saved mission set names to combine
  * @param {number} desiredCount Number of missions in the resulting set
  * @param {string} newName Name for the new combined mission set
@@ -128,16 +132,24 @@ export function combineMissionSets(
         distributeMissionsToSlots(missions, desiredCount),
     );
 
+    // Max transit and stationkeep speeds across all source missions, applied uniformly to output.
+    let maxTransit = DEFAULT_SPEED;
+    let maxStationkeep = DEFAULT_SPEED;
+    for (const missions of missionArrays) {
+        for (const mission of missions) {
+            maxTransit = Math.max(maxTransit, mission.getTransitSpeed());
+            maxStationkeep = Math.max(maxStationkeep, mission.getStationkeepSpeed());
+        }
+    }
+
     const outputMissions: [number, Mission][] = [];
-    let overallMaxTransit = 0;
-    let overallMaxStationkeep = 0;
 
     for (let slot = 0; slot < desiredCount; slot++) {
         const combined = new Mission();
-        const combinedSegments: Segment[] = [];
+        // Leading segment carries the uniform transit speed for the whole mission.
+        // SRP and lane indices from the first source contribution may be merged into it.
+        const combinedSegments: Segment[] = [{ start_goal_index: 1, speed: maxTransit }];
         let waypointOffset = 0;
-        let slotMaxTransit = 0;
-        let slotMaxStationkeep = 0;
 
         for (const distributedSet of distributedSets) {
             const sourceMissions = distributedSet[slot];
@@ -152,16 +164,6 @@ export function combineMissionSets(
                 for (const sourceMission of sourceMissions) {
                     laneStartIndices.push(waypointOffset + 1);
                     combined.addWaypoints(cloneDeep(sourceMission.getWaypoints()));
-
-                    const speeds = sourceMission.getSpeeds();
-                    if (speeds) {
-                        slotMaxTransit = Math.max(slotMaxTransit, speeds.transit ?? 0);
-                        slotMaxStationkeep = Math.max(
-                            slotMaxStationkeep,
-                            speeds.stationkeep_outer ?? 0,
-                        );
-                    }
-
                     waypointOffset += sourceMission.getWaypoints().length;
                 }
 
@@ -169,73 +171,69 @@ export function combineMissionSets(
                     .map((m) => m.getBottomDepthSafetyParams())
                     .find((srp) => srp !== undefined);
 
-                const seg: Segment = {
-                    start_goal_index: segmentStart,
-                    lane_start_goal_indices: laneStartIndices,
-                };
-                if (mergedSRP) seg.bottom_depth_safety_params = cloneDeep(mergedSRP);
-                combinedSegments.push(seg);
+                if (segmentStart === 1) {
+                    // Merge lane indices and SRP (if any) into the leading speed segment.
+                    combinedSegments[0].lane_start_goal_indices = laneStartIndices;
+                    if (mergedSRP) {
+                        combinedSegments[0].bottom_depth_safety_params = cloneDeep(mergedSRP);
+                    }
+                } else if (mergedSRP) {
+                    combinedSegments.push({
+                        start_goal_index: segmentStart,
+                        lane_start_goal_indices: laneStartIndices,
+                        bottom_depth_safety_params: cloneDeep(mergedSRP),
+                    });
+                }
             } else {
-                // Single mission: take its segments with goal indices offset, no lane indices added.
+                // Single mission: carry its SRP segments with goal indices offset.
+                // Speed-only segments are dropped; speed is captured in maxTransit.
                 const sourceMission = sourceMissions[0];
                 combined.addWaypoints(cloneDeep(sourceMission.getWaypoints()));
 
-                const speeds = sourceMission.getSpeeds();
-                if (speeds) {
-                    slotMaxTransit = Math.max(slotMaxTransit, speeds.transit ?? 0);
-                    slotMaxStationkeep = Math.max(
-                        slotMaxStationkeep,
-                        speeds.stationkeep_outer ?? 0,
-                    );
-                }
-
                 for (const seg of sourceMission.getSegments()) {
-                    combinedSegments.push({
-                        ...seg,
-                        start_goal_index: seg.start_goal_index + waypointOffset,
-                        lane_start_goal_indices: seg.lane_start_goal_indices?.map(
-                            (i) => i + waypointOffset,
-                        ),
-                        ...(seg.bottom_depth_safety_params && {
+                    const offsetStart = seg.start_goal_index + waypointOffset;
+                    const offsetLaneIndices = seg.lane_start_goal_indices?.map(
+                        (i) => i + waypointOffset,
+                    );
+
+                    if (offsetStart === 1) {
+                        // Merge into the leading speed segment.
+                        if (offsetLaneIndices) {
+                            combinedSegments[0].lane_start_goal_indices = offsetLaneIndices;
+                        }
+                        if (seg.bottom_depth_safety_params) {
+                            combinedSegments[0].bottom_depth_safety_params = {
+                                ...seg.bottom_depth_safety_params,
+                            };
+                        }
+                    } else if (seg.bottom_depth_safety_params) {
+                        combinedSegments.push({
+                            start_goal_index: offsetStart,
+                            ...(offsetLaneIndices && {
+                                lane_start_goal_indices: offsetLaneIndices,
+                            }),
                             bottom_depth_safety_params: { ...seg.bottom_depth_safety_params },
-                        }),
-                    });
+                        });
+                    }
                 }
 
                 waypointOffset += sourceMission.getWaypoints().length;
             }
         }
 
-        if (combinedSegments.length > 0) {
-            combined.setSegments(combinedSegments);
-        }
-
-        const fallback = missionSet.getMissionSpeeds();
-        const slotSpeeds = {
-            transit: slotMaxTransit > 0 ? slotMaxTransit : (fallback?.transit ?? 2),
-            stationkeep_outer:
-                slotMaxStationkeep > 0 ? slotMaxStationkeep : (fallback?.stationkeep_outer ?? 2),
-        };
-        combined.setSpeeds(slotSpeeds);
-
-        overallMaxTransit = Math.max(overallMaxTransit, slotSpeeds.transit);
-        overallMaxStationkeep = Math.max(overallMaxStationkeep, slotSpeeds.stationkeep_outer);
-
+        combined.setSegments(combinedSegments);
+        combined.setStationkeepSpeed(maxStationkeep);
         outputMissions.push([slot + 1, combined]);
     }
-
-    const fallback = missionSet.getMissionSpeeds();
-    const missionSpeeds = {
-        transit: overallMaxTransit > 0 ? overallMaxTransit : (fallback?.transit ?? 2),
-        stationkeep_outer:
-            overallMaxStationkeep > 0 ? overallMaxStationkeep : (fallback?.stationkeep_outer ?? 2),
-    };
 
     return {
         missions: outputMissions,
         nextMissionID: desiredCount + 1,
         missionIDInEditMode: UNASSIGNED_ID,
-        missionSpeeds,
+        missionSpeeds: {
+            transit: maxTransit,
+            stationkeep_outer: maxStationkeep,
+        },
         name: newName,
     };
 }

@@ -1,6 +1,6 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "./mission";
-import { DEFAULT_MISSION_SET_NAME, UNASSIGNED_ID } from "../../utils/constants";
+import { DEFAULT_MISSION_SET_NAME, DEFAULT_SPEED, UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds } from "../../types/protobuf-types";
 
 // This constant will be used to track versions of mission sets
@@ -29,7 +29,7 @@ export class MissionSet {
         this.ghostMissions = new Map<number, Mission>();
         this.nextMissionID = 1;
         this.missionIDInEditMode = UNASSIGNED_ID;
-        this.missionSpeeds = { transit: 2, stationkeep_outer: 2 };
+        this.missionSpeeds = { transit: DEFAULT_SPEED, stationkeep_outer: DEFAULT_SPEED };
         this.name = DEFAULT_MISSION_SET_NAME;
     }
 
@@ -85,8 +85,8 @@ export class MissionSet {
         this.missionSpeeds = { ...missionSpeeds };
 
         for (const mission of this.missions.values()) {
-            mission.setTransitSpeed(this.missionSpeeds.transit ?? 2);
-            mission.setStationkeepSpeed(this.missionSpeeds.stationkeep_outer ?? 2);
+            mission.setTransitSpeed(this.missionSpeeds.transit ?? DEFAULT_SPEED);
+            mission.setStationkeepSpeed(this.missionSpeeds.stationkeep_outer ?? DEFAULT_SPEED);
         }
     }
 
@@ -94,8 +94,8 @@ export class MissionSet {
         const missionID = this.getNextMissionID();
         this.missions.set(missionID, mission);
         mission.setMissionID(missionID);
-        mission.setTransitSpeed(this.missionSpeeds.transit ?? 2);
-        mission.setStationkeepSpeed(this.missionSpeeds.stationkeep_outer ?? 2);
+        mission.setTransitSpeed(this.missionSpeeds.transit ?? DEFAULT_SPEED);
+        mission.setStationkeepSpeed(this.missionSpeeds.stationkeep_outer ?? DEFAULT_SPEED);
         this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
         return missionID;

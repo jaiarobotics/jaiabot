@@ -10,7 +10,7 @@ import {
 import Waypoint from "../waypoints/waypoint";
 import Task from "../tasks/task";
 import { GhostParameters } from "../../types/jaia-system-types";
-import { UNASSIGNED_ID } from "../../utils/constants";
+import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../utils/constants";
 
 export default class Mission {
     private missionID: number;
@@ -24,7 +24,7 @@ export default class Mission {
         // missionID assigned by missionSet singleton
         // speeds set by missionSet singleton
         this.waypoints = [];
-        this.stationkeepSpeed = 2;
+        this.stationkeepSpeed = DEFAULT_SPEED;
         this.repeats = 1;
         this.segments = [{ start_goal_index: 1 }];
         this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID, repeats: 1 };
@@ -48,7 +48,7 @@ export default class Mission {
     }
 
     getTransitSpeed(segmentIndex: number = 0): number {
-        return this.segments[segmentIndex]?.speed ?? 2;
+        return this.segments[segmentIndex]?.speed ?? DEFAULT_SPEED;
     }
 
     setTransitSpeed(speed: number, segmentIndex: number = 0) {
