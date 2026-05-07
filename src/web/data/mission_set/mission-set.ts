@@ -21,7 +21,6 @@ export class MissionSet {
     private ghostMissions: Map<number, Mission>;
     private nextMissionID: number;
     private missionIDInEditMode: number;
-    private missionSpeeds: Speeds;
     private name: string;
 
     constructor() {
@@ -29,7 +28,6 @@ export class MissionSet {
         this.ghostMissions = new Map<number, Mission>();
         this.nextMissionID = 1;
         this.missionIDInEditMode = UNASSIGNED_ID;
-        this.missionSpeeds = { transit: DEFAULT_SPEED, stationkeep_outer: DEFAULT_SPEED };
         this.name = DEFAULT_MISSION_SET_NAME;
     }
 
@@ -77,25 +75,27 @@ export class MissionSet {
         this.missionIDInEditMode = missionIDInEditMode;
     }
 
-    getMissionSpeeds() {
-        return this.missionSpeeds;
+    getMissionSpeeds(): Speeds {
+        const first = this.missions.values().next().value;
+        return first
+            ? { transit: first.getTransitSpeed(), stationkeep_outer: first.getStationkeepSpeed() }
+            : { transit: DEFAULT_SPEED, stationkeep_outer: DEFAULT_SPEED };
     }
 
     setMissionSpeeds(missionSpeeds: Speeds) {
-        this.missionSpeeds = { ...missionSpeeds };
-
         for (const mission of this.missions.values()) {
-            mission.setTransitSpeed(this.missionSpeeds.transit ?? DEFAULT_SPEED);
-            mission.setStationkeepSpeed(this.missionSpeeds.stationkeep_outer ?? DEFAULT_SPEED);
+            mission.setTransitSpeed(missionSpeeds.transit ?? DEFAULT_SPEED);
+            mission.setStationkeepSpeed(missionSpeeds.stationkeep_outer ?? DEFAULT_SPEED);
         }
     }
 
     addMission(mission: Mission) {
+        const speeds = this.getMissionSpeeds();
         const missionID = this.getNextMissionID();
         this.missions.set(missionID, mission);
         mission.setMissionID(missionID);
-        mission.setTransitSpeed(this.missionSpeeds.transit ?? DEFAULT_SPEED);
-        mission.setStationkeepSpeed(this.missionSpeeds.stationkeep_outer ?? DEFAULT_SPEED);
+        mission.setTransitSpeed(speeds.transit ?? DEFAULT_SPEED);
+        mission.setStationkeepSpeed(speeds.stationkeep_outer ?? DEFAULT_SPEED);
         this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
         return missionID;
@@ -146,7 +146,7 @@ export class MissionSet {
             missions: Array.from(this.missions),
             nextMissionID: this.nextMissionID,
             missionIDInEditMode: this.missionIDInEditMode,
-            missionSpeeds: this.missionSpeeds,
+            missionSpeeds: this.getMissionSpeeds(),
             name: this.name,
         };
         return cloneDeep(currentMissionSet);
@@ -172,7 +172,6 @@ export class MissionSet {
         }
         this.nextMissionID = restored.nextMissionID;
         this.missionIDInEditMode = restored.missionIDInEditMode;
-        this.missionSpeeds = restored.missionSpeeds;
         this.name = restored.name;
     }
 }
