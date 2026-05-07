@@ -13,7 +13,7 @@ import { SaveAndLoadDialog } from "./SaveAndLoadDialog";
 interface Props {
     editorName: string;
     desiredMissionCount: number;
-    leftList: string[];
+    rightList: string[];
     snapshotCache: Map<string, MissionSetSnapshot>;
     onClose: () => void;
 }
@@ -24,7 +24,7 @@ export default function SaveAndLoadButton(props: Props) {
 
     const getDisabledCode = (): DisabledCodes => {
         if (!props.editorName.trim()) return DisabledCodes.NO_NAME;
-        if (props.leftList.length < 2) return DisabledCodes.NO_MISSIONS;
+        if (props.rightList.length < 2) return DisabledCodes.NO_MISSIONS;
         if (!props.desiredMissionCount || props.desiredMissionCount < 1)
             return DisabledCodes.NO_MISSION_COUNT;
         if (listSavedMissionSets().includes(props.editorName.trim()))
@@ -41,7 +41,7 @@ export default function SaveAndLoadButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             const name = props.editorName.trim();
             const snapshot = combineMissionSets(
-                props.leftList,
+                props.rightList,
                 props.desiredMissionCount,
                 name,
                 props.snapshotCache,

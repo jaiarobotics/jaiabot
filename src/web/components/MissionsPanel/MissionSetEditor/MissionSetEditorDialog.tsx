@@ -37,7 +37,7 @@ interface RightListItemProps {
 export function MissionSetEditorDialog(props: DialogProps) {
     const [editorName, setEditorName] = useState("");
     const [desiredMissionCount, setDesiredMissionCount] = useState(0);
-    const [leftList, setLeftList] = useState<string[]>([]);
+    const [rightList, setRightList] = useState<string[]>([]);
     const [selectedLeftIndex, setSelectedLeftIndex] = useState<number | null>(null);
     const [selectedRightIndex, setSelectedRightIndex] = useState<number | null>(null);
     const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
@@ -46,35 +46,35 @@ export function MissionSetEditorDialog(props: DialogProps) {
 
     const savedMissionSets = listSavedMissionSets();
 
-    const handleRightItemClick = (index: number) => {
-        setSelectedRightIndex((prev) => (prev === index ? null : index));
-    };
-
     const handleLeftItemClick = (index: number) => {
         setSelectedLeftIndex((prev) => (prev === index ? null : index));
     };
 
-    const handleAdd = () => {
-        if (selectedRightIndex === null) return;
-        const selectedRightName = savedMissionSets[selectedRightIndex];
+    const handleRightItemClick = (index: number) => {
+        setSelectedRightIndex((prev) => (prev === index ? null : index));
+    };
 
-        if (!snapshotCache.current.has(selectedRightName)) {
+    const handleAdd = () => {
+        if (selectedLeftIndex === null) return;
+        const selectedLeftName = savedMissionSets[selectedLeftIndex];
+
+        if (!snapshotCache.current.has(selectedLeftName)) {
             snapshotCache.current.set(
-                selectedRightName,
-                loadSnapshotFromLocalStorage(selectedRightName).snapshot!,
+                selectedLeftName,
+                loadSnapshotFromLocalStorage(selectedLeftName).snapshot!,
             );
         }
 
         const projectedList =
-            selectedLeftIndex !== null
+            selectedRightIndex !== null
                 ? [
-                      ...leftList.slice(0, selectedLeftIndex),
-                      selectedRightName,
-                      ...leftList.slice(selectedLeftIndex),
+                      ...rightList.slice(0, selectedRightIndex),
+                      selectedLeftName,
+                      ...rightList.slice(selectedRightIndex),
                   ]
-                : [...leftList, selectedRightName];
+                : [...rightList, selectedLeftName];
 
-        const addedMissionCount = snapshotCache.current.get(selectedRightName)!.missions.length;
+        const addedMissionCount = snapshotCache.current.get(selectedLeftName)!.missions.length;
         const projectedMissionCount = Math.max(desiredMissionCount, addedMissionCount);
 
         if (
@@ -88,9 +88,9 @@ export function MissionSetEditorDialog(props: DialogProps) {
             return;
         }
 
-        setLeftList(projectedList);
-        if (selectedLeftIndex !== null) {
-            setSelectedLeftIndex(selectedLeftIndex);
+        setRightList(projectedList);
+        if (selectedRightIndex !== null) {
+            setSelectedRightIndex(selectedRightIndex);
         }
         if (!userHasOverriddenCount && addedMissionCount > desiredMissionCount) {
             setDesiredMissionCount(addedMissionCount);
@@ -98,32 +98,32 @@ export function MissionSetEditorDialog(props: DialogProps) {
     };
 
     const handleMoveUp = () => {
-        if (selectedLeftIndex === null || selectedLeftIndex === 0) return;
-        const next = [...leftList];
-        [next[selectedLeftIndex - 1], next[selectedLeftIndex]] = [
-            next[selectedLeftIndex],
-            next[selectedLeftIndex - 1],
+        if (selectedRightIndex === null || selectedRightIndex === 0) return;
+        const next = [...rightList];
+        [next[selectedRightIndex - 1], next[selectedRightIndex]] = [
+            next[selectedRightIndex],
+            next[selectedRightIndex - 1],
         ];
-        setLeftList(next);
-        setSelectedLeftIndex(selectedLeftIndex - 1);
+        setRightList(next);
+        setSelectedRightIndex(selectedRightIndex - 1);
     };
 
     const handleMoveDown = () => {
-        if (selectedLeftIndex === null || selectedLeftIndex === leftList.length - 1) return;
-        const next = [...leftList];
-        [next[selectedLeftIndex], next[selectedLeftIndex + 1]] = [
-            next[selectedLeftIndex + 1],
-            next[selectedLeftIndex],
+        if (selectedRightIndex === null || selectedRightIndex === rightList.length - 1) return;
+        const next = [...rightList];
+        [next[selectedRightIndex], next[selectedRightIndex + 1]] = [
+            next[selectedRightIndex + 1],
+            next[selectedRightIndex],
         ];
-        setLeftList(next);
-        setSelectedLeftIndex(selectedLeftIndex + 1);
+        setRightList(next);
+        setSelectedRightIndex(selectedRightIndex + 1);
     };
 
     const handleDelete = () => {
-        if (selectedLeftIndex === null) return;
-        const remaining = leftList.filter((_, i) => i !== selectedLeftIndex);
-        setLeftList(remaining);
-        setSelectedLeftIndex(null);
+        if (selectedRightIndex === null) return;
+        const remaining = rightList.filter((_, i) => i !== selectedRightIndex);
+        setRightList(remaining);
+        setSelectedRightIndex(null);
         if (!userHasOverriddenCount) {
             const maxCount = remaining.reduce((max, name) => {
                 const count = snapshotCache.current.get(name)!.missions.length;
@@ -136,9 +136,9 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const handleDesiredMissionCountChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
         const newCount = Number(evt.target.value);
         if (
-            leftList.length > 0 &&
+            rightList.length > 0 &&
             newCount > 0 &&
-            getMaxWaypointsPerOutputMission(leftList, newCount, snapshotCache.current) >
+            getMaxWaypointsPerOutputMission(rightList, newCount, snapshotCache.current) >
                 MAX_WAYPOINTS
         ) {
             setIsWaypointWarningVisible(true);
@@ -148,8 +148,8 @@ export function MissionSetEditorDialog(props: DialogProps) {
         setDesiredMissionCount(newCount);
     };
 
-    const hasLeftSelection = selectedLeftIndex !== null;
-    const addButtonLabel = hasLeftSelection ? "Insert" : "Add";
+    const hasRightSelection = selectedRightIndex !== null;
+    const addButtonLabel = hasRightSelection ? "Insert" : "Add";
 
     return createPortal(
         <div className="jaia-dialog-container">
@@ -186,12 +186,12 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                     aria-label="Stored Mission Sets"
                                 >
                                     {savedMissionSets.map((name, index) => (
-                                        <RightListItem
+                                        <LeftListItem
                                             key={name}
                                             name={name}
                                             index={index}
-                                            isSelected={selectedRightIndex === index}
-                                            onSelect={handleRightItemClick}
+                                            isSelected={selectedLeftIndex === index}
+                                            onSelect={handleLeftItemClick}
                                         />
                                     ))}
                                 </ul>
@@ -200,7 +200,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <div className="editor-arrow-column">
                             <Button
                                 className="jaia-button editor-add-button"
-                                disabled={selectedRightIndex === null}
+                                disabled={selectedLeftIndex === null}
                                 onClick={handleAdd}
                             >
                                 <div className="editor-add-button-content">
@@ -217,13 +217,13 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                     role="listbox"
                                     aria-label="Combined Mission Set"
                                 >
-                                    {leftList.map((name, index) => (
-                                        <LeftListItem
+                                    {rightList.map((name, index) => (
+                                        <RightListItem
                                             key={`${name}-${index}`}
                                             name={name}
                                             index={index}
-                                            isSelected={selectedLeftIndex === index}
-                                            onSelect={handleLeftItemClick}
+                                            isSelected={selectedRightIndex === index}
+                                            onSelect={handleRightItemClick}
                                         />
                                     ))}
                                 </ul>
@@ -231,7 +231,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                             <div className="editor-controls-row">
                                 <Button
                                     className="jaia-button"
-                                    disabled={!hasLeftSelection || selectedLeftIndex === 0}
+                                    disabled={!hasRightSelection || selectedRightIndex === 0}
                                     onClick={handleMoveUp}
                                 >
                                     <Icon path={mdiArrowUp} size={0.8} title="Move up" />
@@ -239,8 +239,8 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                 <Button
                                     className="jaia-button"
                                     disabled={
-                                        !hasLeftSelection ||
-                                        selectedLeftIndex === leftList.length - 1
+                                        !hasRightSelection ||
+                                        selectedRightIndex === rightList.length - 1
                                     }
                                     onClick={handleMoveDown}
                                 >
@@ -248,7 +248,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                 </Button>
                                 <Button
                                     className="jaia-button"
-                                    disabled={!hasLeftSelection}
+                                    disabled={!hasRightSelection}
                                     onClick={handleDelete}
                                 >
                                     <Icon path={mdiDelete} size={0.8} title="Delete" />
@@ -269,7 +269,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <SaveAndLoadButton
                             editorName={editorName}
                             desiredMissionCount={desiredMissionCount}
-                            leftList={leftList}
+                            rightList={rightList}
                             snapshotCache={snapshotCache.current}
                             onClose={props.onClose}
                         />
@@ -285,7 +285,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
 function LeftListItem(props: LeftListItemProps) {
     return (
         <li
-            className={`editor-list-item${props.isSelected ? " selected" : ""}`}
+            className={`editor-source-item${props.isSelected ? " selected" : ""}`}
             role="option"
             aria-selected={props.isSelected}
             onClick={() => props.onSelect(props.index)}
@@ -298,7 +298,7 @@ function LeftListItem(props: LeftListItemProps) {
 function RightListItem(props: RightListItemProps) {
     return (
         <li
-            className={`editor-source-item${props.isSelected ? " selected" : ""}`}
+            className={`editor-list-item${props.isSelected ? " selected" : ""}`}
             role="option"
             aria-selected={props.isSelected}
             onClick={() => props.onSelect(props.index)}
