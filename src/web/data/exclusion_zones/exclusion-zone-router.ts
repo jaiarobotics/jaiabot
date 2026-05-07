@@ -23,7 +23,14 @@ interface XYPt {
     y: number;
 }
 
-// Simple equirectangular projection — accurate to <0.1% for distances up to ~50 km.
+/**
+ * Projects a geographic coordinate to a local XY plane relative to an origin.
+ * Uses equirectangular projection, accurate to <0.1% for distances up to ~50 km.
+ *
+ * @param {GeographicCoordinate} origin Reference point defining the XY origin
+ * @param {GeographicCoordinate} coord Point to project into local XY space
+ * @returns {XYPt} Projected point in metres relative to origin
+ */
 function toXY(origin: GeographicCoordinate, coord: GeographicCoordinate): XYPt {
     const lat0 = origin.lat ?? 0;
     const lon0 = origin.lon ?? 0;
@@ -34,6 +41,13 @@ function toXY(origin: GeographicCoordinate, coord: GeographicCoordinate): XYPt {
     };
 }
 
+/**
+ * Converts a local XY point back to geographic coordinates using the given origin.
+ *
+ * @param {GeographicCoordinate} origin Reference point used when the XY coordinates were projected
+ * @param {XYPt} pt Local XY point in metres to convert back to lat/lon
+ * @returns {GeographicCoordinate} Geographic coordinate corresponding to the XY point
+ */
 function toLatLon(origin: GeographicCoordinate, pt: XYPt): GeographicCoordinate {
     const lat0 = origin.lat ?? 0;
     const lon0 = origin.lon ?? 0;
@@ -44,10 +58,26 @@ function toLatLon(origin: GeographicCoordinate, pt: XYPt): GeographicCoordinate 
     };
 }
 
+/**
+ * Computes the 2D cross product of vectors OA and OB, used for orientation tests.
+ *
+ * @param {XYPt} O Origin point of both vectors
+ * @param {XYPt} A End point of the first vector
+ * @param {XYPt} B End point of the second vector
+ * @returns {number} Positive if OA→OB is counter-clockwise, negative if clockwise, zero if collinear
+ */
 function cross(O: XYPt, A: XYPt, B: XYPt): number {
     return (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
 }
 
+/**
+ * Returns true if point P lies on segment AB (assuming P is already collinear with A and B).
+ *
+ * @param {XYPt} A Start of the segment
+ * @param {XYPt} B End of the segment
+ * @param {XYPt} P Point to test
+ * @returns {boolean} Whether P lies within the bounding box of AB
+ */
 function onSegment(A: XYPt, B: XYPt, P: XYPt): boolean {
     const EPS = 1e-9;
     return (
@@ -58,6 +88,16 @@ function onSegment(A: XYPt, B: XYPt, P: XYPt): boolean {
     );
 }
 
+/**
+ * Returns true if segments AB and CD intersect, including boundary contact.
+ * Boundary contact is treated as blocked so paths do not graze zone edges.
+ *
+ * @param {XYPt} A Start of the first segment
+ * @param {XYPt} B End of the first segment
+ * @param {XYPt} C Start of the second segment
+ * @param {XYPt} D End of the second segment
+ * @returns {boolean} Whether the two segments intersect or touch
+ */
 function segmentsIntersect(A: XYPt, B: XYPt, C: XYPt, D: XYPt): boolean {
     const EPS = 1e-9;
     const d1 = cross(C, D, A);
@@ -76,6 +116,13 @@ function segmentsIntersect(A: XYPt, B: XYPt, C: XYPt, D: XYPt): boolean {
     return false;
 }
 
+/**
+ * Tests whether point P is inside a polygon using the ray-casting algorithm.
+ *
+ * @param {XYPt} P Point to test
+ * @param {XYPt[]} poly Polygon vertices in order
+ * @returns {boolean} Whether P is inside the polygon
+ */
 function pointInPolygon(P: XYPt, poly: XYPt[]): boolean {
     let inside = false;
     const n = poly.length;
@@ -90,6 +137,14 @@ function pointInPolygon(P: XYPt, poly: XYPt[]): boolean {
     return inside;
 }
 
+/**
+ * Returns true if segment AB crosses any edge of the polygon.
+ *
+ * @param {XYPt} A Start of the segment
+ * @param {XYPt} B End of the segment
+ * @param {XYPt[]} poly Polygon vertices in order
+ * @returns {boolean} Whether AB intersects any polygon edge
+ */
 function segmentIntersectsPolygon(A: XYPt, B: XYPt, poly: XYPt[]): boolean {
     const n = poly.length;
     for (let i = 0; i < n; i++) {
@@ -98,10 +153,24 @@ function segmentIntersectsPolygon(A: XYPt, B: XYPt, poly: XYPt[]): boolean {
     return false;
 }
 
+/**
+ * Returns the squared Euclidean distance between two XY points.
+ *
+ * @param {XYPt} A First point
+ * @param {XYPt} B Second point
+ * @returns {number} Squared distance in metres²
+ */
 function distSq(A: XYPt, B: XYPt): number {
     return (A.x - B.x) ** 2 + (A.y - B.y) ** 2;
 }
 
+/**
+ * Returns the Euclidean distance between two XY points.
+ *
+ * @param {XYPt} A First point
+ * @param {XYPt} B Second point
+ * @returns {number} Distance in metres
+ */
 function dist(A: XYPt, B: XYPt): number {
     return Math.sqrt(distSq(A, B));
 }
@@ -111,6 +180,10 @@ function dist(A: XYPt, B: XYPt): number {
 /**
  * Expands a polygon outward by `margin` metres using Clipper2's inflatePaths.
  * Returns a single expanded polygon with consistent winding (centroid inside).
+ *
+ * @param {XYPt[]} poly Polygon vertices to expand
+ * @param {number} margin Outward expansion distance in metres
+ * @returns {XYPt[]} Expanded polygon vertices
  */
 function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
     const input = [poly.map((p) => ({ x: p.x, y: p.y }))];
@@ -163,6 +236,12 @@ interface GridNode {
  * or [] if no bypass is needed or the direct path is already clear.
  *
  * Grid approach is robust for any zone shape — concave, complex, or irregular.
+ *
+ * @param {XYPt} A Start point of the segment to route
+ * @param {XYPt} B End point of the segment to route
+ * @param {ZoneGeom[]} zoneGeoms Pre-computed raw and expanded polygon geometry for each zone
+ * @param {number} safetyMargin Safety buffer distance in metres used to size the planning grid
+ * @returns {XYPt[]} Intermediate bypass waypoints between A and B, or empty array if no bypass is needed
  */
 function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: number): XYPt[] {
     const tryFindBypass = (planningClearance: number): XYPt[] => {
@@ -417,6 +496,11 @@ interface RouteResult {
 /**
  * Routes the mission plan around all exclusion zones.
  * Returns the original plan unchanged if no intersections are found.
+ *
+ * @param {MissionPlan} plan Mission plan whose goal waypoints need routing
+ * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
+ * @param {GeographicCoordinate} [originOverride] Optional projection origin; defaults to the first goal location
+ * @returns {RouteResult} Routed plan with bypass waypoints inserted, plus metadata about the routing outcome
  */
 export function routeAroundExclusionZones(
     plan: MissionPlan,
@@ -515,6 +599,10 @@ export function routeAroundExclusionZones(
 /**
  * Returns the safety-buffer polygon vertices (in lat/lon) for a single zone.
  * Used to render the buffer ring on the map and to check placement validity.
+ *
+ * @param {ExclusionZone} zone Zone whose buffer vertices are needed
+ * @param {number} [safetyMargin] Safety buffer distance in metres around the zone
+ * @returns {GeographicCoordinate[]} Buffer polygon vertices in geographic coordinates
  */
 export function getZoneBufferVertices(
     zone: ExclusionZone,
@@ -530,6 +618,10 @@ export function getZoneBufferVertices(
 /**
  * Returns the IDs of every zone whose safety-margin buffer contains the given
  * location.
+ *
+ * @param {GeographicCoordinate} location Geographic point to test against all zone buffers
+ * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
+ * @returns {number[]} IDs of zones whose buffer contains the location
  */
 export function getBlockingZoneIDs(
     location: GeographicCoordinate,
@@ -549,6 +641,10 @@ export function getBlockingZoneIDs(
 /**
  * Returns true if the given location falls inside the safety-margin buffer
  * of any exclusion zone.
+ *
+ * @param {GeographicCoordinate} location Geographic point to test
+ * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
+ * @returns {boolean} Whether the location is blocked by any zone's safety buffer
  */
 export function isLocationBlockedByZone(
     location: GeographicCoordinate,
@@ -557,7 +653,13 @@ export function isLocationBlockedByZone(
     return getBlockingZoneIDs(location, safetyMargin).length > 0;
 }
 
-/** Returns true if two waypoint lists are identical (same locations in same order). */
+/**
+ * Returns true if two waypoint lists are identical (same locations in same order).
+ *
+ * @param {Waypoint[]} a First waypoint list to compare
+ * @param {Waypoint[]} b Second waypoint list to compare
+ * @returns {boolean} Whether both lists contain the same locations in the same order
+ */
 function waypointListsMatch(a: Waypoint[], b: Waypoint[]): boolean {
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) {
@@ -572,6 +674,9 @@ function waypointListsMatch(a: Waypoint[], b: Waypoint[]): boolean {
  * Core reroute detection. Accepts an optional override map so the caller can
  * supply post-removal waypoints for affected missions without mutating the data
  * model.
+ *
+ * @param {Map<number, Waypoint[]>} overrides Per-mission waypoint overrides to use instead of the live mission state
+ * @returns {PendingReroute | null} Reroute proposals for all missions that cross a zone, or null if none are affected
  */
 export function detectReroutesWithOverrides(
     overrides: Map<number, Waypoint[]>,

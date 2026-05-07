@@ -18,21 +18,47 @@ import {
     detectWaypointRemovals,
 } from "../../data/exclusion_zones/exclusion-zone-detection";
 
+/**
+ * Builds an error message for missions that have too many waypoints to reroute around a zone.
+ *
+ * @param {number[]} missionIDs IDs of the missions that exceeded the waypoint limit
+ * @returns {string} Human-readable error message shown to the operator
+ */
 function overLimitError(missionIDs: number[]): string {
     const list = missionIDs.map((id) => `Mission ${id}`).join(", ");
     return `${list} ${missionIDs.length === 1 ? "has" : "have"} too many waypoints to route around this zone. Reduce waypoints below ${MAX_WAYPOINTS} first, then retry.`;
 }
 
+/**
+ * Builds an error message for missions where no clear path exists around a zone.
+ *
+ * @param {number[]} missionIDs IDs of the missions for which routing is impossible
+ * @returns {string} Human-readable error message shown to the operator
+ */
 function impossibleRouteError(missionIDs: number[]): string {
     const list = missionIDs.map((id) => `Mission ${id}`).join(", ");
     return `No clear path exists around this zone for ${list}. Move the conflicting waypoints further from the zone or reshape the zone.`;
 }
 
+/**
+ * Builds an error message for missions that remain unroutable after enclosed waypoints are removed.
+ *
+ * @param {number[]} missionIDs IDs of the missions still unroutable after waypoint removal
+ * @returns {string} Human-readable error message shown to the operator
+ */
 function followUpUnroutableError(missionIDs: number[]): string {
     const list = missionIDs.map((id) => `Mission ${id}`).join(", ");
     return `After removing enclosed waypoints, ${list} ${missionIDs.length === 1 ? "has" : "have"} too many remaining waypoints to route around this zone (limit ${MAX_WAYPOINTS}). Reduce waypoints in ${missionIDs.length === 1 ? "that mission" : "those missions"} first, then retry.`;
 }
 
+/**
+ * Adds a new exclusion zone and triggers waypoint removal or mission reroute detection.
+ * Reverts the zone and sets a placement error if no valid route can be found.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides the exclusion zone to add
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleAddExclusionZone(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZone) return mutableState;
     const zoneID = exclusionZoneSet.addZone(action.exclusionZone);
@@ -106,6 +132,13 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
     return mutableState;
 }
 
+/**
+ * Deletes an exclusion zone and strips any bypass waypoints that were generated for it.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides the ID of the zone to delete
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleDeleteExclusionZone(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined) return mutableState;
     // Clear vertex selection and edit mode if they belonged to the deleted zone.
@@ -121,6 +154,12 @@ export function handleDeleteExclusionZone(mutableState: JaiaContextType, action:
     return mutableState;
 }
 
+/**
+ * Removes all exclusion zones, strips all bypass waypoints, and resets zone edit state.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleClearExclusionZones(mutableState: JaiaContextType) {
     exclusionZoneSet.clearZones();
     stripStaleBypasses();
@@ -130,6 +169,14 @@ export function handleClearExclusionZones(mutableState: JaiaContextType) {
     return mutableState;
 }
 
+/**
+ * Replaces the current zone set with a loaded set and detects any resulting waypoint removals or reroutes.
+ * Zones that cause unresolvable routing conflicts are silently skipped from the load.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides the array of exclusion zones to load
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleLoadExclusionZones(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZones) return mutableState;
     const priorExclusionZoneSetSnapshot = exclusionZoneSet.captureSnapshot();
@@ -197,6 +244,12 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
     return mutableState;
 }
 
+/**
+ * Toggles the map between exclusion zone drawing mode and default mode.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) {
     const updatedMode =
         jaiaGlobal.getMapMode() !== MapModes.EXCLUSION_ZONE_DRAWING
@@ -206,6 +259,14 @@ export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) 
     return mutableState;
 }
 
+/**
+ * Restores the zone set from a snapshot and detects resulting waypoint removals or reroutes.
+ * Used to re-apply a saved zone set state, e.g. during undo or a load-and-confirm flow.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides the exclusion zone snapshot to restore
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleRestoreExclusionZoneSnapshot(
     mutableState: JaiaContextType,
     action: JaiaAction,
@@ -254,6 +315,13 @@ export function handleRestoreExclusionZoneSnapshot(
     return mutableState;
 }
 
+/**
+ * Applies pending reroute proposals to their missions, replacing old waypoints with rerouted ones.
+ * Over-limit and impossible proposals result in the affected missions being deleted.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
     const pending = mutableState.pendingReroute;
     if (!pending) return mutableState;
@@ -277,6 +345,13 @@ export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
     return mutableState;
 }
 
+/**
+ * Reverts the zone or mission change that triggered the reroute dialog.
+ * Restores prior waypoints, zone shapes, or snapshots depending on the reroute source.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleCancelMissionReroute(mutableState: JaiaContextType) {
     const {
         triggeringZoneID,
@@ -325,6 +400,13 @@ export function handleCancelMissionReroute(mutableState: JaiaContextType) {
     return mutableState;
 }
 
+/**
+ * Applies pending waypoint removal proposals and any feasible follow-up reroutes in one operation.
+ * Missions that are still unroutable after removal are deleted to prevent zone-crossing state.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
     const pending = mutableState.pendingWaypointRemoval;
     if (!pending) return mutableState;
@@ -356,6 +438,13 @@ export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
     return mutableState;
 }
 
+/**
+ * Reverts the change that triggered the waypoint removal dialog.
+ * Restores prior zone shape, mission snapshots, or removes the offending zones depending on context.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleCancelWaypointRemoval(mutableState: JaiaContextType) {
     const pending = mutableState.pendingWaypointRemoval;
     mutableState.pendingWaypointRemoval = null;
@@ -402,6 +491,10 @@ export function handleCancelWaypointRemoval(mutableState: JaiaContextType) {
 /**
  * Selects (or deselects) a zone vertex for editing.
  * The selected vertex is highlighted on the map; the next map click will move it.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides the zone ID and vertex index to select
+ * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleSelectZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined || action.vertexIndex === undefined) return mutableState;
@@ -429,6 +522,10 @@ export function handleSelectZoneVertex(mutableState: JaiaContextType, action: Ja
  * the zone, and triggers mission reroute/waypoint-removal detection.
  * If any waypoints fall inside the new zone shape the move is staged and the
  * operator is shown the waypoint-removal dialog; cancelling reverts the zone.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides the new geographic location for the selected vertex
+ * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleMoveZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
     const selected = jaiaGlobal.getSelectedZoneVertex();
@@ -531,6 +628,10 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
 /**
  * Toggles edit mode for a zone. Only one zone can be in edit mode at a time.
  * Switching to a different zone clears any selected vertex from the previous one.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides the ID of the zone to toggle edit mode on
+ * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleToggleZoneEditMode(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined) return mutableState;
@@ -555,6 +656,9 @@ export function handleToggleZoneEditMode(mutableState: JaiaContextType, action: 
 /**
  * Toggles the "tap to move" state for the currently selected zone vertex.
  * When active, the next map click will reposition the vertex.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleToggleZoneVertexTapToMove(mutableState: JaiaContextType) {
     const current = jaiaGlobal.getSelectedZoneVertex();
@@ -568,6 +672,10 @@ export function handleToggleZoneVertexTapToMove(mutableState: JaiaContextType) {
  * Adds a new vertex at the clicked map location and re-convex-hulls the zone.
  * The new vertex is always appended to drawnVertices and its hull position is
  * derived from that. Same reroute/removal detection path as a vertex move.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides the zone ID and the geographic location of the new vertex
+ * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined || !action.location) return mutableState;
@@ -663,6 +771,10 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
 /**
  * Deletes a vertex from a zone. Requires at least 3 vertices to remain.
  * Re-convex-hulls after deletion and triggers reroute detection.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides the zone ID and vertex index to delete
+ * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.zoneID === undefined || action.vertexIndex === undefined) return mutableState;
@@ -689,6 +801,13 @@ export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: Ja
     return mutableState;
 }
 
+/**
+ * Updates the display name of the current exclusion zone set.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Provides the new name for the exclusion zone set
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleChangeExclusionZoneSetName(
     mutableState: JaiaContextType,
     action: JaiaAction,
@@ -698,12 +817,24 @@ export function handleChangeExclusionZoneSetName(
     return mutableState;
 }
 
+/**
+ * Sets the placement error message when the operator tries to place a point inside an exclusion zone.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleSetPlacementError(mutableState: JaiaContextType) {
     mutableState.placementError =
         "Cannot place a point inside an exclusion zone or its safety buffer.";
     return mutableState;
 }
 
+/**
+ * Clears the placement error message, e.g. after the operator dismisses the error.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
 export function handleClearPlacementError(mutableState: JaiaContextType) {
     mutableState.placementError = "";
     return mutableState;

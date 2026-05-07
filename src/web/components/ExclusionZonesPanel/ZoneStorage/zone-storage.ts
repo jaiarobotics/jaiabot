@@ -25,6 +25,8 @@ export interface ImportZoneResult {
 
 /**
  * Returns all saved zone set names from the hub, sorted alphabetically
+ *
+ * @returns {Promise<string[]>} Alphabetically sorted list of saved zone set names
  */
 export async function listSavedZoneSetsFromHub(): Promise<string[]> {
     return jaiaAPI.listExclusionZones();
@@ -32,6 +34,9 @@ export async function listSavedZoneSetsFromHub(): Promise<string[]> {
 
 /**
  * Saves the current zone set to the hub under the given name
+ *
+ * @param {string} name Name to save the zone set under on the hub
+ * @returns {Promise<void>}
  */
 export async function saveToHub(name: string): Promise<void> {
     await jaiaAPI.saveExclusionZone(name, exclusionZoneSet.captureSnapshot());
@@ -39,6 +44,9 @@ export async function saveToHub(name: string): Promise<void> {
 
 /**
  * Loads a named zone set snapshot from the hub
+ *
+ * @param {string} name Name of the saved zone set to load
+ * @returns {Promise<ExclusionZoneSetSnapshot | null>} The loaded snapshot, or null if not found
  */
 export async function loadSnapshotFromHub(name: string): Promise<ExclusionZoneSetSnapshot | null> {
     return jaiaAPI.loadExclusionZone(name) as Promise<ExclusionZoneSetSnapshot | null>;
@@ -46,6 +54,9 @@ export async function loadSnapshotFromHub(name: string): Promise<ExclusionZoneSe
 
 /**
  * Deletes a named zone set from the hub
+ *
+ * @param {string} name Name of the saved zone set to delete
+ * @returns {Promise<void>}
  */
 export async function deleteFromHub(name: string): Promise<void> {
     await jaiaAPI.deleteExclusionZone(name);
@@ -55,6 +66,9 @@ export async function deleteFromHub(name: string): Promise<void> {
 
 /**
  * Exports the current zone set to a JSON file download
+ *
+ * @param {string} name Filename (without extension) for the downloaded JSON file
+ * @returns {void}
  */
 export function exportZonesToFile(name: string) {
     const data = JSON.stringify({
@@ -75,6 +89,8 @@ export function exportZonesToFile(name: string) {
 /**
  * Prompts the user to pick a JSON file and returns the parsed snapshot with a result type.
  * Mirrors the LoadSnapshotResult pattern used by mission-set-storage.
+ *
+ * @returns {Promise<ImportZoneResult>} Result indicating success, cancellation, or invalid file format
  */
 export function importZonesFromFile(): Promise<ImportZoneResult> {
     return new Promise((resolve) => {

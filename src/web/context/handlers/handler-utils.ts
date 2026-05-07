@@ -33,6 +33,9 @@ export function syncOpenLayers() {
  * safety buffer of the given zone. Returns the set of affected mission IDs.
  * Must be called BEFORE detectMissionReroutes() so the router works from
  * clean waypoints when re-planning around the new/modified zone.
+ *
+ * @param {number} zoneID ID of the zone whose buffer is checked against bypass waypoints
+ * @returns {Set<number>} Mission IDs whose bypass waypoints were removed
  */
 export function stripBypassesInsideZone(zoneID: number): Set<number> {
     return stripBypassesInsideZoneWithSnapshot(zoneID).affected;
@@ -41,6 +44,9 @@ export function stripBypassesInsideZone(zoneID: number): Set<number> {
 /**
  * Same as stripBypassesInsideZone() but also captures mission waypoint snapshots
  * before mutation so callers can restore on cancel/revert.
+ *
+ * @param {number} zoneID ID of the zone whose buffer is checked against bypass waypoints
+ * @returns {{ affected: Set<number>, priorMissionWaypoints: Map<number, Waypoint[]> }} Affected mission IDs and their pre-strip waypoint snapshots
  */
 export function stripBypassesInsideZoneWithSnapshot(zoneID: number): {
     affected: Set<number>;
@@ -67,6 +73,9 @@ export function stripBypassesInsideZoneWithSnapshot(zoneID: number): {
  * Strips bypass waypoints from any mission not represented in the given proposal set.
  * Call this after zone changes that may have eliminated previously necessary detours.
  * Missions with active proposals keep their current waypoints until the operator confirms.
+ *
+ * @param {Set<number>} activeMissionIDs Mission IDs with pending reroute proposals that should keep their bypasses
+ * @returns {void}
  */
 export function stripStaleBypasses(activeMissionIDs: Set<number> = new Set()) {
     for (const [missionID, mission] of missionSet.getMissions()) {
@@ -77,6 +86,11 @@ export function stripStaleBypasses(activeMissionIDs: Set<number> = new Set()) {
     }
 }
 
+/**
+ * Repaints the task-related map layers using the latest data
+ *
+ * @returns {void}
+ */
 export function syncTaskLayers() {
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
