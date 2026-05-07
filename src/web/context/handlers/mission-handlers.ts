@@ -171,7 +171,6 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
     // Restore other fields via setters
     missionSet.setName(action.missionSetSnapshot.name);
     missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-    missionSet.setMissionSpeeds(action.missionSetSnapshot.missionSpeeds);
     mutableState.missionAccordionStates = {};
     missionLayer.updateFeatures();
     return mutableState;

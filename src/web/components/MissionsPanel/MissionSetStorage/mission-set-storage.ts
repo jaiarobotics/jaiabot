@@ -8,7 +8,7 @@ import Waypoint from "../../../data/waypoints/waypoint";
 import Task from "../../../data/tasks/task";
 import { TaskType } from "../../../types/protobuf-types";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
-import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
 export enum LoadResultType {
     CURRENT_FORMAT = "CURRENT_FORMAT",
@@ -72,7 +72,6 @@ export function loadSnapshotFromLocalStorage(saveName: string): LoadSnapshotResu
         missions: missions,
         nextMissionID: migrated.nextMissionID ?? 0,
         missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
-        missionSpeeds: migrated.missionSpeeds ?? {},
         name: migrated.name ?? "",
     };
 
@@ -306,10 +305,6 @@ function extractMissionSetSnapshot(rawMissionSet: any, version: string = MISSION
         missions: missionsArray,
         nextMissionID: migrated.nextMissionID ?? 1,
         missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
-        missionSpeeds: migrated.missionSpeeds ?? {
-            transit: DEFAULT_SPEED,
-            stationkeep_outer: DEFAULT_SPEED,
-        },
         name: migrated.name ?? "",
     };
 
@@ -330,7 +325,6 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
         missions: [],
         nextMissionID: 1,
         missionIDInEditMode: UNASSIGNED_ID,
-        missionSpeeds: { transit: DEFAULT_SPEED, stationkeep_outer: DEFAULT_SPEED },
         name: "",
     };
 

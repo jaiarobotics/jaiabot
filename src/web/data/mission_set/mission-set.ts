@@ -12,7 +12,6 @@ export interface MissionSetSnapshot {
     missions: [number, Mission][];
     nextMissionID: number;
     missionIDInEditMode: number;
-    missionSpeeds: Speeds;
     name: string;
 }
 
@@ -77,9 +76,16 @@ export class MissionSet {
 
     getMissionSpeeds(): Speeds {
         const first = this.missions.values().next().value;
-        return first
-            ? { transit: first.getTransitSpeed(), stationkeep_outer: first.getStationkeepSpeed() }
-            : { transit: DEFAULT_SPEED, stationkeep_outer: DEFAULT_SPEED };
+        let speeds: Speeds;
+        if (first) {
+            speeds = {
+                transit: first.getTransitSpeed(),
+                stationkeep_outer: first.getStationkeepSpeed(),
+            };
+        } else {
+            speeds = { transit: DEFAULT_SPEED, stationkeep_outer: DEFAULT_SPEED };
+        }
+        return speeds;
     }
 
     setMissionSpeeds(missionSpeeds: Speeds) {
@@ -90,12 +96,14 @@ export class MissionSet {
     }
 
     addMission(mission: Mission) {
-        const speeds = this.getMissionSpeeds();
         const missionID = this.getNextMissionID();
         this.missions.set(missionID, mission);
         mission.setMissionID(missionID);
-        mission.setTransitSpeed(speeds.transit ?? DEFAULT_SPEED);
-        mission.setStationkeepSpeed(speeds.stationkeep_outer ?? DEFAULT_SPEED);
+        if (mission.getSegments()[0]?.speed === undefined) {
+            const speeds = this.getMissionSpeeds();
+            mission.setTransitSpeed(speeds.transit ?? DEFAULT_SPEED);
+            mission.setStationkeepSpeed(speeds.stationkeep_outer ?? DEFAULT_SPEED);
+        }
         this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
         return missionID;
@@ -146,7 +154,6 @@ export class MissionSet {
             missions: Array.from(this.missions),
             nextMissionID: this.nextMissionID,
             missionIDInEditMode: this.missionIDInEditMode,
-            missionSpeeds: this.getMissionSpeeds(),
             name: this.name,
         };
         return cloneDeep(currentMissionSet);

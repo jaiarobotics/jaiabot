@@ -22,7 +22,6 @@ function makeSnapshot(missions: Mission[]): MissionSetSnapshot {
         missions: missions.map((m, i) => [i + 1, m]),
         nextMissionID: missions.length + 1,
         missionIDInEditMode: UNASSIGNED_ID,
-        missionSpeeds: DEFAULT_SPEEDS,
         name: "test",
     };
 }
@@ -247,7 +246,7 @@ describe("combineMissionSets", () => {
         expect(mission.getStationkeepSpeed()).toBe(3);
     });
 
-    test("speeds: overall max across all slots recorded in snapshot missionSpeeds", () => {
+    test("speeds: overall max transit and stationkeep applied to all output missions", () => {
         const cache = makeCache([
             [
                 "survey",
@@ -259,8 +258,10 @@ describe("combineMissionSets", () => {
         ]);
         const result = combineMissionSets(["survey"], 2, "out", cache);
 
-        expect(result.missionSpeeds.transit).toBe(3);
-        expect(result.missionSpeeds.stationkeep_outer).toBe(3);
+        for (const [, mission] of result.missions) {
+            expect(mission.getTransitSpeed()).toBe(3);
+            expect(mission.getStationkeepSpeed()).toBe(3);
+        }
     });
 
     test("SRP: carried into chained segment from the first mission that has it", () => {

@@ -230,10 +230,6 @@ export function combineMissionSets(
         missions: outputMissions,
         nextMissionID: desiredCount + 1,
         missionIDInEditMode: UNASSIGNED_ID,
-        missionSpeeds: {
-            transit: maxTransit,
-            stationkeep_outer: maxStationkeep,
-        },
         name: newName,
     };
 }

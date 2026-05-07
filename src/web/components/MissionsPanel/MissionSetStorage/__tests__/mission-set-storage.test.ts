@@ -148,7 +148,6 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(missingResult.snapshot!.missions).toEqual([]);
         expect(missingResult.snapshot!.nextMissionID).toBe(0);
         expect(missingResult.snapshot!.missionIDInEditMode).toEqual(UNASSIGNED_ID);
-        expect(missingResult.snapshot!.missionSpeeds).toEqual({});
         expect(missingResult.snapshot!.name).toBe("");
     });
 
