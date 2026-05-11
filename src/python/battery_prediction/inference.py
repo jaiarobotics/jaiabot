@@ -4,10 +4,15 @@ import numpy as np
 
 _MODEL_PATH = os.path.join(os.path.dirname(__file__), "battery_model.pkl")
 
-with open(_MODEL_PATH, "rb") as _f:
-    _pkg = pickle.load(_f)
+_model = None
 
-_model = _pkg["model"]
+
+def _load_model():
+    global _model
+    if _model is not None:
+        return
+    with open(_MODEL_PATH, "rb") as f:
+        _model = pickle.load(f)["model"]
 
 
 def predict_drain(
@@ -18,6 +23,7 @@ def predict_drain(
     total_depth_m: float,
     starting_battery_pct: float,
 ) -> float:
+    _load_model()
     x = np.array(
         [[bot_type, duration_s, motor_energy_proxy, num_dives, total_depth_m, starting_battery_pct]],
         dtype=float,
