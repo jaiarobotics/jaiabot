@@ -160,14 +160,6 @@ def extract_missions(h5_path: str) -> list[dict]:
         tp_type_all  = tp_type_all[unique_idx]
         tp_depth_all = tp_depth_all[unique_idx]
 
-    # Water temperature
-    temp_utime_all = np.array([])
-    temp_all       = np.array([])
-    if "jaiabot::pressure_temperature" in f:
-        pt_base = "jaiabot::pressure_temperature/jaiabot.protobuf.PressureTemperatureData"
-        temp_utime_all = f[f"{pt_base}/_utime_"][:]
-        temp_all       = f[f"{pt_base}/temperature"][:]
-
     f.close()
 
     # ── Extract features per segment ─────────────────────────────────────────
@@ -227,15 +219,6 @@ def extract_missions(h5_path: str) -> list[dict]:
             depths = depths[~np.isnan(depths) & (depths > 0)]
             total_depth_m = float(depths.sum())
 
-        # Water temperature within window
-        mean_water_temp_C = float("nan")
-        if len(temp_utime_all):
-            in_temp = (temp_utime_all >= t0) & (temp_utime_all <= t1)
-            temp_w = temp_all[in_temp]
-            temp_w = temp_w[(temp_w > -5) & (temp_w < 50) & ~np.isnan(temp_w)]
-            if len(temp_w):
-                mean_water_temp_C = float(temp_w.mean())
-
         rows.append({
             "log_file":             log_name,
             "mission_num":          mission_num,
@@ -246,7 +229,6 @@ def extract_missions(h5_path: str) -> list[dict]:
             "motor_energy_proxy":   round(motor_energy_proxy, 1),
             "num_dives":            num_dives,
             "total_depth_m":        round(total_depth_m, 2),
-            "mean_water_temp_C":    round(mean_water_temp_C, 2) if not np.isnan(mean_water_temp_C) else "",
             "starting_battery_pct": round(starting_battery_pct, 1),
             "battery_drain_pct":    round(battery_drain_pct, 1),
         })
@@ -264,7 +246,6 @@ FIELDNAMES = [
     "motor_energy_proxy",
     "num_dives",
     "total_depth_m",
-    "mean_water_temp_C",
     "starting_battery_pct",
     "battery_drain_pct",
 ]
