@@ -76,6 +76,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     void publish_mission_report(protobuf::MissionState state);
     void set_hub_id(int hub_id);
 
+    void handle_battery_protocol(const std::set<jaiabot::protobuf::Error>& errors);
+
     template <typename Derived> friend class statechart::AppMethodsAccess;
 
   private:

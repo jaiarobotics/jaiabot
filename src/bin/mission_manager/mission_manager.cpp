@@ -229,15 +229,7 @@ jaiabot::apps::MissionManager::MissionManager()
         {
             const auto errors = VehicleHealth_get_all_errors(vehicle_health);
 
-            // Battery events
-            if (errors.contains(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY))
-            {
-                machine_->process_event(statechart::EvBatteryCritical());
-            }
-            else if (errors.contains(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY))
-            {
-                machine_->process_event(statechart::EvBatteryLow());
-            }
+            this->handle_battery_protocol(errors);
 
             if (health_considered_ok(vehicle_health))
             {
@@ -1210,3 +1202,20 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
     return false;
 }
 
+void jaiabot::apps::MissionManager::handle_battery_protocol(
+    const std::set<jaiabot::protobuf::Error>& errors)
+{
+    // Battery events
+    if (errors.contains(protobuf::ERROR__VEHICLE__CRITICALLY_LOW_BATTERY))
+    {
+        machine_->process_event(statechart::EvBatteryLevel(statechart::BatteryLevel::CRITICAL));
+    }
+    else if (errors.contains(protobuf::ERROR__VEHICLE__VERY_LOW_BATTERY))
+    {
+        machine_->process_event(statechart::EvBatteryLevel(statechart::BatteryLevel::VERY_LOW));
+    }
+    else
+    {
+        return;
+    }
+}

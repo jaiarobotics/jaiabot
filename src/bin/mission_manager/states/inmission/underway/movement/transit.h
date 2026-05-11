@@ -69,9 +69,17 @@ struct Transit
         post_event(EvPerformTask());
     }
 
-    using local_reactions =
-        boost::mpl::list<boost::statechart::in_state_reaction<EvWaypointReached, Transit,
-                                                              &Transit::waypoint_reached>>;
+
+    void battery_level_reaction(const EvBatteryLevel& ev)
+    {
+        context<InMission>().start_battery_protocol(ev.battery_level);
+    }
+
+    using local_reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvWaypointReached, Transit,
+                                             &Transit::waypoint_reached>,
+        boost::statechart::in_state_reaction<EvBatteryLevel, Transit,
+                                             &Transit::battery_level_reaction>>;
 
     using reactions =
         typename boost::mpl::copy<local_reactions,

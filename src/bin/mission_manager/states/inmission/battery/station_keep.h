@@ -28,7 +28,15 @@ struct StationKeep : boost::statechart::state<StationKeep, Battery>,
 
     StationKeep(typename StateBase::my_context c) : StateBase(c)
     {
-        glog.is_warn() && glog << "StationKeep" << std::endl;
+        glog.is_debug1() && glog << "battery::StationKeep" << std::endl;
+
+        // Set the triggering battery level based on the event that caused the transition to this state
+        // So we only transition to a new battery protocol if the battery level drops further from the level that triggered the current protocol
+        auto ev_start_battery_protocol = dynamic_cast<const EvStartBatteryProtocol*>(triggering_event());
+        if (ev_start_battery_protocol)
+        {
+            context<Battery>().triggering_battery_level = ev_start_battery_protocol->battery_level;
+        }
 
         boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
 
@@ -44,7 +52,7 @@ struct StationKeep : boost::statechart::state<StationKeep, Battery>,
 
     ~StationKeep()
     {
-        glog.is_debug1() && glog << "~StationKeep" << std::endl;
+        glog.is_debug1() && glog << "battery::~StationKeep" << std::endl;
     }
 
 };

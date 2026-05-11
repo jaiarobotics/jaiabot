@@ -436,7 +436,7 @@ message MissionPlan
     // Protocols for low battery situations. These are used to determine how the vehicle should respond when it 
     // detects that its battery is low, and allow for different responses depending on how low the battery is.
 
-    message BatteryLowProtocol
+    message BatteryProtocol
     {
         enum Action
         {
@@ -457,10 +457,10 @@ message MissionPlan
         //     [(jaia.field).rest_api.presence = GUARANTEED];
     }
 
-    optional BatteryLowProtocol very_low_battery_protocol = 12
+    optional BatteryProtocol very_low_battery_protocol = 12
         [(jaia.field).rest_api.presence = GUARANTEED];
 
-    optional BatteryLowProtocol critically_low_battery_protocol = 13
+    optional BatteryProtocol critically_low_battery_protocol = 13
         [(jaia.field).rest_api.presence = GUARANTEED];
 
 }

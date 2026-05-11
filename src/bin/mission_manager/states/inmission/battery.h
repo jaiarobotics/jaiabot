@@ -21,15 +21,40 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-struct Battery : boost::statechart::state<Battery, InMission, battery::Low>, AppMethodsAccess<Battery>
+struct Battery : boost::statechart::state<Battery, InMission, battery::StationKeep>, AppMethodsAccess<Battery>
 {
-    using StateBase = boost::statechart::state<Battery, InMission, battery::Low>;
+    using StateBase = boost::statechart::state<Battery, InMission, battery::StationKeep>;
+
+    BatteryLevel triggering_battery_level = BatteryLevel::NORMAL;
 
     Battery(typename StateBase::my_context c) : StateBase(c)
     {
         goby::glog.is_debug1() && goby::glog << "Battery" << std::endl;
     }
     ~Battery() { goby::glog.is_debug1() && goby::glog << "~Battery" << std::endl; }
+
+
+    void battery_level_reaction(const EvBatteryLevel& ev)
+    {
+        auto battery_level = ev.battery_level;
+
+        // Only start a new battery protocol if the battery level has dropped further since the last protocol was triggered
+        if (battery_level < triggering_battery_level)
+        {
+            context<InMission>().start_battery_protocol(battery_level);
+        }
+        else {
+            glog.is_debug1() && glog << "Received new EvBatteryLevel event with battery level: "
+                                  << static_cast<int>(battery_level)
+                                  << " which is not lower than the triggering battery level: "
+                                  << static_cast<int>(triggering_battery_level)
+                                  << ". Not starting a new battery protocol."
+                                  << std::endl;
+        }
+    }
+
+    using reactions = boost::mpl::list<boost::statechart::in_state_reaction<EvBatteryLevel, Battery, &Battery::battery_level_reaction>>;
+
 };
 
 namespace battery {

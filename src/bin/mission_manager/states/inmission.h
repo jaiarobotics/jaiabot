@@ -181,11 +181,95 @@ struct InMission
 
     bool is_echo_recording() const { return is_echo_recording_; }
 
+    void start_battery_protocol(BatteryLevel battery_level)
+    {
+        glog.is_debug1() && glog << "start_battery_protocol called with battery level: "
+                                 << static_cast<int>(battery_level) << std::endl;
+
+        jaiabot::protobuf::MissionPlan::BatteryProtocol battery_protocol;
+
+        switch (battery_level)
+        {
+            case BatteryLevel::CRITICAL:
+                if (machine().mission_plan().has_critically_low_battery_protocol())
+                {
+                    battery_protocol = machine().mission_plan().critically_low_battery_protocol();
+                }
+                else
+                {
+                    battery_protocol.set_action(
+                        protobuf::MissionPlan::BatteryProtocol::STOP_AND_BROADCAST);
+                }
+                break;
+
+            case BatteryLevel::VERY_LOW:
+                if (machine().mission_plan().has_very_low_battery_protocol())
+                {
+                    battery_protocol = machine().mission_plan().very_low_battery_protocol();
+                }
+                else
+                {
+                    battery_protocol.set_action(
+                        protobuf::MissionPlan::BatteryProtocol::STATION_KEEP);
+                }
+                break;
+
+            case BatteryLevel::NORMAL:
+                glog.is_debug1() && glog << "  Battery level normal, not starting battery protocol"
+                                         << std::endl;
+                return;
+
+            default:
+                glog.is_debug1() &&
+                    glog << "  Received unknown battery level, not starting battery protocol"
+                         << std::endl;
+                return;
+        }
+
+        if (battery_protocol.action() == protobuf::MissionPlan::BatteryProtocol::NONE)
+        {
+            glog.is_debug1() &&
+                glog << "  Battery protocol action is NONE, not starting battery protocol"
+                     << std::endl;
+            return;
+        }
+
+        glog.is_debug1() && glog << "  Starting battery protocol: "
+                                 << battery_protocol.ShortDebugString() << std::endl;
+
+        post_event(EvStartBatteryProtocol(battery_protocol, battery_level));
+    }
+
+    boost::statechart::result react(const EvStartBatteryProtocol& ev)
+    {
+        glog.is_debug1() &&
+            glog << "InMission::react Received EvStartBatteryProtocol event with protocol: "
+                 << ev.protocol.ShortDebugString()
+                 << " and battery level: " << static_cast<int>(ev.battery_level) << std::endl;
+
+        switch (ev.protocol.action())
+        {
+            case protobuf::MissionPlan::BatteryProtocol::NONE:
+                glog.is_debug1() &&
+                    glog << "Battery protocol action is NONE, staying in SelectProtocol"
+                         << std::endl;
+                return discard_event();
+            case protobuf::MissionPlan::BatteryProtocol::STATION_KEEP:
+                return transit<jaiabot::statechart::inmission::battery::StationKeep>();
+            case protobuf::MissionPlan::BatteryProtocol::STOP_AND_BROADCAST:
+                return transit<jaiabot::statechart::inmission::battery::StopAndBroadcast>();
+            default:
+                glog.is_debug1() && glog << "Received unknown battery protocol action" << std::endl;
+                return discard_event();
+        }
+    }
+
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
         boost::statechart::transition<EvRecovered, PostDeployment>,
         boost::statechart::transition<EvAbort, inmission::underway::Abort>,
-        boost::statechart::transition<EvStop, inmission::underway::recovery::Stopped>>;
+        boost::statechart::transition<EvStop, inmission::underway::recovery::Stopped>,
+        boost::statechart::custom_reaction<EvStartBatteryProtocol>>;
 
   private:
     int goal_index_{0};

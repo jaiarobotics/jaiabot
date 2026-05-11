@@ -28,11 +28,20 @@ struct StopAndBroadcast : boost::statechart::state<StopAndBroadcast, Battery>,
 
     StopAndBroadcast(typename StateBase::my_context c) : StateBase(c)
     {
-        goby::glog.is_debug1() && goby::glog << "StopAndBroadcast" << std::endl;
+        goby::glog.is_debug1() && goby::glog << "battery::StopAndBroadcast" << std::endl;
+
+        // Set the triggering battery level based on the event that caused the transition to this state
+        // So we only transition to a new battery protocol if the battery level drops further from the level that triggered the current protocol
+        auto ev_start_battery_protocol = dynamic_cast<const EvStartBatteryProtocol*>(triggering_event());
+        if (ev_start_battery_protocol)
+        {
+            context<Battery>().triggering_battery_level = ev_start_battery_protocol->battery_level;
+        }
 
         protobuf::DesiredSetpoints setpoint_msg;
         setpoint_msg.set_type(protobuf::SETPOINT_STOP);
         interprocess().publish<jaiabot::groups::desired_setpoints>(setpoint_msg);
     }
-    ~StopAndBroadcast() { goby::glog.is_debug1() && goby::glog << "~StopAndBroadcast" << std::endl; }
+    ~StopAndBroadcast() { goby::glog.is_debug1() && goby::glog << "battery::~StopAndBroadcast" << std::endl; }
+
 };

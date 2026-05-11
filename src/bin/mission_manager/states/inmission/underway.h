@@ -34,74 +34,11 @@ struct Underway : boost::statechart::state<Underway, InMission, underway::Moveme
     }
     ~Underway() { goby::glog.is_debug1() && goby::glog << "~Underway" << std::endl; }
 
-    /**
-     * @brief Handle the battery protocol by posting the appropriate event to the state machine.
-     * 
-     * @param protocol The battery low protocol to execute.
-     */
-    void do_battery_protocol(const jaiabot::protobuf::MissionPlan::BatteryLowProtocol& protocol)
-    {
-        switch (protocol.action())
-        {
-        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::NONE:
-            glog.is_warn() && glog << "Battery protocol: NONE" << std::endl;
-            break;
-        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::STOP_AND_BROADCAST:
-            glog.is_warn() && glog << "Battery protocol: STOP_AND_BROADCAST" << std::endl;
-            this->post_event(EvLowBatteryStopAndBroadcast());
-            break;
-        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::STATION_KEEP:
-            glog.is_warn() && glog << "Battery protocol: STATION_KEEP" << std::endl;
-            this->post_event(EvLowBatteryStationKeep());
-            break;
-        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::DRIVE_TO_HUB:
-            glog.is_warn() && glog << "Battery protocol: DRIVE_TO_HUB" << std::endl;
-            break;
-        case jaiabot::protobuf::MissionPlan::BatteryLowProtocol::DRIVE_TO_LOCATION:
-            glog.is_warn() && glog << "Battery protocol: DRIVE_TO_LOCATION" << std::endl;
-            break;
-        default:
-            glog.is_warn() && glog << "Battery protocol: UNKNOWN" << std::endl;
-            break;
-        }
-    }
-
-    /**
-     * @brief Handle the very low battery event by executing the corresponding battery protocol.
-     * 
-     * @param ev The very low battery event.
-     */
-    void battery_low(const EvBatteryLow &) {
-        glog.is_warn() && glog << "Battery low!" << std::endl;
-        const auto protocol = this->machine().mission_plan().very_low_battery_protocol();
-        do_battery_protocol(protocol);
-    }
-
-    /**
-     * @brief Handle the critically low battery event by executing the corresponding battery protocol.
-     * 
-     * @param ev The critically low battery event.
-     */
-    void battery_critical(const EvBatteryCritical &) {
-        glog.is_warn() && glog << "Battery critical!" << std::endl;
-        const auto protocol = this->machine().mission_plan().critically_low_battery_protocol();
-        do_battery_protocol(protocol);
-    }
-
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvReturnToHome, underway::Recovery>,
         boost::statechart::transition<EvRCSetpoint, underway::movement::remotecontrol::Setpoint>,
         boost::statechart::transition<EvPause, pause::Manual>,
-        boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>,
-
-        // Battery events
-        boost::statechart::in_state_reaction<EvBatteryLow, Underway, &Underway::battery_low>,
-        boost::statechart::in_state_reaction<EvBatteryCritical, Underway,
-                                             &Underway::battery_critical>,
-
-        // Battery protocol events
-        boost::statechart::transition<EvLowBatteryStationKeep, battery::StationKeep>,
-        boost::statechart::transition<EvLowBatteryStopAndBroadcast, battery::StopAndBroadcast>>;
+        boost::statechart::transition<EvNoForwardProgress, pause::ResolveNoForwardProgress>>;
 };
 
 namespace underway {
