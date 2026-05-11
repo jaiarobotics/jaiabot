@@ -900,6 +900,9 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                 handle_bottom_dive_safety_params(bottom_depth_safety_params);
             }
 
+            if (command.plan().has_speeds())
+                machine_->set_transit_speed(command.plan().speeds().transit());
+
             if (mission_is_feasible)
             {
                 // pass mission plan through event so that the mission plan in MissionManagerStateMachine only gets updated if this event is handled
