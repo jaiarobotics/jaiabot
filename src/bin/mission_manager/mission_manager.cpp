@@ -901,7 +901,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
             }
 
             if (command.plan().has_speeds())
-                machine_->set_transit_speed(command.plan().speeds().transit());
+                machine_->set_transit_speed(command.plan().speeds().transit_with_units());
 
             if (mission_is_feasible)
             {

@@ -255,7 +255,7 @@ struct InMission
             return;
 
         if (active_seg->has_speed())
-            this->machine().set_transit_speed(static_cast<double>(active_seg->speed()));
+            this->machine().set_transit_speed(active_seg->speed_with_units());
 
         if (active_seg->has_bottom_depth_safety_params())
         {

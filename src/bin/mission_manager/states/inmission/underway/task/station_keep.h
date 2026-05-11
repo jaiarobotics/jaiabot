@@ -38,15 +38,12 @@ struct StationKeep
         // if we have a defined location in the goal
         if (goal)
             update = create_location_stationkeep_update(
-                goal->location(),
-                boost::units::quantity<boost::units::si::velocity>(
-                    this->machine().transit_speed() * boost::units::si::meters_per_second),
+                goal->location(), this->machine().transit_speed_with_units(),
                 this->machine().mission_plan().speeds().stationkeep_outer_with_units(),
                 this->machine().geodesy());
         else // just use our current position
             update = create_center_activate_stationkeep_update(
-                boost::units::quantity<boost::units::si::velocity>(
-                    this->machine().transit_speed() * boost::units::si::meters_per_second),
+                this->machine().transit_speed_with_units(),
                 this->machine().mission_plan().speeds().stationkeep_outer_with_units());
 
         this->interprocess().publish<groups::mission_ivp_behavior_update>(update);

@@ -41,11 +41,9 @@ struct Transit
             {
                 slip_radius = cfg().waypoint_with_task_slip_radius();
             }
-            auto update = create_transit_update(
-                goal->location(),
-                boost::units::quantity<boost::units::si::velocity>(
-                    this->machine().transit_speed() * boost::units::si::meters_per_second),
-                this->machine().geodesy(), slip_radius);
+            auto update =
+                create_transit_update(goal->location(), this->machine().transit_speed_with_units(),
+                                      this->machine().geodesy(), slip_radius);
             this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
         }
         else

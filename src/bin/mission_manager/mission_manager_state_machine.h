@@ -255,8 +255,14 @@ struct MissionManagerStateMachine
     }
     const double& bottom_safety_depth() { return bottom_safety_depth_; }
 
-    void set_transit_speed(const double& speed) { transit_speed_ = speed; }
-    const double& transit_speed() { return transit_speed_; }
+    void set_transit_speed(const boost::units::quantity<boost::units::si::velocity>& speed)
+    {
+        transit_speed_ = speed;
+    }
+    const boost::units::quantity<boost::units::si::velocity>& transit_speed_with_units()
+    {
+        return transit_speed_;
+    }
 
     void set_latest_lat(const boost::units::quantity<boost::units::degree::plane_angle>& latest_lat)
     {
@@ -371,7 +377,8 @@ struct MissionManagerStateMachine
     double bottom_depth_safety_constant_heading_speed_{0};
     double bottom_depth_safety_constant_heading_time_{0};
     double bottom_safety_depth_{cfg().min_depth_safety()};
-    double transit_speed_{2.0};
+    boost::units::quantity<boost::units::si::velocity> transit_speed_{
+        2.0 * boost::units::si::meters_per_second};
     // Task Packet
     bool create_task_packet_file_{true};
     std::string task_packet_file_name_{""};
