@@ -39,11 +39,21 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
         this.getVectorLayer().setStyle(this.getZoneStyle.bind(this));
     }
 
-    /** Wires up the React dispatch so the draw interaction can fire actions. */
+    /**
+     * Wires up the React dispatch so the draw interaction can fire actions
+     *
+     * @param {Function} dispatch The dispatch function from JaiaContext
+     * @returns {void}
+     */
     setDispatch(dispatch: (action: { type: JaiaActions; [key: string]: unknown }) => void) {
         this.dispatch = dispatch;
     }
 
+    /**
+     * Returns the current Draw interaction instance, if one exists
+     *
+     * @returns {Draw | null} The active Draw interaction, or null if none is set
+     */
     getDraw() {
         return this.draw;
     }
@@ -51,6 +61,8 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
     /**
      * Creates a polygon Draw interaction. When the operator finishes drawing,
      * dispatches ADD_EXCLUSION_ZONE with the polygon vertices in lat/lon.
+     *
+     * @returns {Draw} The configured Draw interaction
      */
     createDrawInteraction() {
         this.draw = new Draw({
@@ -90,12 +102,20 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
         return this.draw;
     }
 
-    /** Clears the stored Draw interaction reference. */
+    /**
+     * Clears the stored Draw interaction reference
+     *
+     * @returns {void}
+     */
     clearDrawInteraction() {
         this.draw = null;
     }
 
-    /** Redraws all exclusion zone polygons and their editable vertex handles. */
+    /**
+     * Redraws all exclusion zone polygons and their editable vertex handles
+     *
+     * @returns {void}
+     */
     override updateFeatures() {
         this.getVectorLayer().getSource().clear();
 
@@ -142,6 +162,13 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
         });
     }
 
+    /**
+     * Returns the style for a zone vertex handle based on its selection and moveable state
+     *
+     * @param {boolean} selected Whether this vertex is currently selected
+     * @param {boolean} moveable Whether this vertex is in tap-to-move mode
+     * @returns {Style} The OpenLayers style for the vertex
+     */
     private getVertexStyle(selected: boolean, moveable = false): Style {
         const fillColor = moveable
             ? OpenLayersColors.SELECT
@@ -158,6 +185,12 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
         });
     }
 
+    /**
+     * Returns the OpenLayers style for a zone feature based on its state
+     *
+     * @param {Feature} feature The zone feature to style
+     * @returns {Style} The computed style for the feature
+     */
     private getZoneStyle(feature: Feature): Style {
         if (feature.get("isBuffer")) {
             return new Style({

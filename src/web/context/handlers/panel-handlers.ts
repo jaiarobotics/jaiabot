@@ -51,7 +51,7 @@ export function handleClosedWaypointPanel(mutableState: JaiaContextType, action:
  * Handles cleanup when the task packet panel closes
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action including panelAction
+ * @param {JaiaAction} action Includes the panel action type for cleanup decisions
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClosedTaskPacketPanel(mutableState: JaiaContextType, action: JaiaAction) {
@@ -77,6 +77,10 @@ export function handleClosedRallyPanel(mutableState: JaiaContextType) {
  * Handles cleanup when the zone vertex panel closes. On cancel, restores the
  * full vertex list from the snapshot taken when the panel opened and clears
  * any pending dialogs that were triggered by edits in this session.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Includes panelAction, zoneID, and prior vertex locations for cancel
+ * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, action: JaiaAction) {
     if (

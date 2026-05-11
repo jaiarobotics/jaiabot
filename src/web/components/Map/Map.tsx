@@ -44,6 +44,11 @@ interface ZoneCrossingDialogState {
     waypointNumber: number;
 }
 
+/**
+ * Renders the OpenLayers map and routes map click events to the appropriate handlers
+ *
+ * @returns {JSX.Element} The map container, including any active zone crossing dialogs
+ */
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [zoneCrossing, setZoneCrossing] = useState<ZoneCrossingDialogState | null>(null);
@@ -147,6 +152,12 @@ export default function Map() {
         }
     };
 
+    /**
+     * Dispatches action to add a rally point to the map
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
     const handleAddRallyPoint = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
@@ -157,6 +168,12 @@ export default function Map() {
         jaiaDispatch({ type: JaiaActions.ADD_RALLY_POINT, location });
     };
 
+    /**
+     * Adds start and end survey locations to map
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
     const handleSurveyPlanningClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
@@ -202,6 +219,14 @@ export default function Map() {
         });
     };
 
+    /**
+     * Triggers the calls to update the constant heading projection
+     * based on click location
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @param {MapModes} mapMode Impacts where to start constant heading line
+     * @returns {void}
+     */
     const handleConstantHeadingSelectClick = (coordinate: Coordinate, mapMode: MapModes) => {
         let startLocation;
         let task;
@@ -255,11 +280,23 @@ export default function Map() {
         }
     };
 
+    /**
+     * Dispatches action to update the Hub's position to the click location
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
     const handleHubLocationSelectClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         jaiaDispatch({ type: JaiaActions.MOVE_HUB, location: { lon: lonLat[0], lat: lonLat[1] } });
     };
 
+    /**
+     * Dispatches action to handle changes in node selection
+     *
+     * @param {Feature} feature Contains the node type and ID
+     * @returns {void}
+     */
     const handleNodeClick = (feature: Feature<Geometry>) => {
         const nodeType = feature.get("type");
         const nodeID = feature.get("id");
@@ -271,6 +308,12 @@ export default function Map() {
         }
     };
 
+    /**
+     * Dispatches action to set the selected waypoint
+     *
+     * @param {Feature<Geometry>} feature Clicked waypoint
+     * @returns {void}
+     */
     const handleWaypointClick = (feature: Feature<Geometry>) => {
         if (feature.get("isBypass")) return;
         const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
@@ -289,6 +332,12 @@ export default function Map() {
         }
     };
 
+    /**
+     * Dispatches action to open the rally panel
+     *
+     * @param {Feature<Geometry>} feature Clicked rally point
+     * @returns {void}
+     */
     const handleRallyPointClick = (feature: Feature<Geometry>) => {
         jaiaDispatch({
             type: JaiaActions.CLICKED_RALLY_POINT,
@@ -296,6 +345,13 @@ export default function Map() {
         });
     };
 
+    /**
+     * Dispatches action to set the selected task packet
+     *
+     * @param {Feature<Geometry>} feature Clicked task packet
+     * @param {MapFeatureTypes} type Distinguishes between dives and drifts
+     * @returns {void}
+     */
     const handleTaskPacketClick = (feature: Feature<Geometry>, type: MapFeatureTypes) => {
         jaiaDispatch({
             type: JaiaActions.CLICKED_TASK_PACKET,
@@ -307,6 +363,13 @@ export default function Map() {
         });
     };
 
+    /**
+     * Dispatches action to display the 3D depth map. If a mission is
+     * in edit mode, a waypoint will be added instead.
+     *
+     * @param {MapBrowserEvent<PointerEvent>} event Contains click coordinate
+     * @returns {void}
+     */
     const handleDepthContourClick = (event: MapBrowserEvent<PointerEvent>) => {
         if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
             handleAddWaypointClick(event.coordinate);
@@ -319,6 +382,16 @@ export default function Map() {
         }
     };
 
+    /**
+     * Dispatches action to move the selected waypoint on the map
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     *
+     * @notes
+     * We convert click coordinate to lat/lon. The click
+     * coordinate is based on the map's projection.
+     */
     const handleMoveWaypointClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         jaiaDispatch({
@@ -327,6 +400,12 @@ export default function Map() {
         });
     };
 
+    /**
+     * Dispatches action to select a zone vertex for editing
+     *
+     * @param {Feature} feature Clicked zone vertex feature containing zoneID and vertexIndex
+     * @returns {void}
+     */
     const handleZoneVertexClick = (feature: Feature) => {
         jaiaDispatch({
             type: JaiaActions.SELECT_ZONE_VERTEX,
@@ -335,6 +414,12 @@ export default function Map() {
         });
     };
 
+    /**
+     * Dispatches action to move the selected zone vertex to the click location
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
     const handleMoveZoneVertexClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         jaiaDispatch({
@@ -343,6 +428,12 @@ export default function Map() {
         });
     };
 
+    /**
+     * Dispatches action to add a vertex to the zone currently in edit mode
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
     const handleAddZoneVertexClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         jaiaDispatch({
@@ -356,6 +447,9 @@ export default function Map() {
      * Adds a waypoint to the current mission, routing around any exclusion zones
      * that the new segment would cross. If a crossing is detected, shows a dialog
      * so the operator can confirm (with bypass waypoints) or cancel.
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
      */
     const handleAddWaypointClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
@@ -413,6 +507,11 @@ export default function Map() {
         jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location: newLocation });
     };
 
+    /**
+     * Confirms the zone crossing dialog and dispatches bypass and destination waypoints
+     *
+     * @returns {void}
+     */
     const onZoneCrossingConfirm = () => {
         if (!zoneCrossing) return;
         // Build Waypoint objects so bypass waypoints carry their name through to the map layer.
@@ -429,6 +528,11 @@ export default function Map() {
         setZoneCrossing(null);
     };
 
+    /**
+     * Cancels the zone crossing dialog without adding any waypoints
+     *
+     * @returns {void}
+     */
     const onZoneCrossingCancel = () => setZoneCrossing(null);
 
     return (

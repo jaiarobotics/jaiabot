@@ -26,6 +26,8 @@ let originalSelectedZoneVertex = { ...jaiaGlobal.getSelectedZoneVertex() };
 
 /**
  * Displays information about the selected zone vertex such as location
+ *
+ * @returns {JSX.Element | null} The zone vertex panel, or null if no vertex is selected
  */
 export default function ZoneVertexPanel() {
     const jaiaContext = useContext(JaiaContext);
@@ -38,16 +40,31 @@ export default function ZoneVertexPanel() {
     const [priorZoneID, setPriorZoneID] = useState<number | null>(null);
     const [priorZoneVertices, setPriorZoneVertices] = useState(null);
 
+    /**
+     * Retrieves the currently selected zone vertex from context
+     *
+     * @returns {SelectedZoneVertex} The currently selected zone vertex
+     */
     const getSelectedZoneVertex = () => {
         return jaiaContext.jaiaGlobal.getSelectedZoneVertex();
     };
 
+    /**
+     * Retrieves the exclusion zone associated with the selected vertex
+     *
+     * @returns {ExclusionZone | undefined} The zone if one is selected, otherwise undefined
+     */
     const getZone = () => {
         const selectedVertex = getSelectedZoneVertex();
         if (selectedVertex.zoneID === UNASSIGNED_ID) return undefined;
         return jaiaContext.exclusionZoneSet.getZone(selectedVertex.zoneID);
     };
 
+    /**
+     * Retrieves the lat/lon location of the currently selected zone vertex
+     *
+     * @returns {{ lat: number; lon: number }} The vertex location, or {lat: 0, lon: 0} if unresolvable
+     */
     const getVertexLocation = () => {
         const selectedVertex = getSelectedZoneVertex();
         const zone = getZone();
@@ -86,6 +103,13 @@ export default function ZoneVertexPanel() {
         }
     }, [selectedZoneID, selectedVertexIndex]);
 
+    /**
+     * Compares two selected zone vertex objects for equality by zoneID and vertexIndex
+     *
+     * @param {any} a First selected zone vertex
+     * @param {any} b Second selected zone vertex
+     * @returns {boolean} True if both have the same zoneID and vertexIndex
+     */
     const compareSelectedZoneVertices = (a: any, b: any) => {
         return a?.zoneID === b?.zoneID && a?.vertexIndex === b?.vertexIndex;
     };
@@ -94,6 +118,8 @@ export default function ZoneVertexPanel() {
      * Compares the lat stored in state and context. If the value in context
      * is different, the vertex has moved via a mechanism outside of the input box
      * such as "tap to move". The function syncs the two sources.
+     *
+     * @returns {string} The current latitude input value
      */
     const getLatInput = () => {
         const location = getVertexLocation();
@@ -115,6 +141,8 @@ export default function ZoneVertexPanel() {
      * Compares the lon stored in state and context. If the value in context
      * is different, the vertex has moved via a mechanism outside of the input box
      * such as "tap to move". The function syncs the two sources.
+     *
+     * @returns {string} The current longitude input value
      */
     const getLonInput = () => {
         const location = getVertexLocation();
@@ -132,6 +160,12 @@ export default function ZoneVertexPanel() {
         return lonInput;
     };
 
+    /**
+     * Updates the zone vertex position when the lat or lon input changes
+     *
+     * @param {ChangeEvent<HTMLInputElement>} evt Input change event containing the new coordinate value
+     * @returns {void}
+     */
     const handleCoordinateChange = (evt: ChangeEvent<HTMLInputElement>) => {
         let lat = latInput;
         let lon = lonInput;
@@ -165,6 +199,11 @@ export default function ZoneVertexPanel() {
         });
     };
 
+    /**
+     * Dispatches action to toggle edit mode for the selected zone
+     *
+     * @returns {void}
+     */
     const handleEditZoneClick = () => {
         const selectedVertex = getSelectedZoneVertex();
         jaiaDispatch({
@@ -174,12 +213,22 @@ export default function ZoneVertexPanel() {
         });
     };
 
+    /**
+     * Dispatches action to toggle tap-to-move for the selected zone vertex
+     *
+     * @returns {void}
+     */
     const handleTapToMoveClick = () => {
         jaiaDispatch({
             type: JaiaActions.TOGGLE_ZONE_VERTEX_TAP_TO_MOVE,
         });
     };
 
+    /**
+     * Determines whether the tap-to-move toggle should be disabled
+     *
+     * @returns {boolean} True if tap-to-move should be disabled
+     */
     const isTapToMoveDisabled = () => {
         if (jaiaContext.jaiaGlobal.getMapMode() === MapModes.CONSTANT_HEADING_SELECT) {
             return true;
@@ -188,6 +237,11 @@ export default function ZoneVertexPanel() {
         return jaiaContext.jaiaGlobal.getZoneInEditMode() !== selectedVertex.zoneID;
     };
 
+    /**
+     * Dispatches action to delete the currently selected zone vertex
+     *
+     * @returns {void}
+     */
     const handleDeleteVertex = () => {
         const selectedVertex = getSelectedZoneVertex();
         jaiaDispatch({
@@ -198,7 +252,10 @@ export default function ZoneVertexPanel() {
     };
 
     /**
-     * Handles closing the panel
+     * Dispatches action to close the zone vertex panel, optionally restoring prior vertices on cancel
+     *
+     * @param {PanelActions} panelAction Determines whether to save or cancel vertex changes
+     * @returns {void}
      */
     const handleClosePanelClick = (panelAction: PanelActions) => {
         const selectedVertex = getSelectedZoneVertex();
