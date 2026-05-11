@@ -2,6 +2,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { useContext } from "react";
 import { JaiaContext } from "../../../context/JaiaContext";
 import "./DataOffloadQueue.less";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 
 interface Props {
     botID: number;
@@ -38,7 +39,7 @@ export default function DataOffloadQueue() {
     };
 
     const botOffload = hub.getBotOffload();
-    if (botOffload) {
+    if (botOffload && botOffload.bot_id !== UNASSIGNED_ID) {
         return (
             <div className="data-offload-queue">
                 <QueueItem

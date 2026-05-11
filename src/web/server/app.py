@@ -396,33 +396,35 @@ def delete_map(map_name: str):
     map_tile_server.delete_map(map_name)
     return Response(status=HTTPStatus.OK)
 
-@app.route('/ctd-profiles/<bot_id>', methods=['GET', 'DELETE'])
-def get_ctd_profiles(bot_id: str):
+@app.route('/ctd-profiles')
+def get_ctd_profiles():
     """Provides access to CTD files on the Hub
-    
-    Args:
-        bot_id (int): Indicates which CTD to make accessible
     """
-    dir = Path("/var/log/jaiabot/bot_offload/ctd/") / bot_id
-    if request.method == "GET":
-        files = list(dir.glob("*.unb")) if dir.exists() else []
-        file = io.BytesIO()
-        with zipfile.ZipFile(file, "w", zipfile.ZIP_DEFLATED) as zf:
-            for path in files:
-                zf.write(path, arcname=path.name)
-        file.seek(0)
-        zip_name = f"ctd-bot-{bot_id}.zip"
-        return send_file(
-            file,
-            as_attachment=True,
-            download_name=zip_name,
-            mimetype="application/zip",
-        )
+    dir = Path("/var/log/jaiabot/bot_offload")
+    files = list(dir.glob("*.unb")) if dir.exists() else []
 
-    if request.method == "DELETE":
-        if dir.exists():
-            shutil.rmtree(dir)
-            return Response(status=HTTPStatus.OK)
+    if len(files) == 0:
+        return Response(status=HTTPStatus.NO_CONTENT)
+
+    zip_file = io.BytesIO()
+    with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in files:
+            zf.write(path, arcname=path.name)
+    zip_file.seek(0)
+    zip_name = "jaia-ctd.zip"
+
+    # Move zipped files to archive so they are not re-zipped
+    ctd_archive = dir / "ctd_archive"
+    ctd_archive.mkdir(parents=True, exist_ok=True)
+    for ctd_file in files:
+        shutil.move(str(ctd_file), ctd_archive / ctd_file.name);
+    
+    return send_file(
+        zip_file,
+        as_attachment=True,
+        download_name=zip_name,
+        mimetype="application/zip",
+    )
 
 if __name__ == '__main__':
     print(f"JCC: connect to http://127.0.0.1:{args.web_port}")
