@@ -8,4 +8,5 @@ export enum DisabledCodes {
     NO_MISSION = 7,
     LOW_BATTERY = 8,
     STARTING_UP = 9,
+    INSUFFICIENT_BATTERY = 10,
 }
