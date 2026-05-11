@@ -280,15 +280,9 @@ export class JaiaAPI {
         });
     }
 
-    async getCTDProfiles(botID: number) {
-        return fetch(`ctd-profiles/${botID}`, {
+    async getCTDProfiles() {
+        return fetch("ctd-profiles", {
             method: "GET",
-        });
-    }
-
-    async deleteCTDProfiles(botID: number) {
-        return fetch(`ctd-profiles/${botID}`, {
-            method: "DELETE",
         });
     }
 
