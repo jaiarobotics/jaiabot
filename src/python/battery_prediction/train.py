@@ -26,7 +26,6 @@ FEATURES = [
     "motor_energy_proxy",
     "num_dives",
     "total_depth_m",
-    "mean_water_temp_C",
     "starting_battery_pct",
 ]
 TARGET = "battery_drain_pct"
