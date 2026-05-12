@@ -19,24 +19,24 @@ export interface BatteryPrediction {
  * @param {number} lon2 Longitude of the second point in degrees
  * @returns {number} Distance between the two points in meters
  */
-function haversine_m(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const to_rad = Math.PI / 180;
-    const dlat = (lat2 - lat1) * to_rad;
-    const dlon = (lon2 - lon1) * to_rad;
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const toRad = Math.PI / 180;
+    const dlat = (lat2 - lat1) * toRad;
+    const dlon = (lon2 - lon1) * toRad;
     const h =
         Math.sin(dlat / 2) ** 2 +
-        Math.cos(lat1 * to_rad) * Math.cos(lat2 * to_rad) * Math.sin(dlon / 2) ** 2;
+        Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dlon / 2) ** 2;
     return 2 * EARTH_R * Math.asin(Math.sqrt(Math.min(1, h)));
 }
 
 /**
  * Converts a BotType enum value to the integer used by the prediction model
  *
- * @param {BotType} bot_type The bot's hardware type
+ * @param {BotType} botType The bot's hardware type
  * @returns {number} Integer representation of the bot type expected by the model
  */
-function bot_type_to_int(bot_type: BotType): number {
-    switch (bot_type) {
+function botTypeToInt(botType: BotType): number {
+    switch (botType) {
         case BotType.ECHO:
             return 2;
         default:
@@ -58,26 +58,26 @@ export async function fetchBatteryPrediction(
 ): Promise<BatteryPrediction | null> {
     const waypoints = mission.getWaypoints();
 
-    let total_distance_m = 0;
+    let totalDistanceM = 0;
     for (let i = 0; i < waypoints.length - 1; i++) {
         const a = waypoints[i].getLocation();
         const b = waypoints[i + 1].getLocation();
         if (a?.lat != null && a?.lon != null && b?.lat != null && b?.lon != null) {
-            total_distance_m += haversine_m(a.lat, a.lon, b.lat, b.lon);
+            totalDistanceM += haversineMeters(a.lat, a.lon, b.lat, b.lon);
         }
     }
 
-    const transit_speed = mission.getSpeeds()?.transit ?? DEFAULT_TRANSIT_SPEED_M_S;
-    const duration_s = transit_speed > 0 ? total_distance_m / transit_speed : 0;
-    const motor_energy_proxy = total_distance_m * transit_speed;
+    const transitSpeed = mission.getSpeeds()?.transit ?? DEFAULT_TRANSIT_SPEED_M_S;
+    const durationS = transitSpeed > 0 ? totalDistanceM / transitSpeed : 0;
+    const motorEnergyProxy = totalDistanceM * transitSpeed;
 
-    let num_dives = 0;
-    let total_depth_m = 0;
+    let numDives = 0;
+    let totalDepthM = 0;
     for (const waypoint of waypoints) {
         const task = waypoint.getTask();
         if (task?.getType() === TaskType.DIVE) {
-            num_dives++;
-            total_depth_m += task.getDiveParameters()?.max_depth ?? 0;
+            numDives++;
+            totalDepthM += task.getDiveParameters()?.max_depth ?? 0;
         }
     }
 
@@ -86,11 +86,11 @@ export async function fetchBatteryPrediction(
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                bot_type: bot_type_to_int(bot.getBotType()),
-                duration_s,
-                motor_energy_proxy,
-                num_dives,
-                total_depth_m,
+                bot_type: botTypeToInt(bot.getBotType()),
+                duration_s: durationS,
+                motor_energy_proxy: motorEnergyProxy,
+                num_dives: numDives,
+                total_depth_m: totalDepthM,
                 starting_battery_pct: bot.getBatteryPercent(),
             }),
         });
