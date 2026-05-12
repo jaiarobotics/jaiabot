@@ -140,7 +140,7 @@ struct InMission
             {
                 if ((int)mission_plan.segments(i).start_goal_index() - 1 <= goal_index_)
                 {
-                    active_seg = &plan.segments(i);
+                    active_seg = &mission_plan.segments(i);
                     active_seg_idx = i;
                 }
                 else
