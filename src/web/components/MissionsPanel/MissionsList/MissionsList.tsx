@@ -29,7 +29,8 @@ import {
 
 import "./MissionsList.less";
 
-interface Props {
+// Shared prop for components that only need to identify a mission by ID
+interface MissionAccordionTitleProps {
     missionID: number;
 }
 
@@ -310,7 +311,7 @@ function MissionStats(props: MissionStatsProps) {
  * @param {number} props.missionID Used to look up the assigned bot
  * @returns {JSX.Element} Mission ID and bot assignment labels
  */
-function MissionAccordionTitle(props: Props) {
+function MissionAccordionTitle(props: MissionAccordionTitleProps) {
     const assignedBotID = missionsManager.getBotID(props.missionID) ?? -1;
     return (
         <div className="mission-accordion-title">
