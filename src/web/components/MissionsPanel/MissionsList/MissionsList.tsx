@@ -180,7 +180,7 @@ export default function MissionsList() {
  */
 function MissionAccordion(props: MissionAccordionProps) {
     const jaiaContext = useContext(JaiaContext);
-    const [disabledCode, setDisabledCode] = useState<DisabledCodes>(DisabledCodes.NONE);
+    const [disabledCode, setDisabledCode] = useState<DisabledCodes>(DisabledCodes.NO_MISSION);
     const [prediction, setPrediction] = useState<BatteryPrediction | null>(null);
 
     const assignedBotID = missionsManager.getBotID(props.missionID) ?? UNASSIGNED_ID;
