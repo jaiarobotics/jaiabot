@@ -49,6 +49,11 @@ interface MissionStatsProps {
     prediction: BatteryPrediction | null;
 }
 
+/**
+ * Renders the list of mission accordions for the operator to manage
+ *
+ * @returns {JSX.Element} List of mission accordions
+ */
 export default function MissionsList() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -207,6 +212,11 @@ function MissionAccordion(props: MissionAccordionProps) {
         return () => clearTimeout(timer);
     }, [props.missionKey, assignedBotID]);
 
+    /**
+     * Determines the CSS class for the accordion summary based on the mission's disabled code
+     *
+     * @returns {string} CSS class name reflecting the mission's health state
+     */
     const getSummaryClass = () => {
         if (disabledCode === DisabledCodes.NO_MISSION) {
             return "mission-accordion-summary mission-accordion-summary--unassigned";
