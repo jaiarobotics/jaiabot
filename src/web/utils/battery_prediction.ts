@@ -57,6 +57,7 @@ export async function fetchBatteryPrediction(
     bot: Bot,
 ): Promise<BatteryPrediction | null> {
     const waypoints = mission.getWaypoints();
+    const repeats = mission.getRepeats() ?? 1;
 
     let totalDistanceM = 0;
     for (let i = 0; i < waypoints.length - 1; i++) {
@@ -66,6 +67,7 @@ export async function fetchBatteryPrediction(
             totalDistanceM += haversineMeters(a.lat, a.lon, b.lat, b.lon);
         }
     }
+    totalDistanceM *= repeats;
 
     const transitSpeed = mission.getSpeeds()?.transit ?? DEFAULT_TRANSIT_SPEED_M_S;
     const durationS = transitSpeed > 0 ? totalDistanceM / transitSpeed : 0;
@@ -80,6 +82,8 @@ export async function fetchBatteryPrediction(
             totalDepthM += task.getDiveParameters()?.max_depth ?? 0;
         }
     }
+    numDives *= repeats;
+    totalDepthM *= repeats;
 
     try {
         const response = await fetch("/battery-prediction", {
