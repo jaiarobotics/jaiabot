@@ -535,18 +535,29 @@ def battery_prediction():
 @app.route('/battery-prediction', methods=['POST'])
 def battery_prediction():
     body = request.get_json()
-    required = ['bot_type', 'duration_s', 'motor_energy_proxy', 'num_dives', 'total_depth_m', 'starting_battery_pct']
+    required = [
+        'bot_type', 'transit_energy_wh', 'transit_time_s',
+        'turn_density_deg_per_km',
+        'drift_total_s', 'station_keep_total_s',
+        'dive_count', 'mean_dive_depth_m', 'dive_hold_s', 'dive_hold_stops',
+        'starting_battery_pct',
+    ]
     missing = [k for k in required if k not in body]
     if missing:
         return ErrorResponse(HTTPStatus.BAD_REQUEST, f"Missing fields: {missing}", 1)
 
     try:
         drain = battery_predict_drain(
-            bot_type=float(body['bot_type']),
-            duration_s=float(body['duration_s']),
-            motor_energy_proxy=float(body['motor_energy_proxy']),
-            num_dives=int(body['num_dives']),
-            total_depth_m=float(body['total_depth_m']),
+            bot_type=int(body['bot_type']),
+            transit_energy_wh=float(body['transit_energy_wh']),
+            transit_time_s=float(body['transit_time_s']),
+            turn_density_deg_per_km=float(body['turn_density_deg_per_km']),
+            drift_total_s=float(body['drift_total_s']),
+            station_keep_total_s=float(body['station_keep_total_s']),
+            dive_count=int(body['dive_count']),
+            mean_dive_depth_m=float(body['mean_dive_depth_m']),
+            dive_hold_s=float(body['dive_hold_s']),
+            dive_hold_stops=int(body['dive_hold_stops']),
             starting_battery_pct=float(body['starting_battery_pct']),
         )
         starting = float(body['starting_battery_pct'])

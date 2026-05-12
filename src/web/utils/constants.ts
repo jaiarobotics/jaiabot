@@ -17,6 +17,7 @@ export const OSM_MAX_ZOOM = 19;
 export const ARC_GIS_MAX_ZOOM = 19;
 export const SCROLL_DELAY = 30; // milliseconds
 export const MIN_BATTERY_PERCENT = 20;
+export const BOTTOM_DIVE_DEPTH_PRIOR_M = 10;
 export const MAX_LAT = 90;
 export const MIN_LAT = -90;
 export const MAX_LON = 180;

@@ -17,15 +17,38 @@ def _load_model():
 
 def predict_drain(
     bot_type: int,
-    duration_s: float,
-    motor_energy_proxy: float,
-    num_dives: int,
-    total_depth_m: float,
+    transit_energy_wh: float,
+    total_turn_angle_deg: float,
+    mean_turn_angle_deg: float,
+    mean_waypoint_spacing_m: float,
+    drift_count: int,
+    drift_total_s: float,
+    station_keep_count: int,
+    station_keep_total_s: float,
+    dive_count: int,
+    dive_depth_m: float,
+    dive_hold_s: float,
+    dive_hold_stops: int,
     starting_battery_pct: float,
 ) -> float:
     _load_model()
     x = np.array(
-        [[bot_type, duration_s, motor_energy_proxy, num_dives, total_depth_m, starting_battery_pct]],
+        [[
+            bot_type,
+            transit_energy_wh,
+            total_turn_angle_deg,
+            mean_turn_angle_deg,
+            mean_waypoint_spacing_m,
+            drift_count,
+            drift_total_s,
+            station_keep_count,
+            station_keep_total_s,
+            dive_count,
+            dive_depth_m,
+            dive_hold_s,
+            dive_hold_stops,
+            starting_battery_pct,
+        ]],
         dtype=float,
     )
     return float(_model.predict(x)[0])
