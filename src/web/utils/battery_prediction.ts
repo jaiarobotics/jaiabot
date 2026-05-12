@@ -65,24 +65,20 @@ function estimatedTransitEnergyWh(distanceM: number, speedMs: number): number {
 }
 
 /**
- * Computes total turn angle and mean waypoint spacing from a sequence of locations
+ * Computes turning geometry features from a sequence of waypoint locations
  *
  * @param {Array} locs Array of {lat, lon} waypoint locations in degrees
- * @returns {{ totalTurnAngleDeg: number; meanWaypointSpacingM: number }} Geometry summary
+ * @returns {{ totalTurnAngleDeg: number; meanTurnAngleDeg: number; turnDensityDegPerKm: number }} Geometry summary
  */
 function waypointGeometry(locs: { lat: number; lon: number }[]): {
-    totalTurnAngleDeg: number;
-    meanTurnAngleDeg: number;
-    meanWaypointSpacingM: number;
+    turnDensityDegPerKm: number;
 } {
-    if (locs.length < 2)
-        return { totalTurnAngleDeg: 0, meanTurnAngleDeg: 0, meanWaypointSpacingM: 0 };
+    if (locs.length < 3) return { turnDensityDegPerKm: 0 };
     const dists: number[] = [];
     for (let i = 0; i < locs.length - 1; i++) {
         dists.push(haversineMeters(locs[i].lat, locs[i].lon, locs[i + 1].lat, locs[i + 1].lon));
     }
-    const meanWaypointSpacingM = dists.reduce((a, b) => a + b, 0) / dists.length;
-    if (locs.length < 3) return { totalTurnAngleDeg: 0, meanTurnAngleDeg: 0, meanWaypointSpacingM };
+    const totalDistanceKm = dists.reduce((a, b) => a + b, 0) / 1000;
     const avgLatRad = (locs.reduce((s, l) => s + l.lat, 0) / locs.length) * (Math.PI / 180);
     const toRad = Math.PI / 180;
     const dx = locs
@@ -102,8 +98,8 @@ function waypointGeometry(locs: { lat: number; lon: number }[]): {
         }
     }
     const totalTurnAngleDeg = turnAngles.reduce((a, b) => a + b, 0);
-    const meanTurnAngleDeg = turnAngles.length > 0 ? totalTurnAngleDeg / turnAngles.length : 0;
-    return { totalTurnAngleDeg, meanTurnAngleDeg, meanWaypointSpacingM };
+    const turnDensityDegPerKm = totalDistanceKm > 0 ? totalTurnAngleDeg / totalDistanceKm : 0;
+    return { turnDensityDegPerKm };
 }
 
 /**
@@ -134,17 +130,25 @@ export async function fetchBatteryPrediction(
     bot: Bot,
 ): Promise<BatteryPrediction | null> {
     const waypoints = mission.getWaypoints();
+    if (waypoints.length === 0) return null;
+
     const repeats = mission.getRepeats() ?? 1;
 
     const transitSpeed = mission.getSpeeds()?.transit ?? DEFAULT_TRANSIT_SPEED_M_S;
-    let transitEnergyWh = 0;
+    // Separate bot→first leg from plan-internal energy so we can scale them
+    // differently when `repeats > 1`. The bot→first leg only happens once;
+    // plan-internal legs and CONSTANT_HEADING contributions are paid per pass.
+    let toFirstEnergyWh = 0;
+    let singlePassEnergyWh = 0;
+    let toFirstDistanceM = 0;
+    let singlePassDistanceM = 0;
+    let singlePassExtraTimeS = 0; // CONSTANT_HEADING durations per pass
+    let firstWaypointSeen = false;
     let diveCount = 0;
     let diveDepthM = 0;
     let diveHoldS = 0;
     let diveHoldStops = 0;
-    let driftCount = 0;
     let driftTotalS = 0;
-    let stationKeepCount = 0;
     let stationKeepTotalS = 0;
 
     const botLoc = bot.getLocation();
@@ -155,11 +159,17 @@ export async function fetchBatteryPrediction(
         const loc = waypoint.getLocation();
         if (loc?.lat != null && loc?.lon != null) {
             if (curLat != null && curLon != null) {
-                transitEnergyWh += estimatedTransitEnergyWh(
-                    haversineMeters(curLat, curLon, loc.lat, loc.lon),
-                    transitSpeed,
-                );
+                const legDistance = haversineMeters(curLat, curLon, loc.lat, loc.lon);
+                const legEnergy = estimatedTransitEnergyWh(legDistance, transitSpeed);
+                if (!firstWaypointSeen) {
+                    toFirstEnergyWh += legEnergy;
+                    toFirstDistanceM += legDistance;
+                } else {
+                    singlePassEnergyWh += legEnergy;
+                    singlePassDistanceM += legDistance;
+                }
             }
+            firstWaypointSeen = true;
             curLat = loc.lat;
             curLon = loc.lon;
         }
@@ -185,7 +195,8 @@ export async function fetchBatteryPrediction(
             const chHeadingDeg = chParams?.constant_heading ?? 0;
             if (chSpeed > 0 && chTime > 0 && curLat != null && curLon != null) {
                 const chDistM = chSpeed * chTime;
-                transitEnergyWh += estimatedTransitEnergyWh(chDistM, chSpeed);
+                singlePassEnergyWh += estimatedTransitEnergyWh(chDistM, chSpeed);
+                singlePassExtraTimeS += chTime;
                 const headingRad = (chHeadingDeg * Math.PI) / 180;
                 curLat += (chDistM * Math.cos(headingRad) * 180) / (Math.PI * EARTH_R);
                 curLon +=
@@ -193,10 +204,8 @@ export async function fetchBatteryPrediction(
                     (Math.PI * EARTH_R * Math.cos((curLat * Math.PI) / 180));
             }
         } else if (taskType === TaskType.SURFACE_DRIFT) {
-            driftCount++;
             driftTotalS += task.getDriftParameters()?.drift_time ?? 0;
         } else if (taskType === TaskType.STATION_KEEP) {
-            stationKeepCount++;
             stationKeepTotalS += task.getStationKeepParameters()?.station_keep_time ?? 0;
         }
     }
@@ -204,10 +213,11 @@ export async function fetchBatteryPrediction(
     const waypointLocs = waypoints
         .map((wp) => wp.getLocation())
         .filter((loc): loc is { lat: number; lon: number } => loc?.lat != null && loc?.lon != null);
-    const { totalTurnAngleDeg, meanTurnAngleDeg, meanWaypointSpacingM } =
-        waypointGeometry(waypointLocs);
+    const { turnDensityDegPerKm } = waypointGeometry(waypointLocs);
 
     // Return leg from last position back to first waypoint, paid (repeats-1) times
+    let returnEnergyWh = 0;
+    let returnDistanceM = 0;
     const firstLoc = waypoints[0]?.getLocation();
     if (
         repeats > 1 &&
@@ -216,21 +226,26 @@ export async function fetchBatteryPrediction(
         curLat != null &&
         curLon != null
     ) {
-        const returnDistM = haversineMeters(curLat, curLon, firstLoc.lat, firstLoc.lon);
-        transitEnergyWh =
-            transitEnergyWh * repeats +
-            estimatedTransitEnergyWh(returnDistM, transitSpeed) * (repeats - 1);
-    } else {
-        transitEnergyWh *= repeats;
+        returnDistanceM = haversineMeters(curLat, curLon, firstLoc.lat, firstLoc.lon);
+        returnEnergyWh = estimatedTransitEnergyWh(returnDistanceM, transitSpeed);
     }
+    const transitEnergyWh =
+        toFirstEnergyWh + singlePassEnergyWh * repeats + returnEnergyWh * (repeats - 1);
     diveCount *= repeats;
     diveDepthM *= repeats;
     diveHoldS *= repeats;
     diveHoldStops *= repeats;
-    driftCount *= repeats;
     driftTotalS *= repeats;
-    stationKeepCount *= repeats;
     stationKeepTotalS *= repeats;
+
+    const meanDiveDepthM = diveCount > 0 ? diveDepthM / diveCount : 0;
+    // Transit time: drives both motor energy (already in transitEnergyWh) and
+    // hotel load while moving. Sent separately from dive_hold / drift /
+    // station_keep durations because each phase has a different power draw.
+    const singlePassTimeS = singlePassDistanceM / transitSpeed + singlePassExtraTimeS;
+    const toFirstTimeS = toFirstDistanceM / transitSpeed;
+    const returnTimeS = returnDistanceM / transitSpeed;
+    const transitTimeS = toFirstTimeS + singlePassTimeS * repeats + returnTimeS * (repeats - 1);
 
     try {
         const response = await fetch("/battery-prediction", {
@@ -239,15 +254,12 @@ export async function fetchBatteryPrediction(
             body: JSON.stringify({
                 bot_type: botTypeToInt(bot.getBotType()),
                 transit_energy_wh: transitEnergyWh,
-                total_turn_angle_deg: totalTurnAngleDeg,
-                mean_turn_angle_deg: meanTurnAngleDeg,
-                mean_waypoint_spacing_m: meanWaypointSpacingM,
-                drift_count: driftCount,
+                transit_time_s: transitTimeS,
+                turn_density_deg_per_km: turnDensityDegPerKm,
                 drift_total_s: driftTotalS,
-                station_keep_count: stationKeepCount,
                 station_keep_total_s: stationKeepTotalS,
                 dive_count: diveCount,
-                dive_depth_m: diveDepthM,
+                mean_dive_depth_m: meanDiveDepthM,
                 dive_hold_s: diveHoldS,
                 dive_hold_stops: diveHoldStops,
                 starting_battery_pct: bot.getBatteryPercent(),

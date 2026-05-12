@@ -532,47 +532,6 @@ def battery_prediction():
         return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
 
 
-@app.route('/battery-prediction', methods=['POST'])
-def battery_prediction():
-    body = request.get_json()
-    required = [
-        'bot_type', 'transit_energy_wh', 'transit_time_s',
-        'turn_density_deg_per_km',
-        'drift_total_s', 'station_keep_total_s',
-        'dive_count', 'mean_dive_depth_m', 'dive_hold_s', 'dive_hold_stops',
-        'starting_battery_pct',
-    ]
-    missing = [k for k in required if k not in body]
-    if missing:
-        return ErrorResponse(HTTPStatus.BAD_REQUEST, f"Missing fields: {missing}", 1)
-
-    try:
-        drain = battery_predict_drain(
-            bot_type=int(body['bot_type']),
-            transit_energy_wh=float(body['transit_energy_wh']),
-            transit_time_s=float(body['transit_time_s']),
-            turn_density_deg_per_km=float(body['turn_density_deg_per_km']),
-            drift_total_s=float(body['drift_total_s']),
-            station_keep_total_s=float(body['station_keep_total_s']),
-            dive_count=int(body['dive_count']),
-            mean_dive_depth_m=float(body['mean_dive_depth_m']),
-            dive_hold_s=float(body['dive_hold_s']),
-            dive_hold_stops=int(body['dive_hold_stops']),
-            starting_battery_pct=float(body['starting_battery_pct']),
-        )
-        starting = float(body['starting_battery_pct'])
-        return Response(
-            json.dumps({
-                'predicted_drain_pct': round(drain, 1),
-                'predicted_final_pct': round(starting - drain, 1),
-            }),
-            status=HTTPStatus.OK,
-            mimetype='application/json',
-        )
-    except Exception as e:
-        return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
-
-
 if __name__ == '__main__':
     print(f"JCC: connect to http://127.0.0.1:{args.web_port}")
     app.run(host='0.0.0.0', port=args.web_port, debug=False)

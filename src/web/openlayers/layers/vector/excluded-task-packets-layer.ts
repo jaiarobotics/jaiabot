@@ -18,7 +18,7 @@ class ExcludedTaskPacketsLayer extends JaiaVectorLayer {
     }
 
     /**
-     * Updates the excluded task packets layer with the lastest excluded task packets
+     * Updates the excluded task packets layer with the latest excluded task packets
      *
      * @returns {void}
      */
