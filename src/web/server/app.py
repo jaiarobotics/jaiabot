@@ -235,6 +235,69 @@ def update_mission_list():
     return JSONResponse([])
 
 
+######## Exclusion zone sets
+
+# Respect jaia_log_dir so simulation and runtime each store in their own directory.
+_LOG_DIR = Path(os.environ.get('jaia_log_dir', '/var/log/jaiabot'))
+EXCLUSION_ZONES_DIR = _LOG_DIR / 'exclusion-zones'
+
+
+def _zone_set_path(name: str) -> Path:
+    """Returns the filesystem path for a named exclusion zone set.
+
+    Raises ValueError if the name contains characters that could allow
+    directory traversal or other path manipulation.
+    """
+    if not name or '/' in name or '\\' in name or name.startswith('.') or '..' in name:
+        raise ValueError(f"Invalid zone set name: {name!r}")
+    return EXCLUSION_ZONES_DIR / f"{name}.json"
+
+
+@app.route('/jaia/v0/exclusion-zones', methods=['GET'])
+def list_exclusion_zones():
+    """Returns a sorted list of saved exclusion zone set names."""
+    EXCLUSION_ZONES_DIR.mkdir(parents=True, exist_ok=True)
+    names = sorted(p.stem for p in EXCLUSION_ZONES_DIR.glob("*.json"))
+    return JaiaResponse(names)
+
+
+@app.route('/jaia/v0/exclusion-zones/<name>', methods=['GET'])
+def get_exclusion_zone(name: str):
+    """Returns the saved exclusion zone set with the given name."""
+    try:
+        path = _zone_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    if not path.exists():
+        return ErrorResponse(HTTPStatus.NOT_FOUND, f"Zone set not found: {name!r}")
+    return JSONResponse(string=path.read_text())
+
+
+@app.route('/jaia/v0/exclusion-zones/<name>', methods=['POST'])
+def save_exclusion_zone(name: str):
+    """Saves (or overwrites) a named exclusion zone set."""
+    try:
+        path = _zone_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    EXCLUSION_ZONES_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(request.get_data(as_text=True))
+    return JSONResponse({"status": "ok"})
+
+
+@app.route('/jaia/v0/exclusion-zones/<name>', methods=['DELETE'])
+def delete_exclusion_zone(name: str):
+    """Deletes a named exclusion zone set."""
+    try:
+        path = _zone_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    if not path.exists():
+        return ErrorResponse(HTTPStatus.NOT_FOUND, f"Zone set not found: {name!r}")
+    path.unlink()
+    return JSONResponse({"status": "ok"})
+
+
 ######## Jaiabot Engineer & Debug
 
 @app.route('/jed/<path>', methods=['GET'])

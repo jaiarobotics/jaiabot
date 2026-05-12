@@ -6,6 +6,7 @@ import { Coordinate } from "ol/coordinate";
 import { layers } from "../layers/layers";
 import { gridLayer } from "../layers/vector/grid-layer";
 import { measureLayer } from "../layers/vector/measure-layer";
+import { exclusionZoneLayer } from "../layers/vector/exclusion-zone-layer";
 import { touches } from "../controls/touches";
 import { controls } from "../controls/controls";
 import { view } from "../views/view";
@@ -61,6 +62,9 @@ export function handleMapModeChange(mapMode: MapModes) {
         case MapModes.MEASURE:
             map.addInteraction(measureLayer.createDrawInteraction());
             break;
+        case MapModes.EXCLUSION_ZONE_DRAWING:
+            map.addInteraction(exclusionZoneLayer.createDrawInteraction());
+            break;
         default:
             changeCursor(Cursors.DEFAULT);
     }
@@ -68,6 +72,11 @@ export function handleMapModeChange(mapMode: MapModes) {
     if (mapMode !== MapModes.MEASURE) {
         map.removeInteraction(measureLayer.getDraw());
         measureLayer.clearDrawInteraction();
+    }
+
+    if (mapMode !== MapModes.EXCLUSION_ZONE_DRAWING) {
+        map.removeInteraction(exclusionZoneLayer.getDraw());
+        exclusionZoneLayer.clearDrawInteraction();
     }
 
     if (
