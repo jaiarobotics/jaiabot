@@ -46,6 +46,11 @@ import io
 import spidev
 import systemd.daemon
 
+import logging
+
+lg = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="[%(levelname)7s] %(message)s")
+
 # ------------- UBX helpers -------------
 
 def ubx_packet(cls: int, msgid: int, payload: bytes = b"") -> bytes:
@@ -104,7 +109,7 @@ def read_spi_response(spi, timeout_ms: int = 500) -> Optional[bytes]:
             if verify_checksum(packet):
                 return packet
 
-            print(f"  Checksum failed on candidate packet: {packet.hex()}")
+            lg.warning(f"  Checksum failed on candidate packet: {packet.hex()}")
             buffer = buffer[2:]
 
         time.sleep(0.005)
@@ -155,7 +160,7 @@ def wait_for_ack(spi, msg_class: int, msg_id: int, timeout_ms: int = 1000) -> bo
             acked_id  = packet[7]
             if acked_cls == msg_class and acked_id == msg_id:
                 msg_name = msg_names.get((acked_cls, acked_id), f"class={acked_cls:#04x} id={acked_id:#04x}")
-                print(f"  ACK received for {msg_name}")
+                lg.info(f"  ACK received for {msg_name}")
                 return True
 
         elif cls == 0x05 and mid == 0x00:  # ACK-NAK
@@ -163,7 +168,7 @@ def wait_for_ack(spi, msg_class: int, msg_id: int, timeout_ms: int = 1000) -> bo
             nacked_id  = packet[7]
             if nacked_cls == msg_class and nacked_id == msg_id:
                 msg_name = msg_names.get((nacked_cls, nacked_id), f"class={nacked_cls:#04x} id={nacked_id:#04x}")
-                print(f"  NAK received for {msg_name}")
+                lg.warning(f"  NAK received for {msg_name}")
                 return False
 
     return False  # Timeout
@@ -196,7 +201,7 @@ def send_ubx_command_with_retry(spi, packet: bytes, retries: int = 2, timeout_ms
     """Send a UBX command with up to `retries` additional attempts on failure."""
     for attempt in range(retries + 1):
         if attempt > 0:
-            print(f"  Retrying (attempt {attempt + 1})...")
+            lg.info(f"  Retrying (attempt {attempt + 1})...")
         if send_ubx_command(spi, packet, verify=True, timeout_ms=timeout_ms):
             return True
     return False
@@ -232,10 +237,10 @@ def disable_nmea_on_spi(spi) -> None:
         0x09: "GBS", 0x0A: "DTM", 0x0D: "GNS",
     }
     for nid, name in nmea_ids.items():
-        print(f"  Disabling NMEA-{name}...")
+        lg.info(f"  Disabling NMEA-{name}...")
         pkt = cfg_msg_rate_spi(0xF0, nid, 0)
         if not send_ubx_command(spi, pkt, verify=True):
-            print(f"    Warning: Failed (may not be supported on this module)")
+            lg.warning(f"    Warning: Failed (may not be supported on this module)")
 
 def cfg_nav5_sea() -> bytes:
     """UBX-CFG-NAV5: set dynamic model to Sea (mask=0x0001, dynModel=5)."""
@@ -323,11 +328,11 @@ def _detect_module(spi) -> bool:
     Called before CFG-RATE so the bus is idle.
     Returns True for F9P, False for M9N or unknown.
     """
-    print("Detecting module variant via MON-VER...")
+    lg.info("Detecting module variant via MON-VER...")
 
     mon_ver = read_mon_ver(spi)
     if mon_ver is None:
-        print("  Warning: No MON-VER response received; defaulting to L1-only config.")
+        lg.warning("  No MON-VER response received; defaulting to L1-only config.")
         return False
 
     payload_bytes = mon_ver[6:-2]
@@ -336,15 +341,15 @@ def _detect_module(spi) -> bool:
     try:
         sw_ver = payload_bytes[:30].rstrip(b'\x00').decode("ascii", errors="replace")
         hw_ver = payload_bytes[30:40].rstrip(b'\x00').decode("ascii", errors="replace")
-        print(f"  SW: {sw_ver}  HW: {hw_ver}")
+        lg.info(f"  SW: {sw_ver}  HW: {hw_ver}")
     except Exception:
         pass
 
     if is_f9p:
-        print("  Detected NEO/ZED-F9P - will configure L1 + L5 (GPS, Galileo, GLONASS).")
+        lg.info("  Detected NEO/ZED-F9P - will configure L1 + L5 (GPS, Galileo, GLONASS).")
     else:
-        print("  Detected M9N or unknown variant - will configure L1 only (GPS, Galileo).")
-        print("  Note: RXM-RAWX/SFRBX not requested; M9N does not support raw measurements.")
+        lg.info("  Detected M9N or unknown variant - will configure L1 only (GPS, Galileo).")
+        lg.info("  Note: RXM-RAWX/SFRBX not requested; M9N does not support raw measurements.")
 
     return is_f9p
 
@@ -356,13 +361,13 @@ def _configure_gnss(spi, is_f9p: bool) -> None:
     if is_f9p:
         ok = send_ubx_command_with_retry(spi, pkt)
         if ok:
-            print("  CFG-GNSS acknowledged.")
+            lg.info("  CFG-GNSS acknowledged.")
         else:
-            print("  Warning: CFG-GNSS not acknowledged on F9P after retries (unexpected).")
+            lg.warning("  CFG-GNSS not acknowledged on F9P after retries (unexpected).")
     else:
         # M9N consistently NAKs CFG-GNSS - constellation config is firmware-locked.
         send_ubx_command(spi, pkt, verify=True)
-        print("  CFG-GNSS NAK on M9N (expected - module constellation config is locked). Continuing.")
+        lg.info("  CFG-GNSS NAK on M9N (expected - module constellation config is locked). Continuing.")
 
 def _configure_messages(spi, is_f9p: bool) -> None:
     """Enable UBX output messages appropriate for the detected module."""
@@ -386,9 +391,9 @@ def _configure_messages(spi, is_f9p: bool) -> None:
     ]
 
     for msg in common_messages + (f9p_messages if is_f9p else []):
-        print(f"Enabling {msg.name}...")
+        lg.info(f"Enabling {msg.name}...")
         if not send_ubx_command_with_retry(spi, cfg_msg_rate_spi(msg.class_, msg.id, msg.freq_hz)):
-            print(f"  Warning: {msg.name} not acknowledged after retries - message will NOT be output.")
+            lg.warning(f"  {msg.name} not acknowledged after retries - message will NOT be output.")
 
 # ------------- PTY helpers -------------
 
@@ -415,7 +420,7 @@ def connect_spi(bus: int, dev: int, max_hz: int, meas_ms: int) -> spidev.SpiDev:
     spi.max_speed_hz = max_hz
     spi.mode = 0
 
-    print("Waiting for module to be ready...")
+    lg.info("Waiting for module to be ready...")
     # 2 seconds allows the module to finish any internal reconfiguration from
     # a previous run (e.g. CFG-GNSS can trigger a several-hundred-ms internal
     # reset). Restarting the script immediately after Ctrl+C is the most common
@@ -423,34 +428,34 @@ def connect_spi(bus: int, dev: int, max_hz: int, meas_ms: int) -> spidev.SpiDev:
     time.sleep(2.0)
     drain_spi_buffer(spi, drain_time_ms=500)
 
-    print("Configuring module...")
+    lg.info("Configuring module...")
 
     # All configuration runs on a quiet bus before CFG-RATE starts the NAV
     # stream. Every send_ubx_command call drains for 150 ms after ACK/NAK so
     # residual bytes cannot bleed into the next command's ACK window.
 
-    print("Detecting module...")
+    lg.info("Detecting module...")
     is_f9p = _detect_module(spi)
 
-    print("Configuring GNSS signals...")
+    lg.info("Configuring GNSS signals...")
     _configure_gnss(spi, is_f9p)
 
-    print("Setting CFG-NAV5 to Sea...")
+    lg.info("Setting CFG-NAV5 to Sea...")
     if not send_ubx_command_with_retry(spi, cfg_nav5_sea()):
-        print("  Warning: CFG-NAV5 Sea not acknowledged after retries")
+        lg.warning("  CFG-NAV5 Sea not acknowledged after retries")
 
-    print("Disabling NMEA...")
+    lg.info("Disabling NMEA...")
     disable_nmea_on_spi(spi)
 
-    print("Enabling UBX messages...")
+    lg.info("Enabling UBX messages...")
     _configure_messages(spi, is_f9p)
 
     # CFG-RATE last - starts the NAV message stream.
-    print("Setting CFG-RATE...")
+    lg.info("Setting CFG-RATE...")
     if not send_ubx_command_with_retry(spi, cfg_rate(meas_ms)):
-        print("  Warning: CFG-RATE not acknowledged after retries")
+        lg.warning("  CFG-RATE not acknowledged after retries")
 
-    print("Configuration complete!")
+    lg.info("Configuration complete!")
     return spi
 
 # ------------- main loop -------------
@@ -458,9 +463,63 @@ def connect_spi(bus: int, dev: int, max_hz: int, meas_ms: int) -> spidev.SpiDev:
 def handle_ctrl_c(signum, frame):
     sys.exit(0)
 
+
+class UBXMessageExtractor:
+    """Helper class to extract complete UBX messages from a stream of bytes."""
+
+    def __init__(self):
+        self.buffer = bytearray()
+
+    def feed(self, data: bytes) -> list[bytes]:
+        """Feed new data and extract complete UBX messages."""
+        self.buffer.extend(data)
+
+        if len(self.buffer) > 4096:
+            lg.warning(f"  Buffer overflow with {len(self.buffer)} bytes; clearing buffer.")
+            self.buffer.clear()
+
+        messages = []
+
+        UBX_PREAMBLE = b'\xB5\x62' # For data alignment
+
+        lg.debug(f"Received {len(data)} bytes, buffer now {len(self.buffer)} bytes")
+
+        while True:
+            sync_idx = self.buffer.find(UBX_PREAMBLE)
+            if sync_idx < 0:
+                # No sync found, keep buffering
+                break
+            if sync_idx > 0:
+                # Discard leading garbage and preamble
+                self.buffer = self.buffer[sync_idx:]
+
+            if len(self.buffer) < 6:
+                # Not enough data for header
+                break
+
+            payload_len = self.buffer[4] | (self.buffer[5] << 8)
+            full_len = 6 + payload_len + 2
+
+            if len(self.buffer) < full_len:
+                # Wait for more data
+                break
+
+            packet = bytes(self.buffer[:full_len])
+            if verify_checksum(packet):
+                messages.append(packet)
+            else:
+                lg.warning(f"  Checksum failed on candidate packet: {packet.hex()}")
+
+            self.buffer = self.buffer[full_len:]
+
+        return messages
+
+
 def run(pty_path: str, bus: int, dev: int, max_hz: int, meas_ms: int,
-        read_size: int, tick_ms: int, notify_ready: bool):
+        read_size: int, tick_ms: int, notify_ready: bool, ubx_file: Optional[str]) -> None:
     master_fd, slave_fd, out, slave_name = setup_pty(pty_path)
+
+    ubx_message_extractor = UBXMessageExtractor()
 
     if notify_ready:
         try:
@@ -472,6 +531,11 @@ def run(pty_path: str, bus: int, dev: int, max_hz: int, meas_ms: int,
 
     period = max(tick_ms, 1) / 1000.0
     last = time.monotonic()
+
+    if ubx_file:
+        ubx_out = open(ubx_file, "wb")
+    else:
+        ubx_out = None
 
     try:
         while True:
@@ -490,6 +554,12 @@ def run(pty_path: str, bus: int, dev: int, max_hz: int, meas_ms: int,
                 data = bytes(raw_bytes).rstrip(b'\xFF')
                 if data:
                     out.write(data)
+                    messages = ubx_message_extractor.feed(data)
+                    for msg in messages:
+                        lg.debug(f"  Extracted UBX message: {msg[2]:#04x} {msg[3]:#04x} (len={len(msg)})")
+                        if ubx_out:
+                            ubx_out.write(msg)
+
     finally:
         try:
             spi.close()
@@ -499,6 +569,12 @@ def run(pty_path: str, bus: int, dev: int, max_hz: int, meas_ms: int,
             out.close()
         except Exception:
             pass
+        
+        if ubx_out:
+            try:
+                ubx_out.close()
+            except Exception:
+                pass
 
 def main():
     parser = argparse.ArgumentParser(
@@ -510,9 +586,14 @@ def main():
     parser.add_argument("--meas-ms",   type=int, default=200,       help="Measurement period in ms; 200 -> 5 Hz")
     parser.add_argument("--read-size", type=int, default=512,       help="Bytes to read per tick")
     parser.add_argument("--tick-ms",   type=int, default=50,        help="Read period in ms")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
+    parser.add_argument("-u", "--ubx-file", type=str, help="Output .ubx file")
 
     args = parser.parse_args()
     signal.signal(signal.SIGINT, handle_ctrl_c)
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
 
     run(
         pty_path=args.pty_path,
@@ -523,6 +604,7 @@ def main():
         read_size=args.read_size,
         tick_ms=args.tick_ms,
         notify_ready=True,
+        ubx_file=args.ubx_file,
     )
 
 if __name__ == "__main__":
