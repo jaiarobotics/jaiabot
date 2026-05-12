@@ -22,10 +22,18 @@ from sklearn.preprocessing import StandardScaler
 
 FEATURES = [
     "bot_type",
-    "duration_s",
-    "motor_energy_proxy",
-    "num_dives",
-    "total_depth_m",
+    "transit_energy_wh",
+    "total_turn_angle_deg",
+    "mean_turn_angle_deg",
+    "mean_waypoint_spacing_m",
+    "drift_count",
+    "drift_total_s",
+    "station_keep_count",
+    "station_keep_total_s",
+    "dive_count",
+    "dive_depth_m",
+    "dive_hold_s",
+    "dive_hold_stops",
     "starting_battery_pct",
 ]
 TARGET = "battery_drain_pct"
