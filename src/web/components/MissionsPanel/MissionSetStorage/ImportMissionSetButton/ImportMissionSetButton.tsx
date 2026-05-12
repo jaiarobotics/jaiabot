@@ -1,5 +1,4 @@
 import { useContext, useState } from "react";
-import { missionsManager } from "../../../../data/missions_manager/missions-manager";
 import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
@@ -58,7 +57,6 @@ export default function ImportMissionSetButton(props: Props) {
                     type: JaiaActions.LOAD_MISSION_SET,
                     missionSetSnapshot: loadResults.snapshot,
                 });
-                missionsManager.autoAssign();
 
                 if (loadResults.resultType === LoadResultType.OLD_FORMAT) {
                     setDialogWarningType(DialogWarningType.OLD_FORMAT);

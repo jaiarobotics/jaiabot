@@ -154,9 +154,9 @@ export function handleChangeMissionSetName(mutableState: JaiaContextType, action
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    // Clear current mission set and reset mission assignments
+    // Clear current mission set and reset all assignments
     missionSet.deleteAllMissions();
-    missionsManager.unassignAll();
+    missionsManager.clear();
 
     // Rebuild mission set from json snapshot
     if (Array.isArray(action.missionSetSnapshot.missions)) {
@@ -172,6 +172,7 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
     missionSet.setName(action.missionSetSnapshot.name);
     missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
     mutableState.missionAccordionStates = {};
+    missionsManager.autoAssign();
     missionLayer.updateFeatures();
     return mutableState;
 }
