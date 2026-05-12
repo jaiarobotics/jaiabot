@@ -129,16 +129,16 @@ struct InMission
     }
     void resume_after_srp_egress()
     {
-        const auto& plan = this->machine().mission_plan();
+        const auto& mission_plan = this->machine().mission_plan();
 
-        if (plan.segments_size() > 0)
+        if (mission_plan.segments_size() > 0)
         {
             // Find the active segment for the current goal index
             const protobuf::MissionPlan::Segment* active_seg = nullptr;
             int active_seg_idx = -1;
-            for (int i = 0; i < plan.segments_size(); ++i)
+            for (int i = 0; i < mission_plan.segments_size(); ++i)
             {
-                if ((int)plan.segments(i).start_goal_index() - 1 <= goal_index_)
+                if ((int)mission_plan.segments(i).start_goal_index() - 1 <= goal_index_)
                 {
                     active_seg = &plan.segments(i);
                     active_seg_idx = i;
@@ -176,9 +176,10 @@ struct InMission
             if (!jumped)
             {
                 // No next lane in this segment — advance to the next segment if one exists
-                if (active_seg_idx + 1 < plan.segments_size())
+                if (active_seg_idx + 1 < mission_plan.segments_size())
                 {
-                    goal_index_ = (int)plan.segments(active_seg_idx + 1).start_goal_index() - 1;
+                    goal_index_ =
+                        (int)mission_plan.segments(active_seg_idx + 1).start_goal_index() - 1;
                     goby::glog.is_verbose() &&
                         goby::glog << group("goal")
                                    << "SRP egress: advancing to next segment at goal index "
@@ -238,15 +239,15 @@ struct InMission
   private:
     void apply_segment_params(int goal_index)
     {
-        const auto& plan = this->machine().mission_plan();
-        if (plan.segments_size() == 0)
+        const auto& mission_plan = this->machine().mission_plan();
+        if (mission_plan.segments_size() == 0)
             return;
 
         const protobuf::MissionPlan::Segment* active_seg = nullptr;
-        for (int i = 0; i < plan.segments_size(); ++i)
+        for (int i = 0; i < mission_plan.segments_size(); ++i)
         {
-            if ((int)plan.segments(i).start_goal_index() - 1 <= goal_index)
-                active_seg = &plan.segments(i);
+            if ((int)mission_plan.segments(i).start_goal_index() - 1 <= goal_index)
+                active_seg = &mission_plan.segments(i);
             else
                 break;
         }
