@@ -9,7 +9,7 @@ import DeleteMissionButton from "../../../components/__buttons__/DeleteMissionBu
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
-import { fetchBatteryPrediction } from "../../../utils/battery_prediction";
+import { BatteryPrediction, fetchBatteryPrediction } from "../../../utils/battery_prediction";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 import { DisabledCodes } from "../../__buttons__/disabled-codes";
@@ -171,6 +171,7 @@ interface MissionAccordionProps {
 function MissionAccordion(props: MissionAccordionProps) {
     const jaiaContext = useContext(JaiaContext);
     const [disabledCode, setDisabledCode] = useState<DisabledCodes>(DisabledCodes.NONE);
+    const [prediction, setPrediction] = useState<BatteryPrediction | null>(null);
 
     const assignedBotID = missionsManager.getBotID(props.missionID) ?? UNASSIGNED_ID;
     const mission = jaiaContext.missionSet.getMissions().get(props.missionID);
@@ -179,18 +180,21 @@ function MissionAccordion(props: MissionAccordionProps) {
     useEffect(() => {
         if (!bot) {
             setDisabledCode(DisabledCodes.NO_MISSION);
+            setPrediction(null);
             return;
         }
 
         if (bot.getBatteryPercent() < MIN_BATTERY_PERCENT) {
             setDisabledCode(DisabledCodes.LOW_BATTERY);
+            setPrediction(null);
             return;
         }
 
         const timer = setTimeout(async () => {
-            const prediction = mission ? await fetchBatteryPrediction(mission, bot) : null;
+            const result = mission ? await fetchBatteryPrediction(mission, bot) : null;
+            setPrediction(result);
             setDisabledCode(
-                prediction !== null && prediction.predicted_final_pct < MIN_BATTERY_PERCENT
+                result !== null && result.predicted_final_pct < MIN_BATTERY_PERCENT
                     ? DisabledCodes.INSUFFICIENT_BATTERY
                     : DisabledCodes.NONE,
             );
@@ -255,9 +259,38 @@ function MissionAccordion(props: MissionAccordionProps) {
                             testLabel={`Edit Mission ${props.missionID}`}
                         />
                     </div>
+                    <MissionStats prediction={prediction} />
                 </AccordionDetails>
             </Accordion>
         </ThemeProvider>
+    );
+}
+
+interface MissionStatsProps {
+    prediction: BatteryPrediction | null;
+}
+
+/**
+ * Renders a label-value stats block for a mission.
+ * Values show "--" when not yet available (e.g. no bot assigned).
+ *
+ * @param {BatteryPrediction | null} props.prediction Battery prediction result, or null if unavailable
+ * @returns {JSX.Element} Stats table with mission metrics
+ */
+function MissionStats(props: MissionStatsProps) {
+    const batteryAfter = props.prediction
+        ? `${props.prediction.predicted_final_pct.toFixed(1)}%`
+        : "--";
+
+    return (
+        <table className="mission-stats">
+            <tbody>
+                <tr>
+                    <td className="mission-stats-label">Battery After</td>
+                    <td className="mission-stats-value">{batteryAfter}</td>
+                </tr>
+            </tbody>
+        </table>
     );
 }
 
