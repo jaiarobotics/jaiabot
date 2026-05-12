@@ -4,15 +4,15 @@ import { useContext, useEffect, useState } from "react";
 // Jaia
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
+import { DisabledCodes } from "../../__buttons__/disabled-codes";
 import MissionAssignMenu from "../MissionAssignMenu/MissionAssignMenu";
 import DeleteMissionButton from "../../../components/__buttons__/DeleteMissionButton/DeleteMissionButton";
+import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
 import { BatteryPrediction, fetchBatteryPrediction } from "../../../utils/battery_prediction";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
-import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
-import { DisabledCodes } from "../../__buttons__/disabled-codes";
+import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
 
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -31,6 +31,22 @@ import "./MissionsList.less";
 
 interface Props {
     missionID: number;
+}
+
+interface MissionAccordionProps {
+    missionID: number;
+    isExpanded: boolean;
+    isInEditMode: boolean;
+    repeats: number;
+    missionKey: string;
+    onAccordionChange: (missionID: number, isExpanded: boolean) => void;
+    onRepeatsChange: (repeats: string, missionID: number) => void;
+    onDuplicateClick: (missionID: number) => void;
+    onToggleEditClick: (missionID: number) => void;
+}
+
+interface MissionStatsProps {
+    prediction: BatteryPrediction | null;
 }
 
 export default function MissionsList() {
@@ -138,18 +154,6 @@ export default function MissionsList() {
             ))}
         </div>
     );
-}
-
-interface MissionAccordionProps {
-    missionID: number;
-    isExpanded: boolean;
-    isInEditMode: boolean;
-    repeats: number;
-    missionKey: string;
-    onAccordionChange: (missionID: number, isExpanded: boolean) => void;
-    onRepeatsChange: (repeats: string, missionID: number) => void;
-    onDuplicateClick: (missionID: number) => void;
-    onToggleEditClick: (missionID: number) => void;
 }
 
 /**
@@ -264,10 +268,6 @@ function MissionAccordion(props: MissionAccordionProps) {
             </Accordion>
         </ThemeProvider>
     );
-}
-
-interface MissionStatsProps {
-    prediction: BatteryPrediction | null;
 }
 
 /**
