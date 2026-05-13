@@ -438,6 +438,7 @@ void jaiabot::apps::HubManager::handle_subscription_report(
             status.add_error(bot_api_version < jaiabot::INTERVEHICLE_API_VERSION
                                  ? protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_BOT
                                  : protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB);
+            status.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
 
             if (status.has_mission_command_time())
             {
