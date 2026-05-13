@@ -104,7 +104,7 @@ function MissionSetName(props: Props) {
     if (props.numOfMissions > 0) {
         return (
             <input
-                className="mission-set-name"
+                className="set-name"
                 placeholder="Mission Set Name"
                 value={props.missionSetName}
                 onChange={(event) => props.handleNameChange(event.target.value)}

@@ -30,6 +30,7 @@ export default function LoadMissionSetButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the mission set conditions
      */
     const getInitialDisabledCode = () => {
+        if (!props.saveName.trim()) return DisabledCodes.NO_NAME;
         if (!listSavedMissionSets().includes(props.saveName)) return DisabledCodes.FILE_NOT_FOUND;
         return DisabledCodes.NONE;
     };
