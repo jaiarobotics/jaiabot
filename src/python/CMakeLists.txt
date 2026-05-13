@@ -15,6 +15,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tsys01_temperature_sensor DESTINATION ${pr
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/motor DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ubx_ppk DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 
 
 

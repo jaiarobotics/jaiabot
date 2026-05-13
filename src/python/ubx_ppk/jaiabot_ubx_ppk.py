@@ -13,7 +13,7 @@ from jaiabot.messages.ppk_pb2 import UBXChunk
 
 
 lg = logging.getLogger(__name__)
-logging.basicConfig(format='%(levelname)7s %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(levelname)7s %(message)s', level=logging.WARNING)
 
 
 def verify_checksum(packet: bytes) -> bool:
@@ -175,7 +175,7 @@ def main():
         messages = gpsd_client.read_messages()
 
         for msg in messages:
-            lg.info(f"Extracted UBX message of length {len(msg)}: {msg[:4].hex()}")
+            lg.debug(f"Received complete UBX message of length {len(msg)}: {msg[:4].hex()}")
 
             if output_file:
                 output_file.write(msg)
