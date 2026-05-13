@@ -212,6 +212,12 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             glog.is_debug1() && glog << "Received EchoData" << endl;
             break;
         }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kUbxChunk:
+        {
+            interprocess().publish<groups::ppk>(envelope.ubx_chunk());
+            glog.is_debug1() && glog << "Received UBXChunk" << endl;
+            break;
+        }
         default:
         {
             glog.is_warn() && glog << "Received unknown payload in UDPGatewayEnvelope"

@@ -127,7 +127,6 @@ verbosities = \
   'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_aml_sensor_driver':                    { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ctd_manager':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-  'jaiabot_ppk':                                  { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
