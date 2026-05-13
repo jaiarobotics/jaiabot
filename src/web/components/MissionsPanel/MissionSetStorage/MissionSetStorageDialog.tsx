@@ -51,7 +51,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
     return createPortal(
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}>
-                <div className="jaia-dialog mission-set-storage">
+                <div className="jaia-dialog set-storage">
                     <h1>Mission Set Storage</h1>
                     <div className="input-container">
                         <label>Mission Set Name</label>
@@ -63,9 +63,9 @@ export function MissionSetStorageDialog(props: DialogProps) {
                             }}
                         />
                     </div>
-                    <div className="mission-sets-container">
+                    <div className="stored-sets-container">
                         <label>Stored Mission Sets</label>
-                        <ul className="mission-set-names">
+                        <ul className="stored-set-names">
                             {listSavedMissionSets().map((name) => {
                                 return (
                                     <MissionSetRow
@@ -106,7 +106,7 @@ function MissionSetRow(props: MissionSetRowProps) {
      * @returns {string} Class name that will apply correct style
      */
     const getClassName = () => {
-        let className = "mission-set-row";
+        let className = "stored-set-row";
         if (props.name === props.saveName) {
             className += " selected";
         }
