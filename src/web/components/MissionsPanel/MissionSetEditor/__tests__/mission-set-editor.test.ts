@@ -1,7 +1,7 @@
 import Mission from "../../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../../data/mission_set/mission-set";
 import { BottomDepthSafetyParams } from "../../../../types/protobuf-types";
-import { UNASSIGNED_ID } from "../../../../utils/constants";
+import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../../utils/constants";
 import { getMaxWaypointsPerOutputMission, combineMissionSets } from "../mission-set-editor";
 import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
 
@@ -23,6 +23,7 @@ function makeSnapshot(missions: Mission[]): MissionSetSnapshot {
         nextMissionID: missions.length + 1,
         missionIDInEditMode: UNASSIGNED_ID,
         name: "test",
+        selectedSpeeds: DEFAULT_SPEEDS,
     };
 }
 
@@ -280,6 +281,54 @@ describe("combineMissionSets", () => {
 
         const [, mission] = result.missions[0];
         expect(mission.getSegments()[0].bottom_depth_safety_params).toEqual(srp);
+    });
+
+    test("empty set alongside non-empty set: empty set is skipped, output matches non-empty set alone", () => {
+        const cache = makeCache([
+            ["empty", []],
+            ["survey", [makeMission(3), makeMission(4)]],
+        ]);
+        const result = combineMissionSets(["empty", "survey"], 2, "out", cache);
+
+        expect(result.missions.length).toBe(2);
+        expect(result.missions[0][1].getWaypoints().length).toBe(3);
+        expect(result.missions[1][1].getWaypoints().length).toBe(4);
+    });
+
+    test("all-empty sets: produces empty missions with default speeds without crashing", () => {
+        const cache = makeCache([
+            ["empty1", []],
+            ["empty2", []],
+        ]);
+        const result = combineMissionSets(["empty1", "empty2"], 2, "out", cache);
+
+        expect(result.missions.length).toBe(2);
+        for (const [, mission] of result.missions) {
+            expect(mission.getWaypoints().length).toBe(0);
+            expect(mission.getTransitSpeed()).toBe(DEFAULT_SPEED);
+            expect(mission.getStationkeepSpeed()).toBe(DEFAULT_SPEED);
+        }
+        expect(result.selectedSpeeds.transit).toBe(DEFAULT_SPEED);
+        expect(result.selectedSpeeds.stationkeep_outer).toBe(DEFAULT_SPEED);
+    });
+
+    test("empty set alongside non-empty set: selectedSpeeds and mission speeds come from the non-empty set only", () => {
+        // Use speeds above DEFAULT_SPEED so we can confirm they are not clamped back to default
+        const cache = makeCache([
+            ["empty", []],
+            ["A", [makeMission(2, { transit: 4, stationkeep_outer: 1 })]],
+            ["B", [makeMission(2, { transit: 1, stationkeep_outer: 3 })]],
+        ]);
+        const result = combineMissionSets(["empty", "A", "B"], 1, "out", cache);
+
+        // selectedSpeeds must reflect the max across the non-empty sets
+        expect(result.selectedSpeeds.transit).toBe(4);
+        expect(result.selectedSpeeds.stationkeep_outer).toBe(3);
+
+        // The output mission must carry the same max speeds
+        const [, mission] = result.missions[0];
+        expect(mission.getTransitSpeed()).toBe(4);
+        expect(mission.getStationkeepSpeed()).toBe(3);
     });
 
     test("SRP: single mission segment carries SRP through offset correctly", () => {

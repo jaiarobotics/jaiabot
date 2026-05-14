@@ -52,8 +52,6 @@ export default function MissionSpeedSliders() {
         return;
     }
 
-    const hasMissions = jaiaContext.missionSet.getMissions().size > 0;
-
     return (
         <ThemeProvider theme={theme}>
             <div className="mission-speeds">
@@ -65,7 +63,6 @@ export default function MissionSpeedSliders() {
                     marks
                     min={MIN_SPEED}
                     max={MAX_SPEED}
-                    disabled={!hasMissions}
                     onChange={(evt: any) =>
                         handleSpeedChange(SpeedTypes.TRANSIT, Number(evt.target.value))
                     }
@@ -80,7 +77,6 @@ export default function MissionSpeedSliders() {
                     marks
                     min={MIN_SPEED}
                     max={MAX_SPEED}
-                    disabled={!hasMissions}
                     onChange={(evt: any) =>
                         handleSpeedChange(SpeedTypes.STATION_KEEP, Number(evt.target.value))
                     }
