@@ -84,6 +84,7 @@ class HubManager : public ApplicationBase
 
   private:
     void loop() override;
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
     void handle_bot_nav(jaiabot::protobuf::BotStatus dccl_nav, bool from_other_hub = false);
     void handle_command(const jaiabot::protobuf::Command& input_command,
@@ -206,6 +207,9 @@ class HubManager : public ApplicationBase
     std::set<jaiabot::protobuf::Link>
         active_links_; // which links have we subscribe on at some point?
     std::map<MissionCommandTime, CommandPending> commands_pending_result_;
+
+    std::set<jaiabot::protobuf::Warning> hub_warnings_;
+    std::set<jaiabot::protobuf::Error> hub_errors_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -398,55 +402,84 @@ void jaiabot::apps::HubManager::handle_subscription_report(
     const goby::middleware::intervehicle::protobuf::SubscriptionReport& sub_report)
 {
     auto command_dccl_id = jaiabot::protobuf::Command::DCCL_ID;
-    if (sub_report.has_changed() && sub_report.changed().dccl_id() == command_dccl_id)
+    auto hub2hub_dccl_id = jaiabot::protobuf::Hub2HubData::DCCL_ID;
+    if (sub_report.has_changed())
     {
-        auto bot_modem_id = sub_report.changed().header().src();
-        auto bot_id = jaiabot::comms::bot_id_from_modem_id(bot_modem_id, cfg().subnet_mask());
-        auto link = jaiabot::comms::link_from_modem_id(bot_modem_id, cfg().subnet_mask());
-
-        std::uint32_t bot_api_version =
-            intervehicle::api_version_from_hub_command(bot_id, sub_report.changed().group());
-
-        if (bot_api_version == jaiabot::INTERVEHICLE_API_VERSION)
+        if (sub_report.changed().dccl_id() == command_dccl_id)
         {
-            switch (sub_report.changed().action())
-            {
-                case goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE:
-                    glog.is_verbose() && glog << group("main") << "Subscribe to bot: " << bot_id
-                                              << " on link " << jaiabot::protobuf::Link_Name(link)
-                                              << std::endl;
+            auto bot_modem_id = sub_report.changed().header().src();
+            auto bot_id = jaiabot::comms::bot_id_from_modem_id(bot_modem_id, cfg().subnet_mask());
+            auto link = jaiabot::comms::link_from_modem_id(bot_modem_id, cfg().subnet_mask());
 
-                    managed_bot_ids_.insert(bot_id);
-                    intervehicle_subscribe(bot_id, {link});
-                    break;
-                case goby::middleware::intervehicle::protobuf::Subscription::UNSUBSCRIBE:
-                    // do nothing as the bot subscriptions no longer persist across restarts
-                    // this reduces edge cases problems with unsubscription messages getting through or not
-                    break;
+            std::uint32_t bot_api_version =
+                intervehicle::api_version_from_hub_command(bot_id, sub_report.changed().group());
+
+            if (bot_api_version == jaiabot::INTERVEHICLE_API_VERSION)
+            {
+                switch (sub_report.changed().action())
+                {
+                    case goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE:
+                        glog.is_verbose() &&
+                            glog << group("main") << "Subscribe to bot: " << bot_id << " on link "
+                                 << jaiabot::protobuf::Link_Name(link) << std::endl;
+
+                        managed_bot_ids_.insert(bot_id);
+                        intervehicle_subscribe(bot_id, {link});
+                        break;
+                    case goby::middleware::intervehicle::protobuf::Subscription::UNSUBSCRIBE:
+                        // do nothing as the bot subscriptions no longer persist across restarts
+                        // this reduces edge cases problems with unsubscription messages getting through or not
+                        break;
+                }
+            }
+            else
+            {
+                glog.is_warn() && glog << group("main") << "Bot " << bot_id
+                                       << " subscribing with API version " << bot_api_version
+                                       << " but hub is using API version "
+                                       << jaiabot::INTERVEHICLE_API_VERSION << std::endl;
+
+                jaiabot::protobuf::BotStatus status;
+                status.set_bot_id(bot_id);
+                status.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+                auto error = bot_api_version < jaiabot::INTERVEHICLE_API_VERSION
+                                 ? protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_BOT
+                                 : protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB;
+                status.add_error(error);
+                hub_errors_.insert(error);
+                status.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
+
+                if (status.has_mission_command_time())
+                {
+                    status.set_mission_name(get_mission_name_for_bot_command_time(
+                        bot_id, status.mission_command_time()));
+                }
+
+                interprocess().publish<jaiabot::groups::bot_status>(status);
             }
         }
-        else
+        else if (sub_report.changed().dccl_id() == command_dccl_id)
         {
-            glog.is_warn() && glog << group("main") << "Bot " << bot_id
-                                   << " subscribing with API version " << bot_api_version
-                                   << " but hub is using API version "
-                                   << jaiabot::INTERVEHICLE_API_VERSION << std::endl;
+            auto other_hub_modem_id = sub_report.changed().header().src();
+            auto link = jaiabot::comms::link_from_modem_id(other_hub_modem_id, cfg().subnet_mask());
+            auto other_hub_id =
+                jaiabot::comms::hub_id_from_modem_id(other_hub_modem_id, cfg().subnet_mask(), link);
+            // group id is the API version for Hub2Hub messages
+            std::uint32_t other_hub_api_version = sub_report.changed().group();
 
-            jaiabot::protobuf::BotStatus status;
-            status.set_bot_id(bot_id);
-            status.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-            status.add_error(bot_api_version < jaiabot::INTERVEHICLE_API_VERSION
-                                 ? protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_BOT
-                                 : protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB);
-            status.set_health_state(goby::middleware::protobuf::HEALTH__FAILED);
-
-            if (status.has_mission_command_time())
+            if (other_hub_api_version != jaiabot::INTERVEHICLE_API_VERSION)
             {
-                status.set_mission_name(
-                    get_mission_name_for_bot_command_time(bot_id, status.mission_command_time()));
-            }
+                glog.is_warn() && glog << group("main") << "Hub " << other_hub_id
+                                       << " subscribing with API version " << other_hub_api_version
+                                       << " but this hub is using API version "
+                                       << jaiabot::INTERVEHICLE_API_VERSION << std::endl;
 
-            interprocess().publish<jaiabot::groups::bot_status>(status);
+                auto error =
+                    other_hub_api_version < jaiabot::INTERVEHICLE_API_VERSION
+                        ? protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_OTHER_HUB
+                        : protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB;
+                hub_errors_.insert(error);
+            }
         }
     }
 }
@@ -592,12 +625,15 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
 
                         // Make sure the engineering_status is not a repeat
                         // If it is, then we should not handle it and exit
-                        auto& prev_times = eng_status_id_to_prev_timestamps_[engineering_status.bot_id()];
+                        auto& prev_times =
+                            eng_status_id_to_prev_timestamps_[engineering_status.bot_id()];
 
                         if (prev_times.count(engineering_status.time()))
                         {
-                            glog.is_debug1() && glog << group("engineering_status")
-                                                    << "Repeat Engineering Status received! Ignoring..." << std::endl;
+                            glog.is_debug1() &&
+                                glog << group("engineering_status")
+                                     << "Repeat Engineering Status received! Ignoring..."
+                                     << std::endl;
                             return;
                         }
 
@@ -645,8 +681,20 @@ void jaiabot::apps::HubManager::hub2hub_subscribe(int other_hub_id)
     intervehicle().subscribe<jaiabot::groups::hub2hub_data, jaiabot::protobuf::Hub2HubData>(
         [this](const jaiabot::protobuf::Hub2HubData& data)
         {
-            handle_hub2hub_data(data);
-            interprocess().publish<jaiabot::groups::hub2hub_data>(data);
+            if (!hub_errors_.count(
+                    protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_OTHER_HUB) &&
+                !hub_errors_.count(protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB))
+            {
+                handle_hub2hub_data(data);
+                interprocess().publish<jaiabot::groups::hub2hub_data>(data);
+            }
+            else
+            {
+                glog.is_warn() &&
+                    glog << group("comms")
+                         << "Ignoring hub2hub messages as we have an intervehicle API mismatch"
+                         << std::endl;
+            }
         },
         subscriber);
 }
@@ -854,10 +902,9 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
 
     if (prev_times.count(dccl_nav.time()))
     {
-        glog.is_debug1() && glog << group("bot_status")
-                                << "Repeat Bot Status received on link: " 
-                                << jaiabot::protobuf::Link_Name(dccl_nav.link()) 
-                                << "! Ignoring..." << std::endl;
+        glog.is_debug1() && glog << group("bot_status") << "Repeat Bot Status received on link: "
+                                 << jaiabot::protobuf::Link_Name(dccl_nav.link()) << "! Ignoring..."
+                                 << std::endl;
 
         return;
     }
@@ -875,8 +922,7 @@ void jaiabot::apps::HubManager::handle_bot_nav(jaiabot::protobuf::BotStatus dccl
     // Keep track of previous bot status times per bot to avoid duplicates
     // (typically from multiple comms links: iridium, wifi, xbee)
     // If our buffer overflows, remove the smallest (oldest) timestamp
-    while (prev_times.size() >= history_max_count_)
-        prev_times.erase(prev_times.begin());
+    while (prev_times.size() >= history_max_count_) prev_times.erase(prev_times.begin());
 
     prev_times.insert(dccl_nav.time());
 
@@ -1010,15 +1056,14 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     if (prev_times.count(task_packet.start_time()))
     {
         glog.is_debug1() && glog << group("task_packet")
-                                << "Repeat taskpacket received! Ignoring..." << std::endl;
+                                 << "Repeat taskpacket received! Ignoring..." << std::endl;
         return;
     }
 
     // Keep track of previous task packet times per bot to avoid duplicates
     // (typically from multiple comms links: iridium, wifi, xbee)
     // If our buffer overflows, remove the smallest (oldest) timestamp
-    while (prev_times.size() >= history_max_count_)
-        prev_times.erase(prev_times.begin());
+    while (prev_times.size() >= history_max_count_) prev_times.erase(prev_times.begin());
 
     prev_times.insert(task_packet.start_time());
 
@@ -1542,5 +1587,24 @@ void jaiabot::apps::HubManager::process_ack_or_expire(
                                    << " that we weren't expecting for command message: "
                                    << orig_msg.ShortDebugString() << std::endl;
         }
+    }
+}
+
+void jaiabot::apps::HubManager::health(goby::middleware::protobuf::ThreadHealth& health)
+{
+    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
+    health.set_name(this->app_name());
+    health.set_state(goby::middleware::protobuf::HEALTH__OK);
+
+    for (const auto& w : hub_warnings_)
+    {
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_warning(w);
+        health.set_state(goby::middleware::protobuf::HEALTH__DEGRADED);
+    }
+
+    for (const auto& e : hub_errors_)
+    {
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)->add_error(e);
+        health.set_state(goby::middleware::protobuf::HEALTH__FAILED);
     }
 }
