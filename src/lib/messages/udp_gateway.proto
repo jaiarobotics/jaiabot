@@ -26,8 +26,8 @@ message UDPGatewayEnvelope
         EchoData echo_data = 7;
 
         // jaiabot_ubx_ppk.py
-        PPKCommand ppk_command = 9;
         UBXChunk ubx_chunk = 8;
+        PPKCommand ppk_command = 9;
 
     }
 

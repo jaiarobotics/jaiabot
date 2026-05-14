@@ -5,7 +5,6 @@ from io import BufferedReader
 import socket
 import logging
 import argparse
-import socket
 import time
 
 from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
@@ -38,9 +37,11 @@ class UBXMessageExtractor:
         """Feed new data and extract complete UBX messages."""
         self.buffer.extend(data)
 
-        if len(self.buffer) > 4096:
-            lg.warning(f"  Buffer overflow with {len(self.buffer)} bytes; clearing buffer.")
-            self.buffer.clear()
+        MAX_FRAME_SIZE = 65536
+
+        if len(self.buffer) > 2 * MAX_FRAME_SIZE:
+            lg.warning(f"  Buffer overflow with {len(self.buffer)} bytes; truncating to new bytes only")
+            self.buffer = self.buffer[-MAX_FRAME_SIZE:]
 
         messages = []
 
@@ -54,7 +55,7 @@ class UBXMessageExtractor:
                 # No sync found, keep buffering
                 break
             if sync_idx > 0:
-                # Discard leading garbage and preamble
+                # Discard leading garbage up to preamble
                 self.buffer = self.buffer[sync_idx:]
 
             if len(self.buffer) < 6:
@@ -103,8 +104,7 @@ class GPSDClient:
         """Read from GPSD and extract complete UBX messages."""
         chunk = self.sock.recv(1024)
         if not chunk:
-            lg.info("Connection closed by gpsd")
-            return []
+            raise ConnectionError("GPSD connection closed")
 
         lg.debug(f"Received {len(chunk)} bytes from gpsd")
         return self.extractor.feed(chunk)
@@ -126,15 +126,18 @@ class GPSDClientSimulator:
         chunk = self.file.read(1024)
         if not chunk:
             lg.info("End of file reached")
-            return []
+            raise EOFError("End of file reached")
         lg.debug(f"Read {len(chunk)} bytes from file")
         return self.extractor.feed(chunk)
+    
+    def __del__(self):
+        self.file.close()
 
 
 def main():
     parser = argparse.ArgumentParser(description="UBX PPK GPSD Client")
     parser.add_argument("-host", "--udp_host", type=str, default="localhost", help="The hostname of the jaiabot_udp_gateway to send UBX messages to")
-    parser.add_argument("-port", "--udp_port", type=int, default=20000, help="The port of the jaiabot_udp_gateway to send UBX messages to")
+    parser.add_argument("-p", "-port", "--udp_port", type=int, help="The port of the jaiabot_udp_gateway to send UBX messages to")
 
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("-o", "--output", type=str, help="Output file for raw UBX messages")
@@ -156,7 +159,7 @@ def main():
         output_file = None
 
 
-    if args.udp_host and args.udp_port:
+    if args.udp_port:
         lg.debug(f"Connecting to UDP gateway at {args.udp_host}:{args.udp_port}")
         udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_dest = (args.udp_host, args.udp_port)

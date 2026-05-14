@@ -698,7 +698,7 @@ if 'ppk' in jaia_additional_sensors:
         'description': 'JaiaBot UBX PPK Logger',
         'template': 'py-app.service.in',
         'subdir': 'ubx_ppk',
-        'args': f'-port {UDP_GATEWAY_PORT}',
+        'args': f'-p {UDP_GATEWAY_PORT}',
         'error_on_fail': 'ERROR__FAILED__JAIABOT_PPK',
         'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,

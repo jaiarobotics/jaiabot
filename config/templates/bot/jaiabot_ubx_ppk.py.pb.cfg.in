@@ -1,1 +1,1 @@
--port ${udp_gateway_port}
+-p ${udp_gateway_port}
