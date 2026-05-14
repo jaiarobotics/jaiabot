@@ -250,9 +250,8 @@ struct InMission
         switch (ev.protocol.action())
         {
             case protobuf::MissionPlan::BatteryProtocol::NONE:
-                glog.is_debug1() &&
-                    glog << "Battery protocol action is NONE, staying in SelectProtocol"
-                         << std::endl;
+                glog.is_debug1() && glog << "Battery protocol action is NONE, discarding event."
+                                         << std::endl;
                 return discard_event();
             case protobuf::MissionPlan::BatteryProtocol::STATION_KEEP:
                 return transit<jaiabot::statechart::inmission::battery::StationKeep>();
