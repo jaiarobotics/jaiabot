@@ -16,15 +16,35 @@ afterEach(() => {
     missionSet.deleteAllMissions();
 });
 
-test("Sliders are disabled when no missions exist", () => {
+test("Sliders are enabled when no missions exist", () => {
     render(
         <JaiaContextProvider>
             <MissionSpeedSliders />
         </JaiaContextProvider>,
     );
 
-    expect(screen.getByRole("slider", { name: "Transit Speed" })).toBeDisabled();
-    expect(screen.getByRole("slider", { name: "Station Keep Speed" })).toBeDisabled();
+    expect(screen.getByRole("slider", { name: "Transit Speed" })).not.toBeDisabled();
+    expect(screen.getByRole("slider", { name: "Station Keep Speed" })).not.toBeDisabled();
+});
+
+test("Speed set with no missions is applied when a mission is added", () => {
+    render(
+        <JaiaContextProvider>
+            <MissionSpeedSliders />
+        </JaiaContextProvider>,
+    );
+
+    fireEvent.change(screen.getByRole("slider", { name: "Transit Speed" }), {
+        target: { value: 3 },
+    });
+    fireEvent.change(screen.getByRole("slider", { name: "Station Keep Speed" }), {
+        target: { value: 1 },
+    });
+
+    missionSet.addMission(new Mission());
+
+    expect(missionSet.getMissionSpeeds().transit).toBe(3);
+    expect(missionSet.getMissionSpeeds().stationkeep_outer).toBe(1);
 });
 
 test("Move mission speed sliders in opposite directions", () => {
