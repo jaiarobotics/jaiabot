@@ -222,6 +222,23 @@ def check_monotonicity(
     return violations
 
 
+def count_active_terms(model, threshold: float = 1e-10) -> tuple[int, int]:
+    """Return (n_nonzero, n_total) for the inner estimator of `model`.
+
+    For linear models this is non-zero coefficients out of the expanded basis
+    size (post-poly if applicable). For tree models it is features with any
+    importance > 0 out of the original feature count.
+    """
+    inner = model.named_steps["model"]
+    if hasattr(inner, "coef_") and inner.coef_.ndim == 1:
+        coef = np.asarray(inner.coef_)
+        return int(np.sum(np.abs(coef) > threshold)), int(coef.size)
+    if hasattr(inner, "feature_importances_"):
+        imp = np.asarray(inner.feature_importances_)
+        return int(np.sum(imp > threshold)), int(imp.size)
+    return 0, 0
+
+
 def build_model_zoo() -> dict[str, tuple[callable, bool]]:
     """Return {name: (factory(seed) -> pipeline, is_stochastic)}.
 
@@ -292,6 +309,7 @@ def main():
         probe_model = factory(STOCHASTIC_SEEDS[0] if is_stochastic else None)
         probe_model.fit(X, y)
         violations = check_monotonicity(probe_model, X)
+        n_nonzero, n_total = count_active_terms(probe_model)
         median_abs = float(np.median(np.abs(preds - y)))
         max_abs = float(np.max(np.abs(preds - y)))
         within_3 = float((np.abs(preds - y) <= 3).mean() * 100)
@@ -307,16 +325,19 @@ def main():
             "preds":      preds,
             "stochastic": is_stochastic,
             "violations": violations,
+            "n_nonzero":  n_nonzero,
+            "n_total":    n_total,
         })
 
     # Sort by MAE for the table view.
     results.sort(key=lambda r: r["mae"])
-    print("\n" + "=" * 100)
-    print(f"{'Model':<26}{'MAE':>8}{'RMSE':>8}{'Median':>9}{'Max':>8}{'±3%':>8}{'±5%':>8}{'Mono':>8}{'Type':>10}")
-    print("-" * 100)
+    print("\n" + "=" * 110)
+    print(f"{'Model':<26}{'MAE':>8}{'RMSE':>8}{'Median':>9}{'Max':>8}{'±3%':>8}{'±5%':>8}{'Mono':>8}{'Terms':>10}{'Type':>10}")
+    print("-" * 110)
     for r in results:
         kind = "stoch" if r["stochastic"] else "det"
         mono = "OK" if not r["violations"] else f"FAIL({len(r['violations'])})"
+        terms = f"{r['n_nonzero']}/{r['n_total']}"
         print(f"{r['name']:<26}"
               f"{r['mae']:>7.2f}%"
               f"{r['rmse']:>7.2f}%"
@@ -325,16 +346,31 @@ def main():
               f"{r['within_3']:>7.0f}%"
               f"{r['within_5']:>7.0f}%"
               f"{mono:>8}"
+              f"{terms:>10}"
               f"{kind:>10}")
-    print("=" * 100)
+    print("=" * 110)
 
-    # Prefer monotonic models for deployment. Among those, pick lowest MAE.
+    # Deployment selection: among monotonic candidates within MAE_TOLERANCE of
+    # the best MAE, pick the one that retains the most non-zero terms (ties
+    # → lowest MAE). Rationale: features like dive_hold_s and dive_hold_stops
+    # have a physical effect on drain, so a model that keeps them is preferred
+    # over a slightly-lower-MAE one that zeros them out via aggressive L1.
+    MAE_TOLERANCE = 0.5  # % drain
     monotonic_results = [r for r in results if not r["violations"]]
     if monotonic_results:
-        best = monotonic_results[0]
+        best_mae = monotonic_results[0]["mae"]
+        within_tol = [r for r in monotonic_results if r["mae"] <= best_mae + MAE_TOLERANCE]
+        best = max(within_tol, key=lambda r: (r["n_nonzero"], -r["mae"]))
         print(f"\nDeployed model: {best['name']} "
-              f"(LOO MAE = {best['mae']:.2f}%, monotonic in all constrained features)")
-        if best is not results[0]:
+              f"(LOO MAE = {best['mae']:.2f}%, {best['n_nonzero']}/{best['n_total']} terms, "
+              f"monotonic in all constrained features)")
+        if best is not monotonic_results[0]:
+            top = monotonic_results[0]
+            print(f"  Note: {top['name']} has slightly lower MAE ({top['mae']:.2f}% vs "
+                  f"{best['mae']:.2f}%) but only {top['n_nonzero']}/{top['n_total']} terms — "
+                  f"preferred {best['name']} for better feature coverage within "
+                  f"{MAE_TOLERANCE:.1f}% MAE tolerance.")
+        if results[0]["violations"]:
             print(f"  Note: lower-MAE non-monotonic model exists ({results[0]['name']}, "
                   f"MAE {results[0]['mae']:.2f}%), but rejected for failing monotonicity.")
     else:
