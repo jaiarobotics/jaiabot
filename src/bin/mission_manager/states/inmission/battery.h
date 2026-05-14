@@ -53,8 +53,12 @@ struct Battery : boost::statechart::state<Battery, InMission, battery::StationKe
         }
     }
 
-    using reactions = boost::mpl::list<boost::statechart::in_state_reaction<EvBatteryLevel, Battery, &Battery::battery_level_reaction>>;
-
+    using reactions = boost::mpl::list<
+        boost::statechart::in_state_reaction<EvBatteryLevel, Battery,
+                                             &Battery::battery_level_reaction>,
+        boost::statechart::transition<
+            EvStop, inmission::underway::recovery::Stopped> // Allow user to stop the vehicle
+        >;
 };
 
 namespace battery {
