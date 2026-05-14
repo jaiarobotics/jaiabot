@@ -134,6 +134,13 @@ class HubManager : public ApplicationBase
     void process_ack_or_expire(const protobuf::Command& orig_msg, protobuf::Link link,
                                protobuf::CommandCommsResult::CommsResult result);
 
+    bool hub2hub_api_mismatch()
+    {
+        return (
+            hub_errors_.count(protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_OTHER_HUB) ||
+            hub_errors_.count(protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB));
+    }
+
   private:
     jaiabot::protobuf::HubStatus latest_hub_status_;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
@@ -458,7 +465,7 @@ void jaiabot::apps::HubManager::handle_subscription_report(
                 interprocess().publish<jaiabot::groups::bot_status>(status);
             }
         }
-        else if (sub_report.changed().dccl_id() == command_dccl_id)
+        else if (sub_report.changed().dccl_id() == hub2hub_dccl_id)
         {
             auto other_hub_modem_id = sub_report.changed().header().src();
             auto link = jaiabot::comms::link_from_modem_id(other_hub_modem_id, cfg().subnet_mask());
@@ -681,9 +688,7 @@ void jaiabot::apps::HubManager::hub2hub_subscribe(int other_hub_id)
     intervehicle().subscribe<jaiabot::groups::hub2hub_data, jaiabot::protobuf::Hub2HubData>(
         [this](const jaiabot::protobuf::Hub2HubData& data)
         {
-            if (!hub_errors_.count(
-                    protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_OTHER_HUB) &&
-                !hub_errors_.count(protobuf::ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB))
+            if (!hub2hub_api_mismatch())
             {
                 handle_hub2hub_data(data);
                 interprocess().publish<jaiabot::groups::hub2hub_data>(data);
@@ -691,7 +696,7 @@ void jaiabot::apps::HubManager::hub2hub_subscribe(int other_hub_id)
             else
             {
                 glog.is_warn() &&
-                    glog << group("comms")
+                    glog << group("hub2hub")
                          << "Ignoring hub2hub messages as we have an intervehicle API mismatch"
                          << std::endl;
             }
@@ -1500,10 +1505,20 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
 
 void jaiabot::apps::HubManager::publish_hub2hub_data(jaiabot::protobuf::Hub2HubData* hub2hub_data)
 {
-    hub2hub_data->set_hub_id(cfg().hub_id());
-    hub2hub_data->set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
-    intervehicle().publish<jaiabot::groups::hub2hub_data>(
-        *hub2hub_data, intervehicle::default_publisher<jaiabot::protobuf::Hub2HubData>);
+    if (!hub2hub_api_mismatch())
+    {
+        hub2hub_data->set_hub_id(cfg().hub_id());
+        hub2hub_data->set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+        intervehicle().publish<jaiabot::groups::hub2hub_data>(
+            *hub2hub_data, intervehicle::default_publisher<jaiabot::protobuf::Hub2HubData>);
+    }
+    else
+    {
+        glog.is_warn() &&
+            glog << group("hub2hub")
+                 << "Not publishing hub2hub messages as we have an intervehicle API mismatch"
+                 << std::endl;
+    }
 }
 
 void jaiabot::apps::HubManager::process_ack_or_expire(
