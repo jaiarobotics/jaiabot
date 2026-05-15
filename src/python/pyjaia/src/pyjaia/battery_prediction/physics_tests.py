@@ -28,9 +28,21 @@ _HERE = os.path.dirname(__file__)
 DEFAULT_MODEL_PATH = os.path.join(_HERE, "battery_model.pkl")
 DEFAULT_CALIBRATION_PATH = os.path.join(_HERE, "calibration.json")
 
-# Baseline mission used by every test: typical fleet52-style 16-dive mission
-# at 3.0 m/s planned transit. Values match what extract_features.py would
-# produce for one of those logs.
+# Baseline mission used by every test. Synthetic — not loaded from a log file
+# — but each value below is sourced from a real row of dataset.csv so that the
+# tests probe the model in a regime it was actually trained on.
+#
+# Origin: the cluster of 15 "fleet52" missions in the training set (16-dive,
+# 3.0 m/s planned transit, 9 m mean depth, 120 s total hold). Specifically:
+#
+#   bot_type                =  1     (HYDRO; all fleet52 logs have type=1)
+#   transit_energy_wh       =  8.13  (mean across the 15 fleet52 rows; range 8.05-8.13)
+#   transit_time_s          =  195.0 (rounded; per-row range 175-197)
+#   turn_density_deg_per_km =  1297.7 (identical across all 15 rows -- same route geometry)
+#   dive_energy_wh          =  14.38 (identical across all 15 rows: 16 dives x (0.71 + 0.025x9))
+#   starting_battery_pct    =  90.0  (rough midpoint; per-row range 74.7-94.7)
+#   hotel_energy_wh         =  0.0   (deliberately set to 0 so hold/drift/SK tests can perturb
+#                                     it upward from a clean zero; real-row values are 0 or 2.09)
 BASELINE = {
     "bot_type":                  1,
     "transit_energy_wh":         8.13,
