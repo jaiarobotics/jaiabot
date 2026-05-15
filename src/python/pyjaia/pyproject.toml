@@ -36,8 +36,10 @@ jaia-analyze-waves = "pyjaia.waves.analyze_tool:main"
 jaia-ubx-extractor = "pyjaia.ubx.extractor_tool:main"
 jaia-battery-extract = "pyjaia.battery_prediction.extract_features:main"
 jaia-battery-train = "pyjaia.battery_prediction.train:main"
+jaia-battery-calibrate = "pyjaia.battery_prediction.calibrate:main"
+jaia-battery-physics-test = "pyjaia.battery_prediction.physics_tests:main"
 
 [tool.setuptools.package-data]
 "pyjaia" = ["data/*.png"]
-"pyjaia.battery_prediction" = ["battery_model.pkl", "dataset.csv"]
+"pyjaia.battery_prediction" = ["battery_model.pkl", "dataset.csv", "calibration.json"]
 

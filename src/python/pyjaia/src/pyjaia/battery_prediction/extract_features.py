@@ -15,6 +15,7 @@ Usage:
 import argparse
 import csv
 import glob
+import json
 import os
 
 import h5py
@@ -24,19 +25,57 @@ EARTH_R = 6_371_000  # metres
 GPS_JUMP_THRESHOLD_M = 100  # filter GPS teleports
 MIN_MISSION_DURATION_S = 300  # 5 minutes — discard short test runs
 BOTTOM_DIVE_DEPTH_PRIOR_M = 10  # assumed depth when no target depth is planned
-HOTEL_LOAD_W = 4.0           # constant hotel load (everything except motor)
-# Measured motor draw at known transit speeds (m/s → watts)
-MOTOR_POWER_LOOKUP_SPEED = [2.0, 2.2, 3.0]
-MOTOR_POWER_LOOKUP_WATTS = [71.0, 75.0, 181.0]
+HOTEL_LOAD_W = 4.0           # constant hotel load when motor is genuinely off
+
+_CALIBRATION_PATH = os.path.join(os.path.dirname(__file__), "calibration.json")
+
+
+def load_calibration() -> dict:
+    """Load per-state wattage, transit power curve, and dive-energy constants
+    produced by calibrate.py.
+
+    Returns a flat dict with the constants extract_features.py actually consumes,
+    with safe fallbacks when a state has no measured samples in the dataset.
+    """
+    with open(_CALIBRATION_PATH) as f:
+        cal = json.load(f)
+    loads = cal.get("loads_w", {})
+    def _w(key, default):
+        entry = loads.get(key)
+        return float(entry["median_w"]) if isinstance(entry, dict) else float(default)
+    dive = cal.get("dive_energy", {})
+    transit = cal.get("transit_power_curve", {})
+    return {
+        "dive_hold_w":         _w("dive_hold", 60.0),
+        # task_surface_drift is rare in our logs; post_dive_drift (~1W) is the
+        # better proxy for "bot drifting on the surface with motor off"
+        "surface_drift_w":     _w("post_dive_drift", 4.0),
+        # task_station_keep had zero samples; fall back to recovery_station_keep
+        # which is the same physical behavior (holding position with no plan)
+        "station_keep_w":      _w("recovery_station_keep", 30.0),
+        "dive_energy_base_wh": float(dive.get("intercept_wh", 0.5)),
+        "dive_energy_per_m":   float(dive.get("per_meter_wh", 0.0)),
+        "transit_speeds_m_s":  list(transit.get("speeds_m_s", [2.0, 2.2, 3.0])),
+        "transit_watts":       list(transit.get("watts",      [71.0, 75.0, 181.0])),
+    }
+
+
+CALIBRATION = load_calibration()
 
 
 def estimated_transit_energy_wh(distance_m: float, speed_m_s: float) -> float:
-    """Compute transit energy in Wh using the hardware-spec motor power curve."""
+    """Compute transit energy in Wh using the calibrated planned-speed -> watts
+    curve from calibration.json. The curve already includes hotel load because
+    it's measured from total battery current, not motor-only."""
     if speed_m_s <= 0:
         return 0.0
-    motor_w = float(np.interp(speed_m_s, MOTOR_POWER_LOOKUP_SPEED, MOTOR_POWER_LOOKUP_WATTS))
+    motor_w = float(np.interp(
+        speed_m_s,
+        CALIBRATION["transit_speeds_m_s"],
+        CALIBRATION["transit_watts"],
+    ))
     duration_h = (distance_m / speed_m_s) / 3600
-    return (motor_w + HOTEL_LOAD_W) * duration_h
+    return motor_w * duration_h
 
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -301,9 +340,11 @@ def extract_missions(h5_path: str) -> list[dict]:
                 if not valid_wp.any():
                     continue
                 speed = float(hc_speeds[i]) if not np.isnan(hc_speeds[i]) else 2.0
-                # Clamp transit speed at the minimum measured motor draw point
-                # (2.0 m/s). Plans that request slower transit speeds still draw
-                # at least this much motor power in practice.
+                # Empirical floor: when commanded below 2.0 m/s the bot still
+                # achieves ~1.7 m/s in the logs (planned 1.0 -> achieved 1.73,
+                # planned 2.0 -> achieved 1.63) because the motor has a
+                # minimum-throttle floor. Clamping at 2.0 keeps both the
+                # transit-time and the wattage lookup honest for slow plans.
                 if speed < 2.0:
                     speed = 2.0
                 raw_repeats = int(hc_repeats[i])
@@ -432,14 +473,33 @@ def extract_missions(h5_path: str) -> list[dict]:
         transit_energy_wh = to_first_energy + single_pass_energy * plan_repeats + return_energy * (plan_repeats - 1)
 
         # Transit time in seconds. Drives both motor wattage (already in
-        # transit_energy_wh) and hotel-load wattage while moving. Each of the
-        # planned task durations (dive_hold_s, drift_total_s, station_keep_total_s)
-        # has a different effective power draw, so we keep them separate rather
-        # than rolling them into a single duration feature.
+        # transit_energy_wh) and hotel-load wattage while moving.
         single_pass_time_s = single_pass_distance_m / transit_speed + single_pass_extra_time_s
         to_first_time_s    = to_first_dist_m / transit_speed
         return_time_s      = return_dist_m / transit_speed
         transit_time_s = to_first_time_s + single_pass_time_s * plan_repeats + return_time_s * (plan_repeats - 1)
+
+        # Convert each non-transit task duration to its own calibrated energy
+        # in Wh using per-state median wattages measured from logs by
+        # calibrate.py. Each task has a different physical power draw (motor
+        # off on surface drift, motor active at depth in dive hold, etc.) so
+        # rolling them up with a single hotel constant would mis-attribute
+        # drain. Summing into a single hotel_energy_wh gives the model one
+        # physically monotonic feature with the correct scale.
+        hotel_energy_wh = (
+            CALIBRATION["dive_hold_w"]     * dive_hold_s          +
+            CALIBRATION["surface_drift_w"] * drift_total_s        +
+            CALIBRATION["station_keep_w"]  * station_keep_total_s
+        ) / 3600.0
+
+        # Each completed dive cycle (descent → hold → ascent → reacquire GPS)
+        # has a roughly fixed energy cost plus a depth-dependent term, both
+        # fit from log data by calibrate.py. Multiplying by dive_count gives a
+        # planning-time estimate of total dive-cycle energy in Wh.
+        dive_energy_wh = dive_count * (
+            CALIBRATION["dive_energy_base_wh"] +
+            CALIBRATION["dive_energy_per_m"] * mean_dive_depth_m
+        )
 
         rows.append({
             "log_file":                   log_name,
@@ -449,11 +509,8 @@ def extract_missions(h5_path: str) -> list[dict]:
             "transit_energy_wh":          round(transit_energy_wh, 4),
             "transit_time_s":             round(transit_time_s, 1),
             "turn_density_deg_per_km":    round(turn_density_deg_per_km, 1),
-            "drift_total_s":              round(drift_total_s, 1),
-            "station_keep_total_s":       round(station_keep_total_s, 1),
-            "dive_count":                 dive_count,
-            "mean_dive_depth_m":          round(mean_dive_depth_m, 2),
-            "dive_hold_s":                round(dive_hold_s, 1),
+            "hotel_energy_wh":            round(hotel_energy_wh, 4),
+            "dive_energy_wh":             round(dive_energy_wh, 4),
             "dive_hold_stops":            dive_hold_stops,
             "starting_battery_pct":       round(starting_battery_pct, 1),
             "battery_drain_pct":          round(battery_drain_pct, 1),
@@ -470,11 +527,8 @@ FIELDNAMES = [
     "transit_energy_wh",
     "transit_time_s",
     "turn_density_deg_per_km",
-    "drift_total_s",
-    "station_keep_total_s",
-    "dive_count",
-    "mean_dive_depth_m",
-    "dive_hold_s",
+    "hotel_energy_wh",
+    "dive_energy_wh",
     "dive_hold_stops",
     "starting_battery_pct",
     "battery_drain_pct",
@@ -502,7 +556,8 @@ def main():
             all_rows.append(row)
             print(f"  mission {row['mission_num']}: drain={row['battery_drain_pct']}%  "
                   f"transit={row['transit_energy_wh']:.2f}Wh  "
-                  f"dives={row['dive_count']}")
+                  f"hotel={row['hotel_energy_wh']:.2f}Wh  "
+                  f"dive={row['dive_energy_wh']:.2f}Wh")
 
     with open(args.output, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=FIELDNAMES)

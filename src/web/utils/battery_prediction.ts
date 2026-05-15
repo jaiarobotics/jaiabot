@@ -5,13 +5,28 @@ import { BOTTOM_DIVE_DEPTH_PRIOR_M } from "./constants";
 
 const DEFAULT_TRANSIT_SPEED_M_S = 2.0;
 const EARTH_R = 6_371_000;
-const HOTEL_LOAD_W = 4.0;
-// Measured motor draw at known transit speeds (m/s → watts)
-const MOTOR_POWER_W = new Map<number, number>([
-    [2.0, 71.0],
-    [2.2, 75.0],
-    [3.0, 181.0],
+
+// Mirror of constants from pyjaia/battery_prediction/calibration.json (kept here
+// to avoid an HTTP round-trip on every prediction). Each value is the median
+// per-state battery wattage measured from arduino_to_pi V*I in the training
+// log set, except the transit curve which is keyed on planned transit speed.
+// When recalibrating, regenerate calibration.json and update these constants.
+const TRANSIT_POWER_CURVE = new Map<number, number>([
+    [1.0, 72.0],
+    [2.0, 73.2],
+    [2.5, 109.1],
+    [3.0, 149.8],
 ]);
+const DIVE_HOLD_W = 62.8; // motor active at depth
+const SURFACE_DRIFT_W = 0.9; // motor off on surface
+const STATION_KEEP_W = 7.2; // motor periodically active to hold position
+const DIVE_ENERGY_BASE_WH = 0.71;
+const DIVE_ENERGY_PER_M_WH = 0.025;
+
+// Empirical floor: when commanded below 2.0 m/s the bot still achieves ~1.7 m/s
+// in the logs because the motor has a minimum-throttle floor. Clamping at 2.0
+// keeps both transit-time and the wattage lookup honest for slow plans.
+const MIN_PLANNED_SPEED_M_S = 2.0;
 
 export interface BatteryPrediction {
     predicted_drain_pct: number;
@@ -39,16 +54,18 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
 
 /**
  * Estimates transit energy in Wh using piecewise linear interpolation over
- * the hardware-spec motor power curve plus constant hotel load
+ * the calibrated planned-speed -> watts curve. The curve already includes
+ * hotel load because it's measured from total battery current, not motor-only.
  *
  * @param {number} distanceM Total planned transit distance in meters
- * @param {number} speedMs Transit speed in m/s
+ * @param {number} speedMs Planned transit speed in m/s (clamped at MIN_PLANNED_SPEED_M_S
+ *   by the caller; below that the bot can't actually slow down and overshoots)
  * @returns {number} Estimated energy in Watt-hours
  */
 function estimatedTransitEnergyWh(distanceM: number, speedMs: number): number {
     if (speedMs <= 0) return 0;
-    const speeds = Array.from(MOTOR_POWER_W.keys()).sort((a, b) => a - b);
-    const watts = speeds.map((s) => MOTOR_POWER_W.get(s)!);
+    const speeds = Array.from(TRANSIT_POWER_CURVE.keys()).sort((a, b) => a - b);
+    const watts = speeds.map((s) => TRANSIT_POWER_CURVE.get(s)!);
     let motorW = watts[watts.length - 1];
     if (speedMs <= speeds[0]) {
         motorW = watts[0];
@@ -61,7 +78,7 @@ function estimatedTransitEnergyWh(distanceM: number, speedMs: number): number {
             }
         }
     }
-    return (motorW + HOTEL_LOAD_W) * (distanceM / speedMs / 3600);
+    return motorW * (distanceM / speedMs / 3600);
 }
 
 /**
@@ -134,7 +151,8 @@ export async function fetchBatteryPrediction(
 
     const repeats = mission.getRepeats() ?? 1;
 
-    const transitSpeed = mission.getSpeeds()?.transit ?? DEFAULT_TRANSIT_SPEED_M_S;
+    const rawTransitSpeed = mission.getSpeeds()?.transit ?? DEFAULT_TRANSIT_SPEED_M_S;
+    const transitSpeed = Math.max(rawTransitSpeed, MIN_PLANNED_SPEED_M_S);
     // Separate bot→first leg from plan-internal energy so we can scale them
     // differently when `repeats > 1`. The bot→first leg only happens once;
     // plan-internal legs and CONSTANT_HEADING contributions are paid per pass.
@@ -147,7 +165,6 @@ export async function fetchBatteryPrediction(
     let diveCount = 0;
     let diveDepthM = 0;
     let diveHoldS = 0;
-    let diveHoldStops = 0;
     let driftTotalS = 0;
     let stationKeepTotalS = 0;
 
@@ -186,8 +203,6 @@ export async function fetchBatteryPrediction(
                 : (diveParams?.max_depth ?? 0);
             diveDepthM += depth;
             diveHoldS += diveParams?.hold_time ?? 0;
-            const interval = diveParams?.depth_interval;
-            diveHoldStops += !interval || interval >= depth ? 1 : Math.ceil(depth / interval);
         } else if (taskType === TaskType.CONSTANT_HEADING) {
             const chParams = task.getConstantHeadingParameters();
             const chSpeed = chParams?.constant_heading_speed ?? 0;
@@ -234,18 +249,26 @@ export async function fetchBatteryPrediction(
     diveCount *= repeats;
     diveDepthM *= repeats;
     diveHoldS *= repeats;
-    diveHoldStops *= repeats;
     driftTotalS *= repeats;
     stationKeepTotalS *= repeats;
 
     const meanDiveDepthM = diveCount > 0 ? diveDepthM / diveCount : 0;
-    // Transit time: drives both motor energy (already in transitEnergyWh) and
-    // hotel load while moving. Sent separately from dive_hold / drift /
-    // station_keep durations because each phase has a different power draw.
     const singlePassTimeS = singlePassDistanceM / transitSpeed + singlePassExtraTimeS;
     const toFirstTimeS = toFirstDistanceM / transitSpeed;
     const returnTimeS = returnDistanceM / transitSpeed;
     const transitTimeS = toFirstTimeS + singlePassTimeS * repeats + returnTimeS * (repeats - 1);
+
+    // Combined motor-off + low-motor-load energy: each non-transit task gets
+    // its own measured wattage from the calibrated constants above.
+    const hotelEnergyWh =
+        (DIVE_HOLD_W * diveHoldS +
+            SURFACE_DRIFT_W * driftTotalS +
+            STATION_KEEP_W * stationKeepTotalS) /
+        3600;
+
+    // Full-dive-cycle energy (descent through GPS reacquire), excluding the
+    // HOLD time which is already counted in hotelEnergyWh.
+    const diveEnergyWh = diveCount * (DIVE_ENERGY_BASE_WH + DIVE_ENERGY_PER_M_WH * meanDiveDepthM);
 
     try {
         const response = await fetch("/battery-prediction", {
@@ -256,12 +279,8 @@ export async function fetchBatteryPrediction(
                 transit_energy_wh: transitEnergyWh,
                 transit_time_s: transitTimeS,
                 turn_density_deg_per_km: turnDensityDegPerKm,
-                drift_total_s: driftTotalS,
-                station_keep_total_s: stationKeepTotalS,
-                dive_count: diveCount,
-                mean_dive_depth_m: meanDiveDepthM,
-                dive_hold_s: diveHoldS,
-                dive_hold_stops: diveHoldStops,
+                hotel_energy_wh: hotelEnergyWh,
+                dive_energy_wh: diveEnergyWh,
                 starting_battery_pct: bot.getBatteryPercent(),
             }),
         });
