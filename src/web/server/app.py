@@ -497,8 +497,7 @@ def battery_prediction():
     required = [
         'bot_type', 'transit_energy_wh', 'transit_time_s',
         'turn_density_deg_per_km',
-        'drift_total_s', 'station_keep_total_s',
-        'dive_count', 'mean_dive_depth_m', 'dive_hold_s', 'dive_hold_stops',
+        'hotel_energy_wh', 'dive_energy_wh',
         'starting_battery_pct',
     ]
     missing = [k for k in required if k not in body]
@@ -511,12 +510,8 @@ def battery_prediction():
             transit_energy_wh=float(body['transit_energy_wh']),
             transit_time_s=float(body['transit_time_s']),
             turn_density_deg_per_km=float(body['turn_density_deg_per_km']),
-            drift_total_s=float(body['drift_total_s']),
-            station_keep_total_s=float(body['station_keep_total_s']),
-            dive_count=int(body['dive_count']),
-            mean_dive_depth_m=float(body['mean_dive_depth_m']),
-            dive_hold_s=float(body['dive_hold_s']),
-            dive_hold_stops=int(body['dive_hold_stops']),
+            hotel_energy_wh=float(body['hotel_energy_wh']),
+            dive_energy_wh=float(body['dive_energy_wh']),
             starting_battery_pct=float(body['starting_battery_pct']),
         )
         starting = float(body['starting_battery_pct'])

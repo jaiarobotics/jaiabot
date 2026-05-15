@@ -81,12 +81,8 @@ FEATURES = [
     "transit_energy_wh",
     "transit_time_s",
     "turn_density_deg_per_km",
-    "drift_total_s",
-    "station_keep_total_s",
-    "dive_count",
-    "mean_dive_depth_m",
-    "dive_hold_s",
-    "dive_hold_stops",
+    "hotel_energy_wh",
+    "dive_energy_wh",
     "starting_battery_pct",
 ]
 TARGET = "battery_drain_pct"
@@ -100,12 +96,8 @@ MONOTONIC_CONSTRAINT = {
     "transit_energy_wh":         +1,
     "transit_time_s":            +1,
     "turn_density_deg_per_km":   +1,
-    "drift_total_s":             +1,
-    "station_keep_total_s":      +1,
-    "dive_count":                +1,
-    "mean_dive_depth_m":         +1,
-    "dive_hold_s":               +1,
-    "dive_hold_stops":           +1,
+    "hotel_energy_wh":           +1,
+    "dive_energy_wh":            +1,
     "starting_battery_pct":      +1,
 }
 MONOTONIC_CST_ARRAY = np.array([MONOTONIC_CONSTRAINT[f] for f in FEATURES], dtype=int)
