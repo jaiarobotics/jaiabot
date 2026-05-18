@@ -1,21 +1,14 @@
+import * as mgrs from "mgrs";
 import Task from "../tasks/task";
-
-import { MGRS } from "../../types/jaia-system-types";
 import { GeographicCoordinate, Goal } from "../../types/protobuf-types";
+import { CoordinateTypes, MGRS, MGRSComponents } from "../../types/jaia-system-types";
 
 export default class Waypoint {
     private location: GeographicCoordinate;
-    private mgrsLocation: MGRS;
     private task: Task;
 
     constructor() {
         this.task = new Task();
-        this.mgrsLocation = {
-            gridZoneDesignator: "",
-            squareIdentifier: "",
-            easting: "",
-            northing: "",
-        };
     }
 
     getLocation() {
@@ -24,14 +17,6 @@ export default class Waypoint {
 
     setLocation(location: GeographicCoordinate) {
         this.location = location;
-    }
-
-    getMGRSLocation() {
-        return this.mgrsLocation;
-    }
-
-    setMGRSLocation(mgrsLocation: MGRS) {
-        this.mgrsLocation = mgrsLocation;
     }
 
     getTask() {
@@ -49,5 +34,38 @@ export default class Waypoint {
         };
 
         return goal;
+    }
+
+    latLonToMGRS() {
+        const mgrsStr = mgrs.forward([this.location.lon, this.location.lat]);
+        const match = mgrsStr.match(/^(\d{1,2}[C-X])([A-Z]{2})(\d*)$/);
+
+        if (!match) {
+            return null;
+        }
+
+        const gzd = match[1];
+        const squareID = match[2];
+        const digits = match[3];
+        const half = digits.length / 2;
+        const mgrsComponents: MGRS = {
+            gridZoneDesignator: gzd,
+            squareIdentifier: squareID,
+            easting: digits.slice(0, half),
+            northing: digits.slice(half),
+        };
+        return mgrsComponents;
+    }
+
+    mgrsToLatLon(mgrsStr: string) {
+        try {
+            const [lon, lat] = mgrs.toPoint(mgrsStr);
+            this.location.lon = lon;
+            this.location.lat = lat;
+            return [lon, lat];
+        } catch (err) {
+            console.log(err);
+            return [NaN, NaN];
+        }
     }
 }

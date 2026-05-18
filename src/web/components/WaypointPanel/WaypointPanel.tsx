@@ -1,6 +1,6 @@
 import cloneDeep from "lodash/cloneDeep";
+import mgrs from "mgrs";
 import { ChangeEvent, useContext, useEffect, useState } from "react";
-
 import TaskParameters from "./TaskParameters/TaskParameters";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
@@ -16,7 +16,7 @@ import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 
 import { CoordinateTypes, MGRSComponents, SelectedWaypoint } from "../../types/jaia-system-types";
 import { PanelActions } from "../../types/context-types";
-import { TaskType } from "../../types/protobuf-types";
+import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
 import { MapModes } from "../../types/openlayers-types";
 
 import Icon from "@mdi/react";
@@ -27,6 +27,7 @@ import "./WaypointPanel.less";
 
 interface Props {
     waypoint: Waypoint;
+    handleLocationChange: (evt: ChangeEvent<HTMLInputElement>) => void;
 }
 
 // Stored outside of component to prevent unnecessary resetting of variable
@@ -34,6 +35,13 @@ let originalSelectedWaypoint = { ...jaiaGlobal.getSelectedWaypoint() };
 
 /**
  * Displays information about the selected waypoint such as location and task selection
+ *
+ * @notes
+ * Waypoint location data exists in both number and string form. We utilize the number type
+ * when saving to the data model and string type when working with user input. We need to use
+ * strings when working with user input to allow negative signs and decimal points. As the
+ * user enters a coordinate, we will check if the value can be converted to a number.
+ * If it can, we will update the data model with the numerical form of the user input.
  */
 export default function WaypointPanel() {
     const jaiaContext = useContext(JaiaContext);
@@ -49,6 +57,9 @@ export default function WaypointPanel() {
         const mission = jaiaContext.missionSet.getMission(selectedWaypoint.missionID);
         return mission.getWaypoint(jaiaContext.jaiaGlobal.getSelectedWaypoint().waypointNum);
     };
+
+    const [latInput, setLatInput] = useState(getWaypoint().getLocation().lat.toString());
+    const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
 
     // Use state to initalize to null on first render + prevent unnecessary updates
     const [originalWaypoint, setOriginalWaypoint] = useState(null);
@@ -73,6 +84,83 @@ export default function WaypointPanel() {
             setOriginalWaypoint(cloneDeep(getWaypoint()));
         }
     });
+
+    const handleLocationChange = (evt: ChangeEvent<HTMLInputElement>) => {
+        const waypoint = getWaypoint();
+        let lat = latInput;
+        let lon = lonInput;
+
+        const value = evt.target.value;
+
+        switch (evt.target.name) {
+            case CoordinateTypes.LAT:
+                setLatInput(value);
+                lat = value;
+                break;
+            case CoordinateTypes.LON:
+                setLonInput(value);
+                lon = value;
+                break;
+        }
+
+        if (isNaN(Number(value))) {
+            return;
+        }
+
+        const updatedLatLon = validateCoordinate(lat, lon);
+        setLatInput(updatedLatLon[0]);
+        setLonInput(updatedLatLon[1]);
+        jaiaDispatch({
+            type: JaiaActions.MOVE_WAYPOINT,
+            location: { lat: Number(updatedLatLon[0]), lon: Number(updatedLatLon[1]) },
+        });
+    };
+
+    /**
+     * Compares the lat stored in state and context. If the value in context
+     * is different, the waypoint has moved via a mechanism outsie of the input box
+     * such as "tap to move". The function syncs the two sources.
+     *
+     * @returns {string} Most up to date latitude
+     */
+    const getLatInput = () => {
+        const waypoint = getWaypoint();
+
+        if (isNaN(Number(latInput))) {
+            return latInput;
+        }
+
+        if (waypoint.getLocation().lat !== Number(latInput)) {
+            const updatedLat = waypoint.getLocation().lat.toString();
+            setLatInput(updatedLat);
+            return updatedLat;
+        }
+
+        return latInput;
+    };
+
+    /**
+     * Compares the lon stored in state and context. If the value in context
+     * is different, the waypoint has moved via a mechanism outsie of the input box
+     * such as "tap to move". The function syncs the two sources.
+     *
+     * @returns {string} Most up to date longitude
+     */
+    const getLonInput = () => {
+        const waypoint = getWaypoint();
+
+        if (isNaN(Number(lonInput))) {
+            return lonInput;
+        }
+
+        if (waypoint.getLocation().lon !== Number(lonInput)) {
+            const updatedLon = waypoint.getLocation().lon.toString();
+            setLonInput(updatedLon);
+            return updatedLon;
+        }
+
+        return lonInput;
+    };
 
     /**
      * Dispatches action to delete a waypoint
@@ -172,7 +260,7 @@ export default function WaypointPanel() {
                 <button>Location</button>
                 <button>Task</button>
             </div>
-            <LocationInput waypoint={getWaypoint()} />
+            <LocationInput waypoint={getWaypoint()} handleLocationChange={handleLocationChange} />
             <div className="button-row">
                 <button onClick={() => handleClosePanelClick(PanelActions.CANCEL)}>Cancel</button>
                 <button onClick={() => handleClosePanelClick(PanelActions.DONE)}>Done</button>
@@ -199,35 +287,77 @@ function compareSelectedWaypoints(waypointA: SelectedWaypoint, waypointB: Select
 }
 
 function LocationInput(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+    const mgrsComponents = props.waypoint.latLonToMGRS();
+    const [gridZoneDesignator, setGridZoneDesignator] = useState(mgrsComponents.gridZoneDesignator);
+    const [sqaureID, setSquareID] = useState(mgrsComponents.squareIdentifier);
+    const [easting, setEasting] = useState(mgrsComponents.easting);
+    const [northing, setNorthing] = useState(mgrsComponents.northing);
+
+    const handleInputChange = (evt: ChangeEvent<HTMLInputElement>) => {
+        switch (evt.target.name) {
+            case CoordinateTypes.GZD:
+                setGridZoneDesignator(evt.target.value);
+                break;
+            case CoordinateTypes.SQUARE_ID:
+                setSquareID(evt.target.value);
+                break;
+            case CoordinateTypes.EASTING:
+                setEasting(evt.target.value);
+                break;
+            case CoordinateTypes.NORTHING:
+                setNorthing(evt.target.value);
+                break;
+        }
+        const [lon, lat] = props.waypoint.mgrsToLatLon(
+            `${gridZoneDesignator}${sqaureID}${easting}${northing}`,
+        );
+
+        console.log(lon, lat);
+
+        if (isNaN(lon) || isNaN(lat)) {
+            return;
+        }
+
+        jaiaDispatch({
+            type: JaiaActions.MOVE_WAYPOINT,
+            location: { lat, lon },
+        });
+    };
+
     return (
         <div className="waypoint-location-container">
             <label>GZD</label>
             <input
                 name={MGRSComponents.GZD}
-                value={props.waypoint.getMGRSLocation().gridZoneDesignator}
+                value={gridZoneDesignator}
                 className="jaia-input location"
                 autoComplete="off"
+                onChange={(evt) => handleInputChange(evt)}
             />
             <label>Square ID</label>
             <input
                 name={MGRSComponents.SQUARE_ID}
-                value={props.waypoint.getMGRSLocation().squareIdentifier}
+                value={sqaureID}
                 className="jaia-input location"
                 autoComplete="off"
+                onChange={(evt) => handleInputChange(evt)}
             />
             <label>Easting</label>
             <input
                 name={MGRSComponents.EASTING}
-                value={props.waypoint.getMGRSLocation().easting}
+                value={easting}
                 className="jaia-input location"
                 autoComplete="off"
+                onChange={(evt) => handleInputChange(evt)}
             />
             <label>Northing</label>
             <input
                 name={MGRSComponents.NORTHING}
-                value={props.waypoint.getMGRSLocation().northing}
+                value={northing}
                 className="jaia-input location"
                 autoComplete="off"
+                onChange={(evt) => handleInputChange(evt)}
             />
         </div>
     );

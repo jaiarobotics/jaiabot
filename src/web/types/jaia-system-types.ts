@@ -96,6 +96,10 @@ export enum ButtonListTypes {
 export enum CoordinateTypes {
     LAT = "LAT",
     LON = "LON",
+    GZD = "GZD",
+    SQUARE_ID = "SQUARE_ID",
+    EASTING = "EASTING",
+    NORTHING = "NORTHING",
 }
 
 export const enum BotModes {
