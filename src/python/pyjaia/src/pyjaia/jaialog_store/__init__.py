@@ -358,7 +358,7 @@ class JaialogStore:
         # Convert h5 to ubx if needed
         for logName in logNames:
             subprocess.run(['jaia-ubx-extractor', f'{self.LOG_DIR}/{logName}.h5'], check=True)
-            subprocess.run(['touch', f'{self.LOG_DIR}/{logName}.ubx'], check=True) # If there's no ubx data, make sure there's a file there
+            Path(f'{self.LOG_DIR}/{logName}.ubx').touch() # If there's no ubx data, make sure there's a file there
 
         # If there's only one log, return the ubx file directly.  If there are multiple logs, zip them up and return the zip file.
         if len(logNames) == 1:

@@ -29,12 +29,12 @@ function downloadURL(url: string, filename: string | null = null, mimeType: stri
         if (contentDisposition == null) {
             return null;
         }
-        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
-        if (filenameMatch == null || filenameMatch.length < 1) {
+        const filenameMatch = contentDisposition.match(/filename="([^"]+)"|filename=([^;]+)/);
+        if (filenameMatch == null) {
             return null;
         }
 
-        return filenameMatch[1];
+        return filenameMatch[1] ?? filenameMatch[2] ?? null;
     }
 
     return fetch(url, { method: "GET" })

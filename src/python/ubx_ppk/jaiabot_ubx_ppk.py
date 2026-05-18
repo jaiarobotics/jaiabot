@@ -137,7 +137,7 @@ class GPSDClientSimulator:
 def main():
     parser = argparse.ArgumentParser(description="UBX PPK GPSD Client")
     parser.add_argument("-host", "--udp_host", type=str, default="localhost", help="The hostname of the jaiabot_udp_gateway to send UBX messages to")
-    parser.add_argument("-p", "-port", "--udp_port", type=int, help="The port of the jaiabot_udp_gateway to send UBX messages to")
+    parser.add_argument("-p", "--udp_port", type=int, help="The port of the jaiabot_udp_gateway to send UBX messages to")
 
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("-o", "--output", type=str, help="Output file for raw UBX messages")
@@ -147,10 +147,6 @@ def main():
 
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
-
-    HOST = "127.0.0.1"
-    PORT = 2947
-
 
     if args.output:
         output_file = open(args.output, "wb")
@@ -175,7 +171,11 @@ def main():
 
 
     while True:
-        messages = gpsd_client.read_messages()
+        try:
+            messages = gpsd_client.read_messages()
+        except EOFError:
+            lg.info("End of input reached, exiting")
+            break
 
         for msg in messages:
             lg.debug(f"Received complete UBX message of length {len(msg)}: {msg[:4].hex()}")

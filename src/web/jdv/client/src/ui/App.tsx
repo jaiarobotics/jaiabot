@@ -18,7 +18,6 @@ import { CustomAlert, CustomAlertProps } from "../shared/CustomAlert";
 
 import Button from "@mui/material/Button";
 import { InformationDialog } from "./InformationDialog";
-import { downloadToFile } from "../shared/Utilities";
 
 function exceptionCatcher(exception: Error) {
     CustomAlert.presentAlert({
