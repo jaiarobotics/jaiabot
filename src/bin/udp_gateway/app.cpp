@@ -62,7 +62,6 @@ class UDPGateway
 
     void send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command);
     void send_echo_command(const jaiabot::protobuf::EchoCommand& echo_command);
-    void send_ppk_command(const jaiabot::protobuf::PPKCommand& ppk_command);
 
     void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
     void process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_src);
@@ -152,8 +151,6 @@ jaiabot::apps::UDPGateway::UDPGateway()
             send_echo_command(echo_command);
         });
 
-    interprocess().subscribe<groups::ppk>([this](const protobuf::PPKCommand& ppk_command)
-                                          { send_ppk_command(ppk_command); });
 }
 
 
@@ -261,13 +258,6 @@ void jaiabot::apps::UDPGateway::send_echo_command(const jaiabot::protobuf::EchoC
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
     *envelope.mutable_echo_command() = echo_command;
     send_envelope(envelope, echo_udp_src_);
-}
-
-void jaiabot::apps::UDPGateway::send_ppk_command(const jaiabot::protobuf::PPKCommand& ppk_command)
-{
-    auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
-    *envelope.mutable_ppk_command() = ppk_command;
-    send_envelope(envelope, ppk_udp_src_);
 }
 
 void jaiabot::apps::UDPGateway::loop()
