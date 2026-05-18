@@ -693,15 +693,20 @@ if 'aml' in jaia_additional_sensors:
     ]
     jaiabot_apps.extend(jaiabot_aml_sensor)
 if 'ppk' in jaia_additional_sensors:
-    jaiabot_ppk = [
-        {'exe': 'jaiabot_ppk',
-        'description': 'JaiaBot PPK Logger',
-        'template': 'goby-app.service.in',
+    jaiabot_ubx_ppk = {
+        'exe': 'jaiabot_ubx_ppk.py',
+        'description': 'JaiaBot UBX PPK Logger',
+        'template': 'py-app.service.in',
+        'subdir': 'ubx_ppk',
+        'args': f'-p {UDP_GATEWAY_PORT}',
         'error_on_fail': 'ERROR__FAILED__JAIABOT_PPK',
         'runs_on': [Type.BOT],
-        'wanted_by': 'jaiabot_health.service'},
-    ]
-    jaiabot_apps.extend(jaiabot_ppk)
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'
+    }
+
+    jaiabot_apps.append(jaiabot_ubx_ppk)
 
 if jaia_temperature_sensor_type.value == 'tsys01':
     jaiabot_apps_tsys01 = [

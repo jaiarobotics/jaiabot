@@ -24,9 +24,29 @@ export interface ConvertStatus {
  * @param {string} [mimeType='text/plain'] MIME type of the content
  * @returns {Promise<void>} A Promise for the fetch operation
  */
-function downloadURL(url: string, filename: string = "filename", mimeType: string = "text/plain") {
+function downloadURL(url: string, filename: string | null = null, mimeType: string | null = null) {
+    function getFilenameFromContentDisposition(contentDisposition: string | null): string | null {
+        if (contentDisposition == null) {
+            return null;
+        }
+        const filenameMatch = contentDisposition.match(/filename="([^"]+)"|filename=([^;]+)/);
+        if (filenameMatch == null) {
+            return null;
+        }
+
+        return filenameMatch[1] ?? filenameMatch[2] ?? null;
+    }
+
     return fetch(url, { method: "GET" })
         .then((res) => {
+            // Get mime type from response header if not provided
+            mimeType = mimeType ?? res.headers.get("Content-Type") ?? "application/octet-stream";
+
+            // Get filename from content-disposition header if not provided
+            filename =
+                filename ??
+                getFilenameFromContentDisposition(res.headers.get("Content-Disposition")) ??
+                "file.bin";
             return res.blob();
         })
         .then((blob) => {
@@ -278,6 +298,13 @@ export class LogApi {
         url.searchParams.append("t_end", String(time_range[1]));
 
         return downloadURL(url.toString(), "moos.csv", "text/csv");
+    }
+
+    static async getUBX(logs: string[]) {
+        var url = new URL("/jdv/ubx", window.location.origin);
+        url.searchParams.append("file", logs.join(","));
+
+        return downloadURL(url.toString());
     }
 
     /**
