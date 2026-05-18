@@ -45,9 +45,7 @@ if [[ "$comms_mode" == *w* && "$comms_mode" == *x* ]]; then
     jaia_comms_mode="xbee,wifi"
 fi
 
-if [[ "$n_hubs" != "1" ]]; then
-    ${script_dir}/../../../rootfs/customization/includes.chroot/etc/jaiabot/init/jaia-create-ansible-inventory.sh -b $(seq -s , 1 ${n_bots}) -h $(seq -s , 1 ${n_hubs}) -f 0 > /etc/jaiabot/inventory.yml
-fi
+${script_dir}/../../../rootfs/customization/includes.chroot/etc/jaiabot/init/jaia-create-ansible-inventory.sh -b $(seq -s , 1 ${n_bots}) -h $(seq -s , 1 ${n_hubs}) -f 0 > /etc/jaiabot/inventory.yml
 
 launchdelay=100
 
