@@ -11,6 +11,7 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import Waypoint from "../../data/waypoints/waypoint";
 
 import { UNASSIGNED_ID } from "../../utils/constants";
+import { selectTheme } from "../../utils/style";
 import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 
 import {
@@ -25,7 +26,14 @@ import { MapModes } from "../../types/openlayers-types";
 
 import Icon from "@mdi/react";
 import { mdiArrowRight, mdiDelete } from "@mdi/js";
-import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
+import {
+    Button,
+    FormControl,
+    Select,
+    MenuItem,
+    SelectChangeEvent,
+    ThemeProvider,
+} from "@mui/material";
 
 import "./WaypointPanel.less";
 
@@ -39,6 +47,7 @@ interface Props {
     waypoint: Waypoint;
     handleLocationChange: (evt: ChangeEvent<HTMLInputElement>) => void;
     visibleSection?: SectionNames;
+    isDisabled?: boolean;
 }
 
 const COMPARE_DECIMALS = 4;
@@ -303,6 +312,7 @@ export default function WaypointPanel() {
                 waypoint={getWaypoint()}
                 handleLocationChange={handleLocationChange}
                 visibleSection={visibleSection}
+                isDisabled={isDisabled}
             />
             <div className="button-row">
                 <button onClick={() => handleClosePanelClick(PanelActions.CANCEL)}>Cancel</button>
@@ -338,9 +348,71 @@ function VisibleSection(props: Props) {
                     handleLocationChange={props.handleLocationChange}
                 />
             );
+        case SectionNames.TASK:
+            return (
+                <TaskSelection
+                    waypoint={props.waypoint}
+                    handleLocationChange={props.handleLocationChange}
+                    isDisabled={props.isDisabled}
+                />
+            );
         default:
             return;
     }
+}
+
+function TaskSelection(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+
+    /**
+     * Dispatches action to select a task. This will lead to the task
+     * parameters appearing.
+     *
+     * @returns {void}
+     */
+    const handleTaskMenuSelection = (evt: SelectChangeEvent) => {
+        const selectedTaskType = evt.target.value;
+        jaiaDispatch({
+            type: JaiaActions.SELECT_TASK,
+            task: props.waypoint.getTask(),
+            taskType: selectedTaskType,
+        });
+    };
+
+    return (
+        <div className="waypoint-location-container">
+            <div className="label">Task:</div>
+            <ThemeProvider theme={selectTheme}>
+                <FormControl sx={{ minWidth: 120 }} size="small">
+                    <Select
+                        value={props.waypoint.getTask().getType()}
+                        onChange={(evt: SelectChangeEvent) => handleTaskMenuSelection(evt)}
+                        disabled={props.isDisabled}
+                        sx={{ height: 30 }}
+                    >
+                        <MenuItem value={TaskType.NONE}>
+                            {snakeCaseToTitleCase(TaskType.NONE)}
+                        </MenuItem>
+                        <MenuItem value={TaskType.DIVE}>
+                            {snakeCaseToTitleCase(TaskType.DIVE)}
+                        </MenuItem>
+                        <MenuItem value={TaskType.SURFACE_DRIFT}>
+                            {snakeCaseToTitleCase(TaskType.SURFACE_DRIFT)}
+                        </MenuItem>
+                        <MenuItem value={TaskType.CONSTANT_HEADING}>
+                            {snakeCaseToTitleCase(TaskType.CONSTANT_HEADING)}
+                        </MenuItem>
+                        <MenuItem value={TaskType.STATION_KEEP}>
+                            {snakeCaseToTitleCase(TaskType.STATION_KEEP)}
+                        </MenuItem>
+                    </Select>
+                </FormControl>
+            </ThemeProvider>
+            <div className="task-parameters-container">
+                <TaskParameters task={props.waypoint.getTask()} isDisabled={props.isDisabled} />
+            </div>
+        </div>
+    );
 }
 
 let currentMGRS: MGRS;

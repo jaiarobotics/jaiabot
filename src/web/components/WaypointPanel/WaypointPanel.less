@@ -5,6 +5,7 @@
     top: @panel-top;
     right: @panel-right;
     z-index: @jaia-panel-z-index;
+    width: 240px;
 
     padding: 6px;
 
@@ -16,6 +17,19 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+
+.waypoint-panel-container .MuiSelect-select {
+    font-size: 0.9rem;
+}
+
+.waypoint-panel-container .MuiInputBase-root {
+    background-color: #d3d3d3;
+    color: #000;
+}
+
+.waypoint-panel-container .MuiSvgIcon-root {
+    fill: #000;
 }
 
 .waypoint-id-container {
@@ -58,7 +72,7 @@
 
 .waypoint-button-container button {
     all: unset;
-    width: 75px;
+    width: 90px;
     padding: 6px 0;
     border: 1px solid #d3d3d3;
     border-radius: 3px;
@@ -76,7 +90,12 @@
     display: grid;
     grid-template-columns: max-content min-content;
     gap: 9px;
+    justify-content: center;
     align-items: center;
+}
+
+.task-parameters-container {
+    grid-column: 1 / 3;
 }
 
 .waypoint-location-container button {
