@@ -29,9 +29,16 @@ import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/m
 
 import "./WaypointPanel.less";
 
+enum SectionNames {
+    NONE = 1,
+    LOCATION = 2,
+    TASK = 3,
+}
+
 interface Props {
     waypoint: Waypoint;
     handleLocationChange: (evt: ChangeEvent<HTMLInputElement>) => void;
+    visibleSection?: SectionNames;
 }
 
 const COMPARE_DECIMALS = 4;
@@ -66,6 +73,7 @@ export default function WaypointPanel() {
 
     const [latInput, setLatInput] = useState(getWaypoint().getLocation().lat.toString());
     const [lonInput, setLonInput] = useState(getWaypoint().getLocation().lon.toString());
+    const [visibleSection, setVisibleSection] = useState(SectionNames.NONE);
 
     // Use state to initalize to null on first render + prevent unnecessary updates
     const [originalWaypoint, setOriginalWaypoint] = useState(null);
@@ -90,6 +98,21 @@ export default function WaypointPanel() {
             setOriginalWaypoint(cloneDeep(getWaypoint()));
         }
     });
+
+    const handleSectionButtonClick = (sectionName: SectionNames) => {
+        if (sectionName === visibleSection) {
+            setVisibleSection(SectionNames.NONE);
+        } else {
+            setVisibleSection(sectionName);
+        }
+    };
+
+    const getSectionButtonClassName = (sectionName: SectionNames) => {
+        if (sectionName === visibleSection) {
+            return "selected";
+        }
+        return "";
+    };
 
     const handleLocationChange = (evt: ChangeEvent<HTMLInputElement>) => {
         const waypoint = getWaypoint();
@@ -263,10 +286,24 @@ export default function WaypointPanel() {
                 <Icon path={mdiDelete} color="white" />
             </div>
             <div className="waypoint-button-container">
-                <button>Location</button>
-                <button>Task</button>
+                <button
+                    className={getSectionButtonClassName(SectionNames.LOCATION)}
+                    onClick={() => handleSectionButtonClick(SectionNames.LOCATION)}
+                >
+                    Location
+                </button>
+                <button
+                    className={getSectionButtonClassName(SectionNames.TASK)}
+                    onClick={() => handleSectionButtonClick(SectionNames.TASK)}
+                >
+                    Task
+                </button>
             </div>
-            <LocationInput waypoint={getWaypoint()} handleLocationChange={handleLocationChange} />
+            <VisibleSection
+                waypoint={getWaypoint()}
+                handleLocationChange={handleLocationChange}
+                visibleSection={visibleSection}
+            />
             <div className="button-row">
                 <button onClick={() => handleClosePanelClick(PanelActions.CANCEL)}>Cancel</button>
                 <button onClick={() => handleClosePanelClick(PanelActions.DONE)}>Done</button>
@@ -290,6 +327,20 @@ function compareSelectedWaypoints(waypointA: SelectedWaypoint, waypointB: Select
         return true;
     }
     return false;
+}
+
+function VisibleSection(props: Props) {
+    switch (props.visibleSection) {
+        case SectionNames.LOCATION:
+            return (
+                <LocationInput
+                    waypoint={props.waypoint}
+                    handleLocationChange={props.handleLocationChange}
+                />
+            );
+        default:
+            return;
+    }
 }
 
 let currentMGRS: MGRS;
