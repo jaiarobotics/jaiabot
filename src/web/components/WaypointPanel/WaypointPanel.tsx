@@ -15,6 +15,7 @@ import { selectTheme } from "../../utils/style";
 import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 
 import {
+    CoordinateSystem,
     CoordinateTypes,
     MGRS,
     MGRSComponents,
@@ -45,8 +46,9 @@ enum SectionNames {
 
 interface Props {
     waypoint: Waypoint;
-    visibleSection?: SectionNames;
     isDisabled?: boolean;
+    visibleSection?: SectionNames;
+    coordinateSystem?: CoordinateSystem;
 }
 
 const COMPARE_DECIMALS = 4;
@@ -232,8 +234,9 @@ export default function WaypointPanel() {
             </div>
             <VisibleSection
                 waypoint={getWaypoint()}
-                visibleSection={visibleSection}
                 isDisabled={isDisabled}
+                visibleSection={visibleSection}
+                coordinateSystem={jaiaContext.jaiaGlobal.getCoordinateSystem()}
             />
             <div className="button-row">
                 <button onClick={() => handleClosePanelClick(PanelActions.CANCEL)}>Cancel</button>
@@ -263,7 +266,10 @@ function compareSelectedWaypoints(waypointA: SelectedWaypoint, waypointB: Select
 function VisibleSection(props: Props) {
     switch (props.visibleSection) {
         case SectionNames.LOCATION:
-            return <LocationInput waypoint={props.waypoint} />;
+            if (props.coordinateSystem === CoordinateSystem.MGRS) {
+                return <MGRSDisplay waypoint={props.waypoint} isDisabled={props.isDisabled} />;
+            }
+            return <LatLonDisplay waypoint={props.waypoint} isDisabled={props.isDisabled} />;
         case SectionNames.TASK:
             return <TaskSelection waypoint={props.waypoint} isDisabled={props.isDisabled} />;
         default:
@@ -325,92 +331,10 @@ function TaskSelection(props: Props) {
     );
 }
 
-let currentMGRS: MGRS;
-
-function LocationInput(props: Props) {
+function LatLonDisplay(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [latInput, setLatInput] = useState(props.waypoint.getLocation().lat.toString());
     const [lonInput, setLonInput] = useState(props.waypoint.getLocation().lon.toString());
-
-    if (!currentMGRS) {
-        currentMGRS = props.waypoint.latLonToMGRS();
-    }
-
-    const [gzd, setGZD] = useState(currentMGRS.gridZoneDesignator);
-    const [squareID, setSquareID] = useState(currentMGRS.squareIdentifier);
-    const [easting, setEasting] = useState(currentMGRS.easting);
-    const [northing, setNorthing] = useState(currentMGRS.northing);
-
-    useEffect(() => {
-        const locationChange = compareLocation();
-        if (locationChange) {
-            const mgrs = props.waypoint.latLonToMGRS();
-            setGZD(mgrs.gridZoneDesignator);
-            setSquareID(mgrs.squareIdentifier);
-            setEasting(mgrs.easting);
-            setNorthing(mgrs.northing);
-            currentMGRS = props.waypoint.latLonToMGRS();
-        }
-    });
-
-    const handleInputChange = (evt: ChangeEvent<HTMLInputElement>) => {
-        switch (evt.target.name) {
-            case CoordinateTypes.GZD:
-                setGZD(evt.target.value);
-                break;
-            case CoordinateTypes.SQUARE_ID:
-                setSquareID(evt.target.value);
-                break;
-            case CoordinateTypes.EASTING:
-                setEasting(evt.target.value);
-                break;
-            case CoordinateTypes.NORTHING:
-                setNorthing(evt.target.value);
-                break;
-        }
-    };
-
-    const handleSubmitMGRSCoordinates = () => {
-        const mgrsStr = gzd + squareID + easting + northing;
-        const [lon, lat] = props.waypoint.mgrsToLatLon(mgrsStr);
-
-        if (isNaN(lon) || isNaN(lat)) {
-            return;
-        }
-
-        currentMGRS = {
-            gridZoneDesignator: gzd,
-            squareIdentifier: squareID,
-            easting: easting,
-            northing: northing,
-        };
-
-        jaiaDispatch({
-            type: JaiaActions.MOVE_WAYPOINT,
-            location: { lat, lon },
-        });
-    };
-
-    const compareLocation = () => {
-        const mgrsStr =
-            currentMGRS.gridZoneDesignator +
-            currentMGRS.squareIdentifier +
-            currentMGRS.easting +
-            currentMGRS.northing;
-
-        let [displayedLon, displayedLat] = props.waypoint.mgrsToLatLon(mgrsStr);
-        displayedLon = Number(displayedLon.toFixed(COMPARE_DECIMALS));
-        displayedLat = Number(displayedLat.toFixed(COMPARE_DECIMALS));
-
-        const actualLon = Number(props.waypoint.getLocation().lon?.toFixed(COMPARE_DECIMALS));
-        const actualLat = Number(props.waypoint.getLocation().lat?.toFixed(COMPARE_DECIMALS));
-
-        if (displayedLon !== actualLon || displayedLat !== actualLat) {
-            return true;
-        } else {
-            return false;
-        }
-    };
 
     /**
      * Compares the lat stored in state and context. If the value in context
@@ -491,41 +415,6 @@ function LocationInput(props: Props) {
 
     return (
         <div className="waypoint-location-container">
-            {/* <label>GZD</label>
-            <input
-                name={MGRSComponents.GZD}
-                value={gzd}
-                className="jaia-input location"
-                autoComplete="off"
-                onChange={(evt) => handleInputChange(evt)}
-            />
-            <label>Square ID</label>
-            <input
-                name={MGRSComponents.SQUARE_ID}
-                value={squareID}
-                className="jaia-input location"
-                autoComplete="off"
-                onChange={(evt) => handleInputChange(evt)}
-            />
-            <label>Easting</label>
-            <input
-                name={MGRSComponents.EASTING}
-                value={easting}
-                className="jaia-input location"
-                autoComplete="off"
-                onChange={(evt) => handleInputChange(evt)}
-            />
-            <label>Northing</label>
-            <input
-                name={MGRSComponents.NORTHING}
-                value={northing}
-                className="jaia-input location"
-                autoComplete="off"
-                onChange={(evt) => handleInputChange(evt)}
-            />
-            <button onClick={handleSubmitMGRSCoordinates}>
-                <Icon path={mdiArrowRight} />
-            </button> */}
             <div className="label">Lat:</div>
             <input
                 name={CoordinateTypes.LAT}
@@ -545,6 +434,135 @@ function LocationInput(props: Props) {
                 disabled={props.isDisabled}
                 onChange={(evt) => handleCoordinateChange(evt)}
             />
+        </div>
+    );
+}
+
+let currentMGRS: MGRS;
+
+function MGRSDisplay(props: Props) {
+    if (!currentMGRS) {
+        currentMGRS = props.waypoint.latLonToMGRS();
+    }
+
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+    const [gzd, setGZD] = useState(currentMGRS.gridZoneDesignator);
+    const [squareID, setSquareID] = useState(currentMGRS.squareIdentifier);
+    const [easting, setEasting] = useState(currentMGRS.easting);
+    const [northing, setNorthing] = useState(currentMGRS.northing);
+
+    useEffect(() => {
+        const locationChange = compareLocation();
+        if (locationChange) {
+            const mgrs = props.waypoint.latLonToMGRS();
+            setGZD(mgrs.gridZoneDesignator);
+            setSquareID(mgrs.squareIdentifier);
+            setEasting(mgrs.easting);
+            setNorthing(mgrs.northing);
+            currentMGRS = props.waypoint.latLonToMGRS();
+        }
+    });
+
+    const handleInputChange = (evt: ChangeEvent<HTMLInputElement>) => {
+        switch (evt.target.name) {
+            case CoordinateTypes.GZD:
+                setGZD(evt.target.value);
+                break;
+            case CoordinateTypes.SQUARE_ID:
+                setSquareID(evt.target.value);
+                break;
+            case CoordinateTypes.EASTING:
+                setEasting(evt.target.value);
+                break;
+            case CoordinateTypes.NORTHING:
+                setNorthing(evt.target.value);
+                break;
+        }
+    };
+
+    const handleSubmitMGRSCoordinates = () => {
+        const mgrsStr = gzd + squareID + easting + northing;
+        const [lon, lat] = props.waypoint.mgrsToLatLon(mgrsStr);
+
+        if (isNaN(lon) || isNaN(lat)) {
+            return;
+        }
+
+        currentMGRS = {
+            gridZoneDesignator: gzd,
+            squareIdentifier: squareID,
+            easting: easting,
+            northing: northing,
+        };
+
+        jaiaDispatch({
+            type: JaiaActions.MOVE_WAYPOINT,
+            location: { lat, lon },
+        });
+    };
+
+    const compareLocation = () => {
+        const mgrsStr =
+            currentMGRS.gridZoneDesignator +
+            currentMGRS.squareIdentifier +
+            currentMGRS.easting +
+            currentMGRS.northing;
+
+        let [displayedLon, displayedLat] = props.waypoint.mgrsToLatLon(mgrsStr);
+        displayedLon = Number(displayedLon.toFixed(COMPARE_DECIMALS));
+        displayedLat = Number(displayedLat.toFixed(COMPARE_DECIMALS));
+
+        const actualLon = Number(props.waypoint.getLocation().lon?.toFixed(COMPARE_DECIMALS));
+        const actualLat = Number(props.waypoint.getLocation().lat?.toFixed(COMPARE_DECIMALS));
+
+        if (displayedLon !== actualLon || displayedLat !== actualLat) {
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    return (
+        <div className="waypoint-location-container">
+            <label>GZD</label>
+            <input
+                name={MGRSComponents.GZD}
+                value={gzd}
+                className="jaia-input location"
+                autoComplete="off"
+                disabled={props.isDisabled}
+                onChange={(evt) => handleInputChange(evt)}
+            />
+            <label>Square ID</label>
+            <input
+                name={MGRSComponents.SQUARE_ID}
+                value={squareID}
+                className="jaia-input location"
+                autoComplete="off"
+                disabled={props.isDisabled}
+                onChange={(evt) => handleInputChange(evt)}
+            />
+            <label>Easting</label>
+            <input
+                name={MGRSComponents.EASTING}
+                value={easting}
+                className="jaia-input location"
+                autoComplete="off"
+                disabled={props.isDisabled}
+                onChange={(evt) => handleInputChange(evt)}
+            />
+            <label>Northing</label>
+            <input
+                name={MGRSComponents.NORTHING}
+                value={northing}
+                className="jaia-input location"
+                autoComplete="off"
+                disabled={props.isDisabled}
+                onChange={(evt) => handleInputChange(evt)}
+            />
+            <button onClick={handleSubmitMGRSCoordinates}>
+                <Icon path={mdiArrowRight} />
+            </button>
         </div>
     );
 }

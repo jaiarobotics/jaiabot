@@ -93,6 +93,11 @@ export enum ButtonListTypes {
     SIDE = 2,
 }
 
+export enum CoordinateSystem {
+    LAT_LON = 1,
+    MGRS = 2,
+}
+
 export enum CoordinateTypes {
     LAT = "LAT",
     LON = "LON",

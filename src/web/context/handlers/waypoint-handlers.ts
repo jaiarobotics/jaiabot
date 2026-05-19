@@ -205,3 +205,8 @@ export function handleChangeTaskPacketVisibility(
     });
     return mutableState;
 }
+
+export function handleChangeCoordSystem(mutableState: JaiaContextType, action: JaiaAction) {
+    jaiaGlobal.setCoordinateSystem(action.coordinateSystem);
+    return mutableState;
+}

@@ -1,5 +1,6 @@
 import cloneDeep from "lodash/cloneDeep";
 import {
+    CoordinateSystem,
     NodeTypes,
     SelectedNode,
     SelectedTaskPacket,
@@ -43,6 +44,7 @@ export class JaiaGlobal {
     private mapMode: MapModes;
     private defaultTaskParameters: TaskParameters;
     private controllingClientID: string;
+    private coordinateSystem: CoordinateSystem;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
@@ -58,6 +60,7 @@ export class JaiaGlobal {
         };
         this.mapMode = MapModes.DEFAULT;
         this.defaultTaskParameters = defaultTaskParameters;
+        this.coordinateSystem = CoordinateSystem.LAT_LON;
     }
 
     getSelectedNode() {
@@ -113,6 +116,14 @@ export class JaiaGlobal {
 
     setControllingClientID(controllingClientID: string) {
         this.controllingClientID = controllingClientID;
+    }
+
+    getCoordinateSystem() {
+        return this.coordinateSystem;
+    }
+
+    setCoordinateSystem(coordianteSystem: CoordinateSystem) {
+        this.coordinateSystem = coordianteSystem;
     }
 
     resetSelectedWaypoint() {

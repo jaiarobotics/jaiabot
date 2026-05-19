@@ -18,6 +18,7 @@ import {
     SelectedTaskPacket,
     NodeTypes,
     TaskParameterPair,
+    CoordinateSystem,
 } from "./jaia-system-types";
 import { Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
 
@@ -79,6 +80,7 @@ export interface JaiaAction {
     taskParameterPairs?: TaskParameterPair[];
     taskPacketID?: string;
     taskPacketVisibility?: TaskPacketVisibility;
+    coordinateSystem?: CoordinateSystem;
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
