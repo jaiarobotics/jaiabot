@@ -1,7 +1,8 @@
 import * as mgrs from "mgrs";
 import Task from "../tasks/task";
 import { GeographicCoordinate, Goal } from "../../types/protobuf-types";
-import { CoordinateTypes, MGRS, MGRSComponents } from "../../types/jaia-system-types";
+import { MGRS } from "../../types/jaia-system-types";
+import { validateCoordinate } from "../../utils/input";
 
 export default class Waypoint {
     private location: GeographicCoordinate;
@@ -37,7 +38,12 @@ export default class Waypoint {
     }
 
     latLonToMGRS() {
-        const mgrsStr = mgrs.forward([this.location.lon, this.location.lat]);
+        const [lat, lon] = validateCoordinate(
+            this.location.lat?.toString(),
+            this.location.lon?.toString(),
+        );
+
+        const mgrsStr = mgrs.forward([Number(lon), Number(lat)]);
         const match = mgrsStr.match(/^(\d{1,2}[C-X])([A-Z]{2})(\d*)$/);
 
         if (!match) {
