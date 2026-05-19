@@ -60,8 +60,6 @@ export default class Waypoint {
     mgrsToLatLon(mgrsStr: string) {
         try {
             const [lon, lat] = mgrs.toPoint(mgrsStr);
-            this.location.lon = lon;
-            this.location.lat = lat;
             return [lon, lat];
         } catch (err) {
             console.log(err);

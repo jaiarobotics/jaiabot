@@ -1,5 +1,4 @@
 import cloneDeep from "lodash/cloneDeep";
-import mgrs from "mgrs";
 import { ChangeEvent, useContext, useEffect, useState } from "react";
 import TaskParameters from "./TaskParameters/TaskParameters";
 
@@ -14,13 +13,18 @@ import Waypoint from "../../data/waypoints/waypoint";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
 
-import { CoordinateTypes, MGRSComponents, SelectedWaypoint } from "../../types/jaia-system-types";
+import {
+    CoordinateTypes,
+    MGRS,
+    MGRSComponents,
+    SelectedWaypoint,
+} from "../../types/jaia-system-types";
 import { PanelActions } from "../../types/context-types";
 import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
 import { MapModes } from "../../types/openlayers-types";
 
 import Icon from "@mdi/react";
-import { mdiDelete } from "@mdi/js";
+import { mdiArrowRight, mdiDelete } from "@mdi/js";
 import { Button, FormControl, Select, MenuItem, SelectChangeEvent } from "@mui/material";
 
 import "./WaypointPanel.less";
@@ -29,6 +33,8 @@ interface Props {
     waypoint: Waypoint;
     handleLocationChange: (evt: ChangeEvent<HTMLInputElement>) => void;
 }
+
+const COMPARE_DECIMALS = 4;
 
 // Stored outside of component to prevent unnecessary resetting of variable
 let originalSelectedWaypoint = { ...jaiaGlobal.getSelectedWaypoint() };
@@ -286,18 +292,36 @@ function compareSelectedWaypoints(waypointA: SelectedWaypoint, waypointB: Select
     return false;
 }
 
+let currentMGRS: MGRS;
+
 function LocationInput(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
-    const mgrsComponents = props.waypoint.latLonToMGRS();
-    const [gridZoneDesignator, setGridZoneDesignator] = useState(mgrsComponents.gridZoneDesignator);
-    const [sqaureID, setSquareID] = useState(mgrsComponents.squareIdentifier);
-    const [easting, setEasting] = useState(mgrsComponents.easting);
-    const [northing, setNorthing] = useState(mgrsComponents.northing);
+
+    if (!currentMGRS) {
+        currentMGRS = props.waypoint.latLonToMGRS();
+    }
+
+    const [gzd, setGZD] = useState(currentMGRS.gridZoneDesignator);
+    const [squareID, setSquareID] = useState(currentMGRS.squareIdentifier);
+    const [easting, setEasting] = useState(currentMGRS.easting);
+    const [northing, setNorthing] = useState(currentMGRS.northing);
+
+    useEffect(() => {
+        const locationChange = compareLocation();
+        if (locationChange) {
+            const mgrs = props.waypoint.latLonToMGRS();
+            setGZD(mgrs.gridZoneDesignator);
+            setSquareID(mgrs.squareIdentifier);
+            setEasting(mgrs.easting);
+            setNorthing(mgrs.northing);
+            currentMGRS = props.waypoint.latLonToMGRS();
+        }
+    });
 
     const handleInputChange = (evt: ChangeEvent<HTMLInputElement>) => {
         switch (evt.target.name) {
             case CoordinateTypes.GZD:
-                setGridZoneDesignator(evt.target.value);
+                setGZD(evt.target.value);
                 break;
             case CoordinateTypes.SQUARE_ID:
                 setSquareID(evt.target.value);
@@ -309,15 +333,22 @@ function LocationInput(props: Props) {
                 setNorthing(evt.target.value);
                 break;
         }
-        const [lon, lat] = props.waypoint.mgrsToLatLon(
-            `${gridZoneDesignator}${sqaureID}${easting}${northing}`,
-        );
+    };
 
-        console.log(lon, lat);
+    const handleSubmitMGRSCoordinates = () => {
+        const mgrsStr = gzd + squareID + easting + northing;
+        const [lon, lat] = props.waypoint.mgrsToLatLon(mgrsStr);
 
         if (isNaN(lon) || isNaN(lat)) {
             return;
         }
+
+        currentMGRS = {
+            gridZoneDesignator: gzd,
+            squareIdentifier: squareID,
+            easting: easting,
+            northing: northing,
+        };
 
         jaiaDispatch({
             type: JaiaActions.MOVE_WAYPOINT,
@@ -325,12 +356,33 @@ function LocationInput(props: Props) {
         });
     };
 
+    const compareLocation = () => {
+        const mgrsStr =
+            currentMGRS.gridZoneDesignator +
+            currentMGRS.squareIdentifier +
+            currentMGRS.easting +
+            currentMGRS.northing;
+
+        let [displayedLon, displayedLat] = props.waypoint.mgrsToLatLon(mgrsStr);
+        displayedLon = Number(displayedLon.toFixed(COMPARE_DECIMALS));
+        displayedLat = Number(displayedLat.toFixed(COMPARE_DECIMALS));
+
+        const actualLon = Number(props.waypoint.getLocation().lon?.toFixed(COMPARE_DECIMALS));
+        const actualLat = Number(props.waypoint.getLocation().lat?.toFixed(COMPARE_DECIMALS));
+
+        if (displayedLon !== actualLon || displayedLat !== actualLat) {
+            return true;
+        } else {
+            return false;
+        }
+    };
+
     return (
         <div className="waypoint-location-container">
             <label>GZD</label>
             <input
                 name={MGRSComponents.GZD}
-                value={gridZoneDesignator}
+                value={gzd}
                 className="jaia-input location"
                 autoComplete="off"
                 onChange={(evt) => handleInputChange(evt)}
@@ -338,7 +390,7 @@ function LocationInput(props: Props) {
             <label>Square ID</label>
             <input
                 name={MGRSComponents.SQUARE_ID}
-                value={sqaureID}
+                value={squareID}
                 className="jaia-input location"
                 autoComplete="off"
                 onChange={(evt) => handleInputChange(evt)}
@@ -359,6 +411,9 @@ function LocationInput(props: Props) {
                 autoComplete="off"
                 onChange={(evt) => handleInputChange(evt)}
             />
+            <button onClick={handleSubmitMGRSCoordinates}>
+                <Icon path={mdiArrowRight} />
+            </button>
         </div>
     );
 }
