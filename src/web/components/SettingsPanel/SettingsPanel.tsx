@@ -55,11 +55,27 @@ export default function SettingsPanel() {
         window.open("/jed/");
     };
 
-    const handleCoordSystemClick = (coordSystem: CoordinateSystem) => {
-        jaiaDispatch({ type: JaiaActions.CHANGE_COORD_SYSTEM, coordinateSystem: coordSystem });
+    /**
+     * Dispatches action to update the coordinate system used in the app
+     *
+     * @param {CoordinateSystem} coordinateSystem Type of coord sys selected
+     * @returns {void}
+     */
+    const handleCoordinateSystemClick = (coordinateSystem: CoordinateSystem) => {
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_COORDINATE_SYSTEM,
+            coordinateSystem: coordinateSystem,
+        });
     };
 
-    const getCoordButtonClassName = (coordSystem: CoordinateSystem) => {
+    /**
+     * Provides the class name to apply the correct styling to the coordinate
+     * system buttons
+     *
+     * @param {CoordinateSystem} coordinateSystem Type of coord sys selected
+     * @returns {string} Class name to apply selected style
+     */
+    const getCoordinateButtonClassName = (coordSystem: CoordinateSystem) => {
         if (coordSystem === jaiaContext.jaiaGlobal.getCoordinateSystem()) {
             return "selected";
         }
@@ -75,14 +91,14 @@ export default function SettingsPanel() {
             </div>
             <div className="coordinate-system-container">
                 <button
-                    className={getCoordButtonClassName(CoordinateSystem.LAT_LON)}
-                    onClick={() => handleCoordSystemClick(CoordinateSystem.LAT_LON)}
+                    className={getCoordinateButtonClassName(CoordinateSystem.LAT_LON)}
+                    onClick={() => handleCoordinateSystemClick(CoordinateSystem.LAT_LON)}
                 >
                     Lat / Lon
                 </button>
                 <button
-                    className={getCoordButtonClassName(CoordinateSystem.MGRS)}
-                    onClick={() => handleCoordSystemClick(CoordinateSystem.MGRS)}
+                    className={getCoordinateButtonClassName(CoordinateSystem.MGRS)}
+                    onClick={() => handleCoordinateSystemClick(CoordinateSystem.MGRS)}
                 >
                     MGRS
                 </button>

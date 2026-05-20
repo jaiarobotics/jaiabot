@@ -1,5 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 import { ChangeEvent, useContext, useEffect, useState } from "react";
+import { error } from "toastr";
+
 import TaskParameters from "./TaskParameters/TaskParameters";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
@@ -7,34 +9,26 @@ import { JaiaActions } from "../../context/jaia-actions";
 import JaiaToggle from "../JaiaToggle/JaiaToggle";
 
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-import { missionsManager } from "../../data/missions_manager/missions-manager";
 import Waypoint from "../../data/waypoints/waypoint";
 
-import { UNASSIGNED_ID } from "../../utils/constants";
 import { selectTheme } from "../../utils/style";
+import { MGRS_PLACEHOLDER } from "../../utils/constants";
 import { snakeCaseToTitleCase, validateCoordinate } from "../../utils/input";
+import { compareSelectedWaypoints } from "./waypoint-panel";
 
 import {
     CoordinateSystem,
     CoordinateTypes,
     MGRS,
     MGRSComponents,
-    SelectedWaypoint,
 } from "../../types/jaia-system-types";
 import { PanelActions } from "../../types/context-types";
-import { GeographicCoordinate, TaskType } from "../../types/protobuf-types";
+import { TaskType } from "../../types/protobuf-types";
 import { MapModes } from "../../types/openlayers-types";
 
 import Icon from "@mdi/react";
 import { mdiArrowRight, mdiDelete } from "@mdi/js";
-import {
-    Button,
-    FormControl,
-    Select,
-    MenuItem,
-    SelectChangeEvent,
-    ThemeProvider,
-} from "@mui/material";
+import { FormControl, Select, MenuItem, SelectChangeEvent, ThemeProvider } from "@mui/material";
 
 import "./WaypointPanel.less";
 
@@ -51,6 +45,7 @@ interface Props {
     coordinateSystem?: CoordinateSystem;
 }
 
+// At 5 decimal points we see slight variation between OL and MGRS coordinate calculations
 const COMPARE_DECIMALS = 4;
 
 // Stored outside of component to prevent unnecessary resetting of variable
@@ -58,13 +53,6 @@ let originalSelectedWaypoint = { ...jaiaGlobal.getSelectedWaypoint() };
 
 /**
  * Displays information about the selected waypoint such as location and task selection
- *
- * @notes
- * Waypoint location data exists in both number and string form. We utilize the number type
- * when saving to the data model and string type when working with user input. We need to use
- * strings when working with user input to allow negative signs and decimal points. As the
- * user enters a coordinate, we will check if the value can be converted to a number.
- * If it can, we will update the data model with the numerical form of the user input.
  */
 export default function WaypointPanel() {
     const jaiaContext = useContext(JaiaContext);
@@ -107,32 +95,6 @@ export default function WaypointPanel() {
         }
     });
 
-    const handleSectionButtonClick = (sectionName: SectionNames) => {
-        if (sectionName === visibleSection) {
-            setVisibleSection(SectionNames.NONE);
-        } else {
-            setVisibleSection(sectionName);
-        }
-    };
-
-    const getSectionButtonClassName = (sectionName: SectionNames) => {
-        if (sectionName === visibleSection) {
-            return "selected";
-        }
-        return "";
-    };
-
-    /**
-     * Dispatches action to delete a waypoint
-     *
-     * @returns {void}
-     */
-    const handleDeleteWaypointClick = () => {
-        if (!isDisabled) {
-            jaiaDispatch({ type: JaiaActions.DELETE_WAYPOINT });
-        }
-    };
-
     /**
      * Dispatches action to toggle edit mode
      *
@@ -165,6 +127,45 @@ export default function WaypointPanel() {
             return true;
         }
         return isDisabled;
+    };
+
+    /**
+     * Dispatches action to delete waypoint
+     *
+     * @returns {void}
+     */
+    const handleDeleteWaypointClick = () => {
+        if (!isDisabled) {
+            jaiaDispatch({ type: JaiaActions.DELETE_WAYPOINT });
+        }
+    };
+
+    /**
+     * Updates the visible section property in state to display
+     * the correct subsection in the panel
+     *
+     * @param {SectionName} sectionName The clicked section tab
+     * @returns {void}
+     */
+    const handleSectionTabClick = (sectionName: SectionNames) => {
+        if (sectionName === visibleSection) {
+            setVisibleSection(SectionNames.NONE);
+        } else {
+            setVisibleSection(sectionName);
+        }
+    };
+
+    /**
+     * Provides the class name to style the section tab
+     *
+     * @param {SectionName} sectionName Which tab to style
+     * @returns {string} A class name that will produce the correct styles
+     */
+    const getSectionTabClassName = (sectionName: SectionNames) => {
+        if (sectionName === visibleSection) {
+            return "selected";
+        }
+        return "";
     };
 
     /**
@@ -220,14 +221,14 @@ export default function WaypointPanel() {
             </div>
             <div className="waypoint-button-container">
                 <button
-                    className={getSectionButtonClassName(SectionNames.LOCATION)}
-                    onClick={() => handleSectionButtonClick(SectionNames.LOCATION)}
+                    className={getSectionTabClassName(SectionNames.LOCATION)}
+                    onClick={() => handleSectionTabClick(SectionNames.LOCATION)}
                 >
                     Location
                 </button>
                 <button
-                    className={getSectionButtonClassName(SectionNames.TASK)}
-                    onClick={() => handleSectionButtonClick(SectionNames.TASK)}
+                    className={getSectionTabClassName(SectionNames.TASK)}
+                    onClick={() => handleSectionTabClick(SectionNames.TASK)}
                 >
                     Task
                 </button>
@@ -247,22 +248,8 @@ export default function WaypointPanel() {
 }
 
 /**
- * Checks to see if two waypoints are the same
- *
- * @param {SelectedWaypoint} waypointA Waypoint data used in comparison
- * @param {SelectedWaypoint} waypointB Waypoint data used in comparison
- * @returns {boolean} True if the waypoints match, false if they do not
+ * Displays the waypoint panel subsections
  */
-function compareSelectedWaypoints(waypointA: SelectedWaypoint, waypointB: SelectedWaypoint) {
-    if (
-        waypointA.missionID === waypointB.missionID &&
-        waypointA.waypointNum === waypointB.waypointNum
-    ) {
-        return true;
-    }
-    return false;
-}
-
 function VisibleSection(props: Props) {
     switch (props.visibleSection) {
         case SectionNames.LOCATION:
@@ -277,6 +264,9 @@ function VisibleSection(props: Props) {
     }
 }
 
+/**
+ * Produces the dropdown to select a waypoint task
+ */
 function TaskSelection(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
@@ -296,7 +286,7 @@ function TaskSelection(props: Props) {
     };
 
     return (
-        <div className="waypoint-location-container">
+        <div className="waypoint-subsection">
             <div className="label">Task:</div>
             <ThemeProvider theme={selectTheme}>
                 <FormControl sx={{ minWidth: 120 }} size="small">
@@ -331,6 +321,16 @@ function TaskSelection(props: Props) {
     );
 }
 
+/**
+ * Displays the waypoint location in lat/lon format. Allows the operator to edit these values.
+ *
+ * @notes
+ * Location data exists in both number and string form. We utilize the number type
+ * when saving to the data model and string type when working with user input. We need to use
+ * strings when working with user input to allow negative signs and decimal points. As the
+ * operator enters a coordinate, we will check if the value can be converted to a number.
+ * If it can, we will update the data model with the numerical form of the user input.
+ */
 function LatLonDisplay(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [latInput, setLatInput] = useState(props.waypoint.getLocation().lat.toString());
@@ -414,7 +414,7 @@ function LatLonDisplay(props: Props) {
     };
 
     return (
-        <div className="waypoint-location-container">
+        <div className="waypoint-subsection">
             <div className="label">Lat:</div>
             <input
                 name={CoordinateTypes.LAT}
@@ -438,10 +438,18 @@ function LatLonDisplay(props: Props) {
     );
 }
 
-let currentMGRS: MGRS;
+let currentMGRS: MGRS = {
+    gridZoneDesignator: MGRS_PLACEHOLDER,
+    squareIdentifier: MGRS_PLACEHOLDER,
+    easting: MGRS_PLACEHOLDER,
+    northing: MGRS_PLACEHOLDER,
+};
 
+/**
+ * Displays the waypoint location in MGRS format. Allows the operator to edit these values.
+ */
 function MGRSDisplay(props: Props) {
-    if (!currentMGRS) {
+    if (currentMGRS.gridZoneDesignator === MGRS_PLACEHOLDER) {
         currentMGRS = props.waypoint.latLonToMGRS();
     }
 
@@ -453,6 +461,7 @@ function MGRSDisplay(props: Props) {
 
     useEffect(() => {
         const locationChange = compareLocation();
+        // Update MGRS values from an external change such as tap to move
         if (locationChange) {
             const mgrs = props.waypoint.latLonToMGRS();
             setGZD(mgrs.gridZoneDesignator);
@@ -463,6 +472,12 @@ function MGRSDisplay(props: Props) {
         }
     });
 
+    /**
+     * Updates the MGRS data in state as an operator changes the values
+     *
+     * @param {ChangeEvent<HTMLInputElement>} evt Contains the user input
+     * @returns {void}
+     */
     const handleInputChange = (evt: ChangeEvent<HTMLInputElement>) => {
         switch (evt.target.name) {
             case CoordinateTypes.GZD:
@@ -480,11 +495,21 @@ function MGRSDisplay(props: Props) {
         }
     };
 
+    /**
+     * Validates the MGRS input and moves the waypoint to the new location
+     *
+     * @returns {void}
+     *
+     * @notes
+     * We use a submit button with MGRS inputs because updating one can impact the others.
+     * The button allows the operator to enter all of their data without any components changing.
+     */
     const handleSubmitMGRSCoordinates = () => {
         const mgrsStr = gzd + squareID + easting + northing;
         const [lon, lat] = props.waypoint.mgrsToLatLon(mgrsStr);
 
         if (isNaN(lon) || isNaN(lat)) {
+            error("Invalid MGRS input");
             return;
         }
 
@@ -501,6 +526,13 @@ function MGRSDisplay(props: Props) {
         });
     };
 
+    /**
+     * Compares the last submitted MGRS string by an operator to the current location
+     * of the waypoint. These locations can differ when the waypoint moves via a method
+     * like tap to move.
+     *
+     * @returns {boolean} True if the location changes externally (tap to move), otherwise false
+     */
     const compareLocation = () => {
         const mgrsStr =
             currentMGRS.gridZoneDesignator +
@@ -523,7 +555,7 @@ function MGRSDisplay(props: Props) {
     };
 
     return (
-        <div className="waypoint-location-container">
+        <div className="waypoint-subsection">
             <label>GZD</label>
             <input
                 name={MGRSComponents.GZD}

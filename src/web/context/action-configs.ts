@@ -24,7 +24,7 @@ import {
     handleToggleBottomDive,
     handleToggleHydrophone,
     handleToggleConstantHeadingSelect,
-    handleChangeCoordSystem,
+    handleChangeCoordinateSystem,
 } from "./handlers/waypoint-handlers";
 import {
     handleAddRallyPoint,
@@ -98,7 +98,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
         { handler: handleChangeTaskPacketVisibility, tracked: false },
     ],
-    [JaiaActions.CHANGE_COORD_SYSTEM, { handler: handleChangeCoordSystem, tracked: false }],
+    [
+        JaiaActions.CHANGE_COORDINATE_SYSTEM,
+        { handler: handleChangeCoordinateSystem, tracked: false },
+    ],
 
     // Survey Actions
     [JaiaActions.SURVEY_APPROVED, { handler: handleChangeGridPlanningState, tracked: true }],

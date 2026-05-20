@@ -3,6 +3,7 @@ import Task from "../tasks/task";
 import { GeographicCoordinate, Goal } from "../../types/protobuf-types";
 import { MGRS } from "../../types/jaia-system-types";
 import { validateCoordinate } from "../../utils/input";
+import { MGRS_PLACEHOLDER } from "../../utils/constants";
 
 export default class Waypoint {
     private location: GeographicCoordinate;
@@ -37,6 +38,11 @@ export default class Waypoint {
         return goal;
     }
 
+    /**
+     * Converts the lat/lon of the waypoint to MGRS format
+     *
+     * @returns {MGRS} MGRS components for waypoints current locaiton
+     */
     latLonToMGRS() {
         const [lat, lon] = validateCoordinate(
             this.location.lat?.toString(),
@@ -47,7 +53,13 @@ export default class Waypoint {
         const match = mgrsStr.match(/^(\d{1,2}[C-X])([A-Z]{2})(\d*)$/);
 
         if (!match) {
-            return null;
+            const defaultMGRS: MGRS = {
+                gridZoneDesignator: MGRS_PLACEHOLDER,
+                squareIdentifier: MGRS_PLACEHOLDER,
+                easting: MGRS_PLACEHOLDER,
+                northing: MGRS_PLACEHOLDER,
+            };
+            return defaultMGRS;
         }
 
         const gzd = match[1];
@@ -63,6 +75,12 @@ export default class Waypoint {
         return mgrsComponents;
     }
 
+    /**
+     * Converts an MGRS string to lat/lon coordinate
+     *
+     * @param {string} mgrsStr Location to convert
+     * @returns {number[]} Coordinates [lon, lat]
+     */
     mgrsToLatLon(mgrsStr: string) {
         try {
             const [lon, lat] = mgrs.toPoint(mgrsStr);

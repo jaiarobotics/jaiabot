@@ -206,7 +206,14 @@ export function handleChangeTaskPacketVisibility(
     return mutableState;
 }
 
-export function handleChangeCoordSystem(mutableState: JaiaContextType, action: JaiaAction) {
+/**
+ * Makes call to update the coordinate system in the app
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Holds the selected coordinate system
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleChangeCoordinateSystem(mutableState: JaiaContextType, action: JaiaAction) {
     jaiaGlobal.setCoordinateSystem(action.coordinateSystem);
     return mutableState;
 }
