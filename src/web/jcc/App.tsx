@@ -18,9 +18,16 @@ import RallyPanel from "../components/RallyPanel/RallyPanel";
 import DepthMap3D from "../components/DepthMap3D/DepthMap3D";
 import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
 import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
+import ExclusionZonesPanel from "../components/ExclusionZonesPanel/ExclusionZonesPanel";
+import MissionRerouteDialog from "../components/MissionRerouteDialog/MissionRerouteDialog";
+import WaypointRemovalDialog from "../components/WaypointRemovalDialog/WaypointRemovalDialog";
+
+import PlacementErrorDialog from "../components/PlacementErrorDialog/PlacementErrorDialog";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
+import ZoneVertexPanel from "../components/ZoneVertexPanel/ZoneVertexPanel";
 import SurveyPlanner from "../components/SurveyPlanner/SurveyPlanner";
+import NotificationDot from "../components/NotificationDot/NotificationDot";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
 import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 import SimulationBanner from "../components/SimulationBanner/SimulationBanner";
@@ -68,7 +75,11 @@ export default function App() {
                 <Panel />
                 <RemoteControl />
                 <SimulationBanner />
+                <NotificationDot className="jaia-about-button" />
                 <TakeControl />
+                <MissionRerouteDialog />
+                <WaypointRemovalDialog />
+                <PlacementErrorDialog />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>
             <div id="congestion-warning">Slow Hub WiFi Speeds</div>
@@ -109,8 +120,12 @@ function Panel() {
     switch (jaiaContext.visiblePanel) {
         case ButtonNames.MISSIONS_PANEL:
             return <MissionsPanel />;
+        case ButtonNames.EXCLUSION_ZONES_PANEL:
+            return <ExclusionZonesPanel />;
         case ButtonNames.WAYPOINT_PANEL:
             return <WaypointPanel />;
+        case ButtonNames.ZONE_VERTEX_PANEL:
+            return <ZoneVertexPanel />;
         case ButtonNames.HELP_PANEL:
             return <HelpWindow />;
         case ButtonNames.JAIA_ABOUT_PANEL:

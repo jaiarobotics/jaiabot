@@ -8,6 +8,7 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
 import { rallyPoints } from "../../data/rally_points/rally-points";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
+import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 
 /**
@@ -26,6 +27,10 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
 
     // Restore snapshot into mutableState and update data model
     mutableState = restoreSnapshot(mutableState, snapshot);
+
+    // Pending dialogs reference pre-undo missions/zones — clear them.
+    mutableState.pendingReroute = null;
+    mutableState.pendingWaypointRemoval = null;
 
     // Reset the map mode
     handleMapModeChange(jaiaGlobal.getMapMode());
@@ -63,6 +68,7 @@ export function captureSnapshot(context: JaiaContextType) {
         rallyPointsSnapshot: rallyPoints.captureSnapshot(),
         jaiaGlobalSnapshot: jaiaGlobal.captureSnapshot(),
         jaiaContextDataSnapshot: captureContextData(context),
+        exclusionZoneSetSnapshot: exclusionZoneSet.captureSnapshot(),
     };
     return snapshot;
 }
@@ -80,6 +86,7 @@ function restoreSnapshot(context: JaiaContextType, snapshot: JaiaSnapshot) {
     gridPlan.restoreFromSnapshot(snapshot.gridPlanSnapshot);
     rallyPoints.restoreFromSnapshot(snapshot.rallyPointsSnapshot);
     jaiaGlobal.restoreFromSnapshot(snapshot.jaiaGlobalSnapshot);
+    exclusionZoneSet.restoreFromSnapshot(snapshot.exclusionZoneSetSnapshot);
     restoreCotextData(context, snapshot.jaiaContextDataSnapshot);
     return context;
 }

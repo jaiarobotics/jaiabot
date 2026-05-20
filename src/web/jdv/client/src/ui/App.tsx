@@ -16,8 +16,7 @@ import { Draw } from "ol/interaction";
 import "../styles/styles.css";
 import { CustomAlert, CustomAlertProps } from "../shared/CustomAlert";
 
-import { DeviceMetadata } from "../shared/JAIAProtobuf";
-import { Button } from "@mui/base";
+import Button from "@mui/material/Button";
 import { InformationDialog } from "./InformationDialog";
 
 function exceptionCatcher(exception: Error) {
@@ -62,8 +61,8 @@ interface State {
     isInformationDialogVisible: boolean;
 }
 
-export class App extends React.Component {
-    state: State;
+export class App extends React.Component<AppProps, State> {
+    declare state: State;
     map: JaiaMap;
     plot_div_element: any;
     seriesDescriptors: SeriesDescriptor[];
@@ -184,9 +183,7 @@ export class App extends React.Component {
                             <button
                                 id="ubxExportButton"
                                 className="mapButton"
-                                onClick={() => {
-                                    window.location.href = `/jdv/ubx?file=${this.state.chosenLogs.join(",")}`;
-                                }}
+                                onClick={this.ubxDownloadButtonPressed.bind(this)}
                             >
                                 <Icon path={mdiDownload} size={1}></Icon>
                                 UBX
@@ -247,6 +244,18 @@ export class App extends React.Component {
         );
     }
 
+    ubxDownloadButtonPressed() {
+        this.startBusyIndicator();
+
+        LogApi.getUBX(this.state.chosenLogs)
+            .catch((err) => {
+                CustomAlert.presentAlert({ text: `Failed to download UBX file.\n${err}` });
+            })
+            .finally(() => {
+                this.stopBusyIndicator();
+            });
+    }
+
     chosenLogsListElement() {
         const chosenLogsElements = this.state.chosenLogs.map((chosenLogPath) => {
             const chosenLogName = chosenLogPath.split("/").at(-1);
@@ -274,6 +283,7 @@ export class App extends React.Component {
                     <a href={href}>{chosenLogName}</a>
                     <Button
                         className="plotButton"
+                        variant="text"
                         style={{
                             display: logs_are_displayed ? "flex" : "none",
                             alignItems: "center",

@@ -1000,6 +1000,19 @@ export interface Speed {
     over_water?: number;
 }
 
+export enum Link {
+    LINK_UNKNOWN = "LINK_UNKNOWN",
+    LINK_XBEE = "LINK_XBEE",
+    LINK_WIFI = "LINK_WIFI",
+    LINK_IRIDIUM = "LINK_IRIDIUM",
+    LINK_HUB2HUB = "LINK_HUB2HUB",
+}
+
+export interface ActiveLink {
+    link?: Link;
+    last_received_time?: number;
+}
+
 export interface BotStatus {
     bot_id?: number;
     time?: number;
@@ -1025,6 +1038,9 @@ export interface BotStatus {
     pdop?: number;
     data_offload_percentage?: number;
     wifi_link_quality_percentage?: number;
+    link?: Link;
+    active_links?: ActiveLink[];
+    active_link_status_age?: { [link: string]: number };
 }
 
 export interface EstimatedDrift {

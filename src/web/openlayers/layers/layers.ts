@@ -15,6 +15,7 @@ import { contourLayer } from "./vector/contour-layer";
 import { excludedTaskPacketsLayer } from "./vector/excluded-task-packets-layer";
 import { measureLayer } from "./vector/measure-layer";
 import { hubCommsLayer } from "./vector/hub-comms-layer";
+import { exclusionZoneLayer } from "./vector/exclusion-zone-layer";
 
 import { LayerTitles } from "../../types/openlayers-types";
 
@@ -40,6 +41,7 @@ class Layers {
             LayerTitles.EXCLUDED_TASK_PACKETS_LAYER,
             excludedTaskPacketsLayer.getVectorLayer(),
         );
+        this.layers.set(LayerTitles.EXCLUSION_ZONE_LAYER, exclusionZoneLayer.getVectorLayer());
         this.layers.set(LayerTitles.MEASURE_LAYER, measureLayer.getVectorLayer());
         this.layers.set(LayerTitles.HUB_COMMS_LAYER, hubCommsLayer.getVectorLayer());
     }

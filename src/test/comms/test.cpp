@@ -66,6 +66,29 @@ BOOST_AUTO_TEST_CASE(test_bot_id_bounds)
     BOOST_CHECK_THROW(check_bot_id_bounds(bot_id_max + 1), jaiabot::Exception);
 }
 
+BOOST_AUTO_TEST_CASE(test_hub_id_from_modem_id)
+{
+    {
+        int hub_id = 1;
+        BOOST_CHECK_EQUAL(
+            hub_id_from_modem_id(hub_modem_id(subnet_mask, jaiabot::protobuf::LINK_HUB2HUB, hub_id),
+                                 subnet_mask, jaiabot::protobuf::LINK_HUB2HUB),
+            hub_id);
+    }
+    {
+        int hub_id = 10;
+        BOOST_CHECK_EQUAL(
+            hub_id_from_modem_id(hub_modem_id(subnet_mask, jaiabot::protobuf::LINK_HUB2HUB, hub_id),
+                                 subnet_mask, jaiabot::protobuf::LINK_HUB2HUB),
+            hub_id);
+    }
+
+    BOOST_CHECK_THROW(hub_id_from_modem_id(10, subnet_mask, jaiabot::protobuf::LINK_XBEE),
+                      jaiabot::Exception);
+    BOOST_CHECK_THROW(hub_id_from_modem_id(10, subnet_mask, jaiabot::protobuf::LINK_WIFI),
+                      jaiabot::Exception);
+}
+
 BOOST_AUTO_TEST_CASE(test_link_from_modem_id)
 {
     BOOST_CHECK_EQUAL(link_from_modem_id(1, subnet_mask), jaiabot::protobuf::LINK_XBEE);

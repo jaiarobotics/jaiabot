@@ -8,6 +8,7 @@ import { MGRS_PLACEHOLDER } from "../../utils/constants";
 export default class Waypoint {
     private location: GeographicCoordinate;
     private task: Task;
+    private isBypass: boolean = false;
 
     constructor() {
         this.task = new Task();
@@ -29,11 +30,23 @@ export default class Waypoint {
         this.task = task;
     }
 
+    setIsBypass(isBypass: boolean) {
+        this.isBypass = isBypass;
+    }
+
+    getIsBypass() {
+        return this.isBypass;
+    }
+
     packageWaypointForHub() {
         const goal: Goal = {
             location: this.location,
             task: this.task.packageTaskForHub(),
         };
+
+        if (this.isBypass) {
+            goal.name = "route_bypass";
+        }
 
         return goal;
     }

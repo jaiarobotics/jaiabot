@@ -8,7 +8,14 @@ import {
     TaskParameters,
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
+import { Metadata, Version } from "../../types/protobuf-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
+
+export interface SelectedZoneVertex {
+    zoneID: number;
+    vertexIndex: number;
+    isMoveable: boolean;
+}
 
 export interface JaiaGlobalSnapshot {
     selectedNode: SelectedNode;
@@ -16,6 +23,8 @@ export interface JaiaGlobalSnapshot {
     selectedTaskPacket: SelectedTaskPacket;
     mapMode: MapModes;
     defaultTaskParameters: TaskParameters;
+    selectedZoneVertex: SelectedZoneVertex;
+    zoneInEditMode: number;
 }
 
 const defaultTaskParameters: TaskParameters = {
@@ -37,14 +46,26 @@ const defaultTaskParameters: TaskParameters = {
     },
 };
 
+const defaultGitHubVersion = {
+    major: "",
+    minor: "",
+    patch: "",
+};
+
 export class JaiaGlobal {
     private selectedNode: SelectedNode;
     private selectedWaypoint: SelectedWaypoint;
     private selectedTaskPacket: SelectedTaskPacket;
+    private selectedZoneVertex: SelectedZoneVertex;
+    private zoneInEditMode: number;
     private mapMode: MapModes;
     private defaultTaskParameters: TaskParameters;
     private controllingClientID: string;
     private coordinateSystem: CoordinateSystem;
+    private metadata: Metadata;
+    private gitHubVersion: Version;
+    private isUpgradeAvailable: boolean;
+    private isConnectedToInternet: boolean;
 
     constructor() {
         this.selectedNode = { type: NodeTypes.NONE, id: UNASSIGNED_ID };
@@ -58,9 +79,19 @@ export class JaiaGlobal {
             startTime: 0,
             type: MapFeatureTypes.NONE,
         };
+        this.selectedZoneVertex = {
+            zoneID: UNASSIGNED_ID,
+            vertexIndex: UNASSIGNED_ID,
+            isMoveable: false,
+        };
+        this.zoneInEditMode = UNASSIGNED_ID;
         this.mapMode = MapModes.DEFAULT;
         this.defaultTaskParameters = defaultTaskParameters;
         this.coordinateSystem = CoordinateSystem.LAT_LON;
+        this.metadata = {};
+        this.gitHubVersion = defaultGitHubVersion;
+        this.isUpgradeAvailable = false;
+        this.isConnectedToInternet = false;
     }
 
     getSelectedNode() {
@@ -126,12 +157,68 @@ export class JaiaGlobal {
         this.coordinateSystem = coordianteSystem;
     }
 
+    getMetadata() {
+        return this.metadata;
+    }
+
+    setMetadata(metadata: Metadata) {
+        this.metadata = metadata;
+    }
+
+    getGitHubVersion() {
+        return this.gitHubVersion;
+    }
+
+    setGitHubVersion(version: Version) {
+        this.gitHubVersion = version;
+    }
+
+    getIsUpgradeAvailable() {
+        return this.isUpgradeAvailable;
+    }
+
+    setIsUpgradeAvailable(isUpgradeAvailable: boolean) {
+        this.isUpgradeAvailable = isUpgradeAvailable;
+    }
+
+    getIsConnectedToInternet() {
+        return this.isConnectedToInternet;
+    }
+
+    setIsConnectedToInternet(isConnectedToInternet: boolean) {
+        this.isConnectedToInternet = isConnectedToInternet;
+    }
+
     resetSelectedWaypoint() {
         this.selectedWaypoint = {
             waypointNum: UNASSIGNED_ID,
             missionID: UNASSIGNED_ID,
             isMoveable: false,
         };
+    }
+
+    getSelectedZoneVertex() {
+        return this.selectedZoneVertex;
+    }
+
+    setSelectedZoneVertex(vertex: SelectedZoneVertex) {
+        this.selectedZoneVertex = vertex;
+    }
+
+    resetSelectedZoneVertex() {
+        this.selectedZoneVertex = {
+            zoneID: UNASSIGNED_ID,
+            vertexIndex: UNASSIGNED_ID,
+            isMoveable: false,
+        };
+    }
+
+    getZoneInEditMode() {
+        return this.zoneInEditMode;
+    }
+
+    setZoneInEditMode(zoneID: number) {
+        this.zoneInEditMode = zoneID;
     }
 
     resetSelectedTaskPacket() {
@@ -154,6 +241,8 @@ export class JaiaGlobal {
             selectedTaskPacket: this.selectedTaskPacket,
             mapMode: this.mapMode,
             defaultTaskParameters: this.defaultTaskParameters,
+            selectedZoneVertex: this.selectedZoneVertex,
+            zoneInEditMode: this.zoneInEditMode,
         };
         return cloneDeep(snapshot);
     }
@@ -172,6 +261,12 @@ export class JaiaGlobal {
         this.selectedTaskPacket = restored.selectedTaskPacket;
         this.mapMode = restored.mapMode;
         this.defaultTaskParameters = restored.defaultTaskParameters;
+        this.selectedZoneVertex = restored.selectedZoneVertex ?? {
+            zoneID: UNASSIGNED_ID,
+            vertexIndex: UNASSIGNED_ID,
+            isMoveable: false,
+        };
+        this.zoneInEditMode = restored.zoneInEditMode ?? UNASSIGNED_ID;
     }
 }
 
