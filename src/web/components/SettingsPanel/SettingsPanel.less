@@ -1,3 +1,5 @@
+@import "../../style/stylesheets/vars.less";
+
 .settings-panel {
     display: flex;
     flex-direction: column;
@@ -6,7 +8,7 @@
 
 .settings-row {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     gap: 15px;
     padding-left: 16px; // Matches MUI accordion text indentation
@@ -31,6 +33,7 @@
 
 .coordinate-system-container button {
     all: unset;
+    box-sizing: border-box;
     width: 75px;
     padding: 6px 0;
     border: 1px solid #d3d3d3;
@@ -41,4 +44,5 @@
 .coordinate-system-container .selected {
     background-color: #d3d3d3;
     color: #000;
+    border-bottom: 2px solid @error-color;
 }

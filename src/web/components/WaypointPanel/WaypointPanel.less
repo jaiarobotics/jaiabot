@@ -6,6 +6,8 @@
     right: @panel-right;
     z-index: @jaia-panel-z-index;
 
+    min-width: 204px;
+
     padding: 6px;
 
     max-height: @panel-max-height;
@@ -59,11 +61,10 @@
 }
 
 .waypoint-button-container {
-    padding: 9px;
+    padding: 9px 0;
 
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    justify-items: center;
+    display: flex;
+    justify-content: center;
     gap: 12px;
 
     border: 1px solid #d3d3d3;
@@ -71,6 +72,7 @@
 
 .waypoint-button-container button {
     all: unset;
+    box-sizing: border-box;
     width: 75px;
     padding: 6px 0;
     border: 1px solid #d3d3d3;
