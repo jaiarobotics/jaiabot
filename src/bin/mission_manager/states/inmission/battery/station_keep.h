@@ -40,13 +40,18 @@ struct StationKeep : boost::statechart::state<StationKeep, Battery>,
 
         boost::optional<protobuf::MissionPlan::Goal> goal = context<InMission>().current_goal();
 
-        IvPBehaviorUpdate update;
-
-        // Just use our current location, since we're in a low battery state and need to conserve power.
-        update = create_center_activate_stationkeep_update(
+        // Station Keep to our current location
+        auto update = create_center_activate_stationkeep_update(
             this->machine().mission_plan().speeds().transit_with_units(),
             this->machine().mission_plan().speeds().stationkeep_outer_with_units());
+        glog.is_debug1() && glog << "Starting battery protocol station keep with current location"
+                                 << std::endl;
 
+        glog.is_debug1() && glog << "IvP Update: " << update.ShortDebugString() << std::endl;
+
+        // Tell the state machine to relay the DesiredCourse messages from pHelpIvP
+        this->machine().set_setpoint_type(protobuf::SETPOINT_IVP_HELM);
+        // Publish the station keep update to pHelmIvP
         this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
     }
 

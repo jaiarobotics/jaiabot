@@ -52,12 +52,21 @@ arduino_config {
     voltage_period: 3 # (default = 1)
 
     # No drain
-    # voltage_step_decrease: 0.0 # (default = 0.1)
+    voltage_step_decrease: 0.0 # (default = 0.1)
 
     # Slow drain for Battery Protocol testing
-    voltage_step_decrease: 0.03 # (default = 0.1)
+    # voltage_step_decrease: 0.01 # (default = 0.1)
 
-    voltage_start: 24.0 # (default = 24.0)
+    voltage_start: 24.0            # (default = 24.0) Full
+    # voltage_start: 23.0            # 71%
+    # voltage_start: 22.0            # 53%
+    # voltage_start: 21.5              # 44%
+    # voltage_start: 21.0            # 35%
+    # voltage_start: 20.0            # 19% (Very Low Battery)
+    # voltage_start: 19.5            # 14% (Very Low Battery)
+    # voltage_start: 19.0            # 11% (Very Low Battery)
+    # voltage_start: 18.5            # 9% (Critically Low Battery)
+
     reset_voltage_level: 15.0 # (default = 15.0)
 } 
 
