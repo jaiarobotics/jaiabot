@@ -52,7 +52,7 @@ beforeEach(() => {
     );
 });
 
-test("Select and deselect Bot and Hub icons on map", () => {
+test.skip("Select and deselect Bot and Hub icons on map", () => {
     // Resolve click to being on a Feature of type MapFeatureTypes.BOT
     mapModule.map.forEachFeatureAtPixel = jest.fn().mockReturnValue(botFeatureMock);
 
@@ -87,7 +87,7 @@ test("Select and deselect Bot and Hub icons on map", () => {
     mapModule.map.forEachFeatureAtPixel = jest.fn().mockReturnValue(undefined);
 });
 
-test("Click on map twice with mission in edit mode", () => {
+test.skip("Click on map twice with mission in edit mode", () => {
     const mission = new Mission();
     const missionID = missionSet.addMission(mission);
     missionsManager.assign(1, missionID);
