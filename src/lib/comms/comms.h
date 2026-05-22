@@ -88,6 +88,22 @@ inline int hub_modem_id(unsigned subnet_mask, jaiabot::protobuf::Link link, int 
     }
 }
 
+inline int hub_id_from_modem_id(int modem_id, unsigned subnet_mask, jaiabot::protobuf::Link link)
+{
+    if (link == jaiabot::protobuf::LINK_HUB2HUB)
+    {
+        int base_modem_id = modem_id & (~subnet_mask & 0xFFFF);
+        int hub_id = base_modem_id - hub_base_modem_id;
+        check_hub_id_bounds(hub_id);
+        return hub_id;
+    }
+    else
+    {
+        throw(jaiabot::Exception(
+            "Hub ID cannot be inferred from modem_id for links other than LINK_HUB2HUB"));
+    }
+}
+
 inline int modem_id_from_bot_id(int bot_id, unsigned subnet_mask, jaiabot::protobuf::Link link)
 {
     check_bot_id_bounds(bot_id);

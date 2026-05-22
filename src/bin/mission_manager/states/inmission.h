@@ -47,11 +47,6 @@ struct InMission
     ~InMission()
     {
         goby::glog.is_debug1() && goby::glog << "~InMission" << std::endl;
-
-        jaiabot::protobuf::PPKCommand ppk_command;
-        ppk_command.set_type(jaiabot::protobuf::PPKCommand::STOP_RECORDING);
-        interprocess().publish<jaiabot::groups::ppk>(ppk_command);
-        goby::glog.is_warn() && goby::glog << "Published STOP_RECORDING message" << std::endl;
     }
 
     int goal_index() const { return goal_index_; }
