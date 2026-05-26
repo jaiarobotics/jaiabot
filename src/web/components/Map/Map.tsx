@@ -117,7 +117,7 @@ export default function Map() {
                 handleHubLocationSelectClick(event.coordinate);
                 return;
             case MapModes.EXCLUSION_ZONE_DRAWING:
-                // OpenLayers draw interaction handles clicks directly; suppress React handler.
+                // Zone panel active — suppress waypoint placement whether or not Draw is running.
                 return;
         }
 
@@ -173,11 +173,7 @@ export default function Map() {
             return;
         }
 
-        // Suppress waypoints while the exclusion zone panel is active.
-        if (
-            missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID &&
-            jaiaGlobal.getMapMode() !== MapModes.EXCLUSION_ZONE_DRAWING
-        ) {
+        if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
             handleAddWaypointClick(event.coordinate);
         }
     };
