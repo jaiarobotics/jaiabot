@@ -106,38 +106,14 @@ export default function Map() {
             return;
         }
 
-        const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature, {
-            hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
-        });
-        if (feature && feature.get("type")) {
-            switch (feature.get("type")) {
-                case MapFeatureTypes.BOT:
-                    handleNodeClick(feature);
-                    return;
-                case MapFeatureTypes.HUB:
-                    handleNodeClick(feature);
-                    return;
-                case MapFeatureTypes.WAYPOINT:
-                    handleWaypointClick(feature);
-                    return;
-                case MapFeatureTypes.RALLY_POINT:
-                    handleRallyPointClick(feature);
-                    return;
-                case MapFeatureTypes.ZONE_VERTEX:
-                    handleZoneVertexClick(feature);
-                    return;
-                case MapFeatureTypes.DIVE:
-                    handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
-                    return;
-                case MapFeatureTypes.DRIFT:
-                    handleTaskPacketClick(feature, MapFeatureTypes.DRIFT);
-                    return;
-                case MapFeatureTypes.DEPTH_CONTOUR:
-                    handleDepthContourClick(event);
-                    return;
-                default:
-                    return;
-            }
+        const featureClicked = map.forEachFeatureAtPixel(
+            event.pixel,
+            (feature: Feature) => handleMapFeatureClick(feature, event),
+            { hitTolerance: MAP_FEATURE_HIT_TOLERANCE },
+        );
+
+        if (featureClicked) {
+            return;
         }
 
         // Zone edit mode takes priority: any empty-map click adds a vertex.
@@ -149,6 +125,46 @@ export default function Map() {
         // Prevent generating false ADD_WAYPOINT actions
         if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
             handleAddWaypointClick(event.coordinate);
+        }
+    };
+
+    /**
+     * Calls the appropriate handler for a feature clicked on the map
+     *
+     * @param {Feature} feature The OpenLayers Feature clicked
+     * @param {MapBrowserEvet} event  Contains location data
+     * @returns {boolean} True prevents subsequent calls for Features that exist below the clicked Feature
+     */
+    const handleMapFeatureClick = (feature: Feature, event: MapBrowserEvent<PointerEvent>) => {
+        if (feature && feature.get("type")) {
+            switch (feature.get("type")) {
+                case MapFeatureTypes.BOT:
+                    handleNodeClick(feature);
+                    return true;
+                case MapFeatureTypes.HUB:
+                    handleNodeClick(feature);
+                    return true;
+                case MapFeatureTypes.WAYPOINT:
+                    handleWaypointClick(feature);
+                    return true;
+                case MapFeatureTypes.RALLY_POINT:
+                    handleRallyPointClick(feature);
+                    return true;
+                case MapFeatureTypes.ZONE_VERTEX:
+                    handleZoneVertexClick(feature);
+                    return true;
+                case MapFeatureTypes.DIVE:
+                    handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
+                    return true;
+                case MapFeatureTypes.DRIFT:
+                    handleTaskPacketClick(feature, MapFeatureTypes.DRIFT);
+                    return true;
+                case MapFeatureTypes.DEPTH_CONTOUR:
+                    handleDepthContourClick(event);
+                    return true;
+                default:
+                    return false;
+            }
         }
     };
 
