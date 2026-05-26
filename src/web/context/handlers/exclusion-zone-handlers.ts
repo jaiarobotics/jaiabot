@@ -2,7 +2,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { handleMapModeChange, activateExclusionZoneDraw } from "../../openlayers/maps/map";
+import { handleMapModeChange, setExclusionZoneDrawActive } from "../../openlayers/maps/map";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
@@ -63,8 +63,7 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
     if (!action.exclusionZone) return mutableState;
     const zoneID = exclusionZoneSet.addZone(action.exclusionZone);
     exclusionZoneLayer.updateFeatures();
-    // Deactivate Draw but stay in EXCLUSION_ZONE_DRAWING — panel is still open.
-    handleMapModeChange(MapModes.EXCLUSION_ZONE_DRAWING);
+    setExclusionZoneDrawActive(false);
 
     // Waypoints inside the zone take priority — warn before rerouting.
     const pendingRemoval = detectWaypointRemovals(zoneID);
@@ -253,10 +252,9 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
  */
 export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) {
     if (exclusionZoneLayer.isDrawActive()) {
-        // Cancel active drawing — stay in zone panel mode.
-        handleMapModeChange(MapModes.EXCLUSION_ZONE_DRAWING);
+        setExclusionZoneDrawActive(false);
     } else {
-        activateExclusionZoneDraw();
+        setExclusionZoneDrawActive(true);
     }
     return mutableState;
 }

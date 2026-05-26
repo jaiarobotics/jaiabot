@@ -55,7 +55,7 @@ export const map = new Map({
  * @returns {void}
  */
 export function handleMapModeChange(mapMode: MapModes) {
-    // Always deactivate zone Draw first — re-activated by activateExclusionZoneDraw() if needed.
+    // Always deactivate zone Draw first — re-activated by setExclusionZoneDrawActive(true) if needed.
     const draw = exclusionZoneLayer.getDraw();
     if (draw && exclusionZoneLayer.isDrawActive()) {
         draw.abortDrawing();
@@ -71,7 +71,7 @@ export function handleMapModeChange(mapMode: MapModes) {
             map.addInteraction(measureLayer.createDrawInteraction());
             break;
         case MapModes.EXCLUSION_ZONE_DRAWING:
-            // Zone panel active — Draw is managed separately via activateExclusionZoneDraw().
+            // Zone panel active — Draw is managed separately via setExclusionZoneDrawActive().
             break;
         default:
             changeCursor(Cursors.DEFAULT);
@@ -96,14 +96,19 @@ export function handleMapModeChange(mapMode: MapModes) {
 }
 
 /**
- * Adds the exclusion zone Draw interaction to the map and marks it active.
- * Only call this while the map is in EXCLUSION_ZONE_DRAWING mode.
+ * Activates or deactivates the exclusion zone Draw interaction on the map.
+ * Only activate while the map is in EXCLUSION_ZONE_DRAWING mode.
  */
-export function activateExclusionZoneDraw() {
+export function setExclusionZoneDrawActive(active: boolean) {
     const draw = exclusionZoneLayer.getDraw();
-    if (draw) {
+    if (!draw) return;
+    if (active) {
         exclusionZoneLayer.setDrawActive(true);
         map.addInteraction(draw);
+    } else {
+        draw.abortDrawing();
+        map.removeInteraction(draw);
+        exclusionZoneLayer.setDrawActive(false);
     }
 }
 
