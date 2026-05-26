@@ -117,7 +117,8 @@ export default function Map() {
                 handleHubLocationSelectClick(event.coordinate);
                 return;
             case MapModes.EXCLUSION_ZONE_DRAWING:
-                // Zone panel active — suppress waypoint placement whether or not Draw is running.
+                // When drawing is active, the OL Draw interaction handles pointer events directly.
+                // Either way, React click handling is suppressed to prevent waypoint placement.
                 return;
         }
 
