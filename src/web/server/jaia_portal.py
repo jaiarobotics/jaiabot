@@ -154,6 +154,9 @@ class Interface:
             if msg.HasField('bot_status'):
                 botStatus = protobufMessageToDict(msg.bot_status)
 
+                # Set the time of last status to now
+                botStatus['lastStatusReceivedTime'] = self.current_utime()
+
                 bot_id = botStatus['bot_id']
                 self.bots[bot_id] = botStatus
 
@@ -410,16 +413,19 @@ class Interface:
 
         for hub in self.hubs.values():
             # Add the time since last status
-            hub['portalStatusAge'] = now - hub['lastStatusReceivedTime']
+            hub['portalStatusAge'] = (now - hub['lastStatusReceivedTime']) / warp_factor
 
 
         for bot in self.bots.values():
+            # Add the time since last status
+            bot['portalStatusAge'] = (now - bot['lastStatusReceivedTime']) / warp_factor
+
             # Derive last received time from the most recent link timestamp
-            link_times = [int(entry['last_received_time']) for entry in bot.get('active_links', [])
-                  if 'last_received_time' in entry]
+            # link_times = [int(entry['last_received_time']) for entry in bot.get('active_links', [])
+            #      if 'last_received_time' in entry]
             
-            if link_times:
-                bot['portalStatusAge'] = int((now - max(link_times)) / warp_factor)
+            # if link_times:
+            #    bot['portalStatusAge'] = int((now - max(link_times)) / warp_factor)
 
             self.update_active_link_status_ages(bot, warp_factor)
 
