@@ -173,8 +173,11 @@ export default function Map() {
             return;
         }
 
-        // Prevent generating false ADD_WAYPOINT actions
-        if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
+        // Suppress waypoints while the exclusion zone panel is active.
+        if (
+            missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID &&
+            jaiaGlobal.getMapMode() !== MapModes.EXCLUSION_ZONE_DRAWING
+        ) {
             handleAddWaypointClick(event.coordinate);
         }
     };

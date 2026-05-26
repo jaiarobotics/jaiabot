@@ -55,6 +55,14 @@ export const map = new Map({
  * @returns {void}
  */
 export function handleMapModeChange(mapMode: MapModes) {
+    // Always deactivate zone Draw first — re-activated by activateExclusionZoneDraw() if needed.
+    const draw = exclusionZoneLayer.getDraw();
+    if (draw && exclusionZoneLayer.isDrawActive()) {
+        draw.abortDrawing();
+        map.removeInteraction(draw);
+        exclusionZoneLayer.setDrawActive(false);
+    }
+
     switch (mapMode) {
         case MapModes.RALLY:
             changeCursor(Cursors.CROSSHAIR);
@@ -62,11 +70,9 @@ export function handleMapModeChange(mapMode: MapModes) {
         case MapModes.MEASURE:
             map.addInteraction(measureLayer.createDrawInteraction());
             break;
-        case MapModes.EXCLUSION_ZONE_DRAWING: {
-            const draw = exclusionZoneLayer.getDraw();
-            if (draw) map.addInteraction(draw);
+        case MapModes.EXCLUSION_ZONE_DRAWING:
+            // Zone panel active — Draw is managed separately via activateExclusionZoneDraw().
             break;
-        }
         default:
             changeCursor(Cursors.DEFAULT);
     }
@@ -74,14 +80,6 @@ export function handleMapModeChange(mapMode: MapModes) {
     if (mapMode !== MapModes.MEASURE) {
         map.removeInteraction(measureLayer.getDraw());
         measureLayer.clearDrawInteraction();
-    }
-
-    if (mapMode !== MapModes.EXCLUSION_ZONE_DRAWING) {
-        const draw = exclusionZoneLayer.getDraw();
-        if (draw) {
-            draw.abortDrawing();
-            map.removeInteraction(draw);
-        }
     }
 
     if (
@@ -95,6 +93,18 @@ export function handleMapModeChange(mapMode: MapModes) {
     }
 
     jaiaGlobal.setMapMode(mapMode);
+}
+
+/**
+ * Adds the exclusion zone Draw interaction to the map and marks it active.
+ * Only call this while the map is in EXCLUSION_ZONE_DRAWING mode.
+ */
+export function activateExclusionZoneDraw() {
+    const draw = exclusionZoneLayer.getDraw();
+    if (draw) {
+        exclusionZoneLayer.setDrawActive(true);
+        map.addInteraction(draw);
+    }
 }
 
 /**

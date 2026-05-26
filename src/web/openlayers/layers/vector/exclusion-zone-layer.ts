@@ -26,6 +26,15 @@ const BUFFER_FILL = "rgba(255, 140, 0, 0.06)";
 
 class ExclusionZoneLayer extends JaiaVectorLayer {
     private draw: Draw | null = null;
+    private isDrawing: boolean = false;
+
+    isDrawActive() {
+        return this.isDrawing;
+    }
+
+    setDrawActive(active: boolean) {
+        this.isDrawing = active;
+    }
 
     constructor() {
         super(

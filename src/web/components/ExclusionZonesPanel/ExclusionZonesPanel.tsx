@@ -6,8 +6,7 @@ import { mdiVectorPolygon, mdiTrashCan } from "@mdi/js";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
-import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-import { MapModes } from "../../types/openlayers-types";
+import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
 import ZonesList from "./ZonesList/ZonesList";
 import ZoneStorageButton from "./ZoneStorage/ZoneStorageButton";
@@ -18,7 +17,7 @@ export default function ExclusionZonesPanel() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    const isDrawing = jaiaGlobal.getMapMode() === MapModes.EXCLUSION_ZONE_DRAWING;
+    const isDrawing = exclusionZoneLayer.isDrawActive();
     const zoneCount = jaiaContext!.exclusionZoneSet?.getZones().size ?? 0;
     const zoneSetName = jaiaContext!.exclusionZoneSet?.getName() ?? "";
 

@@ -85,6 +85,9 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
         case ButtonTypes.PANEL:
             if (mutableState.visiblePanel !== action.buttonName) {
                 visiblePanel = action.buttonName;
+                if (action.buttonName === ButtonNames.EXCLUSION_ZONES_PANEL) {
+                    mapMode = MapModes.EXCLUSION_ZONE_DRAWING;
+                }
             }
             break;
         case ButtonTypes.COMMAND:

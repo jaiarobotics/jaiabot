@@ -7,7 +7,8 @@ import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapFeatureTypes } from "../../types/openlayers-types";
+import { MapModes } from "../../types/openlayers-types";
+import { handleMapModeChange } from "../../openlayers/maps/map";
 import { ButtonNames, JaiaAction, JaiaContextType, PanelActions } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers, syncTaskLayers } from "./handler-utils";
@@ -103,5 +104,8 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
     }
     jaiaGlobal.resetSelectedZoneVertex();
     mutableState.visiblePanel = ButtonNames.NONE;
+    if (jaiaGlobal.getMapMode() === MapModes.EXCLUSION_ZONE_DRAWING) {
+        handleMapModeChange(MapModes.DEFAULT);
+    }
     return mutableState;
 }
