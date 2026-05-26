@@ -174,6 +174,7 @@ export default function Map() {
             return;
         }
 
+        // Prevent generating false ADD_WAYPOINT actions
         if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
             handleAddWaypointClick(event.coordinate);
         }
