@@ -6,7 +6,8 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 
 import { Feature, MapBrowserEvent } from "ol";
 import { Coordinate } from "ol/coordinate";
-import { Geometry } from "ol/geom";
+import { Geometry, Polygon } from "ol/geom";
+import { DrawEvent } from "ol/interaction/Draw";
 import { toLonLat } from "ol/proj";
 
 import { map } from "../../openlayers/maps/map";
@@ -58,8 +59,34 @@ export default function Map() {
         map.on("click", (event: MapBrowserEvent<PointerEvent>) => {
             handleMapClick(event);
         });
-        exclusionZoneLayer.setDispatch(jaiaDispatch);
         styleControlButtons();
+
+        // Create the Draw interaction once at mount and wire drawend here so dispatch
+        // is captured in a React closure — never stored on an OL singleton.
+        const draw = exclusionZoneLayer.createDrawInteraction();
+        draw.on("drawend", (event: DrawEvent) => {
+            const feature = event.feature as Feature<Polygon>;
+            const geometry = feature.getGeometry();
+            if (!geometry) return;
+            const coords3857 = geometry.getCoordinates()[0];
+            if (!coords3857) return;
+
+            // OpenLayers closes the ring by repeating the first vertex — skip it.
+            // Also deduplicate consecutive identical vertices (double-click to finish
+            // registers the last vertex twice, causing false non-convex detection).
+            const allVertices = coords3857.slice(0, -1).map((coord) => {
+                const lonLat = toLonLat(coord);
+                return { lat: lonLat[1], lon: lonLat[0] };
+            });
+            const vertices = allVertices.filter((v, i) => {
+                if (i === 0) return true;
+                const prev = allVertices[i - 1];
+                return Math.abs(v.lat - prev.lat) > 1e-10 || Math.abs(v.lon - prev.lon) > 1e-10;
+            });
+            if (vertices.length >= 3) {
+                jaiaDispatch({ type: JaiaActions.ADD_EXCLUSION_ZONE, exclusionZone: { vertices } });
+            }
+        });
     }, [jaiaDispatch]);
 
     /**

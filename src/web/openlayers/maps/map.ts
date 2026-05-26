@@ -62,9 +62,11 @@ export function handleMapModeChange(mapMode: MapModes) {
         case MapModes.MEASURE:
             map.addInteraction(measureLayer.createDrawInteraction());
             break;
-        case MapModes.EXCLUSION_ZONE_DRAWING:
-            map.addInteraction(exclusionZoneLayer.createDrawInteraction());
+        case MapModes.EXCLUSION_ZONE_DRAWING: {
+            const draw = exclusionZoneLayer.getDraw();
+            if (draw) map.addInteraction(draw);
             break;
+        }
         default:
             changeCursor(Cursors.DEFAULT);
     }
@@ -75,8 +77,11 @@ export function handleMapModeChange(mapMode: MapModes) {
     }
 
     if (mapMode !== MapModes.EXCLUSION_ZONE_DRAWING) {
-        map.removeInteraction(exclusionZoneLayer.getDraw());
-        exclusionZoneLayer.clearDrawInteraction();
+        const draw = exclusionZoneLayer.getDraw();
+        if (draw) {
+            draw.abortDrawing();
+            map.removeInteraction(draw);
+        }
     }
 
     if (
