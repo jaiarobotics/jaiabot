@@ -43,11 +43,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
     // Call the handler
     mutableState = config.handler(mutableState, action);
 
-    // If this is a tracked action, save the history.
-    // Skip transient confirmation states (pending reroute / waypoint removal)
-    // so undo never restores an intermediate zone/mission state without its
-    // corresponding dialog flow.
-    if (config.tracked && !mutableState.pendingReroute && !mutableState.pendingWaypointRemoval) {
+    if (config.tracked) {
         saveHistory(mutableState, action.type);
     }
 
