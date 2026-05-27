@@ -151,7 +151,11 @@ export function Plots(props: PlotsProps) {
             }
 
             const y_axis_title = wrapLines(series.y_axis_title.replaceAll("\n", "<br>"));
-            layout["yaxis" + (plot_index + 1)] = { title: y_axis_title };
+            const yaxisLayoutKey = plot_index === 0 ? "yaxis" : "yaxis" + (plot_index + 1);
+            layout[yaxisLayoutKey] = {
+                title: { text: y_axis_title },
+                automargin: true,
+            };
 
             // Add to the data array
             let yaxis = "y" + (plot_index + 1);

@@ -145,7 +145,7 @@ export default function ButtonList(props: Props) {
                 >
                     <Icon path={mdiSquareEditOutline} size={MDI_BUTTON_SIZE} title="Survey Tool" />
                 </Button>
-                <Button
+                {/* <Button
                     className={getSelectedClassName(ButtonNames.EXCLUSION_ZONES_PANEL)}
                     aria-label="exclusion-zones-panel"
                     onClick={() =>
@@ -157,7 +157,7 @@ export default function ButtonList(props: Props) {
                         size={MDI_BUTTON_SIZE}
                         title="Obstacle Zones Panel"
                     />
-                </Button>
+                </Button> */}
                 <RallyButton />
                 <Button
                     className={getSelectedClassName(ButtonNames.DATA_OFFLOAD_PANEL)}
