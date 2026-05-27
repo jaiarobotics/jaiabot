@@ -449,7 +449,7 @@ message MissionPlan
         }
 
         optional Action action = 1
-            [default = STOP_AND_BROADCAST, (jaia.field).rest_api.presence = GUARANTEED];
+            [(jaia.field).rest_api.presence = GUARANTEED];
         // For DRIVE_TO_LOCATION, we may want a series of Geographic Locations.  Another possibility
         // would be an algorithm to determine a safe path back to the starting location.
 
