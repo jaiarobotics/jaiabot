@@ -11,6 +11,10 @@ import { DEFAULT_MISSION_SET_NAME, MISSION_ENDPOINTS, UNASSIGNED_ID } from "../.
 import { MapModes } from "../../types/openlayers-types";
 import { TaskType } from "../../types/protobuf-types";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
+import {
+    detectMissionReroutes,
+    detectWaypointRemovals,
+} from "../../data/exclusion_zones/exclusion-zone-detection";
 
 /**
  * Makes map and grid plan changes based on survey state change
@@ -21,6 +25,8 @@ import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-ty
  */
 export function handleChangeGridPlanningState(mutableState: JaiaContextType, action: JaiaAction) {
     gridPlan.setState(action.gridPlanningState);
+    const priorMissionSetSnapshot = missionSet.captureSnapshot();
+    const priorMissionsManagerSnapshot = missionsManager.captureSnapshot();
 
     switch (action.gridPlanningState) {
         case GridPlanningStates.ACCEPTING_GRID_DRAWING:
@@ -91,6 +97,24 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             handleMapModeChange(MapModes.DEFAULT);
             mutableState.visiblePanel = ButtonNames.NONE;
             missionLayer.updateFeatures();
+
+            const pendingRemoval = detectWaypointRemovals();
+            if (pendingRemoval) {
+                mutableState.pendingWaypointRemoval = {
+                    ...pendingRemoval,
+                    priorMissionSetSnapshot,
+                    priorMissionsManagerSnapshot,
+                };
+            } else {
+                const pending = detectMissionReroutes();
+                if (pending) {
+                    mutableState.pendingReroute = {
+                        ...pending,
+                        priorMissionSetSnapshot,
+                        priorMissionsManagerSnapshot,
+                    };
+                }
+            }
             break;
     }
     return mutableState;

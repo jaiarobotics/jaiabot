@@ -29,9 +29,18 @@ def myip():
             
     except (socket.error, socket.gaierror, OSError, IndexError):
         return "localhost"
+    
+
+def now_utime():
+    """Return the system time as Unix timestamp in microseconds.
+
+    Returns:
+        int: Unix timestamp in microseconds.
+    """
+    return int(datetime.now().timestamp() * 1e6)
 
 
-def now_utime(warp_factor=1, simulation_reference_time=0):
+def now_utime_sim_corrected(warp_factor=1, simulation_reference_time=0):
     """Return the system time as Unix timestamp in microseconds.
         In real-time operation, equivalent to previous now_utime() implementation.
         In simulation, time is warped from the reference time by the warp factor.

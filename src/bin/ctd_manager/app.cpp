@@ -94,9 +94,7 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
         return;
     }
 
-    std::filesystem::path base = std::filesystem::path("/var/log/jaiabot/bot") /
-                                 std::to_string(ctd_profile.bot_id()) / "ctd";
-    std::filesystem::create_directories(base);
+    std::filesystem::path base = std::filesystem::path(cfg().log_dir());
     std::filesystem::path file =
         base / ("bot" + std::to_string(ctd_profile.bot_id()) + "_" + time + ".unb");
     convert_proto_to_unb(ctd_profile, file, time);

@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
 
-import { DATA_MODEL_POLL_TIME } from "../utils/constants";
-import { JaiaAction, JaiaContextType } from "../types/context-types";
+import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
+import { JaiaAction, JaiaContextType, ButtonNames } from "../types/context-types";
 import { JaiaActions } from "./jaia-actions";
 import { actionConfigs } from "./action-configs";
 import { saveHistory } from "./handlers/history-handlers";
@@ -43,7 +43,6 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
     // Call the handler
     mutableState = config.handler(mutableState, action);
 
-    // If this is a tracked action, save the history
     if (config.tracked) {
         saveHistory(mutableState, action.type);
     }
