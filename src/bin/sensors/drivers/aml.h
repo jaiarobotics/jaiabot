@@ -26,7 +26,9 @@
 #include "config.pb.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
-#include <goby/middleware/application/simple_thread.h>
+
+#include <goby/zeromq/application/simple_thread.h>
+
 
 namespace jaiabot
 {
