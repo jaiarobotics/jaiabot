@@ -34,7 +34,7 @@ namespace jaiabot
 namespace apps
 {
 class TurnerCFluorDriver
-    : public goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>
+    : public goby::zeromq::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>
 {
   public:
     TurnerCFluorDriver(const jaiabot::config::TurnerCFluorThreadConfig& config);

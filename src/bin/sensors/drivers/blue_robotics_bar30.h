@@ -34,7 +34,7 @@ namespace jaiabot
 namespace apps
 {
 class BlueRoboticsBar30Driver
-    : public goby::middleware::SimpleThread<jaiabot::config::BlueRoboticsBar30ThreadConfig>
+    : public goby::zeromq::SimpleThread<jaiabot::config::BlueRoboticsBar30ThreadConfig>
 {
   public:
     BlueRoboticsBar30Driver(const jaiabot::config::BlueRoboticsBar30ThreadConfig& config);

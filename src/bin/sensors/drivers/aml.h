@@ -33,7 +33,7 @@ namespace jaiabot
 namespace apps
 {
 class AMLSensorDriver
-    : public goby::middleware::SimpleThread<jaiabot::config::AMLThreadConfig>
+    : public goby::zeromq::SimpleThread<jaiabot::config::AMLThreadConfig>
 {
   public:
     AMLSensorDriver(const jaiabot::config::AMLThreadConfig& config);

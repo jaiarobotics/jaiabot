@@ -35,9 +35,8 @@
 
 using goby::glog;
 
-jaiabot::apps::AMLSensorDriver::AMLSensorDriver(
-    const jaiabot::config::AMLThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::config::AMLThreadConfig>(config)
+jaiabot::apps::AMLSensorDriver::AMLSensorDriver(const jaiabot::config::AMLThreadConfig& config)
+    : goby::zeromq::SimpleThread<jaiabot::config::AMLThreadConfig>(config)
 {
   glog.add_group("aml", goby::util::Colors::blue);
 

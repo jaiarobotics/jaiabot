@@ -30,7 +30,7 @@ using goby::glog;
 
 jaiabot::apps::AtlasScientificOEMDODriver::AtlasScientificOEMDODriver(
     const jaiabot::config::AtlasOEMDOThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::config::AtlasOEMDOThreadConfig>(config)
+    : goby::zeromq::SimpleThread<jaiabot::config::AtlasOEMDOThreadConfig>(config)
 
 {
     glog.add_group("oem_do", goby::util::Colors::blue);
