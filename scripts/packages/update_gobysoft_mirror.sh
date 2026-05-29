@@ -63,13 +63,13 @@ function run_wt_checklist() {
 
 all_repos_except_release=("test" "continuous" "beta")
 all_repos=("${all_repos_except_release[@]}" "release")
-all_releases=("1.y" "2.y" ) # ... "3.y" "4.y" "5.y")
+all_releases=("1.y" "2.y" "3.y")
 
 declare -A distros_for_releases
 
 distros_for_releases["1.y"]="focal,jammy"
 distros_for_releases["2.y"]="noble"
-
+distros_for_releases["3.y"]="resolute"
 
 function set_all_release()
 {       

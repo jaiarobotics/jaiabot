@@ -20,27 +20,28 @@ environment-template-arm64: &environment-template-arm64
   TARGET_ARCH: "arm64"
   DEB_BUILD_OPTIONS: "parallel=4 nocheck"
 
-environment-template-noble: &environment-template-noble
-  DISTRO_RELEASE_CODENAME: "noble"
-  DISTRO_RELEASE_VERSION: "ubuntu24.04"
+environment-template-resolute: &environment-template-resolute
+  DISTRO_RELEASE_CODENAME: "resolute"
+  DISTRO_RELEASE_VERSION: "ubuntu26.04"
 
 ## Pre-declare Docker containers
-docker-base-noble: &docker-base-noble
-  - image: gobysoft/jaiabot-ubuntu-amd64:24.04.1
+docker-base-resolute: &docker-base-resolute
+  - image: gobysoft/jaiabot-ubuntu-amd64:26.04.1
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
-docker-arm64-noble: &docker-arm64-noble
-  - image: gobysoft/jaiabot-ubuntu-arm64:24.04.1
+docker-arm64-resolute: &docker-arm64-resolute
+  - image: gobysoft/jaiabot-ubuntu-arm64:26.04.1
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
 
 docker-base-light: &docker-base-light
-  - image: gobysoft/ubuntu-build-base:24.04.1
+  - image: gobysoft/ubuntu-build-base:26.04.1
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
+
 ## Pre-declare job templates
 job-template-amd64: &job-template-amd64
   resource_class: large
@@ -178,14 +179,14 @@ filter-template-debian-builds: &filter-template-debian-builds
       only: /.*/
     branches:
       only:
-        - "2.y"
+        - "3.y"
         
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
   filters:
     branches:
       ignore:
-        - "2.y"
+        - "3.y"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -194,7 +195,7 @@ filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "2.y"
+        - "3.y"
         
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
@@ -203,7 +204,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "2.y"
+        - "3.y"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -212,7 +213,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "2.y"
+        - "3.y"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -221,7 +222,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
       only: /.*/
     branches:
       only:
-        - "2.y"
+        - "3.y"
 
         
 ## Begin actual config
@@ -233,17 +234,17 @@ workflows:
   version: 2
   commit:
     jobs:
-      - amd64-noble-build:
+      - amd64-resolute-build:
           <<: *filter-template-normal-builds
 
       - get-orig-source:
           <<: *filter-template-debian-builds
 
-      - amd64-noble-deb-build:
+      - amd64-resolute-deb-build:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
-      - arm64-noble-deb-build:
+      - arm64-resolute-deb-build:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
@@ -256,16 +257,16 @@ workflows:
             branches:
               only: /.*/
           requires:
-            - amd64-noble-deb-build
-            - arm64-noble-deb-build
+            - amd64-resolute-deb-build
+            - arm64-resolute-deb-build
 
       # rootfs jobs
-      - arm64-raspi-image-create-noble:
+      - arm64-raspi-image-create-resolute:
           <<: *filter-template-rootfs-builds
           requires:
             - upload
 
-      - amd64-virtualbox-image-create-noble:
+      - amd64-virtualbox-image-create-resolute:
           <<: *filter-template-rootfs-builds
           requires:
             - upload
@@ -274,38 +275,38 @@ workflows:
           <<: *filter-template-pi0-rootfs-builds
 
       # bundle after each package upload and rootfs
-      - arm64-bundle-noble:
+      - arm64-bundle-resolute:
           filters:
             tags:
               only: /.*/
             branches:
               only: /.*/
           requires:
-            - arm64-raspi-image-create-noble
+            - arm64-raspi-image-create-resolute
 
-      - amd64-bundle-noble:
+      - amd64-bundle-resolute:
           filters:
             tags:
               only: /.*/
             branches:
               only: /.*/
           requires:
-            - amd64-virtualbox-image-create-noble
+            - amd64-virtualbox-image-create-resolute
             
       - aws-sync:
           requires:
-            - arm64-raspi-image-create-noble
-            - amd64-virtualbox-image-create-noble
-            - amd64-bundle-noble
-            - arm64-bundle-noble
+            - arm64-raspi-image-create-resolute
+            - amd64-virtualbox-image-create-resolute
+            - amd64-bundle-resolute
+            - arm64-bundle-resolute
           <<: *filter-template-aws-rootfs-builds
 
       - aws-sync-govcloud:
           requires:
-            - arm64-raspi-image-create-noble
-            - amd64-virtualbox-image-create-noble
-            - amd64-bundle-noble
-            - arm64-bundle-noble
+            - arm64-raspi-image-create-resolute
+            - amd64-virtualbox-image-create-resolute
+            - amd64-bundle-resolute
+            - arm64-bundle-resolute
           <<: *filter-template-aws-rootfs-builds
 
           
@@ -413,7 +414,7 @@ jobs:
     resource_class: small
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-amd64
     steps:
       - checkout
@@ -452,34 +453,34 @@ jobs:
             - "*.tar.xz"
             - "changelog"
 
-  amd64-noble-build:
+  amd64-resolute-build:
     <<: *job-template-amd64
-    docker: *docker-base-noble
+    docker: *docker-base-resolute
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-amd64
 
-  amd64-noble-deb-build:
+  amd64-resolute-deb-build:
     <<: *job-template-deb-amd64
-    docker: *docker-base-noble
+    docker: *docker-base-resolute
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-amd64
-  arm64-noble-deb-build:
+  arm64-resolute-deb-build:
     <<: *job-template-deb-cross
-    docker: *docker-arm64-noble
+    docker: *docker-arm64-resolute
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-arm64
 
   upload:
     <<: *job-template-upload
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-amd64
     resource_class: small
     steps: &steps-upload
@@ -505,13 +506,13 @@ jobs:
             done
 
   # rootfs jobs
-  arm64-raspi-image-create-noble:
+  arm64-raspi-image-create-resolute:
     machine:
       image: ubuntu-2404:current
     resource_class: arm.medium
     environment:
       CREATE_IMAGE_ARGS: "--native"
-      DISTRO_RELEASE_CODENAME: "noble"
+      DISTRO_RELEASE_CODENAME: "resolute"
       DEBIAN_FRONTEND: "noninteractive"
       <<: *environment-template-arm64
     steps:
@@ -552,13 +553,13 @@ jobs:
             - "arm64/*.tar.gz"
             - "arm64/*.metadata.txt"
 
-  amd64-virtualbox-image-create-noble:
+  amd64-virtualbox-image-create-resolute:
     machine:
       image: ubuntu-2404:current
     resource_class: medium
     environment:
       CREATE_IMAGE_ARGS: "--virtualbox"
-      DISTRO_RELEASE_CODENAME: "noble"
+      DISTRO_RELEASE_CODENAME: "resolute"
       DEBIAN_FRONTEND: "noninteractive"
       <<: *environment-template-amd64
     steps:
@@ -581,13 +582,13 @@ jobs:
             - "amd64/*.tar.gz"
             - "amd64/*.metadata.txt"
             
-  arm64-bundle-noble:
+  arm64-bundle-resolute:
     working_directory: /tmp/bundle/jaiabot
     machine:
       image: ubuntu-2404:current
     resource_class: arm.medium
     environment:
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-arm64
     steps:
       - checkout
@@ -636,13 +637,13 @@ jobs:
             - "bundle/result/arm64/*.iso"
             - "bundle/result/arm64/version.txt"
 
-  amd64-bundle-noble:
+  amd64-bundle-resolute:
     working_directory: /tmp/bundle/jaiabot
     machine:
       image: ubuntu-2404:current
     resource_class: medium
     environment:
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-amd64
     steps:
       - checkout
@@ -689,7 +690,7 @@ jobs:
       - image: cimg/base:current
     environment:
       AWS_DEFAULT_REGION: "us-east-1"
-      DISTRO_RELEASE_CODENAME: "noble"
+      DISTRO_RELEASE_CODENAME: "resolute"
     resource_class: medium
     steps:
       - aws-sync-command:
@@ -700,7 +701,7 @@ jobs:
       - image: cimg/base:current
     environment:
       AWS_DEFAULT_REGION: "us-gov-east-1"
-      DISTRO_RELEASE_CODENAME: "noble"
+      DISTRO_RELEASE_CODENAME: "resolute"
     resource_class: medium
     steps:
       - aws-sync-command:

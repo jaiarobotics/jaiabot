@@ -5,8 +5,8 @@ It consists of source code that is compiled into a variety of binary application
 
 * `jaiabot`
   * `src`: Source code (C++ primarily) that is built into compiled code (binaries and libraries)
-  * `rootfs`: Root filesystem generation for jaiabot (prior to 1.12.0 this was the separate `jaiabot-rootfs-gen` repository).
-  * `debian`: Debian packaging files for jaiabot (prior to 1.12.0 this was the separate `jaiabot-debian` repository).
+  * `rootfs`: Root filesystem generation for jaiabot.
+  * `debian`: Debian packaging files for jaiabot.
 
 # Release Branches
 
@@ -25,8 +25,8 @@ The lifecycle of supported releases is given in this figure:
 ## Ubuntu Releases
 Each `jaiabot` release series is aligned to an long-term support (LTS) release of Ubuntu (except 1.y which supports two LTS releases as a special case):
 - jaiabot 1.y: Ubuntu 20.04 (focal) and 22.04 (jammy)
-- jaiabot 2.y (forthcoming, expected Oct 2024): Ubuntu 24.04 (noble)
-- jaiabot 3.y (future, expected Oct 2026): Ubuntu 26.04
+- jaiabot 2.y: July 2025: Ubuntu 24.04 (noble)
+- jaiabot 3.y (expected Oct 2026): Ubuntu 26.04 (resolute)
 
 ## Updates to create new release branch
 
