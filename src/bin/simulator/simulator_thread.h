@@ -27,6 +27,7 @@
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/arduino.pb.h"
 #include <goby/time/steady_clock.h>
 
 #include "config.pb.h"
@@ -69,6 +70,7 @@ class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThrea
     double voltage_step_decrease_{0.1};
     double voltage_start_{24.0};
     double reset_voltage_level_{15};
+
     goby::time::SteadyClock::time_point voltage_updated_{std::chrono::seconds(0)};
 };
 

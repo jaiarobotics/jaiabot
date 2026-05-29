@@ -75,6 +75,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     bool isVersionLessThanOrEqual(const std::string& version1, const std::string& version2);
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
     int calculateMotorMicroseconds(const int& input);
+    void handle_arduino_response(const jaiabot::protobuf::ArduinoResponse& arduino_response);
 
     int64_t lastAckTime_;
 
@@ -191,105 +192,14 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                 handle_control_surfaces(low_control.control_surfaces());
             }
         });
+
     // Get an ArduinoResponse
     interthread().subscribe<serial_in>([this](const goby::middleware::protobuf::IOData& io) {
         try
         {
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
-
-            jaiabot::protobuf::ArduinoDebug arduino_debug;
-
-            if (arduino_response.status_code() == protobuf::ArduinoStatusCode::STARTUP)
-            {
-                if (is_settings_ack_)
-                {
-                    // Reset to check compatibility again
-                    is_driver_connected_ = false;
-                    is_driver_compatible_ = false;
-
-                    // Reset to false because the arduino restarted
-                    // Ensures that we set our bounds
-                    is_settings_ack_ = false;
-
-                    // Set true so we can zero out
-                    // the arduino commands
-                    arduino_restarting_ = true;
-
-                    // Set the restart time
-                    last_arduino_restart_time_ = goby::time::SteadyClock::now();
-
-                    glog.is_debug2() && glog << group("main") << "Restarting: " << std::endl;
-
-                    arduino_debug.set_arduino_restarted(true);
-                    interprocess().publish<groups::arduino_debug>(arduino_debug);
-                }
-            }
-
-            glog.is_debug2() &&
-                glog << group("main") << "Arduino Driver Connected: " << is_driver_connected_
-                     << "Arduino Driver Compatible: " << is_driver_compatible_
-                     << ", Arduino Version: " << arduino_response.version()
-                     << ", Arduino Driver Has Version: "
-                     << arduino_version_compatibility_.count(arduino_response.version())
-                     << std::endl;
-
-            // Check if the driver is compatible
-            if (!is_driver_connected_ &&
-                arduino_version_compatibility_.count(arduino_response.version()))
-            {
-                is_driver_connected_ = true;
-                auto compatible_from =
-                    arduino_version_compatibility_.at(arduino_response.version()).first;
-                auto compatible_to =
-                    arduino_version_compatibility_.at(arduino_response.version()).second;
-
-                // If the compatible_from version is less than or equal to the
-                // app_version_ and if the app_version_ is less
-                // than or equal to the compatible_to version
-                if (isVersionLessThanOrEqual(compatible_from, app_version_) &&
-                    isVersionLessThanOrEqual(app_version_, compatible_to) && !is_settings_ack_)
-                {
-                    glog.is_debug2() && glog << group("main") << "Arduino Driver is compatible!"
-                                             << std::endl;
-                    is_driver_compatible_ = true;
-                }
-            }
-
-            // Check if the driver is compatible
-            if (is_driver_compatible_)
-            {
-                // Set the settings ack to true to begin comms
-                if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
-                {
-                    glog.is_debug2() && glog << group("main") << "Settings were Ack by arduino"
-                                             << std::endl;
-                    is_settings_ack_ = true;
-                }
-
-                // Check for ack statuses
-                if (arduino_response.status_code() == protobuf::ArduinoStatusCode::ACK)
-                {
-                    // Check to see if arduino has finished restarting
-                    if (arduino_restarting_ &&
-                        last_arduino_restart_time_ +
-                                std::chrono::seconds(cfg().arduino_restart_timeout_seconds()) <
-                            goby::time::SteadyClock::now())
-                    {
-                        // Finished startup process
-                        arduino_restarting_ = false;
-
-                        glog.is_debug2() && glog << group("main") << "Finsihed Restarting"
-                                                 << std::endl;
-                    }
-                }
-            }
-
-            glog.is_debug1() && glog << group("arduino") << "Received from Arduino: "
-                                     << arduino_response.ShortDebugString() << std::endl;
-
+            handle_arduino_response(arduino_response);
             interprocess().publish<groups::arduino_to_pi>(arduino_response);
-            last_arduino_report_time_ = goby::time::SteadyClock::now();
-            last_command_acked_ = true;
         }
         catch (const std::exception& e) //all exceptions thrown by the standard*  library
         {
@@ -314,6 +224,99 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
 }
 
 jaiabot::apps::ArduinoDriver::~ArduinoDriver() {}
+
+void jaiabot::apps::ArduinoDriver::handle_arduino_response(
+    const jaiabot::protobuf::ArduinoResponse& arduino_response)
+{
+    jaiabot::protobuf::ArduinoDebug arduino_debug;
+
+    if (arduino_response.status_code() == protobuf::ArduinoStatusCode::STARTUP)
+    {
+        if (is_settings_ack_)
+        {
+            // Reset to check compatibility again
+            is_driver_connected_ = false;
+            is_driver_compatible_ = false;
+
+            // Reset to false because the arduino restarted
+            // Ensures that we set our bounds
+            is_settings_ack_ = false;
+
+            // Set true so we can zero out
+            // the arduino commands
+            arduino_restarting_ = true;
+
+            // Set the restart time
+            last_arduino_restart_time_ = goby::time::SteadyClock::now();
+
+            glog.is_debug2() && glog << group("main") << "Restarting: " << std::endl;
+
+            arduino_debug.set_arduino_restarted(true);
+            interprocess().publish<groups::arduino_debug>(arduino_debug);
+        }
+    }
+
+    glog.is_debug2() &&
+        glog << group("main") << "Arduino Driver Connected: " << is_driver_connected_
+             << "Arduino Driver Compatible: " << is_driver_compatible_
+             << ", Arduino Version: " << arduino_response.version()
+             << ", Arduino Driver Has Version: "
+             << arduino_version_compatibility_.count(arduino_response.version()) << std::endl;
+
+    // Check if the driver is compatible
+    if (!is_driver_connected_ && arduino_version_compatibility_.count(arduino_response.version()))
+    {
+        is_driver_connected_ = true;
+        auto compatible_from = arduino_version_compatibility_.at(arduino_response.version()).first;
+        auto compatible_to = arduino_version_compatibility_.at(arduino_response.version()).second;
+
+        // If the compatible_from version is less than or equal to the
+        // app_version_ and if the app_version_ is less
+        // than or equal to the compatible_to version
+        if (isVersionLessThanOrEqual(compatible_from, app_version_) &&
+            isVersionLessThanOrEqual(app_version_, compatible_to) && !is_settings_ack_)
+        {
+            glog.is_debug2() && glog << group("main") << "Arduino Driver is compatible!"
+                                     << std::endl;
+            is_driver_compatible_ = true;
+        }
+    }
+
+    // Check if the driver is compatible
+    if (is_driver_compatible_)
+    {
+        // Set the settings ack to true to begin comms
+        if (arduino_response.status_code() == protobuf::ArduinoStatusCode::SETTINGS)
+        {
+            glog.is_debug2() && glog << group("main") << "Settings were Ack by arduino"
+                                     << std::endl;
+            is_settings_ack_ = true;
+        }
+
+        // Check for ack statuses
+        if (arduino_response.status_code() == protobuf::ArduinoStatusCode::ACK)
+        {
+            // Check to see if arduino has finished restarting
+            if (arduino_restarting_ &&
+                last_arduino_restart_time_ +
+                        std::chrono::seconds(cfg().arduino_restart_timeout_seconds()) <
+                    goby::time::SteadyClock::now())
+            {
+                // Finished startup process
+                arduino_restarting_ = false;
+
+                glog.is_debug2() && glog << group("main") << "Finsihed Restarting" << std::endl;
+            }
+        }
+    }
+
+    glog.is_debug1() && glog << group("arduino")
+                             << "Received from Arduino: " << arduino_response.ShortDebugString()
+                             << std::endl;
+
+    last_arduino_report_time_ = goby::time::SteadyClock::now();
+    last_command_acked_ = true;
+}
 
 /**
  * @brief Updates the bounds configuration for the Arduino actuators

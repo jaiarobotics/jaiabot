@@ -54,6 +54,7 @@ launchdelay=100
 cat <<EOF > ${preseedfile}
 export jaia_mode=simulation
 export jaia_comms_mode=${jaia_comms_mode}
+export jaia_motor_harness_type=RPM_AND_THERMISTOR
 source "$(dirname ${BASH_SOURCE:-${(%):-%x}})/../../preseed.goby"
 EOF
 

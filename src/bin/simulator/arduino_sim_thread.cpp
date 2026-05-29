@@ -36,6 +36,7 @@ jaiabot::apps::ArduinoSimThread::ArduinoSimThread(const jaiabot::config::Arduino
     voltage_period_ = cfg.voltage_period();
     voltage_start_ = cfg.voltage_start();
     reset_voltage_level_ = cfg.reset_voltage_level();
+
 }
 
 void jaiabot::apps::ArduinoSimThread::loop()
@@ -44,8 +45,10 @@ void jaiabot::apps::ArduinoSimThread::loop()
 
     // publish arduino status
     jaiabot::protobuf::ArduinoResponse arduino_response;
+
+    arduino_response.set_version(3);
     arduino_response.set_status_code(jaiabot::protobuf::ArduinoStatusCode::ACK);
-    arduino_response.set_version(1);
+    arduino_response.set_motor(1555);
 
     // publish gps sky data
     if ((voltage_updated_ + std::chrono::seconds(voltage_period_)) < now)

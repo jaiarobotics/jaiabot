@@ -136,7 +136,7 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
 
     // Motor usage database
     void open_vehicle_database();
-    void log_motor(int32_t motor_micros, uint64_t usage_micros);
+    void log_motor(int32_t motor_micros, uint64_t usage_micros, float rpm);
     void log_usage(const jaiabot::protobuf::ArduinoResponse& arduino_response);
     sqlite3* vehicle_db_;
 
