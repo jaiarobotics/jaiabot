@@ -9,9 +9,6 @@
 #include <Wt/WText.h>
 #include <chrono>
 
-#include <boost/process.hpp>
-#include <boost/process/async.hpp>
-
 #include "liaison_upgrade.h"
 
 using namespace goby::util::logger;
@@ -423,13 +420,13 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::ProcessData(
 
     : process(cfg.has_ansible_playbook_full_path()
                   ? boost::filesystem::path(cfg.ansible_playbook_full_path())
-                  : boost::process::search_path("ansible-playbook"),
+                  : boost::process::v1::search_path("ansible-playbook"),
               "-i", pb_playbook.has_inventory() ? pb_playbook.inventory() : cfg.ansible_inventory(),
-              playbook_file, "-e", input_vars, boost::process::std_in.close(), "-l",
+              playbook_file, "-e", input_vars, boost::process::v1::std_in.close(), "-l",
               pb_playbook.has_limit() ? pb_playbook.limit() : std::string("bots:" + cfg.this_hub()),
-              boost::process::std_out > ansible_stdout_file, boost::process::std_err > stderr, io,
-              boost::process::env["ANSIBLE_CONFIG"] = cfg.ansible_config(),
-              boost::process::env["ANSIBLE_JSON_FILE"] = ansible_json_file),
+              boost::process::v1::std_out > ansible_stdout_file, boost::process::v1::std_err > stderr, io,
+              boost::process::v1::env["ANSIBLE_CONFIG"] = cfg.ansible_config(),
+              boost::process::v1::env["ANSIBLE_JSON_FILE"] = ansible_json_file),
       io_thread([this]() { io.run(); }),
       stdout(ansible_stdout_file, std::ios::in)
 {
