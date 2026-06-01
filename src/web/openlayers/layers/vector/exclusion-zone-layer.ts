@@ -1,12 +1,13 @@
 import { Feature } from "ol";
 import { Point, Polygon } from "ol/geom";
 import { Draw } from "ol/interaction";
+import { DrawEvent } from "ol/interaction/Draw";
 import Fill from "ol/style/Fill";
 import Stroke from "ol/style/Stroke";
 import Style from "ol/style/Style";
 import CircleStyle from "ol/style/Circle";
 import Text from "ol/style/Text";
-import { fromLonLat } from "ol/proj";
+import { fromLonLat, toLonLat } from "ol/proj";
 
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { layersZIndexes } from "../zindex";
@@ -15,6 +16,7 @@ import { getZoneBufferVertices } from "../../../data/exclusion_zones/exclusion-z
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
+import { GeographicCoordinate } from "../../../shared/JAIAProtobuf";
 
 const ZONE_FILL = "rgba(220, 0, 0, 0.15)";
 const ZONE_STROKE = "rgba(220, 0, 0, 0.85)";
@@ -70,6 +72,34 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
             }),
         });
         return this.draw;
+    }
+
+    /**
+     * Captures the vertices of a drawn polygon
+     *
+     * @param {DrawEvent} event Holds the coordinates of the drawn polygon
+     * @returns {GeographicCoordinate[]} The vertices of the drawn polygon
+     */
+    configureDrawEnd(event: DrawEvent) {
+        const feature = event.feature as Feature<Polygon>;
+        const geometry = feature.getGeometry();
+        if (!geometry) return;
+        const coords3857 = geometry.getCoordinates()[0];
+        if (!coords3857) return;
+
+        // OpenLayers closes the ring by repeating the first vertex — skip it.
+        // Also deduplicate consecutive identical vertices (double-click to finish
+        // registers the last vertex twice, causing false non-convex detection).
+        const allVertices: GeographicCoordinate[] = coords3857.slice(0, -1).map((coord) => {
+            const lonLat = toLonLat(coord);
+            return { lat: lonLat[1], lon: lonLat[0] };
+        });
+        const vertices = allVertices.filter((v, i) => {
+            if (i === 0) return true;
+            const prev = allVertices[i - 1];
+            return Math.abs(v.lat - prev.lat) > 1e-10 || Math.abs(v.lon - prev.lon) > 1e-10;
+        });
+        return vertices;
     }
 
     /**

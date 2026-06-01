@@ -46,38 +46,6 @@ interface ZoneCrossingDialogState {
 }
 
 /**
- * Creates the exclusion zone Draw interaction and wires its drawend handler.
- * Defined outside the component so dispatch is passed explicitly rather than
- * captured implicitly — keeping the OL singleton free of React references.
- */
-function initExclusionZoneDraw(dispatch: React.Dispatch<JaiaAction>) {
-    const draw = exclusionZoneLayer.createDrawInteraction();
-    draw.on("drawend", (event: DrawEvent) => {
-        const feature = event.feature as Feature<Polygon>;
-        const geometry = feature.getGeometry();
-        if (!geometry) return;
-        const coords3857 = geometry.getCoordinates()[0];
-        if (!coords3857) return;
-
-        // OpenLayers closes the ring by repeating the first vertex — skip it.
-        // Also deduplicate consecutive identical vertices (double-click to finish
-        // registers the last vertex twice, causing false non-convex detection).
-        const allVertices = coords3857.slice(0, -1).map((coord) => {
-            const lonLat = toLonLat(coord);
-            return { lat: lonLat[1], lon: lonLat[0] };
-        });
-        const vertices = allVertices.filter((v, i) => {
-            if (i === 0) return true;
-            const prev = allVertices[i - 1];
-            return Math.abs(v.lat - prev.lat) > 1e-10 || Math.abs(v.lon - prev.lon) > 1e-10;
-        });
-        if (vertices.length >= 3) {
-            dispatch({ type: JaiaActions.ADD_EXCLUSION_ZONE, exclusionZone: { vertices } });
-        }
-    });
-}
-
-/**
  * Renders the OpenLayers map and routes map click events to the appropriate handlers
  *
  * @returns {JSX.Element} The map container, including any active zone crossing dialogs
@@ -92,10 +60,8 @@ export default function Map() {
             handleMapClick(event);
         });
         styleControlButtons();
-
-        // Wire drawend here so dispatch is captured in a React closure — never stored on an OL singleton.
-        initExclusionZoneDraw(jaiaDispatch!);
-    }, [jaiaDispatch]);
+        initExclusionZoneDraw();
+    }, []);
 
     /**
      * Distributes map clicks to appropriate handlers
@@ -557,6 +523,23 @@ export default function Map() {
         }
 
         jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location: newLocation });
+    };
+
+    /**
+     * Creates the exclusion zone Draw interaction and wires its drawend handler.
+     * Defined outside the component so dispatch is passed explicitly rather than
+     * captured implicitly — keeping the OL singleton free of React references.
+     *
+     * @returns {void}
+     */
+    const initExclusionZoneDraw = () => {
+        const draw = exclusionZoneLayer.createDrawInteraction();
+        draw.on("drawend", (event: DrawEvent) => {
+            const vertices = exclusionZoneLayer.configureDrawEnd(event);
+            if (vertices.length >= 3) {
+                jaiaDispatch({ type: JaiaActions.ADD_EXCLUSION_ZONE, exclusionZone: { vertices } });
+            }
+        });
     };
 
     /**
