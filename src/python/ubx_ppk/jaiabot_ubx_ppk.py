@@ -167,7 +167,7 @@ def main():
     if args.input:
         gpsd_client = GPSDClientSimulator(args.input)
     else:
-        gpsd_client = GPSDClient(HOST, PORT)
+        gpsd_client = GPSDClient()
 
 
     while True:
