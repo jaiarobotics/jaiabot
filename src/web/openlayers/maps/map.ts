@@ -55,14 +55,6 @@ export const map = new Map({
  * @returns {void}
  */
 export function handleMapModeChange(mapMode: MapModes) {
-    // Always deactivate zone Draw first — re-activated by setExclusionZoneDrawActive(true) if needed.
-    const draw = exclusionZoneLayer.getDraw();
-    if (draw && exclusionZoneLayer.isDrawActive()) {
-        draw.abortDrawing();
-        map.removeInteraction(draw);
-        exclusionZoneLayer.setDrawActive(false);
-    }
-
     switch (mapMode) {
         case MapModes.RALLY:
             changeCursor(Cursors.CROSSHAIR);
@@ -92,12 +84,23 @@ export function handleMapModeChange(mapMode: MapModes) {
         gridPlan.reset();
     }
 
+    if (mapMode !== MapModes.EXCLUSION_ZONE_DRAWING) {
+        const draw = exclusionZoneLayer.getDraw();
+        if (draw && exclusionZoneLayer.isDrawActive()) {
+            draw.abortDrawing();
+            map.removeInteraction(draw);
+            exclusionZoneLayer.setDrawActive(false);
+        }
+    }
+
     jaiaGlobal.setMapMode(mapMode);
 }
 
 /**
  * Activates or deactivates the exclusion zone Draw interaction on the map.
  * Only activate while the map is in EXCLUSION_ZONE_DRAWING mode.
+ * @param {boolean} active Whether to activate or deactivate the exclusion zone Draw interaction
+ * @returns {void}
  */
 export function setExclusionZoneDrawActive(active: boolean) {
     const draw = exclusionZoneLayer.getDraw();
