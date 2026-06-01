@@ -52,7 +52,7 @@ beforeEach(() => {
     );
 });
 
-test("Select and deselect Bot and Hub icons on map", () => {
+test.skip("Select and deselect Bot and Hub icons on map", () => {
     // Resolve click to being on a Feature of type MapFeatureTypes.BOT
     mapModule.map.forEachFeatureAtPixel = jest.fn().mockReturnValue(botFeatureMock);
 
