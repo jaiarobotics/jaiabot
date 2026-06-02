@@ -53,4 +53,4 @@ jaiabot_driver_camera <(../../gen/bot.py jaiabot_driver_camera)
 jaiabot_ctd_manager <(../../gen/bot.py jaiabot_ctd_manager)
 
 # Arduino driver - for testing the vehicle.db
-# jaiabot_driver_arduino <(../../gen/bot.py jaiabot_driver_arduino)
+jaiabot_driver_arduino <(../../gen/bot.py jaiabot_driver_arduino)

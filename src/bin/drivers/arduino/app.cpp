@@ -197,8 +197,11 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     interthread().subscribe<serial_in>([this](const goby::middleware::protobuf::IOData& io) {
         try
         {
+            // Deserialize the incoming data into an ArduinoResponse protobuf message
             auto arduino_response = lora::parse<jaiabot::protobuf::ArduinoResponse>(io);
-            handle_arduino_response(arduino_response);
+
+            // Publish the ArduinoResponse to the arduino_to_pi group for other threads to consume,
+            //   as well as this thread to handle.
             interprocess().publish<groups::arduino_to_pi>(arduino_response);
         }
         catch (const std::exception& e) //all exceptions thrown by the standard*  library
@@ -214,6 +217,12 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
                                    << std::endl;
         } // Catch all
     });
+
+    // Subscribe to the ArduinoResponse messages that we just published, so we can handle the responses from the Arduino
+    //   Doing it this way allows us to simulate the Arduino responses by publishing to the arduino_to_pi group, which is useful for testing
+    interprocess().subscribe<groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        { handle_arduino_response(arduino_response); });
 
     interprocess().subscribe<groups::imu>([this](const jaiabot::protobuf::IMUData& imu_data) {
         if (imu_data.has_bot_rolled_over())

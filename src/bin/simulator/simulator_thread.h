@@ -60,7 +60,8 @@ class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThrea
 {
   public:
     ArduinoSimThread(const jaiabot::config::ArduinoSimThread& cfg);
-    ~ArduinoSimThread() {}
+    virtual ~ArduinoSimThread() {}
+    virtual void handle_arduino_command(const jaiabot::protobuf::ArduinoCommand& arduino_command);
 
   private:
     void loop() override;
@@ -72,6 +73,7 @@ class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThrea
     double reset_voltage_level_{15};
 
     goby::time::SteadyClock::time_point voltage_updated_{std::chrono::seconds(0)};
+
 };
 
 } // namespace apps
