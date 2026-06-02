@@ -91,9 +91,8 @@ export default function Map() {
                 handleHubLocationSelectClick(event.coordinate);
                 return;
             case MapModes.EXCLUSION_ZONE_DRAWING:
-                // When drawing is active, the OL Draw interaction handles pointer events directly.
-                if (exclusionZoneLayer.isDrawActive()) return;
-                break;
+                // When drawing is active, the OL Draw interaction handles pointer events directly
+                return;
         }
 
         if (jaiaGlobal.getSelectedWaypoint().isMoveable) {

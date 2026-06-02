@@ -64,6 +64,7 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
     const zoneID = exclusionZoneSet.addZone(action.exclusionZone);
     exclusionZoneLayer.updateFeatures();
     setExclusionZoneDrawActive(false);
+    handleMapModeChange(MapModes.DEFAULT);
 
     // Waypoints inside the zone take priority — warn before rerouting.
     const pendingRemoval = detectWaypointRemovals(zoneID);
@@ -379,20 +380,18 @@ export function handleCancelMissionReroute(mutableState: JaiaContextType) {
     if (loadedZoneIDs !== undefined) {
         // Zone load: revert means nothing from this load stays.
         for (const id of loadedZoneIDs) exclusionZoneSet.deleteZone(id);
-        syncOpenLayers();
     } else if (loadedMissionIDs !== undefined) {
         // Mission load: revert means none of the loaded missions stay.
         for (const id of loadedMissionIDs) missionSet.deleteMission(id);
-        syncOpenLayers();
     } else if (priorZone !== undefined) {
         // Zone vertex move: restore the zone to its shape before the move.
         exclusionZoneSet.updateZone(priorZone.zoneID, priorZone.zone);
-        syncOpenLayers();
     } else if (triggeringZoneID !== undefined) {
         // Zone draw: remove the newly added zone entirely.
         exclusionZoneSet.deleteZone(triggeringZoneID);
-        syncOpenLayers();
     }
+
+    syncOpenLayers();
     return mutableState;
 }
 

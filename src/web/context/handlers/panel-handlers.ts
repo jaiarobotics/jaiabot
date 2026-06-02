@@ -92,7 +92,6 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
         const zone = exclusionZoneSet.getZone(action.zoneID);
         if (zone) {
             exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: action.locations });
-            syncOpenLayers();
         }
         // Clear any pending dialogs triggered by the now-cancelled edits.
         if (mutableState.pendingWaypointRemoval?.priorZone) {
@@ -102,10 +101,12 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
             mutableState.pendingReroute = null;
         }
     }
+    jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
     jaiaGlobal.resetSelectedZoneVertex();
     mutableState.visiblePanel = ButtonNames.NONE;
     if (jaiaGlobal.getMapMode() === MapModes.EXCLUSION_ZONE_DRAWING) {
         handleMapModeChange(MapModes.DEFAULT);
     }
+    syncOpenLayers();
     return mutableState;
 }

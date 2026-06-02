@@ -85,9 +85,6 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
         case ButtonTypes.PANEL:
             if (mutableState.visiblePanel !== action.buttonName) {
                 visiblePanel = action.buttonName;
-                if (action.buttonName === ButtonNames.EXCLUSION_ZONES_PANEL) {
-                    mapMode = MapModes.EXCLUSION_ZONE_DRAWING;
-                }
             }
             break;
         case ButtonTypes.COMMAND:
@@ -111,17 +108,14 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
         gridPlan.reset();
     }
 
-    // Clear zone edit mode when navigating away from zone panels.
-    if (jaiaGlobal.getZoneInEditMode() !== UNASSIGNED_ID) {
-        const zonePanels = new Set([
-            ButtonNames.EXCLUSION_ZONES_PANEL,
-            ButtonNames.ZONE_VERTEX_PANEL,
-        ]);
-        if (!zonePanels.has(visiblePanel)) {
-            jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
-            jaiaGlobal.resetSelectedZoneVertex();
-            exclusionZoneLayer.updateFeatures();
-        }
+    // Clear zone edit mode when navigating away from zone panels
+    if (
+        jaiaGlobal.getZoneInEditMode() !== UNASSIGNED_ID ||
+        jaiaGlobal.getSelectedZoneVertex().zoneID !== UNASSIGNED_ID
+    ) {
+        jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
+        jaiaGlobal.resetSelectedZoneVertex();
+        exclusionZoneLayer.updateFeatures();
     }
 
     handleMapModeChange(mapMode);
