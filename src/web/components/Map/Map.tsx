@@ -92,8 +92,8 @@ export default function Map() {
                 return;
             case MapModes.EXCLUSION_ZONE_DRAWING:
                 // When drawing is active, the OL Draw interaction handles pointer events directly.
-                // Either way, React click handling is suppressed to prevent waypoint placement.
-                return;
+                if (exclusionZoneLayer.isDrawActive()) return;
+                break;
         }
 
         if (jaiaGlobal.getSelectedWaypoint().isMoveable) {
