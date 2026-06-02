@@ -2,7 +2,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { handleMapModeChange } from "../../openlayers/maps/map";
+import { handleMapModeChange, setExclusionZoneDrawActive } from "../../openlayers/maps/map";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
@@ -63,6 +63,7 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
     if (!action.exclusionZone) return mutableState;
     const zoneID = exclusionZoneSet.addZone(action.exclusionZone);
     exclusionZoneLayer.updateFeatures();
+    setExclusionZoneDrawActive(false);
     handleMapModeChange(MapModes.DEFAULT);
 
     // Waypoints inside the zone take priority — warn before rerouting.
@@ -251,11 +252,8 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) {
-    const updatedMode =
-        jaiaGlobal.getMapMode() !== MapModes.EXCLUSION_ZONE_DRAWING
-            ? MapModes.EXCLUSION_ZONE_DRAWING
-            : MapModes.DEFAULT;
-    handleMapModeChange(updatedMode);
+    handleMapModeChange(MapModes.EXCLUSION_ZONE_DRAWING);
+    setExclusionZoneDrawActive(!exclusionZoneLayer.isDrawActive());
     return mutableState;
 }
 
@@ -383,20 +381,18 @@ export function handleCancelMissionReroute(mutableState: JaiaContextType) {
     if (loadedZoneIDs !== undefined) {
         // Zone load: revert means nothing from this load stays.
         for (const id of loadedZoneIDs) exclusionZoneSet.deleteZone(id);
-        syncOpenLayers();
     } else if (loadedMissionIDs !== undefined) {
         // Mission load: revert means none of the loaded missions stay.
         for (const id of loadedMissionIDs) missionSet.deleteMission(id);
-        syncOpenLayers();
     } else if (priorZone !== undefined) {
         // Zone vertex move: restore the zone to its shape before the move.
         exclusionZoneSet.updateZone(priorZone.zoneID, priorZone.zone);
-        syncOpenLayers();
     } else if (triggeringZoneID !== undefined) {
         // Zone draw: remove the newly added zone entirely.
         exclusionZoneSet.deleteZone(triggeringZoneID);
-        syncOpenLayers();
     }
+
+    syncOpenLayers();
     return mutableState;
 }
 
@@ -504,6 +500,9 @@ export function handleSelectZoneVertex(mutableState: JaiaContextType, action: Ja
         // Same vertex clicked again — deselect and close panel.
         jaiaGlobal.resetSelectedZoneVertex();
         mutableState.visiblePanel = ButtonNames.NONE;
+        if (jaiaGlobal.getMapMode() === MapModes.EXCLUSION_ZONE_DRAWING) {
+            handleMapModeChange(MapModes.DEFAULT);
+        }
     } else {
         jaiaGlobal.setSelectedZoneVertex({
             zoneID: action.zoneID,
