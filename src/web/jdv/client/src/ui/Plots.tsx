@@ -562,7 +562,7 @@ export function Plots(props: PlotsProps) {
                         setIsPathSelectorDisplayed(true);
                     }}
                 >
-                    <Icon path={mdiPlus} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiPlus} size={1}></Icon>
                 </button>
                 <button
                     title="Load Plot Set"
@@ -571,10 +571,10 @@ export function Plots(props: PlotsProps) {
                         setIsOpenPlotSetDisplayed(true);
                     }}
                 >
-                    <Icon path={mdiFolderOpen} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiFolderOpen} size={1}></Icon>
                 </button>
                 <button title="Save Plot Set" className="plotButton" onClick={savePlotSetClicked}>
-                    <Icon path={mdiContentSave} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiContentSave} size={1}></Icon>
                 </button>
                 <button
                     title="Download CSV"
@@ -584,7 +584,7 @@ export function Plots(props: PlotsProps) {
                         downloadCSV(props.plots, props.visibleTimeRange);
                     }}
                 >
-                    <Icon path={mdiDownload} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiDownload} size={1}></Icon>
                     CSV
                 </button>
                 <button
@@ -594,7 +594,7 @@ export function Plots(props: PlotsProps) {
                         props.delegate.setPlots([]);
                     }}
                 >
-                    <Icon path={mdiTrashCan} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiTrashCan} size={1}></Icon>
                 </button>
                 <button
                     title="Plot Info"
@@ -603,7 +603,7 @@ export function Plots(props: PlotsProps) {
                         setIsPlotInfoDisplayed(!isPlotInfoDisplayed);
                     }}
                 >
-                    <Icon path={mdiInformation} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiInformation} size={1}></Icon>
                 </button>
 
                 {/* Stat line toggles */}
@@ -614,10 +614,7 @@ export function Plots(props: PlotsProps) {
                         checked={showMean}
                         onChange={(e) => setShowMean(e.target.checked)}
                     />
-                    <span
-                        className="statToggleSwatch"
-                        style={{ backgroundColor: MEAN_LINE_COLOR }}
-                    />
+                    <span className="statToggleSwatch statToggleSwatch--mean" />
                     Mean
                 </label>
                 <label className="statToggleLabel" title="Show or hide the ±1 σ lines on each plot">
@@ -626,10 +623,7 @@ export function Plots(props: PlotsProps) {
                         checked={showStd}
                         onChange={(e) => setShowStd(e.target.checked)}
                     />
-                    <span
-                        className="statToggleSwatch"
-                        style={{ backgroundColor: STD_LINE_COLOR }}
-                    />
+                    <span className="statToggleSwatch statToggleSwatch--std" />
                     ±1 σ
                 </label>
             </div>
@@ -642,62 +636,44 @@ export function Plots(props: PlotsProps) {
     const plotInfo = isPlotInfoDisplayed ? (
         <div className="centered dialog" id="plotInfoDialog">
             <div className="horizontal flexbox" id="plotInfoDialogHeader">
-                <h2 style={{ flex: 1 }}>Information</h2>
+                <h2>Information</h2>
                 <button className="plotButton" onClick={() => setIsPlotInfoDisplayed(false)}>
-                    <Icon path={mdiClose} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiClose} size={1}></Icon>
                 </button>
             </div>
 
-            <div className="text" style={{ bottom: "10pt" }}>
+            <div className="text">
                 <h3>Line Legend</h3>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                    <span
-                        className="lineLegendSwatch lineLegendSwatch--solid"
-                        style={{ borderColor: "#1f77b4", marginTop: 0, marginRight: "0.5em" }}
-                    />
+                <div className="lineLegendRow">
+                    <span className="lineLegendSwatch lineLegendSwatch--solid lineLegendSwatch--left" />
                     <b>
                         <i>Data Series</i>
                     </b>
-                    <span
-                        className="lineLegendSwatch lineLegendSwatch--solid"
-                        style={{ borderColor: "#1f77b4", marginTop: 0, marginLeft: "0.5em" }}
-                    />
+                    <span className="lineLegendSwatch lineLegendSwatch--solid lineLegendSwatch--right" />
                 </div>
                 <p>
                     The raw sensor values over time. Shown as a solid line; when fully zoomed in to
                     full resolution, individual data-point markers are also shown.
                 </p>
 
-                <div style={{ display: "flex", alignItems: "center" }}>
-                    <span
-                        className="lineLegendSwatch lineLegendSwatch--dashed"
-                        style={{ borderColor: MEAN_LINE_COLOR, marginTop: 0, marginRight: "0.5em" }}
-                    />
+                <div className="lineLegendRow">
+                    <span className="lineLegendSwatch lineLegendSwatch--dashed lineLegendSwatch--left" />
                     <b>
                         <i>Mean</i>
                     </b>
-                    <span
-                        className="lineLegendSwatch lineLegendSwatch--dashed"
-                        style={{ borderColor: MEAN_LINE_COLOR, marginTop: 0, marginLeft: "0.5em" }}
-                    />
+                    <span className="lineLegendSwatch lineLegendSwatch--dashed lineLegendSwatch--right" />
                 </div>
                 <p>
                     A horizontal dashed line representing the arithmetic mean of all data points
                     currently visible in the time window.
                 </p>
 
-                <div style={{ display: "flex", alignItems: "center" }}>
-                    <span
-                        className="lineLegendSwatch lineLegendSwatch--dotted"
-                        style={{ borderColor: STD_LINE_COLOR, marginTop: 0, marginRight: "0.5em" }}
-                    />
+                <div className="lineLegendRow">
+                    <span className="lineLegendSwatch lineLegendSwatch--dotted lineLegendSwatch--left" />
                     <b>
                         <i>Standard Deviation</i>
                     </b>
-                    <span
-                        className="lineLegendSwatch lineLegendSwatch--dotted"
-                        style={{ borderColor: STD_LINE_COLOR, marginTop: 0, marginLeft: "0.5em" }}
-                    />
+                    <span className="lineLegendSwatch lineLegendSwatch--dotted lineLegendSwatch--right" />
                 </div>
                 <p>
                     Two horizontal dotted lines drawn one standard deviation (±1σ) above and below
@@ -708,8 +684,8 @@ export function Plots(props: PlotsProps) {
                     Use the <strong>Mean</strong> and <strong>±1 σ</strong> checkboxes in the
                     toolbar to toggle these overlay lines on or off independently. A colour-coded
                     info box in the top-right corner of each plot displays the current numeric
-                    values of the mean (in <span style={{ color: MEAN_LINE_COLOR }}>red</span>) and
-                    standard deviation (in <span style={{ color: STD_LINE_COLOR }}>orange</span>).
+                    values of the mean (in <span className="textMeanColor">red</span>) and standard
+                    deviation (in <span className="textStdColor">orange</span>).
                 </p>
                 <h3>Plot Downsampling</h3>
                 <p>
@@ -774,7 +750,7 @@ export function Plots(props: PlotsProps) {
                 }}
                 key={plotIndex + "-deleteButton"}
             >
-                <Icon path={mdiClose} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                <Icon path={mdiClose} size={1}></Icon>
             </button>
         );
     });
@@ -799,13 +775,8 @@ export function Plots(props: PlotsProps) {
                 No data series selected to plot yet.
                 <br />
                 To plot or export data as CSV, please select one or more series using the{" "}
-                <Icon
-                    path={mdiPlus}
-                    size={1}
-                    className="button"
-                    style={{ verticalAlign: "middle", backgroundColor: "lightgray" }}
-                ></Icon>{" "}
-                button above.
+                <Icon path={mdiPlus} size={1} className="button inlineIconButton"></Icon> button
+                above.
             </div>
         );
     }

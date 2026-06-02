@@ -45,9 +45,19 @@
     align-items: center;
 }
 
+#plotInfoDialogHeader h2 {
+    flex: 1;
+}
+
 #plotInfoDialog .text {
     max-height: 60vh;
     overflow-y: auto;
+    bottom: 10pt;
+}
+
+.lineLegendRow {
+    display: flex;
+    align-items: center;
 }
 
 /* ── Stat-line toggle controls in the action bar ── */
@@ -104,15 +114,59 @@
 /* Solid line swatch (data series) */
 .lineLegendSwatch--solid {
     border-top-style: solid;
+    border-color: #1f77b4;
 }
 
 /* Dashed line swatch (mean) */
 .lineLegendSwatch--dashed {
     border-top-style: dashed;
+    border-color: red;
 }
 
 /* Dotted line swatch (std. dev.) */
 .lineLegendSwatch--dotted {
     border-top-style: dotted;
     border-top-width: 3px;
+    border-color: orange;
+}
+
+/* Left swatch in a legend row (label follows) */
+.lineLegendSwatch--left {
+    margin-top: 0;
+    margin-right: 0.5em;
+}
+
+/* Right swatch in a legend row (label precedes) */
+.lineLegendSwatch--right {
+    margin-top: 0;
+    margin-left: 0.5em;
+}
+
+/* Stat toggle swatches */
+.statToggleSwatch--mean {
+    background-color: red;
+}
+
+.statToggleSwatch--std {
+    background-color: orange;
+}
+
+/* Inline colour references in descriptive text */
+.textMeanColor {
+    color: red;
+}
+
+.textStdColor {
+    color: orange;
+}
+
+/* Icon rendered inline within descriptive text */
+.inlineIconButton {
+    vertical-align: middle;
+    background-color: lightgray;
+}
+
+/* Icons inside .plotButton — align SVG to surrounding text baseline */
+.plotButton svg {
+    vertical-align: middle;
 }
