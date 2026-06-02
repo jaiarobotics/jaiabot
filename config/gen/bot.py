@@ -81,6 +81,7 @@ if "jaia_motor_harness_type" in os.environ:
 try:
     bot_index=int(os.environ['jaia_bot_index'])
 except:
+    bot_index = -1 # For LSM
     config.fail('Must set jaia_bot_index environmental variable, e.g. "jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
 
 try:
@@ -278,7 +279,7 @@ elif common.app == 'jaiabot_health':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bind_port=common.udp.motor_cpp_udp_port(),
-                                     remote_port=common.udp.motor_py_udp_port(),
+                                     remote_port=common.udp.motor_py_udp_port(bot_index),
                                      # do not power off or restart the simulator computer unless we're a VirtualFleet
                                      ignore_powerstate_changes=ignore_powerstate_changes,
                                      is_in_sim=is_simulation(),
@@ -451,4 +452,5 @@ else:
                                      udp_gateway_port=udp_gateway_port,
                                      imu_type=imu_type,
                                      pressure_sensor_type=pressure_sensor_type,
-                                     log_file_dir=log_file_dir))
+                                     log_file_dir=log_file_dir,
+                                     motor_py_udp_port=common.udp.motor_py_udp_port(bot_index)))
