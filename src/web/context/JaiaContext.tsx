@@ -1,7 +1,7 @@
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
 
-import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
-import { JaiaAction, JaiaContextType, ButtonNames } from "../types/context-types";
+import { DATA_MODEL_POLL_TIME } from "../utils/constants";
+import { JaiaAction, JaiaContextType } from "../types/context-types";
 import { JaiaActions } from "./jaia-actions";
 import { actionConfigs } from "./action-configs";
 import { saveHistory } from "./handlers/history-handlers";
@@ -46,34 +46,6 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
     // Call the handler
     mutableState = config.handler(mutableState, action);
-
-    // Enforce edit-mode invariants whenever visiblePanel changes.
-    // Each editable panel owns an edit mode; closing the panel turns it off.
-    const prevPanel = state?.visiblePanel;
-    const nextPanel = mutableState.visiblePanel;
-    if (prevPanel !== nextPanel) {
-        // Mission edit mode is only valid while the missions or waypoint panel is open.
-        const missionPanels = new Set([ButtonNames.MISSIONS_PANEL, ButtonNames.WAYPOINT_PANEL]);
-        if (
-            !missionPanels.has(nextPanel) &&
-            missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID
-        ) {
-            missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-            missionLayer.updateFeatures();
-        }
-
-        // Zone edit mode (vertex editing) is only valid while the exclusion-zones
-        // panel or the zone-vertex panel is open.
-        const zonePanels = new Set([
-            ButtonNames.EXCLUSION_ZONES_PANEL,
-            ButtonNames.ZONE_VERTEX_PANEL,
-        ]);
-        if (!zonePanels.has(nextPanel) && jaiaGlobal.getZoneInEditMode() !== UNASSIGNED_ID) {
-            jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
-            jaiaGlobal.resetSelectedZoneVertex();
-            exclusionZoneLayer.updateFeatures();
-        }
-    }
 
     // If this is a tracked action, save the history.
     // Skip transient confirmation states (pending reroute / waypoint removal)
