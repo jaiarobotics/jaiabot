@@ -252,6 +252,7 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) {
+    handleMapModeChange(MapModes.EXCLUSION_ZONE_DRAWING);
     setExclusionZoneDrawActive(!exclusionZoneLayer.isDrawActive());
     return mutableState;
 }
