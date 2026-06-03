@@ -105,6 +105,7 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
 void jaiabot::apps::MotorStatusThread::issue_status_summary()
 {
     send_rpm_query();
+    update_total_motor_usage();
     glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
                              << std::endl;
     interprocess().publish<jaiabot::groups::motor_status>(status_);
@@ -240,6 +241,58 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros, uint64_t 
     {
         glog.is_debug1() && glog << "Database updated successfully." << std::endl;
     }
+}
+
+void jaiabot::apps::MotorStatusThread::update_total_motor_usage()
+{
+    status_.clear_total_motor_usage();
+
+    const auto update_interval = std::chrono::seconds(15);
+    static goby::time::SteadyClock::time_point next_report_time =
+        goby::time::SteadyClock::now() + update_interval;
+
+    if (goby::time::SteadyClock::now() < next_report_time)
+    {
+        return; // Only update every 15 seconds
+    }
+
+    next_report_time = goby::time::SteadyClock::now() + update_interval;
+
+    // Get the current values for motor_micros, usage_duration_micros, and avg_rpm from the database for the binned_motor_micros
+    std::string query = "SELECT motor_micros, usage_duration_micros, avg_rpm FROM motor_usage;";
+    sqlite3_stmt* stmt;
+    int rc = sqlite3_prepare_v2(vehicle_db_, query.c_str(), -1, &stmt, nullptr);
+    if (rc != SQLITE_OK)
+    {
+        glog.is_warn() && glog << "SQL error: " << sqlite3_errmsg(vehicle_db_) << std::endl;
+        sqlite3_finalize(stmt);
+        return;
+    }
+
+    while (true)
+    {
+        rc = sqlite3_step(stmt);
+
+        if (rc == SQLITE_DONE)
+        {
+            break; // No more rows
+        }
+        else if (rc != SQLITE_ROW)
+        {
+            glog.is_warn() && glog << "SQL error: " << sqlite3_errmsg(vehicle_db_) << std::endl;
+            sqlite3_finalize(stmt);
+            return;
+        }
+
+        // Values to insert or update in the database
+        auto motor_usage_bin = status_.add_total_motor_usage();
+
+        motor_usage_bin->set_motor_micros(sqlite3_column_int(stmt, 0));
+        motor_usage_bin->set_usage_time_micros(sqlite3_column_int64(stmt, 1));
+        motor_usage_bin->set_average_rpm(static_cast<float>(sqlite3_column_double(stmt, 2)));
+    }
+
+    sqlite3_finalize(stmt);
 }
 
 void jaiabot::apps::MotorStatusThread::log_usage(const jaiabot::protobuf::ArduinoResponse& arduino_response) {

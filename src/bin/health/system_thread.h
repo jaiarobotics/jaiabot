@@ -138,6 +138,7 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
     void open_vehicle_database();
     void log_motor(int32_t motor_micros, uint64_t usage_micros, float rpm);
     void log_usage(const jaiabot::protobuf::ArduinoResponse& arduino_response);
+    void update_total_motor_usage();
     sqlite3* vehicle_db_;
 
     // Original and extended map of resistance (Ohms) to temperature (°F)
