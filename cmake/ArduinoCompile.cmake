@@ -37,7 +37,7 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
     COMMAND arduino-cli
     ARGS compile --quiet --libraries ${ARDUINO_SOURCE_DIR}/libraries --fqbn ${fqbn} --output-dir ${outdir} ${ARDUINO_SOURCE_DIR}/${sketchname}
     DEPENDS ${ARDUINO_SOURCE_DIR}/${sketchname}/${sketchname}.ino
-    ${ARDUINO_SOURCE_DIR}/${sketchname}/jaiabot
+    ${ARDUINO_SOURCE_DIR}/${sketchname}/nanopb
     COMMENT "Running arduino-cli to compile ${sketchname} for ${nickname}")
 
   # target requiring compiled hex
