@@ -38,11 +38,6 @@ struct InMission
         goby::glog.is_debug1() && goby::glog << "InMission" << std::endl;
 
         apply_segment_params(goal_index_);
-
-        jaiabot::protobuf::PPKCommand ppk_command;
-        ppk_command.set_type(jaiabot::protobuf::PPKCommand::START_RECORDING);
-        interprocess().publish<jaiabot::groups::ppk>(ppk_command);
-        goby::glog.is_warn() && goby::glog << "Published START_RECORDING message" << std::endl;
     }
     ~InMission()
     {
