@@ -26,18 +26,18 @@ environment-template-resolute: &environment-template-resolute
 
 ## Pre-declare Docker containers
 docker-base-resolute: &docker-base-resolute
-  - image: gobysoft/jaiabot-ubuntu-amd64:26.04.1
+  - image: gobysoft/jaiabot-ubuntu-amd64:26.04
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
 docker-arm64-resolute: &docker-arm64-resolute
-  - image: gobysoft/jaiabot-ubuntu-arm64:26.04.1
+  - image: gobysoft/jaiabot-ubuntu-arm64:26.04
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
 
 docker-base-light: &docker-base-light
-  - image: gobysoft/ubuntu-build-base:26.04.1
+  - image: gobysoft/ubuntu-build-base:26.04
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
