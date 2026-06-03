@@ -44,7 +44,7 @@ export interface PlotsProps {
     chosenLogs: string[];
     delegate: PlotsDelegate;
     plots: Plot[];
-    t: number;
+    t: number | null;
     visibleTimeRange: number[];
     seriesDescriptors: SeriesDescriptor[];
 }
@@ -53,6 +53,36 @@ export interface PlotsProps {
 // across the plot traces, annotations, and the info dialog legend.
 const MEAN_LINE_COLOR = "red";
 const STD_LINE_COLOR = "orange";
+
+const TIME_CURSOR_COLOR = "#111111";
+
+function buildTimeCursorShape(t_micros: number | null): any[] {
+    if (t_micros == null) {
+        return [];
+    }
+
+    const t = Number(t_micros);
+    if (!Number.isFinite(t)) {
+        return [];
+    }
+
+    return [
+        {
+            type: "line",
+            xref: "x",
+            yref: "paper",
+            x0: microsToDate(t),
+            x1: microsToDate(t),
+            y0: 0,
+            y1: 1,
+            line: {
+                color: TIME_CURSOR_COLOR,
+                width: 2,
+                dash: "dot",
+            },
+        },
+    ];
+}
 
 // Plotly's default color cycle — used to explicitly assign data trace colors
 // so that the extra stat traces don't shift the color assignments.
@@ -255,6 +285,7 @@ export function Plots(props: PlotsProps) {
 
         Plotly.newPlot(plot_div_element, data, layout).then(() => {
             refreshPlotData();
+            refreshTimeCursor();
 
             // Setup the triggers
             plot_div_element.on("plotly_hover", function (data: Plotly.PlotHoverEvent) {
@@ -381,6 +412,12 @@ export function Plots(props: PlotsProps) {
         if (plots.length === 0) return;
         const annotations = buildSubplotOverlays(plots, visibleTimeRange);
         Plotly.relayout("plot", { annotations });
+    };
+
+    const refreshTimeCursor = () => {
+        const { plots, t } = props;
+        if (plots.length === 0) return;
+        Plotly.relayout("plot", { shapes: buildTimeCursorShape(t) });
     };
 
     const refreshPlotData = () => {
@@ -549,6 +586,7 @@ export function Plots(props: PlotsProps) {
     };
 
     useEffect(refreshPlotData, [props.chosenLogs, props.plots, props.visibleTimeRange]);
+    useEffect(refreshTimeCursor, [props.t, props.plots]);
 
     var actionBar: React.JSX.Element | null;
 

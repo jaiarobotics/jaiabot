@@ -25,6 +25,13 @@ echo 🟢 Building the python venv into ${TARGET_DIR}
 
     # Create the venv
     pushd ${TARGET_DIR} > /dev/null
+        # Recreate the development venv from scratch each time. Re-running
+        # `python3 -m venv` over an existing venv can fail with
+        # `[Errno 17] File exists: .../site-packages` on some Python 3.12
+        # installations, which prevents JDV/JCC dev launch scripts from
+        # starting after a previous build. The target is an intermediate build
+        # directory, so it is safe to clear the generated venv before building.
+        rm -rf venv
         python3 -m venv venv --system-site-packages
         ./venv/bin/pip install -qU wheel
         ./venv/bin/pip install -r requirements.txt

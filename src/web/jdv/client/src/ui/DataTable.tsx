@@ -7,7 +7,7 @@ type PlotList = Plot[];
 
 export interface DataTableProps {
     plots: PlotList;
-    timestamp_micros: number;
+    timestamp_micros: number | null;
 }
 
 export function DataTable(props: DataTableProps) {
@@ -25,12 +25,17 @@ export function DataTable(props: DataTableProps) {
     const dataRows = (
         <tbody>
             {props.plots.map((plot, plotIndex) => {
-                const index = bisect(plot._utime_, (_utime_) => {
-                    return props.timestamp_micros - _utime_;
-                })?.index;
+                const timestampMicros = props.timestamp_micros;
+                const index =
+                    timestampMicros == null
+                        ? null
+                        : bisect(plot._utime_, (_utime_) => {
+                              return timestampMicros - _utime_;
+                          })?.index;
 
-                const value = plot.series_y[index];
-                const enumDescription = Plot_get_hovertext_by_index(plot, index);
+                const value = index == null ? null : plot.series_y[index];
+                const enumDescription =
+                    index == null ? null : Plot_get_hovertext_by_index(plot, index);
 
                 var valueString = "";
                 if (enumDescription != null) {
