@@ -1,0 +1,26 @@
+import { useState } from "react";
+import { Button } from "@mui/material";
+import Icon from "@mdi/react";
+import { mdiSetMerge } from "@mdi/js";
+
+import { MDI_BUTTON_SIZE } from "../../../utils/constants";
+import { MissionSetEditorDialog } from "./MissionSetEditorDialog";
+
+export default function MissionSetEditorButton() {
+    const [isDialogVisible, setIsDialogVisible] = useState(false);
+
+    return (
+        <div>
+            <Button
+                className="jaia-button"
+                aria-label="mission-set-editor"
+                onClick={() => setIsDialogVisible(true)}
+            >
+                <Icon path={mdiSetMerge} size={MDI_BUTTON_SIZE} title="Mission Set Editor" />
+            </Button>
+            {isDialogVisible && (
+                <MissionSetEditorDialog onClose={() => setIsDialogVisible(false)} />
+            )}
+        </div>
+    );
+}

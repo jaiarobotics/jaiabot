@@ -1,0 +1,169 @@
+@import "../../../style/stylesheets/vars.less";
+
+.jaia-dialog.mission-set-editor {
+    width: 580px;
+    align-items: stretch;
+    gap: 16px;
+    position: relative;
+}
+
+.jaia-dialog.mission-set-editor h1 {
+    text-align: center;
+}
+
+.editor-top-row {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.editor-name-input {
+    flex: 1;
+}
+
+.editor-count-input {
+    width: 72px;
+    flex-shrink: 0;
+}
+
+.mission-set-editor .input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mission-set-editor .input-container label {
+    color: #4b5563;
+    font-size: 0.85rem;
+}
+
+.mission-set-editor input {
+    all: unset;
+    box-sizing: border-box;
+    padding: 6px;
+    border: 1px solid #9ca3af;
+    border-radius: 3px;
+    background-color: #f3f4f6;
+}
+
+.editor-count-input input {
+    -webkit-appearance: auto;
+    appearance: auto;
+}
+
+.editor-lists-section {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.editor-list-column {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.editor-list-column label {
+    color: #4b5563;
+    font-size: 0.85rem;
+}
+
+.editor-list-scroll {
+    height: 200px;
+    overflow-y: auto;
+    padding: 4px;
+    border: 1px solid #9ca3af;
+    border-radius: 3px;
+    background-color: #f3f4f6;
+    cursor: pointer;
+}
+
+.editor-list,
+.editor-source-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.editor-list-item,
+.editor-source-item {
+    padding: 6px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.editor-list-item.selected,
+.editor-source-item.selected {
+    background-color: @selected-color;
+}
+
+.editor-controls-row {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    justify-content: flex-start;
+    margin-top: 2px;
+}
+
+.editor-arrow-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 20px;
+    flex-shrink: 0;
+}
+
+.editor-add-button-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.75rem;
+}
+
+.editor-button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    justify-content: center;
+}
+
+.mission-set-editor button {
+    all: unset;
+    box-sizing: border-box;
+    padding: 8px 14px;
+    border: 1px solid #1f2937;
+    border-radius: 5px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.mission-set-editor button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.mission-set-editor .secondary-dialog {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #9ca3af;
+    background-color: #f3f4f6;
+}

@@ -36,6 +36,13 @@ struct InMission
     InMission(typename StateBase::my_context c) : StateBase(c)
     {
         goby::glog.is_debug1() && goby::glog << "InMission" << std::endl;
+
+        apply_segment_params(goal_index_);
+
+        jaiabot::protobuf::PPKCommand ppk_command;
+        ppk_command.set_type(jaiabot::protobuf::PPKCommand::START_RECORDING);
+        interprocess().publish<jaiabot::groups::ppk>(ppk_command);
+        goby::glog.is_warn() && goby::glog << "Published START_RECORDING message" << std::endl;
     }
     ~InMission()
     {
@@ -105,6 +112,9 @@ struct InMission
                 goal_index_ = 0;
             }
         }
+
+        if (goal_index_ >= 0)
+            apply_segment_params(goal_index_);
     }
 
     void set_goal_index_to_final_goal()
@@ -115,39 +125,83 @@ struct InMission
     void resume_after_srp_egress()
     {
         const auto& mission_plan = this->machine().mission_plan();
-        const int total_goals = mission_plan.goal_size();
 
-        for (int i = goal_index_; i < total_goals; ++i)
+        if (mission_plan.segments_size() > 0)
         {
-            const auto& goal = mission_plan.goal(i);
-
-            if (goal.has_task() && goal.task().type() == protobuf::MissionTask::CONSTANT_HEADING)
+            // Find the active segment for the current goal index
+            const protobuf::MissionPlan::Segment* active_seg = nullptr;
+            int active_seg_idx = -1;
+            for (int i = 0; i < mission_plan.segments_size(); ++i)
             {
-                if (i + 1 < total_goals)
+                if ((int)mission_plan.segments(i).start_goal_index() - 1 <= goal_index_)
                 {
-                    goal_index_ = i + 1;
+                    active_seg = &mission_plan.segments(i);
+                    active_seg_idx = i;
+                }
+                else
+                    break;
+            }
+
+            if (!active_seg)
+            {
+                goby::glog.is_warn() &&
+                    goby::glog << group("goal") << "SRP egress: no active segment at goal index "
+                               << goal_index_ << ". Proceeding to recovery." << std::endl;
+                set_goal_index_to_final_goal();
+                return;
+            }
+
+            // Find the next lane start within this segment that is beyond the current goal
+            bool jumped = false;
+            for (int i = 0; i < active_seg->lane_start_goal_indices_size(); ++i)
+            {
+                int lane_start = (int)active_seg->lane_start_goal_indices(i) - 1;
+                if (lane_start > goal_index_)
+                {
+                    goal_index_ = lane_start;
                     goby::glog.is_verbose() &&
-                        goby::glog << group("goal") << "Found CONSTANT_HEADING at index " << i
-                                   << ", advancing to goal index: " << goal_index_ << std::endl;
+                        goby::glog << group("goal")
+                                   << "SRP egress: advancing to next lane at goal index "
+                                   << goal_index_ << std::endl;
+                    jumped = true;
+                    break;
+                }
+            }
+
+            if (!jumped)
+            {
+                // No next lane in this segment — advance to the next segment if one exists
+                if (active_seg_idx + 1 < mission_plan.segments_size())
+                {
+                    goal_index_ =
+                        (int)mission_plan.segments(active_seg_idx + 1).start_goal_index() - 1;
+                    goby::glog.is_verbose() &&
+                        goby::glog << group("goal")
+                                   << "SRP egress: advancing to next segment at goal index "
+                                   << goal_index_ << std::endl;
                 }
                 else
                 {
                     goby::glog.is_warn() &&
                         goby::glog << group("goal")
-                                   << "CONSTANT_HEADING was the last goal. Proceeding to recovery."
+                                   << "SRP egress: no next lane or segment. Proceeding to recovery."
                                    << std::endl;
                     set_goal_index_to_final_goal();
+                    return;
                 }
-                // Stop after handling the first CONSTANT_HEADING
-                return;
             }
-        }
 
-        // No CONSTANT_HEADING found from current index onward
-        goby::glog.is_warn() &&
-            goby::glog << group("goal") << "No CONSTANT_HEADING task found from goal index "
-                       << goal_index_ << " onward. Proceeding to recovery." << std::endl;
-        set_goal_index_to_final_goal();
+            apply_segment_params(goal_index_);
+        }
+        else
+        {
+            // No segments (e.g. REST API mission) — go directly to recovery waypoint
+            goby::glog.is_warn() &&
+                goby::glog << group("goal")
+                           << "SRP egress: no segments in plan. Proceeding to recovery."
+                           << std::endl;
+            set_goal_index_to_final_goal();
+        }
     }
     void set_goal_index_to_recovery()
     {
@@ -178,6 +232,39 @@ struct InMission
         boost::statechart::transition<EvStop, inmission::underway::recovery::Stopped>>;
 
   private:
+    void apply_segment_params(int goal_index)
+    {
+        const auto& mission_plan = this->machine().mission_plan();
+        if (mission_plan.segments_size() == 0)
+            return;
+
+        const protobuf::MissionPlan::Segment* active_seg = nullptr;
+        for (int i = 0; i < mission_plan.segments_size(); ++i)
+        {
+            if ((int)mission_plan.segments(i).start_goal_index() - 1 <= goal_index)
+                active_seg = &mission_plan.segments(i);
+            else
+                break;
+        }
+
+        if (!active_seg)
+            return;
+
+        if (active_seg->has_speed())
+            this->machine().set_transit_speed(active_seg->speed_with_units());
+
+        if (active_seg->has_bottom_depth_safety_params())
+        {
+            const auto& bds = active_seg->bottom_depth_safety_params();
+            this->machine().set_bottom_depth_safety_constant_heading(bds.constant_heading());
+            this->machine().set_bottom_depth_safety_constant_heading_speed(
+                bds.constant_heading_speed());
+            this->machine().set_bottom_depth_safety_constant_heading_time(
+                bds.constant_heading_time());
+            this->machine().set_bottom_safety_depth(bds.safety_depth());
+        }
+    }
+
     int goal_index_{0};
     int repeat_index_{0};
     bool mission_complete_{false};
