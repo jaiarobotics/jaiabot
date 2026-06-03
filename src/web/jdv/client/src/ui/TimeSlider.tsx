@@ -3,7 +3,7 @@ import React from "react";
 const formatter = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "medium" });
 
 const MIN_WARP = 0.1;
-const MAX_WARP = 100;
+const MAX_WARP = 1000;
 
 function durationStringFromSeconds(duration_seconds: number): string {
     var components = [];

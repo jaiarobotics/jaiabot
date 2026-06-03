@@ -250,4 +250,8 @@ if __name__ == '__main__':
     l.info(f'Application root directory:       {os.path.abspath(args.appRoot)}')
     l.info(f'Serving to:                       http://{pyjaia.utils.myip()}:{args.port}/')
 
-    app.run(host='0::0', port=args.port, debug=True)
+    # Disable Flask's debug reloader for the JDV dev server. The reloader starts a
+    # second Python process and can restart while the shared development venv is being
+    # rebuilt, which can produce transient import failures such as
+    # `ModuleNotFoundError: No module named 'pyjaia'`.
+    app.run(host='0::0', port=args.port, debug=True, use_reloader=False)
