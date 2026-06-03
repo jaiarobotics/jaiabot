@@ -37,7 +37,7 @@ docker-arm64-resolute: &docker-arm64-resolute
       password: $DOCKERHUB_PASSWORD
 
 docker-base-light: &docker-base-light
-  - image: gobysoft/ubuntu-build-base:26.04
+  - image: gobysoft/ubuntu-build-base:26.04.1
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
