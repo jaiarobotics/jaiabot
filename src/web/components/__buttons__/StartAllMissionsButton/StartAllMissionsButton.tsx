@@ -14,6 +14,7 @@ import Bot from "../../../data/bots/bot";
 import Mission from "../../../data/mission_set/mission";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
+import { fetchBatteryPrediction } from "../../../utils/battery_prediction";
 
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { ButtonNames, ButtonTypes, DialogActions } from "../../../types/context-types";
@@ -47,27 +48,39 @@ export default function StartAllMissionsButton(props: Props) {
      *
      * @returns {void}
      */
-    const groupBotsByReadyState = () => {
+    const groupBotsByReadyState = async () => {
         const updatedBotReadyStates = new Map<DisabledCodes, number[]>(initBotReadyStates());
 
-        for (const [botID, bot] of props.bots.entries()) {
-            if (bot.isCommsDropped()) {
-                updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
-            } else if (
-                !isCommandAvailable(CommandType.START_MISSION, bot.getMissionStatus().missionState)
-            ) {
-                updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
-            } else if (isMissionUnassigned(botID)) {
-                updatedBotReadyStates.get(DisabledCodes.NO_MISSION).push(botID);
-            }
-
-            // Download queue
-            else if (isCritiallyLowBattery(bot.getBatteryPercent())) {
-                updatedBotReadyStates.get(DisabledCodes.LOW_BATTERY).push(botID);
-            } else {
-                updatedBotReadyStates.get(DisabledCodes.NONE).push(botID);
-            }
-        }
+        await Promise.all(
+            Array.from(props.bots.entries()).map(async ([botID, bot]) => {
+                if (bot.isCommsDropped()) {
+                    updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
+                } else if (
+                    !isCommandAvailable(
+                        CommandType.START_MISSION,
+                        bot.getMissionStatus().missionState,
+                    )
+                ) {
+                    updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
+                } else if (isMissionUnassigned(botID)) {
+                    updatedBotReadyStates.get(DisabledCodes.NO_MISSION).push(botID);
+                } else if (isCritiallyLowBattery(bot.getBatteryPercent())) {
+                    updatedBotReadyStates.get(DisabledCodes.LOW_BATTERY).push(botID);
+                } else {
+                    const missionID = missionsManager.getMissionID(botID);
+                    const mission = props.missions.get(missionID);
+                    const prediction = mission ? await fetchBatteryPrediction(mission, bot) : null;
+                    if (
+                        prediction !== null &&
+                        prediction.predicted_final_pct < MIN_BATTERY_PERCENT
+                    ) {
+                        updatedBotReadyStates.get(DisabledCodes.INSUFFICIENT_BATTERY).push(botID);
+                    } else {
+                        updatedBotReadyStates.get(DisabledCodes.NONE).push(botID);
+                    }
+                }
+            }),
+        );
 
         setBotReadyStates(updatedBotReadyStates);
     };
@@ -78,7 +91,7 @@ export default function StartAllMissionsButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = () => {
+    const handleClick = async () => {
         if (props.bots.size === 0) {
             return;
         }
@@ -88,7 +101,7 @@ export default function StartAllMissionsButton(props: Props) {
         if (!hasControl) {
             setIsTakeControlVisible(true);
         } else {
-            groupBotsByReadyState();
+            await groupBotsByReadyState();
             setIsDialogVisible(true);
             jaiaDispatch({
                 type: JaiaActions.CLICKED_BUTTON,
@@ -165,6 +178,7 @@ function initBotReadyStates() {
         [DisabledCodes.NO_MISSION, []],
         [DisabledCodes.DOWNLOAD_QUEUE, []],
         [DisabledCodes.LOW_BATTERY, []],
+        [DisabledCodes.INSUFFICIENT_BATTERY, []],
     ];
     return botReadyStates;
 }

@@ -15,6 +15,8 @@ from http import HTTPStatus
 from flask import Flask, send_from_directory, Response, request, send_file
 
 # Internal Imports
+from pyjaia.battery_prediction import predict_drain as battery_predict_drain
+
 import jaia_portal
 import missions
 from map_tile_server import MapTileServer
@@ -488,6 +490,42 @@ def get_ctd_profiles():
         download_name=zip_name,
         mimetype="application/zip",
     )
+
+@app.route('/battery-prediction', methods=['POST'])
+def battery_prediction():
+    body = request.get_json()
+    required = [
+        'bot_type', 'transit_energy_wh', 'transit_time_s',
+        'turn_density_deg_per_km',
+        'hotel_energy_wh', 'dive_energy_wh',
+        'starting_battery_pct',
+    ]
+    missing = [k for k in required if k not in body]
+    if missing:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, f"Missing fields: {missing}", 1)
+
+    try:
+        drain = battery_predict_drain(
+            bot_type=int(body['bot_type']),
+            transit_energy_wh=float(body['transit_energy_wh']),
+            transit_time_s=float(body['transit_time_s']),
+            turn_density_deg_per_km=float(body['turn_density_deg_per_km']),
+            hotel_energy_wh=float(body['hotel_energy_wh']),
+            dive_energy_wh=float(body['dive_energy_wh']),
+            starting_battery_pct=float(body['starting_battery_pct']),
+        )
+        starting = float(body['starting_battery_pct'])
+        return Response(
+            json.dumps({
+                'predicted_drain_pct': round(drain, 1),
+                'predicted_final_pct': round(starting - drain, 1),
+            }),
+            status=HTTPStatus.OK,
+            mimetype='application/json',
+        )
+    except Exception as e:
+        return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
+
 
 if __name__ == '__main__':
     print(f"JCC: connect to http://127.0.0.1:{args.web_port}")

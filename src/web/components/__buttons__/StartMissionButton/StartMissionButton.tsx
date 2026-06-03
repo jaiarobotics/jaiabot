@@ -11,6 +11,7 @@ import { Button } from "@mui/material";
 
 import Bot from "../../../data/bots/bot";
 import Mission from "../../../data/mission_set/mission";
+import { BatteryPrediction, fetchBatteryPrediction } from "../../../utils/battery_prediction";
 
 import { Command, CommandType, MissionPlan } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
@@ -34,6 +35,7 @@ export default function StartMissionButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
+    const [batteryPrediction, setBatteryPrediction] = useState<BatteryPrediction | null>(null);
 
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
@@ -79,6 +81,13 @@ export default function StartMissionButton(props: Props) {
             return DisabledCodes.LOW_BATTERY;
         }
 
+        if (
+            batteryPrediction !== null &&
+            batteryPrediction.predicted_final_pct < MIN_BATTERY_PERCENT
+        ) {
+            return DisabledCodes.INSUFFICIENT_BATTERY;
+        }
+
         return DisabledCodes.NONE;
     };
 
@@ -87,8 +96,11 @@ export default function StartMissionButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = () => {
+    const handleClick = async () => {
         const hasControl = isControllingClient();
+
+        const prediction = await fetchBatteryPrediction(props.mission, props.bot);
+        setBatteryPrediction(prediction);
 
         if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
             setIsTakeControlVisible(true);
@@ -140,6 +152,7 @@ export default function StartMissionButton(props: Props) {
             <StartMissionDialog
                 isVisible={isDialogVisible}
                 disabledCode={getDisabledCode()}
+                batteryPrediction={batteryPrediction}
                 onClose={onDialogClose}
             />
             <TakeControlDialog
