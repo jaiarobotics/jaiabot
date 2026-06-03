@@ -2,19 +2,15 @@
 
 set -e -u -x
 
-##  "Usage: $0 [noble] [2.y]"
+##  "Usage: $0"
 
-distro=$1
-release_branch=$2
+script_dir=$(dirname $BASH_SOURCE)
+set -a; source ${script_dir}/common-versions.env; set +a 
 
-if [[ "$distro" = "noble" ]]; then
-    version=24.04.1
-else
-    echo "Distro $distro is not supported"
-    exit 1
-fi   
+distro=${jaia_version_ubuntu_codename}
+version=${jaia_version_ubuntu}
+release_branch=${jaia_version_release_branch}
 
-script_dir=$(dirname $0)
 cd ${script_dir}/..
 
 docker build --build-arg distro=$distro --build-arg version=$release_branch --no-cache -t gobysoft/jaiabot-ubuntu-arm64:${version} .docker/${distro}/arm64

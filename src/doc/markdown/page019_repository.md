@@ -75,4 +75,4 @@ sudo -E rsync -aP /var/spool/apt-mirror/staging/${release_branch}/mirror/package
 ```
 
 - Symlink old docker (preferred) or create new for new distro in `jaiabot/.docker`
-- Add new distro to `docker-create-push-for-circleci.sh` and run `docker-create-push-for-circleci.sh {distroname}`
+- Run `docker-create-push-for-circleci.sh {distroname}`
