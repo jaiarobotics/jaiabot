@@ -48,14 +48,6 @@ job-template-amd64: &job-template-amd64
   working_directory: /root/jaiabot
   steps:
     - checkout
-    - run: &run-add-gobysoft-packages-key
-        name: Install packages.gobysoft.org key
-        command: |
-          apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
-    - run: &run-add-jaia-packages-key
-        name: Install packages.jaia.tech key
-        command: |
-          apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
     - run: &run-set-deb-rep-and-version
         name: Set environmental variables for which packages.jaia.tech repo to use
         command: |
@@ -68,7 +60,7 @@ job-template-amd64: &job-template-amd64
         name: Add correct packages.jaia.tech sources.list
         command: |
           echo "JAIABOT_APT_REPO=${JAIABOT_APT_REPO}"
-          echo -e "deb http://packages.jaia.tech/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
+          echo -e "deb [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/\ndeb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
     - run: &run-update-apt
         name: Update apt packages
         command: |
@@ -95,8 +87,6 @@ job-template-deb-amd64: &job-template-deb-amd64
         command: |
           cp /root/src/*.orig.tar.xz ${CIRCLE_WORKING_DIRECTORY}/.. &&
           tar xfJ ../*.orig.tar.xz --strip-components=1
-    - run: *run-add-gobysoft-packages-key
-    - run: *run-add-jaia-packages-key
     - run: *run-set-deb-rep-and-version
     - run: *run-add-jaia-packages-list
     - run: *run-update-apt
