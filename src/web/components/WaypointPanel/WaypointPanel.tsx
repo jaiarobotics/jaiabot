@@ -215,7 +215,7 @@ export default function WaypointPanel() {
                     onClick={() => handleTapToMoveClick()}
                 />
                 <div>Delete:</div>
-                <div onClick={() => handleDeleteWaypointClick()}>
+                <div onClick={() => handleDeleteWaypointClick()} role="button">
                     <Icon path={mdiDelete} color="white" />
                 </div>
             </div>
