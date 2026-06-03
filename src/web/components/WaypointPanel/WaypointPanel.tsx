@@ -260,8 +260,7 @@ function VisibleSection(props: Props) {
         case SectionNames.TASK:
             return <TaskSelection waypoint={props.waypoint} isDisabled={props.isDisabled} />;
         default:
-            return;
-    }
+            return null;
 }
 
 /**
