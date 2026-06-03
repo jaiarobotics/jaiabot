@@ -62,6 +62,7 @@
         "jest-environment-jsdom": "^29.7.0",
         "less": "^4.5.1",
         "less-loader": "^12.3.1",
+        "mgrs": "^2.1.0",
         "prettier": "^3.8.1",
         "style-loader": "^4.0.0",
         "terser-webpack-plugin": "^5.3.17",
