@@ -269,7 +269,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <SaveAndLoadButton
                             editorName={editorName}
                             desiredMissionCount={desiredMissionCount}
-                            rightList={rightList}
+                            combinedMissionNames={rightList}
                             snapshotCache={snapshotCache.current}
                             onClose={props.onClose}
                         />
