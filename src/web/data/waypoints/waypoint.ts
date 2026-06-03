@@ -99,8 +99,9 @@ export default class Waypoint {
             const [lon, lat] = mgrs.toPoint(mgrsStr);
             return [lon, lat];
         } catch (err) {
-            console.log(err);
+            console.error("Failed to convert MGRS to lon/lat", err);
             return [NaN, NaN];
+        }
         }
     }
 }
