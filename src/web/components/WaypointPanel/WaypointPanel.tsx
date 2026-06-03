@@ -261,6 +261,7 @@ function VisibleSection(props: Props) {
             return <TaskSelection waypoint={props.waypoint} isDisabled={props.isDisabled} />;
         default:
             return null;
+    }
 }
 
 /**

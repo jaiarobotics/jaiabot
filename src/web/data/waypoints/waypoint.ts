@@ -102,6 +102,5 @@ export default class Waypoint {
             console.error("Failed to convert MGRS to lon/lat", err);
             return [NaN, NaN];
         }
-        }
     }
 }
