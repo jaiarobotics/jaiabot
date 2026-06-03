@@ -78,10 +78,10 @@ jaia_motor_harness_type="NONE"
 if "jaia_motor_harness_type" in os.environ:
     jaia_motor_harness_type=os.environ['jaia_motor_harness_type']
 
+bot_index = -1
 try:
     bot_index=int(os.environ['jaia_bot_index'])
 except:
-    bot_index = -1 # For LSM
     config.fail('Must set jaia_bot_index environmental variable, e.g. "jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
 
 try:
