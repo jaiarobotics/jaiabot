@@ -8,6 +8,7 @@
         "@mui/material": "^7.3.9",
         "@turf/turf": "^7.3.4",
         "buffer": "^6.0.3",
+        "clipper2-ts": "^2.0.1-15",
         "downloadjs": "^1.4.7",
         "geotiff": "^3.0.4",
         "jquery": "^4.0.0",

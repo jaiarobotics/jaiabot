@@ -11,12 +11,10 @@ import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
-import { NO_COMMS_STATUS_AGE } from "../utils/constants";
 import { Metadata, Version } from "../types/protobuf-types";
 import SoundEffects from "../style/audio/sound-effects";
 
 const MAX_REQUEST_TIME = 10000; // ms;
-const DISCONNECT_THRESHOLD = NO_COMMS_STATUS_AGE * 1e6;
 const VERSION_LENGTH = 3;
 
 const CONNECTION_WARNING = "connection-warning";
@@ -201,9 +199,11 @@ export async function pollInternet() {
 function updateBots(botStatuses: { [botID: string]: PortalBotStatus }) {
     const botIDs = Object.keys(botStatuses);
     for (let botID of botIDs) {
-        const prevStatusAge = bots.getBot(Number(botID))?.getStatusAge();
-        handleBotSoundEffects(prevStatusAge, botStatuses[botID].portalStatusAge);
+        const numericBotID = Number(botID);
+        const wasCommsDropped = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
         bots.setBot(botStatuses[botID]);
+        botStatuses[botID].isDisconnected = bots.getBot(numericBotID)?.isCommsDropped() ?? false;
+        handleBotSoundEffects(wasCommsDropped, botStatuses[botID].isDisconnected);
     }
     bots.setTick(bots.getTick() + 1);
 }
@@ -277,24 +277,20 @@ function updateWarning(id: string, isDisconnected: boolean) {
 }
 
 /**
- * Plays disconnect and reconnect sounds based on Bot's status age
+ * Plays disconnect and reconnect sounds based on Bot's comms state transitions
  *
- * @param {number} prevStatusAge Used to mark first moment of comms connect/disconnect
- * @param {number} newStatusAge Used to check for Bot connection status
+ * @param {boolean} wasCommsDropped Previous comms dropped state
+ * @param {boolean} isCommsDropped Current comms dropped state
  * @returns {void}
  */
-function handleBotSoundEffects(prevStatusAge: number, newStatusAge: number) {
-    if (!prevStatusAge) {
-        return;
-    }
-
-    const isBotDisconnected = newStatusAge > DISCONNECT_THRESHOLD;
-
-    if (isBotDisconnected && prevStatusAge < DISCONNECT_THRESHOLD) {
+function handleBotSoundEffects(wasCommsDropped: boolean, isCommsDropped: boolean) {
+    // Transition from connected to disconnected
+    if (isCommsDropped && !wasCommsDropped) {
         SoundEffects.botDisconnect.play();
     }
 
-    if (!isBotDisconnected && prevStatusAge >= DISCONNECT_THRESHOLD) {
+    // Transition from disconnected to connected
+    if (!isCommsDropped && wasCommsDropped) {
         SoundEffects.botReconnect.play();
     }
 }

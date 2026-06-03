@@ -93,6 +93,7 @@ const config = {
         "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$":
             "<rootDir>/tests/__mocks__/file-mock.ts",
         "\\.(css|less)$": "<rootDir>/tests/__mocks__/style-mock.ts",
+        "^clipper2-ts$": "<rootDir>/tests/__mocks__/clipper2-ts.ts",
     },
 
     // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
@@ -106,6 +107,11 @@ const config = {
 
     // A preset that is used as a base for Jest's configuration
     preset: "ts-jest",
+    globals: {
+        "ts-jest": {
+            tsconfig: "tsconfig.test.json",
+        },
+    },
 
     // Run tests from one or more projects
     // projects: undefined,

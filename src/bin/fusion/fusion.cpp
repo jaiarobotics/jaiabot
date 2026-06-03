@@ -36,6 +36,7 @@
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/comms.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
@@ -165,6 +166,8 @@ class Fusion : public ApplicationBase
 
     // Salinity data processing
     jaiabot::protobuf::SalinityData process_salinity_data(const jaiabot::protobuf::SalinityData& salinity_data);
+
+    std::set<jaiabot::protobuf::Link> active_links_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -642,6 +645,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 latest_bot_status_.clear_wifi_link_quality_percentage();
             }
         });
+
+    interprocess().subscribe<jaiabot::groups::bot_comms_status>(
+        [this](const jaiabot::protobuf::ActiveLinks& active_links)
+        {
+            active_links_.clear();
+            for (auto link : active_links.active_link())
+                active_links_.insert(static_cast<jaiabot::protobuf::Link>(link));
+        });
 }
 
 void jaiabot::apps::Fusion::init_node_status()
@@ -709,6 +720,13 @@ void jaiabot::apps::Fusion::loop()
         latest_engineering_status.set_bot_id(latest_bot_status_.bot_id());
         latest_engineering_status.mutable_rf_disable_options()->set_rf_disable_timeout_mins(
             rf_disabled_timeout_mins_);
+
+        latest_bot_status_.clear_active_links();
+        for (auto link : active_links_)
+        {
+            auto* active_link = latest_bot_status_.add_active_links();
+            active_link->set_link(link);
+        }
 
         // If we get an engineering query for bot status
         if (latest_engineering_status.query_bot_status())

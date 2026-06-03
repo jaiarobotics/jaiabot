@@ -22,9 +22,11 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
+#include <goby/middleware/transport/intervehicle.h>
 #include <goby/zeromq/application/single_thread.h>
 
 #include "config.pb.h"
+#include "jaiabot/comms/comms.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/comms.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
@@ -45,6 +47,7 @@ class CommsManager : public ApplicationBase
   private:
     void loop() override;
     void send_subscribe_request(const jaiabot::protobuf::IntervehicleSubscribeRequest& req);
+    void publish_active_links();
 
   private:
     bool have_hub_id_{false};
@@ -57,6 +60,7 @@ class CommsManager : public ApplicationBase
         goby::time::SteadyClock::duration resubscribe_interval;
     };
     std::map<jaiabot::protobuf::Link, Resubscriber> resubscribers_;
+    std::set<jaiabot::protobuf::Link> active_links_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -90,6 +94,30 @@ jaiabot::apps::CommsManager::CommsManager() : ApplicationBase(1.0 * si::hertz)
                               resubscribe_interval})));
         }
     }
+
+    interprocess().subscribe<goby::middleware::intervehicle::groups::subscription_report>(
+        [this](const goby::middleware::intervehicle::protobuf::SubscriptionReport& sub_report)
+        {
+            auto bot_status_dccl_id = jaiabot::protobuf::BotStatus::DCCL_ID;
+            if (sub_report.has_changed() && sub_report.changed().dccl_id() == bot_status_dccl_id)
+            {
+                auto hub_modem_id = sub_report.changed().header().src();
+                auto link = jaiabot::comms::link_from_modem_id(hub_modem_id, cfg().subnet_mask());
+
+                if (sub_report.changed().action() ==
+                    goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE)
+                {
+                    if (link != jaiabot::protobuf::LINK_UNKNOWN)
+                    {
+                        glog.is_verbose() && glog << "Hub subscribed to BotStatus on link: "
+                                                  << jaiabot::protobuf::Link_Name(link)
+                                                  << std::endl;
+                        active_links_.insert(link);
+                        publish_active_links();
+                    }
+                }
+            }
+        });
 }
 
 void jaiabot::apps::CommsManager::loop()
@@ -114,4 +142,11 @@ void jaiabot::apps::CommsManager::send_subscribe_request(
     glog.is_debug1() && glog << "Sending subscribe request: " << req.ShortDebugString()
                              << std::endl;
     interprocess().publish<jaiabot::groups::intervehicle_subscribe_request>(req);
+}
+
+void jaiabot::apps::CommsManager::publish_active_links()
+{
+    jaiabot::protobuf::ActiveLinks active_links_msg;
+    for (auto link : active_links_) active_links_msg.add_active_link(link);
+    interprocess().publish<jaiabot::groups::bot_comms_status>(active_links_msg);
 }

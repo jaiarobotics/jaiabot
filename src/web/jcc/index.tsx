@@ -27,4 +27,9 @@ let element = document.getElementById("root");
 const root = ReactDOM.createRoot(element);
 root.render(<App />);
 
-module.hot.accept();
+// Prefetch Plotly in the background immediately after app renders.
+// It is only used by DepthMap3D but we want it ready before the user opens that panel.
+// @ts-ignore - plotly.js-dist has no type declarations
+import(/* webpackPrefetch: true */ "plotly.js-dist");
+
+import.meta.webpackHot?.accept();

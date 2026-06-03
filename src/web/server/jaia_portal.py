@@ -12,7 +12,7 @@ from jaiabot.messages.engineering_pb2 import Engineering
 from jaiabot.messages.jaia_dccl_pb2 import *
 
 from pyjaia.task_packet_database import TaskPacketDatabase
-from pyjaia.utils import now_utime
+from pyjaia.utils import now_utime, now_utime_sim_corrected
 
 import google.protobuf.json_format
 
@@ -115,6 +115,18 @@ class Interface:
             except socket.timeout:
                 self.ping_portal()
 
+    def update_active_link_status_ages(self, status: dict):
+        warp_factor = int(self.metadata.get('simulation_warp', 1))
+        simulation_reference_time = int(self.metadata.get('simulation_reference_time', 0))
+
+        now = now_utime_sim_corrected(warp_factor, simulation_reference_time)
+
+        status['active_link_status_age'] = {
+            entry['link']: (now - int(entry['last_received_time'])) / warp_factor
+            for entry in status.get('active_links', [])
+            if 'last_received_time' in entry
+        }
+
     def process_portal_to_client_message(self, data):
         if len(data) > 0:
 
@@ -155,7 +167,7 @@ class Interface:
                 #    if msg.bot_status.time - last_bot_path_point_time >= BOT_PATH_UTIME_THRESHOLD:
                 #        bot_path.append(BotPathPoint(msg.bot_status.time, bot_location.lon, bot_location.lat))
 
-                if msg.HasField('active_mission_plan'):
+                if  msg.HasField('active_mission_plan'):
                     self.process_active_mission_plan(bot_id, msg.active_mission_plan)
 
             if msg.HasField('engineering_status'):
@@ -399,6 +411,8 @@ class Interface:
             # Add the time since last status
             bot['portalStatusAge'] = now_utime() - bot['lastStatusReceivedTime']
 
+            self.update_active_link_status_ages(bot)
+
             if bot['bot_id'] in self.bots_engineering:
                 bot['engineering'] = self.bots_engineering[bot['bot_id']]
 
@@ -423,10 +437,12 @@ class Interface:
         Returns:
             {[hub_id: int]: HubStatus}: The status for all online hubs
         """
+        now = now_utime()
+
         for hub in self.hubs.values():
             # Add the time since last status
             if not 'portalStatusAge' in hub:
-                hub['portalStatusAge'] = now_utime() - hub['lastStatusReceivedTime']
+                hub['portalStatusAge'] = now - hub['lastStatusReceivedTime']
         
         return self.hubs
 

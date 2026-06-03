@@ -1,4 +1,0 @@
-$app_block
-$interprocess_block
-
-ubx_output_filename: "${log_file_dir}/_temp.ubx"

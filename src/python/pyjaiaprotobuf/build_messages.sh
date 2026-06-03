@@ -6,43 +6,23 @@ set -e
 if [[ -z "$1" ]]; then
     JAIABOT_DIR="$(pwd)/../../../"
 else
-    JAIABOT_DIR=$"$1"
+    JAIABOT_DIR="$1"
 fi  
-
-# Where to find the jaiabot .proto source files
-JAIABOT_MESSAGES_DIR="${JAIABOT_DIR}/src/lib/messages/"
 
 # The target directory in which to build the protobuf python files
 if [[ -z "$2" ]]; then
     PYTHON_OUT_DIR="$(pwd)/src/"
 else
-    PYTHON_OUT_DIR=$"$2/src/"
+    PYTHON_OUT_DIR="$2/src/"
 fi
 
 echo "🟢 Building Jaia protobuf python modules"
 
-# Set up PROTO_INCLUDE directory
-PROTO_INCLUDE="/tmp/proto_include/"
-mkdir -p ${PROTO_INCLUDE}
+# invoke CMake to build the python protobufs to the desired location
+BUILD_DIR=/tmp/jaiabot-python-proto-build
+cmake -S "$JAIABOT_DIR" -B "$BUILD_DIR" \
+    -DPYJAIAPROTOBUF_SRC_OUTDIR="${PYTHON_OUT_DIR}"
+cmake --build "$BUILD_DIR" --target pyjaiaprotobuf
 
-rm -f ${PROTO_INCLUDE}/goby
-ln -sf ${GOBY_DIR:-/usr/include/goby} ${PROTO_INCLUDE}/goby
-rm -f ${PROTO_INCLUDE}/dccl
-ln -sf ${DCCL_DIR:-/usr/include/dccl} ${PROTO_INCLUDE}/dccl
-rm -f ${PROTO_INCLUDE}/jaiabot
-ln -sf "${JAIABOT_DIR}/src/lib" ${PROTO_INCLUDE}/jaiabot
-rm -f ${PROTO_INCLUDE}/nanopb
-ln -sf /usr/lib/python3/dist-packages/proto/nanopb.proto ${PROTO_INCLUDE}/nanopb.proto
-
-# Create output directory
-mkdir -p $PYTHON_OUT_DIR
-
-protoc -I${PROTO_INCLUDE} --python_out=${PYTHON_OUT_DIR} --pyi_out=${PYTHON_OUT_DIR} \
-    ${PROTO_INCLUDE}/dccl/option_extensions.proto \
-    ${PROTO_INCLUDE}/goby/middleware/protobuf/*.proto \
-    ${PROTO_INCLUDE}/jaiabot/messages/*.proto \
-    ${PROTO_INCLUDE}/jaiabot/messages/sensor/*.proto \
-    ${PROTO_INCLUDE}/nanopb.proto
-
-# Remove the temporary proto_include directory
-rm -rf ${PROTO_INCLUDE}
+# Remove the temporary build directory
+rm -rf ${BUILD_DIR}
