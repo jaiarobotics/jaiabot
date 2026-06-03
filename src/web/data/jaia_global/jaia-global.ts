@@ -153,8 +153,8 @@ export class JaiaGlobal {
         return this.coordinateSystem;
     }
 
-    setCoordinateSystem(coordianteSystem: CoordinateSystem) {
-        this.coordinateSystem = coordianteSystem;
+    setCoordinateSystem(coordinateSystem: CoordinateSystem) {
+        this.coordinateSystem = coordinateSystem;
     }
 
     getMetadata() {
