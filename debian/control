@@ -1,8 +1,7 @@
 Source: jaiabot
 Priority: extra
 Maintainer: Toby Schneider <toby@gobysoft.org>
-Build-Depends: cdbs (>= 0.4.130~),
-               debhelper (>= 9.0~),
+Build-Depends: debhelper-compat (= 13),
                cmake (>= 3.5.1~),
                clang (>= 1:3.8~),
                libgoby3-dev,
