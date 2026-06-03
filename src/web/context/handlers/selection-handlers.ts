@@ -4,6 +4,7 @@ import { rallyPoints } from "../../data/rally_points/rally-points";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
+import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { MapModes } from "../../types/openlayers-types";
@@ -105,6 +106,16 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
 
     if (gridPlan.getState() !== GridPlanningStates.ACCEPTING_MISSION_START_LOCATION) {
         gridPlan.reset();
+    }
+
+    // Clear zone edit mode when navigating away from zone panels
+    if (
+        jaiaGlobal.getZoneInEditMode() !== UNASSIGNED_ID ||
+        jaiaGlobal.getSelectedZoneVertex().zoneID !== UNASSIGNED_ID
+    ) {
+        jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
+        jaiaGlobal.resetSelectedZoneVertex();
+        exclusionZoneLayer.updateFeatures();
     }
 
     handleMapModeChange(mapMode);
