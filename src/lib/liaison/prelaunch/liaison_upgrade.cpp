@@ -11,6 +11,12 @@
 
 #include "liaison_upgrade.h"
 
+#if __has_include(<boost/process/v1.hpp>)
+namespace bp = boost::process::v1;
+#else
+namespace bp = boost::process;
+#endif
+
 using namespace goby::util::logger;
 using goby::glog;
 
@@ -420,13 +426,13 @@ jaiabot::LiaisonUpgrade::AnsiblePlaybookConfig::ProcessData::ProcessData(
 
     : process(cfg.has_ansible_playbook_full_path()
                   ? boost::filesystem::path(cfg.ansible_playbook_full_path())
-                  : boost::process::v1::search_path("ansible-playbook"),
+                  : bp::search_path("ansible-playbook"),
               "-i", pb_playbook.has_inventory() ? pb_playbook.inventory() : cfg.ansible_inventory(),
-              playbook_file, "-e", input_vars, boost::process::v1::std_in.close(), "-l",
+              playbook_file, "-e", input_vars, bp::std_in.close(), "-l",
               pb_playbook.has_limit() ? pb_playbook.limit() : std::string("bots:" + cfg.this_hub()),
-              boost::process::v1::std_out > ansible_stdout_file, boost::process::v1::std_err > stderr, io,
-              boost::process::v1::env["ANSIBLE_CONFIG"] = cfg.ansible_config(),
-              boost::process::v1::env["ANSIBLE_JSON_FILE"] = ansible_json_file),
+              bp::std_out > ansible_stdout_file, bp::std_err > stderr, io,
+              bp::env["ANSIBLE_CONFIG"] = cfg.ansible_config(),
+              bp::env["ANSIBLE_JSON_FILE"] = ansible_json_file),
       io_thread([this]() { io.run(); }),
       stdout(ansible_stdout_file, std::ios::in)
 {
