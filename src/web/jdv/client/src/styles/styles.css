@@ -232,6 +232,7 @@ li::marker {
 }
 
 .TimeSlider {
+    position: relative;
     background-color: #000000ee;
     width: 100%;
     height: 40pt;
@@ -477,4 +478,47 @@ h2 {
 
 button.selected {
     background-color: darkgray;
+}
+
+.PlaybackControls {
+    position: absolute;
+    right: 10pt;
+    bottom: 6pt;
+    display: flex;
+    align-items: center;
+    gap: 4pt;
+    color: azure;
+}
+
+.PlaybackButton {
+    border: 1px solid #999999;
+    border-radius: 4pt;
+    background-color: #eeeeee;
+    color: #111111;
+    padding: 3pt 6pt;
+    font-size: 9pt;
+    cursor: pointer;
+}
+
+.PlaybackButton:hover {
+    background-color: white;
+}
+
+.selectedPlaybackButton {
+    background-color: #ffe08a;
+    border-color: #ffbf00;
+}
+
+.WarpInputLabel {
+    display: flex;
+    align-items: center;
+    gap: 4pt;
+    font-size: 9pt;
+}
+
+.WarpInput {
+    width: 48pt;
+    border: 1px solid #999999;
+    border-radius: 4pt;
+    padding: 3pt;
 }

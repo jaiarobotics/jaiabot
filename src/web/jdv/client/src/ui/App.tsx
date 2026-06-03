@@ -50,6 +50,8 @@ interface State {
     tMin: number | null; // Minimum time for these logs
     tMax: number | null; // Maximum time for these logs
     visibleTimeRange: number[]; // Time range visible on plots and map
+    playbackDirection: -1 | 0 | 1;
+    warp: number;
 
     // Modal busy indicator
     isBusy: boolean;
@@ -66,6 +68,8 @@ export class App extends React.Component<AppProps, State> {
     map: JaiaMap;
     plot_div_element: any;
     seriesDescriptors: SeriesDescriptor[];
+    playbackAnimationFrame: number | null = null;
+    lastPlaybackFrameTime: number | null = null;
 
     constructor(props: AppProps) {
         super(props);
@@ -84,6 +88,8 @@ export class App extends React.Component<AppProps, State> {
             tMin: null, // Minimum time for these logs
             tMax: null, // Maximum time for these logs
             visibleTimeRange: [0, 2 ** 60], // Include every data point
+            playbackDirection: 0,
+            warp: 1,
             isBusy: false,
             customAlert: null,
             isInformationDialogVisible: false,
@@ -231,7 +237,24 @@ export class App extends React.Component<AppProps, State> {
                     tMin={this.state.tMin}
                     tMax={this.state.tMax}
                     onValueChanged={(t) => {
-                        this.setState({ t: t });
+                        this.setTime(t);
+                    }}
+                    playbackDirection={this.state.playbackDirection}
+                    warp={this.state.warp}
+                    onWarpChanged={(warp) => {
+                        this.setState({ warp });
+                    }}
+                    onStep={(direction) => {
+                        this.stepPlayback(direction);
+                    }}
+                    onPlay={(direction) => {
+                        this.startPlayback(direction);
+                    }}
+                    onPause={() => {
+                        this.pausePlayback();
+                    }}
+                    onReset={() => {
+                        this.resetPlayback();
                     }}
                 ></TimeSlider>
 
@@ -436,11 +459,23 @@ export class App extends React.Component<AppProps, State> {
         if (this.state.t !== prevState.t) {
             this.map.updateToTimestamp(this.state.t);
         }
+
+        if (this.state.playbackDirection !== prevState.playbackDirection) {
+            if (this.state.playbackDirection === 0) {
+                this.stopPlaybackTimer();
+            } else {
+                this.startPlaybackTimer();
+            }
+        }
     }
 
     componentDidMount() {
         this.getElements();
         this.map = new JaiaMap("openlayers-map");
+    }
+
+    componentWillUnmount() {
+        this.stopPlaybackTimer();
     }
 
     getElements() {
@@ -518,7 +553,101 @@ export class App extends React.Component<AppProps, State> {
     }
 
     setTime(t: number | null) {
-        this.setState({ t });
+        const clampedTime = this.clampTime(t);
+        this.setState({ t: clampedTime });
+    }
+
+    clampTime(t: number | null) {
+        if (t == null) {
+            return t;
+        }
+
+        const { tMin, tMax } = this.state;
+        if (tMin == null || tMax == null) {
+            return t;
+        }
+
+        return Math.min(tMax, Math.max(tMin, t));
+    }
+
+    stepPlayback(direction: -1 | 1) {
+        const currentTime = this.state.t ?? this.state.tMin;
+        if (currentTime == null) {
+            return;
+        }
+
+        const nextTime = currentTime + direction * this.state.warp * 1e6;
+        this.setState({
+            t: this.clampTime(nextTime),
+            playbackDirection: 0,
+        });
+    }
+
+    startPlayback(direction: -1 | 1) {
+        this.setState({ playbackDirection: direction });
+    }
+
+    pausePlayback() {
+        this.setState({ playbackDirection: 0 });
+    }
+
+    resetPlayback() {
+        this.setState({
+            t: this.state.tMin,
+            playbackDirection: 0,
+        });
+    }
+
+    startPlaybackTimer() {
+        this.stopPlaybackTimer();
+        this.lastPlaybackFrameTime = null;
+        this.playbackAnimationFrame = window.requestAnimationFrame(
+            this.playbackFrame.bind(this),
+        );
+    }
+
+    stopPlaybackTimer() {
+        if (this.playbackAnimationFrame != null) {
+            window.cancelAnimationFrame(this.playbackAnimationFrame);
+            this.playbackAnimationFrame = null;
+        }
+        this.lastPlaybackFrameTime = null;
+    }
+
+    playbackFrame(timestamp: number) {
+        if (this.state.playbackDirection === 0) {
+            this.stopPlaybackTimer();
+            return;
+        }
+
+        if (this.lastPlaybackFrameTime == null) {
+            this.lastPlaybackFrameTime = timestamp;
+        }
+
+        const elapsedMilliseconds = timestamp - this.lastPlaybackFrameTime;
+        this.lastPlaybackFrameTime = timestamp;
+
+        const currentTime = this.state.t ?? this.state.tMin;
+        if (currentTime == null) {
+            this.pausePlayback();
+            return;
+        }
+
+        const elapsedMicroseconds =
+            elapsedMilliseconds * 1000 * this.state.warp * this.state.playbackDirection;
+        const nextTime = this.clampTime(currentTime + elapsedMicroseconds);
+        const reachedEnd = nextTime === this.state.tMin || nextTime === this.state.tMax;
+
+        this.setState({
+            t: nextTime,
+            playbackDirection: reachedEnd ? 0 : this.state.playbackDirection,
+        });
+
+        if (!reachedEnd) {
+            this.playbackAnimationFrame = window.requestAnimationFrame(
+                this.playbackFrame.bind(this),
+            );
+        }
     }
 
     moosMessagesButton() {
