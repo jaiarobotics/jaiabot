@@ -2,7 +2,10 @@ from common import is_simulation, is_runtime
 from common import udp
 from common.hub import expected_hubs_from_inventory
 import common.bot
-import netifaces
+try:
+    import netifaces
+except ModuleNotFoundError:
+    netifaces = None
 import math
 import json
 import ipaddress
@@ -43,7 +46,14 @@ def xbee_mac_slots(node_id):
 # Wifi #
 ########
 
-all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
+if netifaces is not None:
+    all_local_ip_addresses = [
+        netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
+        for iface in netifaces.interfaces()
+        if netifaces.AF_INET in netifaces.ifaddresses(iface)
+    ]
+else:
+    all_local_ip_addresses = []
 
 def runtime_wifi_ip_addr(node_id, fleet_index, hub_id):
     # TODO - consolidate with jaia-ip.py logic
@@ -164,6 +174,8 @@ def runtime_hub2hub_ip_addr(hub_id, fleet_index):
     return str(ipv6)
 
 def has_cloudhub_vpn(fleet_index):
+    if netifaces is None:
+        return False
     cloudhub_vpn_iface=[f'wg_jaia_ch{fleet_index}', 'wg_cloudhub']
     all_interfaces=netifaces.interfaces()
     for iface in cloudhub_vpn_iface:

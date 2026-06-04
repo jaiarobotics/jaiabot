@@ -1,5 +1,8 @@
 from common import is_simulation, is_runtime
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    yaml = None
 
 
 def gpsd_device():
@@ -16,6 +19,9 @@ def gpsd_port(hub_id):
         return default_gpsd_port
 
 def expected_hubs_from_inventory():
+    if yaml is None:
+        default_hub_id = 1
+        return [default_hub_id]
     try:
         with open('/etc/jaiabot/inventory.yml', 'r') as file:
             data = yaml.safe_load(file)            
