@@ -75,7 +75,12 @@ export function MissionSetEditorDialog(props: DialogProps) {
                 : [...rightList, selectedLeftName];
 
         const addedMissionCount = snapshotCache.current.get(selectedLeftName)!.missions.length;
-        const projectedMissionCount = Math.max(desiredMissionCount, addedMissionCount);
+        // Validate against the count that will actually be used when combining.
+        // If the user locked the count, it stays at desiredMissionCount (no auto-update after add).
+        // If the user hasn't locked it, the count will be bumped to addedMissionCount when larger.
+        const projectedMissionCount = userHasOverriddenCount
+            ? desiredMissionCount
+            : Math.max(desiredMissionCount, addedMissionCount);
 
         if (
             getMaxWaypointsPerOutputMission(

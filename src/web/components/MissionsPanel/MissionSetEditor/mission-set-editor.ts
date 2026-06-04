@@ -68,27 +68,21 @@ export function getMaxWaypointsPerOutputMission(
 ): number {
     if (names.length === 0 || desiredCount < 1) return 0;
 
-    // All names in leftList are loaded into snapshotCache by handleAdd before being added,
-    // so every get() is guaranteed to hit.
-    const snapshots = names.map((name) => snapshotCache.get(name)!);
-    const missionArrays = snapshots.map((snapshot) =>
-        snapshot.missions.map(([_, mission]: [number, Mission]) => mission),
-    );
-    const distributedSets = missionArrays.map((missions) =>
-        distributeMissionsToSlots(missions, desiredCount),
-    );
+    const distributedSets = names.map((name) => {
+        const missions = snapshotCache.get(name)!.missions.map(([_, m]) => m);
+        return distributeMissionsToSlots(missions, desiredCount);
+    });
 
     let maxWaypoints = 0;
     for (let slot = 0; slot < desiredCount; slot++) {
-        const slotTotal = distributedSets.reduce(
-            (sum, distributedSet) =>
-                sum +
-                distributedSet[slot].reduce((s, mission) => s + mission.getWaypoints().length, 0),
-            0,
-        );
+        let slotTotal = 0;
+        for (const distributedSet of distributedSets) {
+            for (const mission of distributedSet[slot]) {
+                slotTotal += mission.getWaypoints().length;
+            }
+        }
         maxWaypoints = Math.max(maxWaypoints, slotTotal);
     }
-
     return maxWaypoints;
 }
 
