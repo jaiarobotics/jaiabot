@@ -18,9 +18,10 @@ export default function MissionSetEditorButton() {
             >
                 <Icon path={mdiSetMerge} size={MDI_BUTTON_SIZE} title="Mission Set Editor" />
             </Button>
-            {isDialogVisible && (
-                <MissionSetEditorDialog onClose={() => setIsDialogVisible(false)} />
-            )}
+            <MissionSetEditorDialog
+                isVisible={isDialogVisible}
+                onClose={() => setIsDialogVisible(false)}
+            />
         </div>
     );
 }

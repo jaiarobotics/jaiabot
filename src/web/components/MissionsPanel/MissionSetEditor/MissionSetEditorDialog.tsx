@@ -17,6 +17,7 @@ import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
 import "./MissionSetEditor.less";
 
 interface DialogProps {
+    isVisible: boolean;
     onClose: () => void;
 }
 
@@ -39,6 +40,7 @@ interface CombinedListItemProps {
  * Displays a saved mission sets list and an ordered combination list.
  * Validates waypoint counts before allowing the combined set to be saved and loaded.
  *
+ * @param {DialogProps} props.isVisible Controls whether the dialog is rendered
  * @param {DialogProps} props.onClose Callback invoked when the dialog is dismissed
  * @returns {React.ReactPortal} Portal-mounted dialog rendered into the JCC container
  */
@@ -51,6 +53,10 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
     const [userHasOverriddenCount, setUserHasOverriddenCount] = useState(false);
     const snapshotCache = useRef<Map<string, MissionSetSnapshot>>(new Map());
+
+    if (!props.isVisible) {
+        return <div></div>;
+    }
 
     const savedMissionSets = listSavedMissionSets();
 
