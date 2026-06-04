@@ -83,6 +83,20 @@ message MotorStatusConfig
     optional jaiabot.protobuf.MotorHarnessType motor_harness_type = 12 [default = NONE];
 }
 
+message ArduinoRecoveryConfig
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional bool enable_auto_flash = 1 [default = false];
+    optional int32 min_interval_seconds = 2
+        [default = 300, (dccl.field).units = { base_dimensions: "T" }];
+    optional int32 max_attempts = 3 [default = 3];
+    optional string flash_script = 10
+        [default = "/usr/share/jaiabot/scripts/jaia_firm_arduino_flash.sh"];
+}
+
 message Health
 {
     option (dccl.msg) = {
@@ -108,4 +122,5 @@ message Health
     optional NTPStatusConfig ntp = 40;
     optional HelmIVPStatusConfig helm = 41;
     optional MotorStatusConfig motor = 42;
+    optional ArduinoRecoveryConfig arduino_recovery = 43;
 }
