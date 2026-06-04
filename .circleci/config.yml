@@ -170,7 +170,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/init-3.y"
         
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -263,7 +262,7 @@ workflows:
           requires:
             - upload
         
-      - raspi0-rpicam-image-create-bookworm:
+      - raspi0-rpicam-image-create-trixie:
           <<: *filter-template-pi0-rootfs-builds
 
       # bundle after each package upload and rootfs
@@ -651,7 +650,7 @@ jobs:
             - "bundle/result/amd64/*.iso"
             - "bundle/result/amd64/version.txt"
 
-  raspi0-rpicam-image-create-bookworm:
+  raspi0-rpicam-image-create-trixie:
     machine:
       image: ubuntu-2404:current
     resource_class: medium      
@@ -673,7 +672,7 @@ jobs:
             ./build.sh
             
             mkdir /tmp/arm64
-            cp images/jaiabot__rpicam-zero-bookworm.img /tmp/arm64/jaiabot__rpicam-zero-bookworm_${ROOTFS_BUILD_TAG}.img
+            cp images/jaiabot__rpicam-zero-trixie.img /tmp/arm64/jaiabot__rpicam-zero-trixie_${ROOTFS_BUILD_TAG}.img
       - run: *run-compress-image-raspi
       - store_artifacts: *store-raspi
 
