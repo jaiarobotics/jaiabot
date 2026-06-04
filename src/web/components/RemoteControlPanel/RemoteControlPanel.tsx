@@ -66,7 +66,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         ...defaultParams.drift,
     });
     const [rcOverdrive, setRCOverdrive] = useState(false);
-    const [isMinimizedView, setIsMinimizedView] = useState(true);
+    const [isMinimizedView, setIsMinimizedView] = useState(false);
 
     // Include useEffect dependencies to prevent interval data from going stale
     useEffect(() => {
