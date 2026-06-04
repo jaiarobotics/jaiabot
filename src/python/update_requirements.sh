@@ -12,7 +12,7 @@ jaia_root=$(realpath ${script_dir}/../..)
 
 sed -i 's/[~=]=/>=/' requirements.txt
 
-docker run -w $(realpath ${script_dir}) -v ${jaia_root}:${jaia_root} -t gobysoft/jaiabot-ubuntu-amd64:24.04.1 \
+docker run -w $(realpath ${script_dir}) -v ${jaia_root}:${jaia_root} -t gobysoft/jaiabot-ubuntu-amd64:26.04 \
        /bin/bash -c "sed -i \"s/release/${repo}/\" /etc/apt/sources.list.d/jaiabot*.list; apt update && apt install -y rsync python3-dev python3-venv jaiabot-python; rm -rf /usr/share/jaiabot/python/venv; ./build_venv.sh /tmp/jaia; source /tmp/jaia/venv/bin/activate; pip3 freeze --local  > requirements.txt"
 
 # correct dependencies that are included in jaiabot source
@@ -21,4 +21,5 @@ cat <<EOF >> requirements.txt
 ./pyjaia
 ./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x
+./jaia_serial
 EOF
