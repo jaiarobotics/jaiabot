@@ -1,8 +1,9 @@
 from typing import *
 from dataclasses import *
+import turf as measurement
 from copy import deepcopy
 from pprint import pprint
-from geojson import Point, Feature, FeatureCollection
+from geojson import Point, Feature, LineString, FeatureCollection
 
 import numpy as np
 import scipy.spatial
@@ -14,62 +15,16 @@ import logging
 logger = logging.getLogger('drift_interpolation')
 logger.setLevel(logging.INFO)
 
-EARTH_RADIUS_METERS = 6_371_000.0
-UNIT_TO_METERS = {
-    "m": 1.0,
-    "km": 1000.0,
-    "mi": 1609.344,
-    "nmi": 1852.0
-}
-
-
-def _normalize_longitude_degrees(lon_degrees: float) -> float:
-    return ((lon_degrees + 180.0) % 360.0) - 180.0
-
-
-def _haversine_distance_meters(a: "LatLon", b: "LatLon") -> float:
-    lat1 = math.radians(a.lat)
-    lon1 = math.radians(a.lon)
-    lat2 = math.radians(b.lat)
-    lon2 = math.radians(b.lon)
-
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-
-    h = math.sin(dlat / 2.0) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2.0) ** 2
-    return EARTH_RADIUS_METERS * (2.0 * math.asin(math.sqrt(h)))
-
-
-def _spherical_interpolate(a: "LatLon", b: "LatLon", fraction: float) -> "LatLon":
-    fraction = clamp(fraction, 0.0, 1.0)
-
-    lat1 = math.radians(a.lat)
-    lon1 = math.radians(a.lon)
-    lat2 = math.radians(b.lat)
-    lon2 = math.radians(b.lon)
-
-    dot_product = (
-        math.sin(lat1) * math.sin(lat2)
-        + math.cos(lat1) * math.cos(lat2) * math.cos(lon2 - lon1)
-    )
-    dot_product = clamp(dot_product, -1.0, 1.0)
-    angular_distance = math.acos(dot_product)
-
-    if math.isclose(angular_distance, 0.0):
-        return LatLon(lat=a.lat, lon=a.lon)
-
-    sin_total = math.sin(angular_distance)
-    weight_a = math.sin((1.0 - fraction) * angular_distance) / sin_total
-    weight_b = math.sin(fraction * angular_distance) / sin_total
-
-    x = weight_a * math.cos(lat1) * math.cos(lon1) + weight_b * math.cos(lat2) * math.cos(lon2)
-    y = weight_a * math.cos(lat1) * math.sin(lon1) + weight_b * math.cos(lat2) * math.sin(lon2)
-    z = weight_a * math.sin(lat1) + weight_b * math.sin(lat2)
-
-    lat = math.atan2(z, math.sqrt(x * x + y * y))
-    lon = math.atan2(y, x)
-
-    return LatLon(lat=math.degrees(lat), lon=_normalize_longitude_degrees(math.degrees(lon)))
+def _turf_units(units: str) -> str:
+    if units == 'm':
+        return 'meters'
+    if units == 'km':
+        return 'kilometers'
+    if units == 'mi':
+        return 'miles'
+    if units == 'nmi':
+        return 'nauticalmiles'
+    return units
 
 
 def plotDrifts(driftsList: List[List["Drift"]]):
@@ -143,34 +98,18 @@ class LatLon:
         return Feature(geometry=Point([self.lon, self.lat]))
 
     def distanceTo(self, other: "LatLon") -> float:
-        return _haversine_distance_meters(self, other)
+        return measurement.distance(self.feature(), other.feature(), options={'units': 'meters'})
     
     def midpoint(self, other: "LatLon"):
-        return _spherical_interpolate(self, other, 0.5)
+        midpointFeature = measurement.midpoint(self.feature(), other.feature())
+        return LatLon.fromList(midpointFeature.get('geometry').get('coordinates'))
     
     def rhumb_destination(self, distance: float, bearing: float):
-        theta = math.radians(bearing)
-        phi1 = math.radians(self.lat)
-        lambda1 = math.radians(self.lon)
-        delta = distance / EARTH_RADIUS_METERS
-
-        delta_phi = delta * math.cos(theta)
-        phi2 = phi1 + delta_phi
-
-        if phi2 > math.pi / 2:
-            phi2 = math.pi - phi2
-        elif phi2 < -math.pi / 2:
-            phi2 = -math.pi - phi2
-
-        delta_psi = math.log(math.tan(phi2 / 2 + math.pi / 4) / math.tan(phi1 / 2 + math.pi / 4))
-        q = delta_phi / delta_psi if not math.isclose(delta_psi, 0.0) else math.cos(phi1)
-        delta_lambda = delta * math.sin(theta) / q
-        lambda2 = lambda1 + delta_lambda
-
-        return LatLon(
-            lat=math.degrees(phi2),
-            lon=_normalize_longitude_degrees(math.degrees(lambda2))
+        x = measurement.rhumb_destination(
+            self.feature(),
+            options={'dist': distance, 'bearing': bearing, 'units': 'meters'}
         )
+        return LatLon.fromList(x.get('geometry').get('coordinates'))
     
 
 @dataclass
@@ -191,15 +130,9 @@ class Drift:
             Drift: A drift object that's interpolated between self and the destinationDrift drift object.
         """
 
-        unit_scale = UNIT_TO_METERS.get(units)
-        if unit_scale is None:
-            raise ValueError(f'Unsupported distance units: {units}')
-
-        lineLength = self.location.distanceTo(destinationDrift.location)
-        if math.isclose(lineLength, 0.0):
-            return deepcopy(self)
-
-        otherWeight = (distance * unit_scale) / lineLength
+        lineString = LineString([self.location.list(), destinationDrift.location.list()])
+        lineLength = measurement.length(lineString, options={'units': _turf_units(units)})
+        otherWeight = distance / lineLength
         return self.interpolateToFraction(destinationDrift, otherWeight)
 
     def interpolateToFraction(self, destinationDrift: "Drift", otherWeight: float):
@@ -212,10 +145,12 @@ class Drift:
         Returns:
             Drift: A drift object that's interpolated between self and the destinationDrift drift object.
         """
-        otherWeight = clamp(otherWeight, 0.0, 1.0)
+        lineString = LineString([self.location.list(), destinationDrift.location.list()])
+        lineLength = measurement.length(lineString)
         ourWeight = 1 - otherWeight
 
-        newLocation = _spherical_interpolate(self.location, destinationDrift.location, otherWeight)
+        newFeature = measurement.along(lineString, dist=lineLength * otherWeight)
+        newLocation = LatLon.fromList(newFeature.get('geometry').get('coordinates'))
 
         return Drift(
             location=newLocation, 
@@ -294,7 +229,8 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
 
     if len(drifts) == 2:
         # If we only have two points, then just interpolate along a line
-        lineLength = drifts[0].location.distanceTo(drifts[1].location)
+        lineString = LineString([drifts[0].location.list(), drifts[1].location.list()])
+        lineLength = measurement.length(lineString, options={'units': 'meters'})
 
         nPoints = interpolationPointCount(lineLength)
         actualDelta = lineLength / nPoints
