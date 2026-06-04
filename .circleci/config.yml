@@ -178,6 +178,7 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "3.y"
+        - "task/3.y/init-3.y"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
