@@ -34,6 +34,14 @@ interface RightListItemProps {
     onSelect: (index: number) => void;
 }
 
+/**
+ * Dialog for building a combined mission set from multiple saved mission sets.
+ * Displays a source list on the left and an ordered combination list on the right.
+ * Validates waypoint counts before allowing the combined set to be saved and loaded.
+ *
+ * @param {DialogProps} props.onClose Callback invoked when the dialog is dismissed
+ * @returns {React.ReactPortal} Portal-mounted dialog rendered into the JCC container
+ */
 export function MissionSetEditorDialog(props: DialogProps) {
     const [editorName, setEditorName] = useState("");
     const [desiredMissionCount, setDesiredMissionCount] = useState(0);
@@ -46,14 +54,37 @@ export function MissionSetEditorDialog(props: DialogProps) {
 
     const savedMissionSets = listSavedMissionSets();
 
+    /**
+     * Toggles selection of an item in the stored mission sets list.
+     * Clicking the already-selected item deselects it.
+     *
+     * @param {number} index Index of the clicked item in savedMissionSets
+     * @returns {void}
+     */
     const handleLeftItemClick = (index: number) => {
         setSelectedLeftIndex((prev) => (prev === index ? null : index));
     };
 
+    /**
+     * Toggles selection of an item in the combined mission set list.
+     * Clicking the already-selected item deselects it.
+     *
+     * @param {number} index Index of the clicked item in rightList
+     * @returns {void}
+     */
     const handleRightItemClick = (index: number) => {
         setSelectedRightIndex((prev) => (prev === index ? null : index));
     };
 
+    /**
+     * Adds the selected stored mission set to the combined list.
+     * Inserts before the selected right-list item if one is selected, otherwise appends.
+     * Validates the projected waypoint count and shows a warning if MAX_WAYPOINTS would be exceeded.
+     * Auto-updates desiredMissionCount to match the added set's mission count when the user
+     * has not manually overridden it.
+     *
+     * @returns {void}
+     */
     const handleAdd = () => {
         if (selectedLeftIndex === null) return;
         const selectedLeftName = savedMissionSets[selectedLeftIndex];
@@ -102,6 +133,12 @@ export function MissionSetEditorDialog(props: DialogProps) {
         }
     };
 
+    /**
+     * Moves the selected right-list item one position up.
+     * No-op if nothing is selected or the item is already at the top.
+     *
+     * @returns {void}
+     */
     const handleMoveUp = () => {
         if (selectedRightIndex === null || selectedRightIndex === 0) return;
         const next = [...rightList];
@@ -113,6 +150,12 @@ export function MissionSetEditorDialog(props: DialogProps) {
         setSelectedRightIndex(selectedRightIndex - 1);
     };
 
+    /**
+     * Moves the selected right-list item one position down.
+     * No-op if nothing is selected or the item is already at the bottom.
+     *
+     * @returns {void}
+     */
     const handleMoveDown = () => {
         if (selectedRightIndex === null || selectedRightIndex === rightList.length - 1) return;
         const next = [...rightList];
@@ -124,6 +167,13 @@ export function MissionSetEditorDialog(props: DialogProps) {
         setSelectedRightIndex(selectedRightIndex + 1);
     };
 
+    /**
+     * Removes the selected item from the combined mission set list.
+     * Resets desiredMissionCount to the largest remaining set's mission count
+     * when the user has not manually overridden it.
+     *
+     * @returns {void}
+     */
     const handleDelete = () => {
         if (selectedRightIndex === null) return;
         const remaining = rightList.filter((_, i) => i !== selectedRightIndex);
@@ -138,6 +188,14 @@ export function MissionSetEditorDialog(props: DialogProps) {
         }
     };
 
+    /**
+     * Handles changes to the Number of Bots input field.
+     * Validates the projected waypoint count for the new bot count and shows a warning
+     * if MAX_WAYPOINTS would be exceeded, leaving the count unchanged in that case.
+     *
+     * @param {React.ChangeEvent<HTMLInputElement>} evt Change event from the number input
+     * @returns {void}
+     */
     const handleDesiredMissionCountChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
         const newCount = Number(evt.target.value);
         if (
@@ -287,6 +345,15 @@ export function MissionSetEditorDialog(props: DialogProps) {
     );
 }
 
+/**
+ * A single selectable item in the stored mission sets list (left column).
+ *
+ * @param {LeftListItemProps} props.name Display name of the mission set
+ * @param {LeftListItemProps} props.index Position in the savedMissionSets array
+ * @param {LeftListItemProps} props.isSelected Whether this item is currently selected
+ * @param {LeftListItemProps} props.onSelect Callback invoked with the item's index when clicked
+ * @returns {JSX.Element} Rendered list item element
+ */
 function LeftListItem(props: LeftListItemProps) {
     return (
         <li
@@ -300,6 +367,15 @@ function LeftListItem(props: LeftListItemProps) {
     );
 }
 
+/**
+ * A single selectable item in the combined mission set list (right column).
+ *
+ * @param {RightListItemProps} props.name Display name of the mission set
+ * @param {RightListItemProps} props.index Position in the rightList array
+ * @param {RightListItemProps} props.isSelected Whether this item is currently selected
+ * @param {RightListItemProps} props.onSelect Callback invoked with the item's index when clicked
+ * @returns {JSX.Element} Rendered list item element
+ */
 function RightListItem(props: RightListItemProps) {
     return (
         <li
