@@ -102,14 +102,16 @@ export function MissionSetEditorDialog(props: DialogProps) {
             );
         }
 
-        const projectedList =
-            selectedCombinedIndex !== null
-                ? [
-                      ...combinedList.slice(0, selectedCombinedIndex),
-                      selectedSavedName,
-                      ...combinedList.slice(selectedCombinedIndex),
-                  ]
-                : [...combinedList, selectedSavedName];
+        let projectedList: string[];
+        if (selectedCombinedIndex !== null) {
+            projectedList = [
+                ...combinedList.slice(0, selectedCombinedIndex),
+                selectedSavedName,
+                ...combinedList.slice(selectedCombinedIndex),
+            ];
+        } else {
+            projectedList = [...combinedList, selectedSavedName];
+        }
 
         const addedMissionCount = snapshotCache.current.get(selectedSavedName)!.missions.length;
         // Validate against the count that will actually be used when combining.
