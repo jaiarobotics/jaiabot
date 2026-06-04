@@ -35,3 +35,8 @@ override_dh_auto_configure:
 
 override_dh_auto_test:
 	CTEST_OUTPUT_ON_FAILURE=ON dh_auto_test
+
+override_dh_auto_build:
+	arduino-cli core update-index
+	arduino-cli core install arduino:avr
+	dh_auto_build
