@@ -20,14 +20,14 @@ interface DialogProps {
     onClose: () => void;
 }
 
-interface LeftListItemProps {
+interface SavedListItemProps {
     name: string;
     index: number;
     isSelected: boolean;
     onSelect: (index: number) => void;
 }
 
-interface RightListItemProps {
+interface CombinedListItemProps {
     name: string;
     index: number;
     isSelected: boolean;
@@ -36,7 +36,7 @@ interface RightListItemProps {
 
 /**
  * Dialog for building a combined mission set from multiple saved mission sets.
- * Displays a source list on the left and an ordered combination list on the right.
+ * Displays a saved mission sets list and an ordered combination list.
  * Validates waypoint counts before allowing the combined set to be saved and loaded.
  *
  * @param {DialogProps} props.onClose Callback invoked when the dialog is dismissed
@@ -45,9 +45,9 @@ interface RightListItemProps {
 export function MissionSetEditorDialog(props: DialogProps) {
     const [editorName, setEditorName] = useState("");
     const [desiredMissionCount, setDesiredMissionCount] = useState(0);
-    const [rightList, setRightList] = useState<string[]>([]);
-    const [selectedLeftIndex, setSelectedLeftIndex] = useState<number | null>(null);
-    const [selectedRightIndex, setSelectedRightIndex] = useState<number | null>(null);
+    const [combinedList, setCombinedList] = useState<string[]>([]);
+    const [selectedSavedIndex, setSelectedSavedIndex] = useState<number | null>(null);
+    const [selectedCombinedIndex, setSelectedCombinedIndex] = useState<number | null>(null);
     const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
     const [userHasOverriddenCount, setUserHasOverriddenCount] = useState(false);
     const snapshotCache = useRef<Map<string, MissionSetSnapshot>>(new Map());
@@ -61,24 +61,24 @@ export function MissionSetEditorDialog(props: DialogProps) {
      * @param {number} index Index of the clicked item in savedMissionSets
      * @returns {void}
      */
-    const handleLeftItemClick = (index: number) => {
-        setSelectedLeftIndex((prev) => (prev === index ? null : index));
+    const handleSavedItemClick = (index: number) => {
+        setSelectedSavedIndex((prev) => (prev === index ? null : index));
     };
 
     /**
      * Toggles selection of an item in the combined mission set list.
      * Clicking the already-selected item deselects it.
      *
-     * @param {number} index Index of the clicked item in rightList
+     * @param {number} index Index of the clicked item in combinedList
      * @returns {void}
      */
-    const handleRightItemClick = (index: number) => {
-        setSelectedRightIndex((prev) => (prev === index ? null : index));
+    const handleCombinedItemClick = (index: number) => {
+        setSelectedCombinedIndex((prev) => (prev === index ? null : index));
     };
 
     /**
      * Adds the selected stored mission set to the combined list.
-     * Inserts before the selected right-list item if one is selected, otherwise appends.
+     * Inserts before the selected combined list item if one is selected, otherwise appends.
      * Validates the projected waypoint count and shows a warning if MAX_WAYPOINTS would be exceeded.
      * Auto-updates desiredMissionCount to match the added set's mission count when the user
      * has not manually overridden it.
@@ -86,26 +86,26 @@ export function MissionSetEditorDialog(props: DialogProps) {
      * @returns {void}
      */
     const handleAdd = () => {
-        if (selectedLeftIndex === null) return;
-        const selectedLeftName = savedMissionSets[selectedLeftIndex];
+        if (selectedSavedIndex === null) return;
+        const selectedSavedName = savedMissionSets[selectedSavedIndex];
 
-        if (!snapshotCache.current.has(selectedLeftName)) {
+        if (!snapshotCache.current.has(selectedSavedName)) {
             snapshotCache.current.set(
-                selectedLeftName,
-                loadSnapshotFromLocalStorage(selectedLeftName).snapshot!,
+                selectedSavedName,
+                loadSnapshotFromLocalStorage(selectedSavedName).snapshot!,
             );
         }
 
         const projectedList =
-            selectedRightIndex !== null
+            selectedCombinedIndex !== null
                 ? [
-                      ...rightList.slice(0, selectedRightIndex),
-                      selectedLeftName,
-                      ...rightList.slice(selectedRightIndex),
+                      ...combinedList.slice(0, selectedCombinedIndex),
+                      selectedSavedName,
+                      ...combinedList.slice(selectedCombinedIndex),
                   ]
-                : [...rightList, selectedLeftName];
+                : [...combinedList, selectedSavedName];
 
-        const addedMissionCount = snapshotCache.current.get(selectedLeftName)!.missions.length;
+        const addedMissionCount = snapshotCache.current.get(selectedSavedName)!.missions.length;
         // Validate against the count that will actually be used when combining.
         // If the user locked the count, it stays at desiredMissionCount (no auto-update after add).
         // If the user hasn't locked it, the count will be bumped to addedMissionCount when larger.
@@ -124,9 +124,9 @@ export function MissionSetEditorDialog(props: DialogProps) {
             return;
         }
 
-        setRightList(projectedList);
-        if (selectedRightIndex !== null) {
-            setSelectedRightIndex(selectedRightIndex);
+        setCombinedList(projectedList);
+        if (selectedCombinedIndex !== null) {
+            setSelectedCombinedIndex(selectedCombinedIndex);
         }
         if (!userHasOverriddenCount && addedMissionCount > desiredMissionCount) {
             setDesiredMissionCount(addedMissionCount);
@@ -134,37 +134,38 @@ export function MissionSetEditorDialog(props: DialogProps) {
     };
 
     /**
-     * Moves the selected right-list item one position up.
+     * Moves the selected combined list item one position up.
      * No-op if nothing is selected or the item is already at the top.
      *
      * @returns {void}
      */
     const handleMoveUp = () => {
-        if (selectedRightIndex === null || selectedRightIndex === 0) return;
-        const next = [...rightList];
-        [next[selectedRightIndex - 1], next[selectedRightIndex]] = [
-            next[selectedRightIndex],
-            next[selectedRightIndex - 1],
+        if (selectedCombinedIndex === null || selectedCombinedIndex === 0) return;
+        const next = [...combinedList];
+        [next[selectedCombinedIndex - 1], next[selectedCombinedIndex]] = [
+            next[selectedCombinedIndex],
+            next[selectedCombinedIndex - 1],
         ];
-        setRightList(next);
-        setSelectedRightIndex(selectedRightIndex - 1);
+        setCombinedList(next);
+        setSelectedCombinedIndex(selectedCombinedIndex - 1);
     };
 
     /**
-     * Moves the selected right-list item one position down.
+     * Moves the selected combined list item one position down.
      * No-op if nothing is selected or the item is already at the bottom.
      *
      * @returns {void}
      */
     const handleMoveDown = () => {
-        if (selectedRightIndex === null || selectedRightIndex === rightList.length - 1) return;
-        const next = [...rightList];
-        [next[selectedRightIndex], next[selectedRightIndex + 1]] = [
-            next[selectedRightIndex + 1],
-            next[selectedRightIndex],
+        if (selectedCombinedIndex === null || selectedCombinedIndex === combinedList.length - 1)
+            return;
+        const next = [...combinedList];
+        [next[selectedCombinedIndex], next[selectedCombinedIndex + 1]] = [
+            next[selectedCombinedIndex + 1],
+            next[selectedCombinedIndex],
         ];
-        setRightList(next);
-        setSelectedRightIndex(selectedRightIndex + 1);
+        setCombinedList(next);
+        setSelectedCombinedIndex(selectedCombinedIndex + 1);
     };
 
     /**
@@ -175,10 +176,10 @@ export function MissionSetEditorDialog(props: DialogProps) {
      * @returns {void}
      */
     const handleDelete = () => {
-        if (selectedRightIndex === null) return;
-        const remaining = rightList.filter((_, i) => i !== selectedRightIndex);
-        setRightList(remaining);
-        setSelectedRightIndex(null);
+        if (selectedCombinedIndex === null) return;
+        const remaining = combinedList.filter((_, i) => i !== selectedCombinedIndex);
+        setCombinedList(remaining);
+        setSelectedCombinedIndex(null);
         if (!userHasOverriddenCount) {
             const maxCount = remaining.reduce((max, name) => {
                 const count = snapshotCache.current.get(name)!.missions.length;
@@ -199,9 +200,9 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const handleDesiredMissionCountChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
         const newCount = Number(evt.target.value);
         if (
-            rightList.length > 0 &&
+            combinedList.length > 0 &&
             newCount > 0 &&
-            getMaxWaypointsPerOutputMission(rightList, newCount, snapshotCache.current) >
+            getMaxWaypointsPerOutputMission(combinedList, newCount, snapshotCache.current) >
                 MAX_WAYPOINTS
         ) {
             setIsWaypointWarningVisible(true);
@@ -211,8 +212,8 @@ export function MissionSetEditorDialog(props: DialogProps) {
         setDesiredMissionCount(newCount);
     };
 
-    const hasRightSelection = selectedRightIndex !== null;
-    const addButtonLabel = hasRightSelection ? "Insert" : "Add";
+    const hasCombinedSelection = selectedCombinedIndex !== null;
+    const addButtonLabel = hasCombinedSelection ? "Insert" : "Add";
 
     return createPortal(
         <div className="jaia-dialog-container">
@@ -249,12 +250,12 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                     aria-label="Stored Mission Sets"
                                 >
                                     {savedMissionSets.map((name, index) => (
-                                        <LeftListItem
+                                        <SavedListItem
                                             key={name}
                                             name={name}
                                             index={index}
-                                            isSelected={selectedLeftIndex === index}
-                                            onSelect={handleLeftItemClick}
+                                            isSelected={selectedSavedIndex === index}
+                                            onSelect={handleSavedItemClick}
                                         />
                                     ))}
                                 </ul>
@@ -263,7 +264,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <div className="editor-arrow-column">
                             <Button
                                 className="jaia-button editor-add-button"
-                                disabled={selectedLeftIndex === null}
+                                disabled={selectedSavedIndex === null}
                                 onClick={handleAdd}
                             >
                                 <div className="editor-add-button-content">
@@ -280,13 +281,13 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                     role="listbox"
                                     aria-label="Combined Mission Set"
                                 >
-                                    {rightList.map((name, index) => (
-                                        <RightListItem
+                                    {combinedList.map((name, index) => (
+                                        <CombinedListItem
                                             key={`${name}-${index}`}
                                             name={name}
                                             index={index}
-                                            isSelected={selectedRightIndex === index}
-                                            onSelect={handleRightItemClick}
+                                            isSelected={selectedCombinedIndex === index}
+                                            onSelect={handleCombinedItemClick}
                                         />
                                     ))}
                                 </ul>
@@ -294,7 +295,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                             <div className="editor-controls-row">
                                 <Button
                                     className="jaia-button"
-                                    disabled={!hasRightSelection || selectedRightIndex === 0}
+                                    disabled={!hasCombinedSelection || selectedCombinedIndex === 0}
                                     onClick={handleMoveUp}
                                 >
                                     <Icon path={mdiArrowUp} size={0.8} title="Move up" />
@@ -302,8 +303,8 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                 <Button
                                     className="jaia-button"
                                     disabled={
-                                        !hasRightSelection ||
-                                        selectedRightIndex === rightList.length - 1
+                                        !hasCombinedSelection ||
+                                        selectedCombinedIndex === combinedList.length - 1
                                     }
                                     onClick={handleMoveDown}
                                 >
@@ -311,7 +312,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                 </Button>
                                 <Button
                                     className="jaia-button"
-                                    disabled={!hasRightSelection}
+                                    disabled={!hasCombinedSelection}
                                     onClick={handleDelete}
                                 >
                                     <Icon path={mdiDelete} size={0.8} title="Delete" />
@@ -332,7 +333,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <SaveAndLoadButton
                             editorName={editorName}
                             desiredMissionCount={desiredMissionCount}
-                            combinedMissionNames={rightList}
+                            combinedMissionNames={combinedList}
                             snapshotCache={snapshotCache.current}
                             onClose={props.onClose}
                         />
@@ -346,15 +347,15 @@ export function MissionSetEditorDialog(props: DialogProps) {
 }
 
 /**
- * A single selectable item in the stored mission sets list (left column).
+ * A single selectable item in the stored mission sets list.
  *
- * @param {LeftListItemProps} props.name Display name of the mission set
- * @param {LeftListItemProps} props.index Position in the savedMissionSets array
- * @param {LeftListItemProps} props.isSelected Whether this item is currently selected
- * @param {LeftListItemProps} props.onSelect Callback invoked with the item's index when clicked
+ * @param {SavedListItemProps} props.name Display name of the mission set
+ * @param {SavedListItemProps} props.index Position in the savedMissionSets array
+ * @param {SavedListItemProps} props.isSelected Whether this item is currently selected
+ * @param {SavedListItemProps} props.onSelect Callback invoked with the item's index when clicked
  * @returns {JSX.Element} Rendered list item element
  */
-function LeftListItem(props: LeftListItemProps) {
+function SavedListItem(props: SavedListItemProps) {
     return (
         <li
             className={`editor-source-item${props.isSelected ? " selected" : ""}`}
@@ -368,15 +369,15 @@ function LeftListItem(props: LeftListItemProps) {
 }
 
 /**
- * A single selectable item in the combined mission set list (right column).
+ * A single selectable item in the combined mission set list.
  *
- * @param {RightListItemProps} props.name Display name of the mission set
- * @param {RightListItemProps} props.index Position in the rightList array
- * @param {RightListItemProps} props.isSelected Whether this item is currently selected
- * @param {RightListItemProps} props.onSelect Callback invoked with the item's index when clicked
+ * @param {CombinedListItemProps} props.name Display name of the mission set
+ * @param {CombinedListItemProps} props.index Position in the combinedList array
+ * @param {CombinedListItemProps} props.isSelected Whether this item is currently selected
+ * @param {CombinedListItemProps} props.onSelect Callback invoked with the item's index when clicked
  * @returns {JSX.Element} Rendered list item element
  */
-function RightListItem(props: RightListItemProps) {
+function CombinedListItem(props: CombinedListItemProps) {
     return (
         <li
             className={`editor-list-item${props.isSelected ? " selected" : ""}`}
