@@ -176,6 +176,7 @@ file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/f
 
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
+  PATTERN "interfaces/figures" EXCLUDE # any figures are built to doc directory
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
