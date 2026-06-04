@@ -33,3 +33,10 @@ linux_hw {
 motor {
     motor_harness_type: $motor_harness_type
 }
+
+arduino_recovery {
+    enable_auto_flash: true
+    min_interval_seconds: 300
+    max_attempts: 3
+    flash_script: "/usr/share/jaiabot/scripts/jaia_firm_arduino_flash.sh"
+}
