@@ -1,8 +1,5 @@
 #!/usr/bin/make -f
 
-# LTO is causing issues with Clang on Ubuntu Noble - this can be removed once this bug is closed: https://bugs.launchpad.net/ubuntu/+source/llvm-toolchain-18/+bug/2064187
-export DEB_BUILD_MAINT_OPTIONS=optimize=-lto
-
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 
@@ -36,7 +33,11 @@ override_dh_auto_configure:
 override_dh_auto_test:
 	CTEST_OUTPUT_ON_FAILURE=ON dh_auto_test
 
+export ARDUINO_DIRECTORIES_DATA=$(CURDIR)/.arduino15
+export ARDUINO_DIRECTORIES_USER=$(CURDIR)/arduino-sketchbook
+
 override_dh_auto_build:
+	mkdir -p $(ARDUINO_DIRECTORIES_DATA) $(ARDUINO_DIRECTORIES_USER)
 	arduino-cli core update-index
 	arduino-cli core install arduino:avr
 	dh_auto_build
