@@ -107,9 +107,11 @@ message Simulator
             derived_dimensions: "temperature"
             system: "celsius"
             relative_temperature: true
-        }
-    }];
-    optional double salinity_stdev = 42;
+    	    }
+    },	    
+		default = 1
+	];
+    optional double salinity_stdev = 42 [default=1];
 
     optional string hub_gpsd_device = 43;
 
