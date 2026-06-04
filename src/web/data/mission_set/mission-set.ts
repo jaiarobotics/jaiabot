@@ -78,11 +78,11 @@ export class MissionSet {
     }
 
     getMissionSpeeds(): Speeds {
-        const first = this.missions.values().next().value;
-        if (first) {
+        const firstMission = this.missions.values().next().value;
+        if (firstMission) {
             return {
-                transit: first.getTransitSpeed(),
-                stationkeep_outer: first.getStationkeepSpeed(),
+                transit: firstMission.getTransitSpeed(),
+                stationkeep_outer: firstMission.getStationkeepSpeed(),
             };
         }
         return { ...this.selectedSpeeds };

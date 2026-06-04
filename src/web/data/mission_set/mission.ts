@@ -26,7 +26,7 @@ export default class Mission {
         this.waypoints = [];
         this.stationkeepSpeed = DEFAULT_SPEED;
         this.repeats = 1;
-        this.segments = [{ start_goal_index: 1 }];
+        this.segments = [{ start_goal_index: 1, speed: DEFAULT_SPEED }];
         this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID, repeats: 1 };
     }
 
@@ -52,7 +52,7 @@ export default class Mission {
     }
 
     setTransitSpeed(speed: number, segmentIndex: number = 0) {
-        this.segments[segmentIndex] = { ...this.segments[segmentIndex], speed };
+        this.segments[segmentIndex].speed = speed;
     }
 
     getStationkeepSpeed(): number {
@@ -79,10 +79,7 @@ export default class Mission {
         bottomDepthSafetyParams: BottomDepthSafetyParams,
         segmentIndex: number = 0,
     ) {
-        this.segments[segmentIndex] = {
-            ...this.segments[segmentIndex],
-            bottom_depth_safety_params: bottomDepthSafetyParams,
-        };
+        this.segments[segmentIndex].bottom_depth_safety_params = bottomDepthSafetyParams;
     }
 
     getSegments() {
