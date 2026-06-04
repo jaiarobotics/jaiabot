@@ -33,6 +33,9 @@ override_dh_auto_configure:
 override_dh_auto_test:
 	CTEST_OUTPUT_ON_FAILURE=ON dh_auto_test
 
+override_dh_dwz:
+	dh_dwz --no-dwz-multifile
+
 export ARDUINO_DIRECTORIES_DATA=$(CURDIR)/.arduino15
 export ARDUINO_DIRECTORIES_USER=$(CURDIR)/arduino-sketchbook
 
