@@ -58,18 +58,20 @@ function distributeMissionsToSlots(missions: Mission[], slotCount: number): Miss
  *
  * @param {string[]} names Ordered list of saved mission set names
  * @param {number} desiredCount Number of output missions
- * @param {Map<string, MissionSetSnapshot>} snapshotCache Cache of loaded snapshots
+ * @param {Map<string, MissionSetSnapshot>} missionSetSnapshotCache Cache of loaded snapshots
  * @returns {number} Maximum waypoints in any single output mission
  */
 export function getMaxWaypointsPerOutputMission(
     names: string[],
     desiredCount: number,
-    snapshotCache: Map<string, MissionSetSnapshot>,
+    missionSetSnapshotCache: Map<string, MissionSetSnapshot>,
 ): number {
     if (names.length === 0 || desiredCount < 1) return 0;
 
     const distributedSets = names.map((name) => {
-        const missions = snapshotCache.get(name)!.missions.map(([_, m]) => m);
+        const missionSetSnapshot = missionSetSnapshotCache.get(name);
+        if (!missionSetSnapshot) return [];
+        const missions = missionSetSnapshot.missions.map(([_, m]) => m);
         return distributeMissionsToSlots(missions, desiredCount);
     });
 
@@ -224,7 +226,7 @@ function buildCombinedMission(
  * Combines multiple saved mission sets into a single new mission set snapshot.
  *
  * For each output mission slot, missions from all source sets are interleaved by
- * position and their waypoints are concatenated in left-list order:
+ * position and their waypoints are concatenated in saved list order:
  *   output[0].waypoints = set[0][0].waypoints + set[1][0].waypoints + ...
  *   output[1].waypoints = set[0][1].waypoints + set[1][1].waypoints + ...
  *
@@ -238,23 +240,26 @@ function buildCombinedMission(
  * @param {string[]} names Ordered list of saved mission set names to combine
  * @param {number} desiredCount Number of missions in the resulting set
  * @param {string} newName Name for the new combined mission set
- * @param {Map<string, MissionSetSnapshot>} snapshotCache Cache of loaded snapshots
+ * @param {Map<string, MissionSetSnapshot>} missionSetSnapshotCache Cache of loaded snapshots
  * @returns {MissionSetSnapshot} Snapshot ready to save and/or load
  */
 export function combineMissionSets(
     names: string[],
     desiredCount: number,
     newName: string,
-    snapshotCache: Map<string, MissionSetSnapshot>,
+    missionSetSnapshotCache: Map<string, MissionSetSnapshot>,
 ): MissionSetSnapshot {
     // desiredCount is validated >= 1 by SaveAndLoadButton.getDisabledCode() before this is called.
-    // All names in leftList are loaded into snapshotCache by handleAdd before being added,
+    // All names in combinedList are loaded into missionSetSnapshotCache by handleAdd before being added,
     // so every get() is guaranteed to hit.
-    const missionSetSnapshots = names.map((name) => snapshotCache.get(name)!);
-
-    const missionArrays = missionSetSnapshots.map((missionSetSnapshot) =>
-        missionSetSnapshot.missions.map(([_, mission]: [number, Mission]) => mission),
-    );
+    const missionArrays: Mission[][] = [];
+    for (const name of names) {
+        const missionSetSnapshot = missionSetSnapshotCache.get(name);
+        if (!missionSetSnapshot) continue;
+        missionArrays.push(
+            missionSetSnapshot.missions.map(([_, mission]: [number, Mission]) => mission),
+        );
+    }
 
     const distributedSets = missionArrays.map((missions) =>
         distributeMissionsToSlots(missions, desiredCount),
