@@ -12,8 +12,8 @@ authors = [
 ]
 keywords = ["jaia", "serial", "protobuf"]
 dependencies = [
-    "protobuf==3.20.0",
-    "pyserial==3.5"
+    "protobuf",
+    "pyserial"
 ]
 
 [project.urls]

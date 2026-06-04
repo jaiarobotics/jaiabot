@@ -12,10 +12,10 @@ authors = [
 ]
 keywords = ["jaia"]
 dependencies = [
-    'wheel', 
-    'protobuf==3.20.0', 
-    'scipy', 
-    'numpy', 
+    'wheel',
+    'protobuf',
+    'scipy',
+    'numpy',
     'cmocean',
     'pyturf',
     'h5py',
