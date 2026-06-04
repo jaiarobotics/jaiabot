@@ -17,7 +17,6 @@ dependencies = [
     'scipy', 
     'numpy', 
     'cmocean',
-    'turfpy',
     'h5py',
     'plotly',
 ]
@@ -35,4 +34,3 @@ jaia-ubx-extractor = "pyjaia.ubx.extractor_tool:main"
 
 [tool.setuptools.package-data]
 "pyjaia" = ["data/*.png"]
-
