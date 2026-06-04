@@ -12,12 +12,12 @@ authors = [
 ]
 keywords = ["jaia"]
 dependencies = [
-    'wheel', 
-    'protobuf==3.20.0', 
-    'scipy', 
-    'numpy', 
+    'wheel',
+    'protobuf',
+    'scipy',
+    'numpy',
     'cmocean',
-    'turfpy',
+    'pyturf',
     'h5py',
     'plotly',
 ]
@@ -35,4 +35,3 @@ jaia-ubx-extractor = "pyjaia.ubx.extractor_tool:main"
 
 [tool.setuptools.package-data]
 "pyjaia" = ["data/*.png"]
-

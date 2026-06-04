@@ -1,6 +1,6 @@
 from typing import *
 from dataclasses import *
-from turfpy import measurement
+import turf as measurement
 from copy import deepcopy
 from pprint import pprint
 from geojson import Point, Feature, LineString, FeatureCollection
@@ -14,6 +14,17 @@ import logging
 
 logger = logging.getLogger('drift_interpolation')
 logger.setLevel(logging.INFO)
+
+def _turf_units(units: str) -> str:
+    if units == 'm':
+        return 'meters'
+    if units == 'km':
+        return 'kilometers'
+    if units == 'mi':
+        return 'miles'
+    if units == 'nmi':
+        return 'nauticalmiles'
+    return units
 
 
 def plotDrifts(driftsList: List[List["Drift"]]):
@@ -87,14 +98,17 @@ class LatLon:
         return Feature(geometry=Point([self.lon, self.lat]))
 
     def distanceTo(self, other: "LatLon") -> float:
-        return measurement.distance(self.feature(), other.feature(), units='m')
+        return measurement.distance(self.feature(), other.feature(), options={'units': 'meters'})
     
     def midpoint(self, other: "LatLon"):
         midpointFeature = measurement.midpoint(self.feature(), other.feature())
         return LatLon.fromList(midpointFeature.get('geometry').get('coordinates'))
     
     def rhumb_destination(self, distance: float, bearing: float):
-        x = measurement.rhumb_destination(Point([self.lon, self.lat]), distance, bearing, {'units': 'm'})
+        x = measurement.rhumb_destination(
+            self.feature(),
+            options={'dist': distance, 'bearing': bearing, 'units': 'meters'}
+        )
         return LatLon.fromList(x.get('geometry').get('coordinates'))
     
 
@@ -117,7 +131,7 @@ class Drift:
         """
 
         lineString = LineString([self.location.list(), destinationDrift.location.list()])
-        lineLength = measurement.length(lineString, units=units)
+        lineLength = measurement.length(lineString, options={'units': _turf_units(units)})
         otherWeight = distance / lineLength
         return self.interpolateToFraction(destinationDrift, otherWeight)
 
@@ -216,7 +230,7 @@ def getInterpolatedDrifts(drifts: List[Drift], resolutionDistance: float=50):
     if len(drifts) == 2:
         # If we only have two points, then just interpolate along a line
         lineString = LineString([drifts[0].location.list(), drifts[1].location.list()])
-        lineLength = measurement.length(lineString, units='m')
+        lineLength = measurement.length(lineString, options={'units': 'meters'})
 
         nPoints = interpolationPointCount(lineLength)
         actualDelta = lineLength / nPoints
