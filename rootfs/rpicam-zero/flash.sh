@@ -4,7 +4,7 @@ set -u -e
 
 
 if [ ! $# -eq 2 ]; then
-   echo "Usage $0 /dev/sdX images/jaiabot__rpicam-zero-bookworm.img[.gz]"
+   echo "Usage $0 /dev/sdX images/jaiabot__rpicam-zero-trixie.img[.gz]"
    exit 1;
 fi
 
