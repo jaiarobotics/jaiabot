@@ -197,6 +197,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
+        - "task/3.y/init-3.y"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
