@@ -23,7 +23,24 @@ if [ ! -x "${DIR}/upload.sh" ]; then
     exit 1
 fi
 
+if [ "${TYPE}" = "usb" ]; then
+    HEX_BASENAME="jaiabot_runtime.ino.hex"
+else
+    HEX_BASENAME="jaiabot_runtime.ino.with_bootloader.hex"
+fi
+UPLOADED_MARKER="${DIR}/${HEX_BASENAME}.uploaded"
+
 systemctl stop jaiabot_driver_arduino
-rm -f "${DIR}/jaiabot_runtime.ino.hex.uploaded"
-"${DIR}/upload.sh"
+rm -f "${UPLOADED_MARKER}"
+
+upload_ok=false
+if "${DIR}/upload.sh"; then
+    upload_ok=true
+fi
+
 systemctl start jaiabot_driver_arduino
+
+if [ "${upload_ok}" = false ] || [ ! -f "${UPLOADED_MARKER}" ]; then
+    echo "Arduino upload failed; uploaded marker not present: ${UPLOADED_MARKER}"
+    exit 1
+fi
