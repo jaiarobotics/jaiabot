@@ -16,6 +16,20 @@ import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
 
 import "./MissionSetEditor.less";
 
+interface WaypointWarningProps {
+    onClose: () => void;
+}
+
+function WaypointWarning({ onClose }: WaypointWarningProps) {
+    return (
+        <div className="secondary-dialog alert">
+            <h1>Alert</h1>
+            <p>{`Adding this mission set would exceed the maximum of ${MAX_WAYPOINTS} waypoints per mission.`}</p>
+            <button onClick={onClose}>Close</button>
+        </div>
+    );
+}
+
 interface DialogProps {
     isVisible: boolean;
     onClose: () => void;
@@ -332,13 +346,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         </div>
                     </div>
                     {isWaypointWarningVisible && (
-                        <div className="secondary-dialog alert">
-                            <h1>Alert</h1>
-                            <p>{`Adding this mission set would exceed the maximum of ${MAX_WAYPOINTS} waypoints per mission.`}</p>
-                            <button onClick={() => setIsWaypointWarningVisible(false)}>
-                                Close
-                            </button>
-                        </div>
+                        <WaypointWarning onClose={() => setIsWaypointWarningVisible(false)} />
                     )}
                     <div className="editor-button-row">
                         <SaveAndLoadButton
