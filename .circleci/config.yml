@@ -436,7 +436,7 @@ jobs:
             cd /root/jaiabot &&
             export NEWVERSION="$(echo /root/src/*.orig.tar.xz | sed 's/.*_\(.*\)\.orig\.tar\.xz/\1/')"
             COMMENT="Autobuild for version ${NEWVERSION}" &&
-            dch --newversion=${NEWVERSION}-0~DISTRORELEASEVERSION.1 -D DISTRORELEASECODENAME "${COMMENT}" &&
+            dch --newversion=${NEWVERSION}-0+DISTRORELEASEVERSION.1 -D DISTRORELEASECODENAME "${COMMENT}" &&
             cp debian/changelog /root/src
       - store_artifacts:
           path: /root/src
