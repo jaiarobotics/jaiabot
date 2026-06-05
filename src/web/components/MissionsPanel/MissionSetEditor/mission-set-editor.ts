@@ -20,14 +20,13 @@ function distributeMissionsToSlots(missions: Mission[], slotCount: number): Miss
     // slotCount >= 1 is guaranteed by callers; both getMaxWaypointsPerOutputMission and
     // combineMissionSets enforce desiredCount >= 1 before reaching here.
     const result: Mission[][] = Array.from({ length: slotCount }, (): Mission[] => []);
-    const n = missions.length;
 
-    if (n === 0) return result;
+    if (missions.length === 0) return result;
 
-    if (n >= slotCount) {
+    if (missions.length >= slotCount) {
         // Chain: distribute missions sequentially; earlier slots get one extra when uneven
-        const base = Math.floor(n / slotCount);
-        const extra = n % slotCount;
+        const base = Math.floor(missions.length / slotCount);
+        const extra = missions.length % slotCount;
         let missionIndex = 0;
         for (let slot = 0; slot < slotCount; slot++) {
             const count = base + (slot < extra ? 1 : 0);
@@ -35,7 +34,7 @@ function distributeMissionsToSlots(missions: Mission[], slotCount: number): Miss
                 result[slot].push(missions[missionIndex++]);
             }
         }
-    } else if (n === 1) {
+    } else if (missions.length === 1) {
         // Single mission: repeat for all slots (e.g. a common transit path for all bots)
         for (let slot = 0; slot < slotCount; slot++) {
             result[slot].push(missions[0]);
@@ -43,7 +42,7 @@ function distributeMissionsToSlots(missions: Mission[], slotCount: number): Miss
     } else {
         // Multiple missions but fewer than slots: assign one per slot, leave extras empty.
         // Avoids repeating survey missions across more bots than there are lanes.
-        for (let slot = 0; slot < n; slot++) {
+        for (let slot = 0; slot < missions.length; slot++) {
             result[slot].push(missions[slot]);
         }
     }
@@ -57,26 +56,26 @@ function distributeMissionsToSlots(missions: Mission[], slotCount: number): Miss
  * Used to validate against MAX_WAYPOINTS before saving.
  *
  * @param {string[]} names Ordered list of saved mission set names
- * @param {number} desiredCount Number of output missions
+ * @param {number} desiredMissionCount Number of output missions
  * @param {Map<string, MissionSetSnapshot>} missionSetSnapshotCache Cache of loaded snapshots
  * @returns {number} Maximum waypoints in any single output mission
  */
 export function getMaxWaypointsPerOutputMission(
     names: string[],
-    desiredCount: number,
+    desiredMissionCount: number,
     missionSetSnapshotCache: Map<string, MissionSetSnapshot>,
 ): number {
-    if (names.length === 0 || desiredCount < 1) return 0;
+    if (names.length === 0 || desiredMissionCount < 1) return 0;
 
     const distributedSets = names.map((name) => {
         const missionSetSnapshot = missionSetSnapshotCache.get(name);
         if (!missionSetSnapshot) return [];
         const missions = missionSetSnapshot.missions.map(([_, m]) => m);
-        return distributeMissionsToSlots(missions, desiredCount);
+        return distributeMissionsToSlots(missions, desiredMissionCount);
     });
 
     let maxWaypoints = 0;
-    for (let slot = 0; slot < desiredCount; slot++) {
+    for (let slot = 0; slot < desiredMissionCount; slot++) {
         let slotTotal = 0;
         for (const distributedSet of distributedSets) {
             for (const mission of distributedSet[slot]) {

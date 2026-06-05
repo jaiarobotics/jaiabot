@@ -206,18 +206,21 @@ export function MissionSetEditorDialog(props: DialogProps) {
      * @returns {void}
      */
     const handleDesiredMissionCountChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-        const newCount = Number(evt.target.value);
+        const projectedMissionCount = Number(evt.target.value);
         if (
             combinedList.length > 0 &&
-            newCount > 0 &&
-            getMaxWaypointsPerOutputMission(combinedList, newCount, snapshotCache.current) >
-                MAX_WAYPOINTS
+            projectedMissionCount > 0 &&
+            getMaxWaypointsPerOutputMission(
+                combinedList,
+                projectedMissionCount,
+                snapshotCache.current,
+            ) > MAX_WAYPOINTS
         ) {
             setIsWaypointWarningVisible(true);
             return;
         }
         setUserHasOverriddenCount(true);
-        setDesiredMissionCount(newCount);
+        setDesiredMissionCount(projectedMissionCount);
     };
 
     const hasCombinedSelection = selectedCombinedIndex !== null;

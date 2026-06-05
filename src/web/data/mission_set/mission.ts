@@ -71,7 +71,7 @@ export default class Mission {
         this.repeats = repeats;
     }
 
-    getBottomDepthSafetyParams(segmentIndex: number = 0): BottomDepthSafetyParams | undefined {
+    getBottomDepthSafetyParams(segmentIndex: number = 0) {
         return this.segments[segmentIndex]?.bottom_depth_safety_params;
     }
 
