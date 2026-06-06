@@ -99,6 +99,54 @@ export default function BotDetails() {
         return link.replace("LINK_", "").replaceAll("_", " ");
     }
 
+    function renderCellularSignalBars() {
+        const bars = bot.getCellularSignalBars();
+        const internetReachable = bot.getCellularInternetReachable();
+        const isNoInternet = internetReachable === false;
+        const displayBars = bars ?? 0;
+        const tooltipLines = [
+            internetReachable === undefined
+                ? "Internet: unknown"
+                : `Internet: ${internetReachable ? "reachable" : "not reachable"}`,
+            bot.getCellularPingMs() === undefined
+                ? undefined
+                : `Ping: ${bot.getCellularPingMs()} ms`,
+            bot.getCellularRssiDbm() === undefined
+                ? undefined
+                : `RSSI: ${bot.getCellularRssiDbm().toFixed(DETAILS_DECIMALS)} dBm`,
+            bot.getCellularDownloadMbps() === undefined
+                ? undefined
+                : `Download: ${bot.getCellularDownloadMbps().toFixed(DETAILS_DECIMALS)} Mbps`,
+            bot.getCellularUploadMbps() === undefined
+                ? undefined
+                : `Upload: ${bot.getCellularUploadMbps().toFixed(DETAILS_DECIMALS)} Mbps`,
+        ].filter(Boolean);
+
+        return (
+            <div
+                className={`cellular-signal ${isNoInternet ? "no-internet" : ""}`}
+                title={tooltipLines.join("\n")}
+            >
+                <div className="cellular-bars" aria-label={`Cellular signal ${displayBars} of 5`}>
+                    {[1, 2, 3, 4, 5].map((bar) => (
+                        <span
+                            key={bar}
+                            className={bar <= displayBars && !isNoInternet ? "active" : ""}
+                        />
+                    ))}
+                </div>
+                {isNoInternet ? <span className="cellular-no-internet">×</span> : null}
+                <span className="cellular-summary">
+                    {internetReachable === undefined
+                        ? "No cellular data"
+                        : isNoInternet
+                          ? "No internet"
+                          : `${displayBars}/5`}
+                </span>
+            </div>
+        );
+    }
+
     return (
         <React.Fragment>
             <div className="node-details">
@@ -213,6 +261,10 @@ export default function BotDetails() {
                                         <tr>
                                             <td>Wi-Fi Link Quality</td>
                                             <td>{bot.getWifiLinkQuality() ?? ""}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Cellular</td>
+                                            <td>{renderCellularSignalBars()}</td>
                                         </tr>
                                         <tr>
                                             <td>Data Logging</td>

@@ -1040,6 +1040,12 @@ export interface BotStatus {
     pdop?: number;
     data_offload_percentage?: number;
     wifi_link_quality_percentage?: number;
+    cellular_ping_ms?: number;
+    cellular_internet_reachable?: boolean;
+    cellular_signal_bars?: number;
+    cellular_rssi_dbm?: number;
+    cellular_download_mbps?: number;
+    cellular_upload_mbps?: number;
     link?: Link;
     active_links?: ActiveLink[];
     active_link_status_age?: { [link: string]: number };

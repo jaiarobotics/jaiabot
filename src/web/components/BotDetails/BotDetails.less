@@ -1,0 +1,60 @@
+.cellular-signal {
+    align-items: flex-end;
+    display: flex;
+    gap: 0.35rem;
+}
+
+.cellular-bars {
+    align-items: flex-end;
+    display: flex;
+    gap: 2px;
+    height: 1rem;
+}
+
+.cellular-bars span {
+    background-color: #6c757d;
+    border-radius: 1px;
+    display: inline-block;
+    opacity: 0.35;
+    width: 4px;
+}
+
+.cellular-bars span:nth-child(1) {
+    height: 20%;
+}
+
+.cellular-bars span:nth-child(2) {
+    height: 40%;
+}
+
+.cellular-bars span:nth-child(3) {
+    height: 60%;
+}
+
+.cellular-bars span:nth-child(4) {
+    height: 80%;
+}
+
+.cellular-bars span:nth-child(5) {
+    height: 100%;
+}
+
+.cellular-bars span.active {
+    background-color: #1f9d55;
+    opacity: 1;
+}
+
+.cellular-signal.no-internet .cellular-bars span {
+    background-color: #9aa0a6;
+    opacity: 0.25;
+}
+
+.cellular-no-internet {
+    color: #c62828;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.cellular-summary {
+    font-size: 0.85rem;
+}

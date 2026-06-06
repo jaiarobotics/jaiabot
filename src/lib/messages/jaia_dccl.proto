@@ -380,6 +380,29 @@ message BotStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
+    optional uint32 cellular_ping_ms = 60 [
+        (dccl.field) = { min: 0 max: 30000 precision: 0 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional bool cellular_internet_reachable = 61
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional int32 cellular_signal_bars = 62 [
+        (dccl.field) = { min: 0 max: 5 precision: 0 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional double cellular_rssi_dbm = 63 [
+        (dccl.field) = { min: -150 max: 0 precision: 1 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional double cellular_download_mbps = 64 [
+        (dccl.field) = { min: 0 max: 1000 precision: 0.01 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional double cellular_upload_mbps = 65 [
+        (dccl.field) = { min: 0 max: 1000 precision: 0.01 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
     optional uint64 mission_command_time = 71 [
         (dccl.field) = {
             codec: "dccl.time2"

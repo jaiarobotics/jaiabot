@@ -1,0 +1,24 @@
+// Copyright 2026:
+//   JaiaRobotics LLC
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+
+package jaiabot.config;
+
+message CellularModemDriver
+{
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
+    optional string serial_port = 10 [default = "/dev/ttyUSB2"];
+    optional int32 serial_baud = 11 [default = 115200];
+    optional string ping_host = 12 [default = "8.8.8.8"];
+    optional int32 throughput_probe_interval_seconds = 13 [default = 60];
+    optional string throughput_host = 14 [default = ""];
+}

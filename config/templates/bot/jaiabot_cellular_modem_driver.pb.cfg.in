@@ -1,0 +1,7 @@
+$app_block
+$interprocess_block
+serial_port: "/dev/ttyUSB2"
+serial_baud: 115200
+ping_host: "8.8.8.8"
+throughput_probe_interval_seconds: 60
+throughput_host: ""

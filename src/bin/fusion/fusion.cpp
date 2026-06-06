@@ -36,6 +36,7 @@
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/cellular_modem.pb.h"
 #include "jaiabot/messages/comms.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
@@ -644,6 +645,25 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 latest_bot_status_.clear_wifi_link_quality_percentage();
             }
+        });
+
+    interprocess().subscribe<jaiabot::groups::cellular_modem>(
+        [this](const jaiabot::protobuf::CellularModemReport& cellular_report) {
+            latest_bot_status_.set_cellular_ping_ms(cellular_report.ping_ms());
+            latest_bot_status_.set_cellular_internet_reachable(
+                cellular_report.internet_reachable());
+            if (cellular_report.has_signal_bars())
+                latest_bot_status_.set_cellular_signal_bars(cellular_report.signal_bars());
+            else
+                latest_bot_status_.clear_cellular_signal_bars();
+            if (cellular_report.has_rssi_dbm())
+                latest_bot_status_.set_cellular_rssi_dbm(cellular_report.rssi_dbm());
+            else
+                latest_bot_status_.clear_cellular_rssi_dbm();
+            if (cellular_report.has_download_mbps())
+                latest_bot_status_.set_cellular_download_mbps(cellular_report.download_mbps());
+            if (cellular_report.has_upload_mbps())
+                latest_bot_status_.set_cellular_upload_mbps(cellular_report.upload_mbps());
         });
 
     interprocess().subscribe<jaiabot::groups::bot_comms_status>(

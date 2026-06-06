@@ -89,6 +89,7 @@ enum Error
     ERROR__FAILED__JAIABOT_UDP_GATEWAY = 43
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_PPK = 44 [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_CELLULAR_MODEM_DRIVER = 45 [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -151,6 +152,8 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER = 130
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_CTD_MANAGER = 131
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_CELLULAR_MODEM_DRIVER = 132
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion

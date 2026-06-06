@@ -346,6 +346,10 @@ elif common.app == 'jaiabot_mission_manager':
                                      subnet_mask=common.comms.subnet_mask,
                                      camera_available=common.camera_available))
 
+elif common.app == 'jaiabot_cellular_modem_driver':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_cellular_modem_driver.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common))
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
                                      app_block=app_common,

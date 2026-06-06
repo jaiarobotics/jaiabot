@@ -57,6 +57,7 @@ set(JAIABOT_PROTOS
   udp_driver.proto
   link_config.proto
   comms.proto
+  cellular_modem.proto
   ctd.proto
   udp_gateway.proto
   ppk.proto

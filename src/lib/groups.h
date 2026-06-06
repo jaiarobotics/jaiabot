@@ -126,6 +126,9 @@ constexpr goby::middleware::Group metadata{"jaiabot::metadata"};
 constexpr goby::middleware::Group moos{"jaiabot::moos"};
 constexpr goby::middleware::Group helm_ivp{"jaiabot::helm_ivp"};
 
+// Cellular modem
+constexpr goby::middleware::Group cellular_modem{"MultiConnect-microCell"};
+
 // Bot Comms
 constexpr goby::middleware::Group intervehicle_subscribe_request{
     "jaiabot::intervehicle_subscribe_request"};

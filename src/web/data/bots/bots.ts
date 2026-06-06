@@ -107,8 +107,32 @@ export class Bots {
             bot.setBatteryPercent(botStatus.battery_percent);
         }
 
-        if (botStatus.wifi_link_quality_percentage) {
+        if (botStatus.wifi_link_quality_percentage !== undefined) {
             bot.setWifiLinkQuality(botStatus.wifi_link_quality_percentage);
+        }
+
+        if (botStatus.cellular_ping_ms !== undefined) {
+            bot.setCellularPingMs(botStatus.cellular_ping_ms);
+        }
+
+        if (botStatus.cellular_internet_reachable !== undefined) {
+            bot.setCellularInternetReachable(botStatus.cellular_internet_reachable);
+        }
+
+        if (botStatus.cellular_signal_bars !== undefined) {
+            bot.setCellularSignalBars(botStatus.cellular_signal_bars);
+        }
+
+        if (botStatus.cellular_rssi_dbm !== undefined) {
+            bot.setCellularRssiDbm(botStatus.cellular_rssi_dbm);
+        }
+
+        if (botStatus.cellular_download_mbps !== undefined) {
+            bot.setCellularDownloadMbps(botStatus.cellular_download_mbps);
+        }
+
+        if (botStatus.cellular_upload_mbps !== undefined) {
+            bot.setCellularUploadMbps(botStatus.cellular_upload_mbps);
         }
 
         if (botStatus.portalStatusAge) {

@@ -1,0 +1,27 @@
+// Copyright 2026:
+//   JaiaRobotics LLC
+//
+// This file is part of the JaiaBot Project Libraries
+// ("The Jaia Libraries").
+//
+// The Jaia Libraries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 2.1 of the License, or
+// (at your option) any later version.
+
+syntax = "proto3";
+
+package jaiabot.protobuf;
+
+message CellularModemReport
+{
+    int64 utime = 1;
+    uint32 ping_ms = 2;
+    bool internet_reachable = 3;
+    optional int32 signal_bars = 4;
+    optional float rssi_dbm = 5;
+    optional float rsrp_dbm = 6;
+    optional float sinr_db = 7;
+    optional float download_mbps = 8;
+    optional float upload_mbps = 9;
+}

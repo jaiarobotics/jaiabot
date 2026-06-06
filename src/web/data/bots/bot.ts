@@ -25,6 +25,12 @@ export default class Bot {
     private location: GeographicCoordinate;
     private batteryPercent: number;
     private wifiLinkQuality: number;
+    private cellularPingMs: number;
+    private cellularInternetReachable: boolean;
+    private cellularSignalBars: number;
+    private cellularRssiDbm: number;
+    private cellularDownloadMbps: number;
+    private cellularUploadMbps: number;
     private statusAge: number;
     private link: Link;
     private activeLinks: ActiveLink[];
@@ -112,6 +118,54 @@ export default class Bot {
 
     setWifiLinkQuality(wifiLinkQuality: number) {
         this.wifiLinkQuality = wifiLinkQuality;
+    }
+
+    getCellularPingMs() {
+        return this.cellularPingMs;
+    }
+
+    setCellularPingMs(cellularPingMs: number) {
+        this.cellularPingMs = cellularPingMs;
+    }
+
+    getCellularInternetReachable() {
+        return this.cellularInternetReachable;
+    }
+
+    setCellularInternetReachable(cellularInternetReachable: boolean) {
+        this.cellularInternetReachable = cellularInternetReachable;
+    }
+
+    getCellularSignalBars() {
+        return this.cellularSignalBars;
+    }
+
+    setCellularSignalBars(cellularSignalBars: number) {
+        this.cellularSignalBars = cellularSignalBars;
+    }
+
+    getCellularRssiDbm() {
+        return this.cellularRssiDbm;
+    }
+
+    setCellularRssiDbm(cellularRssiDbm: number) {
+        this.cellularRssiDbm = cellularRssiDbm;
+    }
+
+    getCellularDownloadMbps() {
+        return this.cellularDownloadMbps;
+    }
+
+    setCellularDownloadMbps(cellularDownloadMbps: number) {
+        this.cellularDownloadMbps = cellularDownloadMbps;
+    }
+
+    getCellularUploadMbps() {
+        return this.cellularUploadMbps;
+    }
+
+    setCellularUploadMbps(cellularUploadMbps: number) {
+        this.cellularUploadMbps = cellularUploadMbps;
     }
 
     // microseconds
