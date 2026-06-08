@@ -5,7 +5,7 @@ import { Segment } from "../../../types/protobuf-types";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
 
 /** Returns the largest mission count across the named sets in the snapshot cache. */
-export function getMaxMissionCount(
+function getMaxMissionCount(
     names: string[],
     missionSetSnapshotCache: Map<string, MissionSetSnapshot>,
 ): number {
