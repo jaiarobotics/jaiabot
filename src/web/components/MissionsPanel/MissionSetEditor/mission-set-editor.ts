@@ -11,9 +11,9 @@ function getMaxMissionCount(
 ): number {
     let max = 0;
     for (const name of names) {
-        const snapshot = missionSetSnapshotCache.get(name);
-        if (snapshot && snapshot.missions.length > max) {
-            max = snapshot.missions.length;
+        const missionSetSnapshot = missionSetSnapshotCache.get(name);
+        if (missionSetSnapshot && missionSetSnapshot.missions.length > max) {
+            max = missionSetSnapshot.missions.length;
         }
     }
     return max;
@@ -31,9 +31,9 @@ export function getMaxWaypointsPerOutputMission(
     for (let slot = 0; slot < slotCount; slot++) {
         let slotTotal = 0;
         for (const name of names) {
-            const snapshot = missionSetSnapshotCache.get(name);
-            if (!snapshot) continue;
-            const missions = snapshot.missions.map(([_, m]) => m);
+            const missionSetSnapshot = missionSetSnapshotCache.get(name);
+            if (!missionSetSnapshot) continue;
+            const missions = missionSetSnapshot.missions.map(([_, m]) => m);
             slotTotal += missions[slot % missions.length].getWaypoints().length;
         }
         maxWaypoints = Math.max(maxWaypoints, slotTotal);
@@ -86,9 +86,11 @@ export function combineMissionSets(
 ): MissionSetSnapshot {
     const missionArrays: Mission[][] = [];
     for (const name of names) {
-        const snapshot = missionSetSnapshotCache.get(name);
-        if (!snapshot) continue;
-        missionArrays.push(snapshot.missions.map(([_, mission]: [number, Mission]) => mission));
+        const missionSetSnapshot = missionSetSnapshotCache.get(name);
+        if (!missionSetSnapshot) continue;
+        missionArrays.push(
+            missionSetSnapshot.missions.map(([_, mission]: [number, Mission]) => mission),
+        );
     }
 
     const slotCount = missionArrays.reduce((max, missions) => Math.max(max, missions.length), 0);
