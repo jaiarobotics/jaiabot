@@ -1,5 +1,5 @@
 [Unit]
-Description=Script to reset gpio line for the echo
+Description=Script to reset gpio line for the PAM
 
 [Service]
 User=root

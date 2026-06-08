@@ -22,8 +22,8 @@ const botCourseOverGround = require("./botCourseOverGround.svg") as string;
 const botDesiredHeading = require("./botDesiredHeading.svg") as string;
 const taskDive = require("./taskDive.svg") as string;
 const taskDrift = require("./taskDrift.svg") as string;
-const taskDiveEcho = require("./taskDiveEcho.svg") as string;
-const taskDriftEcho = require("./taskDriftEcho.svg") as string;
+const taskDivePam = require("./taskDivePam.svg") as string;
+const taskDriftPam = require("./taskDriftPam.svg") as string;
 const taskStationKeep = require("./taskStationKeep.svg") as string;
 const taskConstantHeading = require("./taskConstantHeading.svg") as string;
 const taskListen = require("./taskListen.svg") as string;
@@ -352,11 +352,11 @@ export function desiredHeadingArrow(feature: Feature): Style {
  * @param {(TaskType | null)} taskType A task type
  * @returns {string} Icon src for the given task type
  */
-function getGoalSrc(taskType: TaskType | null, echoStart: boolean | null | undefined) {
+function getGoalSrc(taskType: TaskType | null, pamStart: boolean | null | undefined) {
     const srcMap: { [key: string]: string } = {
-        DIVE: echoStart ? taskDiveEcho : taskDive,
+        DIVE: pamStart ? taskDivePam : taskDive,
         STATION_KEEP: taskStationKeep,
-        SURFACE_DRIFT: echoStart ? taskDriftEcho : taskDrift,
+        SURFACE_DRIFT: pamStart ? taskDriftPam : taskDrift,
         CONSTANT_HEADING: taskConstantHeading,
         LISTEN: taskListen,
         NONE: taskNone,
@@ -392,7 +392,7 @@ function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boole
  * @param {boolean} isActiveGoal Is this goal the active goal for its bot?
  * @param {boolean} isSelected Is this goal selected by the user?
  * @param {boolean} canEdit Is this goal in an editable state?
- * @param {(boolean | null | undefined)} echoStart Task start echo sensor for this goal
+ * @param {(boolean | null | undefined)} pamStart Task start PAM sensor for this goal
  * @returns {Icon} The Icon style for this goal
  */
 export function createGoalIcon(
@@ -400,10 +400,10 @@ export function createGoalIcon(
     isActiveGoal: boolean,
     isSelected: boolean,
     canEdit: boolean,
-    echoStart: boolean | null | undefined,
+    pamStart: boolean | null | undefined,
 ) {
     taskType = taskType ?? TaskType.NONE;
-    const src = getGoalSrc(taskType, echoStart);
+    const src = getGoalSrc(taskType, pamStart);
     const color = getGoalColor(isActiveGoal, isSelected, canEdit);
 
     return new Icon({
@@ -477,7 +477,7 @@ export function getGoalStyle(feature: Feature<Point>) {
         isActive,
         isSelected,
         canEdit,
-        goal.task?.start_echo,
+        goal.task?.start_pam,
     );
 
     const markerStyle = new Style({

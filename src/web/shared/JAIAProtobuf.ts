@@ -666,7 +666,7 @@ export interface MissionTask {
     surface_drift?: DriftParameters;
     constant_heading?: ConstantHeadingParameters;
     station_keep?: StationKeepParameters;
-    start_echo?: boolean;
+    start_pam?: boolean;
 }
 
 export enum MissionStart {
@@ -775,7 +775,7 @@ export interface DesiredCourse {
 
 export enum BotType {
     HYDRO = "HYDRO",
-    ECHO = "ECHO",
+    PAM = "PAM",
 }
 
 export enum VehicleType {
@@ -1174,7 +1174,7 @@ export interface BottomDepthSafetyParams {
     safety_depth: string;
 }
 
-export enum EchoState {
+export enum PamState {
     BOOTING = 0,
     OCTOSPI = 1,
     SD_INIT = 2,
@@ -1187,10 +1187,10 @@ export enum EchoState {
     RUNNING = 9,
 }
 
-export interface Echo {
-    start_echo?: boolean;
-    stop_echo?: boolean;
-    echo_state?: EchoState;
+export interface Pam {
+    start_pam?: boolean;
+    stop_pam?: boolean;
+    pam_state?: PamState;
 }
 
 export interface Engineering {
@@ -1204,7 +1204,7 @@ export interface Engineering {
     gps_requirements?: GPSRequirements;
     rf_disable_options?: RFDisableOptions;
     bottom_depth_safety_params?: BottomDepthSafetyParams;
-    echo?: Echo;
+    pam?: Pam;
     flag?: number;
     bounds?: Bounds;
 }

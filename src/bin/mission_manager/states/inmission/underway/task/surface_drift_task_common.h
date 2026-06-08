@@ -61,16 +61,16 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
         imu_command.set_type(IMUCommand::START_WAVE_HEIGHT_SAMPLING);
         this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 
-        // Is this an echo task?
-        bool start_echo_sensor = this->template context<Task>().current_task()->start_echo();
+        // Is this a PAM task?
+        bool start_pam_sensor = this->template context<Task>().current_task()->start_pam();
 
-        if (start_echo_sensor)
+        if (start_pam_sensor)
         {
-            this->template context<InMission>().set_is_echo_recording(start_echo_sensor);
-            // Start echo recording
-            auto echo_command = EchoCommand();
-            echo_command.set_type(EchoCommand::CMD_START);
-            this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
+            this->template context<InMission>().set_is_pam_recording(start_pam_sensor);
+            // Start PAM recording
+            auto pam_command = PamCommand();
+            pam_command.set_type(PamCommand::CMD_START);
+            this->interprocess().template publish<jaiabot::groups::pam>(pam_command);
         }
     }
 
@@ -120,15 +120,15 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             imu_command.set_type(IMUCommand::STOP_WAVE_HEIGHT_SAMPLING);
             this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 
-            // Is echo recording?
-            bool stop_echo_sensor = this->template context<InMission>().is_echo_recording();
+            // Is PAM recording?
+            bool stop_pam_sensor = this->template context<InMission>().is_pam_recording();
 
-            if (stop_echo_sensor)
+            if (stop_pam_sensor)
             {
-                // Stop echo recording
-                auto echo_command = EchoCommand();
-                echo_command.set_type(EchoCommand::CMD_STOP);
-                this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
+                // Stop PAM recording
+                auto pam_command = PamCommand();
+                pam_command.set_type(PamCommand::CMD_STOP);
+                this->interprocess().template publish<jaiabot::groups::pam>(pam_command);
             }
         }
     }

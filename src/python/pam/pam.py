@@ -3,17 +3,17 @@ from enum import Enum
 from typing import *
 import logging
 from math import *
-from jaiabot.messages.echo_pb2 import EchoData
+from jaiabot.messages.pam_pb2 import PamData
 import serial
 import time
 from datetime import datetime
 from threading import *
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
-log = logging.getLogger('echo')
+log = logging.getLogger('pam')
 
 
-class EchoState(Enum):
+class PamState(Enum):
     BOOTING = 0
     OCTOSPI = 1
     SD_INIT = 2
@@ -25,7 +25,7 @@ class EchoState(Enum):
     STOP = 8
     RUNNING = 9
 
-class EchoCommands(Enum):
+class PamCommands(Enum):
     CMD_START = b'$REC,START'
     CMD_STOP = b'$REC,STOP'
     CMD_STORAGE = b'$REC,STORAGE'
@@ -37,14 +37,14 @@ class EchoCommands(Enum):
     CMD_VER = b'$REC,VER'
     CMD_HELP = b'$REC,HELP'
 
-class Echo:
+class Pam:
     _lock: Lock
 
     def __init__(self, connection_type):
         log.info('Device: MAI')
 
         self.is_setup = False
-        self.echo_state = None
+        self.pam_state = None
         self.connection_type = connection_type
         self.uart = None
         self.sensor = None
@@ -114,9 +114,9 @@ class Echo:
             self.setup()
 
         try:
-            # This should query the echo device
-            log.info("Get Status From Echo")
-            self.sendCMD(EchoCommands.CMD_STATUS.value)
+            # This should query the PAM device
+            log.info("Get Status From PAM")
+            self.sendCMD(PamCommands.CMD_STATUS.value)
             
             while True:
                 cc=str(self.sensor.readline().decode('utf-8').strip())
@@ -129,12 +129,12 @@ class Echo:
                         # Convert the last part to an integer
                         state = int(state)
                         log.debug(f'State: {state}')
-                        self.echo_state = state
+                        self.pam_state = state
                         break
                     except Exception as error:
                         log.warning("No state")
                 if 'ERROR' in cc:
-                    self.echo_state = None
+                    self.pam_state = None
 
         except Exception as error:
             log.warning("Error trying to get status!")
@@ -143,22 +143,22 @@ class Echo:
         if not self.is_setup:
             self.setup()
             
-        log.debug(f'State: {self.echo_state}')
-        return self.echo_state
+        log.debug(f'State: {self.pam_state}')
+        return self.pam_state
 
     def startDevice(self):
         if not self.is_setup:
             self.setup()
 
         try:
-            log.debug("Attempting Starting Echo")
-            if self.echo_state != EchoState.RUNNING.value:    
-                # This should start the echo device
-                log.debug("Starting Echo")
+            log.debug("Attempting Starting PAM")
+            if self.pam_state != PamState.RUNNING.value:    
+                # This should start the PAM device
+                log.debug("Starting PAM")
                 timeStr = datetime.utcnow().strftime("$GPZDA,%H%M%S.00,%d,%m,%Y,00,00*")
                 timeStr = timeStr.encode('utf-8')
                 self.sendCMD(timeStr)
-                self.sendCMD(EchoCommands.CMD_START.value)
+                self.sendCMD(PamCommands.CMD_START.value)
                 self.getStatus()
 
         except Exception as error:
@@ -169,18 +169,18 @@ class Echo:
             self.setup()
 
         try:
-            log.debug("Attempting Stopping Echo")
-            if self.echo_state != EchoState.READY.value:
-                # This should stop the echo device
-                log.debug("Stopping Echo")
-                self.sendCMD(EchoCommands.CMD_STOP.value)
+            log.debug("Attempting Stopping PAM")
+            if self.pam_state != PamState.READY.value:
+                # This should stop the PAM device
+                log.debug("Stopping PAM")
+                self.sendCMD(PamCommands.CMD_STOP.value)
                 self.getStatus()
 
         except Exception as error:
             log.warning("Error trying to stop device")
             
 
-class EchoSimulator:
+class PamSimulator:
     def __init__(self):
         log.info('Device: Simulator')
 
@@ -194,7 +194,7 @@ class EchoSimulator:
         pass
 
     def getState(self):
-        return EchoState.READY.value
+        return PamState.READY.value
 
     def startDevice(self):
         pass

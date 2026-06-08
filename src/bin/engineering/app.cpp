@@ -30,7 +30,7 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/messages/comms.pb.h"
-#include "jaiabot/messages/echo.pb.h"
+#include "jaiabot/messages/pam.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 
@@ -103,10 +103,10 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
             [this](const jaiabot::protobuf::Bounds& bounds)
             { latest_engineering.mutable_bounds()->CopyFrom(bounds); });
 
-        // Subscribe to Echo driver data changes, so they show up in the engineering_status messages
-        interprocess().subscribe<jaiabot::groups::echo>(
-            [this](const jaiabot::protobuf::EchoData& echo_data)
-            { latest_engineering.mutable_echo()->set_echo_state(echo_data.echo_state()); });
+        // Subscribe to PAM driver data changes, so they show up in the engineering_status messages
+        interprocess().subscribe<jaiabot::groups::pam>(
+            [this](const jaiabot::protobuf::PamData& pam_data)
+            { latest_engineering.mutable_pam()->set_pam_state(pam_data.pam_state()); });
 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Engineering& engineering_status)
@@ -341,18 +341,18 @@ void jaiabot::apps::JaiabotEngineering::handle_engineering_command(
             interprocess().publish<jaiabot::groups::imu>(imu_command);
         }
     }
-    else if (command.has_echo())
+    else if (command.has_pam())
     {
-        protobuf::EchoCommand echo_command;
-        if (command.echo().start_echo())
+        protobuf::PamCommand pam_command;
+        if (command.pam().start_pam())
         {
-            echo_command.set_type(protobuf::EchoCommand::CMD_START);
-            interprocess().publish<jaiabot::groups::echo>(echo_command);
+            pam_command.set_type(protobuf::PamCommand::CMD_START);
+            interprocess().publish<jaiabot::groups::pam>(pam_command);
         }
-        else if (command.echo().stop_echo())
+        else if (command.pam().stop_pam())
         {
-            echo_command.set_type(protobuf::EchoCommand::CMD_STOP);
-            interprocess().publish<jaiabot::groups::echo>(echo_command);
+            pam_command.set_type(protobuf::PamCommand::CMD_STOP);
+            interprocess().publish<jaiabot::groups::pam>(pam_command);
         }
     }
 

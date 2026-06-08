@@ -302,7 +302,7 @@ message MissionTask
     // for type == CONSTANT_HEADING
     optional ConstantHeadingParameters constant_heading = 4
         [(jaia.field).rest_api.presence = GUARANTEED];
-    optional bool start_echo = 5
+    optional bool start_pam = 5
         [default = false, (jaia.field).rest_api.presence = GUARANTEED];
 
     message StationKeepParameters

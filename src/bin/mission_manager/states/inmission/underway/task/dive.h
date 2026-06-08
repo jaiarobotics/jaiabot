@@ -53,16 +53,16 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
         this->interprocess().template publish<jaiabot::groups::imu>(imu_command);
 
         boost::optional<protobuf::MissionTask> current_task = context<Task>().current_task();
-        // Is this an echo task?
-        bool start_echo_sensor = current_task ? current_task->start_echo() : false;
+        // Is this a PAM task?
+        bool start_pam_sensor = current_task ? current_task->start_pam() : false;
 
-        if (start_echo_sensor)
+        if (start_pam_sensor)
         {
-            context<InMission>().set_is_echo_recording(start_echo_sensor);
-            // Start echo recording
-            auto echo_command = EchoCommand();
-            echo_command.set_type(EchoCommand::CMD_START);
-            this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
+            context<InMission>().set_is_pam_recording(start_pam_sensor);
+            // Start PAM recording
+            auto pam_command = PamCommand();
+            pam_command.set_type(PamCommand::CMD_START);
+            this->interprocess().template publish<jaiabot::groups::pam>(pam_command);
         }
     }
 
@@ -158,15 +158,15 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
             subsurface_current->set_heading(subsurface_heading);
         }
 
-        // Is echo recording?
-        bool stop_echo_sensor = context<InMission>().is_echo_recording();
+        // Is PAM recording?
+        bool stop_pam_sensor = context<InMission>().is_pam_recording();
 
-        if (stop_echo_sensor)
+        if (stop_pam_sensor)
         {
-            // Stop echo recording
-            auto echo_command = EchoCommand();
-            echo_command.set_type(EchoCommand::CMD_STOP);
-            this->interprocess().template publish<jaiabot::groups::echo>(echo_command);
+            // Stop PAM recording
+            auto pam_command = PamCommand();
+            pam_command.set_type(PamCommand::CMD_STOP);
+            this->interprocess().template publish<jaiabot::groups::pam>(pam_command);
         }   
     }
 

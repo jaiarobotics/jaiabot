@@ -1,18 +1,18 @@
-import "./echo.css";
+import "./pam.css";
 import { byId } from "./domQuery.js";
 import { api } from "./api.js";
 import { botDropdown } from "./BotDropdown.js";
 
-class EchoApp {
+class PamApp {
     constructor() {
-        this.queryButton = byId("query-echo-status");
-        this.queryButton.addEventListener("click", this.queryEchoStatus.bind(this));
+        this.queryButton = byId("query-pam-status");
+        this.queryButton.addEventListener("click", this.queryPamStatus.bind(this));
 
-        this.startEchoButton = byId("echo-start-btn");
-        this.startEchoButton.addEventListener("click", this.startEcho.bind(this));
+        this.startPamButton = byId("pam-start-btn");
+        this.startPamButton.addEventListener("click", this.startPam.bind(this));
 
-        this.stopEchoButton = byId("echo-stop-btn");
-        this.stopEchoButton.addEventListener("click", this.stopEcho.bind(this));
+        this.stopPamButton = byId("pam-stop-btn");
+        this.stopPamButton.addEventListener("click", this.stopPam.bind(this));
     }
 
     updateStatus(status) {
@@ -27,11 +27,11 @@ class EchoApp {
 
         if (engineering_status == null) return;
 
-        if (engineering_status.echo == null) return;
+        if (engineering_status.pam == null) return;
 
-        if (engineering_status.echo.echo_state == null) return;
+        if (engineering_status.pam.pam_state == null) return;
 
-        this.updateCurrentEchoStatus(engineering_status.echo.echo_state);
+        this.updateCurrentPamStatus(engineering_status.pam.pam_state);
     }
 
     initCheck() {
@@ -52,12 +52,12 @@ class EchoApp {
         return botId;
     }
 
-    updateCurrentEchoStatus(currentStatus) {
-        let element = document.getElementById("echo-current");
+    updateCurrentPamStatus(currentStatus) {
+        let element = document.getElementById("pam-current");
         element.textContent = currentStatus;
     }
 
-    queryEchoStatus() {
+    queryPamStatus() {
         const botId = this.initCheck();
 
         if (botId === null) {
@@ -73,8 +73,8 @@ class EchoApp {
         api.sendEngineeringCommand(engineeringCommand, true);
     }
 
-    startEcho() {
-        console.log("Start Echo");
+    startPam() {
+        console.log("Start PAM");
 
         const botId = this.initCheck();
 
@@ -85,15 +85,15 @@ class EchoApp {
 
         const engineeringCommand = {
             bot_id: botId,
-            echo: {
-                start_echo: true,
+            pam: {
+                start_pam: true,
             },
         };
         api.sendEngineeringCommand(engineeringCommand, true);
     }
 
-    stopEcho() {
-        console.log("Stop Echo");
+    stopPam() {
+        console.log("Stop PAM");
 
         const botId = this.initCheck();
 
@@ -104,12 +104,12 @@ class EchoApp {
 
         const engineeringCommand = {
             bot_id: botId,
-            echo: {
-                stop_echo: true,
+            pam: {
+                stop_pam: true,
             },
         };
         api.sendEngineeringCommand(engineeringCommand, true);
     }
 }
 
-export const echoApp = new EchoApp();
+export const pamApp = new PamApp();

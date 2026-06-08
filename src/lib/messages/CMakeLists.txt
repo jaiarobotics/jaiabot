@@ -47,7 +47,7 @@ set(JAIABOT_PROTOS
   dive_debug.proto
   xbee_extensions.proto
   simulator.proto
-  echo.proto
+  pam.proto
   tsys01.proto
   rest_api.proto
   option_extensions.proto

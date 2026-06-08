@@ -38,7 +38,7 @@
 #include "jaiabot/utils/mission_manager_utils.h"
 #include "jaiabot/messages/dive_debug.pb.h"
 #include "jaiabot/messages/imu.pb.h"
-#include "jaiabot/messages/echo.pb.h"
+#include "jaiabot/messages/pam.pb.h"
 using namespace jaiabot::protobuf;
 
 // Mission Manager app

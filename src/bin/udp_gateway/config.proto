@@ -26,7 +26,7 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/middleware/protobuf/udp_config.proto";
 
-import "jaiabot/messages/echo.proto";
+import "jaiabot/messages/pam.proto";
 import "jaiabot/messages/imu.proto";
 
 package jaiabot.config;
@@ -52,11 +52,11 @@ message UDPGateway
     optional bool tsys01_enabled = 20 [default = false];
     optional int32 tsys01_data_report_timeout_seconds = 16 [default = 40];
 
-    // Echo
-    optional bool echo_enabled = 21 [default = true];
-    optional int32 echo_data_report_timeout_seconds = 17 [default = 20];
-    optional jaiabot.protobuf.EchoIssue.SolutionType echo_issue_solution = 18 [default = REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY];
-    optional int32 echo_trigger_issue_timeout_seconds = 19 [default = 20];
+    // PAM
+    optional bool pam_enabled = 21 [default = true];
+    optional int32 pam_data_report_timeout_seconds = 17 [default = 20];
+    optional jaiabot.protobuf.PamIssue.SolutionType pam_issue_solution = 18 [default = REBOOT_PAM_IMU_AND_RESTART_PAM_PY];
+    optional int32 pam_trigger_issue_timeout_seconds = 19 [default = 20];
 
     // Salinity Chip
     optional bool salinity_enabled = 22 [default = true];
