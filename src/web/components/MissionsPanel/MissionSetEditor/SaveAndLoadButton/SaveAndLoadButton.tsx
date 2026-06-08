@@ -11,12 +11,12 @@ import { SaveAndLoadDialog } from "./SaveAndLoadDialog";
 
 interface Props {
     editorName: string;
-    desiredMissionCount: number;
     combinedMissionNames: string[];
     snapshotCache: Map<string, MissionSetSnapshot>;
     onClose: () => void;
 }
 
+/** Button that saves the combined mission set to local storage and loads it into the active mission. */
 export default function SaveAndLoadButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
@@ -24,8 +24,6 @@ export default function SaveAndLoadButton(props: Props) {
     const getDisabledCode = (): DisabledCodes => {
         if (!props.editorName.trim()) return DisabledCodes.NO_NAME;
         if (props.combinedMissionNames.length < 2) return DisabledCodes.NO_MISSIONS;
-        if (!props.desiredMissionCount || props.desiredMissionCount < 1)
-            return DisabledCodes.NO_MISSION_COUNT;
         if (listSavedMissionSets().includes(props.editorName.trim()))
             return DisabledCodes.OVERWRITE;
         return DisabledCodes.NONE;
@@ -39,9 +37,13 @@ export default function SaveAndLoadButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             const name = props.editorName.trim();
+            const missionCount = props.combinedMissionNames.reduce((max, n) => {
+                const snapshot = props.snapshotCache.get(n);
+                return snapshot ? Math.max(max, snapshot.missions.length) : max;
+            }, 0);
             const snapshot = combineMissionSets(
                 props.combinedMissionNames,
-                props.desiredMissionCount,
+                missionCount,
                 name,
                 props.snapshotCache,
             );

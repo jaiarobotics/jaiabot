@@ -11,7 +11,6 @@ import {
 } from "../MissionSetStorage/mission-set-storage";
 import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { getMaxWaypointsPerOutputMission } from "./mission-set-editor";
-import { formatNumericalInput } from "../../../utils/input";
 import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
 
 import "./MissionSetEditor.less";
@@ -49,23 +48,13 @@ interface CombinedListItemProps {
     onSelect: (index: number) => void;
 }
 
-/**
- * Dialog for building a combined mission set from multiple saved mission sets.
- * Displays a saved mission sets list and an ordered combination list.
- * Validates waypoint counts before allowing the combined set to be saved and loaded.
- *
- * @param {DialogProps} props.isVisible Controls whether the dialog is rendered
- * @param {DialogProps} props.onClose Callback invoked when the dialog is dismissed
- * @returns {React.ReactPortal} Portal-mounted dialog rendered into the JCC container
- */
+/** Dialog for building a combined mission set from multiple saved mission sets. */
 export function MissionSetEditorDialog(props: DialogProps) {
     const [editorName, setEditorName] = useState("");
-    const [desiredMissionCount, setDesiredMissionCount] = useState(0);
     const [combinedList, setCombinedList] = useState<string[]>([]);
     const [selectedSavedIndex, setSelectedSavedIndex] = useState<number | null>(null);
     const [selectedCombinedIndex, setSelectedCombinedIndex] = useState<number | null>(null);
     const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
-    const [userHasOverriddenCount, setUserHasOverriddenCount] = useState(false);
     const snapshotCache = useRef<Map<string, MissionSetSnapshot>>(new Map());
 
     if (!props.isVisible) {
@@ -74,37 +63,15 @@ export function MissionSetEditorDialog(props: DialogProps) {
 
     const savedMissionSets = listSavedMissionSets();
 
-    /**
-     * Toggles selection of an item in the stored mission sets list.
-     * Clicking the already-selected item deselects it.
-     *
-     * @param {number} index Index of the clicked item in savedMissionSets
-     * @returns {void}
-     */
     const handleSavedItemClick = (index: number) => {
         setSelectedSavedIndex((prev) => (prev === index ? null : index));
     };
 
-    /**
-     * Toggles selection of an item in the combined mission set list.
-     * Clicking the already-selected item deselects it.
-     *
-     * @param {number} index Index of the clicked item in combinedList
-     * @returns {void}
-     */
     const handleCombinedItemClick = (index: number) => {
         setSelectedCombinedIndex((prev) => (prev === index ? null : index));
     };
 
-    /**
-     * Adds the selected stored mission set to the combined list.
-     * Inserts before the selected combined list item if one is selected, otherwise appends.
-     * Validates the projected waypoint count and shows a warning if MAX_WAYPOINTS would be exceeded.
-     * Auto-updates desiredMissionCount to match the added set's mission count when the user
-     * has not manually overridden it.
-     *
-     * @returns {void}
-     */
+    // Inserts before the selected combined item if one is selected, otherwise appends. Rejects if it would exceed MAX_WAYPOINTS.
     const handleAdd = () => {
         if (selectedSavedIndex === null) return;
         const selectedSavedName = savedMissionSets[selectedSavedIndex];
@@ -127,13 +94,10 @@ export function MissionSetEditorDialog(props: DialogProps) {
             projectedList = [...combinedList, selectedSavedName];
         }
 
-        const addedMissionCount = snapshotCache.current.get(selectedSavedName)!.missions.length;
-        // Validate against the count that will actually be used when combining.
-        // If the user locked the count, it stays at desiredMissionCount (no auto-update after add).
-        // If the user hasn't locked it, the count will be bumped to addedMissionCount when larger.
-        const projectedMissionCount = userHasOverriddenCount
-            ? desiredMissionCount
-            : Math.max(desiredMissionCount, addedMissionCount);
+        const projectedMissionCount = projectedList.reduce((max, name) => {
+            const snapshot = snapshotCache.current.get(name);
+            return snapshot ? Math.max(max, snapshot.missions.length) : max;
+        }, 0);
 
         if (
             getMaxWaypointsPerOutputMission(
@@ -147,20 +111,8 @@ export function MissionSetEditorDialog(props: DialogProps) {
         }
 
         setCombinedList(projectedList);
-        if (selectedCombinedIndex !== null) {
-            setSelectedCombinedIndex(selectedCombinedIndex);
-        }
-        if (!userHasOverriddenCount && addedMissionCount > desiredMissionCount) {
-            setDesiredMissionCount(addedMissionCount);
-        }
     };
 
-    /**
-     * Moves the selected combined list item one position up.
-     * No-op if nothing is selected or the item is already at the top.
-     *
-     * @returns {void}
-     */
     const handleMoveUp = () => {
         if (selectedCombinedIndex === null || selectedCombinedIndex === 0) return;
         const next = [...combinedList];
@@ -172,12 +124,6 @@ export function MissionSetEditorDialog(props: DialogProps) {
         setSelectedCombinedIndex(selectedCombinedIndex - 1);
     };
 
-    /**
-     * Moves the selected combined list item one position down.
-     * No-op if nothing is selected or the item is already at the bottom.
-     *
-     * @returns {void}
-     */
     const handleMoveDown = () => {
         if (selectedCombinedIndex === null || selectedCombinedIndex === combinedList.length - 1)
             return;
@@ -190,51 +136,11 @@ export function MissionSetEditorDialog(props: DialogProps) {
         setSelectedCombinedIndex(selectedCombinedIndex + 1);
     };
 
-    /**
-     * Removes the selected item from the combined mission set list.
-     * Resets desiredMissionCount to the largest remaining set's mission count
-     * when the user has not manually overridden it.
-     *
-     * @returns {void}
-     */
     const handleDelete = () => {
         if (selectedCombinedIndex === null) return;
         const remaining = combinedList.filter((_, i) => i !== selectedCombinedIndex);
         setCombinedList(remaining);
         setSelectedCombinedIndex(null);
-        if (!userHasOverriddenCount) {
-            const maxCount = remaining.reduce((max, name) => {
-                const count = snapshotCache.current.get(name)!.missions.length;
-                return Math.max(max, count);
-            }, 0);
-            setDesiredMissionCount(maxCount);
-        }
-    };
-
-    /**
-     * Handles changes to the Number of Bots input field.
-     * Validates the projected waypoint count for the new bot count and shows a warning
-     * if MAX_WAYPOINTS would be exceeded, leaving the count unchanged in that case.
-     *
-     * @param {React.ChangeEvent<HTMLInputElement>} evt Change event from the number input
-     * @returns {void}
-     */
-    const handleDesiredMissionCountChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-        const projectedMissionCount = Number(evt.target.value);
-        if (
-            combinedList.length > 0 &&
-            projectedMissionCount > 0 &&
-            getMaxWaypointsPerOutputMission(
-                combinedList,
-                projectedMissionCount,
-                snapshotCache.current,
-            ) > MAX_WAYPOINTS
-        ) {
-            setIsWaypointWarningVisible(true);
-            return;
-        }
-        setUserHasOverriddenCount(true);
-        setDesiredMissionCount(projectedMissionCount);
     };
 
     const hasCombinedSelection = selectedCombinedIndex !== null;
@@ -253,15 +159,6 @@ export function MissionSetEditorDialog(props: DialogProps) {
                                 placeholder="Required"
                                 value={editorName}
                                 onChange={(evt) => setEditorName(evt.target.value)}
-                            />
-                        </div>
-                        <div className="input-container editor-count-input">
-                            <label>Number of Bots</label>
-                            <input
-                                type="number"
-                                min={1}
-                                value={formatNumericalInput(desiredMissionCount)}
-                                onChange={handleDesiredMissionCountChange}
                             />
                         </div>
                     </div>
@@ -351,7 +248,6 @@ export function MissionSetEditorDialog(props: DialogProps) {
                     <div className="editor-button-row">
                         <SaveAndLoadButton
                             editorName={editorName}
-                            desiredMissionCount={desiredMissionCount}
                             combinedMissionNames={combinedList}
                             snapshotCache={snapshotCache.current}
                             onClose={props.onClose}
@@ -365,15 +261,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
     );
 }
 
-/**
- * A single selectable item in the stored mission sets list.
- *
- * @param {SavedListItemProps} props.name Display name of the mission set
- * @param {SavedListItemProps} props.index Position in the savedMissionSets array
- * @param {SavedListItemProps} props.isSelected Whether this item is currently selected
- * @param {SavedListItemProps} props.onSelect Callback invoked with the item's index when clicked
- * @returns {JSX.Element} Rendered list item element
- */
+/** Selectable item in the stored mission sets list. */
 function SavedListItem(props: SavedListItemProps) {
     return (
         <li
@@ -387,15 +275,7 @@ function SavedListItem(props: SavedListItemProps) {
     );
 }
 
-/**
- * A single selectable item in the combined mission set list.
- *
- * @param {CombinedListItemProps} props.name Display name of the mission set
- * @param {CombinedListItemProps} props.index Position in the combinedList array
- * @param {CombinedListItemProps} props.isSelected Whether this item is currently selected
- * @param {CombinedListItemProps} props.onSelect Callback invoked with the item's index when clicked
- * @returns {JSX.Element} Rendered list item element
- */
+/** Selectable item in the combined mission set list. */
 function CombinedListItem(props: CombinedListItemProps) {
     return (
         <li
