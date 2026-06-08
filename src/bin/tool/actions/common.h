@@ -54,7 +54,7 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
         std::string net_code = host_matches[3];
         std::string fleet_id;
 
-        const char* env_fleet_id = std::getenv("jaia_fleet_index");
+        const char* env_fleet_id = std::getenv("jaia_fleet_id");
 
         if (host_matches[5].matched)
             fleet_id = host_matches[5];
@@ -92,7 +92,7 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
         if (fleet_id.empty())
             goby::glog.is_die() &&
                 goby::glog << "Could not find fleet ID. Either specify as 'fN' suffix (e.g., b1f3) "
-                              "or provide via environmental variable 'jaia_fleet_index'"
+                              "or provide via environmental variable 'jaia_fleet_id'"
                            << std::endl;
 
         // Constructing the command

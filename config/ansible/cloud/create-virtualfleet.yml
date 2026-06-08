@@ -66,7 +66,7 @@
 
     - name: Create VirtualFleet inventory 
       shell: |
-        /usr/bin/jaia-create-ansible-inventory.sh -b "{{ range(1, n_bots|int + 1) | join(',') }}" -h "1" -f {{ cloud_env_vars.jaia_fleet_index }} -n vfleet_vpn  > /etc/jaiabot/vfleet-inventory.yml
+        /usr/bin/jaia-create-ansible-inventory.sh -b "{{ range(1, n_bots|int + 1) | join(',') }}" -h "1" -f {{ cloud_env_vars.jaia_fleet_id }} -n vfleet_vpn  > /etc/jaiabot/vfleet-inventory.yml
       become: yes
         
     - name: Create the user data directories
@@ -107,7 +107,7 @@
         region: "{{ cloud_env_vars.jaia_aws_region }}"
         filters:        
           tag:jaia_instance_type: "virtualfleet"
-          tag:jaia_fleet: "{{ cloud_env_vars.jaia_fleet_index }}"
+          tag:jaia_fleet: "{{ cloud_env_vars.jaia_fleet_id }}"
           tag:jaia_customer: "{{ jaia_customer_no_quotes }}"
         wait: true
         state: terminated
@@ -138,7 +138,7 @@
           jaia_instance_type: "virtualfleet"
           jaia_node_type: "{{ item.node_type }}"
           jaia_node_id: "{{ item.node_id }}"
-          jaia_fleet: "{{ cloud_env_vars.jaia_fleet_index }}"
+          jaia_fleet: "{{ cloud_env_vars.jaia_fleet_id }}"
           jaia_customer: "{{ jaia_customer_no_quotes }}"
           jaiabot-rootfs-gen_repository: "{{ cloud_env_vars.jaia_aws_virtualfleet_repository }}"
           jaiabot-rootfs-gen_repository_version: "{{ cloud_env_vars.jaia_aws_virtualfleet_repository_version }}"          

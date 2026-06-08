@@ -80,7 +80,7 @@ hostnamectl set-hostname "jaia-unnamed"
 ## Store useful data for VirtualFleet
 
 cat <<EOF > /etc/jaiabot/cloud.env
-jaia_fleet_index={{FLEET_ID}}
+jaia_fleet_id={{FLEET_ID}}
 jaia_cloudhub_wg_pubkey=${SERVER_VPN_PUBKEY}
 jaia_cloudhub_public_ipv4_address={{PUBLIC_IPV4_ADDRESS}}
 jaia_aws_vpc_id={{VPC_ID}}

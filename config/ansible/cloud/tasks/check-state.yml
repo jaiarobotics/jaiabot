@@ -3,7 +3,7 @@
         region: "{{ cloud_env_vars.jaia_aws_region }}"
         filters:
           "tag:jaia_instance_type": "virtualfleet"
-          "tag:jaia_fleet": "{{ cloud_env_vars.jaia_fleet_index }}"
+          "tag:jaia_fleet": "{{ cloud_env_vars.jaia_fleet_id }}"
           "tag:jaia_customer": "{{ jaia_customer_no_quotes }}"
       register: ec2_info
 

@@ -45,19 +45,19 @@ def xbee_mac_slots(node_id):
 
 all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
 
-def runtime_wifi_ip_addr(node_id, fleet_index, hub_id):
+def runtime_wifi_ip_addr(node_id, fleet_id, hub_id):
     # TODO - consolidate with jaia-ip.py logic
     if node_id == hub_node_id:
-        return '10.23.' + str(fleet_index) + '.' + str(hub_id + 10)
+        return '10.23.' + str(fleet_id) + '.' + str(hub_id + 10)
     else:
         bot_id = node_id - 1
-        return '10.23.' + str(fleet_index) + '.' + str(bot_id + 100)
+        return '10.23.' + str(fleet_id) + '.' + str(bot_id + 100)
 
-def wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id = -1):
-    wifi_ip = runtime_wifi_ip_addr(node_id, fleet_index, hub_id)
+def wifi_ip_addr(this_node_id, node_id, fleet_id, hub_id = -1):
+    wifi_ip = runtime_wifi_ip_addr(node_id, fleet_id, hub_id)
     if is_simulation():
         # if this computer has an assigned IP address matching the expected runtime IP address, use the standard wifi IP addresses (VirtualBox fleet)        
-        if runtime_wifi_ip_addr(this_node_id, fleet_index, hub_id) in all_local_ip_addresses:
+        if runtime_wifi_ip_addr(this_node_id, fleet_id, hub_id) in all_local_ip_addresses:
             return wifi_ip
         # otherwise use localhost (for standard single machine sim)
         else:
@@ -65,22 +65,22 @@ def wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id = -1):
     else:
         return wifi_ip
     
-def wifi_remotes(this_node_id, fleet_index, hub_id):
+def wifi_remotes(this_node_id, fleet_id, hub_id):
     remotes=''
     first_node_id=0
     
     for node_id in range(first_node_id, number_of_bots_max+first_node_id+1):
         # skip self and hub, we'll add the hub in later with wifi_hub_remotes
         if this_node_id != node_id and node_id != hub_node_id:
-            remotes+='remote { modem_id: ' + str(base_modem_id(node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(node_id, hub_id)) + ' } \n'
+            remotes+='remote { modem_id: ' + str(base_modem_id(node_id)) + ' ip: "' + wifi_ip_addr(this_node_id, node_id, fleet_id, hub_id)  + '" port: ' + str(udp.wifi_udp_port(node_id, hub_id)) + ' } \n'
     return remotes
 
-def wifi_hub_remotes(this_node_id, fleet_index):
+def wifi_hub_remotes(this_node_id, fleet_id):
     hub_eps=''
     broadcast_modem_id=0
     for hub_id in expected_hubs_from_inventory():
         # use broadcast ID so that UDP driver will transmit to all hubs in use
-        hub_eps+='# hub ' + str(hub_id) + '\nremote { modem_id: ' + str(broadcast_modem_id) + ' ip: "' + wifi_ip_addr(this_node_id, hub_node_id, fleet_index, hub_id)  + '" port: ' + str(udp.wifi_udp_port(hub_node_id, hub_id)) + ' }\n'
+        hub_eps+='# hub ' + str(hub_id) + '\nremote { modem_id: ' + str(broadcast_modem_id) + ' ip: "' + wifi_ip_addr(this_node_id, hub_node_id, fleet_id, hub_id)  + '" port: ' + str(udp.wifi_udp_port(hub_node_id, hub_id)) + ' }\n'
     return hub_eps
 
 def wifi_mac_slots(node_id):
@@ -156,36 +156,36 @@ def iridium_rockblock_credentials():
 def hub2hub_modem_id(hub_id):
     return hub_id + 1 + subnet_index['hub2hub']*num_modems_in_subnet
 
-def runtime_hub2hub_ip_addr(hub_id, fleet_index):
+def runtime_hub2hub_ip_addr(hub_id, fleet_id):
     # TODO - consolidate with jaia-ip.py logic
-    ipv6 = ipaddress.ip_address(f'fd0f:77ac:4fdf:{fleet_index}::')
+    ipv6 = ipaddress.ip_address(f'fd0f:77ac:4fdf:{fleet_id}::)
     ipv6 += hub_id
     ipv6 += 0*2**16
     return str(ipv6)
 
-def has_cloudhub_vpn(fleet_index):
-    cloudhub_vpn_iface=[f'wg_jaia_ch{fleet_index}', 'wg_cloudhub']
+def has_cloudhub_vpn(fleet_id):
+    cloudhub_vpn_iface=[f'wg_jaia_ch{fleet_id}', 'wg_cloudhub']
     all_interfaces=netifaces.interfaces()
     for iface in cloudhub_vpn_iface:
         if iface in all_interfaces:
             return True
     return False
 
-def hub2hub_ip_addr(this_hub_id, hub_id, fleet_index):
-    hub2hub_ip = runtime_hub2hub_ip_addr(hub_id, fleet_index)
+def hub2hub_ip_addr(this_hub_id, hub_id, fleet_id):
+    hub2hub_ip = runtime_hub2hub_ip_addr(hub_id, fleet_id)
     if is_simulation():
         # use localhost (for standard single machine sim)
         return "::1"
     else:
         return hub2hub_ip
     
-def hub2hub_remotes(this_hub_id, fleet_index):
+def hub2hub_remotes(this_hub_id, fleet_id):
     remotes=''
     first_hub_id=0
     
     for hub_id in range(first_hub_id, number_of_hubs_max):
         if this_hub_id != hub_id:
-            remotes+='remote { modem_id: ' + str(hub_id + 1) + ' ip: "' + hub2hub_ip_addr(this_hub_id, hub_id, fleet_index)  + '" port: ' + str(udp.hub2hub_udp_port(hub_id)) + ' } \n'
+            remotes+='remote { modem_id: ' + str(hub_id + 1) + ' ip: "' + hub2hub_ip_addr(this_hub_id, hub_id, fleet_id)  + '" port: ' + str(udp.hub2hub_udp_port(hub_id)) + ' } \n'
     return remotes
 
 def hub2hub_mac_slots(hub_id):

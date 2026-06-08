@@ -1,8 +1,8 @@
 from common import is_simulation
 import common.comms
 
-def bot_index_to_node_id(bot_index):
-    return bot_index+common.comms.hub_node_id+1
+def bot_id_to_node_id(bot_id):
+    return bot_id+common.comms.hub_node_id+1
 
 def moos_port(node_id):
     return 9000 + node_id

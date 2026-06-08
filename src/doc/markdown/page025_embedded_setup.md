@@ -142,7 +142,7 @@ When using a built-from-source version of jaiabot, ensure that the local bin dir
 Bot 0 (install and enable):
 ```
 cd jaiabot/config/gen
-./systemd-local.sh bot --bot_index 0 --n_bots 4 --enable
+./systemd-local.sh bot --bot_id 0 --n_bots 4 --enable
 ```
 
 Hub (install and enable):

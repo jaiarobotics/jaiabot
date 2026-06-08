@@ -1,4 +1,4 @@
-fleet: {{ cloud_env_vars.jaia_fleet_index }}
+fleet: {{ cloud_env_vars.jaia_fleet_id }}
 hubs: [ 1 ]
 bots: [{{ range(1, n_bots|int + 1) | join(',') }}]
 
