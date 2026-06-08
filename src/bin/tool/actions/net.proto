@@ -30,4 +30,8 @@ enum Net
     fleet_vpn = 1;
     vfleet_vpn = 2;
     cloudhub_vpn = 3;
+    cloudhub_eth = 4;
+    vfleet_eth = 5;
+    vfleet_wlan = 6;
+    vpc = 7;
 }

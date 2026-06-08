@@ -133,7 +133,7 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
         else:
             # By convention, we assign hub25 to iridium.jaia.tech on the CloudHub VPN
             iridium_jaia_tech_hub_id=25
-            result = subprocess.run(f"jaia-ip.py addr --node hub --node_id {iridium_jaia_tech_hub_id} --net cloudhub_vpn --fleet_id {fleet_index} --ipv6", stdout=subprocess.PIPE, shell=True)
+            result = subprocess.run(f"jaia ip h{iridium_jaia_tech_hub_id}cf{fleet_index}", stdout=subprocess.PIPE, shell=True)
             iridium_mt_server_address=result.stdout.decode().strip()
             iridium_mt_server_port=10800+fleet_index
 

@@ -23,6 +23,7 @@
 syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/protobuf/option_extensions.proto";
+import "actions/net.proto";
 
 package jaiabot.config;
 
@@ -37,8 +38,62 @@ message IPTool
     optional goby.middleware.protobuf.AppConfig app = 1
         [(goby.field) = { cfg { action: DEVELOPER } }];
 
-    required string host = 2 [(goby.field) = {
-        description: "The host get the IP address of (e.g. b4f2, h1f3, chf4, b10vf1, b2sf2)",
+    // Host code mode (returns addr for a node): e.g. b4f2, h1f3, chf4, b10vf1, h2cf3
+    optional string host = 2 [(goby.field) = {
+        description: "The host to get the IP address of (e.g. b4f2, h1f3, chf4, b10vf1, b2sf2)",
         cfg { position { enable: true } }
     }];
+
+    // Explicit mode: mirrors jaia-ip.py interface for full control
+
+    enum QueryType
+    {
+        addr = 1; // return a single node IP address
+        net = 2;  // return a network CIDR block
+    }
+
+    enum NodeType
+    {
+        bot = 1;
+        hub = 2;
+        desktop = 3;
+        gateway = 4;
+        rpicam = 5;
+    }
+
+    enum IPVersion
+    {
+        ipv4 = 1;
+        ipv6 = 2;
+    }
+
+    // Type of query: addr (node address) or net (network CIDR)
+    optional QueryType query_type = 3
+        [(goby.field) = { description: "Query type: addr or net (default: addr)" }];
+
+    // Node type (required for addr queries)
+    optional NodeType node_type = 4
+        [(goby.field) = { description: "Node type: bot, hub, desktop, gateway, or rpicam" }];
+
+    // Network type
+    optional Net ip_net = 5 [(goby.field) = {
+        description: "Network: wlan, fleet_vpn, vfleet_vpn, cloudhub_vpn, cloudhub_eth, vfleet_eth, vfleet_wlan, or vpc"
+    }];
+
+    // Fleet ID (0-255)
+    optional int32 fleet_id = 6 [(goby.field) = { description: "Fleet ID (0-255)" }];
+
+    // Node ID (required for addr queries, except gateway)
+    optional int32 node_id = 7
+        [(goby.field) = { description: "Node ID (required for addr queries except gateway)" }];
+
+    // IP version
+    optional IPVersion ip_version = 8
+        [(goby.field) = { description: "IP version: ipv4 or ipv6" }];
+
+    // IPv6 base prefix (required for cloudhub_eth, vfleet_eth, vfleet_wlan with ipv6)
+    optional string ipv6_base = 9 [(goby.field) = {
+        description: "IPv6 base address/prefix for cloudhub_eth, vfleet_eth, vfleet_wlan networks"
+    }];
 }
+
