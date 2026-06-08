@@ -12,7 +12,6 @@ minicom
 curl
 gpsd
 gpsd-clients
-ntp
 rsync
 xz-utils
 ## for stress testing

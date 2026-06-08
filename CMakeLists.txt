@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.5.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.28.3...4.2.3 FATAL_ERROR)
+
 project(jaiabot CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
@@ -107,9 +108,11 @@ option(build_jdv "Build jdv ui code (requires npm)" ON)
 file(GLOB_RECURSE INCLUDE_FILES RELATIVE ${project_SRC_DIR}/lib
   src/lib/*.h
   )
+
 file(GLOB_RECURSE PROTO_FILES RELATIVE ${project_SRC_DIR}/lib/messages
   src/lib/messages/*.proto
   )
+
 file(GLOB_RECURSE NANOPB_OPTIONS_FILES RELATIVE ${project_SRC_DIR}/lib/messages
   src/lib/messages/*.options
   )
@@ -173,6 +176,7 @@ file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/f
 
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
+  PATTERN "interfaces/figures" EXCLUDE # any figures are built to doc directory
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
@@ -250,8 +254,7 @@ foreach(app_target ${PROJECT_APP_LIST})
 endforeach()
 
 if(export_goby_interfaces)
-  # remove splines= when https://gitlab.com/graphviz/graphviz/-/issues/1408 fix is available (3.y)?
-  set(INTERFACE_COMMON_PARAMS "--splines=line;--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
+  set(INTERFACE_COMMON_PARAMS "--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_no_interthread.svg "--omit-interthread;--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_inc_unused.svg "${INTERFACE_COMMON_PARAMS}")

@@ -30,5 +30,3 @@ add_custom_target(jdv
   ALL
   DEPENDS npm_dependencies ${jdv_client_outdir}/bundle.js
   )
-
-install(DIRECTORY ${jdv_outdir} DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)

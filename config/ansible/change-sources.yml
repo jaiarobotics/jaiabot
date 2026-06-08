@@ -4,7 +4,7 @@
   become: yes
   gather_facts: yes
   vars:
-    version: "2.y"
+    version: "3.y"
     allowed_repos:
       - test
       - continuous

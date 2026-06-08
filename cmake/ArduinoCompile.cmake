@@ -28,16 +28,18 @@ function(arduino_sketch sketchname nickname fqbn avrdude_programmer baudrate)
   set(hex_output_with_bootloader ${outdir}/${hex_name_with_bootloader})
   set(hex_output ${outdir}/${hex_name})
 
-  add_custom_command(OUTPUT ${ARDUINO_SOURCE_DIR}/${sketchname}/jaiabot
+  set(nanopb_link_path ${ARDUINO_SOURCE_DIR}/${sketchname}/nanopb)
+  
+  add_custom_command(OUTPUT ${nanopb_link_path}
     DEPENDS ${project_INC_DIR}/nanopb
-    COMMAND ${CMAKE_COMMAND} -E create_symlink ${project_INC_DIR}/nanopb ${ARDUINO_SOURCE_DIR}/${sketchname}/nanopb)
+    COMMAND ${CMAKE_COMMAND} -E create_symlink ${project_INC_DIR}/nanopb ${nanopb_link_path})
   
   # command to run arduino-cli to produce compiled hex
   add_custom_command(OUTPUT ${hex_output} ${hex_output_with_bootloader}
     COMMAND arduino-cli
     ARGS compile --quiet --libraries ${ARDUINO_SOURCE_DIR}/libraries --fqbn ${fqbn} --output-dir ${outdir} ${ARDUINO_SOURCE_DIR}/${sketchname}
     DEPENDS ${ARDUINO_SOURCE_DIR}/${sketchname}/${sketchname}.ino
-    ${ARDUINO_SOURCE_DIR}/${sketchname}/jaiabot
+    ${nanopb_link_path}
     COMMENT "Running arduino-cli to compile ${sketchname} for ${nickname}")
 
   # target requiring compiled hex

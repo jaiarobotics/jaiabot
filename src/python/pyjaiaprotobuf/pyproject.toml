@@ -12,7 +12,7 @@ authors = [
 ]
 keywords = ["jaia"]
 dependencies = [
-    'protobuf==3.20.0', 
+    'protobuf',
 ]
 
 [project.urls]

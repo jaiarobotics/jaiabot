@@ -35,7 +35,7 @@ namespace jaiabot
 namespace apps
 {
 class AtlasScientificOEMDODriver
-    : public goby::middleware::SimpleThread<jaiabot::config::AtlasOEMDOThreadConfig>
+    : public goby::zeromq::SimpleThread<jaiabot::config::AtlasOEMDOThreadConfig>
 {
   public:
     AtlasScientificOEMDODriver(const jaiabot::config::AtlasOEMDOThreadConfig& config);

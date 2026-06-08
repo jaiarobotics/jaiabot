@@ -27,17 +27,19 @@ function test() {
 
 test "1.y" "" "continuous" "1.y"
 test "2.y" "" "continuous" "2.y"
+test "3.y" "" "continuous" "3.y"
 test "12.y" "" "continuous" "12.y"
 
 test "" "1.4.0_beta2" "beta" "1.y"
 test "" "2.3.0_alpha1" "beta" "2.y"
+test "" "3.5.0_beta1" "beta" "3.y"
 test "" "12.6.0_beta12" "beta" "12.y"
 
 test "" "1.4.0" "release" "1.y"
 test "" "2.3.0" "release" "2.y"
+test "" "3.1.0" "release" "3.y"
 test "" "12.6.0" "release" "12.y"
 
-test "foobar" "" "test" "2.y"
-
+test "foobar" "" "test" "3.y"
 
 echo "All tests passed"
