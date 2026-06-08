@@ -65,9 +65,9 @@ using BotID = uint32_t;
 using MissionCommandTime = uint64_t;
 
 /*
- * This function rounds a timestamp to the nearest DCCL time2 resolution (default 1 second).
+ * This function rounds a timestamp to the nearest DCCL time resolution (default 1 second).
  * This is so we can map the incoming mission_command_time, which will have made a round-trip
- * through the dccl.time2 codec to the mission_command_time stored on the Hub for matching
+ * through the dccl.time codec to the mission_command_time stored on the Hub for matching
  * with the mission name.
  */
 std::uint64_t dccl_time2_round(std::uint64_t ts_micros,

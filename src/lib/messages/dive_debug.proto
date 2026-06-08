@@ -38,7 +38,7 @@ message DivePowerDescentDebug
         ];
     optional uint64 last_depth_change_time = 5 [
             (dccl.field) = {
-                codec: "dccl.time2"
+                codec: "dccl.time"
                 units { prefix: "micro" derived_dimensions: "time" }
         }]; 
     optional double bottoming_timeout = 6 [

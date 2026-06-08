@@ -21,7 +21,7 @@ l = logging.getLogger('task_packet_database')
 
 
 # UTIME_PADDING is a small amount of time (in microseconds) that we pad the start and end times with when querying, 
-# to account for rounding from the dccl.time2 encoding
+# to account for rounding from the dccl.time encoding
 UTIME_PADDING = 1_000_000
 
 def dccl_time_round(utime: int, round_to: int=1_000_000) -> int:
