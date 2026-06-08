@@ -11,11 +11,7 @@ launchfile=${script_dir}/all.launch
 warpfile=${script_dir}/../../gen/common/sim.py
 
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-<<<<<<< HEAD
-    echo "Usage: generate_all_launch.sh [n_bots, default ${n_bots}] [warp, default ${warp}] [(x)bee or (w)ifi comms, default ${comms_mode}]"
-=======
     echo "Usage: generate_all_launch.sh [n_bots, default ${n_bots}] [warp, default ${warp}] [(x)bee or (w)ifi comms, default ${comms_mode}] [n_hubs, default ${n_hubs}]"
->>>>>>> 2.y
     exit;
 fi
 
