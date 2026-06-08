@@ -216,7 +216,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
-
+        - "copilot/update-dockerfile-gpg-keys"
         
 ## Begin actual config
 version: 2.1
