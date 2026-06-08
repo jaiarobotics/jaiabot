@@ -4,7 +4,12 @@ import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { Segment } from "../../../types/protobuf-types";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
 
-/** Returns the largest mission count across the named sets in the snapshot cache. */
+/**
+ * Returns the largest mission count across the named sets in the snapshot cache.
+ * @param {string[]} names Ordered list of saved mission set names
+ * @param {Map<string, MissionSetSnapshot>} missionSetSnapshotCache Cache of loaded snapshots
+ * @returns {number} Largest mission count across all named sets
+ */
 function getMaxMissionCount(
     names: string[],
     missionSetSnapshotCache: Map<string, MissionSetSnapshot>,
@@ -19,7 +24,13 @@ function getMaxMissionCount(
     return max;
 }
 
-/** Returns the maximum waypoint count across all output missions that would result from combining the given sets. */
+/**
+ * Returns the maximum waypoint count across all output missions that would result from combining the given sets.
+ * Used to validate against MAX_WAYPOINTS before saving.
+ * @param {string[]} names Ordered list of saved mission set names
+ * @param {Map<string, MissionSetSnapshot>} missionSetSnapshotCache Cache of loaded snapshots
+ * @returns {number} Maximum waypoints in any single output mission
+ */
 export function getMaxWaypointsPerOutputMission(
     names: string[],
     missionSetSnapshotCache: Map<string, MissionSetSnapshot>,
@@ -41,7 +52,14 @@ export function getMaxWaypointsPerOutputMission(
     return maxWaypoints;
 }
 
-// Appends one source mission's waypoints and offset segments to the combined output mission.
+/**
+ * Appends one source mission's waypoints and offset segments to the combined output mission.
+ * @param {Mission} sourceMission Source mission to append
+ * @param {Mission} combined Output mission being built (mutated)
+ * @param {Segment[]} combinedSegments Output segments array to merge SRP data into (mutated)
+ * @param {number} waypointOffset Number of waypoints already added to combined before this call
+ * @returns {number} Updated waypointOffset after appending the source mission's waypoints
+ */
 function applySourceMission(
     sourceMission: Mission,
     combined: Mission,
@@ -78,6 +96,10 @@ function applySourceMission(
 /**
  * Combines multiple saved mission sets into a single new mission set snapshot.
  * Output count equals the largest source set. Smaller sets cycle their missions to fill all slots.
+ * @param {string[]} names Ordered list of saved mission set names to combine
+ * @param {string} newName Name for the new combined mission set
+ * @param {Map<string, MissionSetSnapshot>} missionSetSnapshotCache Cache of loaded snapshots
+ * @returns {MissionSetSnapshot} Snapshot ready to save and/or load
  */
 export function combineMissionSets(
     names: string[],
