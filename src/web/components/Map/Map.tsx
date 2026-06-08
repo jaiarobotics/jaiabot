@@ -333,20 +333,14 @@ export default function Map() {
      */
     const handleWaypointClick = (feature: Feature<Geometry>) => {
         if (feature.get("isBypass")) return;
-        const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-        if (
-            feature.get("missionID") !== selectedWaypoint.missionID ||
-            feature.get("waypointNum") !== selectedWaypoint.waypointNum
-        ) {
-            jaiaDispatch({
-                type: JaiaActions.CLICKED_WAYPOINT,
-                clickedWaypoint: {
-                    waypointNum: feature.get("waypointNum"),
-                    missionID: feature.get("missionID"),
-                    isMoveable: false,
-                },
-            });
-        }
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_WAYPOINT,
+            clickedWaypoint: {
+                waypointNum: feature.get("waypointNum"),
+                missionID: feature.get("missionID"),
+                isMoveable: false,
+            },
+        });
     };
 
     /**
