@@ -4,6 +4,21 @@ import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { Segment } from "../../../types/protobuf-types";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
 
+/** Returns the largest mission count across the named sets in the snapshot cache. */
+export function getMaxMissionCount(
+    names: string[],
+    missionSetSnapshotCache: Map<string, MissionSetSnapshot>,
+): number {
+    let max = 0;
+    for (const name of names) {
+        const snapshot = missionSetSnapshotCache.get(name);
+        if (snapshot && snapshot.missions.length > max) {
+            max = snapshot.missions.length;
+        }
+    }
+    return max;
+}
+
 /**
  * Distributes an array of missions across a fixed number of output slots.
  *

@@ -10,7 +10,7 @@ import {
     loadSnapshotFromLocalStorage,
 } from "../MissionSetStorage/mission-set-storage";
 import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
-import { getMaxWaypointsPerOutputMission } from "./mission-set-editor";
+import { getMaxWaypointsPerOutputMission, getMaxMissionCount } from "./mission-set-editor";
 import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
 
 import "./MissionSetEditor.less";
@@ -55,7 +55,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const [selectedSavedIndex, setSelectedSavedIndex] = useState<number | null>(null);
     const [selectedCombinedIndex, setSelectedCombinedIndex] = useState<number | null>(null);
     const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
-    const snapshotCache = useRef<Map<string, MissionSetSnapshot>>(new Map());
+    const missionSetSnapshotCache = useRef<Map<string, MissionSetSnapshot>>(new Map());
 
     if (!props.isVisible) {
         return <div></div>;
@@ -76,8 +76,8 @@ export function MissionSetEditorDialog(props: DialogProps) {
         if (selectedSavedIndex === null) return;
         const selectedSavedName = savedMissionSets[selectedSavedIndex];
 
-        if (!snapshotCache.current.has(selectedSavedName)) {
-            snapshotCache.current.set(
+        if (!missionSetSnapshotCache.current.has(selectedSavedName)) {
+            missionSetSnapshotCache.current.set(
                 selectedSavedName,
                 loadSnapshotFromLocalStorage(selectedSavedName).snapshot!,
             );
@@ -94,16 +94,16 @@ export function MissionSetEditorDialog(props: DialogProps) {
             projectedList = [...combinedList, selectedSavedName];
         }
 
-        const projectedMissionCount = projectedList.reduce((max, name) => {
-            const snapshot = snapshotCache.current.get(name);
-            return snapshot ? Math.max(max, snapshot.missions.length) : max;
-        }, 0);
+        const projectedMissionCount = getMaxMissionCount(
+            projectedList,
+            missionSetSnapshotCache.current,
+        );
 
         if (
             getMaxWaypointsPerOutputMission(
                 projectedList,
                 projectedMissionCount,
-                snapshotCache.current,
+                missionSetSnapshotCache.current,
             ) > MAX_WAYPOINTS
         ) {
             setIsWaypointWarningVisible(true);
@@ -249,7 +249,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                         <SaveAndLoadButton
                             editorName={editorName}
                             combinedMissionNames={combinedList}
-                            snapshotCache={snapshotCache.current}
+                            missionSetSnapshotCache={missionSetSnapshotCache.current}
                             onClose={props.onClose}
                         />
                         <button onClick={props.onClose}>Cancel</button>
