@@ -41,16 +41,16 @@ export default function SaveAndLoadButton(props: Props) {
                 props.combinedMissionNames,
                 props.missionSetSnapshotCache,
             );
-            const snapshot = combineMissionSets(
+            const missionSetSnapshot = combineMissionSets(
                 props.combinedMissionNames,
                 missionCount,
                 name,
                 props.missionSetSnapshotCache,
             );
-            saveSnapshotToLocalStorage(name, snapshot);
+            saveSnapshotToLocalStorage(name, missionSetSnapshot);
             jaiaDispatch({
                 type: JaiaActions.LOAD_MISSION_SET,
-                missionSetSnapshot: snapshot,
+                missionSetSnapshot: missionSetSnapshot,
             });
             props.onClose();
         }
