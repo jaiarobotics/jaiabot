@@ -10,7 +10,7 @@ import {
     loadSnapshotFromLocalStorage,
 } from "../MissionSetStorage/mission-set-storage";
 import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
-import { getMaxWaypointsPerOutputMission, getMaxMissionCount } from "./mission-set-editor";
+import { getMaxWaypointsPerOutputMission } from "./mission-set-editor";
 import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
 
 import "./MissionSetEditor.less";
@@ -94,17 +94,9 @@ export function MissionSetEditorDialog(props: DialogProps) {
             projectedList = [...combinedList, selectedSavedName];
         }
 
-        const projectedMissionCount = getMaxMissionCount(
-            projectedList,
-            missionSetSnapshotCache.current,
-        );
-
         if (
-            getMaxWaypointsPerOutputMission(
-                projectedList,
-                projectedMissionCount,
-                missionSetSnapshotCache.current,
-            ) > MAX_WAYPOINTS
+            getMaxWaypointsPerOutputMission(projectedList, missionSetSnapshotCache.current) >
+            MAX_WAYPOINTS
         ) {
             setIsWaypointWarningVisible(true);
             return;

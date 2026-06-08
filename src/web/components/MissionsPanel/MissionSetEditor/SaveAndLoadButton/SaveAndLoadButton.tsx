@@ -4,7 +4,7 @@ import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
 import { listSavedMissionSets } from "../../MissionSetStorage/mission-set-storage";
 import { saveSnapshotToLocalStorage } from "../../MissionSetStorage/mission-set-storage";
-import { combineMissionSets, getMaxMissionCount } from "../mission-set-editor";
+import { combineMissionSets } from "../mission-set-editor";
 import { MissionSetSnapshot } from "../../../../data/mission_set/mission-set";
 import { DisabledCodes } from "./save-and-load-messages";
 import { SaveAndLoadDialog } from "./SaveAndLoadDialog";
@@ -37,13 +37,8 @@ export default function SaveAndLoadButton(props: Props) {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             const name = props.editorName.trim();
-            const missionCount = getMaxMissionCount(
-                props.combinedMissionNames,
-                props.missionSetSnapshotCache,
-            );
             const missionSetSnapshot = combineMissionSets(
                 props.combinedMissionNames,
-                missionCount,
                 name,
                 props.missionSetSnapshotCache,
             );
