@@ -32,7 +32,7 @@ export function getMaxWaypointsPerOutputMission(
         let slotTotal = 0;
         for (const name of names) {
             const missionSetSnapshot = missionSetSnapshotCache.get(name);
-            if (!missionSetSnapshot) continue;
+            if (!missionSetSnapshot || missionSetSnapshot.missions.length === 0) continue;
             const missions = missionSetSnapshot.missions.map(([_, m]) => m);
             slotTotal += missions[slot % missions.length].getWaypoints().length;
         }
@@ -111,6 +111,7 @@ export function combineMissionSets(
         let waypointOffset = 0;
 
         for (const missions of missionArrays) {
+            if (missions.length === 0) continue;
             const sourceMission = missions[slot % missions.length];
             waypointOffset = applySourceMission(
                 sourceMission,
