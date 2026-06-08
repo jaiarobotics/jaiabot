@@ -44,6 +44,7 @@ export default function RallyButton() {
             <Button
                 className={getClassName()}
                 aria-label={"add-rally-point"}
+                title="Create Rally Point"
                 onClick={() => handleRallyButtonClick()}
             >
                 <img src={rallyIcon} />
