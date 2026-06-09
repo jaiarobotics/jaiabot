@@ -158,6 +158,7 @@ void jaiabot::apps::MotorStatusThread::open_vehicle_database()
                                << std::endl;
         sqlite3_close(vehicle_db_);
         vehicle_db_ = nullptr;
+        return;
     }
 
     char sql[] = "CREATE TABLE IF NOT EXISTS motor_usage(motor_micros INTEGER PRIMARY KEY, "
