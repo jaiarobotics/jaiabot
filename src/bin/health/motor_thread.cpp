@@ -38,6 +38,8 @@ using goby::glog;
 constexpr int thermistor_ohms_neutral = 10000;
 constexpr int thermistor_voltage = 5;
 
+constexpr int32_t MOTOR_MICROS_BIN = 50; // Bin size for motor microseconds
+
 jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::MotorStatusConfig& cfg)
     : HealthMonitorThread(cfg, "motor_status", 5.0 * boost::units::si::hertz)
 {
@@ -188,7 +190,6 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros, uint64_t 
         return;
     }
 
-    const int32_t MOTOR_MICROS_BIN = 50; // Bin size for motor microseconds
     int32_t binned_motor_micros =
         (motor_micros / MOTOR_MICROS_BIN) * MOTOR_MICROS_BIN; // Bin the motor microseconds
 
