@@ -6,10 +6,21 @@ import socket
 from threading import Thread
 from jaiabot.messages.motor_pb2 import Motor
 
+
+class Args:
+    simulator: bool
+    port: int
+
+
 parser = argparse.ArgumentParser(description='Read RPM from motor and publish it over UDP')
 parser.add_argument('-s', '--simulator', dest='simulator', action='store_true', help='Run in simulator mode (no GPIO access)')
 parser.add_argument('-p', '--port', dest='port', type=int, default=20005, help='Port to access motor readings')
-args = parser.parse_args()
+args: Args = parser.parse_args()
+
+
+if not args.simulator:
+    from gpiozero import Button
+
 
 import time
 from threading import Event
@@ -29,7 +40,6 @@ rpm = 0
 def calculate_rpm():
     global rpm
 
-    from gpiozero import Button
     pin = Button(27, pull_up=True)
 
     falling_event = Event()
