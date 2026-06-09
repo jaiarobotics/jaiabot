@@ -94,8 +94,3 @@ void jaiabot::apps::ArduinoSimThread::handle_arduino_command(const jaiabot::prot
     interprocess().publish<groups::arduino_to_pi>(arduino_response);
 }
 
-
-void jaiabot::apps::ArduinoSimThread::loop()
-{
-}
-

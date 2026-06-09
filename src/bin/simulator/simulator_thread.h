@@ -64,9 +64,6 @@ class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThrea
     virtual void handle_arduino_command(const jaiabot::protobuf::ArduinoCommand& arduino_command);
 
   private:
-    void loop() override;
-
-  private:
     int voltage_period_{1};
     double voltage_step_decrease_{0.1};
     double voltage_start_{24.0};
