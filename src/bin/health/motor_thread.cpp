@@ -250,8 +250,7 @@ void jaiabot::apps::MotorStatusThread::update_total_motor_usage()
     status_.clear_total_motor_usage();
 
     const auto update_interval = std::chrono::seconds(15);
-    static goby::time::SteadyClock::time_point next_report_time =
-        goby::time::SteadyClock::now() + update_interval;
+    static goby::time::SteadyClock::time_point next_report_time = goby::time::SteadyClock::now();
 
     if (goby::time::SteadyClock::now() < next_report_time)
     {
