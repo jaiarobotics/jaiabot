@@ -21,8 +21,6 @@ interface WaypointWarningProps {
 
 /**
  * Alert overlay shown when adding a mission set would exceed MAX_WAYPOINTS.
- * @param {WaypointWarningProps} props.onClose Callback invoked when the user dismisses the alert
- * @returns {JSX.Element} Alert dialog with a close button
  */
 function WaypointWarning({ onClose }: WaypointWarningProps) {
     return (
@@ -57,9 +55,6 @@ interface CombinedListItemProps {
  * Dialog for building a combined mission set from multiple saved mission sets.
  * Displays a stored mission sets list and an ordered combination list.
  * Validates waypoint counts before allowing the combined set to be saved and loaded.
- * @param {DialogProps} props.isVisible Controls whether the dialog is rendered
- * @param {DialogProps} props.onClose Callback invoked when the dialog is dismissed
- * @returns {React.ReactPortal} Portal-mounted dialog rendered into the JCC container
  */
 export function MissionSetEditorDialog(props: DialogProps) {
     const [editorName, setEditorName] = useState("");
@@ -267,11 +262,6 @@ export function MissionSetEditorDialog(props: DialogProps) {
 
 /**
  * Selectable item in the stored mission sets list.
- * @param {SavedListItemProps} props.name Display name of the mission set
- * @param {SavedListItemProps} props.index Position in the savedMissionSets array
- * @param {SavedListItemProps} props.isSelected Whether this item is currently selected
- * @param {SavedListItemProps} props.onSelect Callback invoked with the item's index when clicked
- * @returns {JSX.Element} Rendered list item element
  */
 function SavedListItem(props: SavedListItemProps) {
     return (
@@ -288,11 +278,6 @@ function SavedListItem(props: SavedListItemProps) {
 
 /**
  * Selectable item in the combined mission set list.
- * @param {CombinedListItemProps} props.name Display name of the mission set
- * @param {CombinedListItemProps} props.index Position in the combinedList array
- * @param {CombinedListItemProps} props.isSelected Whether this item is currently selected
- * @param {CombinedListItemProps} props.onSelect Callback invoked with the item's index when clicked
- * @returns {JSX.Element} Rendered list item element
  */
 function CombinedListItem(props: CombinedListItemProps) {
     return (

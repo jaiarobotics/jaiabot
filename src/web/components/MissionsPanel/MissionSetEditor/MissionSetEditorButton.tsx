@@ -8,7 +8,6 @@ import { MissionSetEditorDialog } from "./MissionSetEditorDialog";
 
 /**
  * Toolbar button that opens the Mission Set Editor dialog.
- * @returns {JSX.Element} Icon button that toggles the MissionSetEditorDialog
  */
 export default function MissionSetEditorButton() {
     const [isDialogVisible, setIsDialogVisible] = useState(false);
