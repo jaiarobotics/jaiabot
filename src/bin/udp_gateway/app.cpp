@@ -117,7 +117,7 @@ class UDPGateway
     // Currents and Waves Estimator data tracking
     goby::time::SteadyClock::time_point last_currents_and_waves_estimation_time_{
         std::chrono::seconds(0)};
-    goby::middleware::protobuf::UDPEndPoint currrents_and_waves_estimator_udp_src_;
+    goby::middleware::protobuf::UDPEndPoint currents_and_waves_estimator_udp_src_;
 };
 
 } // namespace apps
@@ -289,13 +289,13 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             if (envelope.currents_and_waves_estimator_payload().has_heartbeat())
             {
                 last_currents_and_waves_estimation_time_ = goby::time::SteadyClock::now();
-                currrents_and_waves_estimator_udp_src_ = udp_src;
+                currents_and_waves_estimator_udp_src_ = udp_src;
             }
             if (envelope.currents_and_waves_estimator_payload().has_task_packet())
             {
                 auto task_packet = envelope.currents_and_waves_estimator_payload().task_packet();
                 last_currents_and_waves_estimation_time_ = goby::time::SteadyClock::now();
-                currrents_and_waves_estimator_udp_src_ = udp_src;
+                currents_and_waves_estimator_udp_src_ = udp_src;
 
                 if (this->rf_enabled_)
                 {
@@ -369,7 +369,7 @@ void jaiabot::apps::UDPGateway::send_currents_and_waves_estimator_payload(
 {
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
     *envelope.mutable_currents_and_waves_estimator_payload() = currents_and_waves_estimator_payload;
-    send_envelope(envelope, currrents_and_waves_estimator_udp_src_);
+    send_envelope(envelope, currents_and_waves_estimator_udp_src_);
 }
 
 void jaiabot::apps::UDPGateway::loop()
