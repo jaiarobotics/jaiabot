@@ -35,11 +35,11 @@ export function getMaxWaypointsPerOutputMission(
     names: string[],
     missionSetSnapshotCache: Map<string, MissionSetSnapshot>,
 ): number {
-    const slotCount = getMaxMissionCount(names, missionSetSnapshotCache);
-    if (names.length === 0 || slotCount < 1) return 0;
+    const missionCount = getMaxMissionCount(names, missionSetSnapshotCache);
+    if (names.length === 0 || missionCount < 1) return 0;
 
     let maxWaypoints = 0;
-    for (let slot = 0; slot < slotCount; slot++) {
+    for (let slot = 0; slot < missionCount; slot++) {
         let slotTotal = 0;
         for (const name of names) {
             const missionSetSnapshot = missionSetSnapshotCache.get(name);
