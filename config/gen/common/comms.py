@@ -158,7 +158,7 @@ def hub2hub_modem_id(hub_id):
 
 def runtime_hub2hub_ip_addr(hub_id, fleet_id):
     # TODO - consolidate with jaia-ip.py logic
-    ipv6 = ipaddress.ip_address(f'fd0f:77ac:4fdf:{fleet_id}::)
+    ipv6 = ipaddress.ip_address(f'fd0f:77ac:4fdf:{fleet_id}::')
     ipv6 += hub_id
     ipv6 += 0*2**16
     return str(ipv6)
