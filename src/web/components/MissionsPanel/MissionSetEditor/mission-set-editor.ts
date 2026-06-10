@@ -1,7 +1,6 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
 import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
-import { Segment } from "../../../types/protobuf-types";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
 
 /**
@@ -54,17 +53,14 @@ export function getMaxWaypointsPerOutputMission(
 
 /**
  * Appends one source mission's waypoints and offset segments to the combined output mission.
+ * Requires combined to have its segments pre-initialized before the first call.
  * @param {Mission} sourceMission Source mission to append
  * @param {Mission} combined Output mission being built (mutated)
- * @param {Segment[]} combinedSegments Output segments array to merge SRP data into (mutated)
  */
-function applySourceMission(
-    sourceMission: Mission,
-    combined: Mission,
-    combinedSegments: Segment[],
-): void {
+function applySourceMission(sourceMission: Mission, combined: Mission): void {
     const waypointOffset = combined.getWaypoints().length;
     combined.addWaypoints(cloneDeep(sourceMission.getWaypoints()));
+    const combinedSegments = combined.getSegments();
 
     for (const seg of sourceMission.getSegments()) {
         const offsetStart = seg.start_goal_index + waypointOffset;
@@ -111,7 +107,7 @@ export function combineMissionSets(
         );
     }
 
-    const slotCount = missionArrays.reduce((max, missions) => Math.max(max, missions.length), 0);
+    const missionCount = missionArrays.reduce((max, missions) => Math.max(max, missions.length), 0);
 
     let maxTransit = DEFAULT_SPEED;
     let maxStationkeep = DEFAULT_SPEED;
@@ -123,23 +119,21 @@ export function combineMissionSets(
     }
 
     const outputMissions: [number, Mission][] = [];
-    for (let slot = 0; slot < slotCount; slot++) {
+    for (let slot = 0; slot < missionCount; slot++) {
         const combined = new Mission();
-        const combinedSegments: Segment[] = [{ start_goal_index: 1, speed: maxTransit }];
+        combined.setSegments([{ start_goal_index: 1, speed: maxTransit }]);
         for (const missions of missionArrays) {
             if (missions.length === 0) continue;
             const sourceMission = missions[slot % missions.length];
-            applySourceMission(sourceMission, combined, combinedSegments);
+            applySourceMission(sourceMission, combined);
         }
-
-        combined.setSegments(combinedSegments);
         combined.setStationkeepSpeed(maxStationkeep);
         outputMissions.push([slot + 1, combined]);
     }
 
     return {
         missions: outputMissions,
-        nextMissionID: slotCount + 1,
+        nextMissionID: missionCount + 1,
         missionIDInEditMode: UNASSIGNED_ID,
         name: newName,
         selectedSpeeds: { transit: maxTransit, stationkeep_outer: maxStationkeep },
