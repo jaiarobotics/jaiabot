@@ -291,7 +291,7 @@ inline std::string ipv4_addr(int fleet_id, Network net, NodeType node, int node_
 {
     auto base = detail::ipv4_base(fleet_id, net);
     uint32_t offset = detail::ipv4_node_offset(node, node_id);
-    auto result = boost::asio::ip::make_address_v4(base.to_ulong() + offset);
+    auto result = boost::asio::ip::make_address_v4(base.to_uint() + offset);
     return result.to_string();
 }
 
