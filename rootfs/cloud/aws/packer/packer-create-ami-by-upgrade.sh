@@ -15,7 +15,7 @@ if [ -z "${JAIA_AWS_ACCOUNT:-}" ]; then
 fi
 
 UPGRADE_REPO=${2}
-BASE_REPO=${UPGRADE_REPO}
+BASE_REPO=release
 BASE_VERSION=2.y
 UPGRADE_VERSION=3.y
 
@@ -51,4 +51,4 @@ if [ -z "${LATEST_AMI}" ] || [ "${LATEST_AMI}" = "None" ]; then
     exit 1
 fi
 
-packer build -var "source_ami=$LATEST_AMI" -var "aws_region=$REGION" -var "jaia_upgrade_repo=${UPGRADE_REPO}" -var "jaia_upgrade_version=${UPGRADE_VERSION}" -var "ami_name=$UPGRADE_AMI_NAME" -var "iso_source=$JAIA_UPGRADE_ISO_SOURCE" -var "iso_local_dir=$JAIA_UPGRADE_ISO_LOCAL_DIR" packer-template.pkr.hcl
+packer build -on-error=ask  -var "source_ami=$LATEST_AMI" -var "aws_region=$REGION" -var "jaia_upgrade_repo=${UPGRADE_REPO}" -var "jaia_upgrade_version=${UPGRADE_VERSION}" -var "ami_name=$UPGRADE_AMI_NAME" -var "iso_source=$JAIA_UPGRADE_ISO_SOURCE" -var "iso_local_dir=$JAIA_UPGRADE_ISO_LOCAL_DIR" packer-template.pkr.hcl 
