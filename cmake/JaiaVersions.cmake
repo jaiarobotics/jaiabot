@@ -26,7 +26,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
   set(PROJECT_VERSION_MINOR ${CMAKE_MATCH_2})
   set(PROJECT_VERSION_PATCH ${CMAKE_MATCH_3})
- 
+
   message("MAJOR VERSION: ${PROJECT_VERSION_MAJOR}")
   message("MINOR VERSION: ${PROJECT_VERSION_MINOR}")
   message("PATCH VERSION: ${PROJECT_VERSION_PATCH}")
@@ -41,11 +41,11 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
 
   if(PROJECT_VERSION_GITBRANCH)
     string(STRIP ${PROJECT_VERSION_GITBRANCH} PROJECT_VERSION_GITBRANCH)
-  endif() 
- 
+  endif()
+
   if(PROJECT_VERSION_GITDESCRIBE)
-    string(STRIP ${PROJECT_VERSION_GITDESCRIBE} PROJECT_GIT_VERSION) 
-  endif() 
+    string(STRIP ${PROJECT_VERSION_GITDESCRIBE} PROJECT_GIT_VERSION)
+  endif()
 
   execute_process(COMMAND git rev-list ${PROJECT_GIT_VERSION}..HEAD --count
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -81,4 +81,5 @@ set(PROJECT_SOVERSION "1")
 
 # increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
 # start at 1 as 0 would be used prior to introducing this version (goby::middleware::Group::broadcast_group == 0)
-set(PROJECT_INTERVEHICLE_API_VERSION 20) # TODO: Increment to latest version +1 before final merge, leaving as 20 for now for compatibility with release version 2.6
+
+set(PROJECT_INTERVEHICLE_API_VERSION 22)

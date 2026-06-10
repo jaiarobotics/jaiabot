@@ -3,8 +3,6 @@ import { taskPackets } from "../../data/task_packets/task-packets";
 import { DEPTH_MAP_3D_NAME } from "../../utils/constants";
 import "./DepthMap3D.less";
 
-const Plotly = require("plotly.js-dist");
-
 /**
  * Processes the colors to be used in the depth map
  *
@@ -18,9 +16,9 @@ export function getColorScale() {
 /**
  * Passes the dive data from the Bots to plotly for a 3D rendering
  *
- * @returns {boolean} True if the plot is generated, false otherwise
+ * @returns {Promise<boolean>} True if the plot is generated, false otherwise
  */
-export function buildDepthMap() {
+export async function buildDepthMap() {
     const root = document.getElementById(DEPTH_MAP_3D_NAME);
 
     if (!root) {
@@ -85,6 +83,8 @@ export function buildDepthMap() {
         },
     };
 
+    // @ts-ignore - plotly.js-dist has no type declarations
+    const Plotly = (await import("plotly.js-dist")).default;
     Plotly.newPlot(root, data, layout);
     return true;
 }

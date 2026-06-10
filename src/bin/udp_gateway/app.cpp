@@ -112,6 +112,7 @@ class UDPGateway
     goby::time::SteadyClock::time_point last_echo_trigger_issue_time_{
         goby::time::SteadyClock::now()};
     goby::middleware::protobuf::UDPEndPoint echo_udp_src_;
+    goby::middleware::protobuf::UDPEndPoint ppk_udp_src_;
 
     // Currents and Waves Estimator data tracking
     goby::time::SteadyClock::time_point last_currents_and_waves_estimation_time_{
@@ -312,6 +313,13 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
                     interprocess().publish<groups::task_packet>(task_packet);
                 }
             }
+            break;
+        }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kUbxChunk:
+        {
+            interprocess().publish<groups::ppk>(envelope.ubx_chunk());
+            ppk_udp_src_ = udp_src;
+            glog.is_debug1() && glog << "Received UBXChunk" << endl;
             break;
         }
         default:

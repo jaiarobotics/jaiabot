@@ -4,6 +4,7 @@ import "jaiabot/messages/sensor/salinity.proto";
 import "jaiabot/messages/sensor/pressure_temperature.proto";
 import "jaiabot/messages/tsys01.proto";
 import "jaiabot/messages/echo.proto";
+import "jaiabot/messages/ppk.proto";
 import "jaiabot/messages/jaia_dccl.proto";
 import "goby/middleware/protobuf/gpsd.proto";
 import "jaiabot/messages/arduino.proto";
@@ -47,7 +48,11 @@ message UDPGatewayEnvelope
         EchoCommand echo_command = 6;
         EchoData echo_data = 7;
 
-        CurrentsAndWavesEstimatorPayload currents_and_waves_estimator_payload = 8;
+        // jaiabot_ubx_ppk.py
+        UBXChunk ubx_chunk = 8;
+
+
+        CurrentsAndWavesEstimatorPayload currents_and_waves_estimator_payload = 9;
     }
 
 }
