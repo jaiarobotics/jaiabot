@@ -667,6 +667,9 @@ export interface MissionTask {
     constant_heading?: ConstantHeadingParameters;
     station_keep?: StationKeepParameters;
     start_pam?: boolean;
+}
+
+export enum MissionStart {
     START_IMMEDIATELY = "START_IMMEDIATELY",
     START_ON_COMMAND = "START_ON_COMMAND",
 }
