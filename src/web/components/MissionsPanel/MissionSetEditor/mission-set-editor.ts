@@ -57,15 +57,13 @@ export function getMaxWaypointsPerOutputMission(
  * @param {Mission} sourceMission Source mission to append
  * @param {Mission} combined Output mission being built (mutated)
  * @param {Segment[]} combinedSegments Output segments array to merge SRP data into (mutated)
- * @param {number} waypointOffset Number of waypoints already added to combined before this call
- * @returns {number} Updated waypointOffset after appending the source mission's waypoints
  */
 function applySourceMission(
     sourceMission: Mission,
     combined: Mission,
     combinedSegments: Segment[],
-    waypointOffset: number,
-): number {
+): void {
+    const waypointOffset = combined.getWaypoints().length;
     combined.addWaypoints(cloneDeep(sourceMission.getWaypoints()));
 
     for (const seg of sourceMission.getSegments()) {
@@ -89,8 +87,6 @@ function applySourceMission(
             });
         }
     }
-
-    return waypointOffset + sourceMission.getWaypoints().length;
 }
 
 /**
@@ -130,17 +126,10 @@ export function combineMissionSets(
     for (let slot = 0; slot < slotCount; slot++) {
         const combined = new Mission();
         const combinedSegments: Segment[] = [{ start_goal_index: 1, speed: maxTransit }];
-        let waypointOffset = 0;
-
         for (const missions of missionArrays) {
             if (missions.length === 0) continue;
             const sourceMission = missions[slot % missions.length];
-            waypointOffset = applySourceMission(
-                sourceMission,
-                combined,
-                combinedSegments,
-                waypointOffset,
-            );
+            applySourceMission(sourceMission, combined, combinedSegments);
         }
 
         combined.setSegments(combinedSegments);
