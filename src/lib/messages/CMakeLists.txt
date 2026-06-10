@@ -61,6 +61,7 @@ set(JAIABOT_PROTOS
   udp_gateway.proto
   ppk.proto
   surob_results.proto
+  currents_and_waves_estimator_payload.proto
   ${SENSOR_MESSAGES}
 )
 

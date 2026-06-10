@@ -79,8 +79,7 @@ class UDPGateway
     void send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command);
     void send_echo_command(const jaiabot::protobuf::EchoCommand& echo_command);
     void send_currents_and_waves_estimator_payload(
-        const jaiabot::protobuf::UDPGatewayEnvelope::CurrentsAndWavesEstimatorPayload&
-            currents_and_waves_estimator_payload);
+        const jaiabot::protobuf::CurrentsAndWavesEstimatorPayload& currents_and_waves_estimator_payload);
 
     void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
     void process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_src);
@@ -179,7 +178,7 @@ jaiabot::apps::UDPGateway::UDPGateway()
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         {
-            jaiabot::protobuf::UDPGatewayEnvelope::CurrentsAndWavesEstimatorPayload
+            jaiabot::protobuf::CurrentsAndWavesEstimatorPayload
                 currents_and_waves_estimator_payload;
             *currents_and_waves_estimator_payload.mutable_arduino_response() = arduino_response;
             send_currents_and_waves_estimator_payload(currents_and_waves_estimator_payload);
@@ -188,7 +187,7 @@ jaiabot::apps::UDPGateway::UDPGateway()
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& mission_report)
         {
-            jaiabot::protobuf::UDPGatewayEnvelope::CurrentsAndWavesEstimatorPayload
+            jaiabot::protobuf::CurrentsAndWavesEstimatorPayload
                 currents_and_waves_estimator_payload;
             *currents_and_waves_estimator_payload.mutable_mission_report() = mission_report;
             send_currents_and_waves_estimator_payload(currents_and_waves_estimator_payload);
@@ -197,7 +196,7 @@ jaiabot::apps::UDPGateway::UDPGateway()
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
         {
-            jaiabot::protobuf::UDPGatewayEnvelope::CurrentsAndWavesEstimatorPayload
+            jaiabot::protobuf::CurrentsAndWavesEstimatorPayload
                 currents_and_waves_estimator_payload;
             *currents_and_waves_estimator_payload.mutable_time_position_velocity() = tpv;
             send_currents_and_waves_estimator_payload(currents_and_waves_estimator_payload);
@@ -364,8 +363,7 @@ void jaiabot::apps::UDPGateway::send_echo_command(const jaiabot::protobuf::EchoC
 }
 
 void jaiabot::apps::UDPGateway::send_currents_and_waves_estimator_payload(
-    const jaiabot::protobuf::UDPGatewayEnvelope::CurrentsAndWavesEstimatorPayload&
-        currents_and_waves_estimator_payload)
+    const jaiabot::protobuf::CurrentsAndWavesEstimatorPayload& currents_and_waves_estimator_payload)
 {
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
     *envelope.mutable_currents_and_waves_estimator_payload() = currents_and_waves_estimator_payload;

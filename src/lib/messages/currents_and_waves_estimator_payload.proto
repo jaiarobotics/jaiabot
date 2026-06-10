@@ -1,0 +1,27 @@
+syntax="proto2";
+
+import "jaiabot/messages/jaia_dccl.proto";
+import "goby/middleware/protobuf/gpsd.proto";
+import "jaiabot/messages/arduino.proto";
+import "jaiabot/messages/mission.proto";
+
+package jaiabot.protobuf;
+
+message CurrentsAndWavesEstimatorPayload
+{
+    oneof payload
+    {
+        // current and wave estimates from Python app
+        TaskPacket task_packet = 1;
+
+        // data messages sent to Python app, logged to compute current estimate
+        ArduinoResponse arduino_response = 2;
+        goby.middleware.protobuf.gpsd.TimePositionVelocity time_position_velocity = 3;
+
+        // mission state sent to Python app to start/stop data logging
+        MissionReport mission_report = 4;
+
+        // packet sent by Python app on startup and on regular interval to direct udp_gateway app to Python app address
+        bool heartbeat = 5;
+    }
+}
