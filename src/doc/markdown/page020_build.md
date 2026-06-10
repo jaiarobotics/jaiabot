@@ -8,13 +8,14 @@ The JaiaBot software depends on Goby3, MOOS, and other packages.
 
 When using the `jaiabot` Debian packages (see the CI/CD section below), these dependencies are automatically installed by `apt`.
 
-When building from source, these can be installed from the regular Ubuntu package repositories plus the `packages.jaia.tech` mirror of the `packages.gobysoft.org` repository (also reference the steps in jaiabot/.docker/focal/amd64/Dockerfile):
+When building from source, these can be installed from the regular Ubuntu package repositories plus the `packages.jaia.tech` mirror of the `packages.gobysoft.org` repository (also reference the steps in jaiabot/.docker/resolute/amd64/Dockerfile):
 
 ```
 # add mirror of packages.gobysoft.org to your apt sources
-echo "deb http://packages.jaia.tech/ubuntu/gobysoft/2.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
+echo "deb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/3.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
 # install the public key for packages.gobysoft.org
-sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
+export GOBYSOFT_SIGNING_KEY=19478082E2F8D3FE
+gpg --keyserver keyserver.ubuntu.com --recv-keys ${GOBYSOFT_SIGNING_KEY} && gpg --export ${GOBYSOFT_SIGNING_KEY} | $SUDO tee /etc/apt/keyrings/gobysoft.gpg > /dev/null
 # update apt
 sudo apt update
 # install the required dependencies
@@ -74,7 +75,7 @@ export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"
 
 ## CI/CD
 
-Continuous integration (CI) and continuous deployment (CD) are software best practices to ensure that code is quickly and easily integrated and tested. The CI part is managed by a standard Git workflow of committing regularly, pushing changes to Github.com, and integrating back to the `2.y` "main" branch using the pull request feature on Github.
+Continuous integration (CI) and continuous deployment (CD) are software best practices to ensure that code is quickly and easily integrated and tested. The CI part is managed by a standard Git workflow of committing regularly, pushing changes to Github.com, and integrating back to the `3.y` "main" branch using the pull request feature on Github.
 
 The CD part is managed by [CircleCI](https://circleci.com/), which is a cloud-based configurable build and test system. The `.circleci/config.yml` file configures the actions ("workflow") performed by the CircleCI servers. Open source projects get [substantial free credits](https://circleci.com/open-source/) for building with CircleCI.
 
@@ -82,10 +83,10 @@ We use CircleCI to do two main types of builds:
 
 - "basic" code build and run unit tests
 - Debian package build to produce .deb packages that can be installed by `apt`. These are categorized to allow for a stratification of stability versus the latest features:
-    - "test" builds that run when necessary to test build packages for branches before merging into `2.y`
-    - "continuous" builds that are run with each commit to the `2.y` branch (usually the result of a pull request merge). This is the newest code.
-    - "beta" builds that a run with each release ending in an `_` (e.g., `2.0.0_beta1`) which is changed to `~` (e.g. 1.0.0~beta1). Git does not allow `~` in tag names, hence the substitution.
-    - "release" builds that are run with any other release release (`git tag`), e.g., `2.0.0`.
+    - "test" builds that run when necessary to test build packages for branches before merging into `3.y`
+    - "continuous" builds that are run with each commit to the `3.y` branch (usually the result of a pull request merge). This is the newest code.
+    - "beta" builds that a run with each release ending in an `_` (e.g., `3.0.0_beta1`) which is changed to `~` (e.g. 3.0.0~beta1). Git does not allow `~` in tag names, hence the substitution.
+    - "release" builds that are run with any other release release (`git tag`), e.g., `3.0.0`.
 
 
 The interaction between the developers and the automated CI/CD system is summarized in the following figure:
@@ -98,15 +99,15 @@ When the developer is working on a new feature or fixing a bug, he or she *branc
 
 ### After the pull request is merged
 
-Once the developer has completed his or her feature or bug fix, he or she puts a "pull request" up on Github to be reviewed by another member of the software team. The pull request is generally set to merge the feature branch (e.g. "my-new-feature-xyz") into the "main" branch (`2.y` in our case). After review (using the GitHub UI), the reviewer merges the pull request and this automatically triggers the CircleCI system to do a package build of the code. These packages (.deb packages for installing on Ubuntu) are pushed the **continuous** repository on packages.jaia.tech. At this point, they can be installed using `apt` onto any system with that repository installed:
+Once the developer has completed his or her feature or bug fix, he or she puts a "pull request" up on Github to be reviewed by another member of the software team. The pull request is generally set to merge the feature branch (e.g. "my-new-feature-xyz") into the "main" branch (`3.y` in our case). After review (using the GitHub UI), the reviewer merges the pull request and this automatically triggers the CircleCI system to do a package build of the code. These packages (.deb packages for installing on Ubuntu) are pushed the **continuous** repository on packages.jaia.tech. At this point, they can be installed using `apt` onto any system with that repository installed:
 
 ```
 # add mirror of packages.gobysoft.org to your apt sources
-echo "deb http://packages.jaia.tech/ubuntu/gobysoft/2.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
+echo "deb http://packages.jaia.tech/ubuntu/gobysoft/3.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/gobysoft_release.list
 # install the public key for packages.gobysoft.org
 sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
 # add packages.jaia.tech to your apt sources
-echo "deb http://packages.jaia.tech/ubuntu/continuous/2.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/jaiabot_release.list
+echo "deb http://packages.jaia.tech/ubuntu/continuous/3.y/ `lsb_release -c -s`/" | sudo tee /etc/apt/sources.list.d/jaiabot_release.list
 # install the public key for packages.jaia.tech
 sudo apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
 sudo apt update
@@ -126,9 +127,9 @@ sudo apt install jaiabot-interfaces
 
 Once the decision has been made to release the software, a tag is made on the git repository and pushed to Github. The creation of a new tag automatically triggers a CircleCI build that is the same as the continuous build but is pushed to a different repository.
 
-Depending on the tag structure, this may either be the `beta/2.y` or `release/2.y`. Beta releases are tagged as `x.y.z_betaN` (e.g., 1.0.5_beta3) which becomes Debian version `x.y.z~betaN` during the CircleCI build.
+Depending on the tag structure, this may either be the `beta/3.y` or `release/3.y`. Beta releases are tagged as `x.y.z_betaN` (e.g., 1.0.5_beta3) which becomes Debian version `x.y.z~betaN` during the CircleCI build.
 
-To use the release or beta repository, simply run the same commands as in the previous section, just substitute `http://packages.jaia.tech/ubuntu/release/2.y/` or `http://packages.jaia.tech/ubuntu/beta/2.y/`for `http://packages.jaia.tech/ubuntu/continuous/2.y/`.
+To use the release or beta repository, simply run the same commands as in the previous section, just substitute `http://packages.jaia.tech/ubuntu/release/3.y/` or `http://packages.jaia.tech/ubuntu/beta/3.y/`for `http://packages.jaia.tech/ubuntu/continuous/3.y/`.
 
 It is perfectly fine to have more than one of these repositories installed at once. In all cases the newest code will be installed (so if you have both release and continuous installed, you will always get packages from continuous, or if you have release and beta installed, you will get packages from beta).
 
@@ -178,7 +179,7 @@ You will also need to update `jaiabot/.circleci/config.yml` to change the known_
 
 ### packages.gobysoft.org mirror
 
-To control the version of the GobySoft packages used, we maintain a mirror of packages.gobysoft.org (for each release series: 1.y, 2.y, etc. and two release levels: "release" and "staging") that can be manually updated as necessary using the `update_gobysoft_mirror.sh` script.
+To control the version of the GobySoft packages used, we maintain a mirror of packages.gobysoft.org (for each release series: 1.y, 2.y, 3.y, etc. and two release levels: "release" and "staging") that can be manually updated as necessary using the `update_gobysoft_mirror.sh` script.
 
 #### Create/update the mirror
 
@@ -188,30 +189,28 @@ The script `update_gobysoft_mirror.sh` in `jaiabot/scripts/packages` (copied to 
 
 The script has three actions:
 
-- "Update Staging Mirror": Use `apt-mirror` to pull the latest packages.gobysoft.org packages into the staging mirror (`/var/spool/apt-mirror/staging/${branch}` where `${branch}` is one of 1.y, 2.y, etc.). This will also prompt for "Choose Staging and Release Repositories" after completion of apt-mirror.
+- "Update Staging Mirror": Use `apt-mirror` to pull the latest packages.gobysoft.org packages into the staging mirror (`/var/spool/apt-mirror/staging/${branch}` where `${branch}` is one of 1.y, 2.y, 3.y, etc.). This will also prompt for "Choose Staging and Release Repositories" after completion of apt-mirror.
 - "Update Release Mirror from Staging": Copy the staging mirror to the release mirror (`/var/spool/apt-mirror/release/${branch}`) and set all repositories to point to this release mirror.
 - "Choose Staging and Release Repositories": Choice which repositories (from "test", "continuous", "beta" and "release") should point to the staging mirror, and the rest will be set to the release mirror. This is done by symlinking from `/var/spool/apt-mirror/[staging|release]/${branch}/mirror/packages.gobysoft.org/ubuntu/release` to `/var/www/html/ubuntu/gobysoft/[test|continuous|beta|release]/${branch}`.
-
-(For backwards compatibility, `/var/www/html/ubuntu/gobysoft/2.y` is manually symlinked to `/var/www/html/ubuntu/gobysoft/release/2.y`)
 
 #### Pulling in a new Goby release 
 
 The general process for pulling in a new Goby release should be:
 
 - Run `update_gobysoft_mirror.sh` and choose "Update Staging Mirror". Then select "test" and "continuous" for the repos to link to staging (do not select "beta" yet; "beta" (and "release") will continue to use the old GobySoft "release" repo).
-- Merge the changes in jaiabot that need the updated Goby release into 2.y which will trigger a CircleCI "continuous" build against the new Goby release in the staging repository.
+- Merge the changes in jaiabot that need the updated Goby release into 3.y which will trigger a CircleCI "continuous" build against the new Goby release in the staging repository.
 - Test on vehicles using the continuous `jaiabot.list` repos:
 
 ```
-deb http://packages.jaia.tech/ubuntu/continuous/2.y/ @DISTRIBUTION@/
-deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/2.y/ @DISTRIBUTION@/
+deb http://packages.jaia.tech/ubuntu/continuous/3.y/ @DISTRIBUTION@/
+deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/3.y/ @DISTRIBUTION@/
 ```
 - When ready to release a beta tag, just before tagging, run `update_gobysoft_mirror.sh` and choose "Choose Staging and Release Repositories", selecting "test", "continuous", and "beta" as the repos to link to staging.
 - Tag `jaiabot` with the beta tag and push. This will trigger a CircleCI "beta" build against the staging repo.
 - Test on vehicles using the beta `jaiabot.list` repos:
 ```
-deb http://packages.jaia.tech/ubuntu/beta/2.y/ @DISTRIBUTION@/
-deb http://packages.jaia.tech/ubuntu/gobysoft/beta/2.y/ @DISTRIBUTION@/
+deb http://packages.jaia.tech/ubuntu/beta/3.y/ @DISTRIBUTION@/
+deb http://packages.jaia.tech/ubuntu/gobysoft/beta/3.y/ @DISTRIBUTION@/
 ```
 - When ready to make the final release, just before tagging, run `update_gobysoft_mirror.sh` and choose "Update Release Mirror from Staging". This will copy the staging mirror in to the release mirror and point all the repos to the release mirror.
 - Tag `jaiabot` with the release tag and push. This will trigger a CircleCI "release" build against the (newly updated) release repo.
@@ -234,7 +233,7 @@ Update many bots at once can place high demands on the internet connection as th
 
 To enable online mode with hub caching:
 ```
-ansible-playbook  -i /etc/jaiabot/inventory.yml change-sources.yml -e mode=online_with_hub_cache -e version=2.y -e repo=release
+ansible-playbook  -i /etc/jaiabot/inventory.yml change-sources.yml -e mode=online_with_hub_cache -e version=3.y -e repo=release
 ```
 
 ### Offline updates
@@ -258,7 +257,7 @@ At this point each bot and hub in the fleet can be updated by simply running `su
 To revert to "normal" online updates after using one of the alternatives (or to switch the repo or version), you can use the same playbook:
 
 ```
-ansible-playbook  -i /etc/jaiabot/inventory.yml change-sources.yml -e mode=online -e repo=release -e version=2.y
+ansible-playbook  -i /etc/jaiabot/inventory.yml change-sources.yml -e mode=online -e repo=release -e version=3.y
 ```
 
 
