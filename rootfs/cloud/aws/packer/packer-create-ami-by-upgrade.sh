@@ -4,15 +4,20 @@
 
 set -u -e
 
-REGION=us-east-1
-JAIA_AWS_ACCOUNT=120512385734
+REGION=${AWS_DEFAULT_REGION:-us-east-1}
 
-# change to release once 1.20.0 is released
-BASE_REPO=continuous
-BASE_VERSION=1.y
+if [ -z "${JAIA_AWS_ACCOUNT:-}" ]; then
+    if [ "${REGION}" = "us-gov-east-1" ]; then
+        JAIA_AWS_ACCOUNT=497433381399
+    else
+        JAIA_AWS_ACCOUNT=120512385734
+    fi
+fi
 
 UPGRADE_REPO=${2}
-UPGRADE_VERSION=2.y
+BASE_REPO=release
+BASE_VERSION=2.y
+UPGRADE_VERSION=3.y
 
 SCRIPT_PATH=$(dirname "$0")
 
@@ -41,4 +46,9 @@ LATEST_AMI=$(aws ec2 describe-images \
                  --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
                  --output text)
 
-packer build -var "source_ami=$LATEST_AMI" -var "aws_region=$REGION" -var "jaia_upgrade_repo=${UPGRADE_REPO}" -var "jaia_upgrade_version=${UPGRADE_VERSION}" -var "ami_name=$UPGRADE_AMI_NAME" -var "iso_source=$JAIA_UPGRADE_ISO_SOURCE" -var "iso_local_dir=$JAIA_UPGRADE_ISO_LOCAL_DIR" packer-template.pkr.hcl
+if [ -z "${LATEST_AMI}" ] || [ "${LATEST_AMI}" = "None" ]; then
+    echo "Could not find base AMI for repo ${BASE_REPO}, version ${BASE_VERSION}, region ${REGION}, account ${JAIA_AWS_ACCOUNT}" >&2
+    exit 1
+fi
+
+packer build -on-error=ask  -var "source_ami=$LATEST_AMI" -var "aws_region=$REGION" -var "jaia_upgrade_repo=${UPGRADE_REPO}" -var "jaia_upgrade_version=${UPGRADE_VERSION}" -var "ami_name=$UPGRADE_AMI_NAME" -var "iso_source=$JAIA_UPGRADE_ISO_SOURCE" -var "iso_local_dir=$JAIA_UPGRADE_ISO_LOCAL_DIR" packer-template.pkr.hcl 
