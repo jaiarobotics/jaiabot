@@ -263,7 +263,7 @@ if [ "$(docker image ls ${debconf_image_name} --format='true')" != "true" ];
 then
     echo "Building the docker ${debconf_image_name} image"
     docker build --no-cache -t ${debconf_image_name} -f - . <<EOF
-FROM ubuntu:jammy
+FROM ubuntu:latest
 RUN apt-get update && apt-get install -y debconf-utils whiptail git
 RUN cd / && git clone https://github.com/jaiarobotics/jaiabot.git ${git_branch_cmd}
 EOF
