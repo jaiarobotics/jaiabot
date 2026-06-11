@@ -108,3 +108,19 @@ unzip -q awscliv2.zip
 cat <<EOF >> /etc/fstab
 {{CLOUDHUB_DATA_BUCKET}} /var/log/jaiabot/bot_offload/ fuse.s3fs _netdev,allow_other,use_path_request_style,iam_role=auto,url=https://s3.{{REGION}}.amazonaws.com,dbglevel=warn,endpoint={{REGION}} 0 0
 EOF
+
+## Enable automatic security upgrades
+cat <<EOF > /etc/apt/apt.conf.d/50unattended-upgrades
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}-security";
+};
+
+# these require JCU 
+Unattended-Upgrade::Package-Blacklist {
+    "^linux-.*";
+};
+
+# don't reboot on users!
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+EOF
