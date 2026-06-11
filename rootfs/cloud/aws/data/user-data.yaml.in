@@ -80,6 +80,6 @@ runcmd:
   - a2dissite 000-default
   - a2ensite 001-jaia-data
   - systemctl daemon-reload
-  - systemctl enable jaiabot-web
+  - systemctl enable jaiabot-data-vision
   - systemctl restart apache2
-  - systemctl start jaiabot-web
+  - systemctl start jaiabot-data-vision
