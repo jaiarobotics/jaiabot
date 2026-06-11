@@ -6,7 +6,8 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 
 import { Feature, MapBrowserEvent } from "ol";
 import { Coordinate } from "ol/coordinate";
-import { Geometry } from "ol/geom";
+import { Geometry, Polygon } from "ol/geom";
+import { DrawEvent } from "ol/interaction/Draw";
 import { toLonLat } from "ol/proj";
 
 import { map } from "../../openlayers/maps/map";
@@ -17,7 +18,7 @@ import { styleControlButtons } from "../../openlayers/controls/controls";
 import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
-import { ButtonNames, ButtonTypes } from "../../types/context-types";
+import { ButtonNames, ButtonTypes, JaiaAction } from "../../types/context-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
 import { MAP_FEATURE_HIT_TOLERANCE, MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { locationToConstantHeadingParams } from "../../utils/conversions";
@@ -58,9 +59,9 @@ export default function Map() {
         map.on("click", (event: MapBrowserEvent<PointerEvent>) => {
             handleMapClick(event);
         });
-        exclusionZoneLayer.setDispatch(jaiaDispatch);
         styleControlButtons();
-    }, [jaiaDispatch]);
+        initExclusionZoneDraw();
+    }, []);
 
     /**
      * Distributes map clicks to appropriate handlers
@@ -90,7 +91,7 @@ export default function Map() {
                 handleHubLocationSelectClick(event.coordinate);
                 return;
             case MapModes.EXCLUSION_ZONE_DRAWING:
-                // OpenLayers draw interaction handles clicks directly; suppress React handler.
+                // When drawing is active, the OL Draw interaction handles pointer events directly
                 return;
         }
 
@@ -106,38 +107,14 @@ export default function Map() {
             return;
         }
 
-        const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature, {
-            hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
-        });
-        if (feature && feature.get("type")) {
-            switch (feature.get("type")) {
-                case MapFeatureTypes.BOT:
-                    handleNodeClick(feature);
-                    return;
-                case MapFeatureTypes.HUB:
-                    handleNodeClick(feature);
-                    return;
-                case MapFeatureTypes.WAYPOINT:
-                    handleWaypointClick(feature);
-                    return;
-                case MapFeatureTypes.RALLY_POINT:
-                    handleRallyPointClick(feature);
-                    return;
-                case MapFeatureTypes.ZONE_VERTEX:
-                    handleZoneVertexClick(feature);
-                    return;
-                case MapFeatureTypes.DIVE:
-                    handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
-                    return;
-                case MapFeatureTypes.DRIFT:
-                    handleTaskPacketClick(feature, MapFeatureTypes.DRIFT);
-                    return;
-                case MapFeatureTypes.DEPTH_CONTOUR:
-                    handleDepthContourClick(event);
-                    return;
-                default:
-                    return;
-            }
+        const featureClicked = map.forEachFeatureAtPixel(
+            event.pixel,
+            (feature: Feature) => handleMapFeatureClick(feature, event),
+            { hitTolerance: MAP_FEATURE_HIT_TOLERANCE },
+        );
+
+        if (featureClicked) {
+            return;
         }
 
         // Zone edit mode takes priority: any empty-map click adds a vertex.
@@ -149,6 +126,46 @@ export default function Map() {
         // Prevent generating false ADD_WAYPOINT actions
         if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
             handleAddWaypointClick(event.coordinate);
+        }
+    };
+
+    /**
+     * Calls the appropriate handler for a feature clicked on the map
+     *
+     * @param {Feature} feature The OpenLayers Feature clicked
+     * @param {MapBrowserEvet} event  Contains location data
+     * @returns {boolean} True prevents subsequent calls for Features that exist below the clicked Feature
+     */
+    const handleMapFeatureClick = (feature: Feature, event: MapBrowserEvent<PointerEvent>) => {
+        if (feature && feature.get("type")) {
+            switch (feature.get("type")) {
+                case MapFeatureTypes.BOT:
+                    handleNodeClick(feature);
+                    return true;
+                case MapFeatureTypes.HUB:
+                    handleNodeClick(feature);
+                    return true;
+                case MapFeatureTypes.WAYPOINT:
+                    handleWaypointClick(feature);
+                    return true;
+                case MapFeatureTypes.RALLY_POINT:
+                    handleRallyPointClick(feature);
+                    return true;
+                case MapFeatureTypes.ZONE_VERTEX:
+                    handleZoneVertexClick(feature);
+                    return true;
+                case MapFeatureTypes.DIVE:
+                    handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
+                    return true;
+                case MapFeatureTypes.DRIFT:
+                    handleTaskPacketClick(feature, MapFeatureTypes.DRIFT);
+                    return true;
+                case MapFeatureTypes.DEPTH_CONTOUR:
+                    handleDepthContourClick(event);
+                    return true;
+                default:
+                    return false;
+            }
         }
     };
 
@@ -483,7 +500,7 @@ export default function Map() {
             // lat/lon values match those produced by detectMissionReroutes,
             // which also uses the first clean waypoint as origin.
             const firstCleanLoc = waypoints.filter((wp) => !wp.getIsBypass())[0]?.getLocation();
-            const result = routeAroundExclusionZones(miniPlan, 15, firstCleanLoc ?? fromLocation);
+            const result = routeAroundExclusionZones(miniPlan, 5, firstCleanLoc ?? fromLocation);
             const locations = result.plan.goal.slice(1).map((g) => g.location!);
 
             // Let the normal waypoint-add handler reject impossible or over-limit
@@ -505,6 +522,23 @@ export default function Map() {
         }
 
         jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location: newLocation });
+    };
+
+    /**
+     * Creates the exclusion zone Draw interaction and wires its drawend handler.
+     * Defined outside the component so dispatch is passed explicitly rather than
+     * captured implicitly — keeping the OL singleton free of React references.
+     *
+     * @returns {void}
+     */
+    const initExclusionZoneDraw = () => {
+        const draw = exclusionZoneLayer.createDrawInteraction();
+        draw.on("drawend", (event: DrawEvent) => {
+            const vertices = exclusionZoneLayer.configureDrawEnd(event);
+            if (vertices.length >= 3) {
+                jaiaDispatch({ type: JaiaActions.ADD_EXCLUSION_ZONE, exclusionZone: { vertices } });
+            }
+        });
     };
 
     /**

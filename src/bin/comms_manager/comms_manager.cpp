@@ -99,21 +99,19 @@ jaiabot::apps::CommsManager::CommsManager() : ApplicationBase(1.0 * si::hertz)
         [this](const goby::middleware::intervehicle::protobuf::SubscriptionReport& sub_report)
         {
             auto bot_status_dccl_id = jaiabot::protobuf::BotStatus::DCCL_ID;
-            if (sub_report.has_changed() &&
-                sub_report.changed().dccl_id() == bot_status_dccl_id)
+            if (sub_report.has_changed() && sub_report.changed().dccl_id() == bot_status_dccl_id)
             {
                 auto hub_modem_id = sub_report.changed().header().src();
-                auto link =
-                    jaiabot::comms::link_from_modem_id(hub_modem_id, cfg().subnet_mask());
+                auto link = jaiabot::comms::link_from_modem_id(hub_modem_id, cfg().subnet_mask());
 
                 if (sub_report.changed().action() ==
                     goby::middleware::intervehicle::protobuf::Subscription::SUBSCRIBE)
                 {
                     if (link != jaiabot::protobuf::LINK_UNKNOWN)
                     {
-                        glog.is_verbose() &&
-                            glog << "Hub subscribed to BotStatus on link: "
-                                 << jaiabot::protobuf::Link_Name(link) << std::endl;
+                        glog.is_verbose() && glog << "Hub subscribed to BotStatus on link: "
+                                                  << jaiabot::protobuf::Link_Name(link)
+                                                  << std::endl;
                         active_links_.insert(link);
                         publish_active_links();
                     }

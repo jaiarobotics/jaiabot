@@ -84,7 +84,6 @@ div.inline {
 
 button {
     display: inline;
-    width: 100pt;
 }
 
 .centered {
@@ -414,6 +413,14 @@ div.ol-attribution > button {
 
 div.buttonSection {
     display: flex;
+}
+
+div.buttonSection > button {
+    width: 100pt;
+}
+
+.logButton {
+    width: 100pt;
 }
 
 div.spacer {
