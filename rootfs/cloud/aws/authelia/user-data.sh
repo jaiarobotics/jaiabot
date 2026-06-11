@@ -105,6 +105,9 @@ session:
      -
       domain: 'jaia.tech'
       authelia_url: 'https://auth.cloud.jaia.tech'
+      expiration: '12h'
+      inactivity: '1h'
+      remember_me: '1M'
 storage:
   encryption_key: '$storage_encryption_key'
   local:
