@@ -4,7 +4,7 @@ JaiaBot uses the Raspberry Pi (RP) Compute Module 4 (CM4) as the embedded Linux 
 
 ## Quick start
 
-Download the appropriate `.img.gz` from AWS S3 (produced by CircleCI): https://us-east-1.console.aws.amazon.com/s3/buckets/jaia-disk-images?region=us-east-1&bucketType=general&prefix=release/2.y/rpi/&showversions=false
+Download the appropriate `.img.gz` from AWS S3 (produced by CircleCI): https://us-east-1.console.aws.amazon.com/s3/buckets/jaia-disk-images?region=us-east-1&bucketType=general&prefix=release/3.y/rpi/&showversions=false
 
 Flash this to as many SD cards as you have bots plus hubs:
 ```
@@ -76,7 +76,7 @@ Normally you will just download the appropriate image from CircleCI or AWS S3.
 
 The jaiabot/rootfs folder is designed to generate a complete filesystem suitable to boot the RP off a USB thumb drive or other USB disk.
 
-To generate the image, follow the steps in https://github.com/jaiarobotics/jaiabot/blob/2.y/rootfs/README.md.
+To generate the image, follow the steps in https://github.com/jaiarobotics/jaiabot/blob/3.y/rootfs/README.md.
 
 The result will be something like `jaiabot_img-1.0.0~alpha1+5+g90e72a3.img`.
 

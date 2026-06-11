@@ -43,7 +43,7 @@ The user will use a terminal/command prompt environment to run the Jaiabot Docke
 
 1. Open the Docker Desktop application.  This insures all Docker services are running.
 2. Open a browser.
-3. Enter the URL [https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml)
+3. Enter the URL [https://github.com/jaiarobotics/jaiabot/tree/3.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/3.y/scripts/sim-docker/docker-compose.yml)
 4. Download the `docker-compose.yml` file.  
    * Above the code on the right there is download button to download the raw file to your computer (down arrow) .
 6. Open your Downloads folder and move the `docker-compose.yml` file to your home folder.
@@ -78,7 +78,7 @@ The user will use a terminal/command prompt environment to run the Jaiabot Docke
 Docker compose provides a platform-independent way to configure and run docker containers.  The user can configure the JAIA Simulator simply by editing the `docker-compose.yml` file.
 
 1. Open a browser.
-2. Copy example file from [https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/2.y/scripts/sim-docker/docker-compose.yml) .
+2. Copy example file from [https://github.com/jaiarobotics/jaiabot/tree/3.y/scripts/sim-docker/docker-compose.yml](https://github.com/jaiarobotics/jaiabot/tree/3.y/scripts/sim-docker/docker-compose.yml) .
 3. This file will be used in the Terminal app to launch the simulator.
 
    * copy the file to your home folder.
@@ -104,7 +104,7 @@ Example:
 services:
 
   jaia-sim:
-    image: gobysoft/jaiabot-sim:2.y-continuous   # image to use for simulation
+    image: gobysoft/jaiabot-sim:3.y-continuous   # image to use for simulation
     container_name: jaia-sim-container     # name of container for simulation
 
     # Simulation Environment
@@ -198,11 +198,11 @@ returns
 ```
 ### Manage additional Docker images lcoally
 
-Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the [Gobysoft Dockerhub](https://hub.docker.com/r/gobysoft/jaiabot-sim/tags) with each release of Jaiabot software.  The examples above will download the 2.y-continuous image.  If the user wishes to use a different version of the simulator they can simply edit the image tag as described above.  If the user wishes to manage multiple images on thier machine they can use the following instructions.
+Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host machines and pushed to the [Gobysoft Dockerhub](https://hub.docker.com/r/gobysoft/jaiabot-sim/tags) with each release of Jaiabot software.  The examples above will download the 3.y-continuous image.  If the user wishes to use a different version of the simulator they can simply edit the image tag as described above.  If the user wishes to manage multiple images on thier machine they can use the following instructions.
 
 1. Open a browser.
 2. Enter URL [https://hub.docker.com/r/gobysoft/jaiabot-sim/tags](https://hub.docker.com/r/gobysoft/jaiabot-sim/tags) .
-3. Choose the `<tag>` of the version you want (e.g. `2.1.0`, `2.y-beta`, `2.y-continuous`, or `2.y-test` )for the latest of the respective repository.
+3. Choose the `<tag>` of the version you want (e.g. `3.0.0`, `3.y-beta`, `3.y-continuous`, or `3.y-test` )for the latest of the respective repository.
 
    * You do not need to specify the architecture in the tag (arm vs. amd), docker will pull the appropriate image for your machine architecture.
    * Use the "Copy" button on the web page to copy the pull command.
@@ -214,7 +214,7 @@ Jaiabot Docker Simulation images are generated for both AMD64 and ARM64 host mac
      * if you get an error launch your Docker Desktop app.
 6. Paste or type the docker pull command into your Terminal app.
 
-   * `docker pull gobysoft/jaiabot-sim:2.y-continuous`
+   * `docker pull gobysoft/jaiabot-sim:3.y-continuous`
 7. Check image in the Terminal.
 
    * `docker images` will list all available images on your machine.  You should see one that looks like the folowing.
@@ -272,7 +272,7 @@ _All commands should be executed in the `jaiabot/scripts/sim-docker folder`_
 
 `./build-image.sh`
 
-* builds `2.y-continuous` image locally
+* builds `3.y-continuous` image locally
 * tags image `jaiauser:jaia-sim-image`
 
 **Launch the container**
