@@ -2,6 +2,8 @@
 
 set -u -e -o pipefail
 
+## This script must be idempotent!!
+
 ##############
 ## Preamble ##
 ##############
@@ -54,7 +56,6 @@ swapfile=$auth_persistent_dir/swapfile
 if [ ! -f $swapfile ]; then
     btrfs filesystem mkswapfile --size 2G $swapfile
     swapon $swapfile
-    overlayroot-chroot /bin/bash -c "echo \"$swapfile none swap default 0 0\" >> /etc/fstab"
 fi
 
 #################
@@ -139,11 +140,20 @@ authentication_backend:
 access_control:
   default_policy: 'deny'
   rules:
-    - domain: '{group}.$base_uri'
+    - domain: run.$base_uri
+      subject:
+        - 'group:run'
+      policy: two_factor
+
+    - domain: sim.$base_uri
+      subject:
+        - 'group:sim'
       policy: 'two_factor'
-    - domain: 'users.$base_uri'
+
+    - domain: users.$base_uri
       policy: 'two_factor'
       subject: 'group:lldap_admin'
+
 session:
   secret: '$session_secret'
   cookies:
@@ -222,6 +232,19 @@ cat <<EOF > /etc/lldap/bootstrap/group-configs/sim.json
 }
 EOF
 
+# cat <<EOF > /etc/lldap/bootstrap/group-configs/jcu.json
+# {
+#   "name": "jcu"
+# }
+# EOF
+
+# cat <<EOF > /etc/lldap/bootstrap/group-configs/jdv.json
+# {
+#   "name": "jdv"
+# }
+# EOF
+
+
 cat <<EOF > /etc/lldap/bootstrap/group-configs/lldap_admin.json
 {
   "name": "lldap_admin"
@@ -260,9 +283,16 @@ services:
       - LLDAP_LDAP_BASE_DN=dc=jaia,dc=tech
       - LLDAP_LDAP_USER_PASS=$lldap_admin_password
       - LLDAP_LDAP_USER_EMAIL=$admin_email
+
+      - LLDAP_URL=http://localhost:$lldap_web_port
+      - LLDAP_ADMIN_USERNAME=admin
+      - LLDAP_ADMIN_PASSWORD=$lldap_admin_password
       - GROUP_CONFIGS_DIR=/bootstrap/group-configs
       - USER_CONFIGS_DIR=/bootstrap/user-configs
       - DO_CLEANUP=false
+
+
+
 EOF
 
 cat <<EOF > /etc/systemd/system/lldap.service
@@ -296,6 +326,8 @@ After=lldap.service
 
 [Service]
 ExecStartPre=-/bin/sh -c 'until nc -z localhost $lldap_ldap_port; do sleep 1; done'
+ExecStartPre=-/usr/sbin/swapon $swapfile
+ExecStopPost=-/usr/sbin/swapoff $swapfile
 TimeoutStartSec=120
 Restart=on-failure
 RestartSec=10s
