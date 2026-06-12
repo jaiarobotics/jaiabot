@@ -8,6 +8,7 @@
 #include <Wt/WTable.h>
 #include <Wt/WText.h>
 #include <chrono>
+#include <sstream>
 
 #include <boost/process.hpp>
 #include <boost/process/async.hpp>
@@ -50,15 +51,28 @@ jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::Liai
 
     // Determine role: if running behind Caddy/Authelia, use the Remote-Groups header;
     // otherwise fall back to the role from the configuration file.
+    // Remote-Groups contains a comma-separated list of LLDAP group names.
     const std::string remote_groups = wApp->environment().headerValue("Remote-Groups");
     if (!remote_groups.empty())
     {
-        if (remote_groups.find("jcu_developer") != std::string::npos)
-            role_ = protobuf::UpgradeConfig::DEVELOPER;
-        else if (remote_groups.find("jcu_advanced") != std::string::npos)
-            role_ = protobuf::UpgradeConfig::ADVANCED;
-        else
-            role_ = protobuf::UpgradeConfig::USER;
+        // Parse the comma-separated group list and assign the highest matching role.
+        role_ = protobuf::UpgradeConfig::USER;
+        std::istringstream ss(remote_groups);
+        std::string group;
+        while (std::getline(ss, group, ','))
+        {
+            // trim whitespace
+            const auto start = group.find_first_not_of(' ');
+            const auto end = group.find_last_not_of(' ');
+            if (start == std::string::npos)
+                continue;
+            group = group.substr(start, end - start + 1);
+
+            if (group == "jcu_developer")
+                role_ = protobuf::UpgradeConfig::DEVELOPER;
+            else if (group == "jcu_advanced" && role_ < protobuf::UpgradeConfig::ADVANCED)
+                role_ = protobuf::UpgradeConfig::ADVANCED;
+        }
         glog.is_debug1() && glog << "Using role from Authelia Remote-Groups header ('"
                                  << remote_groups << "'): " << role_ << std::endl;
     }
