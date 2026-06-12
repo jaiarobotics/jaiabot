@@ -27,7 +27,7 @@ elif [ "$JAIA_TYPE" = "hub" ]; then
     JAIA_BOT_TYPE="none"
     db_set jaiabot-embedded/bot_type "none"
 
-    if [ "$BOT_OR_HUB_INDEX" = "30" ];
+    if [ "$BOT_OR_HUB_INDEX" = "30" ]; then
        IS_CLOUDHUB=true
     fi
 fi
