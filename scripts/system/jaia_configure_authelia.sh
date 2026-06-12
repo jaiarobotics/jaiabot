@@ -41,10 +41,6 @@ auth_persistent_dir=/var/log/jaiabot/auth
 authelia_persistent_dir=$auth_persistent_dir/authelia
 lldap_persistent_dir=$auth_persistent_dir/lldap
 
-if [ ! -d "$authelia_persistent_dir" ]; then
-    mkdir -p $authelia_persistent_dir
-    chown authelia:authelia $authelia_persistent_dir
-fi
 
 if [ ! -d "$lldap_persistent_dir" ]; then
     mkdir -p $lldap_persistent_dir
@@ -104,12 +100,19 @@ apt-get update && apt-get install -y authelia=$authelia_version caddy docker-com
 ## Authelia ##
 ##############
 
+
+if [ ! -d "$authelia_persistent_dir" ]; then
+    mkdir -p $authelia_persistent_dir
+fi
+chown authelia:authelia $authelia_persistent_dir
+
 # Update docker to use fuse-overlayfs (required to use overlayfs as backing filesystem for docker as overlayfs-on-overlayfs isn't supported)
 cat <<EOF > /etc/docker/daemon.json
 {
   "storage-driver": "fuse-overlayfs"
 }
 EOF
+systemctl restart docker
 
 # Authelia configuration
 mv /etc/authelia/configuration.yml /etc/authelia/configuration.yml.ex
@@ -376,9 +379,10 @@ TimeoutStopSec=30
 WantedBy=multi-user.target
 EOF
 systemctl enable lldap
-systemctl start lldap
+systemctl restart lldap
 
 # Run the bootstrap script
+until nc -z localhost $lldap_ldap_port; do sleep 1; done
 docker compose -f /etc/lldap/docker-compose.yaml exec lldap /app/bootstrap.sh
 
 mkdir -p /etc/systemd/system/authelia.service.d
