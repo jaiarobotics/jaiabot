@@ -258,9 +258,6 @@ if [ ! $IS_CLOUDHUB ]; then
         echo 'APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99disable-auto-upgrades
         systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
     fi
-else
-    # Authelia
-    /usr/bin/jaia_configure_authelia.sh
 fi
 
 #DEBHELPER#
