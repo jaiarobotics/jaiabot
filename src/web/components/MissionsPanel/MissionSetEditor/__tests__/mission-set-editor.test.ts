@@ -41,7 +41,7 @@ describe("getMaxWaypointsPerOutputMission", () => {
         expect(getMaxWaypointsPerOutputMission(["A"], cache)).toBe(5);
     });
 
-    test("two sets with one mission each — sums their waypoints in one slot", () => {
+    test("two sets with one mission each — sums their waypoints in one mission", () => {
         const cache = makeCache([
             ["A", [makeMission(2)]],
             ["B", [makeMission(3)]],
@@ -49,9 +49,9 @@ describe("getMaxWaypointsPerOutputMission", () => {
         expect(getMaxWaypointsPerOutputMission(["A", "B"], cache)).toBe(5);
     });
 
-    test("cycling: 1-mission set combined with 3-mission set — single mission appears in every slot", () => {
-        // transit: 1 mission (2 wp); survey: 3 missions (3 wp each) → 3 slots
-        // each slot: transit(2) + survey(3) = 5 wp
+    test("cycling: 1-mission set combined with 3-mission set — single mission appears in every mission", () => {
+        // transit: 1 mission (2 wp); survey: 3 missions (3 wp each) → 3 missions
+        // each mission: transit(2) + survey(3) = 5 wp
         const cache = makeCache([
             ["transit", [makeMission(2)]],
             ["survey", [makeMission(3), makeMission(3), makeMission(3)]],
@@ -59,9 +59,9 @@ describe("getMaxWaypointsPerOutputMission", () => {
         expect(getMaxWaypointsPerOutputMission(["transit", "survey"], cache)).toBe(5);
     });
 
-    test("cycling: 2-mission set combined with 3-mission set — slot 2 reuses first mission of smaller set", () => {
-        // A: 2 missions (2 wp, 3 wp); B: 3 missions (1 wp each) → 3 slots
-        // slot 0: A[0](2) + B[0](1) = 3; slot 1: A[1](3) + B[1](1) = 4; slot 2: A[0](2) + B[2](1) = 3
+    test("cycling: 2-mission set combined with 3-mission set — mission 2 reuses first mission of smaller set", () => {
+        // A: 2 missions (2 wp, 3 wp); B: 3 missions (1 wp each) → 3 missions
+        // mission 0: A[0](2) + B[0](1) = 3; mission 1: A[1](3) + B[1](1) = 4; mission 2: A[0](2) + B[2](1) = 3
         const cache = makeCache([
             ["A", [makeMission(2), makeMission(3)]],
             ["B", [makeMission(1), makeMission(1), makeMission(1)]],
@@ -88,14 +88,14 @@ describe("combineMissionSets", () => {
         const result = combineMissionSets(["A"], "my-combined", cache);
 
         expect(result.name).toBe("my-combined");
-        expect(result.nextMissionID).toBe(4); // slotCount + 1
+        expect(result.nextMissionID).toBe(4); // missionCount + 1
         expect(result.missionIDInEditMode).toBe(UNASSIGNED_ID);
         expect(result.missions.length).toBe(3);
         expect(result.missions[0][0]).toBe(1);
         expect(result.missions[2][0]).toBe(3);
     });
 
-    test("1:1 mapping: missions distribute one per slot when counts match", () => {
+    test("1:1 mapping: missions distribute one per mission when counts match", () => {
         const cache = makeCache([["survey", [makeMission(3), makeMission(4), makeMission(5)]]]);
         const result = combineMissionSets(["survey"], "out", cache);
 
@@ -104,8 +104,8 @@ describe("combineMissionSets", () => {
         expect(result.missions[2][1].getWaypoints().length).toBe(5);
     });
 
-    test("transit + survey: each slot gets transit then survey waypoints", () => {
-        // transit: 1 mission (2 wp); survey: 3 missions (3 wp each) → 3 slots
+    test("transit + survey: each mission gets transit then survey waypoints", () => {
+        // transit: 1 mission (2 wp); survey: 3 missions (3 wp each) → 3 missions
         const cache = makeCache([
             ["transit", [makeMission(2)]],
             ["survey", [makeMission(3), makeMission(3), makeMission(3)]],
@@ -118,8 +118,8 @@ describe("combineMissionSets", () => {
         }
     });
 
-    test("cycling: 1-mission set repeats across all slots from a larger set", () => {
-        // transit: 1 mission (2 wp); survey: 3 missions → 3 slots; transit repeats for every slot
+    test("cycling: 1-mission set repeats across all missions from a larger set", () => {
+        // transit: 1 mission (2 wp); survey: 3 missions → 3 missions; transit repeats for every mission
         const cache = makeCache([
             ["transit", [makeMission(2)]],
             ["survey", [makeMission(3), makeMission(3), makeMission(3)]],
@@ -131,9 +131,9 @@ describe("combineMissionSets", () => {
         }
     });
 
-    test("cycling: 2-mission set combined with 3-mission set — slot 2 reuses first mission of smaller set", () => {
-        // A: [2 wp, 3 wp]; B: [1 wp, 1 wp, 1 wp] → 3 slots
-        // slot 0: A[0](2) + B[0](1); slot 1: A[1](3) + B[1](1); slot 2: A[0](2) + B[2](1)
+    test("cycling: 2-mission set combined with 3-mission set — mission 2 reuses first mission of smaller set", () => {
+        // A: [2 wp, 3 wp]; B: [1 wp, 1 wp, 1 wp] → 3 missions
+        // mission 0: A[0](2) + B[0](1); mission 1: A[1](3) + B[1](1); mission 2: A[0](2) + B[2](1)
         const cache = makeCache([
             ["A", [makeMission(2), makeMission(3)]],
             ["B", [makeMission(1), makeMission(1), makeMission(1)]],
@@ -146,7 +146,7 @@ describe("combineMissionSets", () => {
         expect(result.missions[2][1].getWaypoints().length).toBe(3); // A[0](2) + B[2](1)
     });
 
-    test("cycling: repeated slots get independent waypoint copies", () => {
+    test("cycling: repeated missions get independent waypoint copies", () => {
         const cache = makeCache([
             ["transit", [makeMission(2)]],
             ["survey", [makeMission(3), makeMission(3)]],

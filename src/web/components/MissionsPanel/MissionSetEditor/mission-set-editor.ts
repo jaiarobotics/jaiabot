@@ -38,15 +38,15 @@ export function getMaxWaypointsPerOutputMission(
     if (names.length === 0 || missionCount < 1) return 0;
 
     let maxWaypoints = 0;
-    for (let slot = 0; slot < missionCount; slot++) {
-        let slotTotal = 0;
+    for (let mission = 0; mission < missionCount; mission++) {
+        let missionWaypointCount = 0;
         for (const name of names) {
             const missionSetSnapshot = missionSetSnapshotCache.get(name);
             if (!missionSetSnapshot || missionSetSnapshot.missions.length === 0) continue;
             const missions = missionSetSnapshot.missions.map(([_, m]) => m);
-            slotTotal += missions[slot % missions.length].getWaypoints().length;
+            missionWaypointCount += missions[mission % missions.length].getWaypoints().length;
         }
-        maxWaypoints = Math.max(maxWaypoints, slotTotal);
+        maxWaypoints = Math.max(maxWaypoints, missionWaypointCount);
     }
     return maxWaypoints;
 }
@@ -87,7 +87,7 @@ function applySourceMission(sourceMission: Mission, combined: Mission): void {
 
 /**
  * Combines multiple saved mission sets into a single new mission set snapshot.
- * Output count equals the largest source set. Smaller sets cycle their missions to fill all slots.
+ * Output count equals the largest source set. Smaller sets cycle their missions to fill all missions.
  * @param {string[]} names Ordered list of saved mission set names to combine
  * @param {string} newName Name for the new combined mission set
  * @param {Map<string, MissionSetSnapshot>} missionSetSnapshotCache Cache of loaded snapshots
@@ -119,16 +119,16 @@ export function combineMissionSets(
     }
 
     const outputMissions: [number, Mission][] = [];
-    for (let slot = 0; slot < missionCount; slot++) {
+    for (let mission = 0; mission < missionCount; mission++) {
         const combined = new Mission();
         combined.setSegments([{ start_goal_index: 1, speed: maxTransit }]);
         for (const missions of missionArrays) {
             if (missions.length === 0) continue;
-            const sourceMission = missions[slot % missions.length];
+            const sourceMission = missions[mission % missions.length];
             applySourceMission(sourceMission, combined);
         }
         combined.setStationkeepSpeed(maxStationkeep);
-        outputMissions.push([slot + 1, combined]);
+        outputMissions.push([mission + 1, combined]);
     }
 
     return {
