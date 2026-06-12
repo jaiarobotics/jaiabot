@@ -24,5 +24,6 @@
   register: cloud_env_file
 
 - name: Configure Authelia (CloudHub only)
-  command: /usr/bin/jaia_configure_authelia.sh
+  ansible.builtin.command: /usr/bin/jaia_configure_authelia.sh
   when: cloud_env_file.stat.exists
+  changed_when: true
