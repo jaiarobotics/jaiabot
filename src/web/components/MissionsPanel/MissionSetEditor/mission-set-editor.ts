@@ -38,13 +38,13 @@ export function getMaxWaypointsPerOutputMission(
     if (names.length === 0 || missionCount < 1) return 0;
 
     let maxWaypoints = 0;
-    for (let mission = 0; mission < missionCount; mission++) {
+    for (let i = 0; i < missionCount; i++) {
         let missionWaypointCount = 0;
         for (const name of names) {
             const missionSetSnapshot = missionSetSnapshotCache.get(name);
             if (!missionSetSnapshot || missionSetSnapshot.missions.length === 0) continue;
             const missions = missionSetSnapshot.missions.map(([_, m]) => m);
-            missionWaypointCount += missions[mission % missions.length].getWaypoints().length;
+            missionWaypointCount += missions[i % missions.length].getWaypoints().length;
         }
         maxWaypoints = Math.max(maxWaypoints, missionWaypointCount);
     }
@@ -119,16 +119,16 @@ export function combineMissionSets(
     }
 
     const outputMissions: [number, Mission][] = [];
-    for (let mission = 0; mission < missionCount; mission++) {
+    for (let i = 0; i < missionCount; i++) {
         const combined = new Mission();
         combined.setSegments([{ start_goal_index: 1, speed: maxTransit }]);
         for (const missions of missionArrays) {
             if (missions.length === 0) continue;
-            const sourceMission = missions[mission % missions.length];
+            const sourceMission = missions[i % missions.length];
             applySourceMission(sourceMission, combined);
         }
         combined.setStationkeepSpeed(maxStationkeep);
-        outputMissions.push([mission + 1, combined]);
+        outputMissions.push([i + 1, combined]);
     }
 
     return {
