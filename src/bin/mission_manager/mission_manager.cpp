@@ -571,7 +571,7 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
 
     intervehicle().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
         [this](const jaiabot::protobuf::BotStatus& bot_status) { 
-            glog.is_debug1() && glog << "Received BotStatus: " << bot_status.ShortDebugString() << std::endl;
+            interprocess().publish<jaiabot::groups::bot2bot_data>(bot_status);
          },
         subscriber);
 
