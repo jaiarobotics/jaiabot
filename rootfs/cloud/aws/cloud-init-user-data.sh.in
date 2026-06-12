@@ -11,33 +11,6 @@ net.ipv6.conf.all.forwarding = 1
 net.ipv6.conf.eth0.accept_ra = 2
 EOF
 
-cat <<EOF > /etc/wireguard/wg_virtualfleet.conf
-##########################
-#### VirtualFleet #########
-###########################
-
-[Interface]
-
-# VPN Address for server
-Address = {{VIRTUALFLEET_VPN_SERVER_IPV6}}/64
-
-# VPN Server Port
-ListenPort = 51820
-
-# PrivateKey (contents of /etc/wireguard/privatekey)
-PrivateKey = ${SERVER_VPN_PRIVATEKEY}
-
-PostUp = iptables -w 60 -A FORWARD -i wg_virtualfleet -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_virtualfleet -j ACCEPT; ip6tables -A FORWARD -i wg_virtualfleet -j ACCEPT;
-PostDown = iptables -w 60 -D FORWARD -i wg_virtualfleet -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE;ip6tables -D FORWARD -i eth0 -o wg_virtualfleet -j ACCEPT; ip6tables -D FORWARD -i wg_virtualfleet -j ACCEPT;
-
-[Peer]
-# Initial Setup Client
-PublicKey = {{CLIENT_VPN_WIREGUARD_PUBKEY}}
-AllowedIPs = {{VIRTUALFLEET_VPN_CLIENT_IPV6}}/128
-EOF
-
-systemctl enable wg-quick@wg_virtualfleet
-
 cat <<EOF > /etc/wireguard/wg_cloudhub.conf
 ##########################
 #### CloudHub VPN #########
@@ -77,8 +50,7 @@ EOF
 ## Restore default hostname
 hostnamectl set-hostname "jaia-unnamed"
 
-## Store useful data for VirtualFleet
-
+## Store useful data for CloudHub
 cat <<EOF > /etc/jaiabot/cloud.env
 jaia_fleet_index={{FLEET_ID}}
 jaia_cloudhub_wg_pubkey=${SERVER_VPN_PUBKEY}
@@ -114,13 +86,9 @@ cat <<EOF > /etc/apt/apt.conf.d/50unattended-upgrades
 Unattended-Upgrade::Allowed-Origins {
     "${distro_id}:${distro_codename}-security";
 };
-
-# these require JCU 
 Unattended-Upgrade::Package-Blacklist {
     "^linux-.*";
 };
-
-# don't reboot on users!
 Unattended-Upgrade::Automatic-Reboot "false";
 Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
 EOF
