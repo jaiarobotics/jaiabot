@@ -111,3 +111,6 @@ Unattended-Upgrade::Package-Blacklist {
 Unattended-Upgrade::Automatic-Reboot "false";
 Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
 EOF
+
+## Set up Authelia
+/usr/bin/jaia_configure_authelia.sh
