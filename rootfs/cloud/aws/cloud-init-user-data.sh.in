@@ -11,33 +11,49 @@ net.ipv6.conf.all.forwarding = 1
 net.ipv6.conf.eth0.accept_ra = 2
 EOF
 
-cat <<EOF > /etc/wireguard/wg_cloudhub.conf
+for vpn in virtualfleet cloudhub; do
+    case "$vpn" in
+        virtualfleet)
+            title="VirtualFleet"
+            port=51820
+            server_ipv6="{{VIRTUALFLEET_VPN_SERVER_IPV6}}"
+            client_ipv6="{{VIRTUALFLEET_VPN_CLIENT_IPV6}}"
+            ;;
+        cloudhub)
+            title="CloudHub VPN"
+            port=51821
+            server_ipv6="{{CLOUDHUB_VPN_SERVER_IPV6}}"
+            client_ipv6="{{CLOUDHUB_VPN_CLIENT_IPV6}}"
+            ;;
+    esac
+
+    cat <<EOF > /etc/wireguard/wg_${vpn}.conf
 ##########################
-#### CloudHub VPN #########
+#### ${title} #########
 ###########################
 
 [Interface]
 
 # VPN Address for server
-Address = {{CLOUDHUB_VPN_SERVER_IPV6}}/64
+Address = ${server_ipv6}/64
 
 # VPN Server Port
-ListenPort = 51821
+ListenPort = ${port}
 
 # PrivateKey (contents of /etc/wireguard/privatekey)
 PrivateKey = ${SERVER_VPN_PRIVATEKEY}
 
-PostUp = iptables -w 60 -A FORWARD -i wg_cloudhub -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_cloudhub -j ACCEPT; ip6tables -A FORWARD -i wg_cloudhub -j ACCEPT;
-PostDown = iptables -w 60 -D FORWARD -i wg_cloudhub -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_cloudhub -j ACCEPT; ip6tables -D FORWARD -i wg_cloudhub -j ACCEPT;
-
+PostUp = iptables -w 60 -A FORWARD -i wg_${vpn} -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_${vpn} -j ACCEPT; ip6tables -A FORWARD -i wg_${vpn} -j ACCEPT;
+PostDown = iptables -w 60 -D FORWARD -i wg_${vpn} -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_${vpn} -j ACCEPT; ip6tables -D FORWARD -i wg_${vpn} -j ACCEPT;
 
 [Peer]
 # Initial Setup Client
 PublicKey = {{CLIENT_VPN_WIREGUARD_PUBKEY}}
-AllowedIPs = {{CLOUDHUB_VPN_CLIENT_IPV6}}/128
+AllowedIPs = ${client_ipv6}/128
 EOF
 
-systemctl enable wg-quick@wg_cloudhub
+    systemctl enable "wg-quick@wg_${vpn}"
+done
 
 ## Set network interfaces file
 cat <<EOF > /etc/network/interfaces
