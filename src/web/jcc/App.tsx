@@ -3,6 +3,7 @@ import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 
 import { gridPlan } from "../data/survey_planner/grid-plan";
 import { ButtonNames } from "../types/context-types";
+import { MissionState } from "../types/protobuf-types";
 import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 import { isControllingClient } from "../utils/commands";
 import { JCC_CONTAINER } from "../utils/constants";
@@ -18,8 +19,14 @@ import RallyPanel from "../components/RallyPanel/RallyPanel";
 import DepthMap3D from "../components/DepthMap3D/DepthMap3D";
 import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
 import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
+import ExclusionZonesPanel from "../components/ExclusionZonesPanel/ExclusionZonesPanel";
+import MissionRerouteDialog from "../components/MissionRerouteDialog/MissionRerouteDialog";
+import WaypointRemovalDialog from "../components/WaypointRemovalDialog/WaypointRemovalDialog";
+
+import PlacementErrorDialog from "../components/PlacementErrorDialog/PlacementErrorDialog";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
+import ZoneVertexPanel from "../components/ZoneVertexPanel/ZoneVertexPanel";
 import SurveyPlanner from "../components/SurveyPlanner/SurveyPlanner";
 import NotificationDot from "../components/NotificationDot/NotificationDot";
 import TaskPacketPanel from "../components/TaskPacketPanel/TaskPacketPanel";
@@ -27,11 +34,13 @@ import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 import SimulationBanner from "../components/SimulationBanner/SimulationBanner";
 import TakeControlButton from "../components/__buttons__/TakeControl/TakeControlButton/TakeControlButton";
 import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
+import LoadingPanel from "../components/RemoteControlPanel/LoadingPanel/LoadingPanel";
 
 import "./App.less";
 
 // 400 ms is intentionally conservative to avoid flicker or partially rendered content on slower devices.
 const LOADING_SCREEN_REMOVAL_DELAY_MS = 400;
+const RC_STATE = MissionState.IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT;
 
 /**
  * The root of the JCC interface
@@ -71,6 +80,9 @@ export default function App() {
                 <SimulationBanner />
                 <NotificationDot className="jaia-about-button" />
                 <TakeControl />
+                <MissionRerouteDialog />
+                <WaypointRemovalDialog />
+                <PlacementErrorDialog />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>
             <div id="congestion-warning">Slow Hub WiFi Speeds</div>
@@ -111,8 +123,12 @@ function Panel() {
     switch (jaiaContext.visiblePanel) {
         case ButtonNames.MISSIONS_PANEL:
             return <MissionsPanel />;
+        case ButtonNames.EXCLUSION_ZONES_PANEL:
+            return <ExclusionZonesPanel />;
         case ButtonNames.WAYPOINT_PANEL:
             return <WaypointPanel />;
+        case ButtonNames.ZONE_VERTEX_PANEL:
+            return <ZoneVertexPanel />;
         case ButtonNames.HELP_PANEL:
             return <HelpWindow />;
         case ButtonNames.JAIA_ABOUT_PANEL:
@@ -150,10 +166,19 @@ function RemoteControl() {
     if (jaiaContext === null) {
         return;
     }
+
     if (jaiaContext.jaiaGlobal.getSelectedNode().type === NodeTypes.BOT) {
         const selectedBot = jaiaContext.bots.getBot(jaiaContext.jaiaGlobal.getSelectedNode().id);
-        if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
+
+        if (
+            selectedBot.getMode() === BotModes.REMOTE_CONTROL &&
+            selectedBot.getMissionStatus().missionState === RC_STATE
+        ) {
             return <RemoteControlPanel botID={selectedBot.getBotID()} />;
+        }
+
+        if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
+            return <LoadingPanel />;
         }
     }
 }
