@@ -563,6 +563,18 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
     // also subscribe to commands originating on the bot, e.g. from jaiabot_mission_repeater
     interprocess().subscribe<jaiabot::groups::self_command, protobuf::Command>(command_callback);
 
+    // subscribe to BotStatus messages broadcasted by other Bots
+    goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().bot_status_sub_cfg();
+    goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
+        subscriber_cfg,
+        intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>);
+
+    intervehicle().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
+        [this](const jaiabot::protobuf::BotStatus& bot_status) { 
+            glog.is_debug1() && glog << "Received BotStatus: " << bot_status.ShortDebugString() << std::endl;
+         },
+        subscriber);
+
     if (cfg().has_contact_update_sub_cfg())
     {
         glog.is_verbose() && glog << "Subscribing for Contact Updates from hub on link: "
