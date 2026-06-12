@@ -113,4 +113,12 @@ message FleetConfig
     }
     optional Communications comms = 9;
 
+    message CloudHubAuth
+    {
+        required string base_uri = 1;
+        required string admin_email = 2;
+        required string smtp_address = 3;
+        
+    }
+    optional CloudHubAuth cloudhub_auth = 10;
 }
