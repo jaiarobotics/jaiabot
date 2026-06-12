@@ -5,12 +5,76 @@ set -u -e
 # Check if necessary parameters are provided
 if (( "$#" < 3 )); then
     echo "Usage: $0 cloudhub_vpn|vfleet_vpn|fleet_vpn bot|hub|desktop node_id [fleet_id (for fleet_vpn only)]"
+    echo "       $0 server_init fleet_id initial_client_pubkey"
     exit 1
 fi
 
-
 VPN_TYPE=$1
 FLEET_ID=""
+
+if [[ "$VPN_TYPE" = "server_init" ]]; then
+    FLEET_ID=$2
+    INITIAL_CLIENT_PUBKEY=$3
+    CLOUDHUB_ID=30
+    IP_PY="jaia-ip.py"
+
+    SERVER_VPN_PRIVATEKEY=$(sudo cat /etc/wireguard/privatekey)
+
+    ## Create sysctl settings for IP forwarding
+    cat <<EOF | sudo tee /etc/sysctl.d/wg.conf
+net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+net.ipv6.conf.eth0.accept_ra = 2
+EOF
+
+    ## Create server WireGuard configs for CloudHub and VirtualFleet VPNs
+    for vpn_type in virtualfleet cloudhub; do
+        case "$vpn_type" in
+            virtualfleet)
+                title="VirtualFleet"
+                port=51820
+                vpn_net=vfleet_vpn
+                ;;
+            cloudhub)
+                title="CloudHub VPN"
+                port=51821
+                vpn_net=cloudhub_vpn
+                ;;
+        esac
+
+        server_ipv6=$(${IP_PY} addr --node hub --node_id ${CLOUDHUB_ID} --fleet_id ${FLEET_ID} --net ${vpn_net} --ipv6)
+        client_ipv6=$(${IP_PY} addr --node desktop --node_id 1 --fleet_id ${FLEET_ID} --net ${vpn_net} --ipv6)
+
+        cat <<EOF | sudo tee /etc/wireguard/wg_${vpn_type}.conf
+##########################
+#### ${title} #########
+###########################
+
+[Interface]
+
+# VPN Address for server
+Address = ${server_ipv6}/64
+
+# VPN Server Port
+ListenPort = ${port}
+
+# PrivateKey (contents of /etc/wireguard/privatekey)
+PrivateKey = ${SERVER_VPN_PRIVATEKEY}
+
+PostUp = iptables -w 60 -A FORWARD -i wg_${vpn_type} -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_${vpn_type} -j ACCEPT; ip6tables -A FORWARD -i wg_${vpn_type} -j ACCEPT;
+PostDown = iptables -w 60 -D FORWARD -i wg_${vpn_type} -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_${vpn_type} -j ACCEPT; ip6tables -D FORWARD -i wg_${vpn_type} -j ACCEPT;
+
+[Peer]
+# Initial Setup Client
+PublicKey = ${INITIAL_CLIENT_PUBKEY}
+AllowedIPs = ${client_ipv6}/128
+EOF
+
+        sudo systemctl enable "wg-quick@wg_${vpn_type}"
+    done
+    exit 0
+fi
+
 NODE_TYPE=$2
 NODE_ID=$3
 IPVERSION="6"
