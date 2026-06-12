@@ -67,8 +67,24 @@ sed -i -E \
     -e 's/^Listen[[:space:]]+80$/Listen 8080/' \
     /etc/apache2/ports.conf
 sed -i -E \
-    -e 's/<VirtualHost[[:space:]]+\*:80>/<VirtualHost *:8080>/' \
+    -e 's/<VirtualHost[[:space:]]+\*:80>/<VirtualHost *:8080>/I' \
     /etc/apache2/sites-available/jcc.conf
+
+# Set up basic REST_API configuration with no key required
+# (as Authelia will handle authentication for this too)
+cat <<EOF > /etc/jaiabot/rest_api.pb.cfg
+streaming_endpoint {
+    hub_id: $jaia_hub_index
+    hostname: "::1"
+    port: 40000
+}
+
+key {
+    private_key: ""
+    permission: [ALL]
+}
+EOF
+
 systemctl reload apache2
 
 #########
@@ -139,15 +155,53 @@ authentication_backend:
     password: '$lldap_admin_password'
 access_control:
   default_policy: 'deny'
-  rules:
+  rules: # order matters!
+    # Allow group 'jdv' to access JDV
     - domain: run.$base_uri
-      subject:
-        - 'group:run'
+      resources:
+        - '^/jdv(?:/.*)?$'
+      subject: 'group:jdv'
       policy: two_factor
 
-    - domain: sim.$base_uri
+    # Allow group 'jcu' to access JDV
+    - domain: run.$base_uri
+      resources:
+        - '^/jcu(?:/.*)?$'
       subject:
-        - 'group:sim'
+        - 'group:jcu_user'
+        - 'group:jcu_advanced'
+        - 'group:jcu_developer'
+      policy: two_factor
+
+    # Block everyone else from JDV, JCU
+    - domain: run.$base_uri
+      resources:
+        - '^/(jcu|jdv)(?:/.*)?$'
+      policy: deny
+
+    # Allow users in various 'rest_api' groups to access API with one-factor
+    - domain: run.$base_uri
+      resources:
+        - '^/jaia/v[0-9]+/(status|metadata|task_packets|missions)(?:/.*)?$'
+      subject: 
+        - 'group:rest_api_read'
+      policy: one_factor
+
+    - domain: run.$base_uri
+      resources:
+        - '^/jaia(?:/.*)?$'
+      subject: 
+        - 'group:rest_api_all'
+      policy: one_factor
+
+    # Allow other JCC resources to 'run' group
+    - domain: run.$base_uri
+      subject: 'group:run'
+      policy: two_factor
+
+    # Allow all VirtualHub resources to 'sim' group
+    - domain: sim.$base_uri
+      subject: 'group:sim'
       policy: 'two_factor'
 
     - domain: users.$base_uri
@@ -179,6 +233,11 @@ systemctl enable authelia
 ## Caddy ##
 ###########
 cat <<EOF > /etc/caddy/Caddyfile
+# Redirect base URL to runtime JCC
+$base_uri {
+        redir https://run.$base_uri{uri} permanent
+}
+
 # Authelia Portal.
 auth.$base_uri {
         reverse_proxy localhost:$authelia_port
@@ -219,46 +278,44 @@ systemctl restart caddy
 mkdir -p /etc/lldap/bootstrap/group-configs
 mkdir -p /etc/lldap/bootstrap/user-configs
 
+
 # Create initial LLDAP group and user configurations
-cat <<EOF > /etc/lldap/bootstrap/group-configs/run.json
+groups=(
+    run
+    sim
+    jcu_user
+    jcu_advanced
+    jcu_developer
+    jdv
+    lldap_admin
+    rest_api_read
+    rest_api_all
+)
+
+admin_groups=()
+
+# Create group config files
+for group in "${groups[@]}"; do
+    cat > "/etc/lldap/bootstrap/group-configs/${group}.json" <<EOF
 {
-  "name": "run"
+  "name": "${group}"
 }
 EOF
 
-cat <<EOF > /etc/lldap/bootstrap/group-configs/sim.json
-{
-  "name": "sim"
-}
-EOF
+    # Add all non-rest_api groups to admin
+    if [[ ! "$group" =~ ^rest_api_ ]]; then
+        admin_groups+=("\"$group\"")
+    fi
+done
 
-# cat <<EOF > /etc/lldap/bootstrap/group-configs/jcu.json
-# {
-#   "name": "jcu"
-# }
-# EOF
-
-# cat <<EOF > /etc/lldap/bootstrap/group-configs/jdv.json
-# {
-#   "name": "jdv"
-# }
-# EOF
-
-
-cat <<EOF > /etc/lldap/bootstrap/group-configs/lldap_admin.json
-{
-  "name": "lldap_admin"
-}
-EOF
-
-cat <<EOF > /etc/lldap/bootstrap/user-configs/admin.json
+# Create admin user config
+cat > /etc/lldap/bootstrap/user-configs/admin.json <<EOF
 {
   "id": "admin",
   "email": "$admin_email",
   "groups": [
-    "lldap_admin",
-    "run",
-    "sim"
+    $(IFS=,
+      echo "${admin_groups[*]}")
   ]
 }
 EOF
@@ -306,6 +363,12 @@ Type=simple
 WorkingDirectory=/etc/lldap
 ExecStart=/usr/bin/docker compose -f /etc/lldap/docker-compose.yaml up --remove-orphans
 ExecStop=/usr/bin/docker compose -f /etc/lldap/docker-compose.yaml down
+
+# We need the swap file for Authelia + JCC running on EC2 micro
+# overlayroot won't allow swapfile in /etc/fstab, so we start/stop it here
+ExecStartPre=-/usr/sbin/swapon $swapfile
+ExecStopPost=-/usr/sbin/swapoff $swapfile
+
 Restart=always
 TimeoutStopSec=30
 
@@ -326,8 +389,6 @@ After=lldap.service
 
 [Service]
 ExecStartPre=-/bin/sh -c 'until nc -z localhost $lldap_ldap_port; do sleep 1; done'
-ExecStartPre=-/usr/sbin/swapon $swapfile
-ExecStopPost=-/usr/sbin/swapoff $swapfile
 TimeoutStartSec=120
 Restart=on-failure
 RestartSec=10s

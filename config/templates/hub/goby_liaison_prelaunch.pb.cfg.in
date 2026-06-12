@@ -104,6 +104,7 @@ add_commander_tab: false
             display_name: "Current JaiaBot Version"
         }
         $limit
+        causes_hub_reboot: true
     }
 
     ansible_playbook {
