@@ -119,13 +119,14 @@ authelia_secrets_file=$authelia_persistent_dir/secrets
 if [ ! -f "$authelia_secrets_file" ]; then
     # generate secrets
     cat <<EOF > "$authelia_secrets_file"
-    jwt_secret=$(openssl rand -hex 64)
-    session_secret=$(openssl rand -hex 64)
-    storage_encryption_key=$(openssl rand -hex 64)
-    lldap_jwt_secret=$(openssl rand -hex 64)
-    lldap_key_seed=$(openssl rand -hex 64)
-    lldap_admin_password=$(openssl rand -hex 64)
+jwt_secret=$(openssl rand -hex 64)
+session_secret=$(openssl rand -hex 64)
+storage_encryption_key=$(openssl rand -hex 64)
+lldap_jwt_secret=$(openssl rand -hex 64)
+lldap_key_seed=$(openssl rand -hex 64)
+lldap_admin_password=$(openssl rand -hex 64)
 EOF
+    chmod 0600 $authelia_secrets_file
 fi
 set -a; source "$authelia_secrets_file"; set +a;
 
