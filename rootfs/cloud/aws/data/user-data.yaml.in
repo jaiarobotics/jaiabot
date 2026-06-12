@@ -74,6 +74,12 @@ packages:
 
 runcmd:
   - ln -s /usr/bin/zile /usr/local/bin/emacs
+  # Swap, so goby->h5 conversion of large logs doesn't OOM-kill jaiabot-data-vision
+  - fallocate -l 4G /swapfile
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
   - mkdir -p /var/log/jaiabot/bot_offload
   - chown jaia:jaia /var/log/jaiabot
   - a2enmod proxy proxy_http
