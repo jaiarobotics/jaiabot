@@ -16,6 +16,11 @@ export interface ConvertStatus {
     done: boolean;
 }
 
+export interface LogMetadata {
+    size: number | null;
+    duration: number | null;
+}
+
 /**
  * Initiates a browser download of the given URL, with filename and mimeType
  *
@@ -152,6 +157,19 @@ export class LogApi {
     // Gets all of the logs and associated metadata for each
     static get_logs(): Promise<GetLogsResponse> {
         return this.getJSON("/jdv/logs");
+    }
+
+    /**
+     * Gets the size and duration for a set of logs (lazily, after the initial log list has loaded)
+     *
+     * @param {string[]} logs Array of log names
+     * @returns {Promise<{ [key: string]: LogMetadata }>} Promise of a map from log name to its metadata
+     */
+    static getLogMetadata(logs: string[]): Promise<{ [key: string]: LogMetadata }> {
+        var url = new URL("/jdv/log-metadata", window.location.origin);
+        url.searchParams.append("log", logs.join(","));
+
+        return this.getJSON(url.toString());
     }
 
     /**

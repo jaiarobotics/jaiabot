@@ -76,6 +76,11 @@ def index():
 def getLogs():
     return JSONResponse(jaialogStore.getLogs().to_dict())
 
+@app.route('/jdv/log-metadata', methods=['GET'])
+def getLogMetadata():
+    log_names = parseFilenames(request.args.get('log'))
+    return JSONResponse(jaialogStore.getLogMetadata(log_names))
+
 @app.route('/jdv/convert-if-needed', methods=['POST'])
 def convertLogs():
     log_names = request.json

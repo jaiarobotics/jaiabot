@@ -1,7 +1,7 @@
 import React, { ReactElement } from "react";
 
 import { Log } from "../model/Log";
-import { LogApi } from "../model/LogApi";
+import { LogApi, LogMetadata } from "../model/LogApi";
 import { CustomAlert } from "../shared/CustomAlert";
 
 function getNavigatorLanguage() {
@@ -62,6 +62,7 @@ interface LogSelectorProps {
 
 interface LogSelectorState {
     logDict: LogDict;
+    logMetadata: { [filename: string]: LogMetadata };
     availableSpace: number;
     fleetFilter: string;
     botFilter: string;
@@ -75,12 +76,14 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
     declare state: LogSelectorState;
 
     refreshTimer: NodeJS.Timeout;
+    isLoadingMetadata = false;
 
     constructor(props: LogSelectorProps) {
         super(props);
 
         this.state = {
             logDict: {},
+            logMetadata: {},
             availableSpace: null,
             fleetFilter: localStorage.getItem("fleetFilter"),
             botFilter: localStorage.getItem("botFilter"),
@@ -224,9 +227,13 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
         const key = `${log.fleet}-${log.bot}-${log.timestamp}`;
         const className = log.filename in this.state.selectedLogs ? "selected" : "";
 
+        const metadata = this.state.logMetadata[log.filename];
+        const size = metadata?.size ?? log.size;
+        const duration = metadata?.duration ?? log.duration;
+
         let sizeString = "?";
-        if (log.size != null) {
-            sizeString = sizeFormatter.format(log.size / 1_000_000) + " MB";
+        if (size != null) {
+            sizeString = sizeFormatter.format(size / 1_000_000) + " MB";
         }
 
         const row = (
@@ -242,9 +249,7 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
                 <div className="smallCell">{log.bot}</div>
                 <div className="bigCell">{date_string_from_microseconds(log.timestamp)}</div>
                 <div className="bigCell">
-                    {log.duration
-                        ? duration_string_from_seconds(log.duration / 1e6)
-                        : "Unconverted"}
+                    {duration ? duration_string_from_seconds(duration / 1e6) : "Unconverted"}
                 </div>
                 <div className="bigCell rightJustify">{sizeString}</div>
             </div>
@@ -500,6 +505,37 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
             if (this.state.fleetFilter && logDict[this.state.fleetFilter] == null) {
                 this.setFleetFilter(null);
             }
+
+            this.loadMissingLogMetadata(response.logs);
         });
+    }
+
+    /**
+     * Lazily loads size/duration for any logs we don't already have metadata for, one at a time,
+     * so the log list appears immediately and fills in as the (potentially slow, e.g. S3-backed)
+     * metadata becomes available.
+     */
+    async loadMissingLogMetadata(logs: Log[]) {
+        if (this.isLoadingMetadata) return;
+
+        const missingFilenames = logs
+            .slice()
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .map((log) => log.filename)
+            .filter((filename) => !(filename in this.state.logMetadata));
+
+        if (missingFilenames.length === 0) return;
+
+        this.isLoadingMetadata = true;
+        try {
+            for (const filename of missingFilenames) {
+                const metadata = await LogApi.getLogMetadata([filename]);
+                this.setState((prevState) => ({
+                    logMetadata: { ...prevState.logMetadata, ...metadata },
+                }));
+            }
+        } finally {
+            this.isLoadingMetadata = false;
+        }
     }
 }

@@ -87,7 +87,7 @@ class LogDescription:
     duration: Optional[float] = None
     '''Log duration (in microseconds).  Only present for a log that has been converted to HDF5 format.'''
 
-    size: int = 0
+    size: Optional[int] = None
     '''Log file size (in bytes)'''
 
 
@@ -173,18 +173,33 @@ class JaialogStore:
                 logging.warning(f'No date in filename {filename}')
                 continue
 
-            file_description.size += file_path.stat().st_size
-
-            if suffix == '.h5':
-                try:
-                    h5_file = JaiaH5FileSet([file_path])
-                    duration = h5_file.duration()
-                except FileNotFoundError:
-                    duration = None
-
-                file_description.duration = duration
-
         results.logs = list(log_file_dict.values())
+
+        return results
+
+
+    def getLogMetadata(self, log_names: List[str]):
+        '''Computes size and duration for the given logs, for lazily filling in the log list in the UI'''
+        results: dict[str, dict] = {}
+
+        for log_name in log_names:
+            size: Optional[int] = None
+            duration: Optional[float] = None
+
+            for suffix in ('.goby', '.h5'):
+                file_path = Path(self.LOG_DIR, log_name + suffix)
+                if not file_path.is_file():
+                    continue
+
+                size = (size or 0) + file_path.stat().st_size
+
+                if suffix == '.h5':
+                    try:
+                        duration = JaiaH5FileSet([file_path]).duration()
+                    except FileNotFoundError:
+                        duration = None
+
+            results[log_name] = {'size': size, 'duration': duration}
 
         return results
 
