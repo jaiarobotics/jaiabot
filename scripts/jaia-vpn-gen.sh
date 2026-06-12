@@ -15,10 +15,11 @@ FLEET_ID=""
 if [[ "$VPN_TYPE" = "server_init" ]]; then
     FLEET_ID=$2
     INITIAL_CLIENT_PUBKEY=$3
+    # CLOUDHUB_ID=30: Hub ID for the CloudHub server node in the fleet
     CLOUDHUB_ID=30
+    # INITIAL_CLIENT_NODE_ID=1: Desktop node ID 1 is used as the initial setup client
+    INITIAL_CLIENT_NODE_ID=1
     IP_PY="jaia-ip.py"
-
-    SERVER_VPN_PRIVATEKEY=$(sudo cat /etc/wireguard/privatekey)
 
     ## Create sysctl settings for IP forwarding
     cat <<EOF | sudo tee /etc/sysctl.d/wg.conf
@@ -43,7 +44,7 @@ EOF
         esac
 
         server_ipv6=$(${IP_PY} addr --node hub --node_id ${CLOUDHUB_ID} --fleet_id ${FLEET_ID} --net ${vpn_net} --ipv6)
-        client_ipv6=$(${IP_PY} addr --node desktop --node_id 1 --fleet_id ${FLEET_ID} --net ${vpn_net} --ipv6)
+        client_ipv6=$(${IP_PY} addr --node desktop --node_id ${INITIAL_CLIENT_NODE_ID} --fleet_id ${FLEET_ID} --net ${vpn_net} --ipv6)
 
         cat <<EOF | sudo tee /etc/wireguard/wg_${vpn_type}.conf
 ##########################
@@ -59,7 +60,7 @@ Address = ${server_ipv6}/64
 ListenPort = ${port}
 
 # PrivateKey (contents of /etc/wireguard/privatekey)
-PrivateKey = ${SERVER_VPN_PRIVATEKEY}
+PrivateKey = $(sudo cat /etc/wireguard/privatekey)
 
 PostUp = iptables -w 60 -A FORWARD -i wg_${vpn_type} -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_${vpn_type} -j ACCEPT; ip6tables -A FORWARD -i wg_${vpn_type} -j ACCEPT;
 PostDown = iptables -w 60 -D FORWARD -i wg_${vpn_type} -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_${vpn_type} -j ACCEPT; ip6tables -D FORWARD -i wg_${vpn_type} -j ACCEPT;
