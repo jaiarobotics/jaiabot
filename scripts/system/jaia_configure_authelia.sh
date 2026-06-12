@@ -3,18 +3,16 @@
 set -u -e -o pipefail
 
 ## This script must be idempotent!!
+# Installs and (re)configures Authelia, Caddy, and LLDAP to provide a web-based authentication portal with user management for Cloudhub and friends.
 
 ##############
 ## Preamble ##
 ##############
 
-## TODO - fetch me from Fleet Config
-### !!!!!!!!!!!!!!!!!!!!!
-base_uri=jaiaf6.gobysoft.org
-admin_email=toby@gobysoft.org
-### !!!!!!!!!!!!!!!!!!!!!
-
-# Installs and (re)configures Authelia, Caddy, and LLDAP to provide a web-based authentication portal with user management for Cloudhub and friends.
+set -a
+source "/etc/jaiabot/runtime.env"
+source "/etc/jaiabot/cloud.env"
+set +a
 
 ## Versions
 authelia_version=4.39.20-1 # apt
@@ -29,11 +27,10 @@ jcc_port=8080
 authelia_port=9991
 
 ## IP/URLs
-set -a; source "/etc/jaiabot/runtime.env"; set +a;
-#base_uri=f${jaia_fleet_index}.jaia.tech
+base_uri=$jaia_auth_base_uri
+admin_email=$jaia_auth_admin_email
+smtp_address=$jaia_auth_smtp_address
 
-# Currently we are using GobySoft's SMTP relay (Google Workspace)
-smtp_address="smtp://smtp-relay.gmail.com:587"
 ch_ip=$(jaia-ip.py --net=cloudhub_vpn --fleet_id=${jaia_fleet_index} --node=hub --node_id=30 --ipv6 addr)
 
 # Persistent directories (between major upgrades)
@@ -163,7 +160,9 @@ access_control:
     - domain: run.$base_uri
       resources:
         - '^/jdv(?:/.*)?$'
-      subject: 'group:jdv'
+      subject:
+        - 'group:jdv'
+        - 'group:super_admin'
       policy: two_factor
 
     # Allow group 'jcu' to access JDV
@@ -174,6 +173,7 @@ access_control:
         - 'group:jcu_user'
         - 'group:jcu_advanced'
         - 'group:jcu_developer'
+        - 'group:super_admin'
       policy: two_factor
 
     # Block everyone else from JDV, JCU
@@ -188,6 +188,7 @@ access_control:
         - '^/jaia/v[0-9]+/(status|metadata|task_packets|missions)(?:/.*)?$'
       subject: 
         - 'group:rest_api_read'
+        - 'group:super_admin'
       policy: one_factor
 
     - domain: run.$base_uri
@@ -195,21 +196,28 @@ access_control:
         - '^/jaia(?:/.*)?$'
       subject: 
         - 'group:rest_api_all'
+        - 'group:super_admin'
       policy: one_factor
 
     # Allow other JCC resources to 'run' group
     - domain: run.$base_uri
-      subject: 'group:run'
+      subject:
+        - 'group:run'
+        - 'group:super_admin'
       policy: two_factor
 
     # Allow all VirtualHub resources to 'sim' group
     - domain: sim.$base_uri
-      subject: 'group:sim'
+      subject:
+        - 'group:sim'
+        - 'group:super_admin'
       policy: 'two_factor'
 
     - domain: users.$base_uri
       policy: 'two_factor'
-      subject: 'group:lldap_admin'
+      subject:
+        - 'group:lldap_admin'
+        - 'group:super_admin'
 
 session:
   secret: '$session_secret'
@@ -291,11 +299,10 @@ groups=(
     jcu_developer
     jdv
     lldap_admin
+    super_admin
     rest_api_read
     rest_api_all
 )
-
-admin_groups=()
 
 # Create group config files
 for group in "${groups[@]}"; do
@@ -304,11 +311,6 @@ for group in "${groups[@]}"; do
   "name": "${group}"
 }
 EOF
-
-    # Add all non-rest_api groups to admin
-    if [[ ! "$group" =~ ^rest_api_ ]]; then
-        admin_groups+=("\"$group\"")
-    fi
 done
 
 # Create admin user config
@@ -316,16 +318,12 @@ cat > /etc/lldap/bootstrap/user-configs/admin.json <<EOF
 {
   "id": "admin",
   "email": "$admin_email",
-  "groups": [
-    $(IFS=,
-      echo "${admin_groups[*]}")
+  "groups": ["super_admin", "lldap_admin"
   ]
 }
 EOF
 
 cat <<EOF > /etc/lldap/docker-compose.yaml
-version: "3"
-
 services:
   lldap:
     image: lldap/lldap:$lldap_version
@@ -350,9 +348,6 @@ services:
       - GROUP_CONFIGS_DIR=/bootstrap/group-configs
       - USER_CONFIGS_DIR=/bootstrap/user-configs
       - DO_CLEANUP=false
-
-
-
 EOF
 
 cat <<EOF > /etc/systemd/system/lldap.service
@@ -368,9 +363,8 @@ ExecStart=/usr/bin/docker compose -f /etc/lldap/docker-compose.yaml up --remove-
 ExecStop=/usr/bin/docker compose -f /etc/lldap/docker-compose.yaml down
 
 # We need the swap file for Authelia + JCC running on EC2 micro
-# overlayroot won't allow swapfile in /etc/fstab, so we start/stop it here
+# overlayroot won't allow swapfile in /etc/fstab, so we start it here
 ExecStartPre=-/usr/sbin/swapon $swapfile
-ExecStopPost=-/usr/sbin/swapoff $swapfile
 
 Restart=always
 TimeoutStopSec=30
@@ -382,8 +376,7 @@ systemctl enable lldap
 systemctl restart lldap
 
 # Run the bootstrap script
-until nc -z localhost $lldap_ldap_port; do sleep 1; done
-docker compose -f /etc/lldap/docker-compose.yaml exec lldap /app/bootstrap.sh
+until docker compose -f /etc/lldap/docker-compose.yaml exec lldap /app/bootstrap.sh; do sleep 1; done
 
 mkdir -p /etc/systemd/system/authelia.service.d
 cat <<EOF > /etc/systemd/system/authelia.service.d/override.conf

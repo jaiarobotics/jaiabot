@@ -280,9 +280,9 @@ To upgrade an existing server, the following set of steps is recommended:
 6. Power down (stop) the old server.
 7. After some period (e.g., 1-2 weeks or so) of the new server functioning correctly,  disable termination protection for the old server and enable termination protection for the new server (if not already set) under (in the AWS console) `Actions->Instance Settings->Change termination protection`. Terminate (delete) the old instance.
 
-## Cloud Login server (auth.*)
+## Cloud Login server (auth.fleetN.jaia.tech / auth.custom_domain)
 
-Each CloudHub runs its own authentication server, allowing people and machines to access the CloudHub and VirtualFleet securely using 2-factor [2FA] verification for all resources except the REST_API (which allows one-factor tokens).
+Each CloudHub runs its own authentication server, allowing people to access the CloudHub and VirtualFleet securely using 2-factor [2FA] verification for all resources except the REST_API (which allows machines to use one-factor passwords to be used as API tokens).
 
 This provides a more convenient way to access the JCC and other CloudHub applications without requiring that the client machine have the Wireguard VPN installed, and provide more granular permissions.
 
@@ -299,7 +299,7 @@ This server is implemented using three open source projects:
 
 In short, Authelia manages authentication, Caddy manages the reverse proxy (between the insecure HTTP applications and the authenticated HTTPS connection), and LLDAP manages the user information (user names, group, passwords, etc.).
 
-These all run on each CloudHub.
+An instance of all three of these runs on each CloudHub.
 
 ### Required DNS entries
 
@@ -320,9 +320,17 @@ jaiaf6      AAAA    2001:db8::42
 *.jaiaf6    CNAME   jaiaf6.gobysoft.org.
 ```
 
+### Required SMTP
+
+Sending email from the Authelia instance is required for registering new 2FA tokens and password resets. These emails are sent from "noreply@auth.{subdomain}", e.g., "noreply@auth.fleet6.jaia.tech" for a `jaia.tech` hosted Fleet 6.
+
+This requires a working SMTP relay (send) service. To avoid getting these messages in SPAM, you should set up a valid relay with DKIM signing and SPF entries (DNS record for sending server). Additionally you should have an DNS MX record for `auth.{subdomain}`.
+
+For this you can use corporate mail services like Google Workspace (SMTP Relay service), or dedicated mail senders such as Postmark. You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.
+
 ### Available services
 
-### jaia.tech Domains
+#### jaia.tech Domains
 
 CloudHub access (https://fleetN.jaia.tech or https://run.fleetN.jaia.tech):
 
@@ -347,6 +355,6 @@ Supporting web pages:
  	+ Groups: 'lldap_admin'
 - https://auth.fleetN.jaia.tech: Authelia authentication website. Typically the user doesn't need to access this directly unless they want to change their user settings.
 
-### Custom Domains
+#### Custom Domains
 
 Replace `.fleetN.jaia.tech` with your custom domain in the examples above, where your custom domain might be `jaiafleet6.mybusiness.com` or `jaiaf3.university.edu`, as you prefer.

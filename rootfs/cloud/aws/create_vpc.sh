@@ -10,9 +10,7 @@ if (( "$#" != 1 )); then
     exit 1
 fi
 
-set -a
-source $1
-set +a
+set -a; source $1; set +a
 
 source ${SCRIPT_PATH}/../../../scripts/common-versions.env
 REPO_VERSION=${jaia_version_release_branch}
@@ -179,6 +177,18 @@ echo ">>>>>> Allocated Elastic IP Address with Allocation ID: $EIP_ALLOCATION_ID
 PUBLIC_IPV4_ADDRESS=$(run ".Addresses[0].PublicIp" aws ec2 describe-addresses --allocation-ids $EIP_ALLOCATION_ID)
 
 ## Launch the actual VM (CloudHub)
+USER_DATA_FIRST_BOOT_DIR=/tmp/cloudhub-bootdir
+mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
+
+USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
+USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
+
+cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
+jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID} --action hub_ssh_keys --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_auth
+USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
+
+set -a; source "${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_auth.sh"; set +a
+
 USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/cloud-init-user-data.sh.in"
 USER_DATA_SCRIPT="/tmp/cloud-init-user-data.sh"
 
@@ -205,23 +215,15 @@ declare -A replacements=(
     ["{{VIRTUALFLEET_SECURITY_GROUP_ID}}"]="$VIRTUALFLEET_SECURITY_GROUP_ID"
     ["{{VIRTUALFLEET_VPN_CLIENT_IPV6}}"]="$VIRTUALFLEET_VPN_CLIENT_IPV6"
     ["{{VIRTUALFLEET_VPN_SERVER_IPV6}}"]="$VIRTUALFLEET_VPN_SERVER_IPV6"
+    ["{{AUTH_BASE_URI}}"]="$AUTH_BASE_URI"
+    ["{{AUTH_ADMIN_EMAIL}}"]="$AUTH_ADMIN_EMAIL"
+    ["{{AUTH_SMTP_ADDRESS}}"]="$AUTH_SMTP_ADDRESS"
 )
 
 for placeholder in "${!replacements[@]}"; do
     value=${replacements[$placeholder]}
     sed -i "s|$placeholder|$value|g" "${USER_DATA_SCRIPT}"
 done
-
-USER_DATA_FIRST_BOOT_DIR=/tmp/cloudhub-bootdir
-mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
-
-USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
-USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
-
-cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
-jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID}
-USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
-
 
 # Append SSH keys to user data script so they get installed
 cat <<EOFF >> ${USER_DATA_SCRIPT}
