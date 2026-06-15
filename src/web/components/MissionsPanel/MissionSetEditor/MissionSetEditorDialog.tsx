@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "@mdi/react";
 import { mdiArrowRight, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
@@ -68,7 +68,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
         return <div></div>;
     }
 
-    const savedMissionSets = listSavedMissionSets();
+    const savedMissionSets = useMemo(() => listSavedMissionSets(), [props.isVisible]);
 
     const handleSavedItemClick = (index: number) => {
         setSelectedSavedIndex((prev) => (prev === index ? null : index));
