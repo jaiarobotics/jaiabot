@@ -63,12 +63,11 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const [selectedCombinedIndex, setSelectedCombinedIndex] = useState<number | null>(null);
     const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
     const missionSetSnapshotCache = useRef<Map<string, MissionSetSnapshot>>(new Map());
+    const savedMissionSets = useMemo(() => listSavedMissionSets(), [props.isVisible]);
 
     if (!props.isVisible) {
         return <div></div>;
     }
-
-    const savedMissionSets = useMemo(() => listSavedMissionSets(), [props.isVisible]);
 
     const handleSavedItemClick = (index: number) => {
         setSelectedSavedIndex((prev) => (prev === index ? null : index));
