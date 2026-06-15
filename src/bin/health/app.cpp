@@ -78,7 +78,7 @@ class Health : public ApplicationBase
     void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
     void reboot_echo() { system("systemctl start jaia_firm_echo_reset_gpio_pin_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
-    void attempt_flash_arduino();
+    void flash_arduino();
 
   private:
     goby::time::SteadyClock::time_point next_check_time_;
@@ -87,7 +87,6 @@ class Health : public ApplicationBase
     std::set<jaiabot::protobuf::Error> failed_services_;
     jaiabot::protobuf::LinuxHardwareStatus sim_hardware_status_;
     goby::time::SteadyClock::time_point last_arduino_flash_time_{};
-    bool last_arduino_flash_time_set_{false};
     int arduino_flash_attempts_{0};
     bool arduino_flash_in_progress_{false};
 };
@@ -305,7 +304,7 @@ jaiabot::apps::Health::Health()
             }
 
             const auto now = goby::time::SteadyClock::now();
-            if (last_arduino_flash_time_set_ &&
+            if (arduino_flash_attempts_ > 0 &&
                 now < last_arduino_flash_time_ +
                             std::chrono::seconds(recovery.min_interval_seconds()))
             {
@@ -316,7 +315,7 @@ jaiabot::apps::Health::Health()
 
             glog.is_warn() && glog << "Received ArduinoIssue FLASH_ARDUINO; starting recovery"
                                    << std::endl;
-            attempt_flash_arduino();
+            flash_arduino();
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
@@ -434,7 +433,7 @@ void jaiabot::apps::Health::loop()
     }
 }
 
-void jaiabot::apps::Health::attempt_flash_arduino()
+void jaiabot::apps::Health::flash_arduino()
 {
     const auto& recovery = cfg().arduino_recovery();
     if (recovery.flash_script().empty())
@@ -451,7 +450,6 @@ void jaiabot::apps::Health::attempt_flash_arduino()
     const int status = std::system(recovery.flash_script().c_str());
     arduino_flash_in_progress_ = false;
     last_arduino_flash_time_ = goby::time::SteadyClock::now();
-    last_arduino_flash_time_set_ = true;
     ++arduino_flash_attempts_;
 
     if (status != 0)

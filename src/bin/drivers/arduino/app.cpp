@@ -617,17 +617,13 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
 void jaiabot::apps::ArduinoDriver::maybe_request_arduino_flash()
 {
     const bool needs_flash = !is_driver_connected_ || !is_driver_compatible_;
-    const bool recovered = is_driver_connected_ && is_driver_compatible_;
 
-    if (recovered)
+    if (!needs_flash)
     {
         flash_arduino_requested_ = false;
         arduino_failure_timer_active_ = false;
         return;
     }
-
-    if (!needs_flash)
-        return;
 
     const auto now = goby::time::SteadyClock::now();
     if (!arduino_failure_timer_active_)
