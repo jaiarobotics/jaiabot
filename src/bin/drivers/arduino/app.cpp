@@ -63,9 +63,8 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
   private:
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
-    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
-                           goby::middleware::protobuf::HealthState& health_state);
-    void maybe_request_arduino_flash();
+    void request_arduino_flash(goby::middleware::protobuf::ThreadHealth& health,
+                               goby::middleware::protobuf::HealthState& health_state);
     void setBounds(const jaiabot::protobuf::Bounds& bounds);
     void publish_arduino_commands();
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
@@ -569,13 +568,12 @@ void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHeal
     health.set_name(this->app_name());
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
-    check_last_report(health, health_state);
-    maybe_request_arduino_flash();
+    request_arduino_flash(health, health_state);
 
     health.set_state(health_state);
 }
 
-void jaiabot::apps::ArduinoDriver::check_last_report(
+void jaiabot::apps::ArduinoDriver::request_arduino_flash(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
@@ -612,10 +610,7 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
     }
-}
 
-void jaiabot::apps::ArduinoDriver::maybe_request_arduino_flash()
-{
     const bool needs_flash = !is_driver_connected_ || !is_driver_compatible_;
 
     if (!needs_flash)
