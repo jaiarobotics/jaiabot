@@ -36,7 +36,7 @@ motor {
 
 arduino_recovery {
     enable_auto_flash: true
-    min_interval_seconds: 300
+    min_interval_seconds: 30
     max_attempts: 3
     flash_script: "/usr/share/jaiabot/scripts/jaia_firm_arduino_flash.sh"
 }
