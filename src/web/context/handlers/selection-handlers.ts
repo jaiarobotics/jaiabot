@@ -134,6 +134,7 @@ function handleClickedFeature() {
     missionLayer.updateFeatures();
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
+    excludedTaskPacketsLayer.updateFeatures();
 }
 
 /**
