@@ -149,95 +149,71 @@ export function MissionSetEditorDialog(props: DialogProps) {
             <div className="blocking-overlay" onClick={() => {}}>
                 <div className="jaia-dialog mission-set-editor">
                     <h1>Mission Set Editor</h1>
-                    <div className="editor-top-row">
-                        <div className="input-container editor-name-input">
-                            <label>New Mission Set Name</label>
-                            <input
-                                type="text"
-                                placeholder="Required"
-                                value={editorName}
-                                onChange={(evt) => setEditorName(evt.target.value)}
-                            />
-                        </div>
+                    <div className="editor-name-input">
+                        <label>New Mission Set Name</label>
+                        <input
+                            type="text"
+                            placeholder="Required"
+                            value={editorName}
+                            onChange={(evt) => setEditorName(evt.target.value)}
+                        />
                     </div>
                     <div className="editor-lists-section">
-                        <div className="editor-list-column">
+                        <div className="editor-list">
                             <label>Stored Mission Sets</label>
-                            <div className="editor-list-scroll">
-                                <ul
-                                    className="editor-source-list"
-                                    role="listbox"
-                                    aria-label="Stored Mission Sets"
-                                >
-                                    {savedMissionSets.map((name, index) => (
-                                        <SavedListItem
-                                            key={name}
-                                            name={name}
-                                            index={index}
-                                            isSelected={selectedSavedIndex === index}
-                                            onSelect={handleSavedItemClick}
-                                        />
-                                    ))}
-                                </ul>
-                            </div>
+                            <ul role="listbox" aria-label="Stored Mission Sets">
+                                {savedMissionSets.map((name, index) => (
+                                    <SavedListItem
+                                        key={name}
+                                        name={name}
+                                        index={index}
+                                        isSelected={selectedSavedIndex === index}
+                                        onSelect={handleSavedItemClick}
+                                    />
+                                ))}
+                            </ul>
                         </div>
-                        <div className="editor-arrow-column">
-                            <Button
-                                className="jaia-button editor-add-button"
-                                disabled={selectedSavedIndex === null}
-                                onClick={handleAdd}
-                            >
-                                <div className="editor-add-button-content">
-                                    <Icon path={mdiArrowRight} size={1} title={addButtonLabel} />
-                                    <span>{addButtonLabel}</span>
-                                </div>
-                            </Button>
-                        </div>
-                        <div className="editor-list-column">
+                        <button
+                            className="add-button"
+                            disabled={selectedSavedIndex === null}
+                            onClick={handleAdd}
+                        >
+                            <Icon path={mdiArrowRight} size={1} title={addButtonLabel} />
+                            <div>{addButtonLabel}</div>
+                        </button>
+                        <div className="editor-list">
                             <label>Combined Mission Set</label>
-                            <div className="editor-list-scroll">
-                                <ul
-                                    className="editor-list"
-                                    role="listbox"
-                                    aria-label="Combined Mission Set"
-                                >
-                                    {combinedList.map((name, index) => (
-                                        <CombinedListItem
-                                            key={`${name}-${index}`}
-                                            name={name}
-                                            index={index}
-                                            isSelected={selectedCombinedIndex === index}
-                                            onSelect={handleCombinedItemClick}
-                                        />
-                                    ))}
-                                </ul>
-                            </div>
-                            <div className="editor-controls-row">
-                                <Button
-                                    className="jaia-button"
-                                    disabled={!hasCombinedSelection || selectedCombinedIndex === 0}
-                                    onClick={handleMoveUp}
-                                >
-                                    <Icon path={mdiArrowUp} size={0.8} title="Move up" />
-                                </Button>
-                                <Button
-                                    className="jaia-button"
-                                    disabled={
-                                        !hasCombinedSelection ||
-                                        selectedCombinedIndex === combinedList.length - 1
-                                    }
-                                    onClick={handleMoveDown}
-                                >
-                                    <Icon path={mdiArrowDown} size={0.8} title="Move down" />
-                                </Button>
-                                <Button
-                                    className="jaia-button"
-                                    disabled={!hasCombinedSelection}
-                                    onClick={handleDelete}
-                                >
-                                    <Icon path={mdiDelete} size={0.8} title="Delete" />
-                                </Button>
-                            </div>
+                            <ul role="listbox" aria-label="Combined Mission Set">
+                                {combinedList.map((name, index) => (
+                                    <CombinedListItem
+                                        key={`${name}-${index}`}
+                                        name={name}
+                                        index={index}
+                                        isSelected={selectedCombinedIndex === index}
+                                        onSelect={handleCombinedItemClick}
+                                    />
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="editor-controls">
+                            <button
+                                disabled={!hasCombinedSelection || selectedCombinedIndex === 0}
+                                onClick={handleMoveUp}
+                            >
+                                <Icon path={mdiArrowUp} size={0.8} title="Move up" />
+                            </button>
+                            <button
+                                disabled={
+                                    !hasCombinedSelection ||
+                                    selectedCombinedIndex === combinedList.length - 1
+                                }
+                                onClick={handleMoveDown}
+                            >
+                                <Icon path={mdiArrowDown} size={0.8} title="Move down" />
+                            </button>
+                            <button disabled={!hasCombinedSelection} onClick={handleDelete}>
+                                <Icon path={mdiDelete} size={0.8} title="Delete" />
+                            </button>
                         </div>
                     </div>
                     {isWaypointWarningVisible && (
@@ -265,7 +241,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
 function SavedListItem(props: SavedListItemProps) {
     return (
         <li
-            className={`editor-source-item${props.isSelected ? " selected" : ""}`}
+            className={props.isSelected ? "selected" : ""}
             role="option"
             aria-selected={props.isSelected}
             onClick={() => props.onSelect(props.index)}
@@ -281,7 +257,7 @@ function SavedListItem(props: SavedListItemProps) {
 function CombinedListItem(props: CombinedListItemProps) {
     return (
         <li
-            className={`editor-list-item${props.isSelected ? " selected" : ""}`}
+            className={props.isSelected ? " selected" : ""}
             role="option"
             aria-selected={props.isSelected}
             onClick={() => props.onSelect(props.index)}

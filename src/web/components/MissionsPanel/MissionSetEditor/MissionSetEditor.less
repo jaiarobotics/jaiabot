@@ -11,26 +11,18 @@
     text-align: center;
 }
 
-.editor-top-row {
-    display: flex;
-    flex-direction: row;
-    gap: 12px;
-    align-items: flex-end;
+.mission-set-editor label {
+    color: #4b5563;
 }
 
 .editor-name-input {
-    flex: 1;
-}
-
-.mission-set-editor .input-container {
     display: flex;
     flex-direction: column;
     gap: 3px;
 }
 
-.mission-set-editor .input-container label {
-    color: #4b5563;
-    font-size: 0.85rem;
+.editor-name-input input {
+    flex: 1;
 }
 
 .mission-set-editor input {
@@ -43,80 +35,58 @@
 }
 
 .editor-lists-section {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 1fr max-content 1fr;
     gap: 6px;
 }
 
-.editor-list-column {
+.editor-list {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
 }
 
-.editor-list-column label {
-    color: #4b5563;
-    font-size: 0.85rem;
-}
-
-.editor-list-scroll {
-    height: 200px;
-    overflow-y: auto;
-    padding: 3px;
+.editor-list ul {
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    background-color: #f3f4f6;
     border: 1px solid #9ca3af;
     border-radius: 3px;
-    background-color: #f3f4f6;
+
+    height: 210px;
+    overflow-y: auto;
     cursor: pointer;
 }
 
-.editor-list,
-.editor-source-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.editor-list-item,
-.editor-source-item {
+.editor-list li {
     padding: 6px 3px;
-    border-radius: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
-
-.editor-list-item.selected,
-.editor-source-item.selected {
+.editor-list li.selected {
     background-color: @selected-color;
 }
 
-.editor-controls-row {
-    display: flex;
-    flex-direction: row;
-    gap: 3px;
-    justify-content: flex-start;
-    margin-top: 3px;
-}
+.editor-lists-section .add-button {
+    all: unset;
+    box-sizing: border-box;
+    width: 54px;
+    height: 54px;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    margin-top: 19px;
 
-.editor-arrow-column {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding-top: 18px;
-    flex-shrink: 0;
+
+    font-size: 0.75rem;
 }
 
-.editor-add-button-content {
+.editor-controls {
+    grid-column: 3 / 4;
     display: flex;
-    flex-direction: column;
-    align-items: center;
     gap: 3px;
-    font-size: 0.75rem;
 }
 
 .editor-button-row {
@@ -126,7 +96,7 @@
     justify-content: center;
 }
 
-.mission-set-editor button:not(.jaia-button) {
+.mission-set-editor button {
     all: unset;
     box-sizing: border-box;
     padding: 6px 12px;
@@ -136,7 +106,7 @@
     cursor: pointer;
 }
 
-.mission-set-editor button:not(.jaia-button):disabled {
+.mission-set-editor button:disabled {
     opacity: 0.4;
     cursor: default;
 }
