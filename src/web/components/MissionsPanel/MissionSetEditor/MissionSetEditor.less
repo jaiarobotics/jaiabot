@@ -126,7 +126,7 @@
     justify-content: center;
 }
 
-.mission-set-editor button {
+.mission-set-editor button:not(.jaia-button) {
     all: unset;
     box-sizing: border-box;
     padding: 6px 12px;
@@ -136,7 +136,7 @@
     cursor: pointer;
 }
 
-.mission-set-editor button:disabled {
+.mission-set-editor button:not(.jaia-button):disabled {
     opacity: 0.4;
     cursor: default;
 }
