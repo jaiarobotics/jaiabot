@@ -52,6 +52,4 @@ message ArduinoDriverConfig
     optional int32 arduino_report_timeout_seconds = 22 [default = 2];
 
     optional int32 arduino_restart_timeout_seconds = 23 [default = 10];
-
-    optional int32 flash_delay_seconds = 24 [default = 30];
 }

@@ -86,7 +86,6 @@ class Health : public ApplicationBase
     const std::map<std::string, jaiabot::protobuf::Error> process_to_not_responding_error_;
     std::set<jaiabot::protobuf::Error> failed_services_;
     jaiabot::protobuf::LinuxHardwareStatus sim_hardware_status_;
-    goby::time::SteadyClock::time_point last_arduino_flash_time_{};
     int arduino_flash_attempts_{0};
     bool arduino_flash_in_progress_{false};
 };
@@ -303,16 +302,6 @@ jaiabot::apps::Health::Health()
                 return;
             }
 
-            const auto now = goby::time::SteadyClock::now();
-            if (arduino_flash_attempts_ > 0 &&
-                now < last_arduino_flash_time_ +
-                            std::chrono::seconds(recovery.min_interval_seconds()))
-            {
-                glog.is_debug2() && glog << "Arduino auto-flash rate limited; skipping"
-                                         << std::endl;
-                return;
-            }
-
             glog.is_warn() && glog << "Received ArduinoIssue FLASH_ARDUINO; starting recovery"
                                    << std::endl;
             flash_arduino();
@@ -449,7 +438,6 @@ void jaiabot::apps::Health::flash_arduino()
 
     const int status = std::system(recovery.flash_script().c_str());
     arduino_flash_in_progress_ = false;
-    last_arduino_flash_time_ = goby::time::SteadyClock::now();
     ++arduino_flash_attempts_;
 
     if (status != 0)
