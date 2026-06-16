@@ -9,7 +9,7 @@ import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Dashboard } from "./Dashboard/Dashboard";
 import { DiveCommand, DiveInputs, RCDiveParameters } from "./DiveControls/DiveControls";
-import { OverdriveWarningDialog } from "./OverdriveWarningDialog";
+import { OverdriveWarningDialog } from "./OverdriveWarning/OverdriveWarningDialog";
 
 import {
     CommandType,
@@ -416,7 +416,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             }
             return (
                 <>
-                    {overdriveWarningDialog}
                     {/* Gamepad component listens for Xbox controller input in background */}
                     <Gamepad
                         onAxisChange={(axisName, value) => {

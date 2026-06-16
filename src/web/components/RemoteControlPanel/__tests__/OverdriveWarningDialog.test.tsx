@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 
-import { OverdriveWarningDialog } from "../OverdriveWarningDialog";
+import { OverdriveWarningDialog } from "../OverdriveWarning/OverdriveWarningDialog";
 import { DialogActions } from "../../../types/context-types";
 
 test("Overdrive warning dialog is hidden when not visible", () => {

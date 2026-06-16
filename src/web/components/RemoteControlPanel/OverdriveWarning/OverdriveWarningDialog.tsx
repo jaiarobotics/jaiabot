@@ -1,4 +1,4 @@
-import { DialogActions } from "../../types/context-types";
+import { DialogActions } from "../../../types/context-types";
 
 interface DialogProps {
     isVisible: boolean;
@@ -18,10 +18,7 @@ export function OverdriveWarningDialog(props: DialogProps) {
             <div className="blocking-overlay" onClick={() => {}}>
                 <div className="jaia-dialog alert">
                     <h1>Warning</h1>
-                    <p className="dialog-warn">
-                        Enabling Overdrive may introduce risk to the bot. Manual control will be
-                        harder.
-                    </p>
+                    <p>Overdrive offers more speed, but it can make control more difficult.</p>
                     <div className="dialog-button-row">
                         <button
                             className="dialog-button"
