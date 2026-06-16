@@ -25,6 +25,7 @@ export function SaveAndLoadDialog(props: DialogProps) {
     const isAlert =
         props.disabledCode !== DisabledCodes.NONE && props.disabledCode !== DisabledCodes.OVERWRITE;
 
+    /** Returns the dialog body message, appending the editor name for confirmation and overwrite cases. */
     const getDialogMessage = () => {
         if (
             props.disabledCode === DisabledCodes.NONE ||

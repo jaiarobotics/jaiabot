@@ -24,6 +24,7 @@ export default function SaveAndLoadButton(props: Props) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
+    /** Returns a DisabledCode indicating why the button is blocked, or NONE if all prerequisites are met. */
     const getDisabledCode = (): DisabledCodes => {
         if (!props.editorName.trim()) return DisabledCodes.NO_NAME;
         if (props.combinedMissionNames.length < 2) return DisabledCodes.NO_MISSIONS;
@@ -36,6 +37,7 @@ export default function SaveAndLoadButton(props: Props) {
         setIsDialogVisible(true);
     };
 
+    /** Closes the confirmation dialog; on confirm, combines, saves, and dispatches the new mission set. */
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
