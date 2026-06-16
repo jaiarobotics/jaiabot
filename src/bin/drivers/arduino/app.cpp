@@ -115,7 +115,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     // Used to check the time the arduino restarted
     goby::time::SteadyClock::time_point last_arduino_restart_time_{std::chrono::seconds(0)};
 
-    bool flash_arduino_requested_{false};
+    bool flash_arduino_issue_published_{false};
 };
 
 } // namespace apps
@@ -591,7 +591,7 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     }
     else
     {
-        flash_arduino_requested_ = false;
+        flash_arduino_issue_published_ = false;
     }
 
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
@@ -615,13 +615,13 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
 
 void jaiabot::apps::ArduinoDriver::request_arduino_flash()
 {
-    if (flash_arduino_requested_)
+    if (flash_arduino_issue_published_)
         return;
 
     jaiabot::protobuf::ArduinoIssue issue;
     issue.set_solution(jaiabot::protobuf::ArduinoIssue::FLASH_ARDUINO);
     interprocess().publish<groups::arduino_issue>(issue);
-    flash_arduino_requested_ = true;
+    flash_arduino_issue_published_ = true;
 
     glog.is_warn() && glog << group("main")
                            << "Published ArduinoIssue FLASH_ARDUINO for health recovery"
