@@ -115,6 +115,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     // Used to check the time the arduino restarted
     goby::time::SteadyClock::time_point last_arduino_restart_time_{std::chrono::seconds(0)};
 
+    // Ensures the flash request is only published once per failure event
     bool flash_arduino_issue_published_{false};
 };
 
