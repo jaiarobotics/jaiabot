@@ -5,7 +5,9 @@ This module provides functions to plan cross-shore surfzone missions for jaiabot
 The mission consists of measurements (station keeping + dive) distributed along a single
 cross-shore transect from shoreline to offshore extent.
 
-Author: Mission Planning Tool
+Author(s): 
+- Spicer Bak     (Spicer.Bak@usace.army.mil)
+- Matthew Saenz  (Matthew.J.Saenz@usace.army.mil)
 Date: 2026-01-21
 """
 
