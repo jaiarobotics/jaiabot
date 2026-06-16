@@ -576,7 +576,25 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
-    if (!is_driver_connected_)
+    if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
+            goby::time::SteadyClock::now() &&
+        !last_command_acked_)
+    {
+        glog.is_warn() && glog << "Timeout on arduino" << std::endl;
+
+        jaiabot::protobuf::ArduinoDebug arduino_debug;
+        arduino_debug.set_arduino_not_responding(true);
+        interprocess().publish<groups::arduino_debug>(arduino_debug);
+
+        // Publish to arduino to attempt to get a response
+        publish_arduino_commands();
+
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
+        request_arduino_flash();
+    }
+    else if (!is_driver_connected_)
     {
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
@@ -593,24 +611,6 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     else
     {
         flash_arduino_issue_published_ = false;
-    }
-
-    if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
-            goby::time::SteadyClock::now() &&
-        !last_command_acked_)
-    {
-        glog.is_warn() && glog << "Timeout on arduino" << std::endl;
-
-        jaiabot::protobuf::ArduinoDebug arduino_debug;
-        arduino_debug.set_arduino_not_responding(true);
-        interprocess().publish<groups::arduino_debug>(arduino_debug);
-
-        // Pulbish to arduino to attempt to get a response
-        publish_arduino_commands();
-
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
     }
 }
 
