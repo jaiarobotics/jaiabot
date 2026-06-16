@@ -8,7 +8,7 @@ import { point, midpoint } from "@turf/turf";
 import { view } from "../views/view";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { DriftPacket, TaskPacket } from "../../types/protobuf-types";
+import { CurrentPacket, DriftPacket, TaskPacket } from "../../types/protobuf-types";
 import { degreesToRadians } from "../../utils/conversions";
 import { DRIFT_INTENSITY_INTERVAL, MAX_DRIFT_INTENSITY } from "../../utils/constants";
 import { OpenLayersColors } from "../../style/openlayers/colors";
@@ -66,16 +66,51 @@ function generateDriftStyle(taskPacket: TaskPacket) {
 }
 
 /**
- * Choses the correct drift icon based on drift speed
+ * Creates a current icon to be placed on the map from a CurrentPacket
  *
- * @param driftPacket Drift speed determines which icon to display
- * @returns {string} Drift icon SVG
+ * @param {TaskPacket} taskPacket Contains the data to build the feature
+ * @returns {Feature | null} Current icon to display on map, or null if location is missing
  */
-function getIconSource(driftPacket: DriftPacket) {
-    let driftIntensity = Math.floor(driftPacket.estimated_drift.speed / DRIFT_INTENSITY_INTERVAL);
-    driftIntensity = Math.min(driftIntensity, MAX_DRIFT_INTENSITY);
+export function generateCurrentFeature(taskPacket: TaskPacket) {
+    const current = taskPacket.current;
+    if (!current?.location?.lon || !current?.location?.lat) {
+        return null;
+    }
 
-    switch (driftIntensity) {
+    const feature = new Feature({
+        geometry: new Point(
+            fromLonLat([current.location.lon, current.location.lat], view.getProjection()),
+        ),
+    });
+
+    const style =
+        current.heading != null
+            ? new Style({
+                  image: new Icon({
+                      src: getIconSourceFromSpeed(current.speed ?? 0),
+                      color: getColor(taskPacket),
+                      rotation: degreesToRadians(current.heading),
+                      rotateWithView: true,
+                      scale: 0.7,
+                  }),
+              })
+            : new Style();
+
+    feature.setStyle(style);
+    feature.set("type", MapFeatureTypes.DRIFT);
+    feature.set("botID", taskPacket.bot_id);
+    feature.set("startTime", taskPacket.start_time);
+    return feature;
+}
+
+function getIconSourceFromSpeed(speed: number) {
+    let driftIntensity = Math.floor(speed / DRIFT_INTENSITY_INTERVAL);
+    driftIntensity = Math.min(driftIntensity, MAX_DRIFT_INTENSITY);
+    return getDriftIconFromIntensity(driftIntensity);
+}
+
+function getDriftIconFromIntensity(intensity: number) {
+    switch (intensity) {
         case 0:
             return driftMarker1;
         case 1:
@@ -89,6 +124,18 @@ function getIconSource(driftPacket: DriftPacket) {
         case 5:
             return driftMarker6;
     }
+}
+
+/**
+ * Chooses the correct drift icon based on drift speed
+ *
+ * @param driftPacket Drift speed determines which icon to display
+ * @returns {string} Drift icon SVG
+ */
+function getIconSource(driftPacket: DriftPacket) {
+    let driftIntensity = Math.floor(driftPacket.estimated_drift.speed / DRIFT_INTENSITY_INTERVAL);
+    driftIntensity = Math.min(driftIntensity, MAX_DRIFT_INTENSITY);
+    return getDriftIconFromIntensity(driftIntensity);
 }
 
 /**

@@ -2,7 +2,7 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import { taskPackets } from "../../../data/task_packets/task-packets";
-import { generateDriftFeature } from "../../features/drift-feature";
+import { generateCurrentFeature, generateDriftFeature } from "../../features/drift-feature";
 
 class DriftLayer extends JaiaVectorLayer {
     constructor() {
@@ -21,6 +21,10 @@ class DriftLayer extends JaiaVectorLayer {
             if (taskPacket.drift) {
                 const driftFeature = generateDriftFeature(taskPacket);
                 source.addFeature(driftFeature);
+            }
+            if (taskPacket.current) {
+                const currentFeature = generateCurrentFeature(taskPacket);
+                if (currentFeature) source.addFeature(currentFeature);
             }
         }
     }

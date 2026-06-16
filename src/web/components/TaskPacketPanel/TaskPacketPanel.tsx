@@ -116,7 +116,7 @@ export default function TaskPacketPanel(props: Props) {
             );
 
         case MapFeatureTypes.DRIFT:
-            if (!taskPacket.drift || !taskPacket.drift.estimated_drift) {
+            if (!taskPacket.drift && !taskPacket.current && !taskPacket.wave) {
                 return;
             }
             return (
@@ -125,26 +125,78 @@ export default function TaskPacketPanel(props: Props) {
                         <div className="label">Bot ID:</div>
                         <div>{taskPacket.bot_id}</div>
                         <div className="line-break"></div>
-                        <div className="label">Duration:</div>
-                        <div>{taskPacket.drift.drift_duration.toFixed(DECIMALS) ?? ""} s</div>
-                        <div className="line-break"></div>
-                        <div className="label">Speed:</div>
-                        <div>
-                            {taskPacket.drift.estimated_drift.speed.toFixed(DECIMALS) ?? ""} m/s
-                        </div>
-                        <div className="line-break"></div>
-                        <div className="label">Direction:</div>
-                        <div>
-                            {taskPacket.drift.estimated_drift.heading.toFixed(DECIMALS) ?? ""} deg
-                        </div>
-                        <div className="line-break"></div>
-                        <div className="label">
-                            Sig Wave Height<br></br>Beta:
-                        </div>
-                        <div>
-                            {taskPacket.drift.significant_wave_height.toFixed(DECIMALS) ?? ""} m
-                        </div>
-                        <div className="line-break"></div>
+
+                        {taskPacket.drift?.estimated_drift && (
+                            <>
+                                <div className="label">Duration:</div>
+                                <div>
+                                    {taskPacket.drift.drift_duration?.toFixed(DECIMALS) ?? ""} s
+                                </div>
+                                <div className="line-break"></div>
+                                <div className="label">Speed:</div>
+                                <div>
+                                    {taskPacket.drift.estimated_drift.speed?.toFixed(DECIMALS) ??
+                                        ""}{" "}
+                                    m/s
+                                </div>
+                                <div className="line-break"></div>
+                                <div className="label">Direction:</div>
+                                <div>
+                                    {taskPacket.drift.estimated_drift.heading?.toFixed(DECIMALS) ??
+                                        ""}{" "}
+                                    deg
+                                </div>
+                                <div className="line-break"></div>
+                                {taskPacket.drift.significant_wave_height != null && (
+                                    <>
+                                        <div className="label">Sig Wave Height (Beta):</div>
+                                        <div>
+                                            {taskPacket.drift.significant_wave_height.toFixed(
+                                                DECIMALS,
+                                            )}{" "}
+                                            m
+                                        </div>
+                                        <div className="line-break"></div>
+                                    </>
+                                )}
+                            </>
+                        )}
+
+                        {taskPacket.current && (
+                            <>
+                                <div className="label">Current Speed:</div>
+                                <div>
+                                    {taskPacket.current.speed?.toFixed(DECIMALS) ?? ""} m/s ±{" "}
+                                    {taskPacket.current.speed_stdev?.toFixed(DECIMALS) ?? ""}
+                                </div>
+                                <div className="line-break"></div>
+                                <div className="label">Current Direction:</div>
+                                <div>
+                                    {taskPacket.current.heading?.toFixed(DECIMALS) ?? ""} deg ±{" "}
+                                    {taskPacket.current.heading_stdev?.toFixed(DECIMALS) ?? ""}
+                                </div>
+                                <div className="line-break"></div>
+                            </>
+                        )}
+
+                        {taskPacket.wave && (
+                            <>
+                                <div className="label">Sig Wave Height:</div>
+                                <div>
+                                    {taskPacket.wave.significant_wave_height?.toFixed(DECIMALS) ??
+                                        ""}{" "}
+                                    m ± {taskPacket.wave.hs_stdev?.toFixed(DECIMALS) ?? ""}
+                                </div>
+                                <div className="line-break"></div>
+                                <div className="label">Wave Period:</div>
+                                <div>
+                                    {taskPacket.wave.period?.toFixed(DECIMALS) ?? ""} s ±{" "}
+                                    {taskPacket.wave.period_stdev?.toFixed(DECIMALS) ?? ""}
+                                </div>
+                                <div className="line-break"></div>
+                            </>
+                        )}
+
                         <div className="label">Start Time:</div>
                         <div>{startTime}</div>
                         <div className="line-break"></div>

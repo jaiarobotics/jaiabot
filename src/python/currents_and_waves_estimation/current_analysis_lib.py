@@ -3,7 +3,9 @@ import pandas as pd
 
 # --- Constants for Analysis ---
 DRIFT_ARDUINO_VALUE = 1500
-MIN_DRIFT_LEN_PTS = 50 # 50 gps pts ~= 10s duration @ 5hz
+# minimum driftlet length in GPS points
+MIN_DRIFT_LEN_PTS = 10 # TODO: Should this be changed back to 50 points? Should it be conditional based on whether it's in sim? 
+
 MOTOR_STOP_MOMENTUM_PERIOD_S = 1.5 # TODO: determine upper bound for vehicle to come to a stop from full throttle, current value is somewhat arbitrary
 DEFAULT_SPEED_STDEV_MPS = 0.1
 DEFAULT_DIRECTION_STDEV_DEG = 45.0
@@ -190,8 +192,6 @@ def summarize_station_keep_drifts(drifts, log):
 
         speed_stdev = magnitude_weighted_stdev_mps
         heading_stdev = direction_weighted_circular_stdev_deg
-        log.info(f"Mode Speed STD: {speed_stdev} m/s.")
-        log.info(f"Heading STD: {heading_stdev} degrees.")
 
     # Collect non-empty filtered latitude/longitude arrays
     lat_arrays = []

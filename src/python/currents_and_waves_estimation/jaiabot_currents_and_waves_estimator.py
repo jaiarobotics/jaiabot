@@ -74,7 +74,7 @@ def send_heartbeat(sock, addr, log):
     except Exception:
         log.exception("Failed to send heartbeat")
 
-def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffers, task_type, log, cleanup=True):
+def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffers, task_type, log, cleanup=True, is_sim=False):
     """Writes buffered data to HDF5, processes it, and sends the final results."""
     processing_dir = os.path.join(JAIABOT_BOT_ID_DIR, str(int(time.time())))
     os.makedirs(processing_dir, exist_ok=True)
@@ -119,22 +119,23 @@ def process_and_send_results(sock, addr, start_time_us, end_time_us, data_buffer
         log.warning("No current results were generated.")
         
     log.info("Processing for waves...")
-    wave_results = process_waves_data(h5_log_path, log)
+    wave_results = process_waves_data(h5_log_path, log, is_sim=is_sim)
     if wave_results:
         hs = wave_results.get("Hs_gps", np.nan)
         hs_stdev = wave_results.get("Hs_gps_std", np.nan)
         period = wave_results.get("Tp_gps", np.nan)
         period_stdev=wave_results.get("Tp_default_std", np.nan)
 
+        log.info(f"Wave values: Hs={hs}, Hs_std={hs_stdev}, Tp={period}, Tp_std={period_stdev}")
         if np.isfinite(hs) and np.isfinite(hs_stdev) and np.isfinite(period) and np.isfinite(period_stdev):
-            wave_packet = WavePacket(significant_wave_height=float(hs), hs_stdev=float(hs_stdev), 
+            wave_packet = WavePacket(significant_wave_height=float(hs), hs_stdev=float(hs_stdev),
                                      period=float(period), period_stdev=period_stdev)
             if np.isfinite(wave_results.get("mean_lat", np.nan)) and np.isfinite(wave_results.get("mean_lon", np.nan)):
                 wave_packet.location.lat = wave_results["mean_lat"]
                 wave_packet.location.lon = wave_results["mean_lon"]
             task_packet.wave.CopyFrom(wave_packet)
         else:
-            log.warning(f"Wave results contain non-finite values; not including in TaskPacket")
+            log.warning(f"Wave results contain non-finite values (Hs={hs}, Hs_std={hs_stdev}, Tp={period}, Tp_std={period_stdev}); not including in TaskPacket")
     else:
        log.warning("No wave results were generated.")
             
@@ -183,7 +184,7 @@ def process_currents_data(h5_log_path, log):
         log.exception(f"Error processing current data from {h5_log_path}: {e}")
         return {}
 
-def process_waves_data(h5_log_path, log):
+def process_waves_data(h5_log_path, log, is_sim=False):
     """Processes logged data from an HDF5 file to compute wave statistics."""
     try:
         with h5py.File(h5_log_path, 'r') as f:
@@ -198,7 +199,7 @@ def process_waves_data(h5_log_path, log):
         
         gps_df['ts'] = gps_df['ts'] / 1_000_000_000.0
         log.info(f"Number of points for wave analysis: {gps_df.shape[0]}")
-        return wal.process_station_keep_dict_gps_only(gps_df.to_dict(orient='list'), log)
+        return wal.process_station_keep_dict_gps_only(gps_df.to_dict(orient='list'), log, is_sim=is_sim)
 
     except (FileNotFoundError, OSError, KeyError) as e:
         log.exception(f"Error processing wave data from {h5_log_path}: {e}")
@@ -300,7 +301,7 @@ def main(args):
                         
                         if end_task:
                             end_time_us = int(current_ts * 1_000_000)
-                            process_and_send_results(sock, udp_gateway_address, start_time_us, end_time_us, data_buffers, task_type, log, cleanup=args.delete_temporary_h5s)
+                            process_and_send_results(sock, udp_gateway_address, start_time_us, end_time_us, data_buffers, task_type, log, cleanup=args.delete_temporary_h5s, is_sim=args.sim)
                             log.info("Processing complete. Switching back to WAITING mode.")
                             current_fsm_state = FSM_STATES.WAITING
                     case _:
@@ -317,6 +318,7 @@ if __name__ == "__main__":
     parser.add_argument('-l', dest='logging_level', default='INFO', type=str, help='Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG), default is INFO')
     parser.add_argument('-b', '--bot_id', default=0, type=int, help='Jaiabot bot_id of the bot the app is running on.')
     parser.add_argument('--delete_temporary_h5s', action=argparse.BooleanOptionalAction, default=True, help='Whether to delete temporary logging h5s after sending estimates')
+    parser.add_argument('--sim', action='store_true', default=False, help='Running in simulation mode: uses altitude-bearing timestamps only to compute GPS sampling rate')
     
     args = parser.parse_args()
     exit(main(args))
