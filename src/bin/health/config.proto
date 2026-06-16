@@ -90,8 +90,6 @@ message ArduinoRecoveryConfig
     };
 
     optional bool enable_auto_flash = 1 [default = false];
-    optional int32 min_interval_seconds = 2
-        [default = 30, (dccl.field).units = { base_dimensions: "T" }];
     optional int32 max_attempts = 3 [default = 3];
     optional string flash_script = 10
         [default = "/usr/share/jaiabot/scripts/jaia_firm_arduino_flash.sh"];

@@ -21,6 +21,4 @@ arduino_version_table {
     app_versions_compatible_to: ""
 }
 
-flash_delay_seconds: 30
-
 $jaiabot_driver_arduino_bounds
