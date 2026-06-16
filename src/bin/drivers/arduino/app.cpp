@@ -115,9 +115,9 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     // Used to check the time the arduino restarted
     goby::time::SteadyClock::time_point last_arduino_restart_time_{std::chrono::seconds(0)};
 
-    bool flash_arduino_requested_{false};
-    bool arduino_failure_timer_active_{false};
-    goby::time::SteadyClock::time_point arduino_failure_time_{};
+    goby::time::SteadyClock::time_point last_flash_time_{};
+    static constexpr goby::time::SteadyClock::time_point k_flash_request_published_{
+        goby::time::SteadyClock::duration::max()};
 };
 
 } // namespace apps
@@ -593,8 +593,7 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     }
     else
     {
-        flash_arduino_requested_ = false;
-        arduino_failure_timer_active_ = false;
+        last_flash_time_ = {};
     }
 
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
@@ -618,24 +617,20 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
 
 void jaiabot::apps::ArduinoDriver::request_arduino_flash()
 {
-    const auto now = goby::time::SteadyClock::now();
-    if (!arduino_failure_timer_active_)
-    {
-        arduino_failure_time_ = now;
-        arduino_failure_timer_active_ = true;
-    }
-
-    if (flash_arduino_requested_)
+    if (last_flash_time_ == k_flash_request_published_)
         return;
 
-    if (now < arduino_failure_time_ +
-                    std::chrono::seconds(cfg().arduino_flash_request_delay_seconds()))
+    const auto now = goby::time::SteadyClock::now();
+    if (last_flash_time_ == goby::time::SteadyClock::time_point{})
+        last_flash_time_ = now;
+
+    if (now < last_flash_time_ + std::chrono::seconds(cfg().flash_delay_seconds()))
         return;
 
     jaiabot::protobuf::ArduinoIssue issue;
     issue.set_solution(jaiabot::protobuf::ArduinoIssue::FLASH_ARDUINO);
     interprocess().publish<groups::arduino_issue>(issue);
-    flash_arduino_requested_ = true;
+    last_flash_time_ = k_flash_request_published_;
 
     glog.is_warn() && glog << group("main")
                            << "Published ArduinoIssue FLASH_ARDUINO for health recovery"
