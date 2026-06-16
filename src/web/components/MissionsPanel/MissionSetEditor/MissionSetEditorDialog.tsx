@@ -69,17 +69,26 @@ export function MissionSetEditorDialog(props: DialogProps) {
         return <div></div>;
     }
 
-    /** Toggles selection of a stored mission set item; deselects if already selected. */
+    /** Toggles selection of a stored mission set item; deselects if already selected.
+     *
+     * @returns {void}
+     */
     const handleSavedItemClick = (index: number) => {
         setSelectedSavedIndex((prev) => (prev === index ? null : index));
     };
 
-    /** Toggles selection of a combined list item; deselects if already selected. */
+    /** Toggles selection of a combined list item; deselects if already selected.
+     *
+     * @returns {void}
+     */
     const handleCombinedItemClick = (index: number) => {
         setSelectedCombinedIndex((prev) => (prev === index ? null : index));
     };
 
-    /** Inserts before the selected combined item, or appends if none selected. Rejects if it would exceed MAX_WAYPOINTS. */
+    /** Inserts before the selected combined item, or appends if none selected. Rejects if it would exceed MAX_WAYPOINTS.
+     *
+     * @returns {void}
+     */
     const handleAdd = () => {
         if (selectedSavedIndex === null) return;
         const selectedSavedName = savedMissionSets[selectedSavedIndex];
@@ -113,7 +122,10 @@ export function MissionSetEditorDialog(props: DialogProps) {
         setCombinedList(projectedList);
     };
 
-    /** Moves the selected combined list item one position up. */
+    /** Moves the selected combined list item one position up.
+     *
+     * @returns {void}
+     */
     const handleMoveUp = () => {
         if (selectedCombinedIndex === null || selectedCombinedIndex === 0) return;
         const next = [...combinedList];
@@ -125,7 +137,10 @@ export function MissionSetEditorDialog(props: DialogProps) {
         setSelectedCombinedIndex(selectedCombinedIndex - 1);
     };
 
-    /** Moves the selected combined list item one position down. */
+    /** Moves the selected combined list item one position down.
+     *
+     * @returns {void}
+     */
     const handleMoveDown = () => {
         if (selectedCombinedIndex === null || selectedCombinedIndex === combinedList.length - 1)
             return;
@@ -138,7 +153,10 @@ export function MissionSetEditorDialog(props: DialogProps) {
         setSelectedCombinedIndex(selectedCombinedIndex + 1);
     };
 
-    /** Removes the selected item from the combined list. */
+    /** Removes the selected item from the combined list.
+     *
+     * @returns {void}
+     */
     const handleDelete = () => {
         if (selectedCombinedIndex === null) return;
         const remaining = combinedList.filter((_, i) => i !== selectedCombinedIndex);
