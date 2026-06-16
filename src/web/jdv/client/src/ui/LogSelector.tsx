@@ -69,6 +69,11 @@ interface LogSelectorState {
     fromDate: string;
     toDate: string;
     selectedLogs: { [key: string]: Log };
+    downloadProgress: {
+        phase: "converting" | "zipping" | "downloading";
+        completed?: number;
+        total?: number;
+    } | null;
 }
 
 // Dropdown menu showing all of the available logs to choose from
@@ -90,6 +95,7 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
             fromDate: localStorage.getItem("fromDate"),
             toDate: localStorage.getItem("toDate"),
             selectedLogs: {},
+            downloadProgress: null,
         };
 
         this.refreshLogs();
@@ -142,6 +148,7 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
                             className={"padded log"}
                             onChange={this.did_select_fleet.bind(this)}
                             value={this.state.fleetFilter ?? undefined}
+                            disabled={this.state.downloadProgress != null}
                         >
                             {this.fleet_option_elements()}
                         </select>
@@ -152,6 +159,7 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
                             className={"padded log"}
                             onChange={this.did_select_bot.bind(this)}
                             value={this.state.botFilter ?? undefined}
+                            disabled={this.state.downloadProgress != null}
                         >
                             {this.bot_option_elements()}
                         </select>
@@ -161,6 +169,7 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
                             id="fromDate"
                             defaultValue={this.state.fromDate}
                             onInput={this.fromDateChanged.bind(this)}
+                            disabled={this.state.downloadProgress != null}
                         />
                         To
                         <input
@@ -168,6 +177,7 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
                             id="toDate"
                             defaultValue={this.state.toDate}
                             onInput={this.toDateChanged.bind(this)}
+                            disabled={this.state.downloadProgress != null}
                         />
                     </div>
                 </div>
@@ -259,23 +269,60 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
     }
 
     buttonsElement() {
+        const selectedCount = Object.keys(this.state.selectedLogs).length;
+        const isDownloading = this.state.downloadProgress != null;
+
         return (
             <div className="buttonSection section">
                 <button
                     className="danger padded"
                     onClick={this.deleteClicked.bind(this)}
-                    disabled={Object.keys(this.state.selectedLogs).length == 0}
+                    disabled={selectedCount == 0 || isDownloading}
                 >
                     Delete Logs
                 </button>
+                <button
+                    className="padded"
+                    onClick={this.downloadClicked.bind(this)}
+                    disabled={selectedCount == 0 || isDownloading}
+                >
+                    Download Logs
+                </button>
+                {this.downloadProgressElement()}
                 <div className="spacer"></div>
-                <button className="padded" onClick={this.cancelClicked.bind(this)}>
+                <button
+                    className="padded"
+                    onClick={this.cancelClicked.bind(this)}
+                    disabled={isDownloading}
+                >
                     Cancel
                 </button>
-                <button className="padded" onClick={this.okClicked.bind(this)}>
+                <button
+                    className="padded"
+                    onClick={this.okClicked.bind(this)}
+                    disabled={isDownloading}
+                >
                     Open Logs
                 </button>
             </div>
+        );
+    }
+
+    downloadProgressElement() {
+        const progress = this.state.downloadProgress;
+
+        if (progress == null) {
+            return null;
+        }
+
+        if (progress.phase === "downloading") {
+            return <div className="padded">Downloading...</div>;
+        }
+
+        const verb = progress.phase === "converting" ? "Converting" : "Zipping";
+
+        return (
+            <div className="padded">{`${verb} ${progress.completed} of ${progress.total}...`}</div>
         );
     }
 
@@ -288,6 +335,8 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
     }
 
     didToggleLog(log: Log) {
+        if (this.state.downloadProgress != null) return;
+
         var selectedLogs = this.state.selectedLogs;
 
         if (log.filename in selectedLogs) {
@@ -470,6 +519,75 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
 
         console.debug("Selected logs: ", selectedLogNames);
         this.props.delegate.didSelectLogs(selectedLogNames);
+    }
+
+    /**
+     * Converts (if needed) and downloads the H5 files for the selected logs, zipped together if
+     * there are multiple.  Polls the conversion status to show "Converting N of M..." progress,
+     * then (for multiple logs) polls the zip status to show "Zipping N of M..." progress.
+     */
+    async downloadClicked() {
+        const logNames = Object.values(this.state.selectedLogs).map((log) => log.filename);
+
+        if (logNames.length === 0) return;
+
+        this.setState({
+            downloadProgress: { phase: "converting", completed: 0, total: logNames.length },
+        });
+
+        try {
+            while (true) {
+                const status = await LogApi.postConvertIfNeeded(logNames);
+                this.setState({
+                    downloadProgress: {
+                        phase: "converting",
+                        completed: status.completed,
+                        total: status.total,
+                    },
+                });
+
+                if (status.done) break;
+
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+
+            // Refresh metadata for any logs that were just converted, so the list shows their duration
+            const metadata = await LogApi.getLogMetadata(logNames);
+            this.setState((prevState) => ({
+                logMetadata: { ...prevState.logMetadata, ...metadata },
+            }));
+
+            if (logNames.length === 1) {
+                this.setState({ downloadProgress: { phase: "downloading" } });
+                await LogApi.getH5Files(logNames);
+            } else {
+                let zipStatus = await LogApi.startH5Zip(logNames);
+
+                while (true) {
+                    if (zipStatus.error != null) throw new Error(zipStatus.error);
+
+                    if (zipStatus.done) break;
+
+                    this.setState({
+                        downloadProgress: {
+                            phase: "zipping",
+                            completed: zipStatus.completed,
+                            total: zipStatus.total,
+                        },
+                    });
+
+                    await new Promise((resolve) => setTimeout(resolve, 500));
+                    zipStatus = await LogApi.getH5ZipStatus();
+                }
+
+                this.setState({ downloadProgress: { phase: "downloading" } });
+                await LogApi.getH5Zip();
+            }
+        } catch (err) {
+            CustomAlert.alert(String(err));
+        } finally {
+            this.setState({ downloadProgress: null });
+        }
     }
 
     async deleteClicked() {

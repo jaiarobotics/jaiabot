@@ -14,11 +14,55 @@ export type ActiveGoals = {
 
 export interface ConvertStatus {
     done: boolean;
+    completed: number;
+    total: number;
+}
+
+export interface ZipStatus {
+    completed: number;
+    total: number;
+    done: boolean;
+    error: string | null;
 }
 
 export interface LogMetadata {
     size: number | null;
     duration: number | null;
+}
+
+function getFilenameFromContentDisposition(contentDisposition: string | null): string | null {
+    if (contentDisposition == null) {
+        return null;
+    }
+    const filenameMatch = contentDisposition.match(/filename="([^"]+)"|filename=([^;]+)/);
+    if (filenameMatch == null) {
+        return null;
+    }
+
+    return filenameMatch[1] ?? filenameMatch[2] ?? null;
+}
+
+/**
+ * Fetches a file from a GET endpoint and downloads it, throwing if the response is a JSON error
+ *
+ * @param {string} url URL to fetch
+ * @param {string} defaultFilename Filename to use if none is given in the response headers
+ * @returns {Promise<void>} Promise for the download
+ */
+async function fetchFileOrThrow(url: string, defaultFilename: string) {
+    const res = await fetch(url, { method: "GET" });
+
+    const contentType = res.headers.get("Content-Type") ?? "application/octet-stream";
+    if (contentType.includes("application/json")) {
+        const response_object = await res.json();
+        throw new Error(response_object.error ?? `Unknown error downloading ${defaultFilename}`);
+    }
+
+    const filename =
+        getFilenameFromContentDisposition(res.headers.get("Content-Disposition")) ??
+        defaultFilename;
+    const blob = await res.blob();
+    download(blob, filename, contentType);
 }
 
 /**
@@ -30,18 +74,6 @@ export interface LogMetadata {
  * @returns {Promise<void>} A Promise for the fetch operation
  */
 function downloadURL(url: string, filename: string | null = null, mimeType: string | null = null) {
-    function getFilenameFromContentDisposition(contentDisposition: string | null): string | null {
-        if (contentDisposition == null) {
-            return null;
-        }
-        const filenameMatch = contentDisposition.match(/filename="([^"]+)"|filename=([^;]+)/);
-        if (filenameMatch == null) {
-            return null;
-        }
-
-        return filenameMatch[1] ?? filenameMatch[2] ?? null;
-    }
-
     return fetch(url, { method: "GET" })
         .then((res) => {
             // Get mime type from response header if not provided
@@ -323,6 +355,70 @@ export class LogApi {
         url.searchParams.append("file", logs.join(","));
 
         return downloadURL(url.toString());
+    }
+
+    /**
+     * Downloads the converted HDF5 files for a set of logs, zipped together if there are multiple
+     *
+     * @param {string[]} logs Array of log names
+     * @returns {Promise<void>} Promise for the download
+     */
+    static async getH5Files(logs: string[]) {
+        var url = new URL("/jdv/h5-files", window.location.origin);
+        url.searchParams.append("file", logs.join(","));
+
+        return fetchFileOrThrow(url.toString(), "h5_files.zip");
+    }
+
+    /**
+     * Do a POST request with a JSON payload, throwing if the response contains an error
+     *
+     * @param {string} url URL of endpoint
+     * @param {object} payload Object to send as JSON payload
+     * @returns {Promise<any>} Promise for the JSON-decoded response body
+     */
+    static async postJSON(url: string, payload: object) {
+        var request = new Request(url, {
+            method: "POST",
+            headers: new Headers({ "Content-Type": "application/json" }),
+            body: JSON.stringify(payload),
+        });
+
+        const response_object = await (await fetch(request)).json();
+
+        if (response_object.error != null) {
+            throw new Error(response_object.error);
+        }
+
+        return response_object;
+    }
+
+    /**
+     * Starts (or polls) a background job that zips the H5 files for a set of logs
+     *
+     * @param {string[]} logs Array of log names
+     * @returns {Promise<ZipStatus>} The status of the zip operation
+     */
+    static async startH5Zip(logs: string[]): Promise<ZipStatus> {
+        return (await this.postJSON("/jdv/h5-zip", logs)) as ZipStatus;
+    }
+
+    /**
+     * Gets the status of the background H5 zip job
+     *
+     * @returns {Promise<ZipStatus>} The status of the zip operation
+     */
+    static async getH5ZipStatus(): Promise<ZipStatus> {
+        return (await this.getJSON("/jdv/h5-zip/status")) as ZipStatus;
+    }
+
+    /**
+     * Downloads the completed H5 zip file
+     *
+     * @returns {Promise<void>} Promise for the download
+     */
+    static async getH5Zip() {
+        return fetchFileOrThrow("/jdv/h5-zip", "h5_files.zip");
     }
 
     /**

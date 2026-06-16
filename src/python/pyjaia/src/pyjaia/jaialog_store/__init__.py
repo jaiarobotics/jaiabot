@@ -7,6 +7,7 @@ import logging
 import re
 import datetime
 import os
+from threading import Thread
 
 from pyjaia import kmz
 from pprint import pprint
@@ -117,8 +118,64 @@ class FileDownload:
     '''MIME type of the file'''
 
 
+class H5ZipManager:
+    '''Runs on a thread, zipping a set of H5 logs together and reporting progress'''
+
+    log_dir: str
+    '''Directory containing the source .h5 files'''
+
+    temp_dir: str
+    '''Directory in which to build the zip file (local disk, to avoid round-tripping through s3fs)'''
+
+    log_names: List[str]
+    thread: Optional[Thread] = None
+    status: dict
+
+
+    def __init__(self, log_dir: str, temp_dir: str) -> None:
+        self.log_dir = log_dir
+        self.temp_dir = temp_dir
+        self.log_names = []
+        self.status = {'completed': 0, 'total': 0, 'done': False, 'error': None}
+
+
+    def start(self, log_names: List[str]):
+        if self.thread is not None and self.thread.is_alive():
+            return
+
+        self.log_names = log_names
+        self.status = {'completed': 0, 'total': len(log_names), 'done': False, 'error': None}
+
+        def workFunc():
+            zip_filename = f'{self.temp_dir}/h5_files.zip'
+
+            try:
+                with zipfile.ZipFile(zip_filename, 'w') as zip_file:
+                    for log_name in self.log_names:
+                        zip_file.write(f'{self.log_dir}/{log_name}.h5', arcname=f'{log_name}.h5')
+                        self.status['completed'] += 1
+            except Exception as e:
+                logging.error(f'Error zipping H5 files: {e}')
+                self.status['error'] = str(e)
+
+            self.status['done'] = True
+
+        self.thread = Thread(target=workFunc, daemon=True)
+        self.thread.start()
+
+
+    def getStatus(self):
+        return self.status
+
+
+    def getFilePath(self) -> str:
+        '''Returns the path to the completed zip file.  The caller is responsible for removing it.'''
+        return f'{self.temp_dir}/h5_files.zip'
+
+
 class JaialogStore:
     LOG_DIR: str
+    TEMP_DIR: str
     log_conversion_manager: log_conversion.LogConversionManager = None
 
     def __init__(self, log_dir: Union[str, Path]='/var/log/jaiabot/bot_offload/') -> None:
@@ -131,7 +188,12 @@ class JaialogStore:
         self.LOG_DIR = str(log_dir)
         os.makedirs(log_dir, exist_ok=True)
 
+        # Local disk directory (parent of LOG_DIR), used for scratch files so we don't
+        # round-trip large temporary files (e.g. zip downloads) through the s3fs mount
+        self.TEMP_DIR = str(Path(self.LOG_DIR).parent)
+
         self.log_conversion_manager = log_conversion.LogConversionManager(log_dir)
+        self.h5_zip_manager = H5ZipManager(self.LOG_DIR, self.TEMP_DIR)
 
 
     def getLogs(self):
@@ -225,18 +287,21 @@ class JaialogStore:
 
 
     def convertIfNeeded(self, log_names: List[str]):
-        '''Converts a list of logs if needed, returning True if they're already converted, False otherwise'''
-        done = True
+        '''Converts a list of logs if needed, returning the number already converted and the total'''
+        completed = 0
 
         for log_name in log_names:
             h5_path = Path(f'{self.LOG_DIR}/{log_name}.h5')
 
-            if not h5_path.exists():
+            if h5_path.exists():
+                completed += 1
+            else:
                 self.log_conversion_manager.addLogName(log_name)
-                done = False
-            
+
         return {
-            'done': done
+            'done': completed == len(log_names),
+            'completed': completed,
+            'total': len(log_names)
         }
 
 
@@ -365,6 +430,78 @@ class JaialogStore:
     def getH5File(self, logName: str):
         '''Returns a Jaia H5 file object'''
         return open(self.fullPathForLog(logName), 'br')
+
+
+    def _availableSpace(self, path: str) -> int:
+        '''Returns the available space (in bytes) on the device containing path'''
+        statvfs = os.statvfs(path)
+        return statvfs.f_bfree * statvfs.f_frsize
+
+
+    def getH5Files(self, logNames: list[str]) -> FileDownload:
+        '''Returns an H5 file, zipped if multiple logs are requested'''
+
+        # If there's only one log, return the h5 file directly.  If there are multiple logs, zip them up and return the zip file.
+        if len(logNames) == 1:
+            with open(self.fullPathForLog(logNames[0]), 'br') as f:
+                content = f.read()
+
+            return FileDownload(filename=f'{logNames[0]}.h5', content=content, mimetype='application/x-hdf')
+
+        else:
+            h5_paths = [Path(self.fullPathForLog(logName)) for logName in logNames]
+            total_size = sum(h5_path.stat().st_size for h5_path in h5_paths)
+
+            availableSpace = self._availableSpace(self.TEMP_DIR)
+
+            if total_size > availableSpace:
+                raise Exception(f'Not enough space to zip {len(logNames)} log(s) '
+                                 f'({total_size} bytes needed, {availableSpace} bytes available)')
+
+            zip_filename = f'{self.TEMP_DIR}/h5_files.zip'
+            with zipfile.ZipFile(zip_filename, 'w') as zip_file:
+                for logName, h5_path in zip(logNames, h5_paths):
+                    zip_file.write(h5_path, arcname=f'{logName}.h5')
+
+            with open(zip_filename, 'br') as f:
+                content = f.read()
+
+            os.remove(zip_filename)
+
+            return FileDownload(filename='h5_files.zip', content=content, mimetype='application/zip')
+
+
+    def startH5Zip(self, logNames: list[str]):
+        '''Starts (or returns the status of) a background job to zip H5 files for the given logs'''
+        h5_paths = [Path(self.fullPathForLog(logName)) for logName in logNames]
+        total_size = sum(h5_path.stat().st_size for h5_path in h5_paths)
+
+        availableSpace = self._availableSpace(self.TEMP_DIR)
+
+        if total_size > availableSpace:
+            raise Exception(f'Not enough space to zip {len(logNames)} log(s) '
+                             f'({total_size} bytes needed, {availableSpace} bytes available)')
+
+        self.h5_zip_manager.start(logNames)
+        return self.h5_zip_manager.getStatus()
+
+
+    def getH5ZipStatus(self):
+        '''Returns the status of the background H5 zip job'''
+        return self.h5_zip_manager.getStatus()
+
+
+    def getH5ZipFilePath(self) -> str:
+        '''Validates and returns the path to the completed H5 zip file.  The caller is responsible for removing it.'''
+        status = self.h5_zip_manager.getStatus()
+
+        if status['error'] is not None:
+            raise Exception(status['error'])
+
+        if not status['done']:
+            raise Exception('Zip file is not ready yet')
+
+        return self.h5_zip_manager.getFilePath()
 
 
     def getUBXFile(self, logNames: list[str]) -> FileDownload:

@@ -212,6 +212,55 @@ def getH5():
     return Response(jaialogStore.getH5File(logName), mimetype='application/x-hdf', headers=headers)
 
 
+@app.route('/jdv/h5-files', methods=['GET'])
+def getH5Files():
+    '''Download one or more Jaia HDF5 files, zipped if there are multiple'''
+    logName = request.args.get('file')
+
+    if logName is None:
+        return JSONErrorResponse('Please specify file(s) to download with "file="')
+
+    logNames = parseFilenames(logName)
+    fileDownload = jaialogStore.getH5Files(logNames)
+
+    headers = { 'Content-Disposition': f'attachment; filename={fileDownload.filename}' }
+    return Response(fileDownload.content, mimetype=fileDownload.mimetype, headers=headers)
+
+
+@app.route('/jdv/h5-zip', methods=['POST'])
+def startH5Zip():
+    '''Starts a background job to zip the H5 files for the given logs, returning its status'''
+    log_names = request.json
+    jaialogStore.startH5Zip(log_names)
+    return JSONResponse(jaialogStore.getH5ZipStatus())
+
+
+@app.route('/jdv/h5-zip/status', methods=['GET'])
+def getH5ZipStatus():
+    '''Gets the status of the background H5 zip job'''
+    return JSONResponse(jaialogStore.getH5ZipStatus())
+
+
+@app.route('/jdv/h5-zip', methods=['GET'])
+def getH5Zip():
+    '''Download the completed H5 zip file, streaming it from disk and removing it once sent'''
+    zip_path = jaialogStore.getH5ZipFilePath()
+
+    response = send_file(zip_path, mimetype='application/zip', as_attachment=True,
+                          download_name='h5_files.zip', conditional=False, etag=False)
+
+    # send_file() sets direct_passthrough, which bypasses call_on_close (the WSGI server
+    # never calls Response.close() on the raw FileWrapper). Disable it so the file is
+    # still streamed in chunks, but our cleanup callback below actually runs.
+    response.direct_passthrough = False
+
+    @response.call_on_close
+    def _removeZipFile():
+        os.remove(zip_path)
+
+    return response
+
+
 @app.route('/jdv/ubx', methods=['GET'])
 def getUBX():
     '''Download a UBX file'''
