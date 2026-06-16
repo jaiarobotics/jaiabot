@@ -15,9 +15,7 @@ test("Overdrive warning dialog shows warning text and buttons when visible", () 
 
     expect(screen.getByText("Warning")).toBeInTheDocument();
     expect(
-        screen.getByText(
-            "Enabling Overdrive may introduce risk to the bot. Manual control will be harder.",
-        ),
+        screen.getByText("Overdrive offers more speed, but it can make control more difficult."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enable Overdrive" })).toBeInTheDocument();
