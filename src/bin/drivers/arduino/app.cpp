@@ -581,24 +581,9 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
-    if (!is_driver_connected_)
-    {
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__ARDUINO_CONNECTION_FAILED);
-        request_arduino_flash();
-    }
-    else if (!is_driver_compatible_)
-    {
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
-        request_arduino_flash();
-    }
-    else if (last_arduino_report_time_ +
-                     std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
-                 goby::time::SteadyClock::now() &&
-             !last_command_acked_)
+    if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
+            goby::time::SteadyClock::now() &&
+        !last_command_acked_)
     {
         glog.is_warn() && glog << "Timeout on arduino" << std::endl;
 
@@ -612,6 +597,20 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
+    }
+    else if (!is_driver_connected_)
+    {
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__ARDUINO_CONNECTION_FAILED);
+        request_arduino_flash();
+    }
+    else if (!is_driver_compatible_)
+    {
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
+        request_arduino_flash();
     }
     else
     {
