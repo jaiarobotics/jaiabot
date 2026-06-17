@@ -590,14 +590,10 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
             ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
         request_arduino_flash();
     }
-    else
-    {
-        flash_arduino_issue_published_ = false;
-    }
-
-    if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
-            goby::time::SteadyClock::now() &&
-        !last_command_acked_)
+    else if (last_arduino_report_time_ +
+                     std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
+                 goby::time::SteadyClock::now() &&
+             !last_command_acked_)
     {
         glog.is_warn() && glog << "Timeout on arduino" << std::endl;
 
@@ -611,6 +607,10 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
+    }
+    else
+    {
+        flash_arduino_issue_published_ = false;
     }
 }
 
