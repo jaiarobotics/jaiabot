@@ -105,8 +105,8 @@ jaiabot::apps::Health::Health()
         goby::middleware::io::UDPPointToPointThread<jaiabot::groups::motor_udp_in,
                                                     jaiabot::groups::motor_udp_out>;
 
-    glog.is_warn() && glog << "Health thread started. " << std::endl;
-    glog.is_warn() && glog << cfg().DebugString() << std::endl;
+    glog.is_debug1() && glog << "Health thread started. " << std::endl;
+    glog.is_debug1() && glog << cfg().DebugString() << std::endl;
 
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
