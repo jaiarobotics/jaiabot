@@ -115,6 +115,9 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     // Used to check the time the arduino restarted
     goby::time::SteadyClock::time_point last_arduino_restart_time_{std::chrono::seconds(0)};
 
+    // Time driver process started; used for flash_startup_delay_seconds gate
+    goby::time::SteadyClock::time_point driver_start_time_{};
+
     // Publish FLASH_ARDUINO once per driver process when connection/version failure is first detected
     bool flash_arduino_issue_published_{false};
 };
@@ -133,6 +136,8 @@ int main(int argc, char* argv[])
 jaiabot::apps::ArduinoDriver::ArduinoDriver()
     : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(1.0 / 10.0 * si::hertz)
 {
+    driver_start_time_ = goby::time::SteadyClock::now();
+
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);
     glog.add_group("arduino", goby::util::Colors::blue);
@@ -617,6 +622,10 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
 void jaiabot::apps::ArduinoDriver::request_arduino_flash()
 {
     if (flash_arduino_issue_published_)
+        return;
+
+    const auto now = goby::time::SteadyClock::now();
+    if (now < driver_start_time_ + std::chrono::seconds(cfg().flash_startup_delay_seconds()))
         return;
 
     jaiabot::protobuf::ArduinoIssue issue;
