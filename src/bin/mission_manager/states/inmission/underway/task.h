@@ -70,7 +70,8 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
 
         task_packet_.set_end_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
 
-        if (task_packet_.type() == protobuf::MissionTask::DIVE)
+        if (task_packet_.type() == protobuf::MissionTask::DIVE ||
+            task_packet_.type() == protobuf::MissionTask::SURFACE_DRIFT)
         {
             if (cfg().data_offload_exclude() != config::MissionManager::TASKPACKET)
             {

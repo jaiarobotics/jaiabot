@@ -39,7 +39,8 @@ jaiabot_engineering <(../../gen/bot.py jaiabot_engineering)
 
 # Start the currents and waves estimator
 # Will not produce current estimations as arduino response is not simulated, but can test basic heartbeat and data sending
-[kill=SIGTERM] ../../../build/web_dev/python/venv/bin/python3 ../../../src/python/currents_and_waves_estimation/jaiabot_currents_and_waves_estimator.py $(../../gen/bot.py jaiabot_currents_and_waves_estimator.py) --sim
+# TODO: Uncomment once we have a better idea of the Current and Waves estimation integration plan
+# [kill=SIGTERM] ../../../build/web_dev/python/venv/bin/python3 ../../../src/python/currents_and_waves_estimation/jaiabot_currents_and_waves_estimator.py $(../../gen/bot.py jaiabot_currents_and_waves_estimator.py) --sim
 
 goby_coroner <(../../gen/bot.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_simulator --expected_name jaiabot_fusion --expected_name jaiabot_mission_manager --expected_name goby_gps --expected_name goby_logger --expected_name jaiabot_metadata --expected_name jaiabot_pid_control --expected_name jaiabot_health --expected_name jaiabot_udp_gateway
 jaiabot_health <(../../gen/bot.py jaiabot_health)
