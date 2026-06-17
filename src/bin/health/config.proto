@@ -91,8 +91,7 @@ message ArduinoRecoveryConfig
 
     optional bool enable_auto_flash = 1 [default = true];
     optional int32 max_attempts = 3 [default = 3];
-    optional string flash_script = 10
-        [default = "/usr/bin/jaia_firm_arduino_flash.sh"];
+    optional string flash_script = 10 [default = "jaia_firm_arduino_flash.sh"];
 }
 
 message Health

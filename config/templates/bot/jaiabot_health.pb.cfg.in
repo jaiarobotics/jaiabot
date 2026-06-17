@@ -37,5 +37,5 @@ motor {
 arduino_recovery {
     enable_auto_flash: true
     max_attempts: 3
-    flash_script: "/usr/bin/jaia_firm_arduino_flash.sh"
+    flash_script: "jaia_firm_arduino_flash.sh"
 }
