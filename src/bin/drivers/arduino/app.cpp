@@ -591,12 +591,13 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
         arduino_debug.set_arduino_not_responding(true);
         interprocess().publish<groups::arduino_debug>(arduino_debug);
 
-        // Pulbish to arduino to attempt to get a response
+        // Publish to arduino to attempt to get a response
         publish_arduino_commands();
 
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
+        request_arduino_flash();
     }
     else if (!is_driver_connected_)
     {
