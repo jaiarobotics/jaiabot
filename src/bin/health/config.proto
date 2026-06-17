@@ -89,10 +89,10 @@ message ArduinoRecoveryConfig
         unit_system: "si"
     };
 
-    optional bool enable_auto_flash = 1 [default = false];
+    optional bool enable_auto_flash = 1 [default = true];
     optional int32 max_attempts = 3 [default = 3];
     optional string flash_script = 10
-        [default = "/usr/share/jaiabot/scripts/jaia_firm_arduino_flash.sh"];
+        [default = "/usr/bin/jaia_firm_arduino_flash.sh"];
 }
 
 message Health
