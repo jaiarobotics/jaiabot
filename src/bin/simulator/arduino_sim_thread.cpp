@@ -56,6 +56,7 @@ void jaiabot::apps::ArduinoSimThread::handle_arduino_command(const jaiabot::prot
     //   the driver without needing the physical hardware.
     jaiabot::protobuf::ArduinoResponse arduino_response;
     arduino_response.set_version(3);
+    arduino_response.set_thermistor_voltage(2.5);
 
     if (arduino_command.has_settings())
     {
