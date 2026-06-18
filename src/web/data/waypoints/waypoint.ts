@@ -5,6 +5,13 @@ import { MGRS } from "../../types/jaia-system-types";
 import { validateCoordinate } from "../../utils/input";
 import { MGRS_PLACEHOLDER } from "../../utils/constants";
 
+const defaultMGRS: MGRS = {
+    gridZoneDesignator: MGRS_PLACEHOLDER,
+    squareIdentifier: MGRS_PLACEHOLDER,
+    easting: MGRS_PLACEHOLDER,
+    northing: MGRS_PLACEHOLDER,
+};
+
 export default class Waypoint {
     private location: GeographicCoordinate;
     private task: Task;
@@ -54,7 +61,7 @@ export default class Waypoint {
     /**
      * Converts the lat/lon of the waypoint to MGRS format
      *
-     * @returns {MGRS} MGRS components for waypoints current locaiton
+     * @returns {MGRS} MGRS components for waypoints current location
      */
     latLonToMGRS() {
         const [lat, lon] = validateCoordinate(
@@ -62,17 +69,18 @@ export default class Waypoint {
             this.location.lon?.toString(),
         );
 
-        const mgrsStr = mgrs.forward([Number(lon), Number(lat)]);
+        let mgrsStr = "";
+        try {
+            mgrsStr = mgrs.forward([Number(lon), Number(lat)]);
+        } catch (err) {
+            console.error("Failed to convert lat/lon to MGRS", err);
+            return { ...defaultMGRS };
+        }
+
         const match = mgrsStr.match(/^(\d{1,2}[C-X])([A-Z]{2})(\d*)$/);
 
         if (!match) {
-            const defaultMGRS: MGRS = {
-                gridZoneDesignator: MGRS_PLACEHOLDER,
-                squareIdentifier: MGRS_PLACEHOLDER,
-                easting: MGRS_PLACEHOLDER,
-                northing: MGRS_PLACEHOLDER,
-            };
-            return defaultMGRS;
+            return { ...defaultMGRS };
         }
 
         const gzd = match[1];
