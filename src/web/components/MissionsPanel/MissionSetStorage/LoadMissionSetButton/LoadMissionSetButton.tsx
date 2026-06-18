@@ -3,8 +3,8 @@ import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
 import {
-    listSavedMissionSets,
-    loadSnapshotFromLocalStorage,
+    listSavedMissionSetsFromHub,
+    loadSnapshotFromHub,
     LoadResultType,
 } from "../mission-set-storage";
 import { DisabledCodes } from "./load-messages";
@@ -31,7 +31,8 @@ export default function LoadMissionSetButton(props: Props) {
      */
     const getInitialDisabledCode = () => {
         if (!props.saveName.trim()) return DisabledCodes.NO_NAME;
-        if (!listSavedMissionSets().includes(props.saveName)) return DisabledCodes.FILE_NOT_FOUND;
+        if (!listSavedMissionSetsFromHub().includes(props.saveName))
+            return DisabledCodes.FILE_NOT_FOUND;
         return DisabledCodes.NONE;
     };
 
@@ -57,7 +58,7 @@ export default function LoadMissionSetButton(props: Props) {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            const loadResult = await loadSnapshotFromLocalStorage(props.saveName);
+            const loadResult = await loadSnapshotFromHub(props.saveName);
             jaiaDispatch({
                 type: JaiaActions.LOAD_MISSION_SET,
                 missionSetSnapshot: loadResult.snapshot,

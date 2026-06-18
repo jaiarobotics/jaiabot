@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 
 import { JCC_CONTAINER } from "../../../utils/constants";
-import { listSavedMissionSets } from "./mission-set-storage";
+import { listSavedMissionSetsFromHub } from "./mission-set-storage";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
@@ -66,7 +66,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
                     <div className="stored-sets-container">
                         <label>Stored Mission Sets</label>
                         <ul className="stored-set-names">
-                            {listSavedMissionSets().map((name) => {
+                            {listSavedMissionSetsFromHub().map((name) => {
                                 return (
                                     <MissionSetRow
                                         name={name}
