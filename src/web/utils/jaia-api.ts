@@ -346,7 +346,7 @@ export class JaiaAPI {
     }
 
     async deleteExclusionZone(name: string): Promise<void> {
-        await this.delete(`jaia/v0/mission-sets/${encodeURIComponent(name)}`);
+        await this.delete(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`);
     }
 
     // ── Mission set hub storage ─────────────────────────────────────────────
