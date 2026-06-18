@@ -54,6 +54,7 @@ import {
     handleClickedWaypoint,
     handleClickedRallyPoint,
     handleClickedTaskPacket,
+    handleClickedWaypointSection,
 } from "./handlers/selection-handlers";
 import { handleClickedUndo } from "./handlers/history-handlers";
 import { handleChangeGridPlanningState } from "./handlers/survey-handlers";
@@ -189,6 +190,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.CLICKED_WAYPOINT, { handler: handleClickedWaypoint, tracked: false }],
     [JaiaActions.CLICKED_RALLY_POINT, { handler: handleClickedRallyPoint, tracked: false }],
     [JaiaActions.CLICKED_TASK_PACKET, { handler: handleClickedTaskPacket, tracked: false }],
+    [
+        JaiaActions.CLICKED_WAYPOINT_SECTION,
+        { handler: handleClickedWaypointSection, tracked: false },
+    ],
 
     // History Actions
     [JaiaActions.CLICKED_UNDO, { handler: handleClickedUndo, tracked: false }],

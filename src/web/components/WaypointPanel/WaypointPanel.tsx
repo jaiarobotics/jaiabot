@@ -22,7 +22,7 @@ import {
     MGRS,
     MGRSComponents,
 } from "../../types/jaia-system-types";
-import { PanelActions } from "../../types/context-types";
+import { PanelActions, WaypointSections } from "../../types/context-types";
 import { TaskType } from "../../types/protobuf-types";
 import { MapModes } from "../../types/openlayers-types";
 
@@ -32,16 +32,10 @@ import { FormControl, Select, MenuItem, SelectChangeEvent, ThemeProvider } from 
 
 import "./WaypointPanel.less";
 
-enum SectionNames {
-    NONE = 1,
-    LOCATION = 2,
-    TASK = 3,
-}
-
 interface Props {
     waypoint: Waypoint;
     isDisabled?: boolean;
-    visibleSection?: SectionNames;
+    visibleSection?: WaypointSections;
     coordinateSystem?: CoordinateSystem;
 }
 
@@ -68,8 +62,6 @@ export default function WaypointPanel() {
         const mission = jaiaContext.missionSet.getMission(selectedWaypoint.missionID);
         return mission.getWaypoint(jaiaContext.jaiaGlobal.getSelectedWaypoint().waypointNum);
     };
-
-    const [visibleSection, setVisibleSection] = useState(SectionNames.NONE);
 
     // Use state to initalize to null on first render + prevent unnecessary updates
     const [originalWaypoint, setOriginalWaypoint] = useState(null);
@@ -144,25 +136,24 @@ export default function WaypointPanel() {
      * Updates the visible section property in state to display
      * the correct subsection in the panel
      *
-     * @param {SectionName} sectionName The clicked section tab
+     * @param {WaypointSections} sectionName The clicked section tab
      * @returns {void}
      */
-    const handleSectionTabClick = (sectionName: SectionNames) => {
-        if (sectionName === visibleSection) {
-            setVisibleSection(SectionNames.NONE);
-        } else {
-            setVisibleSection(sectionName);
-        }
+    const handleSectionTabClick = (sectionName: WaypointSections) => {
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_WAYPOINT_SECTION,
+            waypointSection: sectionName,
+        });
     };
 
     /**
      * Provides the class name to style the section tab
      *
-     * @param {SectionName} sectionName Which tab to style
+     * @param {WaypointSections} sectionName Which tab to style
      * @returns {string} A class name that will produce the correct styles
      */
-    const getSectionTabClassName = (sectionName: SectionNames) => {
-        if (sectionName === visibleSection) {
+    const getSectionTabClassName = (sectionName: WaypointSections) => {
+        if (sectionName === jaiaContext.visibleWaypointSection) {
             return "selected";
         }
         return "";
@@ -221,14 +212,14 @@ export default function WaypointPanel() {
             </div>
             <div className="waypoint-button-container">
                 <button
-                    className={getSectionTabClassName(SectionNames.LOCATION)}
-                    onClick={() => handleSectionTabClick(SectionNames.LOCATION)}
+                    className={getSectionTabClassName(WaypointSections.LOCATION)}
+                    onClick={() => handleSectionTabClick(WaypointSections.LOCATION)}
                 >
                     Location
                 </button>
                 <button
-                    className={getSectionTabClassName(SectionNames.TASK)}
-                    onClick={() => handleSectionTabClick(SectionNames.TASK)}
+                    className={getSectionTabClassName(WaypointSections.TASK)}
+                    onClick={() => handleSectionTabClick(WaypointSections.TASK)}
                 >
                     Task
                 </button>
@@ -236,7 +227,7 @@ export default function WaypointPanel() {
             <VisibleSection
                 waypoint={getWaypoint()}
                 isDisabled={isDisabled}
-                visibleSection={visibleSection}
+                visibleSection={jaiaContext.visibleWaypointSection}
                 coordinateSystem={jaiaContext.jaiaGlobal.getCoordinateSystem()}
             />
             <div className="button-row">
@@ -252,12 +243,12 @@ export default function WaypointPanel() {
  */
 function VisibleSection(props: Props) {
     switch (props.visibleSection) {
-        case SectionNames.LOCATION:
+        case WaypointSections.LOCATION:
             if (props.coordinateSystem === CoordinateSystem.MGRS) {
                 return <MGRSDisplay waypoint={props.waypoint} isDisabled={props.isDisabled} />;
             }
             return <LatLonDisplay waypoint={props.waypoint} isDisabled={props.isDisabled} />;
-        case SectionNames.TASK:
+        case WaypointSections.TASK:
             return <TaskSelection waypoint={props.waypoint} isDisabled={props.isDisabled} />;
         default:
             return null;

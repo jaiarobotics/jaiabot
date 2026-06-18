@@ -46,6 +46,7 @@ export interface JaiaContextType {
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
+    visibleWaypointSection: WaypointSections;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     mapLayerAccordionStates: MapLayerAccordionStates;
@@ -104,6 +105,7 @@ export interface JaiaAction {
     buttonType?: ButtonTypes;
     buttonName?: ButtonNames;
     isMissionAccordionExpanded?: boolean;
+    waypointSection?: WaypointSections;
 
     vertexIndex?: number;
 
@@ -211,4 +213,10 @@ export enum PanelActions {
 export enum TaskPacketVisibility {
     EXCLUDE = 1,
     INCLUDE = 2,
+}
+
+export enum WaypointSections {
+    NONE = 1,
+    LOCATION = 2,
+    TASK = 3,
 }
