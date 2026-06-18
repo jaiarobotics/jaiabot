@@ -65,6 +65,7 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
+    void request_arduino_flash();
     void setBounds(const jaiabot::protobuf::Bounds& bounds);
     void publish_arduino_commands();
     void handle_control_surfaces(const ControlSurfaces& control_surfaces);
@@ -113,6 +114,12 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     goby::time::SteadyClock::time_point last_arduino_report_time_{std::chrono::seconds(0)};
     // Used to check the time the arduino restarted
     goby::time::SteadyClock::time_point last_arduino_restart_time_{std::chrono::seconds(0)};
+
+    // Time driver process started; used for flash_startup_delay_seconds gate
+    goby::time::SteadyClock::time_point driver_start_time_{};
+
+    // Publish FLASH_ARDUINO once per driver process when connection/version failure is first detected
+    bool flash_arduino_issue_published_{false};
 };
 
 } // namespace apps
@@ -129,6 +136,8 @@ int main(int argc, char* argv[])
 jaiabot::apps::ArduinoDriver::ArduinoDriver()
     : zeromq::MultiThreadApplication<config::ArduinoDriverConfig>(1.0 / 10.0 * si::hertz)
 {
+    driver_start_time_ = goby::time::SteadyClock::now();
+
     glog.add_group("main", goby::util::Colors::yellow);
     glog.add_group("command", goby::util::Colors::green);
     glog.add_group("arduino", goby::util::Colors::blue);
@@ -572,22 +581,6 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     goby::middleware::protobuf::ThreadHealth& health,
     goby::middleware::protobuf::HealthState& health_state)
 {
-    if (!is_driver_connected_)
-    {
-        health_state = goby::middleware::protobuf::HEALTH__FAILED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__ARDUINO_CONNECTION_FAILED);
-    }
-    else
-    {
-        if (!is_driver_compatible_)
-        {
-            health_state = goby::middleware::protobuf::HEALTH__FAILED;
-            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-                ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
-        }
-    }
-
     if (last_arduino_report_time_ + std::chrono::seconds(cfg().arduino_report_timeout_seconds()) <
             goby::time::SteadyClock::now() &&
         !last_command_acked_)
@@ -598,11 +591,53 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
         arduino_debug.set_arduino_not_responding(true);
         interprocess().publish<groups::arduino_debug>(arduino_debug);
 
-        // Pulbish to arduino to attempt to get a response
+        // Publish to arduino to attempt to get a response
         publish_arduino_commands();
 
         health_state = goby::middleware::protobuf::HEALTH__FAILED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__MISSING_DATA__ARDUINO_REPORT);
+        request_arduino_flash();
     }
+    else if (!is_driver_connected_)
+    {
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__ARDUINO_CONNECTION_FAILED);
+        request_arduino_flash();
+    }
+    else if (!is_driver_compatible_)
+    {
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__VERSION__MISMATCH_ARDUINO);
+        request_arduino_flash();
+    }
+    else
+    {
+        flash_arduino_issue_published_ = false;
+    }
+}
+
+void jaiabot::apps::ArduinoDriver::request_arduino_flash()
+{
+    if (flash_arduino_issue_published_)
+        return;
+
+    const auto now = goby::time::SteadyClock::now();
+    if (now < driver_start_time_ + std::chrono::seconds(cfg().flash_startup_delay_seconds()))
+        return;
+
+    jaiabot::protobuf::ArduinoIssue issue;
+    issue.set_solution(jaiabot::protobuf::ArduinoIssue::FLASH_ARDUINO);
+    interprocess().publish<groups::arduino_issue>(issue);
+    flash_arduino_issue_published_ = true;
+
+    jaiabot::protobuf::ArduinoDebug arduino_debug;
+    arduino_debug.set_arduino_flash_requested(true);
+    interprocess().publish<groups::arduino_debug>(arduino_debug);
+
+    glog.is_warn() && glog << group("main")
+                           << "Published ArduinoIssue FLASH_ARDUINO for health recovery"
+                           << std::endl;
 }
