@@ -338,7 +338,7 @@ function LatLonDisplay(props: Props) {
 
     /**
      * Compares the lat stored in state and context. If the value in context
-     * is different, the waypoint has moved via a mechanism outsie of the input box
+     * is different, the waypoint has moved via a mechanism outside of the input box
      * such as "tap to move". The function syncs the two sources.
      *
      * @returns {string} Most up to date latitude
