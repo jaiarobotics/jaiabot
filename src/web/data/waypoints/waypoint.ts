@@ -83,8 +83,10 @@ export default class Waypoint {
             return { ...defaultMGRS };
         }
 
+        // match[0] contains the entire MGRS string
         const gzd = match[1];
         const squareID = match[2];
+        // Contains easting and northing concatenated together, each with the same number of digits
         const digits = match[3];
         const half = digits.length / 2;
         const mgrsComponents: MGRS = {
