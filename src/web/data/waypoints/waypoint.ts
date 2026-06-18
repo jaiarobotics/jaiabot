@@ -94,7 +94,7 @@ export default class Waypoint {
      * @param {string} mgrsStr Location to convert
      * @returns {number[]} Coordinates [lon, lat]
      */
-    mgrsToLatLon(mgrsStr: string) {
+    mgrsToLonLat(mgrsStr: string) {
         try {
             const [lon, lat] = mgrs.toPoint(mgrsStr);
             return [lon, lat];

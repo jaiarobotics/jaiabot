@@ -506,7 +506,7 @@ function MGRSDisplay(props: Props) {
      */
     const handleSubmitMGRSCoordinates = () => {
         const mgrsStr = gzd + squareID + easting + northing;
-        const [lon, lat] = props.waypoint.mgrsToLatLon(mgrsStr);
+        const [lon, lat] = props.waypoint.mgrsToLonLat(mgrsStr);
 
         if (isNaN(lon) || isNaN(lat)) {
             error("Invalid MGRS input");
@@ -540,7 +540,7 @@ function MGRSDisplay(props: Props) {
             currentMGRS.easting +
             currentMGRS.northing;
 
-        let [displayedLon, displayedLat] = props.waypoint.mgrsToLatLon(mgrsStr);
+        let [displayedLon, displayedLat] = props.waypoint.mgrsToLonLat(mgrsStr);
         displayedLon = Number(displayedLon.toFixed(COMPARE_DECIMALS));
         displayedLat = Number(displayedLat.toFixed(COMPARE_DECIMALS));
 
