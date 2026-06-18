@@ -124,6 +124,20 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
 }
 
 /**
+ * Carries out resets and updates that need to occur on map feature clicks
+ *
+ * @returns {void}
+ */
+function handleClickedFeature() {
+    jaiaGlobal.resetSelectedWaypoint();
+    jaiaGlobal.resetSelectedTaskPacket();
+    missionLayer.updateFeatures();
+    diveLayer.updateFeatures();
+    driftLayer.updateFeatures();
+    excludedTaskPacketsLayer.updateFeatures();
+}
+
+/**
  * Opens panel for the selected waypoint
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -131,16 +145,9 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
-    if (!missionSet.getMission(action.clickedWaypoint.missionID)) {
-        jaiaGlobal.resetSelectedWaypoint();
-        if (mutableState.visiblePanel === ButtonNames.WAYPOINT_PANEL) {
-            mutableState.visiblePanel = ButtonNames.NONE;
-        }
-    } else {
-        jaiaGlobal.setSelectedWaypoint(action.clickedWaypoint);
-        mutableState.visiblePanel = ButtonNames.WAYPOINT_PANEL;
-    }
-    missionLayer.updateFeatures();
+    handleClickedFeature();
+    jaiaGlobal.setSelectedWaypoint(action.clickedWaypoint);
+    mutableState.visiblePanel = ButtonNames.WAYPOINT_PANEL;
     return mutableState;
 }
 
@@ -172,6 +179,7 @@ export function handleClickedEditMission(mutableState: JaiaContextType, action: 
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedRallyPoint(mutableState: JaiaContextType, action: JaiaAction) {
+    handleClickedFeature();
     rallyPoints.setSelectedRallyPointID(action.rallyID);
     mutableState.visiblePanel = ButtonNames.RALLY_PANEL;
     return mutableState;
@@ -184,6 +192,7 @@ export function handleClickedRallyPoint(mutableState: JaiaContextType, action: J
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedTaskPacket(mutableState: JaiaContextType, action: JaiaAction) {
+    handleClickedFeature();
     const selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
 
     if (

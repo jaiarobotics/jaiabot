@@ -1,0 +1,129 @@
+@import "../../../style/stylesheets/vars.less";
+
+.jaia-dialog.mission-set-editor {
+    width: 580px;
+    align-items: stretch;
+    gap: 15px;
+    position: relative;
+}
+
+.jaia-dialog.mission-set-editor h1 {
+    text-align: center;
+}
+
+.mission-set-editor label {
+    color: #4b5563;
+}
+
+.editor-name-input {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.editor-name-input input {
+    flex: 1;
+}
+
+.mission-set-editor input {
+    all: unset;
+    box-sizing: border-box;
+    padding: 6px;
+    border: 1px solid #9ca3af;
+    border-radius: 3px;
+    background-color: #f3f4f6;
+}
+
+.editor-lists-section {
+    display: grid;
+    grid-template-columns: 1fr max-content 1fr;
+    gap: 6px;
+}
+
+.editor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.editor-list ul {
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    background-color: #f3f4f6;
+    border: 1px solid #9ca3af;
+    border-radius: 3px;
+
+    height: 210px;
+    overflow-y: auto;
+    cursor: pointer;
+}
+
+.editor-list li {
+    padding: 6px 3px;
+}
+.editor-list li.selected {
+    background-color: @selected-color;
+}
+
+.editor-lists-section .add-button {
+    all: unset;
+    box-sizing: border-box;
+    width: @jaia-button-width;
+    height: @jaia-button-height;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    margin-top: 19px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 0.75rem;
+}
+
+.editor-controls {
+    grid-column: 3 / 4;
+    display: flex;
+    gap: 3px;
+}
+
+.editor-button-row {
+    display: flex;
+    flex-direction: row;
+    gap: 9px;
+    justify-content: center;
+}
+
+.mission-set-editor button {
+    all: unset;
+    box-sizing: border-box;
+    padding: 6px 12px;
+    border: 1px solid #1f2937;
+    border-radius: 6px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.mission-set-editor button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.mission-set-editor .secondary-dialog {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #9ca3af;
+    background-color: #f3f4f6;
+}
