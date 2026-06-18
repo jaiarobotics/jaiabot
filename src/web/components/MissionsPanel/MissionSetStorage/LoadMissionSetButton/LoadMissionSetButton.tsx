@@ -53,11 +53,11 @@ export default function LoadMissionSetButton(props: Props) {
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
      */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            const loadResult = loadSnapshotFromLocalStorage(props.saveName);
+            const loadResult = await loadSnapshotFromLocalStorage(props.saveName);
             jaiaDispatch({
                 type: JaiaActions.LOAD_MISSION_SET,
                 missionSetSnapshot: loadResult.snapshot,
