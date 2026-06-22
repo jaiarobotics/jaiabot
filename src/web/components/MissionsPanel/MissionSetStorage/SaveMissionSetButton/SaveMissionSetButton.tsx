@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { JaiaActions } from "../../../../context/jaia-actions";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 import { DialogActions } from "../../../../types/context-types";
 import { listSavedMissionSetsFromHub } from "../mission-set-storage";
@@ -8,6 +9,8 @@ import { saveToHub } from "../mission-set-storage";
 
 interface Props {
     saveName: string;
+    savedNames: string[];
+    onSaved: () => void;
 }
 
 /**
@@ -25,7 +28,7 @@ export default function SaveMissionSetButton(props: Props) {
     const getDisabledCode = () => {
         if (missionSet.getMissions().size == 0) return DisabledCodes.NO_MISSIONS;
         if (props.saveName == "") return DisabledCodes.NO_NAME;
-        if (listSavedMissionSetsFromHub().includes(props.saveName)) return DisabledCodes.OVERWRITE;
+        if (props.savedNames.includes(props.saveName.trim())) return DisabledCodes.OVERWRITE;
         return DisabledCodes.NONE;
     };
 
@@ -52,7 +55,13 @@ export default function SaveMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            saveToHub(props.saveName);
+            saveToHub(props.saveName.trim()).then(() => {
+                jaiaDispatch({
+                    type: JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
+                    exclusionZoneSetName: props.saveName.trim(),
+                });
+                props.onSaved();
+            });
         }
     };
 

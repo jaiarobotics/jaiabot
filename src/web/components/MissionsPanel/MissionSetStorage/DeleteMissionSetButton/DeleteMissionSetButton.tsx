@@ -7,6 +7,7 @@ import { deleteFromHub } from "../mission-set-storage";
 
 interface Props {
     saveName: string;
+    savedNames: string[];
     clearSaveName: () => void;
 }
 
@@ -24,8 +25,7 @@ export default function DeleteMissionSetButton(props: Props) {
      */
     const getDisabledCode = () => {
         if (!props.saveName.trim()) return DisabledCodes.NO_NAME;
-        if (!listSavedMissionSetsFromHub().includes(props.saveName))
-            return DisabledCodes.FILE_NOT_FOUND;
+        if (!props.savedNames.includes(props.saveName.trim())) return DisabledCodes.FILE_NOT_FOUND;
         return DisabledCodes.NONE;
     };
 
