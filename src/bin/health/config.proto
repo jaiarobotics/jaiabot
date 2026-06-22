@@ -83,6 +83,7 @@ message MotorStatusConfig
     optional jaiabot.protobuf.MotorHarnessType motor_harness_type = 12 [default = NONE];
 
     optional string vehicle_db_path = 50 [default = "/var/log/jaiabot/db/vehicle.db"];
+    optional string tail_serial_number = 51 [default = "unknown_serial_number"];
 }
 
 message Health

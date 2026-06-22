@@ -163,9 +163,12 @@ void jaiabot::apps::MotorStatusThread::open_vehicle_database()
         return;
     }
 
-    char sql[] = "CREATE TABLE IF NOT EXISTS motor_usage(motor_micros INTEGER PRIMARY KEY, "
+    char sql[] = "CREATE TABLE IF NOT EXISTS motor_usage("
+                 "tail_serial_number TEXT, "
+                 "motor_micros INTEGER, "
                  "avg_rpm REAL,"
-                 "usage_duration_micros INTEGER);";
+                 "usage_duration_micros INTEGER,"
+                 "UNIQUE(tail_serial_number, motor_micros));";
 
     rc = sqlite3_exec(vehicle_db_, sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK)
@@ -194,7 +197,9 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros, uint64_t 
         (motor_micros / MOTOR_MICROS_BIN) * MOTOR_MICROS_BIN; // Bin the motor microseconds
 
     // Get the current values for motor_micros, usage_duration_micros, and avg_rpm from the database for the binned_motor_micros
-    std::string query = "SELECT usage_duration_micros, avg_rpm FROM motor_usage WHERE motor_micros = " + std::to_string(binned_motor_micros);
+    std::string query =
+        "SELECT usage_duration_micros, avg_rpm FROM motor_usage WHERE tail_serial_number = '" +
+        cfg().tail_serial_number() + "' AND motor_micros = " + std::to_string(binned_motor_micros);
     sqlite3_stmt* stmt;
     int rc = sqlite3_prepare_v2(vehicle_db_, query.c_str(), -1, &stmt, nullptr);
     if (rc != SQLITE_OK) {
@@ -229,9 +234,11 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros, uint64_t 
         return;
     }
 
-    std::string sql = "INSERT OR REPLACE INTO motor_usage (motor_micros, usage_duration_micros, avg_rpm) VALUES (" +
-                    std::to_string(binned_motor_micros) + ", " + std::to_string(total_usage_duration_micros) + ", " +
-                    std::to_string(new_avg_rpm) + ");";
+    std::string sql = "INSERT OR REPLACE INTO motor_usage (tail_serial_number, motor_micros, "
+                      "usage_duration_micros, avg_rpm) VALUES ('" +
+                      cfg().tail_serial_number() + "', " + std::to_string(binned_motor_micros) +
+                      ", " + std::to_string(total_usage_duration_micros) + ", " +
+                      std::to_string(new_avg_rpm) + ");";
 
     rc = sqlite3_exec(vehicle_db_, sql.c_str(), 0, 0, &err_msg);
     if (rc != SQLITE_OK)
@@ -260,7 +267,9 @@ void jaiabot::apps::MotorStatusThread::update_total_motor_usage()
     next_report_time = goby::time::SteadyClock::now() + update_interval;
 
     // Get the current values for motor_micros, usage_duration_micros, and avg_rpm from the database for the binned_motor_micros
-    std::string query = "SELECT motor_micros, usage_duration_micros, avg_rpm FROM motor_usage;";
+    std::string query = "SELECT motor_micros, usage_duration_micros, avg_rpm FROM motor_usage "
+                        "WHERE tail_serial_number = '" +
+                        cfg().tail_serial_number() + "';";
     sqlite3_stmt* stmt;
     int rc = sqlite3_prepare_v2(vehicle_db_, query.c_str(), -1, &stmt, nullptr);
     if (rc != SQLITE_OK)
