@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 import { DialogActions } from "../../../../types/context-types";
@@ -18,6 +19,7 @@ interface Props {
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function SaveMissionSetButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**

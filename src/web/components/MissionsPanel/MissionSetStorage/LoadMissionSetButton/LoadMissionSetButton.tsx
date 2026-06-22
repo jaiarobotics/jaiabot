@@ -2,16 +2,13 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
-import {
-    listSavedMissionSetsFromHub,
-    loadSnapshotFromHub,
-    LoadResultType,
-} from "../mission-set-storage";
+import { loadSnapshotFromHub, LoadResultType } from "../mission-set-storage";
 import { DisabledCodes } from "./load-messages";
 import { LoadMissionSetDialog } from "./LoadMissionSetDialog";
 
 interface Props {
     saveName: string;
+    savedNames: string[];
     onClose: () => void;
 }
 
@@ -31,8 +28,7 @@ export default function LoadMissionSetButton(props: Props) {
      */
     const getInitialDisabledCode = () => {
         if (!props.saveName.trim()) return DisabledCodes.NO_NAME;
-        if (!listSavedMissionSetsFromHub().includes(props.saveName))
-            return DisabledCodes.FILE_NOT_FOUND;
+        if (!props.savedNames.includes(props.saveName.trim())) return DisabledCodes.FILE_NOT_FOUND;
         return DisabledCodes.NONE;
     };
 

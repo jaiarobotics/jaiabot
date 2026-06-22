@@ -2,7 +2,6 @@ import { useState } from "react";
 import { DialogActions } from "../../../../types/context-types";
 import { DisabledCodes } from "./delete-messages";
 import { DeleteMissionSetDialog } from "./DeleteMissionSetDialog";
-import { listSavedMissionSetsFromHub } from "../mission-set-storage";
 import { deleteFromHub } from "../mission-set-storage";
 
 interface Props {
