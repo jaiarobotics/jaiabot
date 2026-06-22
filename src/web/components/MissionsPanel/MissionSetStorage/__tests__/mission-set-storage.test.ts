@@ -20,6 +20,19 @@ import {
 } from "../mission-set-storage";
 import { UNASSIGNED_ID } from "../../../../utils/constants";
 
+jest.mock("../../../../utils/jaia-api", () => ({
+    jaiaAPI: {
+        listMissionSets: jest.fn(),
+        saveMissionSet: jest.fn(),
+        loadMissionSet: jest.fn(),
+        deleteMissionSet: jest.fn(),
+    },
+}));
+
+import { jaiaAPI } from "../../../../utils/jaia-api";
+
+const mockJaiaAPI = jaiaAPI as jest.Mocked<typeof jaiaAPI>;
+
 describe("Exercise functions to save and load missions from localStorage", () => {
     beforeEach(() => {
         missionSet.deleteAllMissions();
