@@ -2,7 +2,6 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
-import { listSavedMissionSetsFromHub } from "../../MissionSetStorage/mission-set-storage";
 import { saveSnapshotToHub } from "../../MissionSetStorage/mission-set-storage";
 import { combineMissionSets } from "../mission-set-editor";
 import { MissionSetSnapshot } from "../../../../data/mission_set/mission-set";
@@ -13,6 +12,7 @@ interface Props {
     editorName: string;
     combinedMissionNames: string[];
     missionSetSnapshotCache: Map<string, MissionSetSnapshot>;
+    savedNames: string[];
     onClose: () => void;
 }
 
@@ -28,8 +28,7 @@ export default function SaveAndLoadButton(props: Props) {
     const getDisabledCode = (): DisabledCodes => {
         if (!props.editorName.trim()) return DisabledCodes.NO_NAME;
         if (props.combinedMissionNames.length < 2) return DisabledCodes.NO_MISSIONS;
-        if (listSavedMissionSetsFromHub().includes(props.editorName.trim()))
-            return DisabledCodes.OVERWRITE;
+        if (props.savedNames.includes(props.editorName.trim())) return DisabledCodes.OVERWRITE;
         return DisabledCodes.NONE;
     };
 

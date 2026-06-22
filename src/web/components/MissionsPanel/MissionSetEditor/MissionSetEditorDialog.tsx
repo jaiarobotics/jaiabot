@@ -255,6 +255,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                             editorName={editorName}
                             combinedMissionNames={combinedList}
                             missionSetSnapshotCache={missionSetSnapshotCache.current}
+                            savedNames={savedMissionSets}
                             onClose={props.onClose}
                         />
                         <button onClick={props.onClose}>Cancel</button>
