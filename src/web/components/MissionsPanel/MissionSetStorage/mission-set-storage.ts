@@ -140,7 +140,7 @@ export function exportMissionSetToFile(name: string) {
  * Prompts user to open a file with a serialized mission set
  * and returns a MissionSetSnapshot if succesful
  *
- * @retruns Promis of {MissionSetSnapshot | null} Snapshot of mission set if the selected
+ * @returns Promise of {MissionSetSnapshot | null} Snapshot of mission set if the selected
  * file can be parsed correctly otherwise returns null
  *
  * @notes
@@ -217,7 +217,7 @@ function isCurrentMissionFile(value: any) {
 }
 
 /**
- * Checks if parsed datsa matches the legacy format
+ * Checks if parsed data matches the legacy format
  *
  * @param {any} value Raw parsed data
  * @returns {Boolean} True if legacy format
