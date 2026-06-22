@@ -17,7 +17,7 @@ interface Props {
 }
 
 /**
- * Button that saves the combined mission set to local storage and loads it into the active mission.
+ * Button that saves the combined mission set to the hub and loads it into the active mission.
  * Shows a confirmation dialog before saving; shows an alert dialog if prerequisites are not met.
  */
 export default function SaveAndLoadButton(props: Props) {

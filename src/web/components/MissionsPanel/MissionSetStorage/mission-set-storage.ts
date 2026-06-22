@@ -22,7 +22,7 @@ export interface LoadSnapshotResult {
 }
 
 /**
- * Saves a pre-built mission set snapshot directly to local storage
+ * Saves a pre-built mission set snapshot directly to the hub under the given name
  *
  * @param {string} name Name to use for storing the mission set
  * @param {MissionSetSnapshot} snapshot Snapshot to save
@@ -33,7 +33,7 @@ export async function saveSnapshotToHub(name: string, snapshot: MissionSetSnapsh
 }
 
 /**
- * Saves the current mission set to local storage
+ * Saves the current mission set to the hub under the given name
  *
  * @param {string} name Name to use for storing the mission set
  * @returns {void}
@@ -44,7 +44,7 @@ export async function saveToHub(name: string): Promise<void> {
 }
 
 /**
- * Loads a single mission set from localStorage by name and returns it as MissionSetSnapshot.
+ * Loads a single mission set from the hub by name and returns it as MissionSetSnapshot.
  *
  * @param {string} saveName The key of the mission set to retrieve
  * @returns {MissionSetSnapshot} Snapshot of mission set
@@ -87,7 +87,7 @@ export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapsho
 }
 
 /**
- * Deletes a saved mission set from localStorage
+ * Deletes a saved mission set from the hub
  *
  * @param {string} name Identifies the mission set to delete
  * @returns {boolean} False if the mission set was not found
@@ -97,7 +97,7 @@ export async function deleteFromHub(name: string): Promise<void> {
 }
 
 /**
- * Provides an array of all saved mission set names in localStorage, sorted alphabetically.
+ * Provides an array of all saved mission set names in the hub, sorted alphabetically.
  *
  * @returns {string[]} Names of all saved missions sets
  */

@@ -126,7 +126,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
 }
 
 /**
- * Produces a clickable list item for each mission set in local storage
+ * Produces a clickable list item for each mission set in the hub
  */
 function MissionSetRow(props: MissionSetRowProps) {
     /**

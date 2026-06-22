@@ -3,7 +3,6 @@ import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 import { DialogActions } from "../../../../types/context-types";
-import { listSavedMissionSetsFromHub } from "../mission-set-storage";
 import { DisabledCodes } from "./save-messages";
 import { SaveMissionSetDialog } from "./SaveMissionSetDialog";
 import { saveToHub } from "../mission-set-storage";
@@ -59,8 +58,8 @@ export default function SaveMissionSetButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             saveToHub(props.saveName.trim()).then(() => {
                 jaiaDispatch({
-                    type: JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
-                    exclusionZoneSetName: props.saveName.trim(),
+                    type: JaiaActions.CHANGE_MISSION_SET_NAME,
+                    missionSetName: props.saveName.trim(),
                 });
                 props.onSaved();
             });
