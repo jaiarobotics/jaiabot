@@ -134,14 +134,13 @@ cat <<EOF > /etc/authelia/configuration.yml
 ---
 server:
   address: 'tcp://:$authelia_port'
-default_2fa_method: 'totp'
-totp:
-  disable: false
-  issuer: '$base_uri'
+default_2fa_method: 'webauthn'
 webauthn:
   disable: false
-  enable_passkey_login: true
+  enable_passkey_login: false
   display_name: '$base_uri'
+totp:
+  disable: true
 duo_api:
   disable: true
 identity_validation:
@@ -166,7 +165,7 @@ access_control:
         - 'group:super_admin'
       policy: two_factor
 
-    # Allow group 'jcu' to access JDV
+    # Allow group 'jcu_*' to access JCU
     - domain: run.$base_uri
       resources:
         - '^/jcu(?:/.*)?$'

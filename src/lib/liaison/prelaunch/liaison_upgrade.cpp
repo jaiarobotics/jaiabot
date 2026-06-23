@@ -68,7 +68,7 @@ jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::Liai
                 continue;
             group = group.substr(start, end - start + 1);
 
-            if (group == "jcu_developer")
+            if (group == "jcu_developer" || group == "super_admin")
                 role_ = protobuf::UpgradeConfig::DEVELOPER;
             else if (group == "jcu_advanced" && role_ < protobuf::UpgradeConfig::ADVANCED)
                 role_ = protobuf::UpgradeConfig::ADVANCED;
