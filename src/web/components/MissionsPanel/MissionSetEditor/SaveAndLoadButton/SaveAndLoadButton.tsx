@@ -37,7 +37,7 @@ export default function SaveAndLoadButton(props: Props) {
     };
 
     /** Closes the confirmation dialog; on confirm, combines, saves, and dispatches the new mission set. */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             const name = props.editorName.trim();
@@ -46,7 +46,7 @@ export default function SaveAndLoadButton(props: Props) {
                 name,
                 props.missionSetSnapshotCache,
             );
-            saveSnapshotToHub(name, missionSetSnapshot);
+            await saveSnapshotToHub(name, missionSetSnapshot);
             jaiaDispatch({
                 type: JaiaActions.LOAD_MISSION_SET,
                 missionSetSnapshot: missionSetSnapshot,

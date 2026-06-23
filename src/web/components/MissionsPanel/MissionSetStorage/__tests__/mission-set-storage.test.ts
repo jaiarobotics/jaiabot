@@ -155,9 +155,9 @@ describe("Exercise functions to save and load missions from the hub", () => {
 
         expect(missionSet.getMissions().size).toEqual(2);
 
-        names = await listSavedMissionSetsFromHub();
         // Delete the first set from the hub
         await deleteFromHub("Test-Mission-Set-A");
+        names = await listSavedMissionSetsFromHub();
         expect(names.length).toEqual(1);
         expect(names[0]).toEqual("Test-Mission-Set-B");
 
