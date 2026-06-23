@@ -24,6 +24,7 @@ from common.time import utc_now_microseconds
 from common.api_exception import APIException
 
 from surob_mission_planner.planner import JaiabotMissionPlanner, MissionParameters
+from bisect import bisect_right
 
 import logging
 
@@ -338,6 +339,12 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
     WAVE_PERIOD_CF_STANDARD_NAME = "sea_surface_wave_significant_period"
     WAVE_PROPERTIES_UNITS  = "degrees"
     WAVE_PROPERTIES_TYPE = "wave_measurement"
+
+    DEPTH_UNITS = "feet"
+    DEPTH_CF_STANDARD_NAME = "sea_floor_depth_below_sea_surface"
+    DEPTH_PROPERTIES_UNITS = "degrees"
+    DEPTH_PROPERTIES_TYPE = "depth_measurement"
+
     PROPERTIES_H_DATUM = "wgs84"
 
     POINT_GEOMETRY_TYPE = "Point"
@@ -439,6 +446,7 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
         else:
             bot_ids = jaia_request.target.bots
 
+        # task_packets guaranteed in reverse chronological order
         task_packets = common.shared_data.data.task_packet_database.query_task_packets(bot_ids, start_time_us, end_time_us, included=True, mission_names=None)
 
     if len(task_packets) == 0:
@@ -470,8 +478,13 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
 
     current_measurement_id = 0
     wave_measurement_id = 0
+    depth_measurement_id = 0
 
     features = []
+
+    # parse dive task packets after all Hs task packets have been processed so we can use corresponding Hs measurements for dive uncertainty
+    dive_task_packets = []
+    hs_dict = dict() # keyed by bot_id, value is dict with keys "hs_ft" and "end_time", corresponding values are arrays with said values
 
     for task_packet in task_packets:
         if task_packet.type == MissionTask.TaskType.STATION_KEEP: 
@@ -508,7 +521,11 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
                 current_measurement_id += 1
 
                 # transform to alongshore and crossshore components, save largest alongshore
-                alongshore_current_speed_knots, alongshore_current_speed_std_knots, alongshore_current_flank = currents_monte_carlo_analysis_knots(task_packet.current.speed, task_packet.current.speed_stdev, task_packet.current.heading, task_packet.current.heading_stdev, alongshore_bearing_deg)
+                alongshore_current_speed_knots, alongshore_current_speed_std_knots, alongshore_current_flank = currents_monte_carlo_analysis_knots(task_packet.current.speed, 
+                                                                                                                                                   task_packet.current.speed_stdev, 
+                                                                                                                                                   task_packet.current.heading, 
+                                                                                                                                                   task_packet.current.heading_stdev, 
+                                                                                                                                                   alongshore_bearing_deg)
                 if max_alongshore_current_speed_knots is None or alongshore_current_speed_knots > max_alongshore_current_speed_knots:
                     max_alongshore_current_speed_knots = alongshore_current_speed_knots
                     max_alongshore_current_speed_std_knots = alongshore_current_speed_std_knots
@@ -549,6 +566,11 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
                 curr_wave = jaiabot.messages.surob_results_pb2.Feature(type=FEATURE_TYPE, properties=curr_wave_properties, geometry=curr_wave_geometry)
                 
                 features.append(curr_wave)
+                if task_packet.bot_id in hs_dict:
+                    hs_dict[task_packet.bot_id]["hs_ft"].append(hs_ft)
+                    hs_dict[task_packet.bot_id]["end_time"].append(task_packet.end_time)
+                else:
+                    hs_dict[task_packet.bot_id] = {"hs_ft": [hs_ft], "end_time": [task_packet.end_time]}
                 wave_measurement_id += 1
 
                 if max_sig_wave_height_ft is None or hs_ft > max_sig_wave_height_ft:
@@ -599,6 +621,11 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
                 curr_wave = jaiabot.messages.surob_results_pb2.Feature(type=FEATURE_TYPE, properties=curr_wave_properties, geometry=curr_wave_geometry)
                 
                 features.append(curr_wave)
+                if task_packet.bot_id in hs_dict:
+                    hs_dict[task_packet.bot_id]["hs_ft"].append(hs_ft)
+                    hs_dict[task_packet.bot_id]["end_time"].append(task_packet.end_time)
+                else:
+                    hs_dict[task_packet.bot_id] = {"hs_ft": [hs_ft], "end_time": [task_packet.end_time]}
                 wave_measurement_id += 1
 
                 # append sig wave period values, if multiple are received, average for final result
@@ -612,6 +639,52 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
                 if curr_end_time_us > max_end_time_us:
                     max_end_time_us = curr_end_time_us
 
+        elif task_packet.type == MissionTask.TaskType.DIVE:
+            if task_packet.HasField("dive") and task_packet.dive.HasField("bottom_dive") and task_packet.dive.bottom_dive:
+                dive_task_packets.append(task_packet)
+
+    for bot_id in hs_dict:
+        # reverse list so they are sorted in accending chronological order for use with bisect()
+        hs_dict[bot_id]["hs_ft"].reverse()
+        hs_dict[bot_id]["end_time"].reverse()
+    
+    for task_packet in dive_task_packets:
+        depth_ft = meters_to_feet(task_packet.dive.depth_achieved)
+
+        # as surob conops dictates that dives are performed after each measurement, hs estimate corresponding to each dive will from the measurement immediately prior
+        curr_bot_id_hs_measurement_times = hs_dict[task_packet.bot_id]["end_time"]
+        curr_depth_measurement_corresponding_hs_idx = bisect_right(curr_bot_id_hs_measurement_times, task_packet.start_time) - 1 # element immediately before bisect_right idx will be last hs measurement before current dive
+        curr_depth_measurement_corresponding_hs_ft = hs_dict[task_packet.bot_id]["hs_ft"][curr_depth_measurement_corresponding_hs_idx]
+        depth_uncertainty_hs_scaling_factor = 0.5 # testing placeholder, value in range of [0.1, 1], more rigorous testing to follow to cateogrize depth measurement uncertainty
+        depth_uncertainty_ft = (depth_uncertainty_hs_scaling_factor * curr_depth_measurement_corresponding_hs_ft) / 2.0
+
+        curr_depth_measurement = jaiabot.messages.surob_results_pb2.ValueUncertUnitsCF(value=depth_ft,
+                                                                                       uncert=np.power(depth_uncertainty_ft, 2),
+                                                                                       units=DEPTH_UNITS,
+                                                                                       cf_standard_name=DEPTH_CF_STANDARD_NAME)
+        curr_depth_properties = jaiabot.messages.surob_results_pb2.Properties(units=DEPTH_PROPERTIES_UNITS,
+                                                                              type=DEPTH_PROPERTIES_TYPE,
+                                                                              description=f"Jaiabot bottom dive depth measurement from bot {task_packet.bot_id}",
+                                                                              id=depth_measurement_id,
+                                                                              h_datum=PROPERTIES_H_DATUM,
+                                                                              depth_measurement=curr_depth_measurement)
+                
+        curr_depth_coordinates = [task_packet.dive.start_location.lon, task_packet.dive.start_location.lat]
+        curr_depth_geometry = jaiabot.messages.surob_results_pb2.PointGeometry(type=POINT_GEOMETRY_TYPE)
+        curr_depth_geometry.coordinates.extend(curr_depth_coordinates)
+
+        curr_depth = jaiabot.messages.surob_results_pb2.Feature(type=FEATURE_TYPE, properties=curr_depth_properties, geometry=curr_depth_geometry)
+
+        features.append(curr_depth)
+        depth_measurement_id += 1
+
+        curr_start_time_us = task_packet.start_time
+        curr_end_time_us = task_packet.end_time
+        if curr_start_time_us < min_start_time_us:
+            min_start_time_us = curr_start_time_us
+        if curr_end_time_us > max_end_time_us:
+            max_end_time_us = curr_end_time_us
+                    
     if max_alongshore_current_speed_knots is None:
         jaia_response.surob_results.surob_results_found = False
         if bot_ids is None:
@@ -634,7 +707,7 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
             sig_wave_period_uncertainty_s_to_report = np.round(np.power(station_keep_furthest_from_shoreline_sig_pt_wave_period_std_s, 2), decimals=1)
         else:
             # should not be exercised as max_sig_wave_height_ft and station_keep_furthest_from_shoreline_pt_sig_wave_period_s both populated from wave station keeps
-            # therefore if max_sig_wave_height_ft is None conditional (L523) will be triggered before control flow reaches this code block
+            # therefore if max_sig_wave_height_ft is None conditional (L691) will be triggered before control flow reaches this code block
             jaia_response.surob_results.surob_results_found = False
             if bot_ids is None:
                 jaia_response.surob_results.error_message = f"No significant wave period estimates found for any bots between {start_time_us} and {end_time_us}."

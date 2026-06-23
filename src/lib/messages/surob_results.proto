@@ -8,6 +8,13 @@ message ValueUncertUnits {
     optional string units = 3;
 }
 
+message ValueUncertUnitsCF {
+    optional double value = 1;
+    optional double uncert = 2;
+    optional string units = 3;
+    optional string cf_standard_name = 4;
+}
+
 message LittoralCurrent {
     optional double value = 1;
     optional double uncert = 2;
@@ -36,13 +43,6 @@ message Report {
     optional Surob surob = 3;
 }
 
-message ValueUncertUnitsCF {
-    optional double value = 1;
-    optional double uncert = 2;
-    optional string units = 3;
-    optional string cf_standard_name = 4;
-}
-
 message CurrentMeasurement {
     optional ValueUncertUnits current_speed = 1;
     optional ValueUncertUnitsCF current_direction = 2;
@@ -62,6 +62,7 @@ message Properties {
     optional string h_datum = 6 [default="wgs84"];
     optional WaveMeasurement wave_measurement = 7;
     optional CurrentMeasurement current_measurement = 8;
+    optional ValueUncertUnitsCF depth_measurement = 9;
 }
 
 message PointGeometry {
