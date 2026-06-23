@@ -102,10 +102,16 @@ export function MissionSetEditorDialog(props: DialogProps) {
         const selectedSavedName = savedMissionSets[selectedSavedIndex];
 
         if (!missionSetSnapshotCache.current.has(selectedSavedName)) {
-            missionSetSnapshotCache.current.set(
-                selectedSavedName,
-                (await loadSnapshotFromHub(selectedSavedName)).snapshot!,
-            );
+            try {
+                const loadResult = await loadSnapshotFromHub(selectedSavedName);
+                missionSetSnapshotCache.current.set(selectedSavedName, loadResult.snapshot!);
+            } catch (error) {
+                console.error(
+                    `Failed to load mission set "${selectedSavedName}" from the hub:`,
+                    error,
+                );
+                return;
+            }
         }
 
         let projectedList: string[];

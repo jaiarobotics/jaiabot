@@ -46,7 +46,12 @@ export default function SaveAndLoadButton(props: Props) {
                 name,
                 props.missionSetSnapshotCache,
             );
-            await saveSnapshotToHub(name, missionSetSnapshot);
+            try {
+                await saveSnapshotToHub(name, missionSetSnapshot);
+            } catch (error) {
+                console.error("Failed to save combined mission set to the hub:", error);
+                return;
+            }
             jaiaDispatch({
                 type: JaiaActions.LOAD_MISSION_SET,
                 missionSetSnapshot: missionSetSnapshot,
