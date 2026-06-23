@@ -1091,6 +1091,22 @@ export interface DivePacket {
     max_acceleration?: number;
 }
 
+export interface CurrentPacket {
+    speed?: number;
+    speed_stdev?: number;
+    heading?: number;
+    heading_stdev?: number;
+    location?: GeographicCoordinate;
+}
+
+export interface WavePacket {
+    significant_wave_height?: number;
+    hs_stdev?: number;
+    period?: number;
+    period_stdev?: number;
+    location?: GeographicCoordinate;
+}
+
 export interface TaskPacket {
     bot_id?: number;
     start_time?: number;
@@ -1098,6 +1114,8 @@ export interface TaskPacket {
     type?: TaskType;
     dive?: DivePacket;
     drift?: DriftPacket;
+    current?: CurrentPacket;
+    wave?: WavePacket;
 }
 
 export interface SurfaceBounds {

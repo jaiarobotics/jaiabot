@@ -7,8 +7,8 @@ from scipy.signal import butter, sosfiltfilt, welch
 GPS_NPERSEG = 512
 PSD_MIN_NPERSEG = 64
 PSD_OVERLAP_FRAC = 0.5
-MIN_STATION_KEEP_LENGTH_M = 1.5 # min drift length for Surob mission plan is 2 minutes, give some margin for clipped ends
-MIN_STATION_KEEP_LENGTH_S = MIN_STATION_KEEP_LENGTH_M*60
+MIN_SURFACE_DRIFT_LENGTH_M = 1.5
+MIN_SURFACE_DRIFT_LENGTH_S = MIN_SURFACE_DRIFT_LENGTH_M*60
 DEFAULT_PERIOD_STD_S = np.sqrt(2.0) # value selected to appear as 2 seconds squared variance in surob json
 
 # ============================================================
@@ -197,6 +197,7 @@ def process_station_keep_dict_gps_only(
         n_mc=200,
         epv_scale=1.0,
         seed=0,
+        is_sim=False,
 ):
     out = {}
 
@@ -209,27 +210,45 @@ def process_station_keep_dict_gps_only(
     if tpv_time.size < 2:
         log.warning(f"Timeseries in GPS dataset had length < 2.")
         return out
-    if tpv_time[-1] - tpv_time[0] < MIN_STATION_KEEP_LENGTH_S:
-        log.warning(f"Timeseries in GPS dataset did not exceed minimum length of {MIN_STATION_KEEP_LENGTH_S} seconds. Actual length was {tpv_time[-1] - tpv_time[0]} seconds.")
+    if tpv_time[-1] - tpv_time[0] < MIN_SURFACE_DRIFT_LENGTH_S:
+        log.warning(f"Timeseries in GPS dataset did not exceed minimum length of {MIN_SURFACE_DRIFT_LENGTH_S} seconds. Actual length was {tpv_time[-1] - tpv_time[0]} seconds.")
         return out
 
-    gps_fs = fs_from_epoch_rounded(tpv_time) if tpv_time.size else np.nan
+    if is_sim:
+        # In simulation the GPS driver publishes one TPV per NMEA sentence type (RMC, HDT, etc.),
+        # so multiple TPVs arrive within milliseconds of each other per update cycle. This inflates
+        # the apparent fs computed from all timestamps. Use only the altitude-bearing timestamps to
+        # get the true physical sampling rate for wave analysis.
+        alt_finite_mask = np.isfinite(altitude)
+        alt_tpv_time = tpv_time[alt_finite_mask]
+        altitude = altitude[alt_finite_mask]
+        epv = epv[alt_finite_mask]
+
+        if alt_tpv_time.size < 2:
+            log.warning(f"Not enough altitude-bearing timestamps for wave analysis (n={alt_tpv_time.size}).")
+            return out
+
+        gps_fs = fs_from_epoch_rounded(alt_tpv_time)
+    else:
+        altitude = interp_nans_1d(altitude)
+        gps_fs = fs_from_epoch_rounded(tpv_time)
 
     gps_frac = finite_fraction(altitude)
 
     if gps_frac < min_gps_finite_frac:
         log.warning(f"Altitude series was not at least {min_gps_finite_frac*100}% finite values. Actual percent was {gps_frac*100}%.")
-        return out 
-    if (not np.isfinite(gps_fs)) or gps_fs < 0:
+        return out
+    if (not np.isfinite(gps_fs)) or gps_fs <= 0:
         log.warning(f"GPS data frequency was not finite or greater than zero. Calculated frequency was {gps_fs} Hz.")
         return out
 
+    log.info(f"Wave analysis: n_pts={len(altitude)}, gps_fs={gps_fs}, alt_frac={gps_frac:.3f}, alt_range=[{np.nanmin(altitude):.3f}, {np.nanmax(altitude):.3f}], epv_finite={int(np.isfinite(epv).sum())}")
     Hs, Tp = hs_from_altitude_psd(altitude, log, fs=float(gps_fs),
                                   fmin=gps_fmin, fmax=gps_fmax)
     Hs_std = gps_hs_uncertainty_from_epv_mc(altitude, epv,
                                             fs=float(gps_fs),
                                             fmin=gps_fmin, fmax=gps_fmax,
-                                            n_mc=n_mc, epv_scale=epv_scale, 
+                                            n_mc=n_mc, epv_scale=epv_scale,
                                             seed=seed)
 
     mean_lat = np.nanmean(lat)

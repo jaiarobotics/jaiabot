@@ -3,7 +3,11 @@ import pandas as pd
 
 # --- Constants for Analysis ---
 DRIFT_ARDUINO_VALUE = 1500
-MIN_DRIFT_LEN_PTS = 50 # 50 gps pts ~= 10s duration @ 5hz
+
+# minimum driftlet length in seconds
+# MIN_DRIFT_LEN_PTS = 50 # Minimum drift length in points (samples)
+MIN_DRIFT_LEN_S = 8.0 # minimum drift length in seconds
+
 MOTOR_STOP_MOMENTUM_PERIOD_S = 1.5 # TODO: determine upper bound for vehicle to come to a stop from full throttle, current value is somewhat arbitrary
 DEFAULT_SPEED_STDEV_MPS = 0.1
 DEFAULT_DIRECTION_STDEV_DEG = 45.0
@@ -28,20 +32,21 @@ def extract_drift_segments(stationkeep_df, log):
 
     drifts = []
     for start_idx, end_idx in zip(drift_starts, drift_ends):
-        if (end_idx - start_idx) < MIN_DRIFT_LEN_PTS:
-            log.warning(f"Driftlet was too short! Number of points {end_idx - start_idx}")
-            continue
-
-        log.info(f"Driftlet length: {end_idx - start_idx} points.")
-
         drift_timestamps = timestamps[start_idx:end_idx]
         drift_start_ts = drift_timestamps[0]
+        drift_end_ts = drift_timestamps[-1]
+
+        if (drift_end_ts - drift_start_ts) < MIN_DRIFT_LEN_S:
+            log.warning(f"Driftlet was too short! Duration: {drift_end_ts - drift_start_ts} seconds. Minimum required: {MIN_DRIFT_LEN_S} seconds.")
+            continue
+
+        log.info(f"Driftlet points: {end_idx - start_idx}; Driftlet duration: {drift_end_ts - drift_start_ts} seconds.")
         
         momentum_clear_ts = drift_start_ts + MOTOR_STOP_MOMENTUM_PERIOD_S
         momentum_clear_index = start_idx + np.argmax(drift_timestamps > momentum_clear_ts) # np.argmax() returns 0 if no value in array is true
 
         if start_idx != momentum_clear_index and momentum_clear_index < end_idx:
-            log.info(f"Driftlet length after accounting for momentum: {end_idx - momentum_clear_index} points.")
+            log.info(f"Driftlet length after accounting for momentum: {drift_end_ts - momentum_clear_ts} seconds.")
             segment_df = stationkeep_df.iloc[momentum_clear_index:end_idx]
             drift_seg = {
                 "epoch_time": segment_df['ts'].to_numpy(),
@@ -190,8 +195,6 @@ def summarize_station_keep_drifts(drifts, log):
 
         speed_stdev = magnitude_weighted_stdev_mps
         heading_stdev = direction_weighted_circular_stdev_deg
-        log.info(f"Mode Speed STD: {speed_stdev} m/s.")
-        log.info(f"Heading STD: {heading_stdev} degrees.")
 
     # Collect non-empty filtered latitude/longitude arrays
     lat_arrays = []

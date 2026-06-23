@@ -66,6 +66,7 @@ class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThrea
 
   private:
     int voltage_period_{1};
+    int last_motor_value_{1500};
     double voltage_step_decrease_{0.1};
     double voltage_start_{24.0};
     double reset_voltage_level_{15};

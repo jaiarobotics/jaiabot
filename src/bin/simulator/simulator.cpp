@@ -98,6 +98,7 @@ class SimulatorTranslation : public goby::moos::Translator
 
     quantity<si::length> dive_x_, dive_y_, dive_depth_;
     goby::time::SteadyClock::time_point last_nav_process_time_;
+    double last_nav_x_{0}, last_nav_y_{0};
 
     std::map<quantity<si::length>, double> temperature_degC_profile_;
     std::map<quantity<si::length>, double> salinity_profile_;
@@ -110,6 +111,10 @@ class SimulatorTranslation : public goby::moos::Translator
 
     goby::time::SteadyClock::time_point gps_dropout_end_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point stop_forward_progress_end_{std::chrono::seconds(0)};
+
+    // Simulated wave altitude: 0.5m amplitude, 8s period sine wave
+    static constexpr double SIM_WAVE_AMPLITUDE_M = 0.5;
+    static constexpr double SIM_WAVE_PERIOD_S = 8.0;
 
     bool making_forward_progress_{false};
 };
@@ -339,8 +344,21 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
     rmc.latitude = latlon.lat;
     rmc.longitude = latlon.lon;
 
-    rmc.speed_over_ground =
-        quantity<si::velocity>(moos_buffer["NAV_SPEED"].GetDouble() * si::meter_per_second);
+    // Compute speed over ground from position change so water current (drift_x/drift_y)
+    // is included. NAV_SPEED only reflects propulsion and excludes current.
+    double cur_x = x.value();
+    double cur_y = y.value();
+    double dt_s = std::chrono::duration<double>(now - last_nav_process_time_).count();
+    double sog_mps = 0.0;
+    if (dt_s > 0.001)
+    {
+        double dx = cur_x - last_nav_x_;
+        double dy = cur_y - last_nav_y_;
+        sog_mps = std::sqrt(dx * dx + dy * dy) / dt_s;
+    }
+    last_nav_x_ = cur_x;
+    last_nav_y_ = cur_y;
+    rmc.speed_over_ground = quantity<si::velocity>(sog_mps * si::meter_per_second);
 
     rmc.course_over_ground = moos_buffer["NAV_HEADING_OVER_GROUND"].GetDouble() * degree::degree;
 
@@ -446,6 +464,19 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         accuracies->set_gyroscope(3);
         accuracies->set_magnetometer(3);
         interprocess().publish<groups::imu>(imu_data);
+    }
+
+    // publish simulated altitude for ERDC current/wave analysis work
+    {
+        double t_s = std::chrono::duration<double>(now.time_since_epoch()).count();
+        double altitude_m = SIM_WAVE_AMPLITUDE_M * std::sin(2.0 * PI * t_s / SIM_WAVE_PERIOD_S);
+
+        goby::middleware::protobuf::gpsd::TimePositionVelocity tpv;
+        tpv.mutable_location()->set_lat_with_units(latlon.lat);
+        tpv.mutable_location()->set_lon_with_units(latlon.lon);
+        tpv.set_altitude(altitude_m);
+        tpv.set_epv(2.0); // simulated vertical GPS error (meters)
+        interprocess().publish<goby::middleware::groups::gpsd::tpv>(tpv);
     }
 
     last_nav_process_time_ = now;

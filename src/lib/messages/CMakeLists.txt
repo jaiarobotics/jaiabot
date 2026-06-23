@@ -62,6 +62,7 @@ set(JAIABOT_PROTOS
   ppk.proto
   surob_results.proto
   currents_and_waves_estimator_payload.proto
+  fusion.proto
   ${SENSOR_MESSAGES}
 )
 

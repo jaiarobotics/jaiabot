@@ -105,19 +105,10 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
                 task_packet_file.close();
             }
 
-            if (this->machine().rf_disable())
-            {
-                glog.is_debug2() && glog << "(RF Disabled) Publishing task packet interprocess: "
-                                        << task_packet_.DebugString() << std::endl;
-                interprocess().publish<groups::task_packet>(task_packet_);
-            }
-            else
-            {
-                glog.is_debug2() && glog << "(RF Enabled) Publishing task packet intervehicle: "
-                                        << task_packet_.DebugString() << std::endl;
-                intervehicle().publish<groups::task_packet>(
-                    task_packet_, intervehicle::default_publisher<protobuf::TaskPacket>);
-            }
+            glog.is_debug2() && glog << "Publishing task packet to Fusion app: " << task_packet_.DebugString() << std::endl;
+            protobuf::FusionMessage fusion_msg;
+            *fusion_msg.mutable_task_packet() = task_packet_;
+            interprocess().publish<groups::fusion>(fusion_msg);
         }
 
     }
