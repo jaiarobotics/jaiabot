@@ -295,37 +295,6 @@ struct MissionManagerStateMachine
     }
     const double& latest_significant_wave_height() { return latest_significant_wave_height_; }
 
-    void set_create_task_packet_file(const bool& create_task_packet_file)
-    {
-        create_task_packet_file_ = create_task_packet_file;
-    }
-    const bool& create_task_packet_file() { return create_task_packet_file_; }
-
-    void set_task_packet_file_name(const std::string& task_packet_file_name)
-    {
-        task_packet_file_name_ = task_packet_file_name;
-    }
-    const std::string& task_packet_file_name() { return task_packet_file_name_; }
-
-    const std::string& create_file_date_time()
-    {
-        auto now = std::chrono::system_clock::now();
-        std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
-
-        std::tm* localTime = std::localtime(&currentTime);
-
-        std::ostringstream oss;
-        oss << (localTime->tm_year + 1900) << std::setw(2) << std::setfill('0')
-            << (localTime->tm_mon + 1) << std::setw(2) << std::setfill('0') << localTime->tm_mday
-            << "T" << std::setw(2) << std::setfill('0') << localTime->tm_hour << std::setw(2)
-            << std::setfill('0') << localTime->tm_min << std::setw(2) << std::setfill('0')
-            << localTime->tm_sec;
-
-        data_time_string_ = oss.str();
-
-        return data_time_string_;
-    }
-
     void set_rf_disable(const bool& rf_disable) { rf_disable_ = rf_disable; }
     const bool& rf_disable() { return rf_disable_; }
 
@@ -379,10 +348,6 @@ struct MissionManagerStateMachine
     double bottom_safety_depth_{cfg().min_depth_safety()};
     boost::units::quantity<boost::units::si::velocity> transit_speed_{
         2.0 * boost::units::si::meters_per_second};
-    // Task Packet
-    bool create_task_packet_file_{true};
-    std::string task_packet_file_name_{""};
-    std::string data_time_string_{""};
     int32_t hub_id_{0};
     std::string data_offload_exclude_{""};
     uint64_t mission_command_time_{0};

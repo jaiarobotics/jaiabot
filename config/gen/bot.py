@@ -333,7 +333,9 @@ elif common.app == 'jaiabot_fusion':
                                      bot_status_period=bot_status_period,
                                      total_imu_issue_checks=total_imu_issue_checks,
                                      imu_detection_solution=imu_detection_solution,
-                                     bot_gpsd_device=common.bot.gpsd_device(node_id)))
+                                     bot_gpsd_device=common.bot.gpsd_device(node_id),
+                                     log_dir=log_file_dir,
+                                     jaia_data_offload_ignore_type=jaia_data_offload_ignore_type))
 elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,

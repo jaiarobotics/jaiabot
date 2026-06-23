@@ -51,7 +51,11 @@
 
 #include "wmm/WMM.h"
 #include <cmath>
+#include <fstream>
+#include <google/protobuf/util/json_util.h>
+#include <iomanip>
 #include <math.h>
+#include <sstream>
 
 #define NOW (goby::time::SystemClock::now<goby::time::MicroTime>())
 
@@ -86,6 +90,8 @@ class Fusion : public ApplicationBase
 
     // FusionMessage payload handlers - add one per case in the FusionMessage oneof
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
+
+    std::string create_file_date_time();
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -172,6 +178,11 @@ class Fusion : public ApplicationBase
     jaiabot::protobuf::SalinityData process_salinity_data(const jaiabot::protobuf::SalinityData& salinity_data);
 
     std::set<jaiabot::protobuf::Link> active_links_;
+
+    // Task Packet file
+    jaiabot::protobuf::MissionState previous_mission_state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
+    bool create_task_packet_file_{true};
+    std::string task_packet_file_name_;
 };
 } // namespace apps
 } // namespace jaiabot
@@ -500,6 +511,16 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& report) {
+            if (report.state() == jaiabot::protobuf::POST_DEPLOYMENT__DATA_OFFLOAD &&
+                previous_mission_state_ != jaiabot::protobuf::POST_DEPLOYMENT__DATA_OFFLOAD)
+            {
+                // Reset if recovered
+                // If bot is activated again and more task packets
+                // are received, then we will create a new file to log them
+                create_task_packet_file_ = true;
+            }
+            previous_mission_state_ = report.state();
+
             latest_bot_status_.set_mission_state(report.state());
 
             if (report.has_mission_command_time())
@@ -1177,10 +1198,51 @@ void jaiabot::apps::Fusion::detect_bot_horizontal(const double& pitch)
 }
 
 
+std::string jaiabot::apps::Fusion::create_file_date_time()
+{
+    auto now = std::chrono::system_clock::now();
+    std::time_t currentTime = std::chrono::system_clock::to_time_t(now);
+
+    std::tm* localTime = std::localtime(&currentTime);
+
+    std::ostringstream oss;
+    oss << (localTime->tm_year + 1900) << std::setw(2) << std::setfill('0')
+        << (localTime->tm_mon + 1) << std::setw(2) << std::setfill('0') << localTime->tm_mday
+        << "T" << std::setw(2) << std::setfill('0') << localTime->tm_hour << std::setw(2)
+        << std::setfill('0') << localTime->tm_min << std::setw(2) << std::setfill('0')
+        << localTime->tm_sec;
+
+    return oss.str();
+}
+
 void jaiabot::apps::Fusion::handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet)
 {
     glog.is_debug1() && glog << "Fusion received TaskPacket update: " << task_packet.ShortDebugString()
                              << std::endl;
+
+    // Create new taskpacket file when the task completes if we haven't already, and we want to offload taskpackets
+    if (cfg().data_offload_exclude() != config::Fusion::TASKPACKET)
+    {
+        std::string json_string;
+        google::protobuf::util::JsonPrintOptions json_options;
+        json_options.preserve_proto_field_names = true;
+        google::protobuf::util::MessageToJsonString(task_packet, &json_string, json_options);
+
+        if (create_task_packet_file_)
+        {
+            task_packet_file_name_ =
+                cfg().interprocess().platform() + "_" + create_file_date_time() + ".taskpacket";
+            create_task_packet_file_ = false;
+        }
+        else
+        {
+            json_string = "\n" + json_string;
+        }
+
+        std::ofstream task_packet_file(cfg().log_dir() + "/" + task_packet_file_name_, std::ios::app);
+        task_packet_file << json_string;
+        task_packet_file.close();
+    }
 
     if (rf_disabled_)
     {

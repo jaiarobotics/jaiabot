@@ -72,40 +72,7 @@ struct Task : boost::statechart::state<Task, Underway, task::TaskSelection>, App
 
         if (task_packet_.type() == protobuf::MissionTask::DIVE)
         {
-            if (cfg().data_offload_exclude() != config::MissionManager::TASKPACKET)
-            {
-                // Convert to json string
-                std::string json_string;
-                google::protobuf::util::JsonPrintOptions json_options;
-                // Set the snake_case option
-                json_options.preserve_proto_field_names = true;
-
-                google::protobuf::util::MessageToJsonString(task_packet_, &json_string, json_options);
-
-                // Check if it is a new task packet file
-                if (this->machine().create_task_packet_file())
-                {
-                    this->machine().set_task_packet_file_name(cfg().interprocess().platform() + "_" +
-                                                            this->machine().create_file_date_time() +
-                                                            ".taskpacket");
-                    this->machine().set_create_task_packet_file(false);
-                }
-                else
-                {
-                    json_string = "\n" + json_string;
-                }
-
-                // Open task packet file
-                std::ofstream task_packet_file(
-                    cfg().log_dir() + "/" + this->machine().task_packet_file_name(), std::ios::app);
-
-                task_packet_file << json_string;
-
-                // Close the json file
-                task_packet_file.close();
-            }
-
-            glog.is_debug2() && glog << "Publishing task packet to Fusion app: " << task_packet_.DebugString() << std::endl;
+            glog.is_debug2() && glog << "Publishing task packet interprocess: " << task_packet_.DebugString() << std::endl;
             protobuf::FusionMessage fusion_msg;
             *fusion_msg.mutable_task_packet() = task_packet_;
             interprocess().publish<groups::fusion>(fusion_msg);

@@ -106,4 +106,15 @@ message Fusion
 
     required string bot_gpsd_device = 50;  // gpsd device for bot itself
 
+    // e.g. /var/log/jaiabot/bot/*/
+    required string log_dir = 51;
+
+    enum DownloadFileTypes
+    {
+        NONE = 1;
+        GOBY = 2;
+        TASKPACKET = 3;
+    }
+    optional DownloadFileTypes data_offload_exclude = 52;
+
 }
