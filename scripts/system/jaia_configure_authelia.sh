@@ -105,12 +105,14 @@ fi
 chown authelia:authelia $authelia_persistent_dir
 
 # Update docker to use fuse-overlayfs (required to use overlayfs as backing filesystem for docker as overlayfs-on-overlayfs isn't supported)
-cat <<EOF > /etc/docker/daemon.json
+if [ ! -f /etc/docker/daemon.json ]; then
+    cat <<EOF > /etc/docker/daemon.json
 {
   "storage-driver": "fuse-overlayfs"
 }
 EOF
-systemctl restart docker
+    systemctl restart docker
+fi
 
 # Authelia configuration
 mv /etc/authelia/configuration.yml /etc/authelia/configuration.yml.ex
@@ -282,7 +284,7 @@ sim.$base_uri {
 
 EOF
 
-systemctl restart caddy
+systemctl start caddy
 
 ###########
 ## LLDAP ##
@@ -374,7 +376,7 @@ TimeoutStopSec=30
 WantedBy=multi-user.target
 EOF
 systemctl enable lldap
-systemctl restart lldap
+systemctl start lldap
 
 # Run the bootstrap script
 until docker compose -f /etc/lldap/docker-compose.yaml exec lldap /app/bootstrap.sh; do sleep 1; done

@@ -27,10 +27,8 @@ CLOUDHUB_ID=30
 CLOUDHUB_ETH_IP_ADDRESS=$($IP_PY addr --net cloudhub_eth --fleet_id ${FLEET_ID} --node hub --node_id ${CLOUDHUB_ID}  --ipv4)
 
 # IPv6 address to use for VirtualFleet VPN (fd6e:cf0d:aefa:FLEET_ID_HEX::/64)
-VIRTUALFLEET_VPN_NETWORK_IPV6=$($IP_PY net --net vfleet_vpn --fleet_id ${FLEET_ID} --ipv6)
-VIRTUALFLEET_VPN_CLIENT_IPV6=$($IP_PY addr --net vfleet_vpn --fleet_id ${FLEET_ID} --node desktop --node_id 1 --ipv6)
 VIRTUALFLEET_VPN_SERVER_IPV6=$($IP_PY addr --net vfleet_vpn --fleet_id ${FLEET_ID} --node hub --node_id ${CLOUDHUB_ID} --ipv6)
-# IPv6 address to use for VirtualFleet VPN (fd0f:77ac:4fdf:FLEET_ID_HEX::/64)
+# IPv6 address to use for CloudHub VPN (fd0f:77ac:4fdf:FLEET_ID_HEX::/64)
 CLOUDHUB_VPN_NETWORK_IPV6=$($IP_PY net --net cloudhub_vpn --fleet_id ${FLEET_ID} --ipv6)
 CLOUDHUB_VPN_CLIENT_IPV6=$($IP_PY addr --net cloudhub_vpn --fleet_id ${FLEET_ID} --node desktop --node_id 1 --ipv6)
 CLOUDHUB_VPN_SERVER_IPV6=$($IP_PY addr --net cloudhub_vpn --fleet_id ${FLEET_ID} --node hub --node_id ${CLOUDHUB_ID} --ipv6)
@@ -213,7 +211,6 @@ declare -A replacements=(
     ["{{SUBNET_VIRTUALFLEET_WLAN_ID}}"]="$SUBNET_VIRTUALFLEET_WLAN_ID"
     ["{{VPC_ID}}"]="$VPC_ID"
     ["{{VIRTUALFLEET_SECURITY_GROUP_ID}}"]="$VIRTUALFLEET_SECURITY_GROUP_ID"
-    ["{{VIRTUALFLEET_VPN_CLIENT_IPV6}}"]="$VIRTUALFLEET_VPN_CLIENT_IPV6"
     ["{{VIRTUALFLEET_VPN_SERVER_IPV6}}"]="$VIRTUALFLEET_VPN_SERVER_IPV6"
     ["{{AUTH_BASE_URI}}"]="$AUTH_BASE_URI"
     ["{{AUTH_ADMIN_EMAIL}}"]="$AUTH_ADMIN_EMAIL"
@@ -366,37 +363,18 @@ while ! ssh -o ConnectTimeout=10 -o PasswordAuthentication=No -o StrictHostKeyCh
     sleep 5
 done
 
+
+AUTHELIA_ADMIN_PASSWORD=$(ssh -o PasswordAuthentication=No -o StrictHostKeyChecking=no jaia@${PUBLIC_IPV4_ADDRESS} "sudo grep lldap_admin_password /var/log/jaiabot/auth/authelia/secrets | cut -d = -f2")
+echo ">>>>>> Fetched Authelia initial admin password"
+
+
 ssh -o PasswordAuthentication=No -o StrictHostKeyChecking=no jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
 echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
 
 run "" aws ec2 revoke-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
 echo ">>>>>> Removed SSH (port 22) on Security Group"
 
-VFLEET_VPN=wg_jaia_vf${FLEET_ID}
 CLOUD_VPN=wg_jaia_ch${FLEET_ID}
-cat <<EOF > /tmp/${VFLEET_VPN}.conf
-[Interface]
-# from /etc/wireguard/privatekey on client
-PrivateKey = ...
-
-# this client's VPN IP address
-Address = ${VIRTUALFLEET_VPN_CLIENT_IPV6}/128
-
-[Peer]
-# Server public key (from /etc/wireguard/publickey on server)
-PublicKey = ${SERVER_WIREGUARD_PUBKEY}
-
-# Allowed private IPs
-AllowedIPs = ${VIRTUALFLEET_VPN_NETWORK_IPV6}
-
-# Server IP and port
-Endpoint = ${PUBLIC_IPV4_ADDRESS}:51820
-
-# Keep connection alive (required for behind NAT routers)
-PersistentKeepalive = 52
-
-EOF
-
 cat <<EOF > /tmp/${CLOUD_VPN}.conf
 [Interface]
 # from /etc/wireguard/privatekey on client
@@ -419,7 +397,6 @@ Endpoint = ${PUBLIC_IPV4_ADDRESS}:51821
 PersistentKeepalive = 52
 EOF
 
-sed -i "s|.*PrivateKey.*|PrivateKey = ${CLIENT_VPN_WIREGUARD_PRIVATEKEY}|" /tmp/${VFLEET_VPN}.conf
 sed -i "s|.*PrivateKey.*|PrivateKey = ${CLIENT_VPN_WIREGUARD_PRIVATEKEY}|" /tmp/${CLOUD_VPN}.conf
 
 echo ">>>>>> Started CloudHub in Fleet $FLEET_ID:"
@@ -427,17 +404,13 @@ echo ">>>>>> Public IPv4 address: ${PUBLIC_IPV4_ADDRESS}"
 
 
 if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
-    echo ">>>>>> Begin installing local VPNs to /etc/wireguard/${VFLEET_VPN}.conf and /etc/wireguard/${CLOUD_VPN}.conf"
+    echo ">>>>>> Begin installing local VPN to /etc/wireguard/${CLOUD_VPN}.conf"
 
-    sudo mv /tmp/${VFLEET_VPN}.conf /tmp/${CLOUD_VPN}.conf /etc/wireguard
-    sudo systemctl enable wg-quick@${VFLEET_VPN}
-    sudo systemctl restart wg-quick@${VFLEET_VPN}
-
+    sudo mv /tmp/${CLOUD_VPN}.conf /etc/wireguard
     sudo systemctl enable wg-quick@${CLOUD_VPN}
     sudo systemctl restart wg-quick@${CLOUD_VPN}
 
-    echo ">>>>>> Enabled VPNs:"
-    sudo wg show ${VFLEET_VPN}
+    echo ">>>>>> Enabled VPN:"
     sudo wg show ${CLOUD_VPN}
     while ! ping6 -c 1 "${CLOUDHUB_VPN_SERVER_IPV6}" &> /dev/null
     do
@@ -447,13 +420,12 @@ if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
     echo ">>>>>> Ping successful!"   
     echo -e ">>>>>> Now you can log in with\n\tjaia ssh chf${FLEET_ID} (ssh jaia@${CLOUDHUB_VPN_SERVER_IPV6})"
 else
-    echo ">>>>>> Prototype config for VPNs in /tmp/${VFLEET_VPN}.conf and /tmp/${CLOUD_VPN}.conf. You will need to enable one or both VPNs to access the Cloudhub VM."
+    echo ">>>>>> Prototype config for VPNs in /tmp/${CLOUD_VPN}.conf. You will need to enable this VPN to access the Cloudhub VM."
 fi
 
 if [[ "$UPDATE_CLIENT_ETC_HOSTS" == "true" ]]; then
     # Define the host entries
     CLOUDHUB_HOST="cloudhub-fleet${FLEET_ID}"
-    VIRTUALFLEET_HOST="cloudhub-virtualfleet${FLEET_ID}"
 
     # Update or append cloudhub entry in /etc/hosts
     if grep -q "$CLOUDHUB_HOST" /etc/hosts; then
@@ -461,14 +433,10 @@ if [[ "$UPDATE_CLIENT_ETC_HOSTS" == "true" ]]; then
     else
         echo "$CLOUDHUB_VPN_SERVER_IPV6 $CLOUDHUB_HOST" | sudo tee -a /etc/hosts
     fi
-
-    # Update or append virtualfleet entry in /etc/hosts
-    if grep -q "$VIRTUALFLEET_HOST" /etc/hosts; then
-        sudo sed -i "s/.* $VIRTUALFLEET_HOST\$/$VIRTUALFLEET_VPN_SERVER_IPV6 $VIRTUALFLEET_HOST/" /etc/hosts
-    else
-        echo "$VIRTUALFLEET_VPN_SERVER_IPV6 $VIRTUALFLEET_HOST" | sudo tee -a /etc/hosts
-    fi
     echo -e ">>>>>> Updated /etc/hosts, so you can also log in with\n\tssh jaia@$CLOUDHUB_HOST"
 fi
 
+
 echo ">>>>>> SUCCESS"
+
+echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: admin\n\tpass: $AUTHELIA_ADMIN_PASSWORD"
