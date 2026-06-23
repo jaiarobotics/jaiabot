@@ -349,6 +349,8 @@ VirtualFleet access (https://sim.fleetN.jaia.tech):
 - https://sim.fleetN.jaia.tech: All resources for VirtualFleet Hub
 	+ Groups: 'sim'
 
+The group `super_admin` gives the same access as `run`, `sim`, `jdv`, and `jcu_developer`. Note that this group does not automatically have `lldap_admin` privileges (as this is a special group within LLDAP).
+
 Supporting web pages:
 
 - https://users.fleetN.jaia.tech: User management by fleet administrators. Add new users, add users to fleet access, and remove old users.
