@@ -33,12 +33,29 @@ import { jaiaAPI } from "../../../../utils/jaia-api";
 
 const mockJaiaAPI = jaiaAPI as jest.Mocked<typeof jaiaAPI>;
 
-describe("Exercise functions to save and load missions from localStorage", () => {
+describe("Exercise functions to save and load missions from the hub", () => {
+    // In memory fake hub storage to test against
+    let fakeHubStorage: Record<string, any> = {};
+
     beforeEach(() => {
         missionSet.deleteAllMissions();
-        localStorage.clear();
+        fakeHubStorage = {};
+        jest.clearAllMocks();
+        mockJaiaAPI.listMissionSets.mockImplementation(async () =>
+            Object.keys(fakeHubStorage).sort((a, b) => a.localeCompare(b)),
+        );
+        mockJaiaAPI.saveMissionSet.mockImplementation(async (name: string, snapshot: any) => {
+            fakeHubStorage[name] = snapshot;
+        });
+        mockJaiaAPI.loadMissionSet.mockImplementation(async (name: string) => {
+            fakeHubStorage[name] ?? null;
+        });
+        mockJaiaAPI.deleteMissionSet.mockImplementation(async (name: string) => {
+            delete fakeHubStorage[name];
+        });
     });
-    test("Save and retrieve a mission set from localStorage", () => {
+
+    test("Save and retrieve a mission set from the hub", () => {
         // Create test mission set
         let mission1 = new Mission();
         mission1.addWaypoint(locationA);
@@ -65,10 +82,10 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(mission2ID).toEqual(2);
         expect(missionSet.getMissions().size).toEqual(2);
 
-        // Save the mission set to localStorage
+        // Save the mission set to the hub
         saveToHub("Test-Mission-Set");
 
-        // Retrieve the serialized mission set from localStorage
+        // Retrieve the serialized mission set from the hub
         const loadResult = loadSnapshotFromHub("Test-Mission-Set");
         expect(loadResult.resultType).toBe(LoadResultType.CURRENT_FORMAT);
 
@@ -106,7 +123,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         // Verify there are no saved missions sets
         expect(listSavedMissionSetsFromHub().length).toEqual(0);
 
-        // Create a mission set and save it to localStorage
+        // Create a mission set and save it to the hub
         missionSet.addMission(missionA);
         missionSet.addMission(missionB);
         expect(missionSet.getMissions().size).toEqual(2);
@@ -128,7 +145,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(listSavedMissionSetsFromHub()[0]).toEqual("Test-Mission-Set-A");
         expect(listSavedMissionSetsFromHub()[1]).toEqual("Test-Mission-Set-B");
 
-        // Retrieve the first mission set from localStorage
+        // Retrieve the first mission set from the hub
         const loadResultA = loadSnapshotFromHub("Test-Mission-Set-A");
 
         // Update the mission set data
@@ -136,7 +153,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
 
         expect(missionSet.getMissions().size).toEqual(2);
 
-        // Delete the first set from localStorage
+        // Delete the first set from the hub
         expect(deleteFromHub("Test-Mission-Set-A")).toEqual(true);
         expect(listSavedMissionSetsFromHub().length).toEqual(1);
         expect(listSavedMissionSetsFromHub()[0]).toEqual("Test-Mission-Set-B");
