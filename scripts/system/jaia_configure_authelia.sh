@@ -154,7 +154,7 @@ authentication_backend:
     implementation: 'lldap'
     address: 'ldap://localhost:$lldap_ldap_port'
     base_dn: 'DC=jaia,DC=tech'
-    user: 'UID=jaia_admin,OU=people,DC=jaia,DC=tech'
+    user: 'UID=admin,OU=people,DC=jaia,DC=tech'
     password: '$lldap_admin_password'
 access_control:
   default_policy: 'deny'
@@ -227,7 +227,6 @@ session:
   cookies:
      - domain: '$base_uri'
        authelia_url: 'https://auth.$base_uri'
-       default_redirection_url: 'https://$base_uri'
 storage:
   encryption_key: '$storage_encryption_key'
   local:
@@ -317,10 +316,10 @@ for group in "${groups[@]}"; do
 EOF
 done
 
-# Create jaia_admin user config
-cat > /etc/lldap/bootstrap/user-configs/jaia_admin.json <<EOF
+# Create admin user config
+cat > /etc/lldap/bootstrap/user-configs/admin.json <<EOF
 {
-  "id": "jaia_admin",
+  "id": "admin",
   "email": "$admin_email",
   "groups": ["super_admin", "lldap_admin"
   ]
@@ -347,7 +346,7 @@ services:
       - LLDAP_LDAP_USER_EMAIL=$admin_email
 
       - LLDAP_URL=http://localhost:$lldap_web_port
-      - LLDAP_ADMIN_USERNAME=jaia_admin
+      - LLDAP_ADMIN_USERNAME=admin
       - LLDAP_ADMIN_PASSWORD=$lldap_admin_password
       - GROUP_CONFIGS_DIR=/bootstrap/group-configs
       - USER_CONFIGS_DIR=/bootstrap/user-configs
