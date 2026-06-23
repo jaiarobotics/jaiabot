@@ -573,7 +573,7 @@ jaiabot_apps = [
      'subdir': 'atlas_scientific_ezo_ec',
      'args': f'-p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
-     'runs_on': [Type.BOT],
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
