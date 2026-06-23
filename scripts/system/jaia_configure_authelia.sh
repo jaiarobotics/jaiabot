@@ -156,7 +156,7 @@ authentication_backend:
     implementation: 'lldap'
     address: 'ldap://localhost:$lldap_ldap_port'
     base_dn: 'DC=jaia,DC=tech'
-    user: 'UID=admin,OU=people,DC=jaia,DC=tech'
+    user: 'UID=jaia_admin,OU=people,DC=jaia,DC=tech'
     password: '$lldap_admin_password'
 access_control:
   default_policy: 'deny'
@@ -317,10 +317,10 @@ for group in "${groups[@]}"; do
 EOF
 done
 
-# Create admin user config
-cat > /etc/lldap/bootstrap/user-configs/admin.json <<EOF
+# Create jaia_admin user config
+cat > /etc/lldap/bootstrap/user-configs/jaia_admin.json <<EOF
 {
-  "id": "admin",
+  "id": "jaia_admin",
   "email": "$admin_email",
   "groups": ["super_admin", "lldap_admin"
   ]
@@ -343,11 +343,12 @@ services:
       - LLDAP_JWT_SECRET=$lldap_jwt_secret
       - LLDAP_KEY_SEED=$lldap_key_seed
       - LLDAP_LDAP_BASE_DN=dc=jaia,dc=tech
+      - LLDAP_LDAP_USER_DN=jaia_admin
       - LLDAP_LDAP_USER_PASS=$lldap_admin_password
       - LLDAP_LDAP_USER_EMAIL=$admin_email
 
       - LLDAP_URL=http://localhost:$lldap_web_port
-      - LLDAP_ADMIN_USERNAME=admin
+      - LLDAP_ADMIN_USERNAME=jaia_admin
       - LLDAP_ADMIN_PASSWORD=$lldap_admin_password
       - GROUP_CONFIGS_DIR=/bootstrap/group-configs
       - USER_CONFIGS_DIR=/bootstrap/user-configs
