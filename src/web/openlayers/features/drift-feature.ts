@@ -8,7 +8,7 @@ import { point, midpoint } from "@turf/turf";
 import { view } from "../views/view";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { CurrentPacket, DriftPacket, TaskPacket } from "../../types/protobuf-types";
+import { DriftPacket, TaskPacket } from "../../types/protobuf-types";
 import { degreesToRadians } from "../../utils/conversions";
 import { DRIFT_INTENSITY_INTERVAL, MAX_DRIFT_INTENSITY } from "../../utils/constants";
 import { OpenLayersColors } from "../../style/openlayers/colors";
@@ -73,7 +73,7 @@ function generateDriftStyle(taskPacket: TaskPacket) {
  */
 export function generateCurrentFeature(taskPacket: TaskPacket) {
     const current = taskPacket.current;
-    if (!current?.location?.lon || !current?.location?.lat) {
+    if (current?.location?.lon == null || current?.location?.lat == null) {
         return null;
     }
 
