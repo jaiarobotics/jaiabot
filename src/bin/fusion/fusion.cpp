@@ -39,6 +39,7 @@
 #include "jaiabot/messages/comms.pb.h"
 #include "jaiabot/messages/control_surfaces.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/fusion.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
@@ -82,6 +83,9 @@ class Fusion : public ApplicationBase
     void detect_imu_issue();
     double degrees_difference(const double& deg1, const double& deg2);
     void detect_bot_horizontal(const double& pitch);
+
+    // FusionMessage payload handlers - add one per case in the FusionMessage oneof
+    void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet);
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -221,6 +225,20 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     watch_battery_percentage_ = cfg().watch_battery_percentage();
 
     bot_status_period_ms_ = cfg().bot_status_period_ms();
+
+    // Generic portal through Fusion
+    interprocess().subscribe<jaiabot::groups::fusion>(
+        [this](const jaiabot::protobuf::FusionMessage& fusion_msg) {
+            // Add new case for each new payload type in FusionMessage oneof
+            switch (fusion_msg.payload_case())
+            {
+                case jaiabot::protobuf::FusionMessage::kTaskPacket:
+                    handle_task_packet(fusion_msg.task_packet());
+                    break;
+
+                case jaiabot::protobuf::FusionMessage::PAYLOAD_NOT_SET: break;
+            }
+        });
 
     interprocess().subscribe<goby::middleware::groups::gpsd::att>(
         [this](const goby::middleware::protobuf::gpsd::Attitude& att) {
@@ -1158,6 +1176,26 @@ void jaiabot::apps::Fusion::detect_bot_horizontal(const double& pitch)
     }
 }
 
+
+void jaiabot::apps::Fusion::handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet)
+{
+    glog.is_debug1() && glog << "Fusion received TaskPacket update: " << task_packet.ShortDebugString()
+                             << std::endl;
+
+    if (rf_disabled_)
+    {
+        glog.is_debug2() && glog << "(RF Disabled) Publishing task packet interprocess: "
+                                 << task_packet.DebugString() << std::endl;
+        interprocess().publish<groups::task_packet>(task_packet);
+    }
+    else
+    {
+        glog.is_debug2() && glog << "(RF Enabled) Publishing task packet intervehicle: "
+                                 << task_packet.DebugString() << std::endl;
+        intervehicle().publish<groups::task_packet>(
+            task_packet, intervehicle::default_publisher<protobuf::TaskPacket>);
+    }
+}
 
 jaiabot::protobuf::SalinityData jaiabot::apps::Fusion::process_salinity_data(const jaiabot::protobuf::SalinityData& salinity_data) {
     jaiabot::protobuf::SalinityData processed_data = salinity_data;

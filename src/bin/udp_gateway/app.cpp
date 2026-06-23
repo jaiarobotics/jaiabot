@@ -43,6 +43,7 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/fusion.pb.h"
 
 #include "jaiabot/intervehicle.h"
 #include "jaiabot/utils/derived_salinity.h"
@@ -296,21 +297,12 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
                 last_currents_and_waves_estimation_time_ = goby::time::SteadyClock::now();
                 currents_and_waves_estimator_udp_src_ = udp_src;
 
-                if (this->rf_enabled_)
-                {
-                    glog.is_debug1() && glog << "(RF Enabled) Publishing task packet "
-                                                "intervehicle: "
-                                             << task_packet.DebugString() << std::endl;
-                    intervehicle().publish<groups::task_packet>(
-                        task_packet, intervehicle::default_publisher<protobuf::TaskPacket>);
-                }
-                else
-                {
-                    glog.is_debug1() && glog << "(RF Disabled) Publishing task packet "
+                glog.is_debug1() && glog << "(RF Disabled) Publishing task packet "
                                                 "interprocess: "
                                              << task_packet.DebugString() << std::endl;
-                    interprocess().publish<groups::task_packet>(task_packet);
-                }
+                protobuf::FusionMessage fusion_msg;
+                *fusion_msg.mutable_task_packet() = task_packet;
+                interprocess().publish<groups::fusion>(fusion_msg);
             }
             break;
         }
