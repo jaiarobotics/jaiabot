@@ -9,6 +9,8 @@ set -u -e -o pipefail
 ## Preamble ##
 ##############
 
+jaia_auth_lldap_bootstrap_completed=false
+
 set -a
 source "/etc/jaiabot/runtime.env"
 source "/etc/jaiabot/cloud.env"
@@ -292,7 +294,6 @@ systemctl start caddy
 mkdir -p /etc/lldap/bootstrap/group-configs
 mkdir -p /etc/lldap/bootstrap/user-configs
 
-
 # Create initial LLDAP group and user configurations
 groups=(
     run
@@ -378,8 +379,11 @@ EOF
 systemctl enable lldap
 systemctl start lldap
 
-# Run the bootstrap script
-until docker compose -f /etc/lldap/docker-compose.yaml exec lldap /app/bootstrap.sh; do sleep 1; done
+if ! $jaia_auth_lldap_bootstrap_completed; then
+    # Run the bootstrap script
+    until docker compose -f /etc/lldap/docker-compose.yaml exec lldap /app/bootstrap.sh; do sleep 1; done
+    echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
+fi
 
 mkdir -p /etc/systemd/system/authelia.service.d
 cat <<EOF > /etc/systemd/system/authelia.service.d/override.conf
