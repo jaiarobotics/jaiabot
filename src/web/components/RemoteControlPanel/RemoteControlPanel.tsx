@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { mdiChevronDown, mdiChevronUp } from "@mdi/js";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
-import { IJoystickUpdateEvent } from "react-joystick-component/build/lib/Joystick";
+import Icon from "@mdi/react";
 import Gamepad from "react-gamepad";
 
 import JaiaToggle from "../JaiaToggle/JaiaToggle";
@@ -8,6 +9,7 @@ import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Dashboard } from "./Dashboard/Dashboard";
 import { DiveCommand, DiveInputs, RCDiveParameters } from "./DiveControls/DiveControls";
+import { OverdriveWarningDialog } from "./OverdriveWarning/OverdriveWarningDialog";
 
 import {
     CommandType,
@@ -18,6 +20,7 @@ import {
 } from "../../types/protobuf-types";
 import { sendBotCommand, sendEngineeringCommand } from "../../utils/commands";
 import { error, success } from "../../utils/notifications";
+import { DialogActions } from "../../types/context-types";
 import { SelectChangeEvent } from "@mui/material";
 
 import "./RemoteControlPanel.less";
@@ -65,6 +68,8 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         ...defaultParams.drift,
     });
     const [rcOverdrive, setRCOverdrive] = useState(false);
+    const [isOverdriveDialogVisible, setIsOverdriveDialogVisible] = useState(false);
+    const [isMinimizedView, setIsMinimizedView] = useState(false);
 
     // Include useEffect dependencies to prevent interval data from going stale
     useEffect(() => {
@@ -157,7 +162,24 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
      * @returns {void}
      */
     const handleOverdriveToggleClick = () => {
-        setRCOverdrive(!rcOverdrive);
+        if (rcOverdrive) {
+            setRCOverdrive(false);
+        } else {
+            setIsOverdriveDialogVisible(true);
+        }
+    };
+
+    /**
+     * Closes the overdrive warning dialog and enables overdrive if confirmed
+     *
+     * @param {DialogActions} dialogAction Indicates which button was clicked
+     * @returns {void}
+     */
+    const onOverdriveDialogClose = (dialogAction: DialogActions) => {
+        setIsOverdriveDialogVisible(false);
+        if (dialogAction === DialogActions.CONFIRMED) {
+            setRCOverdrive(true);
+        }
     };
 
     /**
@@ -280,10 +302,35 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         </div>
     );
 
+    const overdriveWarningDialog = (
+        <OverdriveWarningDialog
+            isVisible={isOverdriveDialogVisible}
+            onClose={onOverdriveDialogClose}
+        />
+    );
+
+    const RCMinimizedView = (
+        <div className="remote-control-panel minimized">
+            <div className="view-arrow minimized" onClick={() => setIsMinimizedView(false)}>
+                <Icon path={mdiChevronUp} />
+            </div>
+        </div>
+    );
+
+    const RCMinimizeArrow = (
+        <div className="view-arrow" onClick={() => setIsMinimizedView(true)}>
+            <Icon path={mdiChevronDown} />
+        </div>
+    );
+
     switch (controlType) {
         case ControlTypes.SINGLE:
+            if (isMinimizedView) {
+                return RCMinimizedView;
+            }
             return (
                 <>
+                    {overdriveWarningDialog}
                     {/* Gamepad component listens for Xbox controller input in background */}
                     <Gamepad
                         onAxisChange={(axisName, value) => {
@@ -298,6 +345,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         <div></div>
                     </Gamepad>
                     <div className="remote-control-panel">
+                        {RCMinimizeArrow}
                         <AnalogStick
                             analogStickType={AnalogStickTypes.SINGLE}
                             handleAnalogStickMove={(event) => {
@@ -317,8 +365,12 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 </>
             );
         case ControlTypes.DUAL:
+            if (isMinimizedView) {
+                return RCMinimizedView;
+            }
             return (
                 <>
+                    {overdriveWarningDialog}
                     {/* Gamepad component listens for Xbox controller input in background */}
                     <Gamepad
                         onAxisChange={(axisName, value) => {
@@ -333,6 +385,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         <div></div>
                     </Gamepad>
                     <div className="remote-control-panel">
+                        {RCMinimizeArrow}
                         <AnalogStick
                             analogStickType={AnalogStickTypes.LEFT}
                             handleAnalogStickMove={(event) =>
@@ -358,6 +411,9 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                 </>
             );
         case ControlTypes.DIVE:
+            if (isMinimizedView) {
+                return RCMinimizedView;
+            }
             return (
                 <>
                     {/* Gamepad component listens for Xbox controller input in background */}
@@ -374,6 +430,7 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
                         <div></div>
                     </Gamepad>
                     <div className="remote-control-panel dive">
+                        {RCMinimizeArrow}
                         <DiveInputs
                             rcDiveParameters={rcDiveParameters}
                             onChange={handleRCDiveChange}

@@ -1,11 +1,15 @@
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
 
-import { DATA_MODEL_POLL_TIME, UNASSIGNED_ID } from "../utils/constants";
-import { JaiaAction, JaiaContextType, ButtonNames } from "../types/context-types";
+import { DATA_MODEL_POLL_TIME } from "../utils/constants";
+import { JaiaAction, JaiaContextType } from "../types/context-types";
 import { JaiaActions } from "./jaia-actions";
 import { actionConfigs } from "./action-configs";
 import { saveHistory } from "./handlers/history-handlers";
 import { bots } from "../data/bots/bots";
+import { missionSet } from "../data/mission_set/mission-set";
+import { jaiaGlobal } from "../data/jaia_global/jaia-global";
+import { exclusionZoneLayer } from "../openlayers/layers/vector/exclusion-zone-layer";
+import { missionLayer } from "../openlayers/layers/vector/mission-layer";
 
 interface JaiaContextProviderProps {
     children: ReactNode;
@@ -43,7 +47,11 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
     // Call the handler
     mutableState = config.handler(mutableState, action);
 
-    if (config.tracked) {
+    // If this is a tracked action, save the history.
+    // Skip transient confirmation states (pending reroute / waypoint removal)
+    // so undo never restores an intermediate zone/mission state without its
+    // corresponding dialog flow.
+    if (config.tracked && !mutableState.pendingReroute && !mutableState.pendingWaypointRemoval) {
         saveHistory(mutableState, action.type);
     }
 
