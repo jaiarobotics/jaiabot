@@ -1,0 +1,16 @@
+syntax="proto2";
+
+import "jaiabot/messages/jaia_dccl.proto";
+
+package jaiabot.protobuf;
+
+// Generic envelope for piping data into the Fusion app for processing/forwarding.
+// To route a new message type through Fusion, add a field to the oneof here and add a case
+// to the switch in payload_case() in fusion.cpp.
+message FusionMessage
+{
+    oneof payload
+    {
+        TaskPacket task_packet = 1;
+    }
+}
