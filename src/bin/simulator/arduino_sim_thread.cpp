@@ -23,6 +23,7 @@
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/low_control.pb.h"
 #include "simulator_thread.h"
 
 namespace si = boost::units::si;
@@ -36,6 +37,11 @@ jaiabot::apps::ArduinoSimThread::ArduinoSimThread(const jaiabot::config::Arduino
     voltage_period_ = cfg.voltage_period();
     voltage_start_ = cfg.voltage_start();
     reset_voltage_level_ = cfg.reset_voltage_level();
+
+    interprocess().subscribe<groups::low_control>(
+        [this](const jaiabot::protobuf::LowControl& low_control) {
+            last_motor_value_ = 1500 + static_cast<int32_t>(low_control.control_surfaces().motor() / 100.0 * 400);
+        });
 }
 
 void jaiabot::apps::ArduinoSimThread::loop()
@@ -59,6 +65,10 @@ void jaiabot::apps::ArduinoSimThread::loop()
             voltage_start_ = cfg().voltage_start();
         }
     }
+
+    // Set motor value to the last received value from low control for current/wave measurements
+    // subscriber stores ESC-scale value
+    arduino_response.set_motor(last_motor_value_);
 
     interprocess().publish<groups::arduino_to_pi>(arduino_response);
 }

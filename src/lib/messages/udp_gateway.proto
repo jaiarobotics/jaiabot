@@ -5,12 +5,13 @@ import "jaiabot/messages/sensor/pressure_temperature.proto";
 import "jaiabot/messages/tsys01.proto";
 import "jaiabot/messages/echo.proto";
 import "jaiabot/messages/ppk.proto";
+import "jaiabot/messages/currents_and_waves_estimator_payload.proto";
 
 package jaiabot.protobuf;
 
 
 message UDPGatewayEnvelope
-{
+{   
     oneof payload
     {
         IMUCommand imu_command = 1;
@@ -28,7 +29,7 @@ message UDPGatewayEnvelope
         // jaiabot_ubx_ppk.py
         UBXChunk ubx_chunk = 8;
 
+        CurrentsAndWavesEstimatorPayload currents_and_waves_estimator_payload = 9;
     }
-
 }
 

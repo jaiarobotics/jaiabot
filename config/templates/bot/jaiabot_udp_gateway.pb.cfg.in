@@ -11,3 +11,4 @@ echo_enabled: $echo_enabled
 salinity_enabled: $salinity_enabled
 bar30_enabled: $bar30_enabled
 tsys01_enabled: $tsys01_enabled
+currents_and_waves_estimation_enabled: $currents_and_waves_estimation_enabled

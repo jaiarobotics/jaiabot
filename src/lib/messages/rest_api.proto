@@ -4,6 +4,8 @@ import "jaiabot/messages/jaia_dccl.proto";
 import "jaiabot/messages/hub.proto";
 import "jaiabot/messages/metadata.proto";
 import "jaiabot/messages/option_extensions.proto";
+import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/surob_results.proto";
 import "jaiabot/messages/mission.proto";
 
 package jaiabot.protobuf;
@@ -66,6 +68,86 @@ message MissionQueryResults
 message CommandResult
 {
     required bool command_sent = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message SurobMissionPlanRequest
+{
+    required GeographicCoordinate shoreline_point = 1
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Shoreline point of transect in lat/lon coordinates."
+        }];
+    required GeographicCoordinate offshore_point = 2
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Offshore point of transect in lat/lon coordinates."
+        }];
+
+    enum PlanningConstraint
+    {
+        PLANNING_CONSTRAINT_TIME = 1;
+        PLANNING_CONSTRAINT_RESOLUTION = 2;
+    }
+
+    required PlanningConstraint constraint_type = 3
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Type of constraint to be applied when planning. Options are 'PLANNING_CONSTRAINT_TIME' or 'PLANNING_CONSTRAINT_RESOLUTION'."
+        }];
+
+    required float constraint_value = 4
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Value of constraint to be applied when planning. If constraint_type is PLANNING_CONSTRAINT_TIME, this is the maximum mission length in minutes. If constraint_type is PLANNING_CONSTRAINT_RESOLUTION, this is the target distance between surob samples in meters."
+        }];
+
+    optional float shoreline_offset = 5
+        [default = 25.0, (jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Distance offshore from shoreline point to place first measurement, in meters. Default is 25 meters."
+        }];
+}
+
+message MissionPlanResponse
+{
+    required bool planned_successfully = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    repeated Command jaiabot_commands = 2
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string error_message = 3
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message SurobResultsRequest
+{
+    required GeographicCoordinate shoreline_point = 1
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Shoreline point of transect in lat/lon coordinates."
+        }];
+    required GeographicCoordinate offshore_point = 2
+        [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Offshore point of transect in lat/lon coordinates."
+        }];
+    required uint64 start_time = 3
+        [(jaia.field).rest_api = {
+            doc: "Start of time range as a Unix timestamp in microseconds.  If not set, returns an open-ended search, starting from the earliest available data."
+        }];
+    required uint64 end_time = 4
+        [(jaia.field).rest_api = {
+            doc: "End of time range as a Unix timestamp in microseconds.  If not set, returns an open-ended search, ending at the latest available data."
+        }];
+}
+
+message SurobResultsResponse
+{
+    required bool surob_results_found = 1
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional JaiaSurobMessage surob = 2
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional string error_message = 3
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
@@ -166,6 +248,22 @@ message APIRequest
                 response: '{"command_result": {"command_sent": true}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "command_for_hub": {"hub_id": 1, "hub_location": {"lat": 41.7, "lon": -70.3}, "time": "1722895686821358", "type": "SET_HUB_LOCATION"}, "target": {"all": true}}, "target": {"hubs": [1]}}'
             }
         }];
+        SurobMissionPlanRequest surob_mission_plan_request = 30 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Send a shoreline and offshore point to the hub to generate a mission plan for the fleet. Expect a response of type 'mission_plan_response'. Mission plans can either be time-constrained with a specified maximum duration in minutes (more bots = higher resolution), or resolution-constrained, with a target distance between surob samples in meters (more bots = faster mission)."
+            example {
+                request: '{"target": {"all": true}, "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "PLANNING_CONSTRAINT_TIME", "constraint_value": 60.0, "shoreline_offset": 50}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
+                response: '{"mission_plan_response": {"planned_successfully": true, "jaiabot_commands": [{"bot_id": 1, "time": 1769788798116, "type": "MISSION_PLAN", "plan": {}}, {"bot_id": 2, "time": 1769788798116, "type": "MISSION_PLAN", "plan": {}}, ...]}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_mission_plan_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "constraint_type": "PLANNING_CONSTRAINT_TIME", "constraint_value": 60.0, , "shoreline_offset": 50}, "target": {"all": true}}}'
+            }
+        }];
+        SurobResultsRequest surob_results_request = 31 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Send a shoreline and offshore point and start and end time for a surob collection to the hub to search fleet Task Packets for valid wave and current estimates. Expect a response of type 'surob_results_response'."
+            example {
+                request: '{"target": {"all": true}, "surob_results_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}'
+                response: '{"surob_results": {"surob_results_found": true, "surob": {"topic": "is2ops", "subtopic": "surob", "source": "jaia", "msg": {"reports": [{"surob": {...}}], "geojson": [...]}}}, "request": {"api_key": "4vS6s2jnulxVjrKSB-__tQ", "surob_results_request": {"shoreline_point":{"lat": 41.7, "lon": -70.3}, "offshore_point":{"lat": 41.8, "lon": -70.3}, "start_time": 1722797666581176.0, "end_time": 1722970466581176.0}, "target": {"all": true}}}'
+            }
+        }];
     }
 }
 
@@ -217,6 +315,14 @@ message APIResponse
             presence: GUARANTEED,
             doc: "Command result. This is sent in response to a successful Request 'command' or 'command_for_hub' action."
         }];
+        MissionPlanResponse mission_plan = 30 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Mission plan in Command list format. This is sent in response to a Request 'surob_mission_plan' action with either the desired mission plan or an error message."
+        }];
+        SurobResultsResponse surob_results = 31 [(jaia.field).rest_api = {
+            presence: GUARANTEED,
+            doc: "Surob results in SurobResults message format. This is sent in response to a Request 'surob_results' action with either the desired surob or an error message."
+        }]; 
     }
 
     // copy of original request

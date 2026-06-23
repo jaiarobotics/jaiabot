@@ -36,15 +36,6 @@ struct DataOffload : boost::statechart::state<DataOffload, PostDeployment>,
         request.set_close_log(true);
         interprocess().publish<goby::middleware::groups::logger_request>(request);
 
-        if (cfg().data_offload_exclude() != config::MissionManager::TASKPACKET)
-        {
-            // Reset if recovered
-            // If bot is activated again and more task packets
-            // are received, then the bot will create a new file
-            // to log them
-            this->machine().set_create_task_packet_file(true);
-        }
-
         // run preoffload script and then do nothing (actual offload handled by jaiabot_hub_manager)
         if (!run_command(CommandType::PRE_OFFLOAD))
         {
