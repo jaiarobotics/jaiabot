@@ -7,8 +7,8 @@ from scipy.signal import butter, sosfiltfilt, welch
 GPS_NPERSEG = 512
 PSD_MIN_NPERSEG = 64
 PSD_OVERLAP_FRAC = 0.5
-MIN_STATION_KEEP_LENGTH_M = 1.5
-MIN_STATION_KEEP_LENGTH_S = MIN_STATION_KEEP_LENGTH_M*60
+MIN_SURFACE_DRIFT_LENGTH_M = 1.5
+MIN_SURFACE_DRIFT_LENGTH_S = MIN_SURFACE_DRIFT_LENGTH_M*60
 DEFAULT_PERIOD_STD_S = np.sqrt(2.0) # value selected to appear as 2 seconds squared variance in surob json
 
 # ============================================================
@@ -210,8 +210,8 @@ def process_station_keep_dict_gps_only(
     if tpv_time.size < 2:
         log.warning(f"Timeseries in GPS dataset had length < 2.")
         return out
-    if tpv_time[-1] - tpv_time[0] < MIN_STATION_KEEP_LENGTH_S:
-        log.warning(f"Timeseries in GPS dataset did not exceed minimum length of {MIN_STATION_KEEP_LENGTH_S} seconds. Actual length was {tpv_time[-1] - tpv_time[0]} seconds.")
+    if tpv_time[-1] - tpv_time[0] < MIN_SURFACE_DRIFT_LENGTH_S:
+        log.warning(f"Timeseries in GPS dataset did not exceed minimum length of {MIN_SURFACE_DRIFT_LENGTH_S} seconds. Actual length was {tpv_time[-1] - tpv_time[0]} seconds.")
         return out
 
     if is_sim:

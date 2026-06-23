@@ -41,6 +41,9 @@ constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"
 constexpr goby::middleware::Group raw_salinity{"jaiabot::raw_salinity"};
 constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 
+// general-purpose group for piping data into the fusion app for processing
+constexpr goby::middleware::Group fusion{"jaiabot::fusion"};
+
 constexpr goby::middleware::Group dissolved_oxygen{"jaiabot::dissolved_oxygen"};
 constexpr goby::middleware::Group ph{"jaiabot::ph"};
 constexpr goby::middleware::Group fluorometer{"jaiabot::fluorometer"};

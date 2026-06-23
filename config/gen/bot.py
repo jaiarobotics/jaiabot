@@ -73,9 +73,7 @@ echo_enabled=(bot_type == "ECHO")
 salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
 
-# TODO: Remove the False and replace with the condition once we have a better implementation plan for the Currents and Waves estimation work. 
-currents_and_waves_estimation_enabled=False
-# currents_and_waves_estimation_enabled=(bot_type == "HYDRO" or bot_type == "ECHO")
+currents_and_waves_estimation_enabled=True
 
 jaia_motor_harness_type="NONE"
 
