@@ -53,7 +53,13 @@ export async function saveToHub(name: string): Promise<void> {
  * Called by UI code, snapshot is sent to the reducer/action handler
  */
 export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapshotResult> {
-    const targetSet = (await jaiaAPI.loadMissionSet(saveName)) || {};
+    const targetSet = await jaiaAPI.loadMissionSet(saveName);
+    if (!targetSet) {
+        return {
+            snapshot: null,
+            resultType: LoadResultType.INVALID_FORMAT,
+        };
+    }
     const version: string = targetSet.version ?? "2.0";
     const migrated = migrateSnapshot(targetSet, version);
     const missions: [number, Mission][] = [];

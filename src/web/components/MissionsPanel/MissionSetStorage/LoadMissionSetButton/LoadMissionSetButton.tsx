@@ -55,18 +55,20 @@ export default function LoadMissionSetButton(props: Props) {
 
         if (dialogAction === DialogActions.CONFIRMED) {
             const loadResult = await loadSnapshotFromHub(props.saveName);
-            jaiaDispatch({
-                type: JaiaActions.LOAD_MISSION_SET,
-                missionSetSnapshot: loadResult.snapshot,
-            });
+            if (loadResult.snapshot) {
+                jaiaDispatch({
+                    type: JaiaActions.LOAD_MISSION_SET,
+                    missionSetSnapshot: loadResult.snapshot,
+                });
 
-            if (loadResult.resultType === LoadResultType.OLD_FORMAT) {
-                setDisabledCode(DisabledCodes.OLD_FORMAT);
-                setIsDialogVisible(true);
-                return;
+                if (loadResult.resultType === LoadResultType.OLD_FORMAT) {
+                    setDisabledCode(DisabledCodes.OLD_FORMAT);
+                    setIsDialogVisible(true);
+                    return;
+                }
+
+                props.onClose();
             }
-
-            props.onClose();
         }
     };
 

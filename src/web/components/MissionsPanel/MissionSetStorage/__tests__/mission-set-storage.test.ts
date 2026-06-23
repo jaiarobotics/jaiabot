@@ -180,11 +180,7 @@ describe("Exercise functions to save and load missions from the hub", () => {
 
         // Try to retrieve a mission set that is not saved
         const missingResult = await loadSnapshotFromHub("Test-Mission-Set");
-        // Verify defaults
-        expect(missingResult.snapshot!.missions).toEqual([]);
-        expect(missingResult.snapshot!.nextMissionID).toBe(0);
-        expect(missingResult.snapshot!.missionIDInEditMode).toEqual(UNASSIGNED_ID);
-        expect(missingResult.snapshot!.name).toBe("");
+        expect(missingResult.snapshot).toBeNull();
     });
 
     test("Migrate 2.0 hub: bottomDepthSafetyParams moves into segments[0]", async () => {
