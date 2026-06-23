@@ -232,7 +232,7 @@ elif common.app == 'goby_liaison_prelaunch':
     this_hub='hub'+ str(hub_index) +'-fleet' + str(fleet_index)
     inventory='/etc/jaiabot/inventory.yml'
     if is_cloudhub:
-        vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in')
+        vfleet_playbooks=config.template_substitute(templates_dir+'/hub/_liaison_prelaunch_vfleet_playbooks.pb.cfg.in', this_hub=this_hub)
     else:
         vfleet_playbooks=''
 

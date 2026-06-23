@@ -32,6 +32,7 @@ admin_email=$jaia_auth_admin_email
 smtp_address=$jaia_auth_smtp_address
 
 ch_ip=$(jaia-ip.py --net=cloudhub_vpn --fleet_id=${jaia_fleet_index} --node=hub --node_id=30 --ipv6 addr)
+vh1_ip=$(jaia-ip.py --net=vfleet_vpn --fleet_id=${jaia_fleet_index} --node=hub --node_id=1 --ipv6 addr)
 
 # Persistent directories (between major upgrades)
 auth_persistent_dir=/var/log/jaiabot/auth
@@ -274,10 +275,10 @@ run.$base_uri {
 }
 
 # VirtualFleet JCC
-#sim.$base_uri {
-#        import authelia_forward_auth
-#        reverse_proxy [vfleethub_ip]:$jcc_port
-#}
+sim.$base_uri {
+        import authelia_forward_auth
+        reverse_proxy [$vh1_ip]:80
+}
 
 EOF
 
