@@ -39,11 +39,14 @@ constexpr int thermistor_ohms_neutral = 10000;
 constexpr int thermistor_voltage = 5;
 
 constexpr int32_t MOTOR_MICROS_BIN = 50; // Bin size for motor microseconds
+constexpr int32_t MOTOR_OFF_MICROS = 1500; // Value at which the motor is off (neutral)
+constexpr std::chrono::seconds MOTOR_USAGE_REPORT_INTERVAL{15};
 
 jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::MotorStatusConfig& cfg)
     : HealthMonitorThread(cfg, "motor_status", 5.0 * boost::units::si::hertz)
 {
     open_vehicle_database();
+    load_motor_usage_from_db();
 
     status_.set_motor_harness_type(cfg.motor_harness_type());
 
@@ -83,12 +86,12 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
 
             if (arduino_response.has_motor())
             {
-                if (arduino_response.motor() > 1500)
+                if (arduino_response.motor() > MOTOR_OFF_MICROS)
                 {
                     // motor is spinning in forward direction
                     status_.set_rpm(std::abs(rpm_value_));
                 }
-                else if (arduino_response.motor() < 1500)
+                else if (arduino_response.motor() < MOTOR_OFF_MICROS)
                 {
                     // motor is spinning in reverse direction
                     status_.set_rpm(-std::abs(rpm_value_));
@@ -167,7 +170,7 @@ void jaiabot::apps::MotorStatusThread::open_vehicle_database()
                  "tail_serial_number TEXT, "
                  "motor_micros INTEGER, "
                  "avg_rpm REAL,"
-                 "usage_duration_micros INTEGER,"
+                 "usage_duration_seconds REAL,"
                  "UNIQUE(tail_serial_number, motor_micros));";
 
     rc = sqlite3_exec(vehicle_db_, sql, 0, 0, &err_msg);
@@ -183,7 +186,8 @@ void jaiabot::apps::MotorStatusThread::open_vehicle_database()
     glog.is_verbose() && glog << "Database created successfully." << std::endl;
 }
 
-void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros, uint64_t usage_duration_micros, float rpm)
+void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros,
+                                                 double usage_duration_seconds, float rpm)
 {
     char* err_msg = nullptr;
 
@@ -196,9 +200,9 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros, uint64_t 
     int32_t binned_motor_micros =
         (motor_micros / MOTOR_MICROS_BIN) * MOTOR_MICROS_BIN; // Bin the motor microseconds
 
-    // Get the current values for motor_micros, usage_duration_micros, and avg_rpm from the database for the binned_motor_micros
+    // Get the current values for motor_micros, usage_duration_seconds, and avg_rpm from the database for the binned_motor_micros
     std::string query =
-        "SELECT usage_duration_micros, avg_rpm FROM motor_usage WHERE tail_serial_number = '" +
+        "SELECT usage_duration_seconds, avg_rpm FROM motor_usage WHERE tail_serial_number = '" +
         cfg().tail_serial_number() + "' AND motor_micros = " + std::to_string(binned_motor_micros);
     sqlite3_stmt* stmt;
     int rc = sqlite3_prepare_v2(vehicle_db_, query.c_str(), -1, &stmt, nullptr);
@@ -211,20 +215,22 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros, uint64_t 
     rc = sqlite3_step(stmt);
 
     // Values to insert or update in the database
-    float total_usage_duration_micros;
-    float new_avg_rpm;
+    double total_usage_duration_seconds;
+    double new_avg_rpm;
 
     if (rc == SQLITE_ROW) {
-        uint64_t existing_usage_duration_micros = sqlite3_column_int64(stmt, 0);
-        float existing_avg_rpm = static_cast<float>(sqlite3_column_double(stmt, 1));
+        double existing_usage_duration_seconds = sqlite3_column_double(stmt, 0);
+        double existing_avg_rpm = sqlite3_column_double(stmt, 1);
         // Update the avg_rpm using a weighted average
-        total_usage_duration_micros = existing_usage_duration_micros + usage_duration_micros;
-        new_avg_rpm = (existing_avg_rpm * existing_usage_duration_micros + rpm * usage_duration_micros) / total_usage_duration_micros;
+        total_usage_duration_seconds = existing_usage_duration_seconds + usage_duration_seconds;
+        new_avg_rpm =
+            (existing_avg_rpm * existing_usage_duration_seconds + rpm * usage_duration_seconds) /
+            total_usage_duration_seconds;
         sqlite3_finalize(stmt);
     }
     else if (rc == SQLITE_DONE) {
         // No existing entry, so we will insert a new one
-        total_usage_duration_micros = usage_duration_micros;
+        total_usage_duration_seconds = usage_duration_seconds;
         new_avg_rpm = rpm;
         sqlite3_finalize(stmt);
     }
@@ -235,9 +241,9 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros, uint64_t 
     }
 
     std::string sql = "INSERT OR REPLACE INTO motor_usage (tail_serial_number, motor_micros, "
-                      "usage_duration_micros, avg_rpm) VALUES ('" +
+                      "usage_duration_seconds, avg_rpm) VALUES ('" +
                       cfg().tail_serial_number() + "', " + std::to_string(binned_motor_micros) +
-                      ", " + std::to_string(total_usage_duration_micros) + ", " +
+                      ", " + std::to_string(total_usage_duration_seconds) + ", " +
                       std::to_string(new_avg_rpm) + ");";
 
     rc = sqlite3_exec(vehicle_db_, sql.c_str(), 0, 0, &err_msg);
@@ -245,29 +251,28 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros, uint64_t 
     {
         glog.is_warn() && glog << "SQL error: " << err_msg << std::endl;
         sqlite3_free(err_msg);
+        return;
     }
     else
     {
         glog.is_debug1() && glog << "Database updated successfully." << std::endl;
     }
+
+    auto& cached_bin = motor_usage_cache_[binned_motor_micros];
+    cached_bin.set_motor_micros(binned_motor_micros);
+    cached_bin.set_usage_time_seconds(total_usage_duration_seconds);
+    cached_bin.set_average_rpm(new_avg_rpm);
 }
 
-void jaiabot::apps::MotorStatusThread::update_total_motor_usage()
+void jaiabot::apps::MotorStatusThread::load_motor_usage_from_db()
 {
-    status_.clear_total_motor_usage();
-
-    const auto update_interval = std::chrono::seconds(15);
-    static goby::time::SteadyClock::time_point next_report_time = goby::time::SteadyClock::now();
-
-    if (goby::time::SteadyClock::now() < next_report_time)
+    if (vehicle_db_ == nullptr)
     {
-        return; // Only update every 15 seconds
+        glog.is_debug1() && glog << "Database is not open." << std::endl;
+        return;
     }
 
-    next_report_time = goby::time::SteadyClock::now() + update_interval;
-
-    // Get the current values for motor_micros, usage_duration_micros, and avg_rpm from the database for the binned_motor_micros
-    std::string query = "SELECT motor_micros, usage_duration_micros, avg_rpm FROM motor_usage "
+    std::string query = "SELECT motor_micros, usage_duration_seconds, avg_rpm FROM motor_usage "
                         "WHERE tail_serial_number = '" +
                         cfg().tail_serial_number() + "';";
     sqlite3_stmt* stmt;
@@ -294,15 +299,39 @@ void jaiabot::apps::MotorStatusThread::update_total_motor_usage()
             return;
         }
 
-        // Values to insert or update in the database
-        auto motor_usage_bin = status_.add_total_motor_usage();
-
-        motor_usage_bin->set_motor_micros(sqlite3_column_int(stmt, 0));
-        motor_usage_bin->set_usage_time_micros(sqlite3_column_int64(stmt, 1));
-        motor_usage_bin->set_average_rpm(static_cast<float>(sqlite3_column_double(stmt, 2)));
+        int32_t motor_micros = sqlite3_column_int(stmt, 0);
+        auto& cached_bin = motor_usage_cache_[motor_micros];
+        cached_bin.set_motor_micros(motor_micros);
+        cached_bin.set_usage_time_seconds(sqlite3_column_double(stmt, 1));
+        cached_bin.set_average_rpm(sqlite3_column_double(stmt, 2));
     }
 
     sqlite3_finalize(stmt);
+}
+
+void jaiabot::apps::MotorStatusThread::update_total_motor_usage()
+{
+    if (goby::time::SteadyClock::now() < next_motor_usage_report_time_)
+    {
+        return; // Only update every 15 seconds
+    }
+
+    next_motor_usage_report_time_ = goby::time::SteadyClock::now() + MOTOR_USAGE_REPORT_INTERVAL;
+
+    jaiabot::protobuf::MotorUsageReport usage_report;
+    usage_report.set_tail_serial_number(cfg().tail_serial_number());
+    double total_running_time_seconds = 0;
+    for (const auto& bin : motor_usage_cache_)
+    {
+        *usage_report.add_motor_usage_bins() = bin.second;
+        if (bin.first != MOTOR_OFF_MICROS)
+        {
+            total_running_time_seconds += bin.second.usage_time_seconds();
+        }
+    }
+    usage_report.set_total_running_time_seconds(total_running_time_seconds);
+
+    interprocess().publish<jaiabot::groups::motor_usage_report>(usage_report);
 }
 
 void jaiabot::apps::MotorStatusThread::log_usage(const jaiabot::protobuf::ArduinoResponse& arduino_response) {
@@ -315,8 +344,9 @@ void jaiabot::apps::MotorStatusThread::log_usage(const jaiabot::protobuf::Arduin
     {
         if (previous_response_time != 0 && previous_response.has_motor())
         {
-            auto previous_response_duration = now_microseconds() - previous_response_time;
-            log_motor(previous_response.motor(), previous_response_duration, rpm_value_);
+            double previous_response_duration_seconds =
+                (now_microseconds() - previous_response_time) / 1e6;
+            log_motor(previous_response.motor(), previous_response_duration_seconds, rpm_value_);
         }
 
         previous_response = arduino_response;

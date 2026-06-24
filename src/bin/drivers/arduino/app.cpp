@@ -25,8 +25,6 @@
 #include <algorithm>
 #include <goby/zeromq/application/multi_thread.h>
 
-#include "sqlite3.h"
-
 using namespace std;
 
 #include "config.pb.h"
@@ -219,7 +217,8 @@ jaiabot::apps::ArduinoDriver::ArduinoDriver()
     });
 
     // Subscribe to the ArduinoResponse messages that we just published, so we can handle the responses from the Arduino
-    //   Doing it this way allows us to simulate the Arduino responses by publishing to the arduino_to_pi group, which is useful for testing
+    // Doing it this way allows us to simulate the Arduino responses by publishing to the arduino_to_pi group,
+    // which is useful for testing
     interprocess().subscribe<groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         { handle_arduino_response(arduino_response); });
