@@ -212,7 +212,6 @@ export class GridPlan {
         const lanesPerBot = Math.floor(this.numOfLanes / this.numOfBots);
         let extraLanes = this.numOfLanes % this.numOfBots;
         let lanesCovered = 0;
-        let nextLaneStartIndex = 1;
         let missionID = 1;
 
         if (lanesPerBot === 1 && extraLanes === 0) {
@@ -221,6 +220,8 @@ export class GridPlan {
 
         while (lanesCovered < this.numOfLanes) {
             let updatedLanesPerBot = lanesPerBot;
+            let nextLaneStartIndex = 1;
+
             if (extraLanes > 0) {
                 updatedLanesPerBot += 1;
                 extraLanes -= 1;
