@@ -128,7 +128,7 @@ struct InMission
             int active_seg_idx = -1;
             for (int i = 0; i < mission_plan.segments_size(); ++i)
             {
-                if ((int)mission_plan.segments(i).start_goal_index() - 1 <= goal_index_)
+                if ((int)mission_plan.segments(i).start_goal_index() <= goal_index_)
                 {
                     active_seg = &mission_plan.segments(i);
                     active_seg_idx = i;
@@ -150,7 +150,7 @@ struct InMission
             bool jumped = false;
             for (int i = 0; i < active_seg->lane_start_goal_indices_size(); ++i)
             {
-                int lane_start = (int)active_seg->lane_start_goal_indices(i) - 1;
+                int lane_start = (int)active_seg->lane_start_goal_indices(i);
                 if (lane_start > goal_index_)
                 {
                     goal_index_ = lane_start;
