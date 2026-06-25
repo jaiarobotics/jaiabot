@@ -162,6 +162,7 @@ JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
                                          --arduino_type=${JAIA_ARDUINO_TYPE} \
                                          --pam_connection_type=${JAIA_PAM_CONNECTION_TYPE} \
                                          --bot_type=${JAIA_BOT_TYPE} \
+                                         --bot_vin=${JAIA_BOT_VIN} \
                                          --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \
                                          --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE} \
                                          --motor_harness_type=${JAIA_MOTOR_HARNESS_TYPE} \
@@ -241,10 +242,6 @@ fi
 
 
 echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' jaiabot-embedded)" > /etc/jaiabot/software_version
-
-if [ "$JAIA_TYPE" = "bot" ]; then
-    echo "${JAIA_BOT_VIN}" > /etc/jaiabot/bot_vin
-fi
 
 if [ ! -f /etc/apt/apt.conf.d/99disable-auto-upgrades ]; then
     echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/99disable-auto-upgrades
