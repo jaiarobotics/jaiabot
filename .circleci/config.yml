@@ -178,7 +178,7 @@ filter-template-debian-builds: &filter-template-debian-builds
       only: /.*/
     branches:
       only:
-        - "task/new-debian-question-for-bot-vin"
+        - "2.y"
         
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
