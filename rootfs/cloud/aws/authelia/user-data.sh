@@ -211,6 +211,22 @@ EOF
 systemctl enable lldap
 systemctl start lldap
 
+# Authelia depends on lldap (port 3890) being up; without this Authelia can
+# win the boot race and fail to ever recover its LDAP connection
+mkdir -p /etc/systemd/system/authelia.service.d
+cat <<EOF > /etc/systemd/system/authelia.service.d/override.conf
+[Unit]
+After=lldap.service
+Wants=lldap.service
+
+[Service]
+ExecStartPre=-/bin/sh -c 'until nc -z localhost 3890; do sleep 1; done'
+TimeoutStartSec=120
+Restart=on-failure
+RestartSec=10s
+EOF
+systemctl daemon-reload
+
 # Enable Authelia service
 systemctl enable authelia
 systemctl start authelia
