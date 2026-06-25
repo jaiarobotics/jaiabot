@@ -109,6 +109,9 @@ jaiabot::apps::Health::Health()
         goby::middleware::io::UDPPointToPointThread<jaiabot::groups::motor_udp_in,
                                                     jaiabot::groups::motor_udp_out>;
 
+    glog.is_debug1() && glog << "Health thread started. " << std::endl;
+    glog.is_debug1() && glog << cfg().DebugString() << std::endl;
+
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
         [this](const protobuf::Command& command) {
@@ -276,7 +279,8 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<jaiabot::groups::arduino_issue>(
-        [this](const jaiabot::protobuf::ArduinoIssue& issue) {
+        [this](const jaiabot::protobuf::ArduinoIssue& issue)
+        {
             if (issue.solution() != protobuf::ArduinoIssue::FLASH_ARDUINO)
                 return;
 
@@ -338,12 +342,12 @@ jaiabot::apps::Health::Health()
     {
         launch_thread<LinuxHardwareThread>(cfg().linux_hw());
         launch_thread<NTPStatusThread>(cfg().ntp());
+    }
 
-        if (cfg().motor().motor_harness_type() != jaiabot::protobuf::MotorHarnessType::NONE)
-        {
-            launch_thread<MotorRPMUDPThread>(cfg().udp_config());
-            launch_thread<MotorStatusThread>(cfg().motor());
-        }
+    if (cfg().motor().motor_harness_type() != jaiabot::protobuf::MotorHarnessType::NONE)
+    {
+        launch_thread<MotorRPMUDPThread>(cfg().udp_config());
+        launch_thread<MotorStatusThread>(cfg().motor());
     }
 
     // Only run these on the bot
