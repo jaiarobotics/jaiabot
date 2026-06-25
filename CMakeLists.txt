@@ -82,6 +82,14 @@ if(export_goby_interfaces)
   set(YML_OUT_DIR ${project_SHARE_DIR}/jaiabot/interfaces)
 endif()
 
+# settings for jaia_state_tool (boost::statechart state diagram generation)
+option(build_state_diagrams "Build Graphviz and Mermaid state diagrams (PDF) from boost::statechart code (requires Clang 18 dev libraries; optionally graphviz dot and/or mmdc for PDF rendering)" OFF)
+
+if(build_state_diagrams)
+  include(JaiaStateTool)
+  set(STATE_DIAGRAM_OUT_DIR ${project_SHARE_DIR}/jaiabot/state_diagrams)
+endif()
+
 
 find_program(ARDUINO_CLI arduino-cli)
 if(ARDUINO_CLI)
@@ -196,9 +204,9 @@ set(scripts_to_install
   data-offload/jaiabot-predataoffload.sh
   data-offload/jaiabot-postdataoffload.sh
   data-offload/jaiahub-dataoffload-cloudhub.sh
-  data-offload/ctd-offload.sh
   # Firmware scripts
   jaia_firm_backup_date.sh
+  jaia_firm_arduino_flash.sh
   reset-bio-payload-board.sh
   geotiff_format.py
   geotiff_scan.sh
@@ -226,7 +234,6 @@ foreach(script ${scripts_to_install})
     install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
     configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
 endforeach()
-
 
 option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
 if(enable_testing)

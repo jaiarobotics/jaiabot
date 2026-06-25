@@ -37,7 +37,8 @@ def parseDate(date):
 parser = argparse.ArgumentParser()
 parser.add_argument("hostname", type=str, nargs="?", default=os.environ.get("JCC_HUB_IP"), help="goby hostname to send and receive protobuf messages")
 parser.add_argument("-r", dest='read_only', action='store_true', help="start a read-only client that cannot send commands")
-parser.add_argument("-p", dest='port', type=int, default=40000, help="goby port to send and receive protobuf messages")
+parser.add_argument("-p", dest='portal_port', type=int, default=40000, help="port to send and receive protobuf messages with jaiabot_web_portal")
+parser.add_argument("-P", dest='web_port', type=int, default=40001, help="HTTP port for web browser connection")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 parser.add_argument("-a", dest='appRoot', type=str, default='../', help="Root directory from which to serve the client apps")
 parser.add_argument("-m", dest='mapDirectory', type=str, default='~/maps/', help="Directory to find offline map sets")
@@ -52,7 +53,7 @@ if args.hostname is None:
     logging.warning('no ip specified, using localhost')    
     args.hostname = "localhost"
 
-jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.port), read_only=args.read_only)
+jaia_interface = jaia_portal.Interface(goby_host=(args.hostname, args.portal_port), read_only=args.read_only)
 
 app = Flask(__name__)
 app.config['COMPRESS_MIMETYPES'] = [
@@ -234,6 +235,130 @@ def update_mission_list():
     return JSONResponse([])
 
 
+######## Exclusion zone sets
+
+# Respect jaia_log_dir so simulation and runtime each store in their own directory.
+_LOG_DIR = Path(os.environ.get('jaia_log_dir', '/var/log/jaiabot'))
+EXCLUSION_ZONES_DIR = _LOG_DIR / 'exclusion-zones'
+
+
+def _zone_set_path(name: str) -> Path:
+    """Returns the filesystem path for a named exclusion zone set.
+
+    Raises ValueError if the name contains characters that could allow
+    directory traversal or other path manipulation.
+    """
+    if not name or '/' in name or '\\' in name or name.startswith('.') or '..' in name:
+        raise ValueError(f"Invalid zone set name: {name!r}")
+    return EXCLUSION_ZONES_DIR / f"{name}.json"
+
+
+@app.route('/jaia/v0/exclusion-zones', methods=['GET'])
+def list_exclusion_zones():
+    """Returns a sorted list of saved exclusion zone set names."""
+    EXCLUSION_ZONES_DIR.mkdir(parents=True, exist_ok=True)
+    names = sorted(p.stem for p in EXCLUSION_ZONES_DIR.glob("*.json"))
+    return JaiaResponse(names)
+
+
+@app.route('/jaia/v0/exclusion-zones/<name>', methods=['GET'])
+def get_exclusion_zone(name: str):
+    """Returns the saved exclusion zone set with the given name."""
+    try:
+        path = _zone_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    if not path.exists():
+        return ErrorResponse(HTTPStatus.NOT_FOUND, f"Zone set not found: {name!r}")
+    return JSONResponse(string=path.read_text())
+
+
+@app.route('/jaia/v0/exclusion-zones/<name>', methods=['POST'])
+def save_exclusion_zone(name: str):
+    """Saves (or overwrites) a named exclusion zone set."""
+    try:
+        path = _zone_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    EXCLUSION_ZONES_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(request.get_data(as_text=True))
+    return JSONResponse({"status": "ok"})
+
+
+@app.route('/jaia/v0/exclusion-zones/<name>', methods=['DELETE'])
+def delete_exclusion_zone(name: str):
+    """Deletes a named exclusion zone set."""
+    try:
+        path = _zone_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    if not path.exists():
+        return ErrorResponse(HTTPStatus.NOT_FOUND, f"Zone set not found: {name!r}")
+    path.unlink()
+    return JSONResponse({"status": "ok"})
+
+
+######## Mission sets
+
+MISSION_SETS_DIR = _LOG_DIR / 'mission-sets'
+
+
+def _mission_set_path(name: str) -> Path:
+    """Returns the filesystem path for a named mission set.
+
+    Raises ValueError if the name contains characters that could allow
+    directory traversal or other path manipulation.
+    """
+    if not name or '/' in name or '\\' in name or name.startswith('.') or '..' in name:
+        raise ValueError(f"Invalid mission set name: {name!r}")
+    return MISSION_SETS_DIR / f"{name}.json"
+
+
+@app.route('/jaia/v0/mission-sets', methods=['GET'])
+def list_mission_sets():
+    """Returns a sorted list of saved mission set names."""
+    MISSION_SETS_DIR.mkdir(parents=True, exist_ok=True)
+    names = sorted(p.stem for p in MISSION_SETS_DIR.glob("*.json"))
+    return JaiaResponse(names)
+
+
+@app.route('/jaia/v0/mission-sets/<name>', methods=['GET'])
+def get_mission_set(name: str):
+    """Returns the saved mission set with the given name."""
+    try:
+        path = _mission_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    if not path.exists():
+        return ErrorResponse(HTTPStatus.NOT_FOUND, f"Mission set not found: {name!r}")
+    return JSONResponse(string=path.read_text())
+
+
+@app.route('/jaia/v0/mission-sets/<name>', methods=['POST'])
+def save_mission_set(name: str):
+    """Saves (or overwrites) a named mission set."""
+    try:
+        path = _mission_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    MISSION_SETS_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(request.get_data(as_text=True))
+    return JSONResponse({"status": "ok"})
+
+
+@app.route('/jaia/v0/mission-sets/<name>', methods=['DELETE'])
+def delete_mission_set(name: str):
+    """Deletes a named mission set."""
+    try:
+        path = _mission_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    if not path.exists():
+        return ErrorResponse(HTTPStatus.NOT_FOUND, f"Mission set not found: {name!r}")
+    path.unlink()
+    return JSONResponse({"status": "ok"})
+
+
 ######## Jaiabot Engineer & Debug
 
 @app.route('/jed/<path>', methods=['GET'])
@@ -395,33 +520,36 @@ def delete_map(map_name: str):
     map_tile_server.delete_map(map_name)
     return Response(status=HTTPStatus.OK)
 
-@app.route('/ctd-profiles/<bot_id>', methods=['GET', 'DELETE'])
-def get_ctd_profiles(bot_id: str):
+@app.route('/ctd-profiles')
+def get_ctd_profiles():
     """Provides access to CTD files on the Hub
-    
-    Args:
-        bot_id (int): Indicates which CTD to make accessible
     """
-    dir = Path("/var/log/jaiabot/bot_offload/ctd/") / bot_id
-    if request.method == "GET":
-        files = list(dir.glob("*.unb")) if dir.exists() else []
-        file = io.BytesIO()
-        with zipfile.ZipFile(file, "w", zipfile.ZIP_DEFLATED) as zf:
-            for path in files:
-                zf.write(path, arcname=path.name)
-        file.seek(0)
-        zip_name = f"ctd-bot-{bot_id}.zip"
-        return send_file(
-            file,
-            as_attachment=True,
-            download_name=zip_name,
-            mimetype="application/zip",
-        )
+    dir = Path("/var/log/jaiabot/bot_offload")
+    files = list(dir.glob("*.unb")) if dir.exists() else []
 
-    if request.method == "DELETE":
-        if dir.exists():
-            shutil.rmtree(dir)
-            return Response(status=HTTPStatus.OK)
+    if len(files) == 0:
+        return Response(status=HTTPStatus.NO_CONTENT)
+
+    zip_file = io.BytesIO()
+    with zipfile.ZipFile(zip_file, "w", zipfile.ZIP_DEFLATED) as zf:
+        for path in files:
+            zf.write(path, arcname=path.name)
+    zip_file.seek(0)
+    zip_name = "jaia-ctd.zip"
+
+    # Move zipped files to archive so they are not re-zipped
+    ctd_archive = dir / "ctd_archive"
+    ctd_archive.mkdir(parents=True, exist_ok=True)
+    for ctd_file in files:
+        shutil.move(str(ctd_file), ctd_archive / ctd_file.name);
+    
+    return send_file(
+        zip_file,
+        as_attachment=True,
+        download_name=zip_name,
+        mimetype="application/zip",
+    )
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=40001, debug=False)
+    print(f"JCC: connect to http://127.0.0.1:{args.web_port}")
+    app.run(host='0.0.0.0', port=args.web_port, debug=False)

@@ -15,3 +15,9 @@ sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAILnZcXd1M
 
 ## YUBIKEY 6 26102551 ##
 sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAINSfaU/fVGOg9SU8/tWtjKqjkjclMePVoKijU8qY5wPVAAAABHNzaDo= mark.milligan@jaia.tech
+
+## YUBIKEY 7 26073970 ## 
+sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIAYj5aIGNftWabkI0trrSyZ2rhVm/uVYIYiWya9oo9lAAAAABHNzaDo= jason.hatch@jaia.tech
+
+## YUBIKEY 8 26074983 ##
+sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAII6nSmj2Avjtrf3ytCRQoZjRZZReUmZLLD0ItD+FDd/mAAAABHNzaDo= vernon.edwards@jaia.tech

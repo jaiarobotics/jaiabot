@@ -1,5 +1,6 @@
 from common import is_simulation, is_runtime
 from common import comms
+import common
 
 # Binding a UDP socket to port 0 allows the operating system to automatically assign an available port
 
@@ -34,5 +35,13 @@ def contact_gpsd_port(contact_id):
 def motor_cpp_udp_port():
     return 0
 
-def motor_py_udp_port():
+def motor_py_udp_port(bot_id):
+    if is_simulation():
+        return 20005 + bot_id
     return 20005 
+
+def web_portal_udp_port(hub_id):
+    if is_simulation() and common.jaia_sim_type == common.SimType.SINGLE_HOST:
+        return 40001 - hub_id
+    else:
+        return 40000

@@ -153,3 +153,8 @@ Type: multiselect
 Choices: turner_c_flour, aml, ppk, none
 Default: none
 Description: Which additional sensors?
+
+Template: jaiabot-embedded/tail_serial_number
+Type: string
+Default: 
+Description: What is the serial number of this bot's tail unit?

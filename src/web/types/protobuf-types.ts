@@ -692,6 +692,13 @@ export interface Recovery {
     location?: GeographicCoordinate;
 }
 
+export interface Segment {
+    start_goal_index: number;
+    lane_start_goal_indices?: number[];
+    speed?: number;
+    bottom_depth_safety_params?: BottomDepthSafetyParams;
+}
+
 export interface MissionPlan {
     start?: MissionStart;
     movement?: MovementType;
@@ -704,6 +711,7 @@ export interface MissionPlan {
     repeats?: number;
     trail?: TrailParameters;
     mission_name?: string;
+    segments?: Segment[];
 }
 
 export interface TransitUpdate {
@@ -1002,6 +1010,19 @@ export interface Speed {
     over_water?: number;
 }
 
+export enum Link {
+    LINK_UNKNOWN = "LINK_UNKNOWN",
+    LINK_XBEE = "LINK_XBEE",
+    LINK_WIFI = "LINK_WIFI",
+    LINK_IRIDIUM = "LINK_IRIDIUM",
+    LINK_HUB2HUB = "LINK_HUB2HUB",
+}
+
+export interface ActiveLink {
+    link?: Link;
+    last_received_time?: number;
+}
+
 export interface BotStatus {
     bot_id?: number;
     time?: number;
@@ -1027,6 +1048,9 @@ export interface BotStatus {
     pdop?: number;
     data_offload_percentage?: number;
     wifi_link_quality_percentage?: number;
+    link?: Link;
+    active_links?: ActiveLink[];
+    active_link_status_age?: { [link: string]: number };
 }
 
 export interface EstimatedDrift {

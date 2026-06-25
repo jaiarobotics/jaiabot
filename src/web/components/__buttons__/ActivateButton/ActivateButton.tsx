@@ -11,8 +11,7 @@ import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 import Bot from "../../../data/bots/bot";
 import { DialogActions } from "../../../types/context-types";
 import { Command, CommandType, MissionState } from "../../../types/protobuf-types";
-import { MDI_BUTTON_SIZE, NO_COMMS_STATUS_AGE } from "../../../utils/constants";
-import { microsecondsToSeconds } from "../../../utils/conversions";
+import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 
 interface Props {
@@ -48,7 +47,7 @@ export default function ActivateButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
-        if (microsecondsToSeconds(props.bot.getStatusAge()) > NO_COMMS_STATUS_AGE) {
+        if (props.bot.isCommsDropped()) {
             return DisabledCodes.NO_COMMS;
         }
 

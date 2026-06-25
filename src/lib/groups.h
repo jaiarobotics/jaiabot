@@ -60,7 +60,6 @@ constexpr goby::middleware::Group aml_in{"jaiabot::sensors::aml::in"};
 constexpr goby::middleware::Group aml_out{"jaiabot::sensors::aml::out"};
 constexpr goby::middleware::Group aml{"jaiabot::sensors::aml"};
 
-
 // low control
 constexpr goby::middleware::Group low_control{"jaiabot::low_control"};
 constexpr goby::middleware::Group control_ack{"jaiabot::control_ack"};
@@ -90,6 +89,7 @@ constexpr goby::middleware::Group systemd_report_ack{"jaiabot::systemd_report_ac
 constexpr goby::middleware::Group motor_udp_in{"motor_udp_in"};
 constexpr goby::middleware::Group motor_udp_out{"motor_udp_out"};
 constexpr goby::middleware::Group motor_status{"jaiabot::motor_status"};
+constexpr goby::middleware::Group motor_usage_report{"jaiabot::motor_usage_report"};
 
 // DCCL (intervehicle)
 // The group used is an API version integer that allows us to check for incompatible
@@ -107,15 +107,19 @@ constexpr goby::middleware::Group engineering_status{"jaiabot::engineering_statu
 constexpr goby::middleware::Group contact_update{"jaiabot::contact_update",
                                                  goby::middleware::Group::broadcast_group};
 
-constexpr goby::middleware::Group hub2hub_data{"jaiabot::hub2hub_data", jaiabot::INTERVEHICLE_API_VERSION};
+constexpr goby::middleware::Group hub2hub_data{"jaiabot::hub2hub_data",
+                                               jaiabot::INTERVEHICLE_API_VERSION};
 
 // DCCL (interprocess)
 constexpr goby::middleware::Group hub_command_full{"jaiabot::hub_command_full"};
+constexpr goby::middleware::Group hub_command_result{
+    "jaiabot::hub_command_result"}; // ack or expire
 
 // Arduino
 constexpr goby::middleware::Group arduino_from_pi{"jaiabot::arduino_from_pi"};
 constexpr goby::middleware::Group arduino_to_pi{"jaiabot::arduino_to_pi"};
 constexpr goby::middleware::Group arduino_debug{"jaiabot::arduino_debug"};
+constexpr goby::middleware::Group arduino_issue{"jaiabot::arduino_issue"};
 
 // Metadata
 constexpr goby::middleware::Group metadata{"jaiabot::metadata"};
@@ -127,12 +131,14 @@ constexpr goby::middleware::Group helm_ivp{"jaiabot::helm_ivp"};
 // Bot Comms
 constexpr goby::middleware::Group intervehicle_subscribe_request{
     "jaiabot::intervehicle_subscribe_request"};
+constexpr goby::middleware::Group bot_comms_status{"jaiabot::bot_comms_status"};
 
 // simulator
 constexpr goby::middleware::Group simulator_command{"jaiabot::simulator_command"};
 
 // web_portal
 constexpr goby::middleware::Group web_portal("jaiabot::web_portal");
+constexpr goby::middleware::Group remote_hub_command{"jaiabot::remote_hub_command"};
 
 // Camera
 constexpr goby::middleware::Group camera{"jaiabot::camera"};
