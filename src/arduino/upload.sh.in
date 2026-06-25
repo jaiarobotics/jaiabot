@@ -23,6 +23,7 @@ if [[ ! -f ${uploaded_path} || ${hex_mtime} -gt `stat -c %Y ${uploaded_path}` ]]
         touch ${uploaded_path}
     else
         echo "UPLOAD FAILED!"
+        exit 1
     fi
 else
     echo "SKIPPING ARDUINO UPLOAD: ${hex_path} is older than ${uploaded_path}"
