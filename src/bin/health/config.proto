@@ -86,6 +86,17 @@ message MotorStatusConfig
     optional string tail_serial_number = 51 [default = "unknown_serial_number"];
 }
 
+message ArduinoRecoveryConfig
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional bool enable_auto_flash = 1 [default = true];
+    optional int32 max_attempts = 3 [default = 3];
+    optional string flash_script = 10 [default = "jaia_firm_arduino_flash.sh"];
+}
+
 message Health
 {
     option (dccl.msg) = {
@@ -111,5 +122,5 @@ message Health
     optional NTPStatusConfig ntp = 40;
     optional HelmIVPStatusConfig helm = 41;
     optional MotorStatusConfig motor = 42;
-
+    optional ArduinoRecoveryConfig arduino_recovery = 43;
 }

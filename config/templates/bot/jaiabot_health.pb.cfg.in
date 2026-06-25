@@ -35,3 +35,9 @@ motor {
     vehicle_db_path: "/var/log/jaiabot/db/vehicle_bot${bot_id}_fleet${fleet_id}.db"
     tail_serial_number: "${jaia_tail_serial_number}"
 }
+
+arduino_recovery {
+    enable_auto_flash: true
+    max_attempts: 3
+    flash_script: "jaia_firm_arduino_flash.sh"
+}
