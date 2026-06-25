@@ -2,16 +2,13 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
-import {
-    listSavedMissionSets,
-    loadSnapshotFromLocalStorage,
-    LoadResultType,
-} from "../mission-set-storage";
+import { loadSnapshotFromHub, LoadResultType } from "../mission-set-storage";
 import { DisabledCodes } from "./load-messages";
 import { LoadMissionSetDialog } from "./LoadMissionSetDialog";
 
 interface Props {
     saveName: string;
+    savedNames: string[];
     onClose: () => void;
 }
 
@@ -31,7 +28,7 @@ export default function LoadMissionSetButton(props: Props) {
      */
     const getInitialDisabledCode = () => {
         if (!props.saveName.trim()) return DisabledCodes.NO_NAME;
-        if (!listSavedMissionSets().includes(props.saveName)) return DisabledCodes.FILE_NOT_FOUND;
+        if (!props.savedNames.includes(props.saveName.trim())) return DisabledCodes.FILE_NOT_FOUND;
         return DisabledCodes.NONE;
     };
 
@@ -53,23 +50,25 @@ export default function LoadMissionSetButton(props: Props) {
      * @param {DialogActions} dialogAction Indicates which button was clicked
      * @returns {void}
      */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
         if (dialogAction === DialogActions.CONFIRMED) {
-            const loadResult = loadSnapshotFromLocalStorage(props.saveName);
-            jaiaDispatch({
-                type: JaiaActions.LOAD_MISSION_SET,
-                missionSetSnapshot: loadResult.snapshot,
-            });
+            const loadResult = await loadSnapshotFromHub(props.saveName);
+            if (loadResult.snapshot) {
+                jaiaDispatch({
+                    type: JaiaActions.LOAD_MISSION_SET,
+                    missionSetSnapshot: loadResult.snapshot,
+                });
 
-            if (loadResult.resultType === LoadResultType.OLD_FORMAT) {
-                setDisabledCode(DisabledCodes.OLD_FORMAT);
-                setIsDialogVisible(true);
-                return;
+                if (loadResult.resultType === LoadResultType.OLD_FORMAT) {
+                    setDisabledCode(DisabledCodes.OLD_FORMAT);
+                    setIsDialogVisible(true);
+                    return;
+                }
+
+                props.onClose();
             }
-
-            props.onClose();
         }
     };
 
