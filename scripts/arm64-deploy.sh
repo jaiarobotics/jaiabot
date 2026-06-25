@@ -69,12 +69,14 @@ if [ "$jaia_arduino_type" != "none" ]; then
     sudo ${HOME}/jaiabot/${build_dir}/share/jaiabot/arduino/jaiabot_runtime/$jaia_arduino_type/upload.sh
 fi
 
-# Check for STM32 deploy script
-if [ -f "${HOME}/jaiabot/scripts/stm32/deploy_stm32.sh" ]; then
-    echo "🟢 STM32 firmware deployment script found at:"
-    echo "   ${HOME}/jaiabot/scripts/stm32/deploy_stm32.sh"
-    echo "   Run it manually on the vehicle when ready to flash the STM32 payload board:"
-    echo "   bash ${HOME}/jaiabot/${build_dir}/share/jaiabot/stm32/deploy_stm32.sh"
-fi
+# Check for STM32 deploy scripts (one per sketch, e.g. bio_payload, power_board)
+for stm32_upload in ${HOME}/jaiabot/${build_dir}/share/jaiabot/stm32/*/uart/upload.sh; do
+    if [ -f "${stm32_upload}" ]; then
+        echo "🟢 STM32 firmware deployment script found at:"
+        echo "   ${stm32_upload}"
+        echo "   Run it manually on the vehicle when ready to flash the STM32 board:"
+        echo "   bash ${stm32_upload}"
+    fi
+done
 
 sudo sh -c "echo 'Development version: ${jaiabot_version}, deployed $(date)' > /etc/jaiabot/software_version"

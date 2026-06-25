@@ -1,4 +1,3 @@
-set(STM32_SOURCE_DIR ${project_SRC_DIR}/stm32)
 set(STM32_BINARY_DIR ${project_SHARE_DIR}/jaiabot/stm32)
 get_target_property(STM32_NANOPB_SYSTEM_INCLUDE_DIR nanopb::protobuf-nanopb-static INTERFACE_INCLUDE_DIRECTORIES)
 if(NOT STM32_NANOPB_SYSTEM_INCLUDE_DIR)
@@ -16,6 +15,7 @@ set(STM32_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/share/jaiabot/stm32)
 # baudrate     = serial baudrate for uart uploads, empty for stlink
 function(stm32_sketch sketchname nickname device interface programmer baudrate)
 
+  set(STM32_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
   set(outdir ${STM32_BINARY_DIR}/${sketchname}/${nickname})
   set(hex_name ${sketchname}.hex)
   set(hex_output ${outdir}/${hex_name})
@@ -105,9 +105,13 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
 
   # copy deploy script and stm32flash tool into the build output directory
   if(${nickname} STREQUAL "uart")
+    set(deploy_script ${CMAKE_SOURCE_DIR}/scripts/stm32/deploy_${sketchname}.sh)
+    if(NOT EXISTS ${deploy_script})
+      message(FATAL_ERROR "No deploy script found for sketch '${sketchname}': expected ${deploy_script}")
+    endif()
     add_custom_command(TARGET stm32_compile_${sketchname}_${nickname} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_SOURCE_DIR}/scripts/stm32/deploy_stm32.sh
+        ${deploy_script}
         ${outdir}/upload.sh
       COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/scripts/stm32/stm32flash-0.7.tar.gz
@@ -115,7 +119,7 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
       COMMENT "Copying deploy script and stm32flash to ${outdir}"
     )
     install(
-      PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/stm32/deploy_stm32.sh
+      PROGRAMS ${deploy_script}
       DESTINATION ${STM32_INSTALL_DIR}/${sketchname}/${nickname}
       RENAME upload.sh
     )

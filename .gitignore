@@ -10,6 +10,9 @@ src/stm32/Debug
 src/stm32/Drivers
 src/stm32/jaiabot
 src/stm32/nanopb
+src/stm32/*/Debug
+src/stm32/*/jaiabot
+src/stm32/*/nanopb
 
 # === private files ===
 

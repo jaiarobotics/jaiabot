@@ -1,0 +1,192 @@
+ARM GAS  /tmp/ccOC8dn2.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"fatfs.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "FATFS/App/fatfs.c"
+  20              		.section	.text.MX_FATFS_Init,"ax",%progbits
+  21              		.align	1
+  22              		.global	MX_FATFS_Init
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	MX_FATFS_Init:
+  28              	.LFB384:
+   1:FATFS/App/fatfs.c **** /* USER CODE BEGIN Header */
+   2:FATFS/App/fatfs.c **** /**
+   3:FATFS/App/fatfs.c ****   ******************************************************************************
+   4:FATFS/App/fatfs.c ****   * @file   fatfs.c
+   5:FATFS/App/fatfs.c ****   * @brief  Code for fatfs applications
+   6:FATFS/App/fatfs.c ****   ******************************************************************************
+   7:FATFS/App/fatfs.c ****   * @attention
+   8:FATFS/App/fatfs.c ****   *
+   9:FATFS/App/fatfs.c ****   * Copyright (c) 2026 STMicroelectronics.
+  10:FATFS/App/fatfs.c ****   * All rights reserved.
+  11:FATFS/App/fatfs.c ****   *
+  12:FATFS/App/fatfs.c ****   * This software is licensed under terms that can be found in the LICENSE file
+  13:FATFS/App/fatfs.c ****   * in the root directory of this software component.
+  14:FATFS/App/fatfs.c ****   * If no LICENSE file comes with this software, it is provided AS-IS.
+  15:FATFS/App/fatfs.c ****   *
+  16:FATFS/App/fatfs.c ****   ******************************************************************************
+  17:FATFS/App/fatfs.c ****   */
+  18:FATFS/App/fatfs.c **** /* USER CODE END Header */
+  19:FATFS/App/fatfs.c **** #include "fatfs.h"
+  20:FATFS/App/fatfs.c **** 
+  21:FATFS/App/fatfs.c **** uint8_t retUSER;    /* Return value for USER */
+  22:FATFS/App/fatfs.c **** char USERPath[4];   /* USER logical drive path */
+  23:FATFS/App/fatfs.c **** FATFS USERFatFS;    /* File system object for USER logical drive */
+  24:FATFS/App/fatfs.c **** FIL USERFile;       /* File object for USER */
+  25:FATFS/App/fatfs.c **** 
+  26:FATFS/App/fatfs.c **** /* USER CODE BEGIN Variables */
+  27:FATFS/App/fatfs.c **** 
+  28:FATFS/App/fatfs.c **** /* USER CODE END Variables */
+  29:FATFS/App/fatfs.c **** 
+  30:FATFS/App/fatfs.c **** void MX_FATFS_Init(void)
+ARM GAS  /tmp/ccOC8dn2.s 			page 2
+
+
+  31:FATFS/App/fatfs.c **** {
+  29              		.loc 1 31 1 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  33 0000 08B5     		push	{r3, lr}
+  34              	.LCFI0:
+  35              		.cfi_def_cfa_offset 8
+  36              		.cfi_offset 3, -8
+  37              		.cfi_offset 14, -4
+  32:FATFS/App/fatfs.c ****   /*## FatFS: Link the USER driver ###########################*/
+  33:FATFS/App/fatfs.c ****   retUSER = FATFS_LinkDriver(&USER_Driver, USERPath);
+  38              		.loc 1 33 3 view .LVU1
+  39              		.loc 1 33 13 is_stmt 0 view .LVU2
+  40 0002 0349     		ldr	r1, .L3
+  41 0004 0348     		ldr	r0, .L3+4
+  42 0006 FFF7FEFF 		bl	FATFS_LinkDriver
+  43              	.LVL0:
+  44              		.loc 1 33 11 discriminator 1 view .LVU3
+  45 000a 034B     		ldr	r3, .L3+8
+  46 000c 1870     		strb	r0, [r3]
+  34:FATFS/App/fatfs.c **** 
+  35:FATFS/App/fatfs.c ****   /* USER CODE BEGIN Init */
+  36:FATFS/App/fatfs.c ****   /* additional user code for init */
+  37:FATFS/App/fatfs.c ****   /* USER CODE END Init */
+  38:FATFS/App/fatfs.c **** }
+  47              		.loc 1 38 1 view .LVU4
+  48 000e 08BD     		pop	{r3, pc}
+  49              	.L4:
+  50              		.align	2
+  51              	.L3:
+  52 0010 00000000 		.word	USERPath
+  53 0014 00000000 		.word	USER_Driver
+  54 0018 00000000 		.word	retUSER
+  55              		.cfi_endproc
+  56              	.LFE384:
+  58              		.section	.text.get_fattime,"ax",%progbits
+  59              		.align	1
+  60              		.global	get_fattime
+  61              		.syntax unified
+  62              		.thumb
+  63              		.thumb_func
+  65              	get_fattime:
+  66              	.LFB385:
+  39:FATFS/App/fatfs.c **** 
+  40:FATFS/App/fatfs.c **** /**
+  41:FATFS/App/fatfs.c ****   * @brief  Gets Time from RTC
+  42:FATFS/App/fatfs.c ****   * @param  None
+  43:FATFS/App/fatfs.c ****   * @retval Time in DWORD
+  44:FATFS/App/fatfs.c ****   */
+  45:FATFS/App/fatfs.c **** DWORD get_fattime(void)
+  46:FATFS/App/fatfs.c **** {
+  67              		.loc 1 46 1 is_stmt 1 view -0
+  68              		.cfi_startproc
+  69              		@ args = 0, pretend = 0, frame = 0
+  70              		@ frame_needed = 0, uses_anonymous_args = 0
+  71              		@ link register save eliminated.
+ARM GAS  /tmp/ccOC8dn2.s 			page 3
+
+
+  47:FATFS/App/fatfs.c ****   /* USER CODE BEGIN get_fattime */
+  48:FATFS/App/fatfs.c ****   return 0;
+  72              		.loc 1 48 3 view .LVU6
+  49:FATFS/App/fatfs.c ****   /* USER CODE END get_fattime */
+  50:FATFS/App/fatfs.c **** }
+  73              		.loc 1 50 1 is_stmt 0 view .LVU7
+  74 0000 0020     		movs	r0, #0
+  75 0002 7047     		bx	lr
+  76              		.cfi_endproc
+  77              	.LFE385:
+  79              		.global	USERFile
+  80              		.section	.bss.USERFile,"aw",%nobits
+  81              		.align	2
+  84              	USERFile:
+  85 0000 00000000 		.space	560
+  85      00000000 
+  85      00000000 
+  85      00000000 
+  85      00000000 
+  86              		.global	USERFatFS
+  87              		.section	.bss.USERFatFS,"aw",%nobits
+  88              		.align	2
+  91              	USERFatFS:
+  92 0000 00000000 		.space	560
+  92      00000000 
+  92      00000000 
+  92      00000000 
+  92      00000000 
+  93              		.global	USERPath
+  94              		.section	.bss.USERPath,"aw",%nobits
+  95              		.align	2
+  98              	USERPath:
+  99 0000 00000000 		.space	4
+ 100              		.global	retUSER
+ 101              		.section	.bss.retUSER,"aw",%nobits
+ 104              	retUSER:
+ 105 0000 00       		.space	1
+ 106              		.text
+ 107              	.Letext0:
+ 108              		.file 2 "Middlewares/Third_Party/FatFs/src/integer.h"
+ 109              		.file 3 "/usr/lib/gcc/arm-none-eabi/13.2.1/include/stdint.h"
+ 110              		.file 4 "Middlewares/Third_Party/FatFs/src/ff.h"
+ 111              		.file 5 "Middlewares/Third_Party/FatFs/src/diskio.h"
+ 112              		.file 6 "Middlewares/Third_Party/FatFs/src/ff_gen_drv.h"
+ 113              		.file 7 "FATFS/Target/user_diskio.h"
+ 114              		.file 8 "FATFS/App/fatfs.h"
+ 115              		.file 9 "Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ll_dma.h"
+ARM GAS  /tmp/ccOC8dn2.s 			page 4
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 fatfs.c
+     /tmp/ccOC8dn2.s:21     .text.MX_FATFS_Init:00000000 $t
+     /tmp/ccOC8dn2.s:27     .text.MX_FATFS_Init:00000000 MX_FATFS_Init
+     /tmp/ccOC8dn2.s:52     .text.MX_FATFS_Init:00000010 $d
+     /tmp/ccOC8dn2.s:98     .bss.USERPath:00000000 USERPath
+     /tmp/ccOC8dn2.s:104    .bss.retUSER:00000000 retUSER
+     /tmp/ccOC8dn2.s:59     .text.get_fattime:00000000 $t
+     /tmp/ccOC8dn2.s:65     .text.get_fattime:00000000 get_fattime
+     /tmp/ccOC8dn2.s:84     .bss.USERFile:00000000 USERFile
+     /tmp/ccOC8dn2.s:81     .bss.USERFile:00000000 $d
+     /tmp/ccOC8dn2.s:91     .bss.USERFatFS:00000000 USERFatFS
+     /tmp/ccOC8dn2.s:88     .bss.USERFatFS:00000000 $d
+     /tmp/ccOC8dn2.s:95     .bss.USERPath:00000000 $d
+     /tmp/ccOC8dn2.s:105    .bss.retUSER:00000000 $d
+
+UNDEFINED SYMBOLS
+FATFS_LinkDriver
+USER_Driver
