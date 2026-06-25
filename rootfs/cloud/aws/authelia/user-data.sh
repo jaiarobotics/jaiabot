@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# IPv6 address of data.cloud.jaia.tech
+DATA_SERVER_IPV6="2600:1f13:501:a400:512:d470:42d7:6e98"
+
 # Swap file
 fallocate -l 1G /swapfile
 chmod 600 /swapfile
@@ -93,6 +96,9 @@ access_control:
     - domain: 'lldap.cloud.jaia.tech'
       policy: 'two_factor'
       subject: 'group:lldap_admin'
+    - domain: 'data.cloud.jaia.tech'
+      policy: 'two_factor'
+      subject: 'group:data'
     - domain: 'cc.cloud.jaia.tech'
       policy: 'two_factor'
       subject: 'group:cc_db'
@@ -102,6 +108,9 @@ session:
      -
       domain: 'jaia.tech'
       authelia_url: 'https://auth.cloud.jaia.tech'
+      expiration: '12h'
+      inactivity: '1h'
+      remember_me: '1M'
 storage:
   encryption_key: '$storage_encryption_key'
   local:
@@ -162,6 +171,15 @@ f${fleet_id}.cloud.jaia.tech {
 }
 EOF
 done
+
+if [[ ! -z "${DATA_SERVER_IPV6}" ]]; then
+    cat <<EOF >> /etc/caddy/Caddyfile
+data.cloud.jaia.tech {
+        import authelia_forward_auth
+        reverse_proxy [${DATA_SERVER_IPV6}]:80
+}
+EOF
+fi
 
 systemctl restart caddy
 

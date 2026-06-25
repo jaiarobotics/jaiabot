@@ -38,7 +38,7 @@ using goby::glog;
 constexpr int thermistor_ohms_neutral = 10000;
 constexpr int thermistor_voltage = 5;
 
-constexpr int32_t MOTOR_MICROS_BIN = 50; // Bin size for motor microseconds
+constexpr int32_t MOTOR_MICROS_BIN = 50;   // Bin size for motor microseconds
 constexpr int32_t MOTOR_OFF_MICROS = 1500; // Value at which the motor is off (neutral)
 constexpr std::chrono::seconds MOTOR_USAGE_REPORT_INTERVAL{15};
 
@@ -206,7 +206,8 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros,
         cfg().tail_serial_number() + "' AND motor_micros = " + std::to_string(binned_motor_micros);
     sqlite3_stmt* stmt;
     int rc = sqlite3_prepare_v2(vehicle_db_, query.c_str(), -1, &stmt, nullptr);
-    if (rc != SQLITE_OK) {
+    if (rc != SQLITE_OK)
+    {
         glog.is_warn() && glog << "SQL error: " << sqlite3_errmsg(vehicle_db_) << std::endl;
         sqlite3_finalize(stmt);
         return;
@@ -218,7 +219,8 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros,
     double total_usage_duration_seconds;
     double new_avg_rpm;
 
-    if (rc == SQLITE_ROW) {
+    if (rc == SQLITE_ROW)
+    {
         double existing_usage_duration_seconds = sqlite3_column_double(stmt, 0);
         double existing_avg_rpm = sqlite3_column_double(stmt, 1);
         // Update the avg_rpm using a weighted average
@@ -228,13 +230,15 @@ void jaiabot::apps::MotorStatusThread::log_motor(int32_t motor_micros,
             total_usage_duration_seconds;
         sqlite3_finalize(stmt);
     }
-    else if (rc == SQLITE_DONE) {
+    else if (rc == SQLITE_DONE)
+    {
         // No existing entry, so we will insert a new one
         total_usage_duration_seconds = usage_duration_seconds;
         new_avg_rpm = rpm;
         sqlite3_finalize(stmt);
     }
-    else if (rc != SQLITE_DONE) {
+    else if (rc != SQLITE_DONE)
+    {
         glog.is_warn() && glog << "SQL error: " << sqlite3_errmsg(vehicle_db_) << std::endl;
         sqlite3_finalize(stmt);
         return;
@@ -334,8 +338,9 @@ void jaiabot::apps::MotorStatusThread::update_total_motor_usage()
     interprocess().publish<jaiabot::groups::motor_usage_report>(usage_report);
 }
 
-void jaiabot::apps::MotorStatusThread::log_usage(const jaiabot::protobuf::ArduinoResponse& arduino_response) {
-
+void jaiabot::apps::MotorStatusThread::log_usage(
+    const jaiabot::protobuf::ArduinoResponse& arduino_response)
+{
     // Log the motor usage
     static jaiabot::protobuf::ArduinoResponse previous_response;
     static int64_t previous_response_time = 0;
@@ -352,7 +357,6 @@ void jaiabot::apps::MotorStatusThread::log_usage(const jaiabot::protobuf::Arduin
         previous_response = arduino_response;
         previous_response_time = now_microseconds();
     }
-
 }
 
 jaiabot::apps::MotorStatusThread::~MotorStatusThread()
