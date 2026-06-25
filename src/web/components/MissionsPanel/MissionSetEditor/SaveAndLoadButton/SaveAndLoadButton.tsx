@@ -2,8 +2,7 @@ import { useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
-import { listSavedMissionSets } from "../../MissionSetStorage/mission-set-storage";
-import { saveSnapshotToLocalStorage } from "../../MissionSetStorage/mission-set-storage";
+import { saveSnapshotToHub } from "../../MissionSetStorage/mission-set-storage";
 import { combineMissionSets } from "../mission-set-editor";
 import { MissionSetSnapshot } from "../../../../data/mission_set/mission-set";
 import { DisabledCodes } from "./save-and-load-messages";
@@ -13,11 +12,12 @@ interface Props {
     editorName: string;
     combinedMissionNames: string[];
     missionSetSnapshotCache: Map<string, MissionSetSnapshot>;
+    savedNames: string[];
     onClose: () => void;
 }
 
 /**
- * Button that saves the combined mission set to local storage and loads it into the active mission.
+ * Button that saves the combined mission set to the hub and loads it into the active mission.
  * Shows a confirmation dialog before saving; shows an alert dialog if prerequisites are not met.
  */
 export default function SaveAndLoadButton(props: Props) {
@@ -28,8 +28,7 @@ export default function SaveAndLoadButton(props: Props) {
     const getDisabledCode = (): DisabledCodes => {
         if (!props.editorName.trim()) return DisabledCodes.NO_NAME;
         if (props.combinedMissionNames.length < 2) return DisabledCodes.NO_MISSIONS;
-        if (listSavedMissionSets().includes(props.editorName.trim()))
-            return DisabledCodes.OVERWRITE;
+        if (props.savedNames.includes(props.editorName.trim())) return DisabledCodes.OVERWRITE;
         return DisabledCodes.NONE;
     };
 
@@ -38,7 +37,7 @@ export default function SaveAndLoadButton(props: Props) {
     };
 
     /** Closes the confirmation dialog; on confirm, combines, saves, and dispatches the new mission set. */
-    const onDialogClose = (dialogAction: DialogActions) => {
+    const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
             const name = props.editorName.trim();
@@ -47,7 +46,12 @@ export default function SaveAndLoadButton(props: Props) {
                 name,
                 props.missionSetSnapshotCache,
             );
-            saveSnapshotToLocalStorage(name, missionSetSnapshot);
+            try {
+                await saveSnapshotToHub(name, missionSetSnapshot);
+            } catch (error) {
+                console.error("Failed to save combined mission set to the hub:", error);
+                return;
+            }
             jaiaDispatch({
                 type: JaiaActions.LOAD_MISSION_SET,
                 missionSetSnapshot: missionSetSnapshot,
