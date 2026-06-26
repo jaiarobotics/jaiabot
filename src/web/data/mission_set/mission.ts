@@ -51,8 +51,10 @@ export default class Mission {
         return this.segments[segmentIndex]?.speed ?? DEFAULT_SPEED;
     }
 
-    setTransitSpeed(speed: number, segmentIndex: number = 0) {
-        this.segments[segmentIndex].speed = speed;
+    setTransitSpeed(speed: number) {
+        for (const segment of this.segments) {
+            segment.speed = speed;
+        }
     }
 
     getStationkeepSpeed(): number {

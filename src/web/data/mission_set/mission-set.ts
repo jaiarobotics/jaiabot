@@ -93,10 +93,8 @@ export class MissionSet {
         const missionID = this.getNextMissionID();
         this.missions.set(missionID, mission);
         mission.setMissionID(missionID);
-        if (mission.getSegments()[0]?.speed === undefined) {
-            mission.setTransitSpeed(this.speeds.transit ?? DEFAULT_SPEED);
-            mission.setStationkeepSpeed(this.speeds.stationkeep_outer ?? DEFAULT_SPEED);
-        }
+        mission.setTransitSpeed(this.speeds.transit ?? DEFAULT_SPEED);
+        mission.setStationkeepSpeed(this.speeds.stationkeep_outer ?? DEFAULT_SPEED);
         this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
         return missionID;
