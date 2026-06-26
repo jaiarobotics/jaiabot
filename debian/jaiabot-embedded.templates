@@ -5,7 +5,7 @@ Description: Choose a common option to edit
 
 Template: jaiabot-embedded/debconf_state_bot
 Type: select
-Choices: BACK, bot_id, bot_vin, arduino_type, pam_connection_type, imu_type, bot_type, data_offload_ignore_type, imu_install_type, temperature_sensor_type, pressure_sensor_type, motor_harness_type, camera_positions, additional_sensors, EXIT
+Choices: BACK, bot_id, bot_vin, arduino_type, tail_serial_number, pam_connection_type, imu_type, bot_type, data_offload_ignore_type, imu_install_type, temperature_sensor_type, pressure_sensor_type, motor_harness_type, camera_positions, additional_sensors, EXIT
 Description: Choose a bot option to edit
 
 Template: jaiabot-embedded/debconf_state_hub

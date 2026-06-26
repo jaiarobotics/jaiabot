@@ -34,7 +34,8 @@ message Motor
 
 message MotorUsageReport
 {
-    optional string tail_serial_number = 1;
-    optional double total_running_time_seconds = 2; 
-    repeated MotorUsageBin motor_usage_bins = 3;
+    optional string bot_vin = 1;
+    optional string tail_serial_number = 2;
+    optional double total_running_time_seconds = 3; 
+    repeated MotorUsageBin motor_usage_bins = 4;
 }
