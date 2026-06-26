@@ -5,6 +5,7 @@ script_dir=$(dirname "$0")
 project_dir=$(realpath "${script_dir}/../..")
 
 STM32_SRC_DIR="${project_dir}/src/stm32"
+STM32_BOARD_DIR="${STM32_SRC_DIR}/bio_payload"
 STM32_BUILD_DIR="${project_dir}/build/stm32"
 MESSAGES_DIR="${project_dir}/src/lib/messages"
 HASH_FILE="${STM32_BUILD_DIR}/.last_build_hash"
@@ -72,7 +73,7 @@ bash "${script_dir}/fetch_drivers.sh" ${FETCH_FLAGS}
 if [ "$CLEAN" = true ]; then
     echo "[STM32] Cleaning STM32 build artifacts..."
     rm -rf "${STM32_BUILD_DIR}"
-    make -C "${STM32_SRC_DIR}" clean 2>/dev/null || true
+    make -C "${STM32_BOARD_DIR}" clean 2>/dev/null || true
 fi
 
 mkdir -p "${STM32_BUILD_DIR}"
@@ -124,8 +125,8 @@ nanopb_generator.py \
 # NANOPB_INC: root of jaiabot/messages/ tree → NANOPB_SENSOR_GEN_DIR = $(NANOPB_INC)/jaiabot/messages/sensor
 # JAIABOT_INC: parent of nanopb/ → resolves #include "nanopb/jaiabot/messages/sensor/..."
 # NANOPB_SYS_INC: sensor dir → resolves bare sibling includes inside sensor pb.h files
-echo "[STM32] Building STM32L432 firmware..."
-make -C "${STM32_SRC_DIR}" \
+echo "[STM32] Building bio_payload (STM32L433) firmware..."
+make -C "${STM32_BOARD_DIR}" \
     -j"$(nproc)" \
     BUILD_DIR="${STM32_BUILD_DIR}" \
     JAIABOT_INC="${STM32_BUILD_DIR}" \
@@ -134,8 +135,8 @@ make -C "${STM32_SRC_DIR}" \
     --no-print-directory -s
 
 # --- Verify output ---
-FIRMWARE_HEX="${STM32_BUILD_DIR}/JAIA_STM32.hex"
-FIRMWARE_ELF="${STM32_BUILD_DIR}/JAIA_STM32.elf"
+FIRMWARE_HEX="${STM32_BUILD_DIR}/bio_payload.hex"
+FIRMWARE_ELF="${STM32_BUILD_DIR}/bio_payload.elf"
 
 if [ ! -f "${FIRMWARE_HEX}" ]; then
     echo "[STM32] ERROR: ${FIRMWARE_HEX} not found after build. Something went wrong."

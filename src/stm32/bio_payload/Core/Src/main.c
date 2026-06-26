@@ -37,6 +37,9 @@ typedef jaiabot_sensor_protobuf_Sensor Sensor;
 #define SWO_ENABLED 0  // Set to 1 to enable SWO debugging
 #define ITM_PORT 0
 #define UART1_RECEIVE_TIMEOUT_MS 2000
+// Worst case time to clock out a MAX_MSG_SIZE COBS frame at 115200 baud is
+// ~22ms; bound the busy-wait above that so a stuck UART can't hang the loop.
+#define UART2_TX_WAIT_TIMEOUT_MS 25
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -124,6 +127,13 @@ bool pressure_zeroed = false;
 float pressure_zero_mbar = 0.0f;
 
 static uint32_t uart1_last_rx_tick = 0;
+
+// UART2 TX buffers must be static: HAL_UART_Transmit_IT() returns immediately
+// while the USART2 interrupt handler keeps reading from this buffer until the
+// transfer completes, so it cannot live on transmit_sensor_data()'s stack.
+static uint8_t uart2_tx_buffer[MAX_MSG_SIZE] = {0};
+static uint8_t uart2_tx_buffer_cobs[MAX_MSG_SIZE] = {0};
+static volatile bool uart2_tx_busy = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -269,8 +279,10 @@ int main(void)
     // Refresh watchdog
     HAL_IWDG_Refresh(&hiwdg);
 
-    // Run at 100 Hz
-    HAL_Delay(10);
+    // Run at 500 Hz. Now that sensor transmits are non-blocking, this delay
+    // only bounds how promptly a due sensor/command gets serviced, not the
+    // achievable transmission rate.
+    HAL_Delay(2);
 
     // Check if a sensor came unplugged from UART 1 (user changing AML sensors)
     UART1_CheckTimeout();
@@ -572,11 +584,24 @@ void stopCalibration()
 
 void transmit_sensor_data(SensorData *sensor_data)
 {
-  uint8_t buffer[MAX_MSG_SIZE] = {0};
-  uint8_t buffer_cobs[MAX_MSG_SIZE] = {0};
+  // Multiple sensors are often due in the same loop iteration, so the
+  // previous one's transfer (a few ms at 115200 baud) may still be in
+  // flight. Wait for it rather than dropping the sample outright, bounded
+  // so a genuinely stuck UART can't hang the main loop.
+  uint32_t wait_start_tick = HAL_GetTick();
+  while (uart2_tx_busy)
+  {
+    if (HAL_GetTick() - wait_start_tick > UART2_TX_WAIT_TIMEOUT_MS)
+    {
+      return;
+    }
+  }
+
+  uint8_t *buffer = uart2_tx_buffer;
+  uint8_t *buffer_cobs = uart2_tx_buffer_cobs;
   size_t message_length;
 
-  pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+  pb_ostream_t stream = pb_ostream_from_buffer(buffer, MAX_MSG_SIZE);
 
   bool status = pb_encode(&stream, jaiabot_sensor_protobuf_SensorData_fields, sensor_data);
 
@@ -598,10 +623,17 @@ void transmit_sensor_data(SensorData *sensor_data)
     counter++;
   }
 
+  // COBSStuffData() never writes an explicit terminating zero; the length
+  // scan below finds the message's end by relying on the destination buffer
+  // already being zero past that point. buffer_cobs is now static (reused
+  // across calls for the non-blocking IT transfer), so it must be re-zeroed
+  // here or a shorter message would pick up stale trailing bytes from
+  // whatever longer message was sent before it.
+  memset(buffer_cobs, 0, MAX_MSG_SIZE);
   COBSStuffData(buffer, message_length + bytes_in_crc32, buffer_cobs);
 
   uint8_t len_cobs = {0};
-  for (int i = 0; i < sizeof(buffer_cobs); i++)
+  for (int i = 0; i < MAX_MSG_SIZE; i++)
   {
     len_cobs = len_cobs + 1;
     if (buffer_cobs[i] == 0)
@@ -610,11 +642,14 @@ void transmit_sensor_data(SensorData *sensor_data)
     }
   }
 
-  HAL_UART_Transmit(&huart2, buffer_cobs, len_cobs, HAL_MAX_DELAY);
+  uart2_tx_busy = true;
+  if (HAL_UART_Transmit_IT(&huart2, buffer_cobs, len_cobs) != HAL_OK)
+  {
+    uart2_tx_busy = false;
+  }
 
   // Middle LED
   HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_11);
-  HAL_Delay(10);
 }
 
 void transmit_metadata()
@@ -1622,6 +1657,22 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 
     // Restart UART1 receiver
     HAL_UARTEx_ReceiveToIdle_IT(&huart1, (uint8_t *)uart1rxbuff, sizeof(uart1rxbuff));
+  }
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART2)
+  {
+    uart2_tx_busy = false;
+  }
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART2)
+  {
+    uart2_tx_busy = false;
   }
 }
 
