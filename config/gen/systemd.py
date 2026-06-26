@@ -59,6 +59,7 @@ parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--pam_connection_type', choices=['uart', 'usb', 'none'], help='If set, configure services for PAM connection type')
 parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'none'], help='If set, configure services for bot type')
+parser.add_argument('--bot_vin', default='', help='If set, configure services for bot vin')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
 parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsys01', 'none'], help='If set, configure services for temperature sensor')
@@ -293,6 +294,7 @@ subprocess.run('bash -ic "' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
                'export jaia_pam_connection_type=' + str(jaia_pam_connection_type.value) + '; ' +
                'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
+               f'export jaia_bot_vin={args.bot_vin}; ' +
                'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
                'export jaia_motor_harness_type=' + str(jaia_motor_harness_type.value) + '; ' +
                'export jaia_temperature_sensor_type=' + str(jaia_temperature_sensor_type.value) + '; ' +
