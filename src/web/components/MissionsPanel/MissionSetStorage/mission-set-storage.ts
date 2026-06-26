@@ -246,7 +246,7 @@ function migrateSnapshot_2_0(rawSnapshot: any): any {
                     ...rest,
                     segments: [
                         {
-                            start_goal_index: 1,
+                            start_goal_index: 0,
                             bottom_depth_safety_params: bottomDepthSafetyParams,
                         },
                     ],

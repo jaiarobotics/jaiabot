@@ -2,6 +2,7 @@ import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
 import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
+import { Segment } from "../../../types/protobuf-types";
 
 /**
  * Returns the largest mission count across the named sets in the snapshot cache.
@@ -66,22 +67,14 @@ function applySourceMission(sourceMission: Mission, combined: Mission): void {
         const offsetStart = seg.start_goal_index + waypointOffset;
         const offsetLaneIndices = seg.lane_start_goal_indices?.map((i) => i + waypointOffset);
 
-        if (offsetStart === 1) {
-            if (offsetLaneIndices) {
-                combinedSegments[0].lane_start_goal_indices = offsetLaneIndices;
-            }
-            if (seg.bottom_depth_safety_params) {
-                combinedSegments[0].bottom_depth_safety_params = {
-                    ...seg.bottom_depth_safety_params,
-                };
-            }
-        } else if (seg.bottom_depth_safety_params) {
-            combinedSegments.push({
-                start_goal_index: offsetStart,
-                ...(offsetLaneIndices && { lane_start_goal_indices: offsetLaneIndices }),
-                bottom_depth_safety_params: { ...seg.bottom_depth_safety_params },
-            });
-        }
+        const updatedSegment: Segment = {
+            start_goal_index: offsetStart,
+            lane_start_goal_indices: offsetLaneIndices,
+            speed: seg.speed,
+            bottom_depth_safety_params: seg.bottom_depth_safety_params,
+        };
+
+        combinedSegments.push(updatedSegment);
     }
 }
 
@@ -121,7 +114,6 @@ export function combineMissionSets(
     const outputMissions: [number, Mission][] = [];
     for (let i = 0; i < missionCount; i++) {
         const combined = new Mission();
-        combined.setSegments([{ start_goal_index: 1, speed: maxTransit }]);
         for (const missions of missionArrays) {
             if (missions.length === 0) continue;
             const sourceMission = missions[i % missions.length];
