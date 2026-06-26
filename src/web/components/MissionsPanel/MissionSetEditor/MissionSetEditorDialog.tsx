@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "@mdi/react";
 import { mdiArrowRight, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
@@ -6,8 +6,8 @@ import { Button } from "@mui/material";
 
 import { JCC_CONTAINER, MAX_WAYPOINTS } from "../../../utils/constants";
 import {
-    listSavedMissionSets,
-    loadSnapshotFromLocalStorage,
+    listSavedMissionSetsFromHub,
+    loadSnapshotFromHub,
 } from "../MissionSetStorage/mission-set-storage";
 import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { getMaxWaypointsPerOutputMission } from "./mission-set-editor";
@@ -63,7 +63,15 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const [selectedCombinedIndex, setSelectedCombinedIndex] = useState<number | null>(null);
     const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
     const missionSetSnapshotCache = useRef<Map<string, MissionSetSnapshot>>(new Map());
-    const savedMissionSets = useMemo(() => listSavedMissionSets(), [props.isVisible]);
+    const [savedMissionSets, setSavedMissionSets] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (props.isVisible) {
+            listSavedMissionSetsFromHub()
+                .then(setSavedMissionSets)
+                .catch(() => setSavedMissionSets([]));
+        }
+    }, [props.isVisible]);
 
     if (!props.isVisible) {
         return <div></div>;
@@ -89,15 +97,21 @@ export function MissionSetEditorDialog(props: DialogProps) {
      *
      * @returns {void}
      */
-    const handleAdd = () => {
+    const handleAdd = async () => {
         if (selectedSavedIndex === null) return;
         const selectedSavedName = savedMissionSets[selectedSavedIndex];
 
         if (!missionSetSnapshotCache.current.has(selectedSavedName)) {
-            missionSetSnapshotCache.current.set(
-                selectedSavedName,
-                loadSnapshotFromLocalStorage(selectedSavedName).snapshot!,
-            );
+            try {
+                const loadResult = await loadSnapshotFromHub(selectedSavedName);
+                missionSetSnapshotCache.current.set(selectedSavedName, loadResult.snapshot!);
+            } catch (error) {
+                console.error(
+                    `Failed to load mission set "${selectedSavedName}" from the hub:`,
+                    error,
+                );
+                return;
+            }
         }
 
         let projectedList: string[];
@@ -247,6 +261,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
                             editorName={editorName}
                             combinedMissionNames={combinedList}
                             missionSetSnapshotCache={missionSetSnapshotCache.current}
+                            savedNames={savedMissionSets}
                             onClose={props.onClose}
                         />
                         <button onClick={props.onClose}>Cancel</button>

@@ -1,9 +1,9 @@
 #cloud-config
 
-hostname: jaia-authelia
+hostname: jaia-data
 
 ssh_pwauth: false
-  
+
 users:
   - name: jaia
     groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
@@ -30,7 +30,31 @@ ${INDENTED_ROOT_PUBKEYS}
       };
       Unattended-Upgrade::Automatic-Reboot "true";
       Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
-      
+  - path: /etc/systemd/system/jaiabot-data-vision.service
+    content: |
+      [Unit]
+      Description=Jaia Data Vision Server
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      ExecStart=/usr/share/jaiabot/python/venv/bin/python3 /usr/share/jaiabot/web/jdv/server/jaiabot_data_vision.py -d /var/log/jaiabot/bot_offload -a /usr/share/jaiabot/web/jdv/client/dist/ -p 40011
+      Restart=always
+      RestartSec=5
+      StandardOutput=journal
+      StandardError=journal
+
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/apache2/sites-available/001-jaia-data.conf
+    content: |
+      <VirtualHost *:80>
+        ServerName data.cloud.jaia.tech
+        ProxyPreserveHost On
+        ProxyPass / http://localhost:40011/
+        ProxyPassReverse / http://localhost:40011/
+      </VirtualHost>
+
 apt:
   sources:
     jaiabot.list:
@@ -39,17 +63,29 @@ apt:
     gobysoft.list:
       source: "deb http://packages.jaia.tech/ubuntu/gobysoft/${REPO}/${jaia_version_release_branch}/ ${jaia_version_ubuntu_codename}/"
       keyid: "19478082E2F8D3FE"
-      
+
 packages:
   - zile
-  - ca-certificates
-  - curl
-  - gnupg
-  - wireguard
-  - docker-compose
-  - yq
-  - netcat-openbsd
   - jaiabot-apps
+  - jaiabot-web
+  - goby3-apps
+  - s3fs
+  - apache2
 
 runcmd:
   - ln -s /usr/bin/zile /usr/local/bin/emacs
+  # Swap, so goby->h5 conversion of large logs doesn't OOM-kill jaiabot-data-vision
+  - fallocate -l 4G /swapfile
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  - mkdir -p /var/log/jaiabot/bot_offload
+  - chown jaia:jaia /var/log/jaiabot
+  - a2enmod proxy proxy_http
+  - a2dissite 000-default
+  - a2ensite 001-jaia-data
+  - systemctl daemon-reload
+  - systemctl enable jaiabot-data-vision
+  - systemctl restart apache2
+  - systemctl start jaiabot-data-vision
