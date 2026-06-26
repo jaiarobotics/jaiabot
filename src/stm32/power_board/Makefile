@@ -37,6 +37,13 @@ BUILD_DIR = build
 # C sources
 C_SOURCES =  \
 Core/Src/main.c \
+Core/Src/ble.c \
+Core/Src/command.c \
+Core/Src/crc32.c \
+Core/Src/icas.c \
+Core/Src/motor.c \
+Core/Src/rudder.c \
+Core/Src/serial.c \
 Core/Src/stm32l4xx_it.c \
 Core/Src/stm32l4xx_hal_msp.c \
 FATFS/Target/user_diskio.c \

@@ -32,6 +32,14 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "crc32.h"
+#include "serial.h"
+#include "motor.h"
+#include "rudder.h"
+#include "icas.h"
+#include "ble.h"
+#include "command.h"
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
