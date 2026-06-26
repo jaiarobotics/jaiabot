@@ -1,0 +1,53 @@
+#cloud-config
+
+hostname: jaia-cc-db
+
+ssh_pwauth: false
+  
+users:
+  - name: jaia
+    groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/jaia_sshd.conf
+    content: |
+      AuthorizedKeysFile .ssh/authorized_keys /etc/jaiabot/ssh/root_authorized_keys /etc/jaiabot/ssh/tmp_authorized_keys
+  - path: /etc/jaiabot/ssh/root_authorized_keys
+    content: |
+${INDENTED_ROOT_PUBKEYS}
+  - path: /etc/jaiabot/ssh/tmp_authorized_keys
+    content: |
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCWVm+RgEobZnz2gsOBBQ8jinPxmuroios5L0Jpb7XVw0/wr730JqIY4Pr7zipTTiwZSSuFCvT0vjAA2aQbw3witiPyhYpffXHtM6mpxvdj9U3dsTth2bbkolI28/J8P/AO8nUPsjh/Zack1a4vtVP+PJGSK9yHR54hkbBnDZ+MrjMpnHteTVAF2SEJF3IlpqeIpAja/qceflPL24LgMPq5rlY7f0K0xxT6YDPToRaZ/rNO+FgzW4ZaKOrU51TNX5WgN2AiiavyqKa3iVT/9VTo+HveWldoW1p9Ov4iCY6QfP2kiF7gfsxZZJ/Xpn99H3ya5SIng1Qs+gQ40vvKQVVT toby@yubikey16719472
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDBxM4LhQ6Kfohk6oMesU9iPYsqiu1bI6hXS0TWQSsqF3sZgTb5BWO4FuoDXrc49EeeG8fQv0UKeZKmEK/VcXlu/YbHtirl0DYcsIA1SEBoTWEvwTN7SNf4hA9kDZH4WB+xJq2Ob+qmcRDmbVSovE9WSJUujJdYkZuuFl7w6j/UDys8waxV0vlw9FqY6bN/slxr26xY7CUwDygljP+b/VDzn4WNBZGLP8Xlb5vMtw9Gg5Jr0jH+IdVXpPtqhFa2zlWhpKTHq0mx7w6iKVaa1NZVyOX1Jlodml1NTted3P73K6dQ8g/SlKBTUvO/en6R+ZUpJFY3QvO/w5KgTl6d3v17 toby@yubikey16719053
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDkhjS74aGshxZcl2yTzJIDlxhVdA4aeMdSwHyXNolNzem5kowIrBp5/twQmaUPpUegk/fy8PSSB36qoCEde+8saFfYKKMKW/u4WApWs8nrKljBJg+tAPXwMdkowhIaFM2FNoo8GGa9LsssaCHNG8McYGS5IBjoU2+xlIw+Wo5w9fVLNpp+uXJopO4GFsEXYHj5ZnCUFTxAVrHcVVv3rBOdZ6acrPoayi3SExhSWzKpG9OE9r6Qwip+TT6LuBVr7fzExSFl6dynJhjXbyNuTHQFLRgt2MaRb2Zcfmcvb7o4KVO3cuIDQ/c/gwlk1x+9KWKllExEaUXIO4etlTgSoZUF toby@yubikey16718427
+  - path: /etc/apt/apt.conf.d/50unattended-upgrades
+    content: |
+      Unattended-Upgrade::Allowed-Origins {
+          "${distro_id}:${distro_codename}-security";
+      };
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+      
+      
+packages:
+  - zile
+  - ca-certificates
+  - curl
+  - gnupg
+  - wireguard
+  - python3-venv
+  - python3-dev
+  - mysql-server
+  - libmysqlclient-dev
+  - default-libmysqlclient-dev
+  - pre-commit
+  - git
+  - pkg-config
+  - apache2
+  - libapache2-mod-wsgi-py3
+  
+runcmd:
+  - ln -s /usr/bin/zile /usr/local/bin/emacs
