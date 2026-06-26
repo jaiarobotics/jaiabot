@@ -154,7 +154,10 @@ export default class Mission {
             recovery: {
                 recover_at_final_goal: true,
             },
-            speeds: { stationkeep_outer: this.getStationkeepSpeed() },
+            speeds: {
+                transit: this.getTransitSpeed(),
+                stationkeep_outer: this.getStationkeepSpeed(),
+            },
             repeats: this.repeats,
             mission_name: missionSetName,
             segments: this.segments,
