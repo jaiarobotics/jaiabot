@@ -25,7 +25,7 @@ function makeCache(entries: [string, Mission[]][]): Map<string, MissionSetSnapsh
             nextMissionID: missions.length + 1,
             missionIDInEditMode: UNASSIGNED_ID,
             name,
-            selectedSpeeds: DEFAULT_SPEEDS,
+            speeds: DEFAULT_SPEEDS,
         });
     }
     return cache;
@@ -225,8 +225,8 @@ describe("combineMissionSets", () => {
         const [, mission] = result.missions[0];
         expect(mission.getTransitSpeed()).toBe(3);
         expect(mission.getStationkeepSpeed()).toBe(3);
-        expect(result.selectedSpeeds.transit).toBe(3);
-        expect(result.selectedSpeeds.stationkeep_outer).toBe(3);
+        expect(result.speeds.transit).toBe(3);
+        expect(result.speeds.stationkeep_outer).toBe(3);
     });
 
     test("empty set alongside non-empty set — output matches non-empty set alone", () => {
@@ -249,8 +249,8 @@ describe("combineMissionSets", () => {
         const result = combineMissionSets(["empty1", "empty2"], "out", cache);
 
         expect(result.missions.length).toBe(0);
-        expect(result.selectedSpeeds.transit).toBe(DEFAULT_SPEED);
-        expect(result.selectedSpeeds.stationkeep_outer).toBe(DEFAULT_SPEED);
+        expect(result.speeds.transit).toBe(DEFAULT_SPEED);
+        expect(result.speeds.stationkeep_outer).toBe(DEFAULT_SPEED);
     });
 
     test("selectedSpeeds in output reflect max across non-empty sets only", () => {
@@ -261,7 +261,7 @@ describe("combineMissionSets", () => {
         ]);
         const result = combineMissionSets(["empty", "A", "B"], "out", cache);
 
-        expect(result.selectedSpeeds.transit).toBe(4);
-        expect(result.selectedSpeeds.stationkeep_outer).toBe(3);
+        expect(result.speeds.transit).toBe(4);
+        expect(result.speeds.stationkeep_outer).toBe(3);
     });
 });

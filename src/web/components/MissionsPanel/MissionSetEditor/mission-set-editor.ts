@@ -136,6 +136,6 @@ export function combineMissionSets(
         nextMissionID: missionCount + 1,
         missionIDInEditMode: UNASSIGNED_ID,
         name: newName,
-        selectedSpeeds: { transit: maxTransit, stationkeep_outer: maxStationkeep },
+        speeds: { transit: maxTransit, stationkeep_outer: maxStationkeep },
     };
 }

@@ -73,7 +73,7 @@ export function loadSnapshotFromLocalStorage(saveName: string): LoadSnapshotResu
         nextMissionID: migrated.nextMissionID ?? 0,
         missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
         name: migrated.name ?? "",
-        selectedSpeeds: migrated.selectedSpeeds ?? {
+        speeds: migrated.speeds ?? {
             transit: DEFAULT_SPEED,
             stationkeep_outer: DEFAULT_SPEED,
         },
@@ -245,7 +245,7 @@ function migrateSnapshot_2_0(rawSnapshot: any): any {
     return {
         ...rawSnapshot,
         missions: rawSnapshot.missions.map(([id, mission]: [any, any]) => {
-            // bottomDepthSafetyParams moves from mission-level into segments[0]
+            // bottomDepthSafetyParams moves from mission-level into segments
             if (mission.bottomDepthSafetyParams) {
                 const { bottomDepthSafetyParams, ...rest } = mission;
                 mission = {
@@ -310,7 +310,7 @@ function extractMissionSetSnapshot(rawMissionSet: any, version: string = MISSION
         nextMissionID: migrated.nextMissionID ?? 1,
         missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
         name: migrated.name ?? "",
-        selectedSpeeds: migrated.selectedSpeeds ?? {
+        speeds: migrated.speeds ?? {
             transit: DEFAULT_SPEED,
             stationkeep_outer: DEFAULT_SPEED,
         },
@@ -334,7 +334,7 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
         nextMissionID: 1,
         missionIDInEditMode: UNASSIGNED_ID,
         name: "",
-        selectedSpeeds: { transit: DEFAULT_SPEED, stationkeep_outer: DEFAULT_SPEED },
+        speeds: { transit: DEFAULT_SPEED, stationkeep_outer: DEFAULT_SPEED },
     };
 
     // Build missions from runs
