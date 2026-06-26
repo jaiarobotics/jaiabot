@@ -8,7 +8,13 @@ import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zon
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { MapModes } from "../../types/openlayers-types";
-import { JaiaContextType, JaiaAction, ButtonNames, ButtonTypes } from "../../types/context-types";
+import {
+    JaiaContextType,
+    JaiaAction,
+    ButtonNames,
+    ButtonTypes,
+    WaypointSections,
+} from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers, syncTaskLayers } from "./handler-utils";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
@@ -208,5 +214,21 @@ export function handleClickedTaskPacket(mutableState: JaiaContextType, action: J
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
     excludedTaskPacketsLayer.updateFeatures();
+    return mutableState;
+}
+
+/**
+ * Updates the section to show in the waypoint panel
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Includes the name of the section clicked
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleClickedWaypointSection(mutableState: JaiaContextType, action: JaiaAction) {
+    if (mutableState.visibleWaypointSection === action.waypointSection) {
+        mutableState.visibleWaypointSection = WaypointSections.NONE;
+    } else {
+        mutableState.visibleWaypointSection = action.waypointSection;
+    }
     return mutableState;
 }

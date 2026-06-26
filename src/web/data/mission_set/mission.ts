@@ -26,7 +26,7 @@ export default class Mission {
         this.waypoints = [];
         this.stationkeepSpeed = DEFAULT_SPEED;
         this.repeats = 1;
-        this.segments = [{ start_goal_index: 1 }];
+        this.segments = [{ start_goal_index: 0 }];
         this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID, repeats: 1 };
     }
 

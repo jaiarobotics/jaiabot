@@ -11,21 +11,51 @@ import Task from "../../../../data/tasks/task";
 import { TaskType } from "../../../../types/protobuf-types";
 import { TaskParameterKeys } from "../../../../types/jaia-system-types";
 import {
-    saveToLocalStorage,
-    deleteFromLocalStorage,
-    listSavedMissionSets,
-    loadSnapshotFromLocalStorage,
+    saveToHub,
+    deleteFromHub,
+    listSavedMissionSetsFromHub,
+    loadSnapshotFromHub,
     LoadResultType,
     loadSnapshotFromFile,
 } from "../mission-set-storage";
 import { UNASSIGNED_ID } from "../../../../utils/constants";
 
-describe("Exercise functions to save and load missions from localStorage", () => {
+jest.mock("../../../../utils/jaia-api", () => ({
+    jaiaAPI: {
+        listMissionSets: jest.fn(),
+        saveMissionSet: jest.fn(),
+        loadMissionSet: jest.fn(),
+        deleteMissionSet: jest.fn(),
+    },
+}));
+
+import { jaiaAPI } from "../../../../utils/jaia-api";
+
+const mockJaiaAPI = jaiaAPI as jest.Mocked<typeof jaiaAPI>;
+
+describe("Exercise functions to save and load missions from the hub", () => {
+    // In memory fake hub storage to test against
+    let fakeHubStorage: Record<string, any> = {};
+
     beforeEach(() => {
         missionSet.deleteAllMissions();
-        localStorage.clear();
+        fakeHubStorage = {};
+        jest.clearAllMocks();
+        mockJaiaAPI.listMissionSets.mockImplementation(async () =>
+            Object.keys(fakeHubStorage).sort((a, b) => a.localeCompare(b)),
+        );
+        mockJaiaAPI.saveMissionSet.mockImplementation(async (name: string, snapshot: any) => {
+            fakeHubStorage[name] = snapshot;
+        });
+        mockJaiaAPI.loadMissionSet.mockImplementation(
+            async (name: string) => fakeHubStorage[name] ?? null,
+        );
+        mockJaiaAPI.deleteMissionSet.mockImplementation(async (name: string) => {
+            delete fakeHubStorage[name];
+        });
     });
-    test("Save and retrieve a mission set from localStorage", () => {
+
+    test("Save and retrieve a mission set from the hub", async () => {
         // Create test mission set
         let mission1 = new Mission();
         mission1.addWaypoint(locationA);
@@ -52,11 +82,11 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(mission2ID).toEqual(2);
         expect(missionSet.getMissions().size).toEqual(2);
 
-        // Save the mission set to localStorage
-        saveToLocalStorage("Test-Mission-Set");
+        // Save the mission set to the hub
+        await saveToHub("Test-Mission-Set");
 
-        // Retrieve the serialized mission set from localStorage
-        const loadResult = loadSnapshotFromLocalStorage("Test-Mission-Set");
+        // Retrieve the serialized mission set from the hub
+        const loadResult = await loadSnapshotFromHub("Test-Mission-Set");
         expect(loadResult.resultType).toBe(LoadResultType.CURRENT_FORMAT);
 
         // Update the mission set data
@@ -89,69 +119,71 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(retrievedMission2.getWaypoint(2).getLocation().lon).toEqual(locationD.lon);
     });
 
-    test("Save multiple missions sets, list them, and delete them", () => {
+    test("Save multiple missions sets, list them, and delete them", async () => {
         // Verify there are no saved missions sets
-        expect(listSavedMissionSets().length).toEqual(0);
+        expect((await listSavedMissionSetsFromHub()).length).toEqual(0);
 
-        // Create a mission set and save it to localStorage
+        // Create a mission set and save it to the hub
         missionSet.addMission(missionA);
         missionSet.addMission(missionB);
         expect(missionSet.getMissions().size).toEqual(2);
-        saveToLocalStorage("Test-Mission-Set-A");
+        await saveToHub("Test-Mission-Set-A");
 
+        let names = await listSavedMissionSetsFromHub();
         // Verify we got what we expected
-        expect(listSavedMissionSets().length).toEqual(1);
-        expect(listSavedMissionSets()[0]).toEqual("Test-Mission-Set-A");
+        expect(names.length).toEqual(1);
+        expect(names[0]).toEqual("Test-Mission-Set-A");
         expect(missionSet.getName()).toEqual("Test-Mission-Set-A");
 
         // Create another mission set and save it
         missionSet.deleteAllMissions();
         missionSet.addMission(missionC);
         expect(missionSet.getMissions().size).toEqual(1);
-        saveToLocalStorage("Test-Mission-Set-B");
+        await saveToHub("Test-Mission-Set-B");
 
+        names = await listSavedMissionSetsFromHub();
         // Verify we got what we expected
-        expect(listSavedMissionSets().length).toEqual(2);
-        expect(listSavedMissionSets()[0]).toEqual("Test-Mission-Set-A");
-        expect(listSavedMissionSets()[1]).toEqual("Test-Mission-Set-B");
+        expect(names.length).toEqual(2);
+        expect(names[0]).toEqual("Test-Mission-Set-A");
+        expect(names[1]).toEqual("Test-Mission-Set-B");
 
-        // Retrieve the first mission set from localStorage
-        const loadResultA = loadSnapshotFromLocalStorage("Test-Mission-Set-A");
+        // Retrieve the first mission set from the hub
+        const loadResultA = await loadSnapshotFromHub("Test-Mission-Set-A");
 
         // Update the mission set data
         missionSet.restoreFromSnapshot(loadResultA.snapshot!);
 
         expect(missionSet.getMissions().size).toEqual(2);
 
-        // Delete the first set from localStorage
-        expect(deleteFromLocalStorage("Test-Mission-Set-A")).toEqual(true);
-        expect(listSavedMissionSets().length).toEqual(1);
-        expect(listSavedMissionSets()[0]).toEqual("Test-Mission-Set-B");
+        // Delete the first set from the hub
+        await deleteFromHub("Test-Mission-Set-A");
+        names = await listSavedMissionSetsFromHub();
+        expect(names.length).toEqual(1);
+        expect(names[0]).toEqual("Test-Mission-Set-B");
 
         // Save another mission set and verify saved list is sorted
         missionSet.deleteAllMissions();
         missionSet.addMission(missionC);
         expect(missionSet.getMissions().size).toEqual(1);
-        saveToLocalStorage("Test-Mission-Set-A");
+        await saveToHub("Test-Mission-Set-A");
 
+        names = await listSavedMissionSetsFromHub();
         // Verify we got what we expected
-        expect(listSavedMissionSets().length).toEqual(2);
-        expect(listSavedMissionSets()[0]).toEqual("Test-Mission-Set-A");
-        expect(listSavedMissionSets()[1]).toEqual("Test-Mission-Set-B");
+        expect(names.length).toEqual(2);
+        expect(names[0]).toEqual("Test-Mission-Set-A");
+        expect(names[1]).toEqual("Test-Mission-Set-B");
 
         // Try to delete a mission set that is not saved
-        expect(deleteFromLocalStorage("Test-Mission-Set-C")).toEqual(false);
+        await deleteFromHub("Test-Mission-Set-C");
+        names = await listSavedMissionSetsFromHub();
+        expect(names.length).toEqual(2);
 
         // Try to retrieve a mission set that is not saved
-        const missingResult = loadSnapshotFromLocalStorage("Test-Mission-Set");
-        // Verify defaults
-        expect(missingResult.snapshot!.missions).toEqual([]);
-        expect(missingResult.snapshot!.nextMissionID).toBe(0);
-        expect(missingResult.snapshot!.missionIDInEditMode).toEqual(UNASSIGNED_ID);
-        expect(missingResult.snapshot!.name).toBe("");
+        const missingResult = await loadSnapshotFromHub("Test-Mission-Set");
+        expect(missingResult.snapshot).toBeNull();
     });
 
-    test("Migrate 2.0 localStorage: bottomDepthSafetyParams moves into segments[0]", () => {
+    test("Migrate 2.0 hub: bottomDepthSafetyParams moves into segments[0]", async () => {
         const srp = { max_safety_depth: 10, safety_depth_heading: 180 };
         const v20MissionSets = {
             "Old-Set": {
@@ -171,9 +203,9 @@ describe("Exercise functions to save and load missions from localStorage", () =>
                 // no version field — treated as 2.0
             },
         };
-        localStorage.setItem("missionSets", JSON.stringify(v20MissionSets));
+        fakeHubStorage["Old-Set"] = v20MissionSets["Old-Set"];
 
-        const loadResult = loadSnapshotFromLocalStorage("Old-Set");
+        const loadResult = await loadSnapshotFromHub("Old-Set");
         expect(loadResult.resultType).toBe(LoadResultType.OLD_FORMAT);
 
         expect(loadResult.snapshot!.missions.length).toBe(1);
@@ -182,7 +214,7 @@ describe("Exercise functions to save and load missions from localStorage", () =>
         expect(mission.getSegments()[0].bottom_depth_safety_params).toEqual(srp);
     });
 
-    test("Migrate 2.0 localStorage: snapshot-level missionSpeeds stamped onto missions without speeds", () => {
+    test("Migrate 2.0 hub: snapshot-level missionSpeeds stamped onto missions without speeds", async () => {
         const speeds = { transit: 3, stationkeep_outer: 2 };
         const v20MissionSets = {
             "Old-Set": {
@@ -203,9 +235,9 @@ describe("Exercise functions to save and load missions from localStorage", () =>
                 // no version field — treated as 2.0
             },
         };
-        localStorage.setItem("missionSets", JSON.stringify(v20MissionSets));
+        fakeHubStorage["Old-Set"] = v20MissionSets["Old-Set"];
 
-        const loadResult = loadSnapshotFromLocalStorage("Old-Set");
+        const loadResult = await loadSnapshotFromHub("Old-Set");
         expect(loadResult.resultType).toBe(LoadResultType.OLD_FORMAT);
 
         const [, mission1] = loadResult.snapshot!.missions[0];
