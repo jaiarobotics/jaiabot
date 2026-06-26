@@ -68,6 +68,20 @@ export interface GhostParameters {
     isGhost?: boolean;
 }
 
+export interface MGRS {
+    gridZoneDesignator: string;
+    squareIdentifier: string;
+    easting: string;
+    northing: string;
+}
+
+export enum MGRSComponents {
+    GZD = "GZD",
+    SQUARE_ID = "SQUARE_ID",
+    EASTING = "EASTING",
+    NORTHING = "NORTHING",
+}
+
 export enum SystemButtonTypes {
     SHUTDOWN = 1,
     REBOOT = 2,
@@ -79,9 +93,18 @@ export enum ButtonListTypes {
     SIDE = 2,
 }
 
+export enum CoordinateSystem {
+    LAT_LON = 1,
+    MGRS = 2,
+}
+
 export enum CoordinateTypes {
     LAT = "LAT",
     LON = "LON",
+    GZD = "GZD",
+    SQUARE_ID = "SQUARE_ID",
+    EASTING = "EASTING",
+    NORTHING = "NORTHING",
 }
 
 export const enum BotModes {

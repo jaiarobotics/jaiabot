@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Install AWS CLI v2 (aarch64 for t4g ARM instances)
+cd /tmp
+AWSCLI_VERSION=2.18.8
+curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64-\${AWSCLI_VERSION}.zip" -o "awscliv2.zip"
+unzip -q awscliv2.zip
+./aws/install
+
+# Mount the centralized fleet data S3 bucket via s3fs.
+# iam_role=auto picks up the attached IAM instance profile (JaiaDataServerInstanceProfile).
+# --inplace avoids the rename-on-write issue that causes s3fs to re-upload entire files.
+cat <<EOF >> /etc/fstab
+${DATA_BUCKET} /var/log/jaiabot/bot_offload fuse.s3fs _netdev,allow_other,use_path_request_style,iam_role=auto,url=https://s3.${REGION}.amazonaws.com,dbglevel=warn,endpoint=${REGION} 0 0
+EOF
+
+mount /var/log/jaiabot/bot_offload
