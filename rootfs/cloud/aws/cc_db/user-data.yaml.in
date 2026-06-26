@@ -1,6 +1,6 @@
 #cloud-config
 
-hostname: jaia-authelia
+hostname: jaia-cc-db
 
 ssh_pwauth: false
   
@@ -31,14 +31,6 @@ ${INDENTED_ROOT_PUBKEYS}
       Unattended-Upgrade::Automatic-Reboot "true";
       Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
       
-apt:
-  sources:
-    jaiabot.list:
-      source: "deb http://packages.jaia.tech/ubuntu/${REPO}/${jaia_version_release_branch}/ ${jaia_version_ubuntu_codename}/"
-      keyid: "954A004CD5D8CF32"
-    gobysoft.list:
-      source: "deb http://packages.jaia.tech/ubuntu/gobysoft/${REPO}/${jaia_version_release_branch}/ ${jaia_version_ubuntu_codename}/"
-      keyid: "19478082E2F8D3FE"
       
 packages:
   - zile
@@ -46,10 +38,16 @@ packages:
   - curl
   - gnupg
   - wireguard
-  - docker-compose
-  - yq
-  - netcat-openbsd
-  - jaiabot-apps
-
+  - python3-venv
+  - python3-dev
+  - mysql-server
+  - libmysqlclient-dev
+  - default-libmysqlclient-dev
+  - pre-commit
+  - git
+  - pkg-config
+  - apache2
+  - libapache2-mod-wsgi-py3
+  
 runcmd:
   - ln -s /usr/bin/zile /usr/local/bin/emacs
