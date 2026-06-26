@@ -323,6 +323,7 @@ void jaiabot::apps::MotorStatusThread::update_total_motor_usage()
     next_motor_usage_report_time_ = goby::time::SteadyClock::now() + MOTOR_USAGE_REPORT_INTERVAL;
 
     jaiabot::protobuf::MotorUsageReport usage_report;
+    usage_report.set_bot_vin(cfg().bot_vin());
     usage_report.set_tail_serial_number(cfg().tail_serial_number());
     double total_running_time_seconds = 0;
     for (const auto& bin : motor_usage_cache_)
