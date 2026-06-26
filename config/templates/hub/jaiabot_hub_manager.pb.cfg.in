@@ -90,3 +90,4 @@ contact_blackout_seconds: 2
 
 subnet_mask: $subnet_mask
 link_to_subscribe_on: $links_to_subscribe_on
+broadcast_bot_status: false
