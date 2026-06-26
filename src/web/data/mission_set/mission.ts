@@ -51,8 +51,10 @@ export default class Mission {
         return this.segments[segmentIndex]?.speed ?? DEFAULT_SPEED;
     }
 
-    setTransitSpeed(speed: number, segmentIndex: number = 0) {
-        this.segments[segmentIndex].speed = speed;
+    setTransitSpeed(speed: number) {
+        for (const segment of this.segments) {
+            segment.speed = speed;
+        }
     }
 
     getStationkeepSpeed(): number {
@@ -152,7 +154,10 @@ export default class Mission {
             recovery: {
                 recover_at_final_goal: true,
             },
-            speeds: { stationkeep_outer: this.getStationkeepSpeed() },
+            speeds: {
+                transit: this.getTransitSpeed(),
+                stationkeep_outer: this.getStationkeepSpeed(),
+            },
             repeats: this.repeats,
             mission_name: missionSetName,
             segments: this.segments,

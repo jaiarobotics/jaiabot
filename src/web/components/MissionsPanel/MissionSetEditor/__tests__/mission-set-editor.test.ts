@@ -25,7 +25,7 @@ function makeCache(entries: [string, Mission[]][]): Map<string, MissionSetSnapsh
             nextMissionID: missions.length + 1,
             missionIDInEditMode: UNASSIGNED_ID,
             name,
-            selectedSpeeds: DEFAULT_SPEEDS,
+            speeds: DEFAULT_SPEEDS,
         });
     }
     return cache;
@@ -217,19 +217,7 @@ describe("combineMissionSets", () => {
         const result = combineMissionSets(["empty1", "empty2"], "out", cache);
 
         expect(result.missions.length).toBe(0);
-        expect(result.selectedSpeeds.transit).toBe(DEFAULT_SPEED);
-        expect(result.selectedSpeeds.stationkeep_outer).toBe(DEFAULT_SPEED);
-    });
-
-    test("selectedSpeeds in output reflect max across non-empty sets only", () => {
-        const cache = makeCache([
-            ["empty", []],
-            ["A", [makeMission(2, { transit: 4, stationkeep_outer: 1 })]],
-            ["B", [makeMission(2, { transit: 1, stationkeep_outer: 3 })]],
-        ]);
-        const result = combineMissionSets(["empty", "A", "B"], "out", cache);
-
-        expect(result.selectedSpeeds.transit).toBe(4);
-        expect(result.selectedSpeeds.stationkeep_outer).toBe(3);
+        expect(result.speeds.transit).toBe(DEFAULT_SPEED);
+        expect(result.speeds.stationkeep_outer).toBe(DEFAULT_SPEED);
     });
 });
