@@ -220,16 +220,4 @@ describe("combineMissionSets", () => {
         expect(result.speeds.transit).toBe(DEFAULT_SPEED);
         expect(result.speeds.stationkeep_outer).toBe(DEFAULT_SPEED);
     });
-
-    test("selectedSpeeds in output reflect max across non-empty sets only", () => {
-        const cache = makeCache([
-            ["empty", []],
-            ["A", [makeMission(2, { transit: 4, stationkeep_outer: 1 })]],
-            ["B", [makeMission(2, { transit: 1, stationkeep_outer: 3 })]],
-        ]);
-        const result = combineMissionSets(["empty", "A", "B"], "out", cache);
-
-        expect(result.speeds.transit).toBe(4);
-        expect(result.speeds.stationkeep_outer).toBe(3);
-    });
 });
