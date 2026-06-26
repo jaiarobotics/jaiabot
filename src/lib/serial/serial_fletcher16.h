@@ -6,8 +6,8 @@
 #include <string>
 
 #include <goby/middleware/io/detail/io_interface.h>
-#include <goby/version.h>
 #include <goby/middleware/io/detail/serial_interface.h>
+#include <goby/version.h>
 
 #include "nanopb/jaiabot/messages/feather.pb.h"
 
