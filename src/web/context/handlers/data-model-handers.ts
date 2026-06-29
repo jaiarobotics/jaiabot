@@ -3,6 +3,7 @@ import {
     ButtonNames,
     HubAccordionStates,
     BotAccordionStates,
+    WaypointSections,
 } from "../../types/context-types";
 import { JaiaActions } from "../jaia-actions";
 import { bots } from "../../data/bots/bots";
@@ -13,12 +14,15 @@ import { taskPackets } from "../../data/task_packets/task-packets";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
 import { rallyPoints } from "../../data/rally_points/rally-points";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { saveHistory } from "./history-handlers";
+import { syncOpenLayers } from "./handler-utils";
 
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
+    health: false,
     links: false,
 };
 
@@ -51,6 +55,12 @@ const defaultMapLayerAccordionStates = {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleInit(mutableState: JaiaContextType) {
+    // Note: exclusionZoneSet is intentionally not cleared here, matching the
+    // pattern used by missionSet. INIT fires only on page load, not on hub
+    // reconnect, so clearing here would have the same practical effect — but
+    // we omit it to keep the two data models consistent.
+    syncOpenLayers();
+
     const completeInit: JaiaContextType = {
         bots: bots,
         hubs: hubs,
@@ -60,8 +70,13 @@ export function handleInit(mutableState: JaiaContextType) {
         jaiaGlobal: jaiaGlobal,
         missionsManager: missionsManager,
         taskPackets: taskPackets,
+        exclusionZoneSet: exclusionZoneSet,
+        pendingReroute: null,
+        pendingWaypointRemoval: null,
+        placementError: "",
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
+        visibleWaypointSection: WaypointSections.NONE,
         hubAccordionStates: defaultHubAccordionStates,
         botAccordionStates: defaultBotAccordionStates,
         mapLayerAccordionStates: defaultMapLayerAccordionStates,

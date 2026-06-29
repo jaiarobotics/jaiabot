@@ -1,19 +1,19 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "./mission";
-import { DEFAULT_MISSION_SET_NAME, UNASSIGNED_ID } from "../../utils/constants";
+import { DEFAULT_MISSION_SET_NAME, DEFAULT_SPEED, UNASSIGNED_ID } from "../../utils/constants";
 import { Speeds } from "../../types/protobuf-types";
 
 // This constant will be used to track versions of mission sets
 // exported to files, update whenever the class or supporting
 // classes are updated
-export const MISSION_SET_VERSION = "2.0";
+export const MISSION_SET_VERSION = "2.1";
 
 export interface MissionSetSnapshot {
     missions: [number, Mission][];
     nextMissionID: number;
     missionIDInEditMode: number;
-    missionSpeeds: Speeds;
     name: string;
+    speeds: Speeds;
 }
 
 export class MissionSet {
@@ -21,16 +21,16 @@ export class MissionSet {
     private ghostMissions: Map<number, Mission>;
     private nextMissionID: number;
     private missionIDInEditMode: number;
-    private missionSpeeds: Speeds;
     private name: string;
+    private speeds: Speeds;
 
     constructor() {
         this.missions = new Map<number, Mission>();
         this.ghostMissions = new Map<number, Mission>();
         this.nextMissionID = 1;
         this.missionIDInEditMode = UNASSIGNED_ID;
-        this.missionSpeeds = { transit: 2, stationkeep_outer: 2 };
         this.name = DEFAULT_MISSION_SET_NAME;
+        this.speeds = { transit: DEFAULT_SPEED, stationkeep_outer: DEFAULT_SPEED };
     }
 
     getMissions() {
@@ -78,14 +78,14 @@ export class MissionSet {
     }
 
     getMissionSpeeds() {
-        return this.missionSpeeds;
+        return this.speeds;
     }
 
     setMissionSpeeds(missionSpeeds: Speeds) {
-        this.missionSpeeds = { ...missionSpeeds };
-
-        for (const [missionID, mission] of this.missions.entries()) {
-            mission.setSpeeds(this.missionSpeeds);
+        this.speeds = { ...missionSpeeds };
+        for (const mission of this.missions.values()) {
+            mission.setTransitSpeed(missionSpeeds.transit ?? DEFAULT_SPEED);
+            mission.setStationkeepSpeed(missionSpeeds.stationkeep_outer ?? DEFAULT_SPEED);
         }
     }
 
@@ -93,7 +93,8 @@ export class MissionSet {
         const missionID = this.getNextMissionID();
         this.missions.set(missionID, mission);
         mission.setMissionID(missionID);
-        mission.setSpeeds(this.missionSpeeds);
+        mission.setTransitSpeed(this.speeds.transit ?? DEFAULT_SPEED);
+        mission.setStationkeepSpeed(this.speeds.stationkeep_outer ?? DEFAULT_SPEED);
         this.setMissionIDInEditMode(missionID);
         this.setNextMissionID(this.getNextMissionID() + 1);
         return missionID;
@@ -144,8 +145,8 @@ export class MissionSet {
             missions: Array.from(this.missions),
             nextMissionID: this.nextMissionID,
             missionIDInEditMode: this.missionIDInEditMode,
-            missionSpeeds: this.missionSpeeds,
             name: this.name,
+            speeds: this.speeds,
         };
         return cloneDeep(currentMissionSet);
     }
@@ -170,8 +171,11 @@ export class MissionSet {
         }
         this.nextMissionID = restored.nextMissionID;
         this.missionIDInEditMode = restored.missionIDInEditMode;
-        this.missionSpeeds = restored.missionSpeeds;
         this.name = restored.name;
+        this.speeds = restored.speeds ?? {
+            transit: DEFAULT_SPEED,
+            stationkeep_outer: DEFAULT_SPEED,
+        };
     }
 }
 

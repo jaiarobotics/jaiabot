@@ -16,6 +16,7 @@ import {
 } from "./handlers/mission-handlers";
 import {
     handleAddWaypoint,
+    handleAddWaypointsBulk,
     handleDeleteWaypoint,
     handleMoveWaypoint,
     handleSelectTask,
@@ -24,6 +25,7 @@ import {
     handleToggleBottomDive,
     handleToggleHydrophone,
     handleToggleConstantHeadingSelect,
+    handleChangeCoordinateSystem,
 } from "./handlers/waypoint-handlers";
 import {
     handleAddRallyPoint,
@@ -35,6 +37,7 @@ import {
     handleClosedRallyPanel,
     handleClosedDetails,
     handleClosedWaypointPanel,
+    handleClosedZoneVertexPanel,
     handleClosedTaskPacketPanel,
 } from "./handlers/panel-handlers";
 import {
@@ -51,10 +54,32 @@ import {
     handleClickedWaypoint,
     handleClickedRallyPoint,
     handleClickedTaskPacket,
+    handleClickedWaypointSection,
 } from "./handlers/selection-handlers";
 import { handleClickedUndo } from "./handlers/history-handlers";
 import { handleChangeGridPlanningState } from "./handlers/survey-handlers";
 import { handleMoveHub, handleToggleSelectHubLocation } from "./handlers/simulation-handlers";
+import {
+    handleAddExclusionZone,
+    handleDeleteExclusionZone,
+    handleClearExclusionZones,
+    handleLoadExclusionZones,
+    handleRestoreExclusionZoneSnapshot,
+    handleToggleExclusionZoneDrawing,
+    handleConfirmMissionReroute,
+    handleCancelMissionReroute,
+    handleConfirmWaypointRemoval,
+    handleCancelWaypointRemoval,
+    handleSelectZoneVertex,
+    handleAddZoneVertex,
+    handleMoveZoneVertex,
+    handleDeleteZoneVertex,
+    handleToggleZoneEditMode,
+    handleToggleZoneVertexTapToMove,
+    handleSetPlacementError,
+    handleClearPlacementError,
+    handleChangeExclusionZoneSetName,
+} from "./handlers/exclusion-zone-handlers";
 
 // Standard profile for action handling functions
 type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType; // Configuration for handling JaiaActions
@@ -79,10 +104,15 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.CHANGE_MISSION_SPEEDS, { handler: handleChangeMissionSpeeds, tracked: true }],
     [JaiaActions.CHANGE_MISSION_REPEATS, { handler: handleChangeMissionRepeats, tracked: true }],
     [JaiaActions.CHANGE_MISSION_SET_NAME, { handler: handleChangeMissionSetName, tracked: true }],
+    [
+        JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
+        { handler: handleChangeExclusionZoneSetName, tracked: true },
+    ],
     [JaiaActions.LOAD_MISSION_SET, { handler: handleLoadMissionSet, tracked: true }],
 
     // Waypoint & Task Actions
     [JaiaActions.ADD_WAYPOINT, { handler: handleAddWaypoint, tracked: true }],
+    [JaiaActions.ADD_WAYPOINTS_BULK, { handler: handleAddWaypointsBulk, tracked: true }],
     [JaiaActions.DELETE_WAYPOINT, { handler: handleDeleteWaypoint, tracked: true }],
     [JaiaActions.MOVE_WAYPOINT, { handler: handleMoveWaypoint, tracked: true }],
     [JaiaActions.SELECT_TASK, { handler: handleSelectTask, tracked: true }],
@@ -96,6 +126,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [
         JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
         { handler: handleChangeTaskPacketVisibility, tracked: false },
+    ],
+    [
+        JaiaActions.CHANGE_COORDINATE_SYSTEM,
+        { handler: handleChangeCoordinateSystem, tracked: false },
     ],
 
     // Survey Actions
@@ -128,6 +162,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.CLOSED_DETAILS, { handler: handleClosedDetails, tracked: false }],
     [JaiaActions.CLOSED_WAYPOINT_PANEL, { handler: handleClosedWaypointPanel, tracked: false }],
     [
+        JaiaActions.CLOSED_ZONE_VERTEX_PANEL,
+        { handler: handleClosedZoneVertexPanel, tracked: false },
+    ],
+    [
         JaiaActions.CLOSED_TASK_PACKET_PANEL,
         { handler: handleClosedTaskPacketPanel, tracked: false },
     ],
@@ -152,6 +190,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.CLICKED_WAYPOINT, { handler: handleClickedWaypoint, tracked: false }],
     [JaiaActions.CLICKED_RALLY_POINT, { handler: handleClickedRallyPoint, tracked: false }],
     [JaiaActions.CLICKED_TASK_PACKET, { handler: handleClickedTaskPacket, tracked: false }],
+    [
+        JaiaActions.CLICKED_WAYPOINT_SECTION,
+        { handler: handleClickedWaypointSection, tracked: false },
+    ],
 
     // History Actions
     [JaiaActions.CLICKED_UNDO, { handler: handleClickedUndo, tracked: false }],
@@ -162,4 +204,38 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         { handler: handleToggleSelectHubLocation, tracked: false },
     ],
     [JaiaActions.MOVE_HUB, { handler: handleMoveHub, tracked: false }],
+
+    // Exclusion Zone Actions
+    [JaiaActions.ADD_EXCLUSION_ZONE, { handler: handleAddExclusionZone, tracked: true }],
+    [JaiaActions.DELETE_EXCLUSION_ZONE, { handler: handleDeleteExclusionZone, tracked: true }],
+    [JaiaActions.CLEAR_EXCLUSION_ZONES, { handler: handleClearExclusionZones, tracked: true }],
+    [JaiaActions.LOAD_EXCLUSION_ZONES, { handler: handleLoadExclusionZones, tracked: true }],
+    [
+        JaiaActions.RESTORE_EXCLUSION_ZONE_SNAPSHOT,
+        { handler: handleRestoreExclusionZoneSnapshot, tracked: false },
+    ],
+    [
+        JaiaActions.TOGGLE_EXCLUSION_ZONE_DRAWING,
+        { handler: handleToggleExclusionZoneDrawing, tracked: false },
+    ],
+    [JaiaActions.CONFIRM_MISSION_REROUTE, { handler: handleConfirmMissionReroute, tracked: true }],
+    [JaiaActions.CANCEL_MISSION_REROUTE, { handler: handleCancelMissionReroute, tracked: true }],
+    [
+        JaiaActions.CONFIRM_WAYPOINT_REMOVAL,
+        { handler: handleConfirmWaypointRemoval, tracked: true },
+    ],
+    [JaiaActions.CANCEL_WAYPOINT_REMOVAL, { handler: handleCancelWaypointRemoval, tracked: true }],
+
+    [JaiaActions.SELECT_ZONE_VERTEX, { handler: handleSelectZoneVertex, tracked: false }],
+    [JaiaActions.ADD_ZONE_VERTEX, { handler: handleAddZoneVertex, tracked: true }],
+    [JaiaActions.MOVE_ZONE_VERTEX, { handler: handleMoveZoneVertex, tracked: true }],
+    [JaiaActions.DELETE_ZONE_VERTEX, { handler: handleDeleteZoneVertex, tracked: true }],
+    [JaiaActions.TOGGLE_ZONE_EDIT_MODE, { handler: handleToggleZoneEditMode, tracked: false }],
+    [
+        JaiaActions.TOGGLE_ZONE_VERTEX_TAP_TO_MOVE,
+        { handler: handleToggleZoneVertexTapToMove, tracked: false },
+    ],
+
+    [JaiaActions.SET_PLACEMENT_ERROR, { handler: handleSetPlacementError, tracked: false }],
+    [JaiaActions.CLEAR_PLACEMENT_ERROR, { handler: handleClearPlacementError, tracked: false }],
 ]);

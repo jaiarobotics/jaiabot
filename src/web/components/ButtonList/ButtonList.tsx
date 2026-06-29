@@ -20,6 +20,7 @@ import {
     mdiHelp,
     mdiProgressDownload,
     mdiRuler,
+    mdiVectorPolygon,
     mdiViewList,
     mdiArrowULeftTop,
     mdiSquareEditOutline,
@@ -137,7 +138,6 @@ export default function ButtonList(props: Props) {
                 >
                     <Icon path={mdiViewList} size={MDI_BUTTON_SIZE} title="Missions Panel" />
                 </Button>
-                <RallyButton />
                 <Button
                     className={getSelectedClassName(ButtonNames.SURVEY_TOOL)}
                     aria-label="survey-tool"
@@ -145,6 +145,20 @@ export default function ButtonList(props: Props) {
                 >
                     <Icon path={mdiSquareEditOutline} size={MDI_BUTTON_SIZE} title="Survey Tool" />
                 </Button>
+                {/* <Button
+                    className={getSelectedClassName(ButtonNames.EXCLUSION_ZONES_PANEL)}
+                    aria-label="exclusion-zones-panel"
+                    onClick={() =>
+                        handleButtonClick(ButtonTypes.PANEL, ButtonNames.EXCLUSION_ZONES_PANEL)
+                    }
+                >
+                    <Icon
+                        path={mdiVectorPolygon}
+                        size={MDI_BUTTON_SIZE}
+                        title="Obstacle Zones Panel"
+                    />
+                </Button> */}
+                <RallyButton />
                 <Button
                     className={getSelectedClassName(ButtonNames.DATA_OFFLOAD_PANEL)}
                     aria-label="data-offload-panel"
