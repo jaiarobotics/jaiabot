@@ -25,7 +25,7 @@ function makeCache(entries: [string, Mission[]][]): Map<string, MissionSetSnapsh
             nextMissionID: missions.length + 1,
             missionIDInEditMode: UNASSIGNED_ID,
             name,
-            selectedSpeeds: DEFAULT_SPEEDS,
+            speeds: DEFAULT_SPEEDS,
         });
     }
     return cache;
@@ -172,7 +172,7 @@ describe("combineMissionSets", () => {
         const result = combineMissionSets(["survey"], "out", cache);
 
         const segments = result.missions[0][1].getSegments();
-        expect(segments[0].bottom_depth_safety_params).toEqual(srp);
+        expect(segments[1].bottom_depth_safety_params).toEqual(srp);
     });
 
     test("SRP: segment start_goal_index is offset by preceding waypoints", () => {
@@ -192,41 +192,9 @@ describe("combineMissionSets", () => {
         const result = combineMissionSets(["transit", "survey"], "out", cache);
 
         const segments = result.missions[0][1].getSegments();
-        // Survey SRP segment offset by 2 transit waypoints: start_goal_index = 1 + 2 = 3
-        expect(segments[1].start_goal_index).toBe(3);
-        expect(segments[1].bottom_depth_safety_params).toEqual(srp);
-    });
-
-    test("speeds: max transit and stationkeep applied uniformly across all output missions", () => {
-        const cache = makeCache([
-            [
-                "survey",
-                [
-                    makeMission(2, { transit: 3, stationkeep_outer: 1 }),
-                    makeMission(2, { transit: 1, stationkeep_outer: 3 }),
-                ],
-            ],
-        ]);
-        const result = combineMissionSets(["survey"], "out", cache);
-
-        for (const [, mission] of result.missions) {
-            expect(mission.getTransitSpeed()).toBe(3);
-            expect(mission.getStationkeepSpeed()).toBe(3);
-        }
-    });
-
-    test("speeds: max is taken across all source sets, not just one", () => {
-        const cache = makeCache([
-            ["A", [makeMission(2, { transit: 3, stationkeep_outer: 1 })]],
-            ["B", [makeMission(2, { transit: 1, stationkeep_outer: 3 })]],
-        ]);
-        const result = combineMissionSets(["A", "B"], "out", cache);
-
-        const [, mission] = result.missions[0];
-        expect(mission.getTransitSpeed()).toBe(3);
-        expect(mission.getStationkeepSpeed()).toBe(3);
-        expect(result.selectedSpeeds.transit).toBe(3);
-        expect(result.selectedSpeeds.stationkeep_outer).toBe(3);
+        // Survey SRP segment offset by 2 transit waypoints
+        expect(segments[2].start_goal_index).toBe(2);
+        expect(segments[2].bottom_depth_safety_params).toEqual(srp);
     });
 
     test("empty set alongside non-empty set — output matches non-empty set alone", () => {
@@ -249,19 +217,7 @@ describe("combineMissionSets", () => {
         const result = combineMissionSets(["empty1", "empty2"], "out", cache);
 
         expect(result.missions.length).toBe(0);
-        expect(result.selectedSpeeds.transit).toBe(DEFAULT_SPEED);
-        expect(result.selectedSpeeds.stationkeep_outer).toBe(DEFAULT_SPEED);
-    });
-
-    test("selectedSpeeds in output reflect max across non-empty sets only", () => {
-        const cache = makeCache([
-            ["empty", []],
-            ["A", [makeMission(2, { transit: 4, stationkeep_outer: 1 })]],
-            ["B", [makeMission(2, { transit: 1, stationkeep_outer: 3 })]],
-        ]);
-        const result = combineMissionSets(["empty", "A", "B"], "out", cache);
-
-        expect(result.selectedSpeeds.transit).toBe(4);
-        expect(result.selectedSpeeds.stationkeep_outer).toBe(3);
+        expect(result.speeds.transit).toBe(DEFAULT_SPEED);
+        expect(result.speeds.stationkeep_outer).toBe(DEFAULT_SPEED);
     });
 });

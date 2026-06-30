@@ -13,6 +13,7 @@ src/stm32/nanopb
 src/stm32/*/Debug
 src/stm32/*/jaiabot
 src/stm32/*/nanopb
+.claude
 
 # === private files ===
 
