@@ -197,8 +197,7 @@ struct InMission
                 }
                 else
                 {
-                    battery_protocol.set_action(
-                        protobuf::MissionPlan::BatteryProtocol::STOP_AND_BROADCAST);
+                    battery_protocol.set_action(protobuf::MissionPlan::BatteryProtocol::NONE);
                 }
                 break;
 
@@ -209,8 +208,7 @@ struct InMission
                 }
                 else
                 {
-                    battery_protocol.set_action(
-                        protobuf::MissionPlan::BatteryProtocol::STATION_KEEP);
+                    battery_protocol.set_action(protobuf::MissionPlan::BatteryProtocol::NONE);
                 }
                 break;
 
