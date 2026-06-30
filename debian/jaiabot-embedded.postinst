@@ -175,7 +175,7 @@ JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
                                          --camera_positions ${JAIA_CAMERA_POSITIONS} \
                                          --dccl_encryption_password=${JAIA_DCCL_ENCRYPTION_PASSWORD} \
                                          --additional_sensors ${JAIA_ADDITIONAL_SENSORS} \
-                                         --tail_serial_number ${JAIA_TAIL_SERIAL_NUMBER}
+                                         --tail_serial_number=${JAIA_TAIL_SERIAL_NUMBER}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 
