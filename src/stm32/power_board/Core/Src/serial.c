@@ -7,7 +7,7 @@
 static uint8_t usb_tx_buffer[MAX_MSG_SIZE];
 static uint8_t usb_tx_buffer_cobs[MAX_MSG_SIZE];
 
-void usb_transmit(PowerBoardMessage *message)
+void usb_transmit(PowerBoardResponse *response)
 {
     uint32_t wait_start_tick = HAL_GetTick();
     while (usb_tx_busy)
@@ -24,7 +24,7 @@ void usb_transmit(PowerBoardMessage *message)
 
     pb_ostream_t stream = pb_ostream_from_buffer(buffer, MAX_MSG_SIZE);
 
-    bool status = pb_encode(&stream, jaiabot_protobuf_PowerBoardMessage_fields, message);
+    bool status = pb_encode(&stream, jaiabot_protobuf_PowerBoardResponse_fields, response);
 
     if (!status)
     {

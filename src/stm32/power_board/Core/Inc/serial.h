@@ -11,7 +11,7 @@ extern "C" {
 
 #include "crc32.h"
 #include "command.h"
-#include "jaiabot/messages/power_board.pb.h"
+#include "jaiabot/messages/power_board/power_board.pb.h"
 
 #define USB_TX_WAIT_TIMEOUT_MS 25
 #define MAX_MSG_SIZE 256
@@ -19,7 +19,7 @@ extern "C" {
 extern bool usb_tx_busy;
 extern uint8_t bits_in_byte;
 
-void usb_transmit(jaiabot_protobuf_PowerBoardMessage *message);
+void usb_transmit(jaiabot_protobuf_PowerBoardResponse *response);
 void usb_receive(void);
 
 #ifdef __cplusplus

@@ -98,8 +98,10 @@ ln -sfn "${MESSAGES_DIR}" "${PROTO_STAGING}/jaiabot/messages"
 NANOPB_OUT="${STM32_BUILD_DIR}/nanopb"
 NANOPB_MSG_DIR="${NANOPB_OUT}/jaiabot/messages"
 NANOPB_SENSOR_DIR="${NANOPB_MSG_DIR}/sensor"
+NANOPB_POWER_BOARD_DIR="${NANOPB_MSG_DIR}/power_board"
 mkdir -p "${NANOPB_MSG_DIR}"
 mkdir -p "${NANOPB_SENSOR_DIR}"
+mkdir -p "${NANOPB_POWER_BOARD_DIR}"
 
 # --- Generate nanopb sources from .proto files ---
 echo "[STM32] Generating nanopb sources..."
@@ -120,6 +122,13 @@ nanopb_generator.py \
     --options-path="${MESSAGES_DIR}/sensor" \
     -I "${PROTO_STAGING}" \
     "${PROTO_STAGING}/jaiabot/messages/sensor"/*.proto 2>&1 | grep -v '^Writing to\|warning:' || true
+
+# Power board messages — same pattern as sensor above.
+nanopb_generator.py \
+    --output-dir="${NANOPB_OUT}" \
+    --options-path="${MESSAGES_DIR}/power_board" \
+    -I "${PROTO_STAGING}" \
+    "${PROTO_STAGING}/jaiabot/messages/power_board"/*.proto 2>&1 | grep -v '^Writing to\|warning:' || true
 
 # --- Build ---
 # NANOPB_INC: root of jaiabot/messages/ tree → NANOPB_SENSOR_GEN_DIR = $(NANOPB_INC)/jaiabot/messages/sensor

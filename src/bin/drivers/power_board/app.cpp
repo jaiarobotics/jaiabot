@@ -30,7 +30,7 @@
 #include "config.pb.h"
 #include "jaiabot/crc/crc32.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/power_board.pb.h"
+#include "jaiabot/messages/power_board/power_board.pb.h"
 #include "jaiabot/messages/health.pb.h"
 
 using goby::glog;
@@ -169,7 +169,7 @@ void jaiabot::apps::PowerBoard::receive_from_mcu(const goby::middleware::protobu
                                      std::to_string(provided_crc) + ")"));
         }
 
-        jaiabot::protobuf::PowerBoardMessage power_board_msg;
+        jaiabot::protobuf::PowerBoardResponse power_board_msg;
         power_board_msg.ParseFromArray(encoded.data(), encoded.size() - bytes_in_crc32);
 
         glog.is_verbose() && glog << "Received data from MCU: "

@@ -10,8 +10,8 @@ extern "C" {
 
 #include "motor.h"
 #include "rudder.h"
-
-#include "jaiabot/messages/power_board.pb.h"
+#include "serial.h"
+#include "jaiabot/messages/power_board/power_board.pb.h"
 
 #define POWER_BOARD_CMD_BUF_SIZE 256
 

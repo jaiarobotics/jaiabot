@@ -91,19 +91,26 @@ void power_board_command_process(void)
         return;
     }
 
-    if (request.has_mcu_command)
+    if (request.has_power_board_mcu_command)
     {
-        switch (request.mcu_command)
+        switch (request.power_board_mcu_command)
         {
             case jaiabot_protobuf_PowerBoardMCUCommand_ENTER_BOOTLOADER_MODE:
                 
                 // jumpToBootloader();
                 break;
-            // case jaiabot_protobuf_PowerBoardMCUCommand_RESET:
-            //     NVIC_SystemReset();
-            //     break;
             default:
                 break;
         }
+    }
+    else if (request.data.request_metadata)
+    {
+        PowerBoardResponse response = jaiabot_protobuf_PowerBoardResponse_init_zero;
+        response.time = (uint64_t)HAL_GetTick() * 1000ULL;
+        response.which_data = jaiabot_protobuf_PowerBoardResponse_metadata_tag;
+        response.data.metadata.has_power_board_version = true;
+        response.data.metadata.power_board_version = 1;
+        
+        usb_transmit(&response);
     }
 }

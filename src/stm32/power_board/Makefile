@@ -104,7 +104,9 @@ Core/Src/syscalls.c \
 $(NANOPB_RUNTIME_DIR)/pb_common.c \
 $(NANOPB_RUNTIME_DIR)/pb_decode.c \
 $(NANOPB_RUNTIME_DIR)/pb_encode.c \
-$(NANOPB_SENSOR_GEN_DIR)/power_board.pb.c \
+$(NANOPB_SENSOR_GEN_DIR)/power_board/power_board.pb.c \
+$(NANOPB_SENSOR_GEN_DIR)/power_board/metadata.pb.c \
+$(NANOPB_SENSOR_GEN_DIR)/power_board/actuators.pb.c \
 
 # ASM sources
 ASM_SOURCES =  \

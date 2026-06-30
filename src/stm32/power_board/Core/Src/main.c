@@ -173,20 +173,39 @@ int main(void)
     /* USER CODE BEGIN 3 */
     HAL_IWDG_Refresh(&hiwdg);
 
-
-    // power_board_command_process();
+    power_board_command_process();
 
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
 
     static uint8_t tx_buffer[MAX_MSG_SIZE];
     static uint8_t tx_buffer_cobs[MAX_MSG_SIZE];
 
-    PowerBoardMessage power_board_msg = jaiabot_protobuf_PowerBoardMessage_init_zero;
-    power_board_msg.time = (uint64_t)HAL_GetTick() * 1000ULL;
+    // Start ADC for vcc measurements
+    HAL_ADC_Start(&hadc1);
+    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+    uint32_t raw_vcc_voltage = HAL_ADC_GetValue(&hadc1);
+    HAL_ADC_Stop(&hadc1);
 
-    usb_transmit(&power_board_msg);
+    PowerBoardResponse power_board_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
+    power_board_response.time = (uint64_t)HAL_GetTick() * 1000ULL;
+    power_board_response.has_thermocouple_temperature_C = true;
+    power_board_response.thermocouple_temperature_C = 20.0f;
+    power_board_response.has_vccvoltage = true;
+    power_board_response.vccvoltage = `((float)raw_vcc_voltage * 3.0f / 4095.0f) * 2.0f; // Assuming a voltage divider of 2:1
+    power_board_response.has_vcccurrent = true;
+    power_board_response.vcccurrent = 0.6f;
+    power_board_response.has_vvcurrent = true;
+    power_board_response.vvcurrent = 0.7f;
+    power_board_response.has_motor = true;
+    power_board_response.motor = 1550;
+    power_board_response.has_thermistor_voltage = true;
+    power_board_response.thermistor_voltage = 0.8f;
+    power_board_response.has_generic_gpio_voltage = true;
+    power_board_response.generic_gpio_voltage = 0.9f;
 
-    HAL_Delay(50);
+    usb_transmit(&power_board_response);
+
+    HAL_Delay(100);
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
 
     // lptim_wake_flag = 0U;

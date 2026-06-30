@@ -42,7 +42,7 @@ extern "C" {
 #include "command.h"
 
 #include <pb_encode.h>
-#include "jaiabot/messages/power_board.pb.h"
+#include "jaiabot/messages/power_board/power_board.pb.h"
 
 /* USER CODE END Includes */
 
@@ -53,7 +53,7 @@ struct boot_vectable_ {
     void (*Reset_Handler)(void);
 };
 
-typedef jaiabot_protobuf_PowerBoardMessage PowerBoardMessage;
+typedef jaiabot_protobuf_PowerBoardResponse PowerBoardResponse;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
