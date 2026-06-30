@@ -29,7 +29,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -70,6 +69,9 @@ TIM_HandleTypeDef htim16;
 static volatile uint8_t lptim_wake_flag = 0;
 /* LSI ~32 kHz, LPTIM prescaler /128 -> 250 Hz. 10 s = 2500 counts. */
 #define LPTIM_10SEC_PERIOD  (2500U - 1U)
+
+uint8_t bits_in_byte = 8;
+bool usb_tx_busy = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -145,7 +147,7 @@ int main(void)
   MX_LPTIM1_Init();
   /* USER CODE BEGIN 2 */
 
-  HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);   /* DEEP SLEEP for current measurement */
+  // HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);   /* DEEP SLEEP for current measurement */
 
   //HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_SET);
 
@@ -158,6 +160,8 @@ int main(void)
 
   /* Allow USB host time to enumerate the CDC device before the first TX. */
   HAL_Delay(2000);
+
+  init_crc32_table();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -167,33 +171,38 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    static const char hello_msg[] = "HELLO WORLD\r\n";
+    HAL_IWDG_Refresh(&hiwdg);
+
+
+    // power_board_command_process();
+
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
 
-    uint8_t tx_status = USBD_BUSY;
-    uint32_t tx_start = HAL_GetTick();
+    static uint8_t tx_buffer[MAX_MSG_SIZE];
+    static uint8_t tx_buffer_cobs[MAX_MSG_SIZE];
 
-    do {
-      tx_status = CDC_Transmit_FS((uint8_t *)hello_msg, sizeof(hello_msg) - 1U);
-    } while (tx_status == USBD_BUSY && (HAL_GetTick() - tx_start) < 100U);
+    PowerBoardMessage power_board_msg = jaiabot_protobuf_PowerBoardMessage_init_zero;
+    power_board_msg.time = (uint64_t)HAL_GetTick() * 1000ULL;
+
+    usb_transmit(&power_board_msg);
 
     HAL_Delay(50);
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
 
-    lptim_wake_flag = 0U;
-    if (HAL_LPTIM_Counter_Start_IT(&hlptim1, LPTIM_10SEC_PERIOD) != HAL_OK)
-    {
-      Error_Handler();
-    }
+    // lptim_wake_flag = 0U;
+    // if (HAL_LPTIM_Counter_Start_IT(&hlptim1, LPTIM_10SEC_PERIOD) != HAL_OK)
+    // {
+    //   Error_Handler();
+    // }
 
-    HAL_SuspendTick();
-    while (lptim_wake_flag == 0U)
-    {
-      HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-    }
-    HAL_ResumeTick();
+    // HAL_SuspendTick();
+    // while (lptim_wake_flag == 0U)
+    // {
+    //   HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+    // }
+    // HAL_ResumeTick();
 
-    HAL_LPTIM_Counter_Stop_IT(&hlptim1);
+    // HAL_LPTIM_Counter_Stop_IT(&hlptim1);
   }
   /* USER CODE END 3 */
 }
@@ -420,7 +429,11 @@ static void MX_IWDG_Init(void)
 
   /* USER CODE END IWDG_Init 1 */
   hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_4;
+  /* Main loop sleeps ~10s per iteration (LPTIM_10SEC_PERIOD) waiting on the
+   * low-power timer, refreshing the watchdog once per wake. PRESCALER_256
+   * gives a ~32.7s timeout (4096 / (32kHz LSI / 256)), comfortably covering
+   * that sleep with margin. */
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
   hiwdg.Init.Window = 4095;
   hiwdg.Init.Reload = 4095;
   if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
@@ -981,6 +994,62 @@ void HAL_LPTIM_AutoReloadMatchCallback(LPTIM_HandleTypeDef *hlptim)
   {
     lptim_wake_flag = 1U;
   }
+}
+
+// Jumps to the STM32 ROM bootloader (system memory), which on this part
+// (STM32L433) re-enumerates the USB peripheral as a DFU device so the
+// application can be reflashed with dfu-util over the same USB cable.
+// Erases the application's first flash page (its vector table) first, so
+// this is a one-way trip: if the reflash is aborted, the board will sit in
+// the bootloader rather than boot back into the old application.
+void jumpToBootloader(void)
+{
+  HAL_FLASH_Unlock();
+
+  FLASH_EraseInitTypeDef eraseInitStruct = {0};
+  uint32_t pageError = 0;
+
+  eraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
+  eraseInitStruct.Banks = FLASH_BANK_1;
+  eraseInitStruct.Page = 0;
+  eraseInitStruct.NbPages = 1;
+
+  if (HAL_FLASHEx_Erase(&eraseInitStruct, &pageError) != HAL_OK)
+  {
+    HAL_FLASH_GetError();
+    while (1)
+      ;
+  }
+
+  uint32_t address = 0x08000000;
+  uint64_t data_to_write = 0xFFFFFFFFFFFFFFFF;
+
+  if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address, data_to_write) != HAL_OK)
+  {
+    HAL_FLASH_GetError();
+    while (1)
+      ;
+  }
+
+  HAL_FLASH_Lock();
+
+  __disable_irq();
+
+  SysTick->CTRL = 0;
+
+  HAL_RCC_DeInit();
+
+  for (uint8_t i = 0; i < (sizeof(NVIC->ICER) / sizeof(NVIC->ICER[0])); i++)
+  {
+    NVIC->ICER[i] = 0xFFFFFFFF;
+    NVIC->ICPR[i] = 0xFFFFFFFF;
+  }
+
+  __enable_irq();
+
+  __set_MSP(BOOTVTAB->Initial_SP);
+
+  BOOTVTAB->Reset_Handler();
 }
 /* USER CODE END 4 */
 

@@ -10,6 +10,8 @@
 // CRC32 lookup table
 static uint32_t crc32_table[256];
 
+uint8_t bytes_in_crc32 = 4;  // Number of bytes in CRC32
+
 // Initializes the CRC32 lookup table (call once)
 void init_crc32_table(void) {
     uint32_t polynomial = 0xEDB88320;

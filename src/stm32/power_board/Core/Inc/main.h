@@ -33,6 +33,7 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 
 #include "crc32.h"
+#include "cobs.h"
 #include "serial.h"
 #include "motor.h"
 #include "rudder.h"
@@ -40,21 +41,32 @@ extern "C" {
 #include "ble.h"
 #include "command.h"
 
+#include <pb_encode.h>
+#include "jaiabot/messages/power_board.pb.h"
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+struct boot_vectable_ {
+    uint32_t Initial_SP;
+    void (*Reset_Handler)(void);
+};
 
+typedef jaiabot_protobuf_PowerBoardMessage PowerBoardMessage;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+extern uint8_t bits_in_byte;
+extern bool usb_tx_busy;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+#define MAX_MSG_SIZE 256
+#define BOOT_ADDR 0x1FFF0000
+#define BOOTVTAB  ((struct boot_vectable_ *)BOOT_ADDR)
 /* USER CODE END EM */
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
@@ -63,7 +75,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void jumpToBootloader(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

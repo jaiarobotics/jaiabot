@@ -17,4 +17,6 @@ void init_crc32_table(void);
 // Computes CRC32 for given data buffer
 uint32_t compute_crc32(const uint8_t* data, size_t length);
 
+extern uint8_t bytes_in_crc32;
+
 #endif /* INC_CRC32_H_ */

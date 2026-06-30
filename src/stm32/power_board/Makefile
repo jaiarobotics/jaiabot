@@ -31,6 +31,13 @@ OPT = -Og
 # Build path
 BUILD_DIR = build
 
+# Optional include roots provided by CMake wrapper
+NANOPB_INC ?=
+JAIABOT_INC ?=
+NANOPB_SYS_INC ?=
+NANOPB_SENSOR_GEN_DIR ?= $(NANOPB_INC)/jaiabot/messages
+NANOPB_RUNTIME_DIR ?= ../../arduino/libraries/nanopb-0.4.1
+
 ######################################
 # source
 ######################################
@@ -93,7 +100,11 @@ Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
 Core/Src/sysmem.c \
-Core/Src/syscalls.c  
+Core/Src/syscalls.c \
+$(NANOPB_RUNTIME_DIR)/pb_common.c \
+$(NANOPB_RUNTIME_DIR)/pb_decode.c \
+$(NANOPB_RUNTIME_DIR)/pb_encode.c \
+$(NANOPB_SENSOR_GEN_DIR)/power_board.pb.c \
 
 # ASM sources
 ASM_SOURCES =  \
@@ -165,7 +176,11 @@ C_INCLUDES =  \
 -IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc \
 -IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc \
 -I../Drivers/CMSIS/Device/ST/STM32L4xx/Include \
--I../Drivers/CMSIS/Include
+-I../Drivers/CMSIS/Include \
+$(if $(NANOPB_INC),-I$(NANOPB_INC)) \
+$(if $(JAIABOT_INC),-I$(JAIABOT_INC)) \
+$(if $(NANOPB_SYS_INC),-I$(NANOPB_SYS_INC)) \
+-I$(NANOPB_RUNTIME_DIR)
 
 
 # compile gcc flags

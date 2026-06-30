@@ -15,3 +15,6 @@ KERNEL=="ttyAMA5", SYMLINK+="iridium"
 
 ## PAM stack
 SUBSYSTEM=="tty", ATTR{iomem_base}=="0xFE201A00", SYMLINK+="pam-stack"
+
+## Power Board (STM32)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", SYMLINK+="power-board"
