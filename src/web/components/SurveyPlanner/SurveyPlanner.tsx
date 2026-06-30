@@ -15,7 +15,7 @@ import { bots } from "../../data/bots/bots";
 import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey_planner/grid-plan";
 import { formatNumericalInput, snakeCaseToTitleCase } from "../../utils/input";
 import { selectTheme } from "../../utils/style";
-import { DEFAULT_LANES, UNASSIGNED_ID } from "../../utils/constants";
+import { DEFAULT_LANES, MAX_LANE_STARTS_PER_BOT, UNASSIGNED_ID } from "../../utils/constants";
 import { TaskType } from "../../types/protobuf-types";
 
 import "./SurveyPlanner.less";
@@ -220,6 +220,32 @@ function GridConfigs(props: Props) {
     const [laneSpacing, setLaneSpacing] = useState(props.gridPlanDetails.laneSpacing);
 
     /**
+     * The mission plan message size limits the number of lanes we can send,
+     * we enforce that rule here
+     *
+     * @param {number} numOfLanes Lanes inputed
+     * @returns {number} number of lanes inputed or max constraint
+     */
+    const validateNumOfLanes = (numOfLanes: number) => {
+        if (numOfLanes / numOfBots > MAX_LANE_STARTS_PER_BOT) {
+            return MAX_LANE_STARTS_PER_BOT;
+        }
+        return numOfLanes;
+    };
+
+    /**
+     * Updates the number of lanes with a vetted value
+     *
+     * @param {numOfLanes} numOfLanes Lanes quantity to be checked
+     * @returns {void}
+     */
+    const handleNumOfLanesChange = (numOfLanes: number) => {
+        const lanes = validateNumOfLanes(numOfLanes);
+        setNumOfLanes(lanes);
+        gridPlan.setNumOfLanes(lanes);
+    };
+
+    /**
      * Updates the grid planning parameters on the UI and in the data model
      *
      * @param {string} value The new value of the input field
@@ -228,6 +254,7 @@ function GridConfigs(props: Props) {
      */
     const handleInputChange = (value: string, inputType: GridInputs) => {
         let input = Number(value);
+        let numOfLanes = 1;
 
         if (isNaN(input) || input < 0) {
             input = 0;
@@ -235,13 +262,13 @@ function GridConfigs(props: Props) {
 
         switch (inputType) {
             case GridInputs.NUM_OF_LANES:
-                setNumOfLanes(input);
-                gridPlan.setNumOfLanes(input);
+                handleNumOfLanesChange(input);
                 gridPlan.calculateMaxPointsPerLane();
                 break;
             case GridInputs.NUM_OF_BOTS:
                 setNumOfBots(input);
                 gridPlan.setNumOfBots(input);
+                handleNumOfLanesChange(numOfLanes);
                 gridPlan.calculateMaxPointsPerLane();
                 break;
             case GridInputs.LANE_SPACING:
