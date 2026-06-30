@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "@mdi/react";
 import { mdiArrowRight, mdiArrowUp, mdiArrowDown, mdiDelete } from "@mdi/js";
-import { Button } from "@mui/material";
 
 import { JCC_CONTAINER, MAX_WAYPOINTS } from "../../../utils/constants";
 import {
@@ -10,27 +9,10 @@ import {
     loadSnapshotFromHub,
 } from "../MissionSetStorage/mission-set-storage";
 import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
-import { getMaxWaypointsPerOutputMission } from "./mission-set-editor";
+import { checkMissionSizes as checkCombinedSizes, WarningTypes } from "./mission-set-editor";
 import SaveAndLoadButton from "./SaveAndLoadButton/SaveAndLoadButton";
 
 import "./MissionSetEditor.less";
-
-interface WaypointWarningProps {
-    onClose: () => void;
-}
-
-/**
- * Alert overlay shown when adding a mission set would exceed MAX_WAYPOINTS.
- */
-function WaypointWarning({ onClose }: WaypointWarningProps) {
-    return (
-        <div className="secondary-dialog alert">
-            <h1>Alert</h1>
-            <p>{`Adding this mission set would exceed the maximum of ${MAX_WAYPOINTS} waypoints per mission.`}</p>
-            <button onClick={onClose}>Close</button>
-        </div>
-    );
-}
 
 interface DialogProps {
     isVisible: boolean;
@@ -51,6 +33,16 @@ interface CombinedListItemProps {
     onSelect: (index: number) => void;
 }
 
+interface WarningProps {
+    message: string;
+    onClose: () => void;
+}
+
+interface WarningState {
+    type: WarningTypes;
+    isVisible: boolean;
+}
+
 /**
  * Dialog for building a combined mission set from multiple saved mission sets.
  * Displays a stored mission sets list and an ordered combination list.
@@ -61,7 +53,7 @@ export function MissionSetEditorDialog(props: DialogProps) {
     const [combinedList, setCombinedList] = useState<string[]>([]);
     const [selectedSavedIndex, setSelectedSavedIndex] = useState<number | null>(null);
     const [selectedCombinedIndex, setSelectedCombinedIndex] = useState<number | null>(null);
-    const [isWaypointWarningVisible, setIsWaypointWarningVisible] = useState(false);
+    const [warning, setWarning] = useState({ type: WarningTypes.NONE, isVisible: false });
     const missionSetSnapshotCache = useRef<Map<string, MissionSetSnapshot>>(new Map());
     const [savedMissionSets, setSavedMissionSets] = useState<string[]>([]);
 
@@ -125,15 +117,12 @@ export function MissionSetEditorDialog(props: DialogProps) {
             projectedList = [...combinedList, selectedSavedName];
         }
 
-        if (
-            getMaxWaypointsPerOutputMission(projectedList, missionSetSnapshotCache.current) >
-            MAX_WAYPOINTS
-        ) {
-            setIsWaypointWarningVisible(true);
-            return;
+        const warningType = checkCombinedSizes(projectedList, missionSetSnapshotCache.current);
+        if (warningType === WarningTypes.NONE) {
+            setCombinedList(projectedList);
+        } else {
+            setWarning({ type: warningType, isVisible: true });
         }
-
-        setCombinedList(projectedList);
     };
 
     /** Moves the selected combined list item one position up.
@@ -176,6 +165,22 @@ export function MissionSetEditorDialog(props: DialogProps) {
         const remaining = combinedList.filter((_, i) => i !== selectedCombinedIndex);
         setCombinedList(remaining);
         setSelectedCombinedIndex(null);
+    };
+
+    /**
+     * Supplies the warning message based on the warning type
+     *
+     * @returns {string} Message to display in warning dialog
+     */
+    const getWarningMessage = () => {
+        switch (warning.type) {
+            case WarningTypes.WAYPOINTS:
+                return `Adding this mission set would exceed the maximum of ${MAX_WAYPOINTS} waypoints per mission.`;
+            case WarningTypes.SEGMENTS:
+                return "Adding this mission set would exceed the maximum mission size";
+            default:
+                return "";
+        }
     };
 
     const hasCombinedSelection = selectedCombinedIndex !== null;
@@ -253,8 +258,13 @@ export function MissionSetEditorDialog(props: DialogProps) {
                             </button>
                         </div>
                     </div>
-                    {isWaypointWarningVisible && (
-                        <WaypointWarning onClose={() => setIsWaypointWarningVisible(false)} />
+                    {warning.isVisible && (
+                        <Warning
+                            message={getWarningMessage()}
+                            onClose={() =>
+                                setWarning({ type: WarningTypes.NONE, isVisible: false })
+                            }
+                        />
                     )}
                     <div className="editor-button-row">
                         <SaveAndLoadButton
@@ -302,5 +312,18 @@ function CombinedListItem(props: CombinedListItemProps) {
         >
             {props.name}
         </li>
+    );
+}
+
+/**
+ * Alert overlay shown when adding a mission set would exceeds the maximum size
+ */
+function Warning(props: WarningProps) {
+    return (
+        <div className="secondary-dialog alert">
+            <h1>Alert</h1>
+            <p>{props.message}</p>
+            <button onClick={props.onClose}>Close</button>
+        </div>
     );
 }

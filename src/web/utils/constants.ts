@@ -36,6 +36,7 @@ export const MAX_HISTORY = 15;
 export const MISSION_ENDPOINTS = 2;
 export const DEPTH_MAP_3D_NAME = "depth-map-3d";
 export const MAX_WAYPOINTS = 80;
+export const MAX_SEGMENTS = 5;
 export const TASK_ZERO_LOWER_BOUND = 0;
 export const TASK_MAX_DEPTH_CONSTRAINT = 50;
 export const TASK_MAX_HOLD_TIME_CONSTRAINT = 80;

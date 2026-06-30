@@ -1,8 +1,14 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
-import { UNASSIGNED_ID } from "../../../utils/constants";
+import { MAX_SEGMENTS, MAX_WAYPOINTS, UNASSIGNED_ID } from "../../../utils/constants";
 import { Segment } from "../../../types/protobuf-types";
+
+export enum WarningTypes {
+    NONE = 1,
+    WAYPOINTS = 2,
+    SEGMENTS = 3,
+}
 
 /**
  * Returns the largest mission count across the named sets in the snapshot cache.
@@ -31,25 +37,28 @@ function getMaxMissionCount(
  * @param {Map<string, MissionSetSnapshot>} missionSetSnapshotCache Cache of loaded snapshots
  * @returns {number} Maximum waypoints in any single output mission
  */
-export function getMaxWaypointsPerOutputMission(
+export function checkMissionSizes(
     names: string[],
     missionSetSnapshotCache: Map<string, MissionSetSnapshot>,
-): number {
+): WarningTypes {
     const missionCount = getMaxMissionCount(names, missionSetSnapshotCache);
-    if (names.length === 0 || missionCount < 1) return 0;
+    if (names.length === 0 || missionCount < 1) return WarningTypes.NONE;
 
-    let maxWaypoints = 0;
-    for (let i = 0; i < missionCount; i++) {
-        let missionWaypointCount = 0;
-        for (const name of names) {
-            const missionSetSnapshot = missionSetSnapshotCache.get(name);
-            if (!missionSetSnapshot || missionSetSnapshot.missions.length === 0) continue;
-            const missions = missionSetSnapshot.missions.map(([_, m]) => m);
-            missionWaypointCount += missions[i % missions.length].getWaypoints().length;
+    let waypointCount = 0;
+    let segmentCount = 0;
+    for (const name of names) {
+        const missionSetSnapshot = missionSetSnapshotCache.get(name);
+        if (!missionSetSnapshot || missionSetSnapshot.missions.length === 0) continue;
+        const missions = missionSetSnapshot.missions.map(([id, mission]) => mission);
+        for (const mission of missions) {
+            waypointCount += mission.getWaypoints().length;
+            segmentCount += mission.getSegments().length;
         }
-        maxWaypoints = Math.max(maxWaypoints, missionWaypointCount);
     }
-    return maxWaypoints;
+
+    if (waypointCount > MAX_WAYPOINTS) return WarningTypes.WAYPOINTS;
+    if (segmentCount > MAX_SEGMENTS) return WarningTypes.SEGMENTS;
+    return WarningTypes.NONE;
 }
 
 /**
