@@ -22,7 +22,7 @@ set(SENSOR_PROTOS
 set(POWER_BOARD_PROTOS
   power_board/power_board.proto
   power_board/metadata.proto
-  power_board/actuators.proto
+  control_surfaces.proto
 )
 
 # All messages used by microcontrollers (C code)

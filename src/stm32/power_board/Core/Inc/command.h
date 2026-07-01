@@ -8,8 +8,7 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "motor.h"
-#include "rudder.h"
+#include "controls.h"
 #include "serial.h"
 #include "jaiabot/messages/power_board/power_board.pb.h"
 

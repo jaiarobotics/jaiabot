@@ -103,7 +103,8 @@ void power_board_command_process(void)
                 break;
         }
     }
-    else if (request.data.request_metadata)
+    
+    if (request.data.request_metadata)
     {
         PowerBoardResponse response = jaiabot_protobuf_PowerBoardResponse_init_zero;
         response.time = (uint64_t)HAL_GetTick() * 1000ULL;
@@ -113,4 +114,28 @@ void power_board_command_process(void)
         
         usb_transmit(&response);
     }
+
+    if (request.has_control_surfaces)
+    {
+        // Handle control surfaces command
+        // For example, you can call a function to process the control surfaces data
+        handle_control_surfaces(request.control_surfaces);
+    }
+}
+
+void handle_control_surfaces(const jaiabot_protobuf_ControlSurfaces control_surfaces)
+{
+    int motor_value = control_surfaces.motor;
+    int rudder_value = control_surfaces.rudder;
+    int stbd_elevator_value = control_surfaces.stbd_elevator;
+    int port_elevator_value = control_surfaces.port_elevator;
+    int timeout_value = control_surfaces.timeout;
+    bool led_switch_on = control_surfaces.led_switch_on;
+
+    (void)motor_value;
+    (void)rudder_value;
+    (void)stbd_elevator_value;
+    (void)port_elevator_value;
+    (void)timeout_value;
+    (void)led_switch_on;
 }

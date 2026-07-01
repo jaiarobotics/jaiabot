@@ -48,8 +48,7 @@ Core/Src/ble.c \
 Core/Src/command.c \
 Core/Src/crc32.c \
 Core/Src/icas.c \
-Core/Src/motor.c \
-Core/Src/rudder.c \
+Core/Src/controls.c \
 Core/Src/serial.c \
 Core/Src/stm32l4xx_it.c \
 Core/Src/stm32l4xx_hal_msp.c \
@@ -106,7 +105,7 @@ $(NANOPB_RUNTIME_DIR)/pb_decode.c \
 $(NANOPB_RUNTIME_DIR)/pb_encode.c \
 $(NANOPB_SENSOR_GEN_DIR)/power_board/power_board.pb.c \
 $(NANOPB_SENSOR_GEN_DIR)/power_board/metadata.pb.c \
-$(NANOPB_SENSOR_GEN_DIR)/power_board/actuators.pb.c \
+$(NANOPB_SENSOR_GEN_DIR)/control_surfaces.pb.c \
 
 # ASM sources
 ASM_SOURCES =  \
@@ -233,6 +232,12 @@ $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
 	$(AS) -c $(CFLAGS) $< -o $@
 $(BUILD_DIR)/%.o: %.S Makefile | $(BUILD_DIR)
 	$(AS) -c $(CFLAGS) $< -o $@
+
+# Explicit rule: vpath sorted order puts nanopb/jaiabot/messages/ before the
+# power_board/ subdir, so make would pick up the wrong metadata.pb.c (the
+# top-level one that defines DeviceMetadata, not Metadata). This overrides it.
+$(BUILD_DIR)/metadata.pb.o: $(NANOPB_SENSOR_GEN_DIR)/power_board/metadata.pb.c Makefile | $(BUILD_DIR)
+	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/metadata.pb.lst $< -o $@
 
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
 	$(CC) $(OBJECTS) $(LDFLAGS) -o $@

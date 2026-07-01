@@ -98,6 +98,25 @@ static void MX_LPTIM1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+static uint32_t adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
+{
+    ADC_ChannelConfTypeDef sConfig = {0};
+    sConfig.Channel = channel;
+    sConfig.Rank = ADC_REGULAR_RANK_1;
+    sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
+    sConfig.SingleDiff = ADC_SINGLE_ENDED;
+    sConfig.OffsetNumber = ADC_OFFSET_NONE;
+    sConfig.Offset = 0;
+    HAL_ADC_ConfigChannel(hadc, &sConfig);
+    HAL_ADC_Start(hadc);
+    HAL_ADC_PollForConversion(hadc, HAL_MAX_DELAY);
+    uint32_t raw = HAL_ADC_GetValue(hadc);
+    HAL_ADC_Stop(hadc);
+    return raw;
+}
+
+#define ADC_TO_VOLTS(raw) ((raw) / 4095.0f * 3.3f)
+
 /* USER CODE END 0 */
 
 /**
@@ -177,23 +196,17 @@ int main(void)
 
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
 
-    static uint8_t tx_buffer[MAX_MSG_SIZE];
-    static uint8_t tx_buffer_cobs[MAX_MSG_SIZE];
-
-    // Start ADC for vcc measurements
-    HAL_ADC_Start(&hadc1);
-    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-    uint32_t raw_vcc_voltage = HAL_ADC_GetValue(&hadc1);
-    HAL_ADC_Stop(&hadc1);
-
     PowerBoardResponse power_board_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
     power_board_response.time = (uint64_t)HAL_GetTick() * 1000ULL;
     power_board_response.has_thermocouple_temperature_C = true;
     power_board_response.thermocouple_temperature_C = 20.0f;
+    HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
+    HAL_Delay(1);
     power_board_response.has_vccvoltage = true;
-    power_board_response.vccvoltage = `((float)raw_vcc_voltage * 3.0f / 4095.0f) * 2.0f; // Assuming a voltage divider of 2:1
+    power_board_response.vccvoltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_1));
+    HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
     power_board_response.has_vcccurrent = true;
-    power_board_response.vcccurrent = 0.6f;
+    power_board_response.vcccurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_2));
     power_board_response.has_vvcurrent = true;
     power_board_response.vvcurrent = 0.7f;
     power_board_response.has_motor = true;
