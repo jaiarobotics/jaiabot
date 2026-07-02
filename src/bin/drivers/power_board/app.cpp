@@ -130,6 +130,27 @@ jaiabot::apps::PowerBoard::PowerBoard()
 void jaiabot::apps::PowerBoard::loop()
 {
     query_metadata();
+
+    // Toggle LED at ~1 Hz to verify command receiver/handler on power board
+    static int loop_count = 0;
+    constexpr int loops_per_second = 30; // loop() runs at 30 Hz
+    if (++loop_count >= loops_per_second)
+    {
+        loop_count = 0;
+        led_switch_on = !led_switch_on;
+
+        jaiabot::protobuf::PowerBoardRequest request;
+        request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+        auto* cs = request.mutable_control_surfaces();
+        cs->set_motor(target_motor_);
+        cs->set_rudder(rudder_);
+        cs->set_port_elevator(port_elevator_);
+        cs->set_stbd_elevator(stbd_elevator_);
+        cs->set_timeout(power_board_timeout_);
+        cs->set_led_switch_on(led_switch_on);
+        send_to_mcu(request);
+        glog.is_verbose() && glog << "LED toggle: " << (led_switch_on ? "ON" : "OFF") << std::endl;
+    }
 }
 
 void jaiabot::apps::PowerBoard::health(goby::middleware::protobuf::ThreadHealth& health)

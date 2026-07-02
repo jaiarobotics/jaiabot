@@ -194,7 +194,7 @@ int main(void)
 
     power_board_command_process();
 
-    HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
+    // HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
 
     PowerBoardResponse power_board_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
     power_board_response.time = (uint64_t)HAL_GetTick() * 1000ULL;
@@ -219,7 +219,7 @@ int main(void)
     usb_transmit(&power_board_response);
 
     HAL_Delay(100);
-    HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+    // HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
 
     // lptim_wake_flag = 0U;
     // if (HAL_LPTIM_Counter_Start_IT(&hlptim1, LPTIM_10SEC_PERIOD) != HAL_OK)

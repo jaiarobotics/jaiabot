@@ -132,10 +132,11 @@ void handle_control_surfaces(const jaiabot_protobuf_ControlSurfaces control_surf
     int timeout_value = control_surfaces.timeout;
     bool led_switch_on = control_surfaces.led_switch_on;
 
+    HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin,
+                      led_switch_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
     (void)motor_value;
     (void)rudder_value;
     (void)stbd_elevator_value;
     (void)port_elevator_value;
     (void)timeout_value;
-    (void)led_switch_on;
 }
