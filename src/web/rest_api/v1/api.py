@@ -325,6 +325,14 @@ def surob_mission_plan_request(jaia_request: APIRequest) -> APIResponse:
 
 def surob_results_request(jaia_request: APIRequest) -> APIResponse:
     # string constants for surob results proto
+    SHORELINE_POINT_PROPERTIES_UNITS = "degrees"
+    SHORELINE_POINT_PROPERTIES_TYPE = "shoreline_point"
+    SHORELINE_POINT_PROPERTIES_DESCRIPTION = "Surob mission plan shoreline point"
+
+    OFFSHORE_POINT_PROPERTIES_UNITS = "degrees"
+    OFFSHORE_POINT_PROPERTIES_TYPE = "offshore_point"
+    OFFSHORE_POINT_PROPERTIES_DESCRIPTION = "Surob mission plan offshore point"
+
     CURRENT_SPEED_UNITS = "fps"
     # No cf standard name for magnitude of current vector with direction sea_water_velocity_to_direction
     CURRENT_DIRECTION_UNITS = "degrees from true north"
@@ -481,6 +489,34 @@ def surob_results_request(jaia_request: APIRequest) -> APIResponse:
     depth_measurement_id = 0
 
     features = []
+
+    shoreline_point_properties = jaiabot.messages.surob_results_pb2.Properties(units=SHORELINE_POINT_PROPERTIES_UNITS, 
+                                                                               type=SHORELINE_POINT_PROPERTIES_TYPE, 
+                                                                               description=SHORELINE_POINT_PROPERTIES_DESCRIPTION, 
+                                                                               id=0,  
+                                                                               h_datum=PROPERTIES_H_DATUM)
+    
+    shoreline_point_coordinates = [shoreline_point[1], shoreline_point[0]] # lon, lat
+    shoreline_point_geometry = jaiabot.messages.surob_results_pb2.PointGeometry(type=POINT_GEOMETRY_TYPE)
+    shoreline_point_geometry.coordinates.extend(shoreline_point_coordinates)
+
+    shoreline_point_feature = jaiabot.messages.surob_results_pb2.Feature(type=FEATURE_TYPE, properties=shoreline_point_properties, geometry=shoreline_point_geometry)
+
+    features.append(shoreline_point_feature)
+
+    offshore_point_properties = jaiabot.messages.surob_results_pb2.Properties(units=OFFSHORE_POINT_PROPERTIES_UNITS, 
+                                                                              type=OFFSHORE_POINT_PROPERTIES_TYPE, 
+                                                                              description=OFFSHORE_POINT_PROPERTIES_DESCRIPTION, 
+                                                                              id=0,  
+                                                                              h_datum=PROPERTIES_H_DATUM)
+    
+    offshore_point_coordinates = [offshore_point[1], offshore_point[0]]
+    offshore_point_geometry = jaiabot.messages.surob_results_pb2.PointGeometry(type=POINT_GEOMETRY_TYPE)
+    offshore_point_geometry.coordinates.extend(offshore_point_coordinates)
+
+    offshore_point_feature = jaiabot.messages.surob_results_pb2.Feature(type=FEATURE_TYPE, properties=offshore_point_properties, geometry=offshore_point_geometry)
+
+    features.append(offshore_point_feature)
 
     # parse dive task packets after all Hs task packets have been processed so we can use corresponding Hs measurements for dive uncertainty
     dive_task_packets = []
