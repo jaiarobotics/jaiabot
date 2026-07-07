@@ -1,10 +1,9 @@
 # Sensor Data Filtering (Hampel Filter)
 
-Sensor streams occasionally produce spikes that do not reflect the real environment. 
-The **Hampel filter** flags these outliers live during a mission. This means users can 
-rely on a cleaned data stream while the raw value is still preserved.
+Sensor data occasionally produces spikes that do not reflect the real environment. 
+The **Hampel filter** flags these outliers live during a mission. 
 
-The implementation can be applied to any scalar sensor stream (salinity, 
+The implementation can be applied to any sensor data (salinity, 
 temperature, pH, dissolved oxygen, etc.):
 
 - Header: `src/lib/utils/hampel_filter.h` (`jaiabot::utils::HampelFilter`)
