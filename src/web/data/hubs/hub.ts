@@ -21,6 +21,7 @@ export default class Hub {
     private linuxHardwareStatus: LinuxHardwareStatus;
     private botOffload: BotOffloadData;
     private statusAge: number;
+    private systemTime: string;
 
     constructor() {
         // Init base sensors
@@ -104,14 +105,22 @@ export default class Hub {
     }
 
     getSystemTime() {
-        const date = new Date();
+        return this.systemTime;
+    }
+
+    setSystemTime(systemTime: number) {
+        this.systemTime = new Date(systemTime / 1000).toUTCString();
+        console.log("toUTCString(): " + this.systemTime);
+
+        const date = new Date(systemTime / 1000);
 
         const options = {
             timeZone: "UTC",
-            hour12: true,
+            hour12: false,
         };
 
-        return date.toLocaleTimeString("en-US", options);
+        this.systemTime = date.toLocaleTimeString("en-US", options);
+        console.log("toLocaleTimeString(): " + this.systemTime);
     }
 
     /**
