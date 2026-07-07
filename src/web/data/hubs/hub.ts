@@ -109,9 +109,6 @@ export default class Hub {
     }
 
     setSystemTime(systemTime: number) {
-        this.systemTime = new Date(systemTime / 1000).toUTCString();
-        console.log("toUTCString(): " + this.systemTime);
-
         const date = new Date(systemTime / 1000);
 
         const options = {
@@ -120,7 +117,6 @@ export default class Hub {
         };
 
         this.systemTime = date.toLocaleTimeString("en-US", options);
-        console.log("toLocaleTimeString(): " + this.systemTime);
     }
 
     /**
