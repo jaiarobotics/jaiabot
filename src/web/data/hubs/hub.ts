@@ -8,6 +8,7 @@ import {
 } from "../../types/protobuf-types";
 import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
+import { timestampToLocaleTimeString } from "../../utils/conversions";
 import HubSensors from "./hub-sensors";
 
 export default class Hub {
@@ -109,14 +110,7 @@ export default class Hub {
     }
 
     setSystemTime(systemTime: number) {
-        const date = new Date(systemTime / 1000);
-
-        const options = {
-            timeZone: "UTC",
-            hour12: false,
-        };
-
-        this.systemTime = date.toLocaleTimeString("en-US", options);
+        this.systemTime = timestampToLocaleTimeString(systemTime);
     }
 
     /**
