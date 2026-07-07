@@ -13,12 +13,12 @@ This talks the documented wire protocol directly
 
      Subscriptions are ZMQ prefix filters on "/{group}/{scheme}/{type}/".
 
-This is a prototype: it skips the "hold" startup-sync handshake that real
-goby apps use (see gobyd's `hold { required_client: ... }` config), so a
-publisher started at the same instant as gobyd may lose its first message
-or two to ZMQ's "slow joiner" behavior. Fine for a continuous stream of
-sensor-style data; not a substitute for the real InterProcessPortal where
-that guarantee matters.
+Before returning, the constructor also waits out gobyd's startup "hold": if
+the platform's gobyd config lists `hold { required_client: ... }` apps, a
+new client blocks, polling the Manager, until all of them have reported
+ready. This is the same guarantee goby's own InterProcessPortal gives C++
+apps, and it's what actually avoids losing early publish()es to ZMQ's "slow
+joiner" behavior (rather than a fixed sleep-and-hope).
 """
 import logging
 import os
@@ -40,13 +40,17 @@ SCHEME_PROTOBUF = 'PROTOBUF'
 class InterProcessClient:
     """Publishes/subscribes Protobuf messages on a gobyd interprocess bus."""
 
-    def __init__(self, platform: str, client_name: str, manager_timeout: float = 5.0):
+    def __init__(self, platform: str, client_name: str, manager_timeout: float = 5.0,
+                 hold_timeout: float = 30.0):
         self.platform = platform
         self.client_name = client_name
         self._context = zmq.Context.instance()
         self._subscriptions: Dict[str, Tuple[Type[Message], Callable[[Message], None]]] = {}
 
-        publish_socket_cfg, subscribe_socket_cfg = self._query_manager(manager_timeout)
+        manager = self._connect_manager_socket()
+
+        publish_socket_cfg, subscribe_socket_cfg = self._request_pub_sub_sockets(
+            manager, manager_timeout)
 
         self._pub = self._context.socket(zmq.PUB)
         self._connect(self._pub, publish_socket_cfg)
@@ -54,34 +58,64 @@ class InterProcessClient:
         self._sub = self._context.socket(zmq.SUB)
         self._connect(self._sub, subscribe_socket_cfg)
 
-        # Avoid ZMQ's "slow joiner" problem: give the sockets a moment to
-        # finish connecting before we start publishing/expect subscriptions
-        # to be live.
-        time.sleep(0.2)
+        self._wait_for_hold_release(manager, manager_timeout, hold_timeout)
+        manager.close()
 
         log.info('Connected to gobyd on platform "%s" as "%s"', platform, client_name)
 
-    def _query_manager(self, timeout: float):
+    def _connect_manager_socket(self) -> 'zmq.Socket':
         manager_addr = f'ipc:///tmp/goby_{self.platform}.manager'
-        req = self._context.socket(zmq.REQ)
-        req.setsockopt(zmq.LINGER, 0)
-        req.connect(manager_addr)
+        manager = self._context.socket(zmq.REQ)
+        manager.setsockopt(zmq.LINGER, 0)
+        manager.connect(manager_addr)
+        return manager
 
+    def _request_pub_sub_sockets(self, manager: 'zmq.Socket', timeout: float):
         request = manager_pb2.ManagerRequest()
         request.request = manager_pb2.PROVIDE_PUB_SUB_SOCKETS
         request.client_name = self.client_name
         request.client_pid = os.getpid()
-        req.send(request.SerializeToString())
+        manager.send(request.SerializeToString())
 
-        if not req.poll(int(timeout * 1000)):
-            raise TimeoutError(f'No response from gobyd Manager at {manager_addr} '
-                                f'(is gobyd running with platform="{self.platform}"?)')
+        if not manager.poll(int(timeout * 1000)):
+            raise TimeoutError(f'No response from gobyd Manager for platform="{self.platform}" '
+                                f'(is gobyd running?)')
 
         response = manager_pb2.ManagerResponse()
-        response.ParseFromString(req.recv())
-        req.close()
+        response.ParseFromString(manager.recv())
 
         return response.publish_socket, response.subscribe_socket
+
+    def _wait_for_hold_release(self, manager: 'zmq.Socket', request_timeout: float,
+                               hold_timeout: float, poll_interval: float = 0.1):
+        """Block until gobyd reports that its `hold { required_client: ... }` apps are
+        all ready, matching goby's own InterProcessPortalReadThread::run() (100ms poll
+        period). If gobyd has no hold config for this platform, the first poll already
+        returns hold=false and this returns immediately."""
+        deadline = time.monotonic() + hold_timeout
+        while True:
+            request = manager_pb2.ManagerRequest()
+            request.request = manager_pb2.PROVIDE_HOLD_STATE
+            request.client_name = self.client_name
+            request.client_pid = os.getpid()
+            request.ready = True
+            manager.send(request.SerializeToString())
+
+            if not manager.poll(int(request_timeout * 1000)):
+                raise TimeoutError(f'No response from gobyd Manager for platform='
+                                    f'"{self.platform}" while waiting for hold state')
+
+            response = manager_pb2.ManagerResponse()
+            response.ParseFromString(manager.recv())
+            if not response.hold:
+                return
+
+            if time.monotonic() > deadline:
+                raise TimeoutError(
+                    f'gobyd for platform="{self.platform}" did not release its startup '
+                    f'hold within {hold_timeout}s; a required_client app may be down')
+
+            time.sleep(poll_interval)
 
     @staticmethod
     def _connect(sock: 'zmq.Socket', cfg: manager_pb2.Socket):
