@@ -103,6 +103,20 @@ export default class Hub {
         this.statusAge = statusAge;
     }
 
+    getSystemTime() {
+        const date = new Date();
+
+        const options = {
+            timeZone: "UTC",
+            hour12: true,
+            hour: "numeric",
+            minute: "2-digit",
+            second: "2-digit",
+        };
+
+        return date.toLocaleTimeString("en-US", options);
+    }
+
     /**
      * Determines if the hub has lost comms with the client
      *
