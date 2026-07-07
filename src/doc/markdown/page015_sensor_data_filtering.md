@@ -1,9 +1,8 @@
 # Sensor Data Filtering (Hampel Filter)
 
-Sensor streams occasionally produce spurious readings ("spikes") that do not
-reflect the real environment. The **Hampel filter** flags these outliers live
-during a mission, so that users can rely on a cleaned data stream while the raw
-value is still preserved.
+Sensor streams occasionally produce spikes that do not reflect the real environment. 
+The **Hampel filter** flags these outliers live during a mission. This means users can 
+rely on a cleaned data stream while the raw value is still preserved.
 
 The implementation can be applied to any scalar sensor stream (salinity, 
 temperature, pH, dissolved oxygen, etc.):
@@ -43,12 +42,12 @@ unfoundedly shift the statistics used to judge it.
   scaled MAD. Lower means a stricter threshold that triggers more; higher means
   a looser threshold that triggers less. 
 
-### Behavioral notes
+### Behavior notes
 
 - **All raw readings enter the window**, including flagged outliers. Using a 
   median-based filter keeps this accurate, allowing the filter to adapt to real
   sustained data shifts once enough new samples accumulate. Without this, a
-  real change would be rejected forever.
+  real change would be rejected repeatedly.
 - **Initial wait time:** no value is flagged until the window is full (the first
   `window_size − 1` readings).
 - **Edge case:** if every value in the window is identical, `scaled_mad` is 0.
