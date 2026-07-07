@@ -37,7 +37,7 @@ struct InMission
     {
         goby::glog.is_debug1() && goby::glog << "InMission" << std::endl;
 
-        apply_segment_params(goal_index_);
+        apply_segment_params();
     }
     ~InMission()
     {
@@ -83,6 +83,16 @@ struct InMission
 
         ++goal_index_;
 
+        if (active_seg_index_ + 1 < this->machine().mission_plan().segments_size())
+        {
+            const auto& next_seg = this->machine().mission_plan().segments(active_seg_index_ + 1);
+            if (goal_index_ >= next_seg.start_goal_index())
+            {
+                active_seg_index_++;
+                apply_segment_params();
+            }
+        }
+
         // all goals completed
         if (goal_index_ >= goal_size)
         {
@@ -108,8 +118,7 @@ struct InMission
             }
         }
 
-        if (goal_index_ >= 0)
-            apply_segment_params(goal_index_);
+        apply_segment_params();
     }
 
     void set_goal_index_to_final_goal()
@@ -119,84 +128,37 @@ struct InMission
     }
     void resume_after_srp_egress()
     {
-        const auto& mission_plan = this->machine().mission_plan();
-
-        if (mission_plan.segments_size() > 0)
+        if (active_seg_index_ >= this->machine().mission_plan().segments_size())
         {
-            // Find the active segment for the current goal index
-            const protobuf::MissionPlan::Segment* active_seg = nullptr;
-            int active_seg_idx = -1;
-            for (int i = 0; i < mission_plan.segments_size(); ++i)
-            {
-                if ((int)mission_plan.segments(i).start_goal_index() - 1 <= goal_index_)
-                {
-                    active_seg = &mission_plan.segments(i);
-                    active_seg_idx = i;
-                }
-                else
-                    break;
-            }
+            glog.is_debug1() && glog << "No segments, go to final waypoint" << std::endl;
+            set_goal_index_to_final_goal();
+            return;
+        }
+        
+        protobuf::MissionPlan::Segment active_seg =  this->machine().mission_plan().segments(active_seg_index_);
 
-            if (!active_seg)
+        for (int i = 0; i < active_seg.lane_start_goal_indices_size(); i++)
+        {
+            int lane_start_index = active_seg.lane_start_goal_indices(i);
+            if (lane_start_index > goal_index_)
             {
-                goby::glog.is_warn() &&
-                    goby::glog << group("goal") << "SRP egress: no active segment at goal index "
-                               << goal_index_ << ". Proceeding to recovery." << std::endl;
-                set_goal_index_to_final_goal();
+                glog.is_debug1() && glog << "Go to next lane" << std::endl;
+                goal_index_ = lane_start_index;
                 return;
             }
-
-            // Find the next lane start within this segment that is beyond the current goal
-            bool jumped = false;
-            for (int i = 0; i < active_seg->lane_start_goal_indices_size(); ++i)
-            {
-                int lane_start = (int)active_seg->lane_start_goal_indices(i) - 1;
-                if (lane_start > goal_index_)
-                {
-                    goal_index_ = lane_start;
-                    goby::glog.is_verbose() &&
-                        goby::glog << group("goal")
-                                   << "SRP egress: advancing to next lane at goal index "
-                                   << goal_index_ << std::endl;
-                    jumped = true;
-                    break;
-                }
-            }
-
-            if (!jumped)
-            {
-                // No next lane in this segment — advance to the next segment if one exists
-                if (active_seg_idx + 1 < mission_plan.segments_size())
-                {
-                    goal_index_ =
-                        (int)mission_plan.segments(active_seg_idx + 1).start_goal_index() - 1;
-                    goby::glog.is_verbose() &&
-                        goby::glog << group("goal")
-                                   << "SRP egress: advancing to next segment at goal index "
-                                   << goal_index_ << std::endl;
-                }
-                else
-                {
-                    goby::glog.is_warn() &&
-                        goby::glog << group("goal")
-                                   << "SRP egress: no next lane or segment. Proceeding to recovery."
-                                   << std::endl;
-                    set_goal_index_to_final_goal();
-                    return;
-                }
-            }
-
-            apply_segment_params(goal_index_);
         }
-        else
-        {
-            // No segments (e.g. REST API mission) — go directly to recovery waypoint
-            goby::glog.is_warn() &&
-                goby::glog << group("goal")
-                           << "SRP egress: no segments in plan. Proceeding to recovery."
-                           << std::endl;
-            set_goal_index_to_final_goal();
+
+        if (active_seg_index_ + 1 >= this->machine().mission_plan().segments_size()) {
+            glog.is_debug1() && glog << "No more lanes and no more segments, go to final waypoint" << std::endl;
+            set_goal_index_to_final_goal(); 
+            return;
         }
+
+        protobuf::MissionPlan::Segment next_seg =  this->machine().mission_plan().segments(active_seg_index_ + 1 );
+        glog.is_debug1() && glog << "Go to last goal in segment" << std::endl;
+        goal_index_ = next_seg.start_goal_index() - 1;
+        return;
+
     }
     void set_goal_index_to_recovery()
     {
@@ -227,20 +189,14 @@ struct InMission
         boost::statechart::transition<EvStop, inmission::underway::recovery::Stopped>>;
 
   private:
-    void apply_segment_params(int goal_index)
+    void apply_segment_params()
     {
         const auto& mission_plan = this->machine().mission_plan();
         if (mission_plan.segments_size() == 0)
             return;
 
         const protobuf::MissionPlan::Segment* active_seg = nullptr;
-        for (int i = 0; i < mission_plan.segments_size(); ++i)
-        {
-            if ((int)mission_plan.segments(i).start_goal_index() - 1 <= goal_index)
-                active_seg = &mission_plan.segments(i);
-            else
-                break;
-        }
+        active_seg = &mission_plan.segments(active_seg_index_);
 
         if (!active_seg)
             return;
@@ -261,6 +217,7 @@ struct InMission
     }
 
     int goal_index_{0};
+    int active_seg_index_{0};
     int repeat_index_{0};
     bool mission_complete_{false};
     bool use_heading_constant_pid_{false};

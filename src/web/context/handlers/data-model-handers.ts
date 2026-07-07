@@ -22,6 +22,7 @@ import { syncOpenLayers } from "./handler-utils";
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
+    health: false,
     links: false,
 };
 

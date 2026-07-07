@@ -1084,6 +1084,13 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
                 out_command.mutable_plan()->set_repeats(initial_fragment.plan().repeats());
             }
 
+            if (initial_fragment.plan().segments_size() > 0) {
+                for (const auto& segment : initial_fragment.plan().segments())
+                {
+                    *out_command.mutable_plan()->add_segments() = segment;
+                }
+            }
+
             // Loop through fragments and all the waypoints in each
             for (const auto fragment : track_command_fragments.at(input_command_fragment.time()))
             {

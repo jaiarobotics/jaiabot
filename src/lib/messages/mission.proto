@@ -436,7 +436,7 @@ message MissionPlan
         // next segment's start_goal_index, or the total goal count for
         // the last segment.
         required uint32 start_goal_index = 2
-            [(dccl.field) = { min: 1, max: 80 }];
+            [(dccl.field) = { min: 0, max: 79 }];
 
         // Global goal indices marking the start of each survey lane within
         // this segment.
