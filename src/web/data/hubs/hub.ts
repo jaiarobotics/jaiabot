@@ -109,9 +109,6 @@ export default class Hub {
         const options = {
             timeZone: "UTC",
             hour12: true,
-            hour: "numeric",
-            minute: "2-digit",
-            second: "2-digit",
         };
 
         return date.toLocaleTimeString("en-US", options);
