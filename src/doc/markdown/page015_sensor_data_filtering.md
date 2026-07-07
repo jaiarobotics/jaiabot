@@ -6,7 +6,7 @@ The **Hampel filter** flags these outliers live during a mission.
 The implementation can be applied to any sensor data (salinity, 
 temperature, pH, dissolved oxygen, etc.):
 
-- Header: `src/lib/utils/hampel_filter.h` (`jaiabot::utils::HampelFilter`)
+- Header: `src/lib/utils/hampel_filter.h`
 - Tests: `src/test/utils/test.cpp`
 
 The current implementation only *reports* whether a reading is an
@@ -23,7 +23,7 @@ Once the window is established, the filter:
 
 1. Computes the **median** of the window.
 2. Computes the **Median Absolute Deviation**:
-   `MAD = median(|x − median|)`.
+   `MAD = median(|x_i − median|)`.
 3. Scales it: `scaled_mad = 1.4826 × MAD`. The `1.4826` constant converts the MAD 
    into an approximation of the standard deviation for normally distributed data.
 4. Flags `x` as an outlier when `|x − median| > num_mads × scaled_mad`.
