@@ -24,7 +24,6 @@ syntax = "proto2";
 
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
-import "goby/middleware/protobuf/udp_config.proto";
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/motor.proto";
 
@@ -106,7 +105,6 @@ message Health
 
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
-    optional goby.middleware.protobuf.UDPPointToPointConfig udp_config = 3;
 
     optional bool auto_restart = 10 [default = true];
     optional int32 auto_restart_timeout = 11

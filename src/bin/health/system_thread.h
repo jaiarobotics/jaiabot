@@ -126,7 +126,6 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
   private:
     void issue_status_summary() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
-    void send_rpm_query();
 
   private:
     jaiabot::protobuf::Motor status_;

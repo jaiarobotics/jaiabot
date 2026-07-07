@@ -1,1 +1,1 @@
--p ${motor_py_udp_port}
+--bot_index ${bot_id} --fleet_index ${fleet_id}

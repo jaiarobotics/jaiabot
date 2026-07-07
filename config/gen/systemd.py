@@ -652,7 +652,7 @@ if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
         'user': 'root', # must run as root to allow interaction with GPIO pin
         'group': 'root',
         'subdir': 'motor',
-        'args': '',
+        'args': f'--bot_index {args.bot_index} --fleet_index {args.fleet_index}',
         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_MOTOR_LISTENER',
         'runs_on': [Type.BOT],
         'runs_when': Mode.RUNTIME,

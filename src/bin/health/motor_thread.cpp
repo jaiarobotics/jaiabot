@@ -22,7 +22,6 @@
 
 #include "goby/util/sci.h" // for linear_interpolate
 #include <boost/units/io.hpp>
-#include <goby/middleware/io/udp_point_to_point.h>
 
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/motor.pb.h"
@@ -50,16 +49,9 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
 
     status_.set_motor_harness_type(cfg.motor_harness_type());
 
-    interthread().subscribe<jaiabot::groups::motor_udp_in>(
-        [this](const goby::middleware::protobuf::IOData& data) {
-            jaiabot::protobuf::Motor motor;
-            if (!motor.ParseFromString(data.data()))
-            {
-                glog.is_warn() && glog << "Couldn't deserialize Motor message from UDP packet"
-                                       << std::endl;
-                return;
-            }
-            glog.is_debug2() && glog << "Publishing Motor message: " << motor.ShortDebugString()
+    interprocess().subscribe<jaiabot::groups::motor_rpm>(
+        [this](const jaiabot::protobuf::Motor& motor) {
+            glog.is_debug2() && glog << "Received Motor message: " << motor.ShortDebugString()
                                      << std::endl;
 
             rpm_value_ = motor.rpm();
@@ -109,20 +101,10 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
 
 void jaiabot::apps::MotorStatusThread::issue_status_summary()
 {
-    send_rpm_query();
     update_total_motor_usage();
     glog.is_debug2() && glog << group(thread_name()) << "Status: " << status_.DebugString()
                              << std::endl;
     interprocess().publish<jaiabot::groups::motor_status>(status_);
-}
-
-void jaiabot::apps::MotorStatusThread::send_rpm_query()
-{
-    glog.is_debug2() && glog << group(thread_name()) << "Sending RPM Query: " << std::endl;
-    // send an empty packet to provide the python driver with a return address
-    auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-    io_data->set_data("hello\n");
-    interthread().publish<jaiabot::groups::motor_udp_out>(io_data);
 }
 
 void jaiabot::apps::MotorStatusThread::health(goby::middleware::protobuf::ThreadHealth& health)
