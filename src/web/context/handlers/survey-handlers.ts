@@ -14,7 +14,7 @@ import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-ty
 import {
     detectMissionReroutes,
     detectWaypointRemovals,
-} from "../../data/exclusion_zones/exclusion-zone-detection";
+} from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
 
 /**
  * Makes map and grid plan changes based on survey state change
@@ -100,19 +100,19 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 
             const pendingRemoval = detectWaypointRemovals();
             if (pendingRemoval) {
-                mutableState.pendingWaypointRemoval = {
+                mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
                     ...pendingRemoval,
                     priorMissionSetSnapshot,
                     priorMissionsManagerSnapshot,
-                };
+                });
             } else {
                 const pending = detectMissionReroutes();
                 if (pending) {
-                    mutableState.pendingReroute = {
+                    mutableState.obstacleAvoidanceData.setPendingReroute({
                         ...pending,
                         priorMissionSetSnapshot,
                         priorMissionsManagerSnapshot,
-                    };
+                    });
                 }
             }
             break;

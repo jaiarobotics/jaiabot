@@ -10,7 +10,7 @@ import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zon
 import { bots } from "../../data/bots/bots";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
-import { getBlockingZoneIDs } from "../../data/exclusion_zones/exclusion-zone-router";
+import { getBlockingZoneIDs } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 import cloneDeep from "lodash/cloneDeep";
 import Waypoint from "../../data/waypoints/waypoint";
 

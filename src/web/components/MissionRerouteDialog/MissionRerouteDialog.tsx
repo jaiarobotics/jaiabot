@@ -7,7 +7,7 @@ export default function MissionRerouteDialog() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    const pending = jaiaContext?.pendingReroute;
+    const pending = jaiaContext?.obstacleAvoidanceData.getPendingReroute();
     if (!pending) return null;
 
     const isZoneLoad = pending.loadedZoneIDs !== undefined;

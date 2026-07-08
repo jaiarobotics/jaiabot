@@ -15,7 +15,7 @@ export default function ZonesList() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    const zones = jaiaContext.exclusionZoneSet.getZones();
+    const zones = jaiaContext.obstacleAvoidanceData.getExclusionZoneSet().getZones();
     if (zones.size === 0) return null;
 
     const editZoneID = jaiaContext.jaiaGlobal.getZoneInEditMode();

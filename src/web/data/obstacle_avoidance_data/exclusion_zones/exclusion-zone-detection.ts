@@ -1,11 +1,11 @@
-import { missionSet } from "../mission_set/mission-set";
+import { missionSet } from "../../mission_set/mission-set";
 import {
     PendingReroute,
     PendingWaypointRemoval,
     PendingWaypointRemovalProposal,
-} from "./exclusion-zone-set";
+} from "../pending-route-data";
 import { detectReroutesWithOverrides, getBlockingZoneIDs } from "./exclusion-zone-router";
-import { MAX_WAYPOINTS } from "../../utils/constants";
+import { MAX_WAYPOINTS } from "../../../utils/constants";
 
 /**
  * Marks proposals whose rerouted plan would exceed MAX_WAYPOINTS as isOverLimit.

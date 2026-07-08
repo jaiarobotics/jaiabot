@@ -12,7 +12,7 @@ export default function WaypointRemovalDialog() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    const pending = jaiaContext?.pendingWaypointRemoval;
+    const pending = jaiaContext?.obstacleAvoidanceData.getPendingWaypointRemoval();
     if (!pending) return null;
 
     const reroute = pending.followUpReroute;
