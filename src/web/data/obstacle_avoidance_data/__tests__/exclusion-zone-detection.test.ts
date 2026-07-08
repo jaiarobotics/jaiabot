@@ -1,9 +1,12 @@
-import { ExclusionZone } from "../exclusion-zone-set";
-import { obstacleAvoidanceData } from "../../obstacle-avoidance-data";
-import { missionSet } from "../../../mission_set/mission-set";
-import Mission from "../../../mission_set/mission";
-import { detectMissionReroutes, detectWaypointRemovals } from "../exclusion-zone-detection";
-import { GeographicCoordinate } from "../../../../types/protobuf-types";
+import { ExclusionZone } from "../exclusion_zones/exclusion-zone-set";
+import { obstacleAvoidanceData } from "../obstacle-avoidance-data";
+import { missionSet } from "../../mission_set/mission-set";
+import Mission from "../../mission_set/mission";
+import {
+    detectMissionReroutes,
+    detectWaypointRemovals,
+} from "../exclusion_zones/exclusion-zone-detection";
+import { GeographicCoordinate } from "../../../types/protobuf-types";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
     return { lat, lon };

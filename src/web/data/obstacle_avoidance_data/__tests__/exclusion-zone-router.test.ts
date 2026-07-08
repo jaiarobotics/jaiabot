@@ -1,17 +1,17 @@
-import { GeographicCoordinate, MissionPlan } from "../../../../types/protobuf-types";
-import { ExclusionZone } from "../exclusion-zone-set";
-import { obstacleAvoidanceData } from "../../obstacle-avoidance-data";
-import { missionSet } from "../../../mission_set/mission-set";
-import Mission from "../../../mission_set/mission";
-import Waypoint from "../../../waypoints/waypoint";
+import { GeographicCoordinate, MissionPlan } from "../../../types/protobuf-types";
+import { ExclusionZone } from "../exclusion_zones/exclusion-zone-set";
+import { obstacleAvoidanceData } from "../obstacle-avoidance-data";
+import { missionSet } from "../../mission_set/mission-set";
+import Mission from "../../mission_set/mission";
+import Waypoint from "../../waypoints/waypoint";
 import {
     routeAroundExclusionZones,
     getZoneBufferVertices,
     getBlockingZoneIDs,
     isLocationBlockedByZone,
     detectReroutesWithOverrides,
-} from "../exclusion-zone-router";
-import { METERS_PER_DEG } from "../../../../utils/constants";
+} from "../exclusion_zones/exclusion-zone-router";
+import { METERS_PER_DEG } from "../../../utils/constants";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
