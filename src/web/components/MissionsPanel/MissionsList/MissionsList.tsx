@@ -140,6 +140,8 @@ export default function MissionsList() {
                                     <TextField
                                         label="Repeats"
                                         size="small"
+                                        type="number"
+                                        slotProps={{ htmlInput: { min: 1 } }}
                                         className="mission-repeats"
                                         autoComplete="off"
                                         value={mission.getRepeats()}
