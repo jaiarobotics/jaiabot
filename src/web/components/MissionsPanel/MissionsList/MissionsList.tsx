@@ -75,9 +75,8 @@ export default function MissionsList() {
      * @returns {void}
      */
     const handleRepeatsChange = (repeats: string, missionID: number) => {
-        const parsed = Number(repeats);
-        let numOfRepeats = parsed;
-        if (repeats === "" || isNaN(parsed) || parsed < 1) {
+        let numOfRepeats = Number(repeats);
+        if (repeats === "" || isNaN(numOfRepeats) || numOfRepeats < 1) {
             numOfRepeats = 1;
         }
         jaiaDispatch({
