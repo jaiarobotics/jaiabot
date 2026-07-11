@@ -20,6 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <unordered_map>
+
 #include <dccl/codec.h>
 #include <goby/middleware/io/udp_point_to_point.h>
 #include <goby/middleware/marshalling/protobuf.h>
@@ -40,6 +42,37 @@ namespace config = jaiabot::config;
 namespace groups = jaiabot::groups;
 namespace zeromq = goby::zeromq;
 namespace middleware = goby::middleware;
+
+// Clients that subscribe to messages should send a subscribe command regularly,
+// to let jaiabot_udp_gateway know that they are still active.
+const std::chrono::seconds SUBSCRIBER_TIMEOUT{300};
+
+// We need to define a comparison operator, so we can build a set of UDPEndPoint
+namespace goby
+{
+namespace middleware
+{
+namespace protobuf
+{
+bool operator==(const goby::middleware::protobuf::UDPEndPoint a,
+                const goby::middleware::protobuf::UDPEndPoint b)
+{
+    return a.addr() == b.addr() && a.port() == b.port();
+}
+} // namespace protobuf
+} // namespace middleware
+} // namespace goby
+
+// Define a hash for unordered_map
+class UDPEndPointHash
+{
+  public:
+    size_t operator()(const goby::middleware::protobuf::UDPEndPoint& p) const
+    {
+        std::string key = p.addr() + std::to_string(p.port());
+        return std::hash<std::string>()(key);
+    }
+};
 
 namespace jaiabot
 {
@@ -93,6 +126,11 @@ class UDPGateway
         goby::time::SteadyClock::now()};
     goby::middleware::protobuf::UDPEndPoint echo_udp_src_;
     goby::middleware::protobuf::UDPEndPoint ppk_udp_src_;
+
+    // Subscriptions
+    std::unordered_map<goby::middleware::protobuf::UDPEndPoint, goby::time::SteadyClock::time_point,
+                       UDPEndPointHash>
+        bot_status_subscribers_;
 };
 
 } // namespace apps
@@ -116,9 +154,6 @@ jaiabot::apps::UDPGateway::UDPGateway()
     using UDPThread =
         goby::middleware::io::UDPOneToManyThread<udp_gateway_in, udp_gateway_out>;
     launch_thread<UDPThread>(cfg().udp_config());
-
-
-    glog.is_verbose() && glog << "Config : " << cfg().ShortDebugString() << endl;
 
     interthread().subscribe<udp_gateway_in>(
         [this](const goby::middleware::protobuf::IOData& data)
@@ -151,6 +186,38 @@ jaiabot::apps::UDPGateway::UDPGateway()
             send_echo_command(echo_command);
         });
 
+    interprocess().subscribe<jaiabot::groups::bot_status>(
+        [this](const protobuf::BotStatus& bot_status)
+        {
+            // We will purge clients who haven't sent a subscribe command in a while, to avoid sending bot status to clients that are no longer listening.
+            const auto now = goby::time::SteadyClock::now();
+            auto timeout = now - SUBSCRIBER_TIMEOUT;
+            std::vector<goby::middleware::protobuf::UDPEndPoint> stale_subscribers;
+
+            // Send the bot status to all active subscribers
+            for (const auto& [udp_dst, last_subscribe_command_received] : bot_status_subscribers_)
+            {
+                if (last_subscribe_command_received < timeout)
+                {
+                    glog.is_debug1() && glog << "Removing bot status subscriber " << udp_dst.addr()
+                                             << ":" << udp_dst.port() << " due to timeout" << endl;
+                    stale_subscribers.push_back(udp_dst);
+                    continue;
+                }
+
+                auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
+                *envelope.mutable_bot_status() = bot_status;
+                send_envelope(envelope, udp_dst);
+            }
+
+            // Remove stale subscribers
+            for (const auto& udp_dst : stale_subscribers)
+            {
+                bot_status_subscribers_.erase(udp_dst);
+                glog.is_warn() && glog << "Removed bot status subscriber " << udp_dst.addr() << ":"
+                                       << udp_dst.port() << " due to timeout" << endl;
+            }
+        });
 }
 
 
@@ -159,6 +226,27 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
     // Process the contents of the envelope
     switch(envelope.payload_case())
     {
+        case jaiabot::protobuf::UDPGatewayEnvelope::kSubscribeCommand:
+        {
+            glog.is_debug1() && glog << "Received SubscribeCommand" << endl;
+
+            switch (envelope.subscribe_command())
+            {
+                case jaiabot::protobuf::UDPGatewayEnvelope::BOT_STATUS:
+                {
+                    glog.is_verbose() && glog << "Received SubscribeCommand: BOT_STATUS" << endl;
+                    bot_status_subscribers_[udp_src] = goby::time::SteadyClock::now();
+                    break;
+                }
+                default:
+                {
+                    glog.is_warn() && glog << "Received unknown SubscribeCommand" << endl;
+                    break;
+                }
+            }
+
+            break;
+        }
         case jaiabot::protobuf::UDPGatewayEnvelope::kImuData:
         {
             interprocess().publish<groups::imu>(envelope.imu_data());
