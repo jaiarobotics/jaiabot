@@ -76,6 +76,7 @@ export function handleInit(mutableState: JaiaContextType) {
         placementError: "",
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
+        taskPacketFilterPanelOpen: false,
         visibleWaypointSection: WaypointSections.NONE,
         hubAccordionStates: defaultHubAccordionStates,
         botAccordionStates: defaultBotAccordionStates,
