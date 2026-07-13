@@ -1,0 +1,99 @@
+@import "../../style/stylesheets/vars.less";
+
+// Anchored to the left edge of the settings panel (its positioned parent) so it sits
+// beside the settings panel rather than covering it.
+.task-packet-filter-panel {
+    position: absolute;
+    top: 0;
+    right: 100%;
+    margin-right: 12px;
+
+    box-sizing: border-box;
+    width: 320px;
+    max-height: @panel-max-height;
+    overflow-y: auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    padding: 12px;
+    background-color: @overlay-background;
+    color: #fff;
+    z-index: @jaia-panel-z-index;
+}
+
+.task-packet-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.task-packet-filter-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.task-packet-filter-dates {
+    display: flex;
+    gap: 12px;
+}
+
+.task-packet-filter-dates label {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 4px;
+    font-size: 0.85rem;
+}
+
+.task-packet-filter-dates input {
+    color-scheme: dark;
+    padding: 4px;
+}
+
+.task-packet-filter-results {
+    display: flex;
+    flex-direction: column;
+    max-height: 30vh;
+    overflow-y: auto;
+    border: 1px solid @panel-accent-color;
+}
+
+.task-packet-filter-result-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px;
+}
+
+.task-packet-filter-result-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.task-packet-filter-result-name {
+    font-weight: 600;
+}
+
+.task-packet-filter-result-meta {
+    font-size: 0.75rem;
+    color: @panel-accent-color;
+}
+
+.task-packet-filter-empty {
+    padding: 8px;
+    font-size: 0.85rem;
+    color: @panel-accent-color;
+}
+
+.task-packet-filter-slider {
+    padding: 0 8px;
+}
+
+.task-packet-filter-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: @panel-accent-color;
+}
