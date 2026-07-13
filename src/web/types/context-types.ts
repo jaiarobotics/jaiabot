@@ -46,6 +46,7 @@ export interface JaiaContextType {
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
+    taskPacketFilterPanelOpen: boolean;
     visibleWaypointSection: WaypointSections;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
