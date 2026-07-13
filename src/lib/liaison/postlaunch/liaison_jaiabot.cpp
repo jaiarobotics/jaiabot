@@ -97,18 +97,6 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
 
         chart_container->setMinimumSize(Wt::WLength::Auto, 100);
         chart_panel->setCentralWidget(std::move(chart_container));
-
-        // Below functions
-
-        // auto box_layout = chart_box->setLayout(std::make_unique<Wt::WVBoxLayout>());
-        // data_stack_ = box_layout->addWidget(std::make_unique<Wt::WStackedWidget>(), 1);
-
-        // chart_container->setMinimumSize(Wt::WLength::Auto, 5000);
-        // chart_panel->setCentralWidget(std::move(chart_container));
-
-        // Above Functions
-
-        // data_stack_->hide();
     }
 
     const auto update_freq = cfg_.control_freq();
@@ -155,27 +143,30 @@ void jaiabot::LiaisonJaiabot::vehicle_select(WString msg)
     }
 }
 
-void jaiabot::LiaisonJaiabot::add_data_type(const std::string& data_type)
+void jaiabot::LiaisonJaiabot::add_data_type(std::pair<std::string, YAxisConfig>& data_type)
 {
-    glog.is_debug1() && glog << "check_add_data_type(): " << data_type << std::endl;
-
     //Add the data type to the chart_data_ vector
     ChartData chart_data;
-    chart_data.chart_type = data_type;
+    chart_data.chart_type = data_type.first;
+    chart_data.y_axis_config = data_type.second;
     chart_data_.push_back(chart_data);
 
     //Add the data type to the data combo box
-    data_combo_->addItem(data_type);
+    data_combo_->addItem(data_type.first);
     data_combo_->model()->sort(0);
 }
 
 void jaiabot::LiaisonJaiabot::data_select(WString msg)
 {
-    glog.is_debug1() && glog << "<data_select()> | msg.narrow():" << msg.narrow() << std::endl;
     std::string data_type = msg.narrow();
 
     // Early exit if the selection is invalid
-    if (std::find(data_types_.begin(), data_types_.end(), data_type) == data_types_.end())
+    // Check if selected data_type is available as a chart type
+    auto it_data_type =
+        std::find_if(data_types_.begin(), data_types_.end(),
+                     [data_type](const auto& item) { return item.first == data_type; });
+
+    if (it_data_type == data_types_.end())
     {
         chart_box->hide();
         current_data_type_ = "";
@@ -190,12 +181,7 @@ void jaiabot::LiaisonJaiabot::data_select(WString msg)
 
     // Early exit if there's no chart data for the selected data type
     if (it == chart_data_.end()) 
-    {
-        glog.is_debug1() && glog << "<data_select()> | no chart data for this data type" << std::endl;
         return;
-    }
-
-    glog.is_debug1() && glog << "<data_select()> | processing data update" << std::endl;
 
     if (current_data_type_ == data_type && chart_model_ && chart_)
     {
@@ -239,7 +225,12 @@ void jaiabot::LiaisonJaiabot::data_select(WString msg)
     new_chart->setType(Wt::Chart::ChartType::Scatter);
     new_chart->setXSeriesColumn(0);
 
-    new_chart->setPlotAreaPadding(80, Wt::Side::Bottom);
+    YAxisConfig y_config = it->y_axis_config;
+    new_chart->axis(Wt::Chart::Axis::Y).setTitle(Wt::WString(y_config.title));
+    new_chart->axis(Wt::Chart::Axis::Y).setRange(y_config.range.first, y_config.range.second);
+    new_chart->axis(Wt::Chart::Axis::Y).setTitleOrientation(Wt::Orientation::Vertical);
+
+    new_chart->setPlotAreaPadding(60, Wt::Side::Bottom);
     new_chart->setPlotAreaPadding(60, Wt::Side::Left);
 
     auto series = std::make_unique<Wt::Chart::WDataSeries>(1, Wt::Chart::SeriesType::Line);
@@ -264,14 +255,11 @@ void jaiabot::LiaisonJaiabot::data_select(WString msg)
 
 void jaiabot::LiaisonJaiabot::addDataPoint(std::string data_type, std::pair<double, double> data_point)
 {
-    
-    glog.is_debug1() && glog << "<addDataPoint()> | start" << std::endl;
     auto it = std::find_if(chart_data_.begin(), chart_data_.end(), 
         [&data_type](const ChartData& data) { return data.chart_type == data_type;});
     
     if(it != chart_data_.end())
     {
-        glog.is_debug1() && glog << "<addDataPoint()> | inserting: (" << data_point.first << ", " << data_point.second << ")" << std::endl;
         it->data_points.push_back(data_point);
 
         if (it->data_points.size() > MAX_DATA_POINTS)

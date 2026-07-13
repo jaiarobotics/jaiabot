@@ -52,10 +52,16 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void vehicle_select(Wt::WString msg);
     void data_select(Wt::WString msg);
     void check_add_vehicle(int node_id);
-    void add_data_type(const std::string& data_type);
     void addDataPoint(const std::string data_type, std::pair<double, double> data_point);
     void key_press(Wt::WKeyEvent key);
     void key_release(Wt::WKeyEvent key);
+
+    struct YAxisConfig {
+        std::string title;
+        std::pair<double, double> range;
+    };
+
+    void add_data_type(std::pair<std::string, YAxisConfig>& data_type);
 
   private:
     Wt::WComboBox* vehicle_combo_;
@@ -64,16 +70,22 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WStackedWidget* data_stack_;
     Wt::WGroupBox* chart_box;
 
-    const std::vector<std::string> data_types_ = {"Pressure", "Temperature"};
-
     struct ChartData {
         std::deque<std::pair<double, double>> data_points;
         std::string chart_type;
+        YAxisConfig y_axis_config;
     };
 
     std::vector<ChartData> chart_data_;
     std::shared_ptr<Wt::WAbstractItemModel> chart_model_;
     Wt::Chart::WCartesianChart* chart_ = nullptr;
+    
+    // Contains all data types that can be displayed on the chart, along with their Y-axis configurations
+    // Y-axis configurations include the title and range for each data type
+    const std::vector<std::pair<std::string, YAxisConfig>> data_types_ = {
+        {"Pressure", {"Pressure (kPa)", {0, 100}}},
+        {"Temperature", {"Temperature (°C)", {-5, 30}}},
+    };
 
     struct VehicleData
     {
