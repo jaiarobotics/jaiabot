@@ -35,7 +35,6 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
   public:
     LiaisonJaiabot(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg,
                    Wt::WContainerWidget* parent = 0);
-    // ~LiaisonJaiabot();
 
     void post_control_ack(const protobuf::LowControlAck& ack);
     void post_node_status(const goby::middleware::frontseat::protobuf::NodeStatus& node_status);
@@ -65,7 +64,6 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WStackedWidget* data_stack_;
     Wt::WGroupBox* chart_box;
 
-    // // const std::vector<std::string> data_types_ = {"Pressure & Temperature", "Salinity", "IMU", "Low Control"};
     const std::vector<std::string> data_types_ = {"Pressure", "Temperature"};
 
     struct ChartData {

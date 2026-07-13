@@ -221,8 +221,6 @@ void jaiabot::LiaisonJaiabot::data_select(WString msg)
             chart_model_->setData(i, 1, it->data_points[i].second);
         }
 
-        // chart_->axis(Wt::Chart::Axis::Y).setTitle(Wt::WString(y_axis_title));
-
         return; 
     }
 
