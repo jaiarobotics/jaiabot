@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from typing import Protocol, cast
+
 from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
 from dataclasses import dataclass
 import socket
@@ -8,13 +10,12 @@ import argparse
 
 
 def main():
-    @dataclass
-    class Args:
-        udp_gateway_port: int = None
+    class Args(Protocol):
+        udp_gateway_port: int
  
     parser = argparse.ArgumentParser(description="UDP Gateway Subscription Test")
     parser.add_argument("-p", "--udp_gateway_port", type=int, required=True, help="Port of the UDP gateway")
-    args: Args = parser.parse_args()
+    args = cast(Args, parser.parse_args())
 
     udp_address = ('localhost', args.udp_gateway_port)
 
