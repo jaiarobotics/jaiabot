@@ -13,6 +13,7 @@ import Engineering from "./Engineering/Engineering";
 import OfflineMaps from "./OfflineMaps/OfflineMaps";
 import QueryBotStatus from "./QueryBotStatus/QueryBotStatus";
 import LayerSwitcherMenu from "./LayerSwitcherMenu/LayerSwitcherMenu";
+import TaskPacketFilterPanel from "../TaskPacketFilterPanel/TaskPacketFilterPanel";
 import { trackPod } from "../../openlayers/controls/track-pod";
 import { CoordinateSystem } from "../../types/jaia-system-types";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
@@ -88,6 +89,7 @@ export default function SettingsPanel() {
 
     return (
         <div className="jaia-panel settings-panel">
+            {jaiaContext.taskPacketFilterPanelOpen && <TaskPacketFilterPanel />}
             <div className="jaia-panel-title">Settings</div>
             <div className="settings-row">
                 <div className="settings-label">Track Pod:</div>
