@@ -39,6 +39,7 @@ import {
     handleClosedWaypointPanel,
     handleClosedZoneVertexPanel,
     handleClosedTaskPacketPanel,
+    handleToggleTaskPacketFilterPanel,
 } from "./handlers/panel-handlers";
 import {
     handleClickedHubAccordion,
@@ -168,6 +169,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [
         JaiaActions.CLOSED_TASK_PACKET_PANEL,
         { handler: handleClosedTaskPacketPanel, tracked: false },
+    ],
+    [
+        JaiaActions.TOGGLE_TASK_PACKET_FILTER_PANEL,
+        { handler: handleToggleTaskPacketFilterPanel, tracked: false },
     ],
 
     // Accordion Actions
