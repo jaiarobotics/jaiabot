@@ -23,6 +23,8 @@
 #include "config.pb.h"
 #include "jaiabot/messages/feather.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
+#include <Wt/Chart/WCartesianChart.h>
+#include <Wt/WAbstractItemModel.h>
 
 namespace jaiabot
 {
@@ -33,6 +35,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
   public:
     LiaisonJaiabot(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg,
                    Wt::WContainerWidget* parent = 0);
+    // ~LiaisonJaiabot();
 
     void post_control_ack(const protobuf::LowControlAck& ack);
     void post_node_status(const goby::middleware::frontseat::protobuf::NodeStatus& node_status);
@@ -48,13 +51,31 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void unfocus() override { timer_.stop(); }
 
     void vehicle_select(Wt::WString msg);
+    void data_select(Wt::WString msg);
     void check_add_vehicle(int node_id);
+    void add_data_type(const std::string& data_type);
+    void addDataPoint(const std::string data_type, std::pair<double, double> data_point);
     void key_press(Wt::WKeyEvent key);
     void key_release(Wt::WKeyEvent key);
 
   private:
     Wt::WComboBox* vehicle_combo_;
+    Wt::WComboBox* data_combo_;
     Wt::WStackedWidget* vehicle_stack_;
+    Wt::WStackedWidget* data_stack_;
+    Wt::WGroupBox* chart_box;
+
+    // // const std::vector<std::string> data_types_ = {"Pressure & Temperature", "Salinity", "IMU", "Low Control"};
+    const std::vector<std::string> data_types_ = {"Pressure", "Temperature"};
+
+    struct ChartData {
+        std::deque<std::pair<double, double>> data_points;
+        std::string chart_type;
+    };
+
+    std::vector<ChartData> chart_data_;
+    std::shared_ptr<Wt::WAbstractItemModel> chart_model_;
+    Wt::Chart::WCartesianChart* chart_ = nullptr;
 
     struct VehicleData
     {
@@ -208,6 +229,9 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
 
     // currently shown vehicle id
     int current_vehicle_{-1};
+
+    // currently shown data_type
+    std::string current_data_type_{-1};
 
     bool motor_go_{false};
     static bool dive_start_;
