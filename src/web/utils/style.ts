@@ -14,6 +14,31 @@ export enum MapIconColors {
 // Disable animations from MUI accordions because of lag experienced by operators
 export const accordionTheme = createTheme({ transitions: { create: () => "none" } });
 
+// Matches the app's global font stack (vars.less @global-font-family) so MUI components
+// render in the same typeface as the rest of the UI
+const GLOBAL_FONT_FAMILY = [
+    '"Helvetica Neue For Number"',
+    "-apple-system",
+    "BlinkMacSystemFont",
+    '"Segoe UI"',
+    "Roboto",
+    '"PingFang SC"',
+    '"Hiragino Sans GB"',
+    '"Microsoft YaHei"',
+    '"Helvetica Neue"',
+    "Helvetica",
+    "Arial",
+    "sans-serif",
+].join(",");
+
+// Dark theme for the task packet filter panel so MUI inputs, labels, and controls render
+// white text in the app font to match the surrounding settings panel
+export const taskPacketFilterTheme = createTheme({
+    palette: { mode: "dark" },
+    typography: { fontFamily: GLOBAL_FONT_FAMILY },
+    transitions: { create: () => "none" },
+});
+
 // Style MUI select menu
 export const selectTheme = createTheme({
     components: {
