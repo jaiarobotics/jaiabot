@@ -34,7 +34,7 @@ import {
     isLocationBlockedByZone,
 } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 
-import ZoneCrossingDialog from "../ZoneCrossingDialog/ZoneCrossingDialog";
+import ZoneCrossingDialog from "../ExclusionZonesPanel/Dialogs/ZoneCrossingDialog/ZoneCrossingDialog";
 
 import "./Map.less";
 

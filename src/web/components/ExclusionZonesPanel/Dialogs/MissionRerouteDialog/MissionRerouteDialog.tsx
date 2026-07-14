@@ -1,7 +1,7 @@
 import { useContext } from "react";
-import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaActions } from "../../context/jaia-actions";
-import { MAX_WAYPOINTS } from "../../utils/constants";
+import { JaiaContext, JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
+import { MAX_WAYPOINTS } from "../../../../utils/constants";
 
 export default function MissionRerouteDialog() {
     const jaiaContext = useContext(JaiaContext);

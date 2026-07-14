@@ -1,7 +1,7 @@
 import { useContext } from "react";
-import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaActions } from "../../context/jaia-actions";
-import { MAX_WAYPOINTS } from "../../utils/constants";
+import { JaiaContext, JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
+import { MAX_WAYPOINTS } from "../../../../utils/constants";
 
 /**
  * Shown when waypoints fall inside an exclusion zone. If the post-removal
