@@ -12,7 +12,9 @@ import {
 } from "../../data/task_packets/task-packet-filter";
 import { jaiaAPI } from "../../utils/jaia-api";
 import { getHTMLDateString } from "../../shared/Utilities";
+import { taskPacketFilterTheme } from "../../utils/style";
 
+import { ThemeProvider } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import Checkbox from "@mui/material/Checkbox";
@@ -110,18 +112,13 @@ export default function TaskPacketFilterPanel() {
     selectedKeysRef.current = selectedKeys;
 
     /**
-     * True when the end date is "today or later" -> keep following live data.
-     */
-    const isEndLive = () => endDateStr >= getHTMLDateString(new Date());
-
-    /**
-     * Builds the "yyyy-mm-dd hh:mm" query strings for the current date range.
+     * Builds the "yyyy-mm-dd hh:mm" query strings for the selected date range. The end of
+     * the chosen end day is used as the upper bound (never the client clock) so packets
+     * dated ahead of the client — e.g. a simulator running on a warped clock — are found.
      */
     const buildQueryStrings = () => {
         const startQuery = `${startDateStr} 00:00`;
-        const endQuery = isEndLive()
-            ? `${getHTMLDateString(new Date())} 23:59`
-            : `${endDateStr} 23:59`;
+        const endQuery = `${endDateStr} 23:59`;
         return { startQuery, endQuery };
     };
 
@@ -179,7 +176,9 @@ export default function TaskPacketFilterPanel() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [startDateStr, endDateStr]);
 
-    // Commit the filter to the map whenever the mission selection changes.
+    // Commit the mission selection + time window to the map whenever the selection changes.
+    // The searched range is already loaded into taskPackets by handleRunSearch, so the map
+    // filters the exact same packets the mission list was built from (keys always agree).
     useEffect(() => {
         // On reopen the singleton is already correct; skip the first run so we don't
         // reset the slider from an empty (not-yet-fetched) mission list.
@@ -188,36 +187,23 @@ export default function TaskPacketFilterPanel() {
             return;
         }
 
-        if (!hasSearched) {
+        if (!hasSearched || !taskPacketFilter.isActive()) {
             return;
         }
 
-        if (selectedKeys.size === 0) {
-            // Nothing selected -> return the map to the default live view.
-            if (taskPacketFilter.isActive()) {
-                taskPacketFilter.clear();
-                pollTaskPackets();
-            }
-            return;
-        }
-
-        // Activate the filter for the current window + selection.
-        const startDateObj = new Date(`${startDateStr}T00:00:00`);
-        const endLive = isEndLive();
-        const endDateObj = endLive ? new Date() : new Date(`${endDateStr}T23:59:59`);
-        taskPacketFilter.setSearchWindow(startDateObj, endDateObj, endLive);
         taskPacketFilter.setSelectedMissionKeys(selectedKeys);
 
-        const bounds = computeBounds(missionsRef.current, selectedKeys);
-        setSliderBounds(bounds);
-        setSliderValue(bounds);
-        taskPacketFilter.setSliderWindow(bounds[0], bounds[1]);
-        taskPacketFilter.setAutoFollowUpper(true);
+        if (selectedKeys.size > 0) {
+            const bounds = computeBounds(missionsRef.current, selectedKeys);
+            setSliderBounds(bounds);
+            setSliderValue(bounds);
+            // Show every packet of the selected missions; the slider only starts
+            // restricting by time once the operator drags it (window stays unset).
+            taskPacketFilter.setSliderWindow(0, 0);
+            taskPacketFilter.setAutoFollowUpper(true);
+        }
 
-        // Repaint immediately so already-loaded packets filter without waiting on the
-        // network, then load the (possibly wider) window into the map data model.
         syncTaskPacketMarkerLayers();
-        pollTaskPackets();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedKeys]);
 
@@ -250,7 +236,11 @@ export default function TaskPacketFilterPanel() {
             }
             setSliderBounds(bounds);
 
-            if (taskPacketFilter.getAutoFollowUpper()) {
+            if (taskPacketFilter.getSliderUpperUtime() <= 0) {
+                // Slider not engaged yet -> keep showing all selected packets and let the
+                // handles track the full (growing) range.
+                setSliderValue(bounds);
+            } else if (taskPacketFilter.getAutoFollowUpper()) {
                 setSliderValue((current) => [current[0], bounds[1]]);
                 taskPacketFilter.setSliderWindow(taskPacketFilter.getSliderLowerUtime(), bounds[1]);
                 syncTaskPacketMarkerLayers();
@@ -261,11 +251,47 @@ export default function TaskPacketFilterPanel() {
     }, [hasSearched]);
 
     /**
-     * Runs the search: refreshes the mission list and reveals the results.
+     * Runs the search: loads the chosen date range into the shared task packet model,
+     * activates the filter window (so the poll keeps it live), and builds the mission
+     * list from that same data so the map and this list can never disagree on missions.
      */
     const handleRunSearch = async () => {
-        await fetchMissions();
-        setHasSearched(true);
+        setIsLoading(true);
+        const { startQuery, endQuery } = buildQueryStrings();
+        try {
+            const response = await jaiaAPI.getTaskPackets(startQuery, endQuery);
+            const included = response?.result?.included ?? [];
+            const excluded = response?.result?.excluded ?? [];
+
+            taskPackets.setIncludedTaskPackets(included);
+            taskPackets.setExcludedTaskPackets(excluded);
+
+            const startDateObj = new Date(`${startDateStr}T00:00:00`);
+            const endDateObj = new Date(`${endDateStr}T23:59:59`);
+            taskPacketFilter.setSearchWindow(startDateObj, endDateObj, false);
+
+            const summaries = buildMissionSummaries([...included, ...excluded]);
+            setMissions(summaries);
+            missionsRef.current = summaries;
+
+            // Start with every found mission checked so the operator sees all matching
+            // packets immediately; they can uncheck to narrow.
+            const visible =
+                nameFilter.length > 0
+                    ? summaries.filter((mission) => nameFilter.includes(missionLabel(mission)))
+                    : summaries;
+            const allKeys = new Set(visible.map((mission) => mission.key));
+            taskPacketFilter.setSelectedMissionKeys(allKeys);
+            setSelectedKeys(allKeys);
+            setHasSearched(true);
+
+            syncTaskPacketMarkerLayers();
+        } catch (error) {
+            console.error(error);
+            setMissions([]);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     /**
@@ -326,113 +352,148 @@ export default function TaskPacketFilterPanel() {
     const sliderStep = Math.max(1, Math.floor((sliderMax - sliderMin) / 500));
 
     return (
-        <div className="task-packet-filter-panel">
-            <div className="task-packet-filter-header">
-                <span className="task-packet-filter-title">Task Packet Filter</span>
-                <IconButton size="small" onClick={handleClose} data-testid="close-filter-panel">
-                    <CloseIcon fontSize="small" />
-                </IconButton>
-            </div>
+        <ThemeProvider theme={taskPacketFilterTheme}>
+            <div className="task-packet-filter-panel">
+                <div className="task-packet-filter-header">
+                    <span className="task-packet-filter-title">Task Packet Filter</span>
+                    <IconButton size="small" onClick={handleClose} data-testid="close-filter-panel">
+                        <CloseIcon fontSize="small" />
+                    </IconButton>
+                </div>
 
-            <div className="task-packet-filter-dates">
-                <label>
-                    Start
-                    <input
-                        type="date"
-                        value={startDateStr}
-                        max={endDateStr}
-                        onChange={(event) => setStartDateStr(event.target.value)}
-                        data-testid="filter-start-date"
-                    />
-                </label>
-                <label>
-                    End
-                    <input
-                        type="date"
-                        value={endDateStr}
-                        min={startDateStr}
-                        onChange={(event) => setEndDateStr(event.target.value)}
-                        data-testid="filter-end-date"
-                    />
-                </label>
-            </div>
+                <p className="task-packet-filter-intro">
+                    Show only the task packets from specific missions on the map.
+                </p>
 
-            <Autocomplete
-                multiple
-                size="small"
-                options={missionOptions}
-                value={nameFilter}
-                onChange={(_event, value) => setNameFilter(value)}
-                renderInput={(params) => (
-                    <TextField {...params} label="Mission name(s)" placeholder="All missions" />
-                )}
-                data-testid="filter-mission-name"
-            />
-
-            <Button
-                variant="contained"
-                onClick={handleRunSearch}
-                disabled={isLoading}
-                className="task-packet-filter-search-button"
-            >
-                {isLoading ? <CircularProgress size={18} /> : "Run Search"}
-            </Button>
-
-            {hasSearched && (
-                <div className="task-packet-filter-results">
-                    {resultMissions.length === 0 && (
-                        <div className="task-packet-filter-empty">
-                            No missions in this date range.
-                        </div>
-                    )}
-                    {resultMissions.map((mission) => (
-                        <div className="task-packet-filter-result-row" key={mission.key}>
-                            <Checkbox
-                                size="small"
-                                checked={selectedKeys.has(mission.key)}
-                                onChange={() => handleToggleMission(mission.key)}
-                                data-testid={`filter-mission-${mission.key}`}
+                <div className="task-packet-filter-step">
+                    <div className="task-packet-filter-step-label">1. Choose a date range</div>
+                    <div className="task-packet-filter-dates">
+                        <label>
+                            Start
+                            <input
+                                type="date"
+                                value={startDateStr}
+                                max={endDateStr}
+                                onChange={(event) => setStartDateStr(event.target.value)}
+                                data-testid="filter-start-date"
                             />
-                            <div className="task-packet-filter-result-info">
-                                <span className="task-packet-filter-result-name">
-                                    {missionLabel(mission)}
-                                </span>
-                                <span className="task-packet-filter-result-meta">
-                                    {formatUtime(mission.startTime)} · {mission.taskPacketCount}{" "}
-                                    packets
-                                </span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {hasSearched && selectedKeys.size > 0 && (
-                <div className="task-packet-filter-slider">
-                    <div className="task-packet-filter-slider-labels">
-                        <span>{formatUtime(sliderValue[0])}</span>
-                        <span>{formatUtime(sliderValue[1])}</span>
+                        </label>
+                        <label>
+                            End
+                            <input
+                                type="date"
+                                value={endDateStr}
+                                min={startDateStr}
+                                onChange={(event) => setEndDateStr(event.target.value)}
+                                data-testid="filter-end-date"
+                            />
+                        </label>
                     </div>
-                    <Slider
-                        value={sliderValue}
-                        min={sliderMin}
-                        max={sliderMax}
-                        step={sliderStep}
-                        onChange={handleSliderChange}
-                        valueLabelDisplay="auto"
-                        valueLabelFormat={(value) => formatUtime(value)}
-                        data-testid="filter-time-slider"
+                </div>
+
+                <div className="task-packet-filter-step">
+                    <div className="task-packet-filter-step-label">
+                        2. Filter by mission name (optional)
+                    </div>
+                    <Autocomplete
+                        multiple
+                        size="small"
+                        options={missionOptions}
+                        value={nameFilter}
+                        onChange={(_event, value) => setNameFilter(value)}
+                        renderInput={(params) => (
+                            <TextField {...params} placeholder="All missions" />
+                        )}
+                        data-testid="filter-mission-name"
                     />
                 </div>
-            )}
 
-            <Button
-                variant="outlined"
-                onClick={handleClear}
-                className="task-packet-filter-clear-button"
-            >
-                Clear Filter
-            </Button>
-        </div>
+                <Button
+                    variant="contained"
+                    onClick={handleRunSearch}
+                    disabled={isLoading}
+                    className="task-packet-filter-search-button"
+                >
+                    {isLoading ? <CircularProgress size={18} /> : "Run Search"}
+                </Button>
+
+                {hasSearched && (
+                    <div className="task-packet-filter-step">
+                        <div className="task-packet-filter-step-label">
+                            3. Select missions to show on the map
+                        </div>
+                        {resultMissions.length === 0 ? (
+                            <div className="task-packet-filter-hint">
+                                No missions found in this date range.
+                            </div>
+                        ) : (
+                            <>
+                                <div className="task-packet-filter-results">
+                                    {resultMissions.map((mission) => (
+                                        <label
+                                            className="task-packet-filter-result-row"
+                                            key={mission.key}
+                                        >
+                                            <Checkbox
+                                                size="small"
+                                                checked={selectedKeys.has(mission.key)}
+                                                onChange={() => handleToggleMission(mission.key)}
+                                                data-testid={`filter-mission-${mission.key}`}
+                                            />
+                                            <div className="task-packet-filter-result-info">
+                                                <span className="task-packet-filter-result-name">
+                                                    {missionLabel(mission)}
+                                                </span>
+                                                <span className="task-packet-filter-result-meta">
+                                                    {formatUtime(mission.startTime)} ·{" "}
+                                                    {mission.taskPacketCount} packets
+                                                </span>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+                                {selectedKeys.size === 0 && (
+                                    <div className="task-packet-filter-hint">
+                                        Check one or more missions to filter the map.
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {hasSearched && selectedKeys.size > 0 && (
+                    <div className="task-packet-filter-step">
+                        <div className="task-packet-filter-step-label">
+                            4. Drag to narrow the time window
+                        </div>
+                        <div className="task-packet-filter-slider">
+                            <div className="task-packet-filter-slider-labels">
+                                <span>{formatUtime(sliderValue[0])}</span>
+                                <span>{formatUtime(sliderValue[1])}</span>
+                            </div>
+                            <Slider
+                                value={sliderValue}
+                                min={sliderMin}
+                                max={sliderMax}
+                                step={sliderStep}
+                                onChange={handleSliderChange}
+                                valueLabelDisplay="auto"
+                                valueLabelFormat={(value) => formatUtime(value)}
+                                data-testid="filter-time-slider"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                <Button
+                    variant="outlined"
+                    onClick={handleClear}
+                    className="task-packet-filter-clear-button"
+                >
+                    Clear Filter
+                </Button>
+            </div>
+        </ThemeProvider>
     );
 }

@@ -22,7 +22,8 @@ export interface MissionSummary {
  * @returns {string} Mission name or UNNAMED_MISSION_KEY
  */
 export function missionKeyOf(taskPacket: TaskPacket): string {
-    return taskPacket.mission_name ?? UNNAMED_MISSION_KEY;
+    // Treat a missing OR empty mission_name as unnamed so those packets group together.
+    return taskPacket.mission_name ? taskPacket.mission_name : UNNAMED_MISSION_KEY;
 }
 
 /**
@@ -36,7 +37,9 @@ export function missionKeyOf(taskPacket: TaskPacket): string {
 export function buildMissionSummaries(taskPackets: TaskPacket[]): MissionSummary[] {
     const byKey = new Map<string, MissionSummary>();
     for (const taskPacket of taskPackets) {
-        if (taskPacket.start_time === undefined) {
+        // start_time is a uint64 and may arrive as a string; coerce to a number.
+        const startTime = Number(taskPacket.start_time);
+        if (!Number.isFinite(startTime)) {
             continue;
         }
         const key = missionKeyOf(taskPacket);
@@ -44,14 +47,14 @@ export function buildMissionSummaries(taskPackets: TaskPacket[]): MissionSummary
         if (!existing) {
             byKey.set(key, {
                 key,
-                name: taskPacket.mission_name ?? null,
-                startTime: taskPacket.start_time,
-                endTime: taskPacket.start_time,
+                name: taskPacket.mission_name ? taskPacket.mission_name : null,
+                startTime: startTime,
+                endTime: startTime,
                 taskPacketCount: 1,
             });
         } else {
-            existing.startTime = Math.min(existing.startTime, taskPacket.start_time);
-            existing.endTime = Math.max(existing.endTime, taskPacket.start_time);
+            existing.startTime = Math.min(existing.startTime, startTime);
+            existing.endTime = Math.max(existing.endTime, startTime);
             existing.taskPacketCount += 1;
         }
     }
@@ -59,9 +62,7 @@ export function buildMissionSummaries(taskPackets: TaskPacket[]): MissionSummary
 }
 
 /**
- * Holds the state for the JCC task packet filter. This is a plain (non-React)
- * singleton so it can be read both by the React filter panel and by the imperative
- * OpenLayers layers / poll loop. Session-only; never persisted.
+ * Holds the state for the JCC task packet filter.
  */
 class TaskPacketFilter {
     private active = false;
@@ -77,8 +78,10 @@ class TaskPacketFilter {
         return this.active;
     }
 
+    // The map is filtered whenever a search is active. With no missions selected this
+    // hides every task packet (an empty selection matches nothing).
     isEngaged() {
-        return this.active && this.selectedMissionKeys.size > 0;
+        return this.active;
     }
 
     getStartDate() {
@@ -152,8 +155,13 @@ class TaskPacketFilter {
         if (!this.selectedMissionKeys.has(missionKeyOf(taskPacket))) {
             return false;
         }
-        const startTime = taskPacket.start_time;
-        if (startTime === undefined) {
+        // No time window set yet -> restrict by mission only (never blank the map).
+        if (this.sliderUpperUtime <= 0) {
+            return true;
+        }
+        // start_time is a uint64 and may arrive as a string; coerce to a number.
+        const startTime = Number(taskPacket.start_time);
+        if (!Number.isFinite(startTime)) {
             return false;
         }
         return startTime >= this.sliderLowerUtime && startTime <= this.sliderUpperUtime;

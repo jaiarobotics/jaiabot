@@ -12,6 +12,7 @@
     width: 320px;
     max-height: @panel-max-height;
     overflow-y: auto;
+    overflow-x: hidden;
 
     display: flex;
     flex-direction: column;
@@ -20,7 +21,7 @@
     padding: 12px;
     background-color: @overlay-background;
     color: #fff;
-    z-index: @jaia-panel-z-index;
+    font-family: @global-font-family;
 }
 
 .task-packet-filter-header {
@@ -32,6 +33,24 @@
 .task-packet-filter-title {
     font-size: 1.1rem;
     font-weight: 600;
+    color: #fff;
+}
+
+.task-packet-filter-intro {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #fff;
+}
+
+.task-packet-filter-step {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.task-packet-filter-step-label {
+    font-weight: 600;
+    color: #fff;
 }
 
 .task-packet-filter-dates {
@@ -45,6 +64,7 @@
     flex: 1;
     gap: 4px;
     font-size: 0.85rem;
+    color: #fff;
 }
 
 .task-packet-filter-dates input {
@@ -65,6 +85,7 @@
     align-items: center;
     gap: 6px;
     padding: 2px 4px;
+    cursor: pointer;
 }
 
 .task-packet-filter-result-info {
@@ -74,17 +95,19 @@
 
 .task-packet-filter-result-name {
     font-weight: 600;
+    color: #fff;
 }
 
 .task-packet-filter-result-meta {
     font-size: 0.75rem;
-    color: @panel-accent-color;
+    color: #fff;
 }
 
-.task-packet-filter-empty {
-    padding: 8px;
-    font-size: 0.85rem;
-    color: @panel-accent-color;
+.task-packet-filter-hint {
+    padding: 4px 2px;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: #fff;
 }
 
 .task-packet-filter-slider {
@@ -95,5 +118,5 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.75rem;
-    color: @panel-accent-color;
+    color: #fff;
 }
