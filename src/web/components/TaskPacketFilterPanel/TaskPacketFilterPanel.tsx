@@ -28,7 +28,7 @@ import "./TaskPacketFilterPanel.less";
 
 const SEARCH_DEBOUNCE_TIME = 400; // milliseconds
 const LIVE_TICK_TIME = 2000; // milliseconds
-const DEFAULT_WINDOW_HOURS = 14; // hours (matches the server's default task packet window)
+const DEFAULT_WINDOW_HOURS = 14; // hours
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -39,7 +39,7 @@ const timeFormatter = new Intl.DateTimeFormat(undefined, {
 });
 
 /**
- * Formats a task packet start_time (Unix microseconds) as a short local datetime.
+ * Formats a task packet start_time as a datetime.
  *
  * @param {number} utime Timestamp in microseconds
  * @returns {string} Human readable local datetime
@@ -99,22 +99,17 @@ export default function TaskPacketFilterPanel() {
         taskPacketFilter.getSliderUpperUtime(),
     ]);
 
-    // Refs mirror latest values for use inside the live-tick interval without
-    // re-subscribing the interval on every change.
+    // Latest values for use inside the live interval without subscribing it again.
     const missionsRef = useRef(missions);
     const selectedKeysRef = useRef(selectedKeys);
     const lastVersionRef = useRef(-1);
-    // True when the panel mounts with a filter already active (reopened). The first
-    // run of the commit effect is skipped so it doesn't clobber the live filter/slider
-    // before the mission list has been re-fetched.
+    // On reopen the filter is already committed, so skip the first commit run.
     const skipInitialCommitRef = useRef(taskPacketFilter.isActive() && selectedKeys.size > 0);
     missionsRef.current = missions;
     selectedKeysRef.current = selectedKeys;
 
     /**
-     * Builds the "yyyy-mm-dd hh:mm" query strings for the selected date range. The end of
-     * the chosen end day is used as the upper bound (never the client clock) so packets
-     * dated ahead of the client — e.g. a simulator running on a warped clock — are found.
+     * Builds the "yyyy-mm-dd hh:mm" query strings for the selected date range.
      */
     const buildQueryStrings = () => {
         const startQuery = `${startDateStr} 00:00`;
@@ -123,8 +118,11 @@ export default function TaskPacketFilterPanel() {
     };
 
     /**
-     * Recomputes the slider bounds [min startTime, max endTime] across the selected
-     * missions of a summary list.
+     * Returns the [min, max] start-time span across the selected missions.
+     *
+     * @param {MissionSummary[]} summaries Mission summaries
+     * @param {Set<string>} keys Selected mission keys
+     * @returns {[number, number]} Slider bounds, or [0, 0] when nothing is selected
      */
     const computeBounds = (summaries: MissionSummary[], keys: Set<string>): [number, number] => {
         const selected = summaries.filter((mission) => keys.has(mission.key));
@@ -138,7 +136,6 @@ export default function TaskPacketFilterPanel() {
 
     /**
      * Fetches task packets for the current date range and rebuilds the mission list.
-     * Rehydrates the slider bounds when a filter is already active (e.g. on reopen).
      */
     const fetchMissions = async () => {
         const { startQuery, endQuery } = buildQueryStrings();
@@ -166,22 +163,16 @@ export default function TaskPacketFilterPanel() {
         }
     };
 
-    // Refresh the mission list (and autocomplete options) whenever the date range
-    // changes, debounced so typing/spinner clicks don't spam the endpoint.
+    // Autocomplete options on date change.
     useEffect(() => {
         const timeoutID = setTimeout(() => {
             fetchMissions();
         }, SEARCH_DEBOUNCE_TIME);
         return () => clearTimeout(timeoutID);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [startDateStr, endDateStr]);
 
-    // Commit the mission selection + time window to the map whenever the selection changes.
-    // The searched range is already loaded into taskPackets by handleRunSearch, so the map
-    // filters the exact same packets the mission list was built from (keys always agree).
+    // Apply the mission selection to the map whenever it changes.
     useEffect(() => {
-        // On reopen the singleton is already correct; skip the first run so we don't
-        // reset the slider from an empty (not-yet-fetched) mission list.
         if (skipInitialCommitRef.current) {
             skipInitialCommitRef.current = false;
             return;
@@ -197,18 +188,14 @@ export default function TaskPacketFilterPanel() {
             const bounds = computeBounds(missionsRef.current, selectedKeys);
             setSliderBounds(bounds);
             setSliderValue(bounds);
-            // Show every packet of the selected missions; the slider only starts
-            // restricting by time once the operator drags it (window stays unset).
             taskPacketFilter.setSliderWindow(0, 0);
             taskPacketFilter.setAutoFollowUpper(true);
         }
 
         syncTaskPacketMarkerLayers();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedKeys]);
 
-    // Live tick: while a filter is engaged, pick up new task packets so mission counts
-    // grow and (unless the operator pulled the upper handle back) the slider follows.
+    // While active, pick up new task packets so counts grow and the slider can follow.
     useEffect(() => {
         if (!hasSearched) {
             return;
@@ -237,8 +224,7 @@ export default function TaskPacketFilterPanel() {
             setSliderBounds(bounds);
 
             if (taskPacketFilter.getSliderUpperUtime() <= 0) {
-                // Slider not engaged yet -> keep showing all selected packets and let the
-                // handles track the full (growing) range.
+                // When slider not dragged yet track the full (growing) range.
                 setSliderValue(bounds);
             } else if (taskPacketFilter.getAutoFollowUpper()) {
                 setSliderValue((current) => [current[0], bounds[1]]);
@@ -251,9 +237,8 @@ export default function TaskPacketFilterPanel() {
     }, [hasSearched]);
 
     /**
-     * Runs the search: loads the chosen date range into the shared task packet model,
-     * activates the filter window (so the poll keeps it live), and builds the mission
-     * list from that same data so the map and this list can never disagree on missions.
+     * Loads the chosen date range into the shared task packet model, activates the filter,
+     * and builds the mission list from that same data so the map and list always agree.
      */
     const handleRunSearch = async () => {
         setIsLoading(true);
@@ -268,14 +253,13 @@ export default function TaskPacketFilterPanel() {
 
             const startDateObj = new Date(`${startDateStr}T00:00:00`);
             const endDateObj = new Date(`${endDateStr}T23:59:59`);
-            taskPacketFilter.setSearchWindow(startDateObj, endDateObj, false);
+            taskPacketFilter.setSearchWindow(startDateObj, endDateObj);
 
             const summaries = buildMissionSummaries([...included, ...excluded]);
             setMissions(summaries);
             missionsRef.current = summaries;
 
-            // Start with every found mission checked so the operator sees all matching
-            // packets immediately; they can uncheck to narrow.
+            // Start with every found mission checked.
             const visible =
                 nameFilter.length > 0
                     ? summaries.filter((mission) => nameFilter.includes(missionLabel(mission)))
@@ -295,7 +279,7 @@ export default function TaskPacketFilterPanel() {
     };
 
     /**
-     * Toggles a mission's inclusion in the current selection.
+     * Toggles a mission's to be included in the current selection.
      */
     const handleToggleMission = (key: string) => {
         const next = new Set(selectedKeys);
@@ -308,7 +292,7 @@ export default function TaskPacketFilterPanel() {
     };
 
     /**
-     * Handles a slider drag: updates the visible time window instantly (no network).
+     * Updates the visible time window instantly.
      */
     const handleSliderChange = (_event: Event, value: number | number[]) => {
         const [lower, upper] = value as number[];
@@ -334,7 +318,7 @@ export default function TaskPacketFilterPanel() {
     };
 
     /**
-     * Closes the filter panel (leaves any active filter in place).
+     * Closes the filter panel.
      */
     const handleClose = () => {
         jaiaDispatch({ type: JaiaActions.TOGGLE_TASK_PACKET_FILTER_PANEL });
@@ -346,7 +330,6 @@ export default function TaskPacketFilterPanel() {
             ? missions.filter((mission) => nameFilter.includes(missionLabel(mission)))
             : missions;
 
-    // MUI Slider requires min < max; pad a degenerate (single-time) range.
     const sliderMin = sliderBounds[0];
     const sliderMax = sliderBounds[1] > sliderBounds[0] ? sliderBounds[1] : sliderBounds[0] + 1;
     const sliderStep = Math.max(1, Math.floor((sliderMax - sliderMin) / 500));
