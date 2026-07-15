@@ -1,9 +1,6 @@
 import { TaskPacket } from "../../types/protobuf-types";
 
-/**
- * Sentinel grouping key for task packets that carry no mission_name. Such packets
- * are grouped under a single "Unnamed" mission rather than being dropped.
- */
+// Grouping key for task packets that have no mission_name.
 export const UNNAMED_MISSION_KEY = "__UNNAMED__";
 
 export interface MissionSummary {
@@ -15,72 +12,61 @@ export interface MissionSummary {
 }
 
 /**
- * Returns the grouping key for a task packet: its mission name, or the UNNAMED
- * sentinel when it has none.
+ * Returns the grouping name for a task packet.
  *
  * @param {TaskPacket} taskPacket Packet to key
  * @returns {string} Mission name or UNNAMED_MISSION_KEY
  */
 export function missionKeyOf(taskPacket: TaskPacket): string {
-    // Treat a missing OR empty mission_name as unnamed so those packets group together.
     return taskPacket.mission_name ? taskPacket.mission_name : UNNAMED_MISSION_KEY;
 }
 
 /**
- * Groups task packets into mission summaries (a client-side mirror of the backend
- * MissionSummary). Packets without a mission_name are grouped under UNNAMED so they
- * are never silently dropped.
+ * Groups task packets into mission summaries sorted by start time. Packets with no
+ * mission_name are grouped under UNNAMED so they aren't dropped.
  *
- * @param {TaskPacket[]} taskPackets Packets to summarize (typically included + excluded)
+ * @param {TaskPacket[]} taskPackets Packets to summarize
  * @returns {MissionSummary[]} Summaries sorted by startTime ascending
  */
 export function buildMissionSummaries(taskPackets: TaskPacket[]): MissionSummary[] {
     const byKey = new Map<string, MissionSummary>();
     for (const taskPacket of taskPackets) {
-        // start_time is a uint64 and may arrive as a string; coerce to a number.
         const startTime = Number(taskPacket.start_time);
         if (!Number.isFinite(startTime)) {
             continue;
         }
         const key = missionKeyOf(taskPacket);
         const existing = byKey.get(key);
-        if (!existing) {
-            byKey.set(key, {
-                key,
-                name: taskPacket.mission_name ? taskPacket.mission_name : null,
-                startTime: startTime,
-                endTime: startTime,
-                taskPacketCount: 1,
-            });
-        } else {
+        if (existing) {
             existing.startTime = Math.min(existing.startTime, startTime);
             existing.endTime = Math.max(existing.endTime, startTime);
             existing.taskPacketCount += 1;
+        } else {
+            byKey.set(key, {
+                key,
+                name: taskPacket.mission_name ? taskPacket.mission_name : null,
+                startTime,
+                endTime: startTime,
+                taskPacketCount: 1,
+            });
         }
     }
     return Array.from(byKey.values()).sort((a, b) => a.startTime - b.startTime);
 }
 
 /**
- * Holds the state for the JCC task packet filter.
+ * Session state for the JCC task packet filter.
  */
 class TaskPacketFilter {
     private active = false;
     private startDate: Date | null = null;
     private endDate: Date | null = null;
-    private endIsLive = true;
     private selectedMissionKeys = new Set<string>();
     private sliderLowerUtime = 0;
     private sliderUpperUtime = 0;
     private autoFollowUpper = true;
 
     isActive() {
-        return this.active;
-    }
-
-    // The map is filtered whenever a search is active. With no missions selected this
-    // hides every task packet (an empty selection matches nothing).
-    isEngaged() {
         return this.active;
     }
 
@@ -92,23 +78,9 @@ class TaskPacketFilter {
         return this.endDate;
     }
 
-    getEndIsLive() {
-        return this.endIsLive;
-    }
-
-    /**
-     * Commits the search window and activates the filter. The poll loop reads this to
-     * choose its fetch range.
-     *
-     * @param {Date} startDate Lower bound of the search window
-     * @param {Date} endDate Upper bound of the search window
-     * @param {boolean} endIsLive True when the end is "now" (keep following new data)
-     * @returns {void}
-     */
-    setSearchWindow(startDate: Date, endDate: Date, endIsLive: boolean) {
+    setSearchWindow(startDate: Date, endDate: Date) {
         this.startDate = startDate;
         this.endDate = endDate;
-        this.endIsLive = endIsLive;
         this.active = true;
     }
 
@@ -142,50 +114,44 @@ class TaskPacketFilter {
     }
 
     /**
-     * True if the packet should be shown on the map. When the filter is not engaged,
-     * every packet passes (normal live view).
+     * True when a packet should be shown. While active with no missions selected nothing
+     * passes.
      *
      * @param {TaskPacket} taskPacket Packet to test
      * @returns {boolean} Whether the packet is visible under the current filter
      */
     passes(taskPacket: TaskPacket): boolean {
-        if (!this.isEngaged()) {
+        if (!this.active) {
             return true;
         }
         if (!this.selectedMissionKeys.has(missionKeyOf(taskPacket))) {
             return false;
         }
-        // No time window set yet -> restrict by mission only (never blank the map).
         if (this.sliderUpperUtime <= 0) {
             return true;
         }
-        // start_time is a uint64 and may arrive as a string; coerce to a number.
         const startTime = Number(taskPacket.start_time);
-        if (!Number.isFinite(startTime)) {
-            return false;
-        }
         return startTime >= this.sliderLowerUtime && startTime <= this.sliderUpperUtime;
     }
 
     /**
-     * Filters a list of task packets to those visible under the current filter.
+     * Filters task packets to those visible under the current filter.
      *
      * @param {TaskPacket[]} taskPackets Packets to filter
-     * @returns {TaskPacket[]} Visible packets (the same array when not engaged)
+     * @returns {TaskPacket[]} Visible packets
      */
     filter(taskPackets: TaskPacket[]): TaskPacket[] {
-        if (!this.isEngaged()) {
+        if (!this.active) {
             return taskPackets;
         }
         return taskPackets.filter((taskPacket) => this.passes(taskPacket));
     }
 
-    /** Resets to the default (unfiltered + live) state. */
+    /** Resets to the default unfiltered state. */
     clear() {
         this.active = false;
         this.startDate = null;
         this.endDate = null;
-        this.endIsLive = true;
         this.selectedMissionKeys = new Set();
         this.sliderLowerUtime = 0;
         this.sliderUpperUtime = 0;

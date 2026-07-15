@@ -137,8 +137,7 @@ function toTaskPacketQueryString(date: Date) {
 }
 
 /**
- * Returns a key identifying the requested task packet window (empty for the default
- * window). A "live" end is omitted so the poll does not refetch every tick
+ * Returns a key identifying the requested task packet window.
  *
  * @returns {string} Window identity key
  */
@@ -147,32 +146,24 @@ function getTaskPacketWindowKey() {
         return "";
     }
     const start = taskPacketFilter.getStartDate();
-    const startKey = start ? start.getTime().toString() : "";
-    if (taskPacketFilter.getEndIsLive()) {
-        return `${startKey}|live`;
-    }
     const end = taskPacketFilter.getEndDate();
-    return `${startKey}|${end ? end.getTime().toString() : ""}`;
+    return `${start ? start.getTime() : ""}|${end ? end.getTime() : ""}`;
 }
 
 /**
- * Fetches task packets for the active filter window, or the server default when no
- * filter is active
+ * Fetches task packets for the active filter window (or the server default when no filter
+ * is active).
  *
  * @returns {Promise<{ result: { included: TaskPacket[]; excluded: TaskPacket[] } }>} Response
  */
 async function fetchTaskPacketsForWindow() {
-    if (taskPacketFilter.isActive()) {
-        const startDate = taskPacketFilter.getStartDate();
-        const endDate = taskPacketFilter.getEndIsLive()
-            ? new Date()
-            : taskPacketFilter.getEndDate();
-        if (startDate && endDate) {
-            return jaiaAPI.getTaskPackets(
-                toTaskPacketQueryString(startDate),
-                toTaskPacketQueryString(endDate),
-            );
-        }
+    const startDate = taskPacketFilter.getStartDate();
+    const endDate = taskPacketFilter.getEndDate();
+    if (taskPacketFilter.isActive() && startDate && endDate) {
+        return jaiaAPI.getTaskPackets(
+            toTaskPacketQueryString(startDate),
+            toTaskPacketQueryString(endDate),
+        );
     }
     const taskPacketRes = await fetch(TASK_PACKET_URL);
     return taskPacketRes.json();
