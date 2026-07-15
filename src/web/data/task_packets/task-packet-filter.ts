@@ -23,7 +23,7 @@ export function missionKeyOf(taskPacket: TaskPacket): string {
 
 /**
  * Groups task packets into mission summaries sorted by start time. Packets with no
- * mission_name are grouped under UNNAMED so they aren't dropped.
+ * mission_name are grouped under UNNAMED so they aren't missed.
  *
  * @param {TaskPacket[]} taskPackets Packets to summarize
  * @returns {MissionSummary[]} Summaries sorted by startTime ascending

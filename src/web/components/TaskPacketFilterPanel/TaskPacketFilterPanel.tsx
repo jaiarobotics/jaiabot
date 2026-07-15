@@ -62,13 +62,12 @@ function missionLabel(mission: MissionSummary) {
 }
 
 /**
- * Filter panel that sits beside the settings panel and lets the operator restrict the
- * task packets shown on the map by date range, mission name, and a live time slider.
+ * Filter panel that sits beside the settings panel and lets the operator.
  */
 export default function TaskPacketFilterPanel() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    // ── Search setup state ──────────────────────────────────────────────────
+    // Search setup state
     const [startDateStr, setStartDateStr] = useState(() => {
         const start = taskPacketFilter.getStartDate();
         return start
@@ -85,7 +84,7 @@ export default function TaskPacketFilterPanel() {
     const [isLoading, setIsLoading] = useState(false);
     const [hasSearched, setHasSearched] = useState(() => taskPacketFilter.isActive());
 
-    // ── Results / selection state ───────────────────────────────────────────
+    // Results / selection state
     const [missions, setMissions] = useState<MissionSummary[]>([]);
     const [selectedKeys, setSelectedKeys] = useState<Set<string>>(
         () => new Set(taskPacketFilter.getSelectedMissionKeys()),
@@ -99,7 +98,7 @@ export default function TaskPacketFilterPanel() {
         taskPacketFilter.getSliderUpperUtime(),
     ]);
 
-    // Latest values for use inside the live interval without subscribing it again.
+    // Latest values for use inside the live interval.
     const missionsRef = useRef(missions);
     const selectedKeysRef = useRef(selectedKeys);
     const lastVersionRef = useRef(-1);
@@ -118,7 +117,7 @@ export default function TaskPacketFilterPanel() {
     };
 
     /**
-     * Returns the [min, max] start-time span across the selected missions.
+     * Returns the [min, max] start-time range across the selected missions.
      *
      * @param {MissionSummary[]} summaries Mission summaries
      * @param {Set<string>} keys Selected mission keys
@@ -195,7 +194,7 @@ export default function TaskPacketFilterPanel() {
         syncTaskPacketMarkerLayers();
     }, [selectedKeys]);
 
-    // While active, pick up new task packets so counts grow and the slider can follow.
+    // Pick up new task packets so counts grow and the slider can follow.
     useEffect(() => {
         if (!hasSearched) {
             return;
@@ -233,7 +232,6 @@ export default function TaskPacketFilterPanel() {
             }
         }, LIVE_TICK_TIME);
         return () => clearInterval(intervalID);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasSearched]);
 
     /**
@@ -279,7 +277,7 @@ export default function TaskPacketFilterPanel() {
     };
 
     /**
-     * Toggles a mission's to be included in the current selection.
+     * Toggles a mission to be included in the current selection.
      */
     const handleToggleMission = (key: string) => {
         const next = new Set(selectedKeys);
@@ -292,7 +290,7 @@ export default function TaskPacketFilterPanel() {
     };
 
     /**
-     * Updates the visible time window instantly.
+     * Updates the visible time window.
      */
     const handleSliderChange = (_event: Event, value: number | number[]) => {
         const [lower, upper] = value as number[];
@@ -304,7 +302,7 @@ export default function TaskPacketFilterPanel() {
     };
 
     /**
-     * Clears the filter and returns the map to the default unfiltered live view.
+     * Clears the filter.
      */
     const handleClear = () => {
         taskPacketFilter.clear();
