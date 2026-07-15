@@ -338,7 +338,12 @@ export default function TaskPacketFilterPanel() {
             <div className="task-packet-filter-panel">
                 <div className="task-packet-filter-header">
                     <span className="task-packet-filter-title">Task Packet Filter</span>
-                    <IconButton size="small" onClick={handleClose} data-testid="close-filter-panel">
+                    <IconButton
+                        aria-label="close-filter-panel"
+                        size="small"
+                        onClick={handleClose}
+                        data-testid="close-filter-panel"
+                    >
                         <CloseIcon fontSize="small" />
                     </IconButton>
                 </div>

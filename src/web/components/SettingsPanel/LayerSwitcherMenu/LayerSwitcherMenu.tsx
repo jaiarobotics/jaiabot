@@ -256,6 +256,7 @@ export default function LayerSwitcherMenu() {
                         <Typography>Measurements</Typography>
                         <Tooltip title="Filter task packets by date and mission">
                             <IconButton
+                                aria-label="filter-task-packets"
                                 size="small"
                                 sx={{ marginLeft: "auto", marginRight: "4px", padding: "2px" }}
                                 onClick={(event) => {
