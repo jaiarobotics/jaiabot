@@ -25,6 +25,7 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include <Wt/Chart/WCartesianChart.h>
 #include <Wt/WAbstractItemModel.h>
+#include <goby/time/system_clock.h>
 
 namespace jaiabot
 {
@@ -52,9 +53,10 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void vehicle_select(Wt::WString msg);
     void data_select(Wt::WString msg);
     void check_add_vehicle(int node_id);
-    void addDataPoint(const std::string data_type, std::pair<double, double> data_point);
+    void add_data_point(const std::string data_type, double data_point);
     void key_press(Wt::WKeyEvent key);
     void key_release(Wt::WKeyEvent key);
+    Wt::WDateTime get_date_time(goby::time::MicroTime mp);
 
     struct YAxisConfig {
         std::string title;
@@ -71,7 +73,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     Wt::WGroupBox* chart_box;
 
     struct ChartData {
-        std::deque<std::pair<double, double>> data_points;
+        std::map<goby::time::MicroTime, double> data_points;
         std::string chart_type;
         YAxisConfig y_axis_config;
     };
@@ -84,7 +86,8 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     // Y-axis configurations include the title and range for each data type
     const std::vector<std::pair<std::string, YAxisConfig>> data_types_ = {
         {"Pressure", {"Pressure (kPa)", {0, 100}}},
-        {"Temperature", {"Temperature (°C)", {-5, 30}}},
+        {"Salinity", {"Salinity (ppt)", {0, 50}}},
+        {"Temperature", {"Temperature (°C)", {10, 20}}},
     };
 
     struct VehicleData
