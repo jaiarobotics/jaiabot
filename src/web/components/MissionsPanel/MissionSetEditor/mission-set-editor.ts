@@ -1,7 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
-import { MissionSetSnapshot } from "../../../data/mission_set/mission-set";
-import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
+import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
+import { UNASSIGNED_ID } from "../../../utils/constants";
 import { Segment } from "../../../types/protobuf-types";
 
 /**
@@ -101,25 +101,18 @@ export function combineMissionSets(
     }
 
     const missionCount = missionArrays.reduce((max, missions) => Math.max(max, missions.length), 0);
-
-    let maxTransit = DEFAULT_SPEED;
-    let maxStationkeep = DEFAULT_SPEED;
-    for (const missions of missionArrays) {
-        for (const mission of missions) {
-            maxTransit = Math.max(maxTransit, mission.getTransitSpeed());
-            maxStationkeep = Math.max(maxStationkeep, mission.getStationkeepSpeed());
-        }
-    }
+    const missionSetSpeeds = missionSet.getMissionSpeeds();
 
     const outputMissions: [number, Mission][] = [];
     for (let i = 0; i < missionCount; i++) {
         const combined = new Mission();
+        combined.setSegments([{ start_goal_index: 1, speed: missionSetSpeeds.transit }]);
         for (const missions of missionArrays) {
             if (missions.length === 0) continue;
             const sourceMission = missions[i % missions.length];
             applySourceMission(sourceMission, combined);
         }
-        combined.setStationkeepSpeed(maxStationkeep);
+        combined.setStationkeepSpeed(missionSetSpeeds.stationkeep_outer);
         outputMissions.push([i + 1, combined]);
     }
 
@@ -128,6 +121,9 @@ export function combineMissionSets(
         nextMissionID: missionCount + 1,
         missionIDInEditMode: UNASSIGNED_ID,
         name: newName,
-        selectedSpeeds: { transit: maxTransit, stationkeep_outer: maxStationkeep },
+        speeds: {
+            transit: missionSetSpeeds.transit,
+            stationkeep_outer: missionSetSpeeds.stationkeep_outer,
+        },
     };
 }

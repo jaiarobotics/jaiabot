@@ -15,6 +15,8 @@ if [ "$JAIA_TYPE" = "bot" ]; then
     BOT_OR_HUB_FINAL_OCTET=$((BOT_OR_HUB_INDEX + 100))
     db_get jaiabot-embedded/bot_vin
     JAIA_BOT_VIN=$RET
+    db_get jaiabot-embedded/tail_serial_number
+    JAIA_TAIL_SERIAL_NUMBER=$RET
     if [ "$JAIA_BOT_TYPE" = "none" ]; then
         JAIA_BOT_TYPE="hydro"
         db_set jaiabot-embedded/bot_type "hydro"
@@ -143,9 +145,6 @@ JAIA_DCCL_ENCRYPTION_PASSWORD=$RET
 db_get jaiabot-embedded/additional_sensors
 JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
 
-db_get jaiabot-embedded/tail_serial_number
-JAIA_TAIL_SERIAL_NUMBER=$RET
-
 /usr/share/jaiabot/config/gen/systemd.py ${JAIA_TYPE} \
                                          --enable \
                                          --jaiabot_bin_dir=/usr/bin \
@@ -176,7 +175,7 @@ JAIA_TAIL_SERIAL_NUMBER=$RET
                                          --camera_positions ${JAIA_CAMERA_POSITIONS} \
                                          --dccl_encryption_password=${JAIA_DCCL_ENCRYPTION_PASSWORD} \
                                          --additional_sensors ${JAIA_ADDITIONAL_SENSORS} \
-                                         --tail_serial_number ${JAIA_TAIL_SERIAL_NUMBER}
+                                         --tail_serial_number=${JAIA_TAIL_SERIAL_NUMBER}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 
