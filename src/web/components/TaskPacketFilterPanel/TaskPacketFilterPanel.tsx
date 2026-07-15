@@ -62,7 +62,7 @@ function missionLabel(mission: MissionSummary) {
 }
 
 /**
- * Filter panel that sits beside the settings panel and lets the operator.
+ * Filter panel that sits beside the settings panel and lets the operator filter which task packets are shown on the map.
  */
 export default function TaskPacketFilterPanel() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
