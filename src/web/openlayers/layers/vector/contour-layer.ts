@@ -2,6 +2,8 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import { jaiaAPI } from "../../../utils/jaia-api";
+import { taskPackets } from "../../../data/task_packets/task-packets";
+import { taskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { generateContourFeatures } from "../../features/contour-feature";
 
 class ContourLayer extends JaiaVectorLayer {
@@ -10,8 +12,13 @@ class ContourLayer extends JaiaVectorLayer {
     }
 
     override updateFeatures() {
-        jaiaAPI
-            .getDepthContours()
+        // When a task packet filter is active, contour only the packets shown on the map
+        const contours = taskPacketFilter.isActive()
+            ? jaiaAPI.getDepthContoursForTaskPackets(
+                  taskPacketFilter.filter(taskPackets.getIncludedTaskPackets()),
+              )
+            : jaiaAPI.getDepthContours();
+        contours
             .then((geoJSON) => {
                 const features = generateContourFeatures(geoJSON);
                 const source = this.getVectorLayer().getSource();

@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
-import { syncTaskPacketMarkerLayers } from "../../context/handlers/handler-utils";
+import { syncTaskLayers, syncTaskPacketMarkerLayers } from "../../context/handlers/handler-utils";
 import { pollTaskPackets } from "../../jcc/polling";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import {
@@ -191,7 +191,8 @@ export default function TaskPacketFilterPanel() {
             taskPacketFilter.setAutoFollowUpper(true);
         }
 
-        syncTaskPacketMarkerLayers();
+        // Regenerate task packet markers and the contour map to match the filter.
+        syncTaskLayers();
     }, [selectedKeys]);
 
     // Pick up new task packets so counts grow and the slider can follow.
@@ -267,7 +268,7 @@ export default function TaskPacketFilterPanel() {
             setSelectedKeys(allKeys);
             setHasSearched(true);
 
-            syncTaskPacketMarkerLayers();
+            syncTaskLayers();
         } catch (error) {
             console.error(error);
             setMissions([]);
@@ -459,6 +460,7 @@ export default function TaskPacketFilterPanel() {
                                 max={sliderMax}
                                 step={sliderStep}
                                 onChange={handleSliderChange}
+                                onChangeCommitted={() => syncTaskLayers()}
                                 valueLabelDisplay="auto"
                                 valueLabelFormat={(value) => formatUtime(value)}
                                 data-testid="filter-time-slider"
