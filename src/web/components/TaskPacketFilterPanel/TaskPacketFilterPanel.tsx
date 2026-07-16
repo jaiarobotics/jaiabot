@@ -313,6 +313,7 @@ export default function TaskPacketFilterPanel() {
         setMissions([]);
         setSliderBounds([0, 0]);
         setSliderValue([0, 0]);
+        syncTaskLayers();
         pollTaskPackets();
     };
 

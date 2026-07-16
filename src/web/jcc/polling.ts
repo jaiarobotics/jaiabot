@@ -156,7 +156,7 @@ function getTaskPacketWindowKey() {
  *
  * @returns {Promise<{ result: { included: TaskPacket[]; excluded: TaskPacket[] } }>} Response
  */
-async function fetchTaskPacketsForWindow() {
+export async function fetchTaskPacketsForWindow() {
     const startDate = taskPacketFilter.getStartDate();
     const endDate = taskPacketFilter.getEndDate();
     if (taskPacketFilter.isActive() && startDate && endDate) {
