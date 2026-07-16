@@ -45,6 +45,23 @@ extern "C" {
 
 /* USER CODE END Includes */
 
+//#define VERBOSE_OUTPUT
+#define VERBOSE_TEST_OUTPUT
+
+#define COMP_TEST
+#define SOFT_TEST
+//#define MAIN_DISABLE
+
+#define EEPROM_FULL_TEST
+
+#define LOOP_COMP_TEST
+//#define IDLE_COMP_TEST
+
+#define COMP_USB_TEST
+//#define COMP_BLE_TEST
+#define COMP_RTC_TEST
+#define COMP_EEPROM_TEST
+
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 struct boot_vectable_ {
@@ -166,6 +183,21 @@ void jumpToBootloader(void);
 #define WC_EN_GPIO_Port GPIOE
 #define EXT_LED_CTRL_Pin GPIO_PIN_1
 #define EXT_LED_CTRL_GPIO_Port GPIOE
+
+enum state{
+  INIT_STATE,
+  COMP_TEST_STATE,
+  SOFT_TEST_STATE,
+  MAIN_STATE,
+  IDLE_STATE
+};
+
+enum testState{
+  USB_TEST,
+  BLE_TEST,
+  RTC_TEST,
+  EEPROM_TEST
+};
 
 /* USER CODE BEGIN Private defines */
 

@@ -19,12 +19,18 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "fatfs.h"
+#include "stm32l4xx_hal_def.h"
+#include "stm32l4xx_hal_gpio.h"
+#include "stm32l4xx_hal_uart.h"
 #include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_cdc_if.h"
 #include <string.h>
+#include "bluetoothLE.h"
+#include "rtc3231m.h"
+#include "eepromM24128.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -69,6 +75,17 @@ TIM_HandleTypeDef htim16;
 static volatile uint8_t lptim_wake_flag = 0;
 /* LSI ~32 kHz, LPTIM prescaler /128 -> 250 Hz. 10 s = 2500 counts. */
 #define LPTIM_10SEC_PERIOD  (2500U - 1U)
+
+enum state currentState = INIT_STATE;
+enum state nextState = INIT_STATE;
+
+enum testState currentTestState = BLE_TEST;
+enum testState nextTestState = BLE_TEST;
+
+// Override _write() for printf redirection
+int _write(int file, char *ptr, int len) {
+    CDC_Transmit_FS((uint8_t*) ptr, len); return len;
+}
 
 uint8_t bits_in_byte = 8;
 bool usb_tx_busy = false;
@@ -125,33 +142,187 @@ static uint32_t adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
   */
 int main(void)
 {
+  /* Infinite state loop */
+  while (1){
+    switch (currentState){
+      case INIT_STATE:
+        systemInit();
 
-  /* USER CODE BEGIN 1 */
+        #ifdef COMP_TEST
+          nextState = COMP_TEST_STATE;
+        #else
+        #ifdef SOFT_TEST
+          nextState = SOFT_TEST_STATE;
+        #else
+          nextState = MAIN_STATE;
+        #endif
+        #endif
 
-  /* USER CODE END 1 */
+        break;
 
-  /* MCU Configuration--------------------------------------------------------*/
+      case COMP_TEST_STATE:
+        switch (currentTestState){
+          case USB_TEST:
+            #ifdef COMP_USB_TEST
+            if (HAL_GPIO_ReadPin(USB_SENSE_GPIO_Port, USB_SENSE_Pin) == GPIO_PIN_SET){
+              printf("USB: CONNECTED\n");
+            }
+            else{
+              printf("USB: DISCONNECTED\n");
+            }
+            #endif
+            nextTestState = BLE_TEST;
+            break;
 
+          case BLE_TEST:
+            #ifdef COMP_BLE_TEST
+            switch (BLE_test()){
+              case 0:
+                printf("BLE: PASS\n");
+                break;
+              case 1:
+                printf("BLE: ERROR_BLE NO_START\n");
+                break;
+              case 2:
+                printf("BLE: ERROR_BLE NO_STATUS\n");
+                break;
+            }
+            #endif
+            nextTestState = RTC_TEST;
+            break;
+          
+          case RTC_TEST:
+            #ifdef COMP_RTC_TEST
+            switch (rtc_test()){
+              case 0:
+                printf("RTC: PASS\n");
+                break;
+              case 1:
+                printf("RTC: ERROR_RTC TIME_MATCH_ERROR\n");
+                break;
+              case 2:
+                printf("RTC: ERROR_RTC SET_TIME_ERROR\n");
+                break;
+              case 3:
+                printf("RTC: ERROR_RTC READ_TIME_ERROR\n");
+                break;
+            }
+            #endif
+            nextTestState = EEPROM_TEST;
+            break;
+          
+          case EEPROM_TEST:
+            #ifdef COMP_EEPROM_TEST
+            switch(eprmTest()){
+              case 0:
+                printf("EPRM: PASS\n");
+                break;
+              case 1:
+                printf("EPRM: ERROR_EEPROM WRITE_ERROR\n");
+                break;
+              case 2:
+                printf("EPRM: ERROR_EEPROM READ_ERROR\n");
+                break;
+              case 3:
+                printf("EPRM: ERROR_EEPROM DATA_MATCH_ERROR\n");
+                break;
+            }
+            #endif
+
+            #ifdef LOOP_COMP_TEST
+              nextTestState = USB_TEST;
+            #else
+            #ifdef IDLE_COMP_TEST
+              nextState = IDLE_STATE;
+            #else
+            #ifdef SOFT_TEST
+              nextState = SOFT_TEST_STATE;
+            #else
+            #ifndef MAIN_DISABLE
+              nextState = MAIN_STATE;
+            #endif
+            #endif
+            #endif
+            #endif
+            break;
+        }
+        currentTestState = nextTestState;
+        break;
+      
+      case SOFT_TEST_STATE:
+        printf("SOFTWARE TEST UNDER CONSTRUCTION\n");
+        #ifndef MAIN_DISABLE
+        nextState = MAIN_STATE;
+        #endif
+        break;
+
+      case MAIN_STATE:
+
+        HAL_IWDG_Refresh(&hiwdg);
+
+        power_board_command_process();
+
+        // HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
+
+        PowerBoardResponse power_board_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
+        power_board_response.time = (uint64_t)HAL_GetTick() * 1000ULL;
+        power_board_response.has_thermocouple_temperature_C = true;
+        power_board_response.thermocouple_temperature_C = 20.0f;
+        HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
+        HAL_Delay(1);
+        power_board_response.has_vccvoltage = true;
+        power_board_response.vccvoltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_1));
+        HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
+        power_board_response.has_vcccurrent = true;
+        power_board_response.vcccurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_2));
+        power_board_response.has_vvcurrent = true;
+        power_board_response.vvcurrent = 0.7f;
+        power_board_response.has_motor = true;
+        power_board_response.motor = 1550;
+        power_board_response.has_thermistor_voltage = true;
+        power_board_response.thermistor_voltage = 0.8f;
+        power_board_response.has_generic_gpio_voltage = true;
+        power_board_response.generic_gpio_voltage = 0.9f;
+
+        usb_transmit(&power_board_response);
+
+        HAL_Delay(100);
+        // HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+
+        // lptim_wake_flag = 0U;
+        // if (HAL_LPTIM_Counter_Start_IT(&hlptim1, LPTIM_10SEC_PERIOD) != HAL_OK)
+        // {
+        //   Error_Handler();
+        // }
+
+        // HAL_SuspendTick();
+        // while (lptim_wake_flag == 0U)
+        // {
+        //   HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+        // }
+        // HAL_ResumeTick();
+
+        // HAL_LPTIM_Counter_Stop_IT(&hlptim1);
+
+        break;
+      }
+
+    currentState = nextState;
+    }
+}
+
+int systemInit(void){
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ADC1_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
-  MX_IWDG_Init();
+  //MX_IWDG_Init();
   MX_LPUART1_UART_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
@@ -164,79 +335,27 @@ int main(void)
   MX_FATFS_Init();
   MX_USB_DEVICE_Init();
   MX_LPTIM1_Init();
-  /* USER CODE BEGIN 2 */
 
-  // HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);   /* DEEP SLEEP for current measurement */
+  //HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);   /* DEEP SLEEP for current measurement */
 
-  //HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_SET);
 
   HAL_Delay(300);
 
-  /* Enable 12V / 5V / 3V3 regulators. */
-  //HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_SET);
-  //HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port,  EN_5V_REG_Pin,  GPIO_PIN_SET);
-  //HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
+  //Enable main 12V / 5V / 3V3 regulators
+  HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port,  EN_5V_REG_Pin,  GPIO_PIN_SET);
+  HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
 
+  //Enable RTC regulator
+  HAL_GPIO_WritePin(RTC_INT_GPIO_Port, RTC_VCC_EN_Pin, GPIO_PIN_SET);
+  
   /* Allow USB host time to enumerate the CDC device before the first TX. */
   HAL_Delay(2000);
 
   init_crc32_table();
-  /* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-    HAL_IWDG_Refresh(&hiwdg);
-
-    power_board_command_process();
-
-    // HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
-
-    PowerBoardResponse power_board_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
-    power_board_response.time = (uint64_t)HAL_GetTick() * 1000ULL;
-    power_board_response.has_thermocouple_temperature_C = true;
-    power_board_response.thermocouple_temperature_C = 20.0f;
-    HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
-    HAL_Delay(1);
-    power_board_response.has_vccvoltage = true;
-    power_board_response.vccvoltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_1));
-    HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
-    power_board_response.has_vcccurrent = true;
-    power_board_response.vcccurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_2));
-    power_board_response.has_vvcurrent = true;
-    power_board_response.vvcurrent = 0.7f;
-    power_board_response.has_motor = true;
-    power_board_response.motor = 1550;
-    power_board_response.has_thermistor_voltage = true;
-    power_board_response.thermistor_voltage = 0.8f;
-    power_board_response.has_generic_gpio_voltage = true;
-    power_board_response.generic_gpio_voltage = 0.9f;
-
-    usb_transmit(&power_board_response);
-
-    HAL_Delay(100);
-    // HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
-
-    // lptim_wake_flag = 0U;
-    // if (HAL_LPTIM_Counter_Start_IT(&hlptim1, LPTIM_10SEC_PERIOD) != HAL_OK)
-    // {
-    //   Error_Handler();
-    // }
-
-    // HAL_SuspendTick();
-    // while (lptim_wake_flag == 0U)
-    // {
-    //   HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-    // }
-    // HAL_ResumeTick();
-
-    // HAL_LPTIM_Counter_Stop_IT(&hlptim1);
-  }
-  /* USER CODE END 3 */
+  return 0;
 }
 
 /**
