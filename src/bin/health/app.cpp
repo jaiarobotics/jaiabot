@@ -336,11 +336,11 @@ jaiabot::apps::Health::Health()
     {
         launch_thread<LinuxHardwareThread>(cfg().linux_hw());
         launch_thread<NTPStatusThread>(cfg().ntp());
-    }
 
-    if (cfg().motor().motor_harness_type() != jaiabot::protobuf::MotorHarnessType::NONE)
-    {
-        launch_thread<MotorStatusThread>(cfg().motor());
+        if (cfg().motor().motor_harness_type() != jaiabot::protobuf::MotorHarnessType::NONE)
+        {
+            launch_thread<MotorStatusThread>(cfg().motor());
+        }
     }
 
     // Only run these on the bot
