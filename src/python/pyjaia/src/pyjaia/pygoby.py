@@ -45,7 +45,7 @@ class InterProcessClient:
         self.platform = platform
         self.client_name = client_name
         self._context = zmq.Context.instance()
-        self._subscriptions: Dict[str, Tuple[Type[Message], Callable[[Message], None]]] = {}
+        self._subscriptions: Dict[bytes, Tuple[Type[Message], Callable[[Message], None]]] = {}
 
         manager = self._connect_manager_socket()
 
@@ -53,9 +53,11 @@ class InterProcessClient:
             manager, manager_timeout)
 
         self._pub = self._context.socket(zmq.PUB)
+        self._pub.setsockopt(zmq.LINGER, 0)
         self._connect(self._pub, publish_socket_cfg)
 
         self._sub = self._context.socket(zmq.SUB)
+        self._sub.setsockopt(zmq.LINGER, 0)
         self._connect(self._sub, subscribe_socket_cfg)
 
         self._wait_for_hold_release(manager, manager_timeout, hold_timeout)
@@ -147,6 +149,10 @@ class InterProcessClient:
 
     def _dispatch(self, data: bytes):
         null_pos = data.find(b'\0')
+        if null_pos == -1:
+            log.warning('Malformed message (missing null separator); dropping frame of %d bytes',
+                        len(data))
+            return
         identifier, payload = data[:null_pos + 1], data[null_pos + 1:]
         for prefix, (message_type, callback) in self._subscriptions.items():
             if identifier.startswith(prefix):

@@ -54,9 +54,9 @@ def calculate_rpm():
     start_interval = time.time()
 
     while True:
-        now = time.time()
         # blocks here until falling_event.set() is called
         falling_event.wait()
+        now = time.time()
         # reset the flag for the next event
         falling_event.clear()
 
