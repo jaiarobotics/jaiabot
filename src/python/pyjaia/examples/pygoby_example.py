@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Example: structuring a pygoby app the same way a real goby C++ app is
-structured (compare to jaiabot_mission_manager.cpp) -- several interprocess
-subscriptions serviced together, plus a loop() running at its own frequency
-that does periodic work and publishes when it has something to say. The goal
-is that switching between C++ goby development and Python pygoby development
-feels familiar.
+structured -- several interprocess subscriptions serviced together,
+plus a loop() running at its own frequency that does periodic work and 
+publishes when it has something to say. The goal is that switching between 
+C++ goby development and Python pygoby development feels familiar.
 
 pygoby itself does not spawn any threads -- publish()/subscribe()/spin() are
 plain method calls, and it's up to the application to decide how (or whether)
@@ -15,8 +14,7 @@ to run them concurrently. Here:
     class services every interprocess().subscribe() it registers from its
     own poller loop. jaiabot_mission_manager.cpp feeds pressure_adjusted and
     salinity into its state machine; here we just cache the latest of each
-    (mirroring jaiabot_fusion.cpp's own last_pressure_adjusted_data_-style
-    caching) and publish a quick echo of each one back out.
+    and publish a quick echo of each one back out.
   - The main thread is loop() -- ticking at a fixed, developer-set frequency,
     doing whatever periodic work is needed (here: reporting the latest cached
     values), and publishing on that same cadence rather than on an always-on
