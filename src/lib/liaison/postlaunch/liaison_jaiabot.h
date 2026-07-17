@@ -246,6 +246,7 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     // currently shown data_type
     std::string current_data_type_{""};
 
+
     bool motor_go_{false};
     static bool dive_start_;
     static std::chrono::system_clock::time_point dive_expire_;
