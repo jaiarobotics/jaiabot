@@ -8,6 +8,7 @@ import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
 import TaskParameters from "../WaypointPanel/TaskParameters/TaskParameters";
+import JaiaNumberInput from "../JaiaNumberInput/JaiaNumberInput";
 
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
 import Task from "../../data/tasks/task";
@@ -268,26 +269,26 @@ function GridConfigs(props: Props) {
             <div className="survey-text-row">Drag to create the grid</div>
             <div className="input-grid">
                 <div>Number of Lanes:</div>
-                <input
-                    type="number"
+                <JaiaNumberInput
                     value={formatNumericalInput(numOfLanes)}
+                    min={0}
                     onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                         handleInputChange(evt.target.value, GridInputs.NUM_OF_LANES)
                     }
                 />
                 <div>Number of Bots:</div>
-                <input
-                    type="number"
+                <JaiaNumberInput
                     value={formatNumericalInput(numOfBots)}
+                    min={0}
                     onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                         handleInputChange(evt.target.value, GridInputs.NUM_OF_BOTS)
                     }
                 />
                 <div>Lane Spacing:</div>
                 <div className="input-group">
-                    <input
-                        type="number"
+                    <JaiaNumberInput
                         value={formatNumericalInput(laneSpacing)}
+                        min={0}
                         onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                             handleInputChange(evt.target.value, GridInputs.LANE_SPACING)
                         }
@@ -297,9 +298,9 @@ function GridConfigs(props: Props) {
 
                 <div>Point Spacing:</div>
                 <div className="input-group">
-                    <input
-                        type="number"
+                    <JaiaNumberInput
                         value={formatNumericalInput(pointSpacing)}
+                        min={0}
                         onChange={(evt: ChangeEvent<HTMLInputElement>) =>
                             handleInputChange(evt.target.value, GridInputs.POINT_SPACING)
                         }
