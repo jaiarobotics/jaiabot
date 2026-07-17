@@ -1,0 +1,41 @@
+.jaia-number-input {
+    position: relative;
+    display: flex;
+}
+
+.jaia-number-input > input {
+    width: 100%;
+}
+
+.jaia-stepper {
+    display: flex;
+    flex-direction: column;
+    width: 16px;
+}
+
+.jaia-number-input .jaia-stepper {
+    position: absolute;
+    top: 0;
+    right: 2px;
+    bottom: 0;
+}
+
+.jaia-stepper-button {
+    all: unset;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: inherit;
+}
+
+.jaia-stepper-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.jaia-stepper-button svg {
+    width: 14px;
+    height: 14px;
+}
