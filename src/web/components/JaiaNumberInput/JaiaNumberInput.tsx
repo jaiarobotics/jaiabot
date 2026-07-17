@@ -17,7 +17,6 @@ export function StepperButtons(props: StepperButtonsProps) {
     return (
         <div className="jaia-stepper">
             <button
-                type="button"
                 className="jaia-stepper-button"
                 tabIndex={-1}
                 disabled={props.disabled}
@@ -27,7 +26,6 @@ export function StepperButtons(props: StepperButtonsProps) {
                 <Icon path={mdiMenuUp} />
             </button>
             <button
-                type="button"
                 className="jaia-stepper-button"
                 tabIndex={-1}
                 disabled={props.disabled}
@@ -41,12 +39,10 @@ export function StepperButtons(props: StepperButtonsProps) {
 }
 
 interface Props {
-    value: string | number;
+    value: string;
     onChange: (evt: ChangeEvent<HTMLInputElement>) => void;
     name?: string;
     min?: number;
-    max?: number;
-    step?: number;
     disabled?: boolean;
     className?: string;
 }
@@ -55,8 +51,6 @@ interface Props {
  * Renders a number input with integrated increment/decrement buttons
  */
 export default function JaiaNumberInput(props: Props) {
-    const step = props.step ?? 1;
-
     /**
      * Applies a change to the current value and reports it via onChange
      *
@@ -65,12 +59,9 @@ export default function JaiaNumberInput(props: Props) {
      */
     const handleStep = (direction: number) => {
         const current = Number(props.value);
-        let next = (isNaN(current) ? 0 : current) + direction * step;
+        let next = (isNaN(current) ? 0 : current) + direction;
         if (props.min !== undefined && next < props.min) {
             next = props.min;
-        }
-        if (props.max !== undefined && next > props.max) {
-            next = props.max;
         }
         props.onChange({
             target: { name: props.name ?? "", value: next.toString() },
@@ -84,8 +75,6 @@ export default function JaiaNumberInput(props: Props) {
                 type="number"
                 value={props.value}
                 min={props.min}
-                max={props.max}
-                step={step}
                 disabled={props.disabled}
                 autoComplete="off"
                 className={props.className}
