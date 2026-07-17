@@ -232,14 +232,7 @@ void jaiabot::LiaisonJaiabot::data_select(WString msg)
 
     YAxisConfig y_config = it->y_axis_config;
     new_chart->axis(Wt::Chart::Axis::Y).setTitle(Wt::WString(y_config.title));
-
-    // Uncomment to manually sets the range of the Y-axis based on the provided configuration
-    // Otherwise the chart will automatically adjust the Y-axis range based on the data points
-
-    // new_chart->axis(Wt::Chart::Axis::Y).setRange(y_config.range.first, y_config.range.second);
-
     new_chart->axis(Wt::Chart::Axis::Y).setTitleOrientation(Wt::Orientation::Vertical);
-
     new_chart->setPlotAreaPadding(60, Wt::Side::Bottom);
     new_chart->setPlotAreaPadding(60, Wt::Side::Left);
 
@@ -379,17 +372,7 @@ void jaiabot::LiaisonJaiabot::post_pt(const jaiabot::protobuf::PressureTemperatu
     if (cfg_.mode() == protobuf::JaiabotConfig::BOT) {
         bot_pt_text_->setText("<pre>" + pt.DebugString() + "</pre>");
 
-        // Get current mission time for charts
-        // auto steady_now = goby::time::SteadyClock::now();
-        // double mission_time = std::chrono::duration_cast<std::chrono::duration<double>>(
-        //     steady_now.time_since_epoch()
-        // ).count();
-
-        // Wt::WDateTime dt = Wt::WDateTime::fromTimePoint(std::chrono::system_clock::now());
-
-        // glog.is_debug1() && glog << "<post_pt> | steady_now: " << mission_time << std::endl;
-
-        // Pass in mission time and data values for liaison charts
+        // Add the data points to the chart data structure
         add_data_point("Temperature", pt.temperature());
         add_data_point("Pressure", pt.pressure_raw());
     }
