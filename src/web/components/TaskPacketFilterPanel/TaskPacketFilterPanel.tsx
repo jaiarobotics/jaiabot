@@ -294,8 +294,6 @@ export default function TaskPacketFilterPanel() {
             setMissions(summaries);
             missionsRef.current = summaries;
 
-            // The first search checks every found mission; a re-search keeps the operator's
-            // existing check/uncheck choices (a newly-appearing mission stays unchecked).
             const nextSelection = hasSearched
                 ? new Set(selectedKeysRef.current)
                 : new Set(
@@ -309,8 +307,6 @@ export default function TaskPacketFilterPanel() {
             taskPacketFilter.setSelectedMissionKeys(nextSelection);
             setSelectedKeys(nextSelection);
             setHasSearched(true);
-
-            syncTaskLayers();
         } catch (error) {
             console.error(error);
             setMissions([]);
@@ -472,7 +468,7 @@ export default function TaskPacketFilterPanel() {
                 </div>
             )}
 
-            {hasSearched && selectedKeys.size > 0 && (
+            {hasSearched && selectedKeys.size > 0 && sliderBounds[1] > 0 && (
                 <div className="task-packet-filter-step">
                     <div className="task-packet-filter-step-label">
                         4. Drag to narrow the time window
