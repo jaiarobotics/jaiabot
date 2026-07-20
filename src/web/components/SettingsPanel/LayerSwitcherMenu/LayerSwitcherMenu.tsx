@@ -14,9 +14,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import Checkbox from "@mui/material/Checkbox";
-import IconButton from "@mui/material/IconButton";
-import TuneIcon from "@mui/icons-material/Tune";
-import { Radio, ThemeProvider, Tooltip } from "@mui/material";
+import { Radio, ThemeProvider } from "@mui/material";
 import { grey } from "@mui/material/colors";
 
 import "./LayerSwitcherMenu.less";
@@ -254,22 +252,6 @@ export default function LayerSwitcherMenu() {
                 >
                     <AccordionSummary className="accordion-summary" expandIcon={<ExpandMoreIcon />}>
                         <Typography>Measurements</Typography>
-                        <Tooltip title="Filter task packets by date and mission">
-                            <IconButton
-                                aria-label="filter-task-packets"
-                                size="small"
-                                sx={{ marginLeft: "auto", marginRight: "4px", padding: "2px" }}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    jaiaDispatch({
-                                        type: JaiaActions.TOGGLE_TASK_PACKET_FILTER_PANEL,
-                                    });
-                                }}
-                                data-testid="task-packet-filter-button"
-                            >
-                                <TuneIcon />
-                            </IconButton>
-                        </Tooltip>
                     </AccordionSummary>
                     <AccordionDetails className="layer-group">
                         <div className="layer-container">
