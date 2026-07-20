@@ -126,10 +126,6 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
 
     handleMapModeChange(mapMode);
     mutableState.visiblePanel = visiblePanel;
-    // Close task packet filter panel when navigating away from settings panel
-    if (visiblePanel !== ButtonNames.SETTINGS_PANEL) {
-        mutableState.taskPacketFilterPanelOpen = false;
-    }
     return mutableState;
 }
 

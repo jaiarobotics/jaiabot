@@ -63,17 +63,6 @@ export function handleClosedTaskPacketPanel(mutableState: JaiaContextType, actio
 }
 
 /**
- * Toggles the task packet filter panel that sits beside the settings panel.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @returns {JaiaContextType} Updated mutable state object
- */
-export function handleToggleTaskPacketFilterPanel(mutableState: JaiaContextType) {
-    mutableState.taskPacketFilterPanelOpen = !mutableState.taskPacketFilterPanelOpen;
-    return mutableState;
-}
-
-/**
  * Closes the rally panel
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
