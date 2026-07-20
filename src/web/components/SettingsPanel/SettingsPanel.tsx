@@ -89,7 +89,6 @@ export default function SettingsPanel() {
 
     return (
         <div className="jaia-panel settings-panel">
-            {jaiaContext.taskPacketFilterPanelOpen && <TaskPacketFilterPanel />}
             <div className="jaia-panel-title">Settings</div>
             <div className="settings-row">
                 <div className="settings-label">Track Pod:</div>
@@ -111,6 +110,21 @@ export default function SettingsPanel() {
             </div>
             <div className="accordions-container" id="settings-accordions-container">
                 <ThemeProvider theme={accordionTheme}>
+                    <Accordion
+                        className="accordion-container"
+                        slotProps={{ transition: { unmountOnExit: true } }}
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            className="accordion-summary"
+                        >
+                            <Typography>Task Packet Filter</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <TaskPacketFilterPanel />
+                        </AccordionDetails>
+                    </Accordion>
+
                     <Accordion className="accordion-container">
                         <AccordionSummary
                             expandIcon={<ExpandMoreIcon />}
