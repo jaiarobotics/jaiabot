@@ -294,14 +294,20 @@ export default function TaskPacketFilterPanel() {
             setMissions(summaries);
             missionsRef.current = summaries;
 
-            // Start with every found mission checked.
-            const visible =
-                nameFilter.length > 0
-                    ? summaries.filter((mission) => nameFilter.includes(missionLabel(mission)))
-                    : summaries;
-            const allKeys = new Set(visible.map((mission) => mission.key));
-            taskPacketFilter.setSelectedMissionKeys(allKeys);
-            setSelectedKeys(allKeys);
+            // The first search checks every found mission; a re-search keeps the operator's
+            // existing check/uncheck choices (a newly-appearing mission stays unchecked).
+            const nextSelection = hasSearched
+                ? new Set(selectedKeysRef.current)
+                : new Set(
+                      (nameFilter.length > 0
+                          ? summaries.filter((mission) =>
+                                nameFilter.includes(missionLabel(mission)),
+                            )
+                          : summaries
+                      ).map((mission) => mission.key),
+                  );
+            taskPacketFilter.setSelectedMissionKeys(nextSelection);
+            setSelectedKeys(nextSelection);
             setHasSearched(true);
 
             syncTaskLayers();
