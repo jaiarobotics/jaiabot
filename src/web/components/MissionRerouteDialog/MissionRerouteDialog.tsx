@@ -2,6 +2,7 @@ import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { MAX_WAYPOINTS } from "../../utils/constants";
+import { ProposalStatus } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 export default function MissionRerouteDialog() {
     const jaiaContext = useContext(JaiaContext);
@@ -13,9 +14,9 @@ export default function MissionRerouteDialog() {
     const isZoneLoad = pending.loadedZoneIDs !== undefined;
     const isMissionLoad = pending.loadedMissionIDs !== undefined;
 
-    const feasible = pending.proposals.filter((p) => !p.isOverLimit && !p.isImpossible);
-    const overLimit = pending.proposals.filter((p) => p.isOverLimit);
-    const impossible = pending.proposals.filter((p) => p.isImpossible);
+    const feasible = pending.proposals.filter((p) => p.status === ProposalStatus.FEASIBLE);
+    const overLimit = pending.proposals.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
+    const impossible = pending.proposals.filter((p) => p.status === ProposalStatus.IMPOSSIBLE);
     const hasFeasibleReroute = feasible.length > 0;
 
     const skippedZones = pending.skippedZoneIDs ?? [];

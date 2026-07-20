@@ -14,6 +14,7 @@ import {
     detectWaypointRemovals,
     detectMissionReroutes,
 } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
+import { ProposalStatus } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Makes a call to add a new, default mission to the data model
@@ -215,7 +216,7 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
         // Missions whose reroute is unroutable are removed upfront — never presented as loaded.
         const skippedMissionIDSet = new Set<number>();
         rawPending.proposals
-            .filter((p) => p.isOverLimit || p.isImpossible)
+            .filter((p) => p.status !== ProposalStatus.FEASIBLE)
             .forEach((p) => skippedMissionIDSet.add(p.missionID));
 
         const allLoadedIDs = Array.from(missionSet.getMissions().keys());

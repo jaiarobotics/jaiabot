@@ -7,6 +7,12 @@ import { ExclusionZone, ExclusionZoneSetSnapshot } from "./exclusion_zones/exclu
 // These live here (next to ExclusionZoneSet) rather than in context-types.ts
 // because they are entirely about exclusion-zone routing state.
 
+export enum ProposalStatus {
+    FEASIBLE = 1,
+    OVER_LIMIT = 2,
+    IMPOSSIBLE = 3,
+}
+
 export interface PendingRerouteProposal {
     missionID: number;
     newWaypoints: Waypoint[];
@@ -14,15 +20,12 @@ export interface PendingRerouteProposal {
     /** Zone IDs whose buffers the original (clean) route crossed. */
     involvedZoneIDs: number[];
     /**
-     * True when newWaypoints.length > MAX_WAYPOINTS.
-     * This proposal cannot be applied — the operator must reduce mission waypoints first.
+     * FEASIBLE: can be applied as-is.
+     * OVER_LIMIT: newWaypoints.length > MAX_WAYPOINTS — the operator must reduce mission waypoints first.
+     * IMPOSSIBLE: A* could not find any path around the blocking zone(s) — the operator must move the
+     * conflicting waypoints or resize the zone.
      */
-    isOverLimit?: boolean;
-    /**
-     * True when A* cannot find any path around the blocking zone(s).
-     * The operator must move the conflicting waypoints or resize the zone.
-     */
-    isImpossible?: boolean;
+    status: ProposalStatus;
 }
 
 export interface PendingReroute {

@@ -17,6 +17,7 @@ import { jaiaAPI } from "../../utils/jaia-api";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { isLocationBlockedByZone } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 import { detectMissionReroutes } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
+import { ProposalStatus } from "../../data/obstacle_avoidance_data/pending-route-data";
 import { syncTaskLayers } from "./handler-utils";
 import cloneDeep from "lodash/cloneDeep";
 
@@ -57,7 +58,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     // edge cases can still let a crossing through. Catch it here and roll back.
     const pending = detectMissionReroutes();
     const currentProposal = pending?.proposals.find((p) => p.missionID === missionIDInEditMode);
-    if (currentProposal?.isOverLimit) {
+    if (currentProposal?.status === ProposalStatus.OVER_LIMIT) {
         const mission = missionSet.getMission(missionIDInEditMode);
         if (mission) mission.deleteWaypoint(mission.getWaypoints().length);
         missionLayer.updateFeatures();
@@ -66,7 +67,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         );
         return mutableState;
     }
-    if (currentProposal?.isImpossible) {
+    if (currentProposal?.status === ProposalStatus.IMPOSSIBLE) {
         const mission = missionSet.getMission(missionIDInEditMode);
         if (mission) mission.deleteWaypoint(mission.getWaypoints().length);
         missionLayer.updateFeatures();
@@ -185,7 +186,7 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
     const currentProposal = pending?.proposals.find(
         (p) => p.missionID === selectedWaypoint.missionID,
     );
-    if (currentProposal?.isOverLimit && priorLocation) {
+    if (currentProposal?.status === ProposalStatus.OVER_LIMIT && priorLocation) {
         mission.moveWaypoint(waypointNum, priorLocation);
         missionLayer.updateFeatures();
         mutableState.obstacleAvoidanceData.setPlacementError(
@@ -193,7 +194,7 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
         );
         return mutableState;
     }
-    if (currentProposal?.isImpossible && priorLocation) {
+    if (currentProposal?.status === ProposalStatus.IMPOSSIBLE && priorLocation) {
         mission.moveWaypoint(waypointNum, priorLocation);
         missionLayer.updateFeatures();
         mutableState.obstacleAvoidanceData.setPlacementError(

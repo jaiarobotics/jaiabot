@@ -17,6 +17,7 @@ import {
     detectMissionReroutes,
     detectWaypointRemovals,
 } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
+import { ProposalStatus } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Builds an error message for missions that have too many waypoints to reroute around a zone.
@@ -70,7 +71,7 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
     const pendingRemoval = detectWaypointRemovals(zoneID);
     if (pendingRemoval) {
         const unroutable = pendingRemoval.followUpReroute?.proposals.filter(
-            (p) => p.isOverLimit || p.isImpossible,
+            (p) => p.status !== ProposalStatus.FEASIBLE,
         );
         if (unroutable?.length) {
             obstacleAvoidanceData.getExclusionZoneSet().deleteZone(zoneID);
@@ -99,8 +100,8 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
         const relevant = pending.proposals.filter(
             (p) => p.involvedZoneIDs.includes(zoneID) || bypassAffected.has(p.missionID),
         );
-        const overLimit = relevant.filter((p) => p.isOverLimit);
-        const impossible = relevant.filter((p) => p.isImpossible);
+        const overLimit = relevant.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
+        const impossible = relevant.filter((p) => p.status === ProposalStatus.IMPOSSIBLE);
         if (overLimit.length > 0) {
             for (const [missionID, waypoints] of priorMissionWaypoints) {
                 missionSet.getMission(missionID)?.setWaypoints(waypoints);
@@ -199,7 +200,7 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
         // If the follow-up reroute (after removing enclosed waypoints) would be unroutable,
         // exclude those offending zones from the load entirely instead of showing the dialog.
         const unroutableFollowUp = pendingRemoval.followUpReroute?.proposals.filter(
-            (p) => p.isOverLimit || p.isImpossible,
+            (p) => p.status !== ProposalStatus.FEASIBLE,
         );
         if (unroutableFollowUp?.length && pendingRemoval.offendingZoneIDs?.length) {
             for (const id of pendingRemoval.offendingZoneIDs)
@@ -227,7 +228,7 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
     if (rawPending) {
         const skippedZoneIDSet = new Set<number>();
         rawPending.proposals
-            .filter((p) => p.isOverLimit || p.isImpossible)
+            .filter((p) => p.status !== ProposalStatus.FEASIBLE)
             .forEach((p) => p.involvedZoneIDs.forEach((id) => skippedZoneIDSet.add(id)));
 
         if (skippedZoneIDSet.size > 0) {
@@ -297,7 +298,7 @@ export function handleRestoreExclusionZoneSnapshot(
     if (rawPending) {
         const skippedZoneIDSet = new Set<number>();
         rawPending.proposals
-            .filter((p) => p.isOverLimit || p.isImpossible)
+            .filter((p) => p.status !== ProposalStatus.FEASIBLE)
             .forEach((p) => p.involvedZoneIDs.forEach((id) => skippedZoneIDSet.add(id)));
 
         if (skippedZoneIDSet.size > 0) {
@@ -338,12 +339,12 @@ export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
     if (!pending) return mutableState;
     const isMissionLoad = pending.loadedMissionIDs !== undefined;
     for (const proposal of pending.proposals) {
-        if (proposal.isOverLimit) {
+        if (proposal.status === ProposalStatus.OVER_LIMIT) {
             // For mission load the over-limit missions were already deleted upfront.
             if (!isMissionLoad) missionSet.deleteMission(proposal.missionID);
             continue;
         }
-        if (proposal.isImpossible) {
+        if (proposal.status === ProposalStatus.IMPOSSIBLE) {
             // Impossible reroutes must not remain loaded in a zone-crossing state.
             if (!isMissionLoad) missionSet.deleteMission(proposal.missionID);
             continue;
@@ -432,7 +433,7 @@ export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
     // in a zone-crossing state.
     if (pending.followUpReroute) {
         for (const proposal of pending.followUpReroute.proposals) {
-            if (proposal.isOverLimit || proposal.isImpossible) {
+            if (proposal.status !== ProposalStatus.FEASIBLE) {
                 missionSet.deleteMission(proposal.missionID);
                 continue;
             }
@@ -572,7 +573,7 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
     const pendingRemoval = detectWaypointRemovals(selected.zoneID);
     if (pendingRemoval) {
         const unroutable = pendingRemoval.followUpReroute?.proposals.filter(
-            (p) => p.isOverLimit || p.isImpossible,
+            (p) => p.status !== ProposalStatus.FEASIBLE,
         );
         if (unroutable?.length) {
             obstacleAvoidanceData
@@ -604,8 +605,8 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
         const relevant = pending.proposals.filter(
             (p) => p.involvedZoneIDs.includes(selected.zoneID) || bypassAffected.has(p.missionID),
         );
-        const overLimit = relevant.filter((p) => p.isOverLimit);
-        const impossible = relevant.filter((p) => p.isImpossible);
+        const overLimit = relevant.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
+        const impossible = relevant.filter((p) => p.status === ProposalStatus.IMPOSSIBLE);
         if (overLimit.length > 0) {
             for (const [missionID, waypoints] of priorMissionWaypoints) {
                 missionSet.getMission(missionID)?.setWaypoints(waypoints);
@@ -731,7 +732,7 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
     const pendingRemoval = detectWaypointRemovals(action.zoneID);
     if (pendingRemoval) {
         const unroutable = pendingRemoval.followUpReroute?.proposals.filter(
-            (p) => p.isOverLimit || p.isImpossible,
+            (p) => p.status !== ProposalStatus.FEASIBLE,
         );
         if (unroutable?.length) {
             obstacleAvoidanceData
@@ -763,8 +764,8 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
         const relevant = pending.proposals.filter(
             (p) => p.involvedZoneIDs.includes(action.zoneID!) || bypassAffected.has(p.missionID),
         );
-        const overLimit = relevant.filter((p) => p.isOverLimit);
-        const impossible = relevant.filter((p) => p.isImpossible);
+        const overLimit = relevant.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
+        const impossible = relevant.filter((p) => p.status === ProposalStatus.IMPOSSIBLE);
         if (overLimit.length > 0) {
             for (const [missionID, waypoints] of priorMissionWaypoints) {
                 missionSet.getMission(missionID)?.setWaypoints(waypoints);

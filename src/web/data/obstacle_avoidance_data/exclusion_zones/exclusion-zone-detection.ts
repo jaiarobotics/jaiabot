@@ -3,24 +3,25 @@ import {
     PendingReroute,
     PendingWaypointRemoval,
     PendingWaypointRemovalProposal,
+    ProposalStatus,
 } from "../pending-route-data";
 import { detectReroutesWithOverrides, getBlockingZoneIDs } from "./exclusion-zone-router";
 import { MAX_WAYPOINTS } from "../../../utils/constants";
 
 /**
- * Marks proposals whose rerouted plan would exceed MAX_WAYPOINTS as isOverLimit.
+ * Marks proposals whose rerouted plan would exceed MAX_WAYPOINTS as OVER_LIMIT.
  * Over-limit proposals are kept so their involvedZoneIDs are available for
  * per-zone filtering. totalBypassCount reflects feasible proposals only.
  *
  * @param {PendingReroute} reroute Reroute object whose proposals need over-limit classification
- * @returns {PendingReroute} Updated reroute with isOverLimit set on proposals that exceed the waypoint limit
+ * @returns {PendingReroute} Updated reroute with status set to OVER_LIMIT on proposals that exceed the waypoint limit
  */
 function markOverLimit(reroute: PendingReroute): PendingReroute {
     const proposals = reroute.proposals.map((p) =>
-        p.newWaypoints.length > MAX_WAYPOINTS ? { ...p, isOverLimit: true as const } : p,
+        p.newWaypoints.length > MAX_WAYPOINTS ? { ...p, status: ProposalStatus.OVER_LIMIT } : p,
     );
     const totalBypassCount = proposals
-        .filter((p) => !p.isOverLimit)
+        .filter((p) => p.status === ProposalStatus.FEASIBLE)
         .reduce((sum, p) => sum + p.bypassCount, 0);
     return { ...reroute, proposals, totalBypassCount };
 }
@@ -28,7 +29,7 @@ function markOverLimit(reroute: PendingReroute): PendingReroute {
 /**
  * Scans all missions for zone crossings and returns reroute proposals.
  * Returns null if no missions are affected.
- * Proposals exceeding MAX_WAYPOINTS are marked isOverLimit so callers can
+ * Proposals exceeding MAX_WAYPOINTS are marked status: OVER_LIMIT so callers can
  * decide how to handle them (e.g. remove the mission, skip the zone).
  *
  * @returns {PendingReroute | null} Reroute proposals for all affected missions, or null if none are affected
