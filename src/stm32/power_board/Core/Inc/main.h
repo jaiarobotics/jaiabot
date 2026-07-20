@@ -45,22 +45,22 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-//#define VERBOSE_OUTPUT
-#define VERBOSE_TEST_OUTPUT
+#define VERBOSE_OUTPUT          // Extra output for the system over serial. Not used for the tests
+#define VERBOSE_TEST_OUTPUT     // Extra output for system tests
 
-#define COMP_TEST
-#define SOFT_TEST
-//#define MAIN_DISABLE
+#define COMP_TEST               // Enable-Disable for the componant test system state
+#define SOFT_TEST               // Enable-Disable for the software test system state
+#define MAIN_DISABLE            // Enable-Disable for the main system state
 
-#define EEPROM_FULL_TEST
+#define EEPROM_FULL_TEST        // Selects between the EEPROM Quick Test or EEPROM Full Test (quick test writes to 1 address, Full test writes to all addresses 0-15999)
 
-#define LOOP_COMP_TEST
-//#define IDLE_COMP_TEST
+#define LOOP_COMP_TEST          // Loops the componant test system state. When enabled, the system will not run code in the software test or main system states.
+#define IDLE_COMP_TEST          // Go into the idle system state upon completion of the componant test system state
 
-#define COMP_USB_TEST
-//#define COMP_BLE_TEST
-#define COMP_RTC_TEST
-#define COMP_EEPROM_TEST
+#define COMP_USB_TEST           //USB test enable
+//#define COMP_BLE_TEST         //BLE test enable
+#define COMP_RTC_TEST           //RTC test enable
+#define COMP_EEPROM_TEST        //EEPROM test enable
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
@@ -184,6 +184,7 @@ void jumpToBootloader(void);
 #define EXT_LED_CTRL_Pin GPIO_PIN_1
 #define EXT_LED_CTRL_GPIO_Port GPIOE
 
+//state machine states
 enum state{
   INIT_STATE,
   COMP_TEST_STATE,
@@ -192,6 +193,7 @@ enum state{
   IDLE_STATE
 };
 
+//test states for the COMP_TEST_STATE system state
 enum testState{
   USB_TEST,
   BLE_TEST,

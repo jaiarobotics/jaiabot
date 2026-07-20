@@ -4,6 +4,7 @@
 
 struct rtcRegData regData;
 
+//Main test for the RTC. Sets time, reads it back after 1 second, and compares the new values to the set values. Writes values to serial if VERBOSE_TEST_OUTPUT is defined.
 int rtc_test(){
   // switch (updateRegisters()){
   //   case 0: ;; break;
@@ -63,6 +64,7 @@ int bcdToDec(uint8_t val){
   return (int)( (val/16*10) + (val%16) );
 }
 
+//Sets the time of the RTC using the set_time list defined in the function and writen to when calling the function.
 int Set_Time(uint8_t sec, uint8_t min, uint8_t hour, uint8_t dow, uint8_t dom, uint8_t month, uint8_t year){
 	uint8_t set_time[7];
 	set_time[0] = decToBcd(sec);
@@ -78,6 +80,7 @@ int Set_Time(uint8_t sec, uint8_t min, uint8_t hour, uint8_t dow, uint8_t dom, u
   return 0;
 }
 
+//Obtain time data (second, minute, hour, day, data, month, year) from RTC, and store it in regData struct (defined in .h file)
 int Get_Time(void){
 	uint8_t timeData[7];
 	HAL_I2C_Mem_Read(&hi2c1, rtcSlaveAddr, rtcSecondAddr, 1, timeData, 7, 1000);
@@ -92,6 +95,7 @@ int Get_Time(void){
   return 0;
 }
 
+//Obtain RTC temperature from IC, Not used due to accuracy / calibration issues
 // float Get_Temp(void){
 // 	uint8_t temp[2];
 // 	HAL_I2C_Mem_Read(&hi2c1, rtcSlaveAddr, rtcTempMSB, 1, temp, 2, 1000);
@@ -103,6 +107,7 @@ int Get_Time(void){
 // 	return retVal;
 // }
 
+//tell the RTC to measure temperature on the IC.
 int force_temp_conv(void){
 	uint8_t status=0;
 	uint8_t control=0;
@@ -114,6 +119,9 @@ int force_temp_conv(void){
 
   return 0;
 }
+
+
+//Unused code maybe for future implimentation
 
 // int rtcWriteCommand(I2C_HandleTypeDef *port, uint16_t slaveAddr, uint16_t regAddr, uint8_t *data){
 //   if (HAL_I2C_Mem_Write(port, slaveAddr, regAddr, sizeof(regAddr), data, 1, HAL_MAX_DELAY) != HAL_OK) {

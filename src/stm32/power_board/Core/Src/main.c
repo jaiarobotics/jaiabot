@@ -145,8 +145,12 @@ int main(void)
   /* Infinite state loop */
   while (1){
     switch (currentState){
-      case INIT_STATE:
-        systemInit();
+      case IDLE_STATE: //wait state
+        ;;
+        break;
+      
+      case INIT_STATE: //state to set up the system
+        systemInit(); //function defined below v
 
         #ifdef COMP_TEST
           nextState = COMP_TEST_STATE;
@@ -160,10 +164,11 @@ int main(void)
 
         break;
 
-      case COMP_TEST_STATE:
+      case COMP_TEST_STATE: //componant test system state --> USB, RTC, BLE, and EEPROM tests
         switch (currentTestState){
           case USB_TEST:
             #ifdef COMP_USB_TEST
+            //checks if 5V is high on mpu input indicating usb has been connected to the onboard type C port.
             if (HAL_GPIO_ReadPin(USB_SENSE_GPIO_Port, USB_SENSE_Pin) == GPIO_PIN_SET){
               printf("USB: CONNECTED\n");
             }
@@ -249,14 +254,14 @@ int main(void)
         currentTestState = nextTestState;
         break;
       
-      case SOFT_TEST_STATE:
+      case SOFT_TEST_STATE: //software test system state
         printf("SOFTWARE TEST UNDER CONSTRUCTION\n");
         #ifndef MAIN_DISABLE
         nextState = MAIN_STATE;
         #endif
         break;
 
-      case MAIN_STATE:
+      case MAIN_STATE: //main system code to be run
 
         HAL_IWDG_Refresh(&hiwdg);
 
@@ -311,6 +316,7 @@ int main(void)
     }
 }
 
+//initalizes the system
 int systemInit(void){
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
