@@ -47,6 +47,8 @@ in the suite — so Part G adds that coverage.
 
 ## Part A — `ProposalStatus` enum (data layer)
 
+PART A COMPLETED, ADDED TO PR #1620
+
 **`src/web/data/obstacle_avoidance_data/pending-route-data.ts`**
 
 - Add `export enum ProposalStatus { FEASIBLE = 1, OVER_LIMIT = 2, IMPOSSIBLE = 3 }`.
