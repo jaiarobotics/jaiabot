@@ -6,6 +6,9 @@ import { taskPackets } from "../../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { generateContourFeatures } from "../../features/contour-feature";
 
+// Minimum bottom dives the backend needs to generate contours (pyjaia/contours.py)
+const MIN_BOTTOM_DIVES = 3;
+
 class ContourLayer extends JaiaVectorLayer {
     // Increments per request so a slower earlier response can't overwrite a newer one
     private latestRequest = 0;
@@ -15,13 +18,29 @@ class ContourLayer extends JaiaVectorLayer {
     }
 
     override updateFeatures() {
+        const isFiltered = taskPacketFilter.isActive();
+        const includedTaskPackets = isFiltered
+            ? taskPacketFilter.filter(taskPackets.getIncludedTaskPackets())
+            : taskPackets.getIncludedTaskPackets();
+        // Too few bottom dives to contour -> clear the layer and skip the request so the
+        // backend isn't asked to contour a set it can't use on every poll.
+        const bottomDiveCount = includedTaskPackets.filter(
+            (taskPacket) => taskPacket.dive?.bottom_dive,
+        ).length;
+        if (bottomDiveCount < MIN_BOTTOM_DIVES) {
+            this.getVectorLayer().getSource().clear();
+            return;
+        }
+        // When a filter is active, contour only the packets shown on the map.
+        this.renderContours(
+            isFiltered
+                ? jaiaAPI.getDepthContoursForTaskPackets(includedTaskPackets)
+                : jaiaAPI.getDepthContours(),
+        );
+    }
+
+    private renderContours(contours: ReturnType<typeof jaiaAPI.getDepthContours>) {
         const requestID = ++this.latestRequest;
-        // When a task packet filter is active, contour only the packets shown on the map
-        const contours = taskPacketFilter.isActive()
-            ? jaiaAPI.getDepthContoursForTaskPackets(
-                  taskPacketFilter.filter(taskPackets.getIncludedTaskPackets()),
-              )
-            : jaiaAPI.getDepthContours();
         contours
             .then((geoJSON) => {
                 if (requestID !== this.latestRequest) {
