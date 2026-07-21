@@ -18,7 +18,7 @@ import Slider from "@mui/material/Slider";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 
-import "./TackPacketFilter.less";
+import "./TaskPacketFilter.less";
 
 const SEARCH_DEBOUNCE_TIME = 400; // milliseconds
 const LIVE_TICK_TIME = 2000; // milliseconds
@@ -70,43 +70,74 @@ function getDefaultDateRange() {
 }
 
 /**
+ * Initial start-date string: the active filter's window when present, else the default.
+ *
+ * @returns {string} yyyy-mm-dd date string
+ */
+function getInitialStartDateStr() {
+    const start = taskPacketFilter.getStartDate();
+    return start ? getHTMLDateString(start) : getDefaultDateRange().start;
+}
+
+/**
+ * Initial end-date string: the active filter's window when present, else the default.
+ *
+ * @returns {string} yyyy-mm-dd date string
+ */
+function getInitialEndDateStr() {
+    const end = taskPacketFilter.getEndDate();
+    return end ? getHTMLDateString(end) : getDefaultDateRange().end;
+}
+
+/**
+ * Whether a search is already active when the panel mounts.
+ *
+ * @returns {boolean} True when the filter is active
+ */
+function getInitialHasSearched() {
+    return taskPacketFilter.isActive();
+}
+
+/**
+ * Initial mission selection, restored from the active filter.
+ *
+ * @returns {Set<string>} Selected mission keys
+ */
+function getInitialSelectedKeys() {
+    return new Set(taskPacketFilter.getSelectedMissionKeys());
+}
+
+/**
+ * Initial slider window restored from the active filter.
+ *
+ * @returns {[number, number]} Slider utimes in microseconds
+ */
+function getInitialSliderWindow(): [number, number] {
+    return [taskPacketFilter.getSliderLowerUtime(), taskPacketFilter.getSliderUpperUtime()];
+}
+
+/**
  * Filter panel that sits beside the settings panel and lets the operator filter which task packets are shown on the map.
  */
-export default function TackPacketFilter() {
+export default function TaskPacketFilter() {
     // Search setup state
-    const [startDateStr, setStartDateStr] = useState(() => {
-        const start = taskPacketFilter.getStartDate();
-        return start ? getHTMLDateString(start) : getDefaultDateRange().start;
-    });
-    const [endDateStr, setEndDateStr] = useState(() => {
-        const end = taskPacketFilter.getEndDate();
-        return end ? getHTMLDateString(end) : getDefaultDateRange().end;
-    });
+    const [startDateStr, setStartDateStr] = useState(getInitialStartDateStr);
+    const [endDateStr, setEndDateStr] = useState(getInitialEndDateStr);
     const [nameFilter, setNameFilter] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [hasSearched, setHasSearched] = useState(() => taskPacketFilter.isActive());
+    const [hasSearched, setHasSearched] = useState(getInitialHasSearched);
 
     // Results / selection state
     const [missions, setMissions] = useState<MissionSummary[]>([]);
-    const [selectedKeys, setSelectedKeys] = useState<Set<string>>(
-        () => new Set(taskPacketFilter.getSelectedMissionKeys()),
-    );
-    const [sliderBounds, setSliderBounds] = useState<[number, number]>(() => [
-        taskPacketFilter.getSliderLowerUtime(),
-        taskPacketFilter.getSliderUpperUtime(),
-    ]);
-    const [sliderValue, setSliderValue] = useState<[number, number]>(() => [
-        taskPacketFilter.getSliderLowerUtime(),
-        taskPacketFilter.getSliderUpperUtime(),
-    ]);
+    const [selectedKeys, setSelectedKeys] = useState(getInitialSelectedKeys);
+    const [sliderBounds, setSliderBounds] = useState(getInitialSliderWindow);
+    const [sliderValue, setSliderValue] = useState(getInitialSliderWindow);
 
     // Latest values for use inside the live interval.
     const missionsRef = useRef(missions);
     const selectedKeysRef = useRef(selectedKeys);
     const lastVersionRef = useRef(-1);
-    // On reopen the filter is already committed, so skip the first commit run.
     const skipInitialCommitRef = useRef(taskPacketFilter.isActive() && selectedKeys.size > 0);
-    // Distinguishes the first fetch (mount/reopen) from a later date-range change.
     const isInitialFetchRef = useRef(true);
     missionsRef.current = missions;
     selectedKeysRef.current = selectedKeys;
