@@ -60,63 +60,6 @@ export default function TaskPacketFilter() {
     missionsRef.current = missions;
     selectedKeysRef.current = selectedKeys;
 
-    /**
-     * Fetches task packets for the current date range and rebuilds the mission list. While
-     * a search is active, an actual date-range change also re-applies the window to the map
-     * so the current selection keeps filtering the right packets.
-     *
-     * @param {boolean} isInitial True for the first fetch (mount/reopen), where the window
-     *     is already applied and must not be re-fetched
-     * @returns {Promise<void>}
-     */
-    const fetchMissions = async (isInitial: boolean) => {
-        const { startQuery, endQuery } = buildQueryStrings(startDateStr, endDateStr);
-        setIsLoading(true);
-        try {
-            const response = await jaiaAPI.getTaskPackets(startQuery, endQuery);
-            const included = response?.result?.included ?? [];
-            const excluded = response?.result?.excluded ?? [];
-            const summaries = buildMissionSummaries([...included, ...excluded]);
-            setMissions(summaries);
-            missionsRef.current = summaries;
-
-            if (!taskPacketFilter.isActive()) {
-                return;
-            }
-
-            if (isInitial) {
-                // Reopen: the window is already applied; just restore the slider track.
-                if (selectedKeysRef.current.size > 0) {
-                    const bounds = computeBounds(summaries, selectedKeysRef.current);
-                    setSliderBounds(bounds);
-                    if (sliderValue[0] === 0 && sliderValue[1] === 0) {
-                        setSliderValue(bounds);
-                    }
-                }
-                return;
-            }
-
-            // Date range changed: re-apply it to the map, keeping the current selection.
-            taskPackets.setIncludedTaskPackets(included);
-            taskPackets.setExcludedTaskPackets(excluded);
-            taskPacketFilter.setSearchWindow(
-                new Date(`${startDateStr}T00:00:00`),
-                new Date(`${endDateStr}T23:59:59`),
-            );
-            const bounds = computeBounds(summaries, selectedKeysRef.current);
-            setSliderBounds(bounds);
-            setSliderValue(bounds);
-            taskPacketFilter.setSliderWindow(0, 0);
-            taskPacketFilter.setAutoFollowUpper(true);
-            syncTaskLayers();
-        } catch (error) {
-            console.error(error);
-            setMissions([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     // Refresh the mission list on date change, debounced. The first run (mount/reopen)
     // only refreshes the list; later changes re-apply the window (see fetchMissions).
     useEffect(() => {
@@ -193,6 +136,63 @@ export default function TaskPacketFilter() {
         }, LIVE_TICK_TIME);
         return () => clearInterval(intervalID);
     }, [hasSearched]);
+
+    /**
+     * Fetches task packets for the current date range and rebuilds the mission list. While
+     * a search is active, an actual date-range change also re-applies the window to the map
+     * so the current selection keeps filtering the right packets.
+     *
+     * @param {boolean} isInitial True for the first fetch (mount/reopen), where the window
+     *     is already applied and must not be re-fetched
+     * @returns {Promise<void>}
+     */
+    const fetchMissions = async (isInitial: boolean) => {
+        const { startQuery, endQuery } = buildQueryStrings(startDateStr, endDateStr);
+        setIsLoading(true);
+        try {
+            const response = await jaiaAPI.getTaskPackets(startQuery, endQuery);
+            const included = response?.result?.included ?? [];
+            const excluded = response?.result?.excluded ?? [];
+            const summaries = buildMissionSummaries([...included, ...excluded]);
+            setMissions(summaries);
+            missionsRef.current = summaries;
+
+            if (!taskPacketFilter.isActive()) {
+                return;
+            }
+
+            if (isInitial) {
+                // Reopen: the window is already applied; just restore the slider track.
+                if (selectedKeysRef.current.size > 0) {
+                    const bounds = computeBounds(summaries, selectedKeysRef.current);
+                    setSliderBounds(bounds);
+                    if (sliderValue[0] === 0 && sliderValue[1] === 0) {
+                        setSliderValue(bounds);
+                    }
+                }
+                return;
+            }
+
+            // Date range changed: re-apply it to the map, keeping the current selection.
+            taskPackets.setIncludedTaskPackets(included);
+            taskPackets.setExcludedTaskPackets(excluded);
+            taskPacketFilter.setSearchWindow(
+                new Date(`${startDateStr}T00:00:00`),
+                new Date(`${endDateStr}T23:59:59`),
+            );
+            const bounds = computeBounds(summaries, selectedKeysRef.current);
+            setSliderBounds(bounds);
+            setSliderValue(bounds);
+            taskPacketFilter.setSliderWindow(0, 0);
+            taskPacketFilter.setAutoFollowUpper(true);
+            syncTaskLayers();
+        } catch (error) {
+            console.error(error);
+            setMissions([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     /**
      * Loads the chosen date range into the shared task packet model, activates the filter,
