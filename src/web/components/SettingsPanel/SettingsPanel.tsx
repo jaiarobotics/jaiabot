@@ -13,7 +13,7 @@ import Engineering from "./Engineering/Engineering";
 import OfflineMaps from "./OfflineMaps/OfflineMaps";
 import QueryBotStatus from "./QueryBotStatus/QueryBotStatus";
 import LayerSwitcherMenu from "./LayerSwitcherMenu/LayerSwitcherMenu";
-import TaskPacketFilterPanel from "../TaskPacketFilterPanel/TaskPacketFilterPanel";
+import TackPacketFilter from "../TackPacketFilter/TackPacketFilter";
 import { trackPod } from "../../openlayers/controls/track-pod";
 import { CoordinateSystem } from "../../types/jaia-system-types";
 import { accordionTheme, addDropdownListener } from "../../utils/style";
@@ -121,7 +121,7 @@ export default function SettingsPanel() {
                             <Typography>Task Packet Filter</Typography>
                         </AccordionSummary>
                         <AccordionDetails>
-                            <TaskPacketFilterPanel />
+                            <TackPacketFilter />
                         </AccordionDetails>
                     </Accordion>
 
