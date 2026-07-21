@@ -144,6 +144,8 @@ export default function TaskPacketFilter() {
 
     /**
      * Builds the "yyyy-mm-dd hh:mm" query strings for the selected date range.
+     *
+     * @returns {{ startQuery: string; endQuery: string }} Query strings for the date range
      */
     const buildQueryStrings = () => {
         const startQuery = `${startDateStr} 00:00`;
@@ -305,6 +307,8 @@ export default function TaskPacketFilter() {
     /**
      * Loads the chosen date range into the shared task packet model, activates the filter,
      * and builds the mission list from that same data so the map and list always agree.
+     *
+     * @returns {Promise<void>}
      */
     const handleRunSearch = async () => {
         setIsLoading(true);
@@ -348,6 +352,8 @@ export default function TaskPacketFilter() {
 
     /**
      * Toggles a mission to be included in the current selection.
+     *
+     * @returns {void}
      */
     const handleToggleMission = (key: string) => {
         const next = new Set(selectedKeys);
@@ -361,6 +367,8 @@ export default function TaskPacketFilter() {
 
     /**
      * Updates the visible time window.
+     *
+     * @returns {void}
      */
     const handleSliderChange = (_event: Event, value: number | number[]) => {
         const [lower, upper] = value as number[];
@@ -373,6 +381,8 @@ export default function TaskPacketFilter() {
 
     /**
      * Clears the filter.
+     *
+     * @returns {void}
      */
     const handleClear = () => {
         // Reset the date range back to the default window and return to the default live
