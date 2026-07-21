@@ -1,5 +1,5 @@
 import { getHTMLDateString } from "../../shared/Utilities";
-import { taskPacketFilter, MissionSummary } from "../../data/task_packets/task-packet-filter";
+import { TaskPacketFilter, MissionSummary } from "../../data/task_packets/task-packet-filter";
 
 const DEFAULT_WINDOW_HOURS = 14; // hours
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
@@ -51,48 +51,53 @@ export function getDefaultDateRange() {
 /**
  * Initial start-date string: the active filter's window when present, else the default.
  *
+ * @param {TaskPacketFilter} filter Filter to read the window from
  * @returns {string} yyyy-mm-dd date string
  */
-export function getInitialStartDateStr() {
-    const start = taskPacketFilter.getStartDate();
+export function getInitialStartDateStr(filter: TaskPacketFilter) {
+    const start = filter.getStartDate();
     return start ? getHTMLDateString(start) : getDefaultDateRange().start;
 }
 
 /**
  * Initial end-date string: the active filter's window when present, else the default.
  *
+ * @param {TaskPacketFilter} filter Filter to read the window from
  * @returns {string} yyyy-mm-dd date string
  */
-export function getInitialEndDateStr() {
-    const end = taskPacketFilter.getEndDate();
+export function getInitialEndDateStr(filter: TaskPacketFilter) {
+    const end = filter.getEndDate();
     return end ? getHTMLDateString(end) : getDefaultDateRange().end;
 }
 
 /**
  * Whether a search is already active when the panel initiates.
  *
+ * @param {TaskPacketFilter} filter Filter to read the active state from
  * @returns {boolean} True when the filter is active
  */
-export function getInitialHasSearched() {
-    return taskPacketFilter.isActive();
+export function getInitialHasSearched(filter: TaskPacketFilter) {
+    return filter.isActive();
 }
 
 /**
  * Initial mission selection, restored from the active filter.
  *
+ * @param {TaskPacketFilter} filter Filter to read the selection from
  * @returns {Set<string>} Selected mission keys
  */
-export function getInitialSelectedKeys() {
-    return new Set(taskPacketFilter.getSelectedMissionKeys());
+export function getInitialSelectedKeys(filter: TaskPacketFilter) {
+    return new Set(filter.getSelectedMissionKeys());
 }
 
 /**
  * Initial slider window restored from the active filter.
  *
+ * @param {TaskPacketFilter} filter Filter to read the slider window from
  * @returns {[number, number]} Slider utimes in microseconds
  */
-export function getInitialSliderWindow(): [number, number] {
-    return [taskPacketFilter.getSliderLowerUtime(), taskPacketFilter.getSliderUpperUtime()];
+export function getInitialSliderWindow(filter: TaskPacketFilter): [number, number] {
+    return [filter.getSliderLowerUtime(), filter.getSliderUpperUtime()];
 }
 
 /**

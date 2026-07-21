@@ -34,26 +34,25 @@ const SEARCH_DEBOUNCE_TIME = 400; // milliseconds
 export default function TaskPacketFilter() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
+    const taskPacketFilter = jaiaContext.taskPacketFilter;
 
     // Search setup state
-    const [startDateStr, setStartDateStr] = useState(getInitialStartDateStr);
-    const [endDateStr, setEndDateStr] = useState(getInitialEndDateStr);
+    const [startDateStr, setStartDateStr] = useState(getInitialStartDateStr(taskPacketFilter));
+    const [endDateStr, setEndDateStr] = useState(getInitialEndDateStr(taskPacketFilter));
     const [nameFilter, setNameFilter] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [hasSearched, setHasSearched] = useState(getInitialHasSearched);
+    const [hasSearched, setHasSearched] = useState(getInitialHasSearched(taskPacketFilter));
 
     // Results / selection state
     const [missions, setMissions] = useState<MissionSummary[]>([]);
-    const [selectedKeys, setSelectedKeys] = useState(getInitialSelectedKeys);
-    const [sliderBounds, setSliderBounds] = useState(getInitialSliderWindow);
-    const [sliderValue, setSliderValue] = useState(getInitialSliderWindow);
+    const [selectedKeys, setSelectedKeys] = useState(getInitialSelectedKeys(taskPacketFilter));
+    const [sliderBounds, setSliderBounds] = useState(getInitialSliderWindow(taskPacketFilter));
+    const [sliderValue, setSliderValue] = useState(getInitialSliderWindow(taskPacketFilter));
 
     // Latest values so the version-driven live effect can read them without re-subscribing.
     const missionsRef = useRef(missions);
     const selectedKeysRef = useRef(selectedKeys);
-    const skipNextCommitRef = useRef(
-        jaiaContext.taskPacketFilter.isActive() && selectedKeys.size > 0,
-    );
+    const skipNextCommitRef = useRef(taskPacketFilter.isActive() && selectedKeys.size > 0);
     const isInitialFetchRef = useRef(true);
     missionsRef.current = missions;
     selectedKeysRef.current = selectedKeys;
@@ -77,7 +76,7 @@ export default function TaskPacketFilter() {
             return;
         }
 
-        if (!hasSearched || !jaiaContext.taskPacketFilter.isActive()) {
+        if (!hasSearched || !taskPacketFilter.isActive()) {
             return;
         }
 
@@ -98,7 +97,6 @@ export default function TaskPacketFilter() {
     // the task packet version, which re-renders context and re-runs this effect.
     const taskPacketVersion = jaiaContext.taskPackets.getVersion();
     useEffect(() => {
-        const taskPacketFilter = jaiaContext.taskPacketFilter;
         if (!hasSearched || !taskPacketFilter.isActive() || selectedKeysRef.current.size === 0) {
             return;
         }
@@ -151,7 +149,7 @@ export default function TaskPacketFilter() {
             setMissions(summaries);
             missionsRef.current = summaries;
 
-            if (!jaiaContext.taskPacketFilter.isActive()) {
+            if (!taskPacketFilter.isActive()) {
                 return;
             }
 

@@ -3,8 +3,15 @@ import {
     missionLabel,
     buildQueryStrings,
     computeBounds,
+    getInitialStartDateStr,
+    getInitialEndDateStr,
+    getInitialHasSearched,
+    getInitialSelectedKeys,
+    getInitialSliderWindow,
+    getDefaultDateRange,
 } from "../task-packet-filter-helpers";
-import { MissionSummary } from "../../../data/task_packets/task-packet-filter";
+import { MissionSummary, TaskPacketFilter } from "../../../data/task_packets/task-packet-filter";
+import { getHTMLDateString } from "../../../shared/Utilities";
 
 describe("formatUtime", () => {
     test("returns a placeholder for a falsy timestamp", () => {
@@ -90,5 +97,45 @@ describe("computeBounds", () => {
 
     test("uses a single mission's own bounds", () => {
         expect(computeBounds(summaries, new Set(["c"]))).toEqual([500, 800]);
+    });
+});
+
+describe("getInitial* (restoring panel state from the filter)", () => {
+    test("a fresh filter yields defaults: not searched, empty selection, zeroed slider", () => {
+        const filter = new TaskPacketFilter();
+        expect(getInitialHasSearched(filter)).toBe(false);
+        expect(getInitialSelectedKeys(filter)).toEqual(new Set());
+        expect(getInitialSliderWindow(filter)).toEqual([0, 0]);
+    });
+
+    test("a fresh filter yields the default date range", () => {
+        const filter = new TaskPacketFilter();
+        expect(getInitialStartDateStr(filter)).toBe(getDefaultDateRange().start);
+        expect(getInitialEndDateStr(filter)).toBe(getDefaultDateRange().end);
+    });
+
+    test("an active filter restores its window, selection, and slider", () => {
+        const filter = new TaskPacketFilter();
+        const start = new Date("2021-03-15T08:00:00");
+        const end = new Date("2021-03-18T20:00:00");
+        filter.setSearchWindow(start, end);
+        filter.setSelectedMissionKeys(new Set(["Alpha", "Beta"]));
+        filter.setSliderWindow(1000, 5000);
+
+        expect(getInitialHasSearched(filter)).toBe(true);
+        expect(getInitialStartDateStr(filter)).toBe(getHTMLDateString(start));
+        expect(getInitialEndDateStr(filter)).toBe(getHTMLDateString(end));
+        expect(getInitialSelectedKeys(filter)).toEqual(new Set(["Alpha", "Beta"]));
+        expect(getInitialSliderWindow(filter)).toEqual([1000, 5000]);
+    });
+
+    test("the restored selection is a copy, not the filter's own set", () => {
+        const filter = new TaskPacketFilter();
+        filter.setSelectedMissionKeys(new Set(["Alpha"]));
+
+        const restored = getInitialSelectedKeys(filter);
+        restored.add("Beta");
+
+        expect(getInitialSelectedKeys(filter)).toEqual(new Set(["Alpha"]));
     });
 });
