@@ -1,13 +1,8 @@
 import { useContext, useEffect, useRef, useState } from "react";
 
-import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
-import { taskPackets } from "../../data/task_packets/task-packets";
-import {
-    taskPacketFilter,
-    buildMissionSummaries,
-    MissionSummary,
-} from "../../data/task_packets/task-packet-filter";
+import { buildMissionSummaries, MissionSummary } from "../../data/task_packets/task-packet-filter";
 import { jaiaAPI } from "../../utils/jaia-api";
 import {
     formatUtime,
@@ -32,12 +27,12 @@ import CircularProgress from "@mui/material/CircularProgress";
 import "./TaskPacketFilter.less";
 
 const SEARCH_DEBOUNCE_TIME = 400; // milliseconds
-const LIVE_TICK_TIME = 2000; // milliseconds
 
 /**
  * Filter panel that sits beside the settings panel and lets the operator filter which task packets are shown on the map.
  */
 export default function TaskPacketFilter() {
+    const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     // Search setup state
@@ -53,11 +48,12 @@ export default function TaskPacketFilter() {
     const [sliderBounds, setSliderBounds] = useState(getInitialSliderWindow);
     const [sliderValue, setSliderValue] = useState(getInitialSliderWindow);
 
-    // Latest values for use inside the live interval.
+    // Latest values so the version-driven live effect can read them without re-subscribing.
     const missionsRef = useRef(missions);
     const selectedKeysRef = useRef(selectedKeys);
-    const lastVersionRef = useRef(-1);
-    const skipNextCommitRef = useRef(taskPacketFilter.isActive() && selectedKeys.size > 0);
+    const skipNextCommitRef = useRef(
+        jaiaContext.taskPacketFilter.isActive() && selectedKeys.size > 0,
+    );
     const isInitialFetchRef = useRef(true);
     missionsRef.current = missions;
     selectedKeysRef.current = selectedKeys;
@@ -81,7 +77,7 @@ export default function TaskPacketFilter() {
             return;
         }
 
-        if (!hasSearched || !taskPacketFilter.isActive()) {
+        if (!hasSearched || !jaiaContext.taskPacketFilter.isActive()) {
             return;
         }
 
@@ -98,49 +94,42 @@ export default function TaskPacketFilter() {
         });
     }, [selectedKeys]);
 
-    // Pick up new task packets so counts grow and the slider can follow.
+    // Pick up new task packets so counts grow and the slider can follow. The poll updates
+    // the task packet version, which re-renders context and re-runs this effect.
+    const taskPacketVersion = jaiaContext.taskPackets.getVersion();
     useEffect(() => {
-        if (!hasSearched) {
+        const taskPacketFilter = jaiaContext.taskPacketFilter;
+        if (!hasSearched || !taskPacketFilter.isActive() || selectedKeysRef.current.size === 0) {
             return;
         }
-        const intervalID = setInterval(() => {
-            if (!taskPacketFilter.isActive() || selectedKeysRef.current.size === 0) {
-                return;
-            }
-            const version = taskPackets.getVersion();
-            if (version === lastVersionRef.current) {
-                return;
-            }
-            lastVersionRef.current = version;
 
-            const summaries = buildMissionSummaries([
-                ...taskPackets.getIncludedTaskPackets(),
-                ...taskPackets.getExcludedTaskPackets(),
-            ]);
-            setMissions(summaries);
-            missionsRef.current = summaries;
+        const summaries = buildMissionSummaries([
+            ...jaiaContext.taskPackets.getIncludedTaskPackets(),
+            ...jaiaContext.taskPackets.getExcludedTaskPackets(),
+        ]);
+        setMissions(summaries);
+        missionsRef.current = summaries;
 
-            const bounds = computeBounds(summaries, selectedKeysRef.current);
-            if (bounds[0] === 0 && bounds[1] === 0) {
-                return;
-            }
-            setSliderBounds(bounds);
+        const bounds = computeBounds(summaries, selectedKeysRef.current);
+        if (bounds[0] === 0 && bounds[1] === 0) {
+            return;
+        }
+        setSliderBounds(bounds);
 
-            if (taskPacketFilter.getSliderUpperUtime() <= 0) {
-                // When slider not dragged yet track the full (growing) range.
-                setSliderValue(bounds);
-            } else if (taskPacketFilter.getAutoFollowUpper()) {
-                setSliderValue((current) => [current[0], bounds[1]]);
-                jaiaDispatch({
-                    type: JaiaActions.CHANGE_TASK_PACKET_SLIDER,
-                    sliderLowerUtime: taskPacketFilter.getSliderLowerUtime(),
-                    sliderUpperUtime: bounds[1],
-                    autoFollowUpper: true,
-                });
-            }
-        }, LIVE_TICK_TIME);
-        return () => clearInterval(intervalID);
-    }, [hasSearched]);
+        if (taskPacketFilter.getSliderUpperUtime() <= 0) {
+            // When slider not dragged yet track the full (growing) range.
+            setSliderValue(bounds);
+        } else if (taskPacketFilter.getAutoFollowUpper()) {
+            setSliderValue((current) => [current[0], bounds[1]]);
+            jaiaDispatch({
+                type: JaiaActions.CHANGE_TASK_PACKET_SLIDER,
+                sliderLowerUtime: taskPacketFilter.getSliderLowerUtime(),
+                sliderUpperUtime: bounds[1],
+                autoFollowUpper: true,
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [taskPacketVersion]);
 
     /**
      * Fetches task packets for the current date range and rebuilds the mission list. While
@@ -162,7 +151,7 @@ export default function TaskPacketFilter() {
             setMissions(summaries);
             missionsRef.current = summaries;
 
-            if (!taskPacketFilter.isActive()) {
+            if (!jaiaContext.taskPacketFilter.isActive()) {
                 return;
             }
 

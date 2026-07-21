@@ -57,7 +57,7 @@ export function buildMissionSummaries(taskPackets: TaskPacket[]): MissionSummary
 /**
  * Session state for the JCC task packet filter.
  */
-class TaskPacketFilter {
+export class TaskPacketFilter {
     private active = false;
     private startDate: Date | null = null;
     private endDate: Date | null = null;
