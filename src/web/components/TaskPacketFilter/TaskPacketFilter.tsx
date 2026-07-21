@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 
-import { syncTaskLayers, syncTaskPacketMarkerLayers } from "../../context/handlers/handler-utils";
-import { pollTaskPackets } from "../../jcc/polling";
+import { JaiaDispatchContext } from "../../context/JaiaContext";
+import { JaiaActions } from "../../context/jaia-actions";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import {
     taskPacketFilter,
@@ -38,6 +38,8 @@ const LIVE_TICK_TIME = 2000; // milliseconds
  * Filter panel that sits beside the settings panel and lets the operator filter which task packets are shown on the map.
  */
 export default function TaskPacketFilter() {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
+
     // Search setup state
     const [startDateStr, setStartDateStr] = useState(getInitialStartDateStr);
     const [endDateStr, setEndDateStr] = useState(getInitialEndDateStr);
@@ -55,7 +57,7 @@ export default function TaskPacketFilter() {
     const missionsRef = useRef(missions);
     const selectedKeysRef = useRef(selectedKeys);
     const lastVersionRef = useRef(-1);
-    const skipInitialCommitRef = useRef(taskPacketFilter.isActive() && selectedKeys.size > 0);
+    const skipNextCommitRef = useRef(taskPacketFilter.isActive() && selectedKeys.size > 0);
     const isInitialFetchRef = useRef(true);
     missionsRef.current = missions;
     selectedKeysRef.current = selectedKeys;
@@ -74,8 +76,8 @@ export default function TaskPacketFilter() {
 
     // Apply the mission selection to the map whenever it changes.
     useEffect(() => {
-        if (skipInitialCommitRef.current) {
-            skipInitialCommitRef.current = false;
+        if (skipNextCommitRef.current) {
+            skipNextCommitRef.current = false;
             return;
         }
 
@@ -83,18 +85,17 @@ export default function TaskPacketFilter() {
             return;
         }
 
-        taskPacketFilter.setSelectedMissionKeys(selectedKeys);
-
         if (selectedKeys.size > 0) {
             const bounds = computeBounds(missionsRef.current, selectedKeys);
             setSliderBounds(bounds);
             setSliderValue(bounds);
-            taskPacketFilter.setSliderWindow(0, 0);
-            taskPacketFilter.setAutoFollowUpper(true);
         }
 
-        // Regenerate task packet markers and the contour map to match the filter.
-        syncTaskLayers();
+        // Update the selection in the data model and repaint the map to match the filter.
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_TASK_PACKET_SELECTION,
+            selectedMissionKeys: selectedKeys,
+        });
     }, [selectedKeys]);
 
     // Pick up new task packets so counts grow and the slider can follow.
@@ -130,8 +131,12 @@ export default function TaskPacketFilter() {
                 setSliderValue(bounds);
             } else if (taskPacketFilter.getAutoFollowUpper()) {
                 setSliderValue((current) => [current[0], bounds[1]]);
-                taskPacketFilter.setSliderWindow(taskPacketFilter.getSliderLowerUtime(), bounds[1]);
-                syncTaskPacketMarkerLayers();
+                jaiaDispatch({
+                    type: JaiaActions.CHANGE_TASK_PACKET_SLIDER,
+                    sliderLowerUtime: taskPacketFilter.getSliderLowerUtime(),
+                    sliderUpperUtime: bounds[1],
+                    autoFollowUpper: true,
+                });
             }
         }, LIVE_TICK_TIME);
         return () => clearInterval(intervalID);
@@ -174,18 +179,17 @@ export default function TaskPacketFilter() {
             }
 
             // Date range changed: re-apply it to the map, keeping the current selection.
-            taskPackets.setIncludedTaskPackets(included);
-            taskPackets.setExcludedTaskPackets(excluded);
-            taskPacketFilter.setSearchWindow(
-                new Date(`${startDateStr}T00:00:00`),
-                new Date(`${endDateStr}T23:59:59`),
-            );
             const bounds = computeBounds(summaries, selectedKeysRef.current);
             setSliderBounds(bounds);
             setSliderValue(bounds);
-            taskPacketFilter.setSliderWindow(0, 0);
-            taskPacketFilter.setAutoFollowUpper(true);
-            syncTaskLayers();
+            jaiaDispatch({
+                type: JaiaActions.RUN_TASK_PACKET_SEARCH,
+                includedTaskPackets: included,
+                excludedTaskPackets: excluded,
+                filterStartDate: new Date(`${startDateStr}T00:00:00`),
+                filterEndDate: new Date(`${endDateStr}T23:59:59`),
+                selectedMissionKeys: selectedKeysRef.current,
+            });
         } catch (error) {
             console.error(error);
             setMissions([]);
@@ -208,13 +212,6 @@ export default function TaskPacketFilter() {
             const included = response?.result?.included ?? [];
             const excluded = response?.result?.excluded ?? [];
 
-            taskPackets.setIncludedTaskPackets(included);
-            taskPackets.setExcludedTaskPackets(excluded);
-
-            const startDateObj = new Date(`${startDateStr}T00:00:00`);
-            const endDateObj = new Date(`${endDateStr}T23:59:59`);
-            taskPacketFilter.setSearchWindow(startDateObj, endDateObj);
-
             const summaries = buildMissionSummaries([...included, ...excluded]);
             setMissions(summaries);
             missionsRef.current = summaries;
@@ -229,7 +226,18 @@ export default function TaskPacketFilter() {
                           : summaries
                       ).map((mission) => mission.key),
                   );
-            taskPacketFilter.setSelectedMissionKeys(nextSelection);
+
+            // The search action applies the selection and re-renders, so skip the effect
+            // that would otherwise also initiate from setSelectedKeys and repeat the work.
+            skipNextCommitRef.current = true;
+            jaiaDispatch({
+                type: JaiaActions.RUN_TASK_PACKET_SEARCH,
+                includedTaskPackets: included,
+                excludedTaskPackets: excluded,
+                filterStartDate: new Date(`${startDateStr}T00:00:00`),
+                filterEndDate: new Date(`${endDateStr}T23:59:59`),
+                selectedMissionKeys: nextSelection,
+            });
             setSelectedKeys(nextSelection);
             setHasSearched(true);
         } catch (error) {
@@ -263,10 +271,13 @@ export default function TaskPacketFilter() {
     const handleSliderChange = (_event: Event, value: number | number[]) => {
         const [lower, upper] = value as number[];
         setSliderValue([lower, upper]);
-        taskPacketFilter.setSliderWindow(lower, upper);
-        // Auto-follow only while the upper handle sits at (or beyond) the newest data.
-        taskPacketFilter.setAutoFollowUpper(upper >= sliderBounds[1]);
-        syncTaskPacketMarkerLayers();
+        jaiaDispatch({
+            type: JaiaActions.CHANGE_TASK_PACKET_SLIDER,
+            sliderLowerUtime: lower,
+            sliderUpperUtime: upper,
+            // Auto-follow only while the upper handle sits at (or beyond) the newest data.
+            autoFollowUpper: upper >= sliderBounds[1],
+        });
     };
 
     /**
@@ -278,7 +289,6 @@ export default function TaskPacketFilter() {
         // Reset the date range back to the default window and return to the default live
         // view, so the panel's dates always match what the map shows.
         const defaultDateRange = getDefaultDateRange();
-        taskPacketFilter.clear();
         setSelectedKeys(new Set());
         setHasSearched(false);
         setNameFilter([]);
@@ -287,7 +297,7 @@ export default function TaskPacketFilter() {
         setSliderValue([0, 0]);
         setStartDateStr(defaultDateRange.start);
         setEndDateStr(defaultDateRange.end);
-        pollTaskPackets();
+        jaiaDispatch({ type: JaiaActions.CLEAR_TASK_PACKET_FILTER });
     };
 
     const missionOptions = missions.map(missionLabel);
@@ -415,7 +425,9 @@ export default function TaskPacketFilter() {
                             max={sliderMax}
                             step={sliderStep}
                             onChange={handleSliderChange}
-                            onChangeCommitted={() => syncTaskLayers()}
+                            onChangeCommitted={() =>
+                                jaiaDispatch({ type: JaiaActions.COMMIT_TASK_PACKET_SLIDER })
+                            }
                             data-testid="filter-time-slider"
                         />
                     </div>
