@@ -9,7 +9,18 @@ import {
     MissionSummary,
 } from "../../data/task_packets/task-packet-filter";
 import { jaiaAPI } from "../../utils/jaia-api";
-import { getHTMLDateString } from "../../shared/Utilities";
+import {
+    formatUtime,
+    missionLabel,
+    getDefaultDateRange,
+    getInitialStartDateStr,
+    getInitialEndDateStr,
+    getInitialHasSearched,
+    getInitialSelectedKeys,
+    getInitialSliderWindow,
+    buildQueryStrings,
+    computeBounds,
+} from "./task-packet-filter-helpers";
 
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
@@ -22,99 +33,6 @@ import "./TaskPacketFilter.less";
 
 const SEARCH_DEBOUNCE_TIME = 400; // milliseconds
 const LIVE_TICK_TIME = 2000; // milliseconds
-const DEFAULT_WINDOW_HOURS = 14; // hours
-const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
-
-const timeFormatter = new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-});
-
-/**
- * Formats a task packet start_time as a datetime.
- *
- * @param {number} utime Timestamp in microseconds
- * @returns {string} Human readable local datetime
- */
-function formatUtime(utime: number) {
-    if (!utime) {
-        return "--";
-    }
-    return timeFormatter.format(new Date(utime / 1000));
-}
-
-/**
- * Display label for a mission summary ("Unnamed" when it has no mission name).
- *
- * @param {MissionSummary} mission Summary to label
- * @returns {string} Label
- */
-function missionLabel(mission: MissionSummary) {
-    return mission.name ?? "Unnamed";
-}
-
-/**
- * The default search window: the server's default of the last DEFAULT_WINDOW_HOURS.
- *
- * @returns {{ start: string; end: string }} yyyy-mm-dd date strings
- */
-function getDefaultDateRange() {
-    return {
-        start: getHTMLDateString(
-            new Date(Date.now() - DEFAULT_WINDOW_HOURS * MILLISECONDS_PER_HOUR),
-        ),
-        end: getHTMLDateString(new Date()),
-    };
-}
-
-/**
- * Initial start-date string: the active filter's window when present, else the default.
- *
- * @returns {string} yyyy-mm-dd date string
- */
-function getInitialStartDateStr() {
-    const start = taskPacketFilter.getStartDate();
-    return start ? getHTMLDateString(start) : getDefaultDateRange().start;
-}
-
-/**
- * Initial end-date string: the active filter's window when present, else the default.
- *
- * @returns {string} yyyy-mm-dd date string
- */
-function getInitialEndDateStr() {
-    const end = taskPacketFilter.getEndDate();
-    return end ? getHTMLDateString(end) : getDefaultDateRange().end;
-}
-
-/**
- * Whether a search is already active when the panel mounts.
- *
- * @returns {boolean} True when the filter is active
- */
-function getInitialHasSearched() {
-    return taskPacketFilter.isActive();
-}
-
-/**
- * Initial mission selection, restored from the active filter.
- *
- * @returns {Set<string>} Selected mission keys
- */
-function getInitialSelectedKeys() {
-    return new Set(taskPacketFilter.getSelectedMissionKeys());
-}
-
-/**
- * Initial slider window restored from the active filter.
- *
- * @returns {[number, number]} Slider utimes in microseconds
- */
-function getInitialSliderWindow(): [number, number] {
-    return [taskPacketFilter.getSliderLowerUtime(), taskPacketFilter.getSliderUpperUtime()];
-}
 
 /**
  * Filter panel that sits beside the settings panel and lets the operator filter which task packets are shown on the map.
@@ -143,34 +61,6 @@ export default function TaskPacketFilter() {
     selectedKeysRef.current = selectedKeys;
 
     /**
-     * Builds the "yyyy-mm-dd hh:mm" query strings for the selected date range.
-     *
-     * @returns {{ startQuery: string; endQuery: string }} Query strings for the date range
-     */
-    const buildQueryStrings = () => {
-        const startQuery = `${startDateStr} 00:00`;
-        const endQuery = `${endDateStr} 23:59`;
-        return { startQuery, endQuery };
-    };
-
-    /**
-     * Returns the [min, max] start-time range across the selected missions.
-     *
-     * @param {MissionSummary[]} summaries Mission summaries
-     * @param {Set<string>} keys Selected mission keys
-     * @returns {[number, number]} Slider bounds, or [0, 0] when nothing is selected
-     */
-    const computeBounds = (summaries: MissionSummary[], keys: Set<string>): [number, number] => {
-        const selected = summaries.filter((mission) => keys.has(mission.key));
-        if (selected.length === 0) {
-            return [0, 0];
-        }
-        const lower = Math.min(...selected.map((mission) => mission.startTime));
-        const upper = Math.max(...selected.map((mission) => mission.endTime));
-        return [lower, upper];
-    };
-
-    /**
      * Fetches task packets for the current date range and rebuilds the mission list. While
      * a search is active, an actual date-range change also re-applies the window to the map
      * so the current selection keeps filtering the right packets.
@@ -180,7 +70,7 @@ export default function TaskPacketFilter() {
      * @returns {Promise<void>}
      */
     const fetchMissions = async (isInitial: boolean) => {
-        const { startQuery, endQuery } = buildQueryStrings();
+        const { startQuery, endQuery } = buildQueryStrings(startDateStr, endDateStr);
         setIsLoading(true);
         try {
             const response = await jaiaAPI.getTaskPackets(startQuery, endQuery);
@@ -312,7 +202,7 @@ export default function TaskPacketFilter() {
      */
     const handleRunSearch = async () => {
         setIsLoading(true);
-        const { startQuery, endQuery } = buildQueryStrings();
+        const { startQuery, endQuery } = buildQueryStrings(startDateStr, endDateStr);
         try {
             const response = await jaiaAPI.getTaskPackets(startQuery, endQuery);
             const included = response?.result?.included ?? [];
