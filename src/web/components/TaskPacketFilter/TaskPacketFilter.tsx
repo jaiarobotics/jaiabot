@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useContext, useEffect, useRef, useState } from "react";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
@@ -61,8 +61,7 @@ export default function TaskPacketFilter() {
     missionSetsRef.current = missionSets;
     selectedKeysRef.current = selectedKeys;
 
-    // Refresh the mission set list on date change. The first run only refreshes
-    // the list, with later changes refreshing the window.
+    // Refresh the mission set list on date change.
     useEffect(() => scheduleMissionRefresh(), [startDateStr, endDateStr]);
 
     // Apply the mission set selection to the map whenever it changes.
@@ -74,8 +73,7 @@ export default function TaskPacketFilter() {
     useEffect(() => followLatestTaskPackets(), [taskPacketVersion]);
 
     /**
-     * Refresh the mission set list for the current date range. The first
-     * run only refreshes the list. Later runs refresh the window.
+     * Refresh the mission set list for the current date range.
      *
      * @returns {() => void} Cleanup that cancels the pending refresh
      */
@@ -89,9 +87,7 @@ export default function TaskPacketFilter() {
     };
 
     /**
-     * Fetches task packets for the current date range and rebuilds the mission set list. While
-     * a search is active, an actual date-range change also re-applies the window to the map
-     * so the current selection keeps filtering the right packets.
+     * Fetches task packets for the current date range and rebuilds the mission set list.
      *
      * @param {boolean} isInitial True for the first fetch (mount/reopen), where the window
      *     is already applied and must not be re-fetched
@@ -108,34 +104,14 @@ export default function TaskPacketFilter() {
             setMissionSets(summaries);
             missionSetsRef.current = summaries;
 
-            if (!taskPacketFilter.isActive()) {
-                return;
-            }
-
-            if (isInitial) {
-                // Reopen: the window is already applied; just restore the slider track.
-                if (selectedKeysRef.current.size > 0) {
-                    const bounds = computeBounds(summaries, selectedKeysRef.current);
-                    setSliderBounds(bounds);
-                    if (sliderValue[0] === 0 && sliderValue[1] === 0) {
-                        setSliderValue(bounds);
-                    }
+            // Reopen with an active filter: the window is already applied; restore the slider.
+            if (isInitial && taskPacketFilter.isActive() && selectedKeysRef.current.size > 0) {
+                const bounds = computeBounds(summaries, selectedKeysRef.current);
+                setSliderBounds(bounds);
+                if (sliderValue[0] === 0 && sliderValue[1] === 0) {
+                    setSliderValue(bounds);
                 }
-                return;
             }
-
-            // Date range changed: re-apply it to the map, keeping the current selection.
-            const bounds = computeBounds(summaries, selectedKeysRef.current);
-            setSliderBounds(bounds);
-            setSliderValue(bounds);
-            jaiaDispatch({
-                type: JaiaActions.RUN_TASK_PACKET_SEARCH,
-                includedTaskPackets: included,
-                excludedTaskPackets: excluded,
-                filterStartDate: new Date(`${startDateStr}T00:00:00`),
-                filterEndDate: new Date(`${endDateStr}T23:59:59`),
-                selectedMissionSetKeys: selectedKeysRef.current,
-            });
         } catch (error) {
             console.error(error);
             setMissionSets([]);
@@ -277,6 +253,30 @@ export default function TaskPacketFilter() {
     };
 
     /**
+     * Updates the start date. Changing the range returns the panel to setup mode. The map
+     * updates only when Run Search is pressed.
+     *
+     * @param {ChangeEvent<HTMLInputElement>} event Date input change event
+     * @returns {void}
+     */
+    const handleStartDateChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setStartDateStr(event.target.value);
+        setHasSearched(false);
+    };
+
+    /**
+     * Updates the end date. Changing the range returns the panel to setup mode. The map
+     * updates only when Run Search is pressed.
+     *
+     * @param {ChangeEvent<HTMLInputElement>} event Date input change event
+     * @returns {void}
+     */
+    const handleEndDateChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setEndDateStr(event.target.value);
+        setHasSearched(false);
+    };
+
+    /**
      * Updates the visible time window.
      *
      * @param {number | number[]} value The slider's new [lower, upper] values
@@ -344,19 +344,11 @@ export default function TaskPacketFilter() {
                 <div className="task-packet-filter-dates">
                     <label>
                         Start
-                        <input
-                            type="date"
-                            value={startDateStr}
-                            onChange={(event) => setStartDateStr(event.target.value)}
-                        />
+                        <input type="date" value={startDateStr} onChange={handleStartDateChange} />
                     </label>
                     <label>
                         End
-                        <input
-                            type="date"
-                            value={endDateStr}
-                            onChange={(event) => setEndDateStr(event.target.value)}
-                        />
+                        <input type="date" value={endDateStr} onChange={handleEndDateChange} />
                     </label>
                 </div>
             </div>
