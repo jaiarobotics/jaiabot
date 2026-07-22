@@ -103,7 +103,7 @@ export interface JaiaAction {
     excludedTaskPackets?: TaskPacket[];
     filterStartDate?: Date;
     filterEndDate?: Date;
-    selectedMissionKeys?: Set<string>;
+    selectedMissionSetKeys?: Set<string>;
     sliderLowerUtime?: number;
     sliderUpperUtime?: number;
     autoFollowUpper?: boolean;

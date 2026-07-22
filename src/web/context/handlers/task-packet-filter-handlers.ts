@@ -6,11 +6,11 @@ import { syncTaskLayers, syncTaskPacketMarkerLayers } from "./handler-utils";
 
 /**
  * Applies a task packet search: loads the fetched packets into the data model, activates the
- * filter for the chosen window and mission selection, resets the slider to the full range, and
+ * filter for the chosen window and mission set selection, resets the slider to the full range, and
  * repaints the task layers.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action Provides the fetched packets, window dates, and selected mission keys
+ * @param {JaiaAction} action Provides the fetched packets, window dates, and selected mission set keys
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleRunTaskPacketSearch(mutableState: JaiaContextType, action: JaiaAction) {
@@ -19,7 +19,7 @@ export function handleRunTaskPacketSearch(mutableState: JaiaContextType, action:
     if (action.filterStartDate && action.filterEndDate) {
         taskPacketFilter.setSearchWindow(action.filterStartDate, action.filterEndDate);
     }
-    taskPacketFilter.setSelectedMissionKeys(action.selectedMissionKeys ?? new Set());
+    taskPacketFilter.setSelectedMissionSetKeys(action.selectedMissionSetKeys ?? new Set());
     taskPacketFilter.setSliderWindow(0, 0);
     taskPacketFilter.setAutoFollowUpper(true);
     syncTaskLayers();
@@ -27,17 +27,17 @@ export function handleRunTaskPacketSearch(mutableState: JaiaContextType, action:
 }
 
 /**
- * Updates which missions are shown. When at least one mission is selected the slider is reset to
+ * Updates which mission sets are shown. When at least one mission set is selected the slider is reset to
  * span the new selection. Re-renders the task layers to match.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action Provides the selected mission keys
+ * @param {JaiaAction} action Provides the selected mission set keys
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleChangeTaskPacketSelection(mutableState: JaiaContextType, action: JaiaAction) {
-    const selectedMissionKeys = action.selectedMissionKeys ?? new Set<string>();
-    taskPacketFilter.setSelectedMissionKeys(selectedMissionKeys);
-    if (selectedMissionKeys.size > 0) {
+    const selectedMissionSetKeys = action.selectedMissionSetKeys ?? new Set<string>();
+    taskPacketFilter.setSelectedMissionSetKeys(selectedMissionSetKeys);
+    if (selectedMissionSetKeys.size > 0) {
         taskPacketFilter.setSliderWindow(0, 0);
         taskPacketFilter.setAutoFollowUpper(true);
     }

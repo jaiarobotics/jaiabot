@@ -2,11 +2,14 @@ import { useContext, useEffect, useRef, useState } from "react";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
-import { buildMissionSummaries, MissionSummary } from "../../data/task_packets/task-packet-filter";
+import {
+    buildMissionSetSummaries,
+    MissionSetSummary,
+} from "../../data/task_packets/task-packet-filter";
 import { jaiaAPI } from "../../utils/jaia-api";
 import {
     formatUtime,
-    missionLabel,
+    missionSetLabel,
     getDefaultDateRange,
     getInitialStartDateStr,
     getInitialEndDateStr,
@@ -30,7 +33,7 @@ const SEARCH_DEBOUNCE_TIME = 400; // milliseconds
 
 /**
  * Task packet filter accordion in the Settings panel. Lets the operator filter which task
- * packets are shown on the map. Filter options are date range, mission name, and time window.
+ * packets are shown on the map. Filter options are date range, mission set name, and time window.
  */
 export default function TaskPacketFilter() {
     const jaiaContext = useContext(JaiaContext);
@@ -45,25 +48,25 @@ export default function TaskPacketFilter() {
     const [hasSearched, setHasSearched] = useState(getInitialHasSearched(taskPacketFilter));
 
     // Results / selection state
-    const [missions, setMissions] = useState<MissionSummary[]>([]);
+    const [missionSets, setMissionSets] = useState<MissionSetSummary[]>([]);
     const [selectedKeys, setSelectedKeys] = useState(getInitialSelectedKeys(taskPacketFilter));
     const [sliderBounds, setSliderBounds] = useState(getInitialSliderWindow(taskPacketFilter));
     const [sliderValue, setSliderValue] = useState(getInitialSliderWindow(taskPacketFilter));
 
     // Latest values so the version-driven live effect can read them without re-subscribing.
-    const missionsRef = useRef(missions);
+    const missionSetsRef = useRef(missionSets);
     const selectedKeysRef = useRef(selectedKeys);
     const skipNextCommitRef = useRef(taskPacketFilter.isActive() && selectedKeys.size > 0);
     const isInitialFetchRef = useRef(true);
-    missionsRef.current = missions;
+    missionSetsRef.current = missionSets;
     selectedKeysRef.current = selectedKeys;
 
-    // Refresh the mission list on date change. The first run only refreshes
+    // Refresh the mission set list on date change. The first run only refreshes
     // the list, with later changes refreshing the window.
     useEffect(() => scheduleMissionRefresh(), [startDateStr, endDateStr]);
 
-    // Apply the mission selection to the map whenever it changes.
-    useEffect(() => commitMissionSelection(), [selectedKeys]);
+    // Apply the mission set selection to the map whenever it changes.
+    useEffect(() => commitMissionSetSelection(), [selectedKeys]);
 
     // Pick up new task packets so the slider can follow. The poll updates
     // the task packet version, which re-triggers this effect.
@@ -71,7 +74,7 @@ export default function TaskPacketFilter() {
     useEffect(() => followLatestTaskPackets(), [taskPacketVersion]);
 
     /**
-     * Refresh the mission list for the current date range. The first
+     * Refresh the mission set list for the current date range. The first
      * run only refreshes the list. Later runs refresh the window.
      *
      * @returns {() => void} Cleanup that cancels the pending refresh
@@ -86,7 +89,7 @@ export default function TaskPacketFilter() {
     };
 
     /**
-     * Fetches task packets for the current date range and rebuilds the mission list. While
+     * Fetches task packets for the current date range and rebuilds the mission set list. While
      * a search is active, an actual date-range change also re-applies the window to the map
      * so the current selection keeps filtering the right packets.
      *
@@ -101,9 +104,9 @@ export default function TaskPacketFilter() {
             const response = await jaiaAPI.getTaskPackets(startQuery, endQuery);
             const included = response?.result?.included ?? [];
             const excluded = response?.result?.excluded ?? [];
-            const summaries = buildMissionSummaries([...included, ...excluded]);
-            setMissions(summaries);
-            missionsRef.current = summaries;
+            const summaries = buildMissionSetSummaries([...included, ...excluded]);
+            setMissionSets(summaries);
+            missionSetsRef.current = summaries;
 
             if (!taskPacketFilter.isActive()) {
                 return;
@@ -131,23 +134,23 @@ export default function TaskPacketFilter() {
                 excludedTaskPackets: excluded,
                 filterStartDate: new Date(`${startDateStr}T00:00:00`),
                 filterEndDate: new Date(`${endDateStr}T23:59:59`),
-                selectedMissionKeys: selectedKeysRef.current,
+                selectedMissionSetKeys: selectedKeysRef.current,
             });
         } catch (error) {
             console.error(error);
-            setMissions([]);
+            setMissionSets([]);
         } finally {
             setIsLoading(false);
         }
     };
 
     /**
-     * Applies the current mission selection to the data model and repaints the map. Skips the
+     * Applies the current mission set selection to the data model and repaints the map. Skips the
      * commit right after a search.
      *
      * @returns {void}
      */
-    const commitMissionSelection = () => {
+    const commitMissionSetSelection = () => {
         if (skipNextCommitRef.current) {
             skipNextCommitRef.current = false;
             return;
@@ -158,19 +161,19 @@ export default function TaskPacketFilter() {
         }
 
         if (selectedKeys.size > 0) {
-            const bounds = computeBounds(missionsRef.current, selectedKeys);
+            const bounds = computeBounds(missionSetsRef.current, selectedKeys);
             setSliderBounds(bounds);
             setSliderValue(bounds);
         }
 
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PACKET_SELECTION,
-            selectedMissionKeys: selectedKeys,
+            selectedMissionSetKeys: selectedKeys,
         });
     };
 
     /**
-     * Rebuilds the mission list from the latest task packets and extends
+     * Rebuilds the mission set list from the latest task packets and extends
      * the slider to the newest data. Runs on each task packet update.
      *
      * @returns {void}
@@ -180,12 +183,12 @@ export default function TaskPacketFilter() {
             return;
         }
 
-        const summaries = buildMissionSummaries([
+        const summaries = buildMissionSetSummaries([
             ...jaiaContext.taskPackets.getIncludedTaskPackets(),
             ...jaiaContext.taskPackets.getExcludedTaskPackets(),
         ]);
-        setMissions(summaries);
-        missionsRef.current = summaries;
+        setMissionSets(summaries);
+        missionSetsRef.current = summaries;
 
         const bounds = computeBounds(summaries, selectedKeysRef.current);
         if (bounds[0] === 0 && bounds[1] === 0) {
@@ -209,7 +212,7 @@ export default function TaskPacketFilter() {
 
     /**
      * Loads the chosen date range into the shared task packet model, activates the filter,
-     * and builds the mission list from that same data so the map and list always agree.
+     * and builds the mission set list from that same data so the map and list always agree.
      *
      * @returns {Promise<void>}
      */
@@ -221,19 +224,19 @@ export default function TaskPacketFilter() {
             const included = response?.result?.included ?? [];
             const excluded = response?.result?.excluded ?? [];
 
-            const summaries = buildMissionSummaries([...included, ...excluded]);
-            setMissions(summaries);
-            missionsRef.current = summaries;
+            const summaries = buildMissionSetSummaries([...included, ...excluded]);
+            setMissionSets(summaries);
+            missionSetsRef.current = summaries;
 
             const nextSelection = hasSearched
                 ? new Set(selectedKeysRef.current)
                 : new Set(
                       (nameFilter.length > 0
-                          ? summaries.filter((mission) =>
-                                nameFilter.includes(missionLabel(mission)),
+                          ? summaries.filter((missionSet) =>
+                                nameFilter.includes(missionSetLabel(missionSet)),
                             )
                           : summaries
-                      ).map((mission) => mission.key),
+                      ).map((missionSet) => missionSet.key),
                   );
 
             // The search action applies the selection and re-renders, so skip the effect
@@ -245,25 +248,25 @@ export default function TaskPacketFilter() {
                 excludedTaskPackets: excluded,
                 filterStartDate: new Date(`${startDateStr}T00:00:00`),
                 filterEndDate: new Date(`${endDateStr}T23:59:59`),
-                selectedMissionKeys: nextSelection,
+                selectedMissionSetKeys: nextSelection,
             });
             setSelectedKeys(nextSelection);
             setHasSearched(true);
         } catch (error) {
             console.error(error);
-            setMissions([]);
+            setMissionSets([]);
         } finally {
             setIsLoading(false);
         }
     };
 
     /**
-     * Toggles a mission to be included in the current selection.
+     * Toggles a mission set to be included in the current selection.
      *
-     * @param {string} key Mission key to toggle
+     * @param {string} key Mission set key to toggle
      * @returns {void}
      */
-    const handleToggleMission = (key: string) => {
+    const handleToggleMissionSet = (key: string) => {
         const next = new Set(selectedKeys);
         if (next.has(key)) {
             next.delete(key);
@@ -312,7 +315,7 @@ export default function TaskPacketFilter() {
         setSelectedKeys(new Set());
         setHasSearched(false);
         setNameFilter([]);
-        setMissions([]);
+        setMissionSets([]);
         setSliderBounds([0, 0]);
         setSliderValue([0, 0]);
         setStartDateStr(defaultDateRange.start);
@@ -320,11 +323,11 @@ export default function TaskPacketFilter() {
         jaiaDispatch({ type: JaiaActions.CLEAR_TASK_PACKET_FILTER });
     };
 
-    const missionOptions = missions.map(missionLabel);
-    const resultMissions =
+    const missionSetOptions = missionSets.map(missionSetLabel);
+    const resultMissionSets =
         nameFilter.length > 0
-            ? missions.filter((mission) => nameFilter.includes(missionLabel(mission)))
-            : missions;
+            ? missionSets.filter((missionSet) => nameFilter.includes(missionSetLabel(missionSet)))
+            : missionSets;
 
     const sliderMin = sliderBounds[0];
     const sliderMax = sliderBounds[1] > sliderBounds[0] ? sliderBounds[1] : sliderBounds[0] + 1;
@@ -333,7 +336,7 @@ export default function TaskPacketFilter() {
     return (
         <div className="task-packet-filter">
             <p className="task-packet-filter-intro">
-                Show only the task packets from specific missions on the map.
+                Show only the task packets from specific mission sets on the map.
             </p>
 
             <div className="task-packet-filter-step">
@@ -360,15 +363,17 @@ export default function TaskPacketFilter() {
 
             <div className="task-packet-filter-step">
                 <div className="task-packet-filter-step-label">
-                    2. Filter by mission name (optional)
+                    2. Filter by mission set name (optional)
                 </div>
                 <Autocomplete
                     multiple
                     size="small"
-                    options={missionOptions}
+                    options={missionSetOptions}
                     value={nameFilter}
                     onChange={(_event, value) => setNameFilter(value)}
-                    renderInput={(params) => <TextField {...params} placeholder="All missions" />}
+                    renderInput={(params) => (
+                        <TextField {...params} placeholder="All mission sets" />
+                    )}
                 />
             </div>
 
@@ -384,32 +389,32 @@ export default function TaskPacketFilter() {
             {hasSearched && (
                 <div className="task-packet-filter-step">
                     <div className="task-packet-filter-step-label">
-                        3. Select missions to show on the map
+                        3. Select mission sets to show on the map
                     </div>
-                    {resultMissions.length === 0 ? (
+                    {resultMissionSets.length === 0 ? (
                         <div className="task-packet-filter-hint">
-                            No missions found in this date range.
+                            No mission sets found in this date range.
                         </div>
                     ) : (
                         <>
                             <div className="task-packet-filter-results">
-                                {resultMissions.map((mission) => (
+                                {resultMissionSets.map((missionSet) => (
                                     <label
                                         className="task-packet-filter-result-row"
-                                        key={mission.key}
+                                        key={missionSet.key}
                                     >
                                         <Checkbox
                                             size="small"
-                                            checked={selectedKeys.has(mission.key)}
-                                            onChange={() => handleToggleMission(mission.key)}
+                                            checked={selectedKeys.has(missionSet.key)}
+                                            onChange={() => handleToggleMissionSet(missionSet.key)}
                                         />
                                         <div className="task-packet-filter-result-info">
                                             <span className="task-packet-filter-result-name">
-                                                {missionLabel(mission)}
+                                                {missionSetLabel(missionSet)}
                                             </span>
                                             <span className="task-packet-filter-result-meta">
-                                                {formatUtime(mission.startTime)} ·{" "}
-                                                {mission.taskPacketCount} packets
+                                                {formatUtime(missionSet.startTime)} ·{" "}
+                                                {missionSet.taskPacketCount} packets
                                             </span>
                                         </div>
                                     </label>
@@ -417,7 +422,7 @@ export default function TaskPacketFilter() {
                             </div>
                             {selectedKeys.size === 0 && (
                                 <div className="task-packet-filter-hint">
-                                    Check one or more missions to filter the map.
+                                    Check one or more mission sets to filter the map.
                                 </div>
                             )}
                         </>

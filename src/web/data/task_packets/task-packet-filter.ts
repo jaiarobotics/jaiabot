@@ -1,9 +1,9 @@
 import { TaskPacket } from "../../types/protobuf-types";
 
 // Grouping key for task packets that have no mission_name.
-export const UNNAMED_MISSION_KEY = "__UNNAMED__";
+export const UNNAMED_MISSION_SET_KEY = "__UNNAMED__";
 
-export interface MissionSummary {
+export interface MissionSetSummary {
     key: string;
     name: string | null;
     startTime: number;
@@ -15,27 +15,27 @@ export interface MissionSummary {
  * Returns the grouping name for a task packet.
  *
  * @param {TaskPacket} taskPacket Packet to key
- * @returns {string} Mission name or UNNAMED_MISSION_KEY
+ * @returns {string} Mission set name or UNNAMED_MISSION_SET_KEY
  */
-export function missionKeyOf(taskPacket: TaskPacket): string {
-    return taskPacket.mission_name ? taskPacket.mission_name : UNNAMED_MISSION_KEY;
+export function missionSetKeyOf(taskPacket: TaskPacket): string {
+    return taskPacket.mission_name ? taskPacket.mission_name : UNNAMED_MISSION_SET_KEY;
 }
 
 /**
- * Groups task packets into mission summaries sorted by start time. Packets with no
+ * Groups task packets into mission set summaries sorted by start time. Packets with no
  * mission_name are grouped under UNNAMED so they aren't missed.
  *
  * @param {TaskPacket[]} taskPackets Packets to summarize
- * @returns {MissionSummary[]} Summaries sorted by startTime ascending
+ * @returns {MissionSetSummary[]} Summaries sorted by startTime ascending
  */
-export function buildMissionSummaries(taskPackets: TaskPacket[]): MissionSummary[] {
-    const byKey = new Map<string, MissionSummary>();
+export function buildMissionSetSummaries(taskPackets: TaskPacket[]): MissionSetSummary[] {
+    const byKey = new Map<string, MissionSetSummary>();
     for (const taskPacket of taskPackets) {
         const startTime = Number(taskPacket.start_time);
         if (!Number.isFinite(startTime)) {
             continue;
         }
-        const key = missionKeyOf(taskPacket);
+        const key = missionSetKeyOf(taskPacket);
         const existing = byKey.get(key);
         if (existing) {
             existing.startTime = Math.min(existing.startTime, startTime);
@@ -61,7 +61,7 @@ export class TaskPacketFilter {
     private active = false;
     private startDate: Date | null = null;
     private endDate: Date | null = null;
-    private selectedMissionKeys = new Set<string>();
+    private selectedMissionSetKeys = new Set<string>();
     private sliderLowerUtime = 0;
     private sliderUpperUtime = 0;
     private autoFollowUpper = true;
@@ -84,12 +84,12 @@ export class TaskPacketFilter {
         this.active = true;
     }
 
-    getSelectedMissionKeys() {
-        return this.selectedMissionKeys;
+    getSelectedMissionSetKeys() {
+        return this.selectedMissionSetKeys;
     }
 
-    setSelectedMissionKeys(keys: Set<string>) {
-        this.selectedMissionKeys = new Set(keys);
+    setSelectedMissionSetKeys(keys: Set<string>) {
+        this.selectedMissionSetKeys = new Set(keys);
     }
 
     getSliderLowerUtime() {
@@ -114,7 +114,7 @@ export class TaskPacketFilter {
     }
 
     /**
-     * True when a packet should be shown. While active with no missions selected nothing
+     * True when a packet should be shown. While active with no mission sets selected nothing
      * passes.
      *
      * @param {TaskPacket} taskPacket Packet to test
@@ -124,7 +124,7 @@ export class TaskPacketFilter {
         if (!this.active) {
             return true;
         }
-        if (!this.selectedMissionKeys.has(missionKeyOf(taskPacket))) {
+        if (!this.selectedMissionSetKeys.has(missionSetKeyOf(taskPacket))) {
             return false;
         }
         if (this.sliderUpperUtime <= 0) {
@@ -152,7 +152,7 @@ export class TaskPacketFilter {
         this.active = false;
         this.startDate = null;
         this.endDate = null;
-        this.selectedMissionKeys = new Set();
+        this.selectedMissionSetKeys = new Set();
         this.sliderLowerUtime = 0;
         this.sliderUpperUtime = 0;
         this.autoFollowUpper = true;

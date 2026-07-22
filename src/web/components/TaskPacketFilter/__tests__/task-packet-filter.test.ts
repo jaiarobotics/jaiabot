@@ -1,6 +1,6 @@
 import {
     formatUtime,
-    missionLabel,
+    missionSetLabel,
     buildQueryStrings,
     computeBounds,
     getInitialStartDateStr,
@@ -10,7 +10,7 @@ import {
     getInitialSliderWindow,
     getDefaultDateRange,
 } from "../task-packet-filter";
-import { MissionSummary, TaskPacketFilter } from "../../../data/task_packets/task-packet-filter";
+import { MissionSetSummary, TaskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { getHTMLDateString } from "../../../shared/Utilities";
 
 describe("formatUtime", () => {
@@ -26,27 +26,27 @@ describe("formatUtime", () => {
     });
 });
 
-describe("missionLabel", () => {
-    test("uses the mission name when present", () => {
-        const namedMission: MissionSummary = {
+describe("missionSetLabel", () => {
+    test("uses the mission set name when present", () => {
+        const namedMissionSet: MissionSetSummary = {
             key: "survey-1",
             name: "Survey 1",
             startTime: 1000,
             endTime: 2000,
             taskPacketCount: 1,
         };
-        expect(missionLabel(namedMission)).toBe("Survey 1");
+        expect(missionSetLabel(namedMissionSet)).toBe("Survey 1");
     });
 
     test('falls back to "Unnamed" when the name is null', () => {
-        const unnamedMission: MissionSummary = {
+        const unnamedMissionSetSet: MissionSetSummary = {
             key: "__UNNAMED__",
             name: null,
             startTime: 1000,
             endTime: 2000,
             taskPacketCount: 1,
         };
-        expect(missionLabel(unnamedMission)).toBe("Unnamed");
+        expect(missionSetLabel(unnamedMissionSetSet)).toBe("Unnamed");
     });
 });
 
@@ -60,28 +60,28 @@ describe("buildQueryStrings", () => {
 });
 
 describe("computeBounds", () => {
-    const missionA: MissionSummary = {
+    const missionSetA: MissionSetSummary = {
         key: "a",
-        name: "Mission A",
+        name: "Mission Set A",
         startTime: 1000,
         endTime: 2000,
         taskPacketCount: 1,
     };
-    const missionB: MissionSummary = {
+    const missionSetB: MissionSetSummary = {
         key: "b",
-        name: "Mission B",
+        name: "Mission Set B",
         startTime: 3000,
         endTime: 5000,
         taskPacketCount: 1,
     };
-    const missionC: MissionSummary = {
+    const missionSetC: MissionSetSummary = {
         key: "c",
-        name: "Mission C",
+        name: "Mission Set C",
         startTime: 500,
         endTime: 800,
         taskPacketCount: 1,
     };
-    const summaries = [missionA, missionB, missionC];
+    const summaries = [missionSetA, missionSetB, missionSetC];
 
     test("returns [0, 0] when nothing is selected", () => {
         expect(computeBounds(summaries, new Set())).toEqual([0, 0]);
@@ -91,11 +91,11 @@ describe("computeBounds", () => {
         expect(computeBounds(summaries, new Set(["missing"]))).toEqual([0, 0]);
     });
 
-    test("spans the min start and max end across the selected missions", () => {
+    test("spans the min start and max end across the selected mission sets", () => {
         expect(computeBounds(summaries, new Set(["a", "b"]))).toEqual([1000, 5000]);
     });
 
-    test("uses a single mission's own bounds", () => {
+    test("uses a single mission set's own bounds", () => {
         expect(computeBounds(summaries, new Set(["c"]))).toEqual([500, 800]);
     });
 });
@@ -119,7 +119,7 @@ describe("getInitial* (restoring panel state from the filter)", () => {
         const start = new Date("2021-03-15T08:00:00");
         const end = new Date("2021-03-18T20:00:00");
         filter.setSearchWindow(start, end);
-        filter.setSelectedMissionKeys(new Set(["Alpha", "Beta"]));
+        filter.setSelectedMissionSetKeys(new Set(["Alpha", "Beta"]));
         filter.setSliderWindow(1000, 5000);
 
         expect(getInitialHasSearched(filter)).toBe(true);
@@ -131,7 +131,7 @@ describe("getInitial* (restoring panel state from the filter)", () => {
 
     test("the restored selection is a copy, not the filter's own set", () => {
         const filter = new TaskPacketFilter();
-        filter.setSelectedMissionKeys(new Set(["Alpha"]));
+        filter.setSelectedMissionSetKeys(new Set(["Alpha"]));
 
         const restored = getInitialSelectedKeys(filter);
         restored.add("Beta");

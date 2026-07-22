@@ -1,5 +1,5 @@
 import { getHTMLDateString } from "../../shared/Utilities";
-import { TaskPacketFilter, MissionSummary } from "../../data/task_packets/task-packet-filter";
+import { TaskPacketFilter, MissionSetSummary } from "../../data/task_packets/task-packet-filter";
 
 const DEFAULT_WINDOW_HOURS = 14; // hours
 const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
@@ -25,13 +25,13 @@ export function formatUtime(utime: number) {
 }
 
 /**
- * Display label for a mission summary ("Unnamed" when it has no mission name).
+ * Display label for a mission set summary ("Unnamed" when it has no mission set name).
  *
- * @param {MissionSummary} mission Summary to label
+ * @param {MissionSetSummary} missionSet Summary to label
  * @returns {string} Label
  */
-export function missionLabel(mission: MissionSummary) {
-    return mission.name ?? "Unnamed";
+export function missionSetLabel(missionSet: MissionSetSummary) {
+    return missionSet.name ?? "Unnamed";
 }
 
 /**
@@ -81,13 +81,13 @@ export function getInitialHasSearched(filter: TaskPacketFilter) {
 }
 
 /**
- * Initial mission selection, restored from the active filter.
+ * Initial mission set selection, restored from the active filter.
  *
  * @param {TaskPacketFilter} filter Filter to read the selection from
- * @returns {Set<string>} Selected mission keys
+ * @returns {Set<string>} Selected mission set keys
  */
 export function getInitialSelectedKeys(filter: TaskPacketFilter) {
-    return new Set(filter.getSelectedMissionKeys());
+    return new Set(filter.getSelectedMissionSetKeys());
 }
 
 /**
@@ -114,18 +114,18 @@ export function buildQueryStrings(startDateStr: string, endDateStr: string) {
 }
 
 /**
- * Returns the [min, max] start-time range across the selected missions.
+ * Returns the [min, max] start-time range across the selected mission sets.
  *
- * @param {MissionSummary[]} summaries Mission summaries
- * @param {Set<string>} keys Selected mission keys
+ * @param {MissionSetSummary[]} summaries Mission set summaries
+ * @param {Set<string>} keys Selected mission set keys
  * @returns {[number, number]} Slider bounds, or [0, 0] when nothing is selected
  */
-export function computeBounds(summaries: MissionSummary[], keys: Set<string>): [number, number] {
-    const selected = summaries.filter((mission) => keys.has(mission.key));
+export function computeBounds(summaries: MissionSetSummary[], keys: Set<string>): [number, number] {
+    const selected = summaries.filter((missionSet) => keys.has(missionSet.key));
     if (selected.length === 0) {
         return [0, 0];
     }
-    const lower = Math.min(...selected.map((mission) => mission.startTime));
-    const upper = Math.max(...selected.map((mission) => mission.endTime));
+    const lower = Math.min(...selected.map((missionSet) => missionSet.startTime));
+    const upper = Math.max(...selected.map((missionSet) => missionSet.endTime));
     return [lower, upper];
 }
