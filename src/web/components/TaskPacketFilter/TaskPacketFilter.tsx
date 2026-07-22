@@ -215,6 +215,12 @@ export default function TaskPacketFilter() {
                       ).map((missionSet) => missionSet.key),
                   );
 
+            // Set the slider from the data just loaded so it appears immediately and matches
+            // the list, rather than waiting for the next poll.
+            const bounds = computeBounds(summaries, nextSelection);
+            setSliderBounds(bounds);
+            setSliderValue(bounds);
+
             // The search action applies the selection and re-renders, so skip the effect
             // that would otherwise also initiate from setSelectedKeys and repeat the work.
             skipNextCommitRef.current = true;
