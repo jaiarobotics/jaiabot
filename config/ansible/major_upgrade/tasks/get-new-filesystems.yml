@@ -4,27 +4,41 @@
     upgrade_boot_url: 'http://{{ hub_ip }}/updates/major_upgrade/{{ major_upgrade_rootfs_version }}.boot.tar.gz'    
 
 - name: Download the upgrade image boot fs
-  get_url:
-    url: "{{ upgrade_boot_url }}"
-    dest: "{{ upgrade_dir }}"
-    checksum: "{{ major_upgrade_bootfs_checksum }}"
-    force: true
-  environment:
-    TMPDIR: "{{ upgrade_tmp_dir }}"
+  shell: |
+    set -e -o pipefail
+    dest="{{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz"
+    checksum="{{ major_upgrade_bootfs_checksum | regex_replace('^sha256:', '') }}"
+    # skip a matching, already-downloaded file, letting an interrupted
+    # upgrade resume without re-copying the image.
+    if [ -f "$dest" ] && echo "$checksum  $dest" | sha256sum -c - --status; then
+      exit 0
+    fi
+    tmp="${dest}.part"
+    curl -f -sS --limit-rate 1500K -o "$tmp" "{{ upgrade_boot_url }}"
+    echo "$checksum  $tmp" | sha256sum -c - --status
+    mv "$tmp" "$dest"
+  args:
+    executable: /bin/bash
   throttle: 1
   register: download_result
   until: download_result is success
   retries: 3
   delay: 10
-    
+
 - name: Download the upgrade image rootfs
-  get_url:
-    url: "{{ upgrade_rootfs_url }}"
-    dest: "{{ upgrade_dir }}"
-    checksum: "{{ major_upgrade_rootfs_checksum }}"
-    force: true
-  environment:
-    TMPDIR: "{{ upgrade_tmp_dir }}"
+  shell: |
+    set -e -o pipefail
+    dest="{{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.rootfs.tar.gz"
+    checksum="{{ major_upgrade_rootfs_checksum | regex_replace('^sha256:', '') }}"
+    if [ -f "$dest" ] && echo "$checksum  $dest" | sha256sum -c - --status; then
+      exit 0
+    fi
+    tmp="${dest}.part"
+    curl -f -sS --limit-rate 1500K -o "$tmp" "{{ upgrade_rootfs_url }}"
+    echo "$checksum  $tmp" | sha256sum -c - --status
+    mv "$tmp" "$dest"
+  args:
+    executable: /bin/bash
   throttle: 1
   register: download_result
   until: download_result is success
