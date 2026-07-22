@@ -15,7 +15,7 @@ import {
     getInitialSliderWindow,
     buildQueryStrings,
     computeBounds,
-} from "./task-packet-filter-helpers";
+} from "./task-packet-filter";
 
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
@@ -29,7 +29,8 @@ import "./TaskPacketFilter.less";
 const SEARCH_DEBOUNCE_TIME = 400; // milliseconds
 
 /**
- * Filter panel that sits beside the settings panel and lets the operator filter which task packets are shown on the map.
+ * Task packet filter accordion in the Settings panel. Lets the operator filter which task
+ * packets are shown on the map. Filter options are date range, mission name, and time window.
  */
 export default function TaskPacketFilter() {
     const jaiaContext = useContext(JaiaContext);

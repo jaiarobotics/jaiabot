@@ -9,7 +9,7 @@ import {
     getInitialSelectedKeys,
     getInitialSliderWindow,
     getDefaultDateRange,
-} from "../task-packet-filter-helpers";
+} from "../task-packet-filter";
 import { MissionSummary, TaskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { getHTMLDateString } from "../../../shared/Utilities";
 
