@@ -260,6 +260,7 @@ export default function TaskPacketFilter() {
     /**
      * Toggles a mission to be included in the current selection.
      *
+     * @param {string} key Mission key to toggle
      * @returns {void}
      */
     const handleToggleMission = (key: string) => {
@@ -275,6 +276,7 @@ export default function TaskPacketFilter() {
     /**
      * Updates the visible time window.
      *
+     * @param {number | number[]} value The slider's new [lower, upper] values
      * @returns {void}
      */
     const handleSliderChange = (_event: Event, value: number | number[]) => {
@@ -329,7 +331,7 @@ export default function TaskPacketFilter() {
     const sliderStep = Math.max(1, Math.floor((sliderMax - sliderMin) / 500));
 
     return (
-        <div className="task-packet-filter-panel">
+        <div className="task-packet-filter">
             <p className="task-packet-filter-intro">
                 Show only the task packets from specific missions on the map.
             </p>
@@ -343,7 +345,6 @@ export default function TaskPacketFilter() {
                             type="date"
                             value={startDateStr}
                             onChange={(event) => setStartDateStr(event.target.value)}
-                            data-testid="filter-start-date"
                         />
                     </label>
                     <label>
@@ -352,7 +353,6 @@ export default function TaskPacketFilter() {
                             type="date"
                             value={endDateStr}
                             onChange={(event) => setEndDateStr(event.target.value)}
-                            data-testid="filter-end-date"
                         />
                     </label>
                 </div>
@@ -369,7 +369,6 @@ export default function TaskPacketFilter() {
                     value={nameFilter}
                     onChange={(_event, value) => setNameFilter(value)}
                     renderInput={(params) => <TextField {...params} placeholder="All missions" />}
-                    data-testid="filter-mission-name"
                 />
             </div>
 
@@ -403,7 +402,6 @@ export default function TaskPacketFilter() {
                                             size="small"
                                             checked={selectedKeys.has(mission.key)}
                                             onChange={() => handleToggleMission(mission.key)}
-                                            data-testid={`filter-mission-${mission.key}`}
                                         />
                                         <div className="task-packet-filter-result-info">
                                             <span className="task-packet-filter-result-name">
@@ -444,7 +442,6 @@ export default function TaskPacketFilter() {
                             step={sliderStep}
                             onChange={handleSliderChange}
                             onChangeCommitted={handleSliderCommit}
-                            data-testid="filter-time-slider"
                         />
                     </div>
                 </div>
