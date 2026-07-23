@@ -3,8 +3,7 @@ import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
 import { taskPacketFilter } from "../data/task_packets/task-packet-filter";
-import { jaiaAPI } from "../utils/jaia-api";
-import { getHTMLDateString, getHTMLTimeString } from "../shared/Utilities";
+import { getHTMLDateString, getHTMLTimeString, convertHTMLStrDateToISO } from "../shared/Utilities";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
@@ -127,7 +126,7 @@ export async function pollTaskPackets() {
 }
 
 /**
- * Formats a Date as the "yyyy-mm-dd hh:mm" string expected by jaiaAPI.getTaskPackets
+ * Formats a Date as the "yyyy-mm-dd hh:mm" string that convertHTMLStrDateToISO expects
  *
  * @param {Date} date Date to format
  * @returns {string} Query string in the form "yyyy-mm-dd hh:mm"
@@ -160,10 +159,12 @@ export async function fetchTaskPacketsForWindow() {
     const startDate = taskPacketFilter.getStartDate();
     const endDate = taskPacketFilter.getEndDate();
     if (taskPacketFilter.isActive() && startDate && endDate) {
-        return jaiaAPI.getTaskPackets(
-            toTaskPacketQueryString(startDate),
-            toTaskPacketQueryString(endDate),
+        const startDateISO = convertHTMLStrDateToISO(toTaskPacketQueryString(startDate));
+        const endDateISO = convertHTMLStrDateToISO(toTaskPacketQueryString(endDate));
+        const res = await fetch(
+            `${TASK_PACKET_URL}?startDate=${startDateISO}&endDate=${endDateISO}`,
         );
+        return res.json();
     }
     const taskPacketRes = await fetch(TASK_PACKET_URL);
     return taskPacketRes.json();
