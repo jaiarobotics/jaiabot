@@ -30,6 +30,7 @@ import Button from "@mui/material/Button";
 import "./TaskPacketFilter.less";
 
 const SEARCH_DEBOUNCE_TIME = 400; // milliseconds
+const ONE_DAY_MICROS = 24 * 60 * 60 * 1000 * 1000; // microseconds
 
 /**
  * Task packet filter accordion in the Settings panel. Lets the operator filter which task
@@ -151,28 +152,47 @@ export default function TaskPacketFilter() {
     };
 
     /**
-     * Keeps the panel in step with the latest task packets. While the filter is not engaged the map
-     * shows every live packet, so the list is rebuilt from the same shared model with every mission
-     * set selected, keeping the panel and map in sync. While engaged it extends the slider to follow
-     * the newest data. Runs on each task packet update.
+     * Mirrors the unfiltered live map in the panel: rebuilds the mission set list from the shared
+     * model with every mission set selected and the slider spanning them all. Used while the filter
+     * is inactive so the panel always matches the map.
      *
      * @returns {void}
      */
-    const followLatestTaskPackets = () => {
+    const mirrorModelToPanel = () => {
         const summaries = buildMissionSetSummaries(
             jaiaContext.taskPackets.getIncludedTaskPackets(),
             jaiaContext.taskPackets.getExcludedTaskPackets(),
         );
         setMissionSets(summaries);
         missionSetsRef.current = summaries;
+        const allKeys = new Set(summaries.map((missionSet) => missionSet.key));
+        setSelectedKeys(allKeys);
+        selectedKeysRef.current = allKeys;
+        const bounds = computeBounds(summaries, allKeys);
+        setSliderBounds(bounds);
+        setSliderValue(bounds);
+    };
 
+    /**
+     * Keeps the panel in step with the latest task packets. While the filter is not engaged the map
+     * shows every live packet, so the panel mirrors it (all mission sets selected). While engaged it
+     * rebuilds the list and extends the slider to follow the newest data. Runs on each task packet
+     * update.
+     *
+     * @returns {void}
+     */
+    const followLatestTaskPackets = () => {
         if (!taskPacketFilter.isActive()) {
-            // The live map shows every packet, so mirror that with every mission set selected.
-            const allKeys = new Set(summaries.map((missionSet) => missionSet.key));
-            setSelectedKeys(allKeys);
-            selectedKeysRef.current = allKeys;
+            mirrorModelToPanel();
             return;
         }
+
+        const summaries = buildMissionSetSummaries(
+            jaiaContext.taskPackets.getIncludedTaskPackets(),
+            jaiaContext.taskPackets.getExcludedTaskPackets(),
+        );
+        setMissionSets(summaries);
+        missionSetsRef.current = summaries;
 
         if (selectedKeysRef.current.size === 0) {
             return;
@@ -287,7 +307,8 @@ export default function TaskPacketFilter() {
     };
 
     /**
-     * Updates the visible time window.
+     * Updates the visible time window. The first drag engages the filter (with every mission set
+     * selected) so narrowing the window takes effect on the map.
      *
      * @param {number | number[]} value The slider's new [lower, upper] values
      * @returns {void}
@@ -295,6 +316,17 @@ export default function TaskPacketFilter() {
     const handleSliderChange = (_event: Event, value: number | number[]) => {
         const [lower, upper] = value as number[];
         setSliderValue([lower, upper]);
+        if (!taskPacketFilter.isActive()) {
+            jaiaDispatch({
+                type: JaiaActions.RUN_TASK_PACKET_SEARCH,
+                includedTaskPackets: jaiaContext.taskPackets.getIncludedTaskPackets(),
+                excludedTaskPackets: jaiaContext.taskPackets.getExcludedTaskPackets(),
+                filterStartDate: new Date(`${startDateStr}T00:00:00`),
+                filterEndDate: new Date(`${endDateStr}T23:59:59`),
+                selectedMissionSetKeys: selectedKeysRef.current,
+            });
+            setIsFilterEngaged(true);
+        }
         jaiaDispatch({
             type: JaiaActions.CHANGE_TASK_PACKET_SLIDER,
             sliderLowerUtime: lower,
@@ -319,18 +351,22 @@ export default function TaskPacketFilter() {
      * @returns {void}
      */
     const handleClear = () => {
-        // Reset the date range back to the default window and return to the default live
-        // view, so the panel's dates always match what the map shows.
+        // Reset the date range back to the default window so the panel's dates match the live view.
+        // If that changes the dates, skip the fetch the date effect would otherwise run, since it
+        // would re-activate the filter we are clearing.
         const defaultDateRange = getDefaultDateRange();
-        setSelectedKeys(new Set());
+        if (startDateStr !== defaultDateRange.start || endDateStr !== defaultDateRange.end) {
+            isInitialFetchRef.current = true;
+        }
         setIsFilterEngaged(false);
         setNameFilter([]);
-        setMissionSets([]);
-        setSliderBounds([0, 0]);
-        setSliderValue([0, 0]);
         setStartDateStr(defaultDateRange.start);
         setEndDateStr(defaultDateRange.end);
         jaiaDispatch({ type: JaiaActions.CLEAR_TASK_PACKET_FILTER });
+
+        // Return to the unfiltered live view and mirror it in the panel so the mission set list
+        // stays populated instead of disappearing.
+        mirrorModelToPanel();
     };
 
     const missionSetOptions = missionSets.map(missionSetLabel);
@@ -343,9 +379,9 @@ export default function TaskPacketFilter() {
     const sliderMax = sliderBounds[1] > sliderBounds[0] ? sliderBounds[1] : sliderBounds[0] + 1;
     const sliderStep = Math.max(1, Math.floor((sliderMax - sliderMin) / 500));
 
-    // The time window only makes sense within a single day, so disable it when the date
-    // range spans more than one day.
-    const isMultiDayRange = startDateStr !== endDateStr;
+    // The time window only makes sense within a single day, so show the slider only when the
+    // available task packets span less than a day and remove it entirely otherwise.
+    const showSlider = sliderBounds[1] > 0 && sliderBounds[1] - sliderBounds[0] < ONE_DAY_MICROS;
 
     return (
         <div className="task-packet-filter">
@@ -427,16 +463,11 @@ export default function TaskPacketFilter() {
                 </div>
             )}
 
-            {isFilterEngaged && selectedKeys.size > 0 && sliderBounds[1] > 0 && (
+            {showSlider && (
                 <div className="task-packet-filter-step">
                     <div className="task-packet-filter-step-label">
                         4. Drag to narrow the time window
                     </div>
-                    {isMultiDayRange && (
-                        <div className="task-packet-filter-hint">
-                            Choose a single-day date range to narrow the time window.
-                        </div>
-                    )}
                     <div className="task-packet-filter-slider">
                         <div className="task-packet-filter-slider-labels">
                             <span>{formatUtime(sliderValue[0])}</span>
@@ -447,7 +478,6 @@ export default function TaskPacketFilter() {
                             min={sliderMin}
                             max={sliderMax}
                             step={sliderStep}
-                            disabled={isMultiDayRange}
                             onChange={handleSliderChange}
                             onChangeCommitted={handleSliderCommit}
                         />
