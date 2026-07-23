@@ -192,7 +192,7 @@ export default function TaskPacketFilter() {
      *
      * @returns {Promise<void>}
      */
-    const handleRunSearch = async () => {
+    const handleApplyFilter = async () => {
         setIsLoading(true);
         const { startQuery, endQuery } = buildQueryStrings(startDateStr, endDateStr);
         try {
@@ -260,7 +260,7 @@ export default function TaskPacketFilter() {
 
     /**
      * Updates the start date. Changing the range returns the panel to setup mode. The map
-     * updates only when Run Search is pressed.
+     * updates only when Apply Filter is pressed.
      *
      * @param {ChangeEvent<HTMLInputElement>} event Date input change event
      * @returns {void}
@@ -272,7 +272,7 @@ export default function TaskPacketFilter() {
 
     /**
      * Updates the end date. Changing the range returns the panel to setup mode. The map
-     * updates only when Run Search is pressed.
+     * updates only when Apply Filter is pressed.
      *
      * @param {ChangeEvent<HTMLInputElement>} event Date input change event
      * @returns {void}
@@ -339,11 +339,13 @@ export default function TaskPacketFilter() {
     const sliderMax = sliderBounds[1] > sliderBounds[0] ? sliderBounds[1] : sliderBounds[0] + 1;
     const sliderStep = Math.max(1, Math.floor((sliderMax - sliderMin) / 500));
 
+    // The time window only makes sense within a single day, so disable it when the date
+    // range spans more than one day.
+    const isMultiDayRange = startDateStr !== endDateStr;
+
     return (
         <div className="task-packet-filter">
-            <p className="task-packet-filter-intro">
-                Show only the task packets from specific mission sets on the map.
-            </p>
+            <p className="task-packet-filter-intro">Filter task packets displayed on the map.</p>
 
             <div className="task-packet-filter-step">
                 <div className="task-packet-filter-step-label">1. Choose a date range</div>
@@ -374,15 +376,6 @@ export default function TaskPacketFilter() {
                     )}
                 />
             </div>
-
-            <Button
-                variant="contained"
-                onClick={handleRunSearch}
-                disabled={isLoading}
-                className="task-packet-filter-search-button"
-            >
-                {isLoading ? <CircularProgress size={18} /> : "Run Search"}
-            </Button>
 
             {hasSearched && (
                 <div className="task-packet-filter-step">
@@ -433,6 +426,11 @@ export default function TaskPacketFilter() {
                     <div className="task-packet-filter-step-label">
                         4. Drag to narrow the time window
                     </div>
+                    {isMultiDayRange && (
+                        <div className="task-packet-filter-hint">
+                            Choose a single-day date range to narrow the time window.
+                        </div>
+                    )}
                     <div className="task-packet-filter-slider">
                         <div className="task-packet-filter-slider-labels">
                             <span>{formatUtime(sliderValue[0])}</span>
@@ -443,12 +441,22 @@ export default function TaskPacketFilter() {
                             min={sliderMin}
                             max={sliderMax}
                             step={sliderStep}
+                            disabled={isMultiDayRange}
                             onChange={handleSliderChange}
                             onChangeCommitted={handleSliderCommit}
                         />
                     </div>
                 </div>
             )}
+
+            <Button
+                variant="contained"
+                onClick={handleApplyFilter}
+                disabled={isLoading}
+                className="task-packet-filter-apply-button"
+            >
+                {isLoading ? <CircularProgress size={18} /> : "Apply Filter"}
+            </Button>
 
             <Button
                 variant="outlined"
