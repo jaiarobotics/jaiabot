@@ -34,6 +34,7 @@ describe("missionSetLabel", () => {
             startTime: 1000,
             endTime: 2000,
             taskPacketCount: 1,
+            excludedTaskPacketCount: 0,
         };
         expect(missionSetLabel(namedMissionSet)).toBe("Survey 1");
     });
@@ -45,6 +46,7 @@ describe("missionSetLabel", () => {
             startTime: 1000,
             endTime: 2000,
             taskPacketCount: 1,
+            excludedTaskPacketCount: 0,
         };
         expect(missionSetLabel(unnamedMissionSetSet)).toBe("Unnamed");
     });
@@ -66,6 +68,7 @@ describe("computeBounds", () => {
         startTime: 1000,
         endTime: 2000,
         taskPacketCount: 1,
+        excludedTaskPacketCount: 0,
     };
     const missionSetB: MissionSetSummary = {
         key: "b",
@@ -73,6 +76,7 @@ describe("computeBounds", () => {
         startTime: 3000,
         endTime: 5000,
         taskPacketCount: 1,
+        excludedTaskPacketCount: 0,
     };
     const missionSetC: MissionSetSummary = {
         key: "c",
@@ -80,6 +84,7 @@ describe("computeBounds", () => {
         startTime: 500,
         endTime: 800,
         taskPacketCount: 1,
+        excludedTaskPacketCount: 0,
     };
     const summaries = [missionSetA, missionSetB, missionSetC];
 

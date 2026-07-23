@@ -106,7 +106,7 @@ export default function TaskPacketFilter() {
             const excluded = response?.result?.excluded ?? [];
             fetchedIncludedRef.current = included;
             fetchedExcludedRef.current = excluded;
-            const summaries = buildMissionSetSummaries([...included, ...excluded]);
+            const summaries = buildMissionSetSummaries(included, excluded);
             setMissionSets(summaries);
             missionSetsRef.current = summaries;
 
@@ -182,10 +182,10 @@ export default function TaskPacketFilter() {
             return;
         }
 
-        const summaries = buildMissionSetSummaries([
-            ...jaiaContext.taskPackets.getIncludedTaskPackets(),
-            ...jaiaContext.taskPackets.getExcludedTaskPackets(),
-        ]);
+        const summaries = buildMissionSetSummaries(
+            jaiaContext.taskPackets.getIncludedTaskPackets(),
+            jaiaContext.taskPackets.getExcludedTaskPackets(),
+        );
         setMissionSets(summaries);
         missionSetsRef.current = summaries;
 
@@ -421,6 +421,8 @@ export default function TaskPacketFilter() {
                                             <span className="task-packet-filter-result-meta">
                                                 {formatUtime(missionSet.startTime)} ·{" "}
                                                 {missionSet.taskPacketCount} packets
+                                                {missionSet.excludedTaskPacketCount > 0 &&
+                                                    ` (${missionSet.excludedTaskPacketCount} excluded)`}
                                             </span>
                                         </div>
                                     </label>

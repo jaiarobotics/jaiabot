@@ -9,6 +9,7 @@ export interface MissionSetSummary {
     startTime: number;
     endTime: number;
     taskPacketCount: number;
+    excludedTaskPacketCount: number;
 }
 
 /**
@@ -23,17 +24,24 @@ export function missionSetKeyOf(taskPacket: TaskPacket): string {
 
 /**
  * Groups task packets into mission set summaries sorted by start time. Packets with no
- * mission_name are grouped under UNNAMED so they aren't missed.
+ * mission_name are grouped under UNNAMED so they aren't missed. Included and excluded packets
+ * are counted together in taskPacketCount, with excludedTaskPacketCount tracking how many of a
+ * mission set's packets the user has individually excluded.
  *
- * @param {TaskPacket[]} taskPackets Packets to summarize
+ * @param {TaskPacket[]} includedTaskPackets Packets shown on the map
+ * @param {TaskPacket[]} excludedTaskPackets Packets individually excluded by the user
  * @returns {MissionSetSummary[]} Summaries sorted by startTime ascending
  */
-export function buildMissionSetSummaries(taskPackets: TaskPacket[]): MissionSetSummary[] {
+export function buildMissionSetSummaries(
+    includedTaskPackets: TaskPacket[],
+    excludedTaskPackets: TaskPacket[],
+): MissionSetSummary[] {
     const byKey = new Map<string, MissionSetSummary>();
-    for (const taskPacket of taskPackets) {
+
+    const addPacket = (taskPacket: TaskPacket, isExcluded: boolean) => {
         const startTime = Number(taskPacket.start_time);
         if (!Number.isFinite(startTime)) {
-            continue;
+            return;
         }
         const key = missionSetKeyOf(taskPacket);
         const existing = byKey.get(key);
@@ -41,6 +49,7 @@ export function buildMissionSetSummaries(taskPackets: TaskPacket[]): MissionSetS
             existing.startTime = Math.min(existing.startTime, startTime);
             existing.endTime = Math.max(existing.endTime, startTime);
             existing.taskPacketCount += 1;
+            existing.excludedTaskPacketCount += isExcluded ? 1 : 0;
         } else {
             byKey.set(key, {
                 key,
@@ -48,8 +57,16 @@ export function buildMissionSetSummaries(taskPackets: TaskPacket[]): MissionSetS
                 startTime,
                 endTime: startTime,
                 taskPacketCount: 1,
+                excludedTaskPacketCount: isExcluded ? 1 : 0,
             });
         }
+    };
+
+    for (const taskPacket of includedTaskPackets) {
+        addPacket(taskPacket, false);
+    }
+    for (const taskPacket of excludedTaskPackets) {
+        addPacket(taskPacket, true);
     }
     return Array.from(byKey.values()).sort((a, b) => a.startTime - b.startTime);
 }

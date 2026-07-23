@@ -33,15 +33,18 @@ describe("missionSetKeyOf", () => {
 
 describe("buildMissionSetSummaries", () => {
     test("returns an empty array for no packets", () => {
-        expect(buildMissionSetSummaries([])).toEqual([]);
+        expect(buildMissionSetSummaries([], [])).toEqual([]);
     });
 
     test("groups packets by mission set name and counts them", () => {
-        const summaries = buildMissionSetSummaries([
-            makeTaskPacket(1000, "Alpha"),
-            makeTaskPacket(2000, "Alpha"),
-            makeTaskPacket(3000, "Beta"),
-        ]);
+        const summaries = buildMissionSetSummaries(
+            [
+                makeTaskPacket(1000, "Alpha"),
+                makeTaskPacket(2000, "Alpha"),
+                makeTaskPacket(3000, "Beta"),
+            ],
+            [],
+        );
 
         expect(summaries).toHaveLength(2);
         const alpha = summaries.find((missionSet) => missionSet.key === "Alpha");
@@ -51,22 +54,40 @@ describe("buildMissionSetSummaries", () => {
             startTime: 1000,
             endTime: 2000,
             taskPacketCount: 2,
+            excludedTaskPacketCount: 0,
         });
     });
 
+    test("counts a mission set's individually excluded packets alongside its total", () => {
+        const summaries = buildMissionSetSummaries(
+            [makeTaskPacket(1000, "Alpha"), makeTaskPacket(2000, "Alpha")],
+            [makeTaskPacket(3000, "Alpha")],
+        );
+
+        expect(summaries).toHaveLength(1);
+        expect(summaries[0].taskPacketCount).toBe(3);
+        expect(summaries[0].excludedTaskPacketCount).toBe(1);
+    });
+
     test("tracks the min start and max end time within a mission set", () => {
-        const summaries = buildMissionSetSummaries([
-            makeTaskPacket(3000, "Alpha"),
-            makeTaskPacket(1000, "Alpha"),
-            makeTaskPacket(2000, "Alpha"),
-        ]);
+        const summaries = buildMissionSetSummaries(
+            [
+                makeTaskPacket(3000, "Alpha"),
+                makeTaskPacket(1000, "Alpha"),
+                makeTaskPacket(2000, "Alpha"),
+            ],
+            [],
+        );
 
         expect(summaries[0].startTime).toBe(1000);
         expect(summaries[0].endTime).toBe(3000);
     });
 
     test("groups unnamed packets under the unnamed key with a null name", () => {
-        const summaries = buildMissionSetSummaries([makeTaskPacket(1000), makeTaskPacket(2000)]);
+        const summaries = buildMissionSetSummaries(
+            [makeTaskPacket(1000), makeTaskPacket(2000)],
+            [],
+        );
 
         expect(summaries).toHaveLength(1);
         expect(summaries[0].key).toBe(UNNAMED_MISSION_SET_KEY);
@@ -75,10 +96,10 @@ describe("buildMissionSetSummaries", () => {
     });
 
     test("keeps named and unnamed packets in separate groups", () => {
-        const summaries = buildMissionSetSummaries([
-            makeTaskPacket(1000, "Alpha"),
-            makeTaskPacket(2000),
-        ]);
+        const summaries = buildMissionSetSummaries(
+            [makeTaskPacket(1000, "Alpha"), makeTaskPacket(2000)],
+            [],
+        );
 
         expect(summaries.map((missionSet) => missionSet.key)).toEqual([
             "Alpha",
@@ -87,10 +108,10 @@ describe("buildMissionSetSummaries", () => {
     });
 
     test("skips packets whose start_time is not a finite number", () => {
-        const summaries = buildMissionSetSummaries([
-            makeTaskPacket(NaN, "Alpha"),
-            makeTaskPacket(1000, "Alpha"),
-        ]);
+        const summaries = buildMissionSetSummaries(
+            [makeTaskPacket(NaN, "Alpha"), makeTaskPacket(1000, "Alpha")],
+            [],
+        );
 
         expect(summaries).toHaveLength(1);
         expect(summaries[0].taskPacketCount).toBe(1);
@@ -98,11 +119,14 @@ describe("buildMissionSetSummaries", () => {
     });
 
     test("sorts the summaries by start time ascending", () => {
-        const summaries = buildMissionSetSummaries([
-            makeTaskPacket(3000, "Late"),
-            makeTaskPacket(1000, "Early"),
-            makeTaskPacket(2000, "Middle"),
-        ]);
+        const summaries = buildMissionSetSummaries(
+            [
+                makeTaskPacket(3000, "Late"),
+                makeTaskPacket(1000, "Early"),
+                makeTaskPacket(2000, "Middle"),
+            ],
+            [],
+        );
 
         expect(summaries.map((missionSet) => missionSet.key)).toEqual(["Early", "Middle", "Late"]);
     });
