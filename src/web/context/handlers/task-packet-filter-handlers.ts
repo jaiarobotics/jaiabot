@@ -82,6 +82,7 @@ export function handleCommitTaskPacketSlider(mutableState: JaiaContextType) {
  */
 export function handleClearTaskPacketFilter(mutableState: JaiaContextType) {
     taskPacketFilter.clear();
+    syncTaskLayers();
     pollTaskPackets();
     return mutableState;
 }
