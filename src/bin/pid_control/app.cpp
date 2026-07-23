@@ -125,6 +125,8 @@ jaiabot::apps::BotPidControl::BotPidControl()
     throttle_depth_pid_->set_direction(E_PID_REVERSE);
     throttle_depth_pid_->set_limits(-100.0, -THROTTLE_FOR_ZERO_NET_BUOYANCY);
 
+    max_depth_rate_ = cfg().max_depth_rate();
+
     if (cfg().has_heading_pid_gains())
     {
         auto& gains = cfg().heading_pid_gains();
@@ -268,6 +270,8 @@ void jaiabot::apps::BotPidControl::loop()
 
 void jaiabot::apps::BotPidControl::publish_low_control()
 {
+    update_depth_ramp();
+
     glog.is_debug3() && glog << throttle_speed_pid_->description() << endl;
     glog.is_debug3() && glog << throttle_depth_pid_->description() << endl;
     glog.is_debug3() && glog << heading_pid_->description() << endl;
@@ -343,7 +347,8 @@ void jaiabot::apps::BotPidControl::publish_low_control()
                 throttle_ = throttle_ + THROTTLE_FOR_ZERO_NET_BUOYANCY;
             }
 
-            glog.is_debug2() && glog << group("main") << "target_depth = " << target_depth_
+            glog.is_debug2() && glog << group("main") << "commanded_depth = " << commanded_depth_
+                                     << ", target_depth = " << target_depth_
                                      << ", actual_depth = " << actual_depth_
                                      << ", throttle = " << throttle_ << std::endl;
             break;
@@ -473,10 +478,42 @@ void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottl
                 throttle_ = arduino_motor_throttle_;
                 glog.is_debug2() && glog << "Init Depth PID Throttle: " << throttle_ << endl;
                 throttle_depth_pid_->reset_iterm();
+                // Start the depth setpoint ramp from wherever we actually are right now.
+                target_depth_ = actual_depth_;
+                last_depth_ramp_time_ = NOW;
                 break;
         }
     }
     _throttleMode_ = newThrottleMode;
+}
+
+void jaiabot::apps::BotPidControl::update_depth_ramp()
+{
+    if (_throttleMode_ != PID_DEPTH || max_depth_rate_ <= 0.0)
+        return;
+
+    auto now = NOW;
+    double dt = static_cast<double>((now - last_depth_ramp_time_).value()) / 1.0e6;
+    last_depth_ramp_time_ = now;
+
+    // Guard against a stale timestamp (e.g. first tick, or after being suspended a while)
+    // producing one huge, unlimited jump in the setpoint.
+    if (dt <= 0.0 || dt > 5.0)
+        return;
+
+    float max_step = max_depth_rate_ * static_cast<float>(dt);
+    if (target_depth_ < commanded_depth_)
+    {
+        target_depth_ += max_step;
+        if (target_depth_ > commanded_depth_)
+            target_depth_ = commanded_depth_;
+    }
+    else if (target_depth_ > commanded_depth_)
+    {
+        target_depth_ -= max_step;
+        if (target_depth_ < commanded_depth_)
+            target_depth_ = commanded_depth_;
+    }
 }
 
 void jaiabot::apps::BotPidControl::toggleRudderPid(const bool enabled,
@@ -556,6 +593,11 @@ void jaiabot::apps::BotPidControl::handle_engineering_command(
         {
             throttle_depth_pid_->tune(depth.kp(), depth.ki(), depth.kd());
         }
+    }
+
+    if (command.has_depth_max_rate())
+    {
+        max_depth_rate_ = command.depth_max_rate();
     }
 
     // Rudder
@@ -807,6 +849,7 @@ void jaiabot::apps::BotPidControl::publish_engineering_status()
 
     pid_control_status.set_throttle(throttle_);
     pid_control_status.set_rudder(rudder_);
+    pid_control_status.set_depth_max_rate(max_depth_rate_);
 
     glog.is_debug1() && glog << "Publishing status: " << pid_control_status.ShortDebugString()
                              << endl;

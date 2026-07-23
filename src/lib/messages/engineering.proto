@@ -61,6 +61,11 @@ message PIDControl {
     optional bool led_switch_on = 13;
 
     optional PIDSettings heading_constant = 14;
+
+    // Maximum rate at which the depth PID's internal setpoint is allowed to move
+    // toward a newly commanded target depth (see BotPidControl.max_depth_rate).
+    optional double depth_max_rate = 15
+        [(dccl.field) = { min: 0 max: 5 precision: 2 units { derived_dimensions: "velocity" } }];
 }
 
 enum BotStatusRate

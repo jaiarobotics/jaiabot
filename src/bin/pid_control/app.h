@@ -49,19 +49,30 @@ class BotPidControl : public goby::zeromq::MultiThreadApplication<config::BotPid
     Pid* throttle_speed_pid_;
 
     float actual_depth_ = 0.0;
-    float target_depth_ = 0.0;
 
-    void set_target_depth(const float new_target_depth)
+    // target_depth_ is the setpoint actually fed to throttle_depth_pid_. Instead of jumping
+    // straight to commanded_depth_ (the final depth we've been asked to reach), it moves
+    // toward it gradually, at no more than max_depth_rate_ meters/second (see
+    // update_depth_ramp()), so the PID is never handed a sudden, large change in target depth.
+    float target_depth_ = 0.0;
+    float commanded_depth_ = 0.0;
+    float max_depth_rate_ = 1.0;
+    goby::time::MicroTime last_depth_ramp_time_{0 * boost::units::si::seconds};
+
+    void set_target_depth(const float new_commanded_depth)
     {
         setThrottleMode(PID_DEPTH);
 
-        // If the depth target has changed, reset the I term, so bot doesn't grind motor against seafloor.
-        if (target_depth_ != new_target_depth)
+        // If the commanded target has changed, reset the I term, so bot doesn't grind motor against seafloor.
+        if (commanded_depth_ != new_commanded_depth)
         {
             throttle_depth_pid_->reset_iterm();
-            target_depth_ = new_target_depth;
+            commanded_depth_ = new_commanded_depth;
         }
     }
+
+    // Advances target_depth_ toward commanded_depth_ at no more than max_depth_rate_.
+    void update_depth_ramp();
 
     Pid* throttle_depth_pid_;
 

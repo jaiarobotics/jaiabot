@@ -20,6 +20,7 @@ enum EngineeringInputs {
     TRANSIT_GPS_DEGRADED_FIX_CHECKS = "update-transit-gps-degraded-fix-checks",
     AFTER_DIVE_GPS_FIX_CHECKS = "update-after-dive-gps-fix-checks",
     RF_DISABLE_TIMEOUT = "update-rf-disable-time",
+    DEPTH_MAX_RATE = "update-depth-max-rate",
 }
 
 const pidTypes: (keyof PIDControl)[] = [
@@ -155,6 +156,14 @@ export default function Engineering() {
             }
             (pidControl[pidType] as PIDSettings) = pidSettings;
         }
+
+        const depthMaxRateInput = document.getElementById(
+            EngineeringInputs.DEPTH_MAX_RATE,
+        ) as HTMLInputElement;
+        if (depthMaxRateInput) {
+            pidControl.depth_max_rate = Number(depthMaxRateInput.value);
+        }
+
         return pidControl;
     };
 
@@ -300,6 +309,10 @@ function BotRequirementsTable(props: Props) {
                     <td>{props.engineering.gps_requirements.after_dive_gps_fix_checks ?? "-"}</td>
                 </tr>
                 <tr>
+                    <td>Current Depth Max Rate</td>
+                    <td>{props.engineering.pid_control?.depth_max_rate ?? "-"}</td>
+                </tr>
+                <tr>
                     <td>Update Status Rate</td>
                     <td>
                         <select id={EngineeringInputs.BOT_STATUS_RATE}>
@@ -401,6 +414,18 @@ function BotRequirementsTable(props: Props) {
                             defaultValue={
                                 props.engineering.gps_requirements.after_dive_gps_fix_checks ?? "-"
                             }
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Update Depth Max Rate</td>
+                    <td>
+                        <input
+                            id={EngineeringInputs.DEPTH_MAX_RATE}
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            defaultValue={props.engineering.pid_control?.depth_max_rate ?? "-"}
                         />
                     </td>
                 </tr>

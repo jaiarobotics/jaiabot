@@ -29,6 +29,14 @@ message BotPidControl
 
     optional PIDGains throttle_speed_pid_gains = 30;
     optional PIDGains throttle_depth_pid_gains = 40;
+
+    // Maximum rate at which the internal depth setpoint is allowed to move toward
+    // a newly commanded target depth, instead of jumping to it in one step. This
+    // keeps the depth PID's error small enough that it doesn't saturate for long
+    // stretches and build up excess momentum before it can react near the target.
+    optional double max_depth_rate = 41
+        [default = 1.0, (dccl.field).units = {derived_dimensions: "velocity"}];
+
     optional PIDGains heading_pid_gains = 50;
     optional PIDGains heading_constant_pid_gains = 51;
     optional PIDGains roll_pid_gains = 60;

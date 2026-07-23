@@ -1138,6 +1138,7 @@ export interface PIDControl {
     depth?: PIDSettings;
     led_switch_on?: boolean;
     heading_constant?: PIDSettings;
+    depth_max_rate?: number;
 }
 
 export enum BotStatusRate {
