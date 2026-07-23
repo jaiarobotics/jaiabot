@@ -6,6 +6,7 @@ import {
     buildMissionSetSummaries,
     MissionSetSummary,
 } from "../../data/task_packets/task-packet-filter";
+import { TaskPacket } from "../../types/protobuf-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import {
     formatUtime,
@@ -13,7 +14,7 @@ import {
     getDefaultDateRange,
     getInitialStartDateStr,
     getInitialEndDateStr,
-    getInitialHasSearched,
+    getInitialFilterEngaged,
     getInitialSelectedKeys,
     getInitialSliderWindow,
     buildQueryStrings,
@@ -25,7 +26,6 @@ import TextField from "@mui/material/TextField";
 import Checkbox from "@mui/material/Checkbox";
 import Slider from "@mui/material/Slider";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 
 import "./TaskPacketFilter.less";
 
@@ -44,8 +44,9 @@ export default function TaskPacketFilter() {
     const [startDateStr, setStartDateStr] = useState(getInitialStartDateStr(taskPacketFilter));
     const [endDateStr, setEndDateStr] = useState(getInitialEndDateStr(taskPacketFilter));
     const [nameFilter, setNameFilter] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [hasSearched, setHasSearched] = useState(getInitialHasSearched(taskPacketFilter));
+    const [isFilterEngaged, setIsFilterEngaged] = useState(
+        getInitialFilterEngaged(taskPacketFilter),
+    );
 
     // Results / selection state
     const [missionSets, setMissionSets] = useState<MissionSetSummary[]>([]);
@@ -58,10 +59,13 @@ export default function TaskPacketFilter() {
     const selectedKeysRef = useRef(selectedKeys);
     const skipNextCommitRef = useRef(taskPacketFilter.isActive() && selectedKeys.size > 0);
     const isInitialFetchRef = useRef(true);
+    // Packets from the latest date-range fetch, reused to engage the filter without re-fetching.
+    const fetchedIncludedRef = useRef<TaskPacket[]>([]);
+    const fetchedExcludedRef = useRef<TaskPacket[]>([]);
     missionSetsRef.current = missionSets;
     selectedKeysRef.current = selectedKeys;
 
-    // Refresh the mission set list on date change.
+    // Refresh the mission set list on date change, and apply the new range to the map.
     useEffect(() => scheduleMissionRefresh(), [startDateStr, endDateStr]);
 
     // Apply the mission set selection to the map whenever it changes.
@@ -87,36 +91,51 @@ export default function TaskPacketFilter() {
     };
 
     /**
-     * Fetches task packets for the current date range and rebuilds the mission set list.
+     * Fetches task packets for the current date range and rebuilds the mission set list. On a
+     * user-driven date change (not the initial load) it also applies the new range to the map.
      *
-     * @param {boolean} isInitial True for the first fetch (mount/reopen), where the window
-     *     is already applied and must not be re-fetched
+     * @param {boolean} isInitial True for the first fetch (mount/reopen), which only builds the
+     *     list and never activates the filter
      * @returns {Promise<void>}
      */
     const fetchMissions = async (isInitial: boolean) => {
         const { startQuery, endQuery } = buildQueryStrings(startDateStr, endDateStr);
-        setIsLoading(true);
         try {
             const response = await jaiaAPI.getTaskPackets(startQuery, endQuery);
             const included = response?.result?.included ?? [];
             const excluded = response?.result?.excluded ?? [];
+            fetchedIncludedRef.current = included;
+            fetchedExcludedRef.current = excluded;
             const summaries = buildMissionSetSummaries([...included, ...excluded]);
             setMissionSets(summaries);
             missionSetsRef.current = summaries;
 
-            // Reopen with an active filter: the window is already applied; restore the slider.
-            if (isInitial && taskPacketFilter.isActive() && selectedKeysRef.current.size > 0) {
-                const bounds = computeBounds(summaries, selectedKeysRef.current);
-                setSliderBounds(bounds);
-                if (sliderValue[0] === 0 && sliderValue[1] === 0) {
-                    setSliderValue(bounds);
+            if (isInitial) {
+                // Reopen with an active filter: the window is already applied. Restore the slider.
+                if (taskPacketFilter.isActive() && selectedKeysRef.current.size > 0) {
+                    const bounds = computeBounds(summaries, selectedKeysRef.current);
+                    setSliderBounds(bounds);
+                    if (sliderValue[0] === 0 && sliderValue[1] === 0) {
+                        setSliderValue(bounds);
+                    }
                 }
+                return;
             }
+
+            // A date change is a user change, so apply the new range to the map immediately,
+            // selecting every mission set in range (honoring the optional name filter).
+            const nextSelection = new Set(
+                (nameFilter.length > 0
+                    ? summaries.filter((missionSet) =>
+                          nameFilter.includes(missionSetLabel(missionSet)),
+                      )
+                    : summaries
+                ).map((missionSet) => missionSet.key),
+            );
+            activateFilter(included, excluded, summaries, nextSelection);
         } catch (error) {
             console.error(error);
             setMissionSets([]);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -132,7 +151,7 @@ export default function TaskPacketFilter() {
             return;
         }
 
-        if (!hasSearched || !taskPacketFilter.isActive()) {
+        if (!isFilterEngaged || !taskPacketFilter.isActive()) {
             return;
         }
 
@@ -155,7 +174,11 @@ export default function TaskPacketFilter() {
      * @returns {void}
      */
     const followLatestTaskPackets = () => {
-        if (!hasSearched || !taskPacketFilter.isActive() || selectedKeysRef.current.size === 0) {
+        if (
+            !isFilterEngaged ||
+            !taskPacketFilter.isActive() ||
+            selectedKeysRef.current.size === 0
+        ) {
             return;
         }
 
@@ -187,63 +210,45 @@ export default function TaskPacketFilter() {
     };
 
     /**
-     * Loads the chosen date range into the shared task packet model, activates the filter,
-     * and builds the mission set list from that same data so the map and list always agree.
+     * Activates the filter for the current date range and selection: loads the fetched packets
+     * into the shared model, sets the window, and shows the slider spanning the selection. Both the
+     * map and list read from the same fetched data so they always agree.
      *
-     * @returns {Promise<void>}
+     * @param {TaskPacket[]} included Included task packets from the current fetch
+     * @param {TaskPacket[]} excluded Excluded task packets from the current fetch
+     * @param {MissionSetSummary[]} summaries Mission set summaries built from the fetch
+     * @param {Set<string>} selection Mission set keys to show on the map
+     * @returns {void}
      */
-    const handleApplyFilter = async () => {
-        setIsLoading(true);
-        const { startQuery, endQuery } = buildQueryStrings(startDateStr, endDateStr);
-        try {
-            const response = await jaiaAPI.getTaskPackets(startQuery, endQuery);
-            const included = response?.result?.included ?? [];
-            const excluded = response?.result?.excluded ?? [];
+    const activateFilter = (
+        included: TaskPacket[],
+        excluded: TaskPacket[],
+        summaries: MissionSetSummary[],
+        selection: Set<string>,
+    ) => {
+        // Set the slider from the data just loaded so it appears immediately and matches the list.
+        const bounds = computeBounds(summaries, selection);
+        setSliderBounds(bounds);
+        setSliderValue(bounds);
 
-            const summaries = buildMissionSetSummaries([...included, ...excluded]);
-            setMissionSets(summaries);
-            missionSetsRef.current = summaries;
-
-            const nextSelection = hasSearched
-                ? new Set(selectedKeysRef.current)
-                : new Set(
-                      (nameFilter.length > 0
-                          ? summaries.filter((missionSet) =>
-                                nameFilter.includes(missionSetLabel(missionSet)),
-                            )
-                          : summaries
-                      ).map((missionSet) => missionSet.key),
-                  );
-
-            // Set the slider from the data just loaded so it appears immediately and matches
-            // the list, rather than waiting for the next poll.
-            const bounds = computeBounds(summaries, nextSelection);
-            setSliderBounds(bounds);
-            setSliderValue(bounds);
-
-            // The search action applies the selection and re-renders, so skip the effect
-            // that would otherwise also initiate from setSelectedKeys and repeat the work.
-            skipNextCommitRef.current = true;
-            jaiaDispatch({
-                type: JaiaActions.RUN_TASK_PACKET_SEARCH,
-                includedTaskPackets: included,
-                excludedTaskPackets: excluded,
-                filterStartDate: new Date(`${startDateStr}T00:00:00`),
-                filterEndDate: new Date(`${endDateStr}T23:59:59`),
-                selectedMissionSetKeys: nextSelection,
-            });
-            setSelectedKeys(nextSelection);
-            setHasSearched(true);
-        } catch (error) {
-            console.error(error);
-            setMissionSets([]);
-        } finally {
-            setIsLoading(false);
-        }
+        // The search action applies the selection and re-renders, so skip the effect that would
+        // otherwise also initiate from setSelectedKeys and repeat the work.
+        skipNextCommitRef.current = true;
+        jaiaDispatch({
+            type: JaiaActions.RUN_TASK_PACKET_SEARCH,
+            includedTaskPackets: included,
+            excludedTaskPackets: excluded,
+            filterStartDate: new Date(`${startDateStr}T00:00:00`),
+            filterEndDate: new Date(`${endDateStr}T23:59:59`),
+            selectedMissionSetKeys: selection,
+        });
+        setSelectedKeys(selection);
+        setIsFilterEngaged(true);
     };
 
     /**
-     * Toggles a mission set to be included in the current selection.
+     * Toggles a mission set to be included in the current selection. The first toggle engages the
+     * filter using the packets already fetched; later toggles update the selection live.
      *
      * @param {string} key Mission set key to toggle
      * @returns {void}
@@ -255,31 +260,41 @@ export default function TaskPacketFilter() {
         } else {
             next.add(key);
         }
-        setSelectedKeys(next);
+
+        if (isFilterEngaged) {
+            setSelectedKeys(next);
+        } else {
+            activateFilter(
+                fetchedIncludedRef.current,
+                fetchedExcludedRef.current,
+                missionSetsRef.current,
+                next,
+            );
+        }
     };
 
     /**
-     * Updates the start date. Changing the range returns the panel to setup mode. The map
-     * updates only when Apply Filter is pressed.
+     * Updates the start date. Changing the range rebuilds the mission set list and re-applies the
+     * filter to the new range, selecting every mission set it contains.
      *
      * @param {ChangeEvent<HTMLInputElement>} event Date input change event
      * @returns {void}
      */
     const handleStartDateChange = (event: ChangeEvent<HTMLInputElement>) => {
         setStartDateStr(event.target.value);
-        setHasSearched(false);
+        setIsFilterEngaged(false);
     };
 
     /**
-     * Updates the end date. Changing the range returns the panel to setup mode. The map
-     * updates only when Apply Filter is pressed.
+     * Updates the end date. Changing the range rebuilds the mission set list and re-applies the
+     * filter to the new range, selecting every mission set it contains.
      *
      * @param {ChangeEvent<HTMLInputElement>} event Date input change event
      * @returns {void}
      */
     const handleEndDateChange = (event: ChangeEvent<HTMLInputElement>) => {
         setEndDateStr(event.target.value);
-        setHasSearched(false);
+        setIsFilterEngaged(false);
     };
 
     /**
@@ -319,7 +334,7 @@ export default function TaskPacketFilter() {
         // view, so the panel's dates always match what the map shows.
         const defaultDateRange = getDefaultDateRange();
         setSelectedKeys(new Set());
-        setHasSearched(false);
+        setIsFilterEngaged(false);
         setNameFilter([]);
         setMissionSets([]);
         setSliderBounds([0, 0]);
@@ -377,7 +392,7 @@ export default function TaskPacketFilter() {
                 />
             </div>
 
-            {hasSearched && (
+            {missionSets.length > 0 && (
                 <div className="task-packet-filter-step">
                     <div className="task-packet-filter-step-label">
                         3. Select mission sets to show on the map
@@ -421,7 +436,7 @@ export default function TaskPacketFilter() {
                 </div>
             )}
 
-            {hasSearched && selectedKeys.size > 0 && sliderBounds[1] > 0 && (
+            {isFilterEngaged && selectedKeys.size > 0 && sliderBounds[1] > 0 && (
                 <div className="task-packet-filter-step">
                     <div className="task-packet-filter-step-label">
                         4. Drag to narrow the time window
@@ -448,15 +463,6 @@ export default function TaskPacketFilter() {
                     </div>
                 </div>
             )}
-
-            <Button
-                variant="contained"
-                onClick={handleApplyFilter}
-                disabled={isLoading}
-                className="task-packet-filter-apply-button"
-            >
-                {isLoading ? <CircularProgress size={18} /> : "Apply Filter"}
-            </Button>
 
             <Button
                 variant="outlined"

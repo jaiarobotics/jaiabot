@@ -5,7 +5,7 @@ import {
     computeBounds,
     getInitialStartDateStr,
     getInitialEndDateStr,
-    getInitialHasSearched,
+    getInitialFilterEngaged,
     getInitialSelectedKeys,
     getInitialSliderWindow,
     getDefaultDateRange,
@@ -101,9 +101,9 @@ describe("computeBounds", () => {
 });
 
 describe("getInitial* (restoring panel state from the filter)", () => {
-    test("a fresh filter yields defaults: not searched, empty selection, zeroed slider", () => {
+    test("a fresh filter yields defaults: not engaged, empty selection, zeroed slider", () => {
         const filter = new TaskPacketFilter();
-        expect(getInitialHasSearched(filter)).toBe(false);
+        expect(getInitialFilterEngaged(filter)).toBe(false);
         expect(getInitialSelectedKeys(filter)).toEqual(new Set());
         expect(getInitialSliderWindow(filter)).toEqual([0, 0]);
     });
@@ -122,7 +122,7 @@ describe("getInitial* (restoring panel state from the filter)", () => {
         filter.setSelectedMissionSetKeys(new Set(["Alpha", "Beta"]));
         filter.setSliderWindow(1000, 5000);
 
-        expect(getInitialHasSearched(filter)).toBe(true);
+        expect(getInitialFilterEngaged(filter)).toBe(true);
         expect(getInitialStartDateStr(filter)).toBe(getHTMLDateString(start));
         expect(getInitialEndDateStr(filter)).toBe(getHTMLDateString(end));
         expect(getInitialSelectedKeys(filter)).toEqual(new Set(["Alpha", "Beta"]));

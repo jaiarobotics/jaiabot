@@ -71,12 +71,12 @@ export function getInitialEndDateStr(filter: TaskPacketFilter) {
 }
 
 /**
- * Whether a search is already active when the panel initiates.
+ * Whether the filter is already engaged when the panel initiates.
  *
  * @param {TaskPacketFilter} filter Filter to read the active state from
  * @returns {boolean} True when the filter is active
  */
-export function getInitialHasSearched(filter: TaskPacketFilter) {
+export function getInitialFilterEngaged(filter: TaskPacketFilter) {
     return filter.isActive();
 }
 
