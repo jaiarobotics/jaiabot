@@ -59,71 +59,54 @@ export default function TaskPacketFilter() {
     const selectedKeysRef = useRef(selectedKeys);
     const skipNextCommitRef = useRef(taskPacketFilter.isActive() && selectedKeys.size > 0);
     const isInitialFetchRef = useRef(true);
-    // Packets from the latest date-range fetch, reused to engage the filter without re-fetching.
-    const fetchedIncludedRef = useRef<TaskPacket[]>([]);
-    const fetchedExcludedRef = useRef<TaskPacket[]>([]);
     missionSetsRef.current = missionSets;
     selectedKeysRef.current = selectedKeys;
 
-    // Refresh the mission set list on date change, and apply the new range to the map.
+    // On a user date change, fetch the new range and apply it to the map.
     useEffect(() => scheduleMissionRefresh(), [startDateStr, endDateStr]);
 
     // Apply the mission set selection to the map whenever it changes.
     useEffect(() => commitMissionSetSelection(), [selectedKeys]);
 
-    // Pick up new task packets so the slider can follow. The poll updates
-    // the task packet version, which re-triggers this effect.
+    // Pick up new task packets. While the filter is engaged this follows the newest data with the
+    // slider; while it is not, it keeps the panel mirrored to the live map so the two never
+    // disagree. The poll bumps the task packet version, which re-triggers this effect.
     const taskPacketVersion = jaiaContext.taskPackets.getVersion();
     useEffect(() => followLatestTaskPackets(), [taskPacketVersion]);
 
     /**
-     * Refresh the mission set list for the current date range.
+     * Schedules a debounced fetch for the current date range. Skips the initial run on mount: the
+     * live-sync effect populates the list from the shared model (and restores a reopened filter),
+     * so a fetch is only needed once the user changes the date range.
      *
-     * @returns {() => void} Cleanup that cancels the pending refresh
+     * @returns {(() => void) | undefined} Cleanup that cancels the pending fetch, if scheduled
      */
     const scheduleMissionRefresh = () => {
-        const isInitial = isInitialFetchRef.current;
-        isInitialFetchRef.current = false;
-        const timeoutID = setTimeout(() => {
-            fetchMissions(isInitial);
-        }, SEARCH_DEBOUNCE_TIME);
+        if (isInitialFetchRef.current) {
+            isInitialFetchRef.current = false;
+            return;
+        }
+        const timeoutID = setTimeout(fetchMissions, SEARCH_DEBOUNCE_TIME);
         return () => clearTimeout(timeoutID);
     };
 
     /**
-     * Fetches task packets for the current date range and rebuilds the mission set list. On a
-     * user-driven date change (not the initial load) it also applies the new range to the map.
+     * Fetches task packets for the current date range, rebuilds the mission set list, and applies
+     * the new range to the map, selecting every mission set in range (honoring the optional name
+     * filter). Runs on a user-driven date change.
      *
-     * @param {boolean} isInitial True for the first fetch (mount/reopen), which only builds the
-     *     list and never activates the filter
      * @returns {Promise<void>}
      */
-    const fetchMissions = async (isInitial: boolean) => {
+    const fetchMissions = async () => {
         const { startQuery, endQuery } = buildQueryStrings(startDateStr, endDateStr);
         try {
             const response = await jaiaAPI.getTaskPackets(startQuery, endQuery);
             const included = response?.result?.included ?? [];
             const excluded = response?.result?.excluded ?? [];
-            fetchedIncludedRef.current = included;
-            fetchedExcludedRef.current = excluded;
             const summaries = buildMissionSetSummaries(included, excluded);
             setMissionSets(summaries);
             missionSetsRef.current = summaries;
 
-            if (isInitial) {
-                // Reopen with an active filter: the window is already applied. Restore the slider.
-                if (taskPacketFilter.isActive() && selectedKeysRef.current.size > 0) {
-                    const bounds = computeBounds(summaries, selectedKeysRef.current);
-                    setSliderBounds(bounds);
-                    if (sliderValue[0] === 0 && sliderValue[1] === 0) {
-                        setSliderValue(bounds);
-                    }
-                }
-                return;
-            }
-
-            // A date change is a user change, so apply the new range to the map immediately,
-            // selecting every mission set in range (honoring the optional name filter).
             const nextSelection = new Set(
                 (nameFilter.length > 0
                     ? summaries.filter((missionSet) =>
@@ -168,26 +151,32 @@ export default function TaskPacketFilter() {
     };
 
     /**
-     * Rebuilds the mission set list from the latest task packets and extends
-     * the slider to the newest data. Runs on each task packet update.
+     * Keeps the panel in step with the latest task packets. While the filter is not engaged the map
+     * shows every live packet, so the list is rebuilt from the same shared model with every mission
+     * set selected, keeping the panel and map in sync. While engaged it extends the slider to follow
+     * the newest data. Runs on each task packet update.
      *
      * @returns {void}
      */
     const followLatestTaskPackets = () => {
-        if (
-            !isFilterEngaged ||
-            !taskPacketFilter.isActive() ||
-            selectedKeysRef.current.size === 0
-        ) {
-            return;
-        }
-
         const summaries = buildMissionSetSummaries(
             jaiaContext.taskPackets.getIncludedTaskPackets(),
             jaiaContext.taskPackets.getExcludedTaskPackets(),
         );
         setMissionSets(summaries);
         missionSetsRef.current = summaries;
+
+        if (!taskPacketFilter.isActive()) {
+            // The live map shows every packet, so mirror that with every mission set selected.
+            const allKeys = new Set(summaries.map((missionSet) => missionSet.key));
+            setSelectedKeys(allKeys);
+            selectedKeysRef.current = allKeys;
+            return;
+        }
+
+        if (selectedKeysRef.current.size === 0) {
+            return;
+        }
 
         const bounds = computeBounds(summaries, selectedKeysRef.current);
         if (bounds[0] === 0 && bounds[1] === 0) {
@@ -248,7 +237,7 @@ export default function TaskPacketFilter() {
 
     /**
      * Toggles a mission set to be included in the current selection. The first toggle engages the
-     * filter using the packets already fetched; later toggles update the selection live.
+     * filter using the live packets already on the map; later toggles update the selection live.
      *
      * @param {string} key Mission set key to toggle
      * @returns {void}
@@ -265,8 +254,8 @@ export default function TaskPacketFilter() {
             setSelectedKeys(next);
         } else {
             activateFilter(
-                fetchedIncludedRef.current,
-                fetchedExcludedRef.current,
+                jaiaContext.taskPackets.getIncludedTaskPackets(),
+                jaiaContext.taskPackets.getExcludedTaskPackets(),
                 missionSetsRef.current,
                 next,
             );
