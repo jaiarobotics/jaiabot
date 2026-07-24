@@ -27,19 +27,19 @@ import Button from "@mui/material/Button";
 
 import "./TaskPacketFilter.less";
 
-const SEARCH_DEBOUNCE_TIME = 400; // milliseconds
+const FETCH_DEBOUNCE_TIME = 400; // milliseconds
 const ONE_DAY_MICROS = 24 * 60 * 60 * 1000 * 1000; // microseconds
 
 /**
  * Task packet filter accordion in the Settings panel. Lets the operator filter which task
- * packets are shown on the map. Filter options are date range, mission set name, and time window.
+ * packets are shown on the map by date range, mission set selection, and time window.
  */
 export default function TaskPacketFilter() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const taskPacketFilter = jaiaContext.taskPacketFilter;
 
-    // Search setup state
+    // Filter setup state
     const [startDateStr, setStartDateStr] = useState(getInitialStartDateStr(taskPacketFilter));
     const [endDateStr, setEndDateStr] = useState(getInitialEndDateStr(taskPacketFilter));
     const [isFilterEngaged, setIsFilterEngaged] = useState(
@@ -94,7 +94,7 @@ export default function TaskPacketFilter() {
         }
         const timeoutID = setTimeout(
             () => applyDateRange(startDateStr, endDateStr),
-            SEARCH_DEBOUNCE_TIME,
+            FETCH_DEBOUNCE_TIME,
         );
         return () => clearTimeout(timeoutID);
     };
@@ -128,7 +128,7 @@ export default function TaskPacketFilter() {
 
     /**
      * Applies the current mission set selection to the data model and repaints the map. Skips the
-     * commit right after a search.
+     * commit right after activateFilter, which already applied the selection.
      *
      * @returns {void}
      */
@@ -247,8 +247,8 @@ export default function TaskPacketFilter() {
         setSliderBounds(bounds);
         setSliderValue(bounds);
 
-        // The search action applies the selection and re-renders, so skip the effect that would
-        // otherwise also initiate from setSelectedKeys and repeat the work.
+        // This action applies the selection and repaints the map, so skip the selection effect that
+        // the setSelectedKeys call below would otherwise trigger and which would repeat the work.
         skipNextCommitRef.current = true;
         jaiaDispatch({
             type: JaiaActions.RUN_TASK_PACKET_SEARCH,
@@ -323,7 +323,6 @@ export default function TaskPacketFilter() {
      */
     const handleStartDateChange = (event: ChangeEvent<HTMLInputElement>) => {
         setStartDateStr(event.target.value);
-        setIsFilterEngaged(false);
         setIsDateRangeBlank(false);
     };
 
@@ -336,7 +335,6 @@ export default function TaskPacketFilter() {
      */
     const handleEndDateChange = (event: ChangeEvent<HTMLInputElement>) => {
         setEndDateStr(event.target.value);
-        setIsFilterEngaged(false);
         setIsDateRangeBlank(false);
     };
 
