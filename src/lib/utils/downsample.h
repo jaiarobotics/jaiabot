@@ -343,22 +343,6 @@ downsampleDatasetToMaxBytes(const std::vector<std::string>& input_lines, size_t 
     const std::vector<size_t> best_rows = downsampleIndices(data_points, best_size);
     return buildOutputWithSelectedRows(input_lines, data_line_positions, best_rows);
 }
-
-/**
- * @brief Downsamples data rows using first numeric value as x and last as y.
- *
- * @param input_lines Full input dataset, including metadata and data rows.
- * @param max_bytes Maximum allowed serialized size for the returned dataset.
- * @return A dataset constrained to the requested byte budget.
- */
-inline std::vector<std::string>
-downsampleDatasetToMaxBytes(const std::vector<std::string>& input_lines, size_t max_bytes)
-{
-    return downsampleDatasetToMaxBytes(
-        input_lines, max_bytes, [](const std::vector<double>& values) { return values.front(); },
-        [](const std::vector<double>& values) { return values.back(); });
-}
-
 } // namespace utils
 } // namespace jaiabot
 
