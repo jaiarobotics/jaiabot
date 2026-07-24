@@ -84,7 +84,7 @@ export function handleInit(mutableState: JaiaContextType) {
         mapLayerAccordionStates: defaultMapLayerAccordionStates,
         missionAccordionStates: {},
         previousTick: bots.getTick(),
-        previousTaskPacketVersion: taskPackets.getVersion(),
+        previousTaskPacketRevision: taskPackets.getRevision(),
     };
 
     saveHistory(completeInit, JaiaActions.INIT);

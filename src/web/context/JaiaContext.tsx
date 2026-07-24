@@ -35,7 +35,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
     if (action.type === JaiaActions.POLL_DATA_MODEL) {
         const isBotDataUnchanged = bots.getTick() === state.previousTick;
         const isTaskPacketDataUnchanged =
-            taskPackets.getVersion() === state.previousTaskPacketVersion;
+            taskPackets.getRevision() === state.previousTaskPacketRevision;
         if (isBotDataUnchanged && isTaskPacketDataUnchanged) {
             return state;
         }
@@ -43,7 +43,7 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
 
     let mutableState = { ...state };
     mutableState.previousTick = bots.getTick();
-    mutableState.previousTaskPacketVersion = taskPackets.getVersion();
+    mutableState.previousTaskPacketRevision = taskPackets.getRevision();
 
     // Call the handler
     mutableState = config.handler(mutableState, action);

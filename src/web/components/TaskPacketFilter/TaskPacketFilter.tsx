@@ -69,14 +69,12 @@ export default function TaskPacketFilter() {
     // Apply the mission set selection to the map whenever it changes.
     useEffect(() => commitMissionSetSelection(), [selectedKeys]);
 
-    // Pick up new task packets. While the filter is engaged this follows the newest data with the
-    // slider; while it is not, it keeps the panel mirrored to the live map so the two never
-    // disagree. The poll bumps the task packet version, which re-triggers this effect.
-    const taskPacketVersion = jaiaContext.taskPackets.getVersion();
-    useEffect(() => followLatestTaskPackets(), [taskPacketVersion]);
+    // Pick up new task packets.
+    const taskPacketRevision = jaiaContext.taskPackets.getRevision();
+    useEffect(() => followLatestTaskPackets(), [taskPacketRevision]);
 
     /**
-     * Schedules a debounced fetch for the current date range. Skips the initial run on mount: the
+     * Schedules a fetch for the current date range. Skips the initial run on mount: the
      * live-sync effect populates the list from the shared model (and restores a reopened filter),
      * so a fetch is only needed once the user changes the date range.
      *

@@ -54,7 +54,7 @@ export interface JaiaContextType {
     mapLayerAccordionStates: MapLayerAccordionStates;
     missionAccordionStates: { [missionID: number]: boolean };
     previousTick: number;
-    previousTaskPacketVersion: number;
+    previousTaskPacketRevision: number;
 }
 
 // snapshot of context data not held in data model
