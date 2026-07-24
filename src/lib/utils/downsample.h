@@ -8,6 +8,29 @@
 #include <string>
 #include <vector>
 
+
+// Usage example:
+//
+// Input data row format:
+//   row_index value1 value2 value3 value4
+//
+// Lambda column mapping note:
+//   - row_index is parsed separately and is not part of values
+//   - values[0] == value1
+//   - values[1] == value2
+//   - values[2] == value3
+//
+// Example: use value1 for X and value3 for Y.
+//
+// const std::vector<std::string> downsampled =
+//     jaiabot::utils::downsampleDatasetToMaxBytes(
+//         data_to_downsample,
+//         maximum_bytes,
+//         [](const std::vector<double>& values) { return values[0]; }, // X = value1
+//         [](const std::vector<double>& values) { return values[2]; }  // Y = value3
+//     );
+
+
 namespace jaiabot
 {
 namespace utils
@@ -19,7 +42,16 @@ struct Point
     double y;
 };
 
-// Select representative point indices that preserve overall curve shape.
+/**
+ * @brief Selects representative point indices while preserving the overall curve shape.
+ *
+ * Uses bucketed triangle-area sampling to retain the first and last points and choose
+ * intermediate points that best capture local changes in the dataset.
+ *
+ * @param data Ordered input points to sample.
+ * @param target_size Number of points to retain.
+ * @return Indices into @p data for the selected representative points.
+ */
 inline std::vector<size_t> downsampleIndices(const std::vector<Point>& data, size_t target_size)
 {
     if (data.empty())
@@ -111,8 +143,17 @@ inline std::vector<size_t> downsampleIndices(const std::vector<Point>& data, siz
     return selected_indices;
 }
 
-// Parse a data row into a point using the first and last numeric columns.
-inline bool parseDataRow(const std::string& line, Point& point_out)
+/**
+ * @brief Parses a data row into its numeric columns after the integer row index.
+ *
+ * The row is expected to begin with an integer index followed by at least two numeric
+ * values.
+ *
+ * @param line Input row to parse.
+ * @param values_out Parsed numeric columns written on success.
+ * @return True when the row matches the expected shape and contains enough numeric data.
+ */
+inline bool parseDataRowValues(const std::string& line, std::vector<double>& values_out)
 {
     // Expected row shape: "index value1 value2 ... valueN" where index is integer.
     std::istringstream iss(line);
@@ -122,11 +163,29 @@ inline bool parseDataRow(const std::string& line, Point& point_out)
         return false;
     }
 
-    std::vector<double> values;
+    values_out.clear();
     double value = 0.0;
-    while (iss >> value) { values.push_back(value); }
+    while (iss >> value) { values_out.push_back(value); }
 
-    if (values.size() < 2)
+    if (values_out.size() < 2)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Parses a data row into a point using the first and last numeric columns.
+ *
+ * @param line Input row to parse.
+ * @param point_out Parsed point written on success.
+ * @return True when the row matches the expected shape and contains enough numeric data.
+ */
+inline bool parseDataRow(const std::string& line, Point& point_out)
+{
+    std::vector<double> values;
+    if (!parseDataRowValues(line, values))
     {
         return false;
     }
@@ -137,7 +196,12 @@ inline bool parseDataRow(const std::string& line, Point& point_out)
     return true;
 }
 
-// Return the byte size of lines when joined with newline separators.
+/**
+ * @brief Computes the serialized byte size of lines joined with newline separators.
+ *
+ * @param lines Lines to measure.
+ * @return Total byte count including newline separators between lines.
+ */
 inline size_t joinedSizeBytes(const std::vector<std::string>& lines)
 {
     if (lines.empty())
@@ -153,7 +217,17 @@ inline size_t joinedSizeBytes(const std::vector<std::string>& lines)
     return total;
 }
 
-// Rebuild output by keeping all metadata lines and selected data rows.
+/**
+ * @brief Rebuilds the output while preserving metadata lines and selected data rows.
+ *
+ * Non-data lines are always retained. Data lines are kept only when their row index is
+ * listed in @p selected_row_indices.
+ *
+ * @param input_lines Original input lines.
+ * @param data_line_positions Positions of parsed data rows within @p input_lines.
+ * @param selected_row_indices Indices of data rows to keep.
+ * @return Filtered output lines with metadata preserved.
+ */
 inline std::vector<std::string>
 buildOutputWithSelectedRows(const std::vector<std::string>& input_lines,
                             const std::vector<size_t>& data_line_positions,
@@ -192,20 +266,42 @@ buildOutputWithSelectedRows(const std::vector<std::string>& input_lines,
     return output_lines;
 }
 
-// Downsample data rows to fit within a maximum serialized byte budget.
+/**
+ * @brief Downsamples data rows to fit within a maximum serialized byte budget.
+ *
+ * Metadata lines are preserved, while parsed data rows are reduced by binary searching for
+ * the largest representative subset whose serialized size does not exceed @p max_bytes.
+ * The x and y coordinates are selected from each parsed row via caller-provided selectors.
+ *
+ * @tparam XSelector Callable with signature compatible with
+ *         `double(const std::vector<double>& values)`.
+ * @tparam YSelector Callable with signature compatible with
+ *         `double(const std::vector<double>& values)`.
+ * @param input_lines Full input dataset, including metadata and data rows.
+ * @param max_bytes Maximum allowed serialized size for the returned dataset.
+ * @param x_selector Selects the x coordinate from parsed numeric columns.
+ * @param y_selector Selects the y coordinate from parsed numeric columns.
+ * @return A dataset constrained to the requested byte budget.
+ */
+template <typename XSelector, typename YSelector>
 inline std::vector<std::string>
-downsampleDatasetToMaxBytes(const std::vector<std::string>& input_lines, size_t max_bytes)
+downsampleDatasetToMaxBytes(const std::vector<std::string>& input_lines, size_t max_bytes,
+                            XSelector x_selector, YSelector y_selector)
 {
     std::vector<Point> data_points;
     std::vector<size_t> data_line_positions;
     data_points.reserve(input_lines.size());
     data_line_positions.reserve(input_lines.size());
 
+    std::vector<double> values;
+
     for (size_t i = 0; i < input_lines.size(); ++i)
     {
-        Point point{};
-        if (parseDataRow(input_lines[i], point))
+        if (parseDataRowValues(input_lines[i], values))
         {
+            Point point{};
+            point.x = static_cast<double>(x_selector(values));
+            point.y = static_cast<double>(y_selector(values));
             data_points.push_back(point);
             data_line_positions.push_back(i);
         }
@@ -246,6 +342,21 @@ downsampleDatasetToMaxBytes(const std::vector<std::string>& input_lines, size_t 
 
     const std::vector<size_t> best_rows = downsampleIndices(data_points, best_size);
     return buildOutputWithSelectedRows(input_lines, data_line_positions, best_rows);
+}
+
+/**
+ * @brief Downsamples data rows using first numeric value as x and last as y.
+ *
+ * @param input_lines Full input dataset, including metadata and data rows.
+ * @param max_bytes Maximum allowed serialized size for the returned dataset.
+ * @return A dataset constrained to the requested byte budget.
+ */
+inline std::vector<std::string>
+downsampleDatasetToMaxBytes(const std::vector<std::string>& input_lines, size_t max_bytes)
+{
+    return downsampleDatasetToMaxBytes(
+        input_lines, max_bytes, [](const std::vector<double>& values) { return values.front(); },
+        [](const std::vector<double>& values) { return values.back(); });
 }
 
 } // namespace utils
