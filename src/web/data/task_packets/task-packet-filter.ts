@@ -163,17 +163,6 @@ export class TaskPacketFilter {
         }
         return taskPackets.filter((taskPacket) => this.passes(taskPacket));
     }
-
-    /** Resets to the default unfiltered state. */
-    clear() {
-        this.active = false;
-        this.startDate = null;
-        this.endDate = null;
-        this.selectedMissionSetKeys = new Set();
-        this.sliderLowerUtime = 0;
-        this.sliderUpperUtime = 0;
-        this.autoFollowUpper = true;
-    }
 }
 
 export const taskPacketFilter = new TaskPacketFilter();

@@ -37,7 +37,6 @@ import {
     handleChangeTaskPacketSelection,
     handleChangeTaskPacketSlider,
     handleCommitTaskPacketSlider,
-    handleClearTaskPacketFilter,
 } from "./handlers/task-packet-filter-handlers";
 import { handleSentCommand } from "./handlers/command-handlers";
 import {
@@ -146,10 +145,6 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [
         JaiaActions.COMMIT_TASK_PACKET_SLIDER,
         { handler: handleCommitTaskPacketSlider, tracked: false },
-    ],
-    [
-        JaiaActions.CLEAR_TASK_PACKET_FILTER,
-        { handler: handleClearTaskPacketFilter, tracked: false },
     ],
     [
         JaiaActions.CHANGE_COORDINATE_SYSTEM,

@@ -1,7 +1,6 @@
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
 import { JaiaContextType, JaiaAction } from "../../types/context-types";
-import { pollTaskPackets } from "../../jcc/polling";
 import { syncTaskLayers, syncTaskPacketMarkerLayers } from "./handler-utils";
 
 /**
@@ -71,18 +70,5 @@ export function handleChangeTaskPacketSlider(mutableState: JaiaContextType, acti
  */
 export function handleCommitTaskPacketSlider(mutableState: JaiaContextType) {
     syncTaskLayers();
-    return mutableState;
-}
-
-/**
- * Clears the filter and returns the map to the default live task packet view.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @returns {JaiaContextType} Updated mutable state object
- */
-export function handleClearTaskPacketFilter(mutableState: JaiaContextType) {
-    taskPacketFilter.clear();
-    syncTaskLayers();
-    pollTaskPackets();
     return mutableState;
 }
