@@ -48,6 +48,8 @@ export default function TaskPacketFilter() {
     const [isFilterEngaged, setIsFilterEngaged] = useState(
         getInitialFilterEngaged(taskPacketFilter),
     );
+    // Blanks the date inputs after Clear Filter until the user interacts with the panel again.
+    const [isDateRangeBlank, setIsDateRangeBlank] = useState(false);
 
     // Results / selection state
     const [missionSets, setMissionSets] = useState<MissionSetSummary[]>([]);
@@ -261,6 +263,7 @@ export default function TaskPacketFilter() {
      * @returns {void}
      */
     const handleToggleMissionSet = (key: string) => {
+        setIsDateRangeBlank(false);
         const next = new Set(selectedKeys);
         if (next.has(key)) {
             next.delete(key);
@@ -290,6 +293,7 @@ export default function TaskPacketFilter() {
     const handleStartDateChange = (event: ChangeEvent<HTMLInputElement>) => {
         setStartDateStr(event.target.value);
         setIsFilterEngaged(false);
+        setIsDateRangeBlank(false);
     };
 
     /**
@@ -302,6 +306,7 @@ export default function TaskPacketFilter() {
     const handleEndDateChange = (event: ChangeEvent<HTMLInputElement>) => {
         setEndDateStr(event.target.value);
         setIsFilterEngaged(false);
+        setIsDateRangeBlank(false);
     };
 
     /**
@@ -312,6 +317,7 @@ export default function TaskPacketFilter() {
      * @returns {void}
      */
     const handleSliderChange = (_event: Event, value: number | number[]) => {
+        setIsDateRangeBlank(false);
         const [lower, upper] = value as number[];
         setSliderValue([lower, upper]);
         if (!taskPacketFilter.isActive()) {
@@ -357,6 +363,7 @@ export default function TaskPacketFilter() {
             isInitialFetchRef.current = true;
         }
         setIsFilterEngaged(false);
+        setIsDateRangeBlank(true);
         setNameFilter([]);
         setStartDateStr(defaultDateRange.start);
         setEndDateStr(defaultDateRange.end);
@@ -386,29 +393,40 @@ export default function TaskPacketFilter() {
             <p className="task-packet-filter-intro">Filter task packets displayed on the map.</p>
 
             <div className="task-packet-filter-step">
-                <div className="task-packet-filter-step-label">1. Choose a date range</div>
+                <div className="task-packet-filter-step-label">Choose a date range</div>
                 <div className="task-packet-filter-dates">
                     <label>
                         Start
-                        <input type="date" value={startDateStr} onChange={handleStartDateChange} />
+                        <input
+                            type="date"
+                            value={isDateRangeBlank ? "" : startDateStr}
+                            onChange={handleStartDateChange}
+                        />
                     </label>
                     <label>
                         End
-                        <input type="date" value={endDateStr} onChange={handleEndDateChange} />
+                        <input
+                            type="date"
+                            value={isDateRangeBlank ? "" : endDateStr}
+                            onChange={handleEndDateChange}
+                        />
                     </label>
                 </div>
             </div>
 
             <div className="task-packet-filter-step">
                 <div className="task-packet-filter-step-label">
-                    2. Filter by mission set name (optional)
+                    Filter by mission set name (optional)
                 </div>
                 <Autocomplete
                     multiple
                     size="small"
                     options={missionSetOptions}
                     value={nameFilter}
-                    onChange={(_event, value) => setNameFilter(value)}
+                    onChange={(_event, value) => {
+                        setNameFilter(value);
+                        setIsDateRangeBlank(false);
+                    }}
                     renderInput={(params) => (
                         <TextField {...params} placeholder="All mission sets" />
                     )}
@@ -418,7 +436,7 @@ export default function TaskPacketFilter() {
             {missionSets.length > 0 && (
                 <div className="task-packet-filter-step">
                     <div className="task-packet-filter-step-label">
-                        3. Select mission sets to show on the map
+                        Select mission sets to show on the map
                     </div>
                     {resultMissionSets.length === 0 ? (
                         <div className="task-packet-filter-hint">
@@ -464,7 +482,7 @@ export default function TaskPacketFilter() {
             {showSlider && (
                 <div className="task-packet-filter-step">
                     <div className="task-packet-filter-step-label">
-                        4. Drag to narrow the time window
+                        Drag to narrow the time window
                     </div>
                     <div className="task-packet-filter-slider">
                         <div className="task-packet-filter-slider-labels">
