@@ -1,0 +1,61 @@
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+
+package jaiabot.config;
+
+message StateEstimator
+{
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
+    /// Rate at which NavSolution is published.
+    optional double publish_rate = 3 [default = 5];
+
+    /// Treat GNSS as unavailable once the last fix is older than this.
+    optional double gnss_timeout = 10 [default = 3];
+    /// Re-initialise attitude when IMU messages stop for longer than this.
+    optional double imu_gap_reset = 11 [default = 30];
+    /// Stop trusting rpm once the motor message is older than this.
+    optional double motor_timeout = 12 [default = 5];
+    /// Below this speed over ground, gpsd course is too noisy to use.
+    optional double min_course_speed = 13 [default = 0.5];
+    /// Below this speed over ground, skip the velocity update: speed over ground is a
+    /// magnitude, so near zero it rectifies noise into a nonexistent current.
+    optional double min_velocity_update_speed = 14 [default = 0.6];
+    /// Use IMUData.magnetic_field for heading in preference to the rotation vector.
+    optional bool prefer_magnetometer = 15 [default = false];
+
+    /// GNSS position noise. Deliberately a constant: gpsd's reported epx/epy on this hardware
+    /// are unusable (11-16 m medians against 1.1-1.5 m measured scatter).
+    optional double gnss_position_noise = 20 [default = 1.5];
+    optional double gnss_velocity_noise = 21 [default = 0.2];
+    /// Surge response time constant toward the thrust model's speed.
+    optional double surge_time_constant = 22 [default = 3.0];
+    optional double current_random_walk = 23 [default = 0.013];
+    optional double speed_scale_random_walk = 24 [default = 0.006];
+    optional double heading_bias_random_walk = 25 [default = 0.0001];
+
+    /// Heading noise attributed to the BNO08x rotation vector, degrees.
+    optional double rotation_vector_heading_noise = 30 [default = 5];
+    /// Skip heading corrections when the nose is steeper than this; heading is the bearing of
+    /// the forward axis and is ill-conditioned near vertical.
+    optional double max_heading_update_pitch = 31 [default = 60];
+
+    /// One point on the rpm-to-speed-through-water curve. Repeat to override the built-in
+    /// curve, which was fitted from fleet 50 logs. The filter estimates a scale on top, so the
+    /// shape matters more than the absolute values.
+    message ThrustPoint
+    {
+        required double rpm = 1;
+        required double speed = 2;
+    }
+    repeated ThrustPoint thrust_curve = 40;
+    optional double reverse_efficiency = 41 [default = 0.7];
+    optional double deadband_rpm = 42 [default = 80];
+
+    /// Publish the solution into BotStatus/NodeStatus in place of the raw gpsd position. Off by
+    /// default so the estimator can be run and evaluated alongside jaiabot_fusion first.
+    optional bool publish_to_node_status = 50 [default = false];
+}

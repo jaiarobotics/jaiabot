@@ -16,6 +16,8 @@ add_subdirectory(mission_repeater)
 add_subdirectory(comms_manager)
 add_subdirectory(ctd_manager)
 add_subdirectory(udp_gateway)
+add_subdirectory(state_estimator)
+add_subdirectory(nav_replay)
 
 if(build_state_diagrams)
   add_subdirectory(state_tool)

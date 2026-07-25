@@ -1,0 +1,104 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+/// How the horizontal solution is currently being maintained.
+enum NavMode
+{
+    NAV_MODE__UNINITIALISED = 0;
+    /// GNSS is fixing position and calibrating the motion model.
+    NAV_MODE__GNSS_AIDED = 1;
+    /// No GNSS: propagating the calibrated speed-through-water and current model.
+    NAV_MODE__DEAD_RECKONING = 2;
+}
+
+/// Output of jaiabot_state_estimator. Unlike BotStatus, this survives GNSS denial: position
+/// keeps propagating on the calibrated motion model rather than freezing at the last fix.
+message NavSolution
+{
+    required NavMode mode = 1;
+
+    optional bool attitude_valid = 2 [default = false];
+    optional bool position_valid = 3 [default = false];
+
+    message Location
+    {
+        optional double lat = 1 [(dccl.field) = {
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+        optional double lon = 2 [(dccl.field) = {
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+    }
+    optional Location location = 4;
+
+    /// One-sigma horizontal position uncertainty.
+    optional double position_sigma = 5
+        [(dccl.field) = { units { derived_dimensions: "length" system: "si" } }];
+
+    message Attitude
+    {
+        optional double heading = 1 [(dccl.field) = {
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+        optional double heading_sigma = 2 [(dccl.field) = {
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+        optional double pitch = 3 [(dccl.field) = {
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+        optional double roll = 4 [(dccl.field) = {
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+        optional double course_over_ground = 5 [(dccl.field) = {
+            units { derived_dimensions: "plane_angle" system: "angle::degree" }
+        }];
+    }
+    optional Attitude attitude = 6;
+
+    message Speed
+    {
+        optional double over_ground = 1
+            [(dccl.field) = { units { derived_dimensions: "velocity" system: "si" } }];
+        /// Signed speed through water along the forward axis. The term that survives GNSS
+        /// denial, since it comes from the propeller rather than the sky.
+        optional double over_water = 2
+            [(dccl.field) = { units { derived_dimensions: "velocity" system: "si" } }];
+    }
+    optional Speed speed = 7;
+
+    /// Estimated water current, true-north referenced.
+    message Current
+    {
+        optional double east = 1
+            [(dccl.field) = { units { derived_dimensions: "velocity" system: "si" } }];
+        optional double north = 2
+            [(dccl.field) = { units { derived_dimensions: "velocity" system: "si" } }];
+    }
+    optional Current current = 8;
+
+    /// Online calibration of the rpm-to-speed curve; 1.0 means the nominal curve fits.
+    optional double speed_scale = 9;
+    /// Estimated compass calibration error.
+    optional double heading_bias = 10 [(dccl.field) = {
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+
+    optional double depth = 11
+        [(dccl.field) = { units { derived_dimensions: "length" system: "si" } }];
+    optional double depth_rate = 12
+        [(dccl.field) = { units { derived_dimensions: "velocity" system: "si" } }];
+
+    /// Seconds since the last usable GNSS fix.
+    optional double gnss_fix_age = 13
+        [(dccl.field) = { units { derived_dimensions: "time" system: "si" } }];
+    /// Distance propagated since the last usable GNSS fix.
+    optional double dead_reckoned_distance = 14
+        [(dccl.field) = { units { derived_dimensions: "length" system: "si" } }];
+
+    optional double magnetic_declination = 15 [(dccl.field) = {
+        units { derived_dimensions: "plane_angle" system: "angle::degree" }
+    }];
+}
