@@ -132,6 +132,80 @@ still-water speed-versus-rpm sweep; and PPK post-processed truth (the repo alrea
 `ppk.proto` and `src/python/ubx_ppk`) so validation is not limited by 1.5 m single-point
 fixes.
 
+## Fleet-wide baseline, and what the rudder and setpoint channels are worth
+
+The table above was three logs, two bots. Running the same `nav_replay` methodology across
+all 20 fleet-50 logs (16 distinct bots) gives the honest fleet-wide picture, trial-weighted
+over ~750 underway trials per horizon:
+
+| Horizon | DR error (median) | Frozen error (median) | DR wins | Reported σ / actual error |
+| --- | --- | --- | --- | --- |
+| 60 s | 31.7 m | 43.7 m | 63.6% | 0.29 |
+| 120 s | 66.3 m | 67.0 m | 49.9% | 0.30 |
+
+Two problems fall out of that: the estimator's advantage over trivial freezing decays sharply
+between 60 s and 120 s (coin-flip by 120 s, 9/20 logs worse than freezing at the median), and
+the filter is overconfident by ~3.3x — reported position σ is only ~30% of actual error,
+fleet-wide, not just on outlier bots. Full per-log numbers: `analysis/baseline_results.md`.
+
+The estimator consumed only IMU, GNSS, motor rpm and pressure; the rudder and setpoint
+channels were parsed by `nav_replay` but never fed to the estimator. `analysis/hypotheses.py`
+tests four candidate explanations for the residual, against all 20 logs, before any code
+changed:
+
+- **H1 (hull sideslip proportional to rudder): supported, weakly.** Grid-searching a single
+  crab angle `k * rudder` per log (closed-form current/speed-through-water at each candidate,
+  so `k` can't just be absorbing a mistuned current) finds the same sign in 20/20 logs, median
+  `k = -0.42°` per rudder-unit, and cuts the current-triangle velocity residual by a median
+  4.8% (0-11%). Positive rudder was independently confirmed to command a turn to starboard
+  (regressing yaw rate on rudder: negative slope in all 20 logs, `-gyro_z` increasing with
+  rudder) — the sideslip sign says the velocity vector lags the bow into a turn, the expected
+  direction for a hull that yaws faster than it translates.
+- **H2 (speed through water depends on world-fixed heading, i.e. wind/chop): not supported.**
+  A single sinusoid in absolute (compass) heading explains a median 1.6% of the
+  along-heading velocity residual, and its phase is inconsistent between the first and second
+  half of the same log (median 80° phase difference — no better than chance). No change made.
+- **H3 (current changes faster than the filter's random walk): confirmed, but not
+  actionable through this parameter.** The current-triangle residual moves ~0.33 m/s over
+  60 s but only ~0.31 m/s over 300 s — real currents here have more of their energy on the
+  tens-of-seconds timescale than a single random walk fits. Raising
+  `DeadReckonerConfig::current_random_walk` to match (tried 0.016 through 0.043, vs. the
+  original 0.013) was tested end-to-end with `nav_replay` across all 20 logs at every value:
+  fleet median DR error got *worse* monotonically with the increase (64.8 m at 0.013 up to
+  77.3 m at 0.03, at the 120 s horizon), because the extra process noise also makes the
+  GNSS-aided calibration noisier, degrading the snapshot the coast starts from faster than
+  the flexibility helps track the real current. Reported σ did move closer to calibrated
+  (0.31 → 0.49) but at a larger cost in accuracy, so the parameter was left at 0.013. An
+  online, innovation-driven version of the same idea (scale the process noise up only when
+  GNSS keeps surprising the filter more than its own covariance predicts, holding the scale
+  through an outage) was also implemented and measured, with the same result: fleet median DR
+  error rose to 73.4 m even though σ calibration improved to 0.35. Both were reverted; the
+  sigma-underconfidence finding stands, but neither of these two fixes for it is worth its
+  cost in accuracy on this fleet.
+- **H4 (commanded throttle or `des_speed` adds information beyond rpm): not supported.**
+  A linear regression of speed-through-water on rpm alone gets the same R² (to five decimal
+  places, every log) as rpm plus throttle or rpm plus `des_speed` — they are close to
+  deterministic functions of rpm in this data, so rpm alone already captures what they would
+  add. No change made.
+
+Only H1 was implemented: `StateEstimatorConfig::crab_per_rudder` (default -0.42°, the
+measured fleet value) adds a deterministic rudder-driven crab correction to the heading used
+for anything velocity-domain (propagation, GNSS velocity updates, reported speed/course over
+ground), while `NavSolution::heading` keeps reporting the unadjusted bow heading. `nav_replay`
+now parses `control` records and feeds them via `StateEstimator::handle_control`, so this can
+be measured end to end. Fleet-wide, at the 120 s horizon: median DR error 66.3 m → 64.8 m
+(-2.2%), DR-wins-frozen 49.9% → 52.1%. At 60 s the change is within noise (31.7 → 31.4 m,
+63.6% → 63.1% wins) — expected, since crab is a small correction and 60 s trials are already
+close to the achievable floor. It is not a fleet-wide win on every log: two of the
+best-performing bots (bot2, bot6, both >75% win rate at baseline) get measurably worse, most
+likely because a single fleet-median `k` is not this bot's actual sideslip constant. A
+per-bot online estimate of `k` (an eighth filter state, observable the same way heading_bias
+is) would fix that but was out of scope here.
+
+Numbers above are reproducible: `analysis/hypotheses.py` for H1-H4, `analysis/final_raw/` for
+the before/after `nav_replay` sweep, `analysis/baseline_results.md` for the pre-change
+20-log baseline.
+
 ## Architecture
 
 Three loosely-coupled filters, all in `src/lib/nav` as dependency-free headers so they can
@@ -178,7 +252,7 @@ horizontal one.
 
 - `src/lib/nav/*.h` — the estimator, no goby/protobuf/boost dependency, so it builds and
   tests off-vehicle.
-- `src/test/nav/test.cpp` — 73 Boost.Test cases (matching the `src/test/utils` pattern):
+- `src/test/nav/test.cpp` — 75 Boost.Test cases (matching the `src/test/utils` pattern):
   frame conventions checked against the identities measured in the logs, per-filter unit
   tests, and closed-loop integration tests including a GNSS-denied coast.
 - `src/bin/nav_replay/` — offline replay and scoring tool. This is what produced the table
@@ -192,7 +266,7 @@ horizontal one.
 
 ## Status and caveats
 
-- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 73 cases,
+- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 75 cases,
   and are exercised against real logs.
 - `jaiabot_state_estimator` compiles and starts on ubuntu noble against the packaged
   goby3/DCCL/MOOS, and exposes its full config surface. It has **not been run against live or

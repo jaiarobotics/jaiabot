@@ -76,6 +76,15 @@ struct PressureSample
     double depth{0.0};
 };
 
+/// One control-surfaces message.
+struct ControlSample
+{
+    double time{0.0};
+    /// Commanded rudder, in this fleet's native units (percent of full deflection).
+    /// StateEstimatorConfig::crab_per_rudder is calibrated in the same units.
+    double rudder{0.0};
+};
+
 /// How the horizontal solution is currently being maintained.
 enum class NavMode
 {
@@ -139,6 +148,14 @@ struct StateEstimatorConfig
     double imu_gap_reset{30.0};
     /// Stop trusting rpm once the motor message is older than this, s.
     double motor_timeout{5.0};
+    /// Stop trusting the rudder once the control message is older than this, s.
+    double control_timeout{5.0};
+    /// Hull sideslip per unit of commanded rudder, rad, added on top of heading_bias
+    /// wherever the dead reckoner needs the direction of travel rather than the direction
+    /// the bow points. Measured from fleet 50 logs: a single global k per log reduces the
+    /// current-triangle velocity residual by a median 4.8% (range 0-11%), same sign in
+    /// 20/20 logs, median -0.42 deg per rudder-unit (analysis/hypotheses.py, H1).
+    double crab_per_rudder{deg_to_rad(-0.42)};
     /// Below this speed over ground, GNSS course is too noisy to use, m/s.
     double min_course_speed{0.5};
     /// Below this speed over ground, skip the velocity update entirely. Speed over ground is a
@@ -282,15 +299,16 @@ class StateEstimator
         {
             const double speed = *sample.speed_over_ground;
             const double sigma = cfg_.dead_reckoner.gnss_velocity_noise;
+            const double heading = travel_heading(sample.time);
             if (sample.course_over_ground && speed >= cfg_.min_course_speed)
             {
                 if (dead_reckoner_.update_speed_and_course(speed, *sample.course_over_ground,
-                                                           attitude_.heading(), sigma))
+                                                           heading, sigma))
                     ++diagnostics_.velocity_accepted;
                 else
                     ++diagnostics_.velocity_rejected;
             }
-            else if (dead_reckoner_.update_speed_only(speed, attitude_.heading(), sigma))
+            else if (dead_reckoner_.update_speed_only(speed, heading, sigma))
                 ++diagnostics_.speed_accepted;
             else
                 ++diagnostics_.speed_rejected;
@@ -318,6 +336,15 @@ class StateEstimator
         vertical_.update_depth(sample.depth, cfg_.vertical.depth_noise);
     }
 
+    void handle_control(const ControlSample& sample)
+    {
+        if (!std::isfinite(sample.time) || !std::isfinite(sample.rudder)) return;
+        if (last_control_time_ && sample.time < *last_control_time_) return;
+        advance_to(sample.time);
+        last_control_time_ = sample.time;
+        rudder_ = sample.rudder;
+    }
+
     /// Advance every filter to `time` without applying a measurement. Safe to call as often
     /// as the caller wants output.
     void advance_to(double time)
@@ -337,7 +364,7 @@ class StateEstimator
         if (!dead_reckoner_.initialised() || !attitude_.initialised()) return;
 
         DeadReckoner::Input input;
-        input.heading = attitude_.heading();
+        input.heading = travel_heading(time);
         input.heading_variance = attitude_.heading_variance();
         input.rpm = motor_fresh(time) ? rpm_ : 0.0;
         input.forward_horizontal_fraction = std::cos(attitude_.pitch());
@@ -370,8 +397,9 @@ class StateEstimator
             const Vector2 geo = plane_.to_geographic(s.position_east_north);
             s.lat = geo[0];
             s.lon = geo[1];
-            s.speed_over_ground = dead_reckoner_.speed_over_ground(s.heading);
-            s.course_over_ground = dead_reckoner_.course_over_ground(s.heading);
+            const double travel = travel_heading(s.time);
+            s.speed_over_ground = dead_reckoner_.speed_over_ground(travel);
+            s.course_over_ground = dead_reckoner_.course_over_ground(travel);
             s.speed_through_water = dead_reckoner_.surge();
             s.current_east_north = dead_reckoner_.current();
             s.speed_scale = dead_reckoner_.speed_scale();
@@ -425,6 +453,20 @@ class StateEstimator
         return last_motor_time_ && (time - *last_motor_time_) <= cfg_.motor_timeout;
     }
 
+    bool control_fresh(double time) const
+    {
+        return last_control_time_ && (time - *last_control_time_) <= cfg_.control_timeout;
+    }
+
+    /// Heading to use for anything velocity-domain (propagation, GNSS velocity updates,
+    /// reported speed/course over ground): the bow heading plus the deterministic
+    /// rudder-induced crab correction. NavSolution::heading stays the unadjusted bow
+    /// heading, which is what a compass display wants.
+    double travel_heading(double time) const
+    {
+        return attitude_.heading() + cfg_.crab_per_rudder * (control_fresh(time) ? rudder_ : 0.0);
+    }
+
     StateEstimatorConfig cfg_;
     AttitudeFilter attitude_;
     DeadReckoner dead_reckoner_;
@@ -437,8 +479,10 @@ class StateEstimator
     std::optional<double> last_motor_time_;
     std::optional<double> last_pressure_time_;
     std::optional<double> last_fix_time_;
+    std::optional<double> last_control_time_;
 
     double rpm_{0.0};
+    double rudder_{0.0};
     double dead_reckoned_distance_{0.0};
     EstimatorDiagnostics diagnostics_{};
 };

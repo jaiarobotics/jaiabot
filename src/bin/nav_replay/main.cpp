@@ -74,6 +74,10 @@ struct Options
     double min_distance{5.0};
     double declination_deg{-13.5};
     bool verbose{false};
+
+    /// Override StateEstimatorConfig::crab_per_rudder for offline ablation, without a
+    /// rebuild. Unset means "use the library default".
+    std::optional<double> crab_per_rudder_deg;
 };
 
 std::vector<std::string> split(const std::string& line, char sep)
@@ -189,6 +193,10 @@ void feed(StateEstimator& est, const Record& r, bool withhold_gnss)
     {
         est.handle_pressure(PressureSample{r.time, r.fields[0]});
     }
+    else if (r.type == "control" && !r.fields.empty())
+    {
+        est.handle_control(ControlSample{r.time, r.fields[0]});
+    }
     est.advance_to(r.time);
 }
 
@@ -293,6 +301,7 @@ int run(const Options& opt)
 
     StateEstimatorConfig cfg;
     cfg.declination = deg_to_rad(opt.declination_deg);
+    if (opt.crab_per_rudder_deg) cfg.crab_per_rudder = deg_to_rad(*opt.crab_per_rudder_deg);
 
     StateEstimator reference(cfg);
     std::ofstream out;
@@ -463,6 +472,8 @@ int main(int argc, char* argv[])
                 opt.declination_deg = std::stod(next());
             else if (arg == "--verbose")
                 opt.verbose = true;
+            else if (arg == "--crab-per-rudder-deg")
+                opt.crab_per_rudder_deg = std::stod(next());
             else
             {
                 usage();

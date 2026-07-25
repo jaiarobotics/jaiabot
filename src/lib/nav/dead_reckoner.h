@@ -43,6 +43,17 @@ struct DeadReckonerConfig
     double position_noise{0.05};
     double surge_noise{0.20};
     /// Current random walk. 0.013 lets the current move ~0.1 m/s over a minute.
+    ///
+    /// Measured (analysis/hypotheses.py, H3): the current-triangle residual actually
+    /// moves ~0.33 m/s over 60 s but only ~0.31 m/s over 300 s, i.e. real currents here
+    /// move faster than this random walk models. Tried raising this to match (0.02-0.043)
+    /// with nav_replay across all 20 logs: every value tested made fleet-wide
+    /// dead-reckoning error *worse* (66.27 m -> 67-77 m median at horizon 120s), because
+    /// a noisier random walk also makes the GNSS-aided calibration noisier, degrading the
+    /// snapshot the coast starts from faster than the extra flexibility helps track the
+    /// real current. Reported sigma got closer to calibrated (0.30 -> up to 0.49) but at
+    /// a larger cost in accuracy, so this is left at the original value; H3 is confirmed
+    /// but not actionable through this parameter alone.
     double current_random_walk{0.013};
     /// Speed-scale random walk. 0.006 lets the scale move ~0.1 over five minutes.
     double speed_scale_random_walk{0.006};
