@@ -95,26 +95,38 @@ how much the current and speed scale drift after the last fix.
 ## Measured performance
 
 `nav_replay` runs one GNSS-aided pass over a log and, every 20 s, forks the estimator into a
-counterfactual trial that replays the next 120 s with GNSS withheld, scoring against the
-fixes it withheld. Forking rather than carving fixed outages out of one pass gives ~130
+counterfactual trial that replays the next 120 s (or 60 s) with GNSS withheld, scoring against
+the fixes it withheld. Forking rather than carving fixed outages out of one pass gives ~30-60
 trials per log instead of a handful. Numbers below are medians over trials where the bot was
-underway (mean SOG ≥ 0.8 m/s), for a **120 s outage**; "frozen" is what the current stack
-does.
+underway (mean SOG ≥ 0.8 m/s), across **all 20 fleet-50 logs (16 distinct bots)**; "frozen" is
+what the current stack does. Reproduce with `analysis/parse_baseline.py` over the raw
+`nav_replay --log csv/<log>.csv --horizon <120|60> --stride 20 --min-distance 30` output for
+every log (trial-weighted mean of per-log medians, matching `analysis/baseline_results.md`):
 
-| Log | Path travelled | Dead reckoned | Frozen | DR/frozen | DR wins |
+| Horizon | Trials | DR error (median) | Frozen error (median) | DR wins | Reported σ / actual error |
 | --- | --- | --- | --- | --- | --- |
-| bot2 20250905T184711 | 206 m | **41.6 m** (22% of path) | 109 m (52%) | 0.35 | 79% |
-| bot21 20250904T160858 | 173 m | **55.7 m** (31%) | 92 m (47%) | 0.72 | 58% |
-| bot21 20250904T195049 | 179 m | **48.6 m** (31%) | 78 m (50%) | 0.76 | 54% |
+| 60 s | 756 | 31.7 m | 43.7 m | 63.6% | 0.29 |
+| 120 s | 753 | 66.3 m | 67.0 m | 49.9% | 0.30 |
 
-So position error over a two-minute outage drops from ~50% of the path travelled to
-20–31%, and dead reckoning beats freezing in 54–79% of trials. Near-stationary trials are
-roughly a wash, which is expected: when the bot is barely moving, freezing is already close
-to optimal.
+At 60 s the estimator clearly beats freezing (63.6% win rate, only 2/20 logs worse than
+freezing at the median). By 120 s that advantage has largely decayed — a near coin-flip
+(49.9% win rate), with 9/20 logs doing worse than freezing at the median. Near-stationary
+trials are roughly a wash regardless of horizon, which is expected: when the bot is barely
+moving, freezing is already close to optimal.
 
-This is well short of the 5–15% that heading accurate to the specced 5° would buy. Error
-splits about evenly between along-track (speed model) and cross-track (heading), which says
-both terms are limiting and neither is close to its floor. The honest read on why:
+Two problems fall out of this: the advantage over trivial freezing decays sharply between
+60 s and 120 s, and the filter is **overconfident by ~3.3x** — reported position σ is only
+~30% of actual error, fleet-wide (range 0.17–0.58 per log), not just on outlier bots. This
+means the bot would trust a dead-reckoned position far more than it should during any GNSS
+outage. Every fix attempted against this so far (documented below) has traded accuracy for
+calibration or vice versa rather than fixing both; **it is the single highest-priority open
+problem in this estimator**, ahead of the modest DR-accuracy gains chased in the rest of this
+section.
+
+The along/cross-track split is roughly even fleet-wide (median along-track and cross-track
+errors are within ~20% of each other at both horizons — see the per-log breakdown in
+`analysis/baseline_results.md`), meaning heading and speed model are both limiting and neither
+is close to its floor. The honest read on why:
 
 - **Heading on this platform is nowhere near 5°.** Raw `euler_angles.heading` sits 11–17°
   off GNSS course with a 24–39° interquartile spread. Some of that spread is real crab angle
@@ -132,35 +144,12 @@ still-water speed-versus-rpm sweep; and PPK post-processed truth (the repo alrea
 `ppk.proto` and `src/python/ubx_ppk`) so validation is not limited by 1.5 m single-point
 fixes.
 
-## Fleet-wide baseline, and what the rudder and setpoint channels are worth
-
-The table above was three logs, two bots. Running the same `nav_replay` methodology across
-all 20 fleet-50 logs (16 distinct bots) gives the honest fleet-wide picture, trial-weighted
-over ~750 underway trials per horizon:
-
-| Horizon | DR error (median) | Frozen error (median) | DR wins | Reported σ / actual error |
-| --- | --- | --- | --- | --- |
-| 60 s | 31.7 m | 43.7 m | 63.6% | 0.29 |
-| 120 s | 66.3 m | 67.0 m | 49.9% | 0.30 |
-
-Two problems fall out of that: the estimator's advantage over trivial freezing decays sharply
-between 60 s and 120 s (coin-flip by 120 s, 9/20 logs worse than freezing at the median), and
-the filter is overconfident by ~3.3x — reported position σ is only ~30% of actual error,
-fleet-wide, not just on outlier bots. Full per-log numbers: `analysis/baseline_results.md`.
+## What the rudder and setpoint channels are worth
 
 The estimator consumed only IMU, GNSS, motor rpm and pressure; the rudder and setpoint
 channels were parsed by `nav_replay` but never fed to the estimator. `analysis/hypotheses.py`
-tests four candidate explanations for the residual, against all 20 logs, before any code
-changed:
+tests four candidate explanations for the residual, against all 20 logs:
 
-- **H1 (hull sideslip proportional to rudder): supported, weakly.** Grid-searching a single
-  crab angle `k * rudder` per log (closed-form current/speed-through-water at each candidate,
-  so `k` can't just be absorbing a mistuned current) finds the same sign in 20/20 logs, median
-  `k = -0.42°` per rudder-unit, and cuts the current-triangle velocity residual by a median
-  4.8% (0-11%). Positive rudder was independently confirmed to command a turn to starboard
-  (regressing yaw rate on rudder: negative slope in all 20 logs, `-gyro_z` increasing with
-  rudder) — the sideslip sign says the velocity vector lags the bow into a turn, the expected
-  direction for a hull that yaws faster than it translates.
 - **H2 (speed through water depends on world-fixed heading, i.e. wind/chop): not supported.**
   A single sinusoid in absolute (compass) heading explains a median 1.6% of the
   along-heading velocity residual, and its phase is inconsistent between the first and second
@@ -187,24 +176,36 @@ changed:
   places, every log) as rpm plus throttle or rpm plus `des_speed` — they are close to
   deterministic functions of rpm in this data, so rpm alone already captures what they would
   add. No change made.
+- **H1 (hull sideslip proportional to rudder): inconclusive, not shipped.** An earlier pass
+  claimed a stable, reproducible fleet-median crab angle (`k = -0.42°`/rudder-unit) fit by "a
+  single global k per log, closed-form current/speed at each candidate", and shipped it as
+  `StateEstimatorConfig::crab_per_rudder`, added into the heading everywhere the dead reckoner
+  needs direction of travel. Independent review (see below) found that constant could not be
+  reproduced from any analysis script actually in the repo — the only H1 implementation on
+  disk, `analysis/hypotheses.py`'s per-240s-window grid search, gives a different, more modest,
+  grid-boundary-pinned result (median `k = -0.30°`, IQR entirely at the grid's own edge
+  `[-0.30, -0.26]`, median residual cut 2.85%, not 4.8%) — the boundary-pinning itself is a sign
+  the grid is misspecified, not evidence the true value is well-determined. Rudder does reach
+  ±100 (its full native range) sustained for several seconds in all 20 logs, which at the
+  shipped `k` implies crab corrections of tens of degrees injected unclamped into the dead
+  reckoner's input heading, well beyond the ±15° the same codebase treats as the physical
+  ceiling for this exact quantity (`DeadReckoner::max_heading_bias`) — untested at that scale.
+  End-to-end, the correction's fleet-aggregate effect (a claimed -2.2% median DR error, +2.2 pp
+  win rate at the 120 s horizon) was real but fragile: exactly 10/20 logs got worse and 10/20
+  got better, individual-trial win rate was 53%, and a log-level cluster bootstrap (the correct
+  independence unit, since ~750 trials come from only 20 logs/16 bots) put the 95% CI on the
+  aggregate delta at `[-4.89, +4.03]` m — straddling zero, i.e. not distinguishable from noise.
+  Two of the fleet's best-performing logs (bot2, bot6) got 24–63% *worse*. Given all of that —
+  an unreproducible calibration constant, an unclamped and untested failure mode at
+  fleet-realistic rudder values, and a fleet effect that is not statistically significant and
+  actively hurts a meaningful minority of logs including the best performers — the correction
+  was reverted rather than kept. The underlying physical claim (rudder-driven sideslip exists,
+  same sign in 20/20 logs) is plausible and worth revisiting, but needs a properly validated
+  (unclipped grid, per-log or per-bot, ideally an online-estimated state rather than a fleet
+  constant) fit before it should go anywhere near the input to a dead reckoner.
 
-Only H1 was implemented: `StateEstimatorConfig::crab_per_rudder` (default -0.42°, the
-measured fleet value) adds a deterministic rudder-driven crab correction to the heading used
-for anything velocity-domain (propagation, GNSS velocity updates, reported speed/course over
-ground), while `NavSolution::heading` keeps reporting the unadjusted bow heading. `nav_replay`
-now parses `control` records and feeds them via `StateEstimator::handle_control`, so this can
-be measured end to end. Fleet-wide, at the 120 s horizon: median DR error 66.3 m → 64.8 m
-(-2.2%), DR-wins-frozen 49.9% → 52.1%. At 60 s the change is within noise (31.7 → 31.4 m,
-63.6% → 63.1% wins) — expected, since crab is a small correction and 60 s trials are already
-close to the achievable floor. It is not a fleet-wide win on every log: two of the
-best-performing bots (bot2, bot6, both >75% win rate at baseline) get measurably worse, most
-likely because a single fleet-median `k` is not this bot's actual sideslip constant. A
-per-bot online estimate of `k` (an eighth filter state, observable the same way heading_bias
-is) would fix that but was out of scope here.
-
-Numbers above are reproducible: `analysis/hypotheses.py` for H1-H4, `analysis/final_raw/` for
-the before/after `nav_replay` sweep, `analysis/baseline_results.md` for the pre-change
-20-log baseline.
+Numbers above are reproducible: `analysis/hypotheses.py` for H1-H4, `analysis/baseline_results.md`
+and `analysis/parse_baseline.py` for the 20-log fleet-wide performance table.
 
 ## Architecture
 
@@ -252,7 +253,7 @@ horizontal one.
 
 - `src/lib/nav/*.h` — the estimator, no goby/protobuf/boost dependency, so it builds and
   tests off-vehicle.
-- `src/test/nav/test.cpp` — 75 Boost.Test cases (matching the `src/test/utils` pattern):
+- `src/test/nav/test.cpp` — 73 Boost.Test cases (matching the `src/test/utils` pattern):
   frame conventions checked against the identities measured in the logs, per-filter unit
   tests, and closed-loop integration tests including a GNSS-denied coast.
 - `src/bin/nav_replay/` — offline replay and scoring tool. This is what produced the table
@@ -266,7 +267,7 @@ horizontal one.
 
 ## Status and caveats
 
-- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 75 cases,
+- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 73 cases,
   and are exercised against real logs.
 - `jaiabot_state_estimator` compiles and starts on ubuntu noble against the packaged
   goby3/DCCL/MOOS, and exposes its full config surface. It has **not been run against live or
