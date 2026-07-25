@@ -192,10 +192,17 @@ horizontal one.
 
 ## Status and caveats
 
-- The nav library and its tests build and pass on darwin and are exercised against real logs.
-- The goby3 app has **not been compiled** — goby3, MOOS and DCCL are Linux-only, so it could
-  not be built in the environment this was developed in. It is a thin adapter over a tested
-  library, but it needs a build and a bench run before it goes near a bot.
+- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 73 cases,
+  and are exercised against real logs.
+- `jaiabot_state_estimator` compiles and starts on ubuntu noble against the packaged
+  goby3/DCCL/MOOS, and exposes its full config surface. It has **not been run against live or
+  simulated message traffic** — no subscription has yet received a real message, so the
+  handlers are unproven end to end. Run it in the simulator next.
+- Building it turned up two mismatches worth noting for anyone else integrating:
+  `src/lib/messages/CMakeLists.txt` carries an explicit proto list, so a new `.proto` is
+  silently not generated until it is added there; and `PressureAdjustedData.calculated_depth`,
+  which is what fleet 50 logs contain, has since been renamed — current 2.y has `sensor_depth`
+  and a separate vehicle `depth`. The app reads `depth` and falls back to `sensor_depth`.
 - The magnetometer and raw-acceleration paths are only tested synthetically, because the
   deployed fleet firmware publishes neither field even though the current driver source does.
 - Tuning was validated against three logs from one fleet on two bots. The thrust curve in

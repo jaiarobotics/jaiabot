@@ -52,6 +52,7 @@ set(JAIABOT_PROTOS
   rest_api.proto
   option_extensions.proto
   motor.proto
+  nav.proto
   fleet_config.proto
   link.proto
   udp_driver.proto

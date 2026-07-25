@@ -173,10 +173,14 @@ jaiabot::apps::StateEstimatorApp::StateEstimatorApp()
         if (motor.has_rpm()) estimator_.handle_motor({now_seconds(), motor.rpm()});
     });
 
+    // `depth` is the vehicle depth; `sensor_depth` is at the transducer. Older firmware called
+    // the latter `calculated_depth`, which is what appears in fleet 50 logs.
     interprocess().subscribe<groups::pressure_adjusted>(
         [this](const protobuf::PressureAdjustedData& pressure) {
-            if (pressure.has_calculated_depth())
-                estimator_.handle_pressure({now_seconds(), pressure.calculated_depth()});
+            if (pressure.has_depth())
+                estimator_.handle_pressure({now_seconds(), pressure.depth()});
+            else if (pressure.has_sensor_depth())
+                estimator_.handle_pressure({now_seconds(), pressure.sensor_depth()});
         });
 }
 
