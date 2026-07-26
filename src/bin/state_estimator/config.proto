@@ -10,8 +10,9 @@ message StateEstimator
     optional goby.middleware.protobuf.AppConfig app = 1;
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
-    /// Rate at which NavSolution is published.
-    optional double publish_rate = 3 [default = 5];
+    // NavSolution publish rate is goby's own `app { loop_frequency: N }`; field 3 previously
+    // duplicated it and is left reserved rather than reused.
+    reserved 3;
 
     /// Treat GNSS as unavailable once the last fix is older than this.
     optional double gnss_timeout = 10 [default = 3];
