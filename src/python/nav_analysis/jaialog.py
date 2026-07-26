@@ -44,14 +44,19 @@ class Channel:
 
 
 def _channel(f, group, fields):
+    """`fields` maps a stable name to a path, or to a tuple of candidate paths. Candidates
+    exist because field names have been renamed across firmware versions - notably
+    PressureAdjustedData.calculated_depth became sensor_depth plus a separate vehicle depth."""
     if group + "/_utime_" not in f:
         return None
     t = f[group + "/_utime_"][:].astype(np.float64) / 1e6
     data = {}
     for name, path in fields.items():
-        v = _get(f, group + "/" + path)
-        if v is not None:
-            data[name] = v.astype(np.float64)
+        for candidate in (path if isinstance(path, tuple) else (path,)):
+            v = _get(f, group + "/" + candidate)
+            if v is not None:
+                data[name] = v.astype(np.float64)
+                break
     return Channel(t, data)
 
 
@@ -80,8 +85,12 @@ LOWCTL_FIELDS = {"motor": "control_surfaces/motor", "rudder": "control_surfaces/
                  "port_elev": "control_surfaces/port_elevator", "stbd_elev": "control_surfaces/stbd_elevator"}
 SETPT_FIELDS = {"throttle": "throttle", "type": "type", "des_heading": "helm_course/heading",
                 "des_speed": "helm_course/speed", "des_depth": "helm_course/depth",
-                "rc_heading": "remote_control/heading", "rc_speed": "remote_control/speed"}
-PRESS_FIELDS = {"depth": "calculated_depth", "pressure": "pressure_adjusted", "pressure_raw": "pressure_raw"}
+                "rc_heading": "remote_control/heading", "rc_speed": "remote_control/speed",
+                "is_helm_constant_course": "is_helm_constant_course"}
+# Vehicle depth preferred; `calculated_depth` is the pre-rename name, `sensor_depth` is at the
+# transducer. Newer firmware publishes `depth` and `sensor_depth` separately.
+PRESS_FIELDS = {"depth": ("depth", "calculated_depth", "sensor_depth"),
+                "pressure": "pressure_adjusted", "pressure_raw": "pressure_raw"}
 BOTSTAT_FIELDS = {"lat": "location/lat", "lon": "location/lon", "heading": "attitude/heading",
                   "cog": "attitude/course_over_ground", "pitch": "attitude/pitch", "roll": "attitude/roll",
                   "sog": "speed/over_ground", "depth": "depth", "mission_state": "mission_state",
