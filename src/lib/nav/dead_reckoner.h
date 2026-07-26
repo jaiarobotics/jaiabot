@@ -67,7 +67,9 @@ struct DeadReckonerConfig
     /// This never touches the state-driving covariance or the Kalman gain, so it cannot trade
     /// accuracy for calibration the way raising `current_random_walk` itself did (see the note
     /// on that field): the state estimate and every downstream position/velocity update behave
-    /// identically regardless of these two values.
+    /// identically regardless of these two values. Internally clamped to never go below the
+    /// corresponding state random walk, so `position_sigma()` can never report less uncertainty
+    /// than `position_sigma_internal()` regardless of how these are configured.
     ///
     /// The state-driving `current_random_walk` is tuned for accuracy and is known to be too
     /// small to explain real current drift: H3 (analysis/hypotheses.py) measured the
@@ -216,6 +218,13 @@ class DeadReckoner
         /// cos(pitch): the fraction of forward thrust that acts horizontally. A diving or
         /// nose-up jaiabot drives its propeller partly into the vertical.
         double forward_horizontal_fraction{1.0};
+        /// Variance of the pitch estimate feeding `forward_horizontal_fraction`, rad^2, from
+        /// the attitude filter. `forward_horizontal_fraction` = cos(pitch) is most sensitive to
+        /// pitch error right where the surge STATE's contribution to velocity is largest and
+        /// most degenerate (nose near vertical during depth hold), so pitch uncertainty is
+        /// propagated into position process noise the same way `heading_variance` already is,
+        /// rather than trusting `forward_horizontal_fraction` as if it were exact.
+        double pitch_variance{0.0};
     };
 
     void propagate(const Input& input, double dt)
@@ -371,11 +380,18 @@ class DeadReckoner
         // Reporting-only process noise: identical except the current and speed-scale terms are
         // inflated to the measured (not accuracy-tuned) unpredictability of those states, so
         // `Pr_` grows to reflect real dead-reckoning risk while `P_`, which drives the state
-        // estimate, does not.
+        // estimate, does not. `Qr`'s diagonal is clamped to be at least `Q`'s element-wise: this
+        // is what makes "`Pr_` never understates `P_`" a structural guarantee (see
+        // `position_sigma()`) rather than something that only holds for the current defaults -
+        // a `report_*_random_walk` set below the corresponding state random walk would otherwise
+        // silently reproduce the exact overconfidence bug this covariance exists to fix.
         Covariance Qr = Q;
-        Qr(i_current_east, i_current_east) = sq(cfg_.report_current_random_walk) * dt;
-        Qr(i_current_north, i_current_north) = sq(cfg_.report_current_random_walk) * dt;
-        Qr(i_speed_scale, i_speed_scale) = sq(cfg_.report_speed_scale_random_walk) * dt;
+        Qr(i_current_east, i_current_east) =
+            std::max(Q(i_current_east, i_current_east), sq(cfg_.report_current_random_walk) * dt);
+        Qr(i_current_north, i_current_north) = std::max(
+            Q(i_current_north, i_current_north), sq(cfg_.report_current_random_walk) * dt);
+        Qr(i_speed_scale, i_speed_scale) = std::max(
+            Q(i_speed_scale, i_speed_scale), sq(cfg_.report_speed_scale_random_walk) * dt);
 
         // Uncertainty in the heading input steers the velocity, so it lands on position
         // across-track. Adding it here keeps the heading-bias state free to model only the
@@ -391,6 +407,26 @@ class DeadReckoner
             Qr(i_north, i_north) += across * s * s;
             Qr(i_east, i_north) += -across * s * c;
             Qr(i_north, i_east) += -across * s * c;
+        }
+
+        // Uncertainty in the pitch estimate feeding `fraction` = cos(pitch) lands ALONG the
+        // heading direction (it scales the surge state's contribution, not its bearing), unlike
+        // heading_variance above which is across-track. |d(fraction)/d(pitch)| = |sin(pitch)|;
+        // recovered from `fraction` itself (already clamped to [0, 1]) since only the raw
+        // pitch, not its cosine, is available here.
+        if (std::isfinite(input.pitch_variance) && input.pitch_variance > 0.0)
+        {
+            const double sin_pitch_magnitude = std::sqrt(std::max(0.0, 1.0 - fraction * fraction));
+            const double along =
+                sq(surge * sin_pitch_magnitude * dt) * input.pitch_variance;
+            Q(i_east, i_east) += along * s * s;
+            Q(i_north, i_north) += along * c * c;
+            Q(i_east, i_north) += along * s * c;
+            Q(i_north, i_east) += along * s * c;
+            Qr(i_east, i_east) += along * s * s;
+            Qr(i_north, i_north) += along * c * c;
+            Qr(i_east, i_north) += along * s * c;
+            Qr(i_north, i_east) += along * s * c;
         }
 
         P_ = (F * P_ * F.transpose() + Q).symmetrised();

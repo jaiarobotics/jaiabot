@@ -43,17 +43,24 @@ struct AttitudeConfig
 
     /// Noise on the gravity-derived up direction, rad. Datasheet static angle error is 1.5 deg.
     double gravity_noise{deg_to_rad(2.0)};
-    /// Loose sanity bounds on the gravity report's magnitude, m/s^2. update_gravity() only ever
-    /// uses the NORMALISED vector, so a magnitude scale/offset error is harmless as long as the
-    /// direction is sound - that is what the gravity_gate_sigma innovation gate below actually
-    /// screens. These bounds exist only to reject readings so degenerate (near free-fall, or a
-    /// saturated/clipped accelerometer) that direction itself cannot be trusted; they are not a
-    /// proxy for "close to 9.81". Measured: 2 of 48 fleet logs report a systematic magnitude
-    /// scale error (median 6.4-8.5 m/s^2 vs. the true ~9.81, direction unaffected) that a tight
-    /// +/-2.5 band around 9.81 used to reject wholesale (49-72% of samples on those two logs),
-    /// silently losing tilt aiding for most of those flights.
-    double gravity_magnitude_min{3.0};
-    double gravity_magnitude_max{20.0};
+    /// Reject the gravity report when |g| strays this far from the local value, m/s^2.
+    ///
+    /// Tried loosening this to [3, 20] on the argument that update_gravity() only ever uses the
+    /// NORMALISED vector, so a magnitude error should be harmless as long as direction is sound
+    /// (2 of 48 fleet logs have a systematic magnitude scale error, median 6.4-8.5 m/s^2, that
+    /// this tight band rejects on 49-72% of samples). REVERTED: an independent rebuild/replay
+    /// A/B across all 48 logs found the loosened gate produced byte-identical position/velocity
+    /// trajectories on both affected logs despite the huge change in raw rejection rate - the
+    /// gravity_gate_sigma innovation gate below already screens the same samples on direction,
+    /// so the magnitude pre-filter's rejections were not actually contributing tilt aiding that
+    /// mattered. Loosening it also opens an unexamined interaction with the consecutive-rejection
+    /// bypass (max_consecutive_rejections): samples with a corrupted direction that used to be
+    /// screened out before ever reaching the innovation gate could now advance that counter and
+    /// eventually force an unconditional accept, right around the high-dynamics dive transitions
+    /// where calibration integrity matters most. Zero measured benefit plus a real, unaddressed
+    /// risk is not worth carrying.
+    double gravity_magnitude_tolerance{2.5};
+    double gravity_magnitude{9.81};
 
     /// Heading noise from the rotation vector, rad. Datasheet says 5 deg in practice.
     double rotation_vector_heading_noise{deg_to_rad(5.0)};
@@ -157,7 +164,7 @@ class AttitudeFilter
         if (!initialised_ || !gravity_body.all_finite()) return false;
 
         const double magnitude = gravity_body.norm();
-        if (magnitude < cfg_.gravity_magnitude_min || magnitude > cfg_.gravity_magnitude_max)
+        if (std::abs(magnitude - cfg_.gravity_magnitude) > cfg_.gravity_magnitude_tolerance)
             return false;
 
         const auto measured = normalised(gravity_body);

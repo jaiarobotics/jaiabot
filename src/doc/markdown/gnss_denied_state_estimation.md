@@ -94,39 +94,80 @@ how much the current and speed scale drift after the last fix.
 
 ## Measured performance
 
-`nav_replay` runs one GNSS-aided pass over a log and, every 20 s, forks the estimator into a
-counterfactual trial that replays the next 120 s (or 60 s) with GNSS withheld, scoring against
-the fixes it withheld. Forking rather than carving fixed outages out of one pass gives ~30-60
-trials per log instead of a handful. Numbers below are medians over trials where the bot was
-underway (mean SOG ≥ 0.8 m/s), across **all 20 fleet-50 logs (16 distinct bots)**; "frozen" is
-what the current stack does. Reproduce with `analysis/parse_baseline.py` over the raw
-`nav_replay --log csv/<log>.csv --horizon <120|60> --stride 20 --min-distance 30` output for
-every log (trial-weighted mean of per-log medians, matching `analysis/baseline_results.md`):
+**Final, independently-verified numbers across all 48 logs, 6 fleets (Sept 2024 - Apr 2026).**
+`nav_replay` runs one GNSS-aided pass over a log and, every 20 s (`--stride 20`), forks the
+estimator into a counterfactual trial that replays the next `--horizon` seconds with GNSS
+withheld, scoring against the fixes it withheld and against freeze-at-last-fix ("frozen" — what
+the current stack does). "Purposeful run-in" trials (implied speed = displacement/horizon ≥ 1.0
+m/s and straightness = displacement/path ≥ 0.7) are pooled into a 25-35 m and a 50-70 m
+displacement band and reported as CEP (median) and R95 (95th percentile) dead-reckoning error;
+reproduce with `analysis/run_final_verify.sh` (raw `nav_replay --horizon
+{15,30,45,60} --stride 20 --min-distance 5 --verbose` output for every log) and
+`analysis/final_verify_analyze.py`.
 
-| Horizon | Trials | DR error (median) | Frozen error (median) | DR wins | Reported σ / actual error |
-| --- | --- | --- | --- | --- | --- |
-| 60 s | 756 | 31.7 m | 43.7 m | 63.6% | 0.29 |
-| 120 s | 753 | 66.3 m | 67.0 m | 49.9% | 0.30 |
+44 of the 48 logs have a motor channel; 4 (all `fleet3`, all dated 2024-09-17, bots 1-4) do not
+— see below — and are pooled and reported separately rather than folded into the headline
+number.
 
-At 60 s the estimator clearly beats freezing (63.6% win rate, only 2/20 logs worse than
-freezing at the median). By 120 s that advantage has largely decayed — a near coin-flip
-(49.9% win rate), with 9/20 logs doing worse than freezing at the median. Near-stationary
-trials are roughly a wash regardless of horizon, which is expected: when the bot is barely
-moving, freezing is already close to optimal.
+| | n (30 m band) | CEP @ 30 m | R95 @ 30 m | n (60 m band) | CEP @ 60 m | R95 @ 60 m | DR beats frozen |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **Pooled, 44 motor-equipped logs** | 868 | **8.2 m** | **34.1 m** | 1167 | **20.6 m** | **67.5 m** | 93% / 91% |
+| fleet3 (9 logs) | 257 | 7.4 m | 38.8 m | 363 | 20.6 m | 96.5 m | 91% / 88% |
+| fleet4 (4 logs) | 280 | 6.7 m | 31.2 m | 332 | 15.3 m | 65.0 m | 93% / 90% |
+| fleet50 (20 logs) | 263 | 8.9 m | 28.6 m | 322 | 19.7 m | 58.5 m | 96% / 96% |
+| fleet52 (9 logs) | 64 | 16.8 m | 41.6 m | 144 | 34.8 m | 62.6 m | 84% / 93% |
+| fleet55 (1 log)¹ | 1 | 3.4 m | 3.4 m | 3 | 10.9 m | 13.9 m | 100% / 100% |
+| fleet61 (1 log)¹ | 3 | 11.1 m | 23.1 m | 3 | 11.3 m | 17.0 m | 100% / 100% |
+| **No-motor fleet3 (4 logs, reported separately)** | 215 | 24.4 m | 41.7 m | 291 | 43.7 m | 79.8 m | — |
 
-Two problems fall out of this: the advantage over trivial freezing decays sharply between
-60 s and 120 s, and the filter is **overconfident by ~3.3x** — reported position σ is only
-~30% of actual error, fleet-wide (range 0.17–0.58 per log), not just on outlier bots. This
-means the bot would trust a dead-reckoned position far more than it should during any GNSS
-outage. Every fix attempted against this so far (documented below) has traded accuracy for
-calibration or vice versa rather than fixing both; **it is the single highest-priority open
-problem in this estimator**, ahead of the modest DR-accuracy gains chased in the rest of this
-section.
+¹ fleet55/61 have only one log each and n as low as 1-3 trials in a band; treat as anecdotal,
+not a fleet-level estimate.
 
-The along/cross-track split is roughly even fleet-wide (median along-track and cross-track
-errors are within ~20% of each other at both horizons — see the per-log breakdown in
-`analysis/baseline_results.md`), meaning heading and speed model are both limiting and neither
-is close to its floor. The honest read on why:
+Against the operational goals — 30 m threshold, 60 m objective, feeding a mine handoff whose own
+location is known to 10 m CEP / 24 m R95 — the pooled motor-equipped fleet clears CEP at both
+distances but the **60 m-band R95 (67.5 m) alone is close to the 60 m objective distance**, and
+combined with the mine's own 24 m R95 consumes most of the handoff's error budget; fleet52 misses
+the 30 m CEP goal outright (16.8 m is still under 30 m, but its R95 badly overshoots at 41.6 m).
+Dead reckoning beats naive freezing in 84-100% of run-ins on every fleet at both bands — it is a
+real, fleet-wide improvement over the status quo, just not yet inside spec on the tail.
+
+The four no-motor fleet3 logs (2024-09-17, bots 1-4, zero motor records in the raw log — not a
+processing artifact) run the estimator with the thrust model permanently blind. Their DR error is
+roughly 3x the motor-equipped pool (CEP 24.4/43.7 m vs. 8.2/20.6 m, R95 41.7/79.8 m vs.
+34.1/67.5 m at 30/60 m) — expected, since the surge state has no rpm signal to relax toward and
+is driven by process noise alone. Do not average these into the pooled number above; report them
+separately, as done here.
+
+**Depth-hold physics.** While holding depth the bot hangs at ~87.5° pitch (nose nearly straight
+up), motor rpm is zero, and it rotates about the near-vertical nose axis at ~23°/s (~4 rpm). This
+rotation is confirmed by the magnetometer independently of the gyro on the two logs that carry
+real magnetometer data (`fleet55`, `fleet61`) and reproduces at the same rate on fleet50/55/61
+across 20 months of logs. With the nose vertical the propeller produces essentially no horizontal
+thrust, so horizontal motion during depth hold is close to pure current advection — the two
+`dead_reckoner.h` fixes below (`forward_horizontal_fraction` scaling the surge *state*, and the
+pitch-variance process noise it now carries) exist because of this finding.
+
+**Sigma calibration: fixed in direction, not fully calibrated, and not held-out validated.** The
+filter's reported position σ used to be ~30% of actual error fleet-wide (3.3x overconfident) —
+a genuine safety problem for a mine-engage handoff, since the vehicle would claim to meet spec
+while missing it threefold. The `Pr_`/`P_` split described below fixes the *direction* of this:
+measured on the same 48 logs, unfiltered (all trials, not just purposeful run-ins, since an
+operator cannot rely on only the "purposeful" subset being calibrated), pooled reported-σ /
+actual-error median is now 1.14 (15 s) to 2.79 (60 s), i.e. the filter has moved from badly
+overconfident to moderately-to-strongly **overconservative** — safe for this application, but not
+well calibrated. Coverage inside the reported 1σ circle is 55-80% (target ~39%) and inside the
+95% ellipse is 84-95% (target 95%), both trending more conservative as horizon grows. Per fleet at
+h=30s, σ/error ranges from 1.48 (fleet4) to 3.03 (fleet61, n=107, all one log) — non-uniform, and
+the two constants that drive this (`report_current_random_walk`, `report_speed_scale_random_walk`)
+were hand-tuned against this same 48-log population with no held-out fleet or log split, so the
+specific numbers should be read as "safely conservative on this dataset", not as a validated,
+physically-derived calibration. See "Fixing the sigma underconfidence" below for the mechanism,
+the code-level invariant that bounds the downside, and this same caveat stated in full.
+
+The along/cross-track split is roughly even fleet-wide on the original fleet-50 diagnosis
+(median along-track and cross-track errors are within ~20% of each other at both horizons — see
+`analysis/baseline_results.md`), meaning heading and speed model are both limiting and neither is
+close to its floor. The honest read on why, from the original 20-log fleet-50 analysis:
 
 - **Heading on this platform is nowhere near 5°.** Raw `euler_angles.heading` sits 11–17°
   off GNSS course with a 24–39° interquartile spread. Some of that spread is real crab angle
@@ -137,7 +178,8 @@ is close to its floor. The honest read on why:
 - **The thrust curve is inferred, not calibrated.** Only two windows in the whole log set
   were steady and straight enough to fit speed through water cleanly.
 - **The bot spends 13% of its time too steep for heading to mean anything** (|pitch| p90 is
-  87°, because it dives and floats nose-up). Those samples are excluded from heading updates.
+  87°, because it dives and floats nose-up — the same depth-hold physics above). Those samples
+  are excluded from heading updates.
 
 The highest-leverage improvements, in order: a magnetometer calibration procedure per bot; a
 still-water speed-versus-rpm sweep; and PPK post-processed truth (the repo already has
@@ -235,40 +277,72 @@ Because `Pr_` cannot influence `x_`, `P_`, or any gain, this is accuracy-neutral
 construction, not by tuning luck — confirmed by rerunning `nav_replay` across all 48 logs with
 only `dead_reckoner.h` reverted: dead-reckoned error, frozen-baseline error and DR-beats-frozen
 percentage are bit-for-bit identical between the two runs at every horizon and every fleet, only
-the reported σ differs. Purposeful-run-in pool (implied speed ≥ 1.0 m/s, straightness ≥ 0.7,
-GPS-glitch trials with implied speed > 5 m/s excluded — a handful of single-fix truth teleports
-of hundreds of metres, present in a few logs, otherwise dominate the tail), pooled across the 44
-motor-equipped logs:
+the reported σ differs.
 
-| Horizon | Reported σ / error (before → after) | Inside 1σ (before → after, target ~39%) | Inside 95% ellipse (before → after, target ~95%) |
+**On the honest, unfiltered trial population** (all trials with `dr_err > 0.5 m`, not just
+"purposeful run-ins" — an operator cannot rely on only being in a purposeful run-in when GNSS is
+lost), pooled across the 44 motor-equipped logs, reported σ / actual error went from ~0.22-0.48
+(3.3x overconfident, matching the original finding) to:
+
+| Horizon | Reported σ / error (median) | Inside 1σ (target ~39%) | Inside 95% ellipse (target ~95%) |
 | --- | --- | --- | --- |
-| 15 s | 0.30 → 0.93 | 10.6% → 47.1% | 37.8% → 81.1% |
-| 30 s | 0.27 → 1.10 | 11.1% → 53.2% | 34.8% → 86.0% |
-| 60 s | 0.25 → 1.27 | 9.2% → 58.9% | 32.6% → 89.7% |
-| 120 s | 0.24 → 1.33 | 10.1% → 62.9% | 29.9% → 87.9% |
+| 15 s | 1.14 | 55.1% | 84.3% |
+| 30 s | 1.92 | 70.6% | 91.7% |
+| 45 s | 2.46 | 76.3% | 94.1% |
+| 60 s | 2.79 | 79.9% | 95.1% |
 
-Per fleet the fix generalises unevenly — fleet 52 (the fleet with the weakest baseline DR
-accuracy) remains the most underconfident of the six even after the fix (σ/error 0.70-1.47
-across horizons, vs. 0.93-2.94 for the rest) — but every fleet moved from badly overconfident
-toward σ/error ≈ 1, and none moved past roughly 2x, which is the safe direction for a
-mine-engage handoff. The four no-motor fleet-3 logs (blind thrust model, reported separately
-throughout this doc) improve on the same fix (in-1σ 1.4% → 12.6-25.4%, in-95% 8.5% → 46.5-87.8%
-at 15-120 s) but stay well short of the motor-equipped fleets' calibration — expected, since
-their dominant error source is an unconstrained surge state that these two report-only terms do
-not model; fixing that would need a report-only term on `stw` uncertainty when `rpm` has never
-been observed, not attempted here.
+This is a large, genuine improvement in *direction* — no longer dangerously overconfident, which
+was the safety-critical part of the original finding — but it overshoots into moderate-to-strong
+**overconservatism** rather than landing near 1.0, and grows more conservative with horizon rather
+than converging. (An earlier version of this fix was validated only against the purposeful-run-in
+subset, which reported a rosier 0.93-1.33 median; that subset excludes exactly the low-speed,
+low-displacement trials where the reporting covariance behaves worst, so it understates how
+conservative the filter actually is — the numbers above are the honest, full-population view.)
+
+Per fleet at h=30s, σ/error ranges from 1.48 (fleet4) to 3.03 (fleet61, n=107, single log) — the
+fix does *not* generalise uniformly, and does not correlate cleanly with which fleets needed it
+most. The four no-motor fleet-3 logs land closest to well-calibrated (σ/error 1.02, in-1σ 50.6%,
+in-95% 80.0% at h=30s) — better than several motor-equipped fleets, likely because their dominant
+uncertainty (an unconstrained surge state) happens to be sized closer to right by coincidence, not
+because this mechanism specifically models it.
 
 `nav_replay --verbose` now prints `reported_sigma` per trial (it previously only had aggregate
-percentiles), which is what made this per-trial 1σ/95% coverage check possible.
+percentiles), which is what made this per-trial 1σ/95% coverage check possible. Reproduce with
+`analysis/run_final_verify.sh` and `analysis/final_verify_analyze.py`.
+
+**Honest limitation, flagged by review.** `report_current_random_walk` (0.09) and
+`report_speed_scale_random_walk` (0.03) were hand-tuned by iterating against this same 48-log
+sweep — there is no held-out fleet or log split behind them, and the per-fleet spread above
+(0.70-1.47 on fleet 52 vs. up to 2.94 elsewhere, drifting further from 1.0 as horizon grows) is
+consistent with a two-parameter fit to an aggregate target rather than a value derived
+independently (e.g. from online innovation statistics). Two things partly bound the risk: `Pr_`
+is now structurally clamped to never fall below `P_` regardless of how these two constants are
+configured (see below), so even a badly-generalising value cannot reproduce the original
+3.3x-overconfident failure mode on a new fleet — it can only leave the report *more*
+conservative than warranted, which is the safe direction for the mine-engage handoff this feeds.
+But "safe direction" is not the same as "validated to generalise", and a new fleet or a
+structurally different deployment (e.g. a longer no-motor run) could still land anywhere in a
+wide, untested conservative range. Treat the specific numeric constants as fleet-tuned, not
+physically derived; the *mechanism* (a separate reporting covariance that cannot influence the
+Kalman gain) is the part that is validated.
+
+A second review finding was a real bug, now fixed: the doc comment claiming "`Pr_` always ≥
+`P_`" was not actually enforced in code — it held only for the specific default constants
+above, and was reproducibly false (`position_sigma() < position_sigma_internal()` after 1000
+propagation steps) for a config with `report_current_random_walk`/`report_speed_scale_random_walk`
+set below the corresponding state random walk, exactly the kind of value the docstring invited
+an operator to pick. `propagate_step` now clamps `Qr`'s diagonal to `max(Q, report_*)`
+element-wise, so the invariant is structural rather than a property of the shipped defaults;
+`report_sigma_holds_even_below_the_state_random_walk` regression-tests the previously-broken
+configuration directly (it fails without the clamp).
 
 ## Depth-hold physics, the gravity gate, and a first real-data magnetometer check
 
-Three more findings from the expanded 48-log dataset, in priority order. Accuracy and
-calibration were re-measured across all 48 logs before and after each change (44
-motor-equipped logs, purposeful run-ins, same pool as above); CEP/R95/σ-ratio moved by less
-than measurement noise at every horizon (15/30/60/120 s), i.e. both fixes below are
-accuracy-neutral in aggregate, as expected given how small a fraction of total flight time
-they touch. Both are kept anyway because they are real, data-confirmed bugs, not tuning.
+Three more findings from the expanded 48-log dataset. A code review pass on this work found two
+critical/major issues and re-measured the empirical claims independently; one change below
+(the gravity-magnitude gate) was reverted as a result, and the depth-hold fix gained an
+additional term it was originally missing. What follows reflects that final, reviewed state, not
+the original claims.
 
 **Depth-hold/nose-up (`dead_reckoner.h`, `state_estimator.h`).** While holding depth the bot
 sits at ~87.5° pitch with motor rpm at zero, so `forward_horizontal_fraction = cos(pitch) ≈
@@ -281,45 +355,68 @@ surge-to-velocity term (and its Jacobian) by `forward_horizontal_fraction` as we
 target (`vertical_nose_credits_no_horizontal_motion_from_stale_surge` regression-tests this;
 it fails on the pre-fix code with ~2.7 m of spurious drift over 2 s).
 
-Separately, 14.4% of GNSS fixes fleet-wide with usable speed-over-ground (up to 26% on some
-logs) arrive while pitch exceeds `max_heading_update_pitch` — the same 60° threshold that
-already gates heading *corrections* — because the bot is nose-up near the surface right before
-or after a dive. `update_speed_and_course`/`update_speed_only` decompose ground velocity into
-`stw` (along heading) plus current, so applying them with a heading that has been
-free-integrating gyro-only (no correction, since heading is unobservable) mis-attributes real
-motion between `stw`, current and `heading_bias`. `handle_gnss` now skips both velocity-update
-forms — but *not* the position update, which needs no heading — while
-`!attitude().heading_observable()` (`gnss_velocity_update_is_skipped_while_nose_is_too_steep`).
+Review flagged that this made position more sensitive, every step, to the *pitch estimate*
+`forward_horizontal_fraction` is derived from — with no corresponding process noise, unlike the
+already-existing treatment of `heading_variance` a few lines below it. `cos(pitch)` is most
+sensitive to pitch error exactly near the depth-hold singularity (pitch → 90°) that motivated
+this fix in the first place, so a mis-estimated pitch there would silently inject an uncredited
+position error. `DeadReckoner::Input` now carries `pitch_variance` (populated from
+`AttitudeFilter::tilt_sigma()`, a conservative combined roll+pitch bound rather than a tight
+pitch-only decomposition), and `propagate_step` adds a matching process-noise term to `Q`/`Qr`
+along the heading direction, sized by `(surge · |sin(pitch)| · dt)² · pitch_variance` — the same
+pattern `heading_variance` already uses for its own (cross-track) contribution.
+`pitch_variance_inflates_uncertainty_but_not_the_state_estimate` regression-tests that this is
+process noise only (identical state trajectory, larger reported σ). On the current 48-log
+dataset this addition is itself measured to be accuracy- and calibration-neutral in aggregate
+(see below) — the real logs rarely combine a large pitch-uncertainty excursion with a large
+stale surge in a way that shows up in `dr_err` — but it closes a real, previously-unmodelled
+sensitivity rather than leaving it latent.
 
-Both fixes are real and grounded in measurement, but neither closed the specific gap they
-targeted: trials whose GNSS-denied horizon starts during a dive (`dive=1` in `nav_replay
---verbose`) score ~3x worse (dr-error/path%) than non-dive trials at 15-30 s horizons,
-converging to parity by 60-120 s, and this gap did not measurably shrink after either fix
-(e.g. dive dr-error/path% median at 15 s: 89.8% before, 88.7% after the surge-scaling fix,
-89.4% after both). Inspecting the reference (GNSS-aided) trace around individual bad dive
-trials shows the underlying calibration itself (surge and current split) already looking
-wrong going into the dive, and the bracketed depth-hold windows are short (13-20 s bursts,
-not one continuous hold) and close to the surface, where the truth GNSS track itself may be
-degraded by antenna-breach/multipath right at the dive transition — a data-quality confound
-this session did not have time to separate from a real model gap. Flagging for follow-up
-rather than claiming it fixed: whatever drives the dive-trial gap, it is not (or not only) the
-two mechanisms above.
+Separately, `update_speed_and_course`/`update_speed_only` decompose ground velocity into `stw`
+(along heading) plus current, which is only sound while heading is observable; `handle_gnss` now
+skips both velocity-update forms — but *not* the position update, which needs no heading — while
+`!attitude().heading_observable()` (pitch beyond 60°)
+(`gnss_velocity_update_is_skipped_while_nose_is_too_steep`). This is a real correctness fix, but
+independent verification found it fires zero additional rejections on this dataset: the
+`velocity_accepted`/`velocity_rejected` diagnostic counts from `nav_replay` are identical with and
+without the gate on every one of the 48 logs, most likely because the pre-existing
+`min_velocity_update_speed` threshold already excludes the near-stationary depth-hold samples
+where pitch would exceed 60°. Kept as defensive correctness (it is still the right thing to do,
+and is provably harmless — bit-identical accuracy), but its practical impact on this fleet's data
+is currently unmeasurable, not the 14.4%-of-fixes-affected motivation originally claimed for it.
 
-**Gravity magnitude gate (`attitude_filter.h`).** `update_gravity()` only ever uses the
-*normalised* gravity vector, so a pure magnitude/scale error is harmless to the direction
-correction it applies — but the pre-filter rejected on `|magnitude - 9.81| > 2.5`, discarding
-the (still-good) direction whenever magnitude drifted. Two of 48 logs
-(`bot3_fleet3_20250213T233721`, `bot3_fleet3_20250213T201953`) report a systematic scale error
-(median |gravity| 6.4-7.4 m/s², direction unaffected) that this rejected on 49-72% of samples,
-losing tilt aiding for most of those flights. Replaced with loose sanity bounds
-(`gravity_magnitude_min`/`max`, default [3, 20] m/s²) that only reject genuinely degenerate
-readings (near free-fall or a saturated accelerometer) — direction consistency is already
-screened by the existing `gravity_gate_sigma` innovation gate, which is the check that
-actually matters. Pooled rejection rate across all 48 logs drops from 3.64% to 0.023%; the two
-affected logs' DR error improves modestly (medians 18.7→18.4 m and 9.8→9.2 m at a 30 s
-horizon, frozen-beat rate 67%→71% on the second), consistent with the fix helping without
-overclaiming a dramatic swing (`gravity_update_tolerates_a_magnitude_scale_error` regression-
-tests the mechanism directly).
+Neither of the two fixes above closed the underlying gap they targeted: trials whose
+GNSS-denied horizon starts during a dive (`dive=1` in `nav_replay --verbose`) still score ~3x
+worse (dr-error/path%) than non-dive trials at 15-30 s horizons, converging to parity by 60 s.
+Independent re-measurement found dr_err is in fact bit-for-bit identical, trial-for-trial, before
+and after this entire change set on every one of the 48 logs — the dive-trial gap is untouched at
+full precision, not just "moved by less than measurement noise". The bracketed depth-hold windows
+are short (13-20 s bursts, not one continuous hold) and close to the surface, where the truth
+GNSS track itself may be degraded by antenna-breach/multipath right at the dive transition — a
+data-quality confound this investigation did not have time to separate from a real model gap.
+Flagging for follow-up rather than claiming it fixed: whatever drives the dive-trial gap, it is
+not the mechanisms above.
+
+**Gravity magnitude gate (`attitude_filter.h`) — tried, then reverted.** `update_gravity()` only
+ever uses the *normalised* gravity vector, so a pure magnitude/scale error should be harmless to
+the direction correction it applies. Two of 48 logs (`bot3_fleet3_20250213T233721`,
+`bot3_fleet3_20250213T201953`) report a systematic scale error (median |gravity| 6.4-7.4 m/s²,
+direction unaffected) that the tight `|magnitude - 9.81| > 2.5` pre-filter rejected on 49-72% of
+samples. This was loosened to `[3, 20]` m/s² sanity bounds on the theory that the existing
+`gravity_gate_sigma` innovation gate already screens direction and would catch anything that
+mattered. **Independent rebuild/replay A/B across all 48 logs found this produced byte-identical
+position/velocity trajectories on both affected logs despite the large change in raw rejection
+rate (3.64% → 0.023% pooled)** — the magnitude pre-filter's rejections were not, in fact,
+contributing tilt aiding that mattered, so the originally-claimed accuracy improvement on the two
+logs (medians 18.7→18.4 m and 9.8→9.2 m) does not hold up under a full-precision trace diff (zero
+bytes differ). Loosening the gate also opened an unexamined interaction with the pre-existing
+consecutive-rejection bypass (`max_consecutive_rejections`): samples with a corrupted *direction*
+that the tight band used to screen out before they ever reached the innovation gate could now
+reach it, and a run of ≥10 such samples would force an unconditional accept — a real, unaddressed
+risk concentrated right around the high-dynamics dive transitions whose calibration integrity
+matters most. Zero measured benefit plus a real, unaddressed risk is not worth carrying, so this
+was **reverted**: the gate is back to the original tight tolerance band around 9.81 m/s²
+(`gravity_magnitude`/`gravity_magnitude_tolerance` in `AttitudeConfig`).
 
 **Magnetometer, first real-data test (`nav_replay`).** Two logs now carry real
 `magx/magy/magz` (`bot1_fleet55_20251223`, `bot2_fleet61_20260414`, IMU rows with 16 fields).
@@ -383,7 +480,7 @@ horizontal one.
 
 - `src/lib/nav/*.h` — the estimator, no goby/protobuf/boost dependency, so it builds and
   tests off-vehicle.
-- `src/test/nav/test.cpp` — 78 Boost.Test cases (matching the `src/test/utils` pattern):
+- `src/test/nav/test.cpp` — 79 Boost.Test cases (matching the `src/test/utils` pattern):
   frame conventions checked against the identities measured in the logs, per-filter unit
   tests, and closed-loop integration tests including a GNSS-denied coast.
 - `src/bin/nav_replay/` — offline replay and scoring tool. This is what produced the table
@@ -397,7 +494,7 @@ horizontal one.
 
 ## Status and caveats
 
-- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 78 cases,
+- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 79 cases,
   and are exercised against real logs.
 - `jaiabot_state_estimator` compiles and starts on ubuntu noble against the packaged
   goby3/DCCL/MOOS, and exposes its full config surface. It has **not been run against live or

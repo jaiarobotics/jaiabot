@@ -409,20 +409,6 @@ BOOST_AUTO_TEST_CASE(gravity_update_rejects_implausible_magnitude)
     BOOST_CHECK(f.update_gravity(Vector3({0.0, 0.0, 9.81})));
 }
 
-BOOST_AUTO_TEST_CASE(gravity_update_tolerates_a_magnitude_scale_error)
-{
-    // Regression for finding 2: update_gravity() normalises the vector, so a pure scale error
-    // (measured on 2 of 48 fleet logs: median |g| 6.4-8.5 vs. the true ~9.81, direction
-    // unaffected) must not be rejected on magnitude alone - only the direction matters.
-    AttitudeFilter f;
-    const Quaternion tilted =
-        level_attitude(0.0) * exp_map(Vector3({0.0, deg_to_rad(-15.0), 0.0}));
-    BOOST_REQUIRE(f.initialise(gravity_report(tilted), 0.0));
-
-    const Vector3 scaled_down = normalised(gravity_report(tilted)).value() * 6.5;
-    BOOST_CHECK(f.update_gravity(scaled_down));
-}
-
 BOOST_AUTO_TEST_CASE(heading_update_converges)
 {
     AttitudeFilter f;
@@ -660,6 +646,40 @@ BOOST_AUTO_TEST_CASE(vertical_nose_credits_no_horizontal_motion_from_stale_surge
     BOOST_CHECK_SMALL((dr.position() - before)[1], 1e-9);
 }
 
+BOOST_AUTO_TEST_CASE(pitch_variance_inflates_uncertainty_but_not_the_state_estimate)
+{
+    // Regression for a code-review finding on the fix above: forward_horizontal_fraction now
+    // scales the surge state's direct contribution to velocity, so an error in the pitch
+    // estimate it comes from should show up as position risk near the nose-vertical
+    // singularity, the same way heading_variance already does for heading error - not be
+    // silently uncredited.
+    DeadReckonerConfig cfg;
+    cfg.surge_time_constant = 100.0;
+    const double heading = deg_to_rad(30.0);
+    const double near_vertical_fraction = 0.2; // cos(pitch) close to the depth-hold singularity
+
+    DeadReckoner quiet(cfg);
+    quiet.reset_position(Vector2({0.0, 0.0}), 1.5);
+    DeadReckoner noisy(cfg);
+    noisy.reset_position(Vector2({0.0, 0.0}), 1.5);
+
+    for (int i = 0; i < 1500; ++i) quiet.propagate({heading, 0.0, 2200.0, 1.0, 0.0}, 0.1);
+    for (int i = 0; i < 1500; ++i) noisy.propagate({heading, 0.0, 2200.0, 1.0, 0.0}, 0.1);
+    BOOST_CHECK_GT(quiet.surge(), 1.0);
+
+    for (int i = 0; i < 30; ++i)
+    {
+        quiet.propagate({heading, 0.0, 0.0, near_vertical_fraction, 0.0}, 0.1);
+        noisy.propagate({heading, 0.0, 0.0, near_vertical_fraction, deg_to_rad(10.0)}, 0.1);
+    }
+
+    // Same pitch-derived fraction drives both, so the state trajectory must match exactly:
+    // pitch_variance is a process-noise input, never a correction.
+    BOOST_CHECK_CLOSE(quiet.position()[0], noisy.position()[0], 1e-9);
+    BOOST_CHECK_CLOSE(quiet.position()[1], noisy.position()[1], 1e-9);
+    BOOST_CHECK_GT(noisy.position_sigma(), quiet.position_sigma());
+}
+
 BOOST_AUTO_TEST_CASE(surge_relaxes_toward_the_thrust_model)
 {
     DeadReckoner dr;
@@ -860,6 +880,25 @@ BOOST_AUTO_TEST_CASE(report_noise_does_not_change_the_state_estimate)
     BOOST_CHECK_SMALL(quiet.position_sigma_internal() - loud.position_sigma_internal(), 1e-9);
     // But the honest, reported sigma differs enormously between the two configs.
     BOOST_CHECK_GT(loud.position_sigma(), 10.0 * quiet.position_sigma());
+}
+
+BOOST_AUTO_TEST_CASE(report_sigma_holds_even_below_the_state_random_walk)
+{
+    // Regression for a real code-review finding: report_*_random_walk set BELOW the
+    // corresponding state random walk used to make position_sigma() understate
+    // position_sigma_internal() (reproduced pre-fix: 0.891 vs 0.933 after 1000 steps of the
+    // exact config below). The invariant must hold structurally, not just for the defaults.
+    DeadReckonerConfig cfg;
+    cfg.report_current_random_walk = 1e-6;
+    cfg.report_speed_scale_random_walk = 1e-6;
+    DeadReckoner dr(cfg);
+    dr.reset_position(Vector2({0.0, 0.0}), 1.5);
+    for (int i = 0; i < 1000; ++i)
+    {
+        dr.propagate({deg_to_rad(20.0), deg_to_rad(2.0), 2200.0, 1.0}, 0.2);
+        if (i % 5 == 0) dr.update_position(Vector2({0.1 * i, 0.05 * i}), 1.5);
+        BOOST_CHECK_GE(dr.position_sigma(), dr.position_sigma_internal());
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

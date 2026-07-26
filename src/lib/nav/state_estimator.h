@@ -350,6 +350,11 @@ class StateEstimator
         input.heading_variance = attitude_.heading_variance();
         input.rpm = motor_fresh(time) ? rpm_ : 0.0;
         input.forward_horizontal_fraction = std::cos(attitude_.pitch());
+        // `tilt_sigma()` is the combined roll+pitch uncertainty; using its square as
+        // pitch_variance is a conservative (not tight) upper bound rather than an exact
+        // decomposition, consistent with this being a reporting/process-noise input rather than
+        // a state correction.
+        input.pitch_variance = attitude_.tilt_sigma() * attitude_.tilt_sigma();
 
         const Vector2 before = dead_reckoner_.position();
         dead_reckoner_.propagate(input, dt);
