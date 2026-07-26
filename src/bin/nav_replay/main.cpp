@@ -413,12 +413,12 @@ int run(const Options& opt)
 
     if (opt.verbose)
     {
-        std::printf("  %8s %8s %8s %8s %8s %8s %8s %6s %5s\n", "start", "path", "displ",
-                    "dr_err", "frozen", "along", "cross", "sog", "dive");
+        std::printf("  %8s %8s %8s %8s %8s %8s %8s %8s %6s %5s\n", "start", "path", "displ",
+                    "dr_err", "frozen", "along", "cross", "sigma", "sog", "dive");
         for (const auto& t : trials)
-            std::printf("  %8.0f %8.1f %8.1f %8.2f %8.2f %8.2f %8.2f %6.2f %5d\n", t.start,
+            std::printf("  %8.0f %8.1f %8.1f %8.2f %8.2f %8.2f %8.2f %8.2f %6.2f %5d\n", t.start,
                         t.path_length, t.displacement, t.dead_reckoned_error, t.frozen_error,
-                        t.along_track_error, t.cross_track_error, t.mean_speed,
+                        t.along_track_error, t.cross_track_error, t.reported_sigma, t.mean_speed,
                         t.submerged ? 1 : 0);
     }
     return 0;

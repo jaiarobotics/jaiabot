@@ -765,6 +765,69 @@ BOOST_AUTO_TEST_CASE(position_sigma_grows_while_coasting)
     BOOST_CHECK_GT(dr.position_sigma(), initial);
 }
 
+// The reporting covariance inflates current/speed-scale process noise to reflect measured
+// real-world unpredictability (H3), but must never feed back into the state estimate: it is
+// tracked entirely separately from the covariance that drives the Kalman gain.
+
+BOOST_AUTO_TEST_CASE(report_sigma_never_understates_the_state_sigma)
+{
+    DeadReckoner dr;
+    dr.reset_position(Vector2({0.0, 0.0}), 1.5);
+    BOOST_CHECK_GE(dr.position_sigma(), dr.position_sigma_internal());
+    for (int i = 0; i < 2000; ++i)
+    {
+        dr.propagate({deg_to_rad(37.0), 0.0, 2200.0}, 0.2);
+        if (i % 5 == 0) dr.update_position(Vector2({0.1 * i, -0.05 * i}), 1.5);
+        BOOST_CHECK_GE(dr.position_sigma(), dr.position_sigma_internal());
+    }
+    // While coasting the two must actually diverge, not just tie, or the report-only
+    // inflation configured via report_current_random_walk/report_speed_scale_random_walk
+    // is not doing anything.
+    for (int i = 0; i < 500; ++i) dr.propagate({deg_to_rad(37.0), 0.0, 2200.0}, 0.2);
+    BOOST_CHECK_GT(dr.position_sigma(), 1.5 * dr.position_sigma_internal());
+}
+
+BOOST_AUTO_TEST_CASE(report_noise_does_not_change_the_state_estimate)
+{
+    // Two filters differing only in the report-only noise config must produce byte-for-byte
+    // identical state trajectories: report noise must never influence the Kalman gain, x, or
+    // the state-driving covariance, only `position_sigma()`.
+    DeadReckonerConfig quiet_report;
+    quiet_report.report_current_random_walk = 1e-6;
+    quiet_report.report_speed_scale_random_walk = 1e-6;
+    DeadReckonerConfig loud_report;
+    loud_report.report_current_random_walk = 1.0;
+    loud_report.report_speed_scale_random_walk = 1.0;
+
+    DeadReckoner quiet(quiet_report);
+    DeadReckoner loud(loud_report);
+    quiet.reset_position(Vector2({0.0, 0.0}), 1.5);
+    loud.reset_position(Vector2({0.0, 0.0}), 1.5);
+
+    for (int i = 0; i < 1000; ++i)
+    {
+        const DeadReckoner::Input input{deg_to_rad(20.0), deg_to_rad(2.0), 2200.0, 1.0};
+        quiet.propagate(input, 0.2);
+        loud.propagate(input, 0.2);
+        if (i % 5 == 0)
+        {
+            const Vector2 fix({0.1 * i, 0.05 * i});
+            quiet.update_position(fix, 1.5);
+            loud.update_position(fix, 1.5);
+            quiet.update_speed_only(0.8, deg_to_rad(20.0), 0.2);
+            loud.update_speed_only(0.8, deg_to_rad(20.0), 0.2);
+        }
+    }
+
+    BOOST_CHECK_SMALL((quiet.position() - loud.position()).norm(), 1e-9);
+    BOOST_CHECK_SMALL(quiet.surge() - loud.surge(), 1e-9);
+    BOOST_CHECK_SMALL((quiet.current() - loud.current()).norm(), 1e-9);
+    BOOST_CHECK_SMALL(quiet.speed_scale() - loud.speed_scale(), 1e-9);
+    BOOST_CHECK_SMALL(quiet.position_sigma_internal() - loud.position_sigma_internal(), 1e-9);
+    // But the honest, reported sigma differs enormously between the two configs.
+    BOOST_CHECK_GT(loud.position_sigma(), 10.0 * quiet.position_sigma());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(state_estimator_integration_tests)
@@ -924,8 +987,13 @@ BOOST_AUTO_TEST_CASE(dead_reckons_far_better_than_freezing)
                                        << 100.0 * out.final_error / out.distance_while_denied
                                        << "%)");
     BOOST_CHECK_LT(out.final_error, 0.15 * out.distance_while_denied);
-    // The reported uncertainty must not badly understate the actual error.
-    BOOST_CHECK_GT(out.solution.position_sigma, 0.25 * out.final_error);
+    // The reported uncertainty must not badly understate the actual error. This scenario's
+    // current is exactly the modelled random-walk mean, so the filter fits it almost
+    // perfectly and `final_error` ends up tiny; the report-only inflation calibrated against
+    // real fleet current mismatch (see `report_current_random_walk`) then makes sigma look
+    // very conservative here. That is expected, not a bug: the fleet-realistic calibration
+    // check lives in nav_replay/analysis, not this idealised closed-loop scenario.
+    BOOST_CHECK_GT(out.solution.position_sigma, out.final_error);
 }
 
 BOOST_AUTO_TEST_CASE(dead_reckoning_drift_is_repeatable_across_seeds)

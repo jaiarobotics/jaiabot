@@ -63,6 +63,22 @@ struct DeadReckonerConfig
     /// mis-attributes the error and it inverts as soon as the bot turns onto a new heading.
     double heading_bias_random_walk{0.0001};
 
+    /// Process noise for the REPORTING covariance only (see `DeadReckoner::position_sigma`).
+    /// This never touches the state-driving covariance or the Kalman gain, so it cannot trade
+    /// accuracy for calibration the way raising `current_random_walk` itself did (see the note
+    /// on that field): the state estimate and every downstream position/velocity update behave
+    /// identically regardless of these two values.
+    ///
+    /// The state-driving `current_random_walk` is tuned for accuracy and is known to be too
+    /// small to explain real current drift: H3 (analysis/hypotheses.py) measured the
+    /// current-triangle residual moving ~0.33 m/s over 60 s, well beyond what 0.013 models.
+    /// These report-only values are set from that same measurement so the *reported*
+    /// uncertainty reflects the real, measured unpredictability of the current and thrust
+    /// calibration once GNSS stops correcting them, even though the filter itself is not
+    /// allowed to chase that noise.
+    double report_current_random_walk{0.09};
+    double report_speed_scale_random_walk{0.03};
+
     /// GNSS position noise, m. Measured stationary scatter is 1.1-1.5 m.
     double gnss_position_noise{1.5};
     /// GNSS ground-velocity noise, m/s. Measured speed-over-ground jitter is 0.14-0.19 m/s.
@@ -136,8 +152,19 @@ class DeadReckoner
     double speed_scale() const { return x_[i_speed_scale]; }
     double heading_bias() const { return x_[i_heading_bias]; }
 
-    /// Root sum of the horizontal position variances, m.
+    /// Root sum of the horizontal position variances, m. This is the honest, REPORTED
+    /// uncertainty: it comes from `Pr_`, a covariance that shares every correction with the
+    /// state-driving `P_` but grows faster while coasting (see `report_current_random_walk`),
+    /// so it stays a superset of `P_` and is never used to compute the Kalman gain or the
+    /// state estimate itself.
     double position_sigma() const
+    {
+        return std::sqrt(std::max(0.0, Pr_(i_east, i_east) + Pr_(i_north, i_north)));
+    }
+
+    /// The position sigma implied by the state-driving covariance alone, i.e. what
+    /// `position_sigma()` would be without the report-only inflation. Diagnostic only.
+    double position_sigma_internal() const
     {
         return std::sqrt(std::max(0.0, P_(i_east, i_east) + P_(i_north, i_north)));
     }
@@ -170,8 +197,11 @@ class DeadReckoner
         {
             P_(i_east, i) = P_(i, i_east) = 0.0;
             P_(i_north, i) = P_(i, i_north) = 0.0;
+            Pr_(i_east, i) = Pr_(i, i_east) = 0.0;
+            Pr_(i_north, i) = Pr_(i, i_north) = 0.0;
         }
         P_(i_east, i_east) = P_(i_north, i_north) = sigma * sigma;
+        Pr_(i_east, i_east) = Pr_(i_north, i_north) = sigma * sigma;
         initialised_ = true;
     }
 
@@ -290,6 +320,7 @@ class DeadReckoner
                                    sq(cfg_.initial_current_sigma),
                                    sq(cfg_.initial_speed_scale_sigma),
                                    sq(cfg_.initial_heading_bias_sigma)});
+        Pr_ = P_;
     }
 
     void propagate_step(const Input& input, double dt)
@@ -328,6 +359,14 @@ class DeadReckoner
              sq(cfg_.surge_noise) * dt, sq(cfg_.current_random_walk) * dt,
              sq(cfg_.current_random_walk) * dt, sq(cfg_.speed_scale_random_walk) * dt,
              sq(cfg_.heading_bias_random_walk) * dt});
+        // Reporting-only process noise: identical except the current and speed-scale terms are
+        // inflated to the measured (not accuracy-tuned) unpredictability of those states, so
+        // `Pr_` grows to reflect real dead-reckoning risk while `P_`, which drives the state
+        // estimate, does not.
+        Covariance Qr = Q;
+        Qr(i_current_east, i_current_east) = sq(cfg_.report_current_random_walk) * dt;
+        Qr(i_current_north, i_current_north) = sq(cfg_.report_current_random_walk) * dt;
+        Qr(i_speed_scale, i_speed_scale) = sq(cfg_.report_speed_scale_random_walk) * dt;
 
         // Uncertainty in the heading input steers the velocity, so it lands on position
         // across-track. Adding it here keeps the heading-bias state free to model only the
@@ -339,9 +378,14 @@ class DeadReckoner
             Q(i_north, i_north) += across * s * s;
             Q(i_east, i_north) += -across * s * c;
             Q(i_north, i_east) += -across * s * c;
+            Qr(i_east, i_east) += across * c * c;
+            Qr(i_north, i_north) += across * s * s;
+            Qr(i_east, i_north) += -across * s * c;
+            Qr(i_north, i_east) += -across * s * c;
         }
 
         P_ = (F * P_ * F.transpose() + Q).symmetrised();
+        Pr_ = (F * Pr_ * F.transpose() + Qr).symmetrised();
     }
 
     void clamp_state()
@@ -375,6 +419,10 @@ class DeadReckoner
         x_ += correction;
         const Covariance IKH = Covariance::identity() - K * H;
         P_ = (IKH * P_ * IKH.transpose() + K * R * K.transpose()).symmetrised();
+        // Apply the same (state-optimal, not Pr-optimal) gain to the reporting covariance. The
+        // Joseph form is valid for any gain, so this correctly shrinks `Pr_` on every accepted
+        // fix without ever computing a gain from it or feeding it back into `x_`.
+        Pr_ = (IKH * Pr_ * IKH.transpose() + K * R * K.transpose()).symmetrised();
         return true;
     }
 
@@ -382,6 +430,8 @@ class DeadReckoner
     ThrustModel thrust_;
     State x_{};
     Covariance P_{};
+    /// Reporting-only covariance; see `position_sigma()`. Always >= `P_` in the PSD order.
+    Covariance Pr_{};
     bool initialised_{false};
     int position_rejections_{0};
 };

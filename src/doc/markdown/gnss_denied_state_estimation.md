@@ -207,6 +207,60 @@ tests four candidate explanations for the residual, against all 20 logs:
 Numbers above are reproducible: `analysis/hypotheses.py` for H1-H4, `analysis/baseline_results.md`
 and `analysis/parse_baseline.py` for the 20-log fleet-wide performance table.
 
+## Fixing the sigma underconfidence without touching accuracy
+
+The sigma-underconfidence finding above generalised: re-measured across all 48 logs (6 fleets,
+Sept 2024 - Apr 2026), reported σ / actual error was 0.22-0.48 fleet-wide at both 30 s and 60 s —
+the filter reports roughly a third of its real error, fleet-wide, not just on fleet 50. Every fix
+tried against `current_random_walk` itself (above) traded accuracy for calibration because that
+parameter is shared: it sizes both how fast the *state* is allowed to drift between fixes (which
+sets the Kalman gain, and therefore how much a noisy GNSS-aided calibration corrupts the snapshot
+a coast starts from) and how fast the *reported uncertainty* grows. Those are different jobs and
+do not need the same knob.
+
+`DeadReckoner` now tracks a second covariance, `Pr_`, alongside the state-driving `P_`:
+
+- Every accepted GNSS correction applies the *same* Kalman gain to both (the Joseph form is
+  valid for any gain, not just the one computed from `Pr_`, provided the measurement noise `R`
+  is right), so `Pr_` shrinks in lock-step with `P_` whenever GNSS is available.
+- While coasting, `Pr_` is propagated with its own, larger process noise on exactly the two
+  states H3 identified as under-modelled — `report_current_random_walk` (default 0.09,
+  vs. 0.013 for the state) and `report_speed_scale_random_walk` (0.03 vs. 0.006) — sized from
+  H3's own measurement (current-triangle residual moving ~0.33 m/s over 60 s) rather than from
+  the accuracy-tuned state values.
+- `Pr_` never appears in a Kalman gain and never corrects `x_`; `DeadReckoner::position_sigma()`
+  now reads from it, `position_sigma_internal()` exposes the old (state) value for diagnostics.
+
+Because `Pr_` cannot influence `x_`, `P_`, or any gain, this is accuracy-neutral by
+construction, not by tuning luck — confirmed by rerunning `nav_replay` across all 48 logs with
+only `dead_reckoner.h` reverted: dead-reckoned error, frozen-baseline error and DR-beats-frozen
+percentage are bit-for-bit identical between the two runs at every horizon and every fleet, only
+the reported σ differs. Purposeful-run-in pool (implied speed ≥ 1.0 m/s, straightness ≥ 0.7,
+GPS-glitch trials with implied speed > 5 m/s excluded — a handful of single-fix truth teleports
+of hundreds of metres, present in a few logs, otherwise dominate the tail), pooled across the 44
+motor-equipped logs:
+
+| Horizon | Reported σ / error (before → after) | Inside 1σ (before → after, target ~39%) | Inside 95% ellipse (before → after, target ~95%) |
+| --- | --- | --- | --- |
+| 15 s | 0.30 → 0.93 | 10.6% → 47.1% | 37.8% → 81.1% |
+| 30 s | 0.27 → 1.10 | 11.1% → 53.2% | 34.8% → 86.0% |
+| 60 s | 0.25 → 1.27 | 9.2% → 58.9% | 32.6% → 89.7% |
+| 120 s | 0.24 → 1.33 | 10.1% → 62.9% | 29.9% → 87.9% |
+
+Per fleet the fix generalises unevenly — fleet 52 (the fleet with the weakest baseline DR
+accuracy) remains the most underconfident of the six even after the fix (σ/error 0.70-1.47
+across horizons, vs. 0.93-2.94 for the rest) — but every fleet moved from badly overconfident
+toward σ/error ≈ 1, and none moved past roughly 2x, which is the safe direction for a
+mine-engage handoff. The four no-motor fleet-3 logs (blind thrust model, reported separately
+throughout this doc) improve on the same fix (in-1σ 1.4% → 12.6-25.4%, in-95% 8.5% → 46.5-87.8%
+at 15-120 s) but stay well short of the motor-equipped fleets' calibration — expected, since
+their dominant error source is an unconstrained surge state that these two report-only terms do
+not model; fixing that would need a report-only term on `stw` uncertainty when `rpm` has never
+been observed, not attempted here.
+
+`nav_replay --verbose` now prints `reported_sigma` per trial (it previously only had aggregate
+percentiles), which is what made this per-trial 1σ/95% coverage check possible.
+
 ## Architecture
 
 Three loosely-coupled filters, all in `src/lib/nav` as dependency-free headers so they can
@@ -242,6 +296,10 @@ State (7): `[pos_n, pos_e, stw, cur_n, cur_e, k_scale, psi_bias]`.
 - With GNSS present and the heading changing, all of `k_scale`, `psi_bias` and the current
   are observable. With GNSS gone they simply stop updating and the position propagates on
   the last calibration.
+- Reported σ comes from a second, reporting-only covariance carried alongside the state
+  covariance (see "Fixing the sigma underconfidence" above); it shares every GNSS correction
+  with the state covariance but grows faster while coasting, and never feeds back into `x` or
+  the Kalman gain.
 
 ### Vertical (`vertical_filter.h`)
 
@@ -253,7 +311,7 @@ horizontal one.
 
 - `src/lib/nav/*.h` — the estimator, no goby/protobuf/boost dependency, so it builds and
   tests off-vehicle.
-- `src/test/nav/test.cpp` — 73 Boost.Test cases (matching the `src/test/utils` pattern):
+- `src/test/nav/test.cpp` — 75 Boost.Test cases (matching the `src/test/utils` pattern):
   frame conventions checked against the identities measured in the logs, per-filter unit
   tests, and closed-loop integration tests including a GNSS-denied coast.
 - `src/bin/nav_replay/` — offline replay and scoring tool. This is what produced the table
@@ -267,7 +325,7 @@ horizontal one.
 
 ## Status and caveats
 
-- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 73 cases,
+- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 75 cases,
   and are exercised against real logs.
 - `jaiabot_state_estimator` compiles and starts on ubuntu noble against the packaged
   goby3/DCCL/MOOS, and exposes its full config surface. It has **not been run against live or
