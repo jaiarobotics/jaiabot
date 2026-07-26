@@ -409,6 +409,20 @@ BOOST_AUTO_TEST_CASE(gravity_update_rejects_implausible_magnitude)
     BOOST_CHECK(f.update_gravity(Vector3({0.0, 0.0, 9.81})));
 }
 
+BOOST_AUTO_TEST_CASE(gravity_update_tolerates_a_magnitude_scale_error)
+{
+    // Regression for finding 2: update_gravity() normalises the vector, so a pure scale error
+    // (measured on 2 of 48 fleet logs: median |g| 6.4-8.5 vs. the true ~9.81, direction
+    // unaffected) must not be rejected on magnitude alone - only the direction matters.
+    AttitudeFilter f;
+    const Quaternion tilted =
+        level_attitude(0.0) * exp_map(Vector3({0.0, deg_to_rad(-15.0), 0.0}));
+    BOOST_REQUIRE(f.initialise(gravity_report(tilted), 0.0));
+
+    const Vector3 scaled_down = normalised(gravity_report(tilted)).value() * 6.5;
+    BOOST_CHECK(f.update_gravity(scaled_down));
+}
+
 BOOST_AUTO_TEST_CASE(heading_update_converges)
 {
     AttitudeFilter f;
@@ -624,6 +638,26 @@ BOOST_AUTO_TEST_CASE(straight_line_propagation_is_kinematic)
     const double expected = ThrustModel().speed(rpm) * 10.0;
     BOOST_CHECK_CLOSE(dr.position()[0], expected, 2.0);
     BOOST_CHECK_SMALL(dr.position()[1], 0.5);
+}
+
+BOOST_AUTO_TEST_CASE(vertical_nose_credits_no_horizontal_motion_from_stale_surge)
+{
+    // Regression for finding 1 (depth-hold/nose-up physics): forward_horizontal_fraction must
+    // scale the surge STATE's contribution to velocity, not just the relaxation target. Build
+    // up real surge while level, then go nose-vertical with the propeller off but a long time
+    // constant, so a stale surge would still be large if it were credited unscaled.
+    DeadReckonerConfig cfg;
+    cfg.surge_time_constant = 100.0;
+    DeadReckoner dr(cfg);
+    dr.reset_position(Vector2({0.0, 0.0}), 1.0);
+
+    const double heading = 0.0; // due north
+    for (int i = 0; i < 1500; ++i) dr.propagate({heading, 0.0, 2000.0, 1.0}, 0.1);
+    BOOST_CHECK_GT(dr.surge(), 1.0);
+
+    const Vector2 before = dr.position();
+    for (int i = 0; i < 20; ++i) dr.propagate({heading, 0.0, 0.0, 0.0}, 0.1);
+    BOOST_CHECK_SMALL((dr.position() - before)[1], 1e-9);
 }
 
 BOOST_AUTO_TEST_CASE(surge_relaxes_toward_the_thrust_model)
@@ -1109,6 +1143,65 @@ BOOST_AUTO_TEST_CASE(garbage_input_is_ignored)
     const NavSolution s = est.solution();
     BOOST_CHECK(!s.position_valid);
     BOOST_CHECK(s.mode == NavMode::uninitialised);
+}
+
+BOOST_AUTO_TEST_CASE(gnss_velocity_update_is_skipped_while_nose_is_too_steep)
+{
+    // Regression for finding 1: 14.4% of speed-usable GNSS fixes fleet-wide arrive while pitch
+    // exceeds max_heading_update_pitch (up to 26% on some logs), the same threshold that already
+    // gates heading corrections. update_speed_and_course/update_speed_only decompose velocity
+    // into surge (along heading) plus current, so applying them with an unobservable heading
+    // corrupts surge/current/heading_bias with a residual that has nothing to do with thrust.
+    const Quaternion steep = level_attitude(0.0) * exp_map(Vector3({0.0, deg_to_rad(-88.0), 0.0}));
+
+    StateEstimator est;
+    est.set_origin(0.0, 0.0);
+    const LocalTangentPlane plane(0.0, 0.0);
+
+    ImuSample imu;
+    imu.time = 0.0;
+    imu.quaternion = steep;
+    imu.gravity = gravity_report(steep);
+    est.handle_imu(imu);
+    BOOST_CHECK(!est.attitude().heading_observable());
+
+    // First fix seeds position without going through update_position/update_speed_*.
+    GnssSample g0;
+    g0.time = 0.0;
+    g0.lat = 0.0;
+    g0.lon = 0.0;
+    g0.mode = 3;
+    g0.speed_over_ground = 1.0;
+    g0.course_over_ground = 0.0;
+    est.handle_gnss(g0);
+    est.advance_to(0.0);
+    const auto before = est.diagnostics();
+    BOOST_CHECK_EQUAL(before.velocity_accepted + before.velocity_rejected, 0);
+    BOOST_CHECK_EQUAL(before.speed_accepted + before.speed_rejected, 0);
+
+    ImuSample imu1;
+    imu1.time = 1.0;
+    imu1.quaternion = steep;
+    imu1.gravity = gravity_report(steep);
+    est.handle_imu(imu1);
+
+    GnssSample g1;
+    g1.time = 1.0;
+    const Vector2 geo = plane.to_geographic(Vector2({0.0, 1.0}));
+    g1.lat = geo[0];
+    g1.lon = geo[1];
+    g1.mode = 3;
+    g1.speed_over_ground = 1.0;
+    g1.course_over_ground = 0.0;
+    est.handle_gnss(g1);
+    est.advance_to(1.0);
+
+    const auto after = est.diagnostics();
+    BOOST_CHECK_EQUAL(after.velocity_accepted + after.velocity_rejected,
+                      before.velocity_accepted + before.velocity_rejected);
+    BOOST_CHECK_EQUAL(after.speed_accepted + after.speed_rejected,
+                      before.speed_accepted + before.speed_rejected);
+    BOOST_CHECK_GT(after.position_accepted, before.position_accepted);
 }
 
 BOOST_AUTO_TEST_CASE(depth_flows_through_to_the_solution)

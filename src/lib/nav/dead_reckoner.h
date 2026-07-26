@@ -339,17 +339,26 @@ class DeadReckoner
         // step is long relative to the time constant.
         const double lambda = std::min(1.0, dt / tau);
 
-        x_[i_east] += (surge * s + x_[i_current_east]) * dt;
-        x_[i_north] += (surge * c + x_[i_current_north]) * dt;
+        // `fraction` scales more than the relaxation target: the current surge STATE also only
+        // acts horizontally to the extent the forward axis is horizontal. Without this, a surge
+        // built up before a dive keeps being credited to east/north at full weight for the
+        // whole surge_time_constant decay even once the nose is vertical and thrust is not
+        // horizontal at all (measured: dead-reckoning error/path immediately after a dive starts
+        // is ~3x worse than non-dive trials at 15-30s horizons, converging to parity by 60s once
+        // the stale surge has decayed - see analysis/depth_hold_fix.md).
+        const double horizontal_surge = surge * fraction;
+
+        x_[i_east] += (horizontal_surge * s + x_[i_current_east]) * dt;
+        x_[i_north] += (horizontal_surge * c + x_[i_current_north]) * dt;
         x_[i_surge] += (target - surge) * lambda;
 
         Covariance F = Covariance::identity();
-        F(i_east, i_surge) = s * dt;
+        F(i_east, i_surge) = fraction * s * dt;
         F(i_east, i_current_east) = dt;
-        F(i_east, i_heading_bias) = surge * c * dt;
-        F(i_north, i_surge) = c * dt;
+        F(i_east, i_heading_bias) = horizontal_surge * c * dt;
+        F(i_north, i_surge) = fraction * c * dt;
         F(i_north, i_current_north) = dt;
-        F(i_north, i_heading_bias) = -surge * s * dt;
+        F(i_north, i_heading_bias) = -horizontal_surge * s * dt;
         F(i_surge, i_surge) = 1.0 - lambda;
         F(i_surge, i_speed_scale) = nominal * lambda;
 

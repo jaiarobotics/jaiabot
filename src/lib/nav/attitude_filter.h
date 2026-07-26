@@ -43,9 +43,17 @@ struct AttitudeConfig
 
     /// Noise on the gravity-derived up direction, rad. Datasheet static angle error is 1.5 deg.
     double gravity_noise{deg_to_rad(2.0)};
-    /// Reject the gravity report when |g| strays this far from the local value, m/s^2.
-    double gravity_magnitude_tolerance{2.5};
-    double gravity_magnitude{9.81};
+    /// Loose sanity bounds on the gravity report's magnitude, m/s^2. update_gravity() only ever
+    /// uses the NORMALISED vector, so a magnitude scale/offset error is harmless as long as the
+    /// direction is sound - that is what the gravity_gate_sigma innovation gate below actually
+    /// screens. These bounds exist only to reject readings so degenerate (near free-fall, or a
+    /// saturated/clipped accelerometer) that direction itself cannot be trusted; they are not a
+    /// proxy for "close to 9.81". Measured: 2 of 48 fleet logs report a systematic magnitude
+    /// scale error (median 6.4-8.5 m/s^2 vs. the true ~9.81, direction unaffected) that a tight
+    /// +/-2.5 band around 9.81 used to reject wholesale (49-72% of samples on those two logs),
+    /// silently losing tilt aiding for most of those flights.
+    double gravity_magnitude_min{3.0};
+    double gravity_magnitude_max{20.0};
 
     /// Heading noise from the rotation vector, rad. Datasheet says 5 deg in practice.
     double rotation_vector_heading_noise{deg_to_rad(5.0)};
@@ -149,7 +157,7 @@ class AttitudeFilter
         if (!initialised_ || !gravity_body.all_finite()) return false;
 
         const double magnitude = gravity_body.norm();
-        if (std::abs(magnitude - cfg_.gravity_magnitude) > cfg_.gravity_magnitude_tolerance)
+        if (magnitude < cfg_.gravity_magnitude_min || magnitude > cfg_.gravity_magnitude_max)
             return false;
 
         const auto measured = normalised(gravity_body);

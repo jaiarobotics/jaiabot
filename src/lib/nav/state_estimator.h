@@ -277,7 +277,15 @@ class StateEstimator
         else
             ++diagnostics_.position_rejected;
 
-        if (sample.speed_over_ground && attitude_.initialised() &&
+        // Both velocity-update forms decompose ground velocity into surge (along heading) plus
+        // current, so they are only sound while heading is observable. Measured: 14.4% of
+        // speed-usable GNSS fixes fleet-wide arrive while pitch exceeds the same 60 deg
+        // threshold AttitudeFilter already uses to gate heading corrections (up to 26% on some
+        // logs) - i.e. while the nose is too vertical for heading to mean anything, which is
+        // exactly the depth-hold/nose-up regime from finding 1. Applying the fit anyway forces
+        // the residual onto surge and heading_bias using a heading that free-integrates gyro
+        // only, corrupting the calibration the subsequent GNSS-denied coast starts from.
+        if (sample.speed_over_ground && attitude_.initialised() && attitude_.heading_observable() &&
             *sample.speed_over_ground >= cfg_.min_velocity_update_speed)
         {
             const double speed = *sample.speed_over_ground;

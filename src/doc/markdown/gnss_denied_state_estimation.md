@@ -261,6 +261,78 @@ been observed, not attempted here.
 `nav_replay --verbose` now prints `reported_sigma` per trial (it previously only had aggregate
 percentiles), which is what made this per-trial 1σ/95% coverage check possible.
 
+## Depth-hold physics, the gravity gate, and a first real-data magnetometer check
+
+Three more findings from the expanded 48-log dataset, in priority order. Accuracy and
+calibration were re-measured across all 48 logs before and after each change (44
+motor-equipped logs, purposeful run-ins, same pool as above); CEP/R95/σ-ratio moved by less
+than measurement noise at every horizon (15/30/60/120 s), i.e. both fixes below are
+accuracy-neutral in aggregate, as expected given how small a fraction of total flight time
+they touch. Both are kept anyway because they are real, data-confirmed bugs, not tuning.
+
+**Depth-hold/nose-up (`dead_reckoner.h`, `state_estimator.h`).** While holding depth the bot
+sits at ~87.5° pitch with motor rpm at zero, so `forward_horizontal_fraction = cos(pitch) ≈
+0.04` correctly zeroes the thrust *target* `stw` relaxes toward — but the propagation step was
+still crediting the *current* `stw` state to east/north velocity unscaled, using only
+`heading`, not `forward_horizontal_fraction`. A surge built up during transit just before a
+dive kept contributing to position at full weight for the whole `surge_time_constant` decay
+even once the nose was vertical and thrust was not horizontal at all. Fixed by scaling the
+surge-to-velocity term (and its Jacobian) by `forward_horizontal_fraction` as well as the
+target (`vertical_nose_credits_no_horizontal_motion_from_stale_surge` regression-tests this;
+it fails on the pre-fix code with ~2.7 m of spurious drift over 2 s).
+
+Separately, 14.4% of GNSS fixes fleet-wide with usable speed-over-ground (up to 26% on some
+logs) arrive while pitch exceeds `max_heading_update_pitch` — the same 60° threshold that
+already gates heading *corrections* — because the bot is nose-up near the surface right before
+or after a dive. `update_speed_and_course`/`update_speed_only` decompose ground velocity into
+`stw` (along heading) plus current, so applying them with a heading that has been
+free-integrating gyro-only (no correction, since heading is unobservable) mis-attributes real
+motion between `stw`, current and `heading_bias`. `handle_gnss` now skips both velocity-update
+forms — but *not* the position update, which needs no heading — while
+`!attitude().heading_observable()` (`gnss_velocity_update_is_skipped_while_nose_is_too_steep`).
+
+Both fixes are real and grounded in measurement, but neither closed the specific gap they
+targeted: trials whose GNSS-denied horizon starts during a dive (`dive=1` in `nav_replay
+--verbose`) score ~3x worse (dr-error/path%) than non-dive trials at 15-30 s horizons,
+converging to parity by 60-120 s, and this gap did not measurably shrink after either fix
+(e.g. dive dr-error/path% median at 15 s: 89.8% before, 88.7% after the surge-scaling fix,
+89.4% after both). Inspecting the reference (GNSS-aided) trace around individual bad dive
+trials shows the underlying calibration itself (surge and current split) already looking
+wrong going into the dive, and the bracketed depth-hold windows are short (13-20 s bursts,
+not one continuous hold) and close to the surface, where the truth GNSS track itself may be
+degraded by antenna-breach/multipath right at the dive transition — a data-quality confound
+this session did not have time to separate from a real model gap. Flagging for follow-up
+rather than claiming it fixed: whatever drives the dive-trial gap, it is not (or not only) the
+two mechanisms above.
+
+**Gravity magnitude gate (`attitude_filter.h`).** `update_gravity()` only ever uses the
+*normalised* gravity vector, so a pure magnitude/scale error is harmless to the direction
+correction it applies — but the pre-filter rejected on `|magnitude - 9.81| > 2.5`, discarding
+the (still-good) direction whenever magnitude drifted. Two of 48 logs
+(`bot3_fleet3_20250213T233721`, `bot3_fleet3_20250213T201953`) report a systematic scale error
+(median |gravity| 6.4-7.4 m/s², direction unaffected) that this rejected on 49-72% of samples,
+losing tilt aiding for most of those flights. Replaced with loose sanity bounds
+(`gravity_magnitude_min`/`max`, default [3, 20] m/s²) that only reject genuinely degenerate
+readings (near free-fall or a saturated accelerometer) — direction consistency is already
+screened by the existing `gravity_gate_sigma` innovation gate, which is the check that
+actually matters. Pooled rejection rate across all 48 logs drops from 3.64% to 0.023%; the two
+affected logs' DR error improves modestly (medians 18.7→18.4 m and 9.8→9.2 m at a 30 s
+horizon, frozen-beat rate 67%→71% on the second), consistent with the fix helping without
+overclaiming a dramatic swing (`gravity_update_tolerates_a_magnitude_scale_error` regression-
+tests the mechanism directly).
+
+**Magnetometer, first real-data test (`nav_replay`).** Two logs now carry real
+`magx/magy/magz` (`bot1_fleet55_20251223`, `bot2_fleet61_20260414`, IMU rows with 16 fields).
+`nav_replay`'s `feed()` previously ignored them; it now plumbs them into
+`ImuSample::magnetic_field`, and a new `--prefer-magnetometer` flag switches the estimator to
+`update_magnetometer` instead of the rotation vector. Compared against GNSS course (sog ≥ 0.6
+m/s, nearest-neighbour match ≤ 0.3 s) on both logs: rotation-vector heading is as good as or
+slightly better than magnetometer heading (median |heading − course| 10.8° vs. 13.6° on
+fleet55; 18.7° vs. 18.9° on fleet61 — both dominated by real course/heading crab, not by
+either heading source being obviously broken). This is the first time `update_magnetometer`
+has been exercised against real hardware data rather than synthetic fixtures; the result does
+not support switching `prefer_magnetometer` on by default, so it stays `false`.
+
 ## Architecture
 
 Three loosely-coupled filters, all in `src/lib/nav` as dependency-free headers so they can
@@ -311,7 +383,7 @@ horizontal one.
 
 - `src/lib/nav/*.h` — the estimator, no goby/protobuf/boost dependency, so it builds and
   tests off-vehicle.
-- `src/test/nav/test.cpp` — 75 Boost.Test cases (matching the `src/test/utils` pattern):
+- `src/test/nav/test.cpp` — 78 Boost.Test cases (matching the `src/test/utils` pattern):
   frame conventions checked against the identities measured in the logs, per-filter unit
   tests, and closed-loop integration tests including a GNSS-denied coast.
 - `src/bin/nav_replay/` — offline replay and scoring tool. This is what produced the table
@@ -325,7 +397,7 @@ horizontal one.
 
 ## Status and caveats
 
-- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 75 cases,
+- The nav library and its tests build and pass on darwin (clang) and Linux (gcc), 78 cases,
   and are exercised against real logs.
 - `jaiabot_state_estimator` compiles and starts on ubuntu noble against the packaged
   goby3/DCCL/MOOS, and exposes its full config surface. It has **not been run against live or
@@ -336,7 +408,8 @@ horizontal one.
   silently not generated until it is added there; and `PressureAdjustedData.calculated_depth`,
   which is what fleet 50 logs contain, has since been renamed — current 2.y has `sensor_depth`
   and a separate vehicle `depth`. The app reads `depth` and falls back to `sensor_depth`.
-- The magnetometer and raw-acceleration paths are only tested synthetically, because the
-  deployed fleet firmware publishes neither field even though the current driver source does.
+- The raw-acceleration path is only tested synthetically, because the deployed fleet firmware
+  does not publish it. The magnetometer path has now been run against two real logs that do
+  carry it (see above) and performs comparably to, not better than, the rotation vector.
 - Tuning was validated against three logs from one fleet on two bots. The thrust curve in
   particular should be refitted per bot class.

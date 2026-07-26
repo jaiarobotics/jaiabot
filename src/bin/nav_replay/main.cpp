@@ -74,6 +74,8 @@ struct Options
     double min_distance{5.0};
     double declination_deg{-13.5};
     bool verbose{false};
+    /// Use the magnetometer for heading instead of the rotation vector, where present.
+    bool prefer_magnetometer{false};
 };
 
 std::vector<std::string> split(const std::string& line, char sep)
@@ -166,6 +168,12 @@ void feed(StateEstimator& est, const Record& r, bool withhold_gnss)
         s.gravity = Vector3({r.fields[4], r.fields[5], r.fields[6]});
         s.angular_velocity = Vector3({r.fields[7], r.fields[8], r.fields[9]});
         s.magnetometer_accuracy = r.fields.size() > 10 ? static_cast<int>(r.fields[10]) : 3;
+        // imu,time,qw,qx,qy,qz,gravx,gravy,gravz,gyrox,gyroy,gyroz,mag_accuracy[,magx,magy,magz]
+        if (r.fields.size() >= 14)
+        {
+            const Vector3 field({r.fields[11], r.fields[12], r.fields[13]});
+            if (field.all_finite()) s.magnetic_field = field;
+        }
         est.handle_imu(s);
     }
     else if (r.type == "gnss" && r.fields.size() >= 3)
@@ -293,6 +301,7 @@ int run(const Options& opt)
 
     StateEstimatorConfig cfg;
     cfg.declination = deg_to_rad(opt.declination_deg);
+    cfg.prefer_magnetometer = opt.prefer_magnetometer;
 
     StateEstimator reference(cfg);
     std::ofstream out;
@@ -428,7 +437,8 @@ void usage()
 {
     std::cerr << "usage: nav_replay --log FILE [--truth FILE] [--out FILE]\n"
                  "                  [--horizon SECONDS] [--stride SECONDS] [--warmup SECONDS]\n"
-                 "                  [--min-distance METRES] [--declination DEGREES] [--verbose]\n";
+                 "                  [--min-distance METRES] [--declination DEGREES] [--verbose]\n"
+                 "                  [--prefer-magnetometer]\n";
 }
 
 } // namespace
@@ -463,6 +473,8 @@ int main(int argc, char* argv[])
                 opt.declination_deg = std::stod(next());
             else if (arg == "--verbose")
                 opt.verbose = true;
+            else if (arg == "--prefer-magnetometer")
+                opt.prefer_magnetometer = true;
             else
             {
                 usage();
