@@ -138,7 +138,39 @@ upper_right_logo_link: "https://www.jaia.tech/"
 
     
     ansible_playbook {
-        file: "check-vpn-status.yml" 
+        file: "software-checkout.yml"
+        name: "Software Checkout"
+        section: "Checkout"
+        role: ADVANCED
+        confirmation_required: true
+
+        input_var {
+            name: "fleet_index"
+            display_name: "Fleet Index"
+            static_value: "$fleet_index"
+        }
+
+        output_var {
+            name: "jaiabot_vpn_ping_result"
+            display_name: "VPN Connectivity"
+        }
+        output_var {
+            name: "jaiabot_current_version"
+            display_name: "Current JaiaBot Version"
+        }
+        output_var {
+            name: "jaiabot_available_version"
+            display_name: "New Available JaiaBot Version"
+        }
+        output_var {
+            name: "jaiabot_upgrade_available"
+            display_name: "Minor Upgrade available?"
+        }
+        $limit
+    }
+
+    ansible_playbook {
+        file: "check-vpn-status.yml"
         name: "Check for VPN Status"
         section: "Security"
         role: USER
