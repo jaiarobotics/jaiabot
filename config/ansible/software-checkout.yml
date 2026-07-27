@@ -16,7 +16,7 @@
       shell: "rm -rf /var/log/jaiabot/bot_offload/*"
 
 - name: Software Checkout - Test VPN connectivity
-  hosts: hubs
+  hosts: all
   gather_facts: no
   become: yes
   any_errors_fatal: true
@@ -49,7 +49,7 @@
   become: yes
   tasks:
     - name: Update apt cache
-      # in some case the "apt" module was not doing an update
+      # in some cases the apt module was not doing an update
       shell: "apt-get update"
 
     - include_tasks: tasks/get-version.yml
