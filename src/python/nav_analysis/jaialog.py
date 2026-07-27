@@ -14,6 +14,7 @@ LOWCTL = "jaiabot::low_control/jaiabot.protobuf.LowControl"
 SETPT = "jaiabot::desired_setpoints/jaiabot.protobuf.DesiredSetpoints"
 PRESS = "jaiabot::pressure_adjusted/jaiabot.protobuf.PressureAdjustedData"
 BOTSTAT = "jaiabot::bot_status;14/jaiabot.protobuf.BotStatus"
+NAVSOL = "jaiabot::nav_solution/jaiabot.protobuf.NavSolution"
 
 GPS_MODE_NO_FIX, GPS_MODE_2D, GPS_MODE_3D = 1, 2, 3
 
@@ -95,6 +96,19 @@ BOTSTAT_FIELDS = {"lat": "location/lat", "lon": "location/lon", "heading": "atti
                   "cog": "attitude/course_over_ground", "pitch": "attitude/pitch", "roll": "attitude/roll",
                   "sog": "speed/over_ground", "depth": "depth", "mission_state": "mission_state",
                   "hdop": "hdop", "pdop": "pdop", "bot_id": "bot_id", "calib_status": "calibration_status"}
+# The estimator's own output, present in any log recorded while jaiabot_state_estimator was running.
+# Reading it back matters because a log then contains both the raw inputs and what the application
+# actually produced from them on the vehicle - the replay-bench comparison, but with real hardware
+# sample timing rather than the bench's, which is the open question the bench could not answer.
+NAVSOL_FIELDS = {"mode": "mode", "lat": "location/lat", "lon": "location/lon",
+                 "sigma": "position_sigma", "heading": "attitude/heading",
+                 "heading_sigma": "attitude/heading_sigma", "pitch": "attitude/pitch",
+                 "roll": "attitude/roll", "sog": "speed/over_ground", "stw": "speed/over_water",
+                 "cur_e": "current/east", "cur_n": "current/north", "speed_scale": "speed_scale",
+                 "heading_bias": "heading_bias", "dr_distance": "dead_reckoned_distance",
+                 "gnss_fix_age": "gnss_fix_age", "depth": "depth", "depth_rate": "depth_rate",
+                 "declination": "magnetic_declination", "attitude_valid": "attitude_valid",
+                 "position_valid": "position_valid"}
 
 
 @dataclass
@@ -108,20 +122,22 @@ class JaiaLog:
     setpt: Channel
     press: Channel
     botstat: Channel
+    # Absent from every log recorded before the estimator was deployed, so always check len().
+    navsol: Channel = None
 
     @property
     def t0(self):
         return min(c.t[0] for c in self.channels() if len(c))
 
     def channels(self):
-        return [c for c in (self.imu, self.tpv, self.sky, self.motor,
-                            self.lowctl, self.setpt, self.press, self.botstat) if c is not None]
+        return [c for c in (self.imu, self.tpv, self.sky, self.motor, self.lowctl, self.setpt,
+                            self.press, self.botstat, self.navsol) if c is not None]
 
     def summary(self):
         lines = [f"{self.name}"]
         for label, c in [("imu", self.imu), ("tpv", self.tpv), ("sky", self.sky), ("motor", self.motor),
                          ("lowctl", self.lowctl), ("setpt", self.setpt), ("press", self.press),
-                         ("botstat", self.botstat)]:
+                         ("botstat", self.botstat), ("navsol", self.navsol)]:
             if c is None or not len(c):
                 lines.append(f"  {label:8s} absent")
                 continue
@@ -143,6 +159,7 @@ def load(path):
             setpt=_channel(f, SETPT, SETPT_FIELDS),
             press=_channel(f, PRESS, PRESS_FIELDS),
             botstat=_channel(f, BOTSTAT, BOTSTAT_FIELDS),
+            navsol=_channel(f, NAVSOL, NAVSOL_FIELDS),
         )
 
 
