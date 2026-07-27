@@ -500,6 +500,17 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__JAIABOT_PID_CONTROL',
      'runs_on': [Type.BOT],
      'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_state_estimator',
+     'description': 'JaiaBot GNSS-Denied State Estimator',
+     'template': 'goby-app.service.in',
+     # Deliberately reuses the generic code rather than adding a dedicated one. Error is a
+     # DCCL-encoded field of BotStatus, so a new enumerator changes the BotStatus wire hash and
+     # every bot and hub in the fleet would have to be updated in lockstep. Reusing UNKNOWN keeps
+     # this deployable to a single bot. Add ERROR__FAILED__JAIABOT_STATE_ESTIMATOR and bump
+     # PROJECT_INTERVEHICLE_API_VERSION when this graduates from evaluation.
+     'error_on_fail': 'ERROR__FAILED__UNKNOWN',
+     'runs_on': [Type.BOT],
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_driver_arduino',
      'description': 'JaiaBot Driver Arduino',
      'template': 'goby-app.service.in',

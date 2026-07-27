@@ -1,0 +1,10 @@
+$app_block
+$interprocess_block
+
+# Shadow mode: publish NavSolution for evaluation but leave BotStatus/NodeStatus sourced from
+# jaiabot_fusion, so enabling the estimator cannot change vehicle behaviour. Flip this only
+# after the logged NavSolution has been compared against GPS on the water.
+publish_to_node_status: false
+
+# Everything else takes the defaults in config.proto, which were fitted from fleet logs.
+# Override here per fleet only with measured values.
