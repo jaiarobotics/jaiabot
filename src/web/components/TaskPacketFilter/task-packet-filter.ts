@@ -25,6 +25,21 @@ export function formatUtime(utime: number) {
 }
 
 /**
+ * Formats a start-to-end span as a datetime range, collapsing to a single datetime when they match.
+ * A mission set groups every packet sharing its name, so its packets can span multiple runs.
+ *
+ * @param {number} startUtime Earliest timestamp in microseconds
+ * @param {number} endUtime Latest timestamp in microseconds
+ * @returns {string} Human readable datetime, or "start – end" when they differ
+ */
+export function formatUtimeRange(startUtime: number, endUtime: number) {
+    if (endUtime > startUtime) {
+        return `${formatUtime(startUtime)} – ${formatUtime(endUtime)}`;
+    }
+    return formatUtime(startUtime);
+}
+
+/**
  * Display label for a mission set summary ("Unnamed" when it has no mission set name).
  *
  * @param {MissionSetSummary} missionSet Summary to label

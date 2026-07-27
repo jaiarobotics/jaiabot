@@ -10,6 +10,7 @@ import { TaskPacket } from "../../types/protobuf-types";
 import { jaiaAPI } from "../../utils/jaia-api";
 import {
     formatUtime,
+    formatUtimeRange,
     missionSetLabel,
     getDefaultDateRange,
     getInitialStartDateStr,
@@ -436,6 +437,28 @@ export default function TaskPacketFilter() {
                 </div>
             </div>
 
+            {showSlider && (
+                <div className="task-packet-filter-step">
+                    <div className="task-packet-filter-step-label">
+                        Drag to narrow the time window
+                    </div>
+                    <div className="task-packet-filter-slider">
+                        <div className="task-packet-filter-slider-labels">
+                            <span>{formatUtime(sliderValue[0])}</span>
+                            <span>{formatUtime(sliderValue[1])}</span>
+                        </div>
+                        <Slider
+                            value={sliderValue}
+                            min={sliderMin}
+                            max={sliderMax}
+                            step={sliderStep}
+                            onChange={handleSliderChange}
+                            onChangeCommitted={handleSliderCommit}
+                        />
+                    </div>
+                </div>
+            )}
+
             {missionSets.length > 0 && (
                 <div className="task-packet-filter-step">
                     <div className="task-packet-filter-step-header">
@@ -463,8 +486,8 @@ export default function TaskPacketFilter() {
                                         {missionSetLabel(missionSet)}
                                     </span>
                                     <span className="task-packet-filter-result-meta">
-                                        {formatUtime(missionSet.startTime)} ·{" "}
-                                        {missionSet.taskPacketCount} packets
+                                        {formatUtimeRange(missionSet.startTime, missionSet.endTime)}{" "}
+                                        · {missionSet.taskPacketCount} packets
                                         {missionSet.excludedTaskPacketCount > 0 &&
                                             ` (${missionSet.excludedTaskPacketCount} excluded)`}
                                     </span>
@@ -477,28 +500,6 @@ export default function TaskPacketFilter() {
                             Check one or more mission sets to filter the map.
                         </div>
                     )}
-                </div>
-            )}
-
-            {showSlider && (
-                <div className="task-packet-filter-step">
-                    <div className="task-packet-filter-step-label">
-                        Drag to narrow the time window
-                    </div>
-                    <div className="task-packet-filter-slider">
-                        <div className="task-packet-filter-slider-labels">
-                            <span>{formatUtime(sliderValue[0])}</span>
-                            <span>{formatUtime(sliderValue[1])}</span>
-                        </div>
-                        <Slider
-                            value={sliderValue}
-                            min={sliderMin}
-                            max={sliderMax}
-                            step={sliderStep}
-                            onChange={handleSliderChange}
-                            onChangeCommitted={handleSliderCommit}
-                        />
-                    </div>
                 </div>
             )}
 

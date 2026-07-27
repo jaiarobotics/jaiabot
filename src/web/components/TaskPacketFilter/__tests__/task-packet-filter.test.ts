@@ -1,5 +1,6 @@
 import {
     formatUtime,
+    formatUtimeRange,
     missionSetLabel,
     buildQueryStrings,
     computeBounds,
@@ -23,6 +24,19 @@ describe("formatUtime", () => {
         const utime = Date.UTC(2021, 0, 1) * 1000;
         expect(formatUtime(utime)).not.toBe("--");
         expect(typeof formatUtime(utime)).toBe("string");
+    });
+});
+
+describe("formatUtimeRange", () => {
+    test("collapses to a single datetime when start and end match", () => {
+        const utime = Date.UTC(2021, 0, 1) * 1000;
+        expect(formatUtimeRange(utime, utime)).toBe(formatUtime(utime));
+    });
+
+    test("shows a start-to-end range when they differ", () => {
+        const start = Date.UTC(2021, 0, 1) * 1000;
+        const end = Date.UTC(2021, 0, 2) * 1000;
+        expect(formatUtimeRange(start, end)).toBe(`${formatUtime(start)} – ${formatUtime(end)}`);
     });
 });
 
