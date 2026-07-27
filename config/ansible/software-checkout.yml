@@ -1,0 +1,73 @@
+---
+- name: Software Checkout - Clear bot log data
+  hosts: bots
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Remove bot log data
+      shell: "rm -rf /var/log/jaiabot/bot/*"
+
+- name: Software Checkout - Clear hub bot offload data
+  hosts: hubs
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Remove hub bot offload data
+      shell: "rm -rf /var/log/jaiabot/bot_offload/*"
+
+- name: Software Checkout - Test VPN connectivity
+  hosts: hubs
+  gather_facts: no
+  become: yes
+  any_errors_fatal: true
+  tasks:
+    - name: Ping fleet VPN address
+      shell: "ping -c 3 172.23.{{ fleet_index }}.1"
+      register: vpn_ping_result
+      failed_when: false
+
+    - name: Set fact for VPN ping result
+      set_fact:
+        jaiabot_vpn_ping_result: "{{ 'reachable' if vpn_ping_result.rc == 0 else 'unreachable' }}"
+
+    - name: Abort checkout if VPN is unreachable
+      ansible.builtin.fail:
+        msg: "VPN connectivity test failed: unable to ping 172.23.{{ fleet_index }}.1"
+      when: vpn_ping_result.rc != 0
+
+- name: Software Checkout - Disable VPN
+  hosts: all
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Disable wg_jaia VPN
+      shell: "systemctl disable wg-quick@wg_jaia"
+
+- name: Software Checkout - Verify latest software version
+  hosts: all
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Update apt cache
+      # in some case the "apt" module was not doing an update
+      shell: "apt-get update"
+
+    - include_tasks: tasks/get-version.yml
+
+    - name: Set fact if upgrade available
+      set_fact:
+        jaiabot_upgrade_available: "{{ jaiabot_current_version != jaiabot_available_version }}"
+
+- name: Software Checkout - Switch JCU user profile from advanced to user
+  hosts: hubs
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Set JCU role to user in runtime environment
+      ansible.builtin.lineinfile:
+        path: /etc/jaiabot/runtime.env
+        regexp: "^jaia_user_role="
+        line: "jaia_user_role=user"
+
+    - name: Restart JCU to apply new role
+      shell: "nohup /bin/bash -c 'sleep 5 && systemctl restart jaiabot_goby_liaison_standalone' > /dev/null &"
