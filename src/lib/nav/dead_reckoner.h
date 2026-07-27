@@ -32,64 +32,39 @@ namespace jaiabot
 {
 namespace nav
 {
-/// Tuning for DeadReckoner. Position and velocity noise defaults come from measured fleet
-/// GNSS behaviour, not from gpsd's reported accuracies, which are unusable.
+/// Tuning for DeadReckoner. Noise defaults are measured fleet GNSS behaviour; gpsd's own
+/// reported accuracies are unusable on this hardware.
 struct DeadReckonerConfig
 {
-    /// Surge response time constant toward the thrust model's speed, s.
     double surge_time_constant{3.0};
 
-    /// Process noise, all per sqrt(s) except where noted.
+    /// Process noise, per sqrt(s).
     double position_noise{0.05};
     double surge_noise{0.20};
-    /// Current random walk. 0.013 lets the current move ~0.1 m/s over a minute.
-    ///
-    /// Measured (analysis/hypotheses.py, H3): the current-triangle residual actually
-    /// moves ~0.33 m/s over 60 s but only ~0.31 m/s over 300 s, i.e. real currents here
-    /// move faster than this random walk models. Tried raising this to match (0.02-0.043)
-    /// with nav_replay across all 20 logs: every value tested made fleet-wide
-    /// dead-reckoning error *worse* (66.27 m -> 67-77 m median at horizon 120s), because
-    /// a noisier random walk also makes the GNSS-aided calibration noisier, degrading the
-    /// snapshot the coast starts from faster than the extra flexibility helps track the
-    /// real current. Reported sigma got closer to calibrated (0.30 -> up to 0.49) but at
-    /// a larger cost in accuracy, so this is left at the original value; H3 is confirmed
-    /// but not actionable through this parameter alone.
+    /// Real currents move faster than this models, but every larger value tested made
+    /// fleet-wide error worse: a noisier walk also degrades the GNSS-aided calibration the
+    /// coast starts from.
     double current_random_walk{0.013};
-    /// Speed-scale random walk. 0.006 lets the scale move ~0.1 over five minutes.
     double speed_scale_random_walk{0.006};
-    /// Heading-bias random walk. This state models compass calibration error, which is
-    /// essentially static; it must NOT be allowed to chase crab angle. Crab is a current
-    /// effect, fixed in the world frame, so letting the vehicle-frame heading bias absorb it
-    /// mis-attributes the error and it inverts as soon as the bot turns onto a new heading.
+    /// Compass calibration error, which is static. Must NOT chase crab angle: crab is fixed in
+    /// the world frame, so a vehicle-frame bias absorbing it inverts when the bot turns.
     double heading_bias_random_walk{0.0001};
 
-    /// Process noise for the REPORTING covariance only (see `DeadReckoner::position_sigma`).
-    /// This never touches the state-driving covariance or the Kalman gain, so it cannot trade
-    /// accuracy for calibration the way raising `current_random_walk` itself did (see the note
-    /// on that field): the state estimate and every downstream position/velocity update behave
-    /// identically regardless of these two values. Internally clamped to never go below the
-    /// corresponding state random walk, so `position_sigma()` can never report less uncertainty
-    /// than `position_sigma_internal()` regardless of how these are configured.
-    ///
-    /// The state-driving `current_random_walk` is tuned for accuracy and is known to be too
-    /// small to explain real current drift: H3 (analysis/hypotheses.py) measured the
-    /// current-triangle residual moving ~0.33 m/s over 60 s, well beyond what 0.013 models.
-    /// These report-only values are set from that same measurement so the *reported*
-    /// uncertainty reflects the real, measured unpredictability of the current and thrust
-    /// calibration once GNSS stops correcting them, even though the filter itself is not
-    /// allowed to chase that noise.
+    /// Reporting covariance only, never the Kalman gain, so these cannot trade accuracy for
+    /// calibration. Clamped internally to at least the corresponding state random walk. Set
+    /// from measured current-triangle drift (~0.33 m/s over 60 s), which is larger than the
+    /// state-driving values above are allowed to chase.
     double report_current_random_walk{0.09};
     double report_speed_scale_random_walk{0.03};
 
-    /// GNSS position noise, m. Measured stationary scatter is 1.1-1.5 m.
+    /// Measured stationary scatter 1.1-1.5 m; speed-over-ground jitter 0.14-0.19 m/s.
     double gnss_position_noise{1.5};
-    /// GNSS ground-velocity noise, m/s. Measured speed-over-ground jitter is 0.14-0.19 m/s.
     double gnss_velocity_noise{0.20};
 
     /// Innovation gates, in sigma.
     double position_gate_sigma{6.0};
     double velocity_gate_sigma{5.0};
-    /// Once this many fixes in a row have been gated out, trust the sensor over the estimate.
+    /// After this many consecutive rejections, trust the sensor over the estimate.
     int max_consecutive_rejections{10};
 
     /// Bounds keeping the online calibration physical.
@@ -154,11 +129,8 @@ class DeadReckoner
     double speed_scale() const { return x_[i_speed_scale]; }
     double heading_bias() const { return x_[i_heading_bias]; }
 
-    /// Root sum of the horizontal position variances, m. This is the honest, REPORTED
-    /// uncertainty: it comes from `Pr_`, a covariance that shares every correction with the
-    /// state-driving `P_` but grows faster while coasting (see `report_current_random_walk`),
-    /// so it stays a superset of `P_` and is never used to compute the Kalman gain or the
-    /// state estimate itself.
+    /// Reported horizontal position uncertainty, m, from `Pr_`: shares every correction with
+    /// `P_` but grows faster while coasting, and never feeds the Kalman gain.
     double position_sigma() const
     {
         return std::sqrt(std::max(0.0, Pr_(i_east, i_east) + Pr_(i_north, i_north)));
@@ -218,12 +190,9 @@ class DeadReckoner
         /// cos(pitch): the fraction of forward thrust that acts horizontally. A diving or
         /// nose-up jaiabot drives its propeller partly into the vertical.
         double forward_horizontal_fraction{1.0};
-        /// Variance of the pitch estimate feeding `forward_horizontal_fraction`, rad^2, from
-        /// the attitude filter. `forward_horizontal_fraction` = cos(pitch) is most sensitive to
-        /// pitch error right where the surge STATE's contribution to velocity is largest and
-        /// most degenerate (nose near vertical during depth hold), so pitch uncertainty is
-        /// propagated into position process noise the same way `heading_variance` already is,
-        /// rather than trusting `forward_horizontal_fraction` as if it were exact.
+        /// Variance of that pitch, rad^2. Propagated into position noise rather than treating
+        /// cos(pitch) as exact: it is most sensitive to pitch error exactly where the nose is
+        /// near vertical and the surge contribution is most degenerate.
         double pitch_variance{0.0};
     };
 
@@ -348,13 +317,9 @@ class DeadReckoner
         // step is long relative to the time constant.
         const double lambda = std::min(1.0, dt / tau);
 
-        // `fraction` scales more than the relaxation target: the current surge STATE also only
-        // acts horizontally to the extent the forward axis is horizontal. Without this, a surge
-        // built up before a dive keeps being credited to east/north at full weight for the
-        // whole surge_time_constant decay even once the nose is vertical and thrust is not
-        // horizontal at all (measured: dead-reckoning error/path immediately after a dive starts
-        // is ~3x worse than non-dive trials at 15-30s horizons, converging to parity by 60s once
-        // the stale surge has decayed - see analysis/depth_hold_fix.md).
+        // `fraction` scales the surge STATE too, not just the relaxation target. Without this a
+        // surge built up before a dive keeps being credited to east/north at full weight even
+        // once the nose is vertical, which measured ~3x worse dead reckoning at 15-30s horizons.
         const double horizontal_surge = surge * fraction;
 
         x_[i_east] += (horizontal_surge * s + x_[i_current_east]) * dt;
@@ -377,14 +342,9 @@ class DeadReckoner
              sq(cfg_.surge_noise) * dt, sq(cfg_.current_random_walk) * dt,
              sq(cfg_.current_random_walk) * dt, sq(cfg_.speed_scale_random_walk) * dt,
              sq(cfg_.heading_bias_random_walk) * dt});
-        // Reporting-only process noise: identical except the current and speed-scale terms are
-        // inflated to the measured (not accuracy-tuned) unpredictability of those states, so
-        // `Pr_` grows to reflect real dead-reckoning risk while `P_`, which drives the state
-        // estimate, does not. `Qr`'s diagonal is clamped to be at least `Q`'s element-wise: this
-        // is what makes "`Pr_` never understates `P_`" a structural guarantee (see
-        // `position_sigma()`) rather than something that only holds for the current defaults -
-        // a `report_*_random_walk` set below the corresponding state random walk would otherwise
-        // silently reproduce the exact overconfidence bug this covariance exists to fix.
+        // Reporting-only noise: current and speed-scale terms inflated to measured
+        // unpredictability. Clamped to at least `Q` element-wise, which is what makes "`Pr_`
+        // never understates `P_`" structural rather than true only for the current defaults.
         Covariance Qr = Q;
         Qr(i_current_east, i_current_east) =
             std::max(Q(i_current_east, i_current_east), sq(cfg_.report_current_random_walk) * dt);
@@ -409,11 +369,9 @@ class DeadReckoner
             Qr(i_north, i_east) += -across * s * c;
         }
 
-        // Uncertainty in the pitch estimate feeding `fraction` = cos(pitch) lands ALONG the
-        // heading direction (it scales the surge state's contribution, not its bearing), unlike
-        // heading_variance above which is across-track. |d(fraction)/d(pitch)| = |sin(pitch)|;
-        // recovered from `fraction` itself (already clamped to [0, 1]) since only the raw
-        // pitch, not its cosine, is available here.
+        // Pitch uncertainty lands ALONG heading (it scales magnitude, not bearing), unlike
+        // heading_variance above. |d(cos(pitch))/d(pitch)| = |sin(pitch)|, recovered from
+        // `fraction` since the raw pitch is not available here.
         if (std::isfinite(input.pitch_variance) && input.pitch_variance > 0.0)
         {
             const double sin_pitch_magnitude = std::sqrt(std::max(0.0, 1.0 - fraction * fraction));
@@ -464,9 +422,8 @@ class DeadReckoner
         x_ += correction;
         const Covariance IKH = Covariance::identity() - K * H;
         P_ = (IKH * P_ * IKH.transpose() + K * R * K.transpose()).symmetrised();
-        // Apply the same (state-optimal, not Pr-optimal) gain to the reporting covariance. The
-        // Joseph form is valid for any gain, so this correctly shrinks `Pr_` on every accepted
-        // fix without ever computing a gain from it or feeding it back into `x_`.
+        // Same gain applied to `Pr_`. The Joseph form is valid for any gain, so this shrinks
+        // `Pr_` on every accepted fix without ever deriving a gain from it.
         Pr_ = (IKH * Pr_ * IKH.transpose() + K * R * K.transpose()).symmetrised();
         return true;
     }

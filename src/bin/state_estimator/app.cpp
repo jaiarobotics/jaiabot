@@ -120,10 +120,8 @@ jaiabot::nav::StateEstimatorConfig jaiabot::apps::StateEstimatorApp::make_config
     return config;
 }
 
-// The base class is what populates the configuration, so cfg() must not be read in its own
-// initializer - doing so returns an unset message, and a zero loop frequency makes goby divide
-// by zero computing the loop period. Set `app { loop_frequency: N }` to override this default.
-// Member initializers below run after the base is constructed, where cfg() is valid.
+// cfg() must not be read in the base class's own initializer: it returns an unset message there,
+// and a zero loop frequency makes goby divide by zero. Override with `app { loop_frequency: N }`.
 jaiabot::apps::StateEstimatorApp::StateEstimatorApp()
     : ApplicationBase(5 * si::hertz), estimator_(make_config(), make_thrust_model())
 {

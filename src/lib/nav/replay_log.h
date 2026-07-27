@@ -28,9 +28,8 @@
 #include <string>
 #include <vector>
 
-/// Flattened-log reader shared by nav_replay (offline, library directly) and nav_replay_bench
-/// (on the Goby bus, through the real application). Both must read a log identically or the
-/// comparison between them measures the readers rather than the code under test.
+/// Flattened-log reader shared by nav_replay and nav_replay_bench. Both must parse identically
+/// or the comparison between them measures the readers rather than the code under test.
 ///
 /// One line per sample, sorted by time:
 ///   imu,time,qw,qx,qy,qz,gravx,gravy,gravz,gyrox,gyroy,gyroz,mag_accuracy[,magx,magy,magz]

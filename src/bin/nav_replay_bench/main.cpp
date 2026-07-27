@@ -18,21 +18,13 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 // Replays a flattened log onto the interprocess bus as real IMU / gpsd / motor / pressure
-// messages, and captures the NavSolution that jaiabot_state_estimator publishes in response.
+// messages and captures the NavSolution jaiabot_state_estimator publishes in response. Diffing
+// that against nav_replay over the same log covers app.cpp's message translation, which the unit
+// tests and nav_replay cannot reach because both drive src/lib/nav directly.
 //
-// Why this exists: the 79 unit tests and nav_replay both drive src/lib/nav directly, so nothing
-// covered src/bin/state_estimator/app.cpp - the subscription groups, the protobuf-to-sample
-// translation, the depth/sensor_depth fallback, the declination refresh. That is precisely where
-// the two bugs that reached a running system lived (a SIGFPE from reading cfg() in its own
-// initializer, and a missing NavSolution symbol). Running the same log through both paths and
-// diffing the solutions closes that gap: agreement means the offline accuracy results transfer
-// to the vehicle, and a divergence is a translation bug found on a desk instead of on the water.
-//
-// Timing: the estimator stamps every sample with goby's clock, not with the log timestamp, so
-// the replay has to be paced rather than dumped. Goby sim time supplies the rate (warp), and
-// because the filter is driven only by differences between sample times, the constant offset
-// between sim time and log time is harmless. Pacing that slips would not be harmless, so the
-// lag is measured and reported.
+// The estimator stamps samples with goby's clock rather than the log timestamp, so the replay is
+// paced by sim time (warp sets the rate; the constant offset is harmless since the filter uses
+// only differences). Slipped pacing is not harmless, so lag is measured and reported.
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
@@ -80,19 +72,14 @@ class NavReplayBenchApp : public ApplicationBase
     std::size_t next_{0};
     double log_t0_{0.0};
     double log_end_{0.0};
-    /// Set on the first loop(), not in the constructor. Goby spends of order a wall second
-    /// setting up subscriptions after construction, and at warp W that is W seconds of replay
-    /// time - long enough that the first iteration would dump W seconds of records at once,
-    /// stamped microseconds apart, and hand the filter a meaningless dt.
+    /// Set on the first loop(), not the constructor: goby's subscription setup costs about a wall
+    /// second, which at warp W would dump W seconds of records in one iteration.
     double sim_start_{std::nan("")};
     std::ofstream out_;
     long published_{0};
     long solutions_{0};
-    /// How late records went out relative to their scheduled replay time. A single startup
-    /// outlier is harmless; sustained lag means the warp outran the machine, sample spacing was
-    /// distorted, and the comparison against the offline run is not trustworthy. Distinguishing
-    /// those two needs more than a maximum, so keep every lag and report the distribution.
-    /// (log-time offset, lag) per published record.
+    /// (log-time offset, lag) per record. A startup outlier is harmless but sustained lag means
+    /// the warp outran the machine, so the distribution is kept rather than just the maximum.
     std::vector<std::pair<double, double>> lags_;
     double max_lag_{0.0};
     double max_lag_at_{0.0};
@@ -112,10 +99,8 @@ jaiabot::apps::NavReplayBenchApp::NavReplayBenchApp() : ApplicationBase(100 * si
 
     out_.open(cfg().out());
     if (!out_) throw std::runtime_error("cannot write " + cfg().out());
-    // declination is captured because the application looks it up from the World Magnetic Model at
-    // the live position while nav_replay takes a fixed --declination. That difference is a heading
-    // offset between the two paths, so the comparison has to align on the value the app actually
-    // used rather than assume they agree.
+    // declination is captured because the app looks it up from WMM at the live position while
+    // nav_replay takes a fixed --declination; the comparison must align on the value used.
     out_ << "log_time,mode,lat,lon,sigma,heading_deg,pitch_deg,roll_deg,sog,stw,speed_scale,"
             "heading_bias_deg,depth,declination_deg\n";
     out_ << std::setprecision(10);
@@ -227,10 +212,8 @@ void jaiabot::apps::NavReplayBenchApp::loop()
     if (exhausted && now > log_end_ + cfg().quit_after())
     {
         out_.flush();
-        // Goby's subscription handshake delays the second loop iteration by of order a second,
-        // so one chunk of records at the very start always goes out compressed. That transient is
-        // unavoidable and harmless as long as the comparison skips it, so judge pacing on the
-        // steady state and report the two separately rather than letting startup set off alarms.
+        // The startup handshake always compresses one chunk of records, so pacing is judged on
+        // the steady state and the two are reported separately.
         std::vector<double> steady;
         for (const auto& [offset, lag] : lags_)
             if (offset >= cfg().settle()) steady.push_back(lag);

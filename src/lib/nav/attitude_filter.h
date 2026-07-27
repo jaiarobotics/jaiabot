@@ -43,22 +43,10 @@ struct AttitudeConfig
 
     /// Noise on the gravity-derived up direction, rad. Datasheet static angle error is 1.5 deg.
     double gravity_noise{deg_to_rad(2.0)};
-    /// Reject the gravity report when |g| strays this far from the local value, m/s^2.
-    ///
-    /// Tried loosening this to [3, 20] on the argument that update_gravity() only ever uses the
-    /// NORMALISED vector, so a magnitude error should be harmless as long as direction is sound
-    /// (2 of 48 fleet logs have a systematic magnitude scale error, median 6.4-8.5 m/s^2, that
-    /// this tight band rejects on 49-72% of samples). REVERTED: an independent rebuild/replay
-    /// A/B across all 48 logs found the loosened gate produced byte-identical position/velocity
-    /// trajectories on both affected logs despite the huge change in raw rejection rate - the
-    /// gravity_gate_sigma innovation gate below already screens the same samples on direction,
-    /// so the magnitude pre-filter's rejections were not actually contributing tilt aiding that
-    /// mattered. Loosening it also opens an unexamined interaction with the consecutive-rejection
-    /// bypass (max_consecutive_rejections): samples with a corrupted direction that used to be
-    /// screened out before ever reaching the innovation gate could now advance that counter and
-    /// eventually force an unconditional accept, right around the high-dynamics dive transitions
-    /// where calibration integrity matters most. Zero measured benefit plus a real, unaddressed
-    /// risk is not worth carrying.
+    /// Reject the gravity report when |g| strays this far from the local value, m/s^2. Kept
+    /// tight deliberately: loosening it changed nothing measurable across 48 logs (the
+    /// innovation gate below already screens the same samples on direction) while letting
+    /// direction-corrupted samples reach the consecutive-rejection bypass.
     double gravity_magnitude_tolerance{2.5};
     double gravity_magnitude{9.81};
 
@@ -77,9 +65,8 @@ struct AttitudeConfig
     /// wrong than the sensor, so accept the next one regardless.
     int max_consecutive_rejections{10};
 
-    /// Skip heading corrections once the nose is steeper than this. Heading is the bearing of
-    /// the forward axis, so it is ill-conditioned as that axis approaches vertical - and the
-    /// jaiabot spends real time nose-up at the surface and nose-down in a dive.
+    /// Skip heading corrections past this pitch: heading is the bearing of the forward axis, so
+    /// it is ill-conditioned near vertical, where this vehicle spends real time.
     double max_heading_update_pitch{deg_to_rad(60.0)};
 
     /// Initial uncertainty, rad and rad/s.
