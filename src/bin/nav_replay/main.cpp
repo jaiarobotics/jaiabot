@@ -76,7 +76,35 @@ struct Options
     bool verbose{false};
     /// Use the magnetometer for heading instead of the rotation vector, where present.
     bool prefer_magnetometer{false};
+    /// `--set name=value` overrides, applied to the config before any replay. Exists so a
+    /// sensitivity sweep can ask whether a tuned constant sits on a broad plateau or a knife
+    /// edge; the latter would mean it was fitted to this log population rather than to physics.
+    std::vector<std::pair<std::string, double>> overrides;
 };
+
+/// Names accepted by `--set`. Angles are in the caller's natural unit (degrees, or degrees per
+/// second) and converted here, so a sweep never has to hardcode a radian conversion.
+bool apply_override(StateEstimatorConfig& cfg, const std::string& name, double value)
+{
+    auto& dr = cfg.dead_reckoner;
+    auto& at = cfg.attitude;
+    if (name == "surge_time_constant") dr.surge_time_constant = value;
+    else if (name == "position_noise") dr.position_noise = value;
+    else if (name == "surge_noise") dr.surge_noise = value;
+    else if (name == "current_random_walk") dr.current_random_walk = value;
+    else if (name == "speed_scale_random_walk") dr.speed_scale_random_walk = value;
+    else if (name == "heading_bias_random_walk") dr.heading_bias_random_walk = value;
+    else if (name == "gyro_noise_deg") at.gyro_noise = deg_to_rad(value);
+    else if (name == "gyro_bias_random_walk_deg") at.gyro_bias_random_walk = deg_to_rad(value);
+    else if (name == "gravity_noise_deg") at.gravity_noise = deg_to_rad(value);
+    else if (name == "gravity_magnitude_tolerance") at.gravity_magnitude_tolerance = value;
+    else if (name == "rotation_vector_heading_noise_deg")
+        at.rotation_vector_heading_noise = deg_to_rad(value);
+    else if (name == "max_heading_update_pitch_deg")
+        at.max_heading_update_pitch = deg_to_rad(value);
+    else return false;
+    return true;
+}
 
 std::vector<std::string> split(const std::string& line, char sep)
 {
@@ -302,6 +330,9 @@ int run(const Options& opt)
     StateEstimatorConfig cfg;
     cfg.declination = deg_to_rad(opt.declination_deg);
     cfg.prefer_magnetometer = opt.prefer_magnetometer;
+    for (const auto& [name, value] : opt.overrides)
+        if (!apply_override(cfg, name, value))
+            throw std::runtime_error("unknown --set parameter: " + name);
 
     StateEstimator reference(cfg);
     std::ofstream out;
@@ -438,7 +469,7 @@ void usage()
     std::cerr << "usage: nav_replay --log FILE [--truth FILE] [--out FILE]\n"
                  "                  [--horizon SECONDS] [--stride SECONDS] [--warmup SECONDS]\n"
                  "                  [--min-distance METRES] [--declination DEGREES] [--verbose]\n"
-                 "                  [--prefer-magnetometer]\n";
+                 "                  [--prefer-magnetometer] [--set name=value ...]\n";
 }
 
 } // namespace
@@ -475,6 +506,14 @@ int main(int argc, char* argv[])
                 opt.verbose = true;
             else if (arg == "--prefer-magnetometer")
                 opt.prefer_magnetometer = true;
+            else if (arg == "--set")
+            {
+                const std::string kv = next();
+                const auto eq = kv.find('=');
+                if (eq == std::string::npos)
+                    throw std::runtime_error("--set expects name=value, got " + kv);
+                opt.overrides.emplace_back(kv.substr(0, eq), std::stod(kv.substr(eq + 1)));
+            }
             else
             {
                 usage();
