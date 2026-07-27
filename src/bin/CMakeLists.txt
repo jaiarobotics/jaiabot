@@ -18,6 +18,7 @@ add_subdirectory(ctd_manager)
 add_subdirectory(udp_gateway)
 add_subdirectory(state_estimator)
 add_subdirectory(nav_replay)
+add_subdirectory(nav_replay_bench)
 
 if(build_state_diagrams)
   add_subdirectory(state_tool)

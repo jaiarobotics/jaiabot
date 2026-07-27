@@ -1,0 +1,30 @@
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+
+package jaiabot.config;
+
+message NavReplayBench
+{
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
+    /// Flattened log to replay onto the bus, in the nav_replay CSV format.
+    required string log = 10;
+    /// Where to write the captured NavSolution stream, stamped in log time so it lines up with
+    /// `nav_replay --out` over the same log.
+    optional string out = 11 [default = "/tmp/bench_nav.csv"];
+    /// Stop this many seconds of replayed time after the last record, to let the estimator
+    /// publish its final solutions before the process exits.
+    optional double quit_after = 12 [default = 2];
+    /// Skip records before this many seconds into the log. Lets a run target a specific stretch
+    /// without re-cutting the log.
+    optional double skip = 13 [default = 0];
+    /// Stop after this many seconds of log (0 = to the end).
+    optional double duration = 14 [default = 0];
+    /// Replay time to treat as settling. Pacing is only judged after this, and the comparison
+    /// against the offline run should skip the same span: Goby's startup handshake compresses the
+    /// first second or so of the replay no matter what warp is used.
+    optional double settle = 15 [default = 10];
+}

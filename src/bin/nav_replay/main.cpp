@@ -39,25 +39,14 @@
 #include <string>
 #include <vector>
 
+#include "jaiabot/nav/replay_log.h"
 #include "jaiabot/nav/state_estimator.h"
 
 namespace
 {
 using namespace jaiabot::nav;
 
-struct Record
-{
-    std::string type;
-    double time{0.0};
-    std::vector<double> fields;
-};
-
-struct TruthPoint
-{
-    double time{0.0};
-    double lat{0.0};
-    double lon{0.0};
-};
+// Record and TruthPoint come from jaiabot/nav/replay_log.h, shared with nav_replay_bench.
 
 struct Options
 {
@@ -104,70 +93,6 @@ bool apply_override(StateEstimatorConfig& cfg, const std::string& name, double v
         at.max_heading_update_pitch = deg_to_rad(value);
     else return false;
     return true;
-}
-
-std::vector<std::string> split(const std::string& line, char sep)
-{
-    std::vector<std::string> parts;
-    std::stringstream ss(line);
-    std::string item;
-    while (std::getline(ss, item, sep)) parts.push_back(item);
-    return parts;
-}
-
-double to_double(const std::string& s)
-{
-    try
-    {
-        return std::stod(s);
-    }
-    catch (...)
-    {
-        return std::nan("");
-    }
-}
-
-std::vector<Record> load_log(const std::string& path)
-{
-    std::vector<Record> records;
-    std::ifstream in(path);
-    if (!in) throw std::runtime_error("cannot open " + path);
-
-    std::string line;
-    while (std::getline(in, line))
-    {
-        if (line.empty() || line[0] == '#') continue;
-        const auto parts = split(line, ',');
-        if (parts.size() < 2) continue;
-        Record r;
-        r.type = parts[0];
-        r.time = to_double(parts[1]);
-        for (std::size_t i = 2; i < parts.size(); ++i) r.fields.push_back(to_double(parts[i]));
-        if (std::isfinite(r.time)) records.push_back(std::move(r));
-    }
-    std::stable_sort(records.begin(), records.end(),
-                     [](const Record& a, const Record& b) { return a.time < b.time; });
-    return records;
-}
-
-std::vector<TruthPoint> load_truth(const std::string& path)
-{
-    std::vector<TruthPoint> truth;
-    std::ifstream in(path);
-    if (!in) return truth;
-
-    std::string line;
-    while (std::getline(in, line))
-    {
-        if (line.empty() || line[0] == '#') continue;
-        const auto parts = split(line, ',');
-        if (parts.size() < 3) continue;
-        const TruthPoint t{to_double(parts[0]), to_double(parts[1]), to_double(parts[2])};
-        if (std::isfinite(t.time) && std::isfinite(t.lat)) truth.push_back(t);
-    }
-    std::stable_sort(truth.begin(), truth.end(),
-                     [](const TruthPoint& a, const TruthPoint& b) { return a.time < b.time; });
-    return truth;
 }
 
 std::optional<TruthPoint> truth_at(const std::vector<TruthPoint>& truth, double time,
@@ -323,8 +248,8 @@ void summarise(const char* title, const std::vector<Trial>& trials)
 
 int run(const Options& opt)
 {
-    const auto records = load_log(opt.log);
-    const auto truth = load_truth(opt.truth);
+    const auto records = load_replay_log(opt.log);
+    const auto truth = load_truth_log(opt.truth);
     if (records.empty()) throw std::runtime_error("no records in " + opt.log);
 
     StateEstimatorConfig cfg;
