@@ -20,6 +20,13 @@
   gather_facts: no
   become: yes
   any_errors_fatal: true
+  pre_tasks:
+    - name: Check that fleet_index is a valid integer
+      ansible.builtin.assert:
+        that:
+          - fleet_index is defined
+          - fleet_index | string is match("^[0-9]+$")
+        fail_msg: "Invalid fleet_index. Must be a non-negative integer."
   tasks:
     - name: Ping fleet VPN address
       shell: "ping -c 3 172.23.{{ fleet_index }}.1"
@@ -68,6 +75,8 @@
         path: /etc/jaiabot/runtime.env
         regexp: "^jaia_user_role="
         line: "jaia_user_role=user"
+      register: jcu_role_result
 
     - name: Restart JCU to apply new role
       shell: "nohup /bin/bash -c 'sleep 5 && systemctl restart jaiabot_goby_liaison_standalone' > /dev/null &"
+      when: jcu_role_result is changed

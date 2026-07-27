@@ -136,7 +136,6 @@ upper_right_logo_link: "https://www.jaia.tech/"
         $limit
     }
 
-    
     ansible_playbook {
         file: "software-checkout.yml"
         name: "Software Checkout"
