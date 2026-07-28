@@ -2,7 +2,7 @@ import { cloneDeep } from "lodash";
 import { JaiaActions } from "../jaia-actions";
 import { syncOpenLayers } from "./handler-utils";
 import { JaiaContextType, JaiaSnapshot, JaiaContextDataSnapshot } from "../../types/context-types";
-import { historyManager } from "../../data/history/histroy-manager";
+import { historyManager } from "../../data/history/history-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { gridPlan } from "../../data/survey_planner/grid-plan";

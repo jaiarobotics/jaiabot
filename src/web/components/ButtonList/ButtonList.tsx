@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
-import { historyManager } from "../../data/history/histroy-manager";
+import { historyManager } from "../../data/history/history-manager";
 
 import RallyButton from "../__buttons__/RallyButton/RallyButton";
 import ActivateAllButton from "../__buttons__/ActivateAllButton/ActivateAllButton";
