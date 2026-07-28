@@ -166,6 +166,10 @@ message Engineering
 
     optional Echo echo = 19;
 
+    // Manually cut (or restore) GPS input to fusion and state_estimator, to force
+    // dead-reckoning for GNSS-denied testing. Independent of mission state.
+    optional bool gps_disable = 20 [default = false];
+
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];
 

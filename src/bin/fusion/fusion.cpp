@@ -89,6 +89,9 @@ class Fusion : public ApplicationBase
     jaiabot::protobuf::Engineering latest_engineering_status;
     goby::time::SteadyClock::time_point last_health_report_time_{std::chrono::seconds(0)};
     std::set<jaiabot::protobuf::MissionState> discard_location_states_;
+    /// Manually toggled via engineering command, independent of mission state, to force
+    /// dead-reckoning for GNSS-denied testing.
+    bool gps_disabled_{false};
     std::set<jaiabot::protobuf::MissionState> include_course_error_detection_states_;
     std::set<jaiabot::protobuf::MissionState> diving_states_;
     jaiabot::protobuf::PressureAdjustedData last_pressure_adjusted_data_;
@@ -339,6 +342,9 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
     });
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            // Manually disabled for GNSS-denied testing: treat exactly as if no fix arrived.
+            if (gps_disabled_) return;
+
             glog.is_debug1() && glog << "Received TimePositionVelocity update: "
                                      << tpv.ShortDebugString() << std::endl;
 
@@ -576,6 +582,14 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                     rf_disabled_timeout_mins_ =
                         command.rf_disable_options().rf_disable_timeout_mins();
                 }
+            }
+
+            if (command.has_gps_disable())
+            {
+                gps_disabled_ = command.gps_disable();
+                glog.is_warn() && glog << "GPS manually "
+                                       << (gps_disabled_ ? "DISABLED" : "enabled")
+                                       << " via engineering command" << std::endl;
             }
 
             if (command.has_query_bot_status())

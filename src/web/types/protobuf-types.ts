@@ -1209,6 +1209,7 @@ export interface Engineering {
     rf_disable_options?: RFDisableOptions;
     bottom_depth_safety_params?: BottomDepthSafetyParams;
     echo?: Echo;
+    gps_disable?: boolean;
     flag?: number;
     bounds?: Bounds;
 }

@@ -74,6 +74,31 @@ export default function Engineering() {
     };
 
     /**
+     * Sends a one-off command to cut (or restore) GPS input to fusion and state_estimator,
+     * for GNSS-denied dead-reckoning testing. Independent of the bulk config form below.
+     *
+     * @param {number} botID Bot of interest
+     * @param {boolean} disable Whether to disable or re-enable GPS
+     * @returns {void}
+     */
+    const handleGPSDisableClick = async (botID: number, disable: boolean) => {
+        const takeControl = await jaiaAPI.takeControl();
+        if (!takeControl) {
+            return;
+        }
+
+        const engineeringCommand: Engineering = {
+            bot_id: botID,
+            gps_disable: disable,
+        };
+
+        const res = await jaiaAPI.postEngineering(engineeringCommand);
+        if (res && res.status === "ok") {
+            success(`GPS ${disable ? "disabled" : "re-enabled"} for Bot ${botID}`);
+        }
+    };
+
+    /**
      * Submits an updated engineering configuration for the provided Bot
      *
      * @param {number} botID Which Bot to configure
@@ -199,6 +224,18 @@ export default function Engineering() {
                 onClick={() => handleQuerySelectedStatusClick(Number(selectedBotID))}
             >
                 Query Selected Status
+            </button>
+            <button
+                className="engineering-button"
+                onClick={() => handleGPSDisableClick(Number(selectedBotID), true)}
+            >
+                Disable GPS (DR Test)
+            </button>
+            <button
+                className="engineering-button"
+                onClick={() => handleGPSDisableClick(Number(selectedBotID), false)}
+            >
+                Re-enable GPS
             </button>
             <BotRequirementsTable
                 engineering={jaiaContext.bots.getBot(Number(selectedBotID))?.getEngineering()}

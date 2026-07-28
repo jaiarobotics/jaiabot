@@ -31,6 +31,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/motor.pb.h"
 #include "jaiabot/messages/nav.pb.h"
@@ -72,6 +73,9 @@ class StateEstimatorApp : public ApplicationBase
     WMM wmm_;
     double last_declination_lat_{std::numeric_limits<double>::quiet_NaN()};
     double last_declination_lon_{std::numeric_limits<double>::quiet_NaN()};
+    /// Manually toggled via engineering command, independent of mission state, to force
+    /// dead-reckoning for GNSS-denied testing.
+    bool gps_disabled_{false};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -154,6 +158,8 @@ jaiabot::apps::StateEstimatorApp::StateEstimatorApp()
 
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
         [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv) {
+            // Manually disabled for GNSS-denied testing: treat exactly as if no fix arrived.
+            if (gps_disabled_) return;
             if (!tpv.has_location()) return;
 
             nav::GnssSample sample;
@@ -182,6 +188,13 @@ jaiabot::apps::StateEstimatorApp::StateEstimatorApp()
                 estimator_.handle_pressure({now_seconds(), pressure.depth()});
             else if (pressure.has_sensor_depth())
                 estimator_.handle_pressure({now_seconds(), pressure.sensor_depth()});
+        });
+
+    // Shares the gps_disable engineering command with fusion, so this shadow estimator sees
+    // the same GNSS-denied window as the real vehicle during a controlled test.
+    interprocess().subscribe<groups::engineering_command>(
+        [this](const protobuf::Engineering& command) {
+            if (command.has_gps_disable()) gps_disabled_ = command.gps_disable();
         });
 }
 
