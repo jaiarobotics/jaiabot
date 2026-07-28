@@ -36,6 +36,7 @@ namespace jaiabot
 namespace utils
 {
 
+/// Simple 2D point used to represent a parsed data row during downsampling.
 struct Point
 {
     double x;
@@ -220,8 +221,8 @@ inline size_t joinedSizeBytes(const std::vector<std::string>& lines)
 /**
  * @brief Rebuilds the output while preserving metadata lines and selected data rows.
  *
- * Non-data lines are always retained. Data lines are kept only when their row index is
- * listed in @p selected_row_indices.
+ * Non-data lines are always retained. Data lines are kept only when their position in the
+ * parsed data-row sequence is listed in @p selected_row_indices.
  *
  * @param input_lines Original input lines.
  * @param data_line_positions Positions of parsed data rows within @p input_lines.
@@ -272,6 +273,10 @@ buildOutputWithSelectedRows(const std::vector<std::string>& input_lines,
  * Metadata lines are preserved, while parsed data rows are reduced by binary searching for
  * the largest representative subset whose serialized size does not exceed @p max_bytes.
  * The x and y coordinates are selected from each parsed row via caller-provided selectors.
+ *
+ * Each data row is expected to begin with an integer row index followed by numeric values.
+ * The selectors receive the numeric values after that index, so they can map arbitrary
+ * columns to x/y coordinates without needing to parse the row themselves.
  *
  * @tparam XSelector Callable with signature compatible with
  *         `double(const std::vector<double>& values)`.
