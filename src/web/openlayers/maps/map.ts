@@ -18,6 +18,7 @@ import { OSM_MAX_ZOOM } from "../../utils/constants";
 
 interface MapSettings {
     visibleLayers: LayerTitles[];
+    visibleOfflineLayers: string[];
     center: Coordinate;
     zoomLevel: number;
     rotation: number;
@@ -27,7 +28,7 @@ const WRITE_DELAY = 500; // ms
 
 // Load map settings (if any) from localStorage
 const saved = localStorage.getItem("mapSettings");
-const mapSettings: MapSettings = saved ? JSON.parse(saved) : {};
+export const mapSettings: MapSettings = saved ? JSON.parse(saved) : {};
 
 // Apply saved map settings
 if (mapSettings.center) {
@@ -38,6 +39,11 @@ if (mapSettings.zoomLevel) {
 }
 if (mapSettings.rotation) {
     view.setRotation(mapSettings.rotation);
+}
+if (mapSettings.visibleLayers) {
+    for (const [layerTitle, layer] of layers.getLayers()) {
+        layer.setVisible(mapSettings.visibleLayers.includes(layerTitle));
+    }
 }
 
 export const map = new Map({
@@ -148,7 +154,7 @@ function debounce(fn: () => void, delay: number) {
  *
  * @returns {void}
  */
-const saveSettings = debounce(() => {
+export const saveSettings = debounce(() => {
     localStorage.setItem("mapSettings", JSON.stringify(mapSettings));
 }, WRITE_DELAY);
 
@@ -169,6 +175,16 @@ map.getView().on("change:rotation", () => {
     mapSettings.rotation = map.getView().getRotation();
     saveSettings();
 });
+
+// Persist visible layers
+for (const layer of layers.getLayers().values()) {
+    layer.on("change:visible", () => {
+        mapSettings.visibleLayers = Array.from(layers.getLayers())
+            .filter(([, l]) => l.getVisible())
+            .map(([layerTitle]) => layerTitle);
+        saveSettings();
+    });
+}
 
 // Track touch events for drag conditions
 const viewport = map.getViewport();

@@ -1,7 +1,7 @@
 import TileLayer from "ol/layer/Tile";
 import { XYZ, TileImage } from "ol/source";
 import { Collection, View } from "ol";
-import { map } from "../../maps/map";
+import { map, mapSettings, saveSettings } from "../../maps/map";
 import { view } from "../../views/view";
 import { jaiaAPI } from "../../../utils/jaia-api";
 
@@ -185,10 +185,17 @@ class OfflineLayerManager {
                         title: tileSet.name,
                         size: tileSet.size,
                     },
-                    visible: false,
+                    visible: mapSettings.visibleOfflineLayers?.includes(tileSet.name) ?? false,
                     source: new XYZ({
                         url: `/maps/${tileSet.name}/{z}/{x}/{y}`,
                     }),
+                });
+                layer.on("change:visible", () => {
+                    mapSettings.visibleOfflineLayers = this.layers
+                        .getArray()
+                        .filter((l) => l.getVisible())
+                        .map((l) => l.get("title"));
+                    saveSettings();
                 });
                 this.layers.push(layer);
                 map.addLayer(layer);
