@@ -15,7 +15,9 @@ from http import HTTPStatus
 from flask import Flask, send_from_directory, Response, request, send_file
 
 # Internal Imports
-from pyjaia.battery_prediction import predict_drain as battery_predict_drain, UnsupportedBotTypeError
+from pyjaia.battery_prediction import predict_drain as battery_predict_drain
+from pyjaia.battery_prediction.inference import UnsupportedBotTypeError
+from pyjaia.battery_prediction.calibration import load_calibration
 
 import jaia_portal
 import missions
@@ -490,6 +492,13 @@ def get_ctd_profiles():
         download_name=zip_name,
         mimetype="application/zip",
     )
+
+@app.route('/battery-calibration', methods=['GET'])
+def battery_calibration():
+    """Returns the calibrated wattage/energy constants used to turn a mission
+    plan into the features the battery drain model expects."""
+    return JSONResponse(obj=load_calibration())
+
 
 @app.route('/battery-prediction', methods=['POST'])
 def battery_prediction():

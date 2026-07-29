@@ -6,23 +6,6 @@ import { BOTTOM_DIVE_DEPTH_PRIOR_M } from "./constants";
 const DEFAULT_TRANSIT_SPEED_M_S = 2.0;
 const EARTH_R = 6_371_000;
 
-// Mirror of constants from pyjaia/battery_prediction/calibration.json (kept here
-// to avoid an HTTP round-trip on every prediction). Each value is the median
-// per-state battery wattage measured from arduino_to_pi V*I in the training
-// log set, except the transit curve which is keyed on planned transit speed.
-// When recalibrating, regenerate calibration.json and update these constants.
-const TRANSIT_POWER_CURVE = new Map<number, number>([
-    [1.0, 72.0],
-    [2.0, 73.2],
-    [2.5, 109.1],
-    [3.0, 149.8],
-]);
-const DIVE_HOLD_W = 62.8; // motor active at depth
-const SURFACE_DRIFT_W = 0.9; // motor off on surface
-const STATION_KEEP_W = 7.2; // motor periodically active to hold position
-const DIVE_ENERGY_BASE_WH = 0.71;
-const DIVE_ENERGY_PER_M_WH = 0.025;
-
 // Empirical floor: when commanded below 2.0 m/s the bot still achieves ~1.7 m/s
 // in the logs because the motor has a minimum-throttle floor. Clamping at 2.0
 // keeps both transit-time and the wattage lookup honest for slow plans.
@@ -31,6 +14,61 @@ const MIN_PLANNED_SPEED_M_S = 2.0;
 export interface BatteryPrediction {
     predicted_drain_pct: number;
     predicted_final_pct: number;
+}
+
+interface Calibration {
+    transitPowerCurve: Map<number, number>;
+    diveHoldW: number;
+    surfaceDriftW: number;
+    stationKeepW: number;
+    diveEnergyBaseWh: number;
+    diveEnergyPerMWh: number;
+}
+
+interface RawCalibration {
+    dive_hold_w: number;
+    surface_drift_w: number;
+    station_keep_w: number;
+    dive_energy_base_wh: number;
+    dive_energy_per_m: number;
+    transit_speeds_m_s: number[];
+    transit_watts: number[];
+}
+
+// Fetched once from the hub and cached for the lifetime of the page, since these
+// calibrated constants don't change at runtime.
+let calibrationPromise: Promise<Calibration> | null = null;
+
+/**
+ * Fetches and caches the calibrated wattage/energy constants from the hub
+ *
+ * @returns {Promise<Calibration>} Calibration constants used to derive mission energy features
+ */
+function getCalibration(): Promise<Calibration> {
+    if (calibrationPromise === null) {
+        calibrationPromise = fetch("/battery-calibration")
+            .then((response) => {
+                if (!response.ok) throw new Error("battery-calibration request failed");
+                return response.json();
+            })
+            .then(
+                (raw: RawCalibration): Calibration => ({
+                    transitPowerCurve: new Map(
+                        raw.transit_speeds_m_s.map((s, i) => [s, raw.transit_watts[i]]),
+                    ),
+                    diveHoldW: raw.dive_hold_w,
+                    surfaceDriftW: raw.surface_drift_w,
+                    stationKeepW: raw.station_keep_w,
+                    diveEnergyBaseWh: raw.dive_energy_base_wh,
+                    diveEnergyPerMWh: raw.dive_energy_per_m,
+                }),
+            )
+            .catch((e) => {
+                calibrationPromise = null;
+                throw e;
+            });
+    }
+    return calibrationPromise;
 }
 
 /**
@@ -72,12 +110,17 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
  * @param {number} distanceM Total planned transit distance in meters
  * @param {number} speedMs Planned transit speed in m/s (clamped at MIN_PLANNED_SPEED_M_S
  *   by the caller; below that the bot can't actually slow down and overshoots)
+ * @param {Map<number, number>} transitPowerCurve Calibrated planned-speed -> watts curve
  * @returns {number} Estimated energy in Watt-hours
  */
-function estimatedTransitEnergyWh(distanceM: number, speedMs: number): number {
+function estimatedTransitEnergyWh(
+    distanceM: number,
+    speedMs: number,
+    transitPowerCurve: Map<number, number>,
+): number {
     if (speedMs <= 0) return 0;
-    const speeds = Array.from(TRANSIT_POWER_CURVE.keys()).sort((a, b) => a - b);
-    const watts = speeds.map((s) => TRANSIT_POWER_CURVE.get(s)!);
+    const speeds = Array.from(transitPowerCurve.keys()).sort((a, b) => a - b);
+    const watts = speeds.map((s) => transitPowerCurve.get(s)!);
     let motorW = watts[watts.length - 1];
     if (speedMs <= speeds[0]) {
         motorW = watts[0];
@@ -161,6 +204,13 @@ export async function fetchBatteryPrediction(
     const waypoints = mission.getWaypoints();
     if (waypoints.length === 0) return null;
 
+    let calibration: Calibration;
+    try {
+        calibration = await getCalibration();
+    } catch {
+        return null;
+    }
+
     const repeats = mission.getRepeats() ?? 1;
 
     const rawTransitSpeed = mission.getSpeeds()?.transit ?? DEFAULT_TRANSIT_SPEED_M_S;
@@ -189,7 +239,11 @@ export async function fetchBatteryPrediction(
         if (loc?.lat != null && loc?.lon != null) {
             if (curLat != null && curLon != null) {
                 const legDistance = haversineMeters(curLat, curLon, loc.lat, loc.lon);
-                const legEnergy = estimatedTransitEnergyWh(legDistance, transitSpeed);
+                const legEnergy = estimatedTransitEnergyWh(
+                    legDistance,
+                    transitSpeed,
+                    calibration.transitPowerCurve,
+                );
                 if (!firstWaypointSeen) {
                     toFirstEnergyWh += legEnergy;
                     toFirstDistanceM += legDistance;
@@ -222,7 +276,11 @@ export async function fetchBatteryPrediction(
             const chHeadingDeg = chParams?.constant_heading ?? 0;
             if (chSpeed > 0 && chTime > 0 && curLat != null && curLon != null) {
                 const chDistM = chSpeed * chTime;
-                singlePassEnergyWh += estimatedTransitEnergyWh(chDistM, chSpeed);
+                singlePassEnergyWh += estimatedTransitEnergyWh(
+                    chDistM,
+                    chSpeed,
+                    calibration.transitPowerCurve,
+                );
                 singlePassExtraTimeS += chTime;
                 const headingRad = (chHeadingDeg * Math.PI) / 180;
                 curLat += (chDistM * Math.cos(headingRad) * 180) / (Math.PI * EARTH_R);
@@ -254,7 +312,11 @@ export async function fetchBatteryPrediction(
         curLon != null
     ) {
         returnDistanceM = haversineMeters(curLat, curLon, firstLoc.lat, firstLoc.lon);
-        returnEnergyWh = estimatedTransitEnergyWh(returnDistanceM, transitSpeed);
+        returnEnergyWh = estimatedTransitEnergyWh(
+            returnDistanceM,
+            transitSpeed,
+            calibration.transitPowerCurve,
+        );
     }
     const transitEnergyWh =
         toFirstEnergyWh + singlePassEnergyWh * repeats + returnEnergyWh * (repeats - 1);
@@ -271,16 +333,17 @@ export async function fetchBatteryPrediction(
     const transitTimeS = toFirstTimeS + singlePassTimeS * repeats + returnTimeS * (repeats - 1);
 
     // Combined motor-off + low-motor-load energy: each non-transit task gets
-    // its own measured wattage from the calibrated constants above.
+    // its own measured wattage from the calibrated constants.
     const hotelEnergyWh =
-        (DIVE_HOLD_W * diveHoldS +
-            SURFACE_DRIFT_W * driftTotalS +
-            STATION_KEEP_W * stationKeepTotalS) /
+        (calibration.diveHoldW * diveHoldS +
+            calibration.surfaceDriftW * driftTotalS +
+            calibration.stationKeepW * stationKeepTotalS) /
         3600;
 
     // Full-dive-cycle energy (descent through GPS reacquire), excluding the
     // HOLD time which is already counted in hotelEnergyWh.
-    const diveEnergyWh = diveCount * (DIVE_ENERGY_BASE_WH + DIVE_ENERGY_PER_M_WH * meanDiveDepthM);
+    const diveEnergyWh =
+        diveCount * (calibration.diveEnergyBaseWh + calibration.diveEnergyPerMWh * meanDiveDepthM);
 
     try {
         const response = await fetch("/battery-prediction", {
