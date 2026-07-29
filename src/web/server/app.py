@@ -15,7 +15,7 @@ from http import HTTPStatus
 from flask import Flask, send_from_directory, Response, request, send_file
 
 # Internal Imports
-from pyjaia.battery_prediction import predict_drain as battery_predict_drain
+from pyjaia.battery_prediction import predict_drain as battery_predict_drain, UnsupportedBotTypeError
 
 import jaia_portal
 import missions
@@ -523,6 +523,8 @@ def battery_prediction():
             status=HTTPStatus.OK,
             mimetype='application/json',
         )
+    except UnsupportedBotTypeError as e:
+        return ErrorResponse(HTTPStatus.UNPROCESSABLE_ENTITY, str(e), 1)
     except Exception as e:
         return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
 

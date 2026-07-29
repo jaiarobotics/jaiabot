@@ -390,8 +390,14 @@ def main():
     print(f"Training final model on all {len(X)} samples ...")
     final_model.fit(X, y)
 
+    supported_bot_types = sorted(int(t) for t in df["bot_type"].unique())
     with open(args.model_output, "wb") as f:
-        pickle.dump({"model": final_model, "features": FEATURES, "target": TARGET}, f)
+        pickle.dump({
+            "model": final_model,
+            "features": FEATURES,
+            "target": TARGET,
+            "supported_bot_types": supported_bot_types,
+        }, f)
 
     print(f"Saved model to {args.model_output}")
 
