@@ -34,6 +34,18 @@ export interface BatteryPrediction {
 }
 
 /**
+ * Clamps a predicted final battery percentage for display, since a battery can't
+ * read below empty. The raw predicted_final_pct is left untouched everywhere else
+ * (e.g. the insufficient-battery threshold check) so it can still go negative there.
+ *
+ * @param {number} predictedFinalPct Raw predicted final battery percentage
+ * @returns {number} Predicted final battery percentage clamped to a minimum of 0
+ */
+export function clampBatteryPercentForDisplay(predictedFinalPct: number): number {
+    return Math.max(0, predictedFinalPct);
+}
+
+/**
  * Calculates the great-circle distance in meters between two geographic coordinates
  *
  * @param {number} lat1 Latitude of the first point in degrees

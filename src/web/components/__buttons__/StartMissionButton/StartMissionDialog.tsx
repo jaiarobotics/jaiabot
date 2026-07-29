@@ -1,7 +1,10 @@
 import { messages } from "./start-mission-messages";
 import { DisabledCodes } from "../disabled-codes";
 import { DialogActions } from "../../../types/context-types";
-import { BatteryPrediction } from "../../../utils/battery_prediction";
+import {
+    BatteryPrediction,
+    clampBatteryPercentForDisplay,
+} from "../../../utils/battery_prediction";
 
 interface DialogProps {
     isVisible: boolean;
@@ -42,7 +45,12 @@ export function StartMissionDialog(props: DialogProps) {
                 {props.batteryPrediction && (
                     <p>
                         Predicted battery after mission:{" "}
-                        <strong>{props.batteryPrediction.predicted_final_pct.toFixed(1)}%</strong>{" "}
+                        <strong>
+                            {clampBatteryPercentForDisplay(
+                                props.batteryPrediction.predicted_final_pct,
+                            ).toFixed(1)}
+                            %
+                        </strong>{" "}
                         (drain: {props.batteryPrediction.predicted_drain_pct.toFixed(1)}%)
                     </p>
                 )}

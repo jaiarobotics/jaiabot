@@ -10,7 +10,11 @@ import DeleteMissionButton from "../../../components/__buttons__/DeleteMissionBu
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import { BatteryPrediction, fetchBatteryPrediction } from "../../../utils/battery_prediction";
+import {
+    BatteryPrediction,
+    clampBatteryPercentForDisplay,
+    fetchBatteryPrediction,
+} from "../../../utils/battery_prediction";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
 import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
 
@@ -290,7 +294,7 @@ function MissionAccordion(props: MissionAccordionProps) {
  */
 function MissionStats(props: MissionStatsProps) {
     const batteryAfter = props.prediction
-        ? `${props.prediction.predicted_final_pct.toFixed(1)}%`
+        ? `${clampBatteryPercentForDisplay(props.prediction.predicted_final_pct).toFixed(1)}%`
         : "--";
 
     return (
