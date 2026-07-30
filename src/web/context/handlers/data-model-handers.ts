@@ -3,6 +3,7 @@ import {
     ButtonNames,
     HubAccordionStates,
     BotAccordionStates,
+    WaypointSections,
 } from "../../types/context-types";
 import { JaiaActions } from "../jaia-actions";
 import { bots } from "../../data/bots/bots";
@@ -21,6 +22,7 @@ import { syncOpenLayers } from "./handler-utils";
 const defaultHubAccordionStates: HubAccordionStates = {
     quickLook: false,
     commands: false,
+    health: false,
     links: false,
 };
 
@@ -74,6 +76,7 @@ export function handleInit(mutableState: JaiaContextType) {
         placementError: "",
         visibleDetails: NodeTypes.NONE,
         visiblePanel: ButtonNames.NONE,
+        visibleWaypointSection: WaypointSections.NONE,
         hubAccordionStates: defaultHubAccordionStates,
         botAccordionStates: defaultBotAccordionStates,
         mapLayerAccordionStates: defaultMapLayerAccordionStates,

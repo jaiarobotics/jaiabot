@@ -81,6 +81,21 @@ message MotorStatusConfig
     optional int32 motor_rpm_report_timeout_seconds = 10 [default = 40];
     optional int32 motor_thermistor_report_timeout_seconds = 11 [default = 40];
     optional jaiabot.protobuf.MotorHarnessType motor_harness_type = 12 [default = NONE];
+
+    optional string vehicle_db_path = 50 [default = "/var/log/jaiabot/db/vehicle.db"];
+    optional string tail_serial_number = 51 [default = "unknown_serial_number"];
+    optional string bot_vin = 52 [default = "unknown_vin"];
+}
+
+message ArduinoRecoveryConfig
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional bool enable_auto_flash = 1 [default = true];
+    optional int32 max_attempts = 3 [default = 3];
+    optional string flash_script = 10 [default = "jaia_firm_arduino_flash.sh"];
 }
 
 message Health
@@ -108,4 +123,5 @@ message Health
     optional NTPStatusConfig ntp = 40;
     optional HelmIVPStatusConfig helm = 41;
     optional MotorStatusConfig motor = 42;
+    optional ArduinoRecoveryConfig arduino_recovery = 43;
 }

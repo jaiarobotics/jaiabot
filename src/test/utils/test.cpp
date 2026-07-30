@@ -1,6 +1,7 @@
 #define BOOST_TEST_MODULE jaiabot_test_utils
 #include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/utils/dissolved_oxygen_compensation.h"
+#include "jaiabot/utils/hampel_filter.h"
 #include "jaiabot/utils/ph_temperature_compensation.h"
 #include "jaiabot/utils/specific_conductivity.h"
 #include <boost/test/included/unit_test.hpp>
@@ -364,6 +365,123 @@ BOOST_AUTO_TEST_CASE(test_specific_conductivity)
 
         BOOST_CHECK_CLOSE(specific_conductivity, test.expected_specific_conductivity, 2);
     }
+}
+
+BOOST_AUTO_TEST_CASE(test_hampel_warmup)
+{
+    HampelFilter filter(/*window_size=*/5, /*num_mads=*/3.0);
+
+    // Feed one fewer than the window size, including an outlier
+    const double warmup[] = {10.0, 10.5, 9.5, 1000.0};
+    for (double v : warmup)
+    {
+        auto r = filter.filter(v);
+        BOOST_CHECK(!r.has_estimate);
+        BOOST_CHECK(!r.is_outlier);
+    }
+    BOOST_CHECK(!filter.is_warmed_up());
+
+    // The fifth reading fills the window
+    auto r = filter.filter(10.2);
+    BOOST_CHECK(filter.is_warmed_up());
+    BOOST_CHECK(r.has_estimate);
+}
+
+BOOST_AUTO_TEST_CASE(test_hampel_no_false_positives_on_clean_data)
+{
+    HampelFilter filter(7, 3.0);
+
+    const double clean[] = {20.0, 20.1, 19.9, 20.2, 19.8, 20.0, 20.1,
+                            19.95, 20.05, 20.0, 19.9, 20.1, 20.0, 19.85};
+    for (double v : clean)
+    {
+        auto r = filter.filter(v);
+        BOOST_CHECK(!r.is_outlier);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(test_hampel_detects_single_spike)
+{
+    HampelFilter filter(7, 3.0);
+
+    // Warm up
+    const double warmup[] = {5.0, 5.1, 4.9, 5.0, 5.05, 4.95, 5.0};
+    for (double v : warmup) filter.filter(v);
+
+    // Add an outlier
+    auto spike = filter.filter(500.0);
+    BOOST_CHECK(spike.has_estimate);
+    BOOST_CHECK(spike.is_outlier);
+    // Unaffected raw value is reported
+    BOOST_CHECK_EQUAL(spike.value, 500.0);
+
+    // A normal reading right after the spike is not flagged
+    auto recovered = filter.filter(5.02);
+    BOOST_CHECK(!recovered.is_outlier);
+}
+
+BOOST_AUTO_TEST_CASE(test_hampel_threshold_is_configurable)
+{
+    const double warmup[] = {10.0, 10.2, 9.8, 10.1, 9.9, 10.0, 10.05};
+    const double moderate = 10.7; // a few scaled-MADs from the median
+
+    HampelFilter loose(7, 6.0);
+    for (double v : warmup) loose.filter(v);
+    BOOST_CHECK(!loose.filter(moderate).is_outlier);
+
+    HampelFilter tight(7, 1.0);
+    for (double v : warmup) tight.filter(v);
+    BOOST_CHECK(tight.filter(moderate).is_outlier);
+}
+
+BOOST_AUTO_TEST_CASE(test_hampel_zero_spread_accepts)
+{
+    HampelFilter filter(5, 3.0);
+    for (int i = 0; i < 5; ++i) filter.filter(42.0);
+
+    auto r = filter.filter(43.0);
+    BOOST_CHECK(r.has_estimate);
+    BOOST_CHECK_EQUAL(r.scaled_mad, 0.0);
+    BOOST_CHECK(!r.is_outlier);
+}
+
+BOOST_AUTO_TEST_CASE(test_hampel_adapts_to_level_shift)
+{
+    HampelFilter filter(7, 3.0);
+
+    // Warm up on a noisy signal
+    const double low[] = {2.0, 2.1, 1.9, 2.0, 2.05, 1.95, 2.0};
+    for (double v : low) filter.filter(v);
+
+    // First reading at the new level looks like an outlier
+    BOOST_CHECK(filter.filter(50.0).is_outlier);
+
+    // Once the window is filled with the new level, it is accepted
+    const double high[] = {50.0, 50.1, 49.9, 50.0, 50.05, 49.95};
+    for (double v : high) filter.filter(v);
+    BOOST_CHECK(!filter.filter(50.1).is_outlier);
+}
+
+BOOST_AUTO_TEST_CASE(test_hampel_reset)
+{
+    HampelFilter filter(4, 3.0);
+    for (int i = 0; i < 4; ++i) filter.filter(1.0);
+    BOOST_CHECK(filter.is_warmed_up());
+
+    filter.reset();
+    BOOST_CHECK(!filter.is_warmed_up());
+    BOOST_CHECK_EQUAL(filter.samples_buffered(), 0u);
+    BOOST_CHECK(!filter.filter(1.0).has_estimate);
+}
+
+BOOST_AUTO_TEST_CASE(test_hampel_even_window_median)
+{
+    HampelFilter filter(4, 3.0);
+    // Window becomes {2, 4, 6, 8} -> median = (4 + 6) / 2 = 5
+    const double data[] = {2.0, 4.0, 6.0, 8.0};
+    HampelFilter::Result r{};
+    for (double v : data) r = filter.filter(v);
+    BOOST_CHECK_CLOSE(r.median, 5.0, 1e-9);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

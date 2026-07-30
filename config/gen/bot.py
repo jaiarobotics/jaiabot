@@ -15,6 +15,8 @@ jaia_electronics_stack='0'
 jaia_imu_type='bno055'
 jaia_arduino_type='spi'
 jaia_pam_connection_type='none'
+jaia_tail_serial_number = os.environ.get('jaia_tail_serial_number', default='unknown_serial_number')
+jaia_bot_vin = os.environ.get('jaia_bot_vin', default='unknown_vin')
 
 if "jaia_electronics_stack" in os.environ:
     jaia_electronics_stack=os.environ['jaia_electronics_stack']
@@ -78,6 +80,7 @@ jaia_motor_harness_type="NONE"
 if "jaia_motor_harness_type" in os.environ:
     jaia_motor_harness_type=os.environ['jaia_motor_harness_type']
 
+bot_index = -1
 try:
     bot_index=int(os.environ['jaia_bot_index'])
 except:
@@ -272,14 +275,18 @@ elif common.app == 'goby_coroner':
 elif common.app == 'jaiabot_health':
     ignore_powerstate_changes=is_simulation() and not common.is_vfleet
     print(config.template_substitute(templates_dir+'/bot/jaiabot_health.pb.cfg.in',
+                                     bot_id=bot_index,
+                                     fleet_id=fleet_index,
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bind_port=common.udp.motor_cpp_udp_port(),
-                                     remote_port=common.udp.motor_py_udp_port(),
+                                     remote_port=common.udp.motor_py_udp_port(bot_index),
                                      # do not power off or restart the simulator computer unless we're a VirtualFleet
                                      ignore_powerstate_changes=ignore_powerstate_changes,
                                      is_in_sim=is_simulation(),
-                                     motor_harness_type=jaia_motor_harness_type))
+                                     motor_harness_type=jaia_motor_harness_type,
+                                     jaia_tail_serial_number=jaia_tail_serial_number,
+                                     jaia_bot_vin=jaia_bot_vin))
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
                                      app_block=app_common,
@@ -448,4 +455,5 @@ else:
                                      udp_gateway_port=udp_gateway_port,
                                      imu_type=imu_type,
                                      pressure_sensor_type=pressure_sensor_type,
-                                     log_file_dir=log_file_dir))
+                                     log_file_dir=log_file_dir,
+                                     motor_py_udp_port=common.udp.motor_py_udp_port(bot_index)))
