@@ -1,6 +1,6 @@
 import Bot from "../data/bots/bot";
 import Mission from "../data/mission_set/mission";
-import { BotType, TaskType } from "../types/protobuf-types";
+import { TaskType } from "../types/protobuf-types";
 import { BOTTOM_DIVE_DEPTH_PRIOR_M } from "./constants";
 
 const DEFAULT_TRANSIT_SPEED_M_S = 2.0;
@@ -175,21 +175,6 @@ function waypointGeometry(locs: { lat: number; lon: number }[]): {
 }
 
 /**
- * Converts a BotType enum value to the integer used by the prediction model
- *
- * @param {BotType} botType The bot's hardware type
- * @returns {number} Integer representation of the bot type expected by the model
- */
-function botTypeToInt(botType: BotType): number {
-    switch (botType) {
-        case BotType.ECHO:
-            return 2;
-        default:
-            return 1;
-    }
-}
-
-/**
  * Extracts mission features from a Mission and Bot, sends them to the hub's
  * battery prediction endpoint, and returns the predicted drain and final battery percentage
  *
@@ -350,7 +335,7 @@ export async function fetchBatteryPrediction(
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                bot_type: botTypeToInt(bot.getBotType()),
+                bot_type: bot.getBotType(),
                 transit_energy_wh: transitEnergyWh,
                 transit_time_s: transitTimeS,
                 turn_density_deg_per_km: turnDensityDegPerKm,

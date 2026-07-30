@@ -117,3 +117,19 @@ test("No prediction is produced when the server rejects the request (e.g. an uns
 
     expect(result).toBeNull();
 });
+
+test("Bot type is sent to the server as-is, for the server to resolve", async () => {
+    installFetchMock();
+
+    const bot = new Bot();
+    bot.setBotType(BotType.ECHO);
+    bot.setLocation({ lat: 10, lon: 0 });
+    bot.setBatteryPercent(100);
+
+    const mission = new Mission();
+    mission.addWaypoint({ lat: 10, lon: 0.01 });
+
+    await fetchBatteryPrediction(mission, bot);
+
+    expect(capturedPredictionRequestBody.bot_type).toBe(BotType.ECHO);
+});

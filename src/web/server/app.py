@@ -515,7 +515,7 @@ def battery_prediction():
 
     try:
         drain = battery_predict_drain(
-            bot_type=int(body['bot_type']),
+            bot_type=jaia_portal.BotStatus.BotType.Value(body['bot_type']),
             transit_energy_wh=float(body['transit_energy_wh']),
             transit_time_s=float(body['transit_time_s']),
             turn_density_deg_per_km=float(body['turn_density_deg_per_km']),

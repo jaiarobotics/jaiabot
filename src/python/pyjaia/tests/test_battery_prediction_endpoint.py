@@ -24,7 +24,7 @@ client = jcc_server.app.test_client()
 
 # Known good feature values for a supported bot type, taken from the training data.
 VALID_REQUEST = {
-    "bot_type": 1,
+    "bot_type": "HYDRO",
     "transit_energy_wh": 8.0837,
     "transit_time_s": 194.2,
     "turn_density_deg_per_km": 1297.7,
@@ -58,8 +58,8 @@ def test_well_formed_request_returns_prediction():
 
 
 def test_untrained_bot_type_returns_error_not_prediction():
-    # bot_type 3 (BIO) has no samples in the training data.
-    body = dict(VALID_REQUEST, bot_type=3)
+    # BIO (bot_type 3) has no samples in the training data.
+    body = dict(VALID_REQUEST, bot_type="BIO")
     response = client.post("/battery-prediction", json=body)
     assert response.status_code == 422
     result = response.get_json()
