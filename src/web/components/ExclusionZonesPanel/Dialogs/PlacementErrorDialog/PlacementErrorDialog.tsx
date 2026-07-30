@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
+import ExclusionZoneDialog from "../../ExclusionZoneDialog";
 
 /**
  * Modal shown when a waypoint placement is blocked because the location falls
@@ -15,17 +16,11 @@ export default function PlacementErrorDialog() {
     const handleOkClick = () => jaiaDispatch({ type: JaiaActions.CLEAR_PLACEMENT_ERROR });
 
     return (
-        <div className="jaia-dialog-container">
-            <div className="blocking-overlay" />
-            <div className="jaia-dialog">
-                <h1>Placement Not Allowed</h1>
-                <p>{jaiaContext.obstacleAvoidanceData.getPlacementError()}</p>
-                <div className="dialog-button-row">
-                    <button className="dialog-button" onClick={handleOkClick}>
-                        OK
-                    </button>
-                </div>
-            </div>
-        </div>
+        <ExclusionZoneDialog
+            title="Placement Not Allowed"
+            buttons={[{ label: "OK", onClick: handleOkClick }]}
+        >
+            <p>{jaiaContext.obstacleAvoidanceData.getPlacementError()}</p>
+        </ExclusionZoneDialog>
     );
 }

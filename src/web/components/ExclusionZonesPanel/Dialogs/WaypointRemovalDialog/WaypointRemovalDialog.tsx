@@ -3,6 +3,8 @@ import { JaiaContext, JaiaDispatchContext } from "../../../../context/JaiaContex
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { MAX_WAYPOINTS } from "../../../../utils/constants";
 import { ProposalStatus } from "../../../../data/obstacle_avoidance_data/pending-route-data";
+import ExclusionZoneDialog from "../../ExclusionZoneDialog";
+import RerouteSummary from "../../RerouteSummary";
 
 /**
  * Shown when waypoints fall inside an exclusion zone. If the post-removal
@@ -29,86 +31,52 @@ export default function WaypointRemovalDialog() {
     const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_WAYPOINT_REMOVAL });
     const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_WAYPOINT_REMOVAL });
 
+    const buttons = [
+        {
+            label: hasFollowUpReroute && !hasFeasibleFollowUp ? "Revert All" : "Revert",
+            onClick: handleCancel,
+        },
+    ];
+    if (!hasFollowUpReroute || hasFeasibleFollowUp) {
+        buttons.push({ label: "Confirm", onClick: handleConfirm });
+    }
+
     return (
-        <div className="jaia-dialog-container">
-            <div className="blocking-overlay" />
-            <div className="jaia-dialog">
-                <h1>Mission Plan Update Required</h1>
+        <ExclusionZoneDialog title="Mission Plan Update Required" buttons={buttons}>
+            <p>
+                <strong>{pending.totalRemovedCount}</strong> waypoint
+                {pending.totalRemovedCount !== 1 ? "s" : ""} inside an exclusion zone will be
+                removed:
+            </p>
+            <ul className="dialog-list">
+                {pending.proposals.map((p) => (
+                    <li key={p.missionID}>
+                        Mission {p.missionID}: <strong>{p.removedCount}</strong> waypoint
+                        {p.removedCount !== 1 ? "s" : ""} removed
+                    </li>
+                ))}
+            </ul>
 
+            {rerouteFeasible.length > 0 && (
                 <p>
-                    <strong>{pending.totalRemovedCount}</strong> waypoint
-                    {pending.totalRemovedCount !== 1 ? "s" : ""} inside an exclusion zone will be
-                    removed:
+                    The following mission
+                    {rerouteFeasible.length !== 1 ? "s have" : " has"} been rerouted to include{" "}
+                    <strong>{reroute!.totalBypassCount}</strong> bypass waypoint
+                    {reroute!.totalBypassCount !== 1 ? "s" : ""}.
                 </p>
-                <ul className="dialog-list">
-                    {pending.proposals.map((p) => (
-                        <li key={p.missionID}>
-                            Mission {p.missionID}: <strong>{p.removedCount}</strong> waypoint
-                            {p.removedCount !== 1 ? "s" : ""} removed
-                        </li>
-                    ))}
-                </ul>
+            )}
 
-                {rerouteFeasible.length > 0 && (
-                    <p>
-                        The following mission
-                        {rerouteFeasible.length !== 1 ? "s have" : " has"} been rerouted to include{" "}
-                        <strong>{reroute!.totalBypassCount}</strong> bypass waypoint
-                        {reroute!.totalBypassCount !== 1 ? "s" : ""}.
-                    </p>
-                )}
+            {hasFollowUpReroute && rerouteFeasible.length === 0 && (
+                <p className="dialog-warn">
+                    None of the remaining missions can be rerouted with the current zone layout.
+                </p>
+            )}
 
-                {hasFollowUpReroute && rerouteFeasible.length === 0 && (
-                    <p className="dialog-warn">
-                        None of the remaining missions can be rerouted with the current zone layout.
-                    </p>
-                )}
-
-                {rerouteOverLimit.length > 0 && (
-                    <>
-                        <p className="dialog-warn">
-                            The following mission{rerouteOverLimit.length !== 1 ? "s" : ""} still
-                            cross a zone after waypoint removal but cannot be rerouted — adding
-                            bypass waypoints would exceed the {MAX_WAYPOINTS}-waypoint limit:
-                        </p>
-                        <ul className="dialog-warn-list">
-                            {rerouteOverLimit.map((p) => (
-                                <li key={p.missionID}>
-                                    Mission {p.missionID}: needs{" "}
-                                    <strong>{p.newWaypoints.length}</strong> waypoints (limit{" "}
-                                    {MAX_WAYPOINTS})
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-
-                {rerouteImpossible.length > 0 && (
-                    <>
-                        <p className="dialog-warn">
-                            The following mission{rerouteImpossible.length !== 1 ? "s" : ""} still
-                            cross a zone after waypoint removal and cannot be rerouted with the
-                            current zone layout:
-                        </p>
-                        <ul className="dialog-warn-list">
-                            {rerouteImpossible.map((p) => (
-                                <li key={p.missionID}>Mission {p.missionID}</li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-
-                <div className="dialog-button-row">
-                    <button className="dialog-button" onClick={handleCancel}>
-                        {hasFollowUpReroute && !hasFeasibleFollowUp ? "Revert All" : "Revert"}
-                    </button>
-                    {(!hasFollowUpReroute || hasFeasibleFollowUp) && (
-                        <button className="dialog-button" onClick={handleConfirm}>
-                            Update Plan
-                        </button>
-                    )}
-                </div>
-            </div>
-        </div>
+            <RerouteSummary
+                proposals={reroute?.proposals ?? []}
+                overLimitMessage={`The following mission${rerouteOverLimit.length !== 1 ? "s" : ""} still cross a zone after waypoint removal but cannot be rerouted — adding bypass waypoints would exceed the ${MAX_WAYPOINTS}-waypoint limit:`}
+                impossibleMessage={`The following mission${rerouteImpossible.length !== 1 ? "s" : ""} still cross a zone after waypoint removal and cannot be rerouted with the current zone layout:`}
+            />
+        </ExclusionZoneDialog>
     );
 }

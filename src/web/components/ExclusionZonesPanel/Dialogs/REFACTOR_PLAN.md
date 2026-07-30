@@ -314,6 +314,21 @@ plain-reroute / follow-up contexts that forcing shared copy isn't worth it.
 
 ## Part F — Rewrite the four dialogs as thin wrappers
 
+PART F COMPLETED. Note beyond what the bullets below spell out:
+`MissionRerouteDialog` and `WaypointRemovalDialog` were also switched to
+render their outer shell via `<ExclusionZoneDialog title=... buttons={...}>`
+(a dynamically-built `buttons` array, since both dialogs conditionally show
+a confirm button and vary the cancel label) — not just the two dialogs
+explicitly shown with a literal `<ExclusionZoneDialog ...>` snippet below.
+That's implied by this section's own title ("thin wrappers", for all four)
+and the refactor's stated goal of eliminating the duplicated
+`jaia-dialog-container`/`blocking-overlay`/`jaia-dialog`/`dialog-button-row`
+shell everywhere, so it's called out here explicitly rather than left
+ambiguous. As predicted in Part E, wiring in `RerouteSummary` flipped
+`MissionRerouteDialog`'s over-limit/impossible block order (now
+overlimit-then-impossible, was impossible-then-overlimit) — a minor,
+purely visual change.
+
 - **`PlacementErrorDialog.tsx`**: unchanged data logic (context-driven,
   dispatches `CLEAR_PLACEMENT_ERROR`); render
   `<ExclusionZoneDialog title="Placement Not Allowed" buttons={[{label:"OK", onClick:handleOkClick}]}>`.
