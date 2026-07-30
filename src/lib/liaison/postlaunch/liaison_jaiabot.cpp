@@ -1,10 +1,15 @@
 #include <Wt/WComboBox.h>
 #include <Wt/WContainerWidget.h>
+#include <Wt/WDateTime.h>
 #include <Wt/WGroupBox.h>
+#include <Wt/WHBoxLayout.h>
 #include <Wt/WLabel.h>
 #include <Wt/WPanel.h>
 #include <Wt/WSlider.h>
 #include <Wt/WStackedWidget.h>
+#include <Wt/WStandardItem.h>
+#include <Wt/WStandardItemModel.h>
+#include <Wt/WVBoxLayout.h>
 #include <chrono>
 
 #include "liaison_jaiabot.h"
@@ -17,11 +22,12 @@ using namespace std::chrono;
 
 bool jaiabot::LiaisonJaiabot::dive_start_ = false;
 bool led_switch_on = true;
+const size_t MAX_DATA_POINTS = 1000;
 system_clock::time_point jaiabot::LiaisonJaiabot::dive_expire_ = system_clock::now();
 
 jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg,
                                         Wt::WContainerWidget* parent)
-    : goby::zeromq::LiaisonContainerWithComms<LiaisonJaiabot, CommsThread>(cfg),
+    : goby::zeromq::LiaisonContainerWithComms<LiaisonJaiabot, CommsThread>(cfg), 
       cfg_(cfg.GetExtension(protobuf::jaiabot_config))
 {
     auto hub_vehicle_panel = this->addNew<Wt::WPanel>();
@@ -70,6 +76,27 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
         bot_tpv_text_ = bot_tpv_box->addNew<WText>();
 
         bot_panel->setCentralWidget(std::move(bot_box));
+        
+        auto chart_panel = this->addNew<Wt::WPanel>();
+        chart_panel->setTitle("Charts");
+        chart_panel->setCollapsible(true);
+        chart_panel->setCollapsed(cfg_.minimize_chart_panel());
+
+        auto chart_container = std::make_unique<Wt::WContainerWidget>();
+        chart_container->addNew<WLabel>("Data: ");
+        data_combo_ = chart_container->addNew<WComboBox>();
+        data_combo_->addItem("(Choose a data type)");
+        data_combo_->sactivated().connect([this](Wt::WString msg) { data_select(msg); });
+
+        for (auto data_type : data_types_) add_data_type(data_type);
+
+        chart_box = chart_container->addNew<WGroupBox>("");
+        chart_box->hide();
+
+        data_stack_ = chart_box->addNew<Wt::WStackedWidget>();
+
+        chart_container->setMinimumSize(Wt::WLength::Auto, 100);
+        chart_panel->setCentralWidget(std::move(chart_container));
     }
 
     const auto update_freq = cfg_.control_freq();
@@ -113,6 +140,142 @@ void jaiabot::LiaisonJaiabot::vehicle_select(WString msg)
     {
         vehicle_stack_->hide();
         current_vehicle_ = -1;
+    }
+}
+
+void jaiabot::LiaisonJaiabot::add_data_type(std::pair<std::string, YAxisConfig>& data_type)
+{
+    //Add the data type to the chart_data_ vector
+    ChartData chart_data;
+    chart_data.chart_type = data_type.first;
+    chart_data.y_axis_config = data_type.second;
+    chart_data_.push_back(chart_data);
+
+    //Add the data type to the data combo box
+    data_combo_->addItem(data_type.first);
+    data_combo_->model()->sort(0);
+}
+
+void jaiabot::LiaisonJaiabot::data_select(WString msg)
+{
+    std::string data_type = msg.narrow();
+
+    // Check if selected data_type is available as a chart type
+    auto it_data_type =
+        std::find_if(data_types_.begin(), data_types_.end(),
+                     [data_type](const auto& item) { return item.first == data_type; });
+
+    if (it_data_type == data_types_.end())
+    {
+        chart_box->hide();
+        current_data_type_ = "";
+        return;
+    }
+
+    chart_box->show();
+    chart_box->setTitle(data_type);
+
+    auto it = std::find_if(chart_data_.begin(), chart_data_.end(), 
+        [&data_type](const ChartData& data) { return data.chart_type == data_type; });
+
+    // Early exit if there's no chart data for the selected data type
+    if (it == chart_data_.end()) 
+        return;
+
+    if (current_data_type_ == data_type && chart_model_ && chart_)
+    {
+        
+        size_t num_points = it->data_points.size();
+        
+        int current_rows = chart_model_->rowCount();
+        int target_rows = static_cast<int>(num_points);
+
+        if (current_rows < target_rows)
+        {
+            chart_model_->insertRows(current_rows, target_rows - current_rows);
+        }
+        else if (current_rows > target_rows)
+        {
+            chart_model_->removeRows(target_rows, current_rows - target_rows);
+        }
+
+        // Update the values in place
+        int row = 0;
+        for (const auto& [x_val, y_val] : it->data_points)
+        {
+            chart_model_->setData(row, 0, get_date_time(x_val));
+            chart_model_->setData(row, 1, y_val);
+            row++;
+        }
+
+        return; 
+    }
+
+    current_data_type_ = data_type;
+
+    auto temp_model = std::make_shared<Wt::WStandardItemModel>(it->data_points.size(), 2);
+
+    int row = 0;
+    for (const auto& [x_val, y_val] : it->data_points)
+    {
+        temp_model->setData(row, 0, get_date_time(x_val));
+        temp_model->setData(row, 1, y_val);
+        row++;
+    }
+
+    chart_model_ = temp_model;
+
+    auto new_chart = std::make_unique<Wt::Chart::WCartesianChart>();
+    new_chart->setModel(chart_model_);
+    new_chart->setType(Wt::Chart::ChartType::Scatter);
+    new_chart->setXSeriesColumn(0);
+
+    YAxisConfig y_config = it->y_axis_config;
+    new_chart->axis(Wt::Chart::Axis::Y).setTitle(Wt::WString(y_config.title));
+    new_chart->axis(Wt::Chart::Axis::Y).setTitleOrientation(Wt::Orientation::Vertical);
+    new_chart->setPlotAreaPadding(60, Wt::Side::Bottom);
+    new_chart->setPlotAreaPadding(60, Wt::Side::Left);
+
+    auto series = std::make_unique<Wt::Chart::WDataSeries>(1, Wt::Chart::SeriesType::Line);
+    new_chart->addSeries(std::move(series));
+
+    auto& x_axis = new_chart->axis(Wt::Chart::Axis::X);
+    x_axis.setTitle(Wt::WString("Time"));
+    x_axis.setScale(Wt::Chart::AxisScale::DateTime);
+    x_axis.setLabelFormat("hh:mm:ss");
+    x_axis.setLabelInterval(0.0);
+
+    new_chart->resize(600, 400);
+    new_chart->setTitle(data_type + " Chart");
+    new_chart->setMargin(15, Wt::Side::Top | Wt::Side::Right | Wt::Side::Left);
+    new_chart->setMargin(5, Wt::Side::Bottom);
+
+    chart_ = new_chart.get(); 
+
+    data_stack_->clear();
+    data_stack_->addWidget(std::move(new_chart));
+    data_stack_->show();
+}
+
+Wt::WDateTime jaiabot::LiaisonJaiabot::get_date_time(goby::time::MicroTime mp)
+{
+    const auto current_time = goby::time::convert<std::chrono::system_clock::time_point>(mp);
+    return Wt::WDateTime::fromTimePoint(current_time);
+}
+
+void jaiabot::LiaisonJaiabot::add_data_point(std::string data_type, double data_point)
+{
+    auto it = std::find_if(chart_data_.begin(), chart_data_.end(), 
+        [&data_type](const ChartData& data) { return data.chart_type == data_type;});
+    
+    if(it != chart_data_.end())
+    {
+        auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
+        it->data_points[now] = data_point;
+
+        if (it->data_points.size() > MAX_DATA_POINTS)
+            it->data_points.erase(
+                it->data_points.begin()); // Remove the oldest data point to maintain the size limit
     }
 }
 
@@ -173,6 +336,11 @@ void jaiabot::LiaisonJaiabot::loop()
                 std::string("s<br/><pre>") + ack.DebugString() + "</pre>");
         }
     }
+    if(!current_data_type_.empty())
+    {
+        // Refresh chart with new data points
+        data_select(current_data_type_);
+    }
 }
 
 void jaiabot::LiaisonJaiabot::post_control_ack(const protobuf::LowControlAck& ack)
@@ -201,14 +369,28 @@ void jaiabot::LiaisonJaiabot::post_tpv(
 
 void jaiabot::LiaisonJaiabot::post_pt(const jaiabot::protobuf::PressureTemperatureData& pt)
 {
-    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT) {
         bot_pt_text_->setText("<pre>" + pt.DebugString() + "</pre>");
+
+        // Add the data points to the chart data structure
+        add_data_point("Temperature", pt.temperature());
+        add_data_point("Pressure", pt.pressure_raw());
+    }
 }
 
 void jaiabot::LiaisonJaiabot::post_salinity(const jaiabot::protobuf::SalinityData& salinity)
 {
     if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+    {
         bot_salinity_text_->setText("<pre>" + salinity.DebugString() + "</pre>");
+
+        auto steady_now = goby::time::SteadyClock::now();
+        double mission_time =
+            std::chrono::duration_cast<std::chrono::duration<double>>(steady_now.time_since_epoch())
+                .count();
+
+        add_data_point("Salinity", salinity.salinity());
+    }
 }
 
 void jaiabot::LiaisonJaiabot::post_imu(const jaiabot::protobuf::IMUData& imu)
