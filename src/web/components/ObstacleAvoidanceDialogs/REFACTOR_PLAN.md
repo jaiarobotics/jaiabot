@@ -1,5 +1,11 @@
 # Consolidate exclusion-zone dialogs, simplify handler-side reroute logic, and cut unnecessary reducer usage
 
+**Follow-up:** [`PENDING_DIALOG_REFACTOR_PLAN.md`](./PENDING_DIALOG_REFACTOR_PLAN.md)
+in this same folder unifies the three `pendingReroute`/`pendingWaypointRemoval`/
+`placementError` fields this plan's dialogs read from into one discriminated
+union, fixing a race condition, and collapses the three `App.tsx`-mounted
+dialogs into a single controller component.
+
 ## Context
 
 `src/web/components/ObstacleAvoidanceDialogs/` has four dialog components
