@@ -538,7 +538,7 @@ def battery_prediction():
             status=HTTPStatus.OK,
             mimetype='application/json',
         )
-    except UnsupportedBotTypeError as e:
+    except (UnsupportedBotTypeError, ValueError) as e:
         return ErrorResponse(HTTPStatus.UNPROCESSABLE_ENTITY, str(e), 1)
     except Exception as e:
         return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
