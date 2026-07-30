@@ -1,7 +1,5 @@
 # Consolidate exclusion-zone dialogs, simplify handler-side reroute logic, and cut unnecessary reducer usage
 
-_Status: draft, for review — not yet implemented._
-
 ## Context
 
 `src/web/components/ExclusionZonesPanel/Dialogs/` has four dialog components
@@ -43,7 +41,7 @@ genuinely unnecessary slice of context/reducer usage (C), then consolidates
 the four dialogs' markup on top of the cleaned-up state (D-F). Review of
 Part C also surfaced a real gap — the reroute/removal confirm-cancel actions
 must stay dispatched for undo, but undo itself has no test coverage anywhere
-in the suite — so Part G adds that coverage.
+in the suite. Part G proposed closing that gap; deferred (see Part G).
 
 ## Part A — `ProposalStatus` enum (data layer)
 
@@ -232,9 +230,8 @@ PART D COMPLETED (built alongside Part C, since Part C's `Map.tsx` change
 depends on this component existing — see Part C's inline usage above).
 
 New file **`src/web/components/ExclusionZonesPanel/Dialogs/ExclusionZoneBaseDialog.tsx`**
-(pure presentational component; see the resolved "`RerouteSummary` location"
-open question below for the full history of where this file ended up and why
-it's named `ExclusionZoneBaseDialog` rather than `Dialog` or `ExclusionZoneDialog`):
+(pure presentational component, alongside the four dialog subfolders it's
+used by):
 
 ```tsx
 interface ExclusionZoneBaseDialogProps {
@@ -329,14 +326,6 @@ ambiguous. As predicted in Part E, wiring in `RerouteSummary` flipped
 overlimit-then-impossible, was impossible-then-overlimit) — a minor,
 purely visual change.
 
-**Post-hoc file-location correction:** once all four dialogs were wired up
-here, it became clear `ExclusionZoneBaseDialog`/`RerouteSummary` are never
-used standalone — every use is wrapped by one of these four dialogs. They'd
-briefly been moved out to `ExclusionZonesPanel/` on the assumption they might
-stand alone; moved back into `Dialogs/` alongside their only consumers once
-that assumption proved wrong. See the resolved "`RerouteSummary` location"
-open question below for the full history.
-
 - **`PlacementErrorDialog.tsx`**: unchanged data logic (context-driven,
   dispatches `CLEAR_PLACEMENT_ERROR`); render
   `<ExclusionZoneBaseDialog title="Placement Not Allowed" buttons={[{label:"OK", onClick:handleOkClick}]}>`.
@@ -374,6 +363,14 @@ No changes needed to how `App.tsx`/`Map.tsx` wire up the pre-existing
 components otherwise.
 
 ## Part G — Add undo test coverage for reroute/removal confirm & cancel
+
+PART G DEFERRED / OUT OF SCOPE (2026-07-30): decided the undo-flow test below
+(exercising `handleConfirmMissionReroute`/`handleClickedUndo` together) isn't
+needed for this refactor — snapshot round-trip consistency is already covered
+at the data-model layer (`mission-set-storage.test.ts`,
+`exclusion-zone-set.test.ts`, both confirmed still present and passing) and
+that's considered sufficient. Left the rest of this section as-is in case the
+undo/redo gap it documents becomes worth closing later.
 
 **Gap found during review:** undo/redo has no test coverage anywhere in the
 suite. `captureSnapshot`/`restoreFromSnapshot` are tested directly at the
@@ -436,7 +433,24 @@ New file **`context/handlers/__tests__/exclusion-zone-reroute-undo.test.ts`**
       blocking alert, and Revert All correctly removes the zone and restores
       prior waypoints. Repeat via moving/adding a zone vertex.
     - Draw a zone over a waypoint (`WaypointRemovalDialog`), including a case
-      where the post-removal follow-up reroute is entirely infeasible.
+      where the post-removal follow-up reroute is entirely infeasible. Repeat
+      via moving/adding a zone vertex, same as the reroute case above.
+    - Draw a zone (or move/add a vertex) that produces **both** an over-limit
+      mission and an impossible mission in the same `MissionRerouteDialog` —
+      confirm both sections render together (new capability from Part B; the
+      old code could only show one category at a time) and that the
+      over-limit section appears above the impossible section (order flipped
+      by Part F's `RerouteSummary` wiring — see Part E).
+    - Load a saved exclusion zone set via `LoadZoneButton`/`ImportZoneButton`
+      where at least one zone is skippable (unroutable) → confirm
+      `MissionRerouteDialog`'s zone-load branch (loaded/skipped-zone summary,
+      "Confirm" button) still renders correctly.
+    - Load a mission set via `LoadMissionSetButton`/`ImportMissionSetButton`/
+      `SaveAndLoadButton` where at least one mission is skippable → confirm
+      `MissionRerouteDialog`'s mission-load branch (loaded/skipped-mission
+      summary, "Confirm" button) still renders correctly. Neither load path
+      has any automated test coverage, and both branches were hand-rewritten
+      in Part F.
     - Click a rally point / survey start / survey end / mission waypoint
       location inside a zone → confirm the "Placement Not Allowed" alert still
       appears immediately and OK dismisses it (now driven by `Map.tsx` local
@@ -447,35 +461,3 @@ New file **`context/handlers/__tests__/exclusion-zone-reroute-undo.test.ts`**
       unchanged context path.
     - Cross a zone while editing a single mission → `ZoneCrossingDialog`
       unchanged.
-
-## Open questions from review discussion
-
-- ~~**Button label consistency**~~ — resolved: confirm button unified to a
-  single `"Confirm"` across both dialogs (all four confirm contexts); cancel
-  button's existing `"Revert"`/`"Revert All"` scope-based logic is preserved
-  unchanged in both dialogs. See Part F.
-- ~~**`RerouteSummary` location**~~ — resolved (final, 2026-07-30): both
-  shared components live at `Dialogs/ExclusionZoneBaseDialog.tsx` and
-  `Dialogs/RerouteSummary.tsx` — siblings of the four dialog subfolders, not
-  nested inside any of them. This settled after three iterations: (1)
-  originally proposed nested under `Dialogs/Dialog/`; (2) flattened to
-  `Dialogs/` directly, since the `Dialogs/<Name>/<Name>.tsx` subfolder
-  convention exists to group each dialog's own files and doesn't apply to a
-  shared, multi-use component; (3) briefly moved out to
-  `ExclusionZonesPanel/` entirely and renamed `Dialog` → `ExclusionZoneDialog`
-  on the assumption it might be used standalone outside a wrapper — but once
-  Part F showed every use is in fact wrapped by one of the four dialogs
-  (never rendered on its own), it moved back into `Dialogs/` alongside the
-  files that actually use it, and was renamed again to `ExclusionZoneBaseDialog`
-  to read clearly as a base/shell component rather than a standalone dialog.
-  No further file moves/reorganization as part of this refactor — further structural
-  changes to the `Dialogs/` layout are expected as a separate follow-up
-  proposal once B-G have landed and settled.
-- ~~**Part C scope**~~ — resolved: `SET_PLACEMENT_ERROR`/
-  `CLEAR_PLACEMENT_ERROR` elimination confirmed correctly scoped. Also
-  confirmed (traced handler bodies + `tracked` flag usage) that
-  `CONFIRM_MISSION_REROUTE`/`CANCEL_MISSION_REROUTE`/
-  `CONFIRM_WAYPOINT_REMOVAL`/`CANCEL_WAYPOINT_REMOVAL` must stay dispatched
-  since they mutate the domain model and participate in undo — see the
-  expanded Part C and new Part G (undo test coverage) added as a result of
-  this review.
