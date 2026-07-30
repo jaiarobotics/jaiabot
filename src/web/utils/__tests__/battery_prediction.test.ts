@@ -71,7 +71,7 @@ test("Energy calculations for a known mission plan", async () => {
     // WP1->WP2->WP3 legs reverse direction (same longitude offset, opposite
     // sign), producing an exact 180 degree turn at WP2.
     const mission = new Mission();
-    mission.setSpeeds({ transit: 2.0 });
+    mission.setTransitSpeed(2.0);
     mission.addWaypoint({ lat: 10, lon: 0.01 });
     mission.addWaypoint({ lat: 10, lon: 0.02 });
     mission.addWaypoint({ lat: 10, lon: 0.01 });
@@ -106,7 +106,7 @@ test("Minimum planned speed floor is applied when the mission speed is set below
     bot.setBatteryPercent(100);
 
     const mission = new Mission();
-    mission.setSpeeds({ transit: 1.0 }); // below the 2.0 m/s floor
+    mission.setTransitSpeed(1.0); // below the 2.0 m/s floor
     mission.addWaypoint({ lat: 10, lon: 0.01 });
 
     await fetchBatteryPrediction(mission, bot);

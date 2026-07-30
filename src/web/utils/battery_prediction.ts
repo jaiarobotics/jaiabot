@@ -3,7 +3,6 @@ import Mission from "../data/mission_set/mission";
 import { TaskType } from "../types/protobuf-types";
 import { BOTTOM_DIVE_DEPTH_PRIOR_M } from "./constants";
 
-const DEFAULT_TRANSIT_SPEED_M_S = 2.0;
 const EARTH_R = 6_371_000;
 
 // Empirical floor: when commanded below 2.0 m/s the bot still achieves ~1.7 m/s
@@ -229,7 +228,7 @@ export async function fetchBatteryPrediction(
 
     const repeats = mission.getRepeats() ?? 1;
 
-    const rawTransitSpeed = mission.getSpeeds()?.transit ?? DEFAULT_TRANSIT_SPEED_M_S;
+    const rawTransitSpeed = mission.getTransitSpeed();
     const transitSpeed = Math.max(rawTransitSpeed, MIN_PLANNED_SPEED_M_S);
     // Separate bot→first leg from plan-internal energy so we can scale them
     // differently when `repeats > 1`. The bot→first leg only happens once;
