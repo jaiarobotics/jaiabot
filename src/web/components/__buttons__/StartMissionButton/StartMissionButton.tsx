@@ -55,9 +55,11 @@ export default function StartMissionButton(props: Props) {
     /**
      * Checks the Bot's state and decides what disabled code (if any) applies based on the button conditions
      *
+     * @param {BatteryPrediction | null} [prediction] Battery prediction to check against. Defaults to
+     *   the current state.
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
-    const getDisabledCode = () => {
+    const getDisabledCode = (prediction: BatteryPrediction | null = batteryPrediction) => {
         if (props.bot.isCommsDropped()) {
             return DisabledCodes.NO_COMMS;
         }
@@ -81,10 +83,7 @@ export default function StartMissionButton(props: Props) {
             return DisabledCodes.LOW_BATTERY;
         }
 
-        if (
-            batteryPrediction !== null &&
-            batteryPrediction.predicted_final_pct < MIN_BATTERY_PERCENT
-        ) {
+        if (prediction !== null && prediction.predicted_final_pct < MIN_BATTERY_PERCENT) {
             return DisabledCodes.INSUFFICIENT_BATTERY;
         }
 
@@ -102,7 +101,7 @@ export default function StartMissionButton(props: Props) {
         const prediction = await fetchBatteryPrediction(props.mission, props.bot);
         setBatteryPrediction(prediction);
 
-        if (!hasControl && getDisabledCode() === DisabledCodes.NONE) {
+        if (!hasControl && getDisabledCode(prediction) === DisabledCodes.NONE) {
             setIsTakeControlVisible(true);
         } else {
             setIsDialogVisible(true);

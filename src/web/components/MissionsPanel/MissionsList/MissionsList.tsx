@@ -10,7 +10,6 @@ import DeleteMissionButton from "../../../components/__buttons__/DeleteMissionBu
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import { BotType } from "../../../types/protobuf-types";
 import {
     BatteryPrediction,
     clampBatteryPercentForDisplay,
@@ -54,7 +53,7 @@ interface MissionAccordionProps {
 
 interface MissionStatsProps {
     prediction: BatteryPrediction | null;
-    unavailableBotType?: BotType;
+    unavailableBotType?: string;
 }
 
 /**
@@ -312,7 +311,7 @@ function MissionAccordion(props: MissionAccordionProps) {
  * Values show "--" when not yet available (e.g. no bot assigned).
  *
  * @param {BatteryPrediction | null} props.prediction Battery prediction result, or null if unavailable
- * @param {BotType} [props.unavailableBotType] Bot type to name when no prediction could be obtained for it
+ * @param {string} [props.unavailableBotType] Bot type to name when no prediction could be obtained for it
  * @returns {JSX.Element} Stats table with mission metrics
  */
 function MissionStats(props: MissionStatsProps) {
