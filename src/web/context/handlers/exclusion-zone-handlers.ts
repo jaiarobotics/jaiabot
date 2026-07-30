@@ -5,7 +5,7 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { handleMapModeChange, setExclusionZoneDrawActive } from "../../openlayers/maps/map";
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
-import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
+import { UNASSIGNED_ID } from "../../utils/constants";
 import {
     syncOpenLayers,
     stripStaleBypasses,
@@ -20,41 +20,9 @@ import {
 import { ProposalStatus } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
- * Builds an error message for missions that have too many waypoints to reroute around a zone.
- *
- * @param {number[]} missionIDs IDs of the missions that exceeded the waypoint limit
- * @returns {string} Human-readable error message shown to the operator
- */
-function overLimitError(missionIDs: number[]): string {
-    const list = missionIDs.map((id) => `Mission ${id}`).join(", ");
-    return `${list} ${missionIDs.length === 1 ? "has" : "have"} too many waypoints to route around this zone. Reduce waypoints below ${MAX_WAYPOINTS} first, then retry.`;
-}
-
-/**
- * Builds an error message for missions where no clear path exists around a zone.
- *
- * @param {number[]} missionIDs IDs of the missions for which routing is impossible
- * @returns {string} Human-readable error message shown to the operator
- */
-function impossibleRouteError(missionIDs: number[]): string {
-    const list = missionIDs.map((id) => `Mission ${id}`).join(", ");
-    return `No clear path exists around this zone for ${list}. Move the conflicting waypoints further from the zone or reshape the zone.`;
-}
-
-/**
- * Builds an error message for missions that remain unroutable after enclosed waypoints are removed.
- *
- * @param {number[]} missionIDs IDs of the missions still unroutable after waypoint removal
- * @returns {string} Human-readable error message shown to the operator
- */
-function followUpUnroutableError(missionIDs: number[]): string {
-    const list = missionIDs.map((id) => `Mission ${id}`).join(", ");
-    return `After removing enclosed waypoints, ${list} ${missionIDs.length === 1 ? "has" : "have"} too many remaining waypoints to route around this zone (limit ${MAX_WAYPOINTS}). Reduce waypoints in ${missionIDs.length === 1 ? "that mission" : "those missions"} first, then retry.`;
-}
-
-/**
  * Adds a new exclusion zone and triggers waypoint removal or mission reroute detection.
- * Reverts the zone and sets a placement error if no valid route can be found.
+ * Unroutable proposals (over-limit or impossible) are staged into the dialog like any
+ * other proposal; the dialog's own render branches handle presenting them.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the exclusion zone to add
@@ -70,17 +38,6 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
     // Waypoints inside the zone take priority — warn before rerouting.
     const pendingRemoval = detectWaypointRemovals(zoneID);
     if (pendingRemoval) {
-        const unroutable = pendingRemoval.followUpReroute?.proposals.filter(
-            (p) => p.status !== ProposalStatus.FEASIBLE,
-        );
-        if (unroutable?.length) {
-            obstacleAvoidanceData.getExclusionZoneSet().deleteZone(zoneID);
-            exclusionZoneLayer.updateFeatures();
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                followUpUnroutableError(unroutable.map((p) => p.missionID)),
-            );
-            return mutableState;
-        }
         mutableState.obstacleAvoidanceData.setPendingWaypointRemoval(pendingRemoval);
         mutableState.obstacleAvoidanceData.setPendingReroute(null);
         return mutableState;
@@ -100,30 +57,6 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
         const relevant = pending.proposals.filter(
             (p) => p.involvedZoneIDs.includes(zoneID) || bypassAffected.has(p.missionID),
         );
-        const overLimit = relevant.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
-        const impossible = relevant.filter((p) => p.status === ProposalStatus.IMPOSSIBLE);
-        if (overLimit.length > 0) {
-            for (const [missionID, waypoints] of priorMissionWaypoints) {
-                missionSet.getMission(missionID)?.setWaypoints(waypoints);
-            }
-            obstacleAvoidanceData.getExclusionZoneSet().deleteZone(zoneID);
-            exclusionZoneLayer.updateFeatures();
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                overLimitError(overLimit.map((p) => p.missionID)),
-            );
-            return mutableState;
-        }
-        if (impossible.length > 0) {
-            for (const [missionID, waypoints] of priorMissionWaypoints) {
-                missionSet.getMission(missionID)?.setWaypoints(waypoints);
-            }
-            obstacleAvoidanceData.getExclusionZoneSet().deleteZone(zoneID);
-            exclusionZoneLayer.updateFeatures();
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                impossibleRouteError(impossible.map((p) => p.missionID)),
-            );
-            return mutableState;
-        }
         if (relevant.length > 0) {
             mutableState.obstacleAvoidanceData.setPendingReroute({
                 proposals: relevant,
@@ -572,19 +505,6 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
     // Waypoints inside the enlarged zone take priority — warn before rerouting.
     const pendingRemoval = detectWaypointRemovals(selected.zoneID);
     if (pendingRemoval) {
-        const unroutable = pendingRemoval.followUpReroute?.proposals.filter(
-            (p) => p.status !== ProposalStatus.FEASIBLE,
-        );
-        if (unroutable?.length) {
-            obstacleAvoidanceData
-                .getExclusionZoneSet()
-                .updateZone(priorZone.zoneID, priorZone.zone);
-            exclusionZoneLayer.updateFeatures();
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                followUpUnroutableError(unroutable.map((p) => p.missionID)),
-            );
-            return mutableState;
-        }
         // Use priorZone (not triggeringZoneID) so cancel restores the shape rather than deleting the zone.
         mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
             ...pendingRemoval,
@@ -605,34 +525,6 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
         const relevant = pending.proposals.filter(
             (p) => p.involvedZoneIDs.includes(selected.zoneID) || bypassAffected.has(p.missionID),
         );
-        const overLimit = relevant.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
-        const impossible = relevant.filter((p) => p.status === ProposalStatus.IMPOSSIBLE);
-        if (overLimit.length > 0) {
-            for (const [missionID, waypoints] of priorMissionWaypoints) {
-                missionSet.getMission(missionID)?.setWaypoints(waypoints);
-            }
-            obstacleAvoidanceData
-                .getExclusionZoneSet()
-                .updateZone(priorZone.zoneID, priorZone.zone);
-            exclusionZoneLayer.updateFeatures();
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                overLimitError(overLimit.map((p) => p.missionID)),
-            );
-            return mutableState;
-        }
-        if (impossible.length > 0) {
-            for (const [missionID, waypoints] of priorMissionWaypoints) {
-                missionSet.getMission(missionID)?.setWaypoints(waypoints);
-            }
-            obstacleAvoidanceData
-                .getExclusionZoneSet()
-                .updateZone(priorZone.zoneID, priorZone.zone);
-            exclusionZoneLayer.updateFeatures();
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                impossibleRouteError(impossible.map((p) => p.missionID)),
-            );
-            return mutableState;
-        }
         if (relevant.length > 0) {
             mutableState.obstacleAvoidanceData.setPendingReroute({
                 proposals: relevant,
@@ -731,19 +623,6 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
 
     const pendingRemoval = detectWaypointRemovals(action.zoneID);
     if (pendingRemoval) {
-        const unroutable = pendingRemoval.followUpReroute?.proposals.filter(
-            (p) => p.status !== ProposalStatus.FEASIBLE,
-        );
-        if (unroutable?.length) {
-            obstacleAvoidanceData
-                .getExclusionZoneSet()
-                .updateZone(priorZone.zoneID, priorZone.zone);
-            exclusionZoneLayer.updateFeatures();
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                followUpUnroutableError(unroutable.map((p) => p.missionID)),
-            );
-            return mutableState;
-        }
         // Use priorZone so cancel restores the shape rather than deleting the zone.
         mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
             ...pendingRemoval,
@@ -764,34 +643,6 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
         const relevant = pending.proposals.filter(
             (p) => p.involvedZoneIDs.includes(action.zoneID!) || bypassAffected.has(p.missionID),
         );
-        const overLimit = relevant.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
-        const impossible = relevant.filter((p) => p.status === ProposalStatus.IMPOSSIBLE);
-        if (overLimit.length > 0) {
-            for (const [missionID, waypoints] of priorMissionWaypoints) {
-                missionSet.getMission(missionID)?.setWaypoints(waypoints);
-            }
-            obstacleAvoidanceData
-                .getExclusionZoneSet()
-                .updateZone(priorZone.zoneID, priorZone.zone);
-            exclusionZoneLayer.updateFeatures();
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                overLimitError(overLimit.map((p) => p.missionID)),
-            );
-            return mutableState;
-        }
-        if (impossible.length > 0) {
-            for (const [missionID, waypoints] of priorMissionWaypoints) {
-                missionSet.getMission(missionID)?.setWaypoints(waypoints);
-            }
-            obstacleAvoidanceData
-                .getExclusionZoneSet()
-                .updateZone(priorZone.zoneID, priorZone.zone);
-            exclusionZoneLayer.updateFeatures();
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                impossibleRouteError(impossible.map((p) => p.missionID)),
-            );
-            return mutableState;
-        }
         if (relevant.length > 0) {
             mutableState.obstacleAvoidanceData.setPendingReroute({
                 proposals: relevant,

@@ -47,7 +47,7 @@ in the suite — so Part G adds that coverage.
 
 ## Part A — `ProposalStatus` enum (data layer)
 
-PART A COMPLETED, ADDED TO PR #1620
+PART A COMPLETED (commit `807be8c6` on `subtask/clean-up-data-model/SW-2492`, merged into this branch; supersedes reverted PR #1620)
 
 **`src/web/data/obstacle_avoidance_data/pending-route-data.ts`**
 
@@ -84,6 +84,8 @@ Sites needing conversion (after Part B removes 3 duplicated blocks from
 - `__tests__/exclusion-zone-detection.test.ts`: line 95
 
 ## Part B — Simplify `exclusion-zone-handlers.ts`
+
+PART B COMPLETED.
 
 In `handleAddExclusionZone`, `handleMoveZoneVertex`, and `handleAddZoneVertex`,
 delete the "classify proposals → if any unroutable, revert + blocking alert"
