@@ -23,6 +23,7 @@ interface Calibration {
     stationKeepW: number;
     diveEnergyBaseWh: number;
     diveEnergyPerMWh: number;
+    supportedBotTypes: string[];
 }
 
 interface RawCalibration {
@@ -33,6 +34,7 @@ interface RawCalibration {
     dive_energy_per_m: number;
     transit_speeds_m_s: number[];
     transit_watts: number[];
+    supported_bot_types: string[];
 }
 
 // Fetched once from the hub and cached for the lifetime of the page, since these
@@ -61,6 +63,7 @@ function getCalibration(): Promise<Calibration> {
                     stationKeepW: raw.station_keep_w,
                     diveEnergyBaseWh: raw.dive_energy_base_wh,
                     diveEnergyPerMWh: raw.dive_energy_per_m,
+                    supportedBotTypes: raw.supported_bot_types,
                 }),
             )
             .catch((e) => {
@@ -69,6 +72,23 @@ function getCalibration(): Promise<Calibration> {
             });
     }
     return calibrationPromise;
+}
+
+/**
+ * Checks whether the battery drain model was trained on the given bot type
+ *
+ * @param {string} botType The bot's hardware type, as reported by the hub
+ * @returns {Promise<boolean>} True if the model can predict for this bot type, or if that
+ *   can't be determined (e.g. the hub is unreachable) -- callers shouldn't claim a bot
+ *   type is unsupported when the real reason is a failed request.
+ */
+export async function isBotTypeSupported(botType: string): Promise<boolean> {
+    try {
+        const calibration = await getCalibration();
+        return calibration.supportedBotTypes.includes(botType);
+    } catch {
+        return true;
+    }
 }
 
 /**

@@ -10,10 +10,12 @@ import DeleteMissionButton from "../../../components/__buttons__/DeleteMissionBu
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
+import { BotType } from "../../../types/protobuf-types";
 import {
     BatteryPrediction,
     clampBatteryPercentForDisplay,
     fetchBatteryPrediction,
+    isBotTypeSupported,
 } from "../../../utils/battery_prediction";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
 import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
@@ -52,6 +54,7 @@ interface MissionAccordionProps {
 
 interface MissionStatsProps {
     prediction: BatteryPrediction | null;
+    unavailableBotType?: BotType;
 }
 
 /**
@@ -168,7 +171,8 @@ export default function MissionsList() {
 
 /**
  * Renders a single mission accordion with a color-coded title bar indicating mission health.
- * Grey when no bot is assigned, green when assigned with no issues, red when assigned with an issue.
+ * Grey when no bot is assigned or no battery prediction is available, green when assigned with
+ * no issues, red when assigned with an issue.
  * Fetches a battery drain prediction debounced 500ms after any mission change.
  *
  * @param {number} props.missionID ID of the mission to render
@@ -186,10 +190,21 @@ function MissionAccordion(props: MissionAccordionProps) {
     const jaiaContext = useContext(JaiaContext);
     const [disabledCode, setDisabledCode] = useState<DisabledCodes>(DisabledCodes.NO_MISSION);
     const [prediction, setPrediction] = useState<BatteryPrediction | null>(null);
+    const [isUnsupportedBotType, setIsUnsupportedBotType] = useState(false);
 
     const assignedBotID = missionsManager.getBotID(props.missionID) ?? UNASSIGNED_ID;
     const mission = jaiaContext.missionSet.getMissions().get(props.missionID);
     const bot = assignedBotID !== UNASSIGNED_ID ? jaiaContext.bots.getBot(assignedBotID) : null;
+
+    useEffect(() => {
+        if (!bot) {
+            setIsUnsupportedBotType(false);
+            return;
+        }
+        isBotTypeSupported(bot.getBotType()).then((supported) =>
+            setIsUnsupportedBotType(!supported),
+        );
+    }, [assignedBotID]);
 
     useEffect(() => {
         if (!bot) {
@@ -217,13 +232,17 @@ function MissionAccordion(props: MissionAccordionProps) {
         return () => clearTimeout(timer);
     }, [props.missionKey, assignedBotID]);
 
+    // Bot is otherwise healthy, but no battery prediction could be obtained for it
+    // (e.g. unsupported bot type).
+    const noPredictionAvailable = disabledCode === DisabledCodes.NONE && prediction === null;
+
     /**
      * Determines the CSS class for the accordion summary based on the mission's disabled code
      *
      * @returns {string} CSS class name reflecting the mission's health state
      */
     const getSummaryClass = () => {
-        if (disabledCode === DisabledCodes.NO_MISSION) {
+        if (disabledCode === DisabledCodes.NO_MISSION || noPredictionAvailable) {
             return "mission-accordion-summary mission-accordion-summary--unassigned";
         }
         if (disabledCode !== DisabledCodes.NONE) {
@@ -278,7 +297,10 @@ function MissionAccordion(props: MissionAccordionProps) {
                             testLabel={`Edit Mission ${props.missionID}`}
                         />
                     </div>
-                    <MissionStats prediction={prediction} />
+                    <MissionStats
+                        prediction={prediction}
+                        unavailableBotType={isUnsupportedBotType ? bot?.getBotType() : undefined}
+                    />
                 </AccordionDetails>
             </Accordion>
         </ThemeProvider>
@@ -290,12 +312,15 @@ function MissionAccordion(props: MissionAccordionProps) {
  * Values show "--" when not yet available (e.g. no bot assigned).
  *
  * @param {BatteryPrediction | null} props.prediction Battery prediction result, or null if unavailable
+ * @param {BotType} [props.unavailableBotType] Bot type to name when no prediction could be obtained for it
  * @returns {JSX.Element} Stats table with mission metrics
  */
 function MissionStats(props: MissionStatsProps) {
     const batteryAfter = props.prediction
         ? `${clampBatteryPercentForDisplay(props.prediction.predicted_final_pct).toFixed(1)}%`
-        : "--";
+        : props.unavailableBotType
+          ? `Prediction unavailable for bot type ${props.unavailableBotType}`
+          : "--";
 
     return (
         <table className="mission-stats">

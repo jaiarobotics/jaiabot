@@ -1,4 +1,8 @@
-import { clampBatteryPercentForDisplay, fetchBatteryPrediction } from "../battery_prediction";
+import {
+    clampBatteryPercentForDisplay,
+    fetchBatteryPrediction,
+    isBotTypeSupported,
+} from "../battery_prediction";
 import Mission from "../../data/mission_set/mission";
 import Bot from "../../data/bots/bot";
 import Task from "../../data/tasks/task";
@@ -14,6 +18,7 @@ const MOCK_CALIBRATION = {
     dive_energy_per_m: 0.02,
     transit_speeds_m_s: [1, 2, 3],
     transit_watts: [50, 120, 150],
+    supported_bot_types: ["HYDRO", "ECHO"],
 };
 
 let capturedPredictionRequestBody: any = null;
@@ -132,4 +137,11 @@ test("Bot type is sent to the server as-is, for the server to resolve", async ()
     await fetchBatteryPrediction(mission, bot);
 
     expect(capturedPredictionRequestBody.bot_type).toBe(BotType.ECHO);
+});
+
+test("isBotTypeSupported reflects the model's trained bot types", async () => {
+    installFetchMock();
+
+    expect(await isBotTypeSupported(BotType.HYDRO)).toBe(true);
+    expect(await isBotTypeSupported("BIO")).toBe(false);
 });

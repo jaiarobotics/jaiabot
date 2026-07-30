@@ -22,6 +22,12 @@ def _load_model():
     _supported_bot_types = set(saved["supported_bot_types"])
 
 
+def get_supported_bot_types() -> set:
+    """Returns the set of bot_type ints the shipped model was trained on."""
+    _load_model()
+    return _supported_bot_types
+
+
 def predict_drain(
     bot_type: int,
     transit_energy_wh: float,
