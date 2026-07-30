@@ -13,7 +13,8 @@ import { syncOpenLayers } from "./handler-utils";
 import {
     detectWaypointRemovals,
     detectMissionReroutes,
-} from "../../data/exclusion_zones/exclusion-zone-detection";
+} from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
+import { ProposalStatus } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Makes a call to add a new, default mission to the data model
@@ -73,19 +74,19 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     // Check whether the duplicated mission's waypoints conflict with existing exclusion zones.
     const pendingRemoval = detectWaypointRemovals();
     if (pendingRemoval) {
-        mutableState.pendingWaypointRemoval = {
+        mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
             ...pendingRemoval,
             priorMissionSetSnapshot,
             priorMissionsManagerSnapshot,
-        };
+        });
     } else {
         const pendingReroute = detectMissionReroutes();
         if (pendingReroute) {
-            mutableState.pendingReroute = {
+            mutableState.obstacleAvoidanceData.setPendingReroute({
                 ...pendingReroute,
                 priorMissionSetSnapshot,
                 priorMissionsManagerSnapshot,
-            };
+            });
         }
     }
 
@@ -202,11 +203,11 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
 
     const pendingRemoval = detectWaypointRemovals();
     if (pendingRemoval) {
-        mutableState.pendingWaypointRemoval = {
+        mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
             ...pendingRemoval,
             priorMissionSetSnapshot,
             priorMissionsManagerSnapshot,
-        };
+        });
         return mutableState;
     }
 
@@ -215,7 +216,7 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
         // Missions whose reroute is unroutable are removed upfront — never presented as loaded.
         const skippedMissionIDSet = new Set<number>();
         rawPending.proposals
-            .filter((p) => p.isOverLimit || p.isImpossible)
+            .filter((p) => p.status !== ProposalStatus.FEASIBLE)
             .forEach((p) => skippedMissionIDSet.add(p.missionID));
 
         const allLoadedIDs = Array.from(missionSet.getMissions().keys());
@@ -229,14 +230,14 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
         const skippedMissionIDs = Array.from(skippedMissionIDSet);
 
         const cleanPending = detectMissionReroutes();
-        mutableState.pendingReroute = {
+        mutableState.obstacleAvoidanceData.setPendingReroute({
             proposals: cleanPending?.proposals ?? [],
             totalBypassCount: cleanPending?.totalBypassCount ?? 0,
             loadedMissionIDs,
             skippedMissionIDs,
             priorMissionSetSnapshot,
             priorMissionsManagerSnapshot,
-        };
+        });
     }
 
     return mutableState;
