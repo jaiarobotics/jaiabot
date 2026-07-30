@@ -83,6 +83,9 @@ export default function StartMissionButton(props: Props) {
             return DisabledCodes.LOW_BATTERY;
         }
 
+        // A null prediction (unsupported bot type, no waypoints, request failure, etc.)
+        // intentionally does not block starting the mission -- the battery check is
+        // advisory, not a safety gate, so we fail open when we have no prediction to check.
         if (prediction !== null && prediction.predicted_final_pct < MIN_BATTERY_PERCENT) {
             return DisabledCodes.INSUFFICIENT_BATTERY;
         }

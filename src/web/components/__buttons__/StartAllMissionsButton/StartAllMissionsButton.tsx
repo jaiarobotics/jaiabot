@@ -70,6 +70,9 @@ export default function StartAllMissionsButton(props: Props) {
                     const missionID = missionsManager.getMissionID(botID);
                     const mission = props.missions.get(missionID);
                     const prediction = mission ? await fetchBatteryPrediction(mission, bot) : null;
+                    // A null prediction (unsupported bot type, request failure, etc.)
+                    // intentionally does not block starting the mission -- the battery check is
+                    // advisory, not a safety gate, so we fail open when we have no prediction to check.
                     if (
                         prediction !== null &&
                         prediction.predicted_final_pct < MIN_BATTERY_PERCENT
