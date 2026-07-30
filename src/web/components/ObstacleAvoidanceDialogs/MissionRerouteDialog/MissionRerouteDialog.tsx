@@ -1,9 +1,9 @@
 import { useContext } from "react";
-import { JaiaContext, JaiaDispatchContext } from "../../../../context/JaiaContext";
-import { JaiaActions } from "../../../../context/jaia-actions";
-import { MAX_WAYPOINTS } from "../../../../utils/constants";
-import { ProposalStatus } from "../../../../data/obstacle_avoidance_data/pending-route-data";
-import ExclusionZoneBaseDialog from "../ExclusionZoneBaseDialog";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaActions } from "../../../context/jaia-actions";
+import { MAX_WAYPOINTS } from "../../../utils/constants";
+import { ProposalStatus } from "../../../data/obstacle_avoidance_data/pending-route-data";
+import ObstacleAvoidanceBaseDialog from "../ObstacleAvoidanceBaseDialog";
 import RerouteSummary from "../RerouteSummary";
 
 export default function MissionRerouteDialog() {
@@ -46,7 +46,7 @@ export default function MissionRerouteDialog() {
     }
 
     return (
-        <ExclusionZoneBaseDialog title="Route Update Required" buttons={buttons}>
+        <ObstacleAvoidanceBaseDialog title="Route Update Required" buttons={buttons}>
             {/* Zone load */}
             {isZoneLoad && loadedZones.length > 0 && (
                 <p>
@@ -129,6 +129,6 @@ export default function MissionRerouteDialog() {
                 impossibleMessage={`The following mission${impossible.length !== 1 ? "s" : ""} have no clear route around the zone — move the conflicting waypoints further away or resize the zone:`}
                 showOverLimit={!isMissionLoad}
             />
-        </ExclusionZoneBaseDialog>
+        </ObstacleAvoidanceBaseDialog>
     );
 }

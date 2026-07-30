@@ -2,7 +2,7 @@
 
 ## Context
 
-`src/web/components/ExclusionZonesPanel/Dialogs/` has four dialog components
+`src/web/components/ObstacleAvoidanceDialogs/` has four dialog components
 (`MissionRerouteDialog`, `WaypointRemovalDialog`, `PlacementErrorDialog`,
 `ZoneCrossingDialog`) that each hand-roll the same
 `jaia-dialog-container` / `blocking-overlay` / `jaia-dialog` /
@@ -187,18 +187,18 @@ PART C COMPLETED (title is a slight misnomer — as the body below says, only
   Replace the 4 `jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR })` calls
   with `setPlacementError("Cannot place a point inside an exclusion zone or its safety buffer.")`
   (the message text moves from the now-deleted handler to `Map.tsx`).
-  Render the alert inline, using the shared `ExclusionZoneBaseDialog` component
+  Render the alert inline, using the shared `ObstacleAvoidanceBaseDialog` component
   from Part D — no new dialog file needed, same as how `zoneCrossing` is
   rendered inline today:
     ```tsx
     {
         placementError && (
-            <ExclusionZoneBaseDialog
+            <ObstacleAvoidanceBaseDialog
                 title="Placement Not Allowed"
                 buttons={[{ label: "OK", onClick: () => setPlacementError(null) }]}
             >
                 <p>{placementError}</p>
-            </ExclusionZoneBaseDialog>
+            </ObstacleAvoidanceBaseDialog>
         );
     }
     ```
@@ -224,27 +224,27 @@ stay, since `PlacementErrorDialog` still needs a way to dismiss these.
 that never needed to be there; the one case that genuinely needs the reducer
 (mid-mutation rollback) is preserved unchanged and clearly documented as such.
 
-## Part D — Shared `ExclusionZoneBaseDialog` shell
+## Part D — Shared `ObstacleAvoidanceBaseDialog` shell
 
 PART D COMPLETED (built alongside Part C, since Part C's `Map.tsx` change
 depends on this component existing — see Part C's inline usage above).
 
-New file **`src/web/components/ExclusionZonesPanel/Dialogs/ExclusionZoneBaseDialog.tsx`**
+New file **`src/web/components/ObstacleAvoidanceDialogs/ObstacleAvoidanceBaseDialog.tsx`**
 (pure presentational component, alongside the four dialog subfolders it's
 used by):
 
 ```tsx
-interface ExclusionZoneBaseDialogProps {
+interface ObstacleAvoidanceBaseDialogProps {
     title: string;
     children: React.ReactNode;
     buttons: { label: string; onClick: () => void }[];
 }
 
-export default function ExclusionZoneBaseDialog({
+export default function ObstacleAvoidanceBaseDialog({
     title,
     children,
     buttons,
-}: ExclusionZoneBaseDialogProps) {
+}: ObstacleAvoidanceBaseDialogProps) {
     return (
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" />
@@ -275,8 +275,8 @@ placement-error alert and `ZoneCrossingDialog`).
 PART E COMPLETED (file created; not yet wired into the two dialogs — that's
 Part F).
 
-New file **`src/web/components/ExclusionZonesPanel/Dialogs/RerouteSummary.tsx`**
-(sibling of `ExclusionZoneBaseDialog.tsx` and the four dialog subfolders).
+New file **`src/web/components/ObstacleAvoidanceDialogs/RerouteSummary.tsx`**
+(sibling of `ObstacleAvoidanceBaseDialog.tsx` and the four dialog subfolders).
 
 **Render-order note for Part F:** `RerouteSummary` always renders the
 over-limit block before the impossible block. That matches
@@ -313,10 +313,10 @@ plain-reroute / follow-up contexts that forcing shared copy isn't worth it.
 
 PART F COMPLETED. Note beyond what the bullets below spell out:
 `MissionRerouteDialog` and `WaypointRemovalDialog` were also switched to
-render their outer shell via `<ExclusionZoneBaseDialog title=... buttons={...}>`
+render their outer shell via `<ObstacleAvoidanceBaseDialog title=... buttons={...}>`
 (a dynamically-built `buttons` array, since both dialogs conditionally show
 a confirm button and vary the cancel label) — not just the two dialogs
-explicitly shown with a literal `<ExclusionZoneBaseDialog ...>` snippet below.
+explicitly shown with a literal `<ObstacleAvoidanceBaseDialog ...>` snippet below.
 That's implied by this section's own title ("thin wrappers", for all four)
 and the refactor's stated goal of eliminating the duplicated
 `jaia-dialog-container`/`blocking-overlay`/`jaia-dialog`/`dialog-button-row`
@@ -328,10 +328,10 @@ purely visual change.
 
 - **`PlacementErrorDialog.tsx`**: unchanged data logic (context-driven,
   dispatches `CLEAR_PLACEMENT_ERROR`); render
-  `<ExclusionZoneBaseDialog title="Placement Not Allowed" buttons={[{label:"OK", onClick:handleOkClick}]}>`.
+  `<ObstacleAvoidanceBaseDialog title="Placement Not Allowed" buttons={[{label:"OK", onClick:handleOkClick}]}>`.
 - **`ZoneCrossingDialog.tsx`**: stays a pure controlled component (props from
   `Map.tsx`'s `zoneCrossing` state, unchanged); render
-  `<ExclusionZoneBaseDialog title="Route Crosses a Zone" buttons={[Cancel, Add Waypoints]}>`.
+  `<ObstacleAvoidanceBaseDialog title="Route Crosses a Zone" buttons={[Cancel, Add Waypoints]}>`.
 - **`MissionRerouteDialog.tsx`**: keep all branching logic (`isZoneLoad`,
   `isMissionLoad`, feasible/skip summaries); replace the over-limit/impossible
   JSX blocks with

@@ -1,14 +1,14 @@
-interface ExclusionZoneBaseDialogProps {
+interface ObstacleAvoidanceBaseDialogProps {
     title: string;
     children: React.ReactNode;
     buttons: { label: string; onClick: () => void }[];
 }
 
-export default function ExclusionZoneBaseDialog({
+export default function ObstacleAvoidanceBaseDialog({
     title,
     children,
     buttons,
-}: ExclusionZoneBaseDialogProps) {
+}: ObstacleAvoidanceBaseDialogProps) {
     return (
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" />

@@ -20,10 +20,10 @@ import DepthMap3D from "../components/DepthMap3D/DepthMap3D";
 import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
 import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
 import ExclusionZonesPanel from "../components/ExclusionZonesPanel/ExclusionZonesPanel";
-import MissionRerouteDialog from "../components/ExclusionZonesPanel/Dialogs/MissionRerouteDialog/MissionRerouteDialog";
-import WaypointRemovalDialog from "../components/ExclusionZonesPanel/Dialogs/WaypointRemovalDialog/WaypointRemovalDialog";
+import MissionRerouteDialog from "../components/ObstacleAvoidanceDialogs/MissionRerouteDialog/MissionRerouteDialog";
+import WaypointRemovalDialog from "../components/ObstacleAvoidanceDialogs/WaypointRemovalDialog/WaypointRemovalDialog";
 
-import PlacementErrorDialog from "../components/ExclusionZonesPanel/Dialogs/PlacementErrorDialog/PlacementErrorDialog";
+import PlacementErrorDialog from "../components/ObstacleAvoidanceDialogs/PlacementErrorDialog/PlacementErrorDialog";
 import SettingsPanel from "../components/SettingsPanel/SettingsPanel";
 import WaypointPanel from "../components/WaypointPanel/WaypointPanel";
 import ZoneVertexPanel from "../components/ZoneVertexPanel/ZoneVertexPanel";

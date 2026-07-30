@@ -34,8 +34,8 @@ import {
     isLocationBlockedByZone,
 } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 
-import ZoneCrossingDialog from "../ExclusionZonesPanel/Dialogs/ZoneCrossingDialog/ZoneCrossingDialog";
-import ExclusionZoneBaseDialog from "../ExclusionZonesPanel/Dialogs/ExclusionZoneBaseDialog";
+import ZoneCrossingDialog from "../ObstacleAvoidanceDialogs/ZoneCrossingDialog/ZoneCrossingDialog";
+import ObstacleAvoidanceBaseDialog from "../ObstacleAvoidanceDialogs/ObstacleAvoidanceBaseDialog";
 
 import "./Map.less";
 
@@ -582,12 +582,12 @@ export default function Map() {
             )}
 
             {placementError && (
-                <ExclusionZoneBaseDialog
+                <ObstacleAvoidanceBaseDialog
                     title="Placement Not Allowed"
                     buttons={[{ label: "OK", onClick: () => setPlacementError(null) }]}
                 >
                     <p>{placementError}</p>
-                </ExclusionZoneBaseDialog>
+                </ObstacleAvoidanceBaseDialog>
             )}
         </div>
     );
