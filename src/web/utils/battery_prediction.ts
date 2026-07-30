@@ -289,7 +289,6 @@ export async function fetchBatteryPrediction(
             const chParams = task.getConstantHeadingParameters();
             const chSpeed = chParams?.constant_heading_speed ?? 0;
             const chTime = chParams?.constant_heading_time ?? 0;
-            const chHeadingDeg = chParams?.constant_heading ?? 0;
             if (chSpeed > 0 && chTime > 0 && curLat != null && curLon != null) {
                 const chDistM = chSpeed * chTime;
                 singlePassEnergyWh += estimatedTransitEnergyWh(
@@ -298,11 +297,6 @@ export async function fetchBatteryPrediction(
                     calibration.transitPowerCurve,
                 );
                 singlePassExtraTimeS += chTime;
-                const headingRad = (chHeadingDeg * Math.PI) / 180;
-                curLat += (chDistM * Math.cos(headingRad) * 180) / (Math.PI * EARTH_R);
-                curLon +=
-                    (chDistM * Math.sin(headingRad) * 180) /
-                    (Math.PI * EARTH_R * Math.cos((curLat * Math.PI) / 180));
             }
         } else if (taskType === TaskType.SURFACE_DRIFT) {
             driftTotalS += task.getDriftParameters()?.drift_time ?? 0;
