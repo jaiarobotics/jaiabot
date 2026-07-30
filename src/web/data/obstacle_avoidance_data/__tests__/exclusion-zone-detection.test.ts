@@ -7,6 +7,7 @@ import {
     detectWaypointRemovals,
 } from "../exclusion_zones/exclusion-zone-detection";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
+import { ProposalStatus } from "../pending-route-data";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
     return { lat, lon };
@@ -92,7 +93,7 @@ describe("detectMissionReroutes", () => {
 
         const result = detectMissionReroutes();
         expect(result).not.toBeNull();
-        const feasible = result!.proposals.filter((p) => !p.isOverLimit);
+        const feasible = result!.proposals.filter((p) => p.status === ProposalStatus.FEASIBLE);
         const expectedTotal = feasible.reduce((sum, p) => sum + p.bypassCount, 0);
         expect(result!.totalBypassCount).toBe(expectedTotal);
     });

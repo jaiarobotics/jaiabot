@@ -10,7 +10,7 @@ import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
 import { GeographicCoordinate, Goal, MissionPlan } from "../../../types/protobuf-types";
 import { METERS_PER_DEG } from "../../../utils/constants";
 import { ExclusionZone } from "./exclusion-zone-set";
-import { PendingReroute, PendingRerouteProposal } from "../pending-route-data";
+import { PendingReroute, PendingRerouteProposal, ProposalStatus } from "../pending-route-data";
 import { obstacleAvoidanceData } from "../obstacle-avoidance-data";
 import { missionSet } from "../../mission_set/mission-set";
 import Waypoint from "../../waypoints/waypoint";
@@ -700,7 +700,7 @@ export function detectReroutesWithOverrides(
                 newWaypoints: cleanWaypoints,
                 bypassCount: 0,
                 involvedZoneIDs: result.involvedZoneIDs,
-                isImpossible: true,
+                status: ProposalStatus.IMPOSSIBLE,
             });
             continue;
         }
@@ -731,6 +731,7 @@ export function detectReroutesWithOverrides(
             newWaypoints,
             bypassCount: result.bypassCount,
             involvedZoneIDs: result.involvedZoneIDs,
+            status: ProposalStatus.FEASIBLE,
         });
     }
 
