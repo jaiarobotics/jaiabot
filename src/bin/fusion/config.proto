@@ -106,4 +106,12 @@ message Fusion
 
     required string bot_gpsd_device = 50;  // gpsd device for bot itself
 
+    /// When GPS position hasn't updated for data_timeout_seconds, source node_status's position
+    /// from jaiabot_state_estimator's NavSolution (when it reports a valid dead-reckoning fix)
+    /// instead of leaving node_status frozen at the last GPS fix. This is what allows
+    /// MOOS-IvP/mission_manager to keep detecting waypoint arrivals under GNSS denial. Fusion
+    /// remains the sole publisher of node_status and continues to source pose/speed/depth from
+    /// its own sensors either way; only the position fields are affected, and only once GPS
+    /// position is already stale.
+    optional bool use_dead_reckoning_position_on_gnss_loss = 51 [default = true];
 }

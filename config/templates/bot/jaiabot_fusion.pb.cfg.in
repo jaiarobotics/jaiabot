@@ -62,3 +62,8 @@ diving_states: IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT
 diving_states: IN_MISSION__UNDERWAY__TASK__DIVE__HOLD
 
 bot_gpsd_device: "$bot_gpsd_device"
+
+# Once GPS position goes stale, source node_status's position from
+# jaiabot_state_estimator's dead-reckoning solution instead of freezing it, so waypoint
+# arrivals can still be detected under GNSS denial. (default = true)
+use_dead_reckoning_position_on_gnss_loss: true

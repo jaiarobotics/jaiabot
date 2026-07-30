@@ -42,6 +42,7 @@
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/nav.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 
 #include "jaiabot/messages/sensor/salinity.pb.h"
@@ -82,6 +83,10 @@ class Fusion : public ApplicationBase
     void detect_imu_issue();
     double degrees_difference(const double& deg1, const double& deg2);
     void detect_bot_horizontal(const double& pitch);
+    /// If GPS position has gone stale and jaiabot_state_estimator has a valid dead-reckoning
+    /// solution, source node_status's position from it instead of leaving it frozen. This is
+    /// what lets MOOS-IvP/mission_manager keep detecting waypoint arrivals under GNSS denial.
+    void maybe_apply_dead_reckoning_position();
 
   private:
     goby::middleware::frontseat::protobuf::NodeStatus latest_node_status_;
@@ -96,6 +101,8 @@ class Fusion : public ApplicationBase
     std::set<jaiabot::protobuf::MissionState> diving_states_;
     jaiabot::protobuf::PressureAdjustedData last_pressure_adjusted_data_;
     jaiabot::protobuf::PressureTemperatureData last_pressure_temperature_data_;
+    jaiabot::protobuf::NavSolution latest_nav_solution_;
+    bool have_nav_solution_{false};
 
     // timeout in seconds
     int course_over_ground_timeout_{0};
@@ -427,6 +434,12 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             }
         });
 
+    interprocess().subscribe<jaiabot::groups::nav_solution>(
+        [this](const jaiabot::protobuf::NavSolution& nav_solution) {
+            latest_nav_solution_ = nav_solution;
+            have_nav_solution_ = true;
+        });
+
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
         [this](const jaiabot::protobuf::PressureTemperatureData& pt) {
             auto now = goby::time::SteadyClock::now();
@@ -459,6 +472,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                 // same rate we are receiving depth values
                 if (diving_states_.count(latest_bot_status_.mission_state()))
                 {
+                    maybe_apply_dead_reckoning_position();
                     // Check initialization, then send node_status for pid app and frontseat app
                     if (latest_node_status_.IsInitialized())
                     {
@@ -810,12 +824,41 @@ void jaiabot::apps::Fusion::loop()
     // No need to send the node status during these states
     if (!diving_states_.count(latest_bot_status_.mission_state()))
     {
+        maybe_apply_dead_reckoning_position();
         // Check initialization, then send node_status for pid app and frontseat app
         if (latest_node_status_.IsInitialized())
         {
             interprocess().publish<goby::middleware::frontseat::groups::node_status>(
                 latest_node_status_);
         }
+    }
+}
+
+void jaiabot::apps::Fusion::maybe_apply_dead_reckoning_position()
+{
+    if (!cfg().use_dead_reckoning_position_on_gnss_loss()) return;
+    if (!have_nav_solution_) return;
+    if (latest_nav_solution_.mode() != jaiabot::protobuf::NAV_MODE__DEAD_RECKONING) return;
+    if (!latest_nav_solution_.position_valid() || !latest_nav_solution_.has_location()) return;
+
+    auto now = goby::time::SteadyClock::now();
+    bool gps_position_stale =
+        !last_data_time_.count(DataType::GPS_POSITION) ||
+        (last_data_time_[DataType::GPS_POSITION] +
+             std::chrono::seconds(cfg().data_timeout_seconds()) <
+         now);
+    if (!gps_position_stale) return;
+
+    auto lat = latest_nav_solution_.location().lat() * degrees;
+    auto lon = latest_nav_solution_.location().lon() * degrees;
+    latest_node_status_.mutable_global_fix()->set_lat_with_units(lat);
+    latest_node_status_.mutable_global_fix()->set_lon_with_units(lon);
+
+    if (has_geodesy())
+    {
+        auto xy = geodesy().convert({lat, lon});
+        latest_node_status_.mutable_local_fix()->set_x_with_units(xy.x);
+        latest_node_status_.mutable_local_fix()->set_y_with_units(xy.y);
     }
 }
 
