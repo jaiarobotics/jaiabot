@@ -1,8 +1,8 @@
 import {
+    exclusionZoneSet,
     ExclusionZoneSetSnapshot,
     EXCLUSION_ZONE_SET_VERSION,
-} from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
-import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
+} from "../../../data/exclusion_zones/exclusion-zone-set";
 import { jaiaAPI } from "../../../utils/jaia-api";
 
 interface ExclusionZoneFile {
@@ -39,10 +39,7 @@ export async function listSavedZoneSetsFromHub(): Promise<string[]> {
  * @returns {Promise<void>}
  */
 export async function saveToHub(name: string): Promise<void> {
-    await jaiaAPI.saveExclusionZone(
-        name,
-        obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot(),
-    );
+    await jaiaAPI.saveExclusionZone(name, exclusionZoneSet.captureSnapshot());
 }
 
 /**
@@ -76,7 +73,7 @@ export async function deleteFromHub(name: string): Promise<void> {
 export function exportZonesToFile(name: string) {
     const data = JSON.stringify({
         version: EXCLUSION_ZONE_SET_VERSION,
-        snapshot: obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot(),
+        snapshot: exclusionZoneSet.captureSnapshot(),
     } as ExclusionZoneFile);
 
     const blob = new Blob([data], { type: "application/json" });

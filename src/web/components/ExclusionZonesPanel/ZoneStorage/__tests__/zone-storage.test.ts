@@ -1,5 +1,7 @@
-import { ExclusionZoneSetSnapshot } from "../../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
-import { obstacleAvoidanceData } from "../../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
+import {
+    exclusionZoneSet,
+    ExclusionZoneSetSnapshot,
+} from "../../../../data/exclusion_zones/exclusion-zone-set";
 import {
     listSavedZoneSetsFromHub,
     saveToHub,
@@ -22,7 +24,7 @@ const mockJaiaAPI = jaiaAPI as jest.Mocked<typeof jaiaAPI>;
 
 describe("Zone hub storage", () => {
     beforeEach(() => {
-        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
+        exclusionZoneSet.clearZones();
         jest.clearAllMocks();
     });
 
@@ -34,7 +36,7 @@ describe("Zone hub storage", () => {
     });
 
     test("saveToHub calls the API with the current zone set snapshot", async () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone({
+        exclusionZoneSet.addZone({
             vertices: [
                 { lat: 41.0, lon: -72.0 },
                 { lat: 41.001, lon: -72.0 },

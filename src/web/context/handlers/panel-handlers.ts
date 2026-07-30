@@ -1,7 +1,7 @@
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { rallyPoints } from "../../data/rally_points/rally-points";
-import { obstacleAvoidanceData } from "../../data/obstacle_avoidance_data/obstacle-avoidance-data";
+import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
@@ -89,18 +89,16 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
         action.locations &&
         action.zoneID !== undefined
     ) {
-        const zone = obstacleAvoidanceData.getExclusionZoneSet().getZone(action.zoneID);
+        const zone = exclusionZoneSet.getZone(action.zoneID);
         if (zone) {
-            obstacleAvoidanceData
-                .getExclusionZoneSet()
-                .updateZone(action.zoneID, { ...zone, vertices: action.locations });
+            exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: action.locations });
         }
         // Clear any pending dialogs triggered by the now-cancelled edits.
-        if (mutableState.obstacleAvoidanceData.getPendingWaypointRemoval()?.priorZone) {
-            mutableState.obstacleAvoidanceData.setPendingWaypointRemoval(null);
+        if (mutableState.pendingWaypointRemoval?.priorZone) {
+            mutableState.pendingWaypointRemoval = null;
         }
-        if (mutableState.obstacleAvoidanceData.getPendingReroute()?.priorZone) {
-            mutableState.obstacleAvoidanceData.setPendingReroute(null);
+        if (mutableState.pendingReroute?.priorZone) {
+            mutableState.pendingReroute = null;
         }
     }
     jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);

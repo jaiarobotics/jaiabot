@@ -2,7 +2,6 @@ import { useContext } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { MAX_WAYPOINTS } from "../../utils/constants";
-import { ProposalStatus } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Shown when waypoints fall inside an exclusion zone. If the post-removal
@@ -13,16 +12,14 @@ export default function WaypointRemovalDialog() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    const pending = jaiaContext?.obstacleAvoidanceData.getPendingWaypointRemoval();
+    const pending = jaiaContext?.pendingWaypointRemoval;
     if (!pending) return null;
 
     const reroute = pending.followUpReroute;
     const rerouteFeasible =
-        reroute?.proposals.filter((p) => p.status === ProposalStatus.FEASIBLE) ?? [];
-    const rerouteOverLimit =
-        reroute?.proposals.filter((p) => p.status === ProposalStatus.OVER_LIMIT) ?? [];
-    const rerouteImpossible =
-        reroute?.proposals.filter((p) => p.status === ProposalStatus.IMPOSSIBLE) ?? [];
+        reroute?.proposals.filter((p) => !p.isOverLimit && !p.isImpossible) ?? [];
+    const rerouteOverLimit = reroute?.proposals.filter((p) => p.isOverLimit) ?? [];
+    const rerouteImpossible = reroute?.proposals.filter((p) => p.isImpossible) ?? [];
     const hasFollowUpReroute = !!reroute;
     const hasFeasibleFollowUp = hasFollowUpReroute && rerouteFeasible.length > 0;
 

@@ -57,9 +57,7 @@ export default function ZoneVertexPanel() {
     const getZone = () => {
         const selectedVertex = getSelectedZoneVertex();
         if (selectedVertex.zoneID === UNASSIGNED_ID) return undefined;
-        return jaiaContext.obstacleAvoidanceData
-            .getExclusionZoneSet()
-            .getZone(selectedVertex.zoneID);
+        return jaiaContext.exclusionZoneSet.getZone(selectedVertex.zoneID);
     };
 
     /**

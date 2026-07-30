@@ -9,9 +9,11 @@ import { RallyPoints, RallyPointsSnapshot } from "../data/rally_points/rally-poi
 import { JaiaGlobal, JaiaGlobalSnapshot } from "../data/jaia_global/jaia-global";
 import {
     ExclusionZone,
+    ExclusionZoneSet,
     ExclusionZoneSetSnapshot,
-} from "../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
-import { ObstacleAvoidanceData } from "../data/obstacle_avoidance_data/obstacle-avoidance-data";
+    PendingReroute,
+    PendingWaypointRemoval,
+} from "../data/exclusion_zones/exclusion-zone-set";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
 import { TaskPackets } from "../data/task_packets/task-packets";
@@ -37,7 +39,10 @@ export interface JaiaContextType {
     rallyPoints: RallyPoints;
     jaiaGlobal: JaiaGlobal;
     missionsManager: MissionsManager;
-    obstacleAvoidanceData: ObstacleAvoidanceData;
+    exclusionZoneSet: ExclusionZoneSet;
+    pendingReroute: PendingReroute | null;
+    pendingWaypointRemoval: PendingWaypointRemoval | null;
+    placementError: string;
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
