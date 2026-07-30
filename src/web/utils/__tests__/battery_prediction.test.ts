@@ -1,5 +1,6 @@
 import {
     clampBatteryPercentForDisplay,
+    clampDrainPercentForDisplay,
     fetchBatteryPrediction,
     isBotTypeSupported,
 } from "../battery_prediction";
@@ -48,6 +49,14 @@ test("Battery after percentage is clamped to 0 when predicted drain exceeds star
 
 test("Battery after percentage passes through unchanged when non-negative", () => {
     expect(clampBatteryPercentForDisplay(37.2)).toBe(37.2);
+});
+
+test("Drain percentage is capped at 1000 when the model extrapolates wildly", () => {
+    expect(clampDrainPercentForDisplay(66_873_821_511.4)).toBe(1000);
+});
+
+test("Drain percentage passes through unchanged when at or below 1000, even over 100", () => {
+    expect(clampDrainPercentForDisplay(150)).toBe(150);
 });
 
 test("Energy calculations for a known mission plan", async () => {

@@ -4,6 +4,7 @@ import { DialogActions } from "../../../types/context-types";
 import {
     BatteryPrediction,
     clampBatteryPercentForDisplay,
+    clampDrainPercentForDisplay,
 } from "../../../utils/battery_prediction";
 
 interface DialogProps {
@@ -51,7 +52,11 @@ export function StartMissionDialog(props: DialogProps) {
                             ).toFixed(1)}
                             %
                         </strong>{" "}
-                        (drain: {props.batteryPrediction.predicted_drain_pct.toFixed(1)}%)
+                        (drain: {props.batteryPrediction.predicted_drain_pct > 1000 ? ">" : ""}
+                        {clampDrainPercentForDisplay(
+                            props.batteryPrediction.predicted_drain_pct,
+                        ).toFixed(1)}
+                        %)
                     </p>
                 )}
                 <ButtonRow

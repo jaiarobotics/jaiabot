@@ -104,6 +104,17 @@ export function clampBatteryPercentForDisplay(predictedFinalPct: number): number
 }
 
 /**
+ * Clamps a predicted drain percentage for display. Drain can legitimately exceed
+ * 100% (the mission needs more than one battery).
+ *
+ * @param {number} predictedDrainPct Raw predicted drain percentage
+ * @returns {number} Predicted drain percentage clamped to a maximum of 1000
+ */
+export function clampDrainPercentForDisplay(predictedDrainPct: number): number {
+    return Math.min(1000, predictedDrainPct);
+}
+
+/**
  * Calculates the great-circle distance in meters between two geographic coordinates
  *
  * @param {number} lat1 Latitude of the first point in degrees
