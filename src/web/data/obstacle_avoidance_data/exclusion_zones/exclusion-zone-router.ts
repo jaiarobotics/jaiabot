@@ -7,16 +7,13 @@
  */
 
 import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
-import { GeographicCoordinate, Goal, MissionPlan } from "../../types/protobuf-types";
-import { METERS_PER_DEG } from "../../utils/constants";
-import {
-    ExclusionZone,
-    exclusionZoneSet,
-    PendingReroute,
-    PendingRerouteProposal,
-} from "./exclusion-zone-set";
-import { missionSet } from "../mission_set/mission-set";
-import Waypoint from "../waypoints/waypoint";
+import { GeographicCoordinate, Goal, MissionPlan } from "../../../types/protobuf-types";
+import { METERS_PER_DEG } from "../../../utils/constants";
+import { ExclusionZone } from "./exclusion-zone-set";
+import { PendingReroute, PendingRerouteProposal, ProposalStatus } from "../pending-route-data";
+import { obstacleAvoidanceData } from "../obstacle-avoidance-data";
+import { missionSet } from "../../mission_set/mission-set";
+import Waypoint from "../../waypoints/waypoint";
 
 interface XYPt {
     x: number;
@@ -511,7 +508,7 @@ export function routeAroundExclusionZones(
     if (goals.length < 2) return { plan, bypassCount: 0, involvedZoneIDs: [] };
 
     const zoneEntries: [number, ExclusionZone][] = Array.from(
-        exclusionZoneSet.getZones().entries(),
+        obstacleAvoidanceData.getExclusionZoneSet().getZones().entries(),
     );
     if (zoneEntries.length === 0) return { plan, bypassCount: 0, involvedZoneIDs: [] };
 
@@ -628,7 +625,7 @@ export function getBlockingZoneIDs(
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): number[] {
     const ids: number[] = [];
-    for (const [zoneID, zone] of exclusionZoneSet.getZones()) {
+    for (const [zoneID, zone] of obstacleAvoidanceData.getExclusionZoneSet().getZones()) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
         const origin = zone.vertices[0];
         const raw = zone.vertices.map((v) => toXY(origin, v));
@@ -703,7 +700,7 @@ export function detectReroutesWithOverrides(
                 newWaypoints: cleanWaypoints,
                 bypassCount: 0,
                 involvedZoneIDs: result.involvedZoneIDs,
-                isImpossible: true,
+                status: ProposalStatus.IMPOSSIBLE,
             });
             continue;
         }
@@ -734,6 +731,7 @@ export function detectReroutesWithOverrides(
             newWaypoints,
             bypassCount: result.bypassCount,
             involvedZoneIDs: result.involvedZoneIDs,
+            status: ProposalStatus.FEASIBLE,
         });
     }
 

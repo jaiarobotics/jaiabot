@@ -10,7 +10,7 @@ export default function PlacementErrorDialog() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    if (!jaiaContext?.placementError) return null;
+    if (!jaiaContext?.obstacleAvoidanceData.getPlacementError()) return null;
 
     const handleOkClick = () => jaiaDispatch({ type: JaiaActions.CLEAR_PLACEMENT_ERROR });
 
@@ -19,7 +19,7 @@ export default function PlacementErrorDialog() {
             <div className="blocking-overlay" />
             <div className="jaia-dialog">
                 <h1>Placement Not Allowed</h1>
-                <p>{jaiaContext.placementError}</p>
+                <p>{jaiaContext.obstacleAvoidanceData.getPlacementError()}</p>
                 <div className="dialog-button-row">
                     <button className="dialog-button" onClick={handleOkClick}>
                         OK
