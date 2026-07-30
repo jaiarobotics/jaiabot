@@ -3,8 +3,8 @@ import { JaiaContext, JaiaDispatchContext } from "../../../../context/JaiaContex
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { MAX_WAYPOINTS } from "../../../../utils/constants";
 import { ProposalStatus } from "../../../../data/obstacle_avoidance_data/pending-route-data";
-import ExclusionZoneDialog from "../../ExclusionZoneDialog";
-import RerouteSummary from "../../RerouteSummary";
+import ExclusionZoneBaseDialog from "../ExclusionZoneBaseDialog";
+import RerouteSummary from "../RerouteSummary";
 
 /**
  * Shown when waypoints fall inside an exclusion zone. If the post-removal
@@ -42,7 +42,7 @@ export default function WaypointRemovalDialog() {
     }
 
     return (
-        <ExclusionZoneDialog title="Mission Plan Update Required" buttons={buttons}>
+        <ExclusionZoneBaseDialog title="Mission Plan Update Required" buttons={buttons}>
             <p>
                 <strong>{pending.totalRemovedCount}</strong> waypoint
                 {pending.totalRemovedCount !== 1 ? "s" : ""} inside an exclusion zone will be
@@ -77,6 +77,6 @@ export default function WaypointRemovalDialog() {
                 overLimitMessage={`The following mission${rerouteOverLimit.length !== 1 ? "s" : ""} still cross a zone after waypoint removal but cannot be rerouted — adding bypass waypoints would exceed the ${MAX_WAYPOINTS}-waypoint limit:`}
                 impossibleMessage={`The following mission${rerouteImpossible.length !== 1 ? "s" : ""} still cross a zone after waypoint removal and cannot be rerouted with the current zone layout:`}
             />
-        </ExclusionZoneDialog>
+        </ExclusionZoneBaseDialog>
     );
 }

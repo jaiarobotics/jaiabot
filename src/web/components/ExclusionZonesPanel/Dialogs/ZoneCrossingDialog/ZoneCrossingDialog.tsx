@@ -1,4 +1,4 @@
-import ExclusionZoneDialog from "../../ExclusionZoneDialog";
+import ExclusionZoneBaseDialog from "../ExclusionZoneBaseDialog";
 
 interface ZoneCrossingDialogProps {
     waypointNumber: number;
@@ -14,7 +14,7 @@ export default function ZoneCrossingDialog({
     onCancel,
 }: ZoneCrossingDialogProps) {
     return (
-        <ExclusionZoneDialog
+        <ExclusionZoneBaseDialog
             title="Route Crosses a Zone"
             buttons={[
                 { label: "Cancel", onClick: onCancel },
@@ -25,6 +25,6 @@ export default function ZoneCrossingDialog({
                 The path to waypoint {waypointNumber} has been rerouted to include{" "}
                 <strong>{bypassCount}</strong> bypass waypoint{bypassCount !== 1 ? "s" : ""}.
             </p>
-        </ExclusionZoneDialog>
+        </ExclusionZoneBaseDialog>
     );
 }

@@ -1,8 +1,8 @@
 import {
     PendingRerouteProposal,
     ProposalStatus,
-} from "../../data/obstacle_avoidance_data/pending-route-data";
-import { MAX_WAYPOINTS } from "../../utils/constants";
+} from "../../../data/obstacle_avoidance_data/pending-route-data";
+import { MAX_WAYPOINTS } from "../../../utils/constants";
 
 interface RerouteSummaryProps {
     proposals: PendingRerouteProposal[];
