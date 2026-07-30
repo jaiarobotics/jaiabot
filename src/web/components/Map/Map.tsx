@@ -35,8 +35,12 @@ import {
 } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 
 import ZoneCrossingDialog from "../ExclusionZonesPanel/Dialogs/ZoneCrossingDialog/ZoneCrossingDialog";
+import ExclusionZoneDialog from "../ExclusionZonesPanel/ExclusionZoneDialog";
 
 import "./Map.less";
+
+const PLACEMENT_ERROR_MESSAGE =
+    "Cannot place a point inside an exclusion zone or its safety buffer.";
 
 interface ZoneCrossingDialogState {
     /** Locations to add: bypass waypoints (if any) followed by the destination */
@@ -53,6 +57,7 @@ interface ZoneCrossingDialogState {
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [zoneCrossing, setZoneCrossing] = useState<ZoneCrossingDialogState | null>(null);
+    const [placementError, setPlacementError] = useState<string | null>(null);
 
     useEffect(() => {
         map.setTarget("map");
@@ -179,7 +184,7 @@ export default function Map() {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
         if (isLocationBlockedByZone(location)) {
-            jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+            setPlacementError(PLACEMENT_ERROR_MESSAGE);
             return;
         }
         jaiaDispatch({ type: JaiaActions.ADD_RALLY_POINT, location });
@@ -199,7 +204,7 @@ export default function Map() {
         switch (gridPlan.getState()) {
             case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
                 if (isLocationBlockedByZone(location)) {
-                    jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+                    setPlacementError(PLACEMENT_ERROR_MESSAGE);
                     return;
                 }
                 gridPlan.setMissionStart(location);
@@ -211,7 +216,7 @@ export default function Map() {
                 break;
             case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
                 if (isLocationBlockedByZone(location)) {
-                    jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+                    setPlacementError(PLACEMENT_ERROR_MESSAGE);
                     return;
                 }
                 gridPlan.setMissionEnd(location);
@@ -467,7 +472,7 @@ export default function Map() {
         const newLocation: GeographicCoordinate = { lon: lonLat[0], lat: lonLat[1] };
 
         if (isLocationBlockedByZone(newLocation)) {
-            jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+            setPlacementError(PLACEMENT_ERROR_MESSAGE);
             return;
         }
 
@@ -574,6 +579,15 @@ export default function Map() {
                     onConfirm={onZoneCrossingConfirm}
                     onCancel={onZoneCrossingCancel}
                 />
+            )}
+
+            {placementError && (
+                <ExclusionZoneDialog
+                    title="Placement Not Allowed"
+                    buttons={[{ label: "OK", onClick: () => setPlacementError(null) }]}
+                >
+                    <p>{placementError}</p>
+                </ExclusionZoneDialog>
             )}
         </div>
     );

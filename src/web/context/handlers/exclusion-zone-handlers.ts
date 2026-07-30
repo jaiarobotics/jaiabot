@@ -708,19 +708,6 @@ export function handleChangeExclusionZoneSetName(
 }
 
 /**
- * Sets the placement error message when the operator tries to place a point inside an exclusion zone.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @returns {JaiaContextType} Updated mutable state object
- */
-export function handleSetPlacementError(mutableState: JaiaContextType) {
-    mutableState.obstacleAvoidanceData.setPlacementError(
-        "Cannot place a point inside an exclusion zone or its safety buffer.",
-    );
-    return mutableState;
-}
-
-/**
  * Clears the placement error message, e.g. after the operator dismisses the error.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications

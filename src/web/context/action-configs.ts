@@ -76,7 +76,6 @@ import {
     handleDeleteZoneVertex,
     handleToggleZoneEditMode,
     handleToggleZoneVertexTapToMove,
-    handleSetPlacementError,
     handleClearPlacementError,
     handleChangeExclusionZoneSetName,
 } from "./handlers/exclusion-zone-handlers";
@@ -236,6 +235,5 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         { handler: handleToggleZoneVertexTapToMove, tracked: false },
     ],
 
-    [JaiaActions.SET_PLACEMENT_ERROR, { handler: handleSetPlacementError, tracked: false }],
     [JaiaActions.CLEAR_PLACEMENT_ERROR, { handler: handleClearPlacementError, tracked: false }],
 ]);

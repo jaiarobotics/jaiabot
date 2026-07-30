@@ -130,6 +130,10 @@ mechanical `status` enum conversion from Part A.
 
 ## Part C — Eliminate `SET_PLACEMENT_ERROR` / `CLEAR_PLACEMENT_ERROR` from the reducer
 
+PART C COMPLETED (title is a slight misnomer — as the body below says, only
+`SET_PLACEMENT_ERROR` is eliminated; `CLEAR_PLACEMENT_ERROR` stays, since
+`PlacementErrorDialog` still needs it).
+
 **What has to stay in the reducer, and why:**
 
 - `pendingReroute` / `pendingWaypointRemoval` (read by `MissionRerouteDialog`
@@ -185,18 +189,18 @@ mechanical `status` enum conversion from Part A.
   Replace the 4 `jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR })` calls
   with `setPlacementError("Cannot place a point inside an exclusion zone or its safety buffer.")`
   (the message text moves from the now-deleted handler to `Map.tsx`).
-  Render the alert inline, using the shared `Dialog` component from Part D —
-  no new dialog file needed, same as how `zoneCrossing` is rendered inline
-  today:
+  Render the alert inline, using the shared `ExclusionZoneDialog` component
+  from Part D — no new dialog file needed, same as how `zoneCrossing` is
+  rendered inline today:
     ```tsx
     {
         placementError && (
-            <Dialog
+            <ExclusionZoneDialog
                 title="Placement Not Allowed"
                 buttons={[{ label: "OK", onClick: () => setPlacementError(null) }]}
             >
                 <p>{placementError}</p>
-            </Dialog>
+            </ExclusionZoneDialog>
         );
     }
     ```
@@ -222,20 +226,28 @@ stay, since `PlacementErrorDialog` still needs a way to dismiss these.
 that never needed to be there; the one case that genuinely needs the reducer
 (mid-mutation rollback) is preserved unchanged and clearly documented as such.
 
-## Part D — Shared `Dialog` shell
+## Part D — Shared `ExclusionZoneDialog` shell
 
-New file **`src/web/components/ExclusionZonesPanel/Dialogs/Dialog/Dialog.tsx`**
-(pure presentational component, follows the existing `Dialogs/<Name>/<Name>.tsx`
-folder convention):
+PART D COMPLETED (built alongside Part C, since Part C's `Map.tsx` change
+depends on this component existing — see Part C's inline usage above).
+
+New file **`src/web/components/ExclusionZonesPanel/ExclusionZoneDialog.tsx`**
+(pure presentational component; updated 2026-07-30 — moved out of `Dialogs/`
+entirely and renamed from `Dialog` to `ExclusionZoneDialog`, per the user's
+request, to read unambiguously at both the file and call-site level):
 
 ```tsx
-interface DialogProps {
+interface ExclusionZoneDialogProps {
     title: string;
     children: React.ReactNode;
     buttons: { label: string; onClick: () => void }[];
 }
 
-export default function Dialog({ title, children, buttons }: DialogProps) {
+export default function ExclusionZoneDialog({
+    title,
+    children,
+    buttons,
+}: ExclusionZoneDialogProps) {
     return (
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" />
@@ -263,7 +275,8 @@ placement-error alert and `ZoneCrossingDialog`).
 
 ## Part E — Shared `RerouteSummary` (over-limit / impossible sections)
 
-New file **`src/web/components/ExclusionZonesPanel/Dialogs/Dialog/RerouteSummary.tsx`**.
+New file **`src/web/components/ExclusionZonesPanel/RerouteSummary.tsx`** (sibling
+of `ExclusionZoneDialog.tsx`, same rationale — no `Dialogs/` nesting needed).
 
 The over-limit/impossible **list-rendering shape** is identical between
 `MissionRerouteDialog` and `WaypointRemovalDialog` (`dialog-warn` header +
@@ -291,10 +304,10 @@ plain-reroute / follow-up contexts that forcing shared copy isn't worth it.
 
 - **`PlacementErrorDialog.tsx`**: unchanged data logic (context-driven,
   dispatches `CLEAR_PLACEMENT_ERROR`); render
-  `<Dialog title="Placement Not Allowed" buttons={[{label:"OK", onClick:handleOkClick}]}>`.
+  `<ExclusionZoneDialog title="Placement Not Allowed" buttons={[{label:"OK", onClick:handleOkClick}]}>`.
 - **`ZoneCrossingDialog.tsx`**: stays a pure controlled component (props from
   `Map.tsx`'s `zoneCrossing` state, unchanged); render
-  `<Dialog title="Route Crosses a Zone" buttons={[Cancel, Add Waypoints]}>`.
+  `<ExclusionZoneDialog title="Route Crosses a Zone" buttons={[Cancel, Add Waypoints]}>`.
 - **`MissionRerouteDialog.tsx`**: keep all branching logic (`isZoneLoad`,
   `isMissionLoad`, feasible/skip summaries); replace the over-limit/impossible
   JSX blocks with
@@ -407,8 +420,14 @@ New file **`context/handlers/__tests__/exclusion-zone-reroute-undo.test.ts`**
   button's existing `"Revert"`/`"Revert All"` scope-based logic is preserved
   unchanged in both dialogs. See Part F.
 - ~~**`RerouteSummary` location**~~ — resolved: staying at
-  `Dialogs/Dialog/RerouteSummary.tsx` as originally proposed in Part E. No
-  file moves/reorganization as part of this refactor — further structural
+  `ExclusionZonesPanel/RerouteSummary.tsx`, alongside `ExclusionZoneDialog.tsx`
+  (updated 2026-07-30, in two steps: first dropped the extra `Dialog/` nesting
+  level — the `Dialogs/<Name>/<Name>.tsx` subfolder convention exists to group
+  each dialog's own files, which doesn't apply to shared, multi-use
+  components — then moved `Dialog.tsx` out of `Dialogs/` entirely and renamed
+  it `ExclusionZoneDialog.tsx`, per the user's request, so both file and
+  import read unambiguously). No file moves/reorganization as part of this
+  refactor — further structural
   changes to the `Dialogs/` layout are expected as a separate follow-up
   proposal once B-G have landed and settled.
 - ~~**Part C scope**~~ — resolved: `SET_PLACEMENT_ERROR`/
