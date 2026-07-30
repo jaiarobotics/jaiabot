@@ -275,8 +275,20 @@ placement-error alert and `ZoneCrossingDialog`).
 
 ## Part E — Shared `RerouteSummary` (over-limit / impossible sections)
 
+PART E COMPLETED (file created; not yet wired into the two dialogs — that's
+Part F).
+
 New file **`src/web/components/ExclusionZonesPanel/RerouteSummary.tsx`** (sibling
 of `ExclusionZoneDialog.tsx`, same rationale — no `Dialogs/` nesting needed).
+
+**Render-order note for Part F:** `RerouteSummary` always renders the
+over-limit block before the impossible block. That matches
+`WaypointRemovalDialog`'s current order (`rerouteOverLimit` block, then
+`rerouteImpossible` block) but **reverses** `MissionRerouteDialog`'s current
+order (impossible block, then over-limit block). This is a minor, purely
+visual list-ordering change for `MissionRerouteDialog` once Part F wires
+`RerouteSummary` in — worth a one-line mention in that PR, not worth adding a
+second prop just to preserve two different orderings for two dialogs.
 
 The over-limit/impossible **list-rendering shape** is identical between
 `MissionRerouteDialog` and `WaypointRemovalDialog` (`dialog-warn` header +
