@@ -57,7 +57,7 @@ runcmd:
   # Format overlay to btrfs (if not already)
   - mkfs.btrfs -f $(blkid -L overlay) -L overlay
   # Disable apt timers to prevent lock contention and background updates
-  - systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
+  - if [ ! -f "/etc/jaiabot/cloud.env" ]; then systemctl disable --now apt-daily.timer apt-daily-upgrade.timer; fi
   # Set up Authelia on CloudHubs
   - if [ -f "/etc/jaiabot/cloud.env" ]; then /usr/bin/jaia_configure_authelia.sh; fi
   
