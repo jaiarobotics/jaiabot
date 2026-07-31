@@ -436,4 +436,6 @@ fi
 
 echo ">>>>>> SUCCESS"
 
+echo -e ">>>>>>> You must still perform these steps!\n1. Add this server to your SMTP relay at (for $AUTH_SMTP_ADDRESS): $PUBLIC_IPV4_ADDRESS"
+
 echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: admin\n\tpass: $AUTHELIA_ADMIN_PASSWORD"
