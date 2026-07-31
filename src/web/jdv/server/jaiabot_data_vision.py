@@ -19,6 +19,8 @@ import traceback
 from pyjaia import jaialog_store
 from pyjaia.jaialog_store import moos_messages
 
+import usb_offload
+
 
 l = logging.getLogger(os.path.basename(__file__))
 
@@ -30,6 +32,12 @@ def parseFilenames(input: str):
         return None
     else:
         return input.split(',')
+
+def validateLogNames(logNames: list[str]):
+    '''Raises a ValueError if any of these log names could refer to a file outside the log directory'''
+    for logName in logNames:
+        if not logName or '/' in logName or '\\' in logName or logName.startswith('.') or '..' in logName:
+            raise ValueError(f'Invalid log name: {logName!r}')
 
 ####### Responses
 
@@ -80,6 +88,18 @@ def getLogs():
 def convertLogs():
     log_names = request.json
     return JSONResponse(jaialogStore.convertIfNeeded(log_names))
+
+@app.route('/jdv/copy-to-usb', methods=['POST'])
+def copyLogsToUSB():
+    '''Start copying a list of logs to the USB drive plugged into the hub'''
+    log_names = request.json
+    validateLogNames(log_names)
+    return JSONResponse(usbOffloadManager.addLogNames(log_names).to_dict())
+
+@app.route('/jdv/copy-to-usb', methods=['GET'])
+def getCopyToUSBStatus():
+    '''Get the progress of the current (or most recent) copy to a USB drive'''
+    return JSONResponse(usbOffloadManager.getStatus().to_dict())
 
 @app.route('/jdv/log/<logName>', methods=['DELETE'])
 def deleteLog(logName: str):
@@ -244,6 +264,7 @@ if __name__ == '__main__':
 
     # Setup the directory
     jaialogStore = jaialog_store.JaialogStore(args.directory)
+    usbOffloadManager = usb_offload.UsbOffloadManager(args.directory)
 
     # Print the URL for browser access
     l.info(f'Jaiabot Logs directory:           {os.path.abspath(args.directory)}')

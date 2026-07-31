@@ -17,6 +17,19 @@ export interface ConvertStatus {
 }
 
 /**
+ * Progress of the current (or most recent) copy of logs to a USB drive plugged into the hub
+ *
+ * @interface UsbOffloadStatus
+ * @typedef {UsbOffloadStatus}
+ */
+export interface UsbOffloadStatus {
+    isCopying: boolean;
+    logsRemaining: number;
+    logsTotal: number;
+    error?: string;
+}
+
+/**
  * Initiates a browser download of the given URL, with filename and mimeType
  *
  * @param {string} url URL of the target
@@ -315,6 +328,25 @@ export class LogApi {
      */
     static async postConvertIfNeeded(logs: string[]) {
         return (await this.post("/jdv/convert-if-needed", logs)) as ConvertStatus;
+    }
+
+    /**
+     * Starts copying a set of logs to the USB drive plugged into the hub
+     *
+     * @param {string[]} logs Array of log names
+     * @returns {Promise<UsbOffloadStatus>} The status of the copy operation
+     */
+    static async postCopyToUSB(logs: string[]) {
+        return (await this.post("/jdv/copy-to-usb", logs)) as UsbOffloadStatus;
+    }
+
+    /**
+     * Gets the progress of the current (or most recent) copy of logs to a USB drive
+     *
+     * @returns {Promise<UsbOffloadStatus>} The status of the copy operation
+     */
+    static async getCopyToUSBStatus() {
+        return (await this.getJSON("/jdv/copy-to-usb")) as UsbOffloadStatus;
     }
 
     static async getAllSeriesDescriptors(logs: string[]) {

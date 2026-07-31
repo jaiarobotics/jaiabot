@@ -15,6 +15,10 @@ gpsd-clients
 ntp
 rsync
 xz-utils
+## USB drive filesystems
+dosfstools
+exfatprogs
+ntfs-3g
 ## for stress testing
 stress
 memtester

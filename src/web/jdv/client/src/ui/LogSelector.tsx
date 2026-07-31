@@ -1,7 +1,7 @@
 import React, { ReactElement } from "react";
 
 import { Log } from "../model/Log";
-import { LogApi } from "../model/LogApi";
+import { LogApi, UsbOffloadStatus } from "../model/LogApi";
 import { CustomAlert } from "../shared/CustomAlert";
 
 function getNavigatorLanguage() {
@@ -68,6 +68,7 @@ interface LogSelectorState {
     fromDate: string;
     toDate: string;
     selectedLogs: { [key: string]: Log };
+    usbOffloadStatus: UsbOffloadStatus;
 }
 
 // Dropdown menu showing all of the available logs to choose from
@@ -87,6 +88,7 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
             fromDate: localStorage.getItem("fromDate"),
             toDate: localStorage.getItem("toDate"),
             selectedLogs: {},
+            usbOffloadStatus: null,
         };
 
         this.refreshLogs();
@@ -176,6 +178,9 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
 
                 <div className="section">
                     <div>{this.availableSpaceString()} available</div>
+                    {this.state.usbOffloadStatus?.error ? (
+                        <div className="danger">{this.state.usbOffloadStatus.error}</div>
+                    ) : null}
                 </div>
 
                 {this.buttonsElement()}
@@ -254,6 +259,9 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
     }
 
     buttonsElement() {
+        const usbOffloadStatus = this.state.usbOffloadStatus;
+        const isCopying = usbOffloadStatus?.isCopying ?? false;
+
         return (
             <div className="buttonSection section">
                 <button
@@ -262,6 +270,15 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
                     disabled={Object.keys(this.state.selectedLogs).length == 0}
                 >
                     Delete Logs
+                </button>
+                <button
+                    className="padded"
+                    onClick={this.copyToUSBClicked.bind(this)}
+                    disabled={Object.keys(this.state.selectedLogs).length == 0 || isCopying}
+                >
+                    {isCopying
+                        ? `Copying ${usbOffloadStatus.logsTotal - usbOffloadStatus.logsRemaining}/${usbOffloadStatus.logsTotal}`
+                        : "Copy to USB"}
                 </button>
                 <div className="spacer"></div>
                 <button className="padded" onClick={this.cancelClicked.bind(this)}>
@@ -490,9 +507,25 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
     }
 
     /**
-     * Calls the API to get the list of logs, updating the GUI accordingly
+     * Copies the selected logs to the USB drive plugged into the hub
+     */
+    async copyToUSBClicked() {
+        const logNames = Object.values(this.state.selectedLogs).map((log) => {
+            return log.filename;
+        });
+
+        const usbOffloadStatus = await LogApi.postCopyToUSB(logNames);
+        this.setState({ usbOffloadStatus });
+    }
+
+    /**
+     * Calls the API to get the list of logs and the USB copy progress, updating the GUI accordingly
      */
     refreshLogs() {
+        LogApi.getCopyToUSBStatus().then((usbOffloadStatus) => {
+            this.setState({ usbOffloadStatus });
+        });
+
         LogApi.get_logs().then((response) => {
             const logDict = LogSelector.getLogDictFromLogList(response.logs);
             this.setState({ logDict, availableSpace: response.availableSpace });
