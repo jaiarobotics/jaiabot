@@ -2,62 +2,9 @@
 
 ## Set up VPNs
 (umask 077; wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey)
-SERVER_VPN_PRIVATEKEY=$(cat /etc/wireguard/privatekey)
 SERVER_VPN_PUBKEY=$(cat /etc/wireguard/publickey)
 
-cat <<EOF > /etc/sysctl.d/wg.conf
-net.ipv4.ip_forward = 1
-net.ipv6.conf.all.forwarding = 1
-net.ipv6.conf.eth0.accept_ra = 2
-EOF
-
-for vpn in virtualfleet cloudhub; do
-    case "$vpn" in
-        virtualfleet)
-            title="VirtualFleet"
-            port=51820
-            server_ipv6="{{VIRTUALFLEET_VPN_SERVER_IPV6}}"
-            client_ipv6=
-            ;;
-        cloudhub)
-            title="CloudHub VPN"
-            port=51821
-            server_ipv6="{{CLOUDHUB_VPN_SERVER_IPV6}}"
-            client_ipv6="{{CLOUDHUB_VPN_CLIENT_IPV6}}"
-            ;;
-    esac
-
-    cat <<EOF > /etc/wireguard/wg_${vpn}.conf
-##########################
-#### ${title} #########
-###########################
-
-[Interface]
-
-# VPN Address for server
-Address = ${server_ipv6}/64
-
-# VPN Server Port
-ListenPort = ${port}
-
-# PrivateKey (contents of /etc/wireguard/privatekey)
-PrivateKey = ${SERVER_VPN_PRIVATEKEY}
-
-PostUp = iptables -w 60 -A FORWARD -i wg_${vpn} -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_${vpn} -j ACCEPT; ip6tables -A FORWARD -i wg_${vpn} -j ACCEPT;
-PostDown = iptables -w 60 -D FORWARD -i wg_${vpn} -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_${vpn} -j ACCEPT; ip6tables -D FORWARD -i wg_${vpn} -j ACCEPT;
-EOF
-
-    if [[ -n "$client_ipv6" ]]; then 
-        cat <<EOF >> /etc/wireguard/wg_${vpn}.conf
-[Peer]  
-# Initial Setup Client
-PublicKey = {{CLIENT_VPN_WIREGUARD_PUBKEY}}
-AllowedIPs = ${client_ipv6}/128
-EOF
-    fi
-
-    systemctl enable "wg-quick@wg_${vpn}"
-done
+jaia admin vpn server_init {{FLEET_ID}} {{CLIENT_VPN_WIREGUARD_PUBKEY}}
 
 ## Set network interfaces file
 cat <<EOF > /etc/network/interfaces

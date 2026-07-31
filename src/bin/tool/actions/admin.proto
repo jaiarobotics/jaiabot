@@ -49,6 +49,13 @@ message AdminTool
         fleet = 2 [(goby.ev).cfg = {
             short_help_msg: "Fleet administration",
         }];
+        vpn = 3 [(goby.ev).cfg = {
+            short_help_msg: "VPN configuration",
+            external_command: "jaia-vpn-gen.sh",
+            full_help_msg: "VPN configuration tool.\n"
+                           "Usage: \"jaia admin vpn cloudhub_vpn|vfleet_vpn|fleet_vpn bot|hub|desktop node_id [fleet_id]\"\n"
+                           "       \"jaia admin vpn server_init fleet_id initial_client_pubkey\""
+        }];
     }
     optional Action action = 2 [
         default = help,
