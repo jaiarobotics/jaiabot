@@ -442,7 +442,7 @@ AUTH_BASE_URI_HOST="${AUTH_BASE_URI%%.*}"
 
 cat <<EOF
 >>>>>> You must still perform these steps!
-1. Add this server to your SMTP relay at (for $AUTH_SMTP_ADDRESS): $PUBLIC_IPV4_ADDRESS
+1. Add this server to your SMTP relay at (for $AUTH_SMTP_ADDRESS): $PUBLIC_IPV4_ADDRESS and $PUBLIC_IPV6_ADDRESS
 2. Add these DNS entries:
 	$AUTH_BASE_URI_HOST A $PUBLIC_IPV4_ADDRESS
 	$AUTH_BASE_URI_HOST AAAA $PUBLIC_IPV6_ADDRESS
