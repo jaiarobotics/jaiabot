@@ -65,6 +65,10 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/server DESTINATION ${project_SHARE_DIR}/ja
 # Copy the REST API server
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/rest_api DESTINATION ${project_SHARE_DIR}/jaiabot/web)
 
+# Copy the Jaia navigation header (served by Caddy on the CloudHub login server)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/nav DESTINATION ${project_SHARE_DIR}/jaiabot/web)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/style/icons/jaia-only-logo.png DESTINATION ${project_SHARE_DIR}/jaiabot/web/nav)
+
 ###############################################################################
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/web DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)

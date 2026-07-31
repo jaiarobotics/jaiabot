@@ -18,8 +18,10 @@ set +a
 
 ## Versions
 authelia_version=4.39.20-1 # apt
-# use whatever caddy Ubuntu ships with
-# caddy_version = ... # apt
+caddy_version=2.10.2 # custom build (Docker "caddy:<version>-builder" image)
+# github.com/caddyserver/replace-response has no tagged releases, so we pin the
+# Go pseudo-version (used to inject the Jaia navigation header into HTML pages)
+caddy_replace_response_version=v0.0.0-20250618171559-80962887e4c6
 lldap_version=v0.6.3 # docker
 
 ## Ports
@@ -35,6 +37,10 @@ smtp_address=$jaia_auth_smtp_address
 
 ch_ip=$(jaia-ip.py --net=cloudhub_vpn --fleet_id=${jaia_fleet_index} --node=hub --node_id=30 --ipv6 addr)
 vh1_ip=$(jaia-ip.py --net=vfleet_vpn --fleet_id=${jaia_fleet_index} --node=hub --node_id=1 --ipv6 addr)
+
+# Jaia navigation header assets (from the jaiabot-web package), served by Caddy
+nav_dir=/usr/share/jaiabot/web/nav
+nav_url_path=/_jaia/nav
 
 # Persistent directories (between major upgrades)
 auth_persistent_dir=/var/log/jaiabot/auth
@@ -91,6 +97,14 @@ systemctl reload apache2
 if [ ! -f /usr/share/keyrings/authelia-security.gpg ]; then
     curl -fsSL https://www.authelia.com/keys/authelia-security.gpg -o /usr/share/keyrings/authelia-security.gpg
     echo 'deb [arch='$(dpkg --print-architecture)' signed-by=/usr/share/keyrings/authelia-security.gpg] https://apt.authelia.com stable main' | tee /etc/apt/sources.list.d/authelia.list > /dev/null
+fi
+
+# Official apt repo for Caddy (Ubuntu ships an old version, and we need the
+# systemd unit and 'caddy' user from the package; the binary itself is replaced
+# below by a custom build that includes the replace-response plugin)
+if [ ! -f /usr/share/keyrings/caddy-stable-archive-keyring.gpg ]; then
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list > /dev/null
 fi
 
 apt-get update && apt-get install -y authelia=$authelia_version caddy docker-compose-v2 fuse-overlayfs
@@ -248,15 +262,40 @@ systemctl enable authelia
 ###########
 ## Caddy ##
 ###########
+
+# Caddy from apt doesn't include the replace-response plugin, which we use to
+# inject the Jaia navigation header into the HTML served by each site. Build a
+# custom binary with xcaddy (using the Docker builder image, as Docker is
+# already required for LLDAP) and run it in place of the packaged binary.
+caddy_custom_bin=/usr/local/bin/caddy
+caddy_custom_version_file=$auth_persistent_dir/caddy-custom.version
+caddy_custom_version="caddy-$caddy_version+replace-response-$caddy_replace_response_version"
+
+if [ ! -x "$caddy_custom_bin" ] || [ "$(cat $caddy_custom_version_file 2>/dev/null)" != "$caddy_custom_version" ]; then
+    caddy_build_dir=$(mktemp -d)
+    docker run --rm -v "$caddy_build_dir:/output" caddy:${caddy_version}-builder \
+           xcaddy build v${caddy_version} \
+           --with github.com/caddyserver/replace-response@${caddy_replace_response_version} \
+           --output /output/caddy
+    install -m 0755 -o root -g root "$caddy_build_dir/caddy" "$caddy_custom_bin"
+    rm -rf "$caddy_build_dir"
+    echo "$caddy_custom_version" > $caddy_custom_version_file
+fi
+
+mkdir -p /etc/systemd/system/caddy.service.d
+cat <<EOF > /etc/systemd/system/caddy.service.d/override.conf
+[Service]
+ExecStart=
+ExecStart=$caddy_custom_bin run --environ --config /etc/caddy/Caddyfile
+ExecReload=
+ExecReload=$caddy_custom_bin reload --config /etc/caddy/Caddyfile --force
+EOF
+systemctl daemon-reload
+
 cat <<EOF > /etc/caddy/Caddyfile
 # Redirect base URL to runtime JCC
 $base_uri {
         redir https://run.$base_uri{uri} permanent
-}
-
-# Authelia Portal.
-auth.$base_uri {
-        reverse_proxy localhost:$authelia_port
 }
 
 # Protected Endpoints.
@@ -267,26 +306,74 @@ auth.$base_uri {
 	}
 }
 
+# Serves the Jaia navigation header assets from each site (so that they are
+# always same-origin). jaia-nav.js is a template rendered using the user and
+# groups provided by Authelia, so that only the permitted links are shown.
+(jaia_nav) {
+        handle_path $nav_url_path/* {
+                import authelia_forward_auth
+                root * $nav_dir
+                templates {
+                        mime text/javascript application/javascript
+                }
+                file_server
+        }
+}
+
+# Injects the Jaia navigation header into HTML pages only (so that Javascript,
+# JSON and the REST API responses are left untouched)
+(jaia_nav_inject) {
+        replace {
+                match {
+                        header Content-Type text/html*
+                }
+                re "(?i)</head>" "<script src=$nav_url_path/jaia-nav.js defer></script></head>"
+        }
+}
+
+# Authelia Portal.
+auth.$base_uri {
+        import jaia_nav
+        import jaia_nav_inject
+        # replace-response cannot rewrite compressed responses
+        reverse_proxy localhost:$authelia_port {
+                header_up Accept-Encoding identity
+        }
+}
+
 users.$base_uri {
+        import jaia_nav
+        import jaia_nav_inject
         import authelia_forward_auth
-        reverse_proxy :$lldap_web_port
+        reverse_proxy :$lldap_web_port {
+                header_up Accept-Encoding identity
+        }
 }
 
 # Runtime JCC
 run.$base_uri {
+        import jaia_nav
+        import jaia_nav_inject
         import authelia_forward_auth
-        reverse_proxy [$ch_ip]:$jcc_port
+        reverse_proxy [$ch_ip]:$jcc_port {
+                header_up Accept-Encoding identity
+        }
 }
 
 # VirtualFleet JCC
 sim.$base_uri {
+        import jaia_nav
+        import jaia_nav_inject
         import authelia_forward_auth
-        reverse_proxy [$vh1_ip]:80
+        reverse_proxy [$vh1_ip]:80 {
+                header_up Accept-Encoding identity
+        }
 }
 
 EOF
 
-systemctl start caddy
+systemctl enable caddy
+systemctl restart caddy
 
 ###########
 ## LLDAP ##

@@ -1,3 +1,5 @@
 dist
 node_modules
 
+# Caddy (Go) template, not valid Javascript on its own
+nav/jaia-nav.js
