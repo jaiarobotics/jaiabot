@@ -449,4 +449,4 @@ cat <<EOF
 	*.$AUTH_BASE_URI_HOST CNAME $AUTH_BASE_URI
 EOF
 
-echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: admin\n\tpass: $AUTHELIA_ADMIN_PASSWORD"
+echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: jaia_admin\n\tpass: $AUTHELIA_ADMIN_PASSWORD"
