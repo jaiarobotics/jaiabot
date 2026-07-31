@@ -313,6 +313,8 @@ echo ">>>>>> Instance is running. Proceeding to associate Elastic IP Address."
 run "" aws ec2 associate-address --network-interface-id $ENI_ID_0 --allocation-id $EIP_ALLOCATION_ID
 echo ">>>>>> Associated Elastic IP Address with EC2 Instance"
 
+PUBLIC_IPV6_ADDRESS=$(run ".NetworkInterfaces[0].Ipv6Addresses[0].Ipv6Address" aws ec2 describe-network-interfaces --network-interface-ids "$ENI_ID_0")
+
 # Tag the Resources
 run "" aws ec2 create-tags --resources "$VPC_ID" \
     "$SUBNET_CLOUDHUB_ID" \
@@ -436,4 +438,15 @@ fi
 
 echo ">>>>>> SUCCESS"
 
-echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: admin\n\tpass: $AUTHELIA_ADMIN_PASSWORD"
+AUTH_BASE_URI_HOST="${AUTH_BASE_URI%%.*}"
+
+cat <<EOF
+>>>>>> You must still perform these steps!
+1. Add this server to your SMTP relay at (for $AUTH_SMTP_ADDRESS): $PUBLIC_IPV4_ADDRESS and $PUBLIC_IPV6_ADDRESS
+2. Add these DNS entries:
+	$AUTH_BASE_URI_HOST A $PUBLIC_IPV4_ADDRESS
+	$AUTH_BASE_URI_HOST AAAA $PUBLIC_IPV6_ADDRESS
+	*.$AUTH_BASE_URI_HOST CNAME $AUTH_BASE_URI
+EOF
+
+echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: jaia_admin\n\tpass: $AUTHELIA_ADMIN_PASSWORD"
