@@ -57,11 +57,17 @@
           deb http://packages.jaia.tech/ubuntu/gobysoft/{{ repo }}/{{ version }}/ {{ ansible_distribution_release }}/
       when: mode == "online" or mode == "online_with_hub_cache"
         
+    - name: Look up hub IP address on the fleet WLAN
+      ansible.builtin.command: /usr/bin/jaia ip --query_type addr --node_type hub --node_id {{ hub_id }} --ip_net wlan --fleet_id {{ jaiabot_embedded_fleet_id }} --ip_version ipv4
+      register: hub_wlan_ip
+      changed_when: false
+      when: mode == "offline" or mode == "online_with_hub_cache"
+
     - name: Set /etc/hosts for hub entry
       ansible.builtin.lineinfile:
         path: "/etc/hosts"
         regexp: ".*hub{{ hub_id }} *$"
-        line: "10.23.{{ jaiabot_embedded_fleet_id }}.{{ (hub_id | int) + 10 }} hub{{ hub_id }}"
+        line: "{{ hub_wlan_ip.stdout }} hub{{ hub_id }}"
       when: mode == "offline" or mode == "online_with_hub_cache"
 
     - name: Set /etc/apt/sources.list.d/jaiabot.list for offline mode

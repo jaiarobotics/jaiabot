@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "goby/middleware/application/tool.h"
 
 #include "common.h"
@@ -63,8 +65,8 @@ jaiabot::apps::IPTool::IPTool()
         auto ip_net = proto_net_to_ip_net(app_cfg().ip_net());
         bool is_ipv4 = app_cfg().ip_version() == jaiabot::config::IPTool::ipv4;
         std::string ipv6_base_str = app_cfg().has_ipv6_base() ? app_cfg().ipv6_base() : "";
-        auto query_type = app_cfg().has_query_type() ? app_cfg().query_type()
-                                                     : jaiabot::config::IPTool::addr;
+        auto query_type =
+            app_cfg().has_query_type() ? app_cfg().query_type() : jaiabot::config::IPTool::addr;
 
         try
         {
@@ -91,8 +93,8 @@ jaiabot::apps::IPTool::IPTool()
                 if (is_ipv4)
                     result = jaiabot::ip::ipv4_addr(fleet_id, ip_net, node_type, node_id);
                 else
-                    result = jaiabot::ip::ipv6_addr(fleet_id, ip_net, node_type, node_id,
-                                                    ipv6_base_str);
+                    result =
+                        jaiabot::ip::ipv6_addr(fleet_id, ip_net, node_type, node_id, ipv6_base_str);
                 std::cout << result << std::endl;
             }
             else // net query
@@ -107,8 +109,7 @@ jaiabot::apps::IPTool::IPTool()
         }
         catch (const std::exception& e)
         {
-            goby::glog.is_die() && goby::glog << "IP computation failed: " << e.what()
-                                              << std::endl;
+            goby::glog.is_die() && goby::glog << "IP computation failed: " << e.what() << std::endl;
         }
     }
     quit(0);

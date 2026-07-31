@@ -45,12 +45,16 @@ def xbee_mac_slots(node_id):
 
 all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
 
+def jaia_ip(args):
+    """Run the 'jaia ip' tool with the given list of arguments and return the resulting address or network."""
+    return subprocess.run(['jaia', 'ip'] + [str(a) for a in args], capture_output=True, text=True, check=True).stdout.strip()
+
 def runtime_wifi_ip_addr(node_id, fleet_index, hub_id):
     if node_id == hub_node_id:
-        return subprocess.run(f'jaia ip --query_type addr --node_type hub --ip_net wlan --fleet_id {fleet_index} --node_id {hub_id} --ip_version ipv4', shell=True, capture_output=True, text=True).stdout.strip()
+        return jaia_ip(['--query_type', 'addr', '--node_type', 'hub', '--ip_net', 'wlan', '--fleet_id', fleet_index, '--node_id', hub_id, '--ip_version', 'ipv4'])
     else:
         bot_id = node_id - 1
-        return subprocess.run(f'jaia ip --query_type addr --node_type bot --ip_net wlan --fleet_id {fleet_index} --node_id {bot_id} --ip_version ipv4', shell=True, capture_output=True, text=True).stdout.strip()
+        return jaia_ip(['--query_type', 'addr', '--node_type', 'bot', '--ip_net', 'wlan', '--fleet_id', fleet_index, '--node_id', bot_id, '--ip_version', 'ipv4'])
 
 def wifi_ip_addr(this_node_id, node_id, fleet_index, hub_id = -1):
     wifi_ip = runtime_wifi_ip_addr(node_id, fleet_index, hub_id)
@@ -156,7 +160,7 @@ def hub2hub_modem_id(hub_id):
     return hub_id + 1 + subnet_index['hub2hub']*num_modems_in_subnet
 
 def runtime_hub2hub_ip_addr(hub_id, fleet_index):
-    return subprocess.run(f'jaia ip --query_type addr --node_type hub --ip_net cloudhub_vpn --fleet_id {fleet_index} --node_id {hub_id} --ip_version ipv6', shell=True, capture_output=True, text=True).stdout.strip()
+    return jaia_ip(['--query_type', 'addr', '--node_type', 'hub', '--ip_net', 'cloudhub_vpn', '--fleet_id', fleet_index, '--node_id', hub_id, '--ip_version', 'ipv6'])
 
 def has_cloudhub_vpn(fleet_index):
     cloudhub_vpn_iface=[f'wg_jaia_ch{fleet_index}', 'wg_cloudhub']

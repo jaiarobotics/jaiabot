@@ -93,12 +93,11 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
         }
         else
         {
-            goby::glog.is_die() && goby::glog
-                << "Host string is invalid: " << host_code
-                << ". It must be b<bot_id>[sv]f<fleet_id> or "
-                   "h<hub_id>[svc]f<fleet_id> or chf<fleet_id> "
-                   "(for cloudhub)"
-                << std::endl;
+            goby::glog.is_die() && goby::glog << "Host string is invalid: " << host_code
+                                              << ". It must be b<bot_id>[sv]f<fleet_id> or "
+                                                 "h<hub_id>[svc]f<fleet_id> or chf<fleet_id> "
+                                                 "(for cloudhub)"
+                                              << std::endl;
             return "";
         }
 
@@ -119,16 +118,15 @@ inline std::string parse_host_ip_from_code(const std::string& host_code)
             else
                 host_ip = jaiabot::ip::ipv6_addr(fleet_id, net, node_type, node_id);
 
-            goby::glog.is_verbose() &&
-                goby::glog << host_code << " (" << jaiabot::ip::network_to_string(net)
-                           << "): " << host_ip << std::endl;
+            goby::glog.is_verbose() && goby::glog << host_code << " ("
+                                                  << jaiabot::ip::network_to_string(net)
+                                                  << "): " << host_ip << std::endl;
             return host_ip;
         }
         catch (const std::exception& e)
         {
-            goby::glog.is_die() && goby::glog
-                << "Failed to compute IP for host '" << host_code << "': " << e.what()
-                << std::endl;
+            goby::glog.is_die() && goby::glog << "Failed to compute IP for host '" << host_code
+                                              << "': " << e.what() << std::endl;
         }
     }
     else

@@ -44,7 +44,7 @@ message IPTool
         cfg { position { enable: true } }
     }];
 
-    // Explicit mode: mirrors jaia-ip.py interface for full control
+    // Explicit mode: full control over node/network/IP version
 
     enum QueryType
     {

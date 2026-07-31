@@ -60,6 +60,8 @@ PUBKEY=$(echo $PRIVKEY | wg pubkey)
 
 
 if [[ "$VPN_TYPE" = "fleet_vpn" ]]; then
+    # the fleet VPN server is the gateway node on the fleet_vpn network
+    SERVER_VPN_IP=$(jaia ip --query_type addr --node_type gateway --ip_net fleet_vpn --fleet_id ${FLEET_ID} --ip_version ipv4)
     # Totally new fleet - add server config
     if ! sudo test -e /etc/wireguard/${WG_SERVER_PROFILE}.conf; then
         cat <<EOF | sudo tee /etc/wireguard/${WG_SERVER_PROFILE}.conf
@@ -70,7 +72,7 @@ if [[ "$VPN_TYPE" = "fleet_vpn" ]]; then
 [Interface]
 
 # VPN Address for server
-Address = 172.23.${FLEET_ID}.1/24
+Address = ${SERVER_VPN_IP}/${NET##*/}
 
 # VPN Server Port
 ListenPort = ${VPN_PORT}
