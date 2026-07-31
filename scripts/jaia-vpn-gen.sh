@@ -2,10 +2,20 @@
 
 set -u -e
 
+# Support both direct invocation and invocation via the jaia tool.
+# When called via 'jaia admin vpn ...', the jaia tool passes '--binary=jaia admin vpn'
+# as the first argument, which is used to display the correct command name in usage messages.
+if [[ "${1:-}" == --binary=* ]]; then
+    binary="${1#*=}"
+    shift
+else
+    binary="$0"
+fi
+
 # Check if necessary parameters are provided
 if (( "$#" < 3 )); then
-    echo "Usage: $0 cloudhub_vpn|vfleet_vpn|fleet_vpn bot|hub|desktop node_id [fleet_id (for fleet_vpn only)]"
-    echo "       $0 server_init fleet_id initial_client_pubkey"
+    echo "Usage: ${binary} cloudhub_vpn|vfleet_vpn|fleet_vpn bot|hub|desktop node_id [fleet_id (for fleet_vpn only)]"
+    echo "       ${binary} server_init fleet_id initial_client_pubkey"
     exit 1
 fi
 
