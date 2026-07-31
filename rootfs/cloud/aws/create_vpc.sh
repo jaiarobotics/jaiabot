@@ -307,13 +307,13 @@ done
 ENI_ID_0=$(run ".NetworkInterfaces[0].NetworkInterfaceId" aws ec2 describe-network-interfaces --filters "Name=attachment.instance-id,Values=$INSTANCE_ID" "Name=attachment.device-index,Values=0")
 echo ">>>>>> ENI ID: $ENI_ID_0"
 
-PUBLIC_IPV6_ADDRESS=$(run ".NetworkInterfaces[0].Ipv6Addresses[0].Ipv6Address" aws ec2 describe-network-interfaces --network-interface-ids "$ENI_ID_0")
-
 echo ">>>>>> Instance is running. Proceeding to associate Elastic IP Address."
 
 # Associate the Elastic IP Address with the EC2 Instance
 run "" aws ec2 associate-address --network-interface-id $ENI_ID_0 --allocation-id $EIP_ALLOCATION_ID
 echo ">>>>>> Associated Elastic IP Address with EC2 Instance"
+
+PUBLIC_IPV6_ADDRESS=$(run ".NetworkInterfaces[0].Ipv6Addresses[0].Ipv6Address" aws ec2 describe-network-interfaces --network-interface-ids "$ENI_ID_0")
 
 # Tag the Resources
 run "" aws ec2 create-tags --resources "$VPC_ID" \
@@ -441,7 +441,7 @@ echo ">>>>>> SUCCESS"
 AUTH_BASE_URI_HOST="${AUTH_BASE_URI%%.*}"
 
 cat <<EOF
->>>>>>> You must still perform these steps!
+>>>>>> You must still perform these steps!
 1. Add this server to your SMTP relay at (for $AUTH_SMTP_ADDRESS): $PUBLIC_IPV4_ADDRESS
 2. Add these DNS entries:
 	$AUTH_BASE_URI_HOST A $PUBLIC_IPV4_ADDRESS
