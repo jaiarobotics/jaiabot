@@ -301,6 +301,14 @@ In short, Authelia manages authentication, Caddy manages the reverse proxy (betw
 
 An instance of all three of these runs on each CloudHub.
 
+### Navigation header
+
+Every page served through the login server (`auth.`, `users.`, `run.`, and `sim.`) is given a common Jaia navigation header with links to the other services, the name of the logged in user, and a logout link.
+
+The header is a small Javascript file (`src/web/nav/jaia-nav.js`, installed to `/usr/share/jaiabot/web/nav`) that Caddy serves from `/_jaia/nav/jaia-nav.js` on each site, and injects into every HTML response using the [replace-response](https://github.com/caddyserver/replace-response) plugin (only responses with a `text/html` content type are modified, so the REST API and other non-HTML resources are untouched). Since this plugin is not part of the Caddy distribution, `jaia_configure_authelia.sh` builds a pinned Caddy binary including it (using the `caddy:<version>-builder` Docker image) and installs it as `/usr/local/bin/caddy`.
+
+The header is rendered from the `Remote-User` and `Remote-Groups` headers provided by Authelia, so each user only sees links to the services their groups grant them access to.
+
 ### Required DNS entries
 
 Each Cloudhub can be supported from either `jaia.tech` or a custom domain.
