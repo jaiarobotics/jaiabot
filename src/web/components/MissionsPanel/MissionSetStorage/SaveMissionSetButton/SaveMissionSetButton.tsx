@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaActions } from "../../../../context/jaia-actions";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 import { DialogActions } from "../../../../types/context-types";
-import { listSavedMissionSets } from "../mission-set-storage";
 import { DisabledCodes } from "./save-messages";
 import { SaveMissionSetDialog } from "./SaveMissionSetDialog";
-import { saveToLocalStorage } from "../mission-set-storage";
+import { saveToHub } from "../mission-set-storage";
 
 interface Props {
     saveName: string;
+    savedNames: string[];
+    onSaved: () => void;
 }
 
 /**
@@ -15,6 +18,7 @@ interface Props {
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function SaveMissionSetButton(props: Props) {
+    const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
     /**
@@ -25,7 +29,7 @@ export default function SaveMissionSetButton(props: Props) {
     const getDisabledCode = () => {
         if (missionSet.getMissions().size == 0) return DisabledCodes.NO_MISSIONS;
         if (props.saveName == "") return DisabledCodes.NO_NAME;
-        if (listSavedMissionSets().includes(props.saveName)) return DisabledCodes.OVERWRITE;
+        if (props.savedNames.includes(props.saveName.trim())) return DisabledCodes.OVERWRITE;
         return DisabledCodes.NONE;
     };
 
@@ -52,7 +56,13 @@ export default function SaveMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            saveToLocalStorage(props.saveName);
+            saveToHub(props.saveName.trim()).then(() => {
+                jaiaDispatch({
+                    type: JaiaActions.CHANGE_MISSION_SET_NAME,
+                    missionSetName: props.saveName.trim(),
+                });
+                props.onSaved();
+            });
         }
     };
 

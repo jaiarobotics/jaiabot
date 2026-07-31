@@ -206,6 +206,7 @@ set(scripts_to_install
   data-offload/jaiahub-dataoffload-cloudhub.sh
   # Firmware scripts
   jaia_firm_backup_date.sh
+  jaia_firm_arduino_flash.sh
   reset-bio-payload-board.sh
   geotiff_format.py
   geotiff_scan.sh
@@ -234,7 +235,6 @@ foreach(script ${scripts_to_install})
     install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
     configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
 endforeach()
-
 
 option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
 if(enable_testing)

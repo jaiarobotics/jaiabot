@@ -900,6 +900,9 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                 handle_bottom_dive_safety_params(bottom_depth_safety_params);
             }
 
+            if (command.plan().has_speeds())
+                machine_->set_transit_speed(command.plan().speeds().transit_with_units());
+
             if (mission_is_feasible)
             {
                 // pass mission plan through event so that the mission plan in MissionManagerStateMachine only gets updated if this event is handled
@@ -1079,6 +1082,13 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
             if (initial_fragment.plan().has_repeats())
             {
                 out_command.mutable_plan()->set_repeats(initial_fragment.plan().repeats());
+            }
+
+            if (initial_fragment.plan().segments_size() > 0) {
+                for (const auto& segment : initial_fragment.plan().segments())
+                {
+                    *out_command.mutable_plan()->add_segments() = segment;
+                }
             }
 
             // Loop through fragments and all the waypoints in each

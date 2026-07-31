@@ -23,6 +23,9 @@
 #include "config.pb.h"
 #include "jaiabot/messages/feather.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
+#include <Wt/Chart/WCartesianChart.h>
+#include <Wt/WAbstractItemModel.h>
+#include <goby/time/system_clock.h>
 
 namespace jaiabot
 {
@@ -48,13 +51,44 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
     void unfocus() override { timer_.stop(); }
 
     void vehicle_select(Wt::WString msg);
+    void data_select(Wt::WString msg);
     void check_add_vehicle(int node_id);
+    void add_data_point(const std::string data_type, double data_point);
     void key_press(Wt::WKeyEvent key);
     void key_release(Wt::WKeyEvent key);
+    Wt::WDateTime get_date_time(goby::time::MicroTime mp);
+
+    struct YAxisConfig {
+        std::string title;
+        std::pair<double, double> range;
+    };
+
+    void add_data_type(std::pair<std::string, YAxisConfig>& data_type);
 
   private:
     Wt::WComboBox* vehicle_combo_;
+    Wt::WComboBox* data_combo_;
     Wt::WStackedWidget* vehicle_stack_;
+    Wt::WStackedWidget* data_stack_;
+    Wt::WGroupBox* chart_box;
+
+    struct ChartData {
+        std::map<goby::time::MicroTime, double> data_points;
+        std::string chart_type;
+        YAxisConfig y_axis_config;
+    };
+
+    std::vector<ChartData> chart_data_;
+    std::shared_ptr<Wt::WAbstractItemModel> chart_model_;
+    Wt::Chart::WCartesianChart* chart_ = nullptr;
+    
+    // Contains all data types that can be displayed on the chart, along with their Y-axis configurations
+    // Y-axis configurations include the title and range for each data type
+    const std::vector<std::pair<std::string, YAxisConfig>> data_types_ = {
+        {"Pressure", {"Pressure (kPa)", {0, 100}}},
+        {"Salinity", {"Salinity (ppt)", {0, 50}}},
+        {"Temperature", {"Temperature (°C)", {10, 20}}},
+    };
 
     struct VehicleData
     {
@@ -208,6 +242,10 @@ class LiaisonJaiabot : public goby::zeromq::LiaisonContainerWithComms<LiaisonJai
 
     // currently shown vehicle id
     int current_vehicle_{-1};
+
+    // currently shown data_type
+    std::string current_data_type_{""};
+
 
     bool motor_go_{false};
     static bool dive_start_;

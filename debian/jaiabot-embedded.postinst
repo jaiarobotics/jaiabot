@@ -15,6 +15,10 @@ if [ "$JAIA_TYPE" = "bot" ]; then
     db_get jaiabot-embedded/bot_id
     BOT_OR_HUB_INDEX=$RET
     BOT_OR_HUB_FINAL_OCTET=$((BOT_OR_HUB_INDEX + 100))
+    db_get jaiabot-embedded/bot_vin
+    JAIA_BOT_VIN=$RET
+    db_get jaiabot-embedded/tail_serial_number
+    JAIA_TAIL_SERIAL_NUMBER=$RET
     if [ "$JAIA_BOT_TYPE" = "none" ]; then
         JAIA_BOT_TYPE="hydro"
         db_set jaiabot-embedded/bot_type "hydro"
@@ -166,6 +170,7 @@ JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
                                          --arduino_type=${JAIA_ARDUINO_TYPE} \
                                          --pam_connection_type=${JAIA_PAM_CONNECTION_TYPE} \
                                          --bot_type=${JAIA_BOT_TYPE} \
+                                         --bot_vin=${JAIA_BOT_VIN} \
                                          --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \
                                          --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE} \
                                          --motor_harness_type=${JAIA_MOTOR_HARNESS_TYPE} \
@@ -175,7 +180,8 @@ JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
                                          --comms_links ${JAIA_COMMS_LINKS} \
                                          --camera_positions ${JAIA_CAMERA_POSITIONS} \
                                          --dccl_encryption_password=${JAIA_DCCL_ENCRYPTION_PASSWORD} \
-                                         --additional_sensors ${JAIA_ADDITIONAL_SENSORS}
+                                         --additional_sensors ${JAIA_ADDITIONAL_SENSORS} \
+                                         --tail_serial_number=${JAIA_TAIL_SERIAL_NUMBER}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 

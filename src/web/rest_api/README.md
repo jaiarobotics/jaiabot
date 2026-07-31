@@ -57,6 +57,7 @@ rest_api/
 ```
 
 **For most development, you'll only touch:**
+
 - `v1/api.py` - Add your endpoint handlers here
 - `src/lib/messages/rest_api.proto` - Define your messages here
 - `test/*.py` - Add tests here
@@ -93,6 +94,7 @@ Need to connect to a different hub or change settings?
 ```
 
 **Command line options:**
+
 - `-e` : Streaming endpoint(s) - format: `HubID:Hostname:Port` (comma-separated for multiple)
 - `-b` : Port to bind Flask server (default: 9092)
 - `-l` : Log level - DEBUG, INFO, WARNING, ERROR (default: WARNING)
@@ -123,18 +125,20 @@ key {
 ### API Keys
 
 **Development (no auth):**
+
 ```bash
 export JAIA_REST_API_PRIVATE_KEY=""
 ./run.sh
 ```
 
 **Production (secure):**
+
 ```bash
 # Generate a random key
 ./gen_api_key.py
 
 # This outputs something like:
-# key { 
+# key {
 #     private_key: "abc123xyz..."
 #     permission: [ALL]
 # }
@@ -143,6 +147,7 @@ export JAIA_REST_API_PRIVATE_KEY=""
 ```
 
 Then use the key in your requests:
+
 ```bash
 curl -X POST http://localhost:9092/jaia/v1 \
   -H "Content-Type: application/json" \
@@ -168,7 +173,7 @@ cd test
 # Just the JSON POST tests
 ./test/short_api_test.py
 
-# Just the URL-based tests  
+# Just the URL-based tests
 ./test/long_api_test.py
 
 # Test against a remote server
@@ -179,6 +184,7 @@ cd test
 ```
 
 **What the tests do:**
+
 - Send various requests to the API
 - Check that responses match expected format
 - Test error cases (missing fields, invalid data, etc.)
@@ -222,10 +228,10 @@ message RebootBotResult {
 ```protobuf
 message APIRequest {
     // ... existing fields ...
-    
+
     oneof action {
         // ... existing actions like status, metadata, etc. ...
-        
+
         // YOUR NEW ACTION - pick an unused field number (e.g., 16)
         RebootBotRequest reboot_bot = 16 [(jaia.field).rest_api = {
             presence: GUARANTEED,
@@ -244,10 +250,10 @@ message APIRequest {
 ```protobuf
 message APIResponse {
     // ... existing fields ...
-    
+
     oneof action {
         // ... existing responses like status, metadata, etc. ...
-        
+
         // YOUR NEW RESPONSE - use the same field number as the request (16)
         RebootBotResult reboot_bot_result = 16 [(jaia.field).rest_api = {
             presence: GUARANTEED,
@@ -258,6 +264,7 @@ message APIResponse {
 ```
 
 **💡 Pro Tips:**
+
 - Field numbers must be unique within each message
 - Use `presence: GUARANTEED` so the field always shows up in JSON (even if empty)
 - The `doc` field is used for auto-generated documentation
@@ -283,14 +290,14 @@ Now the fun part! Add your handler function to `v1/api.py`:
 def reboot_bot(jaia_request):
     """Handle reboot_bot requests."""
     jaia_response = jaiabot.messages.rest_api_pb2.APIResponse()
-    
+
     # Get the parameters from the request
     force_reboot = jaia_request.reboot_bot.force
-    
+
     # Figure out which bots to reboot
     bots_to_reboot = []
     hubs_to_use = []
-    
+
     with common.shared_data.data_lock:
         if jaia_request.target.all:
             # Reboot all known bots
@@ -298,10 +305,10 @@ def reboot_bot(jaia_request):
         else:
             # Only reboot the requested bots (if we know about them)
             bots_to_reboot = [
-                bot_id for bot_id in jaia_request.target.bots 
+                bot_id for bot_id in jaia_request.target.bots
                 if bot_id in common.shared_data.data.bots.keys()
             ]
-        
+
         # Figure out which hubs to send through
         if not jaia_request.target.hubs:
             hubs_to_use = list(common.shared_data.data.hubs.keys())
@@ -310,7 +317,7 @@ def reboot_bot(jaia_request):
                 hub_id for hub_id in jaia_request.target.hubs
                 if hub_id in common.shared_data.data.hubs.keys()
             ]
-    
+
     # Send reboot command to each bot via each hub
     for hub_id in hubs_to_use:
         for bot_id in bots_to_reboot:
@@ -318,10 +325,10 @@ def reboot_bot(jaia_request):
             # (You'd need to define this in portal.proto too)
             client_msg = jaiabot.messages.portal_pb2.ClientToPortalMessage()
             # ... populate your reboot command here ...
-            
+
             # Send it!
             send_client_to_portal_message(hub_id, client_msg)
-    
+
     # Build the response
     if bots_to_reboot:
         jaia_response.reboot_bot_result.success = True
@@ -331,7 +338,7 @@ def reboot_bot(jaia_request):
     else:
         jaia_response.reboot_bot_result.success = False
         jaia_response.reboot_bot_result.message = "No bots found to reboot"
-    
+
     return jaia_response
 ```
 
@@ -455,7 +462,7 @@ message APIConfig {
                     'reboot_bot'  // ← Add your action here
                 ]
             }];
-            
+
             // Or create a specific permission
             REBOOT_BOT = 8 [(jaia.ev).rest_api = {
                 permitted_action: ['reboot_bot']
@@ -483,6 +490,7 @@ The API supports two formats: **short** (JSON POST) and **long** (URL-based).
 ### Short Format (JSON POST) - Recommended for Complex Requests
 
 **Get status:**
+
 ```bash
 curl -X POST http://localhost:9092/jaia/v1 \
   -H "Content-Type: application/json" \
@@ -490,6 +498,7 @@ curl -X POST http://localhost:9092/jaia/v1 \
 ```
 
 **Send a command:**
+
 ```bash
 curl -X POST http://localhost:9092/jaia/v1 \
   -H "Content-Type: application/json" \
@@ -501,6 +510,7 @@ curl -X POST http://localhost:9092/jaia/v1 \
 ```
 
 **Query task packets:**
+
 ```bash
 curl -X POST http://localhost:9092/jaia/v1 \
   -H "Content-Type: application/json" \
@@ -539,6 +549,7 @@ curl "http://localhost:9092/jaia/v1/status/all?api_key=abc123"
 ```
 
 **Target Syntax:**
+
 - `all` - All bots and hubs
 - `b1,b2,b3` - Specific bots (use b prefix with bot IDs)
 - `h1,h2` - Specific hubs (use h prefix with hub IDs)
@@ -547,6 +558,7 @@ curl "http://localhost:9092/jaia/v1/status/all?api_key=abc123"
 ## How It Works (Under the Hood)
 
 **Threading Model:**
+
 ```
 ┌─────────────────┐
 │  Flask Server   │  ← Main thread: handles HTTP requests
@@ -580,14 +592,14 @@ curl "http://localhost:9092/jaia/v1/status/all?api_key=abc123"
 
 The API returns these error codes (defined in `rest_api.proto`):
 
-| Code | Meaning |
-|------|---------|
-| `API_ERROR__UNSUPPORTED_API_VERSION` | Wrong version (use v1) |
-| `API_ERROR__INVALID_ACTION` | Action doesn't exist |
-| `API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON` | Malformed JSON |
-| `API_ERROR__REQUEST_NOT_INITIALIZED` | Missing required fields |
-| `API_ERROR__INVALID_TARGET` | Invalid bot/hub ID |
-| `API_ERROR__NOT_IMPLEMENTED` | Action exists but not coded yet |
+| Code                                          | Meaning                         |
+| --------------------------------------------- | ------------------------------- |
+| `API_ERROR__UNSUPPORTED_API_VERSION`          | Wrong version (use v1)          |
+| `API_ERROR__INVALID_ACTION`                   | Action doesn't exist            |
+| `API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON` | Malformed JSON                  |
+| `API_ERROR__REQUEST_NOT_INITIALIZED`          | Missing required fields         |
+| `API_ERROR__INVALID_TARGET`                   | Invalid bot/hub ID              |
+| `API_ERROR__NOT_IMPLEMENTED`                  | Action exists but not coded yet |
 
 ## Troubleshooting
 
@@ -652,11 +664,13 @@ cd /path/to/jaiabot
 ### Getting empty responses `{}`
 
 Check your handler function:
+
 - Does the function name match the proto field name exactly?
 - Are you populating the response object?
 - Are you returning the response?
 
 Enable debug logging to see what's happening:
+
 ```bash
 ./app.py -l DEBUG
 ```
@@ -664,6 +678,7 @@ Enable debug logging to see what's happening:
 ## Tips & Tricks
 
 **Quick debugging:**
+
 ```bash
 # See all requests/responses in real-time
 ./app.py -l DEBUG
@@ -676,6 +691,7 @@ curl ... | python3 -m json.tool
 ```
 
 **Working with targets:**
+
 ```python
 # In your handler function
 
@@ -692,6 +708,7 @@ else:
 ```
 
 **Useful references:**
+
 - See how existing endpoints work: look at `status()`, `command()`, etc. in `v1/api.py`
 - Proto message definitions: `src/lib/messages/rest_api.proto`
 - Test examples: `test/short_api_test.py` and `test/long_api_test.py`

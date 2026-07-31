@@ -62,6 +62,10 @@ struct ConstantHeading
         constantSpeedUpdate.mutable_constantspeed()->set_active(false);
         this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
         this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
+
+        // Remove warning after completing the srp
+        this->machine().erase_warning(
+            jaiabot::protobuf::WARNING__MISSION__INFEASIBLE_MISSION__MINIMUM_BOTTOM_DEPTH_REACHED);
     }
 
     void loop(const EvLoop&)

@@ -36,18 +36,50 @@ jaiabot::apps::ArduinoSimThread::ArduinoSimThread(const jaiabot::config::Arduino
     voltage_period_ = cfg.voltage_period();
     voltage_start_ = cfg.voltage_start();
     reset_voltage_level_ = cfg.reset_voltage_level();
+
+    interprocess().subscribe<groups::arduino_from_pi>(
+        [this](const jaiabot::protobuf::ArduinoCommand& arduino_command) {
+            handle_arduino_command(arduino_command);
+        });
+
 }
 
-void jaiabot::apps::ArduinoSimThread::loop()
+
+void jaiabot::apps::ArduinoSimThread::handle_arduino_command(const jaiabot::protobuf::ArduinoCommand& arduino_command)
 {
+    glog.is_debug2() && glog << group(thread_name()) << "Received Arduino Command: "
+                            << arduino_command.ShortDebugString() << std::endl;
+
+    // Publishing the ArduinoResponse messages to interprocess, allows the
+    //   jaiabot_driver_arduino thread to subscribe to these messages and handle them 
+    //   as if they were coming from the actual Arduino, which is useful for testing 
+    //   the driver without needing the physical hardware.
+    jaiabot::protobuf::ArduinoResponse arduino_response;
+    arduino_response.set_version(3);
+    arduino_response.set_thermistor_voltage(2.5);
+
+    if (arduino_command.has_settings())
+    {
+        arduino_response.set_status_code(jaiabot::protobuf::ArduinoStatusCode::SETTINGS); 
+    }
+
+    else
+    {
+        arduino_response.set_status_code(jaiabot::protobuf::ArduinoStatusCode::ACK); 
+    }
+
     auto now = goby::time::SteadyClock::now();
 
-    // publish arduino status
-    jaiabot::protobuf::ArduinoResponse arduino_response;
-    arduino_response.set_status_code(jaiabot::protobuf::ArduinoStatusCode::ACK);
-    arduino_response.set_version(1);
 
-    // publish gps sky data
+    if (arduino_command.has_actuators())
+    {
+        auto actuators = arduino_command.actuators();
+        if (actuators.has_motor()) {
+            arduino_response.set_motor(actuators.motor());
+        }
+    }
+
+    // Simulate the voltage decreasing over time, and resetting when it gets too low
     if ((voltage_updated_ + std::chrono::seconds(voltage_period_)) < now)
     {
         voltage_start_ = voltage_start_ - voltage_step_decrease_;
@@ -62,3 +94,4 @@ void jaiabot::apps::ArduinoSimThread::loop()
 
     interprocess().publish<groups::arduino_to_pi>(arduino_response);
 }
+

@@ -36,6 +36,8 @@ struct InMission
     InMission(typename StateBase::my_context c) : StateBase(c)
     {
         goby::glog.is_debug1() && goby::glog << "InMission" << std::endl;
+
+        apply_segment_params();
     }
     ~InMission()
     {
@@ -81,6 +83,16 @@ struct InMission
 
         ++goal_index_;
 
+        if (active_seg_index_ + 1 < this->machine().mission_plan().segments_size())
+        {
+            const auto& next_seg = this->machine().mission_plan().segments(active_seg_index_ + 1);
+            if (goal_index_ >= next_seg.start_goal_index())
+            {
+                active_seg_index_++;
+                apply_segment_params();
+            }
+        }
+
         // all goals completed
         if (goal_index_ >= goal_size)
         {
@@ -105,6 +117,8 @@ struct InMission
                 goal_index_ = 0;
             }
         }
+
+        apply_segment_params();
     }
 
     void set_goal_index_to_final_goal()
@@ -114,40 +128,37 @@ struct InMission
     }
     void resume_after_srp_egress()
     {
-        const auto& mission_plan = this->machine().mission_plan();
-        const int total_goals = mission_plan.goal_size();
-
-        for (int i = goal_index_; i < total_goals; ++i)
+        if (active_seg_index_ >= this->machine().mission_plan().segments_size())
         {
-            const auto& goal = mission_plan.goal(i);
+            glog.is_debug1() && glog << "No segments, go to final waypoint" << std::endl;
+            set_goal_index_to_final_goal();
+            return;
+        }
+        
+        protobuf::MissionPlan::Segment active_seg =  this->machine().mission_plan().segments(active_seg_index_);
 
-            if (goal.has_task() && goal.task().type() == protobuf::MissionTask::CONSTANT_HEADING)
+        for (int i = 0; i < active_seg.lane_start_goal_indices_size(); i++)
+        {
+            int lane_start_index = active_seg.lane_start_goal_indices(i);
+            if (lane_start_index > goal_index_)
             {
-                if (i + 1 < total_goals)
-                {
-                    goal_index_ = i + 1;
-                    goby::glog.is_verbose() &&
-                        goby::glog << group("goal") << "Found CONSTANT_HEADING at index " << i
-                                   << ", advancing to goal index: " << goal_index_ << std::endl;
-                }
-                else
-                {
-                    goby::glog.is_warn() &&
-                        goby::glog << group("goal")
-                                   << "CONSTANT_HEADING was the last goal. Proceeding to recovery."
-                                   << std::endl;
-                    set_goal_index_to_final_goal();
-                }
-                // Stop after handling the first CONSTANT_HEADING
+                glog.is_debug1() && glog << "Go to next lane" << std::endl;
+                goal_index_ = lane_start_index;
                 return;
             }
         }
 
-        // No CONSTANT_HEADING found from current index onward
-        goby::glog.is_warn() &&
-            goby::glog << group("goal") << "No CONSTANT_HEADING task found from goal index "
-                       << goal_index_ << " onward. Proceeding to recovery." << std::endl;
-        set_goal_index_to_final_goal();
+        if (active_seg_index_ + 1 >= this->machine().mission_plan().segments_size()) {
+            glog.is_debug1() && glog << "No more lanes and no more segments, go to final waypoint" << std::endl;
+            set_goal_index_to_final_goal(); 
+            return;
+        }
+
+        protobuf::MissionPlan::Segment next_seg =  this->machine().mission_plan().segments(active_seg_index_ + 1 );
+        glog.is_debug1() && glog << "Go to last goal in segment" << std::endl;
+        goal_index_ = next_seg.start_goal_index() - 1;
+        return;
+
     }
     void set_goal_index_to_recovery()
     {
@@ -178,7 +189,35 @@ struct InMission
         boost::statechart::transition<EvStop, inmission::underway::recovery::Stopped>>;
 
   private:
+    void apply_segment_params()
+    {
+        const auto& mission_plan = this->machine().mission_plan();
+        if (mission_plan.segments_size() == 0)
+            return;
+
+        const protobuf::MissionPlan::Segment* active_seg = nullptr;
+        active_seg = &mission_plan.segments(active_seg_index_);
+
+        if (!active_seg)
+            return;
+
+        if (active_seg->has_speed())
+            this->machine().set_transit_speed(active_seg->speed_with_units());
+
+        if (active_seg->has_bottom_depth_safety_params())
+        {
+            const auto& bds = active_seg->bottom_depth_safety_params();
+            this->machine().set_bottom_depth_safety_constant_heading(bds.constant_heading());
+            this->machine().set_bottom_depth_safety_constant_heading_speed(
+                bds.constant_heading_speed());
+            this->machine().set_bottom_depth_safety_constant_heading_time(
+                bds.constant_heading_time());
+            this->machine().set_bottom_safety_depth(bds.safety_depth());
+        }
+    }
+
     int goal_index_{0};
+    int active_seg_index_{0};
     int repeat_index_{0};
     bool mission_complete_{false};
     bool use_heading_constant_pid_{false};
