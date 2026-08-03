@@ -1,9 +1,9 @@
 import { ExclusionZoneSet } from "./exclusion_zones/exclusion-zone-set";
-import { PendingObstacleAvoidanceChange } from "./pending-route-data";
+import { PendingChange } from "./pending-route-data";
 
 export class ObstacleAvoidanceData {
     private exclusionZoneSet: ExclusionZoneSet;
-    private pendingChange: PendingObstacleAvoidanceChange | null;
+    private pendingChange: PendingChange | null;
 
     constructor() {
         this.exclusionZoneSet = new ExclusionZoneSet();
@@ -17,10 +17,10 @@ export class ObstacleAvoidanceData {
         this.exclusionZoneSet = value;
     }
 
-    getPendingChange(): PendingObstacleAvoidanceChange | null {
+    getPendingChange(): PendingChange | null {
         return this.pendingChange;
     }
-    setPendingChange(value: PendingObstacleAvoidanceChange | null) {
+    setPendingChange(value: PendingChange | null) {
         this.pendingChange = value;
     }
 }

@@ -40,7 +40,7 @@ flowchart TD
         end
     end
 
-    PENDING{{"pending dialog state
+    PENDING{{"pending change state
     type: reroute | waypointRemoval | placementError"}}
 
     DIALOG["ObstacleAvoidanceDialog
@@ -134,12 +134,12 @@ sequenceDiagram
     Handler->>Detect: detectWaypointRemovals(zoneID)
     alt waypoints stranded
         Detect-->>Handler: pendingRemoval
-        Handler->>Data: setPendingDialog({type: "waypointRemoval", data})
+        Handler->>Data: setPendingChange({type: "waypointRemoval", data})
     else none stranded
         Handler->>Detect: detectMissionReroutes()
         Detect-->>Handler: proposals
         opt relevant proposals exist
-            Handler->>Data: setPendingDialog({type: "reroute", data})
+            Handler->>Data: setPendingChange({type: "reroute", data})
         end
     end
     Note over Handler,Data: mission waypoints are NOT yet changed —<br/>only the zone itself was added
@@ -166,7 +166,7 @@ sequenceDiagram
         Reducer->>ConfirmH: config.handler(state, action)
         ConfirmH->>ConfirmH: mission.setWaypoints(proposal.newWaypoints)
         ConfirmH->>Utils: syncOpenLayers()
-        ConfirmH->>Data: setPendingDialog(null)
+        ConfirmH->>Data: setPendingChange(null)
     else Cancel
         U->>Dialog: click Cancel
         Dialog->>Ctx: dispatch(CANCEL_MISSION_REROUTE)
@@ -174,11 +174,11 @@ sequenceDiagram
         Reducer->>CancelH: config.handler(state, action)
         CancelH->>CancelH: restore via snapshot / priorZone / priorMissionWaypoints
         CancelH->>Utils: syncOpenLayers()
-        CancelH->>Data: setPendingDialog(null)
+        CancelH->>Data: setPendingChange(null)
     end
 ```
 
 `handleConfirmWaypointRemoval` / `handleCancelWaypointRemoval` are
 structurally identical to this pair — same dispatch → reducer → handler →
-`syncOpenLayers` → `setPendingDialog(null)` shape — just resolving
+`syncOpenLayers` → `setPendingChange(null)` shape — just resolving
 `pendingState.data` for a `"waypointRemoval"` instead of a `"reroute"`.
