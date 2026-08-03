@@ -25,6 +25,20 @@ removes the zone (undoes `ADD_EXCLUSION_ZONE`). Two separate tracked actions
 = two undo steps — "working as designed," just not what a user would expect
 from a single zone-delete click.
 
+**Testing this:** hardest of the three to cover. It's not a pure-function
+bug — it's `handleDeleteExclusionZone` never consulting history — so a test
+has to drive handlers directly in sequence
+(`handleAddExclusionZone` → `handleConfirmWaypointRemoval` →
+`handleDeleteExclusionZone`) against a `mutableState` object, then assert
+the waypoint is still missing. There's no `context/handlers/__tests__/`
+directory yet, so this would be the first handler-level test in the
+codebase rather than an addition to an existing pattern (the OL layer calls
+each handler makes, e.g. `exclusionZoneLayer.updateFeatures()`, should be
+safe under jsdom the way `Map.test.tsx` already exercises them, but that's
+unverified for this specific path). Given the user's own verdict is
+"enhancement, not a bug," this is the lowest-value one to spend that setup
+cost on.
+
 ## Bug 2 — a zone that guts an entire mission gives no "impossible" warning
 
 _Confirmed real gap, not fixed._
@@ -42,6 +56,15 @@ moving a zone vertex to enclose the mission's last waypoint (which took
 priority over reroute detection per the "waypoints inside zone take
 priority" comment at
 [exclusion-zone-handlers.ts:505](../../context/handlers/exclusion-zone-handlers.ts#L505)).
+
+**Testing this:** easiest of the three. `detectWaypointRemovals` is a pure
+function already covered by
+`data/obstacle_avoidance_data/__tests__/exclusion-zone-detection.test.ts`,
+which follows a simple "build zones/missions, call the function, assert on
+the result" pattern. Add a zone that swallows every waypoint in a mission
+and assert the returned proposal carries some severity/impossible signal —
+it doesn't today, so the test fails immediately and pins down the gap. No
+new test infrastructure needed.
 
 ## Bug 3 — new/moved zone can silently fail to trigger any reroute check
 
@@ -106,3 +129,26 @@ to implementing the fix direction above (or whatever's decided instead) for
 `handleAddZoneVertex`/`handleLoadExclusionZones`/
 `handleRestoreExclusionZoneSnapshot` have the same
 `involvedZoneIDs.includes(zoneID)` pattern and need the same fix.
+
+**Testing this:** moderate. The root cause (`involvedZoneIDs` only tracking
+zones that block the direct original line) lives in `routeAroundExclusionZones`,
+another pure function already covered by
+`data/obstacle_avoidance_data/__tests__/exclusion-zone-router.test.ts`,
+which already has helpers for this kind of geometry (`squareZone`,
+`segmentCrossesHull`, bypass-forcing setups). The test needs one zone that
+forces a bypass, then a second zone positioned to block only the bypass
+leg — geometrically fiddly to construct but uses building blocks already in
+that file. This proves the root cause at the data layer (the second zone's
+ID missing from `involvedZoneIDs`); it does **not** reproduce the
+user-visible symptom ("no dialog appears"), since that's the `relevant`
+filter inside `handleAddExclusionZone` — covering that end-to-end would
+need the same new handler-test setup described under Bug 1.
+
+## Summary: which bugs are cheap to pin down with tests
+
+Bugs 2 and 3 are natural additions to the existing pure-function test files
+(`exclusion-zone-detection.test.ts` / `exclusion-zone-router.test.ts`) — no
+new test infrastructure, same patterns already in use. Bug 1 (and the
+full end-to-end version of Bug 3) would require standing up the first
+handler-level test in the codebase (`context/handlers/__tests__/`), which
+is a bigger, one-time setup cost rather than an incremental addition.
