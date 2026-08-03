@@ -1,17 +1,13 @@
 import { ExclusionZoneSet } from "./exclusion_zones/exclusion-zone-set";
-import { PendingReroute, PendingWaypointRemoval } from "./pending-route-data";
+import { PendingObstacleAvoidanceDialog } from "./pending-route-data";
 
 export class ObstacleAvoidanceData {
     private exclusionZoneSet: ExclusionZoneSet;
-    private pendingReroute: PendingReroute | null;
-    private pendingWaypointRemoval: PendingWaypointRemoval | null;
-    private placementError: string;
+    private pendingDialog: PendingObstacleAvoidanceDialog | null;
 
     constructor() {
         this.exclusionZoneSet = new ExclusionZoneSet();
-        this.pendingReroute = null;
-        this.pendingWaypointRemoval = null;
-        this.placementError = "";
+        this.pendingDialog = null;
     }
 
     getExclusionZoneSet(): ExclusionZoneSet {
@@ -21,25 +17,11 @@ export class ObstacleAvoidanceData {
         this.exclusionZoneSet = value;
     }
 
-    getPendingReroute(): PendingReroute | null {
-        return this.pendingReroute;
+    getPendingDialog(): PendingObstacleAvoidanceDialog | null {
+        return this.pendingDialog;
     }
-    setPendingReroute(value: PendingReroute | null) {
-        this.pendingReroute = value;
-    }
-
-    getPendingWaypointRemoval(): PendingWaypointRemoval | null {
-        return this.pendingWaypointRemoval;
-    }
-    setPendingWaypointRemoval(value: PendingWaypointRemoval | null) {
-        this.pendingWaypointRemoval = value;
-    }
-
-    getPlacementError(): string {
-        return this.placementError;
-    }
-    setPlacementError(value: string) {
-        this.placementError = value;
+    setPendingDialog(value: PendingObstacleAvoidanceDialog | null) {
+        this.pendingDialog = value;
     }
 }
 

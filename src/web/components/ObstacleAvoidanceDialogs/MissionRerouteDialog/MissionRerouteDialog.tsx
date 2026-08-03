@@ -1,17 +1,16 @@
 import { useContext } from "react";
-import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import { MAX_WAYPOINTS } from "../../../utils/constants";
-import { ProposalStatus } from "../../../data/obstacle_avoidance_data/pending-route-data";
+import {
+    PendingReroute,
+    ProposalStatus,
+} from "../../../data/obstacle_avoidance_data/pending-route-data";
 import ObstacleAvoidanceBaseDialog from "../ObstacleAvoidanceBaseDialog";
 import RerouteSummary from "../RerouteSummary";
 
-export default function MissionRerouteDialog() {
-    const jaiaContext = useContext(JaiaContext);
+export default function MissionRerouteDialog({ pending }: { pending: PendingReroute }) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
-
-    const pending = jaiaContext?.obstacleAvoidanceData.getPendingReroute();
-    if (!pending) return null;
 
     const isZoneLoad = pending.loadedZoneIDs !== undefined;
     const isMissionLoad = pending.loadedMissionIDs !== undefined;

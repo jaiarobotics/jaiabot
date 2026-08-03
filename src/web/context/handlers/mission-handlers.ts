@@ -74,18 +74,16 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     // Check whether the duplicated mission's waypoints conflict with existing exclusion zones.
     const pendingRemoval = detectWaypointRemovals();
     if (pendingRemoval) {
-        mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
-            ...pendingRemoval,
-            priorMissionSetSnapshot,
-            priorMissionsManagerSnapshot,
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "waypointRemoval",
+            data: { ...pendingRemoval, priorMissionSetSnapshot, priorMissionsManagerSnapshot },
         });
     } else {
         const pendingReroute = detectMissionReroutes();
         if (pendingReroute) {
-            mutableState.obstacleAvoidanceData.setPendingReroute({
-                ...pendingReroute,
-                priorMissionSetSnapshot,
-                priorMissionsManagerSnapshot,
+            mutableState.obstacleAvoidanceData.setPendingDialog({
+                type: "reroute",
+                data: { ...pendingReroute, priorMissionSetSnapshot, priorMissionsManagerSnapshot },
             });
         }
     }
@@ -203,10 +201,9 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
 
     const pendingRemoval = detectWaypointRemovals();
     if (pendingRemoval) {
-        mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
-            ...pendingRemoval,
-            priorMissionSetSnapshot,
-            priorMissionsManagerSnapshot,
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "waypointRemoval",
+            data: { ...pendingRemoval, priorMissionSetSnapshot, priorMissionsManagerSnapshot },
         });
         return mutableState;
     }
@@ -230,13 +227,16 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
         const skippedMissionIDs = Array.from(skippedMissionIDSet);
 
         const cleanPending = detectMissionReroutes();
-        mutableState.obstacleAvoidanceData.setPendingReroute({
-            proposals: cleanPending?.proposals ?? [],
-            totalBypassCount: cleanPending?.totalBypassCount ?? 0,
-            loadedMissionIDs,
-            skippedMissionIDs,
-            priorMissionSetSnapshot,
-            priorMissionsManagerSnapshot,
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "reroute",
+            data: {
+                proposals: cleanPending?.proposals ?? [],
+                totalBypassCount: cleanPending?.totalBypassCount ?? 0,
+                loadedMissionIDs,
+                skippedMissionIDs,
+                priorMissionSetSnapshot,
+                priorMissionsManagerSnapshot,
+            },
         });
     }
 

@@ -1,8 +1,11 @@
 import { useContext } from "react";
-import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import { MAX_WAYPOINTS } from "../../../utils/constants";
-import { ProposalStatus } from "../../../data/obstacle_avoidance_data/pending-route-data";
+import {
+    PendingWaypointRemoval,
+    ProposalStatus,
+} from "../../../data/obstacle_avoidance_data/pending-route-data";
 import ObstacleAvoidanceBaseDialog from "../ObstacleAvoidanceBaseDialog";
 import RerouteSummary from "../RerouteSummary";
 
@@ -11,12 +14,8 @@ import RerouteSummary from "../RerouteSummary";
  * route still crosses a zone, the follow-up reroute is shown here too so
  * both changes can be confirmed or reverted together.
  */
-export default function WaypointRemovalDialog() {
-    const jaiaContext = useContext(JaiaContext);
+export default function WaypointRemovalDialog({ pending }: { pending: PendingWaypointRemoval }) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
-
-    const pending = jaiaContext?.obstacleAvoidanceData.getPendingWaypointRemoval();
-    if (!pending) return null;
 
     const reroute = pending.followUpReroute;
     const rerouteFeasible =

@@ -34,9 +34,10 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
 
     if (missionIDInEditMode !== UNASSIGNED_ID) {
         if (action.location && isLocationBlockedByZone(action.location)) {
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                "Cannot place a point inside an exclusion zone or its safety buffer.",
-            );
+            mutableState.obstacleAvoidanceData.setPendingDialog({
+                type: "placementError",
+                message: "Cannot place a point inside an exclusion zone or its safety buffer.",
+            });
             return mutableState;
         }
 
@@ -45,9 +46,10 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         if (mission.getWaypoints().length < MAX_WAYPOINTS) {
             mission.addWaypoint(action.location);
         } else {
-            mutableState.obstacleAvoidanceData.setPlacementError(
-                `Mission has reached the maximum of ${MAX_WAYPOINTS} waypoints.`,
-            );
+            mutableState.obstacleAvoidanceData.setPendingDialog({
+                type: "placementError",
+                message: `Mission has reached the maximum of ${MAX_WAYPOINTS} waypoints.`,
+            });
             return mutableState;
         }
     }
@@ -62,27 +64,33 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         const mission = missionSet.getMission(missionIDInEditMode);
         if (mission) mission.deleteWaypoint(mission.getWaypoints().length);
         missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPlacementError(
-            `Adding this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce the mission waypoints first.`,
-        );
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "placementError",
+            message: `Adding this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce the mission waypoints first.`,
+        });
         return mutableState;
     }
     if (currentProposal?.status === ProposalStatus.IMPOSSIBLE) {
         const mission = missionSet.getMission(missionIDInEditMode);
         if (mission) mission.deleteWaypoint(mission.getWaypoints().length);
         missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPlacementError(
-            "No clear path exists around the exclusion zone from this position. Move the waypoint further from the zone or reshape the zone.",
-        );
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "placementError",
+            message:
+                "No clear path exists around the exclusion zone from this position. Move the waypoint further from the zone or reshape the zone.",
+        });
         return mutableState;
     }
     if (pending) {
-        mutableState.obstacleAvoidanceData.setPendingReroute({
-            ...pending,
-            priorMissionWaypoints:
-                missionIDInEditMode !== UNASSIGNED_ID && priorMissionWaypoints
-                    ? [{ missionID: missionIDInEditMode, waypoints: priorMissionWaypoints }]
-                    : undefined,
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "reroute",
+            data: {
+                ...pending,
+                priorMissionWaypoints:
+                    missionIDInEditMode !== UNASSIGNED_ID && priorMissionWaypoints
+                        ? [{ missionID: missionIDInEditMode, waypoints: priorMissionWaypoints }]
+                        : undefined,
+            },
         });
     }
 
@@ -153,9 +161,10 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  */
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.location && isLocationBlockedByZone(action.location)) {
-        mutableState.obstacleAvoidanceData.setPlacementError(
-            "Cannot place a point inside an exclusion zone or its safety buffer.",
-        );
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "placementError",
+            message: "Cannot place a point inside an exclusion zone or its safety buffer.",
+        });
         return mutableState;
     }
 
@@ -189,26 +198,32 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
     if (currentProposal?.status === ProposalStatus.OVER_LIMIT && priorLocation) {
         mission.moveWaypoint(waypointNum, priorLocation);
         missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPlacementError(
-            `Moving this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce mission waypoints first.`,
-        );
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "placementError",
+            message: `Moving this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce mission waypoints first.`,
+        });
         return mutableState;
     }
     if (currentProposal?.status === ProposalStatus.IMPOSSIBLE && priorLocation) {
         mission.moveWaypoint(waypointNum, priorLocation);
         missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPlacementError(
-            "No clear path exists around the exclusion zone from this position. Move the waypoint further from the zone or reshape the zone.",
-        );
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "placementError",
+            message:
+                "No clear path exists around the exclusion zone from this position. Move the waypoint further from the zone or reshape the zone.",
+        });
         return mutableState;
     }
 
     if (pending) {
-        mutableState.obstacleAvoidanceData.setPendingReroute({
-            ...pending,
-            priorMissionWaypoints: [
-                { missionID: selectedWaypoint.missionID, waypoints: priorMissionWaypoints },
-            ],
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "reroute",
+            data: {
+                ...pending,
+                priorMissionWaypoints: [
+                    { missionID: selectedWaypoint.missionID, waypoints: priorMissionWaypoints },
+                ],
+            },
         });
     }
 

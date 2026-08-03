@@ -17,7 +17,10 @@ import {
     detectMissionReroutes,
     detectWaypointRemovals,
 } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
-import { ProposalStatus } from "../../data/obstacle_avoidance_data/pending-route-data";
+import {
+    ProposalStatus,
+    PendingReroute,
+} from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Adds a new exclusion zone and triggers waypoint removal or mission reroute detection.
@@ -38,8 +41,10 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
     // Waypoints inside the zone take priority — warn before rerouting.
     const pendingRemoval = detectWaypointRemovals(zoneID);
     if (pendingRemoval) {
-        mutableState.obstacleAvoidanceData.setPendingWaypointRemoval(pendingRemoval);
-        mutableState.obstacleAvoidanceData.setPendingReroute(null);
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "waypointRemoval",
+            data: pendingRemoval,
+        });
         return mutableState;
     }
 
@@ -58,13 +63,16 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
             (p) => p.involvedZoneIDs.includes(zoneID) || bypassAffected.has(p.missionID),
         );
         if (relevant.length > 0) {
-            mutableState.obstacleAvoidanceData.setPendingReroute({
-                proposals: relevant,
-                totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
-                triggeringZoneID: zoneID,
-                priorMissionWaypoints: Array.from(priorMissionWaypoints.entries()).map(
-                    ([missionID, waypoints]) => ({ missionID, waypoints }),
-                ),
+            mutableState.obstacleAvoidanceData.setPendingDialog({
+                type: "reroute",
+                data: {
+                    proposals: relevant,
+                    totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
+                    triggeringZoneID: zoneID,
+                    priorMissionWaypoints: Array.from(priorMissionWaypoints.entries()).map(
+                        ([missionID, waypoints]) => ({ missionID, waypoints }),
+                    ),
+                },
             });
         }
     }
@@ -142,16 +150,16 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
             // Re-detect with the remaining zones.
             const retriedRemoval = detectWaypointRemovals(undefined, true);
             if (retriedRemoval) {
-                mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
-                    ...retriedRemoval,
-                    priorExclusionZoneSetSnapshot,
+                mutableState.obstacleAvoidanceData.setPendingDialog({
+                    type: "waypointRemoval",
+                    data: { ...retriedRemoval, priorExclusionZoneSetSnapshot },
                 });
                 return mutableState;
             }
         } else {
-            mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
-                ...pendingRemoval,
-                priorExclusionZoneSetSnapshot,
+            mutableState.obstacleAvoidanceData.setPendingDialog({
+                type: "waypointRemoval",
+                data: { ...pendingRemoval, priorExclusionZoneSetSnapshot },
             });
             return mutableState;
         }
@@ -174,12 +182,15 @@ export function handleLoadExclusionZones(mutableState: JaiaContextType, action: 
         const skippedZoneIDs = Array.from(skippedZoneIDSet);
 
         const cleanPending = detectMissionReroutes();
-        mutableState.obstacleAvoidanceData.setPendingReroute({
-            proposals: cleanPending?.proposals ?? [],
-            totalBypassCount: cleanPending?.totalBypassCount ?? 0,
-            loadedZoneIDs,
-            skippedZoneIDs,
-            priorExclusionZoneSetSnapshot,
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "reroute",
+            data: {
+                proposals: cleanPending?.proposals ?? [],
+                totalBypassCount: cleanPending?.totalBypassCount ?? 0,
+                loadedZoneIDs,
+                skippedZoneIDs,
+                priorExclusionZoneSetSnapshot,
+            },
         });
         return mutableState;
     }
@@ -220,9 +231,9 @@ export function handleRestoreExclusionZoneSnapshot(
 
     const pendingRemoval = detectWaypointRemovals(undefined, true);
     if (pendingRemoval) {
-        mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
-            ...pendingRemoval,
-            priorExclusionZoneSetSnapshot,
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "waypointRemoval",
+            data: { ...pendingRemoval, priorExclusionZoneSetSnapshot },
         });
         return mutableState;
     }
@@ -247,12 +258,15 @@ export function handleRestoreExclusionZoneSnapshot(
         const skippedZoneIDs = Array.from(skippedZoneIDSet);
 
         const cleanPending = detectMissionReroutes();
-        mutableState.obstacleAvoidanceData.setPendingReroute({
-            proposals: cleanPending?.proposals ?? [],
-            totalBypassCount: cleanPending?.totalBypassCount ?? 0,
-            loadedZoneIDs,
-            skippedZoneIDs,
-            priorExclusionZoneSetSnapshot,
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "reroute",
+            data: {
+                proposals: cleanPending?.proposals ?? [],
+                totalBypassCount: cleanPending?.totalBypassCount ?? 0,
+                loadedZoneIDs,
+                skippedZoneIDs,
+                priorExclusionZoneSetSnapshot,
+            },
         });
         return mutableState;
     }
@@ -268,8 +282,9 @@ export function handleRestoreExclusionZoneSnapshot(
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
-    const pending = mutableState.obstacleAvoidanceData.getPendingReroute();
-    if (!pending) return mutableState;
+    const pendingState = mutableState.obstacleAvoidanceData.getPendingDialog();
+    if (pendingState?.type !== "reroute") return mutableState;
+    const pending = pendingState.data;
     const isMissionLoad = pending.loadedMissionIDs !== undefined;
     for (const proposal of pending.proposals) {
         if (proposal.status === ProposalStatus.OVER_LIMIT) {
@@ -286,7 +301,7 @@ export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
         if (mission) mission.setWaypoints(proposal.newWaypoints);
     }
     syncOpenLayers();
-    mutableState.obstacleAvoidanceData.setPendingReroute(null);
+    mutableState.obstacleAvoidanceData.setPendingDialog(null);
     return mutableState;
 }
 
@@ -298,6 +313,9 @@ export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleCancelMissionReroute(mutableState: JaiaContextType) {
+    const pendingState = mutableState.obstacleAvoidanceData.getPendingDialog();
+    const pending: Partial<PendingReroute> =
+        pendingState?.type === "reroute" ? pendingState.data : {};
     const {
         triggeringZoneID,
         priorZone,
@@ -307,8 +325,8 @@ export function handleCancelMissionReroute(mutableState: JaiaContextType) {
         priorMissionSetSnapshot,
         priorMissionsManagerSnapshot,
         priorExclusionZoneSetSnapshot,
-    } = mutableState.obstacleAvoidanceData.getPendingReroute() ?? {};
-    mutableState.obstacleAvoidanceData.setPendingReroute(null);
+    } = pending;
+    mutableState.obstacleAvoidanceData.setPendingDialog(null);
     if (priorMissionSetSnapshot && priorMissionsManagerSnapshot) {
         missionSet.restoreFromSnapshot(priorMissionSetSnapshot);
         missionsManager.restoreFromSnapshot(priorMissionsManagerSnapshot);
@@ -353,8 +371,9 @@ export function handleCancelMissionReroute(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
-    const pending = mutableState.obstacleAvoidanceData.getPendingWaypointRemoval();
-    if (!pending) return mutableState;
+    const pendingState = mutableState.obstacleAvoidanceData.getPendingDialog();
+    if (pendingState?.type !== "waypointRemoval") return mutableState;
+    const pending = pendingState.data;
 
     for (const proposal of pending.proposals) {
         const mission = missionSet.getMission(proposal.missionID);
@@ -376,10 +395,7 @@ export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
     }
 
     syncOpenLayers();
-    mutableState.obstacleAvoidanceData.setPendingWaypointRemoval(null);
-    // Clear any stale reroute from a previous action — the follow-up reroute
-    // above already covered all routing needs for the current mission state.
-    mutableState.obstacleAvoidanceData.setPendingReroute(null);
+    mutableState.obstacleAvoidanceData.setPendingDialog(null);
     return mutableState;
 }
 
@@ -391,9 +407,10 @@ export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleCancelWaypointRemoval(mutableState: JaiaContextType) {
-    const pending = mutableState.obstacleAvoidanceData.getPendingWaypointRemoval();
-    mutableState.obstacleAvoidanceData.setPendingWaypointRemoval(null);
-    if (!pending) return mutableState;
+    const pendingState = mutableState.obstacleAvoidanceData.getPendingDialog();
+    mutableState.obstacleAvoidanceData.setPendingDialog(null);
+    if (pendingState?.type !== "waypointRemoval") return mutableState;
+    const pending = pendingState.data;
 
     if (pending.priorMissionSetSnapshot && pending.priorMissionsManagerSnapshot) {
         missionSet.restoreFromSnapshot(pending.priorMissionSetSnapshot);
@@ -506,12 +523,10 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
     const pendingRemoval = detectWaypointRemovals(selected.zoneID);
     if (pendingRemoval) {
         // Use priorZone (not triggeringZoneID) so cancel restores the shape rather than deleting the zone.
-        mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
-            ...pendingRemoval,
-            triggeringZoneID: undefined,
-            priorZone,
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "waypointRemoval",
+            data: { ...pendingRemoval, triggeringZoneID: undefined, priorZone },
         });
-        mutableState.obstacleAvoidanceData.setPendingReroute(null);
         return mutableState;
     }
 
@@ -526,13 +541,16 @@ export function handleMoveZoneVertex(mutableState: JaiaContextType, action: Jaia
             (p) => p.involvedZoneIDs.includes(selected.zoneID) || bypassAffected.has(p.missionID),
         );
         if (relevant.length > 0) {
-            mutableState.obstacleAvoidanceData.setPendingReroute({
-                proposals: relevant,
-                totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
-                priorZone,
-                priorMissionWaypoints: Array.from(priorMissionWaypoints.entries()).map(
-                    ([missionID, waypoints]) => ({ missionID, waypoints }),
-                ),
+            mutableState.obstacleAvoidanceData.setPendingDialog({
+                type: "reroute",
+                data: {
+                    proposals: relevant,
+                    totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
+                    priorZone,
+                    priorMissionWaypoints: Array.from(priorMissionWaypoints.entries()).map(
+                        ([missionID, waypoints]) => ({ missionID, waypoints }),
+                    ),
+                },
             });
         }
     }
@@ -624,12 +642,10 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
     const pendingRemoval = detectWaypointRemovals(action.zoneID);
     if (pendingRemoval) {
         // Use priorZone so cancel restores the shape rather than deleting the zone.
-        mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
-            ...pendingRemoval,
-            triggeringZoneID: undefined,
-            priorZone,
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "waypointRemoval",
+            data: { ...pendingRemoval, triggeringZoneID: undefined, priorZone },
         });
-        mutableState.obstacleAvoidanceData.setPendingReroute(null);
         return mutableState;
     }
 
@@ -644,13 +660,16 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
             (p) => p.involvedZoneIDs.includes(action.zoneID!) || bypassAffected.has(p.missionID),
         );
         if (relevant.length > 0) {
-            mutableState.obstacleAvoidanceData.setPendingReroute({
-                proposals: relevant,
-                totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
-                priorZone,
-                priorMissionWaypoints: Array.from(priorMissionWaypoints.entries()).map(
-                    ([missionID, waypoints]) => ({ missionID, waypoints }),
-                ),
+            mutableState.obstacleAvoidanceData.setPendingDialog({
+                type: "reroute",
+                data: {
+                    proposals: relevant,
+                    totalBypassCount: relevant.reduce((s, p) => s + p.bypassCount, 0),
+                    priorZone,
+                    priorMissionWaypoints: Array.from(priorMissionWaypoints.entries()).map(
+                        ([missionID, waypoints]) => ({ missionID, waypoints }),
+                    ),
+                },
             });
         }
     }
@@ -683,7 +702,11 @@ export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: Ja
     exclusionZoneLayer.updateFeatures();
 
     const pending = detectMissionReroutes();
-    if (pending) mutableState.obstacleAvoidanceData.setPendingReroute({ ...pending, priorZone });
+    if (pending)
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "reroute",
+            data: { ...pending, priorZone },
+        });
 
     const activeMissionIDs = new Set(pending?.proposals.map((p) => p.missionID) ?? []);
     stripStaleBypasses(activeMissionIDs);
@@ -714,6 +737,6 @@ export function handleChangeExclusionZoneSetName(
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClearPlacementError(mutableState: JaiaContextType) {
-    mutableState.obstacleAvoidanceData.setPlacementError("");
+    mutableState.obstacleAvoidanceData.setPendingDialog(null);
     return mutableState;
 }

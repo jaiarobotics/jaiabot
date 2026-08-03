@@ -100,18 +100,20 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 
             const pendingRemoval = detectWaypointRemovals();
             if (pendingRemoval) {
-                mutableState.obstacleAvoidanceData.setPendingWaypointRemoval({
-                    ...pendingRemoval,
-                    priorMissionSetSnapshot,
-                    priorMissionsManagerSnapshot,
+                mutableState.obstacleAvoidanceData.setPendingDialog({
+                    type: "waypointRemoval",
+                    data: {
+                        ...pendingRemoval,
+                        priorMissionSetSnapshot,
+                        priorMissionsManagerSnapshot,
+                    },
                 });
             } else {
                 const pending = detectMissionReroutes();
                 if (pending) {
-                    mutableState.obstacleAvoidanceData.setPendingReroute({
-                        ...pending,
-                        priorMissionSetSnapshot,
-                        priorMissionsManagerSnapshot,
+                    mutableState.obstacleAvoidanceData.setPendingDialog({
+                        type: "reroute",
+                        data: { ...pending, priorMissionSetSnapshot, priorMissionsManagerSnapshot },
                     });
                 }
             }

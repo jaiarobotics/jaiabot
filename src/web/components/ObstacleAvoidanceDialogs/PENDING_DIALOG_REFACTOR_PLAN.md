@@ -1,6 +1,8 @@
 # Unify pending obstacle-avoidance dialog state and consolidate its dialogs
 
-_Status: draft, for review — not yet implemented._
+_Status: Parts 1-6 implemented and committed. `tsc --noEmit` and the full
+test suite pass. Manual smoke test (Verification steps 3-4, including the
+traced race) not yet re-run — needs a live `src/web/run.sh` session._
 
 ## Context
 
@@ -118,7 +120,9 @@ recur; every site is one of these:
 one call instead of a raw object) — `exclusion-zone-handlers.ts`:
 `handleAddExclusionZone` (39-70), `handleMoveZoneVertex` (505-538),
 `handleAddZoneVertex` (624-656), `handleLoadExclusionZones` (131-185),
-`handleRestoreExclusionZoneSnapshot` (221-257); `mission-handlers.ts`:
+`handleRestoreExclusionZoneSnapshot` (221-257), `handleDeleteZoneVertex`
+(unconditional `setPendingReroute` only, no removal counterpart — same
+mechanical conversion); `mission-handlers.ts`:
 `handleDuplicateMission` (75-91), `handleLoadMissionSet` (204-236);
 `survey-handlers.ts`: `handleChangeGridPlanningState`'s `APPROVED` case
 (101-117). Example (`handleAddExclusionZone`):
