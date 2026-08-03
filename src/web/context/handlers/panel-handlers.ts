@@ -96,9 +96,9 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
                 .updateZone(action.zoneID, { ...zone, vertices: action.locations });
         }
         // Clear any pending dialogs triggered by the now-cancelled edits.
-        const pending = mutableState.obstacleAvoidanceData.getPendingDialog();
+        const pending = mutableState.obstacleAvoidanceData.getPendingChange();
         if (pending && pending.type !== "placementError" && pending.data.priorZone) {
-            mutableState.obstacleAvoidanceData.setPendingDialog(null);
+            mutableState.obstacleAvoidanceData.setPendingChange(null);
         }
     }
     jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);

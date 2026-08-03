@@ -100,7 +100,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 
             const pendingRemoval = detectWaypointRemovals();
             if (pendingRemoval) {
-                mutableState.obstacleAvoidanceData.setPendingDialog({
+                mutableState.obstacleAvoidanceData.setPendingChange({
                     type: "waypointRemoval",
                     data: {
                         ...pendingRemoval,
@@ -111,7 +111,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             } else {
                 const pending = detectMissionReroutes();
                 if (pending) {
-                    mutableState.obstacleAvoidanceData.setPendingDialog({
+                    mutableState.obstacleAvoidanceData.setPendingChange({
                         type: "reroute",
                         data: { ...pending, priorMissionSetSnapshot, priorMissionsManagerSnapshot },
                     });

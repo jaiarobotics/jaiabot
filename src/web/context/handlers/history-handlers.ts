@@ -29,7 +29,7 @@ export function handleClickedUndo(mutableState: JaiaContextType) {
     mutableState = restoreSnapshot(mutableState, snapshot);
 
     // Pending dialogs reference pre-undo missions/zones — clear them.
-    mutableState.obstacleAvoidanceData.setPendingDialog(null);
+    mutableState.obstacleAvoidanceData.setPendingChange(null);
 
     // Reset the map mode
     handleMapModeChange(jaiaGlobal.getMapMode());

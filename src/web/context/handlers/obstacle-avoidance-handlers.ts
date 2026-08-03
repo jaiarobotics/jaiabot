@@ -16,7 +16,7 @@ import {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
-    const pendingState = mutableState.obstacleAvoidanceData.getPendingDialog();
+    const pendingState = mutableState.obstacleAvoidanceData.getPendingChange();
     if (pendingState?.type !== "reroute") return mutableState;
     const pending = pendingState.data;
     const isMissionLoad = pending.loadedMissionIDs !== undefined;
@@ -35,7 +35,7 @@ export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
         if (mission) mission.setWaypoints(proposal.newWaypoints);
     }
     syncOpenLayers();
-    mutableState.obstacleAvoidanceData.setPendingDialog(null);
+    mutableState.obstacleAvoidanceData.setPendingChange(null);
     return mutableState;
 }
 
@@ -47,7 +47,7 @@ export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleCancelMissionReroute(mutableState: JaiaContextType) {
-    const pendingState = mutableState.obstacleAvoidanceData.getPendingDialog();
+    const pendingState = mutableState.obstacleAvoidanceData.getPendingChange();
     const pending: Partial<PendingReroute> =
         pendingState?.type === "reroute" ? pendingState.data : {};
     const {
@@ -60,7 +60,7 @@ export function handleCancelMissionReroute(mutableState: JaiaContextType) {
         priorMissionsManagerSnapshot,
         priorExclusionZoneSetSnapshot,
     } = pending;
-    mutableState.obstacleAvoidanceData.setPendingDialog(null);
+    mutableState.obstacleAvoidanceData.setPendingChange(null);
     if (priorMissionSetSnapshot && priorMissionsManagerSnapshot) {
         missionSet.restoreFromSnapshot(priorMissionSetSnapshot);
         missionsManager.restoreFromSnapshot(priorMissionsManagerSnapshot);
@@ -105,7 +105,7 @@ export function handleCancelMissionReroute(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
-    const pendingState = mutableState.obstacleAvoidanceData.getPendingDialog();
+    const pendingState = mutableState.obstacleAvoidanceData.getPendingChange();
     if (pendingState?.type !== "waypointRemoval") return mutableState;
     const pending = pendingState.data;
 
@@ -129,7 +129,7 @@ export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
     }
 
     syncOpenLayers();
-    mutableState.obstacleAvoidanceData.setPendingDialog(null);
+    mutableState.obstacleAvoidanceData.setPendingChange(null);
     return mutableState;
 }
 
@@ -141,8 +141,8 @@ export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleCancelWaypointRemoval(mutableState: JaiaContextType) {
-    const pendingState = mutableState.obstacleAvoidanceData.getPendingDialog();
-    mutableState.obstacleAvoidanceData.setPendingDialog(null);
+    const pendingState = mutableState.obstacleAvoidanceData.getPendingChange();
+    mutableState.obstacleAvoidanceData.setPendingChange(null);
     if (pendingState?.type !== "waypointRemoval") return mutableState;
     const pending = pendingState.data;
 
@@ -195,6 +195,6 @@ export function handleCancelWaypointRemoval(mutableState: JaiaContextType) {
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClearPlacementError(mutableState: JaiaContextType) {
-    mutableState.obstacleAvoidanceData.setPendingDialog(null);
+    mutableState.obstacleAvoidanceData.setPendingChange(null);
     return mutableState;
 }

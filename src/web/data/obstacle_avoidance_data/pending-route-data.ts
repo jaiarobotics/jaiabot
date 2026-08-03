@@ -109,7 +109,7 @@ export interface PendingWaypointRemoval {
     priorExclusionZoneSetSnapshot?: ExclusionZoneSetSnapshot;
 }
 
-export type PendingObstacleAvoidanceDialog =
+export type PendingObstacleAvoidanceChange =
     | { type: "reroute"; data: PendingReroute }
     | { type: "waypointRemoval"; data: PendingWaypointRemoval }
     | { type: "placementError"; message: string };

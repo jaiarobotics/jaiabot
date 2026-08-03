@@ -34,7 +34,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
 
     if (missionIDInEditMode !== UNASSIGNED_ID) {
         if (action.location && isLocationBlockedByZone(action.location)) {
-            mutableState.obstacleAvoidanceData.setPendingDialog({
+            mutableState.obstacleAvoidanceData.setPendingChange({
                 type: "placementError",
                 message: "Cannot place a point inside an exclusion zone or its safety buffer.",
             });
@@ -46,7 +46,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         if (mission.getWaypoints().length < MAX_WAYPOINTS) {
             mission.addWaypoint(action.location);
         } else {
-            mutableState.obstacleAvoidanceData.setPendingDialog({
+            mutableState.obstacleAvoidanceData.setPendingChange({
                 type: "placementError",
                 message: `Mission has reached the maximum of ${MAX_WAYPOINTS} waypoints.`,
             });
@@ -62,7 +62,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         const mission = missionSet.getMission(missionIDInEditMode);
         if (mission) mission.deleteWaypoint(mission.getWaypoints().length);
         missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "placementError",
             message: `Adding this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce the mission waypoints first.`,
         });
@@ -72,7 +72,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         const mission = missionSet.getMission(missionIDInEditMode);
         if (mission) mission.deleteWaypoint(mission.getWaypoints().length);
         missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "placementError",
             message:
                 "No clear path exists around the exclusion zone from this position. Move the waypoint further from the zone or reshape the zone.",
@@ -80,7 +80,7 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         return mutableState;
     }
     if (pending) {
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "reroute",
             data: {
                 ...pending,
@@ -125,7 +125,7 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
     if (currentProposal?.status === ProposalStatus.OVER_LIMIT) {
         mission.setWaypoints(priorMissionWaypoints);
         missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "placementError",
             message: `Removing this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce mission waypoints first.`,
         });
@@ -134,7 +134,7 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
     if (currentProposal?.status === ProposalStatus.IMPOSSIBLE) {
         mission.setWaypoints(priorMissionWaypoints);
         missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "placementError",
             message:
                 "This waypoint can't be removed — without it there's no clear path around the exclusion zone. Move nearby waypoints or reshape the zone first.",
@@ -142,7 +142,7 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
         return mutableState;
     }
     if (pending) {
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "reroute",
             data: {
                 ...pending,
@@ -165,7 +165,7 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
  */
 export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
     if (action.location && isLocationBlockedByZone(action.location)) {
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "placementError",
             message: "Cannot place a point inside an exclusion zone or its safety buffer.",
         });
@@ -202,7 +202,7 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
     if (currentProposal?.status === ProposalStatus.OVER_LIMIT && priorLocation) {
         mission.moveWaypoint(waypointNum, priorLocation);
         missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "placementError",
             message: `Moving this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce mission waypoints first.`,
         });
@@ -211,7 +211,7 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
     if (currentProposal?.status === ProposalStatus.IMPOSSIBLE && priorLocation) {
         mission.moveWaypoint(waypointNum, priorLocation);
         missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "placementError",
             message:
                 "No clear path exists around the exclusion zone from this position. Move the waypoint further from the zone or reshape the zone.",
@@ -220,7 +220,7 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
     }
 
     if (pending) {
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "reroute",
             data: {
                 ...pending,

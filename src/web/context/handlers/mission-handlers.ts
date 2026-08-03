@@ -74,14 +74,14 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     // Check whether the duplicated mission's waypoints conflict with existing exclusion zones.
     const pendingRemoval = detectWaypointRemovals();
     if (pendingRemoval) {
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "waypointRemoval",
             data: { ...pendingRemoval, priorMissionSetSnapshot, priorMissionsManagerSnapshot },
         });
     } else {
         const pendingReroute = detectMissionReroutes();
         if (pendingReroute) {
-            mutableState.obstacleAvoidanceData.setPendingDialog({
+            mutableState.obstacleAvoidanceData.setPendingChange({
                 type: "reroute",
                 data: { ...pendingReroute, priorMissionSetSnapshot, priorMissionsManagerSnapshot },
             });
@@ -201,7 +201,7 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
 
     const pendingRemoval = detectWaypointRemovals();
     if (pendingRemoval) {
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "waypointRemoval",
             data: { ...pendingRemoval, priorMissionSetSnapshot, priorMissionsManagerSnapshot },
         });
@@ -227,7 +227,7 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
         const skippedMissionIDs = Array.from(skippedMissionIDSet);
 
         const cleanPending = detectMissionReroutes();
-        mutableState.obstacleAvoidanceData.setPendingDialog({
+        mutableState.obstacleAvoidanceData.setPendingChange({
             type: "reroute",
             data: {
                 proposals: cleanPending?.proposals ?? [],

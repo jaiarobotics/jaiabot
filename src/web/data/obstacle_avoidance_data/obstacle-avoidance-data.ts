@@ -1,13 +1,13 @@
 import { ExclusionZoneSet } from "./exclusion_zones/exclusion-zone-set";
-import { PendingObstacleAvoidanceDialog } from "./pending-route-data";
+import { PendingObstacleAvoidanceChange } from "./pending-route-data";
 
 export class ObstacleAvoidanceData {
     private exclusionZoneSet: ExclusionZoneSet;
-    private pendingDialog: PendingObstacleAvoidanceDialog | null;
+    private pendingChange: PendingObstacleAvoidanceChange | null;
 
     constructor() {
         this.exclusionZoneSet = new ExclusionZoneSet();
-        this.pendingDialog = null;
+        this.pendingChange = null;
     }
 
     getExclusionZoneSet(): ExclusionZoneSet {
@@ -17,11 +17,11 @@ export class ObstacleAvoidanceData {
         this.exclusionZoneSet = value;
     }
 
-    getPendingDialog(): PendingObstacleAvoidanceDialog | null {
-        return this.pendingDialog;
+    getPendingChange(): PendingObstacleAvoidanceChange | null {
+        return this.pendingChange;
     }
-    setPendingDialog(value: PendingObstacleAvoidanceDialog | null) {
-        this.pendingDialog = value;
+    setPendingChange(value: PendingObstacleAvoidanceChange | null) {
+        this.pendingChange = value;
     }
 }
 
