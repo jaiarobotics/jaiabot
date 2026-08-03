@@ -166,6 +166,9 @@ message Engineering
 
     optional Echo echo = 19;
 
+    // Negative when the motor is spinning in reverse
+    optional double motor_rpm = 20 [(dccl.field) = { min: -10000 max: 10000 precision: 0 }];
+
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];
 

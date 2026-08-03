@@ -33,6 +33,7 @@
 #include "jaiabot/messages/echo.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/messages/motor.pb.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -107,6 +108,16 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
         interprocess().subscribe<jaiabot::groups::echo>(
             [this](const jaiabot::protobuf::EchoData& echo_data)
             { latest_engineering.mutable_echo()->set_echo_state(echo_data.echo_state()); });
+
+        // Subscribe to motor status, so the RPM shows up in the engineering_status messages
+        interprocess().subscribe<jaiabot::groups::motor_status>(
+            [this](const jaiabot::protobuf::Motor& motor)
+            {
+                if (motor.has_rpm())
+                {
+                    latest_engineering.set_motor_rpm(motor.rpm());
+                }
+            });
 
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Engineering& engineering_status)

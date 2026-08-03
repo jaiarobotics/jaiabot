@@ -75,6 +75,29 @@ button:active {
     width: fit-content;
 }
 
+.motor-rpm-test-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+#test-motor-rpm-btn {
+    width: fit-content;
+}
+
+.motor-rpm-test-result {
+    font-size: large;
+}
+
+.motor-rpm-test-pass {
+    color: green;
+}
+
+.motor-rpm-test-fail {
+    color: red;
+}
+
 .motor-rudder-cal-btns {
     display: flex;
     flex-direction: column;
