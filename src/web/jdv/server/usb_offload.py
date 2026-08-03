@@ -12,16 +12,14 @@ from typing import *
 
 
 MOUNT_POINT = '/media/jaia-usb'
-'''Directory where the hub mounts the operator's USB drive'''
 
 DESTINATION_SUBDIR = 'jaia-logs'
-'''Directory created on the USB drive to hold the copied logs'''
 
 RESERVED_LABELS = ['rootfs', 'boot', 'data', 'updates', 'overlay']
-'''Filesystem labels of the hub's own media, which is never the drive the operator plugged in'''
+'''Filesystem labels of the hub's own media, which is never the operator's drive'''
 
 PROGRESS_RE = re.compile(r'(\d+)%')
-'''Matches the percentage rsync --info=progress2 rewrites onto its output line'''
+'''Matches the percentage in rsync --info=progress2 output'''
 
 
 @dataclass_json
@@ -30,22 +28,18 @@ class UsbOffloadStatus:
     '''Progress of the current (or most recent) copy of logs to a USB drive'''
 
     isCopying: bool = False
-    '''True while a copy is in progress'''
 
     logsCopied: int = 0
-    '''Number of logs written to the drive so far'''
 
     logsTotal: int = 0
-    '''Number of logs in this copy, which grows when more are added while it runs'''
+    '''Grows when more logs are added while the copy runs'''
 
     percentComplete: int = 0
-    '''Percentage of this copy's total bytes written to the drive so far'''
+    '''Measured by bytes, so a large log counts for more than a small one'''
 
     errorMessage: Optional[str] = None
-    '''Description of the failure that ended the last copy, if there was one.'''
 
     isDriveAvailable: bool = False
-    '''True while there is a drive plugged in for the operator to copy to'''
 
 
 def findUsbPartition():
@@ -54,14 +48,13 @@ def findUsbPartition():
         ['lsblk', '-J', '-l', '-o', 'NAME,PATH,PKNAME,TRAN,FSTYPE,LABEL,TYPE,MOUNTPOINT'])
     devices = json.loads(output)['blockdevices']
 
-    # Ask for a flat list and pair each partition with its disk by PKNAME.  lsblk only nests
-    # partitions under their disk when the NAME column is requested, which is too subtle to rely on.
-    # Select on the disk's transport, since an SD card's partitions are hotplug but not USB.
+    # lsblk only nests partitions under their disk when the NAME column is asked for, so take the
+    # flat list and pair them up by PKNAME.  Match on transport: an SD card is hotplug but not USB.
     usbDiskNames = {device['name'] for device in devices
                     if device['type'] == 'disk' and device['tran'] == 'usb'}
 
-    # The fleet config card is attached over USB too, so skip media the hub has mounted or labelled
-    # for its own use: fstab mounts the config card at boot, but our ansible tasks leave it unmounted.
+    # The fleet config card is on USB too, so skip the hub's own media.  Both checks are needed:
+    # fstab mounts the config card at boot, but our ansible tasks leave it unmounted.
     partitions = [device for device in devices
                   if device['type'] == 'part'
                   and device['pkname'] in usbDiskNames
@@ -98,13 +91,12 @@ def sudo(*args: str):
 def rsyncWithProgress(paths: List[str], destination: str, onProgress: Callable[[float], None]):
     '''Copies files to the destination, calling onProgress with the fraction of them written so far.
 
-       rsync rather than cp, so that filling the drive leaves no truncated file that looks like a
-       whole log.  No -a, since preserving ownership fails on the FAT filesystems most drives use.'''
+       rsync rather than cp so a full drive leaves no truncated file posing as a whole log, and
+       without -a because preserving ownership fails on the FAT filesystems most drives use.'''
     process = subprocess.Popen(['sudo', 'rsync', '--info=progress2', *paths, destination],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-    # progress2 rewrites one line, ending each update with a carriage return rather than a newline.
-    # text=True puts stdout in universal newlines mode, so readline() returns on those too.
+    # progress2 ends each update with a carriage return; text=True makes readline() return on those
     for line in process.stdout:
         match = PROGRESS_RE.search(line)
         if match is not None:
@@ -125,20 +117,18 @@ class UsbOffloadManager:
     status: UsbOffloadStatus
 
     logNamesAccepted: List[str]
-    '''Every log taken into this copy, so that asking for one twice does not copy it twice'''
+    '''Every log taken into this copy, so asking for one twice does not copy it twice'''
 
     bytesTotal: int
-    '''Size of every log in this copy, which grows when more are added while it runs'''
 
     bytesCopied: int
-    '''Size of the logs written to the drive so far'''
 
     bytesInFlight: float
-    '''How much of the log currently being copied rsync has written so far'''
+    '''How much of the log being copied right now rsync has written'''
 
     lock: Lock
     '''Guards the queue, the byte totals and the status, which the worker thread and the
-       request threads serving addLogNames() both write'''
+       request threads both write'''
 
     thread: Thread
 
@@ -193,9 +183,8 @@ class UsbOffloadManager:
     def getStatus(self):
         '''Returns the copy progress, along with whether there is a drive available to copy to'''
         with self.lock:
-            # A copy that ended without unmounting - killed by a restart, or an unmount that failed -
-            # would hide the drive from findUsbPartition() and grey the button out for good, so
-            # reconcile it here, where the client's polling is certain to reach it
+            # A copy killed before it could unmount would hide the drive from findUsbPartition()
+            # for good, so reconcile it here, where the client's polling is certain to reach it
             if not self.status.isCopying and os.path.ismount(MOUNT_POINT):
                 subprocess.run(['sudo', 'umount', MOUNT_POINT], capture_output=True)
 
@@ -253,8 +242,8 @@ class UsbOffloadManager:
     def startCopying(self):
         def workFunc():
             try:
-                # Logs can be queued right up until the moment the drive is unmounted, so only
-                # stop once the queue is still empty with the drive already back off
+                # Logs can arrive right up to the moment the drive is unmounted, so only stop
+                # once the queue is still empty with the drive already back off
                 while True:
                     self.copyQueuedLogs()
 

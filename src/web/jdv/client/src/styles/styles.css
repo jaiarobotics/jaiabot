@@ -427,7 +427,6 @@ div.spacer {
     flex-grow: 1;
 }
 
-/* Highlights on mount, which LogSelector uses to draw the eye whenever the copy changes state */
 .copyStatus {
     align-self: center;
     border-radius: 4pt;

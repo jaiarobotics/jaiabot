@@ -60,7 +60,7 @@ interface LogSelectorProps {
     delegate: LogSelectorDelegate;
 }
 
-// What the status text beside the Copy to USB button should say, and how to style it
+// What the status text beside the Copy to USB button says, and how to style it
 interface UsbOffloadDisplay {
     name: string;
     className: string;
@@ -267,7 +267,7 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
      * place the copy reports itself: the button beside it always reads the same.
      *
      * @returns {UsbOffloadDisplay} What to say and how to style it, or null before the session's
-     *   first copy, when there is nothing to report
+     *   first copy
      */
     usbOffloadDisplay(): UsbOffloadDisplay | null {
         const status = this.state.usbOffloadStatus;
@@ -293,8 +293,7 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
             };
         }
 
-        // Every byte is written well before the drive is unmounted, and unmounting a large copy
-        // flushes for long enough that a stalled "100%" would read as a hang
+        // Unmounting a large copy flushes for long enough that a stalled "100%" would read as a hang
         if (status.logsCopied == status.logsTotal) {
             return {
                 name: "finishing",
@@ -319,9 +318,8 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
             return null;
         }
 
-        // Keying on the state name remounts this element whenever the copy moves between states,
-        // replaying the highlight so the change is noticed.  The percentage ticking up within a
-        // state reuses the same key, and so does not flash.
+        // Keying on the state name remounts this element on every state change, replaying the
+        // highlight.  A ticking percentage keeps the same key, so it does not flash.
         return (
             <div key={display.name} className={`copyStatus padded ${display.className}`}>
                 {display.text}

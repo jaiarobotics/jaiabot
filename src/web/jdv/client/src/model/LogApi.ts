@@ -18,9 +18,6 @@ export interface ConvertStatus {
 
 /**
  * Progress of the current (or most recent) copy of logs to a USB drive plugged into the hub
- *
- * @interface UsbOffloadStatus
- * @typedef {UsbOffloadStatus}
  */
 export interface UsbOffloadStatus {
     isCopying: boolean;
