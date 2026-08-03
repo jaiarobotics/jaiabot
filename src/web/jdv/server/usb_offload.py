@@ -15,6 +15,9 @@ MOUNT_POINT = '/media/jaia-usb'
 DESTINATION_SUBDIR = 'jaia-logs'
 '''Directory created on the USB drive to hold the copied logs'''
 
+RESERVED_LABELS = ['rootfs', 'boot', 'data', 'updates', 'overlay']
+'''Filesystem labels of the hub's own media, which is never the drive the operator plugged in'''
+
 
 @dataclass_json
 @dataclass
@@ -36,13 +39,17 @@ class UsbOffloadStatus:
 
 def findUsbPartition():
     '''Returns the device path of the USB partition plugged into the hub, raising unless there is exactly one'''
-    output = subprocess.check_output(['lsblk', '-J', '-o', 'PATH,TRAN,FSTYPE,TYPE,MOUNTPOINT'])
+    output = subprocess.check_output(['lsblk', '-J', '-o', 'PATH,TRAN,FSTYPE,LABEL,TYPE,MOUNTPOINT'])
 
-    # Select on the parent disk's transport, since an SD card's partitions are hotplug but not USB
+    # Select on the parent disk's transport, since an SD card's partitions are hotplug but not USB.
+    # The fleet config card is also attached over USB, so skip media the hub has mounted or labelled
+    # for its own use: fstab mounts the config card at boot, but our ansible tasks leave it unmounted.
     partitions = [partition
                   for disk in json.loads(output)['blockdevices'] if disk['tran'] == 'usb'
                   for partition in disk.get('children', [])
-                  if partition['fstype'] is not None]
+                  if partition['fstype'] is not None
+                  and partition['mountpoint'] is None
+                  and partition['label'] not in RESERVED_LABELS]
 
     if len(partitions) == 0:
         raise RuntimeError("No USB drive found.  Please plug a drive into one of the hub's USB ports.")
