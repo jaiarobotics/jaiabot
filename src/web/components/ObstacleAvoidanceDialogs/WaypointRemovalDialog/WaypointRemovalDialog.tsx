@@ -6,8 +6,8 @@ import {
     PendingWaypointRemoval,
     ProposalStatus,
 } from "../../../data/obstacle_avoidance_data/pending-route-data";
-import ObstacleAvoidanceBaseDialog from "../ObstacleAvoidanceBaseDialog";
-import RerouteSummary from "../RerouteSummary";
+import ObstacleAvoidanceBaseDialog from "../Common/ObstacleAvoidanceBaseDialog";
+import RerouteSummary from "../Common/RerouteSummary";
 
 /**
  * Shown when waypoints fall inside an exclusion zone. If the post-removal

@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
-import ObstacleAvoidanceBaseDialog from "../ObstacleAvoidanceBaseDialog";
+import ObstacleAvoidanceBaseDialog from "../Common/ObstacleAvoidanceBaseDialog";
 
 /**
  * Modal shown when a waypoint placement is blocked because the location falls
