@@ -74,7 +74,6 @@ ROOTFS_BUILD_TAG="$(cd "$(dirname "$0")"; git describe --tags HEAD | sed 's/_/~/
 DATE="$(date +%Y%m%d)"
 WORKDIR="$(mktemp -d)"
 STARTDIR="$(pwd)"
-RASPI_FIRMWARE_VERSION=1.20250305
 
 # Default options that might be overridden
 ROOTFS_BUILD_PATH="$TOPLEVEL/rootfs"
@@ -86,6 +85,7 @@ set -a; source ${TOPLEVEL}/scripts/common-versions.env; set +a
 DISTRIBUTION=${jaia_version_ubuntu_codename}
 JAIABOT_VERSION=${jaia_version_release_branch}
 JAIABOT_REPO=release
+RASPI_FIRMWARE_VERSION=${jaia_version_raspi_firmware}
 
 
 # Ensure user is root
@@ -212,7 +212,7 @@ SD_IMAGE_PATH="$OUTPUT_IMAGE_PATH"
 #   fit alongside the bootloader assets in 256 MB.
 # 8 GB underlay ro rootfs
 # 200 MB (to resize to fill disk) log partition
-dd if=/dev/zero of="$SD_IMAGE_PATH" bs=1048576 count=17000 conv=sparse status=none
+dd if=/dev/zero of="$SD_IMAGE_PATH" bs=1048576 count=17300 conv=sparse status=none
 sfdisk "$SD_IMAGE_PATH" <<EOF
 label: gpt
 size=512MiB, type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
