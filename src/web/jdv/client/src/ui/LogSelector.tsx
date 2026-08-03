@@ -60,6 +60,13 @@ interface LogSelectorProps {
     delegate: LogSelectorDelegate;
 }
 
+// What the status text beside the Copy to USB button should say, and how to style it
+interface UsbOffloadDisplay {
+    name: string;
+    className: string;
+    text: string;
+}
+
 interface LogSelectorState {
     logDict: LogDict;
     availableSpace: number;
@@ -178,9 +185,6 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
 
                 <div className="section">
                     <div>{this.availableSpaceString()} available</div>
-                    {this.state.usbOffloadStatus?.error ? (
-                        <div className="danger">{this.state.usbOffloadStatus.error}</div>
-                    ) : null}
                 </div>
 
                 {this.buttonsElement()}
@@ -258,9 +262,75 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
         return row;
     }
 
+    /**
+     * Describes the copy to USB in progress, or the outcome of the last one.  This is the only
+     * place the copy reports itself: the button beside it always reads the same.
+     *
+     * @returns {UsbOffloadDisplay} What to say and how to style it, or null before the session's
+     *   first copy, when there is nothing to report
+     */
+    usbOffloadDisplay(): UsbOffloadDisplay | null {
+        const status = this.state.usbOffloadStatus;
+
+        if (status == null || status.logsTotal == 0) {
+            return null;
+        }
+
+        if (status.errorMessage) {
+            return {
+                name: "failed",
+                className: "danger",
+                text: `Copy failed: ${status.errorMessage}`,
+            };
+        }
+
+        if (!status.isCopying) {
+            const logCount = `${status.logsTotal} log${status.logsTotal == 1 ? "" : "s"}`;
+            return {
+                name: "done",
+                className: "success",
+                text: `Copied ${logCount} — safe to remove drive`,
+            };
+        }
+
+        // Every byte is written well before the drive is unmounted, and unmounting a large copy
+        // flushes for long enough that a stalled "100%" would read as a hang
+        if (status.logsCopied == status.logsTotal) {
+            return {
+                name: "finishing",
+                className: "",
+                text: "Finishing — do not remove the drive",
+            };
+        }
+
+        const text = `Copying log ${status.logsCopied + 1} of ${status.logsTotal} — ${status.percentComplete}%`;
+        return { name: "copying", className: "", text };
+    }
+
+    /**
+     * Returns the status text shown beside the Copy to USB button
+     *
+     * @returns {ReactElement} The status element, or null if there is nothing to report
+     */
+    usbOffloadStatusElement(): ReactElement | null {
+        const display = this.usbOffloadDisplay();
+
+        if (display == null) {
+            return null;
+        }
+
+        // Keying on the state name remounts this element whenever the copy moves between states,
+        // replaying the highlight so the change is noticed.  The percentage ticking up within a
+        // state reuses the same key, and so does not flash.
+        return (
+            <div key={display.name} className={`copyStatus padded ${display.className}`}>
+                {display.text}
+            </div>
+        );
+    }
+
     buttonsElement() {
-        const usbOffloadStatus = this.state.usbOffloadStatus;
-        const isCopying = usbOffloadStatus?.isCopying ?? false;
+        const isDriveAvailable = this.state.usbOffloadStatus?.isDriveAvailable ?? false;
 
         return (
             <div className="buttonSection section">
@@ -274,12 +344,11 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
                 <button
                     className="padded"
                     onClick={this.copyToUSBClicked.bind(this)}
-                    disabled={Object.keys(this.state.selectedLogs).length == 0 || isCopying}
+                    disabled={Object.keys(this.state.selectedLogs).length == 0 || !isDriveAvailable}
                 >
-                    {isCopying
-                        ? `Copying ${usbOffloadStatus.logsTotal - usbOffloadStatus.logsRemaining}/${usbOffloadStatus.logsTotal}`
-                        : "Copy to USB"}
+                    Copy to USB
                 </button>
+                {this.usbOffloadStatusElement()}
                 <div className="spacer"></div>
                 <button className="padded" onClick={this.cancelClicked.bind(this)}>
                     Cancel

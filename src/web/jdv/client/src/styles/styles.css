@@ -427,6 +427,26 @@ div.spacer {
     flex-grow: 1;
 }
 
+/* Highlights on mount, which LogSelector uses to draw the eye whenever the copy changes state */
+.copyStatus {
+    align-self: center;
+    border-radius: 4pt;
+    animation: copyStatusChanged 1.5s ease-out;
+}
+
+@keyframes copyStatusChanged {
+    from {
+        background-color: khaki;
+    }
+    to {
+        background-color: transparent;
+    }
+}
+
+.success {
+    color: green;
+}
+
 .danger {
     color: red;
 }

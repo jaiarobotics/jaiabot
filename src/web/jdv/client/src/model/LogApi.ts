@@ -24,9 +24,11 @@ export interface ConvertStatus {
  */
 export interface UsbOffloadStatus {
     isCopying: boolean;
-    logsRemaining: number;
+    logsCopied: number;
     logsTotal: number;
-    error?: string;
+    percentComplete: number;
+    errorMessage?: string;
+    isDriveAvailable: boolean;
 }
 
 /**
