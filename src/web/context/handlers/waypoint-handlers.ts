@@ -96,14 +96,18 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
 }
 
 /**
- * Makes call to remove a waypoint from a mission
+ * Makes call to remove a waypoint from a mission. If the remaining route
+ * crosses a zone, applies the same reroute detection as add/move.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleDeleteWaypoint(mutableState: JaiaContextType) {
-    const mission = missionSet.getMission(jaiaGlobal.getSelectedWaypoint().missionID);
-    mission.deleteWaypoint(jaiaGlobal.getSelectedWaypoint().waypointNum);
+    const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
+    const mission = missionSet.getMission(selectedWaypoint.missionID);
+    const priorMissionWaypoints = cloneDeep(mission.getWaypoints());
+
+    mission.deleteWaypoint(selectedWaypoint.waypointNum);
     jaiaGlobal.setSelectedWaypoint({
         waypointNum: UNASSIGNED_ID,
         missionID: UNASSIGNED_ID,
@@ -113,6 +117,41 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
     mutableState.visiblePanel = ButtonNames.NONE;
 
     missionLayer.updateFeatures();
+
+    const pending = detectMissionReroutes();
+    const currentProposal = pending?.proposals.find(
+        (p) => p.missionID === selectedWaypoint.missionID,
+    );
+    if (currentProposal?.status === ProposalStatus.OVER_LIMIT) {
+        mission.setWaypoints(priorMissionWaypoints);
+        missionLayer.updateFeatures();
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "placementError",
+            message: `Removing this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce mission waypoints first.`,
+        });
+        return mutableState;
+    }
+    if (currentProposal?.status === ProposalStatus.IMPOSSIBLE) {
+        mission.setWaypoints(priorMissionWaypoints);
+        missionLayer.updateFeatures();
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "placementError",
+            message:
+                "This waypoint can't be removed — without it there's no clear path around the exclusion zone. Move nearby waypoints or reshape the zone first.",
+        });
+        return mutableState;
+    }
+    if (pending) {
+        mutableState.obstacleAvoidanceData.setPendingDialog({
+            type: "reroute",
+            data: {
+                ...pending,
+                priorMissionWaypoints: [
+                    { missionID: selectedWaypoint.missionID, waypoints: priorMissionWaypoints },
+                ],
+            },
+        });
+    }
 
     return mutableState;
 }

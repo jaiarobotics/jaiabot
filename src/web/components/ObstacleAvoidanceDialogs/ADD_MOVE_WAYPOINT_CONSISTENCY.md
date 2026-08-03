@@ -99,6 +99,34 @@ Now that add funnels through the same dialog as move, it would have
 inherited this same misleading text — fixing it here avoids reintroducing
 the exact confusion this investigation started from, just on a new trigger.
 
+## Also fixed: delete-waypoint had no reroute detection at all
+
+Free-play testing the above surfaced a related, pre-existing gap:
+`handleDeleteWaypoint` never called `detectMissionReroutes()` — no
+pre-check, no post-check, nothing. Deleting a waypoint that leaves the
+remaining route crossing a zone (e.g. mission A→B→C where neither A→B nor
+B→C crosses a zone but the direct A→C line would) silently left the mission
+crossing the zone with no dialog, no bypass insertion, no warning. Same
+result if the deleted waypoint was itself a bypass point that a previous
+reroute had inserted specifically to route around a zone. Git blame
+confirms this was never wired up, back to the original obstacle-avoidance
+feature commit (`99667aab`) — a fourth sibling to add/move that never got
+the same treatment, not a regression from this change.
+
+Fixed the same way as add/move: `handleDeleteWaypoint` now snapshots
+`priorMissionWaypoints` before deleting, calls `detectMissionReroutes()`
+after, and:
+
+- On a feasible reroute, shows `MissionRerouteDialog` (Confirm inserts
+  bypasses; Revert restores the deleted waypoint via the already-generic
+  `priorMissionWaypoints` restore path — no changes needed there).
+- On OVER_LIMIT or IMPOSSIBLE, rolls back the delete
+  (`mission.setWaypoints(priorMissionWaypoints)`) and shows
+  `PlacementErrorDialog` explaining the waypoint can't be removed.
+
+No new dialogs, action types, or reducer plumbing — reuses the same
+`pendingDialog` union and components already in place for add/move.
+
 ## Possible follow-up: preview the pending route on the map (not implemented)
 
 Discussed but out of scope for this change: actually rendering
