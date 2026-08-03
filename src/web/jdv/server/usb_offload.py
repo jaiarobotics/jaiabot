@@ -43,7 +43,7 @@ class UsbOffloadStatus:
 
 
 def findUsbPartition():
-    '''Returns the device path of the USB partition plugged into the hub, raising unless there is exactly one'''
+    '''Returns the lsblk record of the USB partition plugged into the hub, raising unless there is exactly one'''
     output = subprocess.check_output(
         ['lsblk', '-J', '-l', '-o', 'NAME,PATH,PKNAME,TRAN,FSTYPE,LABEL,TYPE,MOUNTPOINT'])
     devices = json.loads(output)['blockdevices']
@@ -68,7 +68,7 @@ def findUsbPartition():
     if len(partitions) > 1:
         raise RuntimeError(f'{len(partitions)} USB drives found.  Please plug in only one drive.')
 
-    return partitions[0]['path']
+    return partitions[0]
 
 
 def hasUsbDrive():
@@ -203,8 +203,14 @@ class UsbOffloadManager:
         '''Mounts the drive, copies queued logs onto it until the queue is empty, then unmounts'''
         destination = f'{MOUNT_POINT}/{DESTINATION_SUBDIR}'
 
+        partition = findUsbPartition()
+
+        # The kernel's read-write NTFS driver registers as ntfs3, while the "ntfs" that lsblk
+        # reports resolves to the read-only one, which would fail the copy partway through
+        fsTypeArgs = ['-t', 'ntfs3'] if partition['fstype'] == 'ntfs' else []
+
         sudo('mkdir', '-p', MOUNT_POINT)
-        sudo('mount', findUsbPartition(), MOUNT_POINT)
+        sudo('mount', *fsTypeArgs, partition['path'], MOUNT_POINT)
 
         try:
             sudo('mkdir', '-p', destination)
