@@ -45,7 +45,7 @@ class UsbOffloadStatus:
 def findUsbPartition():
     '''Returns the lsblk record of the USB partition plugged into the hub, raising unless there is exactly one'''
     output = subprocess.check_output(
-        ['lsblk', '-J', '-l', '-o', 'NAME,PATH,PKNAME,TRAN,FSTYPE,LABEL,TYPE,MOUNTPOINT'])
+        ['lsblk', '-J', '-l', '-b', '-o', 'NAME,PATH,PKNAME,TRAN,FSTYPE,LABEL,TYPE,SIZE,MOUNTPOINT'])
     devices = json.loads(output)['blockdevices']
 
     # lsblk only nests partitions under their disk when the NAME column is asked for, so take the
@@ -62,13 +62,16 @@ def findUsbPartition():
                   and device['mountpoint'] is None
                   and device['label'] not in RESERVED_LABELS]
 
-    if len(partitions) == 0:
+    disksFound = {partition['pkname'] for partition in partitions}
+
+    if len(disksFound) == 0:
         raise RuntimeError("No USB drive found.  Please plug a drive into one of the hub's USB ports.")
 
-    if len(partitions) > 1:
-        raise RuntimeError(f'{len(partitions)} USB drives found.  Please plug in only one drive.')
+    if len(disksFound) > 1:
+        raise RuntimeError(f'{len(disksFound)} USB drives found.  Please plug in only one drive.')
 
-    return partitions[0]
+    # One drive often holds more than one partition, so take the largest: the one with room for logs
+    return max(partitions, key=lambda partition: partition['size'])
 
 
 def hasUsbDrive():
@@ -93,17 +96,24 @@ def rsyncWithProgress(paths: List[str], destination: str, onProgress: Callable[[
 
        rsync rather than cp so a full drive leaves no truncated file posing as a whole log, and
        without -a because preserving ownership fails on the FAT filesystems most drives use.'''
+    # stderr is merged in rather than given its own pipe, which nothing would read until rsync had
+    # already exited - long enough for a chatty failure to fill that pipe and deadlock the copy
     process = subprocess.Popen(['sudo', 'rsync', '--info=progress2', *paths, destination],
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+    messages = []
 
     # progress2 ends each update with a carriage return; text=True makes readline() return on those
     for line in process.stdout:
         match = PROGRESS_RE.search(line)
+
         if match is not None:
             onProgress(int(match.group(1)) / 100)
+        elif line.strip():
+            messages.append(line.strip())
 
     if process.wait() != 0:
-        raise RuntimeError(process.stderr.read().strip())
+        raise RuntimeError(' '.join(messages[-3:]) or 'rsync failed')
 
 
 class UsbOffloadManager:
@@ -146,7 +156,8 @@ class UsbOffloadManager:
 
     def pathsForLog(self, logName: str):
         '''Returns every file belonging to a log: its .goby, .h5 and anything else sharing its name'''
-        return glob.glob(f'{self.logRootPath}/{logName}.*')
+        # Escaped so that a name containing *, ? or [ is matched literally rather than as a pattern
+        return glob.glob(f'{self.logRootPath}/{glob.escape(logName)}.*')
 
 
     def addLogNames(self, logNames: List[str]):
@@ -231,9 +242,16 @@ class UsbOffloadManager:
                         self.refreshPercentComplete()
 
                 if len(paths) == 0:
+                    # Deleted since it was queued, so drop it rather than report it as copied
                     logging.warning(f'No files found for log: {logName}')
-                else:
-                    rsyncWithProgress(paths, destination, onProgress)
+
+                    with self.lock:
+                        self.status.logsTotal -= 1
+                        self.refreshPercentComplete()
+
+                    continue
+
+                rsyncWithProgress(paths, destination, onProgress)
 
                 with self.lock:
                     self.bytesCopied += logBytes

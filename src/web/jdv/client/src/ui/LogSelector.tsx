@@ -84,6 +84,9 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
 
     refreshTimer: NodeJS.Timeout;
 
+    // When Copy to USB was last clicked, used to discard status polls older than that click
+    copyStartedAt: number = 0;
+
     constructor(props: LogSelectorProps) {
         super(props);
 
@@ -581,16 +584,24 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
             return log.filename;
         });
 
+        this.copyStartedAt = Date.now();
         const usbOffloadStatus = await LogApi.postCopyToUSB(logNames);
-        this.setState({ usbOffloadStatus });
+
+        if (usbOffloadStatus) {
+            this.setState({ usbOffloadStatus });
+        }
     }
 
     /**
      * Calls the API to get the list of logs and the USB copy progress, updating the GUI accordingly
      */
     refreshLogs() {
+        const requestedAt = Date.now();
+
         LogApi.getCopyToUSBStatus().then((usbOffloadStatus) => {
-            this.setState({ usbOffloadStatus });
+            if (requestedAt >= this.copyStartedAt) {
+                this.setState({ usbOffloadStatus });
+            }
         });
 
         LogApi.get_logs().then((response) => {
