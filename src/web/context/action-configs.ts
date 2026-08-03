@@ -65,19 +65,21 @@ import {
     handleLoadExclusionZones,
     handleRestoreExclusionZoneSnapshot,
     handleToggleExclusionZoneDrawing,
-    handleConfirmMissionReroute,
-    handleCancelMissionReroute,
-    handleConfirmWaypointRemoval,
-    handleCancelWaypointRemoval,
     handleSelectZoneVertex,
     handleAddZoneVertex,
     handleMoveZoneVertex,
     handleDeleteZoneVertex,
     handleToggleZoneEditMode,
     handleToggleZoneVertexTapToMove,
-    handleClearPlacementError,
     handleChangeExclusionZoneSetName,
 } from "./handlers/exclusion-zone-handlers";
+import {
+    handleConfirmMissionReroute,
+    handleCancelMissionReroute,
+    handleConfirmWaypointRemoval,
+    handleCancelWaypointRemoval,
+    handleClearPlacementError,
+} from "./handlers/obstacle-avoidance-handlers";
 
 // Standard profile for action handling functions
 type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType; // Configuration for handling JaiaActions
