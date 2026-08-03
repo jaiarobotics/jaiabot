@@ -54,7 +54,8 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
                     {pending.totalBypassCount > 0 && (
                         <>
                             {" "}
-                            with <strong>{pending.totalBypassCount}</strong> bypass waypoint
+                            — confirming will add <strong>{pending.totalBypassCount}</strong> bypass
+                            waypoint
                             {pending.totalBypassCount !== 1 ? "s" : ""}
                         </>
                     )}
@@ -85,7 +86,8 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
                     {pending.totalBypassCount > 0 && (
                         <>
                             {" "}
-                            with <strong>{pending.totalBypassCount}</strong> bypass waypoint
+                            — confirming will add <strong>{pending.totalBypassCount}</strong> bypass
+                            waypoint
                             {pending.totalBypassCount !== 1 ? "s" : ""}
                         </>
                     )}
@@ -111,8 +113,7 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
             {/* Non-load: reroute summary */}
             {!isZoneLoad && !isMissionLoad && feasible.length > 0 && (
                 <p>
-                    The mission{feasible.length !== 1 ? "s" : ""} ha
-                    {feasible.length !== 1 ? "ve" : "s"} been rerouted to include{" "}
+                    Confirming will reroute the mission{feasible.length !== 1 ? "s" : ""} to include{" "}
                     <strong>{pending.totalBypassCount}</strong> bypass waypoint
                     {pending.totalBypassCount !== 1 ? "s" : ""}.
                 </p>

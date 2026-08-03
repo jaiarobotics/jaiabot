@@ -56,8 +56,6 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
 
     missionLayer.updateFeatures();
 
-    // Post-add safety check: Map.tsx filters before the click, but float-precision
-    // edge cases can still let a crossing through. Catch it here and roll back.
     const pending = detectMissionReroutes();
     const currentProposal = pending?.proposals.find((p) => p.missionID === missionIDInEditMode);
     if (currentProposal?.status === ProposalStatus.OVER_LIMIT) {
@@ -94,39 +92,6 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         });
     }
 
-    return mutableState;
-}
-
-/**
- * Adds multiple waypoints to the mission in edit mode in a single tracked operation.
- * Used to insert bypass waypoints + the destination together as one undo step.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action Provides the list of waypoints or locations to add
- * @returns {JaiaContextType} Updated mutable state object
- */
-export function handleAddWaypointsBulk(mutableState: JaiaContextType, action: JaiaAction) {
-    const missionIDInEditMode = missionSet.getMissionIDInEditMode();
-    if (missionIDInEditMode === UNASSIGNED_ID) return mutableState;
-
-    const mission = missionSet.getMission(missionIDInEditMode);
-
-    if (action.waypoints) {
-        // Waypoint objects already built (e.g. with route_bypass names set).
-        for (const wp of action.waypoints) {
-            if (mission.getWaypoints().length < MAX_WAYPOINTS) {
-                mission.addWaypoints([wp]);
-            }
-        }
-    } else {
-        for (const location of action.locations ?? []) {
-            if (mission.getWaypoints().length < MAX_WAYPOINTS) {
-                mission.addWaypoint(location);
-            }
-        }
-    }
-
-    missionLayer.updateFeatures();
     return mutableState;
 }
 

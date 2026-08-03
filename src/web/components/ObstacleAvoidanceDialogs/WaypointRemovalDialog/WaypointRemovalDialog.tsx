@@ -58,8 +58,8 @@ export default function WaypointRemovalDialog({ pending }: { pending: PendingWay
 
             {rerouteFeasible.length > 0 && (
                 <p>
-                    The following mission
-                    {rerouteFeasible.length !== 1 ? "s have" : " has"} been rerouted to include{" "}
+                    Confirming will reroute the following mission
+                    {rerouteFeasible.length !== 1 ? "s" : ""} to include{" "}
                     <strong>{reroute!.totalBypassCount}</strong> bypass waypoint
                     {reroute!.totalBypassCount !== 1 ? "s" : ""}.
                 </p>

@@ -83,7 +83,6 @@ export interface JaiaAction {
     clickedTaskPacket?: SelectedTaskPacket;
 
     waypoint?: Waypoint;
-    waypoints?: Waypoint[];
     location?: GeographicCoordinate;
     locations?: GeographicCoordinate[];
     task?: Task;
