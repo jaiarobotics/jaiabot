@@ -270,7 +270,17 @@ if [ -z "$ROOTFS_TARBALL" ]; then
 
     # Do not include cloud packages in Raspi image - no need for s3fs 
     [ -z "$VIRTUALBOX" ] && rm config/package-lists/cloud.list.chroot
-    
+
+    # Newer Ubuntu releases may not be known to the version of debootstrap
+    # installed on the build host. In that case, create a symlink from the
+    # requested codename to "gutsy", which all Ubuntu releases since gutsy
+    # share as their bootstrap script.
+    if [ ! -f /usr/share/debootstrap/scripts/${DISTRIBUTION} ] && \
+       [ ! -L /usr/share/debootstrap/scripts/${DISTRIBUTION} ]; then
+        ln -s /usr/share/debootstrap/scripts/gutsy \
+            /usr/share/debootstrap/scripts/${DISTRIBUTION}
+    fi
+
     lb build
     # Need xattrs for ping setcap
     tar --xattrs --xattrs-include="*" -cf - binary | $COMPRESSOR > binary-tar-xattrs.tar.gz
