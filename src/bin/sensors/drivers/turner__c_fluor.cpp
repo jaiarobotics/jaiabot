@@ -31,14 +31,22 @@
 using goby::glog;
 
 jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
-    const jaiabot::config::TurnerCFluorThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>(config)
+    const jaiabot::config::TurnerCFluorThreadConfig& config, int index)
+    : goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>(config, 0, index)
 {
-    glog.add_group("turner_c_fluor", goby::util::Colors::blue);
+    // which of the fluorometers on the payload board this thread serves
+    instance_ = static_cast<jaiabot::sensor::protobuf::SensorInstance>(index);
+
+    if (instance_ == jaiabot::sensor::protobuf::INSTANCE_2)
+        glog_group_ = "turner_c_fluor_2";
+
+    glog.add_group(glog_group_, goby::util::Colors::blue);
 
     interthread().subscribe<jaiabot::groups::mcu_pb_data_in>(
         [this](const sensor::protobuf::SensorData& sensor_data) {
-            if (sensor_data.has_c_fluor())
+            // MCUs predating dual fluorometer support leave instance unset, which reads
+            // back as INSTANCE_1
+            if (sensor_data.has_c_fluor() && sensor_data.c_fluor().instance() == instance_)
                 receive_data(sensor_data.c_fluor());
         });
 
@@ -62,7 +70,7 @@ jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
 void jaiabot::apps::TurnerCFluorDriver::receive_data(
     const sensor::protobuf::TurnerCFluor& turner_c_fluor_data)
 {
-    glog.is_debug1() && glog << group("turner_c_fluor") << "Received turner_c_fluor_data: "
+    glog.is_debug1() && glog << group(glog_group_) << "Received turner_c_fluor_data: "
                              << turner_c_fluor_data.ShortDebugString() << std::endl;
 
     jaiabot::sensor::protobuf::TurnerCFluor turner_c_fluor_msg;
@@ -74,11 +82,26 @@ void jaiabot::apps::TurnerCFluorDriver::receive_data(
     {
         turner_c_fluor_msg.set_concentration_voltage(turner_c_fluor_data.concentration_voltage());
     }
-    interprocess().publish<jaiabot::groups::fluorometer>(turner_c_fluor_msg);
+    turner_c_fluor_msg.set_instance(instance_);
+
+    // the probes are analog, so only the configured coefficients know what is being measured
+    if (fluorometer_coefficients_.has_analyte_name())
+    {
+        turner_c_fluor_msg.set_analyte_name(fluorometer_coefficients_.analyte_name());
+    }
+
+    if (instance_ == jaiabot::sensor::protobuf::INSTANCE_2)
+    {
+        interprocess().publish<jaiabot::groups::fluorometer_2>(turner_c_fluor_msg);
+    }
+    else
+    {
+        interprocess().publish<jaiabot::groups::fluorometer>(turner_c_fluor_msg);
+    }
 
     last_report_time_ = goby::time::SteadyClock::now();
 
-    // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA threadcd
+    // TODO - add calibration and metadata ID, convert to standardized message, and publish over to QA thread
 }
 
 void jaiabot::apps::TurnerCFluorDriver::send_cfg()
@@ -87,6 +110,7 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
     request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
     auto& sensor_cfg = *request.mutable_cfg();
     sensor_cfg.set_sensor(jaiabot::sensor::protobuf::TURNER__C_FLUOR);
+    sensor_cfg.set_instance(instance_);
 
     sensor_cfg.set_sample_freq_with_units(sample_rate_ * boost::units::si::hertz);
 
@@ -99,16 +123,16 @@ void jaiabot::apps::TurnerCFluorDriver::send_cfg()
 
     if (fluorometer_coefficients_.has_coefficient())
     {
-        auto* cal_offset = sensor_cfg.add_cfg();
-        cal_offset->set_key("coefficient");
-        cal_offset->set_value(std::to_string(fluorometer_coefficients_.coefficient()));
+        auto* cal_coefficient = sensor_cfg.add_cfg();
+        cal_coefficient->set_key("coefficient");
+        cal_coefficient->set_value(std::to_string(fluorometer_coefficients_.coefficient()));
     }
 
     if (fluorometer_coefficients_.has_serial_number())
     {
-        auto* cal_offset = sensor_cfg.add_cfg();
-        cal_offset->set_key("serial_number");
-        cal_offset->set_value(std::to_string(fluorometer_coefficients_.serial_number()));
+        auto* cal_serial_number = sensor_cfg.add_cfg();
+        cal_serial_number->set_key("serial_number");
+        cal_serial_number->set_value(std::to_string(fluorometer_coefficients_.serial_number()));
     }
 
     interprocess().publish<jaiabot::groups::mcu_pb_data_out>(request);
@@ -120,7 +144,8 @@ void jaiabot::apps::TurnerCFluorDriver::health(goby::middleware::protobuf::Threa
 
     if (last_report_time_ + std::chrono::seconds(report_timeout_) < goby::time::SteadyClock::now())
     {
-        glog.is_warn() && glog << "Timeout on turner c fluorometer report" << std::endl;
+        glog.is_warn() && glog << group(glog_group_) << "Timeout on turner c fluorometer report"
+                               << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(protobuf::WARNING__MISSING_DATA__TURNER_C_FLUOR_DATA);
