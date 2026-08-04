@@ -673,7 +673,10 @@ if 'none' not in camera_positions_in_use:
     ]
     jaiabot_apps.extend(jaiabot_apps_camera)
 
-if 'turner_c_fluor' in jaia_additional_sensors or 'turner_c_flour' in jaia_additional_sensors:
+# on BIO bots the fluorometers are read through the payload board by jaiabot_sensors, so this
+# standalone analog driver would publish a second, indistinguishable stream on the same group
+if ('turner_c_fluor' in jaia_additional_sensors or 'turner_c_flour' in jaia_additional_sensors) \
+   and jaia_bot_type != BOT_TYPE.BIO:
     jaiabot_turner_c_fluor = [
         {'exe': 'jaiabot_turner_c_fluor_sensor_driver',
         'description': 'JaiaBot Turner C Fluor Sensor Driver',
