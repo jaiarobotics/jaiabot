@@ -6,7 +6,7 @@ traced race) not yet re-run — needs a live `src/web/run.sh` session._
 
 ## Context
 
-This builds on [`REFACTOR_PLAN.md`](./REFACTOR_PLAN.md) (Parts A-F, complete;
+This builds on [`01REFACTOR_PLAN.md`](./01REFACTOR_PLAN.md) (Parts A-F, complete;
 Part G, deferred) in this same folder, which consolidated the four
 exclusion-zone dialogs behind a shared `ObstacleAvoidanceBaseDialog` shell and
 moved them out of `ExclusionZonesPanel/` once it became clear they're
@@ -275,7 +275,7 @@ import ObstacleAvoidanceDialog from "../components/ObstacleAvoidanceDialogs/Obst
    `getPlacementError`/`setPlacementError`.
 2. `cd src/web && npm test` — full suite.
 3. Manual smoke test via `src/web/run.sh` — repeat the full checklist from
-   `REFACTOR_PLAN.md`'s Verification section (all four dialogs' trigger
+   `01REFACTOR_PLAN.md`'s Verification section (all four dialogs' trigger
    paths), since Part 3's confirm/cancel rewrites touch every one of them.
 4. Specifically re-attempt the traced race: start a mission-set load, and
    while it's in flight, draw a zone over a waypoint to open

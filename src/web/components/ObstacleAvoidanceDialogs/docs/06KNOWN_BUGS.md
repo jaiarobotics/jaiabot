@@ -1,8 +1,8 @@
 # Known bugs — obstacle-avoidance dialogs
 
-Found while manually smoke-testing [`REFACTOR_PLAN.md`](./REFACTOR_PLAN.md)
+Found while manually smoke-testing [`01REFACTOR_PLAN.md`](./01REFACTOR_PLAN.md)
 (Parts A-F) before deciding on
-[`PENDING_DIALOG_REFACTOR_PLAN.md`](./PENDING_DIALOG_REFACTOR_PLAN.md). All
+[`02PENDING_DIALOG_REFACTOR_PLAN.md`](./02PENDING_DIALOG_REFACTOR_PLAN.md). All
 three are pre-existing — confirmed not caused by either refactor — and are
 intentionally not fixed yet; pick back up later.
 

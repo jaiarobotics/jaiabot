@@ -6,11 +6,11 @@ _Status: not started. Planning only._
 
 This is the next planned pass on `subtask/consolidate-dialogs/SW-2493`, now
 that the dialog/UI consolidation work is done (see
-[`REFACTOR_PLAN.md`](./REFACTOR_PLAN.md),
-[`PENDING_DIALOG_REFACTOR_PLAN.md`](./PENDING_DIALOG_REFACTOR_PLAN.md),
-[`ADD_MOVE_WAYPOINT_CONSISTENCY.md`](./ADD_MOVE_WAYPOINT_CONSISTENCY.md), and
+[`01REFACTOR_PLAN.md`](./01REFACTOR_PLAN.md),
+[`02PENDING_DIALOG_REFACTOR_PLAN.md`](./02PENDING_DIALOG_REFACTOR_PLAN.md),
+[`03ADD_MOVE_WAYPOINT_CONSISTENCY.md`](./03ADD_MOVE_WAYPOINT_CONSISTENCY.md), and
 the architecture traced in
-[`EVENT_STREAMS.md`](./EVENT_STREAMS.md)). Two things landed in this same
+[`04EVENT_STREAMS.md`](./04EVENT_STREAMS.md)). Two things landed in this same
 line of investigation and belong in this pass:
 
 1. Whether `context/handlers/exclusion-zone-handlers.ts` itself could be
@@ -33,7 +33,7 @@ mission reroutes → filter to `relevant` proposals via
 whether extracting that shared shape is the actual target for this review.
 
 This filter logic is also where
-[`KNOWN_BUGS.md`](./KNOWN_BUGS.md)'s **Bug 3 — new/moved zone can silently
+[`06KNOWN_BUGS.md`](./06KNOWN_BUGS.md)'s **Bug 3 — new/moved zone can silently
 fail to trigger any reroute check** lives (`relevant =
 pending.proposals.filter((p) => p.involvedZoneIDs.includes(zoneID) ||
 bypassAffected.has(p.missionID))`). This pass may end up being where Bug 3
