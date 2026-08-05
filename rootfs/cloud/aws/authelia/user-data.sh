@@ -91,6 +91,10 @@ authentication_backend:
 access_control:
   default_policy: 'deny'
   rules:
+    - domain: 'cc.cloud.jaia.tech'
+      resources:
+        - '^/test-results/api/submit/$'
+      policy: 'bypass'
     - domain: '{group}.cloud.jaia.tech'
       policy: 'two_factor'
     - domain: 'lldap.cloud.jaia.tech'

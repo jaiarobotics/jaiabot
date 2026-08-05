@@ -23,6 +23,8 @@ const MOTOR_RPM_TEST_STOP_INTERVAL = 500; // milliseconds
 // The bot answers one engineering status per query, and a slow link can take seconds to deliver
 // each one, so wait for those answers instead of assuming they arrive on our clock
 const MOTOR_RPM_TEST_COLLECTION_TIMEOUT = 20000; // milliseconds
+// A longer serial can't name a tail, so there is no point running the motor for one
+const TAIL_SERIAL_MAX_LENGTH = 7; // characters
 
 class CalibrationApp {
     constructor() {
@@ -63,6 +65,8 @@ class CalibrationApp {
         this.testMotorRPMButton = byId("test-motor-rpm-btn");
         this.testMotorRPMButton.addEventListener("click", this.testMotorRPM.bind(this));
 
+        this.tailSerialInput = byId("tail-serial");
+
         this.lastEngineeringStatusTime = 0;
         this.lastEngineeringStatusBotId = null;
         this.isMotorRPMTestRunning = false;
@@ -73,6 +77,8 @@ class CalibrationApp {
         this.motorRPMQueryCount = 0;
         this.motorRunningStatusCount = 0;
         this.motorRPMCollectionTimeout = null;
+        this.motorRPMTailSerial = "";
+        this.motorRPMBotId = null;
     }
 
     updateStatus(status) {
@@ -223,6 +229,18 @@ class CalibrationApp {
             return;
         }
 
+        // Results are filed against the tail, so there is nothing to record without a serial
+        const tailSerial = this.tailSerialInput.value.trim();
+        if (tailSerial === "") {
+            alert("Please enter the tail serial first.");
+            return;
+        }
+
+        if (tailSerial.length > TAIL_SERIAL_MAX_LENGTH) {
+            alert(`Tail serials are at most ${TAIL_SERIAL_MAX_LENGTH} characters.`);
+            return;
+        }
+
         if (
             !confirm(
                 `The motor on bot ${botId} will run at ${MOTOR_RPM_TEST_SPEED} m/s for ` +
@@ -240,8 +258,12 @@ class CalibrationApp {
         this.motorRPMStatusCount = 0;
         this.motorRPMQueryCount = 0;
         this.motorRunningStatusCount = 0;
+        // Held for the report, so editing these during the test can't change what is recorded
+        this.motorRPMTailSerial = tailSerial;
+        this.motorRPMBotId = botId;
         this.updateTestMotorRPMBtn(true);
         this.updateMotorRPMTestResult("Spinning up motor...", "");
+        this.updateMotorRPMTestUpload("", "");
 
         const testStartTime = Date.now();
 
@@ -377,6 +399,58 @@ class CalibrationApp {
                 `(needs ${MOTOR_RPM_TEST_MIN_RPM} RPM)`,
             isPass ? "motor-rpm-test-pass" : "motor-rpm-test-fail",
         );
+
+        this.submitMotorRPMTestResult(isPass, Math.round(averageRPM));
+    }
+
+    submitMotorRPMTestResult(isPass, averageRPM) {
+        const testResult = {
+            // Stays the same across retries, so the database can drop a result it already has
+            external_id: `jed-${api.clientId}-${Date.now()}`,
+            test_type: "motor_rpm",
+            asset_type: "tail",
+            tail_serial: this.motorRPMTailSerial,
+            passed: isPass,
+            summary: `${averageRPM} RPM (needs ${MOTOR_RPM_TEST_MIN_RPM})`,
+            data: {
+                average_rpm: averageRPM,
+                threshold_rpm: MOTOR_RPM_TEST_MIN_RPM,
+                samples: this.motorRPMSamples,
+                bot_id: this.motorRPMBotId,
+            },
+            // This browser's clock, not the bot's
+            performed_at: new Date().toISOString(),
+            source: "jed",
+        };
+
+        this.updateMotorRPMTestUpload("Recording result...", "");
+
+        api.submitTestResult(testResult).then((response) => {
+            if (response.status === "ok") {
+                this.updateMotorRPMTestUpload(
+                    `Recorded for tail ${testResult.tail_serial}`,
+                    "motor-rpm-test-pass",
+                );
+                return;
+            }
+
+            if (response.status === "queued") {
+                this.updateMotorRPMTestUpload(
+                    `Saved on this hub, waiting to reach the database ` +
+                        `(${response.queued} waiting)`,
+                    "",
+                );
+                return;
+            }
+
+            this.updateMotorRPMTestUpload(response.message, "motor-rpm-test-fail");
+        });
+    }
+
+    updateMotorRPMTestUpload(uploadText, uploadClass) {
+        let element = document.getElementById("motor-rpm-test-upload");
+        element.textContent = uploadText;
+        element.className = `motor-rpm-test-upload ${uploadClass}`;
     }
 
     updateMotorRPMTestResult(resultText, resultClass) {

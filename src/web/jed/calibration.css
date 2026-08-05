@@ -82,12 +82,23 @@ button:active {
     margin-bottom: 15px;
 }
 
+.tail-serial-entry {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: large;
+}
+
 #test-motor-rpm-btn {
     width: fit-content;
 }
 
 .motor-rpm-test-result {
     font-size: large;
+}
+
+.motor-rpm-test-upload {
+    font-size: medium;
 }
 
 .motor-rpm-test-pass {

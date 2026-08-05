@@ -17,6 +17,7 @@ from flask import Flask, send_from_directory, Response, request, send_file
 # Internal Imports
 import jaia_portal
 import missions
+import test_results
 from map_tile_server import MapTileServer
 from map_tile_server.mime_types import *
 
@@ -185,6 +186,10 @@ def postAllRecover():
 def postPidCommand():
     jaia_interface.post_engineering_command(request.json, clientId=request.headers['clientId'])
     return JSONResponse({"status": "ok"})
+
+@app.route('/jaia/v0/test-result', methods=['POST'])
+def postTestResult():
+    return JSONResponse(test_results.record(request.json))
 
 @app.route('/jaia/v0/ep-command', methods=['POST'])
 def postEngineeringPanel():

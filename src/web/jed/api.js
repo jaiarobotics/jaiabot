@@ -50,6 +50,20 @@ class JaiaAPI {
     }
 
     /**
+     * Submit a test result to the Jaia database, by way of this hub
+     *
+     * @param {*} testResult
+     * @returns {*}
+     */
+    submitTestResult(testResult) {
+        return fetch("/jaia/v0/test-result", {
+            method: "POST",
+            headers: this.headers,
+            body: JSON.stringify(testResult),
+        }).then((response) => response.json());
+    }
+
+    /**
      * Return status of the fleet
      *
      * @returns {*}
