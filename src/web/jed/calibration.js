@@ -8,7 +8,10 @@ import { ActuatorConfigTextInputs } from "./ActuatorConfigTextInputs.js";
 
 const MOTOR_RPM_TEST_SPEED = 1; // meters/second
 const MOTOR_RPM_TEST_MIN_RPM = 3600;
-const MOTOR_RPM_TEST_DURATION = 3000; // milliseconds
+// The motor runs this long before any RPM is sampled, so it has spun up to a steady speed
+const MOTOR_RPM_TEST_SPINUP = 10000; // milliseconds
+// RPM is sampled over this window, after the motor has spun up
+const MOTOR_RPM_TEST_MEASURE = 5000; // milliseconds
 // Must stay under 1 second, so the api throttle keeps suppressing the periodic zero throttle command
 const MOTOR_RPM_TEST_COMMAND_INTERVAL = 500; // milliseconds
 const MOTOR_RPM_TEST_COLLECTION_GRACE = 3000; // milliseconds
@@ -55,7 +58,7 @@ class CalibrationApp {
         this.testMotorRPMButton.addEventListener("click", this.testMotorRPM.bind(this));
 
         this.lastEngineeringStatusTime = 0;
-        this.isMotorRPMTestRunning = false;
+        this.isCollectingMotorRPM = false;
         this.motorRPMSamples = [];
         this.motorRPMStatusCount = 0;
     }
@@ -205,18 +208,18 @@ class CalibrationApp {
         if (
             !confirm(
                 `The motor on bot ${botId} will run at ${MOTOR_RPM_TEST_SPEED} m/s for ` +
-                    `${MOTOR_RPM_TEST_DURATION / 1000} seconds. Confirm that you and everyone ` +
-                    `else are clear of the propeller before continuing.`,
+                    `${(MOTOR_RPM_TEST_SPINUP + MOTOR_RPM_TEST_MEASURE) / 1000} seconds. Confirm ` +
+                    `that you and everyone else are clear of the propeller before continuing.`,
             )
         ) {
             return;
         }
 
-        this.isMotorRPMTestRunning = true;
+        this.isCollectingMotorRPM = false;
         this.motorRPMSamples = [];
         this.motorRPMStatusCount = 0;
         this.updateTestMotorRPMBtn(true);
-        this.updateMotorRPMTestResult("Running motor RPM test...", "");
+        this.updateMotorRPMTestResult("Spinning up motor...", "");
 
         const runMotor = () =>
             this.sendMotorRPMTestCommand(
@@ -232,6 +235,11 @@ class CalibrationApp {
         const runMotorInterval = setInterval(runMotor, MOTOR_RPM_TEST_COMMAND_INTERVAL);
 
         setTimeout(() => {
+            this.isCollectingMotorRPM = true;
+            this.updateMotorRPMTestResult("Measuring motor RPM...", "");
+        }, MOTOR_RPM_TEST_SPINUP);
+
+        setTimeout(() => {
             clearInterval(runMotorInterval);
             // Don't query on the stop command, so the bot isn't asked for a status after it stops
             this.sendMotorRPMTestCommand(
@@ -240,15 +248,18 @@ class CalibrationApp {
                 false,
             );
             this.updateMotorRPMTestResult("Waiting for motor RPM data...", "");
-        }, MOTOR_RPM_TEST_DURATION);
+        }, MOTOR_RPM_TEST_SPINUP + MOTOR_RPM_TEST_MEASURE);
 
         // The bot only sends an engineering status every couple of seconds, so keep listening for
         // the statuses it sent while the motor was still running
-        setTimeout(() => {
-            this.isMotorRPMTestRunning = false;
-            this.reportMotorRPMTestResult();
-            this.updateTestMotorRPMBtn(false);
-        }, MOTOR_RPM_TEST_DURATION + MOTOR_RPM_TEST_COLLECTION_GRACE);
+        setTimeout(
+            () => {
+                this.isCollectingMotorRPM = false;
+                this.reportMotorRPMTestResult();
+                this.updateTestMotorRPMBtn(false);
+            },
+            MOTOR_RPM_TEST_SPINUP + MOTOR_RPM_TEST_MEASURE + MOTOR_RPM_TEST_COLLECTION_GRACE,
+        );
     }
 
     sendMotorRPMTestCommand(botId, pidControl, isQueryingStatus) {
@@ -262,7 +273,7 @@ class CalibrationApp {
     }
 
     collectMotorRPMSample(engineeringStatus) {
-        if (!this.isMotorRPMTestRunning) return;
+        if (!this.isCollectingMotorRPM) return;
 
         this.motorRPMStatusCount += 1;
 
@@ -290,8 +301,7 @@ class CalibrationApp {
         const isPass = averageRPM >= MOTOR_RPM_TEST_MIN_RPM;
 
         this.updateMotorRPMTestResult(
-            `${isPass ? "PASS" : "FAIL"}: ${averageRPM.toFixed(0)} RPM average of ` +
-                `${this.motorRPMSamples.map((rpm) => rpm.toFixed(0)).join(", ")} ` +
+            `${isPass ? "PASS" : "FAIL"}: ${averageRPM.toFixed(0)} RPM ` +
                 `(needs ${MOTOR_RPM_TEST_MIN_RPM} RPM)`,
             isPass ? "motor-rpm-test-pass" : "motor-rpm-test-fail",
         );
