@@ -17,6 +17,29 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/motor DESTINATION ${project_SHARE_DIR}/jai
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ubx_ppk DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 
+if(NOT CMAKE_CROSSCOMPILING)
+	set(jaiabot_python_share_dir ${project_SHARE_DIR}/jaiabot/python)
+	set(jaiabot_python_venv_stamp ${jaiabot_python_share_dir}/venv/.venv_complete)
+
+	file(GLOB_RECURSE jaiabot_python_venv_proto_deps ${project_SRC_DIR}/lib/messages/*.proto)
+
+	add_custom_command(
+		OUTPUT ${jaiabot_python_venv_stamp}
+		COMMAND python3 -m venv venv --system-site-packages --clear
+		COMMAND ./venv/bin/pip install -qU wheel
+		COMMAND ./venv/bin/pip install -r requirements.txt
+		COMMAND ${CMAKE_COMMAND} -E touch ${jaiabot_python_venv_stamp}
+		WORKING_DIRECTORY ${jaiabot_python_share_dir}
+		DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt
+						${jaiabot_python_venv_proto_deps}
+						pyjaiaprotobuf
+		COMMENT "Building Python venv for jaiabot dev/sim scripts (e.g. motor/rpm.py)"
+	)
+
+	add_custom_target(jaiabot_python_venv ALL
+		DEPENDS ${jaiabot_python_venv_stamp})
+endif()
+
 
 
 

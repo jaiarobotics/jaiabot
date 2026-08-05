@@ -1,7 +1,7 @@
 #!/usr/bin/env -S goby_launch -P -L
 
 [kill=SIGTERM] gpsd $(../../gen/hub.py gpsd)
-# [kill=SIGTERM] ../../../build/web_dev/python/venv/bin/python3 ../../../src/python/xbee_simulator/jaiasim_xbee.py
+# [kill=SIGTERM] ${jaia_share_dir}/jaiabot/python/venv/bin/python3 ../../../src/python/xbee_simulator/jaiasim_xbee.py
 
 # only run Iridium sim if it's enabled in jaia_comms_mode
 [kill=SIGTERM] /bin/bash -c "echo $jaia_comms_mode | grep -q iridium && exec goby_launch -P -L -p hub${jaia_hub_index}_iridium iridium/hub-sim.launch || sleep infinity"
