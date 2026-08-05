@@ -12,8 +12,8 @@ const MOTOR_RPM_TEST_MIN_RPM = 3600;
 const MOTOR_RPM_TEST_SPINUP = 10000; // milliseconds
 // RPM is sampled over this window, after the motor has spun up
 const MOTOR_RPM_TEST_MEASURE = 5000; // milliseconds
-// Must stay under 1 second, so the api throttle keeps suppressing the periodic zero throttle command
-const MOTOR_RPM_TEST_COMMAND_INTERVAL = 500; // milliseconds
+// Must stay well under MOTOR_RPM_TEST_COMMAND_TIMEOUT, so the bot doesn't stop the motor mid test
+const MOTOR_RPM_TEST_COMMAND_INTERVAL = 1000; // milliseconds
 const MOTOR_RPM_TEST_COLLECTION_GRACE = 3000; // milliseconds
 // The bot stops the motor itself this long after the last command, if the test is interrupted
 const MOTOR_RPM_TEST_COMMAND_TIMEOUT = 5; // seconds
@@ -58,9 +58,12 @@ class CalibrationApp {
         this.testMotorRPMButton.addEventListener("click", this.testMotorRPM.bind(this));
 
         this.lastEngineeringStatusTime = 0;
+        this.lastEngineeringStatusBotId = null;
+        this.isMotorRPMTestRunning = false;
         this.isCollectingMotorRPM = false;
         this.motorRPMSamples = [];
         this.motorRPMStatusCount = 0;
+        this.motorRunningStatusCount = 0;
     }
 
     updateStatus(status) {
@@ -77,6 +80,12 @@ class CalibrationApp {
 
         const engineering_status = thisBot.engineering;
         if (engineering_status == null) return;
+
+        // Each bot stamps this time from its own clock, so only compare within a single bot
+        if (selected_bot_id !== this.lastEngineeringStatusBotId) {
+            this.lastEngineeringStatusBotId = selected_bot_id;
+            this.lastEngineeringStatusTime = 0;
+        }
 
         const engineeringStatusTime = Number(engineering_status.time);
         if (engineeringStatusTime <= this.lastEngineeringStatusTime) return;
@@ -215,9 +224,11 @@ class CalibrationApp {
             return;
         }
 
+        this.isMotorRPMTestRunning = true;
         this.isCollectingMotorRPM = false;
         this.motorRPMSamples = [];
         this.motorRPMStatusCount = 0;
+        this.motorRunningStatusCount = 0;
         this.updateTestMotorRPMBtn(true);
         this.updateMotorRPMTestResult("Spinning up motor...", "");
 
@@ -241,6 +252,7 @@ class CalibrationApp {
 
         setTimeout(() => {
             clearInterval(runMotorInterval);
+            this.isMotorRPMTestRunning = false;
             // Don't query on the stop command, so the bot isn't asked for a status after it stops
             this.sendMotorRPMTestCommand(
                 botId,
@@ -277,19 +289,37 @@ class CalibrationApp {
 
         this.motorRPMStatusCount += 1;
 
-        if (engineeringStatus.motor_rpm == null) return;
-
         // The throttle the bot reports is the one it was applying when it sampled the RPM, so it
         // tells us the motor was still being driven without comparing the bot's clock to ours
         if (!(engineeringStatus.pid_control?.throttle > 0)) return;
+
+        this.motorRunningStatusCount += 1;
+
+        if (engineeringStatus.motor_rpm == null) return;
 
         this.motorRPMSamples.push(engineeringStatus.motor_rpm);
     }
 
     reportMotorRPMTestResult() {
+        if (this.motorRPMStatusCount === 0) {
+            this.updateMotorRPMTestResult(
+                "No engineering status was received from this bot",
+                "motor-rpm-test-fail",
+            );
+            return;
+        }
+
+        if (this.motorRunningStatusCount === 0) {
+            this.updateMotorRPMTestResult(
+                `The motor never ran (${this.motorRPMStatusCount} engineering statuses received)`,
+                "motor-rpm-test-fail",
+            );
+            return;
+        }
+
         if (this.motorRPMSamples.length === 0) {
             this.updateMotorRPMTestResult(
-                `No motor RPM recorded (${this.motorRPMStatusCount} engineering statuses received)`,
+                "The motor ran, but this bot never reported its motor RPM",
                 "motor-rpm-test-fail",
             );
             return;
@@ -316,7 +346,7 @@ class CalibrationApp {
     updateTestMotorRPMBtn(isTestRunning) {
         if (isTestRunning) {
             this.testMotorRPMButton.disabled = true;
-            this.testMotorRPMButton.style.opacity = 0.9;
+            this.testMotorRPMButton.style.opacity = 0.5;
         } else {
             this.testMotorRPMButton.disabled = false;
             this.testMotorRPMButton.style.opacity = 1;

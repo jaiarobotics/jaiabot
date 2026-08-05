@@ -887,8 +887,11 @@ function sendVisibleCommand() {
         return;
     }
 
-    let command = getVisibleCommand();
-    api.sendEngineeringCommand(command);
+    // The motor RPM test drives the motor itself, so don't fight it with the periodic command
+    if (!calibrationApp.isMotorRPMTestRunning) {
+        let command = getVisibleCommand();
+        api.sendEngineeringCommand(command);
+    }
 
     // Get vehicle status
 
