@@ -48,11 +48,11 @@ job-template-amd64: &job-template-amd64
   steps:
     - checkout
     - run: &run-submodule-sync
-      name: Sync git submodules
-      command: git submodule sync
+        name: Sync git submodules
+        command: git submodule sync
     - run: &run-submodule-update
-      name: Update git submodules
-      command: git submodule update --init --recursive
+        name: Update git submodules
+        command: git submodule update --init --recursive
     - run: &run-add-gobysoft-packages-key
         name: Install packages.gobysoft.org key
         command: |
