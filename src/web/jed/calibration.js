@@ -12,11 +12,11 @@ const MOTOR_RPM_TEST_MIN_RPM = 3600;
 const MOTOR_RPM_TEST_SPINUP = 10000; // milliseconds
 // RPM is sampled over this window, after the motor has spun up
 const MOTOR_RPM_TEST_MEASURE = 5000; // milliseconds
-// Must stay well under MOTOR_RPM_TEST_COMMAND_TIMEOUT, so the bot doesn't stop the motor mid test
-const MOTOR_RPM_TEST_COMMAND_INTERVAL = 1000; // milliseconds
+// Only resent for redundancy, in case a command is lost on the way to the bot
+const MOTOR_RPM_TEST_COMMAND_INTERVAL = 2000; // milliseconds
 const MOTOR_RPM_TEST_COLLECTION_GRACE = 3000; // milliseconds
-// The bot stops the motor itself this long after the last command, if the test is interrupted
-const MOTOR_RPM_TEST_COMMAND_TIMEOUT = 5; // seconds
+// Must outlast the whole test, so a late command can't let the bot stop the motor part way through
+const MOTOR_RPM_TEST_COMMAND_TIMEOUT = 20; // seconds
 
 class CalibrationApp {
     constructor() {
@@ -239,7 +239,8 @@ class CalibrationApp {
                     timeout: MOTOR_RPM_TEST_COMMAND_TIMEOUT,
                     speed: { target: MOTOR_RPM_TEST_SPEED },
                 },
-                true,
+                // Only ask for a status once we are measuring, to keep the link quiet before that
+                this.isCollectingMotorRPM,
             );
 
         runMotor();
