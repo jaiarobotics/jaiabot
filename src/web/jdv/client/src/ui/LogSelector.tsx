@@ -275,16 +275,21 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
     usbOffloadDisplay(): UsbOffloadDisplay | null {
         const status = this.state.usbOffloadStatus;
 
-        if (status == null || status.logsTotal == 0) {
+        if (status == null) {
             return null;
         }
 
+        // Checked before logsTotal, since a copy whose logs were all deleted ends with none
         if (status.errorMessage) {
             return {
                 name: "failed",
                 className: "danger",
                 text: `Copy failed: ${status.errorMessage}`,
             };
+        }
+
+        if (status.logsTotal == 0) {
+            return null;
         }
 
         if (!status.isCopying) {
@@ -587,9 +592,14 @@ export default class LogSelector extends React.Component<LogSelectorProps, LogSe
         this.copyStartedAt = Date.now();
         const usbOffloadStatus = await LogApi.postCopyToUSB(logNames);
 
-        if (usbOffloadStatus) {
-            this.setState({ usbOffloadStatus });
+        // LogApi.post resolves to undefined when the request fails.  No copy started, so there is
+        // no status for polling to report and the click would pass silently: say so directly.
+        if (!usbOffloadStatus) {
+            CustomAlert.alert("Could not start the copy to USB.  Please try again.");
+            return;
         }
+
+        this.setState({ usbOffloadStatus });
     }
 
     /**

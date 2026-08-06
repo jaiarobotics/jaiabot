@@ -96,6 +96,22 @@ def test_picks_the_largest_partition_of_one_drive(fakeLsblk):
     assert usb_offload.findUsbPartition()['path'] == '/dev/sda2'
 
 
+def test_finds_a_stick_with_no_partition_table(fakeLsblk):
+    '''Some sticks carry their filesystem on the raw device rather than on a partition'''
+    wholeDisk = disk('sda')
+    wholeDisk.update(fstype='exfat', size=64_000_000_000)
+    fakeLsblk([wholeDisk])
+    assert usb_offload.findUsbPartition()['path'] == '/dev/sda'
+
+
+def test_ignores_an_unpartitioned_config_card(fakeLsblk):
+    '''A dd-ed fleet config ISO shows up as a whole disk, and is still not the operator's drive'''
+    configCard = disk('sda')
+    configCard.update(fstype='iso9660', label='updates', size=2_000_000_000)
+    fakeLsblk([configCard, disk('sdc'), partition('sdc1', 'sdc')])
+    assert usb_offload.findUsbPartition()['path'] == '/dev/sdc1'
+
+
 def test_raises_when_no_drive_is_plugged_in(fakeLsblk):
     fakeLsblk([disk('sdb'), partition('sdb1', 'sdb', 'btrfs', 'rootfs', mountpoint='/')])
     with pytest.raises(RuntimeError, match='No USB drive found'):
@@ -211,6 +227,34 @@ def test_a_log_deleted_before_it_is_copied_is_not_reported_as_copied(monkeypatch
     status = manager.getStatus()
     assert status.logsCopied == 1
     assert status.logsTotal == 1
+
+
+def test_a_log_deleted_after_queueing_does_not_strand_the_percentage(monkeypatch, manager, tmp_path):
+    '''Its bytes were counted when it was queued, so they have to come back out again'''
+    def deleteBigThenCopy(paths, destination, onProgress):
+        for path in tmp_path.glob('big.*'):
+            path.unlink()
+
+    monkeypatch.setattr(usb_offload, 'rsyncWithProgress', deleteBigThenCopy)
+
+    manager.addLogNames(['tiny', 'big'])
+    waitUntilIdle(manager)
+
+    status = manager.getStatus()
+    assert status.percentComplete == 100, 'percentage stalled below 100 after the skip'
+    assert status.logsCopied == 1
+    assert status.logsTotal == 1
+
+
+def test_a_copy_whose_logs_all_vanished_says_so(monkeypatch, manager):
+    monkeypatch.setattr(usb_offload, 'rsyncWithProgress', lambda *args: None)
+
+    manager.addLogNames(['gone', 'also-gone'])
+    waitUntilIdle(manager)
+
+    status = manager.getStatus()
+    assert status.logsTotal == 0
+    assert status.errorMessage == 'None of the selected logs are still on the hub'
 
 
 def test_log_names_are_matched_literally_not_as_glob_patterns(manager):

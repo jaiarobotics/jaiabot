@@ -43,7 +43,7 @@ class UsbOffloadStatus:
 
 
 def findUsbPartition():
-    '''Returns the lsblk record of the USB partition plugged into the hub, raising unless there is exactly one'''
+    '''Returns the lsblk record of the USB filesystem plugged into the hub, raising unless there is exactly one'''
     output = subprocess.check_output(
         ['lsblk', '-J', '-l', '-b', '-o', 'NAME,PATH,PKNAME,TRAN,FSTYPE,LABEL,TYPE,SIZE,MOUNTPOINT'])
     devices = json.loads(output)['blockdevices']
@@ -53,16 +53,16 @@ def findUsbPartition():
     usbDiskNames = {device['name'] for device in devices
                     if device['type'] == 'disk' and device['tran'] == 'usb'}
 
-    # The fleet config card is on USB too, so skip the hub's own media.  Both checks are needed:
-    # fstab mounts the config card at boot, but our ansible tasks leave it unmounted.
-    partitions = [device for device in devices
-                  if device['type'] == 'part'
-                  and device['pkname'] in usbDiskNames
+    # A stick carries its filesystem either on a partition or, if it was never partitioned, on the
+    # disk itself.  The fleet config card is on USB too, so skip the hub's own media: both checks
+    # are needed, since fstab mounts that card at boot but our ansible tasks leave it unmounted.
+    candidates = [device for device in devices
+                  if (device['pkname'] in usbDiskNames or device['name'] in usbDiskNames)
                   and device['fstype'] is not None
                   and device['mountpoint'] is None
                   and device['label'] not in RESERVED_LABELS]
 
-    disksFound = {partition['pkname'] for partition in partitions}
+    disksFound = {device['pkname'] or device['name'] for device in candidates}
 
     if len(disksFound) == 0:
         raise RuntimeError("No USB drive found.  Please plug a drive into one of the hub's USB ports.")
@@ -71,7 +71,7 @@ def findUsbPartition():
         raise RuntimeError(f'{len(disksFound)} USB drives found.  Please plug in only one drive.')
 
     # One drive often holds more than one partition, so take the largest: the one with room for logs
-    return max(partitions, key=lambda partition: partition['size'])
+    return max(candidates, key=lambda device: device['size'])
 
 
 def hasUsbDrive():
@@ -126,8 +126,8 @@ class UsbOffloadManager:
     logNamesQueue: List[str]
     status: UsbOffloadStatus
 
-    logNamesAccepted: List[str]
-    '''Every log taken into this copy, so asking for one twice does not copy it twice'''
+    bytesForLog: Dict[str, int]
+    '''Size of every log taken into this copy, keyed by name so asking for one twice copies it once'''
 
     bytesTotal: int
 
@@ -146,7 +146,7 @@ class UsbOffloadManager:
     def __init__(self, logRootPath: str) -> None:
         self.logRootPath = logRootPath
         self.logNamesQueue = []
-        self.logNamesAccepted = []
+        self.bytesForLog = {}
         self.status = UsbOffloadStatus()
         self.bytesTotal = 0
         self.bytesCopied = 0
@@ -167,19 +167,20 @@ class UsbOffloadManager:
 
             if isNewCopy:
                 self.logNamesQueue = []
-                self.logNamesAccepted = []
+                self.bytesForLog = {}
                 self.status = UsbOffloadStatus(isCopying=True)
                 self.bytesTotal = 0
                 self.bytesCopied = 0
                 self.bytesInFlight = 0
 
             for logName in logNames:
-                if logName in self.logNamesAccepted:
+                if logName in self.bytesForLog:
                     continue
 
+                self.bytesForLog[logName] = sum(os.path.getsize(path)
+                                                for path in self.pathsForLog(logName))
                 self.logNamesQueue.append(logName)
-                self.logNamesAccepted.append(logName)
-                self.bytesTotal += sum(os.path.getsize(path) for path in self.pathsForLog(logName))
+                self.bytesTotal += self.bytesForLog[logName]
                 self.status.logsTotal += 1
 
             # Adding logs makes the copy bigger, so the percentage has to fall to match
@@ -234,7 +235,7 @@ class UsbOffloadManager:
                     logName = self.logNamesQueue.pop(0)
 
                 paths = self.pathsForLog(logName)
-                logBytes = sum(os.path.getsize(path) for path in paths)
+                logBytes = self.bytesForLog[logName]
 
                 def onProgress(fraction: float):
                     with self.lock:
@@ -242,10 +243,12 @@ class UsbOffloadManager:
                         self.refreshPercentComplete()
 
                 if len(paths) == 0:
-                    # Deleted since it was queued, so drop it rather than report it as copied
+                    # Deleted since it was queued, so drop it from the copy rather than report it
+                    # as copied.  Its bytes go too, or the percentage could never reach 100.
                     logging.warning(f'No files found for log: {logName}')
 
                     with self.lock:
+                        self.bytesTotal -= logBytes
                         self.status.logsTotal -= 1
                         self.refreshPercentComplete()
 
@@ -273,6 +276,12 @@ class UsbOffloadManager:
 
                     with self.lock:
                         if not self.logNamesQueue:
+                            # Everything asked for was deleted before it could be copied, which
+                            # would otherwise end the copy showing nothing at all
+                            if self.status.logsTotal == 0 and self.bytesForLog:
+                                self.status.errorMessage = \
+                                    'None of the selected logs are still on the hub'
+
                             self.status.isCopying = False
                             return
 
