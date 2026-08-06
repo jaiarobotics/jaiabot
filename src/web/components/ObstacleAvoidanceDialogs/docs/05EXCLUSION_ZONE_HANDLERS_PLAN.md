@@ -11,34 +11,76 @@ that the dialog/UI consolidation work is done (see
 [`03ADD_MOVE_WAYPOINT_CONSISTENCY.md`](./03ADD_MOVE_WAYPOINT_CONSISTENCY.md), and
 the architecture traced in
 [`04EVENT_STREAMS.md`](./04EVENT_STREAMS.md)). Two things landed in this same
-line of investigation and belong in this pass:
+line of investigation and turn out to be one change, not two sequential
+passes:
 
-1. Whether `context/handlers/exclusion-zone-handlers.ts` itself could be
-   better structured.
+1. Restructuring `context/handlers/exclusion-zone-handlers.ts`'s duplicated
+   detect → filter → stage shape.
 2. The revert-context field bag on `PendingReroute`/`PendingWaypointRemoval`
    in `data/obstacle_avoidance_data/pending-route-data.ts`.
+
+They're coupled because a shared handler function's only real parameter
+across call sites is which revert context to attach — it can't be written
+cleanly without `RevertContext` (Part 2) existing first, or it gets
+extracted once now and reshaped again once Part 2 lands.
 
 Naming is already settled and not part of this plan:
 `PendingObstacleAvoidanceDialog` → `PendingObstacleAvoidanceChange` →
 `PendingChange` (final), with accessors `pendingChange`/`getPendingChange`/
 `setPendingChange` on `ObstacleAvoidanceData`.
 
-## Part 1 — Handler shape duplication
+## Part 1 — Handler shape duplication, and the Bug 3 fix
 
 `handleAddExclusionZone`, `handleMoveZoneVertex`, and `handleAddZoneVertex`
-in `exclusion-zone-handlers.ts` all share a near-identical shape: detect
+in `exclusion-zone-handlers.ts` share a near-identical shape: detect
 waypoint removal → strip bypasses inside the zone with a snapshot → detect
 mission reroutes → filter to `relevant` proposals via
-`involvedZoneIDs`/`bypassAffected` → set `pendingChange`. Worth confirming
-whether extracting that shared shape is the actual target for this review.
+`involvedZoneIDs`/`bypassAffected` → set `pendingChange`.
 
-This filter logic is also where
-[`06KNOWN_BUGS.md`](./06KNOWN_BUGS.md)'s **Bug 3 — new/moved zone can silently
-fail to trigger any reroute check** lives (`relevant =
+`handleDeleteZoneVertex` is the control case: it skips the waypoint-removal
+check (deleting a vertex, or moving one inward, can only shrink a convex
+hull, never newly enclose a waypoint) and skips the `relevant` filter,
+staging whatever `detectMissionReroutes()` returns unfiltered. Include it in
+this pass alongside the other three — comparing all four is what exposes
+both findings below.
+
+**Bug 3 — root cause confirmed and fix verified (not just root-caused).**
+[`06KNOWN_BUGS.md`](./06KNOWN_BUGS.md)'s Bug 3 (a new/moved zone that blocks
+a bypass leg, rather than a mission's original straight-line segment, never
+triggers a reroute dialog) lives in this exact filter: `relevant =
 pending.proposals.filter((p) => p.involvedZoneIDs.includes(zoneID) ||
-bypassAffected.has(p.missionID))`). This pass may end up being where Bug 3
-gets fixed, but that's not assumed in scope unless decided explicitly when
-the work starts.
+bypassAffected.has(p.missionID))`. Reading `detectReroutesWithOverrides` in
+`exclusion-zone-router.ts:724-727` shows the detector already does the right
+comparison one layer down:
+
+```ts
+if (!hasOverride) {
+    if (waypointListsMatch(newWaypoints, currentWaypoints)) continue;
+    if (waypointListsMatch(newWaypoints, cleanWaypoints)) continue;
+}
+```
+
+`detectMissionReroutes()` (called with no overrides) already excludes any
+mission whose newly-computed route matches what's currently applied —
+`pending.proposals` is already the relevant set. The `relevant` filter in
+Add/Move/AddZoneVertex is a redundant, _incorrect_ second filter on top of a
+detector that already got this right; `handleDeleteZoneVertex` omitting it
+isn't a gap, it's the correct behavior the other three should converge on.
+
+**The fix:** delete the `relevant` filter in all three handlers; stage
+`pending` directly, the way `handleDeleteZoneVertex` already does. This also
+lets them drop their manual `totalBypassCount` recompute (`relevant.reduce((s,
+p) => s + p.bypassCount, 0)`) in favor of `pending.totalBypassCount`, which
+`markOverLimit` already computes correctly (feasible proposals only). This
+is in scope for this pass, not deferred.
+
+**Shrink/grow invariant, currently implicit — worth a comment once this is
+touched:** `stripStaleBypasses()` after the reroute check is only needed for
+zone-shape ops that can _shrink_ the hull (`handleMoveZoneVertex`,
+`handleDeleteZoneVertex`) — a mission might no longer cross any zone.
+`handleAddExclusionZone` and `handleAddZoneVertex` never call it, because a
+brand-new zone, or a convex hull re-computed with one more point, can only
+grow or stay the same size, never remove a crossing.
 
 ## Part 2 — Split `PendingReroute`/`PendingWaypointRemoval` into detection result + revert context
 
@@ -147,3 +189,18 @@ The actual route-computation engine
 logic) is a separate, already-queued investigation — understanding how
 routing itself works, not the dispatch/revert plumbing around it. Not part
 of this plan.
+
+**Flagged for that investigation:** `involvedZoneIDs` (`routeAroundExclusionZones`,
+`exclusion-zone-router.ts:548-592`) only counts zones blocking a mission's
+_original straight-line_ segment, not zones that only block a bypass leg —
+this is Bug 3's root cause (Part 1). `handleLoadExclusionZones` and
+`handleRestoreExclusionZoneSnapshot` ([exclusion-zone-handlers.ts:161-164](../../../context/handlers/exclusion-zone-handlers.ts#L161-L164)
+and the equivalent block at line 234) both build a `skippedZoneIDSet` from
+`involvedZoneIDs` on OVER_LIMIT/IMPOSSIBLE proposals to decide which zones to
+silently drop from a load. A zone that only makes a route infeasible via a
+bypass leg is exposed to the same narrowness, so it may not get flagged for
+skipping, and an unroutable zone could load anyway. Not fixed by Part 1 (that
+fix removes the _filter's_ dependency on `involvedZoneIDs`, it doesn't touch
+this skip-list computation) — a candidate fix for whenever the router
+investigation revisits `involvedZoneIDs`'s definition, localized to these two
+handlers' skip logic.
