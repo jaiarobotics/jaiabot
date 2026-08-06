@@ -101,6 +101,54 @@ how to undo whatever triggered it. This is also why
 never actually has any revert fields populated; it's only ever used for its
 `proposals`/`totalBypassCount` shape.
 
+`revert` is a list, not a single value: `handleCancelMissionReroute` applies
+`priorMissionWaypoints` (restoring bypass waypoints stripped during preview)
+unconditionally, then separately applies whichever zone-revert action
+applies. These are independent actions, not mutually exclusive alternatives
+— for `handleAddExclusionZone`, `handleMoveZoneVertex`, and
+`handleAddZoneVertex`'s reroute path, both fire together (restore stripped
+bypasses **and** delete/restore the zone), so `revert` is `RevertContext[]`.
+
+`RevertContext` has five variants. `revertZoneLoad`
+(`loadedZoneIDs`/`skippedZoneIDs`) and `revertMissionLoad`
+(`loadedMissionIDs`/`skippedMissionIDs`) aren't among them: every producer
+that sets those fields also sets a snapshot field
+(`priorExclusionZoneSetSnapshot`, or `priorMissionSetSnapshot`+
+`priorMissionsManagerSnapshot`) in the same object, and both cancel handlers
+check the snapshot field first and return early, so those two variants could
+never be the action that actually runs — confirmed against every
+`setPendingChange` call site in the codebase, and against the original PR
+history (#1548): the load handlers already cleared their target set before
+re-adding to it at the point these fields were introduced, so an
+IDs-to-delete revert never restored what got cleared — these two never
+worked. `removeOffendingZones` (`offendingZoneIDs`) is dropped for the same
+reachability reason, but it's a different case: it was correct as written
+and gave real, working UX — cancel kept the non-conflicting zones from a
+load, only removing the ones that swallowed a waypoint — before being
+shadowed by the snapshot-based revert added later. Dropping it here is a
+deliberate trade, not neutral cleanup: reviving that partial-revert behavior
+would need deliberate work later, not a revert of this change. `revert` is
+required, not optional, so a future producer that forgets to attach one is a
+compile error instead of a silent runtime guess.
+
+`loadedZoneIDs`/`skippedZoneIDs`/`loadedMissionIDs`/`skippedMissionIDs`
+aren't revert data at all — `MissionRerouteDialog.tsx` reads them directly
+for button gating (Confirm shown or not, "Revert" vs. "Revert All") and the
+skipped/loaded counts shown to the operator, and `handleConfirmMissionReroute`
+reads `loadedMissionIDs` to avoid double-deleting missions already stripped
+during a mission load. They move to a new `loadSummary` field, present only
+on `PendingReroute` (the `waypointRemoval` producers that load/restore zones
+never set these).
+
+`offendingZoneIDs` is not producer context like the dropped variants — it's
+a pure function of which zones blocked which removed waypoints, the same
+regardless of which handler triggered detection, and
+`handleLoadExclusionZones` reads it before staging the dialog to decide
+which zones to strip preemptively
+([exclusion-zone-handlers.ts:134-137](../../../context/handlers/exclusion-zone-handlers.ts#L134-L137)) —
+real business logic, unrelated to revert. It stays, moved onto
+`WaypointRemovalProposalSet` as a detection-result field, always computed.
+
 **Proposed types**, in `pending-route-data.ts`:
 
 ```ts
@@ -112,6 +160,8 @@ interface RerouteProposalSet {
 interface WaypointRemovalProposalSet {
     proposals: PendingWaypointRemovalProposal[];
     totalRemovedCount: number;
+    /** Zone IDs whose buffers contain at least one removed waypoint. */
+    offendingZoneIDs: number[];
     followUpReroute?: RerouteProposalSet; // can no longer carry a revert context — matches reality
 }
 
@@ -124,16 +174,18 @@ type RevertContext =
           missionSet: MissionSetSnapshot;
           missionsManager: MissionsManagerSnapshot;
       }
-    | { kind: "restoreZoneSetSnapshot"; zoneSet: ExclusionZoneSetSnapshot }
-    | { kind: "revertZoneLoad"; loadedZoneIDs: number[]; skippedZoneIDs: number[] }
-    | { kind: "revertMissionLoad"; loadedMissionIDs: number[]; skippedMissionIDs: number[] }
-    | { kind: "removeOffendingZones"; zoneIDs: number[] };
+    | { kind: "restoreZoneSetSnapshot"; zoneSet: ExclusionZoneSetSnapshot };
+
+type LoadSummary =
+    | { kind: "zoneLoad"; loadedZoneIDs: number[]; skippedZoneIDs: number[] }
+    | { kind: "missionLoad"; loadedMissionIDs: number[]; skippedMissionIDs: number[] };
 
 interface PendingReroute extends RerouteProposalSet {
-    revert?: RevertContext;
+    revert: RevertContext[];
+    loadSummary?: LoadSummary;
 }
 interface PendingWaypointRemoval extends WaypointRemovalProposalSet {
-    revert?: RevertContext;
+    revert: RevertContext[];
 }
 ```
 
@@ -141,8 +193,8 @@ This collapses the duplicated field lists on both interfaces into one shared
 `RevertContext`, makes "mutually exclusive" an actual type-system guarantee
 instead of a comment, and turns
 `handleCancelMissionReroute`/`handleCancelWaypointRemoval`'s if/else chains
-(testing which optional field happens to be set) into a `switch
-(revert.kind)`.
+(testing which optional field happens to be set) into a loop over `revert`
+with a `switch (action.kind)` inside.
 
 **Explicitly not merging:** `PendingRerouteProposal` and
 `PendingWaypointRemovalProposal`. They share `missionID`/`newWaypoints` but
@@ -158,10 +210,21 @@ plan removes elsewhere.
 `WaypointRemovalProposalSet` values (no `revert` field — they never set one
 today either, this just makes that explicit in the type).
 
+`detectWaypointRemovals(triggeringZoneID?, removeOffendingZonesOnCancel?)`
+loses both parameters. `triggeringZoneID` was never used to scope the
+detection — `getBlockingZoneIDs(loc)` checks every zone regardless of the
+argument — it only controlled whether the result got stamped with a revert
+field, which is now the producer's job, not detection's.
+`removeOffendingZonesOnCancel` becomes unconditional, since
+`offendingZoneIDSet` is cheap (already computed unconditionally inside the
+loop) and now lives on `WaypointRemovalProposalSet` as ordinary detection
+output. New signature: `detectWaypointRemovals(): PendingWaypointRemoval | null`.
+
 ## Part 4 — Update the 12 producer handlers
 
-Each producer attaches exactly one `RevertContext` variant instead of
-spreading multiple optional fields. Producers, by file:
+Each producer attaches one or more `RevertContext` entries — a list, not a
+single variant — instead of spreading multiple optional fields. Producers,
+by file:
 
 - `exclusion-zone-handlers.ts`: `handleAddExclusionZone`,
   `handleLoadExclusionZones`, `handleRestoreExclusionZoneSnapshot`,
@@ -174,15 +237,22 @@ spreading multiple optional fields. Producers, by file:
 ## Part 5 — Update the cancel handlers
 
 `obstacle-avoidance-handlers.ts`: `handleCancelMissionReroute` and
-`handleCancelWaypointRemoval` switch on `revert.kind` instead of testing
-which optional field is present.
+`handleCancelWaypointRemoval` loop over `revert`, `switch`-ing on each
+action's `kind`, instead of testing which optional field is present. The
+final fallback branch in `handleCancelWaypointRemoval` (delete missions
+straight from `pending.proposals` when no other field is set) is removed —
+confirmed unreachable, see Part 2.
 
 ## Out of scope
 
-UI consumers — `RerouteSummary.tsx`, `MissionRerouteDialog.tsx`,
-`WaypointRemovalDialog.tsx` — read `.proposals`/`.totalBypassCount`/
-`.totalRemovedCount` and are unaffected; those fields keep the same shape
-and location.
+UI consumers — `RerouteSummary.tsx`, `WaypointRemovalDialog.tsx` — read
+`.proposals`/`.totalBypassCount`/`.totalRemovedCount` and are unaffected;
+those fields keep the same shape and location. `MissionRerouteDialog.tsx` is
+affected: `isZoneLoad`/`isMissionLoad`/`skippedZones`/`loadedZones`/
+`skippedMissions`/`loadedMissions` (lines 15-26) read from
+`pending.loadSummary` instead of the four raw fields directly on `pending`.
+`handleConfirmMissionReroute`'s `isMissionLoad` check
+(`obstacle-avoidance-handlers.ts`) updates the same way.
 
 The actual route-computation engine
 (`exclusion-zone-router.ts`/`exclusion-zone-detection.ts`'s A\*/routing
@@ -196,11 +266,11 @@ _original straight-line_ segment, not zones that only block a bypass leg —
 this is Bug 3's root cause (Part 1). `handleLoadExclusionZones` and
 `handleRestoreExclusionZoneSnapshot` ([exclusion-zone-handlers.ts:161-164](../../../context/handlers/exclusion-zone-handlers.ts#L161-L164)
 and the equivalent block at line 234) both build a `skippedZoneIDSet` from
-`involvedZoneIDs` on OVER_LIMIT/IMPOSSIBLE proposals to decide which zones to
+`involvedZoneIDs` on OVER*LIMIT/IMPOSSIBLE proposals to decide which zones to
 silently drop from a load. A zone that only makes a route infeasible via a
 bypass leg is exposed to the same narrowness, so it may not get flagged for
 skipping, and an unroutable zone could load anyway. Not fixed by Part 1 (that
-fix removes the _filter's_ dependency on `involvedZoneIDs`, it doesn't touch
+fix removes the \_filter's* dependency on `involvedZoneIDs`, it doesn't touch
 this skip-list computation) — a candidate fix for whenever the router
 investigation revisits `involvedZoneIDs`'s definition, localized to these two
 handlers' skip logic.
