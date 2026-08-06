@@ -35,6 +35,7 @@ export interface MissionStatus {
     targetWaypoint?: number;
     distanceToTargetWaypoint?: number;
     repeatIndex?: number;
+    constantHeadingTimeRemaining?: number;
 }
 
 export interface TaskParameters {
