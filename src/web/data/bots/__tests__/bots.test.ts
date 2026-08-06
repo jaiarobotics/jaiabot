@@ -24,3 +24,8 @@ test("Verify bots are sorted when adding", () => {
     expect(addedBots[1].getBotID()).toEqual(2);
     expect(addedBots[2].getBotID()).toEqual(5);
 });
+
+test("Verify a zero constant heading time remaining is preserved", () => {
+    bots.setBot({ bot_id: 1, constant_heading_time_remaining: 0 });
+    expect(bots.getBot(1).getMissionStatus().constantHeadingTimeRemaining).toEqual(0);
+});
