@@ -144,11 +144,11 @@ message CommandForHub
 message BotStatus
 {
     /*
-    Actual maximum size of message: 48 bytes / 384 bits
+    Actual maximum size of message: 55 bytes / 440 bits
         dccl.id head...........................8
         user head..............................0
-        body.................................369
-        padding to full byte...................7
+        body.................................432
+        padding to full byte...................0
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
     option (dccl.msg) = {
@@ -341,6 +341,15 @@ message BotStatus
     ];
     optional int32 repeat_index = 44 [
         (dccl.field) = { min: 0 max: 1000 precision: 0 },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+    optional uint32 constant_heading_time_remaining = 45 [
+        (dccl.field) = {
+            min: 0
+            max: 3600
+            precision: 0
+            units { base_dimensions: "T" }
+        },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
 
