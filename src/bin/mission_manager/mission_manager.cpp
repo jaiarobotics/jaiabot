@@ -662,6 +662,15 @@ void jaiabot::apps::MissionManager::publish_mission_report(protobuf::MissionStat
         report.set_repeat_index(in_mission->repeat_index());
     }
 
+    // Relay the time left in the constant heading task
+    const auto* constant_heading =
+        machine_->state_cast<const statechart::inmission::underway::task::ConstantHeading*>();
+
+    if (constant_heading)
+    {
+        report.set_constant_heading_time_remaining(constant_heading->time_remaining());
+    }
+
     // only report the goal index when not in recovery or trail
     if (in_mission && in_mission->goal_index() != statechart::InMission::RECOVERY_GOAL_INDEX)
     {
