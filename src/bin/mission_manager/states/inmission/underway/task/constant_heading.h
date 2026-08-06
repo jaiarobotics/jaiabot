@@ -79,6 +79,13 @@ struct ConstantHeading
             post_event(EvTaskComplete());
     }
 
+    int time_remaining() const
+    {
+        auto remaining = std::chrono::duration_cast<std::chrono::seconds>(
+            setpoint_stop_ - goby::time::SteadyClock::now());
+        return std::max<std::int64_t>(0, remaining.count());
+    }
+
     using reactions = boost::mpl::list<
         boost::statechart::in_state_reaction<EvLoop, ConstantHeading, &ConstantHeading::loop>>;
 
