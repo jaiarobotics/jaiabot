@@ -887,7 +887,8 @@ function sendVisibleCommand() {
         return;
     }
 
-    // The motor RPM test drives the motor itself, so don't fight it with the periodic command
+    // The motor RPM test must be the only thing driving the motor while it runs, so don't fight it
+    // with the periodic command
     if (!calibrationApp.isMotorRPMTestRunning) {
         let command = getVisibleCommand();
         api.sendEngineeringCommand(command);

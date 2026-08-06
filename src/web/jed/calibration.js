@@ -14,9 +14,15 @@ const MOTOR_RPM_TEST_SPINUP = 10000; // milliseconds
 const MOTOR_RPM_TEST_MEASURE = 5000; // milliseconds
 // Only resent for redundancy, in case a command is lost on the way to the bot
 const MOTOR_RPM_TEST_COMMAND_INTERVAL = 2000; // milliseconds
-const MOTOR_RPM_TEST_COLLECTION_GRACE = 3000; // milliseconds
-// Must outlast the whole test, so a late command can't let the bot stop the motor part way through
-const MOTOR_RPM_TEST_COMMAND_TIMEOUT = 20; // seconds
+// The bot stops the motor on its own this long after the last command it received, so keep it only
+// long enough to ride out a few dropped commands
+const MOTOR_RPM_TEST_COMMAND_TIMEOUT = 8; // seconds
+// The stop is repeated, so a single dropped command can't leave the motor running
+const MOTOR_RPM_TEST_STOP_COUNT = 3;
+const MOTOR_RPM_TEST_STOP_INTERVAL = 500; // milliseconds
+// The bot answers one engineering status per query, and a slow link can take seconds to deliver
+// each one, so wait for those answers instead of assuming they arrive on our clock
+const MOTOR_RPM_TEST_COLLECTION_TIMEOUT = 20000; // milliseconds
 
 class CalibrationApp {
     constructor() {
@@ -60,10 +66,13 @@ class CalibrationApp {
         this.lastEngineeringStatusTime = 0;
         this.lastEngineeringStatusBotId = null;
         this.isMotorRPMTestRunning = false;
+        this.isMotorRPMTestDriving = false;
         this.isCollectingMotorRPM = false;
         this.motorRPMSamples = [];
         this.motorRPMStatusCount = 0;
+        this.motorRPMQueryCount = 0;
         this.motorRunningStatusCount = 0;
+        this.motorRPMCollectionTimeout = null;
     }
 
     updateStatus(status) {
@@ -225,54 +234,76 @@ class CalibrationApp {
         }
 
         this.isMotorRPMTestRunning = true;
+        this.isMotorRPMTestDriving = true;
         this.isCollectingMotorRPM = false;
         this.motorRPMSamples = [];
         this.motorRPMStatusCount = 0;
+        this.motorRPMQueryCount = 0;
         this.motorRunningStatusCount = 0;
         this.updateTestMotorRPMBtn(true);
         this.updateMotorRPMTestResult("Spinning up motor...", "");
 
-        const runMotor = () =>
+        const testStartTime = Date.now();
+
+        const runMotor = () => {
+            // Nothing may drive the motor once the measurement window is over
+            if (!this.isMotorRPMTestDriving) return;
+
+            // Only ask for a status once we are measuring, to keep the link quiet before that.
+            // Decided here rather than on its own timer, so the first measuring command is
+            // guaranteed to carry the query.
+            if (!this.isCollectingMotorRPM && Date.now() - testStartTime >= MOTOR_RPM_TEST_SPINUP) {
+                this.isCollectingMotorRPM = true;
+                this.updateMotorRPMTestResult("Measuring motor RPM...", "");
+            }
+
             this.sendMotorRPMTestCommand(
                 botId,
                 {
                     timeout: MOTOR_RPM_TEST_COMMAND_TIMEOUT,
                     speed: { target: MOTOR_RPM_TEST_SPEED },
                 },
-                // Only ask for a status once we are measuring, to keep the link quiet before that
                 this.isCollectingMotorRPM,
             );
+        };
 
         runMotor();
         const runMotorInterval = setInterval(runMotor, MOTOR_RPM_TEST_COMMAND_INTERVAL);
 
         setTimeout(() => {
-            this.isCollectingMotorRPM = true;
-            this.updateMotorRPMTestResult("Measuring motor RPM...", "");
-        }, MOTOR_RPM_TEST_SPINUP);
-
-        setTimeout(() => {
             clearInterval(runMotorInterval);
-            this.isMotorRPMTestRunning = false;
-            // Don't query on the stop command, so the bot isn't asked for a status after it stops
-            this.sendMotorRPMTestCommand(
-                botId,
-                { timeout: MOTOR_RPM_TEST_COMMAND_TIMEOUT, throttle: 0 },
-                false,
-            );
+            this.isMotorRPMTestDriving = false;
+            this.stopMotor(botId);
             this.updateMotorRPMTestResult("Waiting for motor RPM data...", "");
-        }, MOTOR_RPM_TEST_SPINUP + MOTOR_RPM_TEST_MEASURE);
 
-        // The bot only sends an engineering status every couple of seconds, so keep listening for
-        // the statuses it sent while the motor was still running
-        setTimeout(
-            () => {
-                this.isCollectingMotorRPM = false;
-                this.reportMotorRPMTestResult();
-                this.updateTestMotorRPMBtn(false);
-            },
-            MOTOR_RPM_TEST_SPINUP + MOTOR_RPM_TEST_MEASURE + MOTOR_RPM_TEST_COLLECTION_GRACE,
-        );
+            // The statuses were sampled while the motor was running, so they are still worth
+            // waiting for now that it has stopped
+            this.motorRPMCollectionTimeout = setTimeout(
+                () => this.finishMotorRPMTest(),
+                MOTOR_RPM_TEST_COLLECTION_TIMEOUT,
+            );
+        }, MOTOR_RPM_TEST_SPINUP + MOTOR_RPM_TEST_MEASURE);
+    }
+
+    stopMotor(botId) {
+        // Don't query on the stop command, so the bot isn't asked for a status after it stops.
+        // Send no timeout with it, so the bot goes back to its usual motor command failsafe.
+        const sendStop = () => this.sendMotorRPMTestCommand(botId, { throttle: 0 }, false);
+
+        sendStop();
+        for (let resendIndex = 1; resendIndex < MOTOR_RPM_TEST_STOP_COUNT; resendIndex++) {
+            setTimeout(sendStop, resendIndex * MOTOR_RPM_TEST_STOP_INTERVAL);
+        }
+    }
+
+    finishMotorRPMTest() {
+        if (!this.isMotorRPMTestRunning) return;
+
+        clearTimeout(this.motorRPMCollectionTimeout);
+        this.isCollectingMotorRPM = false;
+        this.isMotorRPMTestRunning = false;
+        this.reportMotorRPMTestResult();
+        this.updateTestMotorRPMBtn(false);
     }
 
     sendMotorRPMTestCommand(botId, pidControl, isQueryingStatus) {
@@ -281,6 +312,10 @@ class CalibrationApp {
             pid_control: pidControl,
             query_engineering_status: isQueryingStatus,
         };
+
+        if (isQueryingStatus) {
+            this.motorRPMQueryCount += 1;
+        }
 
         api.sendEngineeringCommand(engineeringCommand, true);
     }
@@ -292,19 +327,25 @@ class CalibrationApp {
 
         // The throttle the bot reports is the one it was applying when it sampled the RPM, so it
         // tells us the motor was still being driven without comparing the bot's clock to ours
-        if (!(engineeringStatus.pid_control?.throttle > 0)) return;
+        if (engineeringStatus.pid_control?.throttle > 0) {
+            this.motorRunningStatusCount += 1;
 
-        this.motorRunningStatusCount += 1;
+            if (engineeringStatus.motor_rpm != null) {
+                this.motorRPMSamples.push(engineeringStatus.motor_rpm);
+            }
+        }
 
-        if (engineeringStatus.motor_rpm == null) return;
-
-        this.motorRPMSamples.push(engineeringStatus.motor_rpm);
+        // The bot answers each query with one status, so once they are all in there is nothing
+        // left to wait for
+        if (!this.isMotorRPMTestDriving && this.motorRPMStatusCount >= this.motorRPMQueryCount) {
+            this.finishMotorRPMTest();
+        }
     }
 
     reportMotorRPMTestResult() {
         if (this.motorRPMStatusCount === 0) {
             this.updateMotorRPMTestResult(
-                "No engineering status was received from this bot",
+                "No engineering status was received from this bot. Check the link to the bot.",
                 "motor-rpm-test-fail",
             );
             return;
