@@ -515,6 +515,16 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             {
                 latest_bot_status_.clear_repeat_index();
             }
+
+            if (report.has_constant_heading_time_remaining())
+            {
+                latest_bot_status_.set_constant_heading_time_remaining(
+                    report.constant_heading_time_remaining());
+            }
+            else
+            {
+                latest_bot_status_.clear_constant_heading_time_remaining();
+            }
         });
 
     interprocess().subscribe<jaiabot::groups::raw_salinity>(
