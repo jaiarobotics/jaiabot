@@ -10,6 +10,8 @@ interface RerouteSummaryProps {
     impossibleMessage: string;
     /** Suppresses the over-limit section; MissionRerouteDialog uses this for mission-load. */
     showOverLimit?: boolean;
+    /** Suppresses the impossible section; MissionRerouteDialog uses this for mission-load. */
+    showImpossible?: boolean;
 }
 
 export default function RerouteSummary({
@@ -17,6 +19,7 @@ export default function RerouteSummary({
     overLimitMessage,
     impossibleMessage,
     showOverLimit = true,
+    showImpossible = true,
 }: RerouteSummaryProps) {
     const overLimit = proposals.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
     const impossible = proposals.filter((p) => p.status === ProposalStatus.IMPOSSIBLE);
@@ -38,7 +41,7 @@ export default function RerouteSummary({
                 </>
             )}
 
-            {impossible.length > 0 && (
+            {showImpossible && impossible.length > 0 && (
                 <>
                     <p className="dialog-warn">{impossibleMessage}</p>
                     <ul className="dialog-warn-list">

@@ -1,6 +1,10 @@
 # Obstacle avoidance: two event streams
 
-_Status: reference documentation._
+_Status: historical snapshot, taken before
+[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md).
+Superseded by [`07EVENT_STREAMS.md`](./07EVENT_STREAMS.md) for the current
+architecture — the `revert`/`RevertContext`/`loadSummary` contract below no
+longer matches the code. Kept as-is for the pre-refactor picture._
 
 Traced from `subtask/consolidate-dialogs/SW-2493`. The system is a fan-in /
 fan-out, not a single pipeline: **12 producer functions** across 4 handler

@@ -17,7 +17,10 @@ import { jaiaAPI } from "../../utils/jaia-api";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { isLocationBlockedByZone } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 import { detectMissionReroutes } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
-import { ProposalStatus } from "../../data/obstacle_avoidance_data/pending-route-data";
+import {
+    ProposalStatus,
+    RevertContext,
+} from "../../data/obstacle_avoidance_data/pending-route-data";
 import { syncTaskLayers } from "./handler-utils";
 import cloneDeep from "lodash/cloneDeep";
 
@@ -80,15 +83,20 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
         return mutableState;
     }
     if (pending) {
+        const revert: RevertContext[] =
+            missionIDInEditMode !== UNASSIGNED_ID && priorMissionWaypoints
+                ? [
+                      {
+                          kind: "restoreWaypoints",
+                          missions: [
+                              { missionID: missionIDInEditMode, waypoints: priorMissionWaypoints },
+                          ],
+                      },
+                  ]
+                : [];
         mutableState.obstacleAvoidanceData.setPendingChange({
             type: "reroute",
-            data: {
-                ...pending,
-                priorMissionWaypoints:
-                    missionIDInEditMode !== UNASSIGNED_ID && priorMissionWaypoints
-                        ? [{ missionID: missionIDInEditMode, waypoints: priorMissionWaypoints }]
-                        : undefined,
-            },
+            data: { ...pending, revert },
         });
     }
 
@@ -146,8 +154,16 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
             type: "reroute",
             data: {
                 ...pending,
-                priorMissionWaypoints: [
-                    { missionID: selectedWaypoint.missionID, waypoints: priorMissionWaypoints },
+                revert: [
+                    {
+                        kind: "restoreWaypoints",
+                        missions: [
+                            {
+                                missionID: selectedWaypoint.missionID,
+                                waypoints: priorMissionWaypoints,
+                            },
+                        ],
+                    },
                 ],
             },
         });
@@ -224,8 +240,16 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
             type: "reroute",
             data: {
                 ...pending,
-                priorMissionWaypoints: [
-                    { missionID: selectedWaypoint.missionID, waypoints: priorMissionWaypoints },
+                revert: [
+                    {
+                        kind: "restoreWaypoints",
+                        missions: [
+                            {
+                                missionID: selectedWaypoint.missionID,
+                                waypoints: priorMissionWaypoints,
+                            },
+                        ],
+                    },
                 ],
             },
         });

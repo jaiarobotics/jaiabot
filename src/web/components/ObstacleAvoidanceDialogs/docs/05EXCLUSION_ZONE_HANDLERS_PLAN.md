@@ -1,6 +1,8 @@
 # Restructure exclusion-zone handlers and the `PendingChange` revert-context types
 
-_Status: not started. Planning only._
+_Status: implemented and smoke-tested. See
+[`06KNOWN_BUGS.md`](./06KNOWN_BUGS.md) for pre-existing bugs found (and one,
+Bug 7, fixed) along the way._
 
 ## Context
 

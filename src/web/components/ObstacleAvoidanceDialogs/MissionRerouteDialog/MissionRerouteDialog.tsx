@@ -12,18 +12,20 @@ import RerouteSummary from "../Common/RerouteSummary";
 export default function MissionRerouteDialog({ pending }: { pending: PendingReroute }) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    const isZoneLoad = pending.loadedZoneIDs !== undefined;
-    const isMissionLoad = pending.loadedMissionIDs !== undefined;
+    const loadSummary = pending.loadSummary;
+    const isZoneLoad = loadSummary?.kind === "zoneLoad";
+    const isMissionLoad = loadSummary?.kind === "missionLoad";
 
     const feasible = pending.proposals.filter((p) => p.status === ProposalStatus.FEASIBLE);
     const overLimit = pending.proposals.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
     const impossible = pending.proposals.filter((p) => p.status === ProposalStatus.IMPOSSIBLE);
     const hasFeasibleReroute = feasible.length > 0;
 
-    const skippedZones = pending.skippedZoneIDs ?? [];
-    const loadedZones = pending.loadedZoneIDs ?? [];
-    const skippedMissions = pending.skippedMissionIDs ?? [];
-    const loadedMissions = pending.loadedMissionIDs ?? [];
+    const skippedZones = loadSummary?.kind === "zoneLoad" ? loadSummary.skippedZoneIDs : [];
+    const loadedZones = loadSummary?.kind === "zoneLoad" ? loadSummary.loadedZoneIDs : [];
+    const skippedMissions =
+        loadSummary?.kind === "missionLoad" ? loadSummary.skippedMissionIDs : [];
+    const loadedMissions = loadSummary?.kind === "missionLoad" ? loadSummary.loadedMissionIDs : [];
 
     const canProceed = isZoneLoad
         ? loadedZones.length > 0
@@ -128,6 +130,7 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
                 overLimitMessage={`The following mission${overLimit.length !== 1 ? "s" : ""} will be removed from the plan — adding bypass waypoints would exceed the ${MAX_WAYPOINTS}-waypoint limit:`}
                 impossibleMessage={`The following mission${impossible.length !== 1 ? "s" : ""} have no clear route around the zone — move the conflicting waypoints further away or resize the zone:`}
                 showOverLimit={!isMissionLoad}
+                showImpossible={!isMissionLoad}
             />
         </ObstacleAvoidanceBaseDialog>
     );

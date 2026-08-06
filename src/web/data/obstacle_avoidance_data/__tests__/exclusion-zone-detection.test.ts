@@ -152,15 +152,15 @@ describe("detectWaypointRemovals", () => {
         expect(result!.totalRemovedCount).toBe(2);
     });
 
-    test("sets triggeringZoneID on the result when provided", () => {
+    test("includes offendingZoneIDs for the zone(s) causing the removal", () => {
         const zoneID = obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
         const m = new Mission();
         m.addWaypoint(coord(41.0, -72.0));
         m.addWaypoint(coord(42.0, -73.0));
         missionSet.addMission(m);
 
-        const result = detectWaypointRemovals(zoneID);
-        expect(result!.triggeringZoneID).toBe(zoneID);
+        const result = detectWaypointRemovals();
+        expect(result!.offendingZoneIDs).toEqual([zoneID]);
     });
 
     test("does not include bypass waypoints in removal candidates", () => {

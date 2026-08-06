@@ -10,7 +10,7 @@ import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
 import { GeographicCoordinate, Goal, MissionPlan } from "../../../types/protobuf-types";
 import { METERS_PER_DEG } from "../../../utils/constants";
 import { ExclusionZone } from "./exclusion-zone-set";
-import { PendingReroute, PendingRerouteProposal, ProposalStatus } from "../pending-route-data";
+import { RerouteProposalSet, PendingRerouteProposal, ProposalStatus } from "../pending-route-data";
 import { obstacleAvoidanceData } from "../obstacle-avoidance-data";
 import { missionSet } from "../../mission_set/mission-set";
 import Waypoint from "../../waypoints/waypoint";
@@ -673,11 +673,11 @@ function waypointListsMatch(a: Waypoint[], b: Waypoint[]): boolean {
  * model.
  *
  * @param {Map<number, Waypoint[]>} overrides Per-mission waypoint overrides to use instead of the live mission state
- * @returns {PendingReroute | null} Reroute proposals for all missions that cross a zone, or null if none are affected
+ * @returns {RerouteProposalSet | null} Reroute proposals for all missions that cross a zone, or null if none are affected
  */
 export function detectReroutesWithOverrides(
     overrides: Map<number, Waypoint[]>,
-): PendingReroute | null {
+): RerouteProposalSet | null {
     const proposals: PendingRerouteProposal[] = [];
 
     for (const [missionID, mission] of missionSet.getMissions()) {

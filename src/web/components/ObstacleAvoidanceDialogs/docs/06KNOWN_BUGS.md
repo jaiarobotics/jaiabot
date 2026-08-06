@@ -2,9 +2,12 @@
 
 Found while manually smoke-testing [`01REFACTOR_PLAN.md`](./01REFACTOR_PLAN.md)
 (Parts A-F) before deciding on
-[`02PENDING_DIALOG_REFACTOR_PLAN.md`](./02PENDING_DIALOG_REFACTOR_PLAN.md). All
-three are pre-existing — confirmed not caused by either refactor — and are
-intentionally not fixed yet; pick back up later.
+[`02PENDING_DIALOG_REFACTOR_PLAN.md`](./02PENDING_DIALOG_REFACTOR_PLAN.md),
+plus four more (Bugs 4-7) found later while smoke-testing
+[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md).
+All are pre-existing — confirmed not caused by any of the refactors that
+surfaced them. Bugs 3 and 7 are fixed; Bugs 1, 2, 4, 5, and 6 are still
+open.
 
 ## Bug 1 — deleting a zone doesn't restore waypoints it removed
 
@@ -68,7 +71,7 @@ new test infrastructure needed.
 
 ## Bug 3 — new/moved zone can silently fail to trigger any reroute check
 
-_Root-caused, fix deferred._
+_Fixed — see Part 1 of [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)._
 
 **Symptom:** draw or edit a zone such that a mission's route now genuinely
 crosses it. Expected: `MissionRerouteDialog` pops up. Actual: nothing — no
@@ -144,11 +147,255 @@ user-visible symptom ("no dialog appears"), since that's the `relevant`
 filter inside `handleAddExclusionZone` — covering that end-to-end would
 need the same new handler-test setup described under Bug 1.
 
+## Bug 4 — deleting a zone doesn't re-route missions against the remaining zones
+
+_Confirmed real gap, not fixed. Found while smoke-testing the Part 1 Bug 3
+fix in [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)._
+
+**Symptom:** a mission has been rerouted around zone A (has bypass
+waypoints). Zone A is deleted via the Exclusion Zone panel's own delete
+button (not a dialog's Cancel). Expected: the mission's route is
+recomputed against the remaining zones — simplifying back to the clean
+route if nothing else blocks it, or getting fresh bypass waypoints if it
+still crosses some other zone B. Actual: the bypass waypoints are
+unconditionally stripped back to the original clean route with no
+re-detection at all — if that clean route crosses zone B, the mission is
+left silently crossing it, no dialog, no warning.
+
+**Root cause:** `handleDeleteExclusionZone`
+([exclusion-zone-handlers.ts:81](../../context/handlers/exclusion-zone-handlers.ts#L81))
+never calls `detectMissionReroutes()` — unlike every other zone-editing
+handler (add/move/add-vertex/delete-vertex), which all re-detect after
+mutating the zone set. It only calls `stripStaleBypasses()`
+([handler-utils.ts](../../context/handlers/handler-utils.ts)) with no
+argument:
+
+```ts
+export function stripStaleBypasses(activeMissionIDs: Set<number> = new Set()) {
+    for (const [missionID, mission] of missionSet.getMissions()) {
+        if (activeMissionIDs.has(missionID)) continue;
+        // ...strip all bypass waypoints...
+```
+
+Called bare, `activeMissionIDs` defaults to an empty set, so the `continue`
+guard never fires for any mission — every mission with bypass waypoints
+gets them stripped unconditionally, regardless of whether it still needs
+them for a different, still-existing zone. `handleClearExclusionZones` has
+the identical bare-call pattern and is presumably exposed to the same gap.
+
+**Related to Bug 1, not the same bug.** Bug 1 is about a _removed waypoint_
+not being restored when the zone that removed it is deleted. This is about
+a _rerouted_ mission's bypass waypoints being blindly wiped with no
+re-detection, silently leaving the route crossing an unrelated zone —
+arguably worse than Bug 1 since it leaves the mission in a
+visibly-broken state with zero warning, closer in spirit to Bug 3.
+
+**Repro:** create a mission whose route crosses zone A → confirm the
+reroute (mission gets bypass waypoints around A). Draw zone B elsewhere
+such that the mission's _original, clean_ route (not the bypass route)
+would also cross it — B alone triggers nothing yet, since the mission's
+current (bypassed) route doesn't cross it. Delete zone A via the panel's
+delete button. Result: bypass waypoints removed, mission reverts to its
+original route, which now crosses zone B with no dialog.
+
+**Confirmed pre-existing:** `handleDeleteExclusionZone` and
+`stripStaleBypasses` are byte-for-byte unchanged by the Part 1-5 handler
+refactor — verified via `git diff` against both files.
+
+**Candidate fix direction (not implemented):** after deleting a zone (or
+clearing all), run `detectMissionReroutes()`/`detectWaypointRemovals()` the
+same way the interactive zone-editing handlers do, and stage a dialog if
+the remaining zone set still requires a reroute — instead of unconditionally
+stripping every mission's bypasses and hoping nothing was still needed.
+Likely needs the same fix in `handleClearExclusionZones`.
+
+**Testing this:** similar shape to Bug 1 — not a pure-function bug, so it
+needs the same not-yet-existing handler-level test setup
+(`context/handlers/__tests__/`) to drive `handleAddExclusionZone` →
+`handleConfirmMissionReroute` → `handleDeleteExclusionZone` in sequence and
+assert the mission's route.
+
+## Bug 5 — confirming an over-limit/impossible reroute doesn't clean up the mission's bot assignment
+
+_Confirmed real gap, not fixed. Found while designing the mission-load
+revert fix for [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)._
+
+**Symptom:** when a `PendingRerouteProposal` is `OVER_LIMIT` or
+`IMPOSSIBLE` and the operator confirms the reroute dialog,
+`handleConfirmMissionReroute`
+([obstacle-avoidance-handlers.ts](../../context/handlers/obstacle-avoidance-handlers.ts))
+deletes the mission (`missionSet.deleteMission(proposal.missionID)`) but
+never calls `missionsManager.removeAssignment(proposal.missionID)`. Compare
+`handleDeleteMission`
+([mission-handlers.ts:50-54](../../context/handlers/mission-handlers.ts#L50-L54)),
+which calls both. Any bot assigned to the deleted mission is left with a
+`botsToMissions` entry pointing at a mission ID that no longer exists.
+
+**Effect:** `MissionsManager.autoAssign()` skips bots whose
+`botsToMissions` entry is already set (not `UNASSIGNED_ID`) when assigning
+bots to open missions — so an orphaned bot stays unassigned to anything new
+until the operator manually clears it. Any UI reading the assignment could
+also show a bot linked to a mission that no longer exists.
+
+**Scope:** not specific to mission-load — `handleConfirmMissionReroute`'s
+mission-deletion branch never calls `removeAssignment` regardless of
+whether the reroute came from a load or a regular zone/waypoint edit. Any
+OVER_LIMIT/IMPOSSIBLE proposal confirmed anywhere hits this.
+
+**Confirmed pre-existing:** the mission-deletion-without-assignment-cleanup
+logic in `handleConfirmMissionReroute` is unchanged by the Part 1-5 handler
+refactor — only the unrelated `isMissionLoad` derivation
+(`pending.loadedMissionIDs !== undefined` → `pending.loadSummary?.kind ===
+"missionLoad"`) changed in that function.
+
+**Candidate fix direction (not implemented):** call
+`missionsManager.removeAssignment(proposal.missionID)` alongside
+`missionSet.deleteMission(proposal.missionID)` in both OVER_LIMIT and
+IMPOSSIBLE branches of `handleConfirmMissionReroute`.
+
+**Testing this:** same shape as Bug 1/4 — needs the not-yet-existing
+handler-level test setup (`context/handlers/__tests__/`) to stage a
+pendingChange with an OVER_LIMIT/IMPOSSIBLE proposal, call
+`handleConfirmMissionReroute`, and assert `missionsManager`'s assignment
+for that mission ID is cleared.
+
+## Bug 6 — editing one zone's vertices can silently strip a different mission's valid bypass waypoints
+
+_Confirmed real gap, not fixed. Found while designing the Bug 4 fix for
+[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)._
+
+**Symptom:** mission A has an established, correct bypass route around
+zone X. The operator moves or deletes a vertex on a _different_,
+unrelated zone Y. Mission A's bypass waypoints around zone X are silently
+stripped — its route reverts to the original, unbypassed waypoints, which
+still cross zone X — with no dialog and no warning, even though nothing
+about zone X changed.
+
+**Root cause:** `handleMoveZoneVertex` and `handleDeleteZoneVertex`
+([exclusion-zone-handlers.ts](../../context/handlers/exclusion-zone-handlers.ts))
+both end with:
+
+```ts
+const activeMissionIDs = new Set(pending?.proposals.map((p) => p.missionID) ?? []);
+stripStaleBypasses(activeMissionIDs);
+```
+
+`stripStaleBypasses` ([handler-utils.ts](../../context/handlers/handler-utils.ts))
+strips _all_ bypass waypoints from any mission not in `activeMissionIDs`,
+unconditionally — no re-check of whether they're still needed. But
+`detectMissionReroutes()` (via `detectReroutesWithOverrides`'s
+`waypointListsMatch(newWaypoints, currentWaypoints)` check) deliberately
+_excludes_ a mission from `pending.proposals` when its current route
+already matches what would be freshly computed — the correct "nothing to
+propose, already fine" case. A* is deterministic (same zone geometry, same
+clean endpoints → same bypass path), and `waypointListsMatch` is a plain
+per-waypoint location comparison, so a mission with a still-valid,
+unrelated bypass route reliably hits this "already correct" skip — meaning
+it's excluded from `activeMissionIDs` for the *right* reason, but that
+then triggers `stripStaleBypasses` to wrongly wipe it for the *wrong\*
+reason.
+
+**Scope:** confined to `handleMoveZoneVertex`/`handleDeleteZoneVertex` —
+the only two handlers that call `stripStaleBypasses` with a real
+`activeMissionIDs` set. `handleAddExclusionZone`/`handleAddZoneVertex`
+don't call it at all (a zone can only grow via those, never freeing a
+mission that needed a bypass, so there's nothing stale to strip).
+
+**Repro:** create mission A with a route crossing zone X, confirm the
+reroute (A gets bypass waypoints around X). Draw or edit a second,
+unrelated zone Y such that no mission's route is affected by Y at all.
+Move (or delete) a vertex on zone Y. Expected: nothing changes for mission
+A. Actual: mission A's bypass waypoints around X are gone, and its route
+now crosses X directly.
+
+**Confirmed pre-existing:** the `activeMissionIDs`/`stripStaleBypasses`
+block in both handlers is unchanged by the Part 1-5 handler refactor —
+Part 1 only removed the earlier `relevant` filter (Bug 3's fix), which sat
+higher up in each function; this trailing block already used the
+unfiltered `pending.proposals` in the original code too.
+
+**Candidate fix direction (not implemented):** `stripStaleBypasses` needs
+to distinguish "this mission has no pending proposal because it's already
+correctly bypassed" from "this mission has no pending proposal because it
+no longer needs one at all." One option: only strip a mission's bypasses
+if recomputing its route from _clean_ (bypass-stripped) waypoints yields
+zero bypasses needed — i.e. call `detectMissionReroutes()`-style detection
+per candidate mission with clean waypoints as an override, not just check
+list membership.
+
+**Testing this:** moderate — the detection-layer half (does
+`detectMissionReroutes()` correctly exclude the unrelated mission from
+`pending.proposals`) is already coverable in
+`exclusion-zone-detection.test.ts`. Reproducing the actual data loss needs
+the same not-yet-existing handler-level test setup as Bugs 1/4/5, driving
+`handleAddExclusionZone` → `handleConfirmMissionReroute` →
+`handleMoveZoneVertex` (on an unrelated zone) in sequence and asserting
+mission A still has its bypass waypoints.
+
+## Bug 7 — cancelling a load-triggered dialog reverted the entire load, not just the proposed route change
+
+_Fixed._
+
+**Symptom:** load a mission set (or a zone set) that needs rerouting or
+waypoint removal around existing/loaded zones. The dialog appears as
+expected. Click Revert/Cancel/"Revert All": instead of just declining the
+proposed bypass waypoints or waypoint removal, the _entire load_ was
+undone — missions/zones reverted all the way back to whatever existed
+_before_ the load, discarding the load the operator had just explicitly
+asked for. For mission load specifically, this also silently lost any
+missions that had been pre-emptively deleted upfront for being unroutable
+(over-limit/impossible) — the operator might not even notice they were
+gone before the "revert."
+
+**Root cause:** `detectMissionReroutes()`/`detectWaypointRemovals()` only
+_compute_ proposals — they never mutate `missionSet`/`ExclusionZoneSet`.
+The actual mutation happens only in `handleConfirmMissionReroute`/
+`handleConfirmWaypointRemoval`. So while a load-triggered dialog is
+pending, the missions/zones are already sitting exactly as loaded — there
+was never a route modification to "revert." `handleLoadMissionSet`/
+`handleLoadExclusionZones`/`handleRestoreExclusionZoneSnapshot` were
+nonetheless capturing a full pre-load snapshot and using it as the
+`revert` action, conflating "undo the proposed route change" (what Cancel
+should mean) with "undo the load" (a separate, already-completed,
+deliberate operator action Cancel had no business touching). Confirmed
+pre-existing: the original code had the identical
+`priorMissionSetSnapshot`/`priorExclusionZoneSetSnapshot`-based revert
+behavior before the Part 1-5 handler refactor; this refactor preserved it
+faithfully until this fix.
+
+**Fix:**
+
+- `handleLoadMissionSet` no longer deletes over-limit/impossible missions
+  upfront — they stay loaded (flagged via the proposal's `status`, same as
+  any non-load reroute) until the operator confirms or cancels.
+  `handleConfirmMissionReroute` deletes them only if confirmed, using the
+  same logic it already applies to every other reroute trigger — the
+  special-cased `isMissionLoad` skip is gone.
+- `handleLoadExclusionZones`/`handleRestoreExclusionZoneSnapshot` keep
+  their existing upfront skip-and-delete behavior for zones that would
+  make some mission's route unroutable — deliberately _not_ symmetric with
+  the mission case, per product decision: an operator loading zones is
+  expected to prune/delete unwanted zones manually or via Undo, not have
+  them silently restored on Cancel.
+- All four load/restore producers now stage `revert: []` for their
+  reroute/waypoint-removal dialogs — there's nothing left to undo, since
+  nothing is mutated until confirm and the load itself is intentionally
+  out of scope for Cancel.
+- `RerouteSummary` gained a `showImpossible` prop (mirroring the existing
+  `showOverLimit`), suppressed for mission-load in
+  `MissionRerouteDialog.tsx` — needed because impossible mission-load
+  proposals now flow through to `pending.proposals` like any other reroute
+  (no longer pre-deleted), and would otherwise double-render alongside the
+  load-specific "N missions could not be loaded" list.
+
 ## Summary: which bugs are cheap to pin down with tests
 
-Bugs 2 and 3 are natural additions to the existing pure-function test files
+Bug 2 is a natural addition to the existing pure-function test files
 (`exclusion-zone-detection.test.ts` / `exclusion-zone-router.test.ts`) — no
-new test infrastructure, same patterns already in use. Bug 1 (and the
-full end-to-end version of Bug 3) would require standing up the first
-handler-level test in the codebase (`context/handlers/__tests__/`), which
-is a bigger, one-time setup cost rather than an incremental addition.
+new test infrastructure, same patterns already in use. Bug 3's data-layer
+half was too, and has since been fixed (Part 1 of
+[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)),
+as is Bug 7 (see above). Bugs 1, 4, 5, and 6 (and the full end-to-end
+version of Bug 3, now moot) all need the first handler-level test in the
+codebase (`context/handlers/__tests__/`), a bigger one-time setup cost
+rather than an incremental addition.
