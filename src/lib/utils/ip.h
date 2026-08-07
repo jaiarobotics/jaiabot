@@ -342,6 +342,26 @@ inline uint64_t ipv6_node_offset(NodeType node, int node_id)
     throw std::invalid_argument("Unknown node type for IPv6");
 }
 
+// Reads a run of one or more decimal digits from s starting at pos, advancing pos. Returns false
+// if there are no digits or if the value would exceed max_value (which keeps the accumulation
+// well within the range of int).
+inline bool read_digits(const std::string& s, std::size_t& pos, int& out, int max_value = 1000000)
+{
+    std::size_t start = pos;
+    int value = 0;
+    while (pos < s.size() && s[pos] >= '0' && s[pos] <= '9')
+    {
+        value = value * 10 + (s[pos] - '0');
+        if (value > max_value)
+            return false;
+        ++pos;
+    }
+    if (pos == start)
+        return false;
+    out = value;
+    return true;
+}
+
 } // namespace detail
 
 // Returns IPv4 address string for a node (e.g. "10.23.1.110" for bot 10 on fleet 1 wlan)
@@ -432,21 +452,10 @@ inline HostCode parse_host_code(const std::string& host_code)
                                      std::string(host_code_format_msg));
     };
 
-    // reads a run of one or more digits starting at pos, advancing pos
     auto read_int = [&](std::size_t& pos, int& out)
     {
-        std::size_t start = pos;
-        int value = 0;
-        while (pos < host_code.size() && host_code[pos] >= '0' && host_code[pos] <= '9')
-        {
-            value = value * 10 + (host_code[pos] - '0');
-            if (value > 1000000)
-                throw invalid();
-            ++pos;
-        }
-        if (pos == start)
-            return false;
-        out = value;
+        if (!detail::read_digits(host_code, pos, out))
+            throw invalid();
         return true;
     };
 
@@ -516,16 +525,10 @@ inline HostCode parse_host_code(const std::string& host_code)
             throw std::invalid_argument(
                 "Could not find fleet ID. Either specify as 'fN' suffix (e.g., b1f3) or provide "
                 "via environmental variable 'jaia_fleet_index'");
-        std::size_t env_pos = 0;
         std::string env_str(env_fleet_id);
+        std::size_t env_pos = 0;
         int env_value = 0;
-        std::size_t start = env_pos;
-        while (env_pos < env_str.size() && env_str[env_pos] >= '0' && env_str[env_pos] <= '9')
-        {
-            env_value = env_value * 10 + (env_str[env_pos] - '0');
-            ++env_pos;
-        }
-        if (env_pos == start || env_pos != env_str.size())
+        if (!detail::read_digits(env_str, env_pos, env_value) || env_pos != env_str.size())
             throw std::invalid_argument("Invalid 'jaia_fleet_index' environmental variable: " +
                                         env_str);
         result.fleet_id = env_value;

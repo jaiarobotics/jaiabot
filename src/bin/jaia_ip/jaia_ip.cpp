@@ -117,13 +117,21 @@ int main(int argc, char* argv[])
         if (arg.compare(0, 2, "--") == 0)
         {
             // support both "--flag value" and "--flag=value"
-            std::string flag = arg;
+            auto eq = arg.find('=');
+            std::string flag = eq != std::string::npos ? arg.substr(0, eq) : arg;
+
+            if (flag == "--binary")
+            {
+                // ignored: passed by the 'jaia' tool when exec'ing an external command
+                if (eq == std::string::npos)
+                    ++i; // skip the value
+                continue;
+            }
+
             std::string value;
             bool has_value = false;
-            auto eq = arg.find('=');
             if (eq != std::string::npos)
             {
-                flag = arg.substr(0, eq);
                 value = arg.substr(eq + 1);
                 has_value = true;
             }
@@ -132,12 +140,6 @@ int main(int argc, char* argv[])
                 value = argv[i + 1];
                 has_value = true;
                 ++i;
-            }
-
-            if (flag == "--binary")
-            {
-                // ignored: passed by the 'jaia' tool when exec'ing an external command
-                continue;
             }
 
             if (!has_value)
