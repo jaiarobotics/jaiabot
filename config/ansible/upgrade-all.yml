@@ -10,12 +10,7 @@
     # First update jaiabot packages
     - include_tasks: tasks/install-jaiabot.yml
 
-    # Then, handle system upgrade
-    - name: Remount firmware read-write
-      shell: "mount -o remount,rw /boot/firmware"
-
-    # Can hopefully be removed when we switch to EFI boot
-    # For now we get an error with update-grub on amd64 images due to overlay root
+    # We get an error with update-grub on amd64 images due to overlay root
     # Workaround this by move update-grub so it doesn't exist (thus skipping the update-grub step in the kernel postinst)
     - name: Move update-grub
       shell: "mv /usr/sbin/update-grub /usr/sbin/update-grub.tmp || true"
@@ -30,9 +25,6 @@
       apt:
         update_cache: yes
         upgrade: safe
-
-    - name: Remount firmware read-only
-      shell: "mount -o remount,ro /boot/firmware"
 
     - name: Restore update-grub and Update linux-image-virtual in read-only underlay
       shell: |

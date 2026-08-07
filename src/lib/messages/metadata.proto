@@ -52,6 +52,8 @@ message DeviceMetadata
 
     optional string raspi_firmware_version = 8
         [(jaia.field).rest_api.presence = GUARANTEED];
+    optional int64 raspi_eeprom_version = 19
+        [(jaia.field).rest_api.presence = GUARANTEED];
     optional string jaiabot_image_version = 9
         [(jaia.field).rest_api.presence = GUARANTEED];
     optional string jaiabot_image_build_date = 10
