@@ -150,6 +150,22 @@ inline protobuf::DeviceMetadata metadata()
             metadata.set_jaiabot_image_version(version_info["JAIABOT_IMAGE_VERSION"]);
         if (version_info.count("RASPI_FIRMWARE_VERSION"))
             metadata.set_raspi_firmware_version(version_info["RASPI_FIRMWARE_VERSION"]);
+
+        // Read EEPROM version via rpi-eeprom-update -j
+        try
+        {
+            std::string eeprom_json =
+                execute_command("rpi-eeprom-update -j -m /dev/stderr 2>&1 >/dev/null 2>/dev/null");
+            std::regex bootloader_pattern(R"(\"BOOTLOADER_CURRENT\"\s*:\s*([0-9]+))");
+            std::smatch bootloader_match;
+            if (std::regex_search(eeprom_json, bootloader_match, bootloader_pattern))
+            {
+                metadata.set_raspi_eeprom_version(std::stoll(bootloader_match[1]));
+            }
+        }
+        catch (...)
+        {
+        }
         if (version_info.count("JAIABOT_IMAGE_BUILD_DATE"))
             metadata.set_jaiabot_image_build_date(version_info["JAIABOT_IMAGE_BUILD_DATE"]);
         if (version_info.count("JAIABOT_FIRST_BOOT_DATE"))
