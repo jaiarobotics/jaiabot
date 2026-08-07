@@ -564,7 +564,8 @@ else
     # Jammy flash-kernel checks for /sys/firmware/efi and bails
     sudo umount "$ROOTFS_PARTITION"/sys
     # Noble flash-kernel added FK_IGNORE_EFI
-    sudo chroot rootfs /bin/bash -c "export FK_FORCE=yes; export FK_IGNORE_EFI=yes; flash-kernel"
+    # /boot/firmware is left ro by dpkg hook
+    sudo chroot rootfs /bin/bash -c "mount -o remount,rw /boot/firmware; export FK_FORCE=yes; export FK_IGNORE_EFI=yes; flash-kernel"
 
     # flash-kernel has now migrated the boot partition to the piboot-try (A/B)
     # layout and written the real kernel assets to new/. Promote them to
