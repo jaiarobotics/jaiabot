@@ -151,7 +151,7 @@ JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
                                          --goby_bin_dir=/usr/bin \
                                          --moos_bin_dir=/usr/bin \
                                          --gen_dir=/usr/share/jaiabot/config/gen \
-                                         --systemd_dir=/etc/systemd/system \
+                                         --systemd_dir=/usr/lib/systemd/system \
                                          --bot_index=${BOT_OR_HUB_INDEX} \
                                          --hub_index=${BOT_OR_HUB_INDEX} \
                                          --fleet_index=${FLEET_INDEX} \
@@ -179,7 +179,7 @@ echo "<<<<< Installing and enabling systemd services complete!"
 shopt -s nullglob
 
 echo ">>>>> Stopping, disabling, and removing jaia gps systemd services if they exist ... "
-for service_file in /etc/systemd/system/gps_*.service; do
+for service_file in /usr/lib/systemd/system/gps_*.service; do
     service_name=$(basename $service_file)
     echo "Stopping $service_name"
     /bin/systemctl stop $service_name || true
@@ -190,7 +190,7 @@ for service_file in /etc/systemd/system/gps_*.service; do
 done
 
 echo ">>>>> Starting jaia firmware systemd services ... "
-for service_file in /etc/systemd/system/jaia_firm*.service; do
+for service_file in /usr/lib/systemd/system/jaia_firm*.service; do
     service_name=$(basename $service_file)
     echo "Starting $service_name"
     if [ "$service_name" != "jaia_firm_hub-button-led-poweroff_py.service" ]; then
