@@ -155,7 +155,7 @@ inline protobuf::DeviceMetadata metadata()
         try
         {
             std::string eeprom_json =
-                execute_command("rpi-eeprom-update -j -m /dev/stderr 2>&1 >/dev/null 2>/dev/null");
+                execute_command("rpi-eeprom-update -j -m /dev/stderr 2>&1 1>/dev/null");
             std::regex bootloader_pattern(R"(\"BOOTLOADER_CURRENT\"\s*:\s*([0-9]+))");
             std::smatch bootloader_match;
             if (std::regex_search(eeprom_json, bootloader_match, bootloader_pattern))
