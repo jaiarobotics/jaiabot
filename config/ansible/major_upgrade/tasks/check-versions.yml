@@ -54,7 +54,8 @@
 - name: Check Raspberry Pi 4 EEPROM version
   shell: |
     min_version=1669373653
-    current_version=$(rpi-eeprom-update 2>/dev/null | grep -oP 'CURRENT:\s+\K\S+' | head -1)
+    json=$(rpi-eeprom-update -j -m /dev/stderr 2>&1 >/dev/null)
+    current_version=$(echo "${json}" | python3 -c "import sys,json; print(json.load(sys.stdin)['BOOTLOADER_CURRENT'])" 2>/dev/null)
     if [ -z "${current_version}" ]; then
       echo "Could not determine EEPROM version"
       return 1
