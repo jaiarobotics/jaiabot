@@ -25,7 +25,7 @@ message HubStatus
     ];
     required uint64 time = 3 [
         (dccl.field) = {
-            codec: "dccl.time2"
+            codec: "dccl.time"
             units { prefix: "micro" derived_dimensions: "time" }
         },
         (jaia.field).rest_api.presence = GUARANTEED
@@ -77,7 +77,7 @@ message HubStatus
         ];
         required uint64 last_status_time = 2 [
             (dccl.field) = {
-                codec: "dccl.time2"
+                codec: "dccl.time"
                 units { prefix: "micro" derived_dimensions: "time" }
             },
             (jaia.field).rest_api.presence = GUARANTEED
