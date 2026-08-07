@@ -7,7 +7,7 @@ echo "<<<<< Stopping jaiabot app software complete! ... "
 
 shopt -s nullglob
 echo ">>>>> Disabling and removing jaia apps systemd services ... "
-for service_file in /etc/systemd/system/jaiabot*.service; do
+for service_file in /usr/lib/systemd/system/jaiabot*.service; do
     service_name=$(basename $service_file)
     echo "Disabling $service_name"
     /bin/systemctl disable $service_name
@@ -16,7 +16,7 @@ for service_file in /etc/systemd/system/jaiabot*.service; do
 done
 
 echo ">>>>> Stopping, disabling, and removing jaia gps systemd services if they exist ... "
-for service_file in /etc/systemd/system/gps_*.service; do
+for service_file in /usr/lib/systemd/system/gps_*.service; do
     service_name=$(basename $service_file)
     echo "Stopping $service_name"
     /bin/systemctl stop $service_name || true
@@ -27,7 +27,7 @@ for service_file in /etc/systemd/system/gps_*.service; do
 done
 
 echo ">>>>> Stopping, disabling, and removing jaia firmware systemd services ... "
-for service_file in /etc/systemd/system/jaia_firm*.service; do
+for service_file in /usr/lib/systemd/system/jaia_firm*.service; do
     service_name=$(basename $service_file)
     echo "Stopping $service_name"
     /bin/systemctl stop $service_name || true
