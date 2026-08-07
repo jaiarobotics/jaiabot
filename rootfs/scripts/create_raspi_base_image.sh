@@ -517,6 +517,9 @@ function create_tarballs {
 
 if [ ! -z "$VIRTUALBOX" ]; then
     sudo chroot rootfs apt-get -y install linux-image-virtual grub-efi-amd64
+
+    # /boot/firmware is left ro by dpkg hook - fix
+    sudo chroot rootfs mount -o remount,rw /boot/firmware
     
     # ensure VM uses eth0, etc. naming like Raspi
     sudo chroot rootfs sed -i 's|GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="net.ifnames=0 biosdevname=0"|' /etc/default/grub
@@ -560,11 +563,13 @@ if [ ! -z "$VIRTUALBOX" ]; then
 else
     sudo chroot rootfs apt-get -y install linux-image-raspi
 
+    # /boot/firmware is left ro by dpkg hook - fix
+    sudo chroot rootfs mount -o remount,rw /boot/firmware
+
     ## Run flash-kernel manually once as it will not run automatically in CHROOT / EFI
     # Jammy flash-kernel checks for /sys/firmware/efi and bails
     sudo umount "$ROOTFS_PARTITION"/sys
     # Noble flash-kernel added FK_IGNORE_EFI
-    # /boot/firmware is left ro by dpkg hook
     sudo chroot rootfs /bin/bash -c "mount -o remount,rw /boot/firmware; export FK_FORCE=yes; export FK_IGNORE_EFI=yes; flash-kernel"
 
     # flash-kernel has now migrated the boot partition to the piboot-try (A/B)
