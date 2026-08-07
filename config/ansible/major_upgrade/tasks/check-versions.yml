@@ -43,5 +43,34 @@
   vars:
     error_message: "No major upgrade to perform: current jaiabot version is greater than new version."
   when: major_upgrade_version_check_result.failed
-  
-  
+
+- name: Install rpi-eeprom package
+  apt:
+    name: rpi-eeprom
+    state: present
+  ignore_errors: yes
+  register: rpi_eeprom_install_result
+
+- name: Check Raspberry Pi 4 EEPROM version
+  shell: |
+    min_version=1669373653
+    current_version=$(rpi-eeprom-update 2>/dev/null | grep -oP 'CURRENT:\s+\K\S+' | head -1)
+    if [ -z "${current_version}" ]; then
+      echo "Could not determine EEPROM version"
+      return 1
+    fi
+    if [ "${current_version}" -lt "${min_version}" ]; then
+      echo "Raspberry Pi 4 EEPROM version must be at least ${min_version} (2022-11-25) to continue (version: ${current_version})"
+      return 1
+    fi
+  register: eeprom_version_check_result
+  ignore_errors: yes
+  when: rpi_eeprom_install_result is not failed
+
+- name: Handle EEPROM version check failure
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "{{ eeprom_version_check_result.stdout }}"
+  when: >
+    (rpi_eeprom_install_result is failed) or
+    (eeprom_version_check_result is not skipped and eeprom_version_check_result.failed)
