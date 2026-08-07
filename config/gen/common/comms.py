@@ -46,8 +46,8 @@ def xbee_mac_slots(node_id):
 all_local_ip_addresses = [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
 
 def jaia_ip(args):
-    """Run the 'jaia ip' tool with the given list of arguments and return the resulting address or network."""
-    return subprocess.run(['jaia', 'ip'] + [str(a) for a in args], capture_output=True, text=True, check=True).stdout.strip()
+    """Run the standalone 'jaia_ip' tool (the implementation of 'jaia ip') with the given list of arguments and return the resulting address or network."""
+    return subprocess.run(['jaia_ip'] + [str(a) for a in args], capture_output=True, text=True, check=True).stdout.strip()
 
 def runtime_wifi_ip_addr(node_id, fleet_index, hub_id):
     if node_id == hub_node_id:

@@ -7,7 +7,7 @@
   tags: read
 
 - name: Look up server network
-  shell: /usr/bin/jaia ip --query_type net --ip_net vfleet_vpn --fleet_id {{ cloud_env_vars.jaia_fleet_index }} --ip_version ipv6
+  shell: /usr/bin/jaia_ip --query_type net --ip_net vfleet_vpn --fleet_id {{ cloud_env_vars.jaia_fleet_index }} --ip_version ipv6
   register: virtualfleet_vpn_server_result
   tags: read
   

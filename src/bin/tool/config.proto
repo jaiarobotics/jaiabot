@@ -70,6 +70,8 @@ message Tool
         }];
         ip = 5 [(goby.ev).cfg = {
             short_help_msg: "Output the address or network for a given Jaia Hub or Bot for a given real or VPN network",
+            external_command: "jaia_ip"
+            include_binary_flag: false
             full_help_msg: "Determines a given address or network for a bot or hub, either using shorthand host codes or explicit flags.\n"
                            "Example commands:\n"
                            "  jaia ip b4f10: IP address for bot4 on fleet10\n"
@@ -79,6 +81,8 @@ message Tool
                            "  jaia ip chf3: IP address for the CloudHub on fleet3\n"
                            "  jaia ip --query_type addr --node_type bot --node_id 5 --fleet_id 3 --ip_net wlan --ip_version ipv4: explicit query for a node address\n"
                            "  jaia ip --query_type net --fleet_id 3 --ip_net fleet_vpn --ip_version ipv4: explicit query for a network CIDR block\n"
+                           "\n"
+                           "This action runs the standalone 'jaia_ip' tool, which can be called directly (as 'jaia_ip') from non-interactive scripts to avoid the startup cost of the 'jaia' tool. Run 'jaia_ip --help' for the full list of options.\n"
         }];
         ssh = 6 [(goby.ev).cfg = {
             short_help_msg: "Use SSH to login to jaiabots and hubs",

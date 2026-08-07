@@ -26,7 +26,6 @@
 
 #include "actions/admin.h"
 #include "actions/ctl.h"
-#include "actions/ip.h"
 #include "actions/ping.h"
 #include "actions/ssh.h"
 #include "actions/version.h"
@@ -114,12 +113,6 @@ jaiabot::apps::Tool::Tool()
                                     action_for_help);
                             break;
 
-                        case jaiabot::config::Tool::ip:
-                            tool_helper
-                                .help<jaiabot::apps::IPTool, jaiabot::apps::IPToolConfigurator>(
-                                    action_for_help);
-                            break;
-
                         case jaiabot::config::Tool::admin:
                             tool_helper.help<jaiabot::apps::AdminTool,
                                              jaiabot::apps::AdminToolConfigurator>(action_for_help);
@@ -155,11 +148,6 @@ jaiabot::apps::Tool::Tool()
             case jaiabot::config::Tool::ping:
                 tool_helper
                     .run_subtool<jaiabot::apps::PingTool, jaiabot::apps::PingToolConfigurator>();
-                break;
-
-            case jaiabot::config::Tool::ip:
-                tool_helper
-                    .run_subtool<jaiabot::apps::IPTool, jaiabot::apps::IPToolConfigurator>();
                 break;
 
             case jaiabot::config::Tool::admin:

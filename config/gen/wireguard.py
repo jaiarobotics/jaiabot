@@ -11,8 +11,8 @@ import subprocess
 script_dir=os.path.dirname(os.path.realpath(__file__))
 
 def jaia_ip(args):
-    """Run the 'jaia ip' tool with the given list of arguments and return the resulting address or network."""
-    return subprocess.run(['jaia', 'ip'] + [str(a) for a in args], capture_output=True, text=True, check=True).stdout.strip()
+    """Run the standalone 'jaia_ip' tool (the implementation of 'jaia ip') with the given list of arguments and return the resulting address or network."""
+    return subprocess.run(['jaia_ip'] + [str(a) for a in args], capture_output=True, text=True, check=True).stdout.strip()
 
 parser = argparse.ArgumentParser(description='Generate wireguard VPN configuration for Jaia machines', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('type', choices=['bot', 'hub', 'desktop'], help='Should we generate VPN config for a bot, hub or desktop?')
@@ -63,14 +63,14 @@ if args.fleet_index is None:
         macros['address'] = f'{ip_prefix}.{args.desktop_ip}'
     macros['subnet'] = f'{ip_prefix}.0/24'
 else:
-    # Fleet-specific VPN: use 'jaia ip' for addresses and the subnet
+    # Fleet-specific VPN: use 'jaia_ip' for addresses and the subnet
     macros['subnet'] = jaia_ip(['--query_type', 'net', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_index, '--ip_version', 'ipv4'])
     if args.type == 'bot':
         macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'bot', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_index, '--node_id', args.bot_index, '--ip_version', 'ipv4'])
     elif args.type == 'hub':
         macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'hub', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_index, '--node_id', args.hub_index, '--ip_version', 'ipv4'])
     elif args.type == 'desktop':
-        # 'jaia ip' does not assign IPv4 addresses to desktops, so derive it from the fleet VPN subnet
+        # 'jaia_ip' does not assign IPv4 addresses to desktops, so derive it from the fleet VPN subnet
         ip_prefix = macros['subnet'].split('/')[0].rsplit('.', 1)[0]
         macros['address'] = f'{ip_prefix}.{args.desktop_ip}'
 

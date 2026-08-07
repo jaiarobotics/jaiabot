@@ -27,10 +27,10 @@ fi
 db_get jaiabot-embedded/fleet_id
 FLEET_INDEX=$RET
 
-# WLAN (fleet) addressing, as defined by the 'jaia ip' tool
-NODE_WLAN_IP=$(/usr/bin/jaia ip --query_type addr --node_type ${JAIA_TYPE} --node_id ${BOT_OR_HUB_INDEX} --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
-FLEET_WLAN_NET=$(/usr/bin/jaia ip --query_type net --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
-HUB0_WLAN_IP=$(/usr/bin/jaia ip --query_type addr --node_type hub --node_id 0 --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
+# WLAN (fleet) addressing, as defined by the 'jaia_ip' tool
+NODE_WLAN_IP=$(/usr/bin/jaia_ip --query_type addr --node_type ${JAIA_TYPE} --node_id ${BOT_OR_HUB_INDEX} --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
+FLEET_WLAN_NET=$(/usr/bin/jaia_ip --query_type net --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
+HUB0_WLAN_IP=$(/usr/bin/jaia_ip --query_type addr --node_type hub --node_id 0 --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
 
 OLD_HOST_NAME=`/bin/hostname`
 NEW_HOST_NAME=${JAIA_TYPE}${BOT_OR_HUB_INDEX}-fleet${FLEET_INDEX}
@@ -48,7 +48,7 @@ echo ">>>>> Updating wifi configuration ... "
 FLEET_WLAN_SSID="JAIA-HUB-WIFI-${FLEET_INDEX}"
 NETENV_FILE=/etc/jaiabot/network.env
 FLEET_ADDRESS="${NODE_WLAN_IP}/${FLEET_WLAN_NET##*/}"
-FLEET_GATEWAY=$(/usr/bin/jaia ip --query_type addr --node_type gateway --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
+FLEET_GATEWAY=$(/usr/bin/jaia_ip --query_type addr --node_type gateway --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
 
 # In place upgrades from 1.y -> 2.y won't have /etc/jaiabot/network.env, so we need to create it
 if [ ! -f "${NETENV_FILE}" ]; then

@@ -23,8 +23,7 @@
 #ifndef JAIABOT_UTILS_IP_H
 #define JAIABOT_UTILS_IP_H
 
-#include <iomanip>
-#include <sstream>
+#include <cstdlib>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -281,11 +280,21 @@ inline boost::asio::ip::address_v6 parse_ipv6(const std::string& s)
 inline boost::asio::ip::address_v6 ipv6_base(int fleet_id, Network net,
                                              const std::string& ipv6_base_str = "")
 {
-    auto make_prefix_addr = [&](const std::string& prefix)
+    auto make_prefix_addr = [&](const char* prefix)
     {
-        std::ostringstream ss;
-        ss << prefix << std::hex << fleet_id << "::";
-        return parse_ipv6(ss.str());
+        // format fleet_id as lowercase hex without <sstream>, e.g. "fddd:7f2e:3258:" + "ff" + "::"
+        char hex[4];
+        int n = 0;
+        for (int shift = 8; shift >= 0; shift -= 4)
+        {
+            int nibble = (fleet_id >> shift) & 0xF;
+            if (nibble != 0 || n != 0)
+                hex[n++] = "0123456789abcdef"[nibble];
+        }
+        if (n == 0)
+            hex[n++] = '0';
+        hex[n] = '\0';
+        return parse_ipv6(std::string(prefix) + hex + "::");
     };
 
     auto get_base_from_arg = [&]()
@@ -374,6 +383,172 @@ inline std::string ipv6_net(int fleet_id, Network net, const std::string& ipv6_b
     validate_fleet_id(fleet_id);
     auto base = detail::ipv6_mask64(detail::ipv6_base(fleet_id, net, ipv6_base_str));
     return base.to_string() + "/64";
+}
+
+constexpr const char* host_code_format_msg =
+    "It must be b<bot_id>[svc]f<fleet_id> or h<hub_id>[svc]f<fleet_id> or chf<fleet_id> "
+    "(for cloudhub)";
+
+// Result of parsing a host shorthand code (e.g. "b4f2", "h1cf3", "chf4")
+struct HostCode
+{
+    // if true, the host code is not a Jaia shorthand and 'literal' should be used as-is
+    bool is_literal{false};
+    std::string literal;
+
+    NodeType node_type{NodeType::bot};
+    int node_id{0};
+    int fleet_id{0};
+    Network net{Network::wlan};
+};
+
+// Parses a host shorthand code without using std::regex (which is comparatively expensive to
+// construct). Throws std::invalid_argument on malformed input.
+inline HostCode parse_host_code(const std::string& host_code)
+{
+    HostCode result;
+
+    if (host_code == "self")
+    {
+        result.is_literal = true;
+        result.literal = "::1";
+        return result;
+    }
+
+    // pass through anything ending in .jaia.tech
+    const std::string jaia_tech_domain = ".jaia.tech";
+    if (host_code.size() > jaia_tech_domain.size() &&
+        host_code.compare(host_code.size() - jaia_tech_domain.size(), jaia_tech_domain.size(),
+                          jaia_tech_domain) == 0)
+    {
+        result.is_literal = true;
+        result.literal = host_code;
+        return result;
+    }
+
+    auto invalid = [&]()
+    {
+        return std::invalid_argument("Host string is invalid: " + host_code + ". " +
+                                     std::string(host_code_format_msg));
+    };
+
+    // reads a run of one or more digits starting at pos, advancing pos
+    auto read_int = [&](std::size_t& pos, int& out)
+    {
+        std::size_t start = pos;
+        int value = 0;
+        while (pos < host_code.size() && host_code[pos] >= '0' && host_code[pos] <= '9')
+        {
+            value = value * 10 + (host_code[pos] - '0');
+            if (value > 1000000)
+                throw invalid();
+            ++pos;
+        }
+        if (pos == start)
+            return false;
+        out = value;
+        return true;
+    };
+
+    if (host_code.empty())
+        throw invalid();
+
+    std::size_t pos = 0;
+
+    if (host_code.compare(0, 2, "ch") == 0)
+    {
+        // chf<fleet_id>: the CloudHub, always over the cloudhub VPN
+        result.node_type = NodeType::hub;
+        result.node_id = hub_id_max;
+        result.net = Network::cloudhub_vpn;
+        pos = 2;
+    }
+    else if (host_code[0] == 'b' || host_code[0] == 'h')
+    {
+        result.node_type = host_code[0] == 'b' ? NodeType::bot : NodeType::hub;
+        pos = 1;
+        if (!read_int(pos, result.node_id))
+            throw invalid();
+
+        if (pos < host_code.size())
+        {
+            switch (host_code[pos])
+            {
+                case 's':
+                    result.net = Network::fleet_vpn;
+                    ++pos;
+                    break;
+                case 'v':
+                    result.net = Network::vfleet_vpn;
+                    ++pos;
+                    break;
+                case 'c':
+                    result.net = Network::cloudhub_vpn;
+                    ++pos;
+                    break;
+                default: break;
+            }
+        }
+    }
+    else
+    {
+        throw invalid();
+    }
+
+    bool have_fleet_id = false;
+    if (pos < host_code.size())
+    {
+        if (host_code[pos] != 'f')
+            throw invalid();
+        ++pos;
+        if (!read_int(pos, result.fleet_id))
+            throw invalid();
+        have_fleet_id = true;
+    }
+
+    if (pos != host_code.size())
+        throw invalid();
+
+    if (!have_fleet_id)
+    {
+        const char* env_fleet_id = std::getenv("jaia_fleet_index");
+        if (env_fleet_id == nullptr || *env_fleet_id == '\0')
+            throw std::invalid_argument(
+                "Could not find fleet ID. Either specify as 'fN' suffix (e.g., b1f3) or provide "
+                "via environmental variable 'jaia_fleet_index'");
+        std::size_t env_pos = 0;
+        std::string env_str(env_fleet_id);
+        int env_value = 0;
+        std::size_t start = env_pos;
+        while (env_pos < env_str.size() && env_str[env_pos] >= '0' && env_str[env_pos] <= '9')
+        {
+            env_value = env_value * 10 + (env_str[env_pos] - '0');
+            ++env_pos;
+        }
+        if (env_pos == start || env_pos != env_str.size())
+            throw std::invalid_argument("Invalid 'jaia_fleet_index' environmental variable: " +
+                                        env_str);
+        result.fleet_id = env_value;
+    }
+
+    return result;
+}
+
+// Returns the IP address for a host shorthand code (e.g. "b4f2" -> "10.23.2.104"), using IPv4 for
+// the wlan and fleet VPN networks and IPv6 for the other VPN networks
+inline std::string host_code_to_addr(const std::string& host_code, HostCode* parsed = nullptr)
+{
+    HostCode host = parse_host_code(host_code);
+    if (parsed != nullptr)
+        *parsed = host;
+
+    if (host.is_literal)
+        return host.literal;
+
+    if (host.net == Network::wlan || host.net == Network::fleet_vpn)
+        return ipv4_addr(host.fleet_id, host.net, host.node_type, host.node_id);
+    else
+        return ipv6_addr(host.fleet_id, host.net, host.node_type, host.node_id);
 }
 
 } // namespace ip

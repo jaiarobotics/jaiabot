@@ -58,7 +58,7 @@
       when: mode == "online" or mode == "online_with_hub_cache"
         
     - name: Look up hub IP address on the fleet WLAN
-      ansible.builtin.command: /usr/bin/jaia ip --query_type addr --node_type hub --node_id {{ hub_id }} --ip_net wlan --fleet_id {{ jaiabot_embedded_fleet_id }} --ip_version ipv4
+      ansible.builtin.command: /usr/bin/jaia_ip --query_type addr --node_type hub --node_id {{ hub_id }} --ip_net wlan --fleet_id {{ jaiabot_embedded_fleet_id }} --ip_version ipv4
       register: hub_wlan_ip
       changed_when: false
       when: mode == "offline" or mode == "online_with_hub_cache"
