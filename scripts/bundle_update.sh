@@ -30,7 +30,17 @@ install -d -m 0755 /etc/apt/keyrings
 gpg --keyserver keyserver.ubuntu.com --recv-keys ${GOBYSOFT_SIGNING_KEY} && gpg --export ${GOBYSOFT_SIGNING_KEY} > /etc/apt/keyrings/gobysoft.gpg
 gpg --keyserver keyserver.ubuntu.com --recv-keys ${JAIABOT_SIGNING_KEY} && gpg --export ${JAIABOT_SIGNING_KEY} > /etc/apt/keyrings/jaiabot.gpg
 
-echo -e "deb [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/${REPO}/${VERSION}/ ${DISTRO}/\ndeb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/${REPO}/${VERSION}/ ${DISTRO}/" >> /etc/apt/sources.list.d/jaiabot_release_${VERSION}.list
+cat >> /etc/apt/sources.list.d/jaiabot_release_${VERSION}.sources <<EOF
+Types: deb
+URIs: http://packages.jaia.tech/ubuntu/${REPO}/${VERSION}/
+Suites: ${DISTRO}/
+Signed-By: /etc/apt/keyrings/jaiabot.gpg
+
+Types: deb
+URIs: http://packages.jaia.tech/ubuntu/gobysoft/${REPO}/${VERSION}/
+Suites: ${DISTRO}/
+Signed-By: /etc/apt/keyrings/gobysoft.gpg
+EOF
 
 apt-get update 
 

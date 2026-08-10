@@ -25,8 +25,8 @@
         opts: bind
         state: mounted
 
-    - name: Copy /etc/apt/sources.list.d/jaiabot.list into /media/root-ro
-      shell: "cp /etc/apt/sources.list.d/jaiabot.list /media/root-ro/etc/apt/sources.list.d/jaiabot.list"
+    - name: Copy /etc/apt/sources.list.d/jaiabot.sources into /media/root-ro
+      shell: "cp /etc/apt/sources.list.d/jaiabot.sources /media/root-ro/etc/apt/sources.list.d/jaiabot.sources"
         
     - name: Update read-only underlay
       shell: "overlayroot-chroot apt-get update"

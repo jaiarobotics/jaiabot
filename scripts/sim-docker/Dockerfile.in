@@ -16,9 +16,9 @@ RUN install -d -m 0755 /etc/apt/keyrings && \
     gpg --keyserver keyserver.ubuntu.com --recv-keys ${GOBYSOFT_SIGNING_KEY} && gpg --export ${GOBYSOFT_SIGNING_KEY} > /etc/apt/keyrings/gobysoft.gpg && \
     gpg --keyserver keyserver.ubuntu.com --recv-keys ${JAIABOT_SIGNING_KEY} && gpg --export ${JAIABOT_SIGNING_KEY} > /etc/apt/keyrings/jaiabot.gpg
 # Add packages.gobysoft.org mirror to your apt sources
-RUN echo "deb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/$JAIABOT_APT_REPO/@JAIA_VERSION_RELEASE_BRANCH@ `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/gobysoft_$JAIABOT_APT_REPO.list
+RUN printf 'Types: deb\nURIs: http://packages.jaia.tech/ubuntu/gobysoft/%s/@JAIA_VERSION_RELEASE_BRANCH@\nSuites: %s/\nSigned-By: /etc/apt/keyrings/gobysoft.gpg\n' "$JAIABOT_APT_REPO" "$(lsb_release -c -s)" | tee /etc/apt/sources.list.d/gobysoft_$JAIABOT_APT_REPO.sources
 # Use the dev branch for testing, restore above when ready to merge
-RUN echo "deb [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/$JAIABOT_APT_REPO/@JAIA_VERSION_RELEASE_BRANCH@ `lsb_release -c -s`/" | tee /etc/apt/sources.list.d/jaiabot.list
+RUN printf 'Types: deb\nURIs: http://packages.jaia.tech/ubuntu/%s/@JAIA_VERSION_RELEASE_BRANCH@\nSuites: %s/\nSigned-By: /etc/apt/keyrings/jaiabot.gpg\n' "$JAIABOT_APT_REPO" "$(lsb_release -c -s)" | tee /etc/apt/sources.list.d/jaiabot.sources
 RUN apt-get -y update
 # Install the required packages   
 RUN apt-get install -y goby3-gui goby3-apps goby3-moos jaiabot-apps jaiabot-python jaiabot-config jaiabot-web moos-ivp-apps moosdb10 libmoos-ivp gpsd wireguard ntpsec ntpstat python3-systemd ansible rsync socat

@@ -199,18 +199,28 @@ The general process for pulling in a new Goby release should be:
 
 - Run `update_gobysoft_mirror.sh` and choose "Update Staging Mirror". Then select "test" and "continuous" for the repos to link to staging (do not select "beta" yet; "beta" (and "release") will continue to use the old GobySoft "release" repo).
 - Merge the changes in jaiabot that need the updated Goby release into 3.y which will trigger a CircleCI "continuous" build against the new Goby release in the staging repository.
-- Test on vehicles using the continuous `jaiabot.list` repos:
+- Test on vehicles using the continuous `jaiabot.sources` repos:
 
 ```
-deb http://packages.jaia.tech/ubuntu/continuous/3.y/ @DISTRIBUTION@/
-deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/3.y/ @DISTRIBUTION@/
+Types: deb
+URIs: http://packages.jaia.tech/ubuntu/continuous/3.y/
+Suites: @DISTRIBUTION@/
+
+Types: deb
+URIs: http://packages.jaia.tech/ubuntu/gobysoft/continuous/3.y/
+Suites: @DISTRIBUTION@/
 ```
 - When ready to release a beta tag, just before tagging, run `update_gobysoft_mirror.sh` and choose "Choose Staging and Release Repositories", selecting "test", "continuous", and "beta" as the repos to link to staging.
 - Tag `jaiabot` with the beta tag and push. This will trigger a CircleCI "beta" build against the staging repo.
-- Test on vehicles using the beta `jaiabot.list` repos:
+- Test on vehicles using the beta `jaiabot.sources` repos:
 ```
-deb http://packages.jaia.tech/ubuntu/beta/3.y/ @DISTRIBUTION@/
-deb http://packages.jaia.tech/ubuntu/gobysoft/beta/3.y/ @DISTRIBUTION@/
+Types: deb
+URIs: http://packages.jaia.tech/ubuntu/beta/3.y/
+Suites: @DISTRIBUTION@/
+
+Types: deb
+URIs: http://packages.jaia.tech/ubuntu/gobysoft/beta/3.y/
+Suites: @DISTRIBUTION@/
 ```
 - When ready to make the final release, just before tagging, run `update_gobysoft_mirror.sh` and choose "Update Release Mirror from Staging". This will copy the staging mirror in to the release mirror and point all the repos to the release mirror.
 - Tag `jaiabot` with the release tag and push. This will trigger a CircleCI "release" build against the (newly updated) release repo.

@@ -22,11 +22,11 @@ ssh -i /path/to/key jaia@10.23.X.10Y (X indicates fleet number and Y indicates b
 
 ## Select Jaiabot Version To Follow
 ```
-cat /etc/apt/sources.list.d/jaiabot.list
+cat /etc/apt/sources.list.d/jaiabot.sources
 ```
 
 * All bots and hubs are setup to follow the release version
-* When you cat the jaiabot.list file you will see 2 commented out lines
+* When you cat the jaiabot.sources file you will see 2 commented out lines
 * There are 3 ways to follow updates for jaiabot-embedded
   * Continous:
     * The latest code and least tested code (Bugs are to be expected)
@@ -37,7 +37,7 @@ cat /etc/apt/sources.list.d/jaiabot.list
 * To switch between versions uncomment the one you want and comment out the others
 
 ```
-sudo vi /etc/apt/sources.d/jaiabot.list
+sudo vi /etc/apt/sources.list.d/jaiabot.sources
 ```
 
 ## Update Jaiabot Packages
