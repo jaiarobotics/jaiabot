@@ -28,30 +28,27 @@ popd
 
 jaiabot_version=$(cat ${HOME}/jaiabot/${build_dir}/share/version.txt)
 
-source /etc/jaiabot/runtime.env
+# Bot/hub configuration comes from the debconf selections file that
+# docker-arm64-build-and-deploy.sh generated for this target and rsynced
+# alongside the build, so this script no longer has to re-derive it.
+selections=${HOME}/jaiabot/${build_dir}/jaiabot-embedded.selections
 
-jaia_simulation=
-if [[ "$jaia_mode" == "simulation" ]]; then
-    jaia_simulation="--simulation --warp ${jaia_warp}"
+if [ ! -z "$jaiabot_systemd_type" ] && [ ! -f "${selections}" ]; then
+    echo "❌ ${selections} not found. Deploy via docker-arm64-build-and-deploy.sh, which generates it."
+    exit 1
 fi
 
 echo "🟢 Creating and setting permissions on log dir"
 sudo mkdir -p /var/log/jaiabot/bot_offload && sudo chown -R ${USER}:${USER} /var/log/jaiabot
 
 if [ ! -z "$jaiabot_systemd_type" ]; then
-    echo "🟢 Installing and enabling $jaiabot_systemd_type systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
+    echo "🟢 Installing and enabling $jaiabot_systemd_type systemd services"
 
-    if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
-        cd ${HOME}/jaiabot/config/gen
-        (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-        ./systemd-local.sh ${jaiabot_systemd_type} --bot_id $jaia_bot_id --fleet_id $jaia_fleet_id --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} --pam_connection_type ${jaia_pam_connection_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,} --camera_positions ${jaia_camera_positions,,} --additional_sensors ${jaia_additional_sensors})
+    cd ${HOME}/jaiabot/config/gen
+    (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
+     ./systemd-local.sh --debconf_selections ${selections} --enable)
 
-    else
-
-        cd ${HOME}/jaiabot/config/gen
-        (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-         ./systemd-local.sh ${jaiabot_systemd_type} --hub_id $jaia_hub_id --fleet_id $jaia_fleet_id --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced)
-
+    if [[ "$jaiabot_systemd_type" != *"bot"* ]]; then
         sudo chmod o+x ${HOME}
         sudo a2ensite jcc
     fi

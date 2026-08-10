@@ -36,7 +36,7 @@ Bots or Hubs may be connected via the Cloud (see the [Cloud Computing](page056_c
 
 Thus, Bot 5 on VirtualFleet 3 would be `b5vf3`, or (real) Hub 1 Fleet 10 via the Cloud would be `h1cf10`. For servicing hosts remotely, Bot 2 on Fleet 4 would be `b2sf4`.
 
-Additionally, if you are on a bot or hub that has `source /etc/jaiabot/runtime.env` so that the environmental variable `jaia_fleet_id` is defined for the current fleet, you can omit `fN` and the current fleet will be used.
+Additionally, if you are on a bot or hub, you can omit `fN` and the current fleet will be used. The fleet is taken from the `jaia_fleet_id` environmental variable, which login shells pick up from `/etc/profile.d/jaia.sh` (which reads `/etc/jaiabot/jaia.env`, written from the debconf database when `jaiabot-embedded` is configured). Where no profile has been sourced — for example under `cron` or `ssh <host> <command>` — the fleet is read from the hostname instead (`hub0-fleet3`).
 
 The regex for this host shorthand is `([bh])([0-9]+)([svc]?)(f([0-9]+))?|(ch)(f([0-9]+))?`.
 

@@ -10,7 +10,7 @@ Group=$group
 Restart=on-failure
 
 
-EnvironmentFile=$env_file
+$environment
 ExecStart=$goby_bin_dir/gobyd -C '$gen gobyd'
 ExecStop=$goby_bin_dir/goby_terminate -C '$gen goby_terminate' --target_pid $$MAINPID
 

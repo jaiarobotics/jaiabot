@@ -3,29 +3,28 @@ set -e
 
 . /usr/share/debconf/confmodule
 
+# Only the values this script itself needs are read here: the node's identity
+# (for the hostname, addressing and VPN) and the arduino type (for flashing).
+# Everything else is read straight from debconf by systemd.py, which is what
+# actually needs it. Note that bot_type normalization now happens in the
+# .config script, so this script never writes to the debconf database - that
+# keeps the on-disk copy authoritative for anything reading it.
 db_get jaiabot-embedded/type
 JAIA_TYPE=$RET
-
-db_get jaiabot-embedded/bot_type
-JAIA_BOT_TYPE=$RET
 
 if [ "$JAIA_TYPE" = "bot" ]; then
     db_get jaiabot-embedded/bot_id
     BOT_OR_HUB_INDEX=$RET
-    if [ "$JAIA_BOT_TYPE" = "none" ]; then
-        JAIA_BOT_TYPE="hydro"
-        db_set jaiabot-embedded/bot_type "hydro"
-    fi
-
 elif [ "$JAIA_TYPE" = "hub" ]; then
     db_get jaiabot-embedded/hub_id
     BOT_OR_HUB_INDEX=$RET
-    JAIA_BOT_TYPE="none"
-    db_set jaiabot-embedded/bot_type "none"
 fi
 
 db_get jaiabot-embedded/fleet_id
 FLEET_INDEX=$RET
+
+db_get jaiabot-embedded/arduino_type
+JAIA_ARDUINO_TYPE=$RET
 
 # WLAN (fleet) addressing, as defined by the 'jaia_ip' tool
 NODE_WLAN_IP=$(/usr/bin/jaia_ip --query_type addr --node_type ${JAIA_TYPE} --node_id ${BOT_OR_HUB_INDEX} --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
@@ -83,96 +82,35 @@ sed -i "s/.*hub0/${HUB0_WLAN_IP} hub0/" /etc/hosts
 echo "<<<<< Updating hub0 address complete!"
 
 
+echo ">>>>> Writing /etc/jaiabot/jaia.env ... "
+
+# Identity for interactive shells and the 'jaia' tool, sourced by
+# /etc/profile.d/jaia.sh. Deliberately identity-only: service configuration
+# lives in the generated systemd units, so there is nothing here that can fall
+# out of sync with them, and no secrets end up in every user's environment.
+cat <<EOF > /etc/jaiabot/jaia.env
+jaia_type=${JAIA_TYPE}
+jaia_${JAIA_TYPE}_id=${BOT_OR_HUB_INDEX}
+jaia_fleet_id=${FLEET_INDEX}
+EOF
+
+echo "<<<<< Writing /etc/jaiabot/jaia.env complete!"
+
 echo ">>>>> Installing and enabling systemd services ... "
-# Install systemd services and enable them
-db_get jaiabot-embedded/mode
-JAIA_MODE=$RET
 
-SYSTEMD_SIM_FLAG=""
-if [[ "$JAIA_MODE" = "simulation" ]]; then
-    db_get jaiabot-embedded/warp
-    JAIA_WARP=$RET
+# systemd.py reads the rest of the configuration from debconf itself, so only
+# the deployment layout is passed here. db_stop first: until the debconf
+# frontend shuts down, its in-memory answers have not been flushed to the
+# on-disk database that systemd.py reads.
+db_stop
 
-    SYSTEMD_SIM_FLAG="--simulation --warp ${JAIA_WARP}"
-fi
-
-db_get jaiabot-embedded/led_type
-JAIA_LED_TYPE=$RET
-
-db_get jaiabot-embedded/electronics_stack
-JAIA_ELECTRONICS_STACK=$RET
-
-db_get jaiabot-embedded/user_role
-JAIA_USER_ROLE=$RET
-
-db_get jaiabot-embedded/imu_type
-JAIA_IMU_TYPE=$RET
-
-db_get jaiabot-embedded/imu_install_type
-JAIA_IMU_INSTALL_TYPE=$RET
-
-db_get jaiabot-embedded/arduino_type
-JAIA_ARDUINO_TYPE=$RET
-
-db_get jaiabot-embedded/pam_connection_type
-JAIA_PAM_CONNECTION_TYPE=$RET
-
-db_get jaiabot-embedded/data_offload_ignore_type
-JAIA_DATA_OFFLOAD_IGNORE_TYPE=$RET
-
-db_get jaiabot-embedded/motor_harness_type
-JAIA_MOTOR_HARNESS_TYPE=$RET
-
-db_get jaiabot-embedded/temperature_sensor_type
-JAIA_TEMPERATURE_SENSOR_TYPE=$RET
-
-db_get jaiabot-embedded/pressure_sensor_type
-JAIA_PRESSURE_SENSOR_TYPE=$RET
-
-db_get jaiabot-embedded/rf_encryption_password
-JAIA_RF_ENCRYPTION_PASSWORD=$RET
-
-db_get jaiabot-embedded/comms_links
-JAIA_COMMS_LINKS="$(echo $RET | sed 's/,/ /g')"
-
-db_get jaiabot-embedded/camera_positions
-JAIA_CAMERA_POSITIONS="$(echo $RET | sed 's/,/ /g')"
-
-db_get jaiabot-embedded/dccl_encryption_password
-JAIA_DCCL_ENCRYPTION_PASSWORD=$RET
-
-db_get jaiabot-embedded/additional_sensors
-JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
-
-/usr/share/jaiabot/config/gen/systemd.py ${JAIA_TYPE} \
-                                         --enable \
+/usr/share/jaiabot/config/gen/systemd.py --enable \
                                          --jaiabot_bin_dir=/usr/bin \
                                          --jaiabot_share_dir=/usr/share \
                                          --goby_bin_dir=/usr/bin \
                                          --moos_bin_dir=/usr/bin \
                                          --gen_dir=/usr/share/jaiabot/config/gen \
-                                         --systemd_dir=/usr/lib/systemd/system \
-                                         --bot_id=${BOT_OR_HUB_INDEX} \
-                                         --hub_id=${BOT_OR_HUB_INDEX} \
-                                         --fleet_id=${FLEET_INDEX} \
-                                         ${SYSTEMD_SIM_FLAG} \
-                                         --led_type=${JAIA_LED_TYPE} \
-                                         --electronics_stack=${JAIA_ELECTRONICS_STACK} \
-                                         --user_role=${JAIA_USER_ROLE} \
-                                         --imu_type=${JAIA_IMU_TYPE} \
-                                         --arduino_type=${JAIA_ARDUINO_TYPE} \
-                                         --pam_connection_type=${JAIA_PAM_CONNECTION_TYPE} \
-                                         --bot_type=${JAIA_BOT_TYPE} \
-                                         --imu_install_type=${JAIA_IMU_INSTALL_TYPE} \
-                                         --data_offload_ignore_type=${JAIA_DATA_OFFLOAD_IGNORE_TYPE} \
-                                         --motor_harness_type=${JAIA_MOTOR_HARNESS_TYPE} \
-                                         --temperature_sensor_type=${JAIA_TEMPERATURE_SENSOR_TYPE} \
-                                         --pressure_sensor_type=${JAIA_PRESSURE_SENSOR_TYPE} \
-                                         --rf_encryption_password=${JAIA_RF_ENCRYPTION_PASSWORD} \
-                                         --comms_links ${JAIA_COMMS_LINKS} \
-                                         --camera_positions ${JAIA_CAMERA_POSITIONS} \
-                                         --dccl_encryption_password=${JAIA_DCCL_ENCRYPTION_PASSWORD} \
-                                         --additional_sensors ${JAIA_ADDITIONAL_SENSORS}
+                                         --systemd_dir=/usr/lib/systemd/system
 
 echo "<<<<< Installing and enabling systemd services complete!"
 
@@ -220,26 +158,8 @@ echo ">>>>> Installing (but not enabling) Wireguard VPN ... "
 
 echo ">>>>> Installing Wireguard VPN complete!"
 
-alias_name="j"
-alias_command="jaiabot-status"
-
-# Check if the alias already exists in .bashrc
-if ! grep -q "alias $alias_name=" /home/jaia/.bashrc; then
-  # Add the alias to .bashrc
-  echo "alias $alias_name=\"$alias_command\"" >> /home/jaia/.bashrc
-  echo "Alias added to /home/jaia/.bashrc"
-else
-  echo "jaiabot-status Alias already exists in /home/jaia/.bashrc"
-fi
-
-runtime_src_command="set -a; source /etc/jaiabot/runtime.env; set +a"
-if ! grep -q "$runtime_src_command" /home/jaia/.bashrc; then
-  echo "$runtime_src_command" >> /home/jaia/.bashrc
-  echo "source runtime.env added to /home/jaia/.bashrc"
-else
-  echo "source runtime.env already exists in /home/jaia/.bashrc"
-fi
-
+# The 'j' alias and the jaia.env sourcing are provided to every login shell by
+# /etc/profile.d/jaia.sh, which ships with this package.
 
 echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' jaiabot-embedded)" > /etc/jaiabot/software_version
 

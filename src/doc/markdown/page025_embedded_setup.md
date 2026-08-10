@@ -137,19 +137,23 @@ Each application has a service definition, and they are all set to `BindTo` the 
 
 When using the `jaiabot-embedded` Debian package, the systemd services are automatically installed to `/etc/systemd/system` and enabled. No further action is required in this case.
 
+All bot/hub configuration is read from the `jaiabot-embedded` debconf database, so there are no configuration flags to pass. To change any of it, run `sudo dpkg-reconfigure jaiabot-embedded`.
+
 When using a built-from-source version of jaiabot, ensure that the local bin directory is on your `$PATH` (e.g., check that `which jaiabot_mission_manager` returns the correct binary), then run:
 
-Bot 0 (install and enable):
 ```
 cd jaiabot/config/gen
-./systemd-local.sh bot --bot_id 0 --n_bots 4 --enable
+./systemd-local.sh --enable
 ```
 
-Hub (install and enable):
+If the machine has no `jaiabot-embedded` debconf database — or you want to generate services for a configuration other than the local one — write the answers to a file in `debconf-set-selections` format and point at it instead:
+
 ```
 cd jaiabot/config/gen
-./systemd-local.sh hub --n_bots 4 --enable
+./systemd-local.sh --debconf_selections /path/to/bot.selections --enable
 ```
+
+You can produce such a file from a configured machine with `jaia-debconf.sh --selections`. This is also how `docker-arm64-build-and-deploy.sh` configures a remote target.
 
 See `./systemd-local.sh --help` for more options.
 
@@ -167,11 +171,13 @@ The `jaiabot.service` waits for the system clock to be synchronized via NTP (via
 
 The systemd service files are generated via templates much like the application configuration.
 
-The generation script lives in: `jaiabot/config/gen/systemd.py` and can be run to install systemd service jobs for either a locally built copy of jaiabot or used during the Debian package build.
+The generation script lives in: `jaiabot/config/gen/systemd.py` and is run by the `jaiabot-embedded` postinst, or by hand for a locally built copy of jaiabot. It reads the bot/hub configuration from debconf and takes only the deployment layout (where the binaries and services live) on the command line.
+
+The generated units carry their configuration in `Environment=` lines, which the configuration Generators (`gen/bot.py`, `gen/hub.py`) read when systemd starts them as children.
 
 To see all the options for configuring this script, run `systemd.py --help`
 
-For a locally built copy, you can use the `systemd-local.sh` shell script (a thin wrapper around `systemd.py` that executes `systemd.py` using the current interactive shell settings, such as `$PATH`).
+For a locally built copy, you can use the `systemd-local.sh` shell script (a thin wrapper around `systemd.py` that runs it under `sudo` while preserving the current `$PATH`).
 
 This script will generally have the correct defaults for the various directories, assuming that the version of the `jaiabot` apps and the Goby applications (`gobyd`, etc.) that you wish to run are currently set correctly in the shell `$PATH` environmental variable at the time of running the `gen/systemd-local.sh` generation script.
 

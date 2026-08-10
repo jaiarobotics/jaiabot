@@ -192,6 +192,11 @@ if(install_motd)
   install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
 endif()
 
+option(install_profile "Install /etc/profile.d script providing the jaia environment to login shells" ON)
+if(install_profile)
+  install(FILES ${project_SCRIPTS_DIR}/system/jaia-profile.sh DESTINATION /etc/profile.d/ RENAME jaia.sh)
+endif()
+
 option(install_ssh_authorized_keys "Install SSH authorized keys to /etc/jaiabot/ssh" ON)
 if(install_ssh_authorized_keys)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/ssh DESTINATION /etc/jaiabot)
@@ -218,6 +223,7 @@ set(scripts_to_install
   jaia-vpn-gen.sh
   # System scripts
   system/jaiabot-checkloadavg.py
+  system/jaia-debconf.sh
   system/jaia_update_ufw_rules.sh
   system/jaia_update_network.sh
   system/jaia_iridium_tunnel.sh
