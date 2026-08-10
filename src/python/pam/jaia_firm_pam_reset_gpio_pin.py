@@ -1,16 +1,16 @@
 import RPi.GPIO as GPIO
 import time
 
-# Echo reset pin
-echo_pin = 23
+# PAM reset pin
+pam_pin = 23
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(echo_pin, GPIO.OUT)  
+GPIO.setup(pam_pin, GPIO.OUT)  
 
 try:
-    GPIO.output(echo_pin, GPIO.HIGH)
+    GPIO.output(pam_pin, GPIO.HIGH)
     time.sleep(0.1)
-    GPIO.output(echo_pin, GPIO.LOW)
+    GPIO.output(pam_pin, GPIO.LOW)
     time.sleep(0.1)
     # now clean up the GPIO
     GPIO.cleanup()

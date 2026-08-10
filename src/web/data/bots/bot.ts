@@ -180,7 +180,7 @@ export default class Bot {
 
     private initializeSensors() {
         switch (this.getBotType()) {
-            case BotType.ECHO:
+            case BotType.PAM:
                 this.getBotSensors().initPAMSensors();
                 break;
             default:

@@ -40,7 +40,7 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
-#include "jaiabot/messages/echo.pb.h"
+#include "jaiabot/messages/pam.pb.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/ctd.pb.h"
 #include "jaiabot/messages/ppk.pb.h"

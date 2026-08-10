@@ -68,7 +68,7 @@ if "jaia_data_offload_ignore_type" in os.environ:
 
 bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 
-echo_enabled=(bot_type == "ECHO")
+pam_enabled=(bot_type == "PAM")
 # Ignore health warnings from UDP gateway if data comes from BIO payload board
 salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
@@ -320,7 +320,7 @@ elif common.app == 'jaiabot_udp_gateway':
                                      interprocess_block = interprocess_common,
                                      in_simulation=is_simulation(),
                                      udp_gateway_port=udp_gateway_port,
-                                     echo_enabled=str(echo_enabled).lower(),
+                                     pam_enabled=str(pam_enabled).lower(),
                                      salinity_enabled=str(salinity_enabled).lower(),
                                      bar30_enabled=str(bar30_enabled).lower(),
                                      tsys01_enabled=str(tsys01_enabled).lower()))

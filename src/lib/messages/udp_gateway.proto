@@ -3,7 +3,7 @@ import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/sensor/salinity.proto";
 import "jaiabot/messages/sensor/pressure_temperature.proto";
 import "jaiabot/messages/tsys01.proto";
-import "jaiabot/messages/echo.proto";
+import "jaiabot/messages/pam.proto";
 import "jaiabot/messages/ppk.proto";
 
 package jaiabot.protobuf;
@@ -22,8 +22,8 @@ message UDPGatewayEnvelope
 
         TSYS01Data tsys01_data = 5;
 
-        EchoCommand echo_command = 6;
-        EchoData echo_data = 7;
+        PamCommand pam_command = 6;
+        PamData pam_data = 7;
 
         // jaiabot_ubx_ppk.py
         UBXChunk ubx_chunk = 8;

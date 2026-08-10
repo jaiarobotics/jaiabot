@@ -248,7 +248,7 @@ export default class Task {
                 missionTask.station_keep = this.stationKeepParameters;
                 break;
         }
-        missionTask.start_echo = this.useHydrophone;
+        missionTask.start_pam = this.useHydrophone;
         return missionTask;
     }
 }

@@ -212,7 +212,7 @@ export class Bots {
 
     includesPAM() {
         for (const [botID, bot] of this.bots) {
-            if (bot.getBotType() === BotType.ECHO) {
+            if (bot.getBotType() === BotType.PAM) {
                 return true;
             }
         }

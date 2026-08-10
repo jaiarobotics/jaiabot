@@ -58,7 +58,7 @@ parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--pam_connection_type', choices=['uart', 'usb', 'none'], help='If set, configure services for PAM connection type')
-parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'none'], help='If set, configure services for bot type')
+parser.add_argument('--bot_type', choices=['hydro', 'pam', 'bio', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
 parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsys01', 'none'], help='If set, configure services for temperature sensor')
@@ -108,7 +108,7 @@ class ELECTRONICS_STACK(Enum):
 
 class BOT_TYPE(Enum):
     HYDRO = 'HYDRO'
-    ECHO = 'ECHO'
+    PAM = 'PAM'
     BIO = 'BIO'
     NONE = 'NONE'
 
@@ -185,8 +185,8 @@ else:
 
 if args.bot_type == 'hydro':
     jaia_bot_type = BOT_TYPE.HYDRO
-elif args.bot_type == 'echo':
-    jaia_bot_type = BOT_TYPE.ECHO
+elif args.bot_type == 'pam':
+    jaia_bot_type = BOT_TYPE.PAM
 elif args.bot_type == 'bio':
     jaia_bot_type = BOT_TYPE.BIO
 else:
@@ -555,7 +555,7 @@ jaiabot_apps = [
      'runs_on': [Type.BOT],
      'wanted_by': 'jaiabot_health.service'},
 
-    ## Bot Types: HYDRO, ECHO, NONE Services
+    ## Bot Types: HYDRO, PAM, NONE Services
 
     {'exe': 'jaiabot_pressure_sensor.py',
      'description': 'JaiaBot Pressure Sensor Python Driver',
@@ -563,7 +563,7 @@ jaiabot_apps = [
      'subdir': 'pressure_sensor',
      'args': f'-t {jaia_pressure_sensor_type.value} -p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
-     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.PAM],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
@@ -573,20 +573,20 @@ jaiabot_apps = [
      'subdir': 'atlas_scientific_ezo_ec',
      'args': f'-p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
-     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.PAM],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
 
-    ## ECHO Services ##
+    ## PAM Services ##
 
-    {'exe': 'jaiabot_echo.py',
-     'description': 'JaiaBot MAI Echo Python Driver',
+    {'exe': 'jaiabot_pam.py',
+     'description': 'JaiaBot MAI PAM Python Driver',
      'template': 'py-app.service.in',
-     'subdir': 'echo',
+     'subdir': 'pam',
      'args': f'-p {UDP_GATEWAY_PORT} -d {args.pam_connection_type}',
-     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_ECHO',
-     'runs_on': [BOT_TYPE.ECHO],
+     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PAM',
+     'runs_on': [BOT_TYPE.PAM],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
@@ -787,10 +787,10 @@ jaia_firmware = [
      'runs_when': Mode.RUNTIME,
      'imu_type': IMU_TYPE.BNO085,
      'run_at_boot': False},
-     {'exe': 'jaia_firm_echo_reset_gpio_pin.py',
-     'description': 'Script to reset gpio line for the echo',
-     'template': 'echo-reset-gpio-pin.service.in',
-     'subdir': 'echo',
+     {'exe': 'jaia_firm_pam_reset_gpio_pin.py',
+     'description': 'Script to reset gpio line for the PAM',
+     'template': 'pam-reset-gpio-pin.service.in',
+     'subdir': 'pam',
      'args': '',
      'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,
