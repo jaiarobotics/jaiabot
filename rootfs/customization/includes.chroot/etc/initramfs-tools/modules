@@ -1,0 +1,38 @@
+# List of modules that you want to include in your initramfs.
+# They will be loaded at boot time in the order below.
+#
+# Syntax:  module_name [args ...]
+#
+# You must run update-initramfs(8) to effect this change.
+#
+# Examples:
+#
+# raid1
+# sd_mod
+
+# Use list for Ubuntu 26.04 because we need to keep initramfs small to fit two copies (piboot-try) on the older 256 MB /boot partitions
+
+# List generated on JaiaBot system: 
+# sudo cp /etc/initramfs-tools/initramfs.conf /etc/initramfs-tools/initramfs.conf.bak
+# sudo sed -i 's/^MODULES=.*/MODULES=dep/' /etc/initramfs-tools/initramfs.conf
+# sudo update-initramfs -u
+# lsinitramfs /boot/initrd.img | grep '\.ko' | sed 's|.*/||;s/\.ko.*//' | sort -u
+
+af_alg
+algif_skcipher
+blake2b
+btrfs
+dax
+dm-crypt
+dm-mod
+libblake2b
+mmc_block
+overlay
+phy-generic
+raid6_pq
+rpmb-core
+uas
+usb-storage
+xor
+xor-neon
+xxhash_generic
