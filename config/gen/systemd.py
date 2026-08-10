@@ -240,12 +240,7 @@ class Type(Enum):
     HUB = 'hub'
     BOTH = 'both'
 
-class CloudHubType(Enum):
-    NEVER = 0
-    PRIMARY = 1
-
 is_cloudhub=False
-cloudhub_type=CloudHubType.PRIMARY
 
 if args.type == 'bot':
     jaia_type = Type.BOT
@@ -316,7 +311,7 @@ common_macros['moos_sim_file'] = '/tmp/jaiabot_sim_${jaia_bot_id}.moos'
 # unless otherwise specified, apps are run both at runtime and simulation
 common_macros['runs_when'] = Mode.BOTH
 # unless otherwise specified, apps run on CloudHub
-common_macros['runs_on_cloudhub'] = CloudHubType.PRIMARY
+common_macros['runs_on_cloudhub'] = True
 
 try:
     common_macros['user'] = os.getlogin()
@@ -340,7 +335,7 @@ elif jaia_type == Type.HUB:
 
 # most firmware does not run on Cloudhubs at all
 firmware_common_macros = common_macros.copy()
-firmware_common_macros['runs_on_cloudhub'] = CloudHubType.NEVER
+firmware_common_macros['runs_on_cloudhub'] = False
     
     
 all_goby_apps = []
@@ -762,7 +757,7 @@ jaia_firmware = [
      'args': '',
      'runs_on': [Type.BOTH],
      'runs_when': Mode.BOTH,
-     'runs_on_cloudhub': CloudHubType.PRIMARY},
+     'runs_on_cloudhub': True},
      {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',
@@ -785,7 +780,7 @@ jaia_firmware = [
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
 def is_app_run(app):
     macros={**common_macros, **app}
-    return (Type.BOTH in macros['runs_on'] or jaia_type in macros['runs_on'] or jaia_bot_type in macros['runs_on']) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (not is_cloudhub or macros['runs_on_cloudhub'].value >= cloudhub_type.value)
+    return (Type.BOTH in macros['runs_on'] or jaia_type in macros['runs_on'] or jaia_bot_type in macros['runs_on']) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (not is_cloudhub or macros['runs_on_cloudhub'])
 
 for app in jaiabot_apps:
     if is_app_run(app):
@@ -866,7 +861,7 @@ def is_firm_run(firm):
         if (macros['imu_type'] != jaia_imu_type):
             return False
 
-    if(is_cloudhub and not macros['runs_on_cloudhub'].value >= cloudhub_type.value):
+    if(is_cloudhub and not macros['runs_on_cloudhub']):
         return False
         
     return True
