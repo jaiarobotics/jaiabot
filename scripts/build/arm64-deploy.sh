@@ -58,7 +58,7 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
 
 fi
 
-sudo cp ${HOME}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/
+sudo cp ${HOME}/jaiabot/src/sh/system/75-jaiabot-status /etc/update-motd.d/
 # use symlink so this gets updated if the user re-installs the packaged version
 sudo ln -s -f /etc/update-motd.d/75-jaiabot-status /usr/local/bin/jaiabot-status
 

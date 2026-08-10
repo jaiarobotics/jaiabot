@@ -3,7 +3,7 @@
 set -euo pipefail
 
 script_dir=$(dirname $BASH_SOURCE)
-set -a; source ${script_dir}/common-versions.env; set +a 
+set -a; source ${script_dir}/../common-versions.env; set +a 
 sudo apt-get update && sudo apt-get install docker.io
 # Verify that you can run docker commands without sudo
 docker run hello-world

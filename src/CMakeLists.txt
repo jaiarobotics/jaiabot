@@ -1,6 +1,8 @@
 include(JaiaApp)
 include(JaiaLib)
 
+add_subdirectory(sh)
+
 add_subdirectory(lib)
 
 add_subdirectory(bin)

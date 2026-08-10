@@ -72,7 +72,10 @@ def main():
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    markdown_dir = os.path.normpath(script_dir + '/../src/doc/markdown')
+    markdown_dir = os.path.normpath(script_dir + '/../../doc/markdown')
+    if not os.path.exists(markdown_dir):
+        # when run from the build tree (build/bin)
+        markdown_dir = os.path.normpath(script_dir + '/../src/doc/markdown')
     if not os.path.exists(markdown_dir):
         markdown_dir = '/usr/share/doc/jaiabot/markdown'
     if not os.path.exists(markdown_dir):

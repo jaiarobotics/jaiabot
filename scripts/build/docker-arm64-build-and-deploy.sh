@@ -23,7 +23,7 @@ function dockerPackageVersion() {
 
 script_dir=$(dirname $0)
 
-set -a; source ${script_dir}/common-versions.env; set +a 
+set -a; source ${script_dir}/../common-versions.env; set +a 
 
 repo=${jaiabot_repo:-release}
 
@@ -33,7 +33,7 @@ version_lower=$(echo "$version" | tr '[:upper:]' '[:lower:]')
 distro=${jaiabot_distro:-${jaia_version_ubuntu_codename}}
 
 if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
-    cd ${script_dir}/..
+    cd ${script_dir}/../..
 
     build_dir=build/${distro}-${version_lower}-amd64-vbox   
     mkdir -p ${build_dir}
@@ -43,14 +43,14 @@ if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
     if [ "$(docker image ls ${image_name} --format='true')" != "true" ];
     then
         echo "🟢 Building the docker ${image_name} image"
-        ./scripts/docker-build-build-system.sh
+        ./scripts/build/docker-build-build-system.sh
     fi
 
     echo "🟢 Building jaiabot apps using docker ${image_name} image to ${build_dir}"
-    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/amd64-build-vbox.sh ${build_dir}"
+    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/build/amd64-build-vbox.sh ${build_dir}"
 
 else    
-    cd ${script_dir}/..
+    cd ${script_dir}/../..
 
     build_dir=build/${distro}-${version_lower}-arm64
     mkdir -p ${build_dir}
@@ -60,11 +60,11 @@ else
     if [ "$(docker image ls ${image_name} --format='true')" != "true" ];
     then
         echo "🟢 Building the docker ${image_name} image"
-        ./scripts/docker-build-build-system.sh
+        ./scripts/build/docker-build-build-system.sh
     fi
 
     echo "🟢 Building jaiabot apps using docker ${image_name} image to ${build_dir}"
-    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/arm64-build.sh ${build_dir}"
+    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} bash -c "./scripts/build/arm64-build.sh ${build_dir}"
 fi
 
 # Get goby and dccl versions currently installed into the build image
@@ -87,7 +87,7 @@ else
         rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
         # Login to the target, and deploy the software
-        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c \"./jaiabot/scripts/arm64-deploy.sh ${build_dir}\""
+        ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c \"./jaiabot/scripts/build/arm64-deploy.sh ${build_dir}\""
 
         if [ ! -z $jaiabot_systemd_type ]; then
             echo "When you're ready, ssh ${botuser}@${hostname} and run 'sudo systemctl start jaiabot'"

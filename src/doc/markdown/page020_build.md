@@ -313,7 +313,7 @@ docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -it gobysoft/ja
 # update any dependencies since the image was created (not required if you've recently built the image)
 apt update && apt upgrade -y
 # actually build the code
-./scripts/arm64_build.sh
+./scripts/build/arm64_build.sh
 ```
 
 
@@ -331,7 +331,7 @@ rsync -aP build/bin build/lib ubuntu@172.20.11.10:/home/ubuntu/jaiabot/build
 
 ### Build and copy in one step
 
-Use the all-in-one-script (`/scripts/docker_arm64_build-and-deploy.sh`):
+Use the all-in-one-script (`/scripts/build/docker_arm64_build-and-deploy.sh`):
 
 ```
 ##
