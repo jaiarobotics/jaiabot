@@ -58,7 +58,7 @@ parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--pam_connection_type', choices=['uart', 'usb', 'none'], help='If set, configure services for PAM connection type')
-parser.add_argument('--bot_type', choices=['hydro', 'pam', 'echo', 'bio', 'none'], help='If set, configure services for bot type')
+parser.add_argument('--bot_type', choices=['hydro', 'pam', 'bio', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
 parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsys01', 'none'], help='If set, configure services for temperature sensor')
@@ -185,7 +185,7 @@ else:
 
 if args.bot_type == 'hydro':
     jaia_bot_type = BOT_TYPE.HYDRO
-elif args.bot_type in ('pam', 'echo'):  # echo is a legacy alias for pam
+elif args.bot_type == 'pam':
     jaia_bot_type = BOT_TYPE.PAM
 elif args.bot_type == 'bio':
     jaia_bot_type = BOT_TYPE.BIO
