@@ -66,6 +66,7 @@ class CalibrationApp {
         this.testMotorRPMButton.addEventListener("click", this.testMotorRPM.bind(this));
 
         this.tailSerialInput = byId("tail-serial");
+        this.testerNameInput = byId("tester-name");
 
         this.lastEngineeringStatusTime = 0;
         this.lastEngineeringStatusBotId = null;
@@ -78,6 +79,7 @@ class CalibrationApp {
         this.motorRunningStatusCount = 0;
         this.motorRPMCollectionTimeout = null;
         this.motorRPMTailSerial = "";
+        this.motorRPMTesterName = "";
         this.motorRPMBotId = null;
         this.motorRPMBotVIN = "";
     }
@@ -231,6 +233,7 @@ class CalibrationApp {
         }
 
         const tailSerial = this.tailSerialInput.value.trim();
+        const testerName = this.testerNameInput.value.trim();
 
         if (
             !confirm(
@@ -251,6 +254,7 @@ class CalibrationApp {
         this.motorRunningStatusCount = 0;
         // Held for the report, so editing these during the test can't change what is recorded
         this.motorRPMTailSerial = tailSerial;
+        this.motorRPMTesterName = testerName;
         this.motorRPMBotId = botId;
         this.motorRPMBotVIN = "";
         this.updateTestMotorRPMBtn(true);
@@ -409,6 +413,12 @@ class CalibrationApp {
             return;
         }
 
+        // Every recorded result says who ran the test, so there is no recording one without it
+        if (this.motorRPMTesterName === "") {
+            this.updateMotorRPMTestUpload("Not recorded in the database: no tester name", "");
+            return;
+        }
+
         const testResult = {
             // Stays the same across retries, so the database can drop a result it already has
             external_id: `jed-${api.clientId}-${Date.now()}`,
@@ -423,6 +433,7 @@ class CalibrationApp {
                 samples: this.motorRPMSamples,
                 bot_id: this.motorRPMBotId,
                 bot_vin: this.motorRPMBotVIN,
+                tester_name: this.motorRPMTesterName,
             },
             // This browser's clock, not the bot's
             performed_at: new Date().toISOString(),

@@ -82,7 +82,7 @@ button:active {
     margin-bottom: 15px;
 }
 
-.tail-serial-entry {
+.motor-rpm-test-entry {
     display: flex;
     align-items: center;
     gap: 15px;
