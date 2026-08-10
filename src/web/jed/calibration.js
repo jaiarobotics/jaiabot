@@ -79,6 +79,7 @@ class CalibrationApp {
         this.motorRPMCollectionTimeout = null;
         this.motorRPMTailSerial = "";
         this.motorRPMBotId = null;
+        this.motorRPMBotVIN = "";
     }
 
     updateStatus(status) {
@@ -251,6 +252,7 @@ class CalibrationApp {
         // Held for the report, so editing these during the test can't change what is recorded
         this.motorRPMTailSerial = tailSerial;
         this.motorRPMBotId = botId;
+        this.motorRPMBotVIN = "";
         this.updateTestMotorRPMBtn(true);
         this.updateMotorRPMTestResult("Spinning up motor...", "");
         this.updateMotorRPMTestUpload("", "");
@@ -337,6 +339,10 @@ class CalibrationApp {
 
         this.motorRPMStatusCount += 1;
 
+        if (engineeringStatus.bot_vin != null) {
+            this.motorRPMBotVIN = engineeringStatus.bot_vin;
+        }
+
         // The throttle the bot reports is the one it was applying when it sampled the RPM, so it
         // tells us the motor was still being driven without comparing the bot's clock to ours
         if (engineeringStatus.pid_control?.throttle > 0) {
@@ -416,6 +422,7 @@ class CalibrationApp {
                 threshold_rpm: MOTOR_RPM_TEST_MIN_RPM,
                 samples: this.motorRPMSamples,
                 bot_id: this.motorRPMBotId,
+                bot_vin: this.motorRPMBotVIN,
             },
             // This browser's clock, not the bot's
             performed_at: new Date().toISOString(),

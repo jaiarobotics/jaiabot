@@ -119,6 +119,16 @@ jaiabot::apps::JaiabotEngineering::JaiabotEngineering() : ApplicationBase(0.5 * 
                 }
             });
 
+        // Subscribe to motor usage, which is the only place this bot's vin is reported
+        interprocess().subscribe<jaiabot::groups::motor_usage_report>(
+            [this](const jaiabot::protobuf::MotorUsageReport& motor_usage_report)
+            {
+                if (motor_usage_report.has_bot_vin())
+                {
+                    latest_engineering.set_bot_vin(motor_usage_report.bot_vin());
+                }
+            });
+
         interprocess().subscribe<jaiabot::groups::engineering_status>(
             [this](const jaiabot::protobuf::Engineering& engineering_status)
             {
