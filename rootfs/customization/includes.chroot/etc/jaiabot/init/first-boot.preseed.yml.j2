@@ -46,7 +46,7 @@ runcmd:
   - sudo systemctl {{ "enable" if serviceVpnEnabled else "disable" }} wg-quick@wg_jaia
   # Set up wlan
   - sed -i "s/jaia_network_fleet_password=.*/jaia_network_fleet_password=\"{{ wlanPassword }}\"/" /etc/jaiabot/network.env
-  - /usr/bin/jaia_update_network.sh
+  - /usr/bin/jaia-update-network.sh
   - if [ "$(cloud-init query cloud_id)" = "nocloud" ]; then systemctl enable wpa_supplicant@wlan0; systemctl start wpa_supplicant@wlan0; fi
   # Setup wireguard VPN (if temporary key is provided)
   - networkctl reload

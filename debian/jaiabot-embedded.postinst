@@ -74,7 +74,7 @@ else
     sed -i "s/fleet_gateway=.*/fleet_gateway=\"${FLEET_GATEWAY}\"/" ${NETENV_FILE}
 fi
 
-/usr/bin/jaia_update_network.sh
+/usr/bin/jaia-update-network.sh
 
 
 echo "<<<<< Updating wifi configuration complete (IP address changes won't take effect until reboot)!"

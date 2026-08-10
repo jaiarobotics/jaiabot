@@ -53,7 +53,7 @@ The JaiaBot project supports Ubuntu 24.04.
 
 2. Run the setup scripts.
     ```
-    cd jaiabot/scripts
+    cd jaiabot/scripts/build
     ```
     ```
     ./setup-tools-build.sh
@@ -63,7 +63,7 @@ The JaiaBot project supports Ubuntu 24.04.
     ```
 3. Move back to the JaiaBot repository. Run the build script.
     ```
-    cd ..
+    cd ../..
     ```
     ``` 
     ./build.sh
@@ -118,7 +118,7 @@ In any terminals that are running the web and simulator, type CTRL+C.
 
 
 ### Troubleshooting the Simulator
-* To kill all processes, `cd` into `jaiabot/scripts`, run the kill command, and relaunch the simulator. 
+* To kill all processes, `cd` into `jaiabot/scripts/dev`, run the kill command, and relaunch the simulator. 
     ```
     ./kill-jaiabot-processes.sh
     ```
@@ -137,7 +137,7 @@ In any terminals that are running the web and simulator, type CTRL+C.
 * If you are getting an error when using our suggested cd path, you are most likely not in the right directory. Your current location will show following your `username-hostname`. For example, you are in the jaiabot scripts directory when you see:
 
     ```
-    ubuntu@username-hostname:~/jaiabot/scripts$
+    ubuntu@username-hostname:~/jaiabot/scripts/build$
     ```
 
     To see which directories you can move into, use `ls`. To go back a directory, use `cd ..`. You want to move to the directory with your cloned jaia repository. We keep ours in our home directory, so if you want to follow our `cd` commands directly, this would be the best option.
@@ -262,7 +262,7 @@ If you are modifying code on a Mac, [create an SSH Key](#creating-an-ssh-key-mac
     * Select the SSID JAIA-HUB-WIFI-X from Wi-Fi list (X indicates fleet number).
 3. Create Docker image.
     ```
-    cd ~/jaiabot/scripts
+    cd ~/jaiabot/scripts/build
     ```
     ```
     ./docker-build-build-system.sh
@@ -276,7 +276,7 @@ If you are modifying code on a Mac, [create an SSH Key](#creating-an-ssh-key-mac
     ```
 5. Deploy the simulator.
     ```
-    cd ~/jaiabot/scripts
+    cd ~/jaiabot/scripts/build
     ```
     Deploy to the BOT
     ```

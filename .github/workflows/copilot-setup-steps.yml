@@ -33,7 +33,7 @@ jobs:
 
       - name: Install build tools
         run: |
-          ./scripts/setup-tools-build.sh
+          ./scripts/build/setup-tools-build.sh
 
       - name: Remove Github built-in cmake and check version
         run: |

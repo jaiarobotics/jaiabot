@@ -19,7 +19,7 @@ set(DOCKERFILES
   ${CMAKE_SOURCE_DIR}/.docker/resolute/amd64/Dockerfile.in
   ${CMAKE_SOURCE_DIR}/.docker/resolute/arm64/Dockerfile.in
   ${CMAKE_SOURCE_DIR}/scripts/sim-docker/Dockerfile.in
-  ${CMAKE_SOURCE_DIR}/scripts/test-setup-build/Dockerfile.in
+  ${CMAKE_SOURCE_DIR}/scripts/test/setup-build/Dockerfile.in
   )
 
 foreach(I ${DOCKERFILES})

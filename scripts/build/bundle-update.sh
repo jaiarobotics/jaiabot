@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # intended to be run within a bare (e.g. ubuntu:focal) docker container
-# docker run --rm -v /path/to/jaiabot:/jaiabot -w /jaiabot ubuntu:focal scripts/bundle_update.sh focal continuous 1.y
+# docker run --rm -v /path/to/jaiabot:/jaiabot -w /jaiabot ubuntu:focal scripts/build/bundle-update.sh focal continuous 1.y
 
 # see also https://npmccallum.gitlab.io/post/foreign-architecture-docker/
 

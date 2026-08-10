@@ -597,7 +597,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Sensors',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_SENSORS',
-     'exec_start_pre': '/usr/bin/reset-bio-payload-board.sh',
+     'exec_start_pre': '/usr/bin/jaia-reset-bio-payload-board.sh',
      'runs_on': [BOT_TYPE.BIO],
      'wanted_by': 'jaiabot_health.service'},
 
@@ -771,7 +771,8 @@ jaia_firmware = [
      'args': '--electronics_stack=' + jaia_electronics_stack.value,
      'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME},
-     {'exe': 'jaia_firm_backup_date.sh',
+     {'exe': 'jaia-firm-backup-date.sh',
+     'service': 'jaia_firm_backup_date_sh',
      'description': 'Backup the date to a file when we have a valid date time ntp',
      'template': 'backup-date.service.in',
      'args': '',
