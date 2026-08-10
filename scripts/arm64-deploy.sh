@@ -50,7 +50,7 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
 
         cd ${HOME}/jaiabot/config/gen
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-         ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced)
+         ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced --corner_cupboard_url "${jaia_corner_cupboard_url:-https://cc.cloud.jaia.tech}" ${jaia_corner_cupboard_token:+--corner_cupboard_token "$jaia_corner_cupboard_token"})
 
         sudo chmod o+x ${HOME}
         sudo a2ensite jcc

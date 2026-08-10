@@ -70,6 +70,8 @@ parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'no
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
 parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 parser.add_argument('--tail_serial_number', default='unknown_serial_number', help='Tail serial number to use for this bot (defaults to "unknown_serial_number")')
+parser.add_argument('--corner_cupboard_url', default='https://cc.cloud.jaia.tech', help='Base url of the Jaia database that test results are recorded in')
+parser.add_argument('--corner_cupboard_token', default='', help='API token for the Jaia database that test results are recorded in')
 
 args=parser.parse_args()
 
@@ -306,6 +308,8 @@ subprocess.run('bash -ic "' +
                f'export jaia_dccl_encryption_password={args.dccl_encryption_password}; ' +
                'export jaia_additional_sensors=' + ','.join(position for position in jaia_additional_sensors) + '; ' +
                'export jaia_tail_serial_number=' + str(args.tail_serial_number) + '; ' +
+               f'export jaia_corner_cupboard_url={args.corner_cupboard_url}; ' +
+               f'export jaia_corner_cupboard_token={args.corner_cupboard_token}; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 

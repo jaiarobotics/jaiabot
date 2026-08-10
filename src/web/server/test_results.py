@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 import json
 import logging
+import os
 import sqlite3
 import urllib.error
 import urllib.request
 
-# Written by hand on each hub, so the token never ships with the code or reaches a browser
-CONFIG_FILE = '/etc/jaiabot/corner_cupboard.env'
+# Written per hub by systemd.py, so the token never ships with the code or reaches a browser
+CONFIG_FILE = '/etc/jaiabot/runtime.env'
 DEFAULT_URL = 'https://cc.cloud.jaia.tech'
-DEFAULT_QUEUE_FILE = '/var/log/jaiabot/test_results.db'
+DEFAULT_LOG_DIR = '/var/log/jaiabot'
+QUEUE_FILE_NAME = 'test_results.db'
 SUBMIT_PATH = '/test-results/api/submit/'
 REQUEST_TIMEOUT = 10  # seconds
 # Retrying never turns these into a success, so the result is dropped rather than queued
@@ -57,8 +59,8 @@ def run_on_queue(statement, parameters=()):
     Returns:
         list: The rows the statement selected.
     """
-    connection = sqlite3.connect(read_config().get('corner_cupboard_queue_file',
-                                                   DEFAULT_QUEUE_FILE))
+    log_dir = read_config().get('jaia_log_dir') or DEFAULT_LOG_DIR
+    connection = sqlite3.connect(os.path.join(log_dir, QUEUE_FILE_NAME))
     try:
         connection.execute('CREATE TABLE IF NOT EXISTS pending ('
                            'external_id TEXT PRIMARY KEY, payload TEXT NOT NULL)')
@@ -93,12 +95,12 @@ def submit(payload):
     """
     config = read_config()
 
-    token = config.get('corner_cupboard_token')
+    token = config.get('jaia_corner_cupboard_token')
     if not token:
-        return 'unreachable', f'No corner_cupboard_token in {CONFIG_FILE}'
+        return 'unreachable', f'No jaia_corner_cupboard_token in {CONFIG_FILE}'
 
     request = urllib.request.Request(
-        config.get('corner_cupboard_url', DEFAULT_URL) + SUBMIT_PATH,
+        (config.get('jaia_corner_cupboard_url') or DEFAULT_URL) + SUBMIT_PATH,
         data=json.dumps(payload).encode(),
         headers={'Content-Type': 'application/json', 'Authorization': f'Token {token}'},
         method='POST')

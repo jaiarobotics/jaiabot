@@ -229,17 +229,7 @@ class CalibrationApp {
             return;
         }
 
-        // Results are filed against the tail, so there is nothing to record without a serial
         const tailSerial = this.tailSerialInput.value.trim();
-        if (tailSerial === "") {
-            alert("Please enter the tail serial first.");
-            return;
-        }
-
-        if (tailSerial.length > TAIL_SERIAL_MAX_LENGTH) {
-            alert(`Tail serials are at most ${TAIL_SERIAL_MAX_LENGTH} characters.`);
-            return;
-        }
 
         if (
             !confirm(
@@ -404,6 +394,15 @@ class CalibrationApp {
     }
 
     submitMotorRPMTestResult(isPass, averageRPM) {
+        // Results are filed against a tail, so one that can't name a tail isn't worth sending
+        if (
+            this.motorRPMTailSerial === "" ||
+            this.motorRPMTailSerial.length > TAIL_SERIAL_MAX_LENGTH
+        ) {
+            this.updateMotorRPMTestUpload("Not recorded in the database: no tail serial", "");
+            return;
+        }
+
         const testResult = {
             // Stays the same across retries, so the database can drop a result it already has
             external_id: `jed-${api.clientId}-${Date.now()}`,
