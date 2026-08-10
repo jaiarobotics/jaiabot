@@ -28,14 +28,7 @@ try:
 except:
     user_role='USER'
 
-try:
-    cloudhub_type=os.environ['jaia_cloudhub_type'].upper()
-except:
-    cloudhub_type='SECONDARY'
-
 is_cloudhub = hub_id == cloudhub_id
-if not is_cloudhub:
-    cloudhub_type=''
 
 log_file_dir = common.jaia_log_dir + '/hub/'  + str(hub_id)
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
@@ -192,10 +185,7 @@ if common.is_vfleet or is_cloudhub:
     liaison_bind_addr='0::0'
 
 if common.app == 'gobyd':
-    if cloudhub_type == 'SECONDARY':
-        required_clients=''
-    else:
-        required_clients='required_client: "goby_intervehicle_portal" required_client: "jaiabot_comms_manager"'
+    required_clients='required_client: "goby_intervehicle_portal" required_client: "jaiabot_comms_manager"'
 
     print(config.template_substitute(templates_dir+'/gobyd.pb.cfg.in',
                                      app_block=app_common,
@@ -243,7 +233,7 @@ elif common.app == 'goby_liaison_prelaunch':
         vfleet_playbooks=''
 
     limit=''
-    if cloudhub_type == 'PRIMARY':
+    if is_cloudhub:
         limit='limit: "all"'
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
