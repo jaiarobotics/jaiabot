@@ -18,7 +18,7 @@ pushd ../python > /dev/null
 popd > /dev/null
 
 
-# Build JCC and JED clients
+# Build the JCC client
 # Install pre-requisites
 ./install_dependencies.sh ./
 
@@ -41,6 +41,6 @@ pushd server > /dev/null
 popd > /dev/null
 
 
-# Watch build JCC and JED clients for development
-echo 🟢 Building the client apps. Please wait until initial build completes before loading JCC or JED in browser.
+# Watch build the JCC client for development
+echo 🟢 Building the client apps. Please wait until initial build completes before loading JCC in browser.
 npx webpack --mode development --env OUTPUT_DIR=${BUILD_DIR} --watch --progress

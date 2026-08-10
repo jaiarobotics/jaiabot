@@ -4,6 +4,7 @@ import { JaiaContext } from "../../../context/JaiaContext";
 import { jaiaAPI } from "../../../utils/jaia-api";
 import { success } from "../../../utils/notifications";
 import { BotStatusRate, Engineering, PIDControl, PIDSettings } from "../../../types/protobuf-types";
+import MotorRPMTest from "./MotorRPMTest";
 import "../../../style/stylesheets/engineering.less";
 
 interface Props {
@@ -215,6 +216,7 @@ export default function Engineering() {
             <button className="engineering-button" onClick={() => handleUpdateAllBotsClick()}>
                 Updated All Bots
             </button>
+            <MotorRPMTest botID={Number(selectedBotID)} />
         </div>
     );
 }

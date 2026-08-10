@@ -10,6 +10,19 @@ export interface JaiaError {
 
 export type TaskPackets = { included: TaskPacket[]; excluded: TaskPacket[] };
 
+export interface TestResult {
+    external_id: string;
+    test_type: string;
+    asset_type: string;
+    tail_serial: string;
+    operator_name: string;
+    passed: boolean;
+    summary: string;
+    data: { [key: string]: any };
+    performed_at: string;
+    source: string;
+}
+
 export interface JaiaResponse<T> {
     error?: JaiaError;
     result?: T;
@@ -320,6 +333,10 @@ export class JaiaAPI {
 
     postEngineering(engineeringCommand: Engineering) {
         return this.post("jaia/v0/engineering-command", engineeringCommand);
+    }
+
+    submitTestResult(testResult: TestResult) {
+        return this.post("jaia/v0/test-result", testResult);
     }
 
     postMissionFilesCreate(descriptor: any) {

@@ -51,15 +51,6 @@ export default function SettingsPanel() {
     };
 
     /**
-     * Opens Jaia Engineering & Debug in a separate tab
-     *
-     * @returns {void}
-     */
-    const handleJEDClick = () => {
-        window.open("/jed/");
-    };
-
-    /**
      * Dispatches action to update the coordinate system used in the app
      *
      * @param {CoordinateSystem} coordinateSystem Type of coord sys selected
@@ -129,9 +120,6 @@ export default function SettingsPanel() {
                             <Typography>Engineering</Typography>
                         </AccordionSummary>
                         <AccordionDetails className="engineering-accordion-details">
-                            <button className="engineering-button" onClick={() => handleJEDClick()}>
-                                Jaia Engineering & Debug
-                            </button>
                             <Engineering />
                             <QueryBotStatus />
                             <ScanForBot />

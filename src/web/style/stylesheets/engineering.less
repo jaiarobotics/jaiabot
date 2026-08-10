@@ -32,6 +32,43 @@
     max-width: 75px;
 }
 
+.motor-rpm-test-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.motor-rpm-test-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+// Wider than the numeric engineering inputs, since serials and names are not a couple of digits
+.engineering-container .motor-rpm-test-entry input {
+    max-width: 120px;
+}
+
+.motor-rpm-test-note {
+    font-size: small;
+}
+
+.motor-rpm-test-result {
+    font-size: large;
+}
+
+.motor-rpm-test-upload {
+    font-size: medium;
+}
+
+.motor-rpm-test-pass {
+    color: green;
+}
+
+.motor-rpm-test-fail {
+    color: red;
+}
+
 .engineering-button {
     all: unset;
     box-sizing: border-box;

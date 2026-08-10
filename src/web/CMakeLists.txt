@@ -26,11 +26,10 @@ add_custom_target(npm_dependencies
 ###############################################################################
 
 file(GLOB_RECURSE jcc_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/jcc/*)
-file(GLOB jed_src_files ${CMAKE_CURRENT_SOURCE_DIR}/jed/*)
 file(GLOB_RECURSE shared_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/shared/*)
 
 ###############################################################################
-# Copy the jcc/jed source code to the build/<arch>/intermediate/web/ directory
+# Copy the jcc source code to the build/<arch>/intermediate/web/ directory
 # We will be compiling it there, targeting the final location.
 
 # Get the web source tree into the intermediate directory
@@ -45,18 +44,18 @@ file(COPY ${src_files} DESTINATION ${intermediate_web_dir})
 
 set(web_out_dir ${project_SHARE_DIR}/jaiabot/web)
 
-add_custom_command(OUTPUT ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
+add_custom_command(OUTPUT ${web_out_dir}/jcc/client.js
   COMMAND npx webpack
   ARGS --mode production --env OUTPUT_DIR=${web_out_dir} --stats errors-only
   COMMAND touch
-  ARGS ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
+  ARGS ${web_out_dir}/jcc/client.js
   WORKING_DIRECTORY ${intermediate_web_dir}/
-  COMMENT "Building jcc and jed"
-  DEPENDS npm_dependencies ${jcc_src_files} ${jed_src_files} ${shared_src_files}
+  COMMENT "Building jcc"
+  DEPENDS npm_dependencies ${jcc_src_files} ${shared_src_files}
   )
-add_custom_target(jcc_jed
+add_custom_target(jcc
   ALL
-  DEPENDS ${web_out_dir}/jcc/client.js npm_dependencies ${web_out_dir}/jed/script.js
+  DEPENDS ${web_out_dir}/jcc/client.js npm_dependencies
   )
 
 # Copy the jcc server

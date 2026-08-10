@@ -1209,6 +1209,8 @@ export interface Engineering {
     rf_disable_options?: RFDisableOptions;
     bottom_depth_safety_params?: BottomDepthSafetyParams;
     echo?: Echo;
+    motor_rpm?: number;
+    bot_vin?: string;
     flag?: number;
     bounds?: Bounds;
 }

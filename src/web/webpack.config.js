@@ -70,23 +70,6 @@ module.exports = (env, argv) => {
     const modeConfig = argv.mode == "production" ? productionConfig : developmentConfig;
 
     /**
-     * JED config
-     */
-    const jedConfig = {
-        entry: path.resolve(__dirname, "./jed/script.js"),
-        output: {
-            path: path.resolve(env.OUTPUT_DIR, "jed/"),
-            filename: "script.js",
-            clean: true,
-        },
-        plugins: [
-            new CopyWebpackPlugin({
-                patterns: ["jed/index.html", "jed/favicon.png", "jed/helpPane.png"],
-            }),
-        ],
-    };
-
-    /**
      * JCC config
      */
     const jccConfig = {
@@ -122,8 +105,5 @@ module.exports = (env, argv) => {
 
     // This just takes a new empty object {}, and then updates it in place with the baseConfig, then the modeConfig,
     // then the config for the target app... basically fusing the three configs together.
-    return [
-        Object.assign({}, baseConfig, modeConfig, jedConfig),
-        Object.assign({}, baseConfig, modeConfig, jccConfig),
-    ];
+    return [Object.assign({}, baseConfig, modeConfig, jccConfig)];
 };

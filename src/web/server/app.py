@@ -65,7 +65,6 @@ Compress(app)
 
 ####### Static files
 jcc: str = os.path.join(args.appRoot, 'jcc')
-jed: str = os.path.join(args.appRoot, 'jed')
 
 @app.route('/<path>', methods=['GET'])
 def getStaticFile(path: str):
@@ -363,16 +362,6 @@ def delete_mission_set(name: str):
     path.unlink()
     return JSONResponse({"status": "ok"})
 
-
-######## Jaiabot Engineer & Debug
-
-@app.route('/jed/<path>', methods=['GET'])
-def jedStaticFile(path):
-    return send_from_directory(jed, path)
-
-@app.route('/jed/', methods=['GET'])
-def jedRoot():
-    return jedStaticFile('index.html')
 
 ######## TaskPackets
 
