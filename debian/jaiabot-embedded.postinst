@@ -12,7 +12,6 @@ JAIA_BOT_TYPE=$RET
 if [ "$JAIA_TYPE" = "bot" ]; then
     db_get jaiabot-embedded/bot_id
     BOT_OR_HUB_INDEX=$RET
-    BOT_OR_HUB_FINAL_OCTET=$((BOT_OR_HUB_INDEX + 100))
     if [ "$JAIA_BOT_TYPE" = "none" ]; then
         JAIA_BOT_TYPE="hydro"
         db_set jaiabot-embedded/bot_type "hydro"
@@ -21,13 +20,17 @@ if [ "$JAIA_TYPE" = "bot" ]; then
 elif [ "$JAIA_TYPE" = "hub" ]; then
     db_get jaiabot-embedded/hub_id
     BOT_OR_HUB_INDEX=$RET
-    BOT_OR_HUB_FINAL_OCTET=$((BOT_OR_HUB_INDEX + 10))
     JAIA_BOT_TYPE="none"
     db_set jaiabot-embedded/bot_type "none"
 fi
 
 db_get jaiabot-embedded/fleet_id
 FLEET_INDEX=$RET
+
+# WLAN (fleet) addressing, as defined by the 'jaia_ip' tool
+NODE_WLAN_IP=$(/usr/bin/jaia_ip --query_type addr --node_type ${JAIA_TYPE} --node_id ${BOT_OR_HUB_INDEX} --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
+FLEET_WLAN_NET=$(/usr/bin/jaia_ip --query_type net --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
+HUB0_WLAN_IP=$(/usr/bin/jaia_ip --query_type addr --node_type hub --node_id 0 --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
 
 OLD_HOST_NAME=`/bin/hostname`
 NEW_HOST_NAME=${JAIA_TYPE}${BOT_OR_HUB_INDEX}-fleet${FLEET_INDEX}
@@ -36,7 +39,7 @@ if [[ "$NEW_HOST_NAME" != "$OLD_HOST_NAME" ]]; then
     echo ">>>>> Setting hostname to $NEW_HOST_NAME (log out and in again for the prompt to change) ... "
      /usr/bin/hostnamectl set-hostname $NEW_HOST_NAME
      sed -i "s/^\(127\.0\.[0-9\.]*\).*${OLD_HOST_NAME}$/\1\t${NEW_HOST_NAME}/" /etc/hosts
-     sed -i "s/^\(10\.23\.[0-9\.]*\).*${OLD_HOST_NAME}$/10.23.${FLEET_INDEX}.${BOT_OR_HUB_FINAL_OCTET} ${NEW_HOST_NAME}/" /etc/hosts
+     sed -i "s/^\(10\.23\.[0-9\.]*\).*${OLD_HOST_NAME}$/${NODE_WLAN_IP} ${NEW_HOST_NAME}/" /etc/hosts
     echo "<<<<< Setting hostname complete!"
 fi
 
@@ -44,8 +47,8 @@ echo ">>>>> Updating wifi configuration ... "
 
 FLEET_WLAN_SSID="JAIA-HUB-WIFI-${FLEET_INDEX}"
 NETENV_FILE=/etc/jaiabot/network.env
-FLEET_ADDRESS="10.23.${FLEET_INDEX}.${BOT_OR_HUB_FINAL_OCTET}/24"
-FLEET_GATEWAY="10.23.${FLEET_INDEX}.1"
+FLEET_ADDRESS="${NODE_WLAN_IP}/${FLEET_WLAN_NET##*/}"
+FLEET_GATEWAY=$(/usr/bin/jaia_ip --query_type addr --node_type gateway --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
 
 # In place upgrades from 1.y -> 2.y won't have /etc/jaiabot/network.env, so we need to create it
 if [ ! -f "${NETENV_FILE}" ]; then
@@ -76,7 +79,7 @@ fi
 
 echo "<<<<< Updating wifi configuration complete (IP address changes won't take effect until reboot)!"
 echo ">>>>> Updating hub0 address ... "
-sed -i "s/.*hub0/10.23.${FLEET_INDEX}.10 hub0/" /etc/hosts
+sed -i "s/.*hub0/${HUB0_WLAN_IP} hub0/" /etc/hosts
 echo "<<<<< Updating hub0 address complete!"
 
 

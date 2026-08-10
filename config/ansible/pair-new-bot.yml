@@ -15,12 +15,12 @@
 
     - name: Remove known_hosts entry for the bot if it exists
       shell: |
-        ip=$(jaia ip b{{ bot_id }}f{{ jaiabot_embedded_fleet_id }})
+        ip=$(jaia_ip b{{ bot_id }}f{{ jaiabot_embedded_fleet_id }})
         sudo -u jaia ssh-keygen -R $ip
 
     - name: Fetch inventory from new bot
       shell: |
-        ip=$(jaia ip b{{ bot_id }}f{{ jaiabot_embedded_fleet_id }})
+        ip=$(jaia_ip b{{ bot_id }}f{{ jaiabot_embedded_fleet_id }})
         # need to use jaia's user's ssh configuration
         sudo -u jaia rsync -aP ${ip}:/etc/jaiabot/inventory.yml /tmp/inventory.yml
         mv /tmp/inventory.yml /etc/jaiabot/inventory.yml

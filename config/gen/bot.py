@@ -155,16 +155,6 @@ sub_buffer_config = config.template_substitute(templates_dir+'/_sub_buffer.pb.cf
 link_block=''
 subscribes_block=''
 if common.CommsMode.XBEE in common.jaia_comms_modes:
-    if is_simulation():
-        xbee_serial_port='/tmp/xbeebot' + str(bot_index)
-    else:
-        xbee_serial_port='/dev/xbee'
-
-    try:
-        xbee_encryption_password=os.environ['jaia_rf_encryption_password']
-    except:    
-        xbee_encryption_password=""
-
     subscribes_block+='''subscribe {
     link: LINK_XBEE
     subscribe_on_start: true
@@ -172,22 +162,7 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
     resubscribe_interval: 60
 }\n'''
 
-        
-    link_block += config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
-                                            subnet_mask=common.comms.subnet_mask,                                            
-                                            modem_id=common.comms.modem_id("xbee",node_id),
-                                            mac_slots=common.comms.xbee_mac_slots(node_id),
-                                            serial_port=xbee_serial_port,
-                                            is_in_sim=is_simulation(),
-                                            use_encryption='true' if xbee_encryption_password else 'false',
-                                            encryption_password=xbee_encryption_password,
-                                            fleet_id=fleet_index,
-                                            sub_buffer=sub_buffer_config,
-                                            ack_timeout=ack_timeout)
-
 if common.CommsMode.WIFI in common.jaia_comms_modes:
-    default_hub_id=1
-
     subscribes_block+='''subscribe {
     link: LINK_WIFI
     subscribe_on_start: true
@@ -195,38 +170,68 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
     resubscribe_interval: 60
 }\n'''
 
-    link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
-                                             subnet_mask=common.comms.subnet_mask,                                            
-                                             modem_id=common.comms.modem_id("wifi",node_id),
-                                             local_port=common.udp.wifi_udp_port(node_id),
-                                             remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),
-                                             hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
-                                             mac_slots=common.comms.wifi_mac_slots(node_id),
-                                             sub_buffer=sub_buffer_config,
-                                             ack_timeout=ack_timeout,
-                                             ipv6='')
-
-
-if common.CommsMode.IRIDIUM in common.jaia_comms_modes:    
-    if is_simulation():
-        iridium_serial_port='/tmp/iridium' + str(bot_index)
-    else:
-        iridium_serial_port='/dev/iridium'
-
+if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
     subscribes_block+='''subscribe {
     link: LINK_IRIDIUM
     subscribe_on_start: true
     resubscribe: true
     resubscribe_interval: 150
 }\n'''
-        
-    link_block += config.template_substitute(templates_dir+'/link_iridium.pb.cfg.in',
-                                             subnet_mask=common.comms.subnet_mask,                                            
-                                             modem_id=common.comms.modem_id("iridium",node_id),
-                                             serial_port=iridium_serial_port,
-                                             mac_slots=common.comms.iridium_mac_slots(node_id),
-                                             sub_buffer=sub_buffer_config,
-                                             ack_timeout=iridium_ack_timeout)
+
+# link_block is only consumed by the goby_intervehicle_portal app below. Building it
+# (in particular wifi_remotes/wifi_hub_remotes, which shell out to the 'jaia ip' tool
+# once per possible node) is expensive, so skip it entirely for every other app.
+if common.app == 'goby_intervehicle_portal':
+    if common.CommsMode.XBEE in common.jaia_comms_modes:
+        if is_simulation():
+            xbee_serial_port='/tmp/xbeebot' + str(bot_index)
+        else:
+            xbee_serial_port='/dev/xbee'
+
+        try:
+            xbee_encryption_password=os.environ['jaia_rf_encryption_password']
+        except:
+            xbee_encryption_password=""
+
+        link_block += config.template_substitute(templates_dir+'/link_xbee.pb.cfg.in',
+                                                subnet_mask=common.comms.subnet_mask,
+                                                modem_id=common.comms.modem_id("xbee",node_id),
+                                                mac_slots=common.comms.xbee_mac_slots(node_id),
+                                                serial_port=xbee_serial_port,
+                                                is_in_sim=is_simulation(),
+                                                use_encryption='true' if xbee_encryption_password else 'false',
+                                                encryption_password=xbee_encryption_password,
+                                                fleet_id=fleet_index,
+                                                sub_buffer=sub_buffer_config,
+                                                ack_timeout=ack_timeout)
+
+    if common.CommsMode.WIFI in common.jaia_comms_modes:
+        default_hub_id=1
+
+        link_block += config.template_substitute(templates_dir+'/link_udp.pb.cfg.in',
+                                                 subnet_mask=common.comms.subnet_mask,
+                                                 modem_id=common.comms.modem_id("wifi",node_id),
+                                                 local_port=common.udp.wifi_udp_port(node_id),
+                                                 remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),
+                                                 hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
+                                                 mac_slots=common.comms.wifi_mac_slots(node_id),
+                                                 sub_buffer=sub_buffer_config,
+                                                 ack_timeout=ack_timeout,
+                                                 ipv6='')
+
+    if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
+        if is_simulation():
+            iridium_serial_port='/tmp/iridium' + str(bot_index)
+        else:
+            iridium_serial_port='/dev/iridium'
+
+        link_block += config.template_substitute(templates_dir+'/link_iridium.pb.cfg.in',
+                                                 subnet_mask=common.comms.subnet_mask,
+                                                 modem_id=common.comms.modem_id("iridium",node_id),
+                                                 serial_port=iridium_serial_port,
+                                                 mac_slots=common.comms.iridium_mac_slots(node_id),
+                                                 sub_buffer=sub_buffer_config,
+                                                 ack_timeout=iridium_ack_timeout)
     
 liaison_jaiabot_config = config.template_substitute(templates_dir+'/_liaison_jaiabot_config.pb.cfg.in', mode='BOT')
 

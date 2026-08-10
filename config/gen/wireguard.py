@@ -8,7 +8,11 @@ import shutil
 import subprocess
 
 # defaults based on $PATH settings
-script_dir=os.path.dirname(os.path.realpath(__file__))    
+script_dir=os.path.dirname(os.path.realpath(__file__))
+
+def jaia_ip(args):
+    """Run the standalone 'jaia_ip' tool (the implementation of 'jaia ip') with the given list of arguments and return the resulting address or network."""
+    return subprocess.run(['jaia_ip'] + [str(a) for a in args], capture_output=True, text=True, check=True).stdout.strip()
 
 parser = argparse.ArgumentParser(description='Generate wireguard VPN configuration for Jaia machines', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('type', choices=['bot', 'hub', 'desktop'], help='Should we generate VPN config for a bot, hub or desktop?')
@@ -36,12 +40,6 @@ if conf_path is None:
 else:
     print(f'Found wireguard conf path: {conf_path}')
 
-# Get the ip_prefix
-if args.fleet_index is None:
-    ip_prefix = '172.20.11'
-else:
-    ip_prefix = f'172.23.{args.fleet_index}'
-
 macros=dict()
 
 # only generate keys if none exist
@@ -53,20 +51,28 @@ if not os.path.exists(privatekeyfilename) or not os.path.exists(publickeyfilenam
 
 privatekeyfile=open(privatekeyfilename, 'r')
 macros['privatekey']=privatekeyfile.read()
-    
-# Address = 172.23.xxx.yyy
-# xxx = fleet id
-# yyy = 10 + hub_id or 100 + bot_id
-if args.type == 'bot':
-    macros['address'] = f'{ip_prefix}.{100 + args.bot_index}'
-elif args.type == 'hub':
-    macros['address'] = f'{ip_prefix}.{10 + args.hub_index}'
-elif args.type == 'desktop':
-    macros['address'] =  f'{ip_prefix}.{args.desktop_ip}'
-    
-# AllowedIPs = 172.23.xxx.0/24
-# xxx = fleet id
-macros['subnet'] =  f'{ip_prefix}.0/24'
+
+if args.fleet_index is None:
+    # Legacy main Jaia VPN (not fleet-specific)
+    ip_prefix = '172.20.11'
+    if args.type == 'bot':
+        macros['address'] = f'{ip_prefix}.{100 + args.bot_index}'
+    elif args.type == 'hub':
+        macros['address'] = f'{ip_prefix}.{10 + args.hub_index}'
+    elif args.type == 'desktop':
+        macros['address'] = f'{ip_prefix}.{args.desktop_ip}'
+    macros['subnet'] = f'{ip_prefix}.0/24'
+else:
+    # Fleet-specific VPN: use 'jaia_ip' for addresses and the subnet
+    macros['subnet'] = jaia_ip(['--query_type', 'net', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_index, '--ip_version', 'ipv4'])
+    if args.type == 'bot':
+        macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'bot', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_index, '--node_id', args.bot_index, '--ip_version', 'ipv4'])
+    elif args.type == 'hub':
+        macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'hub', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_index, '--node_id', args.hub_index, '--ip_version', 'ipv4'])
+    elif args.type == 'desktop':
+        # 'jaia_ip' does not assign IPv4 addresses to desktops, so derive it from the fleet VPN subnet
+        ip_prefix = macros['subnet'].split('/')[0].rsplit('.', 1)[0]
+        macros['address'] = f'{ip_prefix}.{args.desktop_ip}'
 
 # Endpoint = vpn.jaia.tech:zzz
 # zzz = 51821 + fleet_id
