@@ -79,16 +79,16 @@ if "jaia_motor_harness_type" in os.environ:
     jaia_motor_harness_type=os.environ['jaia_motor_harness_type']
 
 try:
-    bot_index=int(os.environ['jaia_bot_index'])
+    bot_id=int(os.environ['jaia_bot_id'])
 except:
-    config.fail('Must set jaia_bot_index environmental variable, e.g. "jaia_bot_index=0  jaia_fleet_index=0  ./bot.launch"')
+    config.fail('Must set jaia_bot_id environmental variable, e.g. "jaia_bot_id=0  jaia_fleet_id=0  ./bot.launch"')
 
 try:
-    fleet_index=int(os.environ['jaia_fleet_index'])
+    fleet_id=int(os.environ['jaia_fleet_id'])
 except:
-    config.fail('Must set jaia_fleet_index environmental variable, e.g. "jaia_bot_index=0 jaia_fleet_index=0 ./bot.launch"')
+    config.fail('Must set jaia_fleet_id environmental variable, e.g. "jaia_bot_id=0 jaia_fleet_id=0 ./bot.launch"')
 
-log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_index)
+log_file_dir = common.jaia_log_dir+ '/bot/' + str(bot_id)
 
 Path(log_file_dir).mkdir(parents=True, exist_ok=True)
 debug_log_file_dir=log_file_dir 
@@ -99,7 +99,7 @@ liaison_load_block = config.template_substitute(templates_dir+'/bot/_liaison_loa
 # Milliseconds
 bot_status_period=1000
 
-node_id=common.bot.bot_index_to_node_id(bot_index)
+node_id=common.bot.bot_id_to_node_id(bot_id)
 
 verbosities = \
 { 'gobyd':                                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
@@ -132,7 +132,7 @@ verbosities = \
 app_common = common.app_block(verbosities, debug_log_file_dir)
 
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
-                                                 platform='bot'+str(bot_index)+'_fleet' + str(fleet_index))
+                                                 platform='bot'+str(bot_id)+'_fleet' + str(fleet_id))
 
 try:
     jaiabot_driver_arduino_bounds = 'bounds { \n' + open('/etc/jaiabot/bounds.pb.cfg').read() + '\n}\n'
@@ -161,7 +161,6 @@ if common.CommsMode.XBEE in common.jaia_comms_modes:
     resubscribe: true
     resubscribe_interval: 60
 }\n'''
-
 if common.CommsMode.WIFI in common.jaia_comms_modes:
     subscribes_block+='''subscribe {
     link: LINK_WIFI
@@ -184,7 +183,7 @@ if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
 if common.app == 'goby_intervehicle_portal':
     if common.CommsMode.XBEE in common.jaia_comms_modes:
         if is_simulation():
-            xbee_serial_port='/tmp/xbeebot' + str(bot_index)
+            xbee_serial_port='/tmp/xbeebot' + str(bot_id)
         else:
             xbee_serial_port='/dev/xbee'
 
@@ -201,7 +200,7 @@ if common.app == 'goby_intervehicle_portal':
                                                 is_in_sim=is_simulation(),
                                                 use_encryption='true' if xbee_encryption_password else 'false',
                                                 encryption_password=xbee_encryption_password,
-                                                fleet_id=fleet_index,
+                                                fleet_id=fleet_id,
                                                 sub_buffer=sub_buffer_config,
                                                 ack_timeout=ack_timeout)
 
@@ -212,8 +211,8 @@ if common.app == 'goby_intervehicle_portal':
                                                  subnet_mask=common.comms.subnet_mask,
                                                  modem_id=common.comms.modem_id("wifi",node_id),
                                                  local_port=common.udp.wifi_udp_port(node_id),
-                                                 remotes=common.comms.wifi_remotes(node_id, fleet_index, default_hub_id),
-                                                 hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_index),
+                                                 remotes=common.comms.wifi_remotes(node_id, fleet_id, default_hub_id),
+                                                 hub_endpoints=common.comms.wifi_hub_remotes(node_id, fleet_id),
                                                  mac_slots=common.comms.wifi_mac_slots(node_id),
                                                  sub_buffer=sub_buffer_config,
                                                  ack_timeout=ack_timeout,
@@ -221,7 +220,7 @@ if common.app == 'goby_intervehicle_portal':
 
     if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
         if is_simulation():
-            iridium_serial_port='/tmp/iridium' + str(bot_index)
+            iridium_serial_port='/tmp/iridium' + str(bot_id)
         else:
             iridium_serial_port='/dev/iridium'
 
@@ -295,7 +294,7 @@ elif common.app == 'goby_logger':
 elif common.app == 'goby_liaison':
     liaison_port=30000
     if is_simulation():
-        liaison_port=30100+bot_index
+        liaison_port=30100+bot_id
     print(config.template_substitute(templates_dir+'/goby_liaison.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
@@ -329,7 +328,7 @@ elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bot_id=bot_index,
+                                     bot_id=bot_id,
                                      bot_type=bot_type,
                                      fusion_in_simulation=is_simulation(),
                                      bot_status_period=bot_status_period,
@@ -340,13 +339,13 @@ elif common.app == 'jaiabot_mission_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bot_id=bot_index,
+                                     bot_id=bot_id,
                                      log_dir=log_file_dir,
                                      bot_log_staging_dir=common.bot_log_staging_dir,
                                      bot_log_archive_dir=common.bot_log_archive_dir,
                                      mission_manager_in_simulation=is_simulation(),
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
-                                     fleet_id=fleet_index,
+                                     fleet_id=fleet_id,
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
                                      subnet_mask=common.comms.subnet_mask,
                                      camera_available=common.camera_available))
@@ -362,7 +361,7 @@ elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bot_id=bot_index,
+                                     bot_id=bot_id,
                                      subnet_mask=common.comms.subnet_mask))
 elif common.app == 'jaiabot_failure_reporter':
     print(config.template_substitute(templates_dir+'/jaiabot_failure_reporter.pb.cfg.in',
@@ -383,9 +382,9 @@ elif common.app == 'gpsd':
 elif common.app == 'moos':
     print(config.template_substitute(templates_dir+'/bot/bot.moos.in',
                                      moos_port=common.bot.moos_port(node_id),
-                                     moos_community='BOT' + str(bot_index),
+                                     moos_community='BOT' + str(bot_id),
                                      warp=common.sim.warp,                                
-                                     bhv_file='/tmp/jaiabot_' + str(bot_index) + '.bhv',
+                                     bhv_file='/tmp/jaiabot_' + str(bot_id) + '.bhv',
                                      helm_app_tick=helm_app_tick,
                                      helm_comms_tick=helm_comms_tick))
 elif common.app == 'bhv':
@@ -393,12 +392,12 @@ elif common.app == 'bhv':
 elif common.app == 'moos_sim':
     print(config.template_substitute(templates_dir+'/bot/bot-sim.moos.in',
                                      moos_port=common.bot.moos_simulator_port(node_id),
-                                     moos_community='SIM' + str(bot_index),
+                                     moos_community='SIM' + str(bot_id),
                                      warp=common.sim.warp))
 elif common.app == 'moos_pmv':
     print(config.template_substitute(templates_dir+'/bot/marineviewer.moos.in',
                                      moos_port=common.bot.moos_port(node_id),
-                                     moos_community='BOT' + str(bot_index),
+                                     moos_community='BOT' + str(bot_id),
                                      warp=common.sim.warp))
 elif common.app == 'jaiabot_metadata':
     print(config.template_substitute(templates_dir+'/jaiabot_metadata.pb.cfg.in',
@@ -406,8 +405,8 @@ elif common.app == 'jaiabot_metadata':
                                      interprocess_block = interprocess_common,
                                      xbee_info=xbee_info,
                                      is_simulation=str(is_simulation()).lower(),
-                                     node_id=f'bot_id: {bot_index}',
-                                     fleet_id=fleet_index))
+                                     node_id=f'bot_id: {bot_id}',
+                                     fleet_id=fleet_id))
 elif common.app == 'frontseat_sim':
     print(common.vehicle.simulator_port(vehicle_id))
 elif common.app == 'log_file':
@@ -416,12 +415,12 @@ elif common.app == 'jaiabot_mission_repeater':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_repeater.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bot_id=bot_index))
+                                     bot_id=bot_id))
 elif common.app == 'jaiabot_driver_camera':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_camera.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     serial_camera_port=common.bot.serial_camera_port(bot_index)))
+                                     serial_camera_port=common.bot.serial_camera_port(bot_id)))
 elif common.app == 'jaiabot_comms_manager':
     print(config.template_substitute(templates_dir+'/jaiabot_comms_manager.pb.cfg.in',
                                      app_block=app_common,
@@ -446,8 +445,8 @@ else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     bot_id=bot_index,
-                                     fleet_id=fleet_index,
+                                     bot_id=bot_id,
+                                     fleet_id=fleet_id,
                                      jaiabot_driver_arduino_bounds=jaiabot_driver_arduino_bounds,
                                      jaia_arduino_dev_location=jaia_arduino_dev_location,
                                      udp_gateway_port=udp_gateway_port,

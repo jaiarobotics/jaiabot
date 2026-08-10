@@ -30,7 +30,7 @@ popd > /dev/null
 
 
 # Determine ports
-hub_id=${jaia_hub_index:-1}
+hub_id=${jaia_hub_id:-1}
 portal_port=$((40001 - hub_id))
 web_port=$((40000 + hub_id))
 

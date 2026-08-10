@@ -18,7 +18,7 @@ SUBNET_BITS="128"
 
 if [[ "$VPN_TYPE" = "cloudhub_vpn" ]]; then
     set -a; source /etc/jaiabot/cloud.env; set -a
-    FLEET_ID=${jaia_fleet_index}
+    FLEET_ID=${jaia_fleet_id}
     SERVER_IP=${jaia_cloudhub_public_ipv4_address}
     
     WG_SERVER_PROFILE=wg_cloudhub
@@ -26,7 +26,7 @@ if [[ "$VPN_TYPE" = "cloudhub_vpn" ]]; then
     VPN_PORT=51821
 elif [[ "$VPN_TYPE" = "vfleet_vpn" ]]; then
     set -a; source /etc/jaiabot/cloud.env; set -a
-    FLEET_ID=${jaia_fleet_index}
+    FLEET_ID=${jaia_fleet_id}
     SERVER_IP=${jaia_cloudhub_public_ipv4_address}
 
     WG_SERVER_PROFILE=wg_virtualfleet    

@@ -152,9 +152,9 @@ JAIA_ADDITIONAL_SENSORS="$(echo $RET | sed 's/,/ /g')"
                                          --moos_bin_dir=/usr/bin \
                                          --gen_dir=/usr/share/jaiabot/config/gen \
                                          --systemd_dir=/usr/lib/systemd/system \
-                                         --bot_index=${BOT_OR_HUB_INDEX} \
-                                         --hub_index=${BOT_OR_HUB_INDEX} \
-                                         --fleet_index=${FLEET_INDEX} \
+                                         --bot_id=${BOT_OR_HUB_INDEX} \
+                                         --hub_id=${BOT_OR_HUB_INDEX} \
+                                         --fleet_id=${FLEET_INDEX} \
                                          ${SYSTEMD_SIM_FLAG} \
                                          --led_type=${JAIA_LED_TYPE} \
                                          --electronics_stack=${JAIA_ELECTRONICS_STACK} \
@@ -214,9 +214,9 @@ echo ">>>>> Installing (but not enabling) Wireguard VPN ... "
 
 /usr/share/jaiabot/config/gen/wireguard.py ${JAIA_TYPE} \
                                          --name wg_jaia \
-                                         --bot_index=${BOT_OR_HUB_INDEX} \
-                                         --hub_index=${BOT_OR_HUB_INDEX} \
-                                         --fleet_index=${FLEET_INDEX}
+                                         --bot_id=${BOT_OR_HUB_INDEX} \
+                                         --hub_id=${BOT_OR_HUB_INDEX} \
+                                         --fleet_id=${FLEET_INDEX}
 
 echo ">>>>> Installing Wireguard VPN complete!"
 

@@ -17,10 +17,10 @@ def jaia_ip(args):
 parser = argparse.ArgumentParser(description='Generate wireguard VPN configuration for Jaia machines', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('type', choices=['bot', 'hub', 'desktop'], help='Should we generate VPN config for a bot, hub or desktop?')
 parser.add_argument('--name', default='wg_jaia', help='Name of the VPN to create.')
-parser.add_argument('--bot_index', default=0, type=int, help='Bot index')
-parser.add_argument('--hub_index', default=0, type=int, help='Hub index')
+parser.add_argument('--bot_id', default=0, type=int, help='Bot ID')
+parser.add_argument('--hub_id', default=0, type=int, help='Hub ID')
 parser.add_argument('--desktop_ip', default=0, type=int, help='IP address for a computer')
-parser.add_argument('--fleet_index', default=None, type=int, help='Fleet index, or the main Jaia VPN if omitted')
+parser.add_argument('--fleet_id', default=None, type=int, help='Fleet ID, or the main Jaia VPN if omitted')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on the wg-quick service')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on the wg-quick service')
 args=parser.parse_args()
@@ -52,23 +52,23 @@ if not os.path.exists(privatekeyfilename) or not os.path.exists(publickeyfilenam
 privatekeyfile=open(privatekeyfilename, 'r')
 macros['privatekey']=privatekeyfile.read()
 
-if args.fleet_index is None:
+if args.fleet_id is None:
     # Legacy main Jaia VPN (not fleet-specific)
     ip_prefix = '172.20.11'
     if args.type == 'bot':
-        macros['address'] = f'{ip_prefix}.{100 + args.bot_index}'
+        macros['address'] = f'{ip_prefix}.{100 + args.bot_id}'
     elif args.type == 'hub':
-        macros['address'] = f'{ip_prefix}.{10 + args.hub_index}'
+        macros['address'] = f'{ip_prefix}.{10 + args.hub_id}'
     elif args.type == 'desktop':
         macros['address'] = f'{ip_prefix}.{args.desktop_ip}'
     macros['subnet'] = f'{ip_prefix}.0/24'
 else:
     # Fleet-specific VPN: use 'jaia_ip' for addresses and the subnet
-    macros['subnet'] = jaia_ip(['--query_type', 'net', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_index, '--ip_version', 'ipv4'])
+    macros['subnet'] = jaia_ip(['--query_type', 'net', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_id, '--ip_version', 'ipv4'])
     if args.type == 'bot':
-        macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'bot', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_index, '--node_id', args.bot_index, '--ip_version', 'ipv4'])
+        macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'bot', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_id, '--node_id', args.bot_id, '--ip_version', 'ipv4'])
     elif args.type == 'hub':
-        macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'hub', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_index, '--node_id', args.hub_index, '--ip_version', 'ipv4'])
+        macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'hub', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_id, '--node_id', args.hub_id, '--ip_version', 'ipv4'])
     elif args.type == 'desktop':
         # 'jaia_ip' does not assign IPv4 addresses to desktops, so derive it from the fleet VPN subnet
         ip_prefix = macros['subnet'].split('/')[0].rsplit('.', 1)[0]
@@ -76,10 +76,10 @@ else:
 
 # Endpoint = vpn.jaia.tech:zzz
 # zzz = 51821 + fleet_id
-if args.fleet_index is None:
+if args.fleet_id is None:
     macros['vpnport'] = '51820'
 else:
-    macros['vpnport'] = str(51821 + args.fleet_index)
+    macros['vpnport'] = str(51821 + args.fleet_id)
 
 with open(script_dir + '/../templates/etc/wg_jaia.conf.in', 'r') as file:        
     out=Template(file.read()).substitute(macros)    

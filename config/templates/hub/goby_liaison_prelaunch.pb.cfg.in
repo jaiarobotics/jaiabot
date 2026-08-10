@@ -45,7 +45,7 @@ add_commander_tab: false
         input_var {
             name: "hub_id"
             display_name: "Hub ID for offline/hub cache updates"
-            static_value: "$this_hub_index"
+            static_value: "$this_hub_id"
         }
         $limit        
     }
@@ -115,7 +115,7 @@ add_commander_tab: false
         input_var {
             name: "hub_id"
             display_name: "Hub ID for offline/hub cache updates"
-            static_value: "$this_hub_index"
+            static_value: "$this_hub_id"
         }
 
         input_var {

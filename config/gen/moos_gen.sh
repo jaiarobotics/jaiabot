@@ -5,10 +5,10 @@ set -e -u o pipefail
 # Generates temporary MOOS file and then deletes it after exiting
 # This is required by MOOS applications can't handle process substitution: <(command)
 
-moos_tmpfile=/tmp/jaiabot_${jaia_bot_index}.moos
-moos_sim_tmpfile=/tmp/jaiabot_sim_${jaia_bot_index}.moos
-moos_pmv_tmpfile=/tmp/jaiabot_pmv_${jaia_bot_index}.moos
-bhv_tmpfile=/tmp/jaiabot_${jaia_bot_index}.bhv
+moos_tmpfile=/tmp/jaiabot_${jaia_bot_id}.moos
+moos_sim_tmpfile=/tmp/jaiabot_sim_${jaia_bot_id}.moos
+moos_pmv_tmpfile=/tmp/jaiabot_pmv_${jaia_bot_id}.moos
+bhv_tmpfile=/tmp/jaiabot_${jaia_bot_id}.bhv
 
 echo -e "Generating $moos_tmpfile $moos_sim_tmpfile $bhv_tmpfile"
 script_dir=$(dirname $0)

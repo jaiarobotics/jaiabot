@@ -44,13 +44,13 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
     if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
         cd ${HOME}/jaiabot/config/gen
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} --pam_connection_type ${jaia_pam_connection_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,} --camera_positions ${jaia_camera_positions,,} --additional_sensors ${jaia_additional_sensors})
+        ./systemd-local.sh ${jaiabot_systemd_type} --bot_id $jaia_bot_id --fleet_id $jaia_fleet_id --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} --pam_connection_type ${jaia_pam_connection_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,} --camera_positions ${jaia_camera_positions,,} --additional_sensors ${jaia_additional_sensors})
 
     else
 
         cd ${HOME}/jaiabot/config/gen
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-         ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced)
+         ./systemd-local.sh ${jaiabot_systemd_type} --hub_id $jaia_hub_id --fleet_id $jaia_fleet_id --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced)
 
         sudo chmod o+x ${HOME}
         sudo a2ensite jcc

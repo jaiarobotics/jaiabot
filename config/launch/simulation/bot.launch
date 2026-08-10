@@ -6,7 +6,7 @@
 [kill=SIGTERM] gpsd $(../../gen/bot.py gpsd)
 
 # only run Iridium sim if it's enabled in jaia_comms_mode
-[kill=SIGTERM] /bin/bash -c "echo $jaia_comms_mode | grep -q iridium && exec goby_launch -P -L -p bot${jaia_bot_index}_iridium iridium/bot-sim.launch || sleep infinity"
+[kill=SIGTERM] /bin/bash -c "echo $jaia_comms_mode | grep -q iridium && exec goby_launch -P -L -p bot${jaia_bot_id}_iridium iridium/bot-sim.launch || sleep infinity"
 
 # start the Goby processes
 gobyd <(../../gen/bot.py gobyd)
@@ -23,16 +23,16 @@ jaiabot_sensors <(../../gen/bot.py jaiabot_sensors)
 jaiabot_comms_manager <(../../gen/bot.py jaiabot_comms_manager)
 
 # vehicle MOOS components
-[kill=SIGTERM] MOOSDB /tmp/jaiabot_${jaia_bot_index}.moos
-[kill=SIGTERM] pHelmIvP /tmp/jaiabot_${jaia_bot_index}.moos
-# [kill=SIGTERM] pMarineViewer /tmp/jaiabot_pmv_${jaia_bot_index}.moos
-[kill=SIGTERM] uProcessWatch /tmp/jaiabot_${jaia_bot_index}.moos
-[kill=SIGTERM] pNodeReporter /tmp/jaiabot_${jaia_bot_index}.moos
+[kill=SIGTERM] MOOSDB /tmp/jaiabot_${jaia_bot_id}.moos
+[kill=SIGTERM] pHelmIvP /tmp/jaiabot_${jaia_bot_id}.moos
+# [kill=SIGTERM] pMarineViewer /tmp/jaiabot_pmv_${jaia_bot_id}.moos
+[kill=SIGTERM] uProcessWatch /tmp/jaiabot_${jaia_bot_id}.moos
+[kill=SIGTERM] pNodeReporter /tmp/jaiabot_${jaia_bot_id}.moos
 
 # simulator MOOS components
-[kill=SIGTERM] MOOSDB /tmp/jaiabot_sim_${jaia_bot_index}.moos
-[kill=SIGTERM] uSimMarine /tmp/jaiabot_sim_${jaia_bot_index}.moos
-# [kill=SIGTERM] pMarinePID /tmp/jaiabot_sim_${jaia_bot_index}.moos
+[kill=SIGTERM] MOOSDB /tmp/jaiabot_sim_${jaia_bot_id}.moos
+[kill=SIGTERM] uSimMarine /tmp/jaiabot_sim_${jaia_bot_id}.moos
+# [kill=SIGTERM] pMarinePID /tmp/jaiabot_sim_${jaia_bot_id}.moos
 
 jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control)
 jaiabot_engineering <(../../gen/bot.py jaiabot_engineering)
@@ -46,7 +46,7 @@ jaiabot_health <(../../gen/bot.py jaiabot_health)
 jaiabot_udp_gateway <(../../gen/bot.py jaiabot_udp_gateway)
 
 # Camera
-[kill=SIGTERM] socat -d -d pty,raw,echo=0,link=/tmp/bot${jaia_bot_index}_camera_0 pty,raw,echo=0,link=/tmp/bot${jaia_bot_index}_camera_1
+[kill=SIGTERM] socat -d -d pty,raw,echo=0,link=/tmp/bot${jaia_bot_id}_camera_0 pty,raw,echo=0,link=/tmp/bot${jaia_bot_id}_camera_1
 jaiabot_driver_camera <(../../gen/bot.py jaiabot_driver_camera)
 
 # CTD
