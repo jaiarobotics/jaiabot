@@ -66,7 +66,7 @@ class CalibrationApp {
         this.testMotorRPMButton.addEventListener("click", this.testMotorRPM.bind(this));
 
         this.tailSerialInput = byId("tail-serial");
-        this.testerNameInput = byId("tester-name");
+        this.operatorNameInput = byId("operator-name");
 
         // Says how the reported RPM is arrived at, from the values that actually produce it
         byId("motor-rpm-test-note").textContent =
@@ -84,7 +84,7 @@ class CalibrationApp {
         this.motorRunningStatusCount = 0;
         this.motorRPMCollectionTimeout = null;
         this.motorRPMTailSerial = "";
-        this.motorRPMTesterName = "";
+        this.motorRPMOperatorName = "";
         this.motorRPMBotId = null;
         this.motorRPMBotVIN = "";
     }
@@ -238,7 +238,7 @@ class CalibrationApp {
         }
 
         const tailSerial = this.tailSerialInput.value.trim();
-        const testerName = this.testerNameInput.value.trim();
+        const operatorName = this.operatorNameInput.value.trim();
 
         if (
             !confirm(
@@ -259,7 +259,7 @@ class CalibrationApp {
         this.motorRunningStatusCount = 0;
         // Held for the report, so editing these during the test can't change what is recorded
         this.motorRPMTailSerial = tailSerial;
-        this.motorRPMTesterName = testerName;
+        this.motorRPMOperatorName = operatorName;
         this.motorRPMBotId = botId;
         this.motorRPMBotVIN = "";
         this.updateTestMotorRPMBtn(true);
@@ -419,8 +419,8 @@ class CalibrationApp {
         }
 
         // Every recorded result says who ran the test, so there is no recording one without it
-        if (this.motorRPMTesterName === "") {
-            this.updateMotorRPMTestUpload("Not recorded in the database: no tester name", "");
+        if (this.motorRPMOperatorName === "") {
+            this.updateMotorRPMTestUpload("Not recorded in the database: no operator name", "");
             return;
         }
 
@@ -430,6 +430,7 @@ class CalibrationApp {
             test_type: "motor_rpm",
             asset_type: "tail",
             tail_serial: this.motorRPMTailSerial,
+            operator_name: this.motorRPMOperatorName,
             passed: isPass,
             summary: `${averageRPM} RPM (needs ${MOTOR_RPM_TEST_MIN_RPM})`,
             data: {
@@ -438,7 +439,6 @@ class CalibrationApp {
                 samples: this.motorRPMSamples,
                 bot_id: this.motorRPMBotId,
                 bot_vin: this.motorRPMBotVIN,
-                tester_name: this.motorRPMTesterName,
             },
             // This browser's clock, not the bot's
             performed_at: new Date().toISOString(),
