@@ -54,7 +54,6 @@ button:active {
     flex-direction: column;
     gap: 30px;
     padding: 0 0 0 30px;
-    display: none;
 }
 
 .echo-inner-container {
