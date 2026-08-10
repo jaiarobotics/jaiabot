@@ -16,10 +16,10 @@ set(scripts_to_install
   data-offload/jaiahub-dataoffload-cloudhub.sh
   # Firmware scripts
   firmware/jaia-firm-backup-date.sh
-  firmware/reset-bio-payload-board.sh
-  utils/geotiff-format.py
-  utils/geotiff-scan.sh
+  firmware/jaia-reset-bio-payload-board.sh
   # Utilities
+  utils/jaia-geotiff-format.py
+  utils/jaia-geotiff-scan.sh
   utils/jaia-doc.py
   utils/jaia-vpn-gen.sh
   # System scripts

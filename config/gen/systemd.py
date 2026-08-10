@@ -597,7 +597,7 @@ jaiabot_apps = [
      'description': 'JaiaBot Sensors',
      'template': 'goby-app.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_SENSORS',
-     'exec_start_pre': '/usr/bin/reset-bio-payload-board.sh',
+     'exec_start_pre': '/usr/bin/jaia-reset-bio-payload-board.sh',
      'runs_on': [BOT_TYPE.BIO],
      'wanted_by': 'jaiabot_health.service'},
 

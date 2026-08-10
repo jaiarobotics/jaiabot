@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Script to scan an image file using gdalinfo and pass the results to
-# geotiff-format.py with the ultimate goal of creating a .meta.json file.
+# jaia-geotiff-format.py with the ultimate goal of creating a .meta.json file.
 # The Jaia Command and Control webpage uses this metadata file when
 # displaying the image as a Custom Overlay layer.
 
@@ -11,7 +11,7 @@ script_dir=$(dirname $0)
 
 if [ $# -eq 0 ]
 then
-    echo "Usage: geotiff-scan.sh [FILE]...]"
+    echo "Usage: jaia-geotiff-scan.sh [FILE]...]"
     exit 1
 fi
 
@@ -19,7 +19,7 @@ for f in "$@"
 do
     if [ -f $f ]
     then
-        gdalinfo -json -mm -proj4 "$f" | python3 "$script_dir/geotiff-format.py" > "$f.meta.json"
+        gdalinfo -json -mm -proj4 "$f" | python3 "$script_dir/jaia-geotiff-format.py" > "$f.meta.json"
         if [[ $? -ne 0 ]]; then
             echo ""
             echo ""

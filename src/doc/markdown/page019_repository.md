@@ -20,7 +20,7 @@ There is a clear separation between scripts that are installed and run on the sy
   - `src/sh/init`: symbolic link to `rootfs/customization/includes.chroot/etc/jaiabot/init` (the first-boot files baked into the image)
   - `src/sh/data-offload`: data offload pre/post scripts
   - `src/sh/firmware`: firmware/payload board scripts
-  - `src/sh/utils`: user-facing utilities (e.g. `jaia-doc.py`, `jaia-vpn-gen.sh`, geotiff tools)
+  - `src/sh/utils`: user-facing utilities (e.g. `jaia-doc.py`, `jaia-vpn-gen.sh`, the `jaia-geotiff-*` tools)
 - `scripts`: developer-only tooling, never installed. Organized into:
   - `scripts/build`: build, deploy, packaging and toolchain setup scripts
   - `scripts/dev`: miscellaneous developer helpers
@@ -40,6 +40,8 @@ If you add a new script, put it in `src/sh` only if it needs to be installed ont
 Script (and script directory) names use hyphens, not underscores, to separate words: for example `jaia-update-network.sh`, not `jaia_update_network.sh`.
 
 The one exception is a Python file that is imported as a module by another script: Python module names cannot contain hyphens, so these keep underscores (e.g. `scripts/svp/align_ctd.py`, which is imported by `scripts/svp/run-svp-pipeline.py`).
+
+Additionally, every script installed from `src/sh` must be prefixed with `jaia` (e.g. `jaia-geotiff-scan.sh`, `jaiabot-predataoffload.sh`, `jaiahub-dataoffload.sh`), since these end up on the system `PATH` alongside unrelated system commands. The MOTD script `src/sh/system/75-jaiabot-status` keeps its numeric prefix, which `update-motd.d` requires for ordering; it is installed onto the `PATH` as `jaiabot-status`.
 
 # Release Branches
 
