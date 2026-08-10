@@ -43,7 +43,6 @@ include_directories("${GOBY_INCLUDE_DIR}")
 get_filename_component(project_SRC_DIR src ABSOLUTE)
 get_filename_component(project_ROOTFS_DIR rootfs ABSOLUTE)
 get_filename_component(project_BUILD_DIR ${CMAKE_BINARY_DIR} ABSOLUTE)
-get_filename_component(project_SCRIPTS_DIR scripts ABSOLUTE)
 get_filename_component(project_SH_DIR src/sh ABSOLUTE)
 
 # fetch all the local directories for generated code
