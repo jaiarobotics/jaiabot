@@ -59,7 +59,7 @@ The components of the VPC include:
 
 ## Network addresses
 
-The use of the `jaia ip` tool is recommended for determining IP addresses for a given node, id, fleet, etc.
+The use of the `jaia ip` tool (or, in scripts, the standalone `jaia_ip` binary that it wraps) is recommended for determining IP addresses for a given node, id, fleet, etc.
 
 The network address assignment for the Jaia Cloud is intended to complement the existing fleet specific [VPN](page055_vpn.md). This means that a given fleet may have up to three VPN subnets assigned:
 
@@ -141,10 +141,10 @@ jaia ip chf15
 
 ### AMI
 
-- Name: jaiabot__rootfs-feature_aws-cloud-v1.0.0~alpha1+93+g66c96e1__code-v1.7.0
-- jaiabot-rootfs-gen_version: 1.0.0~alpha1+93+g66c96e1
+- Name: jaiabot__rootfs-feature_aws-cloud-v3.0.0
+- jaiabot-rootfs-gen_version: 3.0.0
 - jaiabot-rootfs-gen_repository: release
-- jaiabot-rootfs-gen_repository_version: 2.y
+- jaiabot-rootfs-gen_repository_version: 3.y
 - jaiabot-rootfs-gen_build-date: Fri 08 Dec 2023 02:20:27 UTC
 - jaiabot-rootfs-gen_build-unixtime: 1702002064
 

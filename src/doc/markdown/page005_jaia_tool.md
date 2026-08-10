@@ -57,6 +57,8 @@ These related commands provide remote functionality using host codes given above
 - `jaia ip h3vf1` - Hub 3 VirtualFleet 1
 - `jaia ip b4` - Bot 4 for the same fleet as the machine this was run on.
 
+`jaia ip` is a thin wrapper around the standalone `jaia_ip` binary, which can also be run directly (`jaia_ip b1sf2`). `jaia_ip` does not load the `jaia` tool (or goby/protobuf) and so starts up considerably faster; prefer it in scripts and other non-interactive callers that query many addresses. `jaia_ip` additionally supports an explicit query mode (`jaia_ip --query_type net --fleet_id 3 --ip_net fleet_vpn --ip_version ipv4`); see `jaia_ip --help`.
+
 `jaia ssh ` uses the same codes but runs `ssh` to remotely log into the given system. Any parameters passed **after** the host code is passed unmodified to SSH:
 
 - `jaia ssh b3f5` - SSH into Bot3 on Fleet 5

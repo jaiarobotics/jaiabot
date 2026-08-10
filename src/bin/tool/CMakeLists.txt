@@ -4,8 +4,6 @@ add_jaiabot_application(TARGET jaia
     actions/ctl.proto
     actions/ssh.proto
     actions/ping.proto
-    actions/net.proto
-    actions/ip.proto
     actions/admin.proto
     actions/admin/ssh.proto
     actions/admin/ssh/add.proto
@@ -21,7 +19,6 @@ add_jaiabot_application(TARGET jaia
     actions/ctl.cpp
     actions/ssh.cpp
     actions/ping.cpp
-    actions/ip.cpp
     actions/admin.cpp
     actions/admin/ssh.cpp
     actions/admin/ssh/add.cpp

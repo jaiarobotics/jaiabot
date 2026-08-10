@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e -u o pipefail
+
 # Generates temporary MOOS file and then deletes it after exiting
 # This is required by MOOS applications can't handle process substitution: <(command)
 

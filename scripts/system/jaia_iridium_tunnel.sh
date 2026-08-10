@@ -21,7 +21,7 @@ CLOUDHUB_ROCKBLOCK_MO_PORT=${JAIA_ROCKBLOCK_MO_PORT_BASE}
 
 # Iridium DirectIP (MetOcean)
 ## MO Tunnel
-(set -x; /usr/bin/socat TCP-LISTEN:$((FLEET+${JAIA_IRIDIUM_MO_PORT_BASE})),reuseaddr,fork TCP:[$(jaia ip chf${FLEET})]:${CLOUDHUB_IRIDIUM_MO_PORT})&
+(set -x; /usr/bin/socat TCP-LISTEN:$((FLEET+${JAIA_IRIDIUM_MO_PORT_BASE})),reuseaddr,fork TCP:[$(jaia_ip chf${FLEET})]:${CLOUDHUB_IRIDIUM_MO_PORT})&
 
 ## MT Tunnel
 (set -x; /usr/bin/socat TCP-LISTEN:$((FLEET+${JAIA_IRIDIUM_MT_PORT_BASE})),reuseaddr,fork TCP:directip.sbd.iridium.com:${IRIDIUM_MT_PORT})&
@@ -29,6 +29,6 @@ CLOUDHUB_ROCKBLOCK_MO_PORT=${JAIA_ROCKBLOCK_MO_PORT_BASE}
 # Iridium DirectIP (MetOcean)
 
 ## MO Tunnel
-(set -x; /usr/bin/socat TCP-LISTEN:$((FLEET+${JAIA_ROCKBLOCK_MO_PORT_BASE})),reuseaddr,fork TCP:[$(jaia ip chf${FLEET})]:${CLOUDHUB_ROCKBLOCK_MO_PORT})&
+(set -x; /usr/bin/socat TCP-LISTEN:$((FLEET+${JAIA_ROCKBLOCK_MO_PORT_BASE})),reuseaddr,fork TCP:[$(jaia_ip chf${FLEET})]:${CLOUDHUB_ROCKBLOCK_MO_PORT})&
 
 wait

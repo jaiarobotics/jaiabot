@@ -50,17 +50,18 @@ else
     exit 1
 fi
 
-IP_PY="jaia-ip.py"
+CLIENT_IP=$(jaia_ip --query_type addr --node_type ${NODE_TYPE} --node_id ${NODE_ID} --fleet_id ${FLEET_ID} --ip_net ${VPN_TYPE} --ip_version ipv${IPVERSION})
+NET=$(jaia_ip --query_type net --fleet_id ${FLEET_ID} --ip_net ${VPN_TYPE} --ip_version ipv${IPVERSION})
+
 PRIVKEY=$(wg genkey)
 PUBKEY=$(echo $PRIVKEY | wg pubkey)
-
-CLIENT_IP=$(${IP_PY} addr --node ${NODE_TYPE} --node_id ${NODE_ID} --fleet_id ${FLEET_ID} --net ${VPN_TYPE} --ipv${IPVERSION})
-NET=$(${IP_PY} net --fleet_id ${FLEET_ID} --net ${VPN_TYPE} --ipv${IPVERSION})
 
 ## Update server config
 
 
 if [[ "$VPN_TYPE" = "fleet_vpn" ]]; then
+    # the fleet VPN server is the gateway node on the fleet_vpn network
+    SERVER_VPN_IP=$(jaia_ip --query_type addr --node_type gateway --ip_net fleet_vpn --fleet_id ${FLEET_ID} --ip_version ipv4)
     # Totally new fleet - add server config
     if ! sudo test -e /etc/wireguard/${WG_SERVER_PROFILE}.conf; then
         cat <<EOF | sudo tee /etc/wireguard/${WG_SERVER_PROFILE}.conf
@@ -71,7 +72,7 @@ if [[ "$VPN_TYPE" = "fleet_vpn" ]]; then
 [Interface]
 
 # VPN Address for server
-Address = 172.23.${FLEET_ID}.1/24
+Address = ${SERVER_VPN_IP}/${NET##*/}
 
 # VPN Server Port
 ListenPort = ${VPN_PORT}
@@ -132,13 +133,13 @@ echo "sudo systemctl restart wg-quick@${WG_SERVER_PROFILE}"
 if [[ "$VPN_TYPE" = "cloudhub_vpn" ]]; then
     SERVER_HOSTNAME=cloudhub-fleet${FLEET_ID}
     CLOUDHUB_ID=30
-    SERVER_IP=$(${IP_PY} addr --node hub --node_id ${CLOUDHUB_ID} --fleet_id ${FLEET_ID} --net ${VPN_TYPE} --ipv6)
+    SERVER_IP=$(jaia_ip h${CLOUDHUB_ID}cf${FLEET_ID})
     echo ">>> You may also wish to add this server's entry to /etc/hosts"
     echo "${SERVER_IP} ${SERVER_HOSTNAME}"
 elif [[ "$VPN_TYPE" = "vfleet_vpn" ]]; then
     SERVER_HOSTNAME=hub1-virtualfleet${FLEET_ID}
     VHUB_ID=1
-    SERVER_IP=$(${IP_PY} addr --node hub --node_id ${VHUB_ID} --fleet_id ${FLEET_ID} --net ${VPN_TYPE} --ipv6)
+    SERVER_IP=$(jaia_ip --query_type addr --node_type hub --node_id ${VHUB_ID} --fleet_id ${FLEET_ID} --ip_net ${VPN_TYPE} --ip_version ipv6)
     echo ">>> You may also wish to add VirtualHub1's entry to /etc/hosts"
     echo "${SERVER_IP} ${SERVER_HOSTNAME}"
 elif [[ "$VPN_TYPE" = "fleet_vpn" ]]; then

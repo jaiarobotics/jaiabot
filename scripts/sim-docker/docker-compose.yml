@@ -7,7 +7,7 @@
 services:
 
   jaia-sim:
-    image: gobysoft/jaiabot-sim:2.y-continuous   # image to use for simulation
+    image: gobysoft/jaiabot-sim:3.y-test   # image to use for simulation
     container_name: jaia-sim-container     # name of container for simulation
 
     # Simulation Environment

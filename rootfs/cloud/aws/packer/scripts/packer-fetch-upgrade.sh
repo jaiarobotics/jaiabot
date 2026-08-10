@@ -13,7 +13,7 @@ function print_usage() {
 }
 
 if [ "$source" == "s3" ]; then
-    url_base=https://jaia-disk-images.s3.${AWS_REGION}.amazonaws.com/${JAIA_UPGRADE_REPO}/${JAIA_UPGRADE_VERSION}/vbox
+    url_base=https://jaia-disk-images.s3.us-east-1.amazonaws.com/${JAIA_UPGRADE_REPO}/${JAIA_UPGRADE_VERSION}/vbox
 elif [ "$source" == "local" ]; then
     if [ "$2" == ""]; then
         echo "Invalid directory to local iso file"
