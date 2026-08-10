@@ -68,6 +68,11 @@ class CalibrationApp {
         this.tailSerialInput = byId("tail-serial");
         this.testerNameInput = byId("tester-name");
 
+        // Says how the reported RPM is arrived at, from the values that actually produce it
+        byId("motor-rpm-test-note").textContent =
+            `Average of samples taken over ${MOTOR_RPM_TEST_MEASURE / 1000}s, ` +
+            `after a ${MOTOR_RPM_TEST_SPINUP / 1000}s spin-up`;
+
         this.lastEngineeringStatusTime = 0;
         this.lastEngineeringStatusBotId = null;
         this.isMotorRPMTestRunning = false;

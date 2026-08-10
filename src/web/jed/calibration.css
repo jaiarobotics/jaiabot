@@ -97,6 +97,10 @@ button:active {
     font-size: large;
 }
 
+.motor-rpm-test-note {
+    font-size: small;
+}
+
 .motor-rpm-test-upload {
     font-size: medium;
 }
