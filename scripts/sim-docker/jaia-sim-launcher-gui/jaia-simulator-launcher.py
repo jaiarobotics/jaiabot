@@ -1,4 +1,4 @@
-# jaia_simulator_launcher.py
+# jaia-simulator-launcher.py
 
 import os
 import platform

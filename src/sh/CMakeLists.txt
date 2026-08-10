@@ -15,18 +15,18 @@ set(scripts_to_install
   data-offload/jaiabot-postdataoffload.sh
   data-offload/jaiahub-dataoffload-cloudhub.sh
   # Firmware scripts
-  firmware/jaia_firm_backup_date.sh
+  firmware/jaia-firm-backup-date.sh
   firmware/reset-bio-payload-board.sh
-  utils/geotiff_format.py
-  utils/geotiff_scan.sh
+  utils/geotiff-format.py
+  utils/geotiff-scan.sh
   # Utilities
   utils/jaia-doc.py
   utils/jaia-vpn-gen.sh
   # System scripts
   system/jaiabot-checkloadavg.py
-  system/jaia_update_ufw_rules.sh
-  system/jaia_update_network.sh
-  system/jaia_iridium_tunnel.sh
+  system/jaia-update-ufw-rules.sh
+  system/jaia-update-network.sh
+  system/jaia-iridium-tunnel.sh
   # Fleet config
   fleet/jaia-create-fleet-config.sh
   fleet/jaia-generate-first-boot.py

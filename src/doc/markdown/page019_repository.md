@@ -29,11 +29,17 @@ There is a clear separation between scripts that are installed and run on the sy
   - `scripts/log-analysis`: log/offload analysis tooling
   - `scripts/packages`: apt repository management scripts (run on packages.jaia.tech)
   - `scripts/sim-docker`: Docker-based simulator
-  - `scripts/svp`, `scripts/util_helpers`: analysis helpers
+  - `scripts/svp`, `scripts/util-helpers`: analysis helpers
   - `scripts/test`: scripts for testing the setup/build process
   - `scripts/common-versions.env`: shared version definitions, sourced by CMake, CI and many scripts
 
 If you add a new script, put it in `src/sh` only if it needs to be installed onto a bot, hub or cloudhub; otherwise it belongs in `scripts`.
+
+## Script naming convention
+
+Script (and script directory) names use hyphens, not underscores, to separate words: for example `jaia-update-network.sh`, not `jaia_update_network.sh`.
+
+The one exception is a Python file that is imported as a module by another script: Python module names cannot contain hyphens, so these keep underscores (e.g. `scripts/svp/align_ctd.py`, which is imported by `scripts/svp/run-svp-pipeline.py`).
 
 # Release Branches
 
@@ -62,9 +68,9 @@ Whenever a new release branch is created, the following must be done:
 - Update text in this document for Active/Stable/Maintenance branches.
 - Create new release branch (X.y) where X is one greater than the current Testing. For example, `git checkout -b 2.y 1.y`
 - Update `jaiabot/scripts/common-versions.env` with the new Ubuntu version to support by default (e.g., 'noble') and this new release branch (e.g., '2.y').
-- Update `jaiabot/scripts/packages/update_gobysoft_mirror.sh` to include an entry for the new release branch and add a 'distros_for_releases' key mapping the supported Ubuntu distros for this release branch (comma separated).
+- Update `jaiabot/scripts/packages/update-gobysoft-mirror.sh` to include an entry for the new release branch and add a 'distros_for_releases' key mapping the supported Ubuntu distros for this release branch (comma separated).
   -  Copy to /opt/jaia_packages on packages.jaia.tech.
-  - Run ./update_gobysoft_mirror.sh on packages.jaia.tech to pull the new staging mirror for this release branch.
+  - Run ./update-gobysoft-mirror.sh on packages.jaia.tech to pull the new staging mirror for this release branch.
 - Update `jaiabot/.circleci/config.yml`:
 	-  Change to new release branch in all the "filter-template-*" lists.
 	-  Change distros targeted by this release branch.
