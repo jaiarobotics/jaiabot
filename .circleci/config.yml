@@ -170,7 +170,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/init-3.y"
+        - "bug/3.y/fix-initial-rpiboot"
         
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -178,7 +178,7 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "3.y"
-        - "task/3.y/init-3.y"
+        - "bug/3.y/fix-initial-rpiboot"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -197,7 +197,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/init-3.y"
+        - "bug/3.y/fix-initial-rpiboot"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -216,7 +216,6 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
-
         
 ## Begin actual config
 version: 2.1
@@ -374,9 +373,22 @@ commands:
           command: |
             OVA=$(basename $(ls /tmp/amd64/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}*.ova))
             IMAGE_NAME=${OVA%.*}
-            # writes result.json for later use
-            rootfs/cloud/aws/import_ova_as_ami.sh ${OVA} ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+
+            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+            sudo apt-add-repository -y "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+            sudo apt-get update && sudo apt-get -y install packer
+            packer plugins install github.com/hashicorp/ansible
+            packer plugins install github.com/hashicorp/amazon
+
+            export JAIA_UPGRADE_ISO_SOURCE=local
+            export JAIA_UPGRADE_ISO_LOCAL_DIR=/tmp/bundle/result/amd64
+
+            AMI_NAME=$(echo $IMAGE_NAME | sed 's/+/[plus]/g' | sed 's/~/[tilde]/g')
+
+            rootfs/cloud/aws/packer/packer-create-ami-by-upgrade.sh "${AMI_NAME}" "${JAIABOT_ROOTFS_GEN_REPO}"
+
             echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
+            echo "export JAIABOT_AMI_NAME=${AMI_NAME}" >> $BASH_ENV
       - run:
           name: Deregister old AMI and delete snapshots
           command: |
@@ -385,8 +397,10 @@ commands:
           name: Tag new AMI
           command: |
             source /tmp/amd64/*.metadata.txt
-            image_id=$(jq -r '.ImportImageTasks[0].ImageId' result.json)
-            snapshot_id=$(jq -r '.ImportImageTasks[0].SnapshotDetails[0].SnapshotId' result.json)
+
+            image_id=$(aws ec2 describe-images --filters "Name=name,Values=\"${JAIABOT_AMI_NAME}\"" --query 'Images[*].[ImageId]' --output text)
+            snapshot_id=$(aws ec2 describe-images --filters "Name=name,Values=\"${JAIABOT_AMI_NAME}\"" --query 'Images[*].[BlockDeviceMappings[0].Ebs.SnapshotId]' --output text)
+
             aws ec2 create-tags --resources ${image_id} ${snapshot_id} --tags \
               "Key=Name,Value=${JAIABOT_IMAGE_NAME}" \
               "Key=jaia_creator,Value=circleci" \

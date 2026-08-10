@@ -53,7 +53,7 @@ These environmental variables are set in the `preseed.goby` file (`goby_launch` 
 - `jaia_max_number_vehicles`: Maximum number of vehicles to configure communications links for (could be greater than the number actually being run).
 - `jaia_n_bots`: Number of vehicles to actually run
 - `jaia_mode`: "simulation" (for simulation) or "runtime" (for in-water/bench testing)
-- `jaia_bot_index`: bot identification number (starting at 0).
+- `jaia_bot_id`: bot identification number (starting at 0).
 
 ## Debugging
 

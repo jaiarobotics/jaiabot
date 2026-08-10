@@ -36,7 +36,7 @@ Bots or Hubs may be connected via the Cloud (see the [Cloud Computing](page056_c
 
 Thus, Bot 5 on VirtualFleet 3 would be `b5vf3`, or (real) Hub 1 Fleet 10 via the Cloud would be `h1cf10`. For servicing hosts remotely, Bot 2 on Fleet 4 would be `b2sf4`.
 
-Additionally, if you are on a bot or hub that has `source /etc/jaiabot/runtime.env` so that the environmental variable `jaia_fleet_index` is defined for the current fleet, you can omit `fN` and the current fleet will be used.
+Additionally, if you are on a bot or hub that has `source /etc/jaiabot/runtime.env` so that the environmental variable `jaia_fleet_id` is defined for the current fleet, you can omit `fN` and the current fleet will be used.
 
 The regex for this host shorthand is `([bh])([0-9]+)([svc]?)(f([0-9]+))?|(ch)(f([0-9]+))?`.
 
@@ -56,6 +56,8 @@ These related commands provide remote functionality using host codes given above
 - `jaia ip b1sf2` - Bot 1 Fleet 2 via service VPN
 - `jaia ip h3vf1` - Hub 3 VirtualFleet 1
 - `jaia ip b4` - Bot 4 for the same fleet as the machine this was run on.
+
+`jaia ip` is a thin wrapper around the standalone `jaia_ip` binary, which can also be run directly (`jaia_ip b1sf2`). `jaia_ip` does not load the `jaia` tool (or goby/protobuf) and so starts up considerably faster; prefer it in scripts and other non-interactive callers that query many addresses. `jaia_ip` additionally supports an explicit query mode (`jaia_ip --query_type net --fleet_id 3 --ip_net fleet_vpn --ip_version ipv4`); see `jaia_ip --help`.
 
 `jaia ssh ` uses the same codes but runs `ssh` to remotely log into the given system. Any parameters passed **after** the host code is passed unmodified to SSH:
 

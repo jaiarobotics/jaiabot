@@ -1,6 +1,6 @@
 - name: Wait for the hosts to be reachable
   wait_for:
-    host: "{{ item.node_type}}{{ item.node_id }}-virtualfleet{{ cloud_env_vars.jaia_fleet_index }}"
+    host: "{{ item.node_type}}{{ item.node_id }}-virtualfleet{{ cloud_env_vars.jaia_fleet_id }}"
     port: 22
     state: started
     timeout: 300

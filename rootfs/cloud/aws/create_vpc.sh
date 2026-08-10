@@ -17,25 +17,24 @@ set +a
 source ${SCRIPT_PATH}/../../../scripts/common-versions.env
 REPO_VERSION=${jaia_version_release_branch}
 
-IP_PY=$(realpath "${SCRIPT_PATH}/../../../scripts/jaia-ip.py")
-JCC_HUB_IP=$(${IP_PY} addr --node hub --net cloudhub_vpn --fleet_id ${FLEET_ID} --node_id ${JCC_HUB_ID} --ipv6)
+JCC_HUB_IP=$(jaia_ip --query_type addr --node_type hub --ip_net cloudhub_vpn --fleet_id ${FLEET_ID} --node_id ${JCC_HUB_ID} --ip_version ipv6)
 
 FLEET_ID_HEX=$(printf '%x\n' ${FLEET_ID})
-VPC_CIDR_BLOCK=$($IP_PY net --net vpc --fleet_id ${FLEET_ID}  --ipv4)
+VPC_CIDR_BLOCK=$(jaia_ip --query_type net --ip_net vpc --fleet_id ${FLEET_ID} --ip_version ipv4)
 # maps onto real fleet IP assignment
-VIRTUALFLEET_WLAN_CIDR_BLOCK=$($IP_PY net --net vfleet_wlan --fleet_id ${FLEET_ID}  --ipv4)
-CLOUDHUB_CIDR_BLOCK=$($IP_PY net --net cloudhub_eth --fleet_id ${FLEET_ID} --ipv4)
+VIRTUALFLEET_WLAN_CIDR_BLOCK=$(jaia_ip --query_type net --ip_net vfleet_wlan --fleet_id ${FLEET_ID} --ip_version ipv4)
+CLOUDHUB_CIDR_BLOCK=$(jaia_ip --query_type net --ip_net cloudhub_eth --fleet_id ${FLEET_ID} --ip_version ipv4)
 CLOUDHUB_ID=30
-CLOUDHUB_ETH_IP_ADDRESS=$($IP_PY addr --net cloudhub_eth --fleet_id ${FLEET_ID} --node hub --node_id ${CLOUDHUB_ID}  --ipv4)
+CLOUDHUB_ETH_IP_ADDRESS=$(jaia_ip --query_type addr --ip_net cloudhub_eth --fleet_id ${FLEET_ID} --node_type hub --node_id ${CLOUDHUB_ID} --ip_version ipv4)
 
 # IPv6 address to use for VirtualFleet VPN (fd6e:cf0d:aefa:FLEET_ID_HEX::/64)
-VIRTUALFLEET_VPN_NETWORK_IPV6=$($IP_PY net --net vfleet_vpn --fleet_id ${FLEET_ID} --ipv6)
-VIRTUALFLEET_VPN_CLIENT_IPV6=$($IP_PY addr --net vfleet_vpn --fleet_id ${FLEET_ID} --node desktop --node_id 1 --ipv6)
-VIRTUALFLEET_VPN_SERVER_IPV6=$($IP_PY addr --net vfleet_vpn --fleet_id ${FLEET_ID} --node hub --node_id ${CLOUDHUB_ID} --ipv6)
-# IPv6 address to use for VirtualFleet VPN (fd0f:77ac:4fdf:FLEET_ID_HEX::/64)
-CLOUDHUB_VPN_NETWORK_IPV6=$($IP_PY net --net cloudhub_vpn --fleet_id ${FLEET_ID} --ipv6)
-CLOUDHUB_VPN_CLIENT_IPV6=$($IP_PY addr --net cloudhub_vpn --fleet_id ${FLEET_ID} --node desktop --node_id 1 --ipv6)
-CLOUDHUB_VPN_SERVER_IPV6=$($IP_PY addr --net cloudhub_vpn --fleet_id ${FLEET_ID} --node hub --node_id ${CLOUDHUB_ID} --ipv6)
+VIRTUALFLEET_VPN_NETWORK_IPV6=$(jaia_ip --query_type net --ip_net vfleet_vpn --fleet_id ${FLEET_ID} --ip_version ipv6)
+VIRTUALFLEET_VPN_CLIENT_IPV6=$(jaia_ip --query_type addr --ip_net vfleet_vpn --fleet_id ${FLEET_ID} --node_type desktop --node_id 1 --ip_version ipv6)
+VIRTUALFLEET_VPN_SERVER_IPV6=$(jaia_ip --query_type addr --ip_net vfleet_vpn --fleet_id ${FLEET_ID} --node_type hub --node_id ${CLOUDHUB_ID} --ip_version ipv6)
+# IPv6 address to use for CloudHub VPN (fd0f:77ac:4fdf:FLEET_ID_HEX::/64)
+CLOUDHUB_VPN_NETWORK_IPV6=$(jaia_ip --query_type net --ip_net cloudhub_vpn --fleet_id ${FLEET_ID} --ip_version ipv6)
+CLOUDHUB_VPN_CLIENT_IPV6=$(jaia_ip --query_type addr --ip_net cloudhub_vpn --fleet_id ${FLEET_ID} --node_type desktop --node_id 1 --ip_version ipv6)
+CLOUDHUB_VPN_SERVER_IPV6=$(jaia_ip --query_type addr --ip_net cloudhub_vpn --fleet_id ${FLEET_ID} --node_type hub --node_id ${CLOUDHUB_ID} --ip_version ipv6)
 
 # generate Wireguard keys
 CLIENT_VPN_WIREGUARD_PRIVATEKEY=$(wg genkey)
@@ -130,12 +129,12 @@ run "" aws ec2 attach-internet-gateway --vpc-id $VPC_ID --internet-gateway-id $I
 echo ">>>>>> Attached Internet Gateway to VPC"
 
 # Create two subnets: 1) Cloudhub where eth0 which has the same IPv4 assignment as wlan0 in the real fleet, plus an IPv6 block and 2) VirtualFleet with just an IPv6 block
-SUBNET_CLOUDHUB_IPV6=$($IP_PY net --net cloudhub_eth --fleet_id ${FLEET_ID} --ipv6 --ipv6_base ${VPC_IPV6_BLOCK})
+SUBNET_CLOUDHUB_IPV6=$(jaia_ip --query_type net --ip_net cloudhub_eth --fleet_id ${FLEET_ID} --ip_version ipv6 --ipv6_base ${VPC_IPV6_BLOCK})
 SUBNET_CLOUDHUB_ID=$(run ".Subnet.SubnetId" aws ec2 create-subnet --vpc-id $VPC_ID --cidr-block $CLOUDHUB_CIDR_BLOCK --ipv6-cidr-block $SUBNET_CLOUDHUB_IPV6 --availability-zone $AVAILABILITY_ZONE)
 echo ">>>>>> Created CloudHub Subnet with ID: $SUBNET_CLOUDHUB_ID and IPv6: ${SUBNET_CLOUDHUB_IPV6}"
 run "" aws ec2 modify-subnet-attribute --assign-ipv6-address-on-creation --subnet-id ${SUBNET_CLOUDHUB_ID}
 
-SUBNET_VIRTUALFLEET_WLAN_IPV6=$($IP_PY net --net vfleet_wlan --fleet_id ${FLEET_ID} --ipv6 --ipv6_base ${VPC_IPV6_BLOCK})
+SUBNET_VIRTUALFLEET_WLAN_IPV6=$(jaia_ip --query_type net --ip_net vfleet_wlan --fleet_id ${FLEET_ID} --ip_version ipv6 --ipv6_base ${VPC_IPV6_BLOCK})
 SUBNET_VIRTUALFLEET_WLAN_ID=$(run ".Subnet.SubnetId" aws ec2 create-subnet --vpc-id $VPC_ID --cidr-block $VIRTUALFLEET_WLAN_CIDR_BLOCK --ipv6-cidr-block $SUBNET_VIRTUALFLEET_WLAN_IPV6 --availability-zone $AVAILABILITY_ZONE) 
 echo ">>>>>> Created VirtualFleet Subnet with ID: $SUBNET_VIRTUALFLEET_WLAN_ID and IPv6: ${SUBNET_VIRTUALFLEET_WLAN_IPV6}"
 run "" aws ec2 modify-subnet-attribute --assign-ipv6-address-on-creation --subnet-id ${SUBNET_VIRTUALFLEET_WLAN_ID}

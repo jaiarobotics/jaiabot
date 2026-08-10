@@ -1,5 +1,5 @@
 - name: Get IP address for Hub
-  shell: "jaia ip h{{ hub_id }}f{{ jaiabot_embedded_fleet_id }}"
+  shell: "jaia_ip h{{ hub_id }}f{{ jaiabot_embedded_fleet_id }}"
   register: hub_ip_result
   
 - name: Set hub IP

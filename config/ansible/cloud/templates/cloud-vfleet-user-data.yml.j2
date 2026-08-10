@@ -21,14 +21,14 @@ write_files:
       auto eth0
       iface eth0 inet dhcp
   ## Configure VPN
-  - path: /etc/wireguard/wg_jaia_vf{{ cloud_env_vars.jaia_fleet_index }}.conf
+  - path: /etc/wireguard/wg_jaia_vf{{ cloud_env_vars.jaia_fleet_id }}.conf
     content: |
       {% filter indent(6) %}{% include 'wireguard_client.conf.j2' %}{% endfilter %}
 {% if item.node_type == 'hub' %}
-  - path: /boot/firmware/jaiabot/init/hub{{ item.node_id }}_fleet{{ cloud_env_vars.jaia_fleet_index }}
+  - path: /boot/firmware/jaiabot/init/hub{{ item.node_id }}_fleet{{ cloud_env_vars.jaia_fleet_id }}
     content: |
       {% filter indent(6) %}{{ lookup('file', virtualhub_ssh_privkey_path) ~ '\n' }}{% endfilter %}
-  - path: /boot/firmware/jaiabot/init/hub{{ item.node_id }}_fleet{{ cloud_env_vars.jaia_fleet_index }}.pub
+  - path: /boot/firmware/jaiabot/init/hub{{ item.node_id }}_fleet{{ cloud_env_vars.jaia_fleet_id }}.pub
     content: |
       {% filter indent(6) %}{{ lookup('file', virtualhub_ssh_pubkey_path) }}{% endfilter %}
 {% endif %}
@@ -42,5 +42,5 @@ runcmd:
   ## Restore default hostname
   - hostnamectl set-hostname "jaia-unnamed"
   ## enable VPN  
-  - systemctl enable wg-quick@wg_jaia_vf{{ cloud_env_vars.jaia_fleet_index }}
+  - systemctl enable wg-quick@wg_jaia_vf{{ cloud_env_vars.jaia_fleet_id }}
 

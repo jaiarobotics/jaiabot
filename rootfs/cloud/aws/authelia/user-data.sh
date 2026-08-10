@@ -145,7 +145,7 @@ EOF
 fleets=(1 2)
 
 for fleet_id in $fleets; do
-    ch_ip=$(jaia-ip.py --net=cloudhub_vpn --fleet_id=${fleet_id} --node=hub --node_id=30 --ipv6 addr)
+    ch_ip=$(jaia_ip chf${fleet_id})
     cat <<EOF >> /etc/caddy/Caddyfile
 f${fleet_id}.cloud.jaia.tech {
         import authelia_forward_auth

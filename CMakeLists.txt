@@ -214,7 +214,6 @@ set(scripts_to_install
   geotiff_format.py
   geotiff_scan.sh
   # Utilities
-  jaia-ip.py
   jaia-doc.py
   jaia-vpn-gen.sh
   # System scripts

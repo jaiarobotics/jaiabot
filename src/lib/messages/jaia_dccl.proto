@@ -26,7 +26,7 @@ message Command
     option (dccl.msg) = {
         id: 80
         max_bytes: 250
-        codec_version: 4
+        codec_version: 5
         unit_system: "si"
     };
 
@@ -37,7 +37,7 @@ message Command
 
     required uint64 time = 2 [
         (dccl.field) = {
-            codec: "dccl.time2"
+            codec: "dccl.time"
             units { prefix: "micro" derived_dimensions: "time" }
             precision: -6  // second precision
 
@@ -154,7 +154,7 @@ message BotStatus
     option (dccl.msg) = {
         id: 81
         max_bytes: 250
-        codec_version: 4
+        codec_version: 5
         unit_system: "si"
     };
 
@@ -164,14 +164,14 @@ message BotStatus
     ];
     required uint64 time = 2 [
         (dccl.field) = {
-            codec: "dccl.time2"
+            codec: "dccl.time"
             units { prefix: "micro" derived_dimensions: "time" },
         },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
     optional uint64 last_command_time = 3 [
         (dccl.field) = {
-            codec: "dccl.time2"
+            codec: "dccl.time"
             units { prefix: "micro" derived_dimensions: "time" }
         },
         (jaia.field).rest_api.presence = GUARANTEED
@@ -382,7 +382,7 @@ message BotStatus
 
     optional uint64 mission_command_time = 71 [
         (dccl.field) = {
-            codec: "dccl.time2"
+            codec: "dccl.time"
             units { prefix: "micro" derived_dimensions: "time" }
         },
         (jaia.field).rest_api.presence = GUARANTEED
@@ -624,7 +624,7 @@ message TaskPacket
     option (dccl.msg) = {
         id: 0x5001
         max_bytes: 250
-        codec_version: 4
+        codec_version: 5
         unit_system: "si"
     };
 
@@ -634,14 +634,14 @@ message TaskPacket
     ];
     required uint64 start_time = 2 [
         (dccl.field) = {
-            codec: "dccl.time2"
+            codec: "dccl.time"
             units { prefix: "micro" derived_dimensions: "time" }
         },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
     required uint64 end_time = 3 [
         (dccl.field) = {
-            codec: "dccl.time2"
+            codec: "dccl.time"
             units { prefix: "micro" derived_dimensions: "time" }
         },
         (jaia.field).rest_api.presence = GUARANTEED
@@ -662,7 +662,7 @@ message TaskPacket
     // the mission_name on the Hub.
     optional uint64 mission_command_time = 71 [
         (dccl.field) = {
-            codec: "dccl.time2"
+            codec: "dccl.time"
             units { prefix: "micro" derived_dimensions: "time" }
         },
         (jaia.field).rest_api.presence = GUARANTEED
@@ -676,7 +676,7 @@ message ContactUpdate
     option (dccl.msg) = {
         id: 0x5002
         max_bytes: 16
-        codec_version: 4
+        codec_version: 5
         unit_system: "si"
     };
 
@@ -701,7 +701,7 @@ message Hub2HubData
     option (dccl.msg) = {
         id: 0x5003
         max_bytes: 1000
-        codec_version: 4
+        codec_version: 5
         unit_system: "si"
     };
 

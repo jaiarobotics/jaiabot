@@ -136,13 +136,13 @@ message Engineering
     option (dccl.msg) = {
         id: 127
         max_bytes: 250
-        codec_version: 4
+        codec_version: 5
         unit_system: "si"
     };
 
     required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
     optional uint64 time = 2 [(dccl.field) = {
-        codec: "dccl.time2"
+        codec: "dccl.time"
         units { prefix: "micro" derived_dimensions: "time" }
     }];
 

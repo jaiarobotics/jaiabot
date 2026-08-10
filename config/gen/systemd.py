@@ -42,9 +42,9 @@ parser.add_argument('--moos_bin_dir', default=moos_bin_dir_default, help='Direct
 parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')
 parser.add_argument('--ansible_dir', default=ansible_dir_default, help='Directory to the Ansible configuration')
 parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Directory to write systemd services to')
-parser.add_argument('--bot_index', default=0, type=int, help='Bot index')
-parser.add_argument('--hub_index', default=0, type=int, help='Hub index')
-parser.add_argument('--fleet_index', default=0, type=int, help='Fleet index')
+parser.add_argument('--bot_id', default=0, type=int, help='Bot ID')
+parser.add_argument('--hub_id', default=0, type=int, help='Hub ID')
+parser.add_argument('--fleet_id', default=0, type=int, help='Fleet ID')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
 parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
@@ -250,13 +250,13 @@ cloudhub_type=CloudHubType.SECONDARY
 
 if args.type == 'bot':
     jaia_type = Type.BOT
-    bot_or_hub_index_str = 'export jaia_bot_index=' + str(args.bot_index) + '; '
+    bot_or_hub_id_str = 'export jaia_bot_id=' + str(args.bot_id) + '; '
 elif args.type == 'hub':
     cloudhub_id=30
-    if args.hub_index == cloudhub_id:
+    if args.hub_id == cloudhub_id:
         is_cloudhub=True        
     jaia_type = Type.HUB
-    bot_or_hub_index_str = 'export jaia_hub_index=' + str(args.hub_index) + '; '
+    bot_or_hub_id_str = 'export jaia_hub_id=' + str(args.hub_id) + '; '
 
 if is_cloudhub:
     cloudhub_unsupported_links = ['xbee', 'wifi']
@@ -280,8 +280,8 @@ print('Writing ' + args.env_file + ' from preseed.goby')
 
 subprocess.run('bash -ic "' +
                'export jaia_mode=' + jaia_mode.value + '; ' +
-               bot_or_hub_index_str + 
-               'export jaia_fleet_index=' + str(args.fleet_index) + '; ' + 
+               bot_or_hub_id_str + 
+               'export jaia_fleet_id=' + str(args.fleet_id) + '; ' + 
                'export jaia_warp=' + str(warp) + '; ' +
                'export jaia_log_dir=' + str(args.log_dir) + '; ' +
                f'export jaia_goby_log_level={args.goby_log_level}; ' +
@@ -317,9 +317,9 @@ common_macros['exec_start_pre'] = ''
 common_macros['extra_service'] = ''
 common_macros['extra_unit'] = ''
 common_macros['extra_flags'] = ''
-common_macros['bhv_file'] = '/tmp/jaiabot_${jaia_bot_index}.bhv'
-common_macros['moos_file'] = '/tmp/jaiabot_${jaia_bot_index}.moos'
-common_macros['moos_sim_file'] = '/tmp/jaiabot_sim_${jaia_bot_index}.moos'
+common_macros['bhv_file'] = '/tmp/jaiabot_${jaia_bot_id}.bhv'
+common_macros['moos_file'] = '/tmp/jaiabot_${jaia_bot_id}.moos'
+common_macros['moos_sim_file'] = '/tmp/jaiabot_sim_${jaia_bot_id}.moos'
 # unless otherwise specified, apps are run both at runtime and simulation
 common_macros['runs_when'] = Mode.BOTH
 # most apps do not run on secondary CloudHub, but do run on primary CloudHub

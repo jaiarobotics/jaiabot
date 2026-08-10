@@ -5,8 +5,8 @@
 - name: Add/update entries in /etc/hosts
   lineinfile:
     path: /etc/hosts
-    regexp: '.* {{ item.node_type }}{{ item.node_id }}-virtualfleet{{ cloud_env_vars.jaia_fleet_index }}$'
-    line: '{{ item.ip }} {{ item.node_type }}{{ item.node_id }}-virtualfleet{{ cloud_env_vars.jaia_fleet_index }}'
+    regexp: '.* {{ item.node_type }}{{ item.node_id }}-virtualfleet{{ cloud_env_vars.jaia_fleet_id }}$'
+    line: '{{ item.ip }} {{ item.node_type }}{{ item.node_id }}-virtualfleet{{ cloud_env_vars.jaia_fleet_id }}'
     state: present
   loop: >-
     {%- set result = [] -%}

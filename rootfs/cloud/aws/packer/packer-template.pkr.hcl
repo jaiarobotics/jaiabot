@@ -1,5 +1,5 @@
 variable "instance_type" {
-  default = "t3a.micro"
+  default = "t3a.small"
 }
 
 # set on command line
@@ -12,7 +12,7 @@ variable "iso_source" {}
 variable "iso_local_dir" {}
 
 # AWS Builder
-source "amazon-ebs" "jaia-v2-test" {
+source "amazon-ebs" "jaia-major-upgrade" {
   ami_name      = var.ami_name
   instance_type = var.instance_type
   region        = var.aws_region
@@ -27,7 +27,7 @@ source "amazon-ebs" "jaia-v2-test" {
 
 # Provisioners
 build {
-  sources = ["source.amazon-ebs.jaia-v2-test"]
+  sources = ["source.amazon-ebs.jaia-major-upgrade"]
 
   # Download and mount the upgrade ISO
   provisioner "shell" {
@@ -41,9 +41,16 @@ build {
     script = "scripts/packer-fetch-upgrade.sh"
   }
   
-  # Perform the upgrade
+  # Perform the upgrade prep
   provisioner "ansible-local" {
     playbook_dir = "ansible"
     playbook_file = "ansible/ami-upgrade.yml"
+  }
+
+  # Perform the actual upgrade
+  provisioner "shell" {
+    inline = [
+      "sudo /var/log/jaiabot/major_upgrade/do-major-upgrade.sh 2>&1 | sudo tee /var/log/jaiabot/major_upgrade/major_upgrade_final.log"
+    ]
   }
 }
