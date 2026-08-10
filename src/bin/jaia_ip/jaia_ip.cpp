@@ -77,7 +77,7 @@ const char* const usage_msg =
 
 [[noreturn]] void die(const std::string& msg)
 {
-    std::fprintf(stderr, "jaia_ip: %s\n", msg.c_str());
+    std::fprintf(stderr, "jaia_ip: %s\n\n%s\n", msg.c_str(), usage_msg);
     std::exit(1);
 }
 
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
                 has_node_id = true;
             }
             else
-                die("unknown flag: " + flag + "\n\n" + usage_msg);
+                die("unknown flag: " + flag);
         }
         else if (host.empty())
         {
@@ -176,7 +176,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-            die("unexpected argument: " + arg + "\n\n" + usage_msg);
+            die("unexpected argument: " + arg);
         }
     }
 
