@@ -84,5 +84,6 @@ if [ ! -e ${script_dir}/../../.git/hooks/pre-commit ]; then
       rm ${script_dir}/../../.git/hooks/pre-commit
    fi
    # Install the pre-commit hook
-   ${script_dir}/../git-hooks/clang-format-hooks/git-pre-commit-format install
+   cd ${script_dir}/../git-hooks/clang-format-hooks
+   ./git-pre-commit-format install
 fi
