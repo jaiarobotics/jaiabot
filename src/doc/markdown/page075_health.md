@@ -29,13 +29,13 @@ Since `goby::health::report` is a large and variable message with strings, we wa
 
 Different apps set the enumerations that are appropriate for that app's function. These are grouped in rough "families":
 
-- `ERROR__FAILED__*` (*not yet implemented*): The systemd service for this app failed.
-- `ERROR__NOT_RESPONDING__*`: The Goby app did not respond to the last goby_coroner request. (This often overlaps with `ERROR__FAILED__*` but not necessarily; e.g. if an app is still running but hangs.)
-- `ERROR|WARNING__MISSING_DATA__*`  (*not yet implemented*): A particular required or expected data stream is missing at `jaiabot_fusion`.
+- `ERROR__FAILED__*`: The systemd service for this app failed. These are reported by `jaiabot_failure_reporter`, which is invoked from the `ExecStartPre`/`ExecStopPost` lines of the generated systemd unit files (see the `error_on_fail` entries in `config/gen/systemd.py` and the templates in `config/templates/systemd`).
+- `ERROR__NOT_RESPONDING__*`: The Goby app did not respond to the last goby_coroner request. (This often overlaps with `ERROR__FAILED__*` but not necessarily; e.g. if an app is still running but hangs.) These are reported by `jaiabot_health` (`src/bin/health/app.cpp`).
+- `ERROR|WARNING__MISSING_DATA__*`: A particular required or expected data stream is missing. These are reported by the app that expects the data (e.g. the sensor drivers in `src/bin/sensors/drivers`, `jaiabot_mission_manager`, and the `jaiabot_health` threads).
 - `ERROR|WARNING__COMMS__*`  (*not yet implemented*): Communications related errors or warnings.
-- `ERROR__MOOS__*`  (*not yet implemented*): MOOS app related errors
-- `ERROR|WARNING__SYSTEM__*`  (*not yet implemented*): System related errors or warnings (memory, disk, cpu, etc.)
-- `ERROR|WARNING__VEHICLE__*`  (*not yet implemented*): Vehicle level errors or warnings (low battery, thruster, etc.)
+- `ERROR__MOOS__*`: MOOS app related errors, reported by the `jaiabot_health` HelmIVP thread (`src/bin/health/helm_ivp_thread.cpp`).
+- `ERROR|WARNING__SYSTEM__*`: System related errors or warnings (memory, disk, cpu, etc.), reported by the `jaiabot_health` Linux hardware and time threads.
+- `ERROR|WARNING__VEHICLE__*`: Vehicle level errors or warnings (low battery, thruster, etc.)
 
 ### Restart functionality 
 
@@ -52,7 +52,7 @@ auto_restart_init_grace_period: 60
 
 ### Powerstate functionality
 
-Since `jaiabot_health` is run as root to allow it to restart the services, it is all the place that handles the system level powerstate changes (reboot or shutdown).
+Since `jaiabot_health` is run as root to allow it to restart the services, it is also the place that handles the system level powerstate changes (reboot or shutdown).
 
 For simulation purposes, this is disabled to avoid powering off the development computer using:
 

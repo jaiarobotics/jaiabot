@@ -70,33 +70,28 @@ Unit tests should be located with the item being tested in a special directory n
 For example:
 
 ```
-CommandControl/
-├── CommandControl.less
-├── CommandControl.tsx
+TaskParameters/
+├── TaskParameters.less
+├── TaskParameters.tsx
 └── __tests__
-    └── CommandControl.test.tsx
+    └── TaskParameters.test.tsx
 ```
 
 ## Running the Test
 
 The simplest way to run a test is to enter `npm test` from anywhere within the `src/web` directory tree. This will cause Jest to
 run all the tests in the directory tree.  
-Notice in the example below Jest ran all the tests under `src/web` even though we were down in the `TaskSettingsPanel` folder.
+Notice in the example below Jest ran all the tests under `src/web` even though we were down in the `TaskParameters` folder.
 
 ```
-:~/jaiabot/src/web/components/TaskSettingsPanel$ npm test
+:~/jaiabot/src/web/components/WaypointPanel/TaskParameters$ npm test
 
 > test
 > jest
 
- PASS  components/RallyPointPanel/__tests__/RallyPointPanel.test.tsx (12.796 s)
-  RallyPointPanel: Button Interaction Tests
-    ✓ Test Go To Button using test-id (122 ms)
-    ✓ Test Go To Button using label (32 ms)
-    ✓ Test Go To Button using title (39 ms)
-    ✓ Test Delete Button using test-id (28 ms)
-    ✓ Test Delete Button using label (25 ms)
-    ✓ Test Delete Button using title (36 ms)
+ PASS  components/WaypointPanel/TaskParameters/__tests__/TaskParameters.test.tsx (12.796 s)
+  ✓ Render dive + drift parameters (122 ms)
+  ✓ Render drift parameters (32 ms)
 
 ... (more tests)
 
@@ -108,71 +103,52 @@ Ran all test suites.
 ```
 
 If you want to run the test suites in a particular directory, you just need the name of the directory, you do not need the entire path.
-In the example below, we are in the `src/web` directory and ran all the tests under `src/web/components/TaskSettingsPanel`. It ran 3 test suites (files) from that directory.
+In the example below, we are in the `src/web` directory and ran all the tests under `src/web/components/MissionsPanel`. It ran 4 test suites (files) from that directory and its subdirectories.
 
 ```
-:~/jaiabot/src/web$ npm test TaskSettingsPanel
+:~/jaiabot/src/web$ npm test MissionsPanel
 
 > test
-> jest TaskSettingsPanel
+> jest MissionsPanel
 
- PASS  components/TaskSettingsPanel/__tests__/utils/ValidateTask.test.ts
-  Placeholder to prevent Jest from failing due to no explicit test for a file inside __test__ dir
-    ✓ Placeholder test (5 ms)
-  ValidateTask Unit Tests
+ PASS  components/MissionsPanel/MissionSetStorage/__tests__/mission-set-storage.test.ts
+  Exercise functions to save and load missions from localStorage
+    ✓ Save and retrieve a mission set from localStorage (12 ms)
+    ✓ Save multiple missions sets, list them, and delete them (9 ms)
+
+ PASS  components/MissionsPanel/MissionSpeedSliders/__tests__/MissionSpeedSliders.test.tsx
+  ✓ Move mission speed sliders in opposite directions (185 ms)
+
+ PASS  components/MissionsPanel/MissionsList/__tests__/MissionsList.test.tsx
+
+ PASS  components/MissionsPanel/__tests__/MissionsPanel.test.tsx (7.199 s)
 
 ... (more individual tests)
 
- PASS  components/TaskSettingsPanel/__tests__/utils/validate-task.ts
-  Placeholder to prevent jest from failing due to no explicit test for a file inside __test__ dir
-    ✓ Placeholder test
-
- PASS  components/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx (7.199 s)
-  Placeholder to prevent jest from failing due to no explicit test for a file inside __test__ dir
-    ✓ Placeholder test (3 ms)
-  TaskSettingsPanel: Should update task type correctly for all options
-    ✓ Input Task: Valid No Task, Select all Options (265 ms)
-
- ... (more individual tests)
-
-   Unit Test Bottom Dive Toggle JAIA-1512
-    ✓ Toggle Bottom Dive, Verify Task (110 ms)
-
-Test Suites: 3 passed, 3 total
-Tests:       46 passed, 46 total
+Test Suites: 4 passed, 4 total
 Snapshots:   0 total
 Time:        8.08 s
-Ran all test suites matching /TaskSettingsPanel/i.
+Ran all test suites matching /MissionsPanel/i.
 
 ```
 
 If you want to run a single Test Suite you can provide the entire path to the file containing the Test Suite.
 
 ```
-:~/jaiabot/src/web$ npm test components/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx
+:~/jaiabot/src/web$ npm test components/WaypointPanel/TaskParameters/__tests__/TaskParameters.test.tsx
 
 > test
-> jest components/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx
+> jest components/WaypointPanel/TaskParameters/__tests__/TaskParameters.test.tsx
 
- PASS  components/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx (6.144 s)
-  Placeholder to prevent jest from failing due to no explicit test for a file inside __test__ dir
-    ✓ Placeholder test (1 ms)
-  TaskSettingsPanel: Should update task type correctly for all options
-    ✓ Input Task: Valid No Task, Select all Options (261 ms)
-    ✓ Input Task: Valid Constant Heading, Select all Options (130 ms)
-    ✓ Input Task: Valid Non-Bottom Dive, Select all Options (130 ms)
-    ✓ Input Task: Valid Bottom Dive, Select all Options (123 ms)
-    ✓ Input Task: Valid Surface Drift, Select all Options (120 ms)
-    ✓ Input Task: Valid Station Keeping, Select all Options (118 ms)
-    ✓ Input Task: Valid None Task Type, Select all Options (137 ms)
-  Unit Test Bottom Dive Toggle JAIA-1512
-    ✓ Toggle Bottom Dive, Verify Task (124 ms)
+ PASS  components/WaypointPanel/TaskParameters/__tests__/TaskParameters.test.tsx (6.144 s)
+  ✓ Render dive + drift parameters (261 ms)
+  ✓ Render drift parameters (130 ms)
 
 Test Suites: 1 passed, 1 total
-Tests:       9 passed, 9 total
+Tests:       2 passed, 2 total
 Snapshots:   0 total
 Time:        6.601 s, estimated 7 s
-Ran all test suites matching /components\/TaskSettingsPanel\/__tests__\/TaskSettingsPanel.test.tsx/i.
+Ran all test suites matching /components\/WaypointPanel\/TaskParameters\/__tests__\/TaskParameters.test.tsx/i.
 ```
 
 ### Debugging a Test
@@ -253,10 +229,10 @@ Unlike the usual DOM, `jsdom` does not automatically re-render components based 
 
 ```
 // Get the rerender method from the object returned when rendering the panel
-const { rerender } = render(<TaskSettingsPanel {...mockProps} />);
+const { rerender } = render(<TaskParameters {...mockProps} />);
 
 // Rerender with updated props
-rerender(<TaskSettingsPanel {...mockProps} />);
+rerender(<TaskParameters {...mockProps} />);
 ```
 
 ### Accessing React Elements
@@ -354,7 +330,7 @@ Assert an element changes after re-rendering:
 
 ```
 // Rerender with updated props
-rerender(<TaskSettingsPanel {...mockProps} />);
+rerender(<TaskParameters {...mockProps} />);
 
 // Verify that the selected value is correct
 await waitFor(() => {
@@ -535,7 +511,7 @@ const validTaskTestCases = (testCases as TaskTestCases).validTaskTestCases;
 Next we declare our parameterized test. We use the `beforeEach()` method in a `describe` block to reset the Props used and to reset all mock data. We use `test.each(validTaskTestCases)` to tell Jest to run this test with each test case in the `validTaskTestCases`. We use the `description` of the test case to augment the test description to make the test output more useful and then pass the `task` of the test case into the test function as a parameter and add it to the default Props for our test.
 
 ```
-describe("TaskSettingsPanel: Should update task type correctly for all options", () => {
+describe("TaskParameters: Should update task type correctly for all options", () => {
     beforeEach(() => {
         resetProps();
         jest.clearAllMocks(); // Ensure a clean state for each test
@@ -553,7 +529,7 @@ describe("TaskSettingsPanel: Should update task type correctly for all options",
 Here is the output from the parameterized test:
 
 ```
-  TaskSettingsPanel: Should update task type correctly for all options
+  TaskParameters: Should update task type correctly for all options
     ✓ Input Task: Valid No Task, Select all Options (257 ms)
     ✓ Input Task: Valid Constant Heading, Select all Options (135 ms)
     ✓ Input Task: Valid Non-Bottom Dive, Select all Options (128 ms)
