@@ -34,11 +34,11 @@ jaiabot/src/web$ webpack --mode development --env OUTPUT_DIR=${HOME}/temp
 
 The `webpack.config.js` file contains five different webpack configuration objects:
 
-- `baseConfig`, which contains the configuration options to be used for all apps, in both build modes (`development` and `production`)
-- `developmentConfig`, which contains development options
-- `productionConfig`, which contains production options
-- `jedConfig`, which contains build options specific to JED
-- `jccConfig`, which contains build options specific to JCC
+-   `baseConfig`, which contains the configuration options to be used for all apps, in both build modes (`development` and `production`)
+-   `developmentConfig`, which contains development options
+-   `productionConfig`, which contains production options
+-   `jedConfig`, which contains build options specific to JED
+-   `jccConfig`, which contains build options specific to JCC
 
 When invoked, the correct options are chosen depending on the build mode provided, and both `JCC` and `JED` are built.
 
@@ -58,8 +58,8 @@ For all JavaScript and JSX files (`.js` and `.jsx`), Babel is used to transpile 
 
 Tests are written using the `jest` module. Options for `jest` are found in the `src/web/jest.config.js` file.
 
-- The `ts_jest` module is used to transpile `.tsx` and `.ts` files into JavaScript for `jest`.
-- The `babel_jest` module is used to transpile `.jsx` and `.js` files.
+-   The `ts_jest` module is used to transpile `.tsx` and `.ts` files into JavaScript for `jest`.
+-   The `babel_jest` module is used to transpile `.jsx` and `.js` files.
 
 To run all of the tests:
 

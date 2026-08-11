@@ -61,7 +61,7 @@ sed -i "s/fleet_ssid=.*/fleet_ssid=\"${FLEET_WLAN_SSID}\"/" ${NETENV_FILE}
 sed -i "s|fleet_address=.*|fleet_address=\"${FLEET_ADDRESS}\"|" ${NETENV_FILE}
 sed -i "s/fleet_gateway=.*/fleet_gateway=\"${FLEET_GATEWAY}\"/" ${NETENV_FILE}
 
-/usr/bin/jaia_update_network.sh
+/usr/bin/jaia-update-network.sh
 
 
 echo "<<<<< Updating wifi configuration complete (IP address changes won't take effect until reboot)!"
@@ -85,17 +85,29 @@ echo "<<<<< Writing /etc/jaiabot/jaia.env complete!"
 
 echo ">>>>> Installing and enabling systemd services ... "
 
-# db_stop first: the frontend's in-memory answers are not flushed to the
-# on-disk database systemd.py reads until it shuts down.
+# debconf keeps this run's answers in the frontend and does not write them to
+# the on-disk database until after this script exits, so a child process that
+# read that database would configure the units from the previous answers. Hand
+# systemd.py the ones this script can see instead.
+SELECTIONS=$(mktemp)
+. /usr/bin/jaia-debconf.sh
+for question in $(jaia_debconf_questions); do
+    db_get jaiabot-embedded/${question}
+    printf 'jaiabot-embedded\tjaiabot-embedded/%s\t%s\t%s\n' \
+           "${question}" "$(jaia_debconf_template_field ${question} Type)" "$RET"
+done > ${SELECTIONS}
+
 db_stop
 
-/usr/share/jaiabot/config/gen/systemd.py --enable \
+/usr/share/jaiabot/config/gen/systemd.py --debconf_selections ${SELECTIONS} --enable \
                                          --jaiabot_bin_dir=/usr/bin \
                                          --jaiabot_share_dir=/usr/share \
                                          --goby_bin_dir=/usr/bin \
                                          --moos_bin_dir=/usr/bin \
                                          --gen_dir=/usr/share/jaiabot/config/gen \
                                          --systemd_dir=/usr/lib/systemd/system
+
+rm -f ${SELECTIONS}
 
 echo "<<<<< Installing and enabling systemd services complete!"
 
@@ -143,7 +155,13 @@ echo ">>>>> Installing (but not enabling) Wireguard VPN ... "
 
 echo ">>>>> Installing Wireguard VPN complete!"
 
-# The 'j' alias and jaia.env sourcing now come from /etc/profile.d/jaia.sh.
+# Upgrades carry a ~/.bashrc that sources /etc/jaiabot/runtime.env, and the file
+# itself, which nothing regenerates any more - left in place it would export a
+# stale identity into every login shell, overriding /etc/profile.d/jaia.sh.
+if [ -f /home/jaia/.bashrc ]; then
+    sed -i '\|source /etc/jaiabot/runtime.env|d' /home/jaia/.bashrc
+fi
+rm -f /etc/jaiabot/runtime.env /etc/jaiabot/runtime.env.~*~
 
 echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' jaiabot-embedded)" > /etc/jaiabot/software_version
 

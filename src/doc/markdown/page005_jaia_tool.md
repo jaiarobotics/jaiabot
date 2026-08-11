@@ -109,6 +109,14 @@ jaia ssh b1f10 sudo jaia ctl restart
 
 ## admin
 
+These subactions are used to administer a fleet of JaiaBots:
+
+- `jaia admin ssh` manages SSH keys for a given host. See the [SSH Access](page013_ssh_keys.md) page for more details.
+- `jaia admin fleet` creates and manages fleet configurations. See the [Embedded Board Deployment](page025_embedded_setup.md) page for more details.
+- `jaia admin debconf` reads and writes this bot/hub's own configuration, as described below.
+
+### debconf
+
 The `jaiabot-embedded` debconf database is the single source of truth for a bot or hub's configuration, and the generated systemd units are derived from it. This subaction reads and writes it without having to go through the interactive `dpkg-reconfigure` menus. Questions are named without the `jaiabot-embedded/` prefix.
 
 ```

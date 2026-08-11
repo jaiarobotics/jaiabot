@@ -9,9 +9,9 @@
 #     jaia-debconf.sh selections
 #     source /usr/bin/jaia-debconf.sh && jaia_debconf_get fleet_id
 #
-# Requires root, and that no maintainer script is holding an open debconf
-# conversation: db_set writes live in the frontend's memory until it shuts down,
-# so call db_stop first or read pre-maintainer-script values.
+# Requires root. The subcommands read the on-disk database, which debconf only
+# writes once a running maintainer script has exited, so a maintainer script
+# must use its own db_get rather than these.
 
 JAIA_DEBCONF_PACKAGE=jaiabot-embedded
 
@@ -26,13 +26,13 @@ jaia_debconf_templates_file() {
         return 0
     fi
 
-    local_copy="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../debian/${JAIA_DEBCONF_PACKAGE}.templates"
+    local_copy="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../../debian/${JAIA_DEBCONF_PACKAGE}.templates"
     if [ -r "${local_copy}" ]; then
         echo "${local_copy}"
         return 0
     fi
 
-    echo "ERROR: ${JAIA_DEBCONF_PACKAGE}.templates not found at ${installed}" >&2
+    echo "ERROR: ${JAIA_DEBCONF_PACKAGE}.templates not found at ${installed} or ${local_copy}" >&2
     return 1
 }
 
@@ -190,8 +190,8 @@ jaia_debconf_list() {
 # jaia_debconf_get <question> [default]
 # Fails if the question is unanswered and no default was supplied.
 jaia_debconf_get() {
-    local question="$1"
-    local default="$2"
+    local question="${1-}"
+    local default="${2-}"
     local reply value
 
     reply=$(echo "GET ${JAIA_DEBCONF_PACKAGE}/${question}" \
@@ -272,13 +272,14 @@ jaia_debconf_get_all() {
 # out-of-range value would silently generate the wrong systemd services rather
 # than failing, so validate here.
 jaia_debconf_set() {
-    local question="$1" value="$2"
     local choices type reply element
 
     if [ $# -lt 2 ]; then
         echo "ERROR: usage: jaia_debconf_set <question> <value>" >&2
         return 1
     fi
+
+    local question="$1" value="$2"
 
     type=$(jaia_debconf_template_field "${question}" Type) || return 1
     if [ -z "${type}" ]; then

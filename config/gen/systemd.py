@@ -49,9 +49,9 @@ parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .
 
 args=parser.parse_args()
 
-# Callers inside a maintainer script must db_stop before running this: db_set
-# writes live in the debconf frontend's memory until it shuts down, so a child
-# process reading any earlier sees pre-maintainer-script values.
+# Maintainer scripts must pass --debconf_selections: debconf does not write the
+# running script's answers to the on-disk database until that script exits, so a
+# child reading the database directly would see the previous configuration.
 
 DEBCONF_PACKAGE = 'jaiabot-embedded'
 
