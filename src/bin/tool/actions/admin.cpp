@@ -1,6 +1,8 @@
 #include "goby/middleware/application/tool.h"
 
 #include "admin.h"
+#include "admin/debconf_get.h"
+#include "admin/debconf_set.h"
 #include "admin/fleet.h"
 #include "admin/ssh.h"
 #include "common.h"
@@ -34,6 +36,18 @@ jaiabot::apps::AdminTool::AdminTool()
                                 action_for_help);
                             break;
 
+                        case jaiabot::config::AdminTool::debconf_get:
+                            tool_helper.help<jaiabot::apps::admin::DebconfGetTool,
+                                             jaiabot::apps::admin::DebconfGetToolConfigurator>(
+                                action_for_help);
+                            break;
+
+                        case jaiabot::config::AdminTool::debconf_set:
+                            tool_helper.help<jaiabot::apps::admin::DebconfSetTool,
+                                             jaiabot::apps::admin::DebconfSetToolConfigurator>(
+                                action_for_help);
+                            break;
+
                         default:
                             throw(goby::Exception(
                                 "Help was expected to be handled by external tool"));
@@ -51,6 +65,18 @@ jaiabot::apps::AdminTool::AdminTool()
             case jaiabot::config::AdminTool::fleet:
                 tool_helper.run_subtool<jaiabot::apps::admin::FleetTool,
                                         jaiabot::apps::admin::FleetToolConfigurator>();
+
+                break;
+
+            case jaiabot::config::AdminTool::debconf_get:
+                tool_helper.run_subtool<jaiabot::apps::admin::DebconfGetTool,
+                                        jaiabot::apps::admin::DebconfGetToolConfigurator>();
+
+                break;
+
+            case jaiabot::config::AdminTool::debconf_set:
+                tool_helper.run_subtool<jaiabot::apps::admin::DebconfSetTool,
+                                        jaiabot::apps::admin::DebconfSetToolConfigurator>();
 
                 break;
 

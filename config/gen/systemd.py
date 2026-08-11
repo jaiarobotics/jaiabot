@@ -146,7 +146,7 @@ def read_debconf_database() -> list:
     """Dump the live debconf database, in selections format, via jaia-debconf.sh."""
     helper = find_debconf_helper()
     try:
-        result = subprocess.run([helper, '--selections'],
+        result = subprocess.run([helper, 'selections'],
                                 capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as e:
         sys.exit('ERROR: could not read the debconf database for ' + DEBCONF_PACKAGE + ':\n' +

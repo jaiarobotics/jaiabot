@@ -5,6 +5,8 @@ add_jaiabot_application(TARGET jaia
     actions/ssh.proto
     actions/ping.proto
     actions/admin.proto
+    actions/admin/debconf_get.proto
+    actions/admin/debconf_set.proto
     actions/admin/ssh.proto
     actions/admin/ssh/add.proto
     actions/admin/ssh/rm.proto
@@ -20,6 +22,8 @@ add_jaiabot_application(TARGET jaia
     actions/ssh.cpp
     actions/ping.cpp
     actions/admin.cpp
+    actions/admin/debconf_get.cpp
+    actions/admin/debconf_set.cpp
     actions/admin/ssh.cpp
     actions/admin/ssh/add.cpp
     actions/admin/ssh/rm.cpp

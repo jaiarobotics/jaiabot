@@ -49,6 +49,20 @@ message AdminTool
         fleet = 2 [(goby.ev).cfg = {
             short_help_msg: "Fleet administration",
         }];
+        debconf_get = 3 [(goby.ev).cfg = {
+            short_help_msg: "Read a jaiabot-embedded debconf value",
+            full_help_msg: "Read one of this bot/hub's configuration values.\n"
+                           "Usage: \"jaia admin debconf_get <question>\"\n"
+                           "e.g. \"jaia admin debconf_get fleet_id\""
+        }];
+        debconf_set = 4 [(goby.ev).cfg = {
+            short_help_msg: "Write a jaiabot-embedded debconf value and apply it",
+            full_help_msg: "Change one of this bot/hub's configuration values.\n"
+                           "Usage: \"jaia admin debconf_set <question> <value> [--reconfigure false]\"\n"
+                           "e.g. \"jaia admin debconf_set fleet_id 3\"\n"
+                           "By default this reconfigures jaiabot-embedded so the systemd units are\n"
+                           "regenerated; pass --reconfigure false to set several values first."
+        }];
     }
     optional Action action = 2 [
         default = help,

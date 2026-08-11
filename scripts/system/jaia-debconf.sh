@@ -1,9 +1,11 @@
 #!/bin/bash
 
-# Shared reader for the jaiabot-embedded debconf database, the single source of
-# truth for bot/hub configuration.
+# Shared reader/writer for the jaiabot-embedded debconf database, the single
+# source of truth for bot/hub configuration.
 #
-#     jaia-debconf.sh type
+#     jaia-debconf.sh get fleet_id
+#     jaia-debconf.sh set fleet_id 3
+#     jaia-debconf.sh selections
 #     source /usr/bin/jaia-debconf.sh && jaia_debconf_get fleet_id
 #
 # Requires root, and that no maintainer script is holding an open debconf
@@ -11,6 +13,39 @@
 # so call db_stop first or read pre-maintainer-script values.
 
 JAIA_DEBCONF_PACKAGE=jaiabot-embedded
+
+# dpkg keeps every installed package's templates here; fall back to the source
+# tree so this works from an uninstalled checkout too.
+jaia_debconf_templates_file() {
+    local installed="/var/lib/dpkg/info/${JAIA_DEBCONF_PACKAGE}.templates"
+    local local_copy
+
+    if [ -r "${installed}" ]; then
+        echo "${installed}"
+        return 0
+    fi
+
+    local_copy="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../../debian/${JAIA_DEBCONF_PACKAGE}.templates"
+    if [ -r "${local_copy}" ]; then
+        echo "${local_copy}"
+        return 0
+    fi
+
+    echo "ERROR: ${JAIA_DEBCONF_PACKAGE}.templates not found at ${installed}" >&2
+    return 1
+}
+
+# jaia_debconf_template_field <question> <field, e.g. Choices or Type>
+jaia_debconf_template_field() {
+    local question="$1" field="$2" templates
+
+    templates=$(jaia_debconf_templates_file) || return 1
+
+    awk -v q="${JAIA_DEBCONF_PACKAGE}/${question}" -v f="${field}:" '
+        /^Template:/ { current = $2 }
+        current == q && $1 == f { sub(/^[^:]*: ?/, ""); print; exit }
+    ' "${templates}"
+}
 
 # jaia_debconf_get <question> [default]
 # Fails if the question is unanswered and no default was supplied.
@@ -40,6 +75,61 @@ jaia_debconf_get() {
     fi
 
     echo "${value}"
+}
+
+# jaia_debconf_set <question> <value>
+# debconf itself does not check a value against the template's Choices, and an
+# out-of-range value would silently generate the wrong systemd services rather
+# than failing, so validate here.
+jaia_debconf_set() {
+    local question="$1" value="$2"
+    local choices type reply element
+
+    if [ $# -lt 2 ]; then
+        echo "ERROR: usage: jaia_debconf_set <question> <value>" >&2
+        return 1
+    fi
+
+    type=$(jaia_debconf_template_field "${question}" Type) || return 1
+    if [ -z "${type}" ]; then
+        echo "ERROR: ${JAIA_DEBCONF_PACKAGE}/${question} is not a known debconf question." >&2
+        return 1
+    fi
+
+    choices=$(jaia_debconf_template_field "${question}" Choices)
+    if [ -n "${choices}" ]; then
+        # a multiselect answer is a comma-separated subset of Choices
+        local IFS=,
+        for element in ${value}; do
+            element="$(echo "${element}" | sed 's/^ *//; s/ *$//')"
+            if ! echo "${choices}" | tr ',' '\n' | sed 's/^ *//; s/ *$//' \
+                    | grep -qxF "${element}"; then
+                unset IFS
+                echo "ERROR: '${element}' is not a valid value for ${JAIA_DEBCONF_PACKAGE}/${question}." >&2
+                echo "       Choices: ${choices}" >&2
+                return 1
+            fi
+        done
+        unset IFS
+    fi
+
+    reply=$(printf 'SET %s/%s %s\nFSET %s/%s seen true\n' \
+                   "${JAIA_DEBCONF_PACKAGE}" "${question}" "${value}" \
+                   "${JAIA_DEBCONF_PACKAGE}" "${question}" \
+                | debconf-communicate "${JAIA_DEBCONF_PACKAGE}" 2>&1)
+
+    # one reply line per command; anything not starting with 0 is an error
+    if echo "${reply}" | grep -qv '^0'; then
+        echo "ERROR: could not set ${JAIA_DEBCONF_PACKAGE}/${question}: ${reply}" >&2
+        return 1
+    fi
+}
+
+# jaia_debconf_reconfigure
+# Re-runs the package's .config and postinst, which is what regenerates the
+# systemd units from the new answers.
+jaia_debconf_reconfigure() {
+    dpkg-reconfigure -f noninteractive "${JAIA_DEBCONF_PACKAGE}"
 }
 
 # jaia_debconf_node_id
@@ -81,16 +171,58 @@ jaia_debconf_selections() {
     echo "${out}"
 }
 
-# When executed rather than sourced, print the requested question's value.
+jaia_debconf_usage() {
+    cat >&2 <<EOF
+Usage: $(basename "$0") get <question> [default]
+       $(basename "$0") set <question> <value> [--no-reconfigure]
+       $(basename "$0") selections
+
+Questions are given without the '${JAIA_DEBCONF_PACKAGE}/' prefix, e.g. 'fleet_id'.
+
+'set' runs 'dpkg-reconfigure ${JAIA_DEBCONF_PACKAGE}' afterwards so that the
+systemd units are regenerated from the new value; pass --no-reconfigure to
+change the database without applying it (e.g. when setting several values).
+EOF
+}
+
+# When executed rather than sourced, dispatch on the subcommand.
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
-    if [ $# -lt 1 ]; then
-        echo "Usage: $(basename "$0") <debconf question, e.g. fleet_id> [default]" >&2
-        echo "       $(basename "$0") --selections" >&2
-        exit 1
-    fi
-    if [ "$1" = "--selections" ]; then
-        jaia_debconf_selections
-    else
-        jaia_debconf_get "$@"
-    fi
+    subcommand="$1"
+    shift 2>/dev/null
+
+    case "${subcommand}" in
+        get)
+            [ $# -ge 1 ] || { jaia_debconf_usage; exit 1; }
+            jaia_debconf_get "$@"
+            ;;
+        set)
+            reconfigure=true
+            args=()
+            for arg in "$@"; do
+                if [ "${arg}" = "--no-reconfigure" ]; then
+                    reconfigure=false
+                else
+                    args+=("${arg}")
+                fi
+            done
+
+            [ ${#args[@]} -eq 2 ] || { jaia_debconf_usage; exit 1; }
+            jaia_debconf_set "${args[@]}" || exit 1
+            echo "Set ${JAIA_DEBCONF_PACKAGE}/${args[0]} to '${args[1]}'"
+
+            if [ "${reconfigure}" = "true" ]; then
+                echo "Reconfiguring ${JAIA_DEBCONF_PACKAGE} ..."
+                jaia_debconf_reconfigure
+            else
+                echo "Not reconfigured: run 'sudo dpkg-reconfigure ${JAIA_DEBCONF_PACKAGE}' to apply."
+            fi
+            ;;
+        selections)
+            jaia_debconf_selections
+            ;;
+        *)
+            jaia_debconf_usage
+            exit 1
+            ;;
+    esac
 fi

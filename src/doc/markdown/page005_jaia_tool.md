@@ -105,4 +105,28 @@ jaia ssh b1f10 sudo jaia ctl restart
 
 ## admin
 
-These subactions are used to administer a fleet of JaiaBots. Currently the only subaction is `ssh` which manages SSH keys for a given host. See the [SSH Access](page013_ssh_keys.md) page for more details.
+These subactions are used to administer a fleet of JaiaBots. The `ssh` subaction manages SSH keys for a given host - see the [SSH Access](page013_ssh_keys.md) page for more details - and `fleet` handles fleet-wide configuration.
+
+### debconf_get / debconf_set
+
+The `jaiabot-embedded` debconf database is the single source of truth for a bot or hub's configuration, and the generated systemd units are derived from it. These two actions read and write it without having to go through the interactive `dpkg-reconfigure` menus. Questions are named without the `jaiabot-embedded/` prefix.
+
+```
+sudo jaia admin debconf_get fleet_id
+sudo jaia admin debconf_set fleet_id 3
+```
+
+`debconf_set` validates the value against that question's permitted `Choices`, so a typo fails immediately rather than silently generating the wrong services. By default it then runs `dpkg-reconfigure jaiabot-embedded`, which regenerates and re-enables the systemd units so the change takes effect.
+
+When changing several values, skip the reconfigure on all but the last so the units are only regenerated once:
+
+```
+sudo jaia admin debconf_set imu_type bno085 --reconfigure false
+sudo jaia admin debconf_set bot_type pam
+```
+
+Both require root, since reading and writing the debconf database does. As with any action, these can be run remotely:
+
+```
+jaia ssh b1f10 sudo jaia admin debconf_get imu_type
+```
