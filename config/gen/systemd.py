@@ -945,10 +945,18 @@ for app in jaiabot_apps:
         if app['template'] == 'goby-app.service.in':
             all_goby_apps.append(app['exe'])
         
+# Units are enabled in a separate pass below, after every unit file has been
+# written. Many carry WantedBy=jaiabot_health.service (or _gobyd/_moosdb), and
+# those targets are themselves entries in this same list - jaiabot_apps is not
+# in dependency order, so enabling as we go would run 'systemctl enable' on a
+# unit whose WantedBy target doesn't exist on disk yet, which systemd warns
+# about ("... does not exist, proceeding anyway").
+apps_to_enable = []
+
 for app in jaiabot_apps:
     if is_app_run(app):
         macros={**common_macros, **app}
-        
+
         # generate service name from lowercase exe name, substituting . for _, and
         # adding jaiabot to the front if it doesn't already start with that
         if 'service' in macros:
@@ -961,7 +969,7 @@ for app in jaiabot_apps:
         # special case for goby_coroner - need a list of everything we're running
         if app.get('exe') == 'goby_coroner':
             macros['extra_flags'] = '--expected_name ' + ' --expected_name '.join(all_goby_apps)
-            
+
         if not 'bin_dir' in macros:
             if (macros.get('exe') or '').startswith('goby'):
                 macros['bin_dir'] = macros['goby_bin_dir']
@@ -969,9 +977,9 @@ for app in jaiabot_apps:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
 
         macros['service'] = service
-                
-        with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:        
-            out=Template(file.read()).substitute(macros)    
+
+        with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:
+            out=Template(file.read()).substitute(macros)
         outfilename = args.systemd_dir + '/' + service + '.service'
 
         enable = args.enable
@@ -986,17 +994,21 @@ for app in jaiabot_apps:
         outfile = open(outfilename, 'w')
         outfile.write(out)
         outfile.close()
-        if enable:
-            print('Enabling ' + service)
-            subprocess.run('systemctl enable ' + service, check=True, shell=True)
-        if disable:
-            print('Disabling ' + service)
-            subprocess.run('systemctl disable ' + service, check=True, shell=True)
+        if enable or disable:
+            apps_to_enable.append((service, enable, disable))
         if app['template'] == 'jcc.conf.in':
             print('Enabling ' + service)
             subprocess.run('a2ensite ' + service, check=True, shell=True)
             subprocess.run('if systemctl is-active --quiet apache2; then systemctl reload apache2; else systemctl start apache2; fi', check=True, shell=True)
-            
+
+for service, enable, disable in apps_to_enable:
+    if enable:
+        print('Enabling ' + service)
+        subprocess.run('systemctl enable ' + service, check=True, shell=True)
+    if disable:
+        print('Disabling ' + service)
+        subprocess.run('systemctl disable ' + service, check=True, shell=True)
+
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
 def is_firm_run(firm):
     macros={**firmware_common_macros, **firm}
@@ -1024,6 +1036,9 @@ def is_firm_run(firm):
         
     return True
 
+# same write-then-enable split as the apps loop above, and for the same reason
+firmware_to_enable = []
+
 for firmware in jaia_firmware:
     if is_firm_run(firmware):
         macros={**firmware_common_macros, **firmware}
@@ -1036,7 +1051,7 @@ for firmware in jaia_firmware:
             service = firmware['exe'].replace('.', '_').lower()
             if macros['exe'][0:9] != 'jaia_firm':
                 service = 'jaia_firm_' + service
-            
+
         if not 'bin_dir' in macros:
             if macros['exe'][0:4] == 'goby':
                 macros['bin_dir'] = macros['goby_bin_dir']
@@ -1044,25 +1059,27 @@ for firmware in jaia_firmware:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
 
         macros['service'] = service
-                
-        with open(script_dir + '/../templates/systemd/' + firmware['template'], 'r') as file:        
-            out=Template(file.read()).substitute(macros)    
+
+        with open(script_dir + '/../templates/systemd/' + firmware['template'], 'r') as file:
+            out=Template(file.read()).substitute(macros)
         outfilename = args.systemd_dir + '/' + service + '.service'
         print('Writing ' + outfilename)
         outfile = open(outfilename, 'w')
         outfile.write(out)
         outfile.close()
 
-        # Check to see if we should enable the service to run at boot
-        # If not then we should not try to enable or disable the service
+        # run_at_boot: False means never enable or disable this service
         if (not 'run_at_boot' in macros or macros['run_at_boot'] != False):
-            if args.enable:
-                print('Enabling ' + service)
-                subprocess.run('systemctl enable ' + service, check=True, shell=True)
-            if args.disable:
-                print('Disabling ' + service)
-                subprocess.run('systemctl disable ' + service, check=True, shell=True)
-        
-        
+            if args.enable or args.disable:
+                firmware_to_enable.append((service, args.enable, args.disable))
+
+for service, enable, disable in firmware_to_enable:
+    if enable:
+        print('Enabling ' + service)
+        subprocess.run('systemctl enable ' + service, check=True, shell=True)
+    if disable:
+        print('Disabling ' + service)
+        subprocess.run('systemctl disable ' + service, check=True, shell=True)
+
 if args.enable or args.disable:
     subprocess.run('systemctl daemon-reload', check=True, shell=True)
