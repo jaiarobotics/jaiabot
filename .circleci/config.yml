@@ -178,6 +178,7 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "3.y"
+        - "claude/remove-runtime-env-simplify-system-6thi11"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -196,6 +197,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
+        - "claude/remove-runtime-env-simplify-system-6thi11"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -205,6 +207,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "3.y"
+        - "claude/remove-runtime-env-simplify-system-6thi11"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -214,6 +217,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
+        - "claude/remove-runtime-env-simplify-system-6thi11"
         
 ## Begin actual config
 version: 2.1
