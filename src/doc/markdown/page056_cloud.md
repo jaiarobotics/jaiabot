@@ -113,7 +113,7 @@ Some examples include:
 | Bot         | 5   | 4        | `fd91:5457:1e5c:4::1:5` | `fd6e:cf0d:aefa:4::1:5` | `fd0f:77ac:4fdf:4::1:5` |
 | Bot         | 6   | 250      | `fd91:5457:1e5c:fa::1:6` | `fd6e:cf0d:aefa:fa::1:6` | `fd0f:77ac:4fdf:fa::1:6` |
 | Hub         | 20 | 10       | `fd91:5457:1e5c:a::14` | `fd6e:cf0d:aefa:a::14` | `fd0f:77ac:4fdf:a::14` |
-| Hub (CloudHub (ch))        | 30 | 15       | `fd91:5457:1e5c:f::1e` | `ffd6e:cf0d:aefa:f::1e` | `fd0f:77ac:4fdf:f::1e` |
+| Hub (CloudHub (ch))        | 30 | 15       | `fd91:5457:1e5c:f::1e` | `fd6e:cf0d:aefa:f::1e` | `fd0f:77ac:4fdf:f::1e` |
 
 You can generate the values for the table above yourself using:
 ```

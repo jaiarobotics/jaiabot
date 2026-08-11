@@ -41,7 +41,7 @@ jaia admin fleet vpn_authorize private_jaia/fleet_config/fleet5.cfg --rm
 
 ### Create a Fleet Config (do once for all bots/hubs in a fleet)
 
-This new bot or hub must belong to a configured fleet. Fleets are configured using a Fleet Config file which is a Protobuf TextFormat version of the jaiabot.message.FleetConfig message (`jaiabot/src/lib/message/fleet_config.proto`).
+This new bot or hub must belong to a configured fleet. Fleets are configured using a Fleet Config file which is a Protobuf TextFormat version of the jaiabot.protobuf.FleetConfig message (`jaiabot/src/lib/messages/fleet_config.proto`).
 
 The simplest way to create a new fleet is to use the `jaia` tool (e.g. for fleet5):
 ```

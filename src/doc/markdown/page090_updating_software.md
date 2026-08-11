@@ -37,7 +37,7 @@ cat /etc/apt/sources.list.d/jaiabot.list
 * To switch between versions uncomment the one you want and comment out the others
 
 ```
-sudo vi /etc/apt/sources.d/jaiabot.list
+sudo vi /etc/apt/sources.list.d/jaiabot.list
 ```
 
 ## Update Jaiabot Packages
