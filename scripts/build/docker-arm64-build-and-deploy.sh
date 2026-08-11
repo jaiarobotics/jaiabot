@@ -70,7 +70,7 @@ fi
 
 # Get goby and dccl versions currently installed into the build image
 docker_libgoby_version=$(dockerPackageVersion libgoby3)
-docker_libdccl_version=$(dockerPackageVersion libdccl4)
+docker_libdccl_version=$(dockerPackageVersion libdccl5)
 
 # Remove old library files
 echo "🟢 Cleaning old library files"

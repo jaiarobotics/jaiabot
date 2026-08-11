@@ -6,7 +6,7 @@ build_dir=$1
 
 echo "🟢 Verifying goby and dccl versions match"
 local_libgoby_version=$(apt show libgoby3 | sed -n 's/^Version: \(.*\)~.*$/\1/p')
-local_libdccl_version=$(apt show libdccl4 | sed -n 's/^Version: \(.*\)~.*$/\1/p')
+local_libdccl_version=$(apt show libdccl5 | sed -n 's/^Version: \(.*\)~.*$/\1/p')
 echo Local  versions: ${local_libdccl_version} ${local_libgoby_version}
 echo Docker versions: ${docker_libdccl_version} ${docker_libgoby_version}
 
