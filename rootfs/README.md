@@ -12,13 +12,13 @@ Directory structure:
 
 ## CI Built images
 
-As an alternative to cloning this repository and building images yourself, you can download them pre-built on [CircleCI](https://app.circleci.com/pipelines/github/jaiarobotics/jaiabot?branch=1.y). Browse to the latest build (raspi-image-create for the Raspberry Pi image, or virtualbox-image-create for the VirtualBox image), click "Artifacts", and download the appropriate file (.img.gz or .ova, respectively).
+As an alternative to cloning this repository and building images yourself, you can download them pre-built on [CircleCI](https://app.circleci.com/pipelines/github/jaiarobotics/jaiabot?branch=3.y). Browse to the latest build (`arm64-raspi-image-create-*` for the Raspberry Pi image, or `amd64-virtualbox-image-create-*` for the VirtualBox image), click "Artifacts", and download the appropriate file (.img.gz or .ova, respectively).
 
 ## Quick usage (build your own)
 
 ### Install Dependencies on Build machine
 
-Install dependencies (tested on Ubuntu 20.04):
+Install dependencies:
 
 ```
 sudo apt install live-build qemu-user-static
@@ -29,7 +29,7 @@ sudo apt install live-build qemu-user-static
 Creates (in current working directory) jaiabot_img-{version}.img (can be installed with `dd` or similar):
 
 ```
-sudo jaiabot-rootfs-gen/scripts/create_raspi_base_image.sh
+sudo rootfs/scripts/create_raspi_base_image.sh
 ```
 
 ### VirtualBox image
@@ -37,12 +37,12 @@ sudo jaiabot-rootfs-gen/scripts/create_raspi_base_image.sh
 As an alternative to the Raspberry Pi image, an `amd64` virtual machine (.ova) can be created for use with VirtualBox by running
 
 ```
-sudo jaiabot-rootfs-gen/scripts/create_raspi_base_image.sh --virtualbox
+sudo rootfs/scripts/create_raspi_base_image.sh --virtualbox
 ```
 
 To import multiple (e.g. 5 bots, 1 hub) VMs at once, use
 
 ```
 # Usage ./import_vms.sh vm.ova n_bots n_hubs fleet_id
-jaiabot-rootfs-gen/scripts/import_vms.sh jaiabot_img-{version}.ova 5 1 25
+rootfs/scripts/import_vms.sh jaiabot_img-{version}.ova 5 1 25
 ```

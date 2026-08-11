@@ -70,7 +70,7 @@ Events are what drives the changes in states. Some events are triggered by the o
 #### Implemented Events
 
 - EvStarted: Bot has successfully started. This is triggered by a `jaiabot_health` health report considered OK (*not* HEALTH__FAILED unless ENGINEERING_TEST__IGNORE_SOME_ERRORS and the excluded error would make health OK).
-- EvStartedTimeout: Timeout without EvStarted (Config value `startup_timeout`).
+- EvStartupTimeout: Timeout without EvStarted (Config value `startup_timeout`).
 - EvActivate: Bot is activated (primarily this starts logging). This is manually sent from Central Command using the Command type: ACTIVATE.
 - EvSelfTestSuccessful: The bot self test has completed successfully and no critical failures have been found. Currently, this is the same condition as EvStarted.
 - EvSelfTestFails: The bot self test fails and the bot is unable to perform a mission. This occurs when the health report is not considered OK (inverse of EvSelfTestSuccessful). 
@@ -90,7 +90,7 @@ Events are what drives the changes in states. Some events are triggered by the o
 	+ SurfaceDrift: Triggered when the drift timer expires. (or Command type: NEXT_TASK is sent by the operator.).
 - EvNewMission: Triggered when the operator sends a new mission and the bot receives it.
 - EvReturnToHome: Triggered by the Movement::Transit state when the mission has completed all the preprogrammed waypoints, or via a command from the operator.
-- EvRecoveryPointReached: Triggered by the pHelmIvP behavior once the recovery point has been reached.
+- EvWaypointReached: Also triggered by the pHelmIvP behavior once the recovery point has been reached (transitions Recovery::Transit to Recovery::StationKeep).
 - EvStop: Triggered by a command from the operator (Command type: STOP)
 - EvShutdown: Triggered by the operator with Command type: SHUTDOWN.
 - EvDepthTargetReached: Triggered when the Dive behavior reaches a target depth.
@@ -111,7 +111,7 @@ Events are what drives the changes in states. Some events are triggered by the o
 - EvIMURestart: Triggered when we detect an IMU Issue.
 - EvIMURestartCompleted: Triggered when the IMU Restart is completed.
 - EvBottomDepthAbort: Triggered when bot depth reaches a minimum value (default is set to 0). Bot will drive to last goal after doing a constant heading.
-- EvDviePrepComplete: Triggered when the the timeout is reached in the DivePrep State. 
+- EvDivePrepComplete: Triggered when the the timeout is reached in the DivePrep State. 
 - EvDiveRising: Triggered when bot is making progress to the surface while in PoweredAscent. The bot will switch back into UnpoweredAscent.
 - EvBotNotVertical: Triggered when the bot is not vertical while in PoweredAscent. The bot will switch back into UnpoweredAscent.
 - EvRCOverrideFailed: Triggered when a feasible RC mission is received and the bot is in a failed state. This is an override so the operator can attempt to drive their bot to safety.
@@ -123,7 +123,7 @@ Events are what drives the changes in states. Some events are triggered by the o
 These are not shown on the diagram but used for providing data to the state machine.
 
 - EvLoop: Triggered on the regular (1 Hz) loop() timer for the Goby Application.
-- EvBotDepth: Triggered whenever new depth information is received from the bot sensors (event contains the depth value as a parameter).
+- EvVehicleDepth: Triggered whenever new depth information is received from the bot sensors (event contains the depth value as a parameter).
 - EvMeasurement: Sensor data measurement. 
 - EvVehicleGPS: Triggered when we receive GPS information, currently HDOP and PDOP information.
 - EvVehiclePitch: Triggered when we receive IMU information, currently pitch information.

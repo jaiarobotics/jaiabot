@@ -24,7 +24,7 @@ There is also a `run.sh` script in the `src/web/jdv` directory, which will build
 
 ### Webpack
 
-`JCC` and `JDV` are built using the `webpack` package. Configuration for `webpack` can be found in the `src/web/webpack.config.js` file. Using this file, `webpack` will build both `JCC` and `JED` using either the `development` or `production` mode.
+`JCC` and `JED` are built using the `webpack` package. Configuration for `webpack` can be found in the `src/web/webpack.config.js` file. Using this file, `webpack` will build both `JCC` and `JED` using either the `development` or `production` mode.
 
 A build can be done directly via command-line. For example:
 
@@ -34,7 +34,7 @@ jaiabot/src/web$ webpack --mode development --env OUTPUT_DIR=${HOME}/temp
 
 The `webpack.config.js` file contains five different webpack configuration objects:
 
--   `baseConfig`, which contains the configuration options to be used for all apps, in both build modes (`development` and `release`)
+-   `baseConfig`, which contains the configuration options to be used for all apps, in both build modes (`development` and `production`)
 -   `developmentConfig`, which contains development options
 -   `productionConfig`, which contains production options
 -   `jedConfig`, which contains build options specific to JED

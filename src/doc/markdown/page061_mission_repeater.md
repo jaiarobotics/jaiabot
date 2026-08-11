@@ -6,9 +6,9 @@ It can easily be extended to script other publications by extending the `oneof p
 
 ## Mission design
 
-The `jaiabot_mission_repeater` is designed to be run in addition to all the normal applications. It will put the `jaiabot_mission_manager` in the Paused::Manual state when executing the script. Any commands sent from the hub (for example, STOP) that change the mission will stop the script execution, ensuring the vehicle is always within operator control.
+The `jaiabot_mission_repeater` is designed to be run in addition to all the normal applications. It will put the `jaiabot_mission_manager` in the **Pause::Manual** state when executing the script. Any commands sent from the hub (for example, STOP) that change the mission will stop the script execution, ensuring the vehicle is always within operator control.
 
-The `jaiabot_mission_manager` waits for the mission to reach **Recovery::Transit** and then immediately sends a PAUSE command to `jaiabot_mission_manager`. Once the **Pause::Manual** state is reached, the `jaiabot_mission_repeater` runs through the publications defined in the configuration under `script`. At the end of these steps, it resumes the mission (that is, **Recovery**).
+The `jaiabot_mission_repeater` waits for the mission to reach **Recovery::Transit** and then immediately sends a PAUSE command to `jaiabot_mission_manager`. Once the **Pause::Manual** state is reached, the `jaiabot_mission_repeater` runs through the publications defined in the configuration under `script`. At the end of these steps, it resumes the mission (that is, **Recovery**).
 
 This means any mission can be used to run with `jaiabot_mission_repeater` before the script, and at the end the vehicle recovers normally.
 
@@ -24,7 +24,7 @@ screen
 
 ### Publications
 
-The `jaiabot_mission_repeater` publishes the values in the script (`oneof publication`) as well as the start and end of each script step to `groups::script_step_start` and `groups::script_step_end`, respectively. This is useful for log analysis so you can know when each step of the script begins and ends.
+The `jaiabot_mission_repeater` publishes the values in the script (`oneof publication`) as well as the start and end of each script step to `groups::script_step_begin` and `groups::script_step_end`, respectively. This is useful for log analysis so you can know when each step of the script begins and ends.
 
 ## Configuration
 
