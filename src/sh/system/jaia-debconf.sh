@@ -217,25 +217,33 @@ jaia_debconf_get() {
     echo "${value}"
 }
 
-# jaia_debconf_get_all [--all]
-# Every question's current value, laid out like 'list'. This is what 'get' does
-# when given no question: 'list' says what can be set, this says what is set.
-#
-# Unlike 'selections' - which emits debconf-set-selections format for machines
-# to re-import - this is for reading, and it includes questions that have never
-# been answered, marked "(unset)".
-jaia_debconf_get_all() {
-    local include_internal=false questions replies
+# jaia_debconf_json
+# Turns the question<TAB>set|unset<TAB>value rows on stdin into a JSON object,
+# with unanswered questions as null so that they stay distinct from a question
+# deliberately set to the empty string.
+jaia_debconf_json() {
+    awk -F'\t' '
+        function escape(s) {
+            gsub(/\\/, "\\\\", s)
+            gsub(/"/, "\\\"", s)
+            gsub(/\t/, "\\t", s)
+            gsub(/\r/, "\\r", s)
+            gsub(/\n/, "\\n", s)
+            return s
+        }
+        BEGIN { printf "{" }
+        {
+            printf "%s\n    \"%s\": %s", (NR > 1 ? "," : ""), escape($1),
+                   ($2 == "unset" ? "null" : "\"" escape($3) "\"")
+        }
+        END { printf "%s}\n", (NR ? "\n" : "") }
+    '
+}
 
-    if [ "${1:-}" = "--all" ]; then
-        include_internal=true
-        shift
-    fi
-
-    if [ $# -gt 0 ]; then
-        echo "ERROR: usage: jaia_debconf_get_all [--all]" >&2
-        return 1
-    fi
+# jaia_debconf_pairs [include_internal]
+# question<TAB>set|unset<TAB>value for every question, one per line.
+jaia_debconf_pairs() {
+    local include_internal="${1:-false}" questions replies
 
     questions=$(jaia_debconf_questions "${include_internal}") || return 1
     if [ -z "${questions}" ]; then
@@ -260,11 +268,44 @@ jaia_debconf_get_all() {
     paste <(echo "${questions}") <(echo "${replies}") \
         | awk -F'\t' '
             {
-                value = ($2 ~ /^0( |$)/) ? substr($2, 3) : "(unset)"
-                printf "%s\t%s\n", $1, value
+                answered = ($2 ~ /^0( |$)/)
+                printf "%s\t%s\t%s\n", $1, (answered ? "set" : "unset"),
+                       (answered ? substr($2, 3) : "")
             }
-        ' \
-        | jaia_debconf_table QUESTION VALUE
+        '
+}
+
+# jaia_debconf_get_all [--all] [--json]
+# Every question's current value, laid out like 'list'. This is what 'get' does
+# when given no question: 'list' says what can be set, this says what is set.
+#
+# Unlike 'selections' - which emits debconf-set-selections format for machines
+# to re-import - this is for reading, and it includes questions that have never
+# been answered, marked "(unset)".
+jaia_debconf_get_all() {
+    local include_internal=false json=false pairs
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --all)  include_internal=true ;;
+            --json) json=true ;;
+            *)
+                echo "ERROR: usage: jaia_debconf_get_all [--all] [--json]" >&2
+                return 1
+                ;;
+        esac
+        shift
+    done
+
+    pairs=$(jaia_debconf_pairs "${include_internal}") || return 1
+
+    if [ "${json}" = "true" ]; then
+        echo "${pairs}" | jaia_debconf_json
+    else
+        echo "${pairs}" \
+            | awk -F'\t' '{ printf "%s\t%s\n", $1, ($2 == "unset" ? "(unset)" : $3) }' \
+            | jaia_debconf_table QUESTION VALUE
+    fi
 }
 
 # jaia_debconf_set <question> <value>
@@ -364,7 +405,7 @@ jaia_debconf_selections() {
 
 jaia_debconf_usage() {
     cat >&2 <<EOF
-Usage: $(basename "$0") get [<question> [default]] [--all]
+Usage: $(basename "$0") get [<question> [default]] [--all] [--json]
        $(basename "$0") set <question> <value> [--no-reconfigure]
        $(basename "$0") list [--all]
        $(basename "$0") selections
@@ -372,6 +413,9 @@ Usage: $(basename "$0") get [<question> [default]] [--all]
 Questions are given without the '${JAIA_DEBCONF_PACKAGE}/' prefix, e.g. 'fleet_id'.
 'list' shows which ones exist, along with their type, default and choices;
 'get' with no question shows what they are all currently set to.
+
+'get --json' writes a JSON object of question to value for machines to consume,
+with unanswered questions as null.
 
 'set' runs 'dpkg-reconfigure ${JAIA_DEBCONF_PACKAGE}' afterwards so that the
 systemd units are regenerated from the new value; pass --no-reconfigure to
@@ -386,11 +430,24 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
 
     case "${subcommand}" in
         get)
+            json=false
+            args=()
+            for arg in "$@"; do
+                case "${arg}" in
+                    --json) json=true ;;
+                    *)      args+=("${arg}") ;;
+                esac
+            done
+
             # no question means "show me everything"
-            if [ $# -eq 0 ] || [ "${1}" = "--all" ]; then
-                jaia_debconf_get_all "$@"
+            if [ ${#args[@]} -eq 0 ] || [ "${args[0]}" = "--all" ]; then
+                [ "${json}" = "true" ] && args+=("--json")
+                jaia_debconf_get_all "${args[@]}"
+            elif [ "${json}" = "true" ]; then
+                value=$(jaia_debconf_get "${args[@]}") || exit 1
+                printf '%s\tset\t%s\n' "${args[0]}" "${value}" | jaia_debconf_json
             else
-                jaia_debconf_get "$@"
+                jaia_debconf_get "${args[@]}"
             fi
             ;;
         set)
