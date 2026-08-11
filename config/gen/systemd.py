@@ -962,13 +962,14 @@ for app in jaiabot_apps:
         if app['template'] == 'goby-app.service.in':
             all_goby_apps.append(app['exe'])
         
-# Units are enabled in a separate pass below, after every unit file has been
+# Units are enabled in a single pass at the end, after every unit file has been
 # written. Many carry WantedBy=jaiabot_health.service (or _gobyd/_moosdb), and
 # those targets are themselves entries in this same list - jaiabot_apps is not
 # in dependency order, so enabling as we go would run 'systemctl enable' on a
 # unit whose WantedBy target doesn't exist on disk yet, which systemd warns
 # about ("... does not exist, proceeding anyway").
-apps_to_enable = []
+services_to_enable = []
+services_to_disable = []
 
 for app in jaiabot_apps:
     if is_app_run(app):
@@ -1011,20 +1012,14 @@ for app in jaiabot_apps:
         outfile = open(outfilename, 'w')
         outfile.write(out)
         outfile.close()
-        if enable or disable:
-            apps_to_enable.append((service, enable, disable))
+        if enable:
+            services_to_enable.append(service)
+        if disable:
+            services_to_disable.append(service)
         if app['template'] == 'jcc.conf.in':
             print('Enabling ' + service)
             subprocess.run('a2ensite ' + service, check=True, shell=True)
             subprocess.run('if systemctl is-active --quiet apache2; then systemctl reload apache2; else systemctl start apache2; fi', check=True, shell=True)
-
-for service, enable, disable in apps_to_enable:
-    if enable:
-        print('Enabling ' + service)
-        subprocess.run('systemctl enable ' + service, check=True, shell=True)
-    if disable:
-        print('Disabling ' + service)
-        subprocess.run('systemctl disable ' + service, check=True, shell=True)
 
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
 def is_firm_run(firm):
@@ -1052,9 +1047,6 @@ def is_firm_run(firm):
         return False
         
     return True
-
-# same write-then-enable split as the apps loop above, and for the same reason
-firmware_to_enable = []
 
 for firmware in jaia_firmware:
     if is_firm_run(firmware):
@@ -1087,16 +1079,20 @@ for firmware in jaia_firmware:
 
         # run_at_boot: False means never enable or disable this service
         if (not 'run_at_boot' in macros or macros['run_at_boot'] != False):
-            if args.enable or args.disable:
-                firmware_to_enable.append((service, args.enable, args.disable))
+            if args.enable:
+                services_to_enable.append(service)
+            if args.disable:
+                services_to_disable.append(service)
 
-for service, enable, disable in firmware_to_enable:
-    if enable:
-        print('Enabling ' + service)
-        subprocess.run('systemctl enable ' + service, check=True, shell=True)
-    if disable:
-        print('Disabling ' + service)
-        subprocess.run('systemctl disable ' + service, check=True, shell=True)
+# One systemctl invocation for the whole set: each one is a fork/exec plus a
+# round trip to the manager, which dominates the cost of writing the units.
+if services_to_enable:
+    print('Enabling ' + ' '.join(services_to_enable))
+    subprocess.run(['systemctl', 'enable'] + services_to_enable, check=True)
+
+if services_to_disable:
+    print('Disabling ' + ' '.join(services_to_disable))
+    subprocess.run(['systemctl', 'disable'] + services_to_disable, check=True)
 
 if args.enable or args.disable:
     subprocess.run('systemctl daemon-reload', check=True, shell=True)
