@@ -37,9 +37,9 @@ Please visit our website to learn more: [Jaia Robotics](https://www.jaia.tech)
 | **Ubuntu**    | **26.04 (resolute)**        |
 | **Python**    | **3.14**          |
 | **C++**       | **C++23**                   |
-| **MOOS-IvP**  | **24.8**                    |
-| **Goby**      | **3.2**                     |
-| **Wt**        | **4.11**                    |
+| **MOOS-IvP**  | **24.8.1**                    |
+| **Goby**      | **3.5.1**                     |
+| **Wt**        | **4.13.2**                    |
 | **Node.js**   | **24.14**                   |
 | **Languages**   | **C++, Python, TypeScript, Shell**                   |
 
