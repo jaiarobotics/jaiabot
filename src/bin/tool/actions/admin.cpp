@@ -1,8 +1,7 @@
 #include "goby/middleware/application/tool.h"
 
 #include "admin.h"
-#include "admin/debconf_get.h"
-#include "admin/debconf_set.h"
+#include "admin/debconf.h"
 #include "admin/fleet.h"
 #include "admin/ssh.h"
 #include "common.h"
@@ -36,15 +35,9 @@ jaiabot::apps::AdminTool::AdminTool()
                                 action_for_help);
                             break;
 
-                        case jaiabot::config::AdminTool::debconf_get:
-                            tool_helper.help<jaiabot::apps::admin::DebconfGetTool,
-                                             jaiabot::apps::admin::DebconfGetToolConfigurator>(
-                                action_for_help);
-                            break;
-
-                        case jaiabot::config::AdminTool::debconf_set:
-                            tool_helper.help<jaiabot::apps::admin::DebconfSetTool,
-                                             jaiabot::apps::admin::DebconfSetToolConfigurator>(
+                        case jaiabot::config::AdminTool::debconf:
+                            tool_helper.help<jaiabot::apps::admin::DebconfTool,
+                                             jaiabot::apps::admin::DebconfToolConfigurator>(
                                 action_for_help);
                             break;
 
@@ -68,15 +61,9 @@ jaiabot::apps::AdminTool::AdminTool()
 
                 break;
 
-            case jaiabot::config::AdminTool::debconf_get:
-                tool_helper.run_subtool<jaiabot::apps::admin::DebconfGetTool,
-                                        jaiabot::apps::admin::DebconfGetToolConfigurator>();
-
-                break;
-
-            case jaiabot::config::AdminTool::debconf_set:
-                tool_helper.run_subtool<jaiabot::apps::admin::DebconfSetTool,
-                                        jaiabot::apps::admin::DebconfSetToolConfigurator>();
+            case jaiabot::config::AdminTool::debconf:
+                tool_helper.run_subtool<jaiabot::apps::admin::DebconfTool,
+                                        jaiabot::apps::admin::DebconfToolConfigurator>();
 
                 break;
 

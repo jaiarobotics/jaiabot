@@ -3,14 +3,14 @@
 
 #include <unistd.h>
 
-#include "debconf_get.h"
+#include "get.h"
 
 #include <goby/middleware/application/tool.h>
 #include <goby/util/debug_logger.h>
 
 using goby::glog;
 
-jaiabot::apps::admin::DebconfGetTool::DebconfGetTool()
+jaiabot::apps::admin::debconf::GetTool::GetTool()
 {
     // jaia-debconf.sh is the single reader/writer of the debconf database; this
     // action is a front end for it so that 'jaia admin' is a discoverable entry

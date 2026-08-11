@@ -137,7 +137,7 @@ Each application has a service definition, and they are all set to `BindTo` the 
 
 When using the `jaiabot-embedded` Debian package, the systemd services are automatically installed to `/etc/systemd/system` and enabled. No further action is required in this case.
 
-All bot/hub configuration is read from the `jaiabot-embedded` debconf database, so there are no configuration flags to pass. To change any of it, run `sudo dpkg-reconfigure jaiabot-embedded`.
+All bot/hub configuration is read from the `jaiabot-embedded` debconf database, so there are no configuration flags to pass. To change any of it, run `sudo dpkg-reconfigure jaiabot-embedded`, or use [`jaia admin debconf`](page005_jaia_tool.md) to `list`, `get` and `set` individual values without stepping through the menus.
 
 When using a built-from-source version of jaiabot, ensure that the local bin directory is on your `$PATH` (e.g., check that `which jaiabot_mission_manager` returns the correct binary), then run:
 

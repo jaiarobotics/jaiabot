@@ -5,6 +5,7 @@
 #
 #     jaia-debconf.sh get fleet_id
 #     jaia-debconf.sh set fleet_id 3
+#     jaia-debconf.sh list
 #     jaia-debconf.sh selections
 #     source /usr/bin/jaia-debconf.sh && jaia_debconf_get fleet_id
 #
@@ -45,6 +46,102 @@ jaia_debconf_template_field() {
         /^Template:/ { current = $2 }
         current == q && $1 == f { sub(/^[^:]*: ?/, ""); print; exit }
     ' "${templates}"
+}
+
+# awk source, shared by the two places that show a Choices list to a human.
+# bot_id and fleet_id are contiguous integer runs of 151 and 251 elements; in
+# full they bury whatever else is on screen and say nothing a range does not.
+JAIA_DEBCONF_AWK_COLLAPSE='
+    function collapse(s,   n, a, i) {
+        n = split(s, a, ",")
+        if (n < 4)
+            return s
+        for (i = 1; i <= n; i++) {
+            gsub(/^ +| +$/, "", a[i])
+            if (a[i] !~ /^-?[0-9]+$/)
+                return s
+        }
+        for (i = 2; i <= n; i++)
+            if (a[i] + 0 != a[i - 1] + 1)
+                return s
+        return a[1] "-" a[n]
+    }
+'
+
+# jaia_debconf_collapse_choices <choices>
+jaia_debconf_collapse_choices() {
+    echo "$1" | awk "${JAIA_DEBCONF_AWK_COLLAPSE}"' { print collapse($0) }'
+}
+
+# jaia_debconf_list [--all]
+# Tabulates every question the package defines, with its type, default and
+# permitted choices. This is the set of names 'get' and 'set' accept.
+#
+# Unlike the other subcommands this reads only the templates file, never the
+# debconf database, so it does not require root and answers "what can I set?"
+# rather than "what is it set to?" (that is 'selections').
+jaia_debconf_list() {
+    local include_internal=false templates
+
+    if [ "${1:-}" = "--all" ]; then
+        include_internal=true
+        shift
+    fi
+
+    if [ $# -gt 0 ]; then
+        echo "ERROR: usage: jaia_debconf_list [--all]" >&2
+        return 1
+    fi
+
+    templates=$(jaia_debconf_templates_file) || return 1
+
+    # First pass emits one tab-separated record per question, second pass pads
+    # the columns to the widest entry. sort in between so the table reads as a
+    # lookup rather than in templates-file order.
+    awk -v pkg="${JAIA_DEBCONF_PACKAGE}" -v include_internal="${include_internal}" \
+        "${JAIA_DEBCONF_AWK_COLLAPSE}"'
+        # value of "Field: value", empty when the field has none
+        function value(   v) {
+            v = substr($0, index($0, ":") + 1)
+            gsub(/^ +| +$/, "", v)
+            return v
+        }
+        function flush() {
+            if (question != "")
+                printf "%s\t%s\t%s\t%s\n", question, type, dflt, collapse(choices)
+            question = ""; type = ""; dflt = ""; choices = ""
+        }
+        /^Template:/ {
+            flush()
+            q = $2
+            sub("^" pkg "/", "", q)
+            # debconf_state_* track where the interactive menu is, they are not
+            # configuration, so hide them unless asked for
+            if (include_internal == "true" || q !~ /^debconf_state_/)
+                question = q
+            next
+        }
+        /^Type:/    { type = value(); next }
+        /^Default:/ { dflt = value(); next }
+        /^Choices:/ { choices = value(); next }
+        END { flush() }
+    ' "${templates}" \
+        | sort \
+        | awk -F'\t' '
+            BEGIN { qw = length("QUESTION"); tw = length("TYPE"); dw = length("DEFAULT") }
+            {
+                q[NR] = $1; t[NR] = $2; d[NR] = $3; c[NR] = $4
+                if (length($1) > qw) qw = length($1)
+                if (length($2) > tw) tw = length($2)
+                if (length($3) > dw) dw = length($3)
+            }
+            END {
+                printf "%-*s  %-*s  %-*s  %s\n", qw, "QUESTION", tw, "TYPE", dw, "DEFAULT", "CHOICES"
+                for (i = 1; i <= NR; i++)
+                    printf "%-*s  %-*s  %-*s  %s\n", qw, q[i], tw, t[i], dw, d[i], c[i]
+            }
+        ' \
+        | sed 's/[[:space:]]*$//'
 }
 
 # jaia_debconf_get <question> [default]
@@ -106,7 +203,7 @@ jaia_debconf_set() {
                     | grep -qxF "${element}"; then
                 unset IFS
                 echo "ERROR: '${element}' is not a valid value for ${JAIA_DEBCONF_PACKAGE}/${question}." >&2
-                echo "       Choices: ${choices}" >&2
+                echo "       Choices: $(jaia_debconf_collapse_choices "${choices}")" >&2
                 return 1
             fi
         done
@@ -175,9 +272,11 @@ jaia_debconf_usage() {
     cat >&2 <<EOF
 Usage: $(basename "$0") get <question> [default]
        $(basename "$0") set <question> <value> [--no-reconfigure]
+       $(basename "$0") list [--all]
        $(basename "$0") selections
 
 Questions are given without the '${JAIA_DEBCONF_PACKAGE}/' prefix, e.g. 'fleet_id'.
+'list' shows which ones exist, along with their type, default and choices.
 
 'set' runs 'dpkg-reconfigure ${JAIA_DEBCONF_PACKAGE}' afterwards so that the
 systemd units are regenerated from the new value; pass --no-reconfigure to
@@ -216,6 +315,9 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
             else
                 echo "Not reconfigured: run 'sudo dpkg-reconfigure ${JAIA_DEBCONF_PACKAGE}' to apply."
             fi
+            ;;
+        list)
+            jaia_debconf_list "$@"
             ;;
         selections)
             jaia_debconf_selections

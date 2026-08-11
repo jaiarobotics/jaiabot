@@ -24,9 +24,9 @@ syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/protobuf/option_extensions.proto";
 
-package jaiabot.config.admin;
+package jaiabot.config.admin.debconf;
 
-message DebconfGetTool
+message SetTool
 {
     option (goby.msg).cfg.tool = {
         is_tool: true
@@ -38,7 +38,19 @@ message DebconfGetTool
         [(goby.field) = { cfg { action: DEVELOPER } }];
 
     required string question = 2 [(goby.field) = {
-        description: "The debconf question to read, without the 'jaiabot-embedded/' prefix (e.g. fleet_id)",
+        description: "The debconf question to write, without the 'jaiabot-embedded/' prefix (e.g. fleet_id)",
         cfg { position { enable: true } }
     }];
+
+    required string value = 3 [(goby.field) = {
+        description: "The new value. Validated against the question's Choices, if it has any.",
+        cfg { position { enable: true } }
+    }];
+
+    optional bool reconfigure = 4 [
+        default = true,
+        (goby.field) = {
+            description: "Run 'dpkg-reconfigure jaiabot-embedded' afterwards so the systemd units are regenerated from the new value. Pass --reconfigure false to change the database without applying it, e.g. when setting several values."
+        }
+    ];
 }

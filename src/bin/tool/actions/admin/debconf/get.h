@@ -25,7 +25,7 @@
 
 #include "goby/middleware/application/interface.h"
 
-#include "actions/admin/debconf_get.pb.h"
+#include "actions/admin/debconf/get.pb.h"
 
 namespace jaiabot
 {
@@ -33,24 +33,26 @@ namespace apps
 {
 namespace admin
 {
-class DebconfGetToolConfigurator
-    : public goby::middleware::ProtobufConfigurator<jaiabot::config::admin::DebconfGetTool>
+namespace debconf
+{
+class GetToolConfigurator
+    : public goby::middleware::ProtobufConfigurator<jaiabot::config::admin::debconf::GetTool>
 {
   public:
-    DebconfGetToolConfigurator(int argc, char* argv[])
-        : goby::middleware::ProtobufConfigurator<jaiabot::config::admin::DebconfGetTool>(argc,
+    GetToolConfigurator(int argc, char* argv[])
+        : goby::middleware::ProtobufConfigurator<jaiabot::config::admin::debconf::GetTool>(argc,
                                                                                           argv)
     {
         auto& cfg = mutable_cfg();
     }
 };
 
-class DebconfGetTool
-    : public goby::middleware::Application<jaiabot::config::admin::DebconfGetTool>
+class GetTool
+    : public goby::middleware::Application<jaiabot::config::admin::debconf::GetTool>
 {
   public:
-    DebconfGetTool();
-    ~DebconfGetTool() override {}
+    GetTool();
+    ~GetTool() override {}
 
   private:
     void run() override { assert(false); }
@@ -58,6 +60,7 @@ class DebconfGetTool
   private:
 };
 
+} // namespace debconf
 } // namespace admin
 } // namespace apps
 } // namespace jaiabot
