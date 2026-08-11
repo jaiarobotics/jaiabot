@@ -60,12 +60,31 @@ jaia_debconf_node_id() {
 }
 
 # jaia_debconf_selections
-# Dumps this node's answers in debconf-set-selections format, suitable for
-# passing to 'systemd.py --debconf_selections'.
+# Dumps this node's answers in debconf-set-selections format. This is what
+# config/gen/systemd.py reads, and what 'systemd.py --debconf_selections'
+# consumes, so the two paths parse identical input.
 jaia_debconf_selections() {
-    debconf-get-selections \
-        | grep "^\(unknown\|${JAIA_DEBCONF_PACKAGE}\)[[:space:]]*${JAIA_DEBCONF_PACKAGE}/" \
-        | sed "s/^unknown/${JAIA_DEBCONF_PACKAGE}/"
+    local out
+
+    if ! command -v debconf-get-selections > /dev/null 2>&1; then
+        echo "ERROR: debconf-get-selections not found (install the 'debconf-utils' package)." >&2
+        return 1
+    fi
+
+    # note the pipeline swallows debconf-get-selections' exit status, so treat
+    # an empty result as the failure signal rather than trusting $?
+    out=$(debconf-get-selections 2>/dev/null \
+              | grep "[[:space:]]${JAIA_DEBCONF_PACKAGE}/" \
+              | sed "s/^unknown/${JAIA_DEBCONF_PACKAGE}/")
+
+    if [ -z "${out}" ]; then
+        echo "ERROR: no ${JAIA_DEBCONF_PACKAGE} answers found in the debconf database." >&2
+        echo "       Reading debconf requires root; if you are root, run" >&2
+        echo "       'sudo dpkg-reconfigure ${JAIA_DEBCONF_PACKAGE}' to populate it." >&2
+        return 1
+    fi
+
+    echo "${out}"
 }
 
 # When executed rather than sourced, print the requested question's value.

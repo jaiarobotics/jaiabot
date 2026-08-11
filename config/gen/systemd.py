@@ -62,6 +62,10 @@ args=parser.parse_args()
 
 DEBCONF_PACKAGE = 'jaiabot-embedded'
 
+# All knowledge of how to read debconf lives in this helper, which the shell
+# consumers use too; what lives here is the schema below.
+DEBCONF_HELPER = 'jaia-debconf.sh'
+
 # Fallback used when a question exists but was never answered. Questions listed
 # in DEBCONF_REQUIRED have no fallback: a missing answer there is a hard error,
 # so that a lost or half-written debconf database surfaces as a failed install
@@ -95,55 +99,68 @@ DEBCONF_DEFAULTS = {
 DEBCONF_REQUIRED = ['type', 'fleet_id']
 
 
-def read_debconf_selections_file(path: str) -> Dict[str, str]:
-    """Parse a debconf-set-selections format file: <owner> <question> <type> [value]"""
+def parse_debconf_selections(lines) -> Dict[str, str]:
+    """Parse debconf-set-selections format: <owner> <question> <type> [value]
+
+    Both sources below produce this format, so the live database and a
+    selections file go through exactly the same parsing - which means testing
+    with --debconf_selections also exercises the path taken during install."""
     answers = dict()
-    with open(path, 'r') as file:
-        for line in file:
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            # the value is the remainder of the line, and may itself contain spaces
-            fields = line.split(None, 3)
-            if len(fields) < 3:
-                continue
-            question = fields[1]
-            value = fields[3].strip() if len(fields) > 3 else ''
-            prefix = DEBCONF_PACKAGE + '/'
-            if question.startswith(prefix):
-                answers[question[len(prefix):]] = value
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        # the value is the remainder of the line, and may itself contain spaces
+        fields = line.split(None, 3)
+        if len(fields) < 3:
+            continue
+        question = fields[1]
+        value = fields[3].strip() if len(fields) > 3 else ''
+        # match on the question rather than the owner column, which reads
+        # "unknown" when the owning package isn't registered
+        prefix = DEBCONF_PACKAGE + '/'
+        if question.startswith(prefix):
+            answers[question[len(prefix):]] = value
     return answers
 
 
-def read_debconf_database() -> Dict[str, str]:
-    """Read the live debconf database via the debconf-communicate protocol."""
-    questions = list(DEBCONF_DEFAULTS.keys())
-    commands = ''.join('GET ' + DEBCONF_PACKAGE + '/' + q + '\n' for q in questions)
+def find_debconf_helper() -> str:
+    """Locate jaia-debconf.sh: installed on PATH, or in an uninstalled source tree."""
+    helper = shutil.which(DEBCONF_HELPER)
+    if helper:
+        return helper
+
+    local = os.path.realpath(script_dir + '/../../scripts/system/' + DEBCONF_HELPER)
+    if os.path.exists(local):
+        return local
+
+    sys.exit('ERROR: ' + DEBCONF_HELPER + ' not found on $PATH or at ' + local + '. Install the '
+             'jaiabot-apps package, or pass --debconf_selections to read configuration from a '
+             'file instead.')
+
+
+def read_debconf_database() -> list:
+    """Dump the live debconf database, in selections format, via jaia-debconf.sh.
+
+    The helper owns all knowledge of how to talk to debconf; this script owns
+    the schema (DEBCONF_DEFAULTS). Note that the caller must not be holding an
+    open debconf conversation - see the comment above."""
+    helper = find_debconf_helper()
     try:
-        result = subprocess.run(['debconf-communicate', DEBCONF_PACKAGE],
-                                input=commands, capture_output=True, text=True, check=True)
-    except FileNotFoundError:
-        sys.exit('ERROR: debconf-communicate not found. Install the "debconf" package, or '
-                 'pass --debconf_selections to read configuration from a file instead.')
+        result = subprocess.run([helper, '--selections'],
+                                capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as e:
-        sys.exit('ERROR: could not read the debconf database for ' + DEBCONF_PACKAGE + ': ' +
-                 (e.stderr or '').strip())
-
-    answers = dict()
-    # debconf-communicate replies with exactly one line per command, in order:
-    # "0 <value>" on success, or a non-zero code when the question is unknown.
-    for question, reply in zip(questions, result.stdout.splitlines()):
-        code, _, value = reply.partition(' ')
-        if code == '0':
-            answers[question] = value.strip()
-    return answers
+        sys.exit('ERROR: could not read the debconf database for ' + DEBCONF_PACKAGE + ':\n' +
+                 (e.stderr or '').rstrip())
+    return result.stdout.splitlines()
 
 
 if args.debconf_selections:
-    debconf = read_debconf_selections_file(args.debconf_selections)
+    with open(args.debconf_selections, 'r') as file:
+        debconf = parse_debconf_selections(file)
     debconf_source = args.debconf_selections
 else:
-    debconf = read_debconf_database()
+    debconf = parse_debconf_selections(read_debconf_database())
     debconf_source = 'the debconf database'
 
 print('Reading ' + DEBCONF_PACKAGE + ' configuration from ' + debconf_source)
