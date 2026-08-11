@@ -57,6 +57,12 @@ sudo cp ${HOME}/jaiabot/src/sh/system/75-jaiabot-status /etc/update-motd.d/
 # use symlink so this gets updated if the user re-installs the packaged version
 sudo ln -s -f /etc/update-motd.d/75-jaiabot-status /usr/local/bin/jaiabot-status
 
+# Read arduino_type from the selections file (same defaulting as systemd.py: default is "none")
+if [ -f "${selections}" ]; then
+    jaia_arduino_type=$(awk '$2 == "jaiabot-embedded/arduino_type" { print $4 }' "${selections}")
+fi
+jaia_arduino_type=${jaia_arduino_type:-none}
+
 echo "Arduino Type: $jaia_arduino_type"
 
 if [ "$jaia_arduino_type" != "none" ]; then
