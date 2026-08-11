@@ -29,7 +29,7 @@ The output is a noise-reduced, lag-corrected SVP derived from synchronized CTD m
     ```
 3. Run the svp script
     ```
-    python run_svp_pipeline.py \
+    python run-svp-pipeline.py \
         --h5 dive_data.h5 \
         --start "2025-07-31 16:22:45" \
         --end   "2025-07-31 16:23:31" \

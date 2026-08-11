@@ -3,14 +3,14 @@
 set -e
 
 script_dir=$(dirname $0)
-set -a; source ${script_dir}/common-versions.env; set +a 
+set -a; source ${script_dir}/../common-versions.env; set +a 
 
-build_dir=${script_dir}/../build
+build_dir=${script_dir}/../../build
 
 distro=$(grep "VERSION_CODENAME" /etc/os-release | cut -d'=' -f2)
 release_branch=${jaia_version_release_branch}
 
-full_build_dir=${script_dir}/../build/${distro}-${release_branch}-amd64-vbox
+full_build_dir=${script_dir}/../../build/${distro}-${release_branch}-arm64
 mkdir -p ${full_build_dir}
 cd ${full_build_dir}
 
@@ -47,6 +47,6 @@ npm -v
 
 echo "Building with ${JAIA_BUILD_NPROC} parallel processes..."
 
-(set -x; cmake ../..)
+(set -x; cmake ../.. -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_C_FLAGS="-target aarch64-linux-gnu" -DCMAKE_CXX_FLAGS="-target aarch64-linux-gnu")
 (set -x; time make -j${JAIA_BUILD_NPROC})
 (set -x; chmod -R ugo+r *)

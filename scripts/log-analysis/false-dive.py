@@ -8,8 +8,8 @@ import pytz
 import datetime
 
 """Directions: 
-    Navigate to the directory containing this file, run python3 false_dive.py followed by the file path
-    to your .h5 files in the terminal (e.g. 'python3 false_dive.py ~/path/to/.h5_directory/').
+    Navigate to the directory containing this file, run python3 false-dive.py followed by the file path
+    to your .h5 files in the terminal (e.g. 'python3 false-dive.py ~/path/to/.h5_directory/').
 """
 
 MICROSECONDS_FACTOR = 1_000_000

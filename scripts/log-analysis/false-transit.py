@@ -10,11 +10,11 @@ from math import sin, cos, atan, sqrt, radians, asin
 
 """Directions: 
 
-    Navigate to the directory containing this file, run python3 false_transit.py followed by the file path
-    to your .h5 files in the terminal (e.g. 'python3 false_dive.py ~/path/to/.h5_directory/').
+    Navigate to the directory containing this file, run python3 false-transit.py followed by the file path
+    to your .h5 files in the terminal (e.g. 'python3 false-dive.py ~/path/to/.h5_directory/').
 
     To change analysis parameters, use command-line arguments as follows:
-        'python3 false_dive.py ~/path/to/.h5_directory/ pitch_threshold speed_threshold timeout_threshold'
+        'python3 false-dive.py ~/path/to/.h5_directory/ pitch_threshold speed_threshold timeout_threshold'
 
 """
 MICROSECOND_FACTOR = 1_000_000 #Used to convert utime to seconds

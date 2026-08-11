@@ -38,7 +38,7 @@ Thus, Bot 5 on VirtualFleet 3 would be `b5vf3`, or (real) Hub 1 Fleet 10 via the
 
 Additionally, if you are on a bot or hub, you can omit `fN` and the current fleet will be used. The fleet is taken from the `jaia_fleet_id` environmental variable, which login shells pick up from `/etc/profile.d/jaia.sh` (which reads `/etc/jaiabot/jaia.env`, written from the debconf database when `jaiabot-embedded` is configured). Where no profile has been sourced — for example under `cron` or `ssh <host> <command>` — the fleet is read from the hostname instead (`hub0-fleet3`).
 
-The regex for this host shorthand is `([bh])([0-9]+)([svc]?)(f([0-9]+))?|(ch)(f([0-9]+))?`.
+The host shorthand format is `b<bot_id>[svc]f<fleet_id>`, `h<hub_id>[svc]f<fleet_id>` or `chf<fleet_id>` (for CloudHub); the `f<fleet_id>` portion may be omitted as described above. Parsing is implemented in `jaiabot::parse_host_code` (`src/lib/utils/ip.h`).
 
 ### Special cases
 
@@ -103,11 +103,11 @@ As always, you can use `jaia ssh` to execute remotely, e.g. to restart all servi
 jaia ssh b1f10 sudo jaia ctl restart
 ```
 
+## doc
+
+`jaia doc` provides command line access to this documentation (Markdown). Run with no arguments to list all the available pages, or provide a page name to display it in the terminal.
+
 ## admin
-
-These subactions are used to administer a fleet of JaiaBots. The `ssh` subaction manages SSH keys for a given host - see the [SSH Access](page013_ssh_keys.md) page for more details - and `fleet` handles fleet-wide configuration.
-
-### debconf
 
 The `jaiabot-embedded` debconf database is the single source of truth for a bot or hub's configuration, and the generated systemd units are derived from it. This subaction reads and writes it without having to go through the interactive `dpkg-reconfigure` menus. Questions are named without the `jaiabot-embedded/` prefix.
 

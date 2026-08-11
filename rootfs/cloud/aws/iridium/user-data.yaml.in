@@ -31,7 +31,7 @@ ${INDENTED_ROOT_PUBKEYS}
 
       [Service]
       Type=simple
-      ExecStart=/usr/bin/jaia_iridium_tunnel.sh %i
+      ExecStart=/usr/bin/jaia-iridium-tunnel.sh %i
       Restart=always
       RestartSec=5
 

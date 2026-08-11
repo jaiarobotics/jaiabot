@@ -32,18 +32,24 @@ In addition, we expect to support clients using `ROS` in the future.
 
 #### In jaiabot project
 
-- `jaiabot_as-ezo-ec_py`: Python driver for Atlas Scientific conductivity sensor.
+- `jaiabot_as-ezo-ec.py`: Python driver for Atlas Scientific conductivity sensor.
 - `jaiabot_udp_gateway`: Middleman between our python drivers and the Goby system. Listens on UDP to Python driver and republishes as a Goby3 message.
 - `jaiabot_driver_arduino`: This is the driver for the Arduino which controls the elevators, rudder, motor, diagnostic LEDs, and power monitoring.
 - `jaiabot_engineering`: Handles commands from the Engineering Interface web page to set and test low level functionality.
 - `jaiabot_fusion`: Assembles the `goby::middleware::frontseat::protobuf::NodeStatus` message used by the `goby_moos_gateway` from the `goby_gps` output, pressure sensor, and other sources, as needed.
 - `jaiabot_health`: Overall system health using data from `goby_coroner` and eventually other sources.
 - `jaiabot_hub_manager`: Interface between the bots and the web sites. Sends and receives inter-vehicle messages on the radio and republishes / subscribes to their Goby3 counterparts on inter-process.
-- `jaiabot_imu_py`: Python driver for Adafruit bno055 IMU.
+- `jaiabot_imu.py`: Python driver for the Adafruit BNO055 and BNO085 IMUs.
 - `jaiabot_metadata`: Logs information about the system including current jaiabot build number, current Goby3 build number, computing platform, etc.
 - `jaiabot_mission_manager`: Keeps a state machine of the overall mission state and switches from pHelmIvP control to profile mode as required.
 - `jaiabot_pid_control`: Determines values to output to motor and control surfaces via pid control loops
-- `jaiabot_pressure_sensor_py`: Python driver for Blue Robotics Bar02 and Bar30
+- `jaiabot_pressure_sensor.py`: Python driver for Blue Robotics Bar02 and Bar30.
+- `jaiabot_sensors`: Driver for sensors attached to the sensor MCU (see the [Sensors](page014_sensors.md) page).
+- `jaiabot_comms_manager`: Manages the intervehicle comms links (XBee, WiFi, Iridium).
+- `jaiabot_ctd_manager`: Manages CTD (conductivity/temperature/depth) data products.
+- `jaiabot_simulator`: Simulates the vehicle dynamics and sensors (see the [Simulator](page011_simulator.md) page).
+- `jaiabot_failure_reporter`: Reports systemd service failures.
+- `jaiabot_mission_repeater`: Repeats a mission a configured number of times (see the [Mission Repeater](page061_mission_repeater.md) page).
 - `jaiabot_web_portal`: Interface between Goby3 and the Flask web server on the hub.
 
 #### Potential future jaiabot project inclusion
@@ -54,7 +60,8 @@ In addition, we expect to support clients using `ROS` in the future.
 
 #### In the MOOS-IvP project
 
-- `moosdb`: The main communication mechanism for all MOOS apps.
+- `MOOSDB`: The main communication mechanism for all MOOS apps.
 - `pHelmIvP`: Pluggable behavior based autonomy.
 - `pNodeReporter`: Aggregates NAV_* variables into NODE_REPORT variable for pHelmIvP.
-- `uprocesswatch`: Monitors the health of MOOS processes.
+- `uProcessWatch`: Monitors the health of MOOS processes.
+- `uSimMarine`: Simple marine vehicle simulator used in simulation mode.

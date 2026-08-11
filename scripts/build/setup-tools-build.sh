@@ -12,7 +12,7 @@ else
 fi
 
 script_dir=$(dirname $BASH_SOURCE)
-set -a; source ${script_dir}/common-versions.env; set +a 
+set -a; source ${script_dir}/../common-versions.env; set +a 
 
 # Prereqs
 $SUDO apt-get -y update
@@ -71,11 +71,11 @@ npm install -g npm@${jaia_version_npm}
 npm install -g --no-audit webpack@${jaia_version_webpack} webpack-cli@${jaia_version_webpack_cli}
 
 # Check if pre-commit hook is installed
-if [ ! -e ${script_dir}/../.git/hooks/pre-commit ]; then
+if [ ! -e ${script_dir}/../../.git/hooks/pre-commit ]; then
    # Check if there is a broken symlink
-   if [ -L ${script_dir}/../.git/hooks/pre-commit ]; then
-      rm ${script_dir}/../.git/hooks/pre-commit
+   if [ -L ${script_dir}/../../.git/hooks/pre-commit ]; then
+      rm ${script_dir}/../../.git/hooks/pre-commit
    fi
    # Install the pre-commit hook
-   ${script_dir}/../scripts/git-hooks/clang-format-hooks/git-pre-commit-format install
+   ${script_dir}/../git-hooks/clang-format-hooks/git-pre-commit-format install
 fi

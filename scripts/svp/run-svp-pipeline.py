@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-run_svp_pipeline.py
+run-svp-pipeline.py
 
 (1) Align H5 streams → DataFrame
 (2) Optionally inverse-filter temp_celsius

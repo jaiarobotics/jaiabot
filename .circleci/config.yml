@@ -620,7 +620,7 @@ jobs:
             EOF
             
             
-            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:${DISTRO_RELEASE_CODENAME} ./scripts/bundle_update.sh ${DISTRO_RELEASE_CODENAME} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
+            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:${DISTRO_RELEASE_CODENAME} ./scripts/build/bundle-update.sh ${DISTRO_RELEASE_CODENAME} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
             cd build/bundle
             export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
 

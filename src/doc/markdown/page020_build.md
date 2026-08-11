@@ -179,13 +179,13 @@ You will also need to update `jaiabot/.circleci/config.yml` to change the known_
 
 ### packages.gobysoft.org mirror
 
-To control the version of the GobySoft packages used, we maintain a mirror of packages.gobysoft.org (for each release series: 1.y, 2.y, 3.y, etc. and two release levels: "release" and "staging") that can be manually updated as necessary using the `update_gobysoft_mirror.sh` script.
+To control the version of the GobySoft packages used, we maintain a mirror of packages.gobysoft.org (for each release series: 1.y, 2.y, 3.y, etc. and two release levels: "release" and "staging") that can be manually updated as necessary using the `update-gobysoft-mirror.sh` script.
 
 #### Create/update the mirror
 
 Two GobySoft mirrors are provided ("release" and "staging") so that new updates to GobySoft packages can be progressively tested and merged into the JaiaBot repository. 
 
-The script `update_gobysoft_mirror.sh` in `jaiabot/scripts/packages` (copied to `/opt/jaia_packages` on packages.jaia.tech) can be used to interactively manage the state of the GobySoft mirrors and their relation to the Jaiabot release distributions. 
+The script `update-gobysoft-mirror.sh` in `jaiabot/scripts/packages` (copied to `/opt/jaia_packages` on packages.jaia.tech) can be used to interactively manage the state of the GobySoft mirrors and their relation to the Jaiabot release distributions. 
 
 The script has three actions:
 
@@ -197,7 +197,7 @@ The script has three actions:
 
 The general process for pulling in a new Goby release should be:
 
-- Run `update_gobysoft_mirror.sh` and choose "Update Staging Mirror". Then select "test" and "continuous" for the repos to link to staging (do not select "beta" yet; "beta" (and "release") will continue to use the old GobySoft "release" repo).
+- Run `update-gobysoft-mirror.sh` and choose "Update Staging Mirror". Then select "test" and "continuous" for the repos to link to staging (do not select "beta" yet; "beta" (and "release") will continue to use the old GobySoft "release" repo).
 - Merge the changes in jaiabot that need the updated Goby release into 3.y which will trigger a CircleCI "continuous" build against the new Goby release in the staging repository.
 - Test on vehicles using the continuous `jaiabot.list` repos:
 
@@ -205,14 +205,14 @@ The general process for pulling in a new Goby release should be:
 deb http://packages.jaia.tech/ubuntu/continuous/3.y/ @DISTRIBUTION@/
 deb http://packages.jaia.tech/ubuntu/gobysoft/continuous/3.y/ @DISTRIBUTION@/
 ```
-- When ready to release a beta tag, just before tagging, run `update_gobysoft_mirror.sh` and choose "Choose Staging and Release Repositories", selecting "test", "continuous", and "beta" as the repos to link to staging.
+- When ready to release a beta tag, just before tagging, run `update-gobysoft-mirror.sh` and choose "Choose Staging and Release Repositories", selecting "test", "continuous", and "beta" as the repos to link to staging.
 - Tag `jaiabot` with the beta tag and push. This will trigger a CircleCI "beta" build against the staging repo.
 - Test on vehicles using the beta `jaiabot.list` repos:
 ```
 deb http://packages.jaia.tech/ubuntu/beta/3.y/ @DISTRIBUTION@/
 deb http://packages.jaia.tech/ubuntu/gobysoft/beta/3.y/ @DISTRIBUTION@/
 ```
-- When ready to make the final release, just before tagging, run `update_gobysoft_mirror.sh` and choose "Update Release Mirror from Staging". This will copy the staging mirror in to the release mirror and point all the repos to the release mirror.
+- When ready to make the final release, just before tagging, run `update-gobysoft-mirror.sh` and choose "Update Release Mirror from Staging". This will copy the staging mirror in to the release mirror and point all the repos to the release mirror.
 - Tag `jaiabot` with the release tag and push. This will trigger a CircleCI "release" build against the (newly updated) release repo.
 
 ## Alternative Debian package update options
@@ -296,11 +296,11 @@ sudo systemctl enable containerd.service
 
 To create the docker image initially (should only need to be done initially and whenever there are updates to the dependencies):
 ```bash
-cd jaiabot/.docker/focal/arm64
-docker build -t gobysoft/jaiabot-ubuntu-arm64:20.04.1 .
-# optionally, push to docker hub
-docker push gobysoft/jaiabot-ubuntu-arm64:20.04.1
+cd jaiabot
+./scripts/build/docker-build-build-system.sh
 ```
+
+This generates the Dockerfile from `.docker/${jaia_version_ubuntu_codename}/arm64/Dockerfile.in` (or `.../amd64/Dockerfile.in` when `jaiabot_machine_type=virtualbox`) and builds an image tagged `jaia_build_${distro}_${repo}_${version}` (e.g. `jaia_build_resolute_release_3.y`). The `jaiabot_repo`, `jaiabot_version` and `jaiabot_distro` environmental variables can be used to override the defaults taken from `scripts/common-versions.env`.
 
 ### Cross-compile in the container
 
@@ -309,40 +309,40 @@ Then to cross-compile using this image:
 ```bash
 cd jaiabot
 # run the docker container interactively
-docker run -v `pwd`:/home/ubuntu/jaiabot -w /home/ubuntu/jaiabot -it gobysoft/jaiabot-ubuntu-arm64:20.04.1 
+docker run -v `pwd`:/home/jaia/jaiabot -w /home/jaia/jaiabot -it jaia_build_resolute_release_3.y
 # update any dependencies since the image was created (not required if you've recently built the image)
 apt update && apt upgrade -y
 # actually build the code
-./scripts/arm64_build.sh
+./scripts/build/arm64-build.sh
 ```
 
 
 
 ### Copy the binaries to the Raspberry Pi
 
-If you rsync the contents of `jaiabot/build/bin` and `jaiabot/build/lib` to the Raspberry Pi at `/home/ubuntu/jaiabot` you should be able to run them successfully.
+If you rsync the contents of `jaiabot/build/bin` and `jaiabot/build/lib` to the Raspberry Pi at `/home/jaia/jaiabot` you should be able to run them successfully.
 
-(This assumes that `/home/ubuntu/jaiabot/build` exists on the Raspberry Pi, if not, `mkdir` it first):
+(This assumes that `/home/jaia/jaiabot/build` exists on the Raspberry Pi, if not, `mkdir` it first):
 ```
 cd jaiabot
-rsync -aP build/bin build/lib ubuntu@172.20.11.10:/home/ubuntu/jaiabot/build
+rsync -aP build/bin build/lib jaia@172.20.11.10:/home/jaia/jaiabot/build
 ```
 
 
 ### Build and copy in one step
 
-Use the all-in-one-script (`/scripts/docker_arm64_build-and-deploy.sh`):
+Use the all-in-one-script (`scripts/build/docker-arm64-build-and-deploy.sh`):
 
 ```
 ##
 ## Usage:
-## jaiabot_arduino_type=usb_old jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh 172.20.11.102
+## jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh 172.20.11.102
 ##
 ## Command line arguments is a list of Jaiabots to push deployed code to.
 ## If omitted, the code is just built, but not pushed
-## Env var "jaiabot_arduino_type" can be set to one of: usb, spi, which will upload the ardui
-no code (jaiabot_runtime) based on the connection type. If unset, the arduino code will not be flashed.
-## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appr
-opriate systemd services. If unset, the systemd services will not be installed and enabled
-## 
+## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appropriate systemd services. If unset, the systemd services will not be installed and enabled
+## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead. If unset, the target will be the standard arm64 embedded system.
+## Env var "jaiabot_repo" can be set to one of: release, continuous, beta, test, which will set the repository to use for install 'apt' dependencies in the Docker container. If unset, "release" will be used.
+## Env var "jaiabot_version" can be set to one of: 1.y, 2.y, etc. which will set the version of the 'apt' repository. If unset, the value of "$jaia_version_release_branch" will be used (the default for this current branch).
+## Env var "jaiabot_distro" can be set to one of: focal, jammy which will set the Ubuntu distribution to use. If unset, the value of "$jaia_version_ubuntu_codename" will be used.
 ```
