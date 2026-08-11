@@ -16,6 +16,9 @@ jaiabot::apps::admin::debconf::GetTool::GetTool()
     else if (app_cfg().all())
         args.push_back("--all");
 
+    if (app_cfg().format() == jaiabot::config::admin::debconf::GetTool::json)
+        args.push_back("--json");
+
     exec_jaia_debconf(args, true /* needs_root */);
     quit(0);
 }

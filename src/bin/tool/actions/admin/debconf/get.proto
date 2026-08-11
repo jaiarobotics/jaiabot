@@ -48,4 +48,18 @@ message GetTool
             description: "When reporting every value, also include the internal 'debconf_state_*' questions, which hold the interactive dpkg-reconfigure menu's position rather than any configuration."
         }
     ];
+
+    enum Format
+    {
+        text = 1;
+        json = 2;
+    }
+
+    optional Format format = 4 [
+        default = text,
+        (goby.field) = {
+            description: "Desired output format. 'json' writes an object of question to value, with unanswered questions as null, for machines (e.g. Ansible) to consume.",
+            cfg { cli_short: "f" }
+        }
+    ];
 }

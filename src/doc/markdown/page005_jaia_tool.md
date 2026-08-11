@@ -139,6 +139,20 @@ type                      bot
 
 Questions that have never been answered show as `(unset)`, which is distinct from one deliberately set to the empty string. Unlike `jaia-debconf.sh selections` - which emits `debconf-set-selections` format for another machine to re-import - this is meant for reading.
 
+`--format json` gives the same information in a form a machine can read, which is how the Ansible playbooks (`config/ansible/tasks/read-debconf.yml`) learn what a bot or hub is configured as. Unanswered questions are `null`:
+
+```
+jaia admin debconf get --format json
+{
+    "bot_id": null,
+    "comms_links": "xbee,wifi",
+    "fleet_id": "3",
+    "type": "bot"
+}
+```
+
+A single question in JSON gives an object with just that entry (`jaia admin debconf get fleet_id --format json`).
+
 `list` shows every question the package defines, along with its type, default and permitted choices - that is, what you can pass to `get` and `set`:
 
 ```
