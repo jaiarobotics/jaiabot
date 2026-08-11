@@ -32,13 +32,15 @@ Please visit our website to learn more: [Jaia Robotics](https://www.jaia.tech)
 
 ## Tech Stack
 
-| Component     |  **2.y**            |
+| Component     |  **3.y**            |
 |---------------|-----------------------------|
-| **Ubuntu**    | **24.04 (noble)**           |
-| **Python**    | **3.12.0**                  |
+| **Ubuntu**    | **26.04 (resolute)**        |
+| **Python**    | **system python3**          |
 | **C++**       | **C++23**                   |
 | **MOOS-IvP**  | **24.8**                    |
 | **Goby**      | **3.2**                     |
 | **Wt**        | **4.11**                    |
-| **Node.js**   | **22.14**                   |
+| **Node.js**   | **24.14**                   |
 | **Languages**   | **C++, Python, TypeScript, Shell**                   |
+
+The authoritative Ubuntu, Node.js and toolchain versions for this branch are defined in [`scripts/common-versions.env`](scripts/common-versions.env).

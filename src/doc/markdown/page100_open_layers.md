@@ -71,23 +71,23 @@ features.push(newFeature)
 
 5. Create a vector source with the features property set to the array of features you would like to add
 ```
-import { OlVectorSource } from 'ol/source';
+import VectorSource from "ol/source/Vector";
 
-let vectorSource = new OlVectorSource({
+let vectorSource = new VectorSource({
     features: features as any
 })
 ```
 6. Create a layer and set the source
 ```
-import { Vector as OlVectorLayer } from 'ol/layer';
+import VectorLayer from "ol/layer/Vector";
 
-const newLayer = new OlVectorLayer();
-const newLayer.setSource(vectorSource)
+const newLayer = new VectorLayer();
+newLayer.setSource(vectorSource)
 ```
 
 7. The layer needs to be registered with the layers property in the map object
 ```
-map = new OlMap({
+map = new Map({
     .
     .
     .

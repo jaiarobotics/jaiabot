@@ -52,7 +52,7 @@ Using RTL we want to ensure that our user interfaces work as intended under all 
 
 ### Unit Testing
 
-Unit testing focuses on a specific software entitiy in isolation and exercises it's functionality by varying inputs and verifying expected outputs. In general, the entitiy will be one of our container modules (`src/web/containers`), and the focus of the test may be specific to an individual element in that container. The inputs of any given test are comprised of the Props passed into the container and simulated user actions. The outputs of the test are comprised of updates to props via the use of callback functions and changes to the visual components of the container being tested. An important concept in unit testing is exercising "Edge Conditions". Edge Conditions are sets of inputs and actions that present unique situations likely to cause problems for software. Think "how many different ways does this container need to render?"
+Unit testing focuses on a specific software entitiy in isolation and exercises it's functionality by varying inputs and verifying expected outputs. In general, the entitiy will be one of our component modules (`src/web/components`), and the focus of the test may be specific to an individual element in that container. The inputs of any given test are comprised of the Props passed into the container and simulated user actions. The outputs of the test are comprised of updates to props via the use of callback functions and changes to the visual components of the container being tested. An important concept in unit testing is exercising "Edge Conditions". Edge Conditions are sets of inputs and actions that present unique situations likely to cause problems for software. Think "how many different ways does this container need to render?"
 
 ### Integration Testing
 
@@ -60,7 +60,7 @@ Integration testing is similar to unit testing but focuses on the interaction of
 
 ### Functional Testing
 
-Functional testing focuses on exercising a particular function of the application. Functional tests typically exercise multiple containers and components to achieve a certain goal condition. Think "what are the steps involved in achieving this result?"
+Functional testing focuses on exercising a particular function of the application. Functional tests typically exercise multiple components and components to achieve a certain goal condition. Think "what are the steps involved in achieving this result?"
 
 ## Test File Stucture
 
@@ -84,12 +84,12 @@ run all the tests in the directory tree.
 Notice in the example below Jest ran all the tests under `src/web` even though we were down in the `TaskSettingsPanel` folder.
 
 ```
-:~/jaiabot/src/web/containers/TaskSettingsPanel$ npm test
+:~/jaiabot/src/web/components/TaskSettingsPanel$ npm test
 
 > test
 > jest
 
- PASS  containers/RallyPointPanel/__tests__/RallyPointPanel.test.tsx (12.796 s)
+ PASS  components/RallyPointPanel/__tests__/RallyPointPanel.test.tsx (12.796 s)
   RallyPointPanel: Button Interaction Tests
     ✓ Test Go To Button using test-id (122 ms)
     ✓ Test Go To Button using label (32 ms)
@@ -108,7 +108,7 @@ Ran all test suites.
 ```
 
 If you want to run the test suites in a particular directory, you just need the name of the directory, you do not need the entire path.
-In the example below, we are in the `src/web` directory and ran all the tests under `src/web/containers/TaskSettingsPanel`. It ran 3 test suites (files) from that directory.
+In the example below, we are in the `src/web` directory and ran all the tests under `src/web/components/TaskSettingsPanel`. It ran 3 test suites (files) from that directory.
 
 ```
 :~/jaiabot/src/web$ npm test TaskSettingsPanel
@@ -116,18 +116,18 @@ In the example below, we are in the `src/web` directory and ran all the tests un
 > test
 > jest TaskSettingsPanel
 
- PASS  containers/TaskSettingsPanel/__tests__/utils/ValidateTask.test.ts
+ PASS  components/TaskSettingsPanel/__tests__/utils/ValidateTask.test.ts
   Placeholder to prevent Jest from failing due to no explicit test for a file inside __test__ dir
     ✓ Placeholder test (5 ms)
   ValidateTask Unit Tests
 
 ... (more individual tests)
 
- PASS  containers/TaskSettingsPanel/__tests__/utils/validate-task.ts
+ PASS  components/TaskSettingsPanel/__tests__/utils/validate-task.ts
   Placeholder to prevent jest from failing due to no explicit test for a file inside __test__ dir
     ✓ Placeholder test
 
- PASS  containers/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx (7.199 s)
+ PASS  components/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx (7.199 s)
   Placeholder to prevent jest from failing due to no explicit test for a file inside __test__ dir
     ✓ Placeholder test (3 ms)
   TaskSettingsPanel: Should update task type correctly for all options
@@ -149,12 +149,12 @@ Ran all test suites matching /TaskSettingsPanel/i.
 If you want to run a single Test Suite you can provide the entire path to the file containing the Test Suite.
 
 ```
-:~/jaiabot/src/web$ npm test containers/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx
+:~/jaiabot/src/web$ npm test components/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx
 
 > test
-> jest containers/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx
+> jest components/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx
 
- PASS  containers/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx (6.144 s)
+ PASS  components/TaskSettingsPanel/__tests__/TaskSettingsPanel.test.tsx (6.144 s)
   Placeholder to prevent jest from failing due to no explicit test for a file inside __test__ dir
     ✓ Placeholder test (1 ms)
   TaskSettingsPanel: Should update task type correctly for all options
@@ -172,7 +172,7 @@ Test Suites: 1 passed, 1 total
 Tests:       9 passed, 9 total
 Snapshots:   0 total
 Time:        6.601 s, estimated 7 s
-Ran all test suites matching /containers\/TaskSettingsPanel\/__tests__\/TaskSettingsPanel.test.tsx/i.
+Ran all test suites matching /components\/TaskSettingsPanel\/__tests__\/TaskSettingsPanel.test.tsx/i.
 ```
 
 ### Debugging a Test
@@ -446,7 +446,7 @@ We are still evolving in our use of mocks. Detailed informaiton is available her
 
 ### Mocking a Class
 
-`CommandControl.tsx` imports and uses `CustomLayerGroupFactory` to create map layers that require data downloaded from the Hub's server at run time. We do not need these for our tests and do not want our tests to depend on data being downloaded from an external source. We don't want to modify the source code being tested, so we create a mock to take the place of `CustomLayerGroupFactory`. General mocks like this should be placed in the `src/web/tests/__mocks__/` directory.
+Some modules create map layers that require data downloaded from the Hub's server at run time. We do not need these for our tests and do not want our tests to depend on data being downloaded from an external source. We don't want to modify the source code being tested, so we create a mock to take the place of `CustomLayerGroupFactory`. General mocks like this should be placed in the `src/web/tests/__mocks__/` directory.
 
 `src/web/tests/__mocks__/customLayers.mock.ts`
 
@@ -467,11 +467,11 @@ module.exports = {
 };
 ```
 
-Using the mock in `src/web/containers/CommandControl/__tests__/CommandControl.test.tsx`:
+A test then substitutes the mock for the real module with `jest.mock`, using paths relative to the test file, e.g.:
 
 ```
 // Mock the CustomLayers, replace createCustomLayerGroup
-jest.mock("../../../openlayers/map/layers/geotiffs/CustomLayers", () =>
+jest.mock("../../../openlayers/layers/custom-layers", () =>
     require("../../../tests/__mocks__/customLayers.mock.ts"),
 );
 ```
