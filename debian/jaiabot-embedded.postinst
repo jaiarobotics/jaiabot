@@ -47,29 +47,19 @@ NETENV_FILE=/etc/jaiabot/network.env
 FLEET_ADDRESS="${NODE_WLAN_IP}/${FLEET_WLAN_NET##*/}"
 FLEET_GATEWAY=$(/usr/bin/jaia_ip --query_type addr --node_type gateway --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
 
-# In place upgrades from 1.y -> 2.y won't have /etc/jaiabot/network.env, so we need to create it
+# ${NETENV_FILE} ships with the rootfs image (and holds the wifi password set at
+# first boot), so this script only updates the fleet-dependent values in it. If
+# it is missing, the system was not built from a Jaia rootfs image and we cannot
+# invent a password - fail rather than silently write an unusable network config.
 if [ ! -f "${NETENV_FILE}" ]; then
-    # if possible, read existing wifi password
-    OLD_WLAN_NETWORK_FILE="/etc/network/interfaces.d/wlan0"
-    if [ -f "${OLD_WLAN_NETWORK_FILE}" ]; then
-        FLEET_PASSWORD=$(sed -n 's/ *wpa-psk *.\(.*\)/\1/p')
-    fi
-    cat <<EOF > ${NETENV_FILE}
-jaia_network_fleet_ssid="${FLEET_WLAN_SSID}"
-jaia_network_fleet_password="${FLEET_PASSWORD}"
-jaia_network_fleet_address="${FLEET_ADDRESS}"
-jaia_network_fleet_gateway="${FLEET_GATEWAY}"
-jaia_network_wifi_iface=wlan0
-jaia_network_eth_iface=eth0
-jaia_network_service_ssid="JaiaService"
-jaia_network_service_password="jaia_service"
-jaia_network_eth_enabled=false
-EOF
-else
-    sed -i "s/fleet_ssid=.*/fleet_ssid=\"${FLEET_WLAN_SSID}\"/" ${NETENV_FILE}
-    sed -i "s|fleet_address=.*|fleet_address=\"${FLEET_ADDRESS}\"|" ${NETENV_FILE}
-    sed -i "s/fleet_gateway=.*/fleet_gateway=\"${FLEET_GATEWAY}\"/" ${NETENV_FILE}
+    echo "ERROR: ${NETENV_FILE} is missing. It is installed by the Jaia rootfs image;" >&2
+    echo "       jaiabot-embedded cannot generate the network configuration without it." >&2
+    exit 1
 fi
+
+sed -i "s/fleet_ssid=.*/fleet_ssid=\"${FLEET_WLAN_SSID}\"/" ${NETENV_FILE}
+sed -i "s|fleet_address=.*|fleet_address=\"${FLEET_ADDRESS}\"|" ${NETENV_FILE}
+sed -i "s/fleet_gateway=.*/fleet_gateway=\"${FLEET_GATEWAY}\"/" ${NETENV_FILE}
 
 /usr/bin/jaia_update_network.sh
 
