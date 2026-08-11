@@ -38,7 +38,7 @@ Thus, Bot 5 on VirtualFleet 3 would be `b5vf3`, or (real) Hub 1 Fleet 10 via the
 
 Additionally, if you are on a bot or hub that has `source /etc/jaiabot/runtime.env` so that the environmental variable `jaia_fleet_id` is defined for the current fleet, you can omit `fN` and the current fleet will be used.
 
-The regex for this host shorthand is `([bh])([0-9]+)([svc]?)(f([0-9]+))?|(ch)(f([0-9]+))?`.
+The host shorthand format is `b<bot_id>[svc]f<fleet_id>`, `h<hub_id>[svc]f<fleet_id>` or `chf<fleet_id>` (for CloudHub); the `f<fleet_id>` portion may be omitted as described above. Parsing is implemented in `jaiabot::parse_host_code` (`src/lib/utils/ip.h`).
 
 ### Special cases
 
@@ -103,6 +103,13 @@ As always, you can use `jaia ssh` to execute remotely, e.g. to restart all servi
 jaia ssh b1f10 sudo jaia ctl restart
 ```
 
+## doc
+
+`jaia doc` provides command line access to this documentation (Markdown). Run with no arguments to list all the available pages, or provide a page name to display it in the terminal.
+
 ## admin
 
-These subactions are used to administer a fleet of JaiaBots. Currently the only subaction is `ssh` which manages SSH keys for a given host. See the [SSH Access](page013_ssh_keys.md) page for more details.
+These subactions are used to administer a fleet of JaiaBots:
+
+- `jaia admin ssh` manages SSH keys for a given host. See the [SSH Access](page013_ssh_keys.md) page for more details.
+- `jaia admin fleet` creates and manages fleet configurations. See the [Embedded Board Deployment](page025_embedded_setup.md) page for more details.

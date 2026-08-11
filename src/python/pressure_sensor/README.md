@@ -1,13 +1,13 @@
 To test the sensor, you can run:
 
    ```bash
-   ./pressure_sensor.py
+   ./jaiabot_pressure_sensor.py
    ```
 
-For it to print any output, it needs to be queried. This can be done with:
+This publishes `PressureTemperatureData` to the `jaiabot_udp_gateway` UDP port (default 20000). To watch the output without the gateway running, listen on that port with:
 
    ```bash
-   nc -u localhost 20001
+   nc -u -l 20000
    ```
-   
-At the netcat prompt, you need to send any kind of data - just hitting enter is enough.
+
+Use `-p`/`--udp_gateway_port` to send to a different port, and `-l DEBUG` for more verbose logging. See `./jaiabot_pressure_sensor.py --help` for all options.

@@ -15,24 +15,24 @@ If the fleet was generated using a fleet configuration file, a valid file on the
 
 ### Download and flash the upgrade image
 
-Download the desired release CD image (e.g. jaiabot_updates_noble_2.0.0_arm64.iso).
+Download the desired release CD image (e.g. jaiabot_updates_resolute_3.0.0_arm64.iso).
 
 If you need to embed the fleet configuration (see previous section), do so now with:
 
 ```
-jaia admin fleet update_iso /path/to/fleetN.cfg /path/to/jaiabot_updates_noble_2.0.0_arm64.iso
+jaia admin fleet update_iso /path/to/fleetN.cfg /path/to/jaiabot_updates_resolute_3.0.0_arm64.iso
 ```
 
-This will embed the fleet config (at `major_upgrades/fleetN.cfg` within the ISO). and write a new ISO called `/path/to/jaiabot_updates_noble_2.0.0_arm64_fleetN.iso`.
+This will embed the fleet config (at `major_upgrades/fleetN.cfg` within the ISO). and write a new ISO called `/path/to/jaiabot_updates_resolute_3.0.0_arm64_fleetN.iso`.
 
 Now, write the ISO to a  USB flash drive (or burn it to a CD-R disc):
 
 Assuming the USB flash drive is /dev/sdb:
 ```
 # for fleets WITHOUT previous fleet config (most 1.y fleets)
-ISO=jaiabot_updates_noble_2.0.0_arm64_fleetN.iso
+ISO=jaiabot_updates_resolute_3.0.0_arm64_fleetN.iso
 # OR for fleets WITH previous fleet config
-ISO=jaiabot_updates_noble_2.0.0_arm64.iso
+ISO=jaiabot_updates_resolute_3.0.0_arm64.iso
 
 sudo dd if=$ISO of=/dev/sdb bs=1M status=progress
 ```
@@ -80,7 +80,7 @@ See major-upgrade.yml for full details on the steps performed.
 
 The playbook ensures that the new Ubuntu version is newer than the existing version and new Jaiabot version is not older than the existing version, to prevent meaningless double-upgrades or accidental major upgrades that should be normal upgrades (e.g. 1.16.0->1.17.0).
 
-The upgrade is staged in `/var/log/jaiabot/major_upgrade/v{X}_{ubuntucode}` where {X} is the major version to be updated to and {ubuntucode} is the new Ubuntu version. For example: `/var/log/jaiabot/major_upgrade/v2_noble`.
+The upgrade is staged in `/var/log/jaiabot/major_upgrade/v{X}_{ubuntucode}` where {X} is the major version to be updated to and {ubuntucode} is the new Ubuntu version. For example: `/var/log/jaiabot/major_upgrade/v3_resolute`.
 
 The new upgrade image for the rootfs and bootfs are downloaded from the Hub into the staging directory.
 

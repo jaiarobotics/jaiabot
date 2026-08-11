@@ -2,7 +2,7 @@
 
 The jaiabot configuration files can be found in the `jaiabot/config` folder of the repository.
 
-At it's simplest, you can simulate any 4 vehicles at 5x real speed by running:
+At it's simplest, you can simulate any 4 vehicles at 5x real speed by running (from `jaiabot/config/launch/simulation`):
 
 ```
 ./generate_all_launch.sh 4 5

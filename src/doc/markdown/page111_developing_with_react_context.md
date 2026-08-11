@@ -1,36 +1,49 @@
 # Developing with React Context
 
-## New Web Directories
+## Web Directories
 
 ## components
 
 #### What lives inside this directory?
 
-- Reusable React components
+- React components used to build the JCC interface, from small reusable widgets to full panels. Each component lives in its own directory alongside its `.less` styles and (where present) a `__tests__` directory.
 - _Examples:_
-  - Toggle
-  - Button
-  - InputElement
-
-## containers
-
-#### What lives inside this directory?
-
-- An element likely to be used only once in the interface that consists of multiple components
-- _Examples:_
-  - BotDetails
-  - SettingsPanel
-  - MissionButtonRow
+  - `JaiaToggle`
+  - `__buttons__/StartMissionButton`
+  - `BotDetails`
+  - `SettingsPanel`
+  - `MissionsPanel`
 
 ## context
 
 #### What lives inside this directory?
 
-- Contexts for the app. These hold state for different parts of the system in a global fashion.
+- The React context for the app, which holds state for the whole interface in a global fashion.
+- _Contents:_
+  - `JaiaContext.tsx` — context instantiation, reducer, and provider
+  - `jaia-actions.ts` — the `JaiaActions` enum of all dispatchable action types
+  - `action-configs.ts` — maps each `JaiaActions` value to its handler function
+  - `handlers/` — the reducer helper functions, grouped by concern (e.g. `mission-handlers.ts`, `panel-handlers.ts`)
+
+## data
+
+#### What lives inside this directory?
+
+- The data model: singleton objects that own the application data and communicate with the server, independent of React.
 - _Examples:_
-  - GlobalContext
-  - PodContext
-  - HubContext
+  - `bots`
+  - `hubs`
+  - `mission_set`
+  - `task_packets`
+
+## types
+
+#### What lives inside this directory?
+
+- Shared TypeScript interfaces and enums.
+- _Examples:_
+  - `context-types.ts` (`JaiaContextType`, `JaiaAction`)
+  - `jaia-system-types.ts`
 
 ## utils
 
@@ -41,26 +54,14 @@
 
 # Context Structure
 
-### GlobalContext
+### JaiaContext
 
-- Contains general data pertaining to the view state of the interface
-- _Examples:_
-  - `selectedPodElement`
-  - `showHubDetails`
-  - `hubAccordionStates`
+`JaiaContext` is the single context for the JCC interface. It holds:
 
-#### PodContext
+- References to the data model singletons (`bots`, `hubs`, `taskPackets`, `missionSet`, `rallyPoints`, `missionsManager`, `exclusionZoneSet`, ...)
+- View state for the interface (`visibleDetails`, `visiblePanel`, `hubAccordionStates`, `botAccordionStates`, `mapLayerAccordionStates`, ...)
 
-- Encapsulates `HubContext` and `BotContext`
-- Provides a location to store pod-wide data
-
-##### HubContext
-
-- Stores the `PortalHubStatus`
-
-##### BotContext
-
-- Coming soon
+The full shape is defined by the `JaiaContextType` interface in `src/web/types/context-types.ts`.
 
 ## General Context Structure
 
@@ -83,11 +84,13 @@
   - Think of this as the state interface
 
 ```
-// Example
-interface GlobalContextType {
-    clientID: string,
-    controllingClientID: string
-    selectedPodElement: SelectedPodElement
+// Example (src/web/types/context-types.ts)
+export interface JaiaContextType {
+    bots: Bots;
+    hubs: Hubs;
+    taskPackets: TaskPackets;
+    visibleDetails: NodeTypes;
+    visiblePanel: ButtonNames;
     ...
 }
 ```
@@ -97,11 +100,13 @@ interface GlobalContextType {
   - The optional properties are used to pass data to specific reducer helper functions
 
 ```
-// Example
-interface Action {
-    type: string,
-    clientID?: string,
-    hubAccordionName?: string
+// Example (src/web/types/context-types.ts)
+export interface JaiaAction {
+    type: JaiaActions;
+    botID?: number;
+    missionID?: number;
+    hubAccordionName?: HubAccordionNames;
+    ...
 }
 ```
 
@@ -110,88 +115,100 @@ interface Action {
 
 ```
 // Example
-interface GlobalContextProviderProps {
+interface JaiaContextProviderProps {
     children: ReactNode
 }
 ```
 
 #### 3. Constant Variables and Enums
 
+The dispatchable action types are declared as the `JaiaActions` enum in `src/web/context/jaia-actions.ts`. Using an enum (rather than bare strings) means TypeScript catches typos in both the dispatch sites and the handler map.
+
 #### 4. Context Instantiation
 
 The default values of the context are set to `null` because they are set in the context provider function. This convention is discussed in the React documentation: (https://react.dev/reference/react/createContext).
 
-We use two instances of createContext. The first is responsible for holding state and the second is responisble for triggering state changes. This follows the reccommended structure in the React documentation: (https://react.dev/learn/scaling-up-with-reducer-and-context).
+We use two instances of createContext. The first is responsible for holding state and the second is responsible for triggering state changes. This follows the recommended structure in the React documentation: (https://react.dev/learn/scaling-up-with-reducer-and-context).
 
 ```
-export const GlobalContext = createContext(null)
-export const GlobalDispatchContext = createContext(null)
+export const JaiaContext = createContext<JaiaContextType>(null)
+export const JaiaDispatchContext = createContext(null)
 ```
 
 #### 5. Reducer Function
 
-A reducer function is called by a dispatch function that comes from "using" the dispatch context. The only required property of the `action` object is `type` which is a string describing the type of action to dispatch. In some cases, you will want to pass data to the reducer function to set state to your desired value. If that is the case, modify the `Action` interface, so you can pass that data in with the `action` object.
+A reducer function is called by a dispatch function that comes from "using" the dispatch context. The only required property of the `action` object is `type`, a `JaiaActions` value describing the action to dispatch. In some cases, you will want to pass data to the handler function to set state to your desired value. If that is the case, add the property to the `JaiaAction` interface, so you can pass that data in with the `action` object.
+
+Rather than a large `switch` statement, `jaiaReducer` looks the action up in the `actionConfigs` map (`src/web/context/action-configs.ts`), which associates each action type with its handler function and a `tracked` flag indicating whether the resulting state should be pushed onto the undo/redo history.
 
 ```
-function globalReducer(state: ContextType, action: Action) {
-    let mutableState = {...state}
-    switch (action.type) {
-        case 'SAVED_CLIENT_ID':
-            return saveClientID(mutableState, action.clientID)
+// src/web/context/JaiaContext.tsx
+function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
+    const config = actionConfigs.get(action.type);
+    if (!config) {
+        console.warn(`No handler for action type: ${action.type}`);
+        return state;
+    }
 
-        case 'TAKE_CONTROL_SUCCESS':
-            return handleControlTaken(mutableState)
+    let mutableState = { ...state };
+    mutableState = config.handler(mutableState, action);
 
-        case 'CLOSED_HUB_DETAILS':
-            return handleClosedHubDetails(mutableState)
-        .
-        .
-        .
+    if (config.tracked) {
+        saveHistory(mutableState, action.type);
+    }
+
+    return mutableState;
 }
+```
+
+```
+// src/web/context/action-configs.ts
+export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
+    [JaiaActions.ADD_MISSION, { handler: handleAddMission, tracked: true }],
+    [JaiaActions.CLOSED_DETAILS, { handler: handleClosedDetails, tracked: false }],
+    ...
+]);
 ```
 
 ```
     // Example of calling the dispatch function from a different file
 
-    import { GlobalDispatchContext } from '../context/GlobalContext'
+    import { JaiaDispatchContext } from '../../context/JaiaContext'
+    import { JaiaActions } from '../../context/jaia-actions'
 
-    const globalDispatch = useContext(GlobalDispatchContext)
+    const jaiaDispatch = useContext(JaiaDispatchContext)
 
     function handleClosePanel() {
-        globalDispatch({ type: 'CLOSED_HUB_DETAILS' })
+        jaiaDispatch({ type: JaiaActions.CLOSED_DETAILS })
     }
 ```
 
 #### 6. Reducer Helper Functions
 
-Prevents the reducer function from becoming bloated with logic. This allows the team to quickly scan the reducer function for the different actions that can be dispatched. These functions return the updated `mutableState` object _(a custom convention)_ which is returned by the reducer to update the state tied to the context.
+Prevents the reducer function from becoming bloated with logic. This allows the team to quickly scan `action-configs.ts` for the different actions that can be dispatched. These functions live in `src/web/context/handlers` and return the updated `mutableState` object _(a custom convention)_ which is returned by the reducer to update the state tied to the context.
 
 ```
-function saveClientID(mutableState: GlobalContextType, clientID: string) {
-    mutableState.clientID = clientID
-    return mutableState
-}
-
-function handleControlTaken(mutableState: GlobalContextType) {
-    mutableState.controllingClientID = mutableState.clientID
-    return mutableState
+// src/web/context/handlers/panel-handlers.ts
+export function handleClosedDetails(mutableState: JaiaContextType) {
+    mutableState.visibleDetails = NodeTypes.NONE;
+    return mutableState;
 }
 ```
 
 #### 7. Context Provider Component
 
-This componet combines the two context instances and sets them into the correct state to be accessed by their child components. Creating this wrapper around the `.Provider` calls reduces the code that is used in the files that import the context, and it also allows us to use `useEffect` to dispatch an action on the intialization of the context (if needed).
+This component combines the two context instances and sets them into the correct state to be accessed by their child components. Creating this wrapper around the `.Provider` calls reduces the code that is used in the files that import the context, and it also allows us to use `useEffect` to dispatch an action on the initialization of the context (if needed).
 
 ```
-export function HubContextProvider({ children }: HubContextProviderProps) {
-    const [state, dispatch] = useReducer(hubReducer, null)
+export function JaiaContextProvider({ children }: JaiaContextProviderProps) {
+    const [state, dispatch] = useReducer(jaiaReducer, null)
 
     return (
-        <HubContext.Provider value={state}>
-            <HubDispatchContext.Provider value={dispatch}>
+        <JaiaContext.Provider value={state}>
+            <JaiaDispatchContext.Provider value={dispatch}>
                 { children }
-            </HubDispatchContext.Provider>
-        </HubContext.Provider>
+            </JaiaDispatchContext.Provider>
+        </JaiaContext.Provider>
     )
 }
 ```
