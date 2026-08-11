@@ -73,6 +73,63 @@ jaia_debconf_collapse_choices() {
     echo "$1" | awk "${JAIA_DEBCONF_AWK_COLLAPSE}"' { print collapse($0) }'
 }
 
+# jaia_debconf_questions [include_internal]
+# Every question the package defines, one per line, sorted.
+#
+# The debconf_state_* questions record where the interactive dpkg-reconfigure
+# menu is rather than any configuration, so they are left out unless the caller
+# passes "true".
+jaia_debconf_questions() {
+    local include_internal="${1:-false}" templates
+
+    templates=$(jaia_debconf_templates_file) || return 1
+
+    awk -v pkg="${JAIA_DEBCONF_PACKAGE}" -v include_internal="${include_internal}" '
+        /^Template:/ {
+            q = $2
+            sub("^" pkg "/", "", q)
+            if (include_internal == "true" || q !~ /^debconf_state_/)
+                print q
+        }
+    ' "${templates}" | sort
+}
+
+# jaia_debconf_table <header>...
+# Pads tab-separated rows on stdin into aligned columns under the given headers,
+# so 'list' and 'get' (with no question) come out looking the same.
+jaia_debconf_table() {
+    local headers
+    headers=$(printf '%s\t' "$@")
+
+    awk -F'\t' -v headers="${headers}" '
+        BEGIN {
+            nh = split(headers, H, "\t")
+            # the trailing \t from printf leaves an empty final element
+            while (nh > 0 && H[nh] == "")
+                nh--
+            for (i = 1; i <= nh; i++) w[i] = length(H[i])
+        }
+        {
+            for (i = 1; i <= nh; i++) {
+                row[NR, i] = $i
+                if (length($i) > w[i]) w[i] = length($i)
+            }
+        }
+        END {
+            line = ""
+            for (i = 1; i <= nh; i++)
+                line = line sprintf("%-*s%s", w[i], H[i], (i < nh ? "  " : ""))
+            print line
+            for (r = 1; r <= NR; r++) {
+                line = ""
+                for (i = 1; i <= nh; i++)
+                    line = line sprintf("%-*s%s", w[i], row[r, i], (i < nh ? "  " : ""))
+                print line
+            }
+        }
+    ' | sed 's/[[:space:]]*$//'
+}
+
 # jaia_debconf_list [--all]
 # Tabulates every question the package defines, with its type, default and
 # permitted choices. This is the set of names 'get' and 'set' accept.
@@ -127,21 +184,7 @@ jaia_debconf_list() {
         END { flush() }
     ' "${templates}" \
         | sort \
-        | awk -F'\t' '
-            BEGIN { qw = length("QUESTION"); tw = length("TYPE"); dw = length("DEFAULT") }
-            {
-                q[NR] = $1; t[NR] = $2; d[NR] = $3; c[NR] = $4
-                if (length($1) > qw) qw = length($1)
-                if (length($2) > tw) tw = length($2)
-                if (length($3) > dw) dw = length($3)
-            }
-            END {
-                printf "%-*s  %-*s  %-*s  %s\n", qw, "QUESTION", tw, "TYPE", dw, "DEFAULT", "CHOICES"
-                for (i = 1; i <= NR; i++)
-                    printf "%-*s  %-*s  %-*s  %s\n", qw, q[i], tw, t[i], dw, d[i], c[i]
-            }
-        ' \
-        | sed 's/[[:space:]]*$//'
+        | jaia_debconf_table QUESTION TYPE DEFAULT CHOICES
 }
 
 # jaia_debconf_get <question> [default]
@@ -172,6 +215,56 @@ jaia_debconf_get() {
     fi
 
     echo "${value}"
+}
+
+# jaia_debconf_get_all [--all]
+# Every question's current value, laid out like 'list'. This is what 'get' does
+# when given no question: 'list' says what can be set, this says what is set.
+#
+# Unlike 'selections' - which emits debconf-set-selections format for machines
+# to re-import - this is for reading, and it includes questions that have never
+# been answered, marked "(unset)".
+jaia_debconf_get_all() {
+    local include_internal=false questions replies
+
+    if [ "${1:-}" = "--all" ]; then
+        include_internal=true
+        shift
+    fi
+
+    if [ $# -gt 0 ]; then
+        echo "ERROR: usage: jaia_debconf_get_all [--all]" >&2
+        return 1
+    fi
+
+    questions=$(jaia_debconf_questions "${include_internal}") || return 1
+    if [ -z "${questions}" ]; then
+        echo "ERROR: no questions found in the ${JAIA_DEBCONF_PACKAGE} templates." >&2
+        return 1
+    fi
+
+    # One debconf-communicate session for the whole set rather than one per
+    # question; replies come back in order, one line per GET.
+    replies=$(while IFS= read -r question; do
+                  echo "GET ${JAIA_DEBCONF_PACKAGE}/${question}"
+              done <<< "${questions}" \
+              | debconf-communicate "${JAIA_DEBCONF_PACKAGE}" 2>/dev/null)
+
+    if [ -z "${replies}" ]; then
+        echo "ERROR: could not read the ${JAIA_DEBCONF_PACKAGE} debconf database." >&2
+        echo "       Reading it requires root." >&2
+        return 1
+    fi
+
+    # replies are "0 <value>" when answered, or a non-zero code with a message
+    paste <(echo "${questions}") <(echo "${replies}") \
+        | awk -F'\t' '
+            {
+                value = ($2 ~ /^0( |$)/) ? substr($2, 3) : "(unset)"
+                printf "%s\t%s\n", $1, value
+            }
+        ' \
+        | jaia_debconf_table QUESTION VALUE
 }
 
 # jaia_debconf_set <question> <value>
@@ -270,13 +363,14 @@ jaia_debconf_selections() {
 
 jaia_debconf_usage() {
     cat >&2 <<EOF
-Usage: $(basename "$0") get <question> [default]
+Usage: $(basename "$0") get [<question> [default]] [--all]
        $(basename "$0") set <question> <value> [--no-reconfigure]
        $(basename "$0") list [--all]
        $(basename "$0") selections
 
 Questions are given without the '${JAIA_DEBCONF_PACKAGE}/' prefix, e.g. 'fleet_id'.
-'list' shows which ones exist, along with their type, default and choices.
+'list' shows which ones exist, along with their type, default and choices;
+'get' with no question shows what they are all currently set to.
 
 'set' runs 'dpkg-reconfigure ${JAIA_DEBCONF_PACKAGE}' afterwards so that the
 systemd units are regenerated from the new value; pass --no-reconfigure to
@@ -291,8 +385,12 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
 
     case "${subcommand}" in
         get)
-            [ $# -ge 1 ] || { jaia_debconf_usage; exit 1; }
-            jaia_debconf_get "$@"
+            # no question means "show me everything"
+            if [ $# -eq 0 ] || [ "${1}" = "--all" ]; then
+                jaia_debconf_get_all "$@"
+            else
+                jaia_debconf_get "$@"
+            fi
             ;;
         set)
             reconfigure=true

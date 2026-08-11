@@ -37,8 +37,15 @@ message GetTool
     optional goby.middleware.protobuf.AppConfig app = 1
         [(goby.field) = { cfg { action: DEVELOPER } }];
 
-    required string question = 2 [(goby.field) = {
-        description: "The debconf question to read, without the 'jaiabot-embedded/' prefix (e.g. fleet_id)",
+    optional string question = 2 [(goby.field) = {
+        description: "The debconf question to read, without the 'jaiabot-embedded/' prefix (e.g. fleet_id). Omit to report every question's current value.",
         cfg { position { enable: true } }
     }];
+
+    optional bool all = 3 [
+        default = false,
+        (goby.field) = {
+            description: "When reporting every value, also include the internal 'debconf_state_*' questions, which hold the interactive dpkg-reconfigure menu's position rather than any configuration."
+        }
+    ];
 }

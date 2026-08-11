@@ -113,9 +113,23 @@ The `jaiabot-embedded` debconf database is the single source of truth for a bot 
 
 ```
 jaia admin debconf list
-sudo jaia admin debconf get fleet_id
-sudo jaia admin debconf set fleet_id 3
+jaia admin debconf get fleet_id
+jaia admin debconf set fleet_id 3
 ```
+
+Reading and writing the debconf database requires root, so `get` and `set` re-run themselves under `sudo` when they are not already root - there is no need to remember to prepend it. (`list` does not, since it does not read the database.)
+
+`get` with no question reports what everything is currently set to, which is the counterpart to `list`'s "what can I set?":
+
+```
+QUESTION                  VALUE
+bot_id                    (unset)
+comms_links               xbee,wifi
+fleet_id                  3
+type                      bot
+```
+
+Questions that have never been answered show as `(unset)`, which is distinct from one deliberately set to the empty string. Unlike `jaia-debconf.sh selections` - which emits `debconf-set-selections` format for another machine to re-import - this is meant for reading.
 
 `list` shows every question the package defines, along with its type, default and permitted choices - that is, what you can pass to `get` and `set`:
 
@@ -128,19 +142,19 @@ bot_type                  select       hydro     hydro, pam, bio, none
 ...
 ```
 
-Long runs of consecutive integers are shown as a range (`0-150`) rather than in full. `list` reads the package's templates rather than the debconf database, so it describes what *can* be set and, unlike the other two, does not require root. Pass `--all` to also show the internal `debconf_state_*` questions, which record where the interactive menu is rather than any configuration.
+Long runs of consecutive integers are shown as a range (`0-150`) rather than in full. `list` reads the package's templates rather than the debconf database, so it describes what *can* be set. Both `list` and a bare `get` take `--all`, which also shows the internal `debconf_state_*` questions - those record where the interactive menu is rather than any configuration.
 
 `set` validates the value against that question's permitted `Choices`, so a typo fails immediately rather than silently generating the wrong services. By default it then runs `dpkg-reconfigure jaiabot-embedded`, which regenerates and re-enables the systemd units so the change takes effect.
 
 When changing several values, skip the reconfigure on all but the last so the units are only regenerated once:
 
 ```
-sudo jaia admin debconf set imu_type bno085 --reconfigure false
-sudo jaia admin debconf set bot_type pam
+jaia admin debconf set imu_type bno085 --reconfigure false
+jaia admin debconf set bot_type pam
 ```
 
-`get` and `set` require root, since reading and writing the debconf database does. As with any action, these can be run remotely:
+As with any action, these can be run remotely:
 
 ```
-jaia ssh b1f10 sudo jaia admin debconf get imu_type
+jaia ssh b1f10 jaia admin debconf get imu_type
 ```

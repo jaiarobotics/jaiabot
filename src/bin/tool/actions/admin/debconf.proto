@@ -44,11 +44,14 @@ message DebconfTool
             full_help_msg: "Usage: \"jaia admin debconf help [action]\""
         }];
         get = 1 [(goby.ev).cfg = {
-            short_help_msg: "Read a jaiabot-embedded debconf value",
-            full_help_msg: "Read one of this bot/hub's configuration values.\n"
-                           "Usage: \"jaia admin debconf get <question>\"\n"
+            short_help_msg: "Read this bot/hub's debconf values",
+            full_help_msg: "Read this bot/hub's configuration values.\n"
+                           "Usage: \"jaia admin debconf get [question]\"\n"
                            "e.g. \"jaia admin debconf get fleet_id\"\n"
-                           "Run \"jaia admin debconf list\" for the available questions."
+                           "With no question, reports what every question is currently set to;\n"
+                           "questions that have never been answered show as \"(unset)\".\n"
+                           "Run \"jaia admin debconf list\" for what each one accepts.\n"
+                           "Reading debconf requires root, so this re-runs itself under sudo."
         }];
         set = 2 [(goby.ev).cfg = {
             short_help_msg: "Write a jaiabot-embedded debconf value and apply it",
@@ -57,7 +60,8 @@ message DebconfTool
                            "e.g. \"jaia admin debconf set fleet_id 3\"\n"
                            "By default this reconfigures jaiabot-embedded so the systemd units are\n"
                            "regenerated; pass --reconfigure false to set several values first.\n"
-                           "Run \"jaia admin debconf list\" for the available questions and values."
+                           "Run \"jaia admin debconf list\" for the available questions and values.\n"
+                           "Writing debconf requires root, so this re-runs itself under sudo."
         }];
         list = 3 [(goby.ev).cfg = {
             short_help_msg: "List the questions that get and set accept",
