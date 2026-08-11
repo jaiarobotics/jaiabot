@@ -6,38 +6,32 @@ echo ">>>>> Stopping jaiabot app software ... "
 echo "<<<<< Stopping jaiabot app software complete! ... "
 
 shopt -s nullglob
-echo ">>>>> Disabling and removing jaia apps systemd services ... "
-for service_file in /usr/lib/systemd/system/jaiabot*.service; do
-    service_name=$(basename $service_file)
-    echo "Disabling $service_name"
-    /bin/systemctl disable $service_name
-    echo "Removing $service_file"
-    rm $service_file
+
+services_to_disable=()
+service_files=()
+for service_file in /usr/lib/systemd/system/jaia*.service; do
+    services_to_disable+=("$(basename $service_file)")
+    service_files+=("$service_file")
 done
 
-echo ">>>>> Stopping, disabling, and removing jaia gps systemd services if they exist ... "
-for service_file in /usr/lib/systemd/system/gps_*.service; do
-    service_name=$(basename $service_file)
+echo ">>>>> Stopping, disabling, and removing jaia systemd services ... "
+
+for service_name in "${services_to_disable[@]}"; do
     echo "Stopping $service_name"
     /bin/systemctl stop $service_name || true
-    echo "Disabling $service_name"
-    /bin/systemctl disable $service_name
+done
+
+if [ ${#services_to_disable[@]} -gt 0 ]; then
+    echo "Disabling ${services_to_disable[@]}"
+    /bin/systemctl disable "${services_to_disable[@]}"
+fi
+
+for service_file in "${service_files[@]}"; do
     echo "Removing $service_file"
     rm $service_file
 done
 
-echo ">>>>> Stopping, disabling, and removing jaia firmware systemd services ... "
-for service_file in /usr/lib/systemd/system/jaia_firm*.service; do
-    service_name=$(basename $service_file)
-    echo "Stopping $service_name"
-    /bin/systemctl stop $service_name || true
-    echo "Disabling $service_name"
-    /bin/systemctl disable $service_name
-    echo "Removing $service_file"
-    rm $service_file
-done
-
-echo "<<<<< Disabling and removing systemd services complete! ... "
+echo "<<<<< Stopping, disabling, and removing jaia systemd services complete! ... "
 
 #DEBHELPER#
 
