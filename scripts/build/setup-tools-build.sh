@@ -21,12 +21,19 @@ $SUDO apt-get -y install gnupg lsb-release curl git
 export GOBYSOFT_SIGNING_KEY=19478082E2F8D3FE
 export JAIABOT_SIGNING_KEY=954A004CD5D8CF32
 $SUDO install -d -m 0755 /etc/apt/keyrings
-gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys ${GOBYSOFT_SIGNING_KEY} && gpg --export ${GOBYSOFT_SIGNING_KEY} | $SUDO tee /etc/apt/keyrings/gobysoft.gpg > /dev/null
-gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys ${JAIABOT_SIGNING_KEY} && gpg --export ${JAIABOT_SIGNING_KEY} | $SUDO tee /etc/apt/keyrings/jaiabot.gpg > /dev/null
+
+if [ ! -e /etc/apt/keyrings/gobysoft.gpg ]; then
+    gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys ${GOBYSOFT_SIGNING_KEY} && gpg --export ${GOBYSOFT_SIGNING_KEY} | $SUDO tee /etc/apt/keyrings/gobysoft.gpg > /dev/null
+fi
+if [ ! -e /etc/apt/keyrings/jaiabot.gpg ]; then
+    gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys ${JAIABOT_SIGNING_KEY} && gpg --export ${JAIABOT_SIGNING_KEY} | $SUDO tee /etc/apt/keyrings/jaiabot.gpg > /dev/null
+fi
+
 # Add packages.gobysoft.org mirror to your apt sources
 default_version=${jaia_version_release_branch}
+target_ubuntu_codename=${jaia_version_ubuntu_codename}
 echo "deb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/continuous/${default_version}/ $(. /etc/os-release; echo "$VERSION_CODENAME")/" | $SUDO tee /etc/apt/sources.list.d/gobysoft_continuous.list
-echo "deb-src [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/continuous/${default_version}/ $(. /etc/os-release; echo "$VERSION_CODENAME")/" | $SUDO tee /etc/apt/sources.list.d/jaiabot_continuous.list
+echo "deb-src [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/continuous/${default_version}/ ${target_ubuntu_codename}/" | $SUDO tee /etc/apt/sources.list.d/jaiabot_continuous.list
 # Update apt
 $SUDO apt-get -y update
 # Install the required dependencies
