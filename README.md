@@ -35,7 +35,7 @@ Please visit our website to learn more: [Jaia Robotics](https://www.jaia.tech)
 | Component     |  **3.y**            |
 |---------------|-----------------------------|
 | **Ubuntu**    | **26.04 (resolute)**        |
-| **Python**    | **system python3**          |
+| **Python**    | **3.14**          |
 | **C++**       | **C++23**                   |
 | **MOOS-IvP**  | **24.8**                    |
 | **Goby**      | **3.2**                     |
