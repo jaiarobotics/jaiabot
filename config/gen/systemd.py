@@ -49,27 +49,19 @@ parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .
 
 args=parser.parse_args()
 
-##
-## debconf is the single source of truth for bot/hub configuration.
-##
-## Answers are read either from the live database or from a
-## debconf-set-selections format file (--debconf_selections). Callers running
-## inside a maintainer script must db_stop first: db_set writes live in the
-## debconf frontend's memory and are only flushed to the on-disk database when
-## the frontend shuts down, so a child process reading it any earlier sees the
-## values from before the maintainer script ran.
-##
+# Callers inside a maintainer script must db_stop before running this: db_set
+# writes live in the debconf frontend's memory until it shuts down, so a child
+# process reading any earlier sees pre-maintainer-script values.
 
 DEBCONF_PACKAGE = 'jaiabot-embedded'
 
-# All knowledge of how to read debconf lives in this helper, which the shell
-# consumers use too; what lives here is the schema below.
+# The helper owns how to read debconf (the shell consumers use it too); this
+# script owns the schema below.
 DEBCONF_HELPER = 'jaia-debconf.sh'
 
-# Fallback used when a question exists but was never answered. Questions listed
-# in DEBCONF_REQUIRED have no fallback: a missing answer there is a hard error,
-# so that a lost or half-written debconf database surfaces as a failed install
-# rather than a bot that quietly comes up with the wrong identity.
+# DEBCONF_REQUIRED questions have no fallback, so a lost or half-written
+# database fails the install rather than silently producing a bot with the
+# wrong identity.
 DEBCONF_DEFAULTS = {
     'type': '',
     'mode': 'runtime',
@@ -102,22 +94,21 @@ DEBCONF_REQUIRED = ['type', 'fleet_id']
 def parse_debconf_selections(lines) -> Dict[str, str]:
     """Parse debconf-set-selections format: <owner> <question> <type> [value]
 
-    Both sources below produce this format, so the live database and a
-    selections file go through exactly the same parsing - which means testing
-    with --debconf_selections also exercises the path taken during install."""
+    Both the live database and a selections file arrive here, so testing with
+    --debconf_selections also exercises the path taken during install."""
     answers = dict()
     for line in lines:
         line = line.strip()
         if not line or line.startswith('#'):
             continue
-        # the value is the remainder of the line, and may itself contain spaces
+        # maxsplit: the value is the rest of the line and may contain spaces
         fields = line.split(None, 3)
         if len(fields) < 3:
             continue
         question = fields[1]
         value = fields[3].strip() if len(fields) > 3 else ''
-        # match on the question rather than the owner column, which reads
-        # "unknown" when the owning package isn't registered
+        # match the question, not the owner column, which reads "unknown" when
+        # the owning package isn't registered
         prefix = DEBCONF_PACKAGE + '/'
         if question.startswith(prefix):
             answers[question[len(prefix):]] = value
@@ -125,11 +116,11 @@ def parse_debconf_selections(lines) -> Dict[str, str]:
 
 
 def find_debconf_helper() -> str:
-    """Locate jaia-debconf.sh: installed on PATH, or in an uninstalled source tree."""
     helper = shutil.which(DEBCONF_HELPER)
     if helper:
         return helper
 
+    # uninstalled source tree
     local = os.path.realpath(script_dir + '/../../scripts/system/' + DEBCONF_HELPER)
     if os.path.exists(local):
         return local
@@ -140,11 +131,7 @@ def find_debconf_helper() -> str:
 
 
 def read_debconf_database() -> list:
-    """Dump the live debconf database, in selections format, via jaia-debconf.sh.
-
-    The helper owns all knowledge of how to talk to debconf; this script owns
-    the schema (DEBCONF_DEFAULTS). Note that the caller must not be holding an
-    open debconf conversation - see the comment above."""
+    """Dump the live debconf database, in selections format, via jaia-debconf.sh."""
     helper = find_debconf_helper()
     try:
         result = subprocess.run([helper, '--selections'],
@@ -167,7 +154,6 @@ print('Reading ' + DEBCONF_PACKAGE + ' configuration from ' + debconf_source)
 
 
 def dc(question: str) -> str:
-    """Answer for a debconf question, falling back to the default when unanswered."""
     value = debconf.get(question, '').strip()
     if value:
         return value
@@ -179,7 +165,7 @@ def dc(question: str) -> str:
 
 
 def dc_multi(question: str):
-    """Answer for a debconf multiselect, as a list (debconf joins with ", ")."""
+    # debconf joins multiselect answers with ", ", hence the strip
     return [v.strip() for v in dc(question).split(',') if v.strip()]
 
 
@@ -399,19 +385,13 @@ elif cloudhub_type == CloudHubType.SECONDARY:
 camera_positions_in_use = dc_multi('camera_positions')
 jaia_additional_sensors = dc_multi('additional_sensors')
 
-# make the log directory, if it doesn't exist (previously done by preseed.goby)
+# previously done by preseed.goby
 os.makedirs(args.log_dir, exist_ok=True)
 
-##
-## Service environment
-##
-## These used to be written to /etc/jaiabot/runtime.env and pulled in with
-## EnvironmentFile=. They are now baked into each generated unit, so the units
-## are the only derived artifact and there is no intermediate file to fall out
-## of sync with the debconf database. The generator scripts (bot.py/hub.py),
-## which systemd starts as children via goby's -C flag, still read exactly the
-## same variables out of os.environ.
-##
+# Baked into each unit rather than written to a shared env file, so the units
+# are the only derived artifact and nothing can drift from debconf. bot.py and
+# hub.py, which systemd starts as children via goby's -C flag, read these out
+# of os.environ exactly as before.
 
 goby3_lib_dir=os.path.realpath(args.goby_bin_dir + '/../lib')
 jaia_lib_dir=os.path.realpath(args.jaiabot_bin_dir + '/../lib')
@@ -446,8 +426,7 @@ service_environment = {
     'LD_LIBRARY_PATH': goby3_lib_dir + ':' + jaia_lib_dir,
 }
 
-# only set the ID relevant to this node type, so that a hub never carries a
-# meaningless jaia_bot_id (and vice versa) as it did via preseed.goby's defaults
+# avoid giving a hub a meaningless jaia_bot_id, and vice versa
 if jaia_type == Type.BOT:
     service_environment['jaia_bot_id'] = jaia_bot_id
 else:
@@ -455,8 +434,8 @@ else:
 
 
 def systemd_environment_block(environment: Dict[str, str]) -> str:
-    """Render Environment= lines. Values are quoted, and '%' is escaped since
-    systemd would otherwise read it as a unit specifier."""
+    """Render Environment= lines. '%' is escaped: systemd would otherwise read
+    it as a unit specifier."""
     lines = []
     for key, value in environment.items():
         escaped = str(value).replace('\\', '\\\\').replace('"', '\\"').replace('%', '%%')

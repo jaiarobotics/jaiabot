@@ -28,9 +28,7 @@ popd
 
 jaiabot_version=$(cat ${HOME}/jaiabot/${build_dir}/share/version.txt)
 
-# Bot/hub configuration comes from the debconf selections file that
-# docker-arm64-build-and-deploy.sh generated for this target and rsynced
-# alongside the build, so this script no longer has to re-derive it.
+# generated per target by docker-arm64-build-and-deploy.sh and rsynced with the build
 selections=${HOME}/jaiabot/${build_dir}/jaiabot-embedded.selections
 
 if [ ! -z "$jaiabot_systemd_type" ] && [ ! -f "${selections}" ]; then

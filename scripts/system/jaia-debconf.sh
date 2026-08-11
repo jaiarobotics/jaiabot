@@ -1,24 +1,19 @@
 #!/bin/bash
 
-# Shared reader for the jaiabot-embedded debconf database, which is the single
-# source of truth for bot/hub configuration.
-#
-# Source this file to use the functions, or call it directly to print a value:
+# Shared reader for the jaiabot-embedded debconf database, the single source of
+# truth for bot/hub configuration.
 #
 #     jaia-debconf.sh type
 #     source /usr/bin/jaia-debconf.sh && jaia_debconf_get fleet_id
 #
-# NOTE: reading debconf requires root, and requires that no maintainer script is
-# holding an open debconf conversation. Inside a maintainer script, call db_stop
-# first: db_set writes live in the frontend's memory and are only flushed to the
-# on-disk database when the frontend shuts down, so anything reading it earlier
-# sees the values from before the maintainer script ran.
+# Requires root, and that no maintainer script is holding an open debconf
+# conversation: db_set writes live in the frontend's memory until it shuts down,
+# so call db_stop first or read pre-maintainer-script values.
 
 JAIA_DEBCONF_PACKAGE=jaiabot-embedded
 
 # jaia_debconf_get <question> [default]
-# Prints the answer for jaiabot-embedded/<question>. Falls back to the default
-# if given; fails if the question is unanswered and no default was supplied.
+# Fails if the question is unanswered and no default was supplied.
 jaia_debconf_get() {
     local question="$1"
     local default="$2"
@@ -48,7 +43,7 @@ jaia_debconf_get() {
 }
 
 # jaia_debconf_node_id
-# Prints bot_id or hub_id, whichever matches jaiabot-embedded/type.
+# bot_id or hub_id, whichever matches jaiabot-embedded/type.
 jaia_debconf_node_id() {
     local type
     type=$(jaia_debconf_get type) || return 1
@@ -60,9 +55,8 @@ jaia_debconf_node_id() {
 }
 
 # jaia_debconf_selections
-# Dumps this node's answers in debconf-set-selections format. This is what
-# config/gen/systemd.py reads, and what 'systemd.py --debconf_selections'
-# consumes, so the two paths parse identical input.
+# Dumps this node's answers in debconf-set-selections format - the same format
+# 'systemd.py --debconf_selections' takes, so both paths parse identical input.
 jaia_debconf_selections() {
     local out
 
@@ -71,8 +65,8 @@ jaia_debconf_selections() {
         return 1
     fi
 
-    # note the pipeline swallows debconf-get-selections' exit status, so treat
-    # an empty result as the failure signal rather than trusting $?
+    # the pipeline swallows debconf-get-selections' exit status, so an empty
+    # result is the only reliable failure signal
     out=$(debconf-get-selections 2>/dev/null \
               | grep "[[:space:]]${JAIA_DEBCONF_PACKAGE}/" \
               | sed "s/^unknown/${JAIA_DEBCONF_PACKAGE}/")

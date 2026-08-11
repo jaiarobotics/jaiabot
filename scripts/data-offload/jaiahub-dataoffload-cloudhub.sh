@@ -2,8 +2,7 @@
 
 set -e
 
-# jaia_fleet_id is inherited from the jaiabot_hub_manager unit environment,
-# which starts this script.
+# jaia_fleet_id is inherited from the jaiabot_hub_manager unit that starts this
 CLOUDHUB_IP=$(jaia_ip chf${jaia_fleet_id})
 
 # use non-s3fs temporary directory

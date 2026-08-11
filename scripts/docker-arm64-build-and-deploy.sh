@@ -85,10 +85,8 @@ else
     do
         echo "🟢 Uploading to "$remote
 
-        # systemd.py on the target reads its configuration from this file rather
-        # than from the command line. It is generated per target, inside this
-        # loop, because each bot has its own bot_id - one file made before the
-        # loop would give every bot in the deploy the same identity.
+        # Generated inside the loop: each bot has its own bot_id, so one file
+        # made before it would give every target in the deploy the same identity.
         selections=${build_dir}/jaiabot-embedded.selections
 
         if [ ! -z "${jaiabot_debconf_selections}" ]; then
@@ -96,8 +94,8 @@ else
             cp "${jaiabot_debconf_selections}" "${selections}"
         else
             echo "🟢 Reading debconf selections from "$remote
-            # debconf-get-selections prefixes rows with 'unknown' when the owning
-            # package isn't registered; rewrite it as jaia-create-fleet-config.sh does
+            # debconf-get-selections writes 'unknown' as the owner when the package
+            # isn't registered; rewrite as jaia-create-fleet-config.sh does
             ssh ${botuser}@"${remote}" "sudo debconf-get-selections | grep 'jaiabot-embedded/'" \
                 | sed 's/^unknown/jaiabot-embedded/' > "${selections}"
 
@@ -108,8 +106,7 @@ else
             fi
         fi
 
-        # The deploy switch is authoritative over whatever the target believes it
-        # is, so that hub services are never generated on top of bot config.
+        # deploy switch wins, so hub services are never generated on bot config
         if [ ! -z "${jaiabot_systemd_type}" ]; then
             sed -i "/^jaiabot-embedded[[:space:]]\+jaiabot-embedded\/type[[:space:]]/d" "${selections}"
             printf 'jaiabot-embedded\tjaiabot-embedded/type\tselect\t%s\n' "${jaiabot_systemd_type}" >> "${selections}"
