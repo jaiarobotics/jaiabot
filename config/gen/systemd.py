@@ -133,7 +133,7 @@ def find_debconf_helper() -> str:
         return helper
 
     # uninstalled source tree
-    local = os.path.realpath(script_dir + '/../../scripts/system/' + DEBCONF_HELPER)
+    local = os.path.realpath(script_dir + '/../../src/sh/system/' + DEBCONF_HELPER)
     if os.path.exists(local):
         return local
 
