@@ -169,9 +169,10 @@ with open(find_debconf_templates(), 'r') as file:
 
 
 def dc(question: str) -> str:
-    value = debconf.get(question, '').strip()
-    if value:
-        return value
+    if question in debconf:
+        value = debconf[question].strip()
+        if value or question not in DEBCONF_REQUIRED:
+            return value
     if question in DEBCONF_REQUIRED:
         sys.exit('ERROR: debconf question "' + DEBCONF_PACKAGE + '/' + question + '" is '
                  'unanswered in ' + debconf_source + '. Run "dpkg-reconfigure ' +
