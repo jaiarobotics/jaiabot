@@ -59,36 +59,48 @@ DEBCONF_PACKAGE = 'jaiabot-embedded'
 # script owns the schema below.
 DEBCONF_HELPER = 'jaia-debconf.sh'
 
-# DEBCONF_REQUIRED questions have no fallback, so a lost or half-written
-# database fails the install rather than silently producing a bot with the
-# wrong identity.
-DEBCONF_DEFAULTS = {
-    'type': '',
-    'mode': 'runtime',
-    'warp': '1',
-    'bot_id': '',
-    'hub_id': '',
-    'fleet_id': '',
-    'bot_type': 'none',
-    'led_type': 'none',
-    'electronics_stack': '0',
-    'user_role': 'user',
-    'imu_type': 'none',
-    'imu_install_type': 'none',
-    'arduino_type': 'none',
-    'pam_connection_type': 'none',
-    'data_offload_ignore_type': 'none',
-    'motor_harness_type': 'none',
-    'temperature_sensor_type': 'bar30',
-    'pressure_sensor_type': 'bar30',
-    'rf_encryption_password': '',
-    'dccl_encryption_password': '',
-    'comms_links': 'xbee',
-    'camera_positions': 'none',
-    'additional_sensors': 'none',
-}
+DEBCONF_TEMPLATES = DEBCONF_PACKAGE + '.templates'
 
+# type, bot_id, hub_id and fleet_id have no Default in the templates file
+# (debconf offers no "required" concept), so this is the one piece of
+# knowledge about the questions that has to live here rather than there.
+# A lost or half-written database fails the install rather than silently
+# producing a bot with the wrong identity.
 DEBCONF_REQUIRED = ['type', 'fleet_id']
+
+
+def parse_debconf_template_defaults(lines) -> Dict[str, str]:
+    """Extract each question's Default: field from a debconf templates file.
+
+    dpkg keeps every installed package's templates file at
+    /var/lib/dpkg/info/<pkg>.templates for the life of the package, so this
+    reads the same defaults debconf itself used to seed the database - instead
+    of a hand-copied list that can silently drift from it."""
+    defaults = dict()
+    current = None
+    prefix = DEBCONF_PACKAGE + '/'
+    for line in lines:
+        if not line.strip():
+            current = None
+        elif line.startswith('Template:'):
+            name = line[len('Template:'):].strip()
+            current = name[len(prefix):] if name.startswith(prefix) else None
+        elif current and line.startswith('Default:'):
+            defaults[current] = line[len('Default:'):].strip()
+    return defaults
+
+
+def find_debconf_templates() -> str:
+    installed = '/var/lib/dpkg/info/' + DEBCONF_TEMPLATES
+    if os.path.exists(installed):
+        return installed
+
+    # uninstalled source tree
+    local = os.path.realpath(script_dir + '/../../debian/' + DEBCONF_TEMPLATES)
+    if os.path.exists(local):
+        return local
+
+    sys.exit('ERROR: ' + DEBCONF_TEMPLATES + ' not found at ' + installed + ' or ' + local)
 
 
 def parse_debconf_selections(lines) -> Dict[str, str]:
@@ -152,6 +164,9 @@ else:
 
 print('Reading ' + DEBCONF_PACKAGE + ' configuration from ' + debconf_source)
 
+with open(find_debconf_templates(), 'r') as file:
+    debconf_defaults = parse_debconf_template_defaults(file)
+
 
 def dc(question: str) -> str:
     value = debconf.get(question, '').strip()
@@ -161,7 +176,7 @@ def dc(question: str) -> str:
         sys.exit('ERROR: debconf question "' + DEBCONF_PACKAGE + '/' + question + '" is '
                  'unanswered in ' + debconf_source + '. Run "dpkg-reconfigure ' +
                  DEBCONF_PACKAGE + '" to set it.')
-    return DEBCONF_DEFAULTS[question]
+    return debconf_defaults.get(question, '')
 
 
 def dc_multi(question: str):
