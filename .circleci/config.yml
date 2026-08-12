@@ -23,13 +23,13 @@ environment-template-common: &environment-template-common
 
 environment-template-amd64: &environment-template-amd64
   TARGET_ARCH: "amd64"
-  DEB_BUILD_OPTIONS: "parallel=8"
+  DEB_BUILD_OPTIONS: "parallel=4"
   # one job only must do the source build for each distro
   DO_SOURCE_BUILD: "true"
 
 environment-template-arm64: &environment-template-arm64
   TARGET_ARCH: "arm64"
-  DEB_BUILD_OPTIONS: "parallel=8 nocheck"
+  DEB_BUILD_OPTIONS: "parallel=4 nocheck"
 
 environment-template-resolute: &environment-template-resolute
   DISTRO_RELEASE_CODENAME: "resolute"
