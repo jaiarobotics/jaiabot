@@ -153,7 +153,8 @@ def read_fluorometer_coefficients(*paths):
             return 'fluorometer_coefficients { \n' + open(path).read() + '\n}\n'
         except FileNotFoundError:
             continue
-    return 'fluorometer_coefficients {}'
+    # leaving the block out entirely is how the driver knows this fluorometer is not set up
+    return ''
 
 # bots provisioned before dual fluorometer support have a single unnumbered file, which
 # belongs to the first fluorometer

@@ -290,10 +290,22 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
 
         // launched with an index so that a second fluorometer gets its own thread
         case sensor::protobuf::TURNER__C_FLUOR:
-            launch_thread<TurnerCFluorDriver>(metadata.instance(),
-                                              metadata.instance() == sensor::protobuf::INSTANCE_2
-                                                  ? cfg().fluorometer_2()
-                                                  : cfg().fluorometer());
+            // the payload board announces every fluorometer it can carry, whether or not a
+            // probe is plugged in, so run the second one only where it has been set up
+            if (metadata.instance() == sensor::protobuf::INSTANCE_2 &&
+                !cfg().fluorometer_2().has_fluorometer_coefficients())
+            {
+                glog.is_verbose() && glog << "No coefficients configured for the second "
+                                             "fluorometer, not launching its driver."
+                                          << std::endl;
+            }
+            else
+            {
+                launch_thread<TurnerCFluorDriver>(
+                    metadata.instance(), metadata.instance() == sensor::protobuf::INSTANCE_2
+                                             ? cfg().fluorometer_2()
+                                             : cfg().fluorometer());
+            }
             break;
 
         case sensor::protobuf::AML__SENSOR: 
