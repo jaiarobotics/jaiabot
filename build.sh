@@ -55,6 +55,23 @@ script_dir=$(dirname $0)
 
 ARCH=$(dpkg --print-architecture)
 
+# --- Generator selection: Ninja by default, pass --make to use GNU Make instead ---
+GENERATOR=Ninja
+args=()
+for arg in "$@"; do
+    if [ "${arg}" = "--make" ]; then
+        GENERATOR="Unix Makefiles"
+    else
+        args+=("${arg}")
+    fi
+done
+set -- "${args[@]}"
+
+if [ "${GENERATOR}" = "Ninja" ] && ! command -v ninja > /dev/null; then
+    echo "Error: ninja not found. Install it with 'jaia dev setup' (or scripts/build/setup-tools-build.sh), or pass --make to use GNU Make instead." >&2
+    exit 1
+fi
+
 # Make sure we're using the nvm versions of npm and webpack
 if [ -n "${XDG_CONFIG_HOME-}" ] && [ -d "${XDG_CONFIG_HOME}/nvm" ]; then
     export NVM_DIR="${XDG_CONFIG_HOME}/nvm"
@@ -73,8 +90,15 @@ mkdir -p ${script_dir}/build/${ARCH}
 # Initialize and update submodules
 git submodule update --init
 
-echo "Configuring..."
+echo "Configuring (generator: ${GENERATOR})..."
 cd ${script_dir}/build/${ARCH}
-(set -x; cmake ${JAIABOT_CMAKE_FLAGS} ../..)
+
+# cmake refuses to reconfigure a directory that another generator wrote
+if [ -f CMakeCache.txt ] && ! grep -q "^CMAKE_GENERATOR:INTERNAL=${GENERATOR}\$" CMakeCache.txt; then
+    echo "Discarding the CMake cache left by a previous generator"
+    rm -rf CMakeCache.txt CMakeFiles
+fi
+
+(set -x; cmake -G "${GENERATOR}" ${JAIABOT_CMAKE_FLAGS} ../..)
 echo "Building with ${JAIA_BUILD_NPROC} parallel processes..."
 (set -x; time cmake --build . -- -j${JAIA_BUILD_NPROC} ${JAIABOT_MAKE_FLAGS} $@)

@@ -2,13 +2,23 @@
 
 JaiaBot development is done on Ubuntu Linux, with the version of Ubuntu supported aligned with the `jaiabot` release branch (see [Repository](page019_repository.md) page).
 
+## Bootstrapping a fresh clone
+
+On a fresh clone there's no `jaia` tool yet to run `jaia dev setup` or `jaia dev build`, so `init.sh` bridges that gap: it runs the underlying setup and build steps directly, then puts `build/<arch>/bin` on `PATH` so `jaia` is available right away.
+
+```bash
+source ./init.sh
+```
+
+Source it (rather than running it) so the `PATH` change also applies to your current shell; future shells pick it up automatically, since `init.sh` also appends it to your shell rc file. Once it finishes, run `jaia dev build` to finish building the rest of the project.
+
 ## Dependencies
 
 The JaiaBot software depends on Goby3, MOOS, and other packages.
 
 When using the `jaiabot` Debian packages (see the CI/CD section below), these dependencies are automatically installed by `apt`.
 
-When building from source, these can be installed from the regular Ubuntu package repositories plus the `packages.jaia.tech` mirror of the `packages.gobysoft.org` repository (also reference the steps in jaiabot/.docker/resolute/amd64/Dockerfile):
+When building from source, these can be installed from the regular Ubuntu package repositories plus the `packages.jaia.tech` mirror of the `packages.gobysoft.org` repository (also reference the steps in jaiabot/.docker/resolute/amd64/Dockerfile). If you have the `jaia` tool already installed (e.g. from a package), `jaia dev setup` runs these steps for you (see below).
 
 ```
 # add mirror of packages.gobysoft.org to your apt sources
@@ -32,12 +42,13 @@ sudo apt-get -y install libgoby3:amd64 \
             curl:amd64 \
             nodejs:amd64 \
             webpack:amd64 \
-            npm:amd64
+            npm:amd64 \
+            ninja-build:amd64
 ```
 
 ## CMake
 
-The `jaiabot` software is configured using CMake which (by default) then generates Makefiles that the `make` tool uses to invoke the C++ compiler and linker.
+The `jaiabot` software is configured using CMake, which generates a Ninja build by default (Ninja is faster than, and otherwise a drop-in replacement for, the Makefiles CMake generates by default).
 
 This process is summarized by:
 
@@ -46,12 +57,12 @@ This process is summarized by:
 mkdir -p build/amd64
 cd build/amd64
 # configure the project
-cmake ../..
-# build it (using make by default)
+cmake -G Ninja ../..
+# build it
 cmake --build .
 ```
 
-This project provides a convenience script called `build.sh` that runs cmake to configure and build the project (using as many jobs as your machine has processors). The build.sh script segregates the CMake working directory by machine architecture (e.g. build/amd64, build/arm64, etc.). Additionally, you can set the environmental variables `JAIABOT_CMAKE_FLAGS` and/or `JAIABOT_MAKE_FLAGS` to pass command line parameters to CMake (during configure) or make, respectively. 
+This project provides a convenience script called `build.sh` that runs cmake to configure and build the project (using as many jobs as your machine has processors). The build.sh script segregates the CMake working directory by machine architecture (e.g. build/amd64, build/arm64, etc.). Additionally, you can set the environmental variables `JAIABOT_CMAKE_FLAGS` and/or `JAIABOT_MAKE_FLAGS` to pass command line parameters to CMake (during configure) or the underlying build tool, respectively. Pass `--make` to `build.sh` to use GNU Make instead of Ninja (e.g. if `ninja-build` isn't installed); switching between the two automatically discards the existing CMake cache, since CMake can't reconfigure a directory with a different generator than the one it was first configured with.
 
 Running the build script will start a parallel build using a number of processors that is equal to the lesser of:
 
@@ -71,6 +82,49 @@ Build documentation as well:
 ```
 export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"
 ./build.sh
+```
+
+### Using `jaia dev`
+
+If you have the `jaia` tool available (from a package, or already built from this source tree), `jaia dev` provides a friendlier front end for the day-to-day build workflow:
+
+```bash
+# install the compilers, CMake, apt build dependencies, arduino-cli and nvm/npm/webpack
+# needed to build this source tree (requires root or sudo)
+jaia dev setup
+
+# equivalent to ./build.sh
+jaia dev build
+# build only the 'jaia' target
+jaia dev build jaia
+# set a CMake variable, equivalent to `export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"; ./build.sh`
+jaia dev build --cmake_var build_doc=ON
+# set a variable passed to the underlying build tool (Ninja by default)
+jaia dev build --make_var VERBOSE=1
+# use GNU Make instead of the default Ninja generator
+jaia dev build --make
+
+# remove this machine's local build directory (e.g. build/amd64), for a clean rebuild
+jaia dev clean
+# also remove the cross-compile build directories from "jaia dev local_deploy" (e.g.
+# build/resolute-3.y-arm64); these are owned by root inside the build container, so this
+# uses sudo to remove them
+jaia dev clean --docker
+```
+
+`jaia dev build` checks for the tools `jaia dev setup` installs before invoking `build.sh`, so a missing setup step is reported clearly (e.g. "It looks like 'jaia dev setup' has not been (successfully) run on this machine") instead of failing partway through configuration.
+
+`jaia dev docker` is a front end for `docker` scoped to the images and containers this repository creates (the cross-compile build image/container from `container-image-build.sh` / `container-build-and-deploy.sh`, and the simulator image/container from `scripts/sim-docker`), which are all tagged with the Docker label `jaiabot_build=true`. For `docker` commands that support `--filter` (`ps`, `images`, `image ls`, `container ls`, `network ls`, `volume ls`, the `prune` commands, etc.), `jaia dev docker` automatically adds `--filter label=jaiabot_build=true` so only this repository's images/containers are shown or affected; other commands (e.g. `docker logs`, `docker exec`, `docker rm`) are passed through to `docker` unmodified:
+
+```bash
+# list this repository's running containers ('docker ps --filter label=jaiabot_build=true')
+jaia dev docker
+# list all of this repository's containers, running or not
+jaia dev docker ps -a
+# list this repository's images
+jaia dev docker image list
+# remove this repository's stopped containers
+jaia dev docker container prune
 ```
 
 ## CI/CD

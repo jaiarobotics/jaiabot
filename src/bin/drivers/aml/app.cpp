@@ -148,6 +148,8 @@ void jaiabot::apps::AMLSensorDriver::handle_sensor_output(const goby::middleware
     std::istringstream input_stream{io_data.data()};
     switch (sensor_name_)
     {
+        case jaiabot::sensor::protobuf::AML::DEFAULT: break;
+
         case jaiabot::sensor::protobuf::AML::CONDUCTIVITY:
             double conductivity{};
             double temperature{};

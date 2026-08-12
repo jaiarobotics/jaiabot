@@ -34,7 +34,7 @@ cd "${jaia_root}"
 remote_locale="LC_ALL=C.UTF-8"
 
 docker_run() {
-    docker run --env JAIA_BUILD_NPROC --env jaiabot_machine_type \
+    docker run --label jaiabot_build=true --env JAIA_BUILD_NPROC --env jaiabot_machine_type \
            -v "${jaia_root}":/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot "$@"
 }
 
