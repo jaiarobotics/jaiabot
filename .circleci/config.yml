@@ -155,6 +155,19 @@ job-template-deb-amd64: &job-template-deb-amd64
           sed -i "s/^set(PROJECT_VERSION_PATCH *\".*\"/set(PROJECT_VERSION_PATCH \"${NEWVERSION_PATCH}\"/" cmake/JaiaVersions.cmake
           quilt refresh
     - run: *run-zero-ccache-stats
+    # TEMPORARY: instrumentation to find what peaks memory during the build
+    - run: &run-memory-sampler
+        name: Sample memory during the build
+        background: true
+        command: |
+          mkdir -p /tmp/memlog
+          while true; do
+            cur=$(cat /sys/fs/cgroup/memory.current 2>/dev/null || cat /sys/fs/cgroup/memory/memory.usage_in_bytes 2>/dev/null || echo 0)
+            tot=$(awk '/^VmRSS:/{t+=$2} END{printf "%d", t/1024}' /proc/[0-9]*/status 2>/dev/null)
+            top=$(awk '/^Name:/{n=$2} /^VmRSS:/{printf "%dMiB:%s ", $2/1024, n}' /proc/[0-9]*/status 2>/dev/null | tr ' ' '\n' | sort -t: -k1 -rn | head -6 | tr '\n' ' ')
+            echo "$(date +%T) rss=${tot}MiB cgroup=$((cur/1048576))MiB ${top}" | tee -a /tmp/memlog/samples.txt
+            sleep 5
+          done
     - run: &run-build-pkg
         name: Build the Debian package
         command: |
@@ -175,6 +188,18 @@ job-template-deb-amd64: &job-template-deb-amd64
             export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} noopt"
           fi
           CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -kB90BE706B6A6724592B53B90954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
+    # TEMPORARY: runs even when the build fails, which is the case we care about
+    - run: &run-memory-report
+        name: Memory report
+        when: always
+        command: |
+          echo "cgroup limit: $(cat /sys/fs/cgroup/memory.max 2>/dev/null || echo unknown)"
+          echo "cgroup peak:  $(cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo unavailable)"
+          echo "MemTotal:     $(awk '/MemTotal/{print $2}' /proc/meminfo) kB"
+          echo "--- highest 15 samples by total RSS ---"
+          sort -t= -k2 -rn /tmp/memlog/samples.txt 2>/dev/null | head -15
+          echo "--- last 10 samples before the build ended ---"
+          tail -10 /tmp/memlog/samples.txt 2>/dev/null
     - run: *show-ccache-stats
     - save_cache: *save-ccache
     - save_cache: *save-npm-webpack-cache
