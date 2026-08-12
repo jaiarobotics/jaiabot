@@ -197,9 +197,10 @@ job-template-deb-amd64: &job-template-deb-amd64
           echo "cgroup peak:  $(cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo unavailable)"
           echo "MemTotal:     $(awk '/MemTotal/{print $2}' /proc/meminfo) kB"
           echo "--- highest 15 samples by total RSS ---"
-          sort -t= -k2 -rn /tmp/memlog/samples.txt 2>/dev/null | head -15
+          sort -t= -k2 -rn /tmp/memlog/samples.txt 2>/dev/null | head -15 || true
           echo "--- last 10 samples before the build ended ---"
-          tail -10 /tmp/memlog/samples.txt 2>/dev/null
+          tail -10 /tmp/memlog/samples.txt 2>/dev/null || true
+          true
     - run: *show-ccache-stats
     - save_cache: *save-ccache
     - save_cache: *save-npm-webpack-cache
