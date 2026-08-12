@@ -149,9 +149,10 @@ void jaiabot::apps::AMLSensorDriver::handle_sensor_output(const goby::middleware
     switch (sensor_name_)
     {
         case jaiabot::sensor::protobuf::AML::CONDUCTIVITY:
+        {
             double conductivity{};
             double temperature{};
-            if (input_stream >> conductivity >> temperature) 
+            if (input_stream >> conductivity >> temperature)
             {
                 aml.set_conductivity(conductivity);
                 aml.set_temperature(temperature);
@@ -161,6 +162,7 @@ void jaiabot::apps::AMLSensorDriver::handle_sensor_output(const goby::middleware
                 glog.is_debug1() && glog << "Unexpected CT sensor output" << std::endl;
             }
             break;
+        }
         case jaiabot::sensor::protobuf::AML::DEFAULT: break;
     }
     aml.set_sensor(sensor_name_);
