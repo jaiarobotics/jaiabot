@@ -153,7 +153,7 @@ job-template-deb-amd64: &job-template-deb-amd64
             # warn about copying it over from DEB_BUILD_PROFILES on our behalf
             export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} nodoc"
           fi
-          CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -k954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
+          CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -kB90BE706B6A6724592B53B90954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
     - run:
         name: Show ccache stats
         command: ccache -s || true
