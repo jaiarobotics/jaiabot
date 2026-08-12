@@ -1,37 +1,28 @@
 #!/usr/bin/env python3
 
+"""Removes all library files older than the most recently-built githashed versions."""
+
 import glob
 import os
 
-"""Removes all library files older than the most recently-build githashed versions.
-"""
+jaia_root = os.path.realpath(os.path.dirname(__file__) + '/../..')
 
-if __name__ == '__main__':
-    filesRemoved = 0
+files_removed = 0
 
-    for libPath in glob.glob('../build/*/lib'):
-        files = list(filter(os.path.isfile, glob.glob(libPath + "/*")))
-        files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-        
-        latestLibraryHash = None
-        for libraryFile in files:
-            parts = libraryFile.split('+')
-            if len(parts) > 1:
-                latestLibraryHash = parts[-1]
-                break
+for lib_path in glob.glob(jaia_root + '/build/*/lib'):
+    files = list(filter(os.path.isfile, glob.glob(lib_path + '/*')))
+    files.sort(key=os.path.getmtime, reverse=True)
 
-        if latestLibraryHash is None:
-            print(f'No hashed library files in {libPath}')
-            continue
-        
-        # Delete all library files with a hash different from the latest one
-        for libraryFile in files:
-            parts = libraryFile.split('+')
-            if len(parts) > 1:
-                thisLibraryHash = parts[-1]
-                if thisLibraryHash != latestLibraryHash:
-                    os.remove(libraryFile)
-                    print(f'Removed file {libraryFile}')
-                    filesRemoved += 1
+    hashes = [f.split('+')[-1] for f in files if '+' in f]
+    if not hashes:
+        print(f'No hashed library files in {lib_path}')
+        continue
 
-print(f'Deleted {filesRemoved} old library file(s)')
+    latest_hash = hashes[0]
+    for library_file in files:
+        if '+' in library_file and library_file.split('+')[-1] != latest_hash:
+            os.remove(library_file)
+            print(f'Removed file {library_file}')
+            files_removed += 1
+
+print(f'Deleted {files_removed} old library file(s)')

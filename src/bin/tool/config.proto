@@ -114,6 +114,9 @@ message Tool
             external_command: "jaia-doc.py"
             full_help_msg: "Command line interface to the jaiabot documentation (Markdown). Run with no arguments to show a list of all available pages, or provide a page name to display the output to the terminal window."
         }];
+        dev = 10 [
+            (goby.ev).cfg = { short_help_msg: "Developer tools for working from a source tree" }
+        ];
     }
     optional Action action = 2 [
         default = help,
