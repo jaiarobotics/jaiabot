@@ -27,6 +27,10 @@ source "${script_dir}/build-config.sh"
 
 cd "${jaia_root}"
 
+# ssh forwards the local LC_* variables, and the target only has C.UTF-8 generated, so without
+# this perl warns on every remote command that it could not set the locale
+remote_locale="LC_ALL=C.UTF-8"
+
 docker_run() {
     docker run --env JAIA_BUILD_NPROC --env jaiabot_machine_type \
            -v "${jaia_root}":/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot "$@"
@@ -70,7 +74,7 @@ for remote in "$@"; do
         echo "🟢 Reading debconf selections from ${remote}"
         # debconf-get-selections writes 'unknown' as the owner when the package
         # isn't registered; rewrite as jaia-create-fleet-config.sh does
-        ssh ${botuser}@"${remote}" "sudo debconf-get-selections | grep 'jaiabot-embedded/'" \
+        ssh ${botuser}@"${remote}" "${remote_locale} sudo debconf-get-selections | grep 'jaiabot-embedded/'" \
             | sed 's/^unknown/jaiabot-embedded/' > "${selections}"
     fi
 
@@ -87,7 +91,7 @@ for remote in "$@"; do
 
     # Login to the target, and deploy the software
     ssh ${botuser}@"${remote}" \
-        "docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} ./jaiabot/scripts/build/target-deploy.sh ${build_dir}"
+        "${remote_locale} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} ./jaiabot/scripts/build/target-deploy.sh ${build_dir}"
 
     echo "When you're ready, ssh ${botuser}@${remote} and run 'sudo systemctl start jaiabot'"
 done

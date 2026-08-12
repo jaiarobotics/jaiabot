@@ -16,6 +16,11 @@ if [ -z "${build_dir}" ]; then
     exit 1
 fi
 
+if ! command -v ninja > /dev/null; then
+    echo "❌ ninja not found: rebuild the container image with container-image-build.sh"
+    exit 1
+fi
+
 jaia_root=$(cd "$(dirname "$0")/../.." && pwd)
 
 mkdir -p "${jaia_root}/${build_dir}"
@@ -31,9 +36,15 @@ if [[ "${jaiabot_machine_type}" != "virtualbox" ]]; then
                 -DCMAKE_CXX_FLAGS="-target aarch64-linux-gnu")
 fi
 
+# cmake refuses to reconfigure a directory that another generator wrote
+if [ -f CMakeCache.txt ] && ! grep -q '^CMAKE_GENERATOR:INTERNAL=Ninja$' CMakeCache.txt; then
+    echo "🟢 Discarding the CMake cache left by a previous generator"
+    rm -rf CMakeCache.txt CMakeFiles
+fi
+
 echo "Building with node $(node -v), npm $(npm -v) and ${JAIA_BUILD_NPROC:=$(nproc)} parallel processes..."
 
-(set -x; cmake "${jaia_root}" "${cmake_args[@]}")
-(set -x; time make -j"${JAIA_BUILD_NPROC}")
+(set -x; cmake -G Ninja "${jaia_root}" "${cmake_args[@]}")
+(set -x; time cmake --build . -j "${JAIA_BUILD_NPROC}")
 # the build runs as root in the container, so make the output readable to the host user
 (set -x; chmod -R ugo+r .)
