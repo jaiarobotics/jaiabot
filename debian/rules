@@ -5,6 +5,12 @@ export CXX=/usr/bin/clang++
 
 CMAKE_EXTRA_FLAGS =
 
+# route the compile through ccache (if installed) to speed up rebuilds on unchanged source
+CCACHE := $(shell command -v ccache)
+ifneq ($(CCACHE),)
+	CMAKE_EXTRA_FLAGS += -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+endif
+
 DEB_BUILD_ARCH ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
 DEB_TARGET_ARCH ?= $(shell dpkg-architecture -qDEB_TARGET_ARCH)
 DEB_TARGET_GNU_CPU ?= $(shell dpkg-architecture -qDEB_TARGET_GNU_CPU)

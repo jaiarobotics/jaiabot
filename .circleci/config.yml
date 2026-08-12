@@ -11,6 +11,10 @@ environment-template-common: &environment-template-common
   CXX: /usr/bin/clang++
   # set to "true" to build jaiabot-doc/jaiabot-interfaces (and run goby_clang_tool) even when JAIABOT_APT_REPO is "test"
   BUILD_DOC_FOR_TEST_REPO: "false"
+  CCACHE_DIR: /root/.ccache
+  CCACHE_MAXSIZE: "3G"
+  # container mtimes aren't stable across job runs, so hash the compiler contents instead
+  CCACHE_COMPILERCHECK: content
 
 environment-template-amd64: &environment-template-amd64
   TARGET_ARCH: "amd64"
@@ -67,7 +71,8 @@ job-template-amd64: &job-template-amd64
         name: Update apt packages
         command: |
           apt-get update &&
-          apt-get dist-upgrade -y
+          apt-get dist-upgrade -y &&
+          apt-get install -y ccache
           [[ "${TARGET_ARCH}" == "amd64" && ( "${JAIABOT_APT_REPO}" != "test" || "${BUILD_DOC_FOR_TEST_REPO}" == "true" ) ]] && apt-get install -y goby3-clang-tool || true
     - run: &run-build
         name: Build
@@ -84,6 +89,11 @@ job-template-deb-amd64: &job-template-deb-amd64
   steps:
     - attach_workspace: &attach-src-workspace
         at: /root/src
+    - restore_cache: &restore-ccache
+        keys:
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-
     - run: &run-extract-src
         name: Extract the original source tarball
         command: |
@@ -127,6 +137,13 @@ job-template-deb-amd64: &job-template-deb-amd64
           export DPKG_BUILDPACKAGE_PROFILE=""
           [[ "${JAIABOT_APT_REPO}" == "test" && "${BUILD_DOC_FOR_TEST_REPO}" != "true" ]] && DPKG_BUILDPACKAGE_PROFILE="-Pnodoc"
           CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -k954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
+    - run:
+        name: Show ccache stats
+        command: ccache -s || true
+    - save_cache:
+        key: jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
+        paths:
+          - /root/.ccache
     - run: &run-store-next-build
         name: Store deb files for next build
         command: |
@@ -142,15 +159,6 @@ job-template-deb-amd64: &job-template-deb-amd64
         name: Remove original source file to avoid conflicts in merging
         command: |
           rm -f /root/deb/*.orig.tar.xz || true
-    - run: &run-python-venv
-        name: Build Python venv to ensure it builds successfully (for later use when jaiabot-python is installed) [only on amd64]
-        command: |
-          if [[ "${TARGET_ARCH}" == "amd64" ]]; then 
-            apt-get update && apt-get -y install rsync python3-venv python3-dev
-            cd ${CIRCLE_WORKING_DIRECTORY}/src/python
-            unset CC CXX
-            ./build_venv.sh /tmp/jaiabot-python-test
-          fi
     - persist_to_workspace: &persist-debs
         root: /root/deb
         paths:
@@ -245,6 +253,10 @@ workflows:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
+
+      # runs in parallel with the deb builds; validated separately so it doesn't block upload
+      - amd64-python-venv-build:
+          <<: *filter-template-debian-builds
 
       # always do the upload if we did the deb builds
       - upload:
@@ -487,6 +499,26 @@ jobs:
       <<: *environment-template-common
       <<: *environment-template-resolute
       <<: *environment-template-arm64
+
+  amd64-python-venv-build:
+    docker: *docker-base-resolute
+    resource_class: large
+    working_directory: /root/jaiabot
+    environment:
+      <<: *environment-template-common
+      <<: *environment-template-resolute
+      <<: *environment-template-amd64
+    steps:
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
+      - run:
+          name: Build Python venv to ensure it builds successfully (for later use when jaiabot-python is installed)
+          command: |
+            apt-get update && apt-get -y install rsync python3-venv python3-dev
+            cd src/python
+            unset CC CXX
+            ./build_venv.sh /tmp/jaiabot-python-test
 
   upload:
     <<: *job-template-upload
