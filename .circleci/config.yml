@@ -147,7 +147,12 @@ job-template-deb-amd64: &job-template-deb-amd64
           # skip building jaiabot-doc/jaiabot-interfaces (and the goby_clang_tool run they require) for the test repo to save build time
           # set BUILD_DOC_FOR_TEST_REPO=true to opt back into building them for test-repo builds
           export DPKG_BUILDPACKAGE_PROFILE=""
-          [[ "${JAIABOT_APT_REPO}" == "test" && "${BUILD_DOC_FOR_TEST_REPO}" != "true" ]] && DPKG_BUILDPACKAGE_PROFILE="-Pnodoc"
+          if [[ "${JAIABOT_APT_REPO}" == "test" && "${BUILD_DOC_FOR_TEST_REPO}" != "true" ]]; then
+            DPKG_BUILDPACKAGE_PROFILE="-Pnodoc"
+            # "nodoc" is also a legacy DEB_BUILD_OPTIONS flag; set it explicitly so dh doesn't
+            # warn about copying it over from DEB_BUILD_PROFILES on our behalf
+            export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} nodoc"
+          fi
           CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -k954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
     - run:
         name: Show ccache stats

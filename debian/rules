@@ -3,7 +3,9 @@
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 
-CMAKE_EXTRA_FLAGS =
+# debhelper's cmake buildsystem passes standard flags (BUILD_TESTING, QMAKE_EXECUTABLE, etc.)
+# our CMakeLists.txt doesn't all consume; suppress the resulting "unused variable" noise
+CMAKE_EXTRA_FLAGS = --no-warn-unused-cli
 
 # route the compile through ccache (if installed) to speed up rebuilds on unchanged source
 CCACHE := $(shell command -v ccache)
