@@ -36,4 +36,15 @@ message CleanTool
 
     optional goby.middleware.protobuf.AppConfig app = 1
         [(goby.field) = { cfg { action: DEVELOPER } }];
+
+    optional bool docker = 2 [
+        default = false,
+        (goby.field) = {
+            description: "Also remove the cross-compile build directories created by 'jaia dev "
+                         "local_deploy' (scripts/build/container-build-and-deploy.sh), e.g. "
+                         "build/resolute-3.y-arm64. These are owned by root inside the build "
+                         "container, so 'sudo' is used to remove them",
+            cfg { cli_short: "d" }
+        }
+    ];
 }

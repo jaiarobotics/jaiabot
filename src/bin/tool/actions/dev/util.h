@@ -23,10 +23,9 @@
 #ifndef JAIABOT_SRC_BIN_TOOL_ACTIONS_DEV_UTIL_H
 #define JAIABOT_SRC_BIN_TOOL_ACTIONS_DEV_UTIL_H
 
+#include <filesystem>
 #include <stdexcept>
 #include <string>
-
-#include <boost/filesystem.hpp>
 
 namespace jaiabot
 {
@@ -36,12 +35,12 @@ namespace dev
 {
 // Walks up from the current directory looking for `relative_path` (e.g. "build.sh"), so these
 // tools can be run from anywhere within a jaiabot source tree, not just its root.
-inline boost::filesystem::path find_in_repo(const std::string& relative_path)
+inline std::filesystem::path find_in_repo(const std::string& relative_path)
 {
-    for (auto dir = boost::filesystem::current_path(); !dir.empty(); dir = dir.parent_path())
+    for (auto dir = std::filesystem::current_path(); !dir.empty(); dir = dir.parent_path())
     {
         auto candidate = dir / relative_path;
-        if (boost::filesystem::exists(candidate))
+        if (std::filesystem::exists(candidate))
             return candidate;
     }
 

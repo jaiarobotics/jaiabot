@@ -59,9 +59,13 @@ message DevTool
                            "Requires that 'jaia dev setup' has been run first to install the required build tools."
         }];
         clean = 3 [(goby.ev).cfg = {
-            short_help_msg: "Remove the entire build directory",
-            full_help_msg: "Removes the \"build\" directory (for all machine architectures) from this source "
-                           "tree, so the next \"jaia dev build\" starts from a clean CMake configuration."
+            short_help_msg: "Remove the build directory",
+            full_help_msg: "By default, removes this machine's local build directory (e.g. \"build/amd64\"), "
+                           "so the next \"jaia dev build\" starts from a clean CMake configuration.\n"
+                           "\n"
+                           "With \"--docker\", also removes the cross-compile build directories created by "
+                           "\"jaia dev local_deploy\" (e.g. \"build/resolute-3.y-arm64\"), which are owned by "
+                           "root inside the build container and so are removed with \"sudo\"."
         }];
         setup = 4 [(goby.ev).cfg = {
             short_help_msg: "Install the tools required to build this source tree",

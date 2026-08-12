@@ -91,8 +91,12 @@ jaia dev build --cmake_var build_doc=ON
 # set a variable passed to the underlying build tool (make)
 jaia dev build --make_var VERBOSE=1
 
-# remove the entire build directory (all architectures), for a clean rebuild
+# remove this machine's local build directory (e.g. build/amd64), for a clean rebuild
 jaia dev clean
+# also remove the cross-compile build directories from "jaia dev local_deploy" (e.g.
+# build/resolute-3.y-arm64); these are owned by root inside the build container, so this
+# uses sudo to remove them
+jaia dev clean --docker
 ```
 
 `jaia dev build` checks for the tools `jaia dev setup` installs before invoking `build.sh`, so a missing setup step is reported clearly (e.g. "It looks like 'jaia dev setup' has not been (successfully) run on this machine") instead of failing partway through configuration.

@@ -5,7 +5,6 @@
 
 #include <unistd.h>
 
-#include <boost/filesystem.hpp>
 #include <goby/util/debug_logger.h>
 
 #include "jaiabot/utils/ip.h"

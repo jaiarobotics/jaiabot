@@ -1,11 +1,11 @@
 #include <cstdlib>
+#include <filesystem>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 #include <unistd.h>
 
-#include <boost/filesystem.hpp>
 #include <goby/util/debug_logger.h>
 
 #include "build.h"
@@ -26,13 +26,13 @@ bool nvm_is_installed()
 {
     if (const char* xdg_config_home = std::getenv("XDG_CONFIG_HOME"))
     {
-        if (boost::filesystem::exists(boost::filesystem::path(xdg_config_home) / "nvm"))
+        if (std::filesystem::exists(std::filesystem::path(xdg_config_home) / "nvm"))
             return true;
     }
 
     if (const char* home = std::getenv("HOME"))
     {
-        if (boost::filesystem::exists(boost::filesystem::path(home) / ".nvm"))
+        if (std::filesystem::exists(std::filesystem::path(home) / ".nvm"))
             return true;
     }
 
