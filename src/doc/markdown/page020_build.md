@@ -2,6 +2,16 @@
 
 JaiaBot development is done on Ubuntu Linux, with the version of Ubuntu supported aligned with the `jaiabot` release branch (see [Repository](page019_repository.md) page).
 
+## Bootstrapping a fresh clone
+
+On a fresh clone there's no `jaia` tool yet to run `jaia dev setup` or `jaia dev build`, so `init.sh` bridges that gap: it runs the underlying setup and build steps directly, then puts `build/<arch>/bin` on `PATH` so `jaia` is available right away.
+
+```bash
+source ./init.sh
+```
+
+Source it (rather than running it) so the `PATH` change also applies to your current shell; future shells pick it up automatically, since `init.sh` also appends it to your shell rc file. Once it finishes, run `jaia dev build` to finish building the rest of the project.
+
 ## Dependencies
 
 The JaiaBot software depends on Goby3, MOOS, and other packages.

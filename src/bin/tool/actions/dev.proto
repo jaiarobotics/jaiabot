@@ -61,7 +61,10 @@ message DevTool
         clean = 3 [(goby.ev).cfg = {
             short_help_msg: "Remove the build directory",
             full_help_msg: "By default, removes this machine's local build directory (e.g. \"build/amd64\"), "
-                           "so the next \"jaia dev build\" starts from a clean CMake configuration.\n"
+                           "so the next \"jaia dev build\" starts from a clean CMake configuration. If "
+                           "'jaia' itself was built from this tree (e.g. by ./init.sh), the running "
+                           "binary and the shared libraries it has loaded are skipped rather than "
+                           "removed out from under it; rebuild (\"jaia dev build jaia\") to replace them.\n"
                            "\n"
                            "With \"--docker\", also removes the cross-compile build directories created by "
                            "\"jaia dev local_deploy\" (e.g. \"build/resolute-3.y-arm64\"), which are owned by "
