@@ -105,6 +105,7 @@ jaiabot::apps::dev::LocalDeployTool::LocalDeployTool()
     setenv("jaiabot_repo", Config::Repo_Name(app_cfg().repo()).c_str(), true);
     setenv("jaiabot_machine_type", Config::MachineType_Name(app_cfg().machine_type()).c_str(),
            true);
+    setenv("jaiabot_rebuild_image", app_cfg().rebuild_image() ? "true" : "false", true);
 
     std::vector<char*> c_args;
     for (const auto& arg : args) c_args.push_back(const_cast<char*>(arg.c_str()));

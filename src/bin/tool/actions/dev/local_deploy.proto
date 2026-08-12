@@ -72,4 +72,11 @@ message LocalDeployTool
             description: "Machine to build for: 'embedded' for the arm64 Raspberry Pi targets, or 'virtualbox' for amd64 virtual machines"
         }
     ];
+
+    optional bool rebuild_image = 6 [
+        default = false,
+        (goby.field) = {
+            description: "Rebuild the build container image before building, for example after a change to the Dockerfile or to pick up newer dependencies. Without this the image is built only when it does not yet exist"
+        }
+    ];
 }

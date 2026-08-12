@@ -12,6 +12,7 @@
 ## The systemd services are always generated and enabled for the target's type (bot or hub), which
 ## is read from the target's own debconf database.
 ##
+## Env var "jaiabot_rebuild_image" can be set to "true" to rebuild the build container image first. If unset, the image is built only when it does not yet exist.
 ## Env var "jaiabot_debconf_selections" can be set to a debconf-set-selections format file to configure the target from that file instead of from the target's own debconf database
 ## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead. If unset, the target will be the standard arm64 embedded system.
 ## Env var "jaiabot_repo" can be set to one of: release, continuous, beta, test, which will set the repository to use for install 'apt' dependencies in the Docker container. If unset, "release" will be used.
@@ -36,7 +37,7 @@ docker_run() {
            -v "${jaia_root}":/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot "$@"
 }
 
-if [ "$(docker image ls ${image_name} --format='true')" != "true" ]; then
+if [ "${jaiabot_rebuild_image}" = "true" ] || [ "$(docker image ls ${image_name} --format='true')" != "true" ]; then
     echo "🟢 Building the docker ${image_name} image"
     "${script_dir}/container-image-build.sh"
 fi

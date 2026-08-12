@@ -342,6 +342,8 @@ jaia dev local_deploy b1..b3 h1 --fleet 6
 jaia dev local_deploy b1f6 --repo continuous
 # build amd64 binaries for a VirtualBox target instead of the arm64 embedded system
 jaia dev local_deploy b1f6 --machine_type virtualbox
+# rebuild the build container image first, e.g. to pick up newer dependencies
+jaia dev local_deploy b1f6 --rebuild_image
 ```
 
 Each target is either a host code (`b<bot_id>f<fleet_id>` or `h<hub_id>f<fleet_id>`, as used by `jaia
@@ -364,6 +366,7 @@ can also be called directly with a list of ssh hosts:
 ## targets given on the command line. If no targets are given, the code is just built, but not
 ## pushed.
 ##
+## Env var "jaiabot_rebuild_image" can be set to "true" to rebuild the build container image first. If unset, the image is built only when it does not yet exist.
 ## Env var "jaiabot_debconf_selections" can be set to a debconf-set-selections format file to configure the target from that file instead of from the target's own debconf database
 ## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead. If unset, the target will be the standard arm64 embedded system.
 ## Env var "jaiabot_repo" can be set to one of: release, continuous, beta, test, which will set the repository to use for install 'apt' dependencies in the Docker container. If unset, "release" will be used.
