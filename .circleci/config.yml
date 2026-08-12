@@ -65,8 +65,8 @@ job-template-amd64: &job-template-amd64
         name: Update apt packages
         command: |
           apt-get update &&
-          apt-get dist-upgrade -y 
-          [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install -y goby3-clang-tool || true
+          apt-get dist-upgrade -y
+          [[ "${TARGET_ARCH}" == "amd64" && "${JAIABOT_APT_REPO}" != "test" ]] && apt-get install -y goby3-clang-tool || true
     - run: &run-build
         name: Build
         command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON .. && cmake --build . -- -j4
@@ -119,8 +119,11 @@ job-template-deb-amd64: &job-template-deb-amd64
         command: |
           export DPKG_BUILDPACKAGE_BUILD_TYPE="-B"
           # default is to do source and binary build
-          [[ "${DO_SOURCE_BUILD}" == "true" ]] && DPKG_BUILDPACKAGE_BUILD_TYPE=""        
-          CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -k954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE}
+          [[ "${DO_SOURCE_BUILD}" == "true" ]] && DPKG_BUILDPACKAGE_BUILD_TYPE=""
+          # skip building jaiabot-doc/jaiabot-interfaces (and the goby_clang_tool run they require) for the test repo to save build time
+          export DPKG_BUILDPACKAGE_PROFILE=""
+          [[ "${JAIABOT_APT_REPO}" == "test" ]] && DPKG_BUILDPACKAGE_PROFILE="-Pnodoc"
+          CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -k954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
     - run: &run-store-next-build
         name: Store deb files for next build
         command: |
@@ -170,8 +173,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        - "claude/remove-runtime-env-simplify-system-6thi11"
-        - "claude/festive-knuth-qj9tfk"
+        - "claude/circleci-debian-build-optimization-uwuryg"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -179,8 +181,7 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "3.y"
-        - "claude/remove-runtime-env-simplify-system-6thi11"
-        - "claude/festive-knuth-qj9tfk"
+        - "claude/circleci-debian-build-optimization-uwuryg"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -199,8 +200,6 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "claude/remove-runtime-env-simplify-system-6thi11"
-        - "claude/festive-knuth-qj9tfk"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -210,8 +209,6 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "claude/remove-runtime-env-simplify-system-6thi11"
-        - "claude/festive-knuth-qj9tfk"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -221,8 +218,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
-        - "claude/remove-runtime-env-simplify-system-6thi11"
-        
+
 ## Begin actual config
 version: 2.1
 orbs:

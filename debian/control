@@ -13,8 +13,8 @@ Build-Depends: debhelper-compat (= 13),
                nanopb
 Build-Depends-Indep:
                python3-protobuf,
-               goby3-clang-tool [amd64],
-               goby3-interfaces [amd64],
+               goby3-clang-tool [amd64] <!nodoc>,
+               goby3-interfaces [amd64] <!nodoc>,
                dccl5-apps [amd64]
 Standards-Version: 3.9.6
 Section: libs
@@ -120,6 +120,7 @@ Description: Runtime configuration generation for the Jaiabot Project applicatio
  The jaiabot project provides binaries and libraries for the Jaiabot Autonomous Underwater Vehicle: https://www.jaia.tech/
 
 Package: jaiabot-doc
+Build-Profiles: <!nodoc>
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Section: doc
 Architecture: all
@@ -127,6 +128,7 @@ Description: Documentation for the Jaiabot Project
  The jaiabot project provides binaries and libraries for the Jaiabot Autonomous Underwater Vehicle: https://www.jaia.tech/
 
 Package: jaiabot-interfaces
+Build-Profiles: <!nodoc>
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Section: doc
 Architecture: all
