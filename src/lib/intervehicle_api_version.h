@@ -1,4 +1,4 @@
-// Copyright 2021:
+// Copyright 2026:
 //   JaiaRobotics LLC
 // File authors:
 //   Toby Schneider <toby@gobysoft.org>
@@ -20,30 +20,21 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the Jaia Libraries.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef JAIABOT_SRC_LIB_VERSION_H
-#define JAIABOT_SRC_LIB_VERSION_H
+#ifndef JAIABOT_SRC_LIB_INTERVEHICLE_API_VERSION_H
+#define JAIABOT_SRC_LIB_INTERVEHICLE_API_VERSION_H
 
-#include <string>
+#include <cstdint>
 
-#include "jaiabot/intervehicle_api_version.h"
-
-// clang-format off
-// (don't change @@ macros for CMake)
-#define JAIABOT_VERSION_MAJOR "@PROJECT_VERSION_MAJOR@"
-#define JAIABOT_VERSION_MINOR "@PROJECT_VERSION_MINOR@"
-#define JAIABOT_VERSION_PATCH "@PROJECT_VERSION_PATCH@"
-
-#if @PROJECT_GIT_BUILD@
-#define JAIABOT_VERSION_GITHASH "@PROJECT_VERSION_GITHASH@"
-#define JAIABOT_VERSION_GITBRANCH "@PROJECT_VERSION_GITBRANCH@"
-#endif
-
-#define MOOS_VERSION "@MOOS_VERSION@"
+// Kept out of version.h, which is regenerated with the git revision on every commit:
+// groups.h needs this constant, and pulling in the revision alongside it would rebuild
+// most of the codebase whenever HEAD moves.
 
 namespace jaiabot
 {
-constexpr const char* VERSION_STRING = "@PROJECT_VERSION@";
-}
+// clang-format off
+// (don't change @@ macros for CMake)
+constexpr std::uint32_t INTERVEHICLE_API_VERSION{@PROJECT_INTERVEHICLE_API_VERSION@};
 // clang-format on
+} // namespace jaiabot
 
 #endif
