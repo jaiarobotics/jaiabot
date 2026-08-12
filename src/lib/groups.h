@@ -25,7 +25,7 @@
 
 #include "goby/middleware/group.h"
 
-#include "jaiabot/version.h"
+#include "jaiabot/intervehicle_api_version.h"
 
 namespace jaiabot
 {

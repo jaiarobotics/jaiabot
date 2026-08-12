@@ -66,6 +66,11 @@ job-template-amd64: &job-template-amd64
         keys:
           - jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
           - jaiabot-npm-webpack-v1-
+    - restore_cache: &restore-ccache
+        keys:
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-
     - run: &run-set-deb-rep-and-version
         name: Set environmental variables for which packages.jaia.tech repo to use
         command: |
@@ -86,9 +91,21 @@ job-template-amd64: &job-template-amd64
           apt-get dist-upgrade -y &&
           apt-get install -y ccache
           [[ "${TARGET_ARCH}" == "amd64" && ( "${JAIABOT_APT_REPO}" != "test" || "${BUILD_DOC_FOR_TEST_REPO}" == "true" ) ]] && apt-get install -y goby3-clang-tool || true
+    - run: &run-zero-ccache-stats
+        name: Reset ccache statistics
+        # the counters live in the cache directory, so without this they accumulate
+        # across every build that restores the cache
+        command: ccache -z || true
     - run: &run-build
         name: Build
-        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON .. && cmake --build . -- -j4
+        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache .. && cmake --build . -- -j4
+    - run: &show-ccache-stats
+        name: Show ccache stats
+        command: ccache -s || true
+    - save_cache: &save-ccache
+        key: jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
+        paths:
+          - /root/.ccache
     - save_cache: &save-npm-webpack-cache
         key: jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
         paths:
@@ -106,11 +123,7 @@ job-template-deb-amd64: &job-template-deb-amd64
   steps:
     - attach_workspace: &attach-src-workspace
         at: /root/src
-    - restore_cache: &restore-ccache
-        keys:
-          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
-          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-
-          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-
+    - restore_cache: *restore-ccache
     - run: &run-extract-src
         name: Extract the original source tarball
         command: |
@@ -144,6 +157,7 @@ job-template-deb-amd64: &job-template-deb-amd64
           sed -i "s/^set(PROJECT_VERSION_MINOR *\".*\"/set(PROJECT_VERSION_MINOR \"${NEWVERSION_MINOR}\"/" cmake/JaiaVersions.cmake
           sed -i "s/^set(PROJECT_VERSION_PATCH *\".*\"/set(PROJECT_VERSION_PATCH \"${NEWVERSION_PATCH}\"/" cmake/JaiaVersions.cmake
           quilt refresh
+    - run: *run-zero-ccache-stats
     - run: &run-build-pkg
         name: Build the Debian package
         command: |
@@ -164,13 +178,8 @@ job-template-deb-amd64: &job-template-deb-amd64
             export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} noopt"
           fi
           CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -kB90BE706B6A6724592B53B90954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
-    - run:
-        name: Show ccache stats
-        command: ccache -s || true
-    - save_cache:
-        key: jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
-        paths:
-          - /root/.ccache
+    - run: *show-ccache-stats
+    - save_cache: *save-ccache
     - save_cache: *save-npm-webpack-cache
     - run: &run-store-next-build
         name: Store deb files for next build

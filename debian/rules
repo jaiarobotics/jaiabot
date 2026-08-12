@@ -3,6 +3,16 @@
 export CC=/usr/bin/clang
 export CXX=/usr/bin/clang++
 
+# Ubuntu's dpkg-buildflags defaults this to /usr/src/<package>-<version>, which puts the
+# package version on every compile command line; since the version changes with each commit,
+# ccache hashes a different working directory every build and misses on every source file
+export DEB_BUILD_DEBUGPATH = /usr/src/jaiabot
+
+# Ubuntu enables LTO by default on amd64/arm64. Most jaiabot binaries link two objects, and
+# the code that matters lives in goby/dccl/jaiabot_messages, across .so boundaries LTO can't
+# reach, so it buys almost nothing here while each concurrent link costs about a gigabyte
+export DEB_BUILD_MAINT_OPTIONS = optimize=-lto
+
 # debhelper's cmake buildsystem passes standard flags (BUILD_TESTING, QMAKE_EXECUTABLE, etc.)
 # our CMakeLists.txt doesn't all consume; suppress the resulting "unused variable" noise
 CMAKE_EXTRA_FLAGS = --no-warn-unused-cli
@@ -15,15 +25,20 @@ endif
 
 # let the linker drop libraries a binary doesn't actually reference any symbols from
 # (goby's exported CMake targets pull in a large transitive PUBLIC link list that most
-# individual jaiabot apps don't need in full, which dpkg-shlibdeps flags as "useless")
-CMAKE_EXTRA_FLAGS += -DCMAKE_EXE_LINKER_FLAGS=-Wl,--as-needed -DCMAKE_SHARED_LINKER_FLAGS=-Wl,--as-needed
+# individual jaiabot apps don't need in full, which dpkg-shlibdeps flags as "useless").
+# -DCMAKE_{EXE,SHARED}_LINKER_FLAGS would replace the distro LDFLAGS rather than add to them
+export DEB_LDFLAGS_APPEND = -Wl,--as-needed
 
 DEB_BUILD_ARCH ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
 DEB_TARGET_ARCH ?= $(shell dpkg-architecture -qDEB_TARGET_ARCH)
 DEB_TARGET_GNU_CPU ?= $(shell dpkg-architecture -qDEB_TARGET_GNU_CPU)
 ifneq ($(DEB_BUILD_ARCH),$(DEB_TARGET_ARCH))
         # cross compiling
-        CMAKE_EXTRA_FLAGS += -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=$(DEB_TARGET_GNU_CPU) -DCMAKE_C_FLAGS="-target $(DEB_HOST_GNU_TYPE)" -DCMAKE_CXX_FLAGS="-target $(DEB_HOST_GNU_TYPE)"
+        CMAKE_EXTRA_FLAGS += -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=$(DEB_TARGET_GNU_CPU)
+        # -DCMAKE_C_FLAGS/-DCMAKE_CXX_FLAGS would replace the distro CFLAGS/CXXFLAGS
+        # (optimization, debug info, hardening) rather than add to them
+        export DEB_CFLAGS_APPEND = -target $(DEB_HOST_GNU_TYPE)
+        export DEB_CXXFLAGS_APPEND = -target $(DEB_HOST_GNU_TYPE)
 else
 # only run unit tests and build documentation on x86_64 and i386
 ifeq ($(shell (dpkg-architecture -qDEB_BUILD_ARCH | egrep -q "amd64|i386") && echo "yes"),yes)
