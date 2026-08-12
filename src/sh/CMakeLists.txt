@@ -43,7 +43,25 @@ set(scripts_to_install
   )
 
 # Iterate over each script to install and copy
+#
+# Note: the build-directory copy is done with a build-time add_custom_command
+# rather than configure_file(), because configure_file() registers its input
+# as a CMake reconfigure dependency. Since this is a single monolithic CMake
+# project, touching any one of these scripts would then force a full
+# reconfigure (and consequent rebuild churn) of the entire repo.
+set(sh_scripts_bin_copies)
 foreach(script ${scripts_to_install})
     install(PROGRAMS ${project_SH_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
-    configure_file(${project_SH_DIR}/${script} ${project_BIN_DIR} COPYONLY)
+
+    get_filename_component(script_name ${script} NAME)
+    set(script_bin_copy ${project_BIN_DIR}/${script_name})
+    add_custom_command(
+      OUTPUT ${script_bin_copy}
+      COMMAND ${CMAKE_COMMAND} -E copy ${project_SH_DIR}/${script} ${script_bin_copy}
+      DEPENDS ${project_SH_DIR}/${script}
+      COMMENT "Copying ${script} to ${project_BIN_DIR}"
+      )
+    list(APPEND sh_scripts_bin_copies ${script_bin_copy})
 endforeach()
+
+add_custom_target(copy_sh_scripts ALL DEPENDS ${sh_scripts_bin_copies})
