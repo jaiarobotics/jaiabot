@@ -171,7 +171,8 @@ filter-template-debian-builds: &filter-template-debian-builds
       only:
         - "3.y"
         - "claude/remove-runtime-env-simplify-system-6thi11"
-        
+        - "claude/festive-knuth-qj9tfk"
+
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
   filters:
@@ -179,6 +180,7 @@ filter-template-normal-builds: &filter-template-normal-builds
       ignore:
         - "3.y"
         - "claude/remove-runtime-env-simplify-system-6thi11"
+        - "claude/festive-knuth-qj9tfk"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -198,6 +200,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
       only:
         - "3.y"
         - "claude/remove-runtime-env-simplify-system-6thi11"
+        - "claude/festive-knuth-qj9tfk"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -208,6 +211,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
       only:
         - "3.y"
         - "claude/remove-runtime-env-simplify-system-6thi11"
+        - "claude/festive-knuth-qj9tfk"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
