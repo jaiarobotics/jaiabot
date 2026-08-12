@@ -1,6 +1,6 @@
 # Review: exclusion-zone-detection.ts and exclusion-zone-router.ts
 
-_Status: Findings 1-3 fixed. Finding 4 documented, not fixed yet._
+_Status: all findings (1-4) fixed._
 
 This is the start of the "router investigation" flagged as out of scope in
 [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)'s
@@ -131,7 +131,7 @@ clean.
 
 ## Finding 4 — stale "re-convex-hulls" comments; zones are never convex-hulled
 
-_Confirmed, documentation-only bug._
+_Fixed._
 
 `exclusion-zone-handlers.ts` has three JSDoc comments claiming zone-editing
 handlers "re-convex-hull" the zone:
@@ -158,9 +158,15 @@ branch. Best guess: a partially-reverted implementation attempt — the
 comments survived because nobody had a reason to touch those specific
 docblocks since.
 
-**Candidate fix:** delete the three stale phrases; the surrounding
-sentences already describe the real behavior (re-computes vertex position,
-triggers reroute detection) without needing the hull claim.
+**Fix:** deleted the three stale phrases. `handleAddZoneVertex`'s comment
+had a second, related stale claim worth noting — "its hull position is
+derived from that [drawnVertices]" — `drawnVertices` isn't a real field
+anywhere in the current `ExclusionZone`/`ExclusionZoneSet` model (repo-wide
+search, zero matches before this fix); `addVertex` just appends the new
+vertex and returns its (trivial, last) index. Removed that claim too. The
+surrounding sentences already described the real behavior (recomputes
+vertex position/list, triggers reroute detection) without needing either
+claim.
 
 ## Ruled out
 
@@ -183,8 +189,3 @@ been caught by the waypoint-removal check first. The code pattern (full
 zone list instead of the pre-filtered `blockingZones`) is still a little
 sloppy and worth a comment if this function is touched for other reasons,
 but not a live bug on its own.
-
-## Out of scope for this pass
-
-Fixing any of the above. This document is findings only, per the user's
-instruction to record them before deciding what to act on.

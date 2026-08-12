@@ -292,10 +292,10 @@ export function handleSelectZoneVertex(mutableState: JaiaContextType, action: Ja
 }
 
 /**
- * Moves the currently selected zone vertex to a new location, re-convex-hulls
- * the zone, and triggers mission reroute/waypoint-removal detection.
- * If any waypoints fall inside the new zone shape the move is staged and the
- * operator is shown the waypoint-removal dialog; cancelling reverts the zone.
+ * Moves the currently selected zone vertex to a new location and triggers
+ * mission reroute/waypoint-removal detection. If any waypoints fall inside
+ * the new zone shape the move is staged and the operator is shown the
+ * waypoint-removal dialog; cancelling reverts the zone.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the new geographic location for the selected vertex
@@ -414,9 +414,8 @@ export function handleToggleZoneVertexTapToMove(mutableState: JaiaContextType) {
 }
 
 /**
- * Adds a new vertex at the clicked map location and re-convex-hulls the zone.
- * The new vertex is always appended to drawnVertices and its hull position is
- * derived from that. Same reroute/removal detection path as a vertex move.
+ * Adds a new vertex at the clicked map location, appended to the end of the
+ * zone's vertex list. Same reroute/removal detection path as a vertex move.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the zone ID and the geographic location of the new vertex
@@ -490,7 +489,7 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
 
 /**
  * Deletes a vertex from a zone. Requires at least 3 vertices to remain.
- * Re-convex-hulls after deletion and triggers reroute detection.
+ * Triggers reroute detection after deletion.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the zone ID and vertex index to delete
