@@ -4,10 +4,11 @@ Found while manually smoke-testing [`01REFACTOR_PLAN.md`](./01REFACTOR_PLAN.md)
 (Parts A-F) before deciding on
 [`02PENDING_DIALOG_REFACTOR_PLAN.md`](./02PENDING_DIALOG_REFACTOR_PLAN.md),
 plus four more (Bugs 4-7) found later while smoke-testing
-[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md).
-All are pre-existing — confirmed not caused by any of the refactors that
-surfaced them. Bugs 3 and 7 are fixed; Bugs 1, 2, 4, 5, and 6 are still
-open.
+[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md),
+and one more (Bug 8) found while reviewing
+[`08ROUTER_REVIEW.md`](./08ROUTER_REVIEW.md)'s target files. All are
+pre-existing — confirmed not caused by any of the refactors that surfaced
+them. Bugs 3 and 7 are fixed; Bugs 1, 2, 4, 5, 6, and 8 are still open.
 
 ## Bug 1 — deleting a zone doesn't restore waypoints it removed
 
@@ -388,6 +389,88 @@ faithfully until this fix.
   (no longer pre-deleted), and would otherwise double-render alongside the
   load-specific "N missions could not be loaded" list.
 
+## Bug 8 — a mission set with a missing waypoint location can crash the app instead of failing gracefully
+
+_Confirmed real gap, not fixed. Found while reviewing
+`exclusion-zone-router.ts`/`exclusion-zone-detection.ts`
+(see [`08ROUTER_REVIEW.md`](./08ROUTER_REVIEW.md)), but the fix is isolated
+to mission-set loading, not the router — tracked here instead._
+
+**Symptom:** if a saved/imported mission set contains a waypoint with no
+location, nothing catches this at load time. The mission sits in the data
+model looking normal. The first time reroute detection runs on it _while
+at least one exclusion zone exists_ — which could be immediately, or much
+later, on some unrelated edit — the app crashes with an uncaught
+`TypeError`, not a graceful error message.
+
+**Root cause:** `Waypoint.location`
+([waypoint.ts:16](../../../data/waypoints/waypoint.ts#L16)) is declared
+non-optional but never initialized in the constructor, so it's genuinely
+`undefined` at runtime unless `setLocation` is called with a real value.
+`Mission.fromJSON`
+([mission.ts:185-194](../../../data/mission_set/mission.ts#L185-L194))
+calls `waypoint.setLocation(serializedWaypoint.location)` unconditionally,
+with no check that `serializedWaypoint.location` exists — and `Goal`, the
+protobuf-mirrored type this ultimately traces back to, has `location`
+explicitly optional
+([types/protobuf-types.ts:685](../../../types/protobuf-types.ts#L685)).
+
+`Mission.fromJSON` is the single, sufficient place to fix this: a second
+raw construction site exists (`extractLegacyMissionData`,
+[mission-set-storage.ts:340-341](../../../components/MissionsPanel/MissionSetStorage/mission-set-storage.ts#L340-L341),
+used for legacy mission-file imports), but its output always gets
+re-processed through `Mission.fromJSON` inside `handleLoadMissionSet`
+before reaching `missionSet` — traced the full dispatch chain
+(`ImportMissionSetButton.tsx` → `loadSnapshotFromFile` →
+`LOAD_MISSION_SET` → `handleLoadMissionSet`) to confirm every load path
+funnels through it at least once immediately before missions are applied.
+
+**Exact crash mechanism:** `detectMissionReroutes()` →
+`routeAroundExclusionZones()` → `toXY(origin, coord)`
+([exclusion-zone-router.ts:31-38](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts#L31-L38)).
+If the location-less waypoint is the mission's first clean waypoint,
+`origin` itself is `undefined` and the crash is `Cannot read properties of
+undefined (reading 'lat')` on the first zone-vertex projection; otherwise
+it's `Cannot read properties of undefined (reading 'lon')` when that
+waypoint's own coordinate gets projected. Both are uncaught, synchronous
+exceptions thrown from inside a handler called directly by the reducer —
+nothing catches them. `detectWaypointRemovals()` — checked first, always —
+does **not** crash on this waypoint (`if (!loc) return true;` keeps it,
+un-flagged), which is why the bad data can sit completely harmless until
+some later, unrelated action triggers reroute detection with a zone
+present, making the eventual crash confusing to diagnose.
+
+**Candidate fix (agreed, not implemented):**
+
+1. In `Mission.fromJSON`, throw a clear error (e.g. "Mission set data is
+   corrupted: a waypoint is missing its location") instead of silently
+   calling `setLocation(undefined)`.
+2. In `handleLoadMissionSet`, run the `Mission.fromJSON` calls for all
+   missions in a validation pass _before_ touching `missionSet` (before
+   `deleteAllMissions()`/`clear()`), so a corrupted file is rejected
+   cleanly — reported via the existing `placementError` pending-change
+   mechanism — without wiping out the operator's current, working mission
+   set first.
+
+Both `Mission` and `Waypoint` are the app's own classes, not
+protobuf-mirrored types, so this fix doesn't touch
+`types/protobuf-types.ts`.
+
+**Note, not part of this bug:** while verifying the fix scope, found that
+`Mission.fromJSON` is already called twice per mission for file-import
+loads today (once inside `extractMissionSetSnapshot`/
+`extractLegacyMissionData`, again inside `handleLoadMissionSet`) —
+pre-existing, harmless (mission-set loading is rare and `fromJSON` is
+cheap), and unrelated to this fix. Not tracked as its own bug; mentioned
+here only so it isn't mistaken for something this fix introduces.
+
+**Testing this:** partially cheap. `Mission.fromJSON` is a static method
+that can be unit-tested directly with malformed input (missing
+`location`) without any handler infrastructure — asserting it throws
+instead of producing a broken `Waypoint`. Verifying `handleLoadMissionSet`
+end-to-end (rejected file leaves the current mission set untouched) needs
+the same not-yet-existing handler-level test setup as Bugs 1/4/5/6.
+
 ## Summary: which bugs are cheap to pin down with tests
 
 Bug 2 is a natural addition to the existing pure-function test files
@@ -395,7 +478,9 @@ Bug 2 is a natural addition to the existing pure-function test files
 new test infrastructure, same patterns already in use. Bug 3's data-layer
 half was too, and has since been fixed (Part 1 of
 [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)),
-as is Bug 7 (see above). Bugs 1, 4, 5, and 6 (and the full end-to-end
-version of Bug 3, now moot) all need the first handler-level test in the
-codebase (`context/handlers/__tests__/`), a bigger one-time setup cost
-rather than an incremental addition.
+as is Bug 7 (see above). Bug 8's `Mission.fromJSON` half is similarly cheap
+(pure static method, no new infrastructure); its `handleLoadMissionSet`
+half, along with Bugs 1, 4, 5, and 6 (and the full end-to-end version of
+Bug 3, now moot), all need the first handler-level test in the codebase
+(`context/handlers/__tests__/`), a bigger one-time setup cost rather than
+an incremental addition.
