@@ -233,6 +233,54 @@ interface GridNode {
 }
 
 /**
+ * Minimal binary min-heap keyed on `f`, used as the A* open set. Callers use
+ * lazy deletion: push a new entry every time a node's `f` improves rather
+ * than trying to update an already-inserted entry in place, and discard a
+ * popped entry whose `f` no longer matches the caller's current best for
+ * that node.
+ */
+class MinHeap {
+    private items: Array<{ idx: number; f: number }> = [];
+
+    get size(): number {
+        return this.items.length;
+    }
+
+    push(idx: number, f: number): void {
+        this.items.push({ idx, f });
+        let i = this.items.length - 1;
+        while (i > 0) {
+            const parent = (i - 1) >> 1;
+            if (this.items[parent].f <= this.items[i].f) break;
+            [this.items[parent], this.items[i]] = [this.items[i], this.items[parent]];
+            i = parent;
+        }
+    }
+
+    pop(): { idx: number; f: number } | undefined {
+        const top = this.items[0];
+        if (top === undefined) return undefined;
+        const last = this.items.pop()!;
+        if (this.items.length > 0) {
+            this.items[0] = last;
+            let i = 0;
+            const n = this.items.length;
+            for (;;) {
+                const left = 2 * i + 1;
+                const right = 2 * i + 2;
+                let smallest = i;
+                if (left < n && this.items[left].f < this.items[smallest].f) smallest = left;
+                if (right < n && this.items[right].f < this.items[smallest].f) smallest = right;
+                if (smallest === i) break;
+                [this.items[smallest], this.items[i]] = [this.items[i], this.items[smallest]];
+                i = smallest;
+            }
+        }
+        return top;
+    }
+}
+
+/**
  * Finds a clear path from A to B avoiding all expanded zone polygons using A*
  * on a regular grid. Returns intermediate bypass points (excluding A and B),
  * or [] if no bypass is needed or the direct path is already clear.
@@ -328,7 +376,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
 
         // A* with 8-directional movement.
         const nodes = new Map<number, GridNode>();
-        const open = new Set<number>();
+        const open = new MinHeap();
 
         const heuristic = (idx: number): number => {
             const col = idx % cols;
@@ -340,7 +388,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
         };
 
         nodes.set(startIdx, { g: 0, f: heuristic(startIdx), parent: null });
-        open.add(startIdx);
+        open.push(startIdx, heuristic(startIdx));
 
         const directions = [
             [1, 0],
@@ -356,23 +404,20 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
 
         let found = false;
         while (open.size > 0) {
-            let current = -1;
-            let bestF = Infinity;
-            for (const idx of open) {
-                const n = nodes.get(idx)!;
-                if (n.f < bestF) {
-                    bestF = n.f;
-                    current = idx;
-                }
-            }
-            if (current === -1) break;
+            const popped = open.pop()!;
+            const current = popped.idx;
+
+            // Lazy deletion: this entry was superseded by a later, cheaper
+            // push for the same cell — skip it rather than trying to fix an
+            // already-inserted heap entry in place.
+            const currentNode = nodes.get(current)!;
+            if (popped.f > currentNode.f) continue;
+
             if (current === goalIdx) {
                 found = true;
                 break;
             }
 
-            open.delete(current);
-            const currentNode = nodes.get(current)!;
             const col = current % cols;
             const row = Math.floor(current / cols);
 
@@ -387,8 +432,9 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
                 const existing = nodes.get(nIdx);
                 if (existing && existing.g <= ng) continue;
 
-                nodes.set(nIdx, { g: ng, f: ng + heuristic(nIdx), parent: current });
-                open.add(nIdx);
+                const nf = ng + heuristic(nIdx);
+                nodes.set(nIdx, { g: ng, f: nf, parent: current });
+                open.push(nIdx, nf);
             }
         }
 

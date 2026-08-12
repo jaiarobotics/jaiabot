@@ -1,6 +1,6 @@
 # Review: exclusion-zone-detection.ts and exclusion-zone-router.ts
 
-_Status: Finding 1 fixed. Findings 2-4 documented, not fixed yet._
+_Status: Findings 1-2 fixed. Findings 3-4 documented, not fixed yet._
 
 This is the start of the "router investigation" flagged as out of scope in
 [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)'s
@@ -63,24 +63,34 @@ both), and the full test suite and `tsc --noEmit` are clean.
 
 ## Finding 2 — A\* open-set minimum extraction is a linear scan, not a heap
 
-_Confirmed._
+_Fixed._
 
-The A\* loop
-([exclusion-zone-router.ts:353-362](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts#L353-L362))
-finds the lowest-`f` node with `for (const idx of open)` — a full scan of
-the open set — on every iteration, making pathfinding O(V²) in grid size
-instead of O(V log V) with a binary heap.
+The A\* loop found the lowest-`f` node with `for (const idx of open)` — a
+full scan of the open set — on every iteration, making pathfinding O(V²)
+in grid size instead of O(V log V) with a binary heap.
 
-**Why it matters in practice:** `GRID_CELL_SIZE` is 5m
+**Why it mattered in practice:** `GRID_CELL_SIZE` is 5m
 ([:219](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts#L219)),
 so a zone spanning a few hundred metres yields thousands of grid cells.
 This runs synchronously on the UI thread once per blocked segment, per
 mission, on every waypoint/zone edit — and twice, due to the two-pass
-clearance fallback in `findBypassPath`. Larger zones or missions can cause
-noticeable UI stalling during route detection.
+clearance fallback in `findBypassPath`. Larger zones or missions could
+cause noticeable UI stalling during route detection.
 
-**Candidate fix:** replace the linear scan with a binary min-heap keyed on
-`f`, standard for A\*.
+**Fix:** added a `MinHeap` class (binary min-heap keyed on `f`) and
+replaced `open` (a `Set<number>`, linearly scanned) with it
+([exclusion-zone-router.ts:406](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts#L406)).
+Uses lazy deletion: the code already updated `f` in place for a node
+already in `open` when a cheaper path to it was found
+([:434-435](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts#L434-L435)) —
+a plain heap can't cheaply fix an already-inserted node's position, so
+instead of updating in place, a new entry is pushed on every improvement
+and a popped entry whose `f` no longer matches the node's current best in
+`nodes` is discarded as stale. `GridNode`/`nodes` are unchanged; this is
+internal to `findBypassPath`, no data-model or public-API impact. Full
+test suite and `tsc --noEmit` are clean, including every
+`routeAroundExclusionZones`/pathfinding test (path validity vs. zone
+hulls, multiple/overlapping zones, diagonal paths, multi-segment routes).
 
 ## Finding 3 — zone buffer geometry is rebuilt from scratch repeatedly
 
