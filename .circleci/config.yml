@@ -141,6 +141,11 @@ job-template-deb-amd64: &job-template-deb-amd64
           sed -i "s/^set(PROJECT_VERSION_MINOR *\".*\"/set(PROJECT_VERSION_MINOR \"${NEWVERSION_MINOR}\"/" cmake/JaiaVersions.cmake
           sed -i "s/^set(PROJECT_VERSION_PATCH *\".*\"/set(PROJECT_VERSION_PATCH \"${NEWVERSION_PATCH}\"/" cmake/JaiaVersions.cmake
           quilt refresh
+    - run: &run-zero-ccache-stats
+        name: Reset ccache statistics
+        # the counters live in the cache directory, so without this they accumulate
+        # across every build that restores the cache
+        command: ccache -z || true
     - run: &run-build-pkg
         name: Build the Debian package
         command: |
