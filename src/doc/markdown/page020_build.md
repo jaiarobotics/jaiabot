@@ -42,12 +42,13 @@ sudo apt-get -y install libgoby3:amd64 \
             curl:amd64 \
             nodejs:amd64 \
             webpack:amd64 \
-            npm:amd64
+            npm:amd64 \
+            ninja-build:amd64
 ```
 
 ## CMake
 
-The `jaiabot` software is configured using CMake which (by default) then generates Makefiles that the `make` tool uses to invoke the C++ compiler and linker.
+The `jaiabot` software is configured using CMake, which generates a Ninja build by default (Ninja is faster than, and otherwise a drop-in replacement for, the Makefiles CMake generates by default).
 
 This process is summarized by:
 
@@ -56,12 +57,12 @@ This process is summarized by:
 mkdir -p build/amd64
 cd build/amd64
 # configure the project
-cmake ../..
-# build it (using make by default)
+cmake -G Ninja ../..
+# build it
 cmake --build .
 ```
 
-This project provides a convenience script called `build.sh` that runs cmake to configure and build the project (using as many jobs as your machine has processors). The build.sh script segregates the CMake working directory by machine architecture (e.g. build/amd64, build/arm64, etc.). Additionally, you can set the environmental variables `JAIABOT_CMAKE_FLAGS` and/or `JAIABOT_MAKE_FLAGS` to pass command line parameters to CMake (during configure) or make, respectively. 
+This project provides a convenience script called `build.sh` that runs cmake to configure and build the project (using as many jobs as your machine has processors). The build.sh script segregates the CMake working directory by machine architecture (e.g. build/amd64, build/arm64, etc.). Additionally, you can set the environmental variables `JAIABOT_CMAKE_FLAGS` and/or `JAIABOT_MAKE_FLAGS` to pass command line parameters to CMake (during configure) or the underlying build tool, respectively. Pass `--make` to `build.sh` to use GNU Make instead of Ninja (e.g. if `ninja-build` isn't installed); switching between the two automatically discards the existing CMake cache, since CMake can't reconfigure a directory with a different generator than the one it was first configured with.
 
 Running the build script will start a parallel build using a number of processors that is equal to the lesser of:
 
@@ -98,8 +99,10 @@ jaia dev build
 jaia dev build jaia
 # set a CMake variable, equivalent to `export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"; ./build.sh`
 jaia dev build --cmake_var build_doc=ON
-# set a variable passed to the underlying build tool (make)
+# set a variable passed to the underlying build tool (Ninja by default)
 jaia dev build --make_var VERBOSE=1
+# use GNU Make instead of the default Ninja generator
+jaia dev build --make
 
 # remove this machine's local build directory (e.g. build/amd64), for a clean rebuild
 jaia dev clean

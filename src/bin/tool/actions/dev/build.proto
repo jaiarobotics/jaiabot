@@ -51,4 +51,11 @@ message BuildTool
         description: "Set a variable passed to the underlying build tool (make), e.g. \"--make_var VERBOSE=1\". Can be repeated",
         cfg { cli_short: "M" }
     }];
+
+    optional bool make = 5 [
+        default = false,
+        (goby.field) = {
+            description: "Use GNU Make instead of the default Ninja generator"
+        }
+    ];
 }

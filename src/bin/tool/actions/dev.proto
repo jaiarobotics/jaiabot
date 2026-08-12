@@ -48,13 +48,15 @@ message DevTool
         }];
         build = 2 [(goby.ev).cfg = {
             short_help_msg: "Build this source tree using ./build.sh",
-            full_help_msg: "Runs ./build.sh to configure (CMake) and build (make) this source tree.\n"
+            full_help_msg: "Runs ./build.sh to configure (CMake, using Ninja by default) and build this "
+                           "source tree.\n"
                            "\n"
                            "Example commands:\n"
                            "  jaia dev build: build all targets\n"
                            "  jaia dev build jaia: build only the 'jaia' target\n"
                            "  jaia dev build --cmake_var build_doc=ON: set a CMake variable (as -Dbuild_doc=ON)\n"
                            "  jaia dev build --make_var VERBOSE=1: set a variable passed to the underlying build tool\n"
+                           "  jaia dev build --make: use GNU Make instead of the default Ninja generator\n"
                            "\n"
                            "Requires that 'jaia dev setup' has been run first to install the required build tools."
         }];

@@ -41,11 +41,13 @@ bool nvm_is_installed()
 
 // Checks for the tools that "jaia dev setup" installs, so a missing setup step produces a clear
 // error instead of a confusing failure partway through build.sh
-void check_setup_has_run()
+void check_setup_has_run(bool use_make)
 {
     std::vector<std::string> missing;
     if (!command_exists("cmake"))
         missing.push_back("cmake");
+    if (!use_make && !command_exists("ninja"))
+        missing.push_back("ninja");
     if (!command_exists("arduino-cli"))
         missing.push_back("arduino-cli");
     if (!nvm_is_installed())
@@ -88,12 +90,15 @@ jaiabot::apps::dev::BuildTool::BuildTool()
 
     try
     {
-        check_setup_has_run();
+        check_setup_has_run(app_cfg().make());
 
         args.push_back(jaiabot::apps::dev::find_in_repo(build_script).string());
 
         append_to_env("JAIABOT_CMAKE_FLAGS", "-D", app_cfg().cmake_var());
         append_to_env("JAIABOT_MAKE_FLAGS", "", app_cfg().make_var());
+
+        if (app_cfg().make())
+            args.push_back("--make");
 
         for (const auto& target : app_cfg().target()) args.push_back(target);
     }
