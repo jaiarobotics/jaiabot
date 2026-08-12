@@ -8,7 +8,7 @@ The JaiaBot software depends on Goby3, MOOS, and other packages.
 
 When using the `jaiabot` Debian packages (see the CI/CD section below), these dependencies are automatically installed by `apt`.
 
-When building from source, these can be installed from the regular Ubuntu package repositories plus the `packages.jaia.tech` mirror of the `packages.gobysoft.org` repository (also reference the steps in jaiabot/.docker/resolute/amd64/Dockerfile):
+When building from source, these can be installed from the regular Ubuntu package repositories plus the `packages.jaia.tech` mirror of the `packages.gobysoft.org` repository (also reference the steps in jaiabot/.docker/resolute/amd64/Dockerfile). If you have the `jaia` tool already installed (e.g. from a package), `jaia dev setup` runs these steps for you (see below).
 
 ```
 # add mirror of packages.gobysoft.org to your apt sources
@@ -71,6 +71,43 @@ Build documentation as well:
 ```
 export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"
 ./build.sh
+```
+
+### Using `jaia dev`
+
+If you have the `jaia` tool available (from a package, or already built from this source tree), `jaia dev` provides a friendlier front end for the day-to-day build workflow:
+
+```bash
+# install the compilers, CMake, apt build dependencies, arduino-cli and nvm/npm/webpack
+# needed to build this source tree (requires root or sudo)
+jaia dev setup
+
+# equivalent to ./build.sh
+jaia dev build
+# build only the 'jaia' target
+jaia dev build jaia
+# set a CMake variable, equivalent to `export JAIABOT_CMAKE_FLAGS="-Dbuild_doc=ON"; ./build.sh`
+jaia dev build --cmake_var build_doc=ON
+# set a variable passed to the underlying build tool (make)
+jaia dev build --make_var VERBOSE=1
+
+# remove the entire build directory (all architectures), for a clean rebuild
+jaia dev clean
+```
+
+`jaia dev build` checks for the tools `jaia dev setup` installs before invoking `build.sh`, so a missing setup step is reported clearly (e.g. "It looks like 'jaia dev setup' has not been (successfully) run on this machine") instead of failing partway through configuration.
+
+`jaia dev docker` is a front end for `docker` scoped to the images and containers this repository creates (the cross-compile build image/container from `container-image-build.sh` / `container-build-and-deploy.sh`, and the simulator image/container from `scripts/sim-docker`), which are all tagged with the Docker label `jaiabot_build=true`. For `docker` commands that support `--filter` (`ps`, `images`, `image ls`, `container ls`, `network ls`, `volume ls`, the `prune` commands, etc.), `jaia dev docker` automatically adds `--filter label=jaiabot_build=true` so only this repository's images/containers are shown or affected; other commands (e.g. `docker logs`, `docker exec`, `docker rm`) are passed through to `docker` unmodified:
+
+```bash
+# list this repository's running containers ('docker ps --filter label=jaiabot_build=true')
+jaia dev docker
+# list all of this repository's containers, running or not
+jaia dev docker ps -a
+# list this repository's images
+jaia dev docker image list
+# remove this repository's stopped containers
+jaia dev docker container prune
 ```
 
 ## CI/CD

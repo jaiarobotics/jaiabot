@@ -10,6 +10,7 @@
 
 #include "jaiabot/utils/ip.h"
 #include "local_deploy.h"
+#include "util.h"
 
 using goby::glog;
 
@@ -17,20 +18,6 @@ namespace
 {
 constexpr const char* deploy_script = "scripts/build/container-build-and-deploy.sh";
 constexpr const char* range_separator = "..";
-
-boost::filesystem::path find_deploy_script()
-{
-    for (auto dir = boost::filesystem::current_path(); !dir.empty(); dir = dir.parent_path())
-    {
-        auto script = dir / deploy_script;
-        if (boost::filesystem::exists(script))
-            return script;
-    }
-
-    throw std::runtime_error(std::string("Could not find ") + deploy_script +
-                             " in the current directory or any of its parents: 'local_deploy' "
-                             "deploys the jaiabot source tree it is run from");
-}
 
 // Expands a single target into the hosts it refers to: either one host code (e.g. "b1f6") or an
 // inclusive range of them (e.g. "b1f6..b3f6")
@@ -75,7 +62,7 @@ jaiabot::apps::dev::LocalDeployTool::LocalDeployTool()
             throw std::invalid_argument(
                 "At least one target is required, e.g. \"jaia dev local_deploy b1f6..b3f6 h1f6\"");
 
-        args.push_back(find_deploy_script().string());
+        args.push_back(jaiabot::apps::dev::find_in_repo(deploy_script).string());
 
         int fleet_id = -1;
         if (app_cfg().has_fleet())
