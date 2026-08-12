@@ -109,5 +109,5 @@ for remote in "$@"; do
     ssh ${botuser}@"${remote}" \
         "${remote_locale} jaiabot_repo=${repo} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} ./jaiabot/scripts/build/target-deploy.sh ${build_dir}"
 
-    echo "When you're ready, ssh ${botuser}@${remote} and run 'sudo systemctl start jaiabot'"
+    echo "When you're ready, ssh ${botuser}@${remote} and run 'sudo systemctl restart jaiabot'"
 done
