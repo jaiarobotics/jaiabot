@@ -9,6 +9,20 @@ environment-template-common: &environment-template-common
   QUILT_REFRESH_ARGS: "-p ab --no-timestamps --no-index --strip-trailing-whitespace"
   CC: /usr/bin/clang
   CXX: /usr/bin/clang++
+  # set to "true" to build jaiabot-doc/jaiabot-interfaces (and run goby_clang_tool) even when JAIABOT_APT_REPO is "test"
+  BUILD_DOC_FOR_TEST_REPO: "false"
+  # set to "true" to compile test-repo builds at -O0 (via the "noopt" DEB_BUILD_OPTIONS flag) for faster
+  # iteration; default keeps full -O2 optimization since test-repo packages may be installed on real hardware
+  DISABLE_OPT_FOR_TEST_REPO: "false"
+  CCACHE_DIR: /root/.ccache
+  CCACHE_MAXSIZE: "3G"
+  # each job starts from a fresh container, so both mtime (default) and hashing the compiler's
+  # raw content are unstable: apt-get dist-upgrade can pull a same-version compiler rebuild with
+  # different bytes, invalidating every cache entry at once. Check the reported version string
+  # instead, which is stable across same-version rebuilds and only changes on a real upgrade.
+  CCACHE_COMPILERCHECK: "%compiler% -v"
+  # fixed, build-directory-independent location webpack.config.js will use for its filesystem cache when set
+  WEBPACK_CACHE_DIR: /root/.cache/webpack
 
 environment-template-amd64: &environment-template-amd64
   TARGET_ARCH: "amd64"
@@ -48,6 +62,15 @@ job-template-amd64: &job-template-amd64
   working_directory: /root/jaiabot
   steps:
     - checkout
+    - restore_cache: &restore-npm-webpack-cache
+        keys:
+          - jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
+          - jaiabot-npm-webpack-v1-
+    - restore_cache: &restore-ccache
+        keys:
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-
     - run: &run-set-deb-rep-and-version
         name: Set environmental variables for which packages.jaia.tech repo to use
         command: |
@@ -65,11 +88,29 @@ job-template-amd64: &job-template-amd64
         name: Update apt packages
         command: |
           apt-get update &&
-          apt-get dist-upgrade -y 
-          [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install -y goby3-clang-tool || true
+          apt-get dist-upgrade -y &&
+          apt-get install -y ccache
+          [[ "${TARGET_ARCH}" == "amd64" && ( "${JAIABOT_APT_REPO}" != "test" || "${BUILD_DOC_FOR_TEST_REPO}" == "true" ) ]] && apt-get install -y goby3-clang-tool || true
+    - run: &run-zero-ccache-stats
+        name: Reset ccache statistics
+        # the counters live in the cache directory, so without this they accumulate
+        # across every build that restores the cache
+        command: ccache -z || true
     - run: &run-build
         name: Build
-        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON .. && cmake --build . -- -j4
+        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache .. && cmake --build . -- -j4
+    - run: &show-ccache-stats
+        name: Show ccache stats
+        command: ccache -s || true
+    - save_cache: &save-ccache
+        key: jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
+        paths:
+          - /root/.ccache
+    - save_cache: &save-npm-webpack-cache
+        key: jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
+        paths:
+          - /root/.npm
+          - /root/.cache/webpack
     - run: &run-tests
         name: Run tests
         command: |
@@ -82,11 +123,13 @@ job-template-deb-amd64: &job-template-deb-amd64
   steps:
     - attach_workspace: &attach-src-workspace
         at: /root/src
+    - restore_cache: *restore-ccache
     - run: &run-extract-src
         name: Extract the original source tarball
         command: |
           cp /root/src/*.orig.tar.xz ${CIRCLE_WORKING_DIRECTORY}/.. &&
           tar xfJ ../*.orig.tar.xz --strip-components=1
+    - restore_cache: *restore-npm-webpack-cache
     - run: *run-set-deb-rep-and-version
     - run: *run-add-jaia-packages-list
     - run: *run-update-apt
@@ -114,13 +157,30 @@ job-template-deb-amd64: &job-template-deb-amd64
           sed -i "s/^set(PROJECT_VERSION_MINOR *\".*\"/set(PROJECT_VERSION_MINOR \"${NEWVERSION_MINOR}\"/" cmake/JaiaVersions.cmake
           sed -i "s/^set(PROJECT_VERSION_PATCH *\".*\"/set(PROJECT_VERSION_PATCH \"${NEWVERSION_PATCH}\"/" cmake/JaiaVersions.cmake
           quilt refresh
+    - run: *run-zero-ccache-stats
     - run: &run-build-pkg
         name: Build the Debian package
         command: |
           export DPKG_BUILDPACKAGE_BUILD_TYPE="-B"
           # default is to do source and binary build
-          [[ "${DO_SOURCE_BUILD}" == "true" ]] && DPKG_BUILDPACKAGE_BUILD_TYPE=""        
-          CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -k954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE}
+          [[ "${DO_SOURCE_BUILD}" == "true" ]] && DPKG_BUILDPACKAGE_BUILD_TYPE=""
+          # skip building jaiabot-doc/jaiabot-interfaces (and the goby_clang_tool run they require) for the test repo to save build time
+          # set BUILD_DOC_FOR_TEST_REPO=true to opt back into building them for test-repo builds
+          export DPKG_BUILDPACKAGE_PROFILE=""
+          if [[ "${JAIABOT_APT_REPO}" == "test" && "${BUILD_DOC_FOR_TEST_REPO}" != "true" ]]; then
+            DPKG_BUILDPACKAGE_PROFILE="-Pnodoc"
+            # "nodoc" is also a legacy DEB_BUILD_OPTIONS flag; set it explicitly so dh doesn't
+            # warn about copying it over from DEB_BUILD_PROFILES on our behalf
+            export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} nodoc"
+          fi
+          # set DISABLE_OPT_FOR_TEST_REPO=true to compile test-repo builds at -O0 for faster iteration
+          if [[ "${JAIABOT_APT_REPO}" == "test" && "${DISABLE_OPT_FOR_TEST_REPO}" == "true" ]]; then
+            export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} noopt"
+          fi
+          CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -kB90BE706B6A6724592B53B90954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
+    - run: *show-ccache-stats
+    - save_cache: *save-ccache
+    - save_cache: *save-npm-webpack-cache
     - run: &run-store-next-build
         name: Store deb files for next build
         command: |
@@ -136,15 +196,6 @@ job-template-deb-amd64: &job-template-deb-amd64
         name: Remove original source file to avoid conflicts in merging
         command: |
           rm -f /root/deb/*.orig.tar.xz || true
-    - run: &run-python-venv
-        name: Build Python venv to ensure it builds successfully (for later use when jaiabot-python is installed) [only on amd64]
-        command: |
-          if [[ "${TARGET_ARCH}" == "amd64" ]]; then 
-            apt-get update && apt-get -y install rsync python3-venv python3-dev
-            cd ${CIRCLE_WORKING_DIRECTORY}/src/python
-            unset CC CXX
-            ./build_venv.sh /tmp/jaiabot-python-test
-          fi
     - persist_to_workspace: &persist-debs
         root: /root/deb
         paths:
@@ -170,8 +221,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        - "claude/remove-runtime-env-simplify-system-6thi11"
-        - "claude/festive-knuth-qj9tfk"
+        - "claude/circleci-debian-build-optimization-uwuryg"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -179,8 +229,7 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "3.y"
-        - "claude/remove-runtime-env-simplify-system-6thi11"
-        - "claude/festive-knuth-qj9tfk"
+        - "claude/circleci-debian-build-optimization-uwuryg"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -199,8 +248,6 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "claude/remove-runtime-env-simplify-system-6thi11"
-        - "claude/festive-knuth-qj9tfk"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -210,8 +257,6 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "claude/remove-runtime-env-simplify-system-6thi11"
-        - "claude/festive-knuth-qj9tfk"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -221,8 +266,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
-        - "claude/remove-runtime-env-simplify-system-6thi11"
-        
+
 ## Begin actual config
 version: 2.1
 orbs:
@@ -246,6 +290,10 @@ workflows:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
+
+      # runs in parallel with the deb builds; validated separately so it doesn't block upload
+      - amd64-python-venv-build:
+          <<: *filter-template-debian-builds
 
       # always do the upload if we did the deb builds
       - upload:
@@ -488,6 +536,26 @@ jobs:
       <<: *environment-template-common
       <<: *environment-template-resolute
       <<: *environment-template-arm64
+
+  amd64-python-venv-build:
+    docker: *docker-base-resolute
+    resource_class: large
+    working_directory: /root/jaiabot
+    environment:
+      <<: *environment-template-common
+      <<: *environment-template-resolute
+      <<: *environment-template-amd64
+    steps:
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
+      - run:
+          name: Build Python venv to ensure it builds successfully (for later use when jaiabot-python is installed)
+          command: |
+            apt-get update && apt-get -y install rsync python3-venv python3-dev
+            cd src/python
+            unset CC CXX
+            ./build_venv.sh /tmp/jaiabot-python-test
 
   upload:
     <<: *job-template-upload
