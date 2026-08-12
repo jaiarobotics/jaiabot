@@ -45,8 +45,11 @@ file(COPY ${src_files} DESTINATION ${intermediate_web_dir})
 
 set(web_out_dir ${project_SHARE_DIR}/jaiabot/web)
 
+# node sizes its default heap from the memory the OS reports, which inside a container is the
+# host's rather than the container's limit, so an uncapped bundle can grow until the kernel
+# kills it when the rest of the build is using memory too
 add_custom_command(OUTPUT ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
-  COMMAND npx webpack
+  COMMAND ${CMAKE_COMMAND} -E env NODE_OPTIONS=--max-old-space-size=4096 npx webpack
   ARGS --mode production --env OUTPUT_DIR=${web_out_dir} --stats errors-only
   COMMAND touch
   ARGS ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
