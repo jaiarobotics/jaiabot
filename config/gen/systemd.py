@@ -421,7 +421,6 @@ service_environment = {
     'jaia_rf_encryption_password': dc('rf_encryption_password'),
     'jaia_dccl_encryption_password': dc('dccl_encryption_password'),
     'jaia_comms_mode': ','.join(comms_links_in_use),
-    'jaia_cloudhub_type': cloudhub_type_str,
     'jaia_camera_positions': ','.join(camera_positions_in_use),
     'jaia_additional_sensors': ','.join(jaia_additional_sensors),
     # previously derived by preseed.goby from $PATH
