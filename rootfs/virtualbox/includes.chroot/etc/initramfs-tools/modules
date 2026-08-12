@@ -1,0 +1,15 @@
+# List of modules that you want to include in your initramfs.
+# They will be loaded at boot time in the order below.
+#
+# Syntax:  module_name [args ...]
+#
+# You must run update-initramfs(8) to effect this change.
+#
+# Examples:
+#
+# raid1
+# sd_mod
+
+# Empty by design: MODULES=most already covers the VM's storage and filesystem
+# drivers. The Raspberry Pi's list is arm64/Pi-specific (xor-neon, mmc_block)
+# and must not leak into the amd64 image.
