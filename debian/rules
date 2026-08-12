@@ -8,6 +8,11 @@ export CXX=/usr/bin/clang++
 # ccache hashes a different working directory every build and misses on every source file
 export DEB_BUILD_DEBUGPATH = /usr/src/jaiabot
 
+# Ubuntu enables LTO by default on amd64/arm64. Most jaiabot binaries link two objects, and
+# the code that matters lives in goby/dccl/jaiabot_messages, across .so boundaries LTO can't
+# reach, so it buys almost nothing here while each concurrent link costs about a gigabyte
+export DEB_BUILD_MAINT_OPTIONS = optimize=-lto
+
 # debhelper's cmake buildsystem passes standard flags (BUILD_TESTING, QMAKE_EXECUTABLE, etc.)
 # our CMakeLists.txt doesn't all consume; suppress the resulting "unused variable" noise
 CMAKE_EXTRA_FLAGS = --no-warn-unused-cli
