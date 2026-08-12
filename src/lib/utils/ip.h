@@ -466,8 +466,9 @@ struct HostCode
 };
 
 // Parses a host shorthand code without using std::regex (which is comparatively expensive to
-// construct). Throws std::invalid_argument on malformed input.
-inline HostCode parse_host_code(const std::string& host_code)
+// construct). Codes without an 'fN' suffix use default_fleet_id, or the local fleet ID if that is
+// negative. Throws std::invalid_argument on malformed input.
+inline HostCode parse_host_code(const std::string& host_code, int default_fleet_id = -1)
 {
     HostCode result;
 
@@ -562,19 +563,15 @@ inline HostCode parse_host_code(const std::string& host_code)
         throw invalid();
 
     if (!have_fleet_id)
-        result.fleet_id = detail::local_fleet_id();
+        result.fleet_id = default_fleet_id >= 0 ? default_fleet_id : detail::local_fleet_id();
 
     return result;
 }
 
-// Returns the IP address for a host shorthand code (e.g. "b4f2" -> "10.23.2.104"), using IPv4 for
-// the wlan and fleet VPN networks and IPv6 for the other VPN networks
-inline std::string host_code_to_addr(const std::string& host_code, HostCode* parsed = nullptr)
+// Returns the IP address for a parsed host code, using IPv4 for the wlan and fleet VPN networks
+// and IPv6 for the other VPN networks
+inline std::string host_code_addr(const HostCode& host)
 {
-    HostCode host = parse_host_code(host_code);
-    if (parsed != nullptr)
-        *parsed = host;
-
     if (host.is_literal)
         return host.literal;
 
@@ -582,6 +579,16 @@ inline std::string host_code_to_addr(const std::string& host_code, HostCode* par
         return ipv4_addr(host.fleet_id, host.net, host.node_type, host.node_id);
     else
         return ipv6_addr(host.fleet_id, host.net, host.node_type, host.node_id);
+}
+
+// Returns the IP address for a host shorthand code (e.g. "b4f2" -> "10.23.2.104")
+inline std::string host_code_to_addr(const std::string& host_code, HostCode* parsed = nullptr)
+{
+    HostCode host = parse_host_code(host_code);
+    if (parsed != nullptr)
+        *parsed = host;
+
+    return host_code_addr(host);
 }
 
 } // namespace ip

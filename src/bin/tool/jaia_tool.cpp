@@ -26,6 +26,7 @@
 
 #include "actions/admin.h"
 #include "actions/ctl.h"
+#include "actions/dev.h"
 #include "actions/ping.h"
 #include "actions/ssh.h"
 #include "actions/version.h"
@@ -118,6 +119,12 @@ jaiabot::apps::Tool::Tool()
                                              jaiabot::apps::AdminToolConfigurator>(action_for_help);
                             break;
 
+                        case jaiabot::config::Tool::dev:
+                            tool_helper
+                                .help<jaiabot::apps::DevTool, jaiabot::apps::DevToolConfigurator>(
+                                    action_for_help);
+                            break;
+
                         default:
                             throw(goby::Exception(
                                 "Help was expected to be handled by external tool"));
@@ -153,6 +160,11 @@ jaiabot::apps::Tool::Tool()
             case jaiabot::config::Tool::admin:
                 tool_helper
                     .run_subtool<jaiabot::apps::AdminTool, jaiabot::apps::AdminToolConfigurator>();
+                break;
+
+            case jaiabot::config::Tool::dev:
+                tool_helper
+                    .run_subtool<jaiabot::apps::DevTool, jaiabot::apps::DevToolConfigurator>();
                 break;
 
             default:

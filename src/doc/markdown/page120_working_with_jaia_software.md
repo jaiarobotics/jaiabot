@@ -265,36 +265,34 @@ If you are modifying code on a Mac, [create an SSH Key](#creating-an-ssh-key-mac
     cd ~/jaiabot/scripts/build
     ```
     ```
-    ./docker-build-build-system.sh
+    ./container-image-build.sh
     ```
-4. Stop the jaiabot services for the system you are deploying to. Note: X indicates fleet number and Y indicates bot number plus 100 or hub number plus 10. 
+4. Stop the jaiabot services for the systems you are deploying to. Note: X indicates fleet number and Y indicates bot number.
     ```
-    ssh -i /path/to/key jaia@10.23.X.Y
+    jaia ssh bYfX
     ```
     ```
     sudo systemctl stop jaiabot
     ```
-5. Deploy the simulator.
+5. Deploy. Targets are given as host codes (`bYfX` for bots, `hYfX` for hubs), either individually or as a range.
     ```
-    cd ~/jaiabot/scripts/build
+    cd ~/jaiabot
     ```
-    Deploy to the BOT
+    Deploy to bots 1 through 3 and hub 1 on fleet X
     ```
-    jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
+    jaia dev local_deploy b1fX..b3fX h1fX
     ```
-    Note: X indicates fleet number and Y indicates bot number plus 100. 
-
-    Deploy to the HUB
+    Equivalently, with the fleet given once for all targets
     ```
-    jaiabot_systemd_type=hub ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
+    jaia dev local_deploy b1..b3 h1 --fleet X
     ```
-    Note: X indicates fleet number and Y indicates hub number plus 10. 
+    Whether each target is a bot or a hub is read from that target's own configuration, so no
+    additional flag is needed.
 
 6. Start jaiabot services.
     ```
-    ssh -i /path/to/key jaia@10.23.X.Y 
+    jaia ssh bYfX
     ```
-    Note: X indicates fleet number and Y indicates bot number plus 100 or hub number plus 10
     ```
     sudo systemctl start jaiabot 
     ```

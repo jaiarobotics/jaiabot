@@ -297,7 +297,7 @@ sudo systemctl enable containerd.service
 To create the docker image initially (should only need to be done initially and whenever there are updates to the dependencies):
 ```bash
 cd jaiabot
-./scripts/build/docker-build-build-system.sh
+./scripts/build/container-image-build.sh
 ```
 
 This generates the Dockerfile from `.docker/${jaia_version_ubuntu_codename}/arm64/Dockerfile.in` (or `.../amd64/Dockerfile.in` when `jaiabot_machine_type=virtualbox`) and builds an image tagged `jaia_build_${distro}_${repo}_${version}` (e.g. `jaia_build_resolute_release_3.y`). The `jaiabot_repo`, `jaiabot_version` and `jaiabot_distro` environmental variables can be used to override the defaults taken from `scripts/common-versions.env`.
@@ -313,7 +313,7 @@ docker run -v `pwd`:/home/jaia/jaiabot -w /home/jaia/jaiabot -it jaia_build_reso
 # update any dependencies since the image was created (not required if you've recently built the image)
 apt update && apt upgrade -y
 # actually build the code
-./scripts/build/arm64-build.sh
+./scripts/build/container-build.sh build/resolute-3.y-arm64
 ```
 
 
@@ -331,16 +331,51 @@ rsync -aP build/bin build/lib jaia@172.20.11.10:/home/jaia/jaiabot/build
 
 ### Build and copy in one step
 
-Use the all-in-one-script (`scripts/build/docker-arm64-build-and-deploy.sh`):
+Use `jaia dev local_deploy` from anywhere within your jaiabot source tree:
+
+```bash
+# deploy to bots 1 through 3 and hub 1 on fleet 6
+jaia dev local_deploy b1f6..b3f6 h1f6
+# the fleet can be given once for all targets instead of in each host code
+jaia dev local_deploy b1..b3 h1 --fleet 6
+# build against the 'continuous' apt repository instead of 'release'
+jaia dev local_deploy b1f6 --repo continuous
+# build amd64 binaries for a VirtualBox target instead of the arm64 embedded system
+jaia dev local_deploy b1f6 --machine_type virtualbox
+# rebuild the build container image first, e.g. to pick up newer dependencies
+jaia dev local_deploy b1f6 --rebuild_image
+# undo a deploy: remove the source tree from the target and restore its packaged install
+jaia dev local_deploy h1f6 --clean
+```
+
+Each target is either a host code (`b<bot_id>f<fleet_id>` or `h<hub_id>f<fleet_id>`, as used by `jaia
+ssh` and `jaia ip`) or an inclusive range of them (`b1f6..b3f6`). At least one target is required;
+run `jaia dev help local_deploy` for the full list of options.
+
+Whether the target is configured as a bot or a hub, and the rest of its configuration, is read from
+the target's own debconf database, so the systemd services generated on it match how it is
+provisioned.
+
+A deploy generates its systemd units into `/etc/systemd/system`, which take precedence over the
+packaged units in `/usr/lib/systemd/system`. `--clean` reverses that: it removes those units and the
+deployed `~/jaiabot` tree, then reruns the package's own configuration so the machine goes back to
+running the installed `jaiabot-*` packages. Log data in `/var/log/jaiabot` is kept.
+
+`jaia dev local_deploy` is a wrapper around `scripts/build/container-build-and-deploy.sh`, which
+can also be called directly with a list of ssh hosts:
 
 ```
 ##
 ## Usage:
-## jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh 172.20.11.102
+## ./container-build-and-deploy.sh 172.20.11.102
 ##
-## Command line arguments is a list of Jaiabots to push deployed code to.
-## If omitted, the code is just built, but not pushed
-## Env var "jaiabot_systemd_type" can be set to one of: bot, hub, which will generate and enable the appropriate systemd services. If unset, the systemd services will not be installed and enabled
+## Cross-compiles this source tree in the build Docker container and deploys it to each of the
+## targets given on the command line. If no targets are given, the code is just built, but not
+## pushed.
+##
+## Env var "jaiabot_clean" can be set to "true" to revert each target to its packaged install instead of building and deploying.
+## Env var "jaiabot_rebuild_image" can be set to "true" to rebuild the build container image first. If unset, the image is built only when it does not yet exist.
+## Env var "jaiabot_debconf_selections" can be set to a debconf-set-selections format file to configure the target from that file instead of from the target's own debconf database
 ## Env var "jaiabot_machine_type" can be set to one of: virtualbox, which will build amd64 binaries instead. If unset, the target will be the standard arm64 embedded system.
 ## Env var "jaiabot_repo" can be set to one of: release, continuous, beta, test, which will set the repository to use for install 'apt' dependencies in the Docker container. If unset, "release" will be used.
 ## Env var "jaiabot_version" can be set to one of: 1.y, 2.y, etc. which will set the version of the 'apt' repository. If unset, the value of "$jaia_version_release_branch" will be used (the default for this current branch).

@@ -18,6 +18,8 @@ add_jaiabot_application(TARGET jaia
     actions/admin/fleet.proto
     actions/admin/fleet/validate.proto
     actions/admin/fleet/vpn_authorize.proto
+    actions/dev.proto
+    actions/dev/local_deploy.proto
   SOURCES jaia_tool.cpp
     actions/version.cpp
     actions/ctl.cpp
@@ -38,5 +40,7 @@ add_jaiabot_application(TARGET jaia
     actions/admin/fleet.cpp
     actions/admin/fleet/validate.cpp
     actions/admin/fleet/vpn_authorize.cpp
+    actions/dev.cpp
+    actions/dev/local_deploy.cpp
   LINK_LIBRARIES goby jaiabot_messages
 )

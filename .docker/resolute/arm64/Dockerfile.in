@@ -14,7 +14,7 @@ ENV CROSS_COMPILE_ARCHS="arm64"
 RUN apt-get update && \
     apt-get -y upgrade && \
     apt-get -y --no-install-recommends install \
-            git build-essential ssh cmake gpg gpg-agent \
+            git build-essential ssh cmake ninja-build gpg gpg-agent \
             devscripts equivs ca-certificates quilt \
             clang clang-tools dirmngr\
             dput cdbs \
