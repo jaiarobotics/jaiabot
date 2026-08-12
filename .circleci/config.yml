@@ -15,6 +15,8 @@ environment-template-common: &environment-template-common
   CCACHE_MAXSIZE: "3G"
   # container mtimes aren't stable across job runs, so hash the compiler contents instead
   CCACHE_COMPILERCHECK: content
+  # fixed, build-directory-independent location webpack.config.js will use for its filesystem cache when set
+  WEBPACK_CACHE_DIR: /root/.cache/webpack
 
 environment-template-amd64: &environment-template-amd64
   TARGET_ARCH: "amd64"
@@ -54,6 +56,10 @@ job-template-amd64: &job-template-amd64
   working_directory: /root/jaiabot
   steps:
     - checkout
+    - restore_cache: &restore-npm-webpack-cache
+        keys:
+          - jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
+          - jaiabot-npm-webpack-v1-
     - run: &run-set-deb-rep-and-version
         name: Set environmental variables for which packages.jaia.tech repo to use
         command: |
@@ -77,6 +83,11 @@ job-template-amd64: &job-template-amd64
     - run: &run-build
         name: Build
         command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON .. && cmake --build . -- -j4
+    - save_cache: &save-npm-webpack-cache
+        key: jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
+        paths:
+          - /root/.npm
+          - /root/.cache/webpack
     - run: &run-tests
         name: Run tests
         command: |
@@ -99,6 +110,7 @@ job-template-deb-amd64: &job-template-deb-amd64
         command: |
           cp /root/src/*.orig.tar.xz ${CIRCLE_WORKING_DIRECTORY}/.. &&
           tar xfJ ../*.orig.tar.xz --strip-components=1
+    - restore_cache: *restore-npm-webpack-cache
     - run: *run-set-deb-rep-and-version
     - run: *run-add-jaia-packages-list
     - run: *run-update-apt
@@ -144,6 +156,7 @@ job-template-deb-amd64: &job-template-deb-amd64
         key: jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
         paths:
           - /root/.ccache
+    - save_cache: *save-npm-webpack-cache
     - run: &run-store-next-build
         name: Store deb files for next build
         command: |

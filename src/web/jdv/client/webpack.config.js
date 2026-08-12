@@ -5,6 +5,14 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 module.exports = (env, argv) => {
     return {
         mode: "production",
+        // WEBPACK_CACHE_DIR pins the cache to a stable path CI can persist across runs;
+        // without it, fall back to webpack's normal node_modules/.cache/webpack default
+        cache: {
+            type: "filesystem",
+            ...(process.env.WEBPACK_CACHE_DIR
+                ? { cacheDirectory: path.resolve(process.env.WEBPACK_CACHE_DIR, "jdv") }
+                : {}),
+        },
         entry: path.resolve(__dirname, "./src/index.tsx"),
         module: {
             rules: [

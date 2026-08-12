@@ -20,7 +20,7 @@ add_custom_command(OUTPUT ${intermediate_web_dir}/node_modules
 
 add_custom_target(npm_dependencies
   ALL
-  DEPENDS ${intermediate_web_dir}/package-lock.json ${intermediate_web_dir}/node_modules jaiabot_core
+  DEPENDS ${intermediate_web_dir}/package-lock.json ${intermediate_web_dir}/node_modules
   )
 
 ###############################################################################
