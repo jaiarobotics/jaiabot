@@ -6,6 +6,10 @@ if(install_motd)
   install(PROGRAMS ${project_SH_DIR}/system/75-jaiabot-status DESTINATION /etc/update-motd.d/)
 endif()
 
+if(install_profile)
+  install(FILES ${project_SH_DIR}/system/jaia-profile.sh DESTINATION /etc/profile.d/ RENAME jaia.sh)
+endif()
+
 install(PROGRAMS ${project_SH_DIR}/system/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
 
 set(scripts_to_install
@@ -24,6 +28,7 @@ set(scripts_to_install
   utils/jaia-vpn-gen.sh
   # System scripts
   system/jaiabot-checkloadavg.py
+  system/jaia-debconf.sh
   system/jaia-update-ufw-rules.sh
   system/jaia-update-network.sh
   system/jaia-iridium-tunnel.sh

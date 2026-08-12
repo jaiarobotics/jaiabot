@@ -12,7 +12,7 @@ User=$user
 Group=$group
 Restart=on-failure
 
-EnvironmentFile=$env_file
+$environment
 ExecStart=$bin_dir/$exe -C '$gen goby_liaison_prelaunch' $extra_flags
 $extra_service
 WorkingDirectory=$ansible_dir

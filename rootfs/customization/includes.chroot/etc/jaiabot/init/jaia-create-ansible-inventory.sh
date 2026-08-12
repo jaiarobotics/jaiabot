@@ -40,7 +40,9 @@ else
 fi
 
 if [ "$fleet" = "" ]; then
-    fleet=$(debconf-get-selections | grep jaiabot-embedded/fleet_id | cut -f 4)
+    source /usr/bin/jaia-debconf.sh
+    # empty default: the check below produces a better message than the helper
+    fleet=$(jaia_debconf_get fleet_id "")
 fi
 
 if [ "$fleet" = "" ]; then

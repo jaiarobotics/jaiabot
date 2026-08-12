@@ -189,6 +189,8 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/config DESTINATION share/jaiabot USE_SOURC
 # etc
 option(install_motd "Install MOTD script" ON)
 
+option(install_profile "Install /etc/profile.d script providing the jaia environment to login shells" ON)
+
 option(install_ssh_authorized_keys "Install SSH authorized keys to /etc/jaiabot/ssh" ON)
 if(install_ssh_authorized_keys)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/ssh DESTINATION /etc/jaiabot)

@@ -30,9 +30,10 @@ echo "                  \/  |_ | \ __) _|_ \_/ | \| __) "
 echo ""
 
 jaia_tool=jaia
-if [ -e /etc/jaiabot/runtime.env ]; then
+# pam_motd does not run /etc/profile.d, so source the identity file directly
+if [ -e /etc/jaiabot/jaia.env ]; then
 set -a
-source /etc/jaiabot/runtime.env
+source /etc/jaiabot/jaia.env
 set +a
 fi
 

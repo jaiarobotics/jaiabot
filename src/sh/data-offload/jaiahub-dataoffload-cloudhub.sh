@@ -2,9 +2,7 @@
 
 set -e
 
-set -a
-source /etc/jaiabot/runtime.env
-set +a
+# jaia_fleet_id is inherited from the jaiabot_hub_manager unit that starts this
 CLOUDHUB_IP=$(jaia_ip chf${jaia_fleet_id})
 
 # use non-s3fs temporary directory

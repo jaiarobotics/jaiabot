@@ -3,6 +3,7 @@
 import argparse
 from enum import Enum
 import os
+import sys
 from string import Template
 import shutil
 import subprocess
@@ -32,9 +33,8 @@ except Exception as e:
 gen_dir_default=script_dir    
 ansible_dir_default=os.path.realpath(script_dir + '/../ansible')
 
-parser = argparse.ArgumentParser(description='Generate systemd services for JaiaBot and JaiaHub', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('type', choices=['bot', 'hub'], help='Should we generate service files for a bot or a hub?')
-parser.add_argument('--env_file', default='/etc/jaiabot/runtime.env', help='Location of the file to contain environmental variables loaded by systemd services (written by this script)')
+parser = argparse.ArgumentParser(description='Generate systemd services for JaiaBot and JaiaHub. All bot/hub configuration is read from the debconf database (or a debconf-set-selections file); only the deployment layout is given on the command line.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('--debconf_selections', default=None, help='Read configuration from this debconf-set-selections format file instead of the live debconf database. Used by the from-source deploy path and for testing without a debconf database.')
 parser.add_argument('--jaiabot_bin_dir', default=jaiabot_bin_dir_default, help='Directory of the JaiaBot binaries')
 parser.add_argument('--jaiabot_share_dir', default=jaiabot_share_dir_default, help='Directory of the JaiaBot arch-independent files (share)')
 parser.add_argument('--goby_bin_dir', default=goby_bin_dir_default, help='Directory of the Goby binaries')
@@ -42,34 +42,156 @@ parser.add_argument('--moos_bin_dir', default=moos_bin_dir_default, help='Direct
 parser.add_argument('--gen_dir', default=gen_dir_default, help='Directory to the configuration generation scripts')
 parser.add_argument('--ansible_dir', default=ansible_dir_default, help='Directory to the Ansible configuration')
 parser.add_argument('--systemd_dir', default='/etc/systemd/system', help='Directory to write systemd services to')
-parser.add_argument('--bot_id', default=0, type=int, help='Bot ID')
-parser.add_argument('--hub_id', default=0, type=int, help='Hub ID')
-parser.add_argument('--fleet_id', default=0, type=int, help='Fleet ID')
 parser.add_argument('--enable', action='store_true', help='If set, run systemctl enable on all services')
 parser.add_argument('--disable', action='store_true', help='If set, run systemctl disable on all services')
-parser.add_argument('--simulation', action='store_true', help='If set, configure services for simulation mode - NOT for real operations')
-parser.add_argument('--warp', default=1, type=int, help='If --simulation, sets the warp speed to use (multiple of real clock). This value must match other bots/hubs')
 parser.add_argument('--log_dir', default='/var/log/jaiabot', help='Directory to write log files to')
 parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .goby files (default RELEASE)')
-parser.add_argument('--led_type', choices=['hub_led', 'none'], help='If set, configure services for led type')
-parser.add_argument('--user_role', choices=['user', 'advanced', 'developer'], help='Role for user in pre-launch UI')
-parser.add_argument('--electronics_stack', choices=['0', '1', '2'], help='If set, configure services for electronics stack')
-parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If set, configure services for imu type')
-parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
-parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
-parser.add_argument('--pam_connection_type', choices=['uart', 'usb', 'none'], help='If set, configure services for PAM connection type')
-parser.add_argument('--bot_type', choices=['hydro', 'pam', 'bio', 'none'], help='If set, configure services for bot type')
-parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
-parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
-parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsys01', 'none'], help='If set, configure services for temperature sensor')
-parser.add_argument('--pressure_sensor_type', choices=['bar02', 'bar30', 'none'], help='If set, configure services for pressure sensor')
-parser.add_argument('--rf_encryption_password', default ='', help='Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex')
-parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
-parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
-parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 
 args=parser.parse_args()
+
+# Maintainer scripts must pass --debconf_selections: debconf does not write the
+# running script's answers to the on-disk database until that script exits, so a
+# child reading the database directly would see the previous configuration.
+
+DEBCONF_PACKAGE = 'jaiabot-embedded'
+
+# The helper owns how to read debconf (the shell consumers use it too); this
+# script owns the schema below.
+DEBCONF_HELPER = 'jaia-debconf.sh'
+
+DEBCONF_TEMPLATES = DEBCONF_PACKAGE + '.templates'
+
+# type, bot_id, hub_id and fleet_id have no Default in the templates file
+# (debconf offers no "required" concept), so this is the one piece of
+# knowledge about the questions that has to live here rather than there.
+# A lost or half-written database fails the install rather than silently
+# producing a bot with the wrong identity.
+DEBCONF_REQUIRED = ['type', 'fleet_id']
+
+
+def parse_debconf_template_defaults(lines) -> Dict[str, str]:
+    """Extract each question's Default: field from a debconf templates file.
+
+    dpkg keeps every installed package's templates file at
+    /var/lib/dpkg/info/<pkg>.templates for the life of the package, so this
+    reads the same defaults debconf itself used to seed the database - instead
+    of a hand-copied list that can silently drift from it."""
+    defaults = dict()
+    current = None
+    prefix = DEBCONF_PACKAGE + '/'
+    for line in lines:
+        if not line.strip():
+            current = None
+        elif line.startswith('Template:'):
+            name = line[len('Template:'):].strip()
+            current = name[len(prefix):] if name.startswith(prefix) else None
+        elif current and line.startswith('Default:'):
+            defaults[current] = line[len('Default:'):].strip()
+    return defaults
+
+
+def find_debconf_templates() -> str:
+    installed = '/var/lib/dpkg/info/' + DEBCONF_TEMPLATES
+    if os.path.exists(installed):
+        return installed
+
+    # uninstalled source tree
+    local = os.path.realpath(script_dir + '/../../debian/' + DEBCONF_TEMPLATES)
+    if os.path.exists(local):
+        return local
+
+    sys.exit('ERROR: ' + DEBCONF_TEMPLATES + ' not found at ' + installed + ' or ' + local)
+
+
+def parse_debconf_selections(lines) -> Dict[str, str]:
+    """Parse debconf-set-selections format: <owner> <question> <type> [value]
+
+    Both the live database and a selections file arrive here, so testing with
+    --debconf_selections also exercises the path taken during install."""
+    answers = dict()
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        # maxsplit: the value is the rest of the line and may contain spaces
+        fields = line.split(None, 3)
+        if len(fields) < 3:
+            continue
+        question = fields[1]
+        value = fields[3].strip() if len(fields) > 3 else ''
+        # match the question, not the owner column, which reads "unknown" when
+        # the owning package isn't registered
+        prefix = DEBCONF_PACKAGE + '/'
+        if question.startswith(prefix):
+            answers[question[len(prefix):]] = value
+    return answers
+
+
+def find_debconf_helper() -> str:
+    helper = shutil.which(DEBCONF_HELPER)
+    if helper:
+        return helper
+
+    # uninstalled source tree
+    local = os.path.realpath(script_dir + '/../../src/sh/system/' + DEBCONF_HELPER)
+    if os.path.exists(local):
+        return local
+
+    sys.exit('ERROR: ' + DEBCONF_HELPER + ' not found on $PATH or at ' + local + '. Install the '
+             'jaiabot-apps package, or pass --debconf_selections to read configuration from a '
+             'file instead.')
+
+
+def read_debconf_database() -> list:
+    """Dump the live debconf database, in selections format, via jaia-debconf.sh."""
+    helper = find_debconf_helper()
+    try:
+        result = subprocess.run([helper, 'selections'],
+                                capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as e:
+        sys.exit('ERROR: could not read the debconf database for ' + DEBCONF_PACKAGE + ':\n' +
+                 (e.stderr or '').rstrip())
+    return result.stdout.splitlines()
+
+
+if args.debconf_selections:
+    with open(args.debconf_selections, 'r') as file:
+        debconf = parse_debconf_selections(file)
+    debconf_source = args.debconf_selections
+else:
+    debconf = parse_debconf_selections(read_debconf_database())
+    debconf_source = 'the debconf database'
+
+print('Reading ' + DEBCONF_PACKAGE + ' configuration from ' + debconf_source)
+
+with open(find_debconf_templates(), 'r') as file:
+    debconf_defaults = parse_debconf_template_defaults(file)
+
+
+def dc(question: str) -> str:
+    if question in debconf:
+        value = debconf[question].strip()
+        if value or question not in DEBCONF_REQUIRED:
+            return value
+    if question in DEBCONF_REQUIRED:
+        sys.exit('ERROR: debconf question "' + DEBCONF_PACKAGE + '/' + question + '" is '
+                 'unanswered in ' + debconf_source + '. Run "dpkg-reconfigure ' +
+                 DEBCONF_PACKAGE + '" to set it.')
+    return debconf_defaults.get(question, '')
+
+
+def dc_multi(question: str):
+    # debconf joins multiselect answers with ", ", hence the strip
+    return [v.strip() for v in dc(question).split(',') if v.strip()]
+
+
+def dc_int(question: str) -> int:
+    value = dc(question)
+    try:
+        return int(value)
+    except ValueError:
+        sys.exit('ERROR: debconf question "' + DEBCONF_PACKAGE + '/' + question + '" must be '
+                 'a number, but is "' + value + '"')
 
 class ARDUINO_TYPE(Enum):
     SPI = 'spi'
@@ -134,23 +256,23 @@ class PRESSURE_SENSOR_TYPE(Enum):
 
 # Set the arduino type based on the argument
 # Used to set the serial port device
-if args.arduino_type == 'spi':
+if dc('arduino_type') == 'spi':
     jaia_arduino_type = ARDUINO_TYPE.SPI
-elif args.arduino_type == 'usb':
+elif dc('arduino_type') == 'usb':
     jaia_arduino_type = ARDUINO_TYPE.USB
 else:
     jaia_arduino_type = ARDUINO_TYPE.NONE
 
-if args.pam_connection_type == 'uart':
+if dc('pam_connection_type') == 'uart':
     jaia_pam_connection_type = PAM_CONNECTION_TYPE.UART
-elif args.pam_connection_type == 'usb':
+elif dc('pam_connection_type') == 'usb':
     jaia_pam_connection_type = PAM_CONNECTION_TYPE.USB
 else:
     jaia_pam_connection_type = PAM_CONNECTION_TYPE.NONE
 
-if args.imu_type == 'bno055':
+if dc('imu_type') == 'bno055':
     jaia_imu_type = IMU_TYPE.BNO055
-elif args.imu_type == 'bno085':
+elif dc('imu_type') == 'bno085':
     jaia_imu_type = IMU_TYPE.BNO085
 else:
     jaia_imu_type = IMU_TYPE.NONE
@@ -158,79 +280,76 @@ else:
 
 jaia_imu_install_type = IMU_TYPE.NONE
 
-if args.imu_install_type == 'embedded':
+if dc('imu_install_type') == 'embedded':
     jaia_imu_install_type = IMU_INSTALL_TYPE.EMBEDDED
-elif args.imu_install_type == 'retrofit':
+elif dc('imu_install_type') == 'retrofit':
     jaia_imu_install_type = IMU_INSTALL_TYPE.RETROFIT
 
-if args.led_type == 'hub_led':
+if dc('led_type') == 'hub_led':
     jaia_led_type = LED_TYPE.HUB_LED
-elif args.led_type == 'none':
+elif dc('led_type') == 'none':
     jaia_led_type = LED_TYPE.NONE    
 else:
     jaia_led_type = LED_TYPE.NONE
 
-if args.electronics_stack == '0':
+if dc('electronics_stack') == '0':
     jaia_electronics_stack = ELECTRONICS_STACK.STACK_0
     jaia_gps_type = GPS_TYPE.I2C
-elif args.electronics_stack == '1':
+elif dc('electronics_stack') == '1':
     jaia_electronics_stack = ELECTRONICS_STACK.STACK_1
     jaia_gps_type = GPS_TYPE.SPI
-elif args.electronics_stack == '2':
+elif dc('electronics_stack') == '2':
     jaia_electronics_stack = ELECTRONICS_STACK.STACK_2
     jaia_gps_type = GPS_TYPE.SPI
 else:
     jaia_electronics_stack = ELECTRONICS_STACK.STACK_0
     jaia_gps_type = GPS_TYPE.I2C
 
-if args.bot_type == 'hydro':
+if dc('bot_type') == 'hydro':
     jaia_bot_type = BOT_TYPE.HYDRO
-elif args.bot_type == 'pam':
+elif dc('bot_type') == 'pam':
     jaia_bot_type = BOT_TYPE.PAM
-elif args.bot_type == 'bio':
+elif dc('bot_type') == 'bio':
     jaia_bot_type = BOT_TYPE.BIO
 else:
     jaia_bot_type = BOT_TYPE.NONE
 
 jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.NONE
 
-if args.data_offload_ignore_type == 'goby':
+if dc('data_offload_ignore_type') == 'goby':
     jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.GOBY
-elif args.data_offload_ignore_type == 'taskpacket':
+elif dc('data_offload_ignore_type') == 'taskpacket':
     jaia_data_offload_ignore_type = DATA_OFFLOAD_IGNORE_TYPE.TASKPACKET
 
 jaia_motor_harness_type = MOTOR_HARNESS_TYPE.NONE
 
-if args.motor_harness_type == 'rpm_and_thermistor':
+if dc('motor_harness_type') == 'rpm_and_thermistor':
     jaia_motor_harness_type = MOTOR_HARNESS_TYPE.RPM_AND_THERMISTOR
 
-if args.temperature_sensor_type == 'bar02':
+if dc('temperature_sensor_type') == 'bar02':
     jaia_temperature_sensor_type = TEMPERATURE_SENSOR_TYPE.BAR02
-elif args.temperature_sensor_type == 'bar30':
+elif dc('temperature_sensor_type') == 'bar30':
     jaia_temperature_sensor_type = TEMPERATURE_SENSOR_TYPE.BAR30
-elif args.temperature_sensor_type == 'tsys01':
+elif dc('temperature_sensor_type') == 'tsys01':
     jaia_temperature_sensor_type = TEMPERATURE_SENSOR_TYPE.TSYS01
 else:
     jaia_temperature_sensor_type = TEMPERATURE_SENSOR_TYPE.NONE
 
-if args.pressure_sensor_type == 'bar02':
+if dc('pressure_sensor_type') == 'bar02':
     jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BAR02
 else:
     jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BAR30
 
 UDP_GATEWAY_PORT = 20000
 
-# make the output directories, if they don't exist
-os.makedirs(os.path.dirname(args.env_file), exist_ok=True)
-
 class Mode(Enum):
     SIMULATION = 'simulation'
     RUNTIME = 'runtime'
     BOTH = 'both'
-    
-if args.simulation:
+
+if dc('mode') == 'simulation':
     jaia_mode = Mode.SIMULATION
-    warp = args.warp
+    warp = dc_int('warp')
 else:
     jaia_mode =  Mode.RUNTIME
     warp = 1
@@ -248,23 +367,30 @@ class CloudHubType(Enum):
 is_cloudhub=False
 cloudhub_type=CloudHubType.SECONDARY
 
-if args.type == 'bot':
+jaia_bot_id=0
+jaia_hub_id=0
+jaia_fleet_id=dc_int('fleet_id')
+
+if dc('type') == 'bot':
     jaia_type = Type.BOT
-    bot_or_hub_id_str = 'export jaia_bot_id=' + str(args.bot_id) + '; '
-elif args.type == 'hub':
+    jaia_bot_id = dc_int('bot_id')
+elif dc('type') == 'hub':
     cloudhub_id=30
-    if args.hub_id == cloudhub_id:
-        is_cloudhub=True        
+    jaia_hub_id = dc_int('hub_id')
+    if jaia_hub_id == cloudhub_id:
+        is_cloudhub=True
     jaia_type = Type.HUB
-    bot_or_hub_id_str = 'export jaia_hub_id=' + str(args.hub_id) + '; '
+else:
+    sys.exit('ERROR: debconf question "' + DEBCONF_PACKAGE + '/type" must be "bot" or "hub", '
+             'but is "' + dc('type') + '"')
 
 if is_cloudhub:
     cloudhub_unsupported_links = ['xbee', 'wifi']
-    comms_links_in_use = [ l for l in args.comms_links if l not in cloudhub_unsupported_links]
+    comms_links_in_use = [ l for l in dc_multi('comms_links') if l not in cloudhub_unsupported_links]
     if comms_links_in_use:
         cloudhub_type = CloudHubType.PRIMARY
 else:
-    comms_links_in_use = args.comms_links
+    comms_links_in_use = dc_multi('comms_links')
 
 cloudhub_type_str=''
 if cloudhub_type == CloudHubType.PRIMARY:
@@ -272,42 +398,70 @@ if cloudhub_type == CloudHubType.PRIMARY:
 elif cloudhub_type == CloudHubType.SECONDARY:
     cloudhub_type_str='secondary'
 
-camera_positions_in_use = args.camera_positions
-jaia_additional_sensors = args.additional_sensors
-    
-# generate env file from preseed.goby
-print('Writing ' + args.env_file + ' from preseed.goby')
+camera_positions_in_use = dc_multi('camera_positions')
+jaia_additional_sensors = dc_multi('additional_sensors')
 
-subprocess.run('bash -ic "' +
-               'export jaia_mode=' + jaia_mode.value + '; ' +
-               bot_or_hub_id_str + 
-               'export jaia_fleet_id=' + str(args.fleet_id) + '; ' + 
-               'export jaia_warp=' + str(warp) + '; ' +
-               'export jaia_log_dir=' + str(args.log_dir) + '; ' +
-               f'export jaia_goby_log_level={args.goby_log_level}; ' +
-               f'export jaia_user_role={args.user_role}; ' +
-               'export jaia_electronics_stack=' + str(jaia_electronics_stack.value) + '; ' +
-               'export jaia_imu_type=' + str(jaia_imu_type.value) + '; ' +
-               'export jaia_imu_install_type=' + str(jaia_imu_install_type.value) + '; ' +
-               'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
-               'export jaia_pam_connection_type=' + str(jaia_pam_connection_type.value) + '; ' +
-               'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
-               'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
-               'export jaia_motor_harness_type=' + str(jaia_motor_harness_type.value) + '; ' +
-               'export jaia_temperature_sensor_type=' + str(jaia_temperature_sensor_type.value) + '; ' +
-               'export jaia_pressure_sensor_type=' + str(jaia_pressure_sensor_type.value) + '; ' +
-               f'export jaia_rf_encryption_password={args.rf_encryption_password}; ' +
-               'export jaia_comms_mode=' + ','.join(link for link in comms_links_in_use) + '; ' +
-               'export jaia_cloudhub_type=' + cloudhub_type_str + '; ' +
-               'export jaia_camera_positions=' + ','.join(position for position in camera_positions_in_use) + '; ' +
-               f'export jaia_dccl_encryption_password={args.dccl_encryption_password}; ' +
-               'export jaia_additional_sensors=' + ','.join(position for position in jaia_additional_sensors) + '; ' +
-               'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
-               check=True, shell=True)
+# previously done by preseed.goby
+os.makedirs(args.log_dir, exist_ok=True)
+
+# Baked into each unit rather than written to a shared env file, so the units
+# are the only derived artifact and nothing can drift from debconf. bot.py and
+# hub.py, which systemd starts as children via goby's -C flag, read these out
+# of os.environ exactly as before.
+
+goby3_lib_dir=os.path.realpath(args.goby_bin_dir + '/../lib')
+jaia_lib_dir=os.path.realpath(args.jaiabot_bin_dir + '/../lib')
+
+service_environment = {
+    'jaia_mode': jaia_mode.value,
+    'jaia_fleet_id': jaia_fleet_id,
+    'jaia_warp': warp,
+    'jaia_log_dir': args.log_dir,
+    'jaia_goby_log_level': args.goby_log_level,
+    'jaia_user_role': dc('user_role'),
+    'jaia_electronics_stack': jaia_electronics_stack.value,
+    'jaia_imu_type': jaia_imu_type.value,
+    'jaia_imu_install_type': jaia_imu_install_type.value,
+    'jaia_arduino_type': jaia_arduino_type.value,
+    'jaia_pam_connection_type': jaia_pam_connection_type.value,
+    'jaia_bot_type': jaia_bot_type.value,
+    'jaia_data_offload_ignore_type': jaia_data_offload_ignore_type.value,
+    'jaia_motor_harness_type': jaia_motor_harness_type.value,
+    'jaia_temperature_sensor_type': jaia_temperature_sensor_type.value,
+    'jaia_pressure_sensor_type': jaia_pressure_sensor_type.value,
+    'jaia_rf_encryption_password': dc('rf_encryption_password'),
+    'jaia_dccl_encryption_password': dc('dccl_encryption_password'),
+    'jaia_comms_mode': ','.join(comms_links_in_use),
+    'jaia_cloudhub_type': cloudhub_type_str,
+    'jaia_camera_positions': ','.join(camera_positions_in_use),
+    'jaia_additional_sensors': ','.join(jaia_additional_sensors),
+    # previously derived by preseed.goby from $PATH
+    'jaia_lib_dir': jaia_lib_dir,
+    'jaia_share_dir': args.jaiabot_share_dir,
+    'jaia_tool': args.jaiabot_bin_dir + '/jaia',
+    'LD_LIBRARY_PATH': goby3_lib_dir + ':' + jaia_lib_dir,
+}
+
+# avoid giving a hub a meaningless jaia_bot_id, and vice versa
+if jaia_type == Type.BOT:
+    service_environment['jaia_bot_id'] = jaia_bot_id
+else:
+    service_environment['jaia_hub_id'] = jaia_hub_id
+
+
+def systemd_environment_block(environment: Dict[str, str]) -> str:
+    """Render Environment= lines. '%' is escaped: systemd would otherwise read
+    it as a unit specifier."""
+    lines = []
+    for key, value in environment.items():
+        escaped = str(value).replace('\\', '\\\\').replace('"', '\\"').replace('%', '%%')
+        lines.append('Environment="' + key + '=' + escaped + '"')
+    return '\n'.join(lines)
+
 
 common_macros=dict()
 
-common_macros['env_file'] = args.env_file
+common_macros['environment'] = systemd_environment_block(service_environment)
 common_macros['jaiabot_bin_dir'] = args.jaiabot_bin_dir
 common_macros['jaiabot_share_dir'] = args.jaiabot_share_dir
 common_macros['ansible_dir'] = args.ansible_dir
@@ -584,7 +738,7 @@ jaiabot_apps = [
      'description': 'JaiaBot MAI PAM Python Driver',
      'template': 'py-app.service.in',
      'subdir': 'pam',
-     'args': f'-p {UDP_GATEWAY_PORT} -d {args.pam_connection_type}',
+     'args': f'-p {UDP_GATEWAY_PORT} -d {jaia_pam_connection_type.value}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PAM',
      'runs_on': [BOT_TYPE.PAM],
      'runs_when': Mode.RUNTIME,
@@ -808,10 +962,19 @@ for app in jaiabot_apps:
         if app['template'] == 'goby-app.service.in':
             all_goby_apps.append(app['exe'])
         
+# Units are enabled in a single pass at the end, after every unit file has been
+# written. Many carry WantedBy=jaiabot_health.service (or _gobyd/_moosdb), and
+# those targets are themselves entries in this same list - jaiabot_apps is not
+# in dependency order, so enabling as we go would run 'systemctl enable' on a
+# unit whose WantedBy target doesn't exist on disk yet, which systemd warns
+# about ("... does not exist, proceeding anyway").
+services_to_enable = []
+services_to_disable = []
+
 for app in jaiabot_apps:
     if is_app_run(app):
         macros={**common_macros, **app}
-        
+
         # generate service name from lowercase exe name, substituting . for _, and
         # adding jaiabot to the front if it doesn't already start with that
         if 'service' in macros:
@@ -824,7 +987,7 @@ for app in jaiabot_apps:
         # special case for goby_coroner - need a list of everything we're running
         if app.get('exe') == 'goby_coroner':
             macros['extra_flags'] = '--expected_name ' + ' --expected_name '.join(all_goby_apps)
-            
+
         if not 'bin_dir' in macros:
             if (macros.get('exe') or '').startswith('goby'):
                 macros['bin_dir'] = macros['goby_bin_dir']
@@ -832,9 +995,9 @@ for app in jaiabot_apps:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
 
         macros['service'] = service
-                
-        with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:        
-            out=Template(file.read()).substitute(macros)    
+
+        with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:
+            out=Template(file.read()).substitute(macros)
         outfilename = args.systemd_dir + '/' + service + '.service'
 
         enable = args.enable
@@ -850,16 +1013,14 @@ for app in jaiabot_apps:
         outfile.write(out)
         outfile.close()
         if enable:
-            print('Enabling ' + service)
-            subprocess.run('systemctl enable ' + service, check=True, shell=True)
+            services_to_enable.append(service)
         if disable:
-            print('Disabling ' + service)
-            subprocess.run('systemctl disable ' + service, check=True, shell=True)
+            services_to_disable.append(service)
         if app['template'] == 'jcc.conf.in':
             print('Enabling ' + service)
             subprocess.run('a2ensite ' + service, check=True, shell=True)
             subprocess.run('if systemctl is-active --quiet apache2; then systemctl reload apache2; else systemctl start apache2; fi', check=True, shell=True)
-            
+
 # check if the firmware is run on this type (bot/hub), at this time (runtime/simulation), and if the system has the capability
 def is_firm_run(firm):
     macros={**firmware_common_macros, **firm}
@@ -899,7 +1060,7 @@ for firmware in jaia_firmware:
             service = firmware['exe'].replace('.', '_').lower()
             if macros['exe'][0:9] != 'jaia_firm':
                 service = 'jaia_firm_' + service
-            
+
         if not 'bin_dir' in macros:
             if macros['exe'][0:4] == 'goby':
                 macros['bin_dir'] = macros['goby_bin_dir']
@@ -907,25 +1068,31 @@ for firmware in jaia_firmware:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
 
         macros['service'] = service
-                
-        with open(script_dir + '/../templates/systemd/' + firmware['template'], 'r') as file:        
-            out=Template(file.read()).substitute(macros)    
+
+        with open(script_dir + '/../templates/systemd/' + firmware['template'], 'r') as file:
+            out=Template(file.read()).substitute(macros)
         outfilename = args.systemd_dir + '/' + service + '.service'
         print('Writing ' + outfilename)
         outfile = open(outfilename, 'w')
         outfile.write(out)
         outfile.close()
 
-        # Check to see if we should enable the service to run at boot
-        # If not then we should not try to enable or disable the service
+        # run_at_boot: False means never enable or disable this service
         if (not 'run_at_boot' in macros or macros['run_at_boot'] != False):
             if args.enable:
-                print('Enabling ' + service)
-                subprocess.run('systemctl enable ' + service, check=True, shell=True)
+                services_to_enable.append(service)
             if args.disable:
-                print('Disabling ' + service)
-                subprocess.run('systemctl disable ' + service, check=True, shell=True)
-        
-        
+                services_to_disable.append(service)
+
+# One systemctl invocation for the whole set: each one is a fork/exec plus a
+# round trip to the manager, which dominates the cost of writing the units.
+if services_to_enable:
+    print('Enabling ' + ' '.join(services_to_enable))
+    subprocess.run(['systemctl', 'enable'] + services_to_enable, check=True)
+
+if services_to_disable:
+    print('Disabling ' + ' '.join(services_to_disable))
+    subprocess.run(['systemctl', 'disable'] + services_to_disable, check=True)
+
 if args.enable or args.disable:
     subprocess.run('systemctl daemon-reload', check=True, shell=True)
