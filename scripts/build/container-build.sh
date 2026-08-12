@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Cross-compiles jaiabot into $1 (a directory relative to the jaiabot root). Runs inside the build
-# container created by docker-build-build-system.sh, which provides the cross-compiler, node and
+# container created by container-image-build.sh, which provides the cross-compiler, node and
 # the arm64 dependencies.
 #
 # Env var "jaiabot_machine_type" can be set to "virtualbox" to build amd64 binaries instead of the

@@ -297,7 +297,7 @@ sudo systemctl enable containerd.service
 To create the docker image initially (should only need to be done initially and whenever there are updates to the dependencies):
 ```bash
 cd jaiabot
-./scripts/build/docker-build-build-system.sh
+./scripts/build/container-image-build.sh
 ```
 
 This generates the Dockerfile from `.docker/${jaia_version_ubuntu_codename}/arm64/Dockerfile.in` (or `.../amd64/Dockerfile.in` when `jaiabot_machine_type=virtualbox`) and builds an image tagged `jaia_build_${distro}_${repo}_${version}` (e.g. `jaia_build_resolute_release_3.y`). The `jaiabot_repo`, `jaiabot_version` and `jaiabot_distro` environmental variables can be used to override the defaults taken from `scripts/common-versions.env`.

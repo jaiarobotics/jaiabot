@@ -18,7 +18,7 @@ echo "Docker versions: ${docker_libdccl_version} ${docker_libgoby_version}"
 if [[ ${local_libdccl_version} == ${docker_libdccl_version} && ${local_libgoby_version} == ${docker_libgoby_version} ]]; then
     echo "✅ They match"
 else
-    echo "❌ Mismatch!  Try running the docker-build-build-system.sh script."
+    echo "❌ Mismatch!  Try running the container-image-build.sh script."
     exit 1
 fi
 

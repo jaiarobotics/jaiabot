@@ -265,7 +265,7 @@ If you are modifying code on a Mac, [create an SSH Key](#creating-an-ssh-key-mac
     cd ~/jaiabot/scripts/build
     ```
     ```
-    ./docker-build-build-system.sh
+    ./container-image-build.sh
     ```
 4. Stop the jaiabot services for the systems you are deploying to. Note: X indicates fleet number and Y indicates bot number.
     ```

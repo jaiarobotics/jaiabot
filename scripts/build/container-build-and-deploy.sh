@@ -34,7 +34,7 @@ docker_run() {
 
 if [ "$(docker image ls ${image_name} --format='true')" != "true" ]; then
     echo "🟢 Building the docker ${image_name} image"
-    "${script_dir}/docker-build-build-system.sh"
+    "${script_dir}/container-image-build.sh"
 fi
 
 echo "🟢 Building jaiabot apps using docker ${image_name} image to ${build_dir}"
