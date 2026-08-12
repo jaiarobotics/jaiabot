@@ -16,8 +16,11 @@ environment-template-common: &environment-template-common
   DISABLE_OPT_FOR_TEST_REPO: "false"
   CCACHE_DIR: /root/.ccache
   CCACHE_MAXSIZE: "3G"
-  # container mtimes aren't stable across job runs, so hash the compiler contents instead
-  CCACHE_COMPILERCHECK: content
+  # each job starts from a fresh container, so both mtime (default) and hashing the compiler's
+  # raw content are unstable: apt-get dist-upgrade can pull a same-version compiler rebuild with
+  # different bytes, invalidating every cache entry at once. Check the reported version string
+  # instead, which is stable across same-version rebuilds and only changes on a real upgrade.
+  CCACHE_COMPILERCHECK: "%compiler% -v"
   # fixed, build-directory-independent location webpack.config.js will use for its filesystem cache when set
   WEBPACK_CACHE_DIR: /root/.cache/webpack
 
