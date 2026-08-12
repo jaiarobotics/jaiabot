@@ -3,6 +3,7 @@ import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 
 import { gridPlan } from "../data/survey_planner/grid-plan";
 import { ButtonNames } from "../types/context-types";
+import { MissionState } from "../types/protobuf-types";
 import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 import { isControllingClient } from "../utils/commands";
 import { JCC_CONTAINER } from "../utils/constants";
@@ -33,11 +34,13 @@ import DataOffloadPanel from "../components/DataOffloadPanel/DataOffloadPanel";
 import SimulationBanner from "../components/SimulationBanner/SimulationBanner";
 import TakeControlButton from "../components/__buttons__/TakeControl/TakeControlButton/TakeControlButton";
 import RemoteControlPanel from "../components/RemoteControlPanel/RemoteControlPanel";
+import LoadingPanel from "../components/RemoteControlPanel/LoadingPanel/LoadingPanel";
 
 import "./App.less";
 
 // 400 ms is intentionally conservative to avoid flicker or partially rendered content on slower devices.
 const LOADING_SCREEN_REMOVAL_DELAY_MS = 400;
+const RC_STATE = MissionState.IN_MISSION__UNDERWAY__MOVEMENT__REMOTE_CONTROL__SURFACE_DRIFT;
 
 /**
  * The root of the JCC interface
@@ -163,10 +166,19 @@ function RemoteControl() {
     if (jaiaContext === null) {
         return;
     }
+
     if (jaiaContext.jaiaGlobal.getSelectedNode().type === NodeTypes.BOT) {
         const selectedBot = jaiaContext.bots.getBot(jaiaContext.jaiaGlobal.getSelectedNode().id);
-        if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
+
+        if (
+            selectedBot.getMode() === BotModes.REMOTE_CONTROL &&
+            selectedBot.getMissionStatus().missionState === RC_STATE
+        ) {
             return <RemoteControlPanel botID={selectedBot.getBotID()} />;
+        }
+
+        if (selectedBot.getMode() === BotModes.REMOTE_CONTROL) {
+            return <LoadingPanel />;
         }
     }
 }

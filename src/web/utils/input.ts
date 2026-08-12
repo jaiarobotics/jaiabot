@@ -1,6 +1,5 @@
 import { NO_CONSTRAINT } from "./constants";
 import { MAX_LAT, MIN_LAT, MAX_LON, MIN_LON } from "./constants";
-import { TaskType } from "../types/protobuf-types";
 
 /**
  * Removes leading zero from numerical input. For example,

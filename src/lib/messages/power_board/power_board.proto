@@ -1,0 +1,60 @@
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+import "nanopb.proto";
+
+import "jaiabot/messages/power_board/metadata.proto";
+import "jaiabot/messages/control_surfaces.proto";
+
+package jaiabot.protobuf;
+
+enum PowerBoardMCUCommand
+{
+    ENTER_BOOTLOADER_MODE = 1;
+}
+
+
+message PowerBoardRequest
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required uint64 time = 1 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+
+    oneof data
+    {
+        bool request_metadata = 11 [default = false];
+        // Configuration cfg = 12;
+    }
+
+    optional PowerBoardMCUCommand power_board_mcu_command = 20;
+    optional ControlSurfaces control_surfaces = 21;
+}
+
+
+message PowerBoardResponse
+{
+    option (dccl.msg) = {
+        unit_system: "si" 
+    };
+
+    required uint64 time = 1 [
+        (dccl.field) = { units { prefix: "micro" derived_dimensions: "time" } }
+    ];
+
+    oneof data
+    {
+        Metadata metadata = 11;
+    }
+
+    optional float thermocouple_temperature_C = 20;
+    optional float vccvoltage = 21; 
+    optional float vcccurrent = 22;
+    optional float vvcurrent = 23;
+    optional int32 motor = 24;
+    optional float thermistor_voltage = 25;
+    optional float generic_gpio_voltage = 26; 
+}

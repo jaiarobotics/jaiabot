@@ -1,0 +1,7 @@
+$app_block
+$interprocess_block
+power_board_serial {
+    port: "$port"
+    baud: $baud
+}
+$bounds

@@ -1258,6 +1258,12 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                 {
                     mutable_plan->set_mission_name(command.plan().mission_name());
                 }
+                if (command.plan().segments_size() > 0) {
+                    for (const auto& segment : command.plan().segments())
+                    {
+                        *mutable_plan->add_segments() = segment;
+                    }
+                }
             }
 
             mutable_plan->set_fragment_index(fragment_index);

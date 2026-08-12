@@ -7,7 +7,8 @@ import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { NodeTypes } from "../../types/jaia-system-types";
-import { MapFeatureTypes } from "../../types/openlayers-types";
+import { MapModes } from "../../types/openlayers-types";
+import { handleMapModeChange } from "../../openlayers/maps/map";
 import { ButtonNames, JaiaAction, JaiaContextType, PanelActions } from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers, syncTaskLayers } from "./handler-utils";
@@ -91,7 +92,6 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
         const zone = exclusionZoneSet.getZone(action.zoneID);
         if (zone) {
             exclusionZoneSet.updateZone(action.zoneID, { ...zone, vertices: action.locations });
-            syncOpenLayers();
         }
         // Clear any pending dialogs triggered by the now-cancelled edits.
         if (mutableState.pendingWaypointRemoval?.priorZone) {
@@ -101,7 +101,12 @@ export function handleClosedZoneVertexPanel(mutableState: JaiaContextType, actio
             mutableState.pendingReroute = null;
         }
     }
+    jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
     jaiaGlobal.resetSelectedZoneVertex();
     mutableState.visiblePanel = ButtonNames.NONE;
+    if (jaiaGlobal.getMapMode() === MapModes.EXCLUSION_ZONE_DRAWING) {
+        handleMapModeChange(MapModes.DEFAULT);
+    }
+    syncOpenLayers();
     return mutableState;
 }

@@ -220,7 +220,7 @@ interface ZoneGeom {
 // ── A* grid pathfinding ────────────────────────────────────────────────────────
 
 const GRID_CELL_SIZE = 5; // metres per grid cell
-const DEFAULT_SAFETY_MARGIN_METERS = 15;
+const DEFAULT_SAFETY_MARGIN_METERS = 5;
 const MIN_BYPASS_SPACING = GRID_CELL_SIZE * 1.5;
 const BACKTRACK_TOLERANCE = GRID_CELL_SIZE * 1.5;
 

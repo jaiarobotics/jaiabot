@@ -43,6 +43,7 @@ namespace middleware = goby::middleware;
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/power_board/power_board.pb.h"
 
 // Mission Manager app
 #include "states.h"
@@ -269,15 +270,15 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
-    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+    interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
+        [this](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
         {
-            glog.is_debug2() && glog << "Received Arduino Response " << arduino_response.ShortDebugString() << std::endl;
+            glog.is_debug2() && glog << "Received Power Board Response " << power_board_response.ShortDebugString() << std::endl;
 
-            if (arduino_response.has_motor())
+            if (power_board_response.has_motor())
             {
                 statechart::EvMotorStopped ev;
-                ev.is_motor_stopped = arduino_response.motor() == 1500;
+                ev.is_motor_stopped = power_board_response.motor() == 1500;
                 machine_->process_event(ev);
             }
         });
@@ -900,6 +901,9 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
                 handle_bottom_dive_safety_params(bottom_depth_safety_params);
             }
 
+            if (command.plan().has_speeds())
+                machine_->set_transit_speed(command.plan().speeds().transit_with_units());
+
             if (mission_is_feasible)
             {
                 // pass mission plan through event so that the mission plan in MissionManagerStateMachine only gets updated if this event is handled
@@ -1079,6 +1083,13 @@ bool jaiabot::apps::MissionManager::handle_command_fragment(
             if (initial_fragment.plan().has_repeats())
             {
                 out_command.mutable_plan()->set_repeats(initial_fragment.plan().repeats());
+            }
+
+            if (initial_fragment.plan().segments_size() > 0) {
+                for (const auto& segment : initial_fragment.plan().segments())
+                {
+                    *out_command.mutable_plan()->add_segments() = segment;
+                }
             }
 
             // Loop through fragments and all the waypoints in each

@@ -298,6 +298,67 @@ def delete_exclusion_zone(name: str):
     return JSONResponse({"status": "ok"})
 
 
+######## Mission sets
+
+MISSION_SETS_DIR = _LOG_DIR / 'mission-sets'
+
+
+def _mission_set_path(name: str) -> Path:
+    """Returns the filesystem path for a named mission set.
+
+    Raises ValueError if the name contains characters that could allow
+    directory traversal or other path manipulation.
+    """
+    if not name or '/' in name or '\\' in name or name.startswith('.') or '..' in name:
+        raise ValueError(f"Invalid mission set name: {name!r}")
+    return MISSION_SETS_DIR / f"{name}.json"
+
+
+@app.route('/jaia/v0/mission-sets', methods=['GET'])
+def list_mission_sets():
+    """Returns a sorted list of saved mission set names."""
+    MISSION_SETS_DIR.mkdir(parents=True, exist_ok=True)
+    names = sorted(p.stem for p in MISSION_SETS_DIR.glob("*.json"))
+    return JaiaResponse(names)
+
+
+@app.route('/jaia/v0/mission-sets/<name>', methods=['GET'])
+def get_mission_set(name: str):
+    """Returns the saved mission set with the given name."""
+    try:
+        path = _mission_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    if not path.exists():
+        return ErrorResponse(HTTPStatus.NOT_FOUND, f"Mission set not found: {name!r}")
+    return JSONResponse(string=path.read_text())
+
+
+@app.route('/jaia/v0/mission-sets/<name>', methods=['POST'])
+def save_mission_set(name: str):
+    """Saves (or overwrites) a named mission set."""
+    try:
+        path = _mission_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    MISSION_SETS_DIR.mkdir(parents=True, exist_ok=True)
+    path.write_text(request.get_data(as_text=True))
+    return JSONResponse({"status": "ok"})
+
+
+@app.route('/jaia/v0/mission-sets/<name>', methods=['DELETE'])
+def delete_mission_set(name: str):
+    """Deletes a named mission set."""
+    try:
+        path = _mission_set_path(name)
+    except ValueError as e:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, str(e))
+    if not path.exists():
+        return ErrorResponse(HTTPStatus.NOT_FOUND, f"Mission set not found: {name!r}")
+    path.unlink()
+    return JSONResponse({"status": "ok"})
+
+
 ######## Jaiabot Engineer & Debug
 
 @app.route('/jed/<path>', methods=['GET'])

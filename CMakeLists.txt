@@ -99,6 +99,14 @@ else()
   option(build_arduino "Build Arduino code (requires arduino-cli)" OFF)
 endif()
 
+find_program(STM32_MAKE arm-none-eabi-gcc)
+if(STM32_MAKE)
+  option(build_stm32 "Build STM32 firmware (requires arm-none-eabi-gcc)" ON)
+else()
+  message(STATUS "Did not find arm-none-eabi-gcc, so not building STM32 firmware")
+  option(build_stm32 "Build STM32 firmware (requires arm-none-eabi-gcc)" OFF)
+endif()
+
 option(build_web "Build web ui code (requires npm)" ON)
 option(build_jdv "Build jdv ui code (requires npm)" ON)
 
@@ -117,12 +125,23 @@ file(GLOB_RECURSE NANOPB_OPTIONS_FILES RELATIVE ${project_SRC_DIR}/lib/messages
 foreach(I ${INCLUDE_FILES})
   configure_file(${project_SRC_DIR}/lib/${I} ${project_INC_DIR}/jaiabot/${I} @ONLY)
 endforeach()
+
+# Create output directories before copying files
+foreach(I ${PROTO_FILES})
+  get_filename_component(OUT_DIR_CPP ${project_INC_DIR}/jaiabot/messages/${I} DIRECTORY)
+  file(MAKE_DIRECTORY ${OUT_DIR_CPP})
+  get_filename_component(OUT_DIR_NANOPB ${project_INC_DIR}/nanopb/jaiabot/messages/${I} DIRECTORY)
+  file(MAKE_DIRECTORY ${OUT_DIR_NANOPB})
+endforeach()
+
 foreach(I ${PROTO_FILES})
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/jaiabot/messages/${I} @ONLY)
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
 foreach(I ${NANOPB_OPTIONS_FILES})
+  get_filename_component(OUT_DIR ${project_INC_DIR}/nanopb/jaiabot/messages/${I} DIRECTORY)
+  file(MAKE_DIRECTORY ${OUT_DIR})
   configure_file(${project_SRC_DIR}/lib/messages/${I} ${project_INC_DIR}/nanopb/jaiabot/messages/${I} @ONLY)
 endforeach()
 
@@ -173,6 +192,7 @@ file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/f
 
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
+  PATTERN "stm32" EXCLUDE
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
@@ -181,6 +201,11 @@ unset(PROJECT_APP_LIST CACHE)
 # share
 # install config
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/config DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+
+# install stm32 scripts and tools
+if(build_stm32)
+  install(DIRECTORY ${CMAKE_SOURCE_DIR}/scripts/stm32 DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+endif()
 
 # etc
 option(install_motd "Install MOTD script" ON)
@@ -206,6 +231,7 @@ set(scripts_to_install
   data-offload/jaiahub-dataoffload-cloudhub.sh
   # Firmware scripts
   jaia_firm_backup_date.sh
+  jaia_firm_arduino_flash.sh
   reset-bio-payload-board.sh
   geotiff_format.py
   geotiff_scan.sh
@@ -233,7 +259,6 @@ foreach(script ${scripts_to_install})
     install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
     configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
 endforeach()
-
 
 option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
 if(enable_testing)

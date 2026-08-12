@@ -6,7 +6,8 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 
 import { Feature, MapBrowserEvent } from "ol";
 import { Coordinate } from "ol/coordinate";
-import { Geometry } from "ol/geom";
+import { Geometry, Polygon } from "ol/geom";
+import { DrawEvent } from "ol/interaction/Draw";
 import { toLonLat } from "ol/proj";
 
 import { map } from "../../openlayers/maps/map";
@@ -17,7 +18,7 @@ import { styleControlButtons } from "../../openlayers/controls/controls";
 import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
-import { ButtonNames, ButtonTypes } from "../../types/context-types";
+import { ButtonNames, ButtonTypes, JaiaAction } from "../../types/context-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
 import { MAP_FEATURE_HIT_TOLERANCE, MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { locationToConstantHeadingParams } from "../../utils/conversions";
@@ -58,9 +59,9 @@ export default function Map() {
         map.on("click", (event: MapBrowserEvent<PointerEvent>) => {
             handleMapClick(event);
         });
-        exclusionZoneLayer.setDispatch(jaiaDispatch);
         styleControlButtons();
-    }, [jaiaDispatch]);
+        initExclusionZoneDraw();
+    }, []);
 
     /**
      * Distributes map clicks to appropriate handlers
@@ -90,7 +91,7 @@ export default function Map() {
                 handleHubLocationSelectClick(event.coordinate);
                 return;
             case MapModes.EXCLUSION_ZONE_DRAWING:
-                // OpenLayers draw interaction handles clicks directly; suppress React handler.
+                // When drawing is active, the OL Draw interaction handles pointer events directly
                 return;
         }
 
@@ -332,20 +333,14 @@ export default function Map() {
      */
     const handleWaypointClick = (feature: Feature<Geometry>) => {
         if (feature.get("isBypass")) return;
-        const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-        if (
-            feature.get("missionID") !== selectedWaypoint.missionID ||
-            feature.get("waypointNum") !== selectedWaypoint.waypointNum
-        ) {
-            jaiaDispatch({
-                type: JaiaActions.CLICKED_WAYPOINT,
-                clickedWaypoint: {
-                    waypointNum: feature.get("waypointNum"),
-                    missionID: feature.get("missionID"),
-                    isMoveable: false,
-                },
-            });
-        }
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_WAYPOINT,
+            clickedWaypoint: {
+                waypointNum: feature.get("waypointNum"),
+                missionID: feature.get("missionID"),
+                isMoveable: false,
+            },
+        });
     };
 
     /**
@@ -499,7 +494,7 @@ export default function Map() {
             // lat/lon values match those produced by detectMissionReroutes,
             // which also uses the first clean waypoint as origin.
             const firstCleanLoc = waypoints.filter((wp) => !wp.getIsBypass())[0]?.getLocation();
-            const result = routeAroundExclusionZones(miniPlan, 15, firstCleanLoc ?? fromLocation);
+            const result = routeAroundExclusionZones(miniPlan, 5, firstCleanLoc ?? fromLocation);
             const locations = result.plan.goal.slice(1).map((g) => g.location!);
 
             // Let the normal waypoint-add handler reject impossible or over-limit
@@ -521,6 +516,23 @@ export default function Map() {
         }
 
         jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location: newLocation });
+    };
+
+    /**
+     * Creates the exclusion zone Draw interaction and wires its drawend handler.
+     * Defined outside the component so dispatch is passed explicitly rather than
+     * captured implicitly — keeping the OL singleton free of React references.
+     *
+     * @returns {void}
+     */
+    const initExclusionZoneDraw = () => {
+        const draw = exclusionZoneLayer.createDrawInteraction();
+        draw.on("drawend", (event: DrawEvent) => {
+            const vertices = exclusionZoneLayer.configureDrawEnd(event);
+            if (vertices.length >= 3) {
+                jaiaDispatch({ type: JaiaActions.ADD_EXCLUSION_ZONE, exclusionZone: { vertices } });
+            }
+        });
     };
 
     /**

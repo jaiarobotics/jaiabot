@@ -48,6 +48,7 @@ packages:
   - wireguard
   - docker-compose
   - yq
+  - netcat-openbsd
   - jaiabot-apps
 
 runcmd:
