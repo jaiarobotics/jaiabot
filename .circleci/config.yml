@@ -155,23 +155,6 @@ job-template-deb-amd64: &job-template-deb-amd64
           sed -i "s/^set(PROJECT_VERSION_PATCH *\".*\"/set(PROJECT_VERSION_PATCH \"${NEWVERSION_PATCH}\"/" cmake/JaiaVersions.cmake
           quilt refresh
     - run: *run-zero-ccache-stats
-    # TEMPORARY: instrumentation to find what peaks memory during the build
-    - run: &run-memory-sampler
-        name: Sample memory during the build
-        background: true
-        command: |
-          # the default shell is -eo pipefail, which kills this loop on any transient
-          # read error against /proc or the cgroup files
-          set +e +o pipefail
-          mkdir -p /tmp/memlog
-          while true; do
-            # anon is the OOM-relevant number; memory.current also counts reclaimable page cache
-            anon=$(awk '/^anon /{printf "%d", $2/1048576}' /sys/fs/cgroup/memory.stat 2>/dev/null)
-            cur=$(cat /sys/fs/cgroup/memory.current 2>/dev/null || echo 0)
-            top=$(awk '/^Name:/{n=$2} /^VmRSS:/{printf "%dMiB:%s ", $2/1024, n}' /proc/[0-9]*/status 2>/dev/null | tr ' ' '\n' | sort -t: -k1 -rn | head -6 | tr '\n' ' ')
-            echo "$(date +%T) anon=${anon:-0}MiB cgroup=$((cur/1048576))MiB ${top}" >> /tmp/memlog/samples.txt
-            sleep 5
-          done
     - run: &run-build-pkg
         name: Build the Debian package
         command: |
@@ -192,20 +175,6 @@ job-template-deb-amd64: &job-template-deb-amd64
             export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} noopt"
           fi
           CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -kB90BE706B6A6724592B53B90954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
-    # TEMPORARY: runs even when the build fails, which is the case we care about
-    - run: &run-memory-report
-        name: Memory report
-        when: always
-        command: |
-          echo "cgroup limit: $(cat /sys/fs/cgroup/memory.max 2>/dev/null || echo unknown)"
-          echo "cgroup peak:  $(cat /sys/fs/cgroup/memory.peak 2>/dev/null || echo unavailable)"
-          echo "MemTotal:     $(awk '/MemTotal/{print $2}' /proc/meminfo) kB"
-          echo "samples taken: $(wc -l < /tmp/memlog/samples.txt 2>/dev/null || echo 0)"
-          echo "--- peak anonymous memory ---"
-          sort -t= -k2 -rn /tmp/memlog/samples.txt 2>/dev/null | head -3 || true
-          echo "--- full timeline ---"
-          cat /tmp/memlog/samples.txt 2>/dev/null || true
-          true
     - run: *show-ccache-stats
     - save_cache: *save-ccache
     - save_cache: *save-npm-webpack-cache
@@ -250,7 +219,6 @@ filter-template-debian-builds: &filter-template-debian-builds
       only:
         - "3.y"
         - "claude/circleci-debian-build-optimization-uwuryg"
-        - "claude/circleci-ccache-hits-amd64-arm64-gd6bx6"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
