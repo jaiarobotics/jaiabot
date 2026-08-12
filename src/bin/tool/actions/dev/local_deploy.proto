@@ -79,4 +79,11 @@ message LocalDeployTool
             description: "Rebuild the build container image before building, for example after a change to the Dockerfile or to pick up newer dependencies. Without this the image is built only when it does not yet exist"
         }
     ];
+
+    optional bool clean = 7 [
+        default = false,
+        (goby.field) = {
+            description: "Instead of building and deploying, remove the deployed source tree from each target and restore its packaged install. Log data in /var/log/jaiabot is kept"
+        }
+    ];
 }
