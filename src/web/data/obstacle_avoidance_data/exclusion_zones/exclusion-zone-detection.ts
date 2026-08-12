@@ -5,7 +5,11 @@ import {
     PendingWaypointRemovalProposal,
     ProposalStatus,
 } from "../pending-route-data";
-import { detectReroutesWithOverrides, getBlockingZoneIDs } from "./exclusion-zone-router";
+import {
+    detectReroutesWithOverrides,
+    getBlockingZoneIDs,
+    buildZoneBufferCache,
+} from "./exclusion-zone-router";
 import { MAX_WAYPOINTS } from "../../../utils/constants";
 
 /**
@@ -51,6 +55,9 @@ export function detectMissionReroutes(): RerouteProposalSet | null {
 export function detectWaypointRemovals(): WaypointRemovalProposalSet | null {
     const proposals: PendingWaypointRemovalProposal[] = [];
     const offendingZoneIDSet = new Set<number>();
+    // Build zone buffer geometry once for this pass instead of letting each
+    // waypoint's getBlockingZoneIDs() call rebuild every zone from scratch.
+    const zoneBufferCache = buildZoneBufferCache();
 
     for (const [missionID, mission] of missionSet.getMissions()) {
         const cleanWaypoints = mission.getWaypoints().filter((wp) => !wp.getIsBypass());
@@ -58,7 +65,7 @@ export function detectWaypointRemovals(): WaypointRemovalProposalSet | null {
         const keepWaypoints = cleanWaypoints.filter((wp) => {
             const loc = wp.getLocation();
             if (!loc) return true;
-            const blockingIDs = getBlockingZoneIDs(loc);
+            const blockingIDs = getBlockingZoneIDs(loc, undefined, zoneBufferCache);
             if (blockingIDs.length === 0) return true;
             blockingIDs.forEach((id) => offendingZoneIDSet.add(id));
             return false;

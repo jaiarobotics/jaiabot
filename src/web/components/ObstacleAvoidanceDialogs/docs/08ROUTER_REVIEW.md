@@ -1,6 +1,6 @@
 # Review: exclusion-zone-detection.ts and exclusion-zone-router.ts
 
-_Status: Findings 1-2 fixed. Findings 3-4 documented, not fixed yet._
+_Status: Findings 1-3 fixed. Finding 4 documented, not fixed yet._
 
 This is the start of the "router investigation" flagged as out of scope in
 [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)'s
@@ -94,29 +94,40 @@ hulls, multiple/overlapping zones, diagonal paths, multi-segment routes).
 
 ## Finding 3 — zone buffer geometry is rebuilt from scratch repeatedly
 
-_Confirmed._
+_Fixed._
 
-`detectReroutesWithOverrides`
-([exclusion-zone-router.ts:678](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts#L678))
-calls `routeAroundExclusionZones` once per mission; that function rebuilds
-`zoneGeoms` (projection + `Clipper.union`/`inflatePaths`) for the entire
-zone set every call
-([:510-524](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts#L510-L524)),
-even though the zone set is identical across every mission in one detection
-pass. `getBlockingZoneIDs`
-([:623](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts#L623)),
-called once per non-bypass waypoint from `detectWaypointRemovals`, has the
-same redundancy at even finer granularity.
+`detectReroutesWithOverrides` called `routeAroundExclusionZones` once per
+mission; that function rebuilt `zoneGeoms` (projection +
+`Clipper.union`/`inflatePaths`) for the entire zone set every call, even
+though the zone set is identical across every mission in one detection
+pass. `getBlockingZoneIDs`, called once per non-bypass waypoint from
+`detectWaypointRemovals` (and once per bypass waypoint from
+`stripBypassesInsideZoneWithSnapshot` in `handler-utils.ts`, the same
+pattern found in a third spot while fixing this), had the same redundancy
+at even finer granularity.
 
-**Why it matters in practice:** one detection pass — triggered on nearly
-every waypoint or zone edit — repeats the same Clipper polygon-offset work
+**Why it mattered in practice:** one detection pass — triggered on nearly
+every waypoint or zone edit — repeated the same Clipper polygon-offset work
 O(missions) or O(waypoints) times instead of once. Not a correctness issue,
-just wasted work that scales with mission/zone count.
+just wasted work that scaled with mission/zone count.
 
-**Candidate fix:** compute `zoneGeoms` once per detection pass (e.g. inside
-`detectMissionReroutes`/`detectWaypointRemovals`, before the per-mission or
-per-waypoint loop) and pass it down, instead of recomputing inside
-`routeAroundExclusionZones`/`getBlockingZoneIDs` on every call.
+**Fix:** extracted the per-call geometry-building logic into two reusable
+functions —
+[`buildZoneGeoms`](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts)
+(shared-origin geometry for `routeAroundExclusionZones`) and
+[`buildZoneBufferCache`](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts)
+(per-zone-origin geometry for `getBlockingZoneIDs`) — and gave
+`routeAroundExclusionZones`/`getBlockingZoneIDs` optional parameters to
+accept precomputed geometry instead of always rebuilding it. `detectReroutesWithOverrides`
+now builds `zoneGeoms` once (relative to a shared origin — any valid zone's
+first vertex; the specific choice doesn't affect results) before its
+per-mission loop; `detectWaypointRemovals` and
+`stripBypassesInsideZoneWithSnapshot` both build a `zoneBufferCache` once
+before their per-waypoint checks. Existing callers that don't pass the new
+optional parameters (`Map.tsx`'s placement checks, `waypoint-handlers.ts`)
+are unaffected — they still rebuild fresh each call, which is correct for a
+single, one-off location check. Full test suite and `tsc --noEmit` are
+clean.
 
 ## Finding 4 — stale "re-convex-hulls" comments; zones are never convex-hulled
 

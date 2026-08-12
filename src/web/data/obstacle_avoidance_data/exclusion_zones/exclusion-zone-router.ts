@@ -219,6 +219,30 @@ interface ZoneGeom {
     expanded: XYPt[];
 }
 
+/**
+ * Projects and buffers every exclusion zone relative to a single shared
+ * origin. Callers that process multiple missions/waypoints against the same
+ * zone set in one pass should build this once and reuse it, instead of
+ * letting each per-mission/per-waypoint call rebuild it from scratch.
+ *
+ * @param {GeographicCoordinate} origin Shared projection origin for every zone
+ * @param {number} safetyMargin Safety buffer distance in metres around each zone
+ * @returns {Array<ZoneGeom & { zoneID: number }>} Projected, buffered geometry for every valid zone
+ */
+function buildZoneGeoms(
+    origin: GeographicCoordinate,
+    safetyMargin: number,
+): Array<ZoneGeom & { zoneID: number }> {
+    const zoneGeoms: Array<ZoneGeom & { zoneID: number }> = [];
+    for (const [zoneID, zone] of obstacleAvoidanceData.getExclusionZoneSet().getZones()) {
+        if (!zone.vertices || zone.vertices.length < 3) continue;
+        const raw = zone.vertices.map((v) => toXY(origin, v));
+        if (raw.length < 3) continue;
+        zoneGeoms.push({ zoneID, raw, expanded: expandPolygon(raw, safetyMargin) });
+    }
+    return zoneGeoms;
+}
+
 // ── A* grid pathfinding ────────────────────────────────────────────────────────
 
 const GRID_CELL_SIZE = 5; // metres per grid cell
@@ -548,30 +572,22 @@ interface RouteResult {
  * @param {MissionPlan} plan Mission plan whose goal waypoints need routing
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
  * @param {GeographicCoordinate} [originOverride] Optional projection origin; defaults to the first goal location
+ * @param {Array<ZoneGeom & { zoneID: number }>} [zoneGeomsOverride] Optional precomputed zone geometry
+ *   (see `buildZoneGeoms`), for callers routing multiple missions against the same zone set in one pass.
+ *   Must have been built with the same origin passed as `originOverride`.
  * @returns {RouteResult} Routed plan with bypass waypoints inserted, plus metadata about the routing outcome
  */
 export function routeAroundExclusionZones(
     plan: MissionPlan,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
     originOverride?: GeographicCoordinate,
+    zoneGeomsOverride?: Array<ZoneGeom & { zoneID: number }>,
 ): RouteResult {
     const goals = plan.goal ?? [];
     if (goals.length < 2) return { plan, bypassCount: 0, involvedZoneIDs: [] };
 
-    const zoneEntries: [number, ExclusionZone][] = Array.from(
-        obstacleAvoidanceData.getExclusionZoneSet().getZones().entries(),
-    );
-    if (zoneEntries.length === 0) return { plan, bypassCount: 0, involvedZoneIDs: [] };
-
     const origin = originOverride ?? goals[0].location!;
-
-    const zoneGeoms: Array<ZoneGeom & { zoneID: number }> = [];
-    for (const [zoneID, zone] of zoneEntries) {
-        if (!zone.vertices || zone.vertices.length < 3) continue;
-        const raw = zone.vertices.map((v) => toXY(origin, v));
-        if (raw.length < 3) continue;
-        zoneGeoms.push({ zoneID, raw, expanded: expandPolygon(raw, safetyMargin) });
-    }
+    const zoneGeoms = zoneGeomsOverride ?? buildZoneGeoms(origin, safetyMargin);
     if (zoneGeoms.length === 0) return { plan, bypassCount: 0, involvedZoneIDs: [] };
 
     interface WorkingGoal {
@@ -663,19 +679,52 @@ export function getZoneBufferVertices(
     return expandPolygon(raw, safetyMargin).map((p) => toLatLon(origin, p));
 }
 
+/** Per-zone buffer geometry, each relative to its own zone's first vertex as origin. */
+type ZoneBufferCache = Map<number, { origin: GeographicCoordinate; expanded: XYPt[] }>;
+
+/**
+ * Projects and buffers every exclusion zone, each relative to its own first
+ * vertex as origin (matching `getBlockingZoneIDs`'s per-zone default).
+ * Callers that check multiple locations against the same zone set in one
+ * pass (e.g. once per waypoint) should build this once and reuse it, instead
+ * of letting each `getBlockingZoneIDs` call rebuild every zone from scratch.
+ *
+ * @param {number} safetyMargin Safety buffer distance in metres around each zone
+ * @returns {ZoneBufferCache} Buffer geometry for every valid zone, keyed by zone ID
+ */
+export function buildZoneBufferCache(safetyMargin = DEFAULT_SAFETY_MARGIN_METERS): ZoneBufferCache {
+    const cache: ZoneBufferCache = new Map();
+    for (const [zoneID, zone] of obstacleAvoidanceData.getExclusionZoneSet().getZones()) {
+        if (!zone.vertices || zone.vertices.length < 3) continue;
+        const origin = zone.vertices[0];
+        const raw = zone.vertices.map((v) => toXY(origin, v));
+        cache.set(zoneID, { origin, expanded: expandPolygon(raw, safetyMargin) });
+    }
+    return cache;
+}
+
 /**
  * Returns the IDs of every zone whose safety-margin buffer contains the given
  * location.
  *
  * @param {GeographicCoordinate} location Geographic point to test against all zone buffers
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
+ * @param {ZoneBufferCache} [zoneBufferCache] Optional precomputed buffer geometry
+ *   (see `buildZoneBufferCache`), for callers checking many locations against the same zone set.
  * @returns {number[]} IDs of zones whose buffer contains the location
  */
 export function getBlockingZoneIDs(
     location: GeographicCoordinate,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
+    zoneBufferCache?: ZoneBufferCache,
 ): number[] {
     const ids: number[] = [];
+    if (zoneBufferCache) {
+        for (const [zoneID, { origin, expanded }] of zoneBufferCache) {
+            if (pointInPolygon(toXY(origin, location), expanded)) ids.push(zoneID);
+        }
+        return ids;
+    }
     for (const [zoneID, zone] of obstacleAvoidanceData.getExclusionZoneSet().getZones()) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
         const origin = zone.vertices[0];
@@ -731,6 +780,17 @@ export function detectReroutesWithOverrides(
 ): RerouteProposalSet | null {
     const proposals: PendingRerouteProposal[] = [];
 
+    // Build the zone geometry once per pass, relative to a shared origin
+    // (any valid zone's first vertex — the specific choice doesn't affect
+    // results, it's just the local-projection reference point), instead of
+    // letting each mission's routeAroundExclusionZones() call rebuild it.
+    const sharedOrigin = Array.from(
+        obstacleAvoidanceData.getExclusionZoneSet().getZones().values(),
+    ).find((z) => z.vertices && z.vertices.length >= 3)?.vertices?.[0];
+    const sharedZoneGeoms = sharedOrigin
+        ? buildZoneGeoms(sharedOrigin, DEFAULT_SAFETY_MARGIN_METERS)
+        : undefined;
+
     for (const [missionID, mission] of missionSet.getMissions()) {
         const hasOverride = overrides.has(missionID);
         const currentWaypoints = mission.getWaypoints();
@@ -741,7 +801,14 @@ export function detectReroutesWithOverrides(
         if (cleanWaypoints.length < 2) continue;
 
         const cleanPlan = { goal: cleanWaypoints.map((wp) => wp.packageWaypointForHub()) };
-        const result = routeAroundExclusionZones(cleanPlan);
+        const result = sharedOrigin
+            ? routeAroundExclusionZones(
+                  cleanPlan,
+                  DEFAULT_SAFETY_MARGIN_METERS,
+                  sharedOrigin,
+                  sharedZoneGeoms,
+              )
+            : routeAroundExclusionZones(cleanPlan);
 
         if (result.bypassCount === 0 && !result.isRoutingImpossible) continue;
 
