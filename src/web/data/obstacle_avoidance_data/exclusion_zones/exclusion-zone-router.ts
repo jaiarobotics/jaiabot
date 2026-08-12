@@ -197,12 +197,17 @@ function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
     const output = simplified.length > 0 ? simplified[0] : merged[0];
     const pts = output.map((p: { x: number; y: number }) => ({ x: p.x, y: p.y }));
 
-    // Ensure consistent winding — centroid must be inside.
-    const centroid = {
-        x: pts.reduce((s: number, p: XYPt) => s + p.x, 0) / pts.length,
-        y: pts.reduce((s: number, p: XYPt) => s + p.y, 0) / pts.length,
-    };
-    return pointInPolygon(centroid, pts) ? pts : [...pts].reverse();
+    // Ensure consistent winding via signed area (shoelace formula), which is
+    // well-defined for any simple polygon regardless of convexity — unlike a
+    // vertex-average centroid, which isn't guaranteed to lie inside a
+    // concave shape and could flip a polygon that was already correct.
+    let signedArea = 0;
+    for (let i = 0; i < pts.length; i++) {
+        const a = pts[i];
+        const b = pts[(i + 1) % pts.length];
+        signedArea += a.x * b.y - b.x * a.y;
+    }
+    return signedArea < 0 ? [...pts].reverse() : pts;
 }
 
 // ── Zone geometry ──────────────────────────────────────────────────────────────

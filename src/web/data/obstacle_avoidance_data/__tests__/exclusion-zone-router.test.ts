@@ -58,6 +58,22 @@ function triangleZone(centerLat: number, centerLon: number, radiusDeg = 0.0003):
 }
 
 /**
+ * Signed area of a lat/lon polygon via the shoelace formula, treating lon as
+ * x and lat as y (consistent with the router's toXY). Sign indicates winding
+ * direction — only the sign matters here, not the magnitude, so no metric
+ * projection is needed.
+ */
+function signedArea(poly: GeographicCoordinate[]): number {
+    let area = 0;
+    for (let i = 0; i < poly.length; i++) {
+        const a = poly[i];
+        const b = poly[(i + 1) % poly.length];
+        area += a.lon! * b.lat! - b.lon! * a.lat!;
+    }
+    return area / 2;
+}
+
+/**
  * Approximate distance in metres between two geographic coordinates.
  * Uses the same equirectangular projection as the router.
  */
@@ -155,6 +171,45 @@ describe("getZoneBufferVertices", () => {
 
     test("returns empty array for undefined vertices", () => {
         expect(getZoneBufferVertices({}, 15)).toEqual([]);
+    });
+
+    // expandPolygon's winding self-correction tests
+    // pointInPolygon(vertexAverage, pts), but a vertex average isn't
+    // guaranteed inside a concave polygon, so it can flip a polygon whose
+    // winding was already correct.
+    test("buffer winding is consistent between a convex zone and a concave (crescent) zone", () => {
+        const margin = 15;
+
+        // Convex control: a convex polygon's vertex average is always
+        // inside it, so this winding is known-correct by construction.
+        const convexZone = squareZone(41.0, -72.0, 0.0006);
+        const convexWinding = Math.sign(signedArea(getZoneBufferVertices(convexZone, margin)));
+
+        // Concave "crescent": a wide C-shaped ring. Its vertex average sits
+        // in the hollow centre — outside the ring material — because the
+        // arc spans nearly a semicircle: averaging outer-arc points alone
+        // lands within the ring band, but averaging inner-arc points alone
+        // lands inside the hollow, and combined they pull the overall
+        // average into the hollow too.
+        const outerR = 10 * 0.0006;
+        const innerR = 6 * 0.0006;
+        const startDeg = 100;
+        const endDeg = 260;
+        const steps = 10;
+        const outerPts: GeographicCoordinate[] = [];
+        const innerPts: GeographicCoordinate[] = [];
+        for (let i = 0; i <= steps; i++) {
+            const deg = startDeg + ((endDeg - startDeg) * i) / steps;
+            const rad = (deg * Math.PI) / 180;
+            outerPts.push(coord(41.0 + outerR * Math.sin(rad), -72.0 + outerR * Math.cos(rad)));
+            innerPts.push(coord(41.0 + innerR * Math.sin(rad), -72.0 + innerR * Math.cos(rad)));
+        }
+        const crescentZone: ExclusionZone = {
+            vertices: [...outerPts, ...innerPts.reverse()],
+        };
+        const crescentWinding = Math.sign(signedArea(getZoneBufferVertices(crescentZone, margin)));
+
+        expect(crescentWinding).toBe(convexWinding);
     });
 });
 

@@ -1,6 +1,6 @@
 # Review: exclusion-zone-detection.ts and exclusion-zone-router.ts
 
-_Status: findings documented, not fixed yet._
+_Status: Finding 1 fixed. Findings 2-4 documented, not fixed yet._
 
 This is the start of the "router investigation" flagged as out of scope in
 [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)'s
@@ -14,7 +14,7 @@ verification.
 
 ## Finding 1 — winding-correction centroid isn't guaranteed inside concave zones
 
-_Confirmed, with a regression test._
+_Fixed._
 
 `expandPolygon`
 ([exclusion-zone-router.ts:185-206](../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router.ts#L185-L206))
@@ -40,24 +40,26 @@ bypass computation, not a rare fallback; the _fallback_ pass
 this second call entirely. Wrong winding there can cause Clipper to offset
 the buffer in the wrong direction on the primary attempt.
 
-**Confirmed empirically**, not just logically: `getZoneBufferVertices` test
-"buffer winding is consistent between a convex zone and a concave (crescent)
-zone"
+**Confirmed empirically**, not just logically, before the fix:
+`getZoneBufferVertices` test "buffer winding is consistent between a convex
+zone and a concave (crescent) zone"
 ([exclusion-zone-router.test.ts](../../../data/obstacle_avoidance_data/__tests__/exclusion-zone-router.test.ts))
 computes the buffer for a wide C-shaped ring zone — whose vertex average
 sits in the hollow centre, outside the ring material — and compares its
 winding (via signed area) against a convex control zone's buffer, which is
 known-correct by construction (a convex polygon's vertex average is always
-inside it). They come out opposite: `convexWinding = 1`,
-`crescentWinding = -1`. Currently **failing** — this is the regression test
-for whatever fixes the bug; a simpler "dart" (single reflex-vertex)
+inside it). Before the fix they came out opposite: `convexWinding = 1`,
+`crescentWinding = -1`. (A simpler "dart" (single reflex-vertex)
 quadrilateral was tried first and did _not_ trip it, apparently smoothed
 over by Clipper's round-join inflate before the final winding check — the
-crescent's larger, vertex-dense concave region survives that smoothing.
+crescent's larger, vertex-dense concave region survives that smoothing.)
 
-**Candidate fix:** use a proper polygon centroid (area-weighted) instead of
-a vertex average, or determine winding directly from the signed area of the
-polygon instead of a point-containment test.
+**Fix:** `expandPolygon` now determines winding directly from the sign of
+the polygon's signed area (shoelace formula) instead of a vertex-average
+centroid and point-containment test — well-defined for any simple polygon
+regardless of convexity, so it can't be fooled by a concave shape. The
+regression test above now passes (`convexWinding === crescentWinding` for
+both), and the full test suite and `tsc --noEmit` are clean.
 
 ## Finding 2 — A\* open-set minimum extraction is a linear scan, not a heap
 
