@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 ##
 ## Usage:
 ## jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh 172.20.11.102
@@ -19,7 +18,7 @@ set -e
 botuser=jaia
 
 function dockerPackageVersion() {
-    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} apt show $1 | sed -n 's/^Version: \(.*\)~.*$/\1/p'
+    docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot -t ${image_name} apt-cache show $1 | sed -n 's/^Version: \(.*\)~.*$/\1/p'
 }
 
 script_dir=$(dirname $0)
@@ -74,7 +73,7 @@ docker_libdccl_version=$(dockerPackageVersion libdccl5)
 
 # Remove old library files
 echo "🟢 Cleaning old library files"
-docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot/scripts -t ${image_name} bash -c "./clean-lib-directory.py"
+docker run --env JAIA_BUILD_NPROC -v `pwd`:/home/${botuser}/jaiabot -w /home/${botuser}/jaiabot/scripts/build -t ${image_name} bash -c "./clean-lib-directory.py"
 
 if [ -z "$1" ]
 then
