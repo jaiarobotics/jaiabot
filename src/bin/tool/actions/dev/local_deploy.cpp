@@ -15,7 +15,7 @@ using goby::glog;
 
 namespace
 {
-constexpr const char* deploy_script = "scripts/build/docker-arm64-build-and-deploy.sh";
+constexpr const char* deploy_script = "scripts/build/container-build-and-deploy.sh";
 constexpr const char* range_separator = "..";
 
 boost::filesystem::path find_deploy_script()

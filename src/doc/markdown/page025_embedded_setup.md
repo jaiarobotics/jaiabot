@@ -153,7 +153,7 @@ cd jaiabot/config/gen
 ./systemd-local.sh --debconf_selections /path/to/bot.selections --enable
 ```
 
-You can produce such a file from a configured machine with `jaia-debconf.sh selections`. This is also how `docker-arm64-build-and-deploy.sh` configures a remote target.
+You can produce such a file from a configured machine with `jaia-debconf.sh selections`. This is also how `container-build-and-deploy.sh` configures a remote target.
 
 See `./systemd-local.sh --help` for more options.
 

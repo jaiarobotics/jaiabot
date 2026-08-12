@@ -2,7 +2,7 @@
 
 ##
 ## Usage:
-## ./docker-arm64-build-and-deploy.sh 172.20.11.102
+## ./container-build-and-deploy.sh 172.20.11.102
 ##
 ## Cross-compiles this source tree in the build Docker container and deploys it to each of the
 ## targets given on the command line. If no targets are given, the code is just built, but not
@@ -87,7 +87,7 @@ for remote in "$@"; do
 
     # Login to the target, and deploy the software
     ssh ${botuser}@"${remote}" \
-        "docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} ./jaiabot/scripts/build/arm64-deploy.sh ${build_dir}"
+        "docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} ./jaiabot/scripts/build/target-deploy.sh ${build_dir}"
 
     echo "When you're ready, ssh ${botuser}@${remote} and run 'sudo systemctl start jaiabot'"
 done

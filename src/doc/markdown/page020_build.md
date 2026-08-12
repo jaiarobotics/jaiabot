@@ -352,13 +352,13 @@ Whether the target is configured as a bot or a hub, and the rest of its configur
 the target's own debconf database, so the systemd services generated on it match how it is
 provisioned.
 
-`jaia dev local_deploy` is a wrapper around `scripts/build/docker-arm64-build-and-deploy.sh`, which
+`jaia dev local_deploy` is a wrapper around `scripts/build/container-build-and-deploy.sh`, which
 can also be called directly with a list of ssh hosts:
 
 ```
 ##
 ## Usage:
-## ./docker-arm64-build-and-deploy.sh 172.20.11.102
+## ./container-build-and-deploy.sh 172.20.11.102
 ##
 ## Cross-compiles this source tree in the build Docker container and deploys it to each of the
 ## targets given on the command line. If no targets are given, the code is just built, but not

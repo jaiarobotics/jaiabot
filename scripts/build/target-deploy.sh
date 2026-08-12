@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script is executed on the remote hub/bot, when using the docker-arm64-build-and-deploy.sh script
+# This script is executed on the remote hub/bot, when using the container-build-and-deploy.sh script
 
 set -e
 
@@ -22,11 +22,11 @@ else
     exit 1
 fi
 
-# generated per target by docker-arm64-build-and-deploy.sh and rsynced with the build
+# generated per target by container-build-and-deploy.sh and rsynced with the build
 selections=${jaia_dir}/${build_dir}/jaiabot-embedded.selections
 
 if [ ! -f "${selections}" ]; then
-    echo "❌ ${selections} not found. Deploy via docker-arm64-build-and-deploy.sh, which generates it."
+    echo "❌ ${selections} not found. Deploy via container-build-and-deploy.sh, which generates it."
     exit 1
 fi
 
