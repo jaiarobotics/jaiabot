@@ -3,7 +3,7 @@
 _Status: all findings (1-4) fixed._
 
 This is the start of the "router investigation" flagged as out of scope in
-[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)'s
+[`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)'s
 "Out of scope" section — understanding the A\*/routing engine itself, not
 the dispatch/revert plumbing around it. Findings below came from a
 structured code-review pass over `exclusion-zone-detection.ts` and
@@ -182,7 +182,7 @@ Traced the call graph and don't think this is reachable today:
 `detectWaypointRemovals()` — which checks _all_ missions against _all_
 zones' buffered polygons — before ever calling `detectMissionReroutes()`,
 returning early if anything is found (see
-[`07EVENT_STREAMS.md`](./07EVENT_STREAMS.md)). Since "inside a zone's raw
+[`05EVENT_STREAMS.md`](./05EVENT_STREAMS.md)). Since "inside a zone's raw
 polygon" implies "inside its buffered polygon" (the buffer only grows the
 region), any waypoint that could trip `aInRaw`/`bInRaw` would already have
 been caught by the waypoint-removal check first. The code pattern (full

@@ -1,10 +1,8 @@
 # Obstacle avoidance: two event streams
 
 _Status: reference documentation, current as of
-[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)
-and [`06KNOWN_BUGS.md`](./06KNOWN_BUGS.md)'s Bug 7 fix. Supersedes
-[`04EVENT_STREAMS.md`](./04EVENT_STREAMS.md), which traces the pre-refactor
-contract._
+[`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)
+and [`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md)'s Bug 7 fix._
 
 The system is a fan-in / fan-out, not a single pipeline: **12 producer
 functions** across 4 handler files each apply a user edit immediately and
@@ -85,7 +83,7 @@ model — only confirming a dialog does — so while a load-triggered dialog is
 pending, the missions/zones are already sitting exactly as loaded. Cancel
 on those just declines the proposal and closes the dialog; there's nothing
 to undo, and the load itself is deliberately out of `revert`'s scope (see
-Bug 7 in [`06KNOWN_BUGS.md`](./06KNOWN_BUGS.md)).
+Bug 7 in [`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md)).
 
 `placementError` is a third, simpler case: for those, the producer already
 reverted its own edit synchronously _before_ staging the dialog (see
@@ -169,7 +167,7 @@ sequenceDiagram
 
 Note the absence of any relevance filter here — earlier versions of this
 handler filtered `pending.proposals` down to ones attributable to `zoneID`
-before staging (Bug 3 in [`06KNOWN_BUGS.md`](./06KNOWN_BUGS.md)); the fixed
+before staging (Bug 3 in [`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md)); the fixed
 version stages `pending` directly, trusting `detectMissionReroutes()`'s own
 comparison against the mission's current route.
 

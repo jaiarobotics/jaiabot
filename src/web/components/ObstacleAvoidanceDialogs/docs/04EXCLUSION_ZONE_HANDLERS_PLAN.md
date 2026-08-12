@@ -1,7 +1,7 @@
 # Restructure exclusion-zone handlers and the `PendingChange` revert-context types
 
 _Status: implemented and smoke-tested. See
-[`06KNOWN_BUGS.md`](./06KNOWN_BUGS.md) for pre-existing bugs found (and one,
+[`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md) for pre-existing bugs found (and one,
 Bug 7, fixed) along the way._
 
 ## Context
@@ -9,10 +9,9 @@ Bug 7, fixed) along the way._
 This is the next planned pass on `subtask/consolidate-dialogs/SW-2493`, now
 that the dialog/UI consolidation work is done (see
 [`01REFACTOR_PLAN.md`](./01REFACTOR_PLAN.md),
-[`02PENDING_DIALOG_REFACTOR_PLAN.md`](./02PENDING_DIALOG_REFACTOR_PLAN.md),
-[`03ADD_MOVE_WAYPOINT_CONSISTENCY.md`](./03ADD_MOVE_WAYPOINT_CONSISTENCY.md), and
-the architecture traced in
-[`04EVENT_STREAMS.md`](./04EVENT_STREAMS.md)). Two things landed in this same
+[`02PENDING_DIALOG_REFACTOR_PLAN.md`](./02PENDING_DIALOG_REFACTOR_PLAN.md), and
+[`03ADD_MOVE_WAYPOINT_CONSISTENCY.md`](./03ADD_MOVE_WAYPOINT_CONSISTENCY.md)).
+Two things landed in this same
 line of investigation and turn out to be one change, not two sequential
 passes:
 
@@ -47,7 +46,7 @@ this pass alongside the other three — comparing all four is what exposes
 both findings below.
 
 **Bug 3 — root cause confirmed and fix verified (not just root-caused).**
-[`06KNOWN_BUGS.md`](./06KNOWN_BUGS.md)'s Bug 3 (a new/moved zone that blocks
+[`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md)'s Bug 3 (a new/moved zone that blocks
 a bypass leg, rather than a mission's original straight-line segment, never
 triggers a reroute dialog) lives in this exact filter: `relevant =
 pending.proposals.filter((p) => p.involvedZoneIDs.includes(zoneID) ||

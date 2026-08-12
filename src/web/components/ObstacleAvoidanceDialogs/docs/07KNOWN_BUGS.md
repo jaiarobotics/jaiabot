@@ -4,9 +4,9 @@ Found while manually smoke-testing [`01REFACTOR_PLAN.md`](./01REFACTOR_PLAN.md)
 (Parts A-F) before deciding on
 [`02PENDING_DIALOG_REFACTOR_PLAN.md`](./02PENDING_DIALOG_REFACTOR_PLAN.md),
 plus four more (Bugs 4-7) found later while smoke-testing
-[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md),
+[`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md),
 and one more (Bug 8) found while reviewing
-[`08ROUTER_REVIEW.md`](./08ROUTER_REVIEW.md)'s target files. All are
+[`06ROUTER_REVIEW.md`](./06ROUTER_REVIEW.md)'s target files. All are
 pre-existing — confirmed not caused by any of the refactors that surfaced
 them. Bugs 3 and 7 are fixed; Bugs 1, 2, 4, 5, 6, and 8 are still open.
 
@@ -72,7 +72,7 @@ new test infrastructure needed.
 
 ## Bug 3 — new/moved zone can silently fail to trigger any reroute check
 
-_Fixed — see Part 1 of [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)._
+_Fixed — see Part 1 of [`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)._
 
 **Symptom:** draw or edit a zone such that a mission's route now genuinely
 crosses it. Expected: `MissionRerouteDialog` pops up. Actual: nothing — no
@@ -151,7 +151,7 @@ need the same new handler-test setup described under Bug 1.
 ## Bug 4 — deleting a zone doesn't re-route missions against the remaining zones
 
 _Confirmed real gap, not fixed. Found while smoke-testing the Part 1 Bug 3
-fix in [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)._
+fix in [`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)._
 
 **Symptom:** a mission has been rerouted around zone A (has bypass
 waypoints). Zone A is deleted via the Exclusion Zone panel's own delete
@@ -219,7 +219,7 @@ assert the mission's route.
 ## Bug 5 — confirming an over-limit/impossible reroute doesn't clean up the mission's bot assignment
 
 _Confirmed real gap, not fixed. Found while designing the mission-load
-revert fix for [`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)._
+revert fix for [`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)._
 
 **Symptom:** when a `PendingRerouteProposal` is `OVER_LIMIT` or
 `IMPOSSIBLE` and the operator confirms the reroute dialog,
@@ -263,7 +263,7 @@ for that mission ID is cleared.
 ## Bug 6 — editing one zone's vertices can silently strip a different mission's valid bypass waypoints
 
 _Confirmed real gap, not fixed. Found while designing the Bug 4 fix for
-[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)._
+[`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)._
 
 **Symptom:** mission A has an established, correct bypass route around
 zone X. The operator moves or deletes a vertex on a _different_,
@@ -393,7 +393,7 @@ faithfully until this fix.
 
 _Confirmed real gap, not fixed. Found while reviewing
 `exclusion-zone-router.ts`/`exclusion-zone-detection.ts`
-(see [`08ROUTER_REVIEW.md`](./08ROUTER_REVIEW.md)), but the fix is isolated
+(see [`06ROUTER_REVIEW.md`](./06ROUTER_REVIEW.md)), but the fix is isolated
 to mission-set loading, not the router — tracked here instead._
 
 **Symptom:** if a saved/imported mission set contains a waypoint with no
@@ -477,7 +477,7 @@ Bug 2 is a natural addition to the existing pure-function test files
 (`exclusion-zone-detection.test.ts` / `exclusion-zone-router.test.ts`) — no
 new test infrastructure, same patterns already in use. Bug 3's data-layer
 half was too, and has since been fixed (Part 1 of
-[`05EXCLUSION_ZONE_HANDLERS_PLAN.md`](./05EXCLUSION_ZONE_HANDLERS_PLAN.md)),
+[`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)),
 as is Bug 7 (see above). Bug 8's `Mission.fromJSON` half is similarly cheap
 (pure static method, no new infrastructure); its `handleLoadMissionSet`
 half, along with Bugs 1, 4, 5, and 6 (and the full end-to-end version of
