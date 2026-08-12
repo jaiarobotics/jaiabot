@@ -11,6 +11,9 @@ environment-template-common: &environment-template-common
   CXX: /usr/bin/clang++
   # set to "true" to build jaiabot-doc/jaiabot-interfaces (and run goby_clang_tool) even when JAIABOT_APT_REPO is "test"
   BUILD_DOC_FOR_TEST_REPO: "false"
+  # set to "true" to compile test-repo builds at -O0 (via the "noopt" DEB_BUILD_OPTIONS flag) for faster
+  # iteration; default keeps full -O2 optimization since test-repo packages may be installed on real hardware
+  DISABLE_OPT_FOR_TEST_REPO: "false"
   CCACHE_DIR: /root/.ccache
   CCACHE_MAXSIZE: "3G"
   # container mtimes aren't stable across job runs, so hash the compiler contents instead
@@ -152,6 +155,10 @@ job-template-deb-amd64: &job-template-deb-amd64
             # "nodoc" is also a legacy DEB_BUILD_OPTIONS flag; set it explicitly so dh doesn't
             # warn about copying it over from DEB_BUILD_PROFILES on our behalf
             export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} nodoc"
+          fi
+          # set DISABLE_OPT_FOR_TEST_REPO=true to compile test-repo builds at -O0 for faster iteration
+          if [[ "${JAIABOT_APT_REPO}" == "test" && "${DISABLE_OPT_FOR_TEST_REPO}" == "true" ]]; then
+            export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} noopt"
           fi
           CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -kB90BE706B6A6724592B53B90954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
     - run:
