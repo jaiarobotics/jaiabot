@@ -92,7 +92,7 @@ for remote in "$@"; do
 
     # Login to the target, and deploy the software
     ssh ${botuser}@"${remote}" \
-        "${remote_locale} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} ./jaiabot/scripts/build/target-deploy.sh ${build_dir}"
+        "${remote_locale} jaiabot_repo=${repo} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} ./jaiabot/scripts/build/target-deploy.sh ${build_dir}"
 
     echo "When you're ready, ssh ${botuser}@${remote} and run 'sudo systemctl start jaiabot'"
 done

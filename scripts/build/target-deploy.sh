@@ -6,8 +6,31 @@ set -e
 
 build_dir=$1
 jaia_dir=${HOME}/jaiabot
+repo=${jaiabot_repo:-release}
+jaiabot_list=/etc/apt/sources.list.d/jaiabot.list
 
 package_version() { dpkg-query -W -f='${Version}' "$1" | sed 's/~.*//'; }
+
+echo "🟢 Verifying this machine follows the '${repo}' apt repository"
+# the repository component of the uncommented packages.jaia.tech entries, which is empty for a
+# machine served by a hub cache rather than by packages.jaia.tech
+target_repo=$(sed -n 's|^[[:space:]]*deb .*packages\.jaia\.tech/ubuntu/\(gobysoft/\)\?\([^/]*\)/.*|\2|p' \
+                  "${jaiabot_list}" 2>/dev/null | sort -u)
+
+repo_verified=false
+
+if [ -z "${target_repo}" ]; then
+    echo "⚠️  Could not tell which repository ${jaiabot_list} follows, skipping this check"
+elif [ "${target_repo}" != "${repo}" ]; then
+    echo "❌ This machine follows '${target_repo}' but the code was built against '${repo}', so their"
+    echo "   goby and dccl packages will not agree."
+    echo "   Either point ${jaiabot_list} at '${repo}' and run 'sudo apt update && sudo apt upgrade',"
+    echo "   or rebuild against this machine's repository with --repo ${target_repo}."
+    exit 1
+else
+    echo "✅ Both follow '${repo}'"
+    repo_verified=true
+fi
 
 echo "🟢 Verifying goby and dccl versions match"
 local_libgoby_version=$(package_version libgoby3)
@@ -18,7 +41,13 @@ echo "Docker versions: ${docker_libdccl_version} ${docker_libgoby_version}"
 if [[ ${local_libdccl_version} == ${docker_libdccl_version} && ${local_libgoby_version} == ${docker_libgoby_version} ]]; then
     echo "✅ They match"
 else
-    echo "❌ Mismatch!  Try running the container-image-build.sh script."
+    echo "❌ Mismatch!"
+    if [ "${repo_verified}" = "true" ]; then
+        echo "   Both follow '${repo}', so the build image is stale: deploy again with --rebuild_image."
+    else
+        echo "   Rebuild the image against this machine's repository: deploy again with --rebuild_image."
+    fi
+    echo "   If this machine is the one behind, run 'sudo apt update && sudo apt upgrade' here instead."
     exit 1
 fi
 
