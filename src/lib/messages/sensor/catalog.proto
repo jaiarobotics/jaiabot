@@ -12,4 +12,5 @@ enum Sensor
     ATLAS_SCIENTIFIC__OEM_DO = 5;
     TURNER__C_FLUOR = 6;
     AML__SENSOR = 7;
+    TSYS01__SENSOR = 8;
 }

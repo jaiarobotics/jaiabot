@@ -33,6 +33,7 @@
 #include "drivers/atlas_scientific__oem_ec.h"
 #include "drivers/atlas_scientific__oem_ph.h"
 #include "drivers/blue_robotics_bar30.h"
+#include "drivers/celsius_tsys01.h"
 #include "drivers/turner__c_fluor.h"
 #include "jaiabot/crc/crc32.h"
 #include "jaiabot/groups.h"
@@ -121,8 +122,9 @@ jaiabot::apps::Sensors::Sensors()
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH},
         {jaiabot::sensor::protobuf::TURNER__C_FLUOR,
          jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR},
-        {jaiabot::sensor::protobuf::AML__SENSOR, 
-         jaiabot::protobuf::WARNING__INIT_FAILED__AML}};
+        {jaiabot::sensor::protobuf::AML__SENSOR, jaiabot::protobuf::WARNING__INIT_FAILED__AML},
+        {jaiabot::sensor::protobuf::TSYS01__SENSOR,
+         jaiabot::protobuf::WARNING__INIT_FAILED__TSYS01}};
 }
 
 void jaiabot::apps::Sensors::loop()
@@ -280,6 +282,8 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
         case sensor::protobuf::AML__SENSOR: 
             launch_thread<AMLSensorDriver>(cfg().aml()); 
             break;
+
+        case sensor::protobuf::TSYS01__SENSOR: launch_thread<TSYS01Driver>(cfg().tsys01()); break;
 
         default:
             glog.is_warn() && glog << "Driver not implemented for sensor: "

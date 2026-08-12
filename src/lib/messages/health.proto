@@ -365,6 +365,10 @@ enum Warning
     WARNING__MISSING_DATA__AML_DATA = 808
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__INIT_FAILED__AML = 809 [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__INIT_FAILED__TSYS01 = 810
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__TSYS01_DATA = 811
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 message LinuxHardwareStatus
