@@ -13,6 +13,11 @@ ifneq ($(CCACHE),)
 	CMAKE_EXTRA_FLAGS += -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 endif
 
+# let the linker drop libraries a binary doesn't actually reference any symbols from
+# (goby's exported CMake targets pull in a large transitive PUBLIC link list that most
+# individual jaiabot apps don't need in full, which dpkg-shlibdeps flags as "useless")
+CMAKE_EXTRA_FLAGS += -DCMAKE_EXE_LINKER_FLAGS=-Wl,--as-needed -DCMAKE_SHARED_LINKER_FLAGS=-Wl,--as-needed
+
 DEB_BUILD_ARCH ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
 DEB_TARGET_ARCH ?= $(shell dpkg-architecture -qDEB_TARGET_ARCH)
 DEB_TARGET_GNU_CPU ?= $(shell dpkg-architecture -qDEB_TARGET_GNU_CPU)
