@@ -9,6 +9,8 @@ environment-template-common: &environment-template-common
   QUILT_REFRESH_ARGS: "-p ab --no-timestamps --no-index --strip-trailing-whitespace"
   CC: /usr/bin/clang
   CXX: /usr/bin/clang++
+  # set to "true" to build jaiabot-doc/jaiabot-interfaces (and run goby_clang_tool) even when JAIABOT_APT_REPO is "test"
+  BUILD_DOC_FOR_TEST_REPO: "false"
 
 environment-template-amd64: &environment-template-amd64
   TARGET_ARCH: "amd64"
@@ -66,7 +68,7 @@ job-template-amd64: &job-template-amd64
         command: |
           apt-get update &&
           apt-get dist-upgrade -y
-          [[ "${TARGET_ARCH}" == "amd64" && "${JAIABOT_APT_REPO}" != "test" ]] && apt-get install -y goby3-clang-tool || true
+          [[ "${TARGET_ARCH}" == "amd64" && ( "${JAIABOT_APT_REPO}" != "test" || "${BUILD_DOC_FOR_TEST_REPO}" == "true" ) ]] && apt-get install -y goby3-clang-tool || true
     - run: &run-build
         name: Build
         command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON .. && cmake --build . -- -j4
@@ -121,8 +123,9 @@ job-template-deb-amd64: &job-template-deb-amd64
           # default is to do source and binary build
           [[ "${DO_SOURCE_BUILD}" == "true" ]] && DPKG_BUILDPACKAGE_BUILD_TYPE=""
           # skip building jaiabot-doc/jaiabot-interfaces (and the goby_clang_tool run they require) for the test repo to save build time
+          # set BUILD_DOC_FOR_TEST_REPO=true to opt back into building them for test-repo builds
           export DPKG_BUILDPACKAGE_PROFILE=""
-          [[ "${JAIABOT_APT_REPO}" == "test" ]] && DPKG_BUILDPACKAGE_PROFILE="-Pnodoc"
+          [[ "${JAIABOT_APT_REPO}" == "test" && "${BUILD_DOC_FOR_TEST_REPO}" != "true" ]] && DPKG_BUILDPACKAGE_PROFILE="-Pnodoc"
           CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -k954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
     - run: &run-store-next-build
         name: Store deb files for next build
