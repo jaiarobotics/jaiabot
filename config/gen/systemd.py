@@ -359,13 +359,7 @@ class Type(Enum):
     HUB = 'hub'
     BOTH = 'both'
 
-class CloudHubType(Enum):
-    NEVER = 0
-    PRIMARY = 1
-    SECONDARY = 2
-
 is_cloudhub=False
-cloudhub_type=CloudHubType.SECONDARY
 
 jaia_bot_id=0
 jaia_hub_id=0
@@ -385,18 +379,13 @@ else:
              'but is "' + dc('type') + '"')
 
 if is_cloudhub:
+    # CloudHub is always built as the PRIMARY (full-featured) type, regardless of
+    # the comms links in use, since Hub2Hub allows CloudHub to get data even
+    # without any direct link such as Iridium.
     cloudhub_unsupported_links = ['xbee', 'wifi']
     comms_links_in_use = [ l for l in dc_multi('comms_links') if l not in cloudhub_unsupported_links]
-    if comms_links_in_use:
-        cloudhub_type = CloudHubType.PRIMARY
 else:
     comms_links_in_use = dc_multi('comms_links')
-
-cloudhub_type_str=''
-if cloudhub_type == CloudHubType.PRIMARY:
-    cloudhub_type_str='primary'
-elif cloudhub_type == CloudHubType.SECONDARY:
-    cloudhub_type_str='secondary'
 
 camera_positions_in_use = dc_multi('camera_positions')
 jaia_additional_sensors = dc_multi('additional_sensors')
@@ -432,7 +421,6 @@ service_environment = {
     'jaia_rf_encryption_password': dc('rf_encryption_password'),
     'jaia_dccl_encryption_password': dc('dccl_encryption_password'),
     'jaia_comms_mode': ','.join(comms_links_in_use),
-    'jaia_cloudhub_type': cloudhub_type_str,
     'jaia_camera_positions': ','.join(camera_positions_in_use),
     'jaia_additional_sensors': ','.join(jaia_additional_sensors),
     # previously derived by preseed.goby from $PATH
@@ -476,8 +464,8 @@ common_macros['moos_file'] = '/tmp/jaiabot_${jaia_bot_id}.moos'
 common_macros['moos_sim_file'] = '/tmp/jaiabot_sim_${jaia_bot_id}.moos'
 # unless otherwise specified, apps are run both at runtime and simulation
 common_macros['runs_when'] = Mode.BOTH
-# most apps do not run on secondary CloudHub, but do run on primary CloudHub
-common_macros['runs_on_cloudhub'] = CloudHubType.PRIMARY
+# unless otherwise specified, apps run on CloudHub
+common_macros['runs_on_cloudhub'] = True
 
 try:
     common_macros['user'] = os.getlogin()
@@ -501,7 +489,7 @@ elif jaia_type == Type.HUB:
 
 # most firmware does not run on Cloudhubs at all
 firmware_common_macros = common_macros.copy()
-firmware_common_macros['runs_on_cloudhub'] = CloudHubType.NEVER
+firmware_common_macros['runs_on_cloudhub'] = False
     
     
 all_goby_apps = []
@@ -512,14 +500,12 @@ jaiabot_apps = [
 
     {'exe': 'jaiabot',
      'template': 'jaiabot.service.in',
-     'runs_on': [Type.BOTH],
-     'runs_on_cloudhub': CloudHubType.SECONDARY},
+     'runs_on': [Type.BOTH]},
     {'exe': 'gobyd',
      'description': 'Goby Daemon',
      'template': 'gobyd.service.in',
      'error_on_fail': 'ERROR__FAILED__GOBYD',
-     'runs_on': [Type.BOTH],
-     'runs_on_cloudhub': CloudHubType.SECONDARY },
+     'runs_on': [Type.BOTH]},
     {'exe': 'goby_intervehicle_portal',
      'description': 'Goby Intervehicle Portal',
      'template': 'goby-app.service.in',
@@ -533,8 +519,7 @@ jaiabot_apps = [
      'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1',
      'error_on_fail': 'ERROR__FAILED__GOBY_LIAISON',
      'runs_on': [Type.BOTH],
-     'wanted_by': 'jaiabot_health.service',   
-     'runs_on_cloudhub': CloudHubType.SECONDARY},
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_gps',
      'description': 'Goby GPS Driver',
      'template': 'goby-app.service.in',
@@ -548,8 +533,7 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__GOBY_LOGGER',
      'runs_on': [Type.BOTH],
      'extra_unit': 'BindsTo=var-log.mount\nAfter=var-log.mount',
-     'wanted_by': 'jaiabot_health.service',
-     'runs_on_cloudhub': CloudHubType.SECONDARY},
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'goby_coroner',
      'description': 'Goby Coroner',
      'template': 'goby-app.service.in',
@@ -562,8 +546,7 @@ jaiabot_apps = [
      'user': 'root', # must run as root to allow restart/reboot
      'group': 'root',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_HEALTH',
-     'runs_on': [Type.BOTH],
-     'runs_on_cloudhub': CloudHubType.SECONDARY},
+     'runs_on': [Type.BOTH]},
     {'exe': 'jaiabot_metadata',
      'description': 'JaiaBot Metadata Manager',
      'template': 'goby-app.service.in',
@@ -601,18 +584,15 @@ jaiabot_apps = [
      'description': 'Goby Liaison PreLaunch GUI for JaiaBot',
      'template': 'liaison-prelaunch.service.in',
      'extra_service': 'Environment=GOBY_LIAISON_PLUGINS=libjaiabot_liaison_prelaunch.so.1',
-     'runs_on': [Type.HUB],
-     'runs_on_cloudhub': CloudHubType.SECONDARY},
+     'runs_on': [Type.HUB]},
     {'exe': 'jaiabot_data_vision',
      'description': 'jaiabot_data_vision visualize log data',
      'template': 'jaiabot_data_vision.service.in',
      'error_on_fail': 'ERROR__FAILED__JAIABOT_DATA_VISION',
-     'runs_on': [Type.HUB],
-     'runs_on_cloudhub': CloudHubType.SECONDARY},
+     'runs_on': [Type.HUB]},
     {'service': 'jcc.conf',
      'template': 'jcc.conf.in',
-     'runs_on': [Type.HUB],
-     'runs_on_cloudhub': CloudHubType.SECONDARY},
+     'runs_on': [Type.HUB]},
 
     ## ALL BOT Services ##
 
@@ -932,7 +912,7 @@ jaia_firmware = [
      'args': '',
      'runs_on': [Type.BOTH],
      'runs_when': Mode.BOTH,
-     'runs_on_cloudhub': CloudHubType.SECONDARY },
+     'runs_on_cloudhub': True},
      {'exe': 'jaia_firm_bno085_reset_gpio_pin.py',
      'description': 'BNO085 script to reboot imu',
      'template': 'bno085-reset-gpio-pin.service.in',
@@ -955,7 +935,7 @@ jaia_firmware = [
 # check if the app is run on this type (bot/hub) and at this time (runtime/simulation)
 def is_app_run(app):
     macros={**common_macros, **app}
-    return (Type.BOTH in macros['runs_on'] or jaia_type in macros['runs_on'] or jaia_bot_type in macros['runs_on']) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (not is_cloudhub or macros['runs_on_cloudhub'].value >= cloudhub_type.value)
+    return (Type.BOTH in macros['runs_on'] or jaia_type in macros['runs_on'] or jaia_bot_type in macros['runs_on']) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (not is_cloudhub or macros['runs_on_cloudhub'])
 
 for app in jaiabot_apps:
     if is_app_run(app):
@@ -1043,7 +1023,7 @@ def is_firm_run(firm):
         if (macros['imu_type'] != jaia_imu_type):
             return False
 
-    if(is_cloudhub and not macros['runs_on_cloudhub'].value >= cloudhub_type.value):
+    if(is_cloudhub and not macros['runs_on_cloudhub']):
         return False
         
     return True
@@ -1059,7 +1039,7 @@ for firmware in jaia_firmware:
         else:
             service = firmware['exe'].replace('.', '_').lower()
             if macros['exe'][0:9] != 'jaia_firm':
-                service = 'jaia_firm_' + service
+                service = 'jaia_firm_' + servi
 
         if not 'bin_dir' in macros:
             if macros['exe'][0:4] == 'goby':

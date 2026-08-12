@@ -16,9 +16,7 @@ It is possible to have a VirtualFleet without a corresponding real fleet or vice
 
 ### Jaia Terms
 - Cloud - remote internet-connected on-demand computing provided (in this case) by Amazon Web Services (AWS) on the Elastic Compute Cloud (EC2) virtual machine system.
-- CloudHub - A hub that lives in the Cloud. This machine is always-on. CloudHub always uses the Hub ID 30 with a given fleet. CloudHub can be one of two forms based on the communications links that are configured:
-   - Primary Cloudhub: This is a full featured hub running nearly the same software as a physical hub. It can only use the communications links that make sense over such a distance (currently Iridium, but not XBee or Wifi).
-   - Secondary Cloudhub: Essentially a "copy" (or secondary hub) of the real fleet's hub (or primary hub) that lives in the cloud rather than in the physical hub hardware. This can send commands / receive data from the real fleet efficiently. It is also used to manage the VirtualFleet. 
+- CloudHub - A hub that lives in the Cloud. This machine is always-on. CloudHub always uses the Hub ID 30 with a given fleet. CloudHub is a full featured hub running nearly the same software as a physical hub, built regardless of the communications links in use (Hub2Hub allows CloudHub to get data even without any direct link, such as Iridium, to the fleet).
 - VirtualFleet -  a set of VirtualBots and VirtualHubs that run in the cloud on virtual machines.
 - VirtualBot - an amd64 version of the real bot that differs in that all the sensors/actuation are hooked up to simulators rather than the real hardware.
 - VirtualHub - Similar to VirtualBot, just for a hub.
