@@ -9,7 +9,7 @@ The JaiaBots and Hubs require SSH access for several purposes:
 
 SSH is primarily allowed through FIDO hardware authenticators (the Yubikey product) via OpenSSH's "ed25519-sk" public key type. This provides convenient two-factor authentication ([1] physical key + [2] private key file).
 
-All permissions flow from a set of "root" Yubikeys that are flashed to the image at generation time (jaiabot/rootfs/customization/includes.chroot/etc/jaiabot/ssh/root_authorized_keys).
+All permissions flow from a set of "root" Yubikeys that are flashed to the image at generation time (jaiabot/config/ssh/root_authorized_keys).
 
 ## Root Yubikeys
 
@@ -57,7 +57,7 @@ jaia admin ssh add <host> <pubkey> <valid_for>
 ```
 
 where the parameters are:
-- host: A short code for the bot/hub ID, network, and fleet used elsewhere in the `jaia` tool (see the [Jaia Tool](page05_jaia_tool.md) page).
+- host: A short code for the bot/hub ID, network, and fleet used elsewhere in the `jaia` tool (see the [Jaia Tool](page005_jaia_tool.md) page).
 - pubkey: Either the "comment" of the pubkey if compiled into the tool (e.g. "toby@yubikey16719472")
  or the full public key line as entered into `authorized_keys`. To see keys compiled into the tool, use `jaia admin ssh known`.
 - valid_for: How long the key is authorized for, given as an integer followed by "d" for days, "w" for weeks, or "m" for months (or "forever"). For example "5d" is 5 days, "2w" is 2 weeks, and "12m" is 12 months (1 year). This duration is added to the current system clock to determine an "expiry-time" option for the authorized_keys line which is appended to any other options given. The special case "forever" indicates a key that doesn't expire.

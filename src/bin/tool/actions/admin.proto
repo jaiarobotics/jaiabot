@@ -49,6 +49,9 @@ message AdminTool
         fleet = 2 [(goby.ev).cfg = {
             short_help_msg: "Fleet administration",
         }];
+        debconf = 3 [(goby.ev).cfg = {
+            short_help_msg: "Read and write this bot/hub's debconf configuration",
+        }];
     }
     optional Action action = 2 [
         default = help,

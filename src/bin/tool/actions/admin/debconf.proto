@@ -1,0 +1,83 @@
+// Copyright 2026:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/protobuf/option_extensions.proto";
+
+package jaiabot.config.admin;
+
+message DebconfTool
+{
+    option (goby.msg).cfg.tool = {
+        is_tool: true
+        has_subtools: true
+        has_help_action: true
+    };
+
+    optional goby.middleware.protobuf.AppConfig app = 1
+        [(goby.field) = { cfg { action: DEVELOPER } }];
+
+    enum Action
+    {
+        help = 0 [(goby.ev).cfg = {
+            short_help_msg: "Print usage information",
+            full_help_msg: "Usage: \"jaia admin debconf help [action]\""
+        }];
+        get = 1 [(goby.ev).cfg = {
+            short_help_msg: "Read this bot/hub's debconf values",
+            full_help_msg: "Read this bot/hub's configuration values.\n"
+                           "Usage: \"jaia admin debconf get [question]\"\n"
+                           "e.g. \"jaia admin debconf get fleet_id\"\n"
+                           "With no question, reports what every question is currently set to;\n"
+                           "questions that have never been answered show as \"(unset)\".\n"
+                           "Run \"jaia admin debconf list\" for what each one accepts.\n"
+                           "Reading debconf requires root, so this re-runs itself under sudo."
+        }];
+        set = 2 [(goby.ev).cfg = {
+            short_help_msg: "Write a jaiabot-embedded debconf value and apply it",
+            full_help_msg: "Change one of this bot/hub's configuration values.\n"
+                           "Usage: \"jaia admin debconf set <question> <value> [--reconfigure false]\"\n"
+                           "e.g. \"jaia admin debconf set fleet_id 3\"\n"
+                           "By default this reconfigures jaiabot-embedded so the systemd units are\n"
+                           "regenerated; pass --reconfigure false to set several values first.\n"
+                           "Run \"jaia admin debconf list\" for the available questions and values.\n"
+                           "Writing debconf requires root, so this re-runs itself under sudo."
+        }];
+        list = 3 [(goby.ev).cfg = {
+            short_help_msg: "List the questions that get and set accept",
+            full_help_msg: "List every question the jaiabot-embedded package defines, with its\n"
+                           "type, default and permitted choices.\n"
+                           "Usage: \"jaia admin debconf list [--all]\"\n"
+                           "This reads the package's templates rather than the debconf database,\n"
+                           "so it shows what can be set (and does not require root) - use\n"
+                           "\"jaia admin debconf get\" to read what a question is currently set to."
+        }];
+    }
+    optional Action action = 2 [
+        default = help,
+        (goby.field) = {
+            description: "The action this tool should take [can omit --action if 1st parameter]",
+            cfg { position: { enable: true }, cli_short: "A", action: HIDDEN }
+        }
+    ];
+}

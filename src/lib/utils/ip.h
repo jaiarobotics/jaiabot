@@ -23,10 +23,13 @@
 #ifndef JAIABOT_UTILS_IP_H
 #define JAIABOT_UTILS_IP_H
 
+#include <climits>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
 #include <utility>
+
+#include <unistd.h>
 
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/asio/ip/address_v6.hpp>
@@ -362,6 +365,46 @@ inline bool read_digits(const std::string& s, std::size_t& pos, int& out, int ma
     return true;
 }
 
+// Fleet ID of the machine this is running on, for host codes given without an
+// 'fN' suffix (e.g. "b4"). 'jaia_fleet_id' is set in the generated systemd
+// units and, for login shells, by /etc/profile.d/jaia.sh. The hostname is the
+// fallback where neither applies (cron, 'ssh host command'); postinst sets it
+// from the same debconf answers as "<type><id>-fleet<fleet_id>".
+inline int local_fleet_id()
+{
+    const char* env_fleet_id = std::getenv("jaia_fleet_id");
+    if (env_fleet_id != nullptr && *env_fleet_id != '\0')
+    {
+        std::string env_str(env_fleet_id);
+        std::size_t env_pos = 0;
+        int env_value = 0;
+        if (!read_digits(env_str, env_pos, env_value) || env_pos != env_str.size())
+            throw std::invalid_argument("Invalid 'jaia_fleet_id' environmental variable: " +
+                                        env_str);
+        return env_value;
+    }
+
+    char hostname[HOST_NAME_MAX + 1] = {0};
+    if (gethostname(hostname, sizeof(hostname) - 1) == 0)
+    {
+        std::string host(hostname);
+        const std::string marker("-fleet");
+        std::size_t marker_pos = host.find(marker);
+        if (marker_pos != std::string::npos)
+        {
+            std::size_t host_pos = marker_pos + marker.size();
+            int host_value = 0;
+            if (read_digits(host, host_pos, host_value) && host_pos == host.size())
+                return host_value;
+        }
+    }
+
+    throw std::invalid_argument(
+        "Could not find fleet ID. Either specify as 'fN' suffix (e.g., b1f3), or provide via the "
+        "'jaia_fleet_id' environmental variable (set for login shells by /etc/profile.d/jaia.sh), "
+        "or run on a host named '<type><id>-fleet<fleet_id>'");
+}
+
 } // namespace detail
 
 // Returns IPv4 address string for a node (e.g. "10.23.1.110" for bot 10 on fleet 1 wlan)
@@ -423,8 +466,9 @@ struct HostCode
 };
 
 // Parses a host shorthand code without using std::regex (which is comparatively expensive to
-// construct). Throws std::invalid_argument on malformed input.
-inline HostCode parse_host_code(const std::string& host_code)
+// construct). Codes without an 'fN' suffix use default_fleet_id, or the local fleet ID if that is
+// negative. Throws std::invalid_argument on malformed input.
+inline HostCode parse_host_code(const std::string& host_code, int default_fleet_id = -1)
 {
     HostCode result;
 
@@ -519,32 +563,15 @@ inline HostCode parse_host_code(const std::string& host_code)
         throw invalid();
 
     if (!have_fleet_id)
-    {
-        const char* env_fleet_id = std::getenv("jaia_fleet_index");
-        if (env_fleet_id == nullptr || *env_fleet_id == '\0')
-            throw std::invalid_argument(
-                "Could not find fleet ID. Either specify as 'fN' suffix (e.g., b1f3) or provide "
-                "via environmental variable 'jaia_fleet_index'");
-        std::string env_str(env_fleet_id);
-        std::size_t env_pos = 0;
-        int env_value = 0;
-        if (!detail::read_digits(env_str, env_pos, env_value) || env_pos != env_str.size())
-            throw std::invalid_argument("Invalid 'jaia_fleet_index' environmental variable: " +
-                                        env_str);
-        result.fleet_id = env_value;
-    }
+        result.fleet_id = default_fleet_id >= 0 ? default_fleet_id : detail::local_fleet_id();
 
     return result;
 }
 
-// Returns the IP address for a host shorthand code (e.g. "b4f2" -> "10.23.2.104"), using IPv4 for
-// the wlan and fleet VPN networks and IPv6 for the other VPN networks
-inline std::string host_code_to_addr(const std::string& host_code, HostCode* parsed = nullptr)
+// Returns the IP address for a parsed host code, using IPv4 for the wlan and fleet VPN networks
+// and IPv6 for the other VPN networks
+inline std::string host_code_addr(const HostCode& host)
 {
-    HostCode host = parse_host_code(host_code);
-    if (parsed != nullptr)
-        *parsed = host;
-
     if (host.is_literal)
         return host.literal;
 
@@ -552,6 +579,16 @@ inline std::string host_code_to_addr(const std::string& host_code, HostCode* par
         return ipv4_addr(host.fleet_id, host.net, host.node_type, host.node_id);
     else
         return ipv6_addr(host.fleet_id, host.net, host.node_type, host.node_id);
+}
+
+// Returns the IP address for a host shorthand code (e.g. "b4f2" -> "10.23.2.104")
+inline std::string host_code_to_addr(const std::string& host_code, HostCode* parsed = nullptr)
+{
+    HostCode host = parse_host_code(host_code);
+    if (parsed != nullptr)
+        *parsed = host;
+
+    return host_code_addr(host);
 }
 
 } // namespace ip

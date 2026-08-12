@@ -9,7 +9,7 @@ After=jaiabot_health.service
 User=$user
 Group=$group
 
-EnvironmentFile=$env_file
+$environment
 
 ExecStartPre=/bin/bash -c '$gen moos_sim > $moos_sim_file'
 

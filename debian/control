@@ -134,7 +134,7 @@ Description: Interfaces definition files for the Jaiabot Project
   The jaiabot project provides binaries and libraries for the Jaiabot Autonomous Underwater Vehicle: https://www.jaia.tech/
 
 Package: jaiabot-embedded
-Depends: debconf,
+Depends: debconf, debconf-utils,
          goby3-apps, goby3-moos, goby3-gui,
          jaiabot-apps, jaiabot-python, jaiabot-config, jaiabot-arduino, jaiabot-web,
          moos-ivp-apps, moosdb10, libmoos-ivp,

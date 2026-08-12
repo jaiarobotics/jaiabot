@@ -1,3 +1,6 @@
+# Simulation launch path only (sourced by goby_launch). Deployed bots and hubs
+# get these values from their generated systemd units instead.
+
 if ! which gobyd > /dev/null; then
    echo "gobyd is not on $PATH"
    return 1

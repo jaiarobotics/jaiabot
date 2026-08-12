@@ -22,11 +22,11 @@ If you experience any errors, please visit the troubleshooting section. If that 
 
 ## Windows
 
-Install Ubuntu 24.04 using [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+Install Ubuntu 26.04 using [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 
 ## Mac
 
-1. Install and open [Multipass](https://canonical.com/multipass/install) and launch Ubuntu 24.04 LTS. 
+1. Install and open [Multipass](https://canonical.com/multipass/install) and launch Ubuntu 26.04 LTS. 
 2. Navigate to ‘All Instances’ and stop `username-hostname`. 
 3. Click on `username-hostname` in ‘Name’ column. Switch from ‘Shells’ to ‘Details’ at the top. 
 4. Click ‘Configure’ under ‘Resources’. Multipass's default settings will not support the simulator. Change CPUs to 4+, Memory to 4+, Disk to 10+ (at a minimum). 
@@ -38,7 +38,7 @@ Install Ubuntu 24.04 using [WSL](https://learn.microsoft.com/en-us/windows/wsl/i
 
 ## Linux
 
-The JaiaBot project supports Ubuntu 24.04. 
+The JaiaBot project supports Ubuntu 26.04. 
 
 # Preparing the Workspace
 
@@ -53,7 +53,7 @@ The JaiaBot project supports Ubuntu 24.04.
 
 2. Run the setup scripts.
     ```
-    cd jaiabot/scripts
+    cd jaiabot/scripts/build
     ```
     ```
     ./setup-tools-build.sh
@@ -63,7 +63,7 @@ The JaiaBot project supports Ubuntu 24.04.
     ```
 3. Move back to the JaiaBot repository. Run the build script.
     ```
-    cd ..
+    cd ../..
     ```
     ``` 
     ./build.sh
@@ -118,7 +118,7 @@ In any terminals that are running the web and simulator, type CTRL+C.
 
 
 ### Troubleshooting the Simulator
-* To kill all processes, `cd` into `jaiabot/scripts`, run the kill command, and relaunch the simulator. 
+* To kill all processes, `cd` into `jaiabot/scripts/dev`, run the kill command, and relaunch the simulator. 
     ```
     ./kill-jaiabot-processes.sh
     ```
@@ -130,14 +130,14 @@ In any terminals that are running the web and simulator, type CTRL+C.
     ```
     ./build.sh
     ```
-* Verify you are using Python 3.12. 
+* Verify you are using the system `python3` that ships with the supported Ubuntu release. 
 
 <a id="cd-troublshooting"></a>
 
 * If you are getting an error when using our suggested cd path, you are most likely not in the right directory. Your current location will show following your `username-hostname`. For example, you are in the jaiabot scripts directory when you see:
 
     ```
-    ubuntu@username-hostname:~/jaiabot/scripts$
+    ubuntu@username-hostname:~/jaiabot/scripts/build$
     ```
 
     To see which directories you can move into, use `ls`. To go back a directory, use `cd ..`. You want to move to the directory with your cloned jaia repository. We keep ours in our home directory, so if you want to follow our `cd` commands directly, this would be the best option.
@@ -205,7 +205,7 @@ If you are modifying code on a Mac, [create an SSH Key](#creating-an-ssh-key-mac
 
 4. Enter the authorized_key files.
     ```
-    nano authroized_keys
+    nano authorized_keys
     ```
 5. Switch to your local computer on another terminal window. Generate SSH key. 
     ```
@@ -262,39 +262,37 @@ If you are modifying code on a Mac, [create an SSH Key](#creating-an-ssh-key-mac
     * Select the SSID JAIA-HUB-WIFI-X from Wi-Fi list (X indicates fleet number).
 3. Create Docker image.
     ```
-    cd ~/jaiabot/scripts
+    cd ~/jaiabot/scripts/build
     ```
     ```
-    ./docker-build-build-system.sh
+    ./container-image-build.sh
     ```
-4. Stop the jaiabot services for the system you are deploying to. Note: X indicates fleet number and Y indicates bot number plus 100 or hub number plus 10. 
+4. Stop the jaiabot services for the systems you are deploying to. Note: X indicates fleet number and Y indicates bot number.
     ```
-    ssh -i /path/to/key jaia@10.23.X.Y
+    jaia ssh bYfX
     ```
     ```
     sudo systemctl stop jaiabot
     ```
-5. Deploy the simulator.
+5. Deploy. Targets are given as host codes (`bYfX` for bots, `hYfX` for hubs), either individually or as a range.
     ```
-    cd ~/jaiabot/scripts
+    cd ~/jaiabot
     ```
-    Deploy to the BOT
+    Deploy to bots 1 through 3 and hub 1 on fleet X
     ```
-    jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
+    jaia dev local_deploy b1fX..b3fX h1fX
     ```
-    Note: X indicates fleet number and Y indicates bot number plus 100. 
-
-    Deploy to the HUB
+    Equivalently, with the fleet given once for all targets
     ```
-    jaiabot_systemd_type=hub ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
+    jaia dev local_deploy b1..b3 h1 --fleet X
     ```
-    Note: X indicates fleet number and Y indicates hub number plus 10. 
+    Whether each target is a bot or a hub is read from that target's own configuration, so no
+    additional flag is needed.
 
 6. Start jaiabot services.
     ```
-    ssh -i /path/to/key jaia@10.23.X.Y 
+    jaia ssh bYfX
     ```
-    Note: X indicates fleet number and Y indicates bot number plus 100 or hub number plus 10
     ```
     sudo systemctl start jaiabot 
     ```

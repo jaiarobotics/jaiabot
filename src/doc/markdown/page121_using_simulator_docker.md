@@ -235,7 +235,7 @@ If the user does not want to use docker compose, the simulation can also be run 
 
 ### Start the simulator
 
-`docker run --rm --name jaia-sim-container -d -i -t -p 40001:40001 -p 9092:9092 -p 40011:40011 --env JAIA_SIM_BOTS=5 --env JAIA_SIM_WARP=3 --env JAIA_SIM_FLEET=30 -v ./jdv_data:/var/log/jaiabot/bot_offload gobysoft/jaiabot-sim:2.0.0 /bin/bash`
+`docker run --rm --name jaia-sim-container -d -i -t -p 40001:40001 -p 9092:9092 -p 40011:40011 --env JAIA_SIM_BOTS=5 --env JAIA_SIM_WARP=3 --env JAIA_SIM_FLEET=30 -v ./jdv_data:/var/log/jaiabot/bot_offload gobysoft/jaiabot-sim:3.y-continuous /bin/bash`
 
 Explanation of command.
 
@@ -252,7 +252,7 @@ Explanation of command.
   "--env JAIA_SIM_WARP=3" Warp factor used in sim
   "--env JAIA_SIM_FLEET=30" Fleet number used in sim
   "-v ./jdv_data:/var/log/jaiabot/bot_offload" Mounts the bot_offload folder in the container to ./jdv_data on host machine
-  "gobysoft/jaiabot-sim:2.0.0" Identifies the image to run the user should change this to the image they want
+  "gobysoft/jaiabot-sim:3.y-continuous" Identifies the image to run the user should change this to the image they want
   "/bin/bash" Tells docker to launch a bash shell
 ```
 
@@ -266,7 +266,7 @@ The following command will shut down the simulator, stop the container and remov
 
 This section is intended for experienced Linux users only. Building and managing images locally is not recommended on other platforms, please use pre-built images.
 
-_All commands should be executed in the `jaiabot/scripts/sim-docker folder`_
+_All commands should be executed in the `jaiabot/scripts/sim-docker` folder_
 
 * Build the image**  (advanced)
 

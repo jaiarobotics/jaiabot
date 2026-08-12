@@ -51,7 +51,7 @@ double viscosity_ratio(double temperature_celsius)
  *  cases, and holds up across all our test solutions from ~13 mS/cm up to 100 mS/cm,
  *  and 5°C to 50°C.
  * 
- * If you need to retrain this, check out the script in jaiabot/scripts/util_helpers/test_specific_conductivity.py
+ * If you need to retrain this, check out the script in jaiabot/scripts/util-helpers/train-polynomial-specific-conductivity.py
  * 
  * @param measured_conductivity Measured EC in µS/cm
  * @param temperature_celsius Temperature in degrees Celsius

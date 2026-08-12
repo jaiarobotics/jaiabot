@@ -16,7 +16,7 @@ foreach(PYTHON_MD_GENERATOR ${PYTHON_MARKDOWN_FILES})
   list(APPEND GENERATED_MARKDOWN_FILES "${OUTPUT_FILE}")
   add_custom_command(
     OUTPUT ${project_BUILD_DIR}/src/doc/markdown/${OUTPUT_MD_FILE}
-    COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=${project_SHARE_DIR}/jaiabot/python/pyjaiaprotobuf/src" ${project_SCRIPTS_DIR}/jaia-doc.py
+    COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=${project_SHARE_DIR}/jaiabot/python/pyjaiaprotobuf/src" ${project_SH_DIR}/utils/jaia-doc.py
     ARGS ${PYTHON_MD_GENERATOR} -o ${OUTPUT_MD_FILE}
     DEPENDS ${PYTHON_MD_GENERATOR} pyjaiaprotobuf
     COMMENT "Running jaia-doc.py to make ${OUTPUT_MD_FILE}"

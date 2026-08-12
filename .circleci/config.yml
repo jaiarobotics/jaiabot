@@ -170,15 +170,17 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        - "bug/3.y/fix-initial-rpiboot"
-        
+        - "claude/remove-runtime-env-simplify-system-6thi11"
+        - "claude/festive-knuth-qj9tfk"
+
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
   filters:
     branches:
       ignore:
         - "3.y"
-        - "bug/3.y/fix-initial-rpiboot"
+        - "claude/remove-runtime-env-simplify-system-6thi11"
+        - "claude/festive-knuth-qj9tfk"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -197,7 +199,8 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "bug/3.y/fix-initial-rpiboot"
+        - "claude/remove-runtime-env-simplify-system-6thi11"
+        - "claude/festive-knuth-qj9tfk"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -207,6 +210,8 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "3.y"
+        - "claude/remove-runtime-env-simplify-system-6thi11"
+        - "claude/festive-knuth-qj9tfk"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -216,6 +221,7 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
+        - "claude/remove-runtime-env-simplify-system-6thi11"
         
 ## Begin actual config
 version: 2.1
@@ -622,7 +628,7 @@ jobs:
             EOF
             
             
-            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:${DISTRO_RELEASE_CODENAME} ./scripts/bundle_update.sh ${DISTRO_RELEASE_CODENAME} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
+            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:${DISTRO_RELEASE_CODENAME} ./scripts/build/bundle-update.sh ${DISTRO_RELEASE_CODENAME} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
             cd build/bundle
             export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
 

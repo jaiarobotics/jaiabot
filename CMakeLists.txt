@@ -43,7 +43,7 @@ include_directories("${GOBY_INCLUDE_DIR}")
 get_filename_component(project_SRC_DIR src ABSOLUTE)
 get_filename_component(project_ROOTFS_DIR rootfs ABSOLUTE)
 get_filename_component(project_BUILD_DIR ${CMAKE_BINARY_DIR} ABSOLUTE)
-get_filename_component(project_SCRIPTS_DIR scripts ABSOLUTE)
+get_filename_component(project_SH_DIR src/sh ABSOLUTE)
 
 # fetch all the local directories for generated code
 get_filename_component(project_LIB_DIR ${project_BUILD_DIR}/lib ABSOLUTE)
@@ -188,55 +188,16 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/config DESTINATION share/jaiabot USE_SOURC
 
 # etc
 option(install_motd "Install MOTD script" ON)
-if(install_motd)
-  install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
-endif()
+
+option(install_profile "Install /etc/profile.d script providing the jaia environment to login shells" ON)
 
 option(install_ssh_authorized_keys "Install SSH authorized keys to /etc/jaiabot/ssh" ON)
 if(install_ssh_authorized_keys)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/ssh DESTINATION /etc/jaiabot)
 endif()
 
-install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
-
 # for use by Docker build install
 file(MAKE_DIRECTORY ${project_BIN_DIR})
-
-set(scripts_to_install
-  # data offload
-  data-offload/jaiahub-dataoffload.sh
-  data-offload/jaiabot-predataoffload.sh
-  data-offload/jaiabot-postdataoffload.sh
-  data-offload/jaiahub-dataoffload-cloudhub.sh
-  # Firmware scripts
-  jaia_firm_backup_date.sh
-  reset-bio-payload-board.sh
-  geotiff_format.py
-  geotiff_scan.sh
-  # Utilities
-  jaia-doc.py
-  jaia-vpn-gen.sh
-  # System scripts
-  system/jaiabot-checkloadavg.py
-  system/jaia_update_ufw_rules.sh
-  system/jaia_update_network.sh
-  system/jaia_iridium_tunnel.sh
-  # Fleet config
-  fleet/jaia-create-fleet-config.sh
-  fleet/jaia-generate-first-boot.py
-  fleet/jaia-fleet-config-update-iso.sh
-  fleet/jaia-create-cloudhub.py
-  fleet/jaia-delete-cloudhub.py
-  # First boot (also used by VirtualFleet creation)
-  init/jaia-create-ansible-inventory.sh
-  )
-
-# Iterate over each script to install and copy
-foreach(script ${scripts_to_install})
-    install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
-    configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
-endforeach()
-
 
 option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
 if(enable_testing)

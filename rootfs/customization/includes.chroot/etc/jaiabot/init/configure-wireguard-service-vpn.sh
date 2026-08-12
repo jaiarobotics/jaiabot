@@ -23,17 +23,11 @@ PRIVATE_KEY="/home/jaia/.ssh/id_vpn_tmp"
 sudo chown jaia:jaia ${PRIVATE_KEY}
 chmod 700 ${PRIVATE_KEY}
 
-type=$(debconf-get-selections | grep jaiabot-embedded/type | cut -f 4)
-fleet=$(debconf-get-selections | grep jaiabot-embedded/fleet_id | cut -f 4)
-id=""
+source /usr/bin/jaia-debconf.sh
 
-if [ "$type" = "bot" ]; then
-    id=$(debconf-get-selections | grep jaiabot-embedded/bot_id | cut -f 4)
-fi
-
-if [ "$type" = "hub" ]; then
-    id=$(debconf-get-selections | grep jaiabot-embedded/hub_id | cut -f 4)
-fi
+type=$(jaia_debconf_get type)
+fleet=$(jaia_debconf_get fleet_id)
+id=$(jaia_debconf_node_id)
 
 SSH="ssh -o StrictHostKeyChecking=accept-new -i ${PRIVATE_KEY}"
 # Extra path entry to /etc/jaiabot can be removed once vpn.jaia.tech has jaia-vpn.gen.sh from the jaiabot-apps package
