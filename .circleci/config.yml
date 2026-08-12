@@ -215,6 +215,7 @@ filter-template-debian-builds: &filter-template-debian-builds
       only:
         - "3.y"
         - "claude/circleci-debian-build-optimization-uwuryg"
+        - "claude/circleci-ccache-hits-amd64-arm64-gd6bx6"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
