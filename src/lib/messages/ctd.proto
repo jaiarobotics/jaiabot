@@ -2,7 +2,6 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
-import "jaiabot/messages/option_extensions.proto";
 
 package jaiabot.protobuf;
 
