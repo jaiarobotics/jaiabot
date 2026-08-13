@@ -21,6 +21,7 @@ import common.target as target
 import common.streaming_client as streaming_client
 import common.shared_data as shared_data
 import common.endpoint_parse as endpoint_parse
+import common.lattice as lattice
 
 from jaiabot.messages.rest_api_pb2 import APIConfig, APIResponse, APIRequest
 
@@ -94,7 +95,23 @@ if cfg.no_key_required == True and cfg.key:
     logging.warning('API Key not required (no_key_required: true) but keys are provided. Please remove keys from the configuration file.')
     exit(1)
 
-    
+# Parse Lattice environmental variables, so the short-lived sandbox tokens can be set without editing the configuration file
+lattice_endpoint = os.environ.get('JAIA_LATTICE_ENDPOINT')
+if lattice_endpoint is not None:
+    cfg.lattice.endpoint = lattice_endpoint
+
+lattice_environment_token = os.environ.get('JAIA_LATTICE_ENVIRONMENT_TOKEN')
+if lattice_environment_token is not None:
+    cfg.lattice.environment_token = lattice_environment_token
+
+lattice_sandbox_token = os.environ.get('JAIA_LATTICE_SANDBOX_TOKEN')
+if lattice_sandbox_token is not None:
+    cfg.lattice.sandbox_token = lattice_sandbox_token
+
+if cfg.HasField('lattice') and not cfg.lattice.IsInitialized():
+    logging.warning('Lattice publishing requires both an endpoint and an environment_token. Please check the configuration file or set the JAIA_LATTICE_ENDPOINT and JAIA_LATTICE_ENVIRONMENT_TOKEN environmental variables.')
+    exit(1)
+
 logging.info(f'Starting up with configuration: {cfg}')
     
 app = Flask(__name__)
@@ -313,6 +330,10 @@ streaming_thread=dict()
 for ep in cfg.streaming_endpoint:
     streaming_thread[ep.hub_id] = threading.Thread(target=streaming_client.start_streaming, args=(ep.hub_id, (ep.hostname, ep.port)))
     streaming_thread[ep.hub_id].start()
+
+if cfg.HasField('lattice'):
+    lattice_thread = threading.Thread(target=lattice.start_publishing, args=(cfg.lattice,))
+    lattice_thread.start()
 
 def main():
     app.run(host='0.0.0.0', port=cfg.flask_bind_port, debug=False)
