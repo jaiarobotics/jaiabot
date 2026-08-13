@@ -220,6 +220,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__VEHICLE__MISSING_DATA_BATTERY = 602
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__VEHICLE__BATTERY_IMBALANCE = 603
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // arduino driver
     ERROR__VERSION__MISMATCH_ARDUINO = 700
