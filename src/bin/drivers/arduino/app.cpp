@@ -340,11 +340,24 @@ void jaiabot::apps::ArduinoDriver::handle_arduino_response(
         auto lower_battery_volts = arduino_response.battery_midpoint_voltage();
         auto upper_battery_volts = arduino_response.vccvoltage() - lower_battery_volts;
 
-        battery_imbalance_volts_ = std::abs(upper_battery_volts - lower_battery_volts);
+        // The junction can only sit somewhere between the ends of the pack, so a reading outside
+        // that is a wiring or scaling fault rather than a battery that needs reporting
+        if (lower_battery_volts <= 0 || upper_battery_volts <= 0)
+        {
+            battery_imbalance_volts_ = 0;
 
-        glog.is_debug2() && glog << group("arduino") << "Lower battery: " << lower_battery_volts
-                                 << ", Upper battery: " << upper_battery_volts
-                                 << ", Imbalance: " << battery_imbalance_volts_ << std::endl;
+            glog.is_warn() && glog << group("arduino") << "Battery midpoint of "
+                                   << lower_battery_volts << " V is not within a pack of "
+                                   << arduino_response.vccvoltage() << " V" << std::endl;
+        }
+        else
+        {
+            battery_imbalance_volts_ = std::abs(upper_battery_volts - lower_battery_volts);
+
+            glog.is_debug2() && glog << group("arduino") << "Lower battery: " << lower_battery_volts
+                                     << ", Upper battery: " << upper_battery_volts
+                                     << ", Imbalance: " << battery_imbalance_volts_ << std::endl;
+        }
     }
 
     glog.is_debug1() && glog << group("arduino")
