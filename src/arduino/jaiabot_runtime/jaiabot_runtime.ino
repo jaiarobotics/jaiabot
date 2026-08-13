@@ -101,8 +101,8 @@ constexpr int VccVoltage = A0;
 constexpr int BatteryMidpointVoltage = A6;
 constexpr int thermistor_pin = A4;
 
-// Volts per analog unit for the Vcc and battery midpoint dividers
-constexpr double volts_per_analog_unit = .0306;
+// Volts per analog unit for the battery midpoint divider
+constexpr double battery_midpoint_volts_per_analog_unit = .0306;
 
 // Generic GPIO Device Pin 
 constexpr int generic_gpio_pin = 7;
@@ -167,14 +167,14 @@ void send_ack(jaiabot_protobuf_ArduinoStatusCode code, uint32_t crc=0, uint32_t 
     ack.has_thermocouple_temperature_C = false;
   }
 
-  ack.vccvoltage = analogRead(VccVoltage)*volts_per_analog_unit;
+  ack.vccvoltage = analogRead(VccVoltage)*.0306;
   ack.has_vccvoltage = true;
   ack.vvcurrent = ((analogRead(VvCurrent)*.0049)-5)*-.05;
   ack.has_vvcurrent = true;
 
   // Voltage at the junction of the two series batteries, so the driver can
   // compare the charge of each battery against the other
-  ack.battery_midpoint_voltage = analogRead(BatteryMidpointVoltage)*volts_per_analog_unit;
+  ack.battery_midpoint_voltage = analogRead(BatteryMidpointVoltage)*battery_midpoint_volts_per_analog_unit;
   ack.has_battery_midpoint_voltage = true;
 
   // Vcccurrent
