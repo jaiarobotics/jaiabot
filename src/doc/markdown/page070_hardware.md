@@ -8,7 +8,7 @@
 |  3  | PC6/RST     | No Connection    |
 |  4  | +5V         | +5V              |
 |  5  | A7          | J1 - BRK_3       |  
-|  6  | A6          | LED 2 (Doesn't work - can't drive LED from Analog Pin)           |
+|  6  | A6          | Voltage - Battery Midpoint |
 |  7  | A5/D19      | LED 1            |
 |  8  | A4          | LED EXT          |
 |  9  | A3          | Current - 5V     |
