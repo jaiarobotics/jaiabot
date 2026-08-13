@@ -55,4 +55,7 @@ message ArduinoDriverConfig
 
     // Seconds after driver startup before publishing FLASH_ARDUINO on connection/version failure
     optional int32 flash_startup_delay_seconds = 24 [default = 15];
+
+    // Volts of difference between the two series batteries before reporting an imbalance error
+    optional float battery_imbalance_max_volts = 25 [default = 1.0];
 }

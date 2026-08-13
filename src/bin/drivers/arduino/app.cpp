@@ -23,6 +23,7 @@
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <algorithm>
+#include <cmath>
 #include <goby/zeromq/application/multi_thread.h>
 
 using namespace std;
@@ -66,6 +67,8 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
     void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
                            goby::middleware::protobuf::HealthState& health_state);
+    void check_battery_imbalance(goby::middleware::protobuf::ThreadHealth& health,
+                                 goby::middleware::protobuf::HealthState& health_state);
     void request_arduino_flash();
     void setBounds(const jaiabot::protobuf::Bounds& bounds);
     void publish_arduino_commands();
@@ -102,6 +105,9 @@ class ArduinoDriver : public zeromq::MultiThreadApplication<config::ArduinoDrive
 
     // Bot rolled over
     bool bot_rolled_over_{false};
+
+    // Difference in charge between the two series batteries
+    float battery_imbalance_volts_{0};
 
     // Version Table
     std::map<uint32_t, std::pair<std::string, std::string>> arduino_version_compatibility_;
@@ -325,6 +331,20 @@ void jaiabot::apps::ArduinoDriver::handle_arduino_response(
                 glog.is_debug2() && glog << group("main") << "Finsihed Restarting" << std::endl;
             }
         }
+    }
+
+    // The midpoint is the junction of the two series batteries, so it is the voltage of the
+    // lower battery and the remainder of the pack is the voltage of the upper battery
+    if (arduino_response.has_vccvoltage() && arduino_response.has_battery_midpoint_voltage())
+    {
+        auto lower_battery_volts = arduino_response.battery_midpoint_voltage();
+        auto upper_battery_volts = arduino_response.vccvoltage() - lower_battery_volts;
+
+        battery_imbalance_volts_ = std::abs(upper_battery_volts - lower_battery_volts);
+
+        glog.is_debug2() && glog << group("arduino") << "Lower battery: " << lower_battery_volts
+                                 << ", Upper battery: " << upper_battery_volts
+                                 << ", Imbalance: " << battery_imbalance_volts_ << std::endl;
     }
 
     glog.is_debug1() && glog << group("arduino")
@@ -589,6 +609,7 @@ void jaiabot::apps::ArduinoDriver::health(goby::middleware::protobuf::ThreadHeal
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
     check_last_report(health, health_state);
+    check_battery_imbalance(health, health_state);
 
     health.set_state(health_state);
 }
@@ -632,6 +653,22 @@ void jaiabot::apps::ArduinoDriver::check_last_report(
     else
     {
         flash_arduino_issue_published_ = false;
+    }
+}
+
+void jaiabot::apps::ArduinoDriver::check_battery_imbalance(
+    goby::middleware::protobuf::ThreadHealth& health,
+    goby::middleware::protobuf::HealthState& health_state)
+{
+    if (battery_imbalance_volts_ > cfg().battery_imbalance_max_volts())
+    {
+        glog.is_warn() && glog << "Battery imbalance of " << battery_imbalance_volts_
+                               << " V exceeds " << cfg().battery_imbalance_max_volts() << " V"
+                               << std::endl;
+
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__VEHICLE__BATTERY_IMBALANCE);
     }
 }
 
