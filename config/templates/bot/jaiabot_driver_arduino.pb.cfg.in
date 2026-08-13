@@ -21,6 +21,12 @@ arduino_version_table {
     app_versions_compatible_to: ""
 }
 
+arduino_version_table {
+    arduino_version: 4
+    app_versions_compatible_from: "2.4.0"
+    app_versions_compatible_to: ""
+}
+
 flash_startup_delay_seconds: 15
 
 $jaiabot_driver_arduino_bounds
