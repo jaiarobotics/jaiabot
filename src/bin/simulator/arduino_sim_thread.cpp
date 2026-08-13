@@ -55,7 +55,7 @@ void jaiabot::apps::ArduinoSimThread::handle_arduino_command(const jaiabot::prot
     //   as if they were coming from the actual Arduino, which is useful for testing 
     //   the driver without needing the physical hardware.
     jaiabot::protobuf::ArduinoResponse arduino_response;
-    arduino_response.set_version(3);
+    arduino_response.set_version(4);
     arduino_response.set_thermistor_voltage(2.5);
 
     if (arduino_command.has_settings())
@@ -84,6 +84,8 @@ void jaiabot::apps::ArduinoSimThread::handle_arduino_command(const jaiabot::prot
     {
         voltage_start_ = voltage_start_ - voltage_step_decrease_;
         arduino_response.set_vccvoltage(voltage_start_);
+        // Simulate two evenly charged batteries in series
+        arduino_response.set_battery_midpoint_voltage(voltage_start_ / 2);
         voltage_updated_ = goby::time::SteadyClock::now();
 
         if (voltage_start_ < reset_voltage_level_)
