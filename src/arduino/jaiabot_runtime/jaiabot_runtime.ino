@@ -102,7 +102,7 @@ constexpr int BatteryMidpointVoltage = A6;
 constexpr int thermistor_pin = A4;
 
 // Volts per analog unit for the battery midpoint divider
-constexpr double battery_midpoint_volts_per_analog_unit = .0306;
+constexpr double battery_midpoint_volts_per_analog_unit = .021016;
 
 // Generic GPIO Device Pin 
 constexpr int generic_gpio_pin = 7;
