@@ -280,4 +280,44 @@ message APIConfig
         repeated Permission permission = 2;
     }
     repeated APIKey key = 4;
+
+    // Publishing of bot/hub status and task packets to the Anduril Lattice
+    // Entities API. This is outbound only: entities are pushed to Lattice, and
+    // nothing from Lattice is ever passed back to the bots.
+    message Lattice
+    {
+        // Lattice environment hostname, e.g.
+        // "abc123.env.sandboxes.developer.anduril.com"
+        required string endpoint = 1;
+
+        // bearer token for the Lattice environment
+        required string environment_token = 2;
+
+        // bearer token for the Lattice Sandboxes account, required only when
+        // the endpoint is a sandbox environment
+        optional string sandbox_token = 3;
+
+        // name Lattice attributes these entities to
+        optional string integration_name = 4 [default = "JaiaBot"];
+
+        // seconds between publishes of all known entities
+        optional double publish_period_seconds = 5 [default = 1];
+
+        // seconds since the last status before a bot or hub stops being
+        // published
+        optional double status_timeout_seconds = 6 [default = 30];
+
+        // seconds until Lattice expires a published bot or hub
+        optional double status_expiry_seconds = 7 [default = 60];
+
+        // seconds of task packet history to consider on each publish
+        optional double task_packet_lookback_seconds = 8 [default = 300];
+
+        // seconds until Lattice expires a published task packet
+        optional double task_packet_expiry_seconds = 9 [default = 86400];
+
+        // seconds to wait on each HTTPS request to Lattice
+        optional double request_timeout_seconds = 10 [default = 5];
+    }
+    optional Lattice lattice = 5;
 }
