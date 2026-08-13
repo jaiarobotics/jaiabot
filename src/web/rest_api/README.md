@@ -47,6 +47,7 @@ rest_api/
 │   ├── api_exception.py     # Error handling
 │   ├── shared_data.py       # Thread-safe data storage
 │   ├── streaming_client.py  # Talks to the web portal
+│   ├── lattice.py           # Publishes status and task packets to Lattice
 │   ├── target.py            # Parses "b1,b2" or "all" targets
 │   └── ...
 │
@@ -154,6 +155,74 @@ curl -X POST http://localhost:9092/jaia/v1 \
   -d '{"target": {"all": true}, "status": true, "api_key": "abc123xyz..."}'
 ```
 
+## Publishing to Lattice
+
+The API can forward the bot status, hub status and task packets it receives on to the [Anduril Lattice](https://developer.anduril.com/) Entities API, so the fleet shows up on a Lattice map.
+
+> **This is outbound only.** Entities are pushed to Lattice once per second. Nothing Lattice sends back is read, so there is no path for Lattice to command a bot or send it anything.
+
+**What gets published:**
+
+| Jaia data   | Lattice entity                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------------- |
+| Bot status  | `TEMPLATE_ASSET` at the bot's position, with its depth, speed, heading, health, mission state and battery     |
+| Hub status  | `TEMPLATE_ASSET` at the hub's position, with its health                                                       |
+| Task packet | `TEMPLATE_SENSOR_POINT_OF_INTEREST` where the dive or drift started, with the depth, temperature and salinity |
+
+Each bot, hub and task packet keeps the same Lattice entity ID across restarts, so nothing gets duplicated on the map.
+
+### Configure it
+
+Add a `lattice` block to `/etc/jaiabot/rest_api.pb.cfg`:
+
+```protobuf
+lattice {
+    endpoint: "abc123.env.sandboxes.developer.anduril.com"
+    environment_token: "your-lattice-environment-token"
+
+    # only needed for a Lattice Sandboxes environment
+    sandbox_token: "your-sandboxes-account-token"
+}
+```
+
+Leave the `lattice` block out and nothing is published.
+
+**All the options:**
+
+| Field                          | Default   | What it does                                                      |
+| ------------------------------ | --------- | ----------------------------------------------------------------- |
+| `endpoint`                     | required  | Lattice environment hostname                                      |
+| `environment_token`            | required  | Bearer token for that environment                                 |
+| `sandbox_token`                | -         | Sandboxes account token, for sandbox environments only            |
+| `integration_name`             | `JaiaBot` | Name Lattice attributes these entities to                         |
+| `publish_period_seconds`       | 1         | Seconds between publishes                                         |
+| `status_timeout_seconds`       | 30        | Stop publishing a bot or hub this long after its last status      |
+| `status_expiry_seconds`        | 60        | How long Lattice keeps a bot or hub after its last publish        |
+| `task_packet_lookback_seconds` | 300       | How far back to look for task packets that haven't been published |
+| `task_packet_expiry_seconds`   | 86400     | How long Lattice keeps a task packet                              |
+| `request_timeout_seconds`      | 5         | How long to wait on each request to Lattice                       |
+
+Run two fleets into the same Lattice environment? Give each one its own `integration_name`, or bot 1 of each fleet will fight over the same entity.
+
+### Testing against a Lattice sandbox
+
+A [sandbox environment](https://developer.anduril.com/guides/developer-tools/sandboxes) lasts 12 hours and hands you fresh tokens each time, so it's easier to pass them in the environment than to keep editing the config file:
+
+```bash
+# Resource Endpoint, without the https://
+export JAIA_LATTICE_ENDPOINT="abc123.env.sandboxes.developer.anduril.com"
+# "Lattice Auth Token" from the environment page
+export JAIA_LATTICE_ENVIRONMENT_TOKEN="..."
+# Sandboxes token from Account & Security
+export JAIA_LATTICE_SANDBOX_TOKEN="..."
+
+./run.sh
+```
+
+Then open the Lattice UI for that environment and the bots, hub and task packets should appear on the map. Anything Lattice rejects is logged as an error with its response body.
+
+> **Careful:** the tokens end up in the API's own log, because it logs its whole configuration on startup (as it already does for API keys). Don't publish those logs.
+
 ## Running Tests
 
 **Make sure the API server is running first!**
@@ -181,6 +250,9 @@ cd test
 
 # With HTTPS (useful for production testing)
 ./test/short_api_test.py --https --https-skip-verify
+
+# The Lattice entity tests, which don't need a server or a Lattice environment
+python3 -m pytest test/test_lattice.py
 ```
 
 **What the tests do:**
