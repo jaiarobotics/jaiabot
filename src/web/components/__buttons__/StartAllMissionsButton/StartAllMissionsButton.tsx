@@ -53,35 +53,8 @@ export default function StartAllMissionsButton(props: Props) {
 
         await Promise.all(
             Array.from(props.bots.entries()).map(async ([botID, bot]) => {
-                if (bot.isCommsDropped()) {
-                    updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
-                } else if (
-                    !isCommandAvailable(
-                        CommandType.START_MISSION,
-                        bot.getMissionStatus().missionState,
-                    )
-                ) {
-                    updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
-                } else if (isMissionUnassigned(botID)) {
-                    updatedBotReadyStates.get(DisabledCodes.NO_MISSION).push(botID);
-                } else if (isCritiallyLowBattery(bot.getBatteryPercent())) {
-                    updatedBotReadyStates.get(DisabledCodes.LOW_BATTERY).push(botID);
-                } else {
-                    const missionID = missionsManager.getMissionID(botID);
-                    const mission = props.missions.get(missionID);
-                    const prediction = mission ? await fetchBatteryPrediction(mission, bot) : null;
-                    // A null prediction (unsupported bot type, request failure, etc.)
-                    // intentionally does not block starting the mission -- the battery check is
-                    // advisory, not a safety gate, so we fail open when we have no prediction to check.
-                    if (
-                        prediction !== null &&
-                        prediction.predicted_final_pct < MIN_BATTERY_PERCENT
-                    ) {
-                        updatedBotReadyStates.get(DisabledCodes.INSUFFICIENT_BATTERY).push(botID);
-                    } else {
-                        updatedBotReadyStates.get(DisabledCodes.NONE).push(botID);
-                    }
-                }
+                const disabledCode = await getBotReadyState(botID, bot, props.missions);
+                updatedBotReadyStates.get(disabledCode).push(botID);
             }),
         );
 
@@ -204,4 +177,46 @@ function isMissionUnassigned(botID: number) {
  */
 function isCritiallyLowBattery(batteryPercent: number) {
     return batteryPercent < MIN_BATTERY_PERCENT;
+}
+
+/**
+ * Determines the disabled code that applies to a single Bot for the start-all-missions flow
+ *
+ * @param {number} botID Bot to evaluate
+ * @param {Bot} bot The Bot instance
+ * @param {Map<number, Mission>} missions Missions keyed by mission ID, used to look up the Bot's assigned mission
+ * @returns {Promise<DisabledCodes>} The applicable disabled code for this Bot
+ */
+async function getBotReadyState(
+    botID: number,
+    bot: Bot,
+    missions: Map<number, Mission>,
+): Promise<DisabledCodes> {
+    if (bot.isCommsDropped()) {
+        return DisabledCodes.NO_COMMS;
+    }
+
+    if (!isCommandAvailable(CommandType.START_MISSION, bot.getMissionStatus().missionState)) {
+        return DisabledCodes.MISSION_STATE;
+    }
+
+    if (isMissionUnassigned(botID)) {
+        return DisabledCodes.NO_MISSION;
+    }
+
+    if (isCritiallyLowBattery(bot.getBatteryPercent())) {
+        return DisabledCodes.LOW_BATTERY;
+    }
+
+    const missionID = missionsManager.getMissionID(botID);
+    const mission = missions.get(missionID);
+    const prediction = mission ? await fetchBatteryPrediction(mission, bot) : null;
+    // A null prediction (unsupported bot type, request failure, etc.)
+    // intentionally does not block starting the mission -- the battery check is
+    // advisory, not a safety gate, so we fail open when we have no prediction to check.
+    if (prediction !== null && prediction.predicted_final_pct < MIN_BATTERY_PERCENT) {
+        return DisabledCodes.INSUFFICIENT_BATTERY;
+    }
+
+    return DisabledCodes.NONE;
 }

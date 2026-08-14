@@ -30,6 +30,20 @@ from collections import defaultdict
 import h5py
 import numpy as np
 
+from jaiabot.messages.mission_pb2 import (
+    IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT as STATE_TRANSIT,
+    IN_MISSION__UNDERWAY__TASK__STATION_KEEP as STATE_TASK_STATION_KEEP,
+    IN_MISSION__UNDERWAY__TASK__SURFACE_DRIFT as STATE_TASK_SURFACE_DRIFT,
+    IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP as STATE_DIVE_PREP,
+    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT as STATE_POWERED_DESCENT,
+    IN_MISSION__UNDERWAY__TASK__DIVE__HOLD as STATE_HOLD,
+    IN_MISSION__UNDERWAY__TASK__DIVE__UNPOWERED_ASCENT as STATE_UNPOWERED_ASCENT,
+    IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_ASCENT as STATE_POWERED_ASCENT,
+    IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS as STATE_REACQUIRE_GPS,
+    IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT as STATE_DIVE_SURFACE_DRIFT,
+    IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP as STATE_RECOVERY_STATION_KEEP,
+)
+
 EARTH_R = 6_371_000  # metres
 GPS_JUMP_THRESHOLD_M = 100  # discard teleport jumps when computing distance
 
@@ -41,19 +55,6 @@ def _haversine(lat1, lon1, lat2, lon2):
     a = (np.sin(dlat / 2) ** 2
          + np.cos(lat1 * to_rad) * np.cos(lat2 * to_rad) * np.sin(dlon / 2) ** 2)
     return 2 * EARTH_R * np.arcsin(np.sqrt(np.clip(a, 0, 1)))
-
-# Mission state enums from src/lib/messages/mission.proto
-STATE_TRANSIT             = 110
-STATE_TASK_STATION_KEEP   = 120
-STATE_TASK_SURFACE_DRIFT  = 121
-STATE_DIVE_PREP           = 123
-STATE_POWERED_DESCENT     = 124
-STATE_HOLD                = 125
-STATE_UNPOWERED_ASCENT    = 126
-STATE_POWERED_ASCENT      = 127
-STATE_REACQUIRE_GPS       = 128
-STATE_DIVE_SURFACE_DRIFT  = 129
-STATE_RECOVERY_STATION_KEEP = 141
 
 # States to report per-state mean power for. Names match the calibration.json
 # keys consumed by extract_features.py.
