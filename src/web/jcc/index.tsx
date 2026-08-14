@@ -1,6 +1,7 @@
 import * as ReactDOM from "react-dom/client";
 import App from "./App";
 import {
+    BATTERY_PREDICTION_POLL_TIME,
     DATA_MODEL_POLL_TIME,
     GITHUB_POLL_TIME,
     INTERNET_POLL_TIME,
@@ -8,6 +9,7 @@ import {
     TASK_PACKET_POLL_TIME,
 } from "../utils/constants";
 import { pollGitHub, pollInternet, pollMetadata, pollStatus, pollTaskPackets } from "./polling";
+import { refreshBatteryPredictions } from "../context/handlers/battery-prediction-handlers";
 
 // Make initial calls
 pollStatus();
@@ -15,6 +17,7 @@ pollTaskPackets();
 pollMetadata();
 pollGitHub();
 pollInternet();
+refreshBatteryPredictions();
 
 // Start intervals
 const statusInterval = setInterval(async () => pollStatus(), DATA_MODEL_POLL_TIME);
@@ -22,6 +25,10 @@ const taskPacketInterval = setInterval(async () => pollTaskPackets(), TASK_PACKE
 const metadataInterval = setInterval(async () => pollMetadata(), METADATA_POLL_TIME);
 const gitHubInterval = setInterval(async () => pollGitHub(), GITHUB_POLL_TIME);
 const internetInterval = setInterval(async () => pollInternet(), INTERNET_POLL_TIME);
+const batteryPredictionInterval = setInterval(
+    async () => refreshBatteryPredictions(),
+    BATTERY_PREDICTION_POLL_TIME,
+);
 
 let element = document.getElementById("root");
 const root = ReactDOM.createRoot(element);

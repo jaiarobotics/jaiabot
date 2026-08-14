@@ -17,6 +17,7 @@ import {
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
 import { TaskPackets } from "../data/task_packets/task-packets";
+import { BatteryPredictions } from "../data/battery_predictions/battery-predictions";
 import Task from "../data/tasks/task";
 import Waypoint from "../data/waypoints/waypoint";
 import {
@@ -40,6 +41,8 @@ export interface JaiaContextType {
     jaiaGlobal: JaiaGlobal;
     missionsManager: MissionsManager;
     exclusionZoneSet: ExclusionZoneSet;
+    batteryPredictions: BatteryPredictions;
+    predictionsVersion: number;
     pendingReroute: PendingReroute | null;
     pendingWaypointRemoval: PendingWaypointRemoval | null;
     placementError: string;

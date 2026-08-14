@@ -37,6 +37,8 @@ export default function StartMissionButton(props: Props) {
     const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
     const [batteryPrediction, setBatteryPrediction] = useState<BatteryPrediction | null>(null);
 
+    const missionID = missionsManager.getMissionID(props.bot.getBotID());
+
     /**
      * Forms the style of the button (light if enabled, dark if disabled)
      *
@@ -55,8 +57,9 @@ export default function StartMissionButton(props: Props) {
     /**
      * Checks the Bot's state and decides what disabled code (if any) applies based on the button conditions
      *
-     * @param {BatteryPrediction | null} [prediction] Battery prediction to check against. Defaults to
-     *   the current state.
+     * @param {BatteryPrediction | null} [prediction] Battery prediction to check against; defaults to
+     *   the current state, but callers acting on a just-fetched prediction should pass it explicitly
+     *   since the state setter hasn't taken effect yet at that point
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = (prediction: BatteryPrediction | null = batteryPrediction) => {
@@ -73,7 +76,7 @@ export default function StartMissionButton(props: Props) {
             return DisabledCodes.MISSION_STATE;
         }
 
-        if (missionsManager.getMissionID(props.bot.getBotID()) === UNASSIGNED_ID) {
+        if (missionID === UNASSIGNED_ID) {
             return DisabledCodes.NO_MISSION;
         }
 
@@ -94,7 +97,10 @@ export default function StartMissionButton(props: Props) {
     };
 
     /**
-     * Determines what dialog to display on click (take control or activate)
+     * Fetches a fresh battery prediction, then determines what dialog to display
+     * (take control or activate). Fetched fresh on every click rather than reading the
+     * periodically-updated cache, since this is the moment a command is actually about
+     * to be sent -- a stale "safe to start" read here is worse than the brief pause.
      *
      * @returns {void}
      */

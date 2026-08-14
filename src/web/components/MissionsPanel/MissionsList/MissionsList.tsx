@@ -1,5 +1,5 @@
 // React
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect } from "react";
 
 // Jaia
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
@@ -13,8 +13,6 @@ import { missionsManager } from "../../../data/missions_manager/missions-manager
 import {
     BatteryPrediction,
     clampBatteryPercentForDisplay,
-    fetchBatteryPrediction,
-    isBotTypeSupported,
 } from "../../../utils/battery_prediction";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
 import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
@@ -44,7 +42,6 @@ interface MissionAccordionProps {
     isExpanded: boolean;
     isInEditMode: boolean;
     repeats: number;
-    missionKey: string;
     onAccordionChange: (missionID: number, isExpanded: boolean) => void;
     onRepeatsChange: (repeats: string, missionID: number) => void;
     onDuplicateClick: (missionID: number) => void;
@@ -161,7 +158,6 @@ export default function MissionsList() {
                         jaiaContext.missionSet.getMissionIDInEditMode() === mission.getMissionID()
                     }
                     repeats={mission.getRepeats()}
-                    missionKey={JSON.stringify(mission)}
                 />
             ))}
         </div>
@@ -172,13 +168,13 @@ export default function MissionsList() {
  * Renders a single mission accordion with a color-coded title bar indicating mission health.
  * Grey when no bot is assigned or no battery prediction is available, green when assigned with
  * no issues, red when assigned with an issue.
- * Fetches a battery drain prediction debounced 500ms after any mission change.
+ * Reads its battery prediction from the shared batteryPredictions data model, which is kept
+ * current by a periodic and event-driven refresh in JaiaContext.
  *
  * @param {number} props.missionID ID of the mission to render
  * @param {boolean} props.isExpanded Whether the accordion is currently expanded
  * @param {boolean} props.isInEditMode Whether this mission is currently in edit mode
  * @param {number} props.repeats Number of times the mission repeats
- * @param {string} props.missionKey Serialized mission used to detect changes for prediction refetch
  * @param {Function} props.onAccordionChange Called when the accordion is expanded or collapsed
  * @param {Function} props.onRepeatsChange Called when the repeats value is changed
  * @param {Function} props.onDuplicateClick Called when the duplicate button is clicked
@@ -187,49 +183,27 @@ export default function MissionsList() {
  */
 function MissionAccordion(props: MissionAccordionProps) {
     const jaiaContext = useContext(JaiaContext);
-    const [disabledCode, setDisabledCode] = useState<DisabledCodes>(DisabledCodes.NO_MISSION);
-    const [prediction, setPrediction] = useState<BatteryPrediction | null>(null);
-    const [isUnsupportedBotType, setIsUnsupportedBotType] = useState(false);
 
     const assignedBotID = missionsManager.getBotID(props.missionID) ?? UNASSIGNED_ID;
-    const mission = jaiaContext.missionSet.getMissions().get(props.missionID);
     const bot = assignedBotID !== UNASSIGNED_ID ? jaiaContext.bots.getBot(assignedBotID) : null;
+    const batteryStatus = jaiaContext.batteryPredictions.getStatus(props.missionID);
+    const prediction = batteryStatus?.prediction ?? null;
+    const isUnsupportedBotType = batteryStatus?.isUnsupportedBotType ?? false;
 
-    useEffect(() => {
-        if (!bot) {
-            setIsUnsupportedBotType(false);
-            return;
+    /**
+     * Determines the disabled code that applies to this mission's assigned Bot
+     *
+     * @returns {DisabledCodes} The applicable disabled code based on the Bot and prediction state
+     */
+    const getDisabledCode = () => {
+        if (!bot) return DisabledCodes.NO_MISSION;
+        if (bot.getBatteryPercent() < MIN_BATTERY_PERCENT) return DisabledCodes.LOW_BATTERY;
+        if (prediction !== null && prediction.predicted_final_pct < MIN_BATTERY_PERCENT) {
+            return DisabledCodes.INSUFFICIENT_BATTERY;
         }
-        isBotTypeSupported(bot.getBotType()).then((supported) =>
-            setIsUnsupportedBotType(!supported),
-        );
-    }, [assignedBotID]);
-
-    useEffect(() => {
-        if (!bot) {
-            setDisabledCode(DisabledCodes.NO_MISSION);
-            setPrediction(null);
-            return;
-        }
-
-        if (bot.getBatteryPercent() < MIN_BATTERY_PERCENT) {
-            setDisabledCode(DisabledCodes.LOW_BATTERY);
-            setPrediction(null);
-            return;
-        }
-
-        const timer = setTimeout(async () => {
-            const result = mission ? await fetchBatteryPrediction(mission, bot) : null;
-            setPrediction(result);
-            setDisabledCode(
-                result !== null && result.predicted_final_pct < MIN_BATTERY_PERCENT
-                    ? DisabledCodes.INSUFFICIENT_BATTERY
-                    : DisabledCodes.NONE,
-            );
-        }, 500);
-
-        return () => clearTimeout(timer);
-    }, [props.missionKey, assignedBotID]);
+        return DisabledCodes.NONE;
+    };
+    const disabledCode = getDisabledCode();
 
     // Bot is otherwise healthy, but no battery prediction could be obtained for it
     // (e.g. unsupported bot type).

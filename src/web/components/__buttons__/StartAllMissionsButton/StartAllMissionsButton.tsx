@@ -43,8 +43,9 @@ export default function StartAllMissionsButton(props: Props) {
 
     /**
      * Loops through the connected Bots and categorizes them based on their
-     * readiness to start a mission. This sets the foundation for creating the correct
-     * alert/confirm message.
+     * readiness to start a mission, fetching a fresh battery prediction per Bot rather
+     * than reading the periodically-updated cache -- this is the moment commands are
+     * about to be sent, so a stale "safe to start" read here is worse than the brief pause.
      *
      * @returns {void}
      */

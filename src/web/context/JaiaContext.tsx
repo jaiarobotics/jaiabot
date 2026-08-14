@@ -1,10 +1,11 @@
 import React, { createContext, ReactNode, useEffect, useReducer } from "react";
 
-import { DATA_MODEL_POLL_TIME } from "../utils/constants";
+import { BATTERY_PREDICTION_REFRESH_DEBOUNCE_MS, DATA_MODEL_POLL_TIME } from "../utils/constants";
 import { JaiaAction, JaiaContextType } from "../types/context-types";
 import { JaiaActions } from "./jaia-actions";
 import { actionConfigs } from "./action-configs";
 import { saveHistory } from "./handlers/history-handlers";
+import { refreshBatteryPredictions } from "./handlers/battery-prediction-handlers";
 import { bots } from "../data/bots/bots";
 
 interface JaiaContextProviderProps {
@@ -40,6 +41,12 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
     let mutableState = { ...state };
     mutableState.previousTick = bots.getTick();
 
+    // Bump on every action that actually changes mission/waypoint/task data (the same
+    // "tracked" flag used for undo history) so JaiaContextProvider can debounce a
+    // battery-predictions refresh shortly after edits, without hand-maintaining a
+    // separate list of which actions matter.
+    mutableState.predictionsVersion = (state?.predictionsVersion ?? 0) + (config.tracked ? 1 : 0);
+
     // Call the handler
     mutableState = config.handler(mutableState, action);
 
@@ -66,6 +73,21 @@ export function JaiaContextProvider({ children }: JaiaContextProviderProps) {
         // Clean up when component dismounts
         return () => clearInterval(intervalID);
     }, []);
+
+    /**
+     * Refreshes battery predictions shortly after a mission/waypoint/task edit, in
+     * addition to the periodic refresh started in jcc/index.tsx. Debounced so a burst
+     * of edits (e.g. dragging a waypoint) results in one refresh, not one per action.
+     */
+    useEffect(() => {
+        if (state === null) return;
+
+        const timer = setTimeout(
+            () => refreshBatteryPredictions(),
+            BATTERY_PREDICTION_REFRESH_DEBOUNCE_MS,
+        );
+        return () => clearTimeout(timer);
+    }, [state?.predictionsVersion]);
 
     return (
         <JaiaContext.Provider value={state}>
