@@ -1,3 +1,5 @@
+import { getDistance } from "ol/sphere";
+
 import Bot from "../data/bots/bot";
 import Mission from "../data/mission_set/mission";
 import { TaskType } from "../types/protobuf-types";
@@ -114,25 +116,6 @@ export function clampDrainPercentForDisplay(predictedDrainPct: number): number {
 }
 
 /**
- * Calculates the great-circle distance in meters between two geographic coordinates
- *
- * @param {number} lat1 Latitude of the first point in degrees
- * @param {number} lon1 Longitude of the first point in degrees
- * @param {number} lat2 Latitude of the second point in degrees
- * @param {number} lon2 Longitude of the second point in degrees
- * @returns {number} Distance between the two points in meters
- */
-function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const toRad = Math.PI / 180;
-    const dlat = (lat2 - lat1) * toRad;
-    const dlon = (lon2 - lon1) * toRad;
-    const h =
-        Math.sin(dlat / 2) ** 2 +
-        Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dlon / 2) ** 2;
-    return 2 * EARTH_R * Math.asin(Math.sqrt(Math.min(1, h)));
-}
-
-/**
  * Estimates transit energy in Wh using piecewise linear interpolation over
  * the calibrated planned-speed -> watts curve. The curve already includes
  * hotel load because it's measured from total battery current, not motor-only.
@@ -178,7 +161,9 @@ function waypointGeometry(locs: { lat: number; lon: number }[]): {
     if (locs.length < 3) return { turnDensityDegPerKm: 0 };
     const dists: number[] = [];
     for (let i = 0; i < locs.length - 1; i++) {
-        dists.push(haversineMeters(locs[i].lat, locs[i].lon, locs[i + 1].lat, locs[i + 1].lon));
+        dists.push(
+            getDistance([locs[i].lon, locs[i].lat], [locs[i + 1].lon, locs[i + 1].lat], EARTH_R),
+        );
     }
     const totalDistanceKm = dists.reduce((a, b) => a + b, 0) / 1000;
     const avgLatRad = (locs.reduce((s, l) => s + l.lat, 0) / locs.length) * (Math.PI / 180);
@@ -253,7 +238,7 @@ export async function fetchBatteryPrediction(
         const loc = waypoint.getLocation();
         if (loc?.lat != null && loc?.lon != null) {
             if (curLat != null && curLon != null) {
-                const legDistance = haversineMeters(curLat, curLon, loc.lat, loc.lon);
+                const legDistance = getDistance([curLon, curLat], [loc.lon, loc.lat], EARTH_R);
                 const legEnergy = estimatedTransitEnergyWh(
                     legDistance,
                     transitSpeed,
@@ -320,7 +305,7 @@ export async function fetchBatteryPrediction(
         curLat != null &&
         curLon != null
     ) {
-        returnDistanceM = haversineMeters(curLat, curLon, firstLoc.lat, firstLoc.lon);
+        returnDistanceM = getDistance([curLon, curLat], [firstLoc.lon, firstLoc.lat], EARTH_R);
         returnEnergyWh = estimatedTransitEnergyWh(
             returnDistanceM,
             transitSpeed,

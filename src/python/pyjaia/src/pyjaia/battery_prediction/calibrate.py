@@ -44,17 +44,7 @@ from jaiabot.messages.mission_pb2 import (
     IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP as STATE_RECOVERY_STATION_KEEP,
 )
 
-EARTH_R = 6_371_000  # metres
 GPS_JUMP_THRESHOLD_M = 100  # discard teleport jumps when computing distance
-
-
-def _haversine(lat1, lon1, lat2, lon2):
-    to_rad = np.pi / 180
-    dlat = (lat2 - lat1) * to_rad
-    dlon = (lon2 - lon1) * to_rad
-    a = (np.sin(dlat / 2) ** 2
-         + np.cos(lat1 * to_rad) * np.cos(lat2 * to_rad) * np.sin(dlon / 2) ** 2)
-    return 2 * EARTH_R * np.arcsin(np.sqrt(np.clip(a, 0, 1)))
 
 # States to report per-state mean power for. Names match the calibration.json
 # keys consumed by extract_features.py.

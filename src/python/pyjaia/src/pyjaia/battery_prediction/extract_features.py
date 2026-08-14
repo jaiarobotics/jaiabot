@@ -21,8 +21,8 @@ import h5py
 import numpy as np
 
 from .calibration import load_calibration
+from .geo import EARTH_R, haversine
 
-EARTH_R = 6_371_000  # metres
 GPS_JUMP_THRESHOLD_M = 100  # filter GPS teleports
 MIN_MISSION_DURATION_S = 300  # 5 minutes — discard short test runs
 BOTTOM_DIVE_DEPTH_PRIOR_M = 10  # assumed depth when no target depth is planned
@@ -44,17 +44,6 @@ def estimated_transit_energy_wh(distance_m: float, speed_m_s: float) -> float:
     ))
     duration_h = (distance_m / speed_m_s) / 3600
     return motor_w * duration_h
-
-
-def haversine(lat1, lon1, lat2, lon2):
-    to_rad = np.pi / 180
-    dlat = (lat2 - lat1) * to_rad
-    dlon = (lon2 - lon1) * to_rad
-    h = (
-        np.sin(dlat / 2) ** 2
-        + np.cos(lat1 * to_rad) * np.cos(lat2 * to_rad) * np.sin(dlon / 2) ** 2
-    )
-    return 2 * EARTH_R * np.arcsin(np.sqrt(np.clip(h, 0, 1)))
 
 
 INT32_MAX = 2_147_483_647
