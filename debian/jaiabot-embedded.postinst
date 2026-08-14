@@ -3,8 +3,9 @@ set -e
 
 . /usr/share/debconf/confmodule
 
-# Only what this script itself needs: identity (hostname, addressing, VPN) and
-# the arduino type (flashing). systemd.py reads the rest from debconf directly.
+# Only what this script itself needs: identity (hostname, addressing, VPN), the
+# arduino type (flashing) and the mode (fleet DNS). systemd.py reads the rest
+# from debconf directly.
 # Nothing here writes to the database - normalization lives in .config so the
 # on-disk copy stays authoritative.
 db_get jaiabot-embedded/type
@@ -23,6 +24,9 @@ FLEET_INDEX=$RET
 
 db_get jaiabot-embedded/arduino_type
 JAIA_ARDUINO_TYPE=$RET
+
+db_get jaiabot-embedded/mode
+JAIA_MODE=$RET
 
 # WLAN (fleet) addressing, as defined by the 'jaia_ip' tool
 NODE_WLAN_IP=$(/usr/bin/jaia_ip --query_type addr --node_type ${JAIA_TYPE} --node_id ${BOT_OR_HUB_INDEX} --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
@@ -68,6 +72,13 @@ echo "<<<<< Updating wifi configuration complete (IP address changes won't take 
 echo ">>>>> Updating hub0 address ... "
 sed -i "s/.*hub0/${HUB0_WLAN_IP} hub0/" /etc/hosts
 echo "<<<<< Updating hub0 address complete!"
+
+echo ">>>>> Updating fleet DNS configuration ... "
+
+/usr/bin/jaia-update-dns.sh -t ${JAIA_TYPE} -i ${BOT_OR_HUB_INDEX} \
+                            -f ${FLEET_INDEX} -m ${JAIA_MODE}
+
+echo "<<<<< Updating fleet DNS configuration complete (the jaiabot_dns service starts serving them on reboot)!"
 
 
 echo ">>>>> Writing /etc/jaiabot/jaia.env ... "

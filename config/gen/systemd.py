@@ -593,6 +593,14 @@ jaiabot_apps = [
     {'service': 'jcc.conf',
      'template': 'jcc.conf.in',
      'runs_on': [Type.HUB]},
+    {'service': 'jaiabot_dns',
+     'description': 'JaiaBot Fleet DNS Server',
+     'template': 'dns.service.in',
+     'runs_on': [Type.HUB],
+     'runs_when': Mode.RUNTIME,
+     # a CloudHub is reachable from the public internet, where an open resolver
+     # is an amplification attack waiting to happen
+     'runs_on_cloudhub': False},
 
     ## ALL BOT Services ##
 
@@ -1039,7 +1047,7 @@ for firmware in jaia_firmware:
         else:
             service = firmware['exe'].replace('.', '_').lower()
             if macros['exe'][0:9] != 'jaia_firm':
-                service = 'jaia_firm_' + servi
+                service = 'jaia_firm_' + service
 
         if not 'bin_dir' in macros:
             if macros['exe'][0:4] == 'goby':

@@ -31,6 +31,7 @@ set(scripts_to_install
   system/jaia-debconf.sh
   system/jaia-update-ufw-rules.sh
   system/jaia-update-network.sh
+  system/jaia-update-dns.sh
   system/jaia-iridium-tunnel.sh
   # Fleet config
   fleet/jaia-create-fleet-config.sh
