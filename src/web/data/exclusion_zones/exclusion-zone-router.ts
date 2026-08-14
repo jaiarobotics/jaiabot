@@ -7,7 +7,8 @@
  */
 
 import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
-import { GeographicCoordinate, Goal, MissionPlan } from "../../types/protobuf-types";
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
+import { MissionPlan, MissionPlan_Goal } from "../../shared/proto/jaiabot/messages/mission";
 import { METERS_PER_DEG } from "../../utils/constants";
 import {
     ExclusionZone,
@@ -528,7 +529,7 @@ export function routeAroundExclusionZones(
 
     interface WorkingGoal {
         xy: XYPt;
-        goal: Goal;
+        goal: MissionPlan_Goal;
         isBypass: boolean;
     }
 
@@ -585,7 +586,7 @@ export function routeAroundExclusionZones(
             isRoutingImpossible: true,
         };
 
-    const finalGoals: Goal[] = result.map((w) =>
+    const finalGoals: MissionPlan_Goal[] = result.map((w) =>
         w.isBypass ? { location: toLatLon(origin, w.xy), name: "route_bypass" } : w.goal,
     );
 

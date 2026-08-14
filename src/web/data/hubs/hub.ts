@@ -1,11 +1,7 @@
-import {
-    BotOffloadData,
-    Error,
-    GeographicCoordinate,
-    HealthState,
-    LinuxHardwareStatus,
-    Warning,
-} from "../../types/protobuf-types";
+import { HealthState } from "../../shared/proto/goby/middleware/protobuf/coroner";
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
+import { Error, LinuxHardwareStatus, Warning } from "../../shared/proto/jaiabot/messages/health";
+import { HubStatus_BotOffloadData } from "../../shared/proto/jaiabot/messages/hub";
 import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import HubSensors from "./hub-sensors";
@@ -19,7 +15,7 @@ export default class Hub {
     private hubSensors: HubSensors;
     private location: GeographicCoordinate;
     private linuxHardwareStatus: LinuxHardwareStatus;
-    private botOffload: BotOffloadData;
+    private botOffload: HubStatus_BotOffloadData;
     private statusAge: number;
 
     constructor() {
@@ -91,7 +87,7 @@ export default class Hub {
         return this.botOffload;
     }
 
-    setBotOffload(botOffload: BotOffloadData) {
+    setBotOffload(botOffload: HubStatus_BotOffloadData) {
         this.botOffload = botOffload;
     }
 

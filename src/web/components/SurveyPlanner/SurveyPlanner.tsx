@@ -16,7 +16,7 @@ import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey
 import { formatNumericalInput, snakeCaseToTitleCase } from "../../utils/input";
 import { selectTheme } from "../../utils/style";
 import { DEFAULT_LANES, UNASSIGNED_ID } from "../../utils/constants";
-import { TaskType } from "../../types/protobuf-types";
+import { MissionTask_TaskType } from "../../shared/proto/jaiabot/messages/mission";
 
 import "./SurveyPlanner.less";
 
@@ -84,7 +84,7 @@ export default function SurveyPlanner(props: Props) {
             taskType: evt.target.value,
         });
 
-        gridPlan.getPlanningTask().setType(evt.target.value as TaskType);
+        gridPlan.getPlanningTask().setType(evt.target.value as MissionTask_TaskType);
         gridLayer.finalizeGrid();
     };
 
@@ -359,20 +359,26 @@ function TaskConfigs(props: Props) {
      */
     const getMenuItems = () => {
         const menuItems = [
-            <MenuItem value={TaskType.NONE} key={TaskType.NONE}>
-                {snakeCaseToTitleCase(TaskType.NONE)}
+            <MenuItem value={MissionTask_TaskType.NONE} key={MissionTask_TaskType.NONE}>
+                {snakeCaseToTitleCase(MissionTask_TaskType.NONE)}
             </MenuItem>,
-            <MenuItem value={TaskType.DIVE} key={TaskType.DIVE}>
-                {snakeCaseToTitleCase(TaskType.DIVE)}
+            <MenuItem value={MissionTask_TaskType.DIVE} key={MissionTask_TaskType.DIVE}>
+                {snakeCaseToTitleCase(MissionTask_TaskType.DIVE)}
             </MenuItem>,
-            <MenuItem value={TaskType.SURFACE_DRIFT} key={TaskType.SURFACE_DRIFT}>
-                {snakeCaseToTitleCase(TaskType.SURFACE_DRIFT)}
+            <MenuItem
+                value={MissionTask_TaskType.SURFACE_DRIFT}
+                key={MissionTask_TaskType.SURFACE_DRIFT}
+            >
+                {snakeCaseToTitleCase(MissionTask_TaskType.SURFACE_DRIFT)}
             </MenuItem>,
         ];
         if (props.taskPosition !== TaskPosition.SURVEY) {
             menuItems.push(
-                <MenuItem value={TaskType.CONSTANT_HEADING} key={TaskType.CONSTANT_HEADING}>
-                    {snakeCaseToTitleCase(TaskType.CONSTANT_HEADING)}
+                <MenuItem
+                    value={MissionTask_TaskType.CONSTANT_HEADING}
+                    key={MissionTask_TaskType.CONSTANT_HEADING}
+                >
+                    {snakeCaseToTitleCase(MissionTask_TaskType.CONSTANT_HEADING)}
                 </MenuItem>,
             );
         }
@@ -385,7 +391,7 @@ function TaskConfigs(props: Props) {
      * @returns {React.Element} Task parameters section
      */
     const getTaskParametersContainer = () => {
-        if (getTask().getType() === TaskType.NONE) {
+        if (getTask().getType() === MissionTask_TaskType.NONE) {
             return;
         }
 

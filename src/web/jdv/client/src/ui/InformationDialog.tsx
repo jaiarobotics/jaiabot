@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import "./InformationDialog.css";
 import { LogApi } from "../model/LogApi";
-import { DeviceMetadata } from "../shared/JAIAProtobuf";
+import { DeviceMetadata } from "../../../../shared/proto/jaiabot/messages/metadata";
 import { set } from "lodash";
 
 interface Props {

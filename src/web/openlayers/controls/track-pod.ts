@@ -3,7 +3,7 @@ import { fromLonLat } from "ol/proj";
 import { bots } from "../../data/bots/bots";
 import { map } from "../maps/map";
 
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
 import { DATA_MODEL_POLL_TIME } from "../../utils/constants";
 
 class TrackPod {

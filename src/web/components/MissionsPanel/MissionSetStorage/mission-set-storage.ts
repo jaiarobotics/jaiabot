@@ -6,7 +6,7 @@ import {
 } from "../../../data/mission_set/mission-set";
 import Waypoint from "../../../data/waypoints/waypoint";
 import Task from "../../../data/tasks/task";
-import { TaskType } from "../../../types/protobuf-types";
+import { MissionTask_TaskType } from "../../../shared/proto/jaiabot/messages/mission";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
 import { UNASSIGNED_ID } from "../../../utils/constants";
 
@@ -270,10 +270,10 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
             const waypoint = new Waypoint();
             waypoint.setLocation(goal.location);
             const task = new Task();
-            const originalTask = goal.task?.type ?? TaskType.NONE;
+            const originalTask = goal.task?.type ?? MissionTask_TaskType.NONE;
             task.setType(originalTask);
             switch (task.getType()) {
-                case TaskType.DIVE:
+                case MissionTask_TaskType.DIVE:
                     task.setDiveParameters({
                         max_depth: goal.task.dive?.max_depth,
                         depth_interval: goal.task.dive?.depth_interval,
@@ -284,19 +284,19 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
                         drift_time: goal.task.surface_drift?.drift_time,
                     });
                     break;
-                case TaskType.SURFACE_DRIFT:
+                case MissionTask_TaskType.SURFACE_DRIFT:
                     task.setDriftParameters({
                         drift_time: goal.task.surface_drift?.drift_time,
                     });
                     break;
-                case TaskType.CONSTANT_HEADING:
+                case MissionTask_TaskType.CONSTANT_HEADING:
                     task.setConstantHeadingParameters({
                         constant_heading: goal.task.constant_heading?.constant_heading,
                         constant_heading_speed: goal.task.constant_heading?.constant_heading_speed,
                         constant_heading_time: goal.task.constant_heading?.constant_heading_time,
                     });
                     break;
-                case TaskType.STATION_KEEP:
+                case MissionTask_TaskType.STATION_KEEP:
                     task.setStationKeepParameters({
                         station_keep_time: goal.task.station_keep?.station_keep_time,
                     });

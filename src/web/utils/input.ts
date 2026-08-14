@@ -1,6 +1,6 @@
 import { NO_CONSTRAINT } from "./constants";
 import { MAX_LAT, MIN_LAT, MAX_LON, MIN_LON } from "./constants";
-import { TaskType } from "../types/protobuf-types";
+import { MissionTask_TaskType } from "../shared/proto/jaiabot/messages/mission";
 
 /**
  * Removes leading zero from numerical input. For example,

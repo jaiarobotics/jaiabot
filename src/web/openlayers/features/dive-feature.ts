@@ -7,7 +7,7 @@ import { Fill, Icon, Stroke, Style, Text } from "ol/style";
 import { view } from "../views/view";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { DivePacket, TaskPacket } from "../../types/protobuf-types";
+import { DivePacket, TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
 import { OpenLayersColors } from "../../style/openlayers/colors";
 
 import diveMarker from "../../style/icons/dive-marker.svg";
@@ -28,7 +28,7 @@ export function generateDiveFeature(taskPacket: TaskPacket) {
     feature.setStyle(generateDiveStyle(taskPacket));
     feature.set("type", MapFeatureTypes.DIVE);
     feature.set("botID", taskPacket.bot_id);
-    feature.set("startTime", taskPacket.start_time);
+    feature.set("startTime", Number(taskPacket.start_time));
     return feature;
 }
 
@@ -81,7 +81,7 @@ function getColor(taskPacket: TaskPacket) {
 
     if (
         selectedTaskPacket.botID === taskPacket.bot_id &&
-        selectedTaskPacket.startTime === taskPacket.start_time &&
+        selectedTaskPacket.startTime === Number(taskPacket.start_time) &&
         selectedTaskPacket.type === MapFeatureTypes.DIVE
     ) {
         return OpenLayersColors.TARGET;

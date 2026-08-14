@@ -3,7 +3,7 @@ import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
 import NotificationDot from "../NotificationDot/NotificationDot";
-import { Version } from "../../types/protobuf-types";
+import { DeviceMetadata_Version } from "../../shared/proto/jaiabot/messages/metadata";
 
 import Icon from "@mdi/react";
 import { mdiClose } from "@mdi/js";
@@ -29,7 +29,7 @@ export default function JaiaAbout() {
      * @param {Metadata} metadata Contains software version numbers
      * @returns {void}
      */
-    const formatVersion = (version: Version) => {
+    const formatVersion = (version: DeviceMetadata_Version) => {
         if (!version) {
             return "---";
         }
@@ -99,7 +99,7 @@ export default function JaiaAbout() {
                 <div className="input">{COMPANY_ADDRESS}</div>
             </div>
             <div className="jaia-about-row">
-                <div className="label">Software Version:</div>
+                <div className="label">Software DeviceMetadata_Version:</div>
                 <div className="input">
                     {formatVersion(jaiaContext.jaiaGlobal.getMetadata()?.jaiabot_version)}
                 </div>
