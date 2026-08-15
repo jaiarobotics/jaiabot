@@ -88,13 +88,14 @@ class NTPStatusThread : public HealthMonitorThread<jaiabot::config::NTPStatusCon
     void issue_status_summary() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
-    bool read_ntpq_system_status();
-    bool read_ntpq_peers();
+    bool run_chronyc(const std::string& command, std::string& result);
+    bool read_chrony_tracking();
+    bool read_chrony_sources();
 
   private:
     jaiabot::protobuf::NTPStatus status_;
-    bool ntpq_system_status_successful_{true};
-    bool ntpq_peers_successful_{true};
+    bool chrony_tracking_successful_{true};
+    bool chrony_sources_successful_{true};
 };
 
 class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPStatusConfig>

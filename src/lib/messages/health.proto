@@ -437,7 +437,7 @@ message NTPStatus
     option (dccl.msg) = {
         unit_system: "si"
     };
-    // from ntpq -c rv 0
+    // from chronyc -c tracking and the mode of the selected source
     enum SyncSource
     {
         SYNC_UNKNOWN = -1;
@@ -488,7 +488,7 @@ message NTPStatus
     optional NTPSystemEvent last_system_event = 13
         [default = NTP_SYSTEM_EVENT_UNKNOWN];
 
-    // from ntpq -p
+    // from chronyc -c sources and -c sourcestats
     message NTPPeer
     {
         enum TallyCode
@@ -502,6 +502,8 @@ message NTPStatus
             PEER_ALTERNATIVE_BACKUP = 0x23;              // '#'
             PEER_SYSTEM_SYNC_SOURCE = 0x2A;              // '*'
             PEER_PPS_SYNC = 0x6F;                        // 'o'
+            PEER_UNREACHABLE = 0x3F;                     // '?'
+            PEER_TOO_VARIABLE = 0x7E;                    // '~'
         }
 
         required TallyCode tally_code = 1 [default = PEER_CODE_UNKNOWN];
