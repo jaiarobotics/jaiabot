@@ -128,22 +128,24 @@ Some examples include:
 | Hub         | 20 | 10       | `fd91:5457:1e5c:a::14` | `fd6e:cf0d:aefa:a::14` | `fd0f:77ac:4fdf:a::14` |
 | Hub (CloudHub (ch))        | 30 | 15       | `fd91:5457:1e5c:f::1e` | `fd6e:cf0d:aefa:f::1e` | `fd0f:77ac:4fdf:f::1e` |
 
+Every fleet in the table is an IPv4 fleet, so `jaia ip` gives its fleet VPN address as IPv4 (`jaia ip b5sf4` is `172.23.4.105`); `--ip_version ipv6` asks for the IPv6 address listed here instead. The VirtualFleet and CloudHub VPNs are IPv6 for every fleet, so those need no flag.
+
 You can generate the values for the table above yourself using:
 ```
-jaia ip b5sf4
+jaia ip b5sf4 --ip_version ipv6
 jaia ip b5vf4
 jaia ip b5cf4
 
-jaia ip b6sf250
+jaia ip b6sf250 --ip_version ipv6
 jaia ip b6vf250
 jaia ip b6cf250
 
-jaia ip h20sf10
+jaia ip h20sf10 --ip_version ipv6
 jaia ip h20vf10
 jaia ip h20cf10
 
 
-jaia ip h30sf15
+jaia ip h30sf15 --ip_version ipv6
 jaia ip h30vf15
 jaia ip h30cf15
 # OR
