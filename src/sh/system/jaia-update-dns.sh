@@ -126,9 +126,9 @@ function restore_upstream_resolv_conf {
 bot_id_min=$(jaia_bounds --bot_id --min)
 bot_id_max=$(jaia_bounds --bot_id --max)
 hub_id_min=$(jaia_bounds --hub_id --min)
-# the highest hub id is the CloudHub, which is reachable over the CloudHub VPN
-# rather than the fleet WLAN
-cloudhub_id=$(jaia_bounds --hub_id --max)
+hub_id_max=$(jaia_bounds --hub_id --max)
+# the CloudHub is reachable over the CloudHub VPN rather than the fleet WLAN
+cloudhub_id=$(jaia_bounds --cloudhub_id)
 
 if [ "${type}" != "hub" ] || [ "${mode}" != "runtime" ] || [ "${node_id}" = "${cloudhub_id}" ]; then
     restore_upstream_resolv_conf
@@ -173,8 +173,10 @@ echo ">>>>> Writing ${dns_hosts} ... "
     echo "${generated_by}"
     echo "# Fleet ${fleet} bot and hub names, from the addressing scheme of 'jaia ip'"
 
-    for id in $(seq ${hub_id_min} $((cloudhub_id - 1))); do
-        if [ "${id}" = "${node_id}" ]; then
+    for id in $(seq ${hub_id_min} ${hub_id_max}); do
+        if [ "${id}" = "${cloudhub_id}" ]; then
+            continue
+        elif [ "${id}" = "${node_id}" ]; then
             # 'hub' is this hub, so that a client reaches the hub it asked
             wlan_host_record hub "${id}" hub
         else

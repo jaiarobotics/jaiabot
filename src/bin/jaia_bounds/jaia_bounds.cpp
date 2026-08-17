@@ -43,6 +43,8 @@ struct Bound
     int min;
     int max;
     bool selected;
+    // a fixed id rather than a range, so it is written as one number
+    bool scalar{false};
 };
 
 const char* const usage_msg =
@@ -53,15 +55,17 @@ const char* const usage_msg =
     "\n"
     "  --bot_id, --hub_id, --fleet_id, --desktop_id, --gateway_id, --rpicam_id\n"
     "                 report only the given id(s); all of them if none is given\n"
+    "  --cloudhub_id  the hub id the CloudHub always uses: one id, not a range\n"
     "  --min, --max   report only that end of the range; both if neither is given\n"
     "  --format       text (the default) or json\n"
     "\n"
-    "A single id with a single end is written as a bare number, so that a script can\n"
-    "use it directly.\n"
+    "A single id that comes out as a single number is written bare, so that a script\n"
+    "can use it directly.\n"
     "\n"
     "  Examples:\n"
     "    jaia_bounds                  every range, e.g. \"bot id: [0 150]\"\n"
     "    jaia_bounds --bot_id --max   the highest bot id, e.g. \"150\"\n"
+    "    jaia_bounds --cloudhub_id    the CloudHub's hub id, e.g. \"30\"\n"
     "    jaia_bounds --format json    every range as a JSON object\n";
 
 [[noreturn]] void die(const std::string& msg)
@@ -85,7 +89,8 @@ std::vector<Bound> all_bounds()
             {"fleet_id", "fleet id", fleet_id_min, fleet_id_max, false},
             {"desktop_id", "desktop id", desktop.first, desktop.second, false},
             {"gateway_id", "gateway id", gateway.first, gateway.second, false},
-            {"rpicam_id", "rpicam id", rpicam.first, rpicam.second, false}};
+            {"rpicam_id", "rpicam id", rpicam.first, rpicam.second, false},
+            {"cloudhub_id", "cloudhub id", cloudhub_id, cloudhub_id, false, true}};
 }
 } // namespace
 
@@ -166,9 +171,15 @@ int main(int argc, char* argv[])
         want_min = want_max = true;
 
     int selected_count = 0;
+    bool only_scalar_selected = true;
     for (const auto& bound : bounds)
+    {
         if (bound.selected)
+        {
             ++selected_count;
+            only_scalar_selected = only_scalar_selected && bound.scalar;
+        }
+    }
 
     if (json)
     {
@@ -179,17 +190,25 @@ int main(int argc, char* argv[])
             if (!bound.selected)
                 continue;
 
-            std::printf("%s\n    \"%s\": {", first ? "" : ",", bound.key);
-            if (want_min)
-                std::printf(" \"min\": %d%s", bound.min, want_max ? "," : "");
-            if (want_max)
-                std::printf(" \"max\": %d", bound.max);
-            std::printf(" }");
+            std::printf("%s\n    \"%s\": ", first ? "" : ",", bound.key);
+            if (bound.scalar)
+            {
+                std::printf("%d", bound.min);
+            }
+            else
+            {
+                std::printf("{");
+                if (want_min)
+                    std::printf(" \"min\": %d%s", bound.min, want_max ? "," : "");
+                if (want_max)
+                    std::printf(" \"max\": %d", bound.max);
+                std::printf(" }");
+            }
             first = false;
         }
         std::printf("%s}\n", first ? "" : "\n");
     }
-    else if (selected_count == 1 && want_min != want_max)
+    else if (selected_count == 1 && (want_min != want_max || only_scalar_selected))
     {
         // a single number, for a script to use directly
         for (const auto& bound : bounds)
@@ -203,7 +222,9 @@ int main(int argc, char* argv[])
             if (!bound.selected)
                 continue;
 
-            if (want_min && want_max)
+            if (bound.scalar)
+                std::printf("%s: %d\n", bound.label, bound.min);
+            else if (want_min && want_max)
                 std::printf("%s: [%d %d]\n", bound.label, bound.min, bound.max);
             else
                 std::printf("%s: %d\n", bound.label, want_min ? bound.min : bound.max);

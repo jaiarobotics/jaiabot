@@ -128,14 +128,17 @@ fleet id: [0 255]
 desktop id: [1 9]
 gateway id: [0 0]
 rpicam id: [0 49]
+cloudhub id: 30
 ```
 
-Pass one or more ids to narrow the output (`--bot_id`, `--hub_id`, `--fleet_id`, `--desktop_id`, `--gateway_id`, `--rpicam_id`), and `--min` or `--max` to select one end. A single id with a single end is written as a bare number, so a script can use it directly:
+Pass one or more ids to narrow the output (`--bot_id`, `--hub_id`, `--fleet_id`, `--desktop_id`, `--gateway_id`, `--rpicam_id`), and `--min` or `--max` to select one end. A single id that comes out as a single number is written bare, so a script can use it directly:
 
 ```
 jaia admin bounds --bot_id --max
 150
 ```
+
+`cloudhub id` is the odd one out: the CloudHub is always hub 30, on every fleet, so it is one id rather than a range and `--cloudhub_id` on its own already gives a bare `30`.
 
 `--format json` gives the same information as an object, as elsewhere in the tool:
 
