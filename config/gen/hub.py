@@ -71,10 +71,7 @@ app_common = common.app_block(verbosities, debug_log_file_dir)
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
                                                  platform='hub'+ str(hub_id) +'_fleet' + str(fleet_id))
 
-try:
-    xbee_info = 'xbee { \n' + open('/etc/jaiabot/xbee_info.pb.cfg').read() + '\n}\n'
-except FileNotFoundError:
-    xbee_info = 'xbee {}'
+xbee_info = config.read_pb_cfg_block('/etc/jaiabot/xbee_info.pb.cfg', 'xbee')
 
 ack_timeout=10
 iridium_ack_timeout=120

@@ -22,22 +22,10 @@ if "jaia_electronics_stack" in os.environ:
 jaia_temperature_sensor_type = os.environ.get('jaia_temperature_sensor_type', default='bar30')
 tsys01_enabled = jaia_temperature_sensor_type == 'tsys01'
 
-if jaia_electronics_stack == '0':
-    helm_app_tick=1
-    helm_comms_tick=4
-    total_after_dive_gps_fix_checks=15
-if jaia_electronics_stack == '1':
-    helm_app_tick=5
-    helm_comms_tick=5
-    total_after_dive_gps_fix_checks=75
-elif jaia_electronics_stack == '2':
-    helm_app_tick=5
-    helm_comms_tick=5
-    total_after_dive_gps_fix_checks=75
-else:
-    helm_app_tick=1
-    helm_comms_tick=4
-    total_after_dive_gps_fix_checks=15
+helm_tick_config = common.bot.helm_tick_config(jaia_electronics_stack)
+helm_app_tick=helm_tick_config['helm_app_tick']
+helm_comms_tick=helm_tick_config['helm_comms_tick']
+total_after_dive_gps_fix_checks=helm_tick_config['total_after_dive_gps_fix_checks']
 
 if "jaia_imu_type" in os.environ:
     jaia_imu_type = os.environ["jaia_imu_type"]
@@ -51,12 +39,7 @@ else:
 if "jaia_arduino_type" in os.environ:
     jaia_arduino_type=os.environ['jaia_arduino_type']
 
-if jaia_arduino_type == "spi":
-    jaia_arduino_dev_location="/dev/ttyAMA1"
-elif jaia_arduino_type == 'usb':
-    jaia_arduino_dev_location="/dev/arduino"
-else:
-    jaia_arduino_dev_location="/dev/ttyAMA1"
+jaia_arduino_dev_location=common.bot.arduino_dev_location(jaia_arduino_type)
 
 if "jaia_pam_connection_type" in os.environ:
     jaia_pam_connection_type=os.environ['jaia_pam_connection_type']
@@ -68,10 +51,10 @@ if "jaia_data_offload_ignore_type" in os.environ:
 
 bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 
-pam_enabled=(bot_type == "PAM")
-# Ignore health warnings from UDP gateway if data comes from BIO payload board
-salinity_enabled=(bot_type != "BIO")
-bar30_enabled=(bot_type != "BIO")
+payload_flags = common.bot.payload_flags(bot_type)
+pam_enabled=payload_flags['pam_enabled']
+salinity_enabled=payload_flags['salinity_enabled']
+bar30_enabled=payload_flags['bar30_enabled']
 
 jaia_motor_harness_type="NONE"
 
@@ -134,20 +117,9 @@ app_common = common.app_block(verbosities, debug_log_file_dir)
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
                                                  platform='bot'+str(bot_id)+'_fleet' + str(fleet_id))
 
-try:
-    jaiabot_driver_arduino_bounds = 'bounds { \n' + open('/etc/jaiabot/bounds.pb.cfg').read() + '\n}\n'
-except FileNotFoundError:
-    jaiabot_driver_arduino_bounds = 'bounds {}'
-
-try:
-    xbee_info = 'xbee { \n' + open('/etc/jaiabot/xbee_info.pb.cfg').read() + '\n}\n'
-except FileNotFoundError:
-    xbee_info = 'xbee {}'
-
-try:
-    fluorometer_coefficients = 'fluorometer_coefficients { \n' + open('/etc/jaiabot/fluorometer_coefficients.pb.cfg').read() + '\n}\n'
-except FileNotFoundError:
-    fluorometer_coefficients = 'fluorometer_coefficients {}'
+jaiabot_driver_arduino_bounds = common.bot.arduino_bounds()
+xbee_info = common.bot.xbee_info()
+fluorometer_coefficients = common.bot.fluorometer_coefficients()
 
 ack_timeout=10
 iridium_ack_timeout=120
@@ -242,20 +214,9 @@ if common.is_vfleet:
 udp_gateway_port = common.udp.udp_gateway_port(node_id)
 imu_detection_solution='REPORT_IMU'
 
-if is_simulation():
-    imu_type = 'sim'
-else:
-    imu_type = jaia_imu_type
-
-# We are loosening the imu detection code for retrofit
-# IMU's based on test results gathered from Tiger Team
-if imu_install_type == "retrofit":
-    total_imu_issue_checks = 10
-else:
-    total_imu_issue_checks = 4
-
-
-pressure_sensor_type = 'sim' if is_simulation() else 'bar30'
+imu_type = common.bot.imu_type(jaia_imu_type)
+total_imu_issue_checks = common.bot.total_imu_issue_checks(imu_install_type)
+pressure_sensor_type = common.bot.pressure_sensor_type()
 
 
 if common.app == 'gobyd':    

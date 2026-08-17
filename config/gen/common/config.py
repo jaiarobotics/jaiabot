@@ -14,6 +14,12 @@ def checkfile(fil):
     if os.path.isfile(fil) == False:
         sys.exit('Invalid file: {}'.format(fil))
 
+def read_pb_cfg_block(path, block_name):
+    try:
+        return block_name + ' { \n' + open(path).read() + '\n}\n'
+    except FileNotFoundError:
+        return block_name + ' {}'
+
 def fail(message):
     print('=============== INVALID CONFIGURATION =================')
     sys.stderr.write('========= Configuration Generated FAILED ==============\n\n')
