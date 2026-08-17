@@ -52,6 +52,18 @@ message AdminTool
         debconf = 3 [(goby.ev).cfg = {
             short_help_msg: "Read and write this bot/hub's debconf configuration",
         }];
+        bounds = 4 [(goby.ev).cfg = {
+            short_help_msg: "Output the valid ranges of the bot, hub and fleet ids",
+            external_command: "jaia_bounds"
+            include_binary_flag: false
+            full_help_msg: "Reports the id ranges that the Jaia addressing scheme defines, so that a caller does not have to hardcode them.\n"
+                           "Example commands:\n"
+                           "  jaia admin bounds: every range, e.g. \"bot id: [0 150]\"\n"
+                           "  jaia admin bounds --bot_id --max: the highest bot id, as a bare number for a script to use\n"
+                           "  jaia admin bounds --format json: every range as a JSON object\n"
+                           "\n"
+                           "This action runs the standalone 'jaia_bounds' tool, which can be called directly (as 'jaia_bounds') from non-interactive scripts to avoid the startup cost of the 'jaia' tool. Run 'jaia_bounds --help' for the full list of options.\n"
+        }];
     }
     optional Action action = 2 [
         default = help,

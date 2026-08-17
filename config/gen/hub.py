@@ -8,7 +8,7 @@ import os
 from common import config
 from common import logger
 from common import is_simulation, is_runtime
-import common, common.hub, common.comms, common.sim, common.bot, common.udp
+import common, common.hub, common.comms, common.sim, common.bot, common.udp, common.bounds
 from pathlib import Path
 import subprocess
 
@@ -21,7 +21,7 @@ try:
     hub_id=int(os.environ['jaia_hub_id'])
 except:
     hub_id=0
-cloudhub_id=30
+cloudhub_id=common.bounds.cloudhub_id()
 
 try:
     user_role=os.environ['jaia_user_role'].upper()

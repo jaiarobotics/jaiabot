@@ -71,6 +71,11 @@ constexpr int gateway_id_min = 0, gateway_id_max = 0;
 constexpr int rpicam_id_min = 0, rpicam_id_max = 49;
 constexpr int fleet_id_min = 0, fleet_id_max = 255;
 
+// The CloudHub is always this hub id, on every fleet
+constexpr int cloudhub_id = 30;
+static_assert(cloudhub_id >= hub_id_min && cloudhub_id <= hub_id_max,
+              "cloudhub_id must be a valid hub id");
+
 inline std::string node_type_to_string(NodeType node)
 {
     switch (node)
@@ -512,7 +517,7 @@ inline HostCode parse_host_code(const std::string& host_code, int default_fleet_
     {
         // chf<fleet_id>: the CloudHub, always over the cloudhub VPN
         result.node_type = NodeType::hub;
-        result.node_id = hub_id_max;
+        result.node_id = cloudhub_id;
         result.net = Network::cloudhub_vpn;
         pos = 2;
     }
