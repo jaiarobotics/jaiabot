@@ -98,6 +98,8 @@ NATNET_IPV4=$(jaia_ip --query_type net --ip_net vfleet_wlan --fleet_id ${FLEET} 
 vboxmanage list natnets | grep -q ${NATNET_NAME} && vboxmanage natnetwork remove --netname ${NATNET_NAME}
 
 if [[ "${FLEET_WLAN_NET}" == *:* ]]; then
+    # --ipv6-prefix is missing from 'VBoxManage natnetwork --help' but is accepted and applied
+    # (checked against 7.0.16, which rejects an option it does not know)
     vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp on \
                               --ipv6 on --ipv6-prefix ${FLEET_WLAN_NET}
 else
