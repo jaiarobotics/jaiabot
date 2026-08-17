@@ -48,7 +48,7 @@ message LinuxHardwareConfig
     optional string wlan_interface = 41 [default = "wlan0"];
 }
 
-message NTPStatusConfig
+message ChronyStatusConfig
 {
     option (dccl.msg) = {
         unit_system: "si"
@@ -58,7 +58,7 @@ message NTPStatusConfig
         default = 10,
         (dccl.field).units = { prefix: "milli" base_dimensions: "T" }
     ];
-    optional float high_jitter_threshold = 11 [
+    optional float high_std_dev_threshold = 11 [
         default = 100,
         (dccl.field).units = { prefix: "milli" base_dimensions: "T" }
     ];
@@ -105,7 +105,7 @@ message Health
     optional bool test_hardware_in_sim = 24 [default = false];
 
     optional LinuxHardwareConfig linux_hw = 30;
-    optional NTPStatusConfig ntp = 40;
+    optional ChronyStatusConfig chrony = 40;
     optional HelmIVPStatusConfig helm = 41;
     optional MotorStatusConfig motor = 42;
 }

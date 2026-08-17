@@ -664,72 +664,62 @@
 
 ### Group: time_status
 
-* NTPStatus
-  * optional SyncSource sync_source
-    * SYNC_UNKNOWN = -1
-    * SYNC_UNSPECIFIED = 0
-    * SYNC_PPS = 1
-    * SYNC_LF_RADIO = 2
-    * SYNC_HF_RADIO = 3
-    * SYNC_UHF_RADIO = 4
-    * SYNC_LOCAL = 5
-    * SYNC_NTP = 6
-    * SYNC_OTHER = 7
-    * SYNC_WRISTWATCH = 8
-    * SYNC_TELEPHONE = 9
-  * optional LeapIndicator leap_indicator
+* ChronyStatus
+  * optional string reference_id
+  * optional string reference_name
+  * optional int32 stratum
+  * optional double reference_time
+  * optional float system_time_offset
+  * optional float last_offset
+  * optional float rms_offset
+  * optional float frequency
+  * optional float residual_frequency
+  * optional float skew
+  * optional float root_delay
+  * optional float root_dispersion
+  * optional float update_interval
+  * optional LeapStatus leap_status
     * LEAP_UNKNOWN = -1
-    * LEAP_NONE = 0x00
-    * LEAP_LAST_MINUTE_HAS_61_SECONDS = 0x01
-    * LEAP_LAST_MINUTE_HAS_59_SECONDS = 0x02
-    * LEAP_CLOCK_NOT_SYNCHRONIZED = 0x03
-  * optional int32 system_event_counter
-  * optional NTPSystemEvent last_system_event
-    * NTP_SYSTEM_EVENT_UNKNOWN = -1
-    * NTP_SYSTEM_EVENT_UNSPECIFIED = 0x0
-    * NTP_SYSTEM_FREQ_NOT_SET = 0x1
-    * NTP_SYSTEM_FREQ_SET = 0x2
-    * NTP_SYSTEM_SPIKE_DETECT = 0x3
-    * NTP_SYSTEM_FREQ_MODE = 0x4
-    * NTP_SYSTEM_CLOCK_SYNC = 0x5
-    * NTP_SYSTEM_RESTART = 0x6
-    * NTP_SYSTEM_PANIC_STOP = 0x7
-    * NTP_SYSTEM_NO_SYSTEM_PEER = 0x8
-    * NTP_SYSTEM_LEAP_ARMED = 0x9
-    * NTP_SYSTEM_LEAP_DISARMED = 0xa
-    * NTP_SYSTEM_LEAP_EVENT = 0xb
-    * NTP_SYSTEM_CLOCK_STEP = 0xc
-    * NTP_SYSTEM_KERNEL_INFO = 0xd
-    * NTP_SYSTEM_LEAPSECOND_VALUES_UPDATE_FROM_FILE = 0xe
-    * NTP_SYSTEM_STALE_LEAPSECOND_VALUES = 0xf
-  * optional NTPPeer system_sync_peer
-    * required TallyCode tally_code
-      * PEER_CODE_UNKNOWN = -1 
-      * PEER_NOT_VALID = 0x20
-        * Description: ' '
-      * PEER_DISCARDED_BY_INTERSECTION = 0x78
-        * Description: 'x'
-      * PEER_DISCARDED_BY_TABLE_OVERFLOW = 0x2E
-        * Description: '.'
-      * PEER_DISCARDED_BY_CLUSTER_ALGORITHM = 0x2D
-        * Description: '-'
-      * PEER_INCLUDED_IN_COMBINE = 0x2B
-        * Description: '+'
-      * PEER_ALTERNATIVE_BACKUP = 0x23
+    * LEAP_NORMAL = 0
+    * LEAP_INSERT_SECOND = 1
+    * LEAP_DELETE_SECOND = 2
+    * LEAP_NOT_SYNCHRONISED = 3
+  * optional Source selected_source
+    * optional Mode mode
+      * MODE_UNKNOWN = -1
+      * MODE_REFERENCE_CLOCK = 0x23
         * Description: '#'
-      * PEER_SYSTEM_SYNC_SOURCE = 0x2A
+      * MODE_PEER = 0x3D
+        * Description: '='
+      * MODE_SERVER = 0x5E
+        * Description: '^'
+    * optional State state
+      * STATE_UNKNOWN = -1
+      * STATE_SELECTED = 0x2A
         * Description: '*'
-      * PEER_PPS_SYNC = 0x6F 
-    * required string remote
-    * required string refid
+      * STATE_COMBINED = 0x2B
+        * Description: '+'
+      * STATE_NOT_COMBINED = 0x2D
+        * Description: '-'
+      * STATE_UNREACHABLE = 0x3F
+        * Description: '?'
+      * STATE_FALSETICKER = 0x78
+        * Description: 'x'
+      * STATE_TOO_VARIABLE = 0x7E
+        * Description: '~'
+    * required string name
     * optional int32 stratum
-    * optional int32 when
-    * optional int32 poll
+    * optional int32 poll_interval
     * optional int32 reach
-    * optional float delay
-    * optional float offset
-    * optional float jitter
-  * repeated NTPPeer peer
+    * optional int32 last_sample_age
+    * optional float adjusted_offset
+    * optional float measured_offset
+    * optional float estimated_error
+    * optional int32 sample_points
+    * optional int32 runs
+    * optional int32 span
+    * optional float std_dev
+  * repeated Source source
 
 ### Group: systemd_report
 
@@ -1211,8 +1201,8 @@
   * ERROR__SYSTEM__CANNOT_READ_DISK_USAGE = 504
   * ERROR__SYSTEM__ROOTFS_DISK_SPACE_CRITICAL = 505
   * ERROR__SYSTEM__DATA_DISK_SPACE_CRITICAL = 506
-  * ERROR__SYSTEM__NTP_PEERS_QUERY_FAILED = 510
-  * ERROR__SYSTEM__NTP_STATUS_QUERY_FAILED = 511
+  * ERROR__SYSTEM__CHRONY_SOURCES_QUERY_FAILED = 510
+  * ERROR__SYSTEM__CHRONY_TRACKING_QUERY_FAILED = 511
   * ERROR__VEHICLE__VERY_LOW_BATTERY = 600
   * ERROR__VEHICLE__CRITICALLY_LOW_BATTERY = 601
   * ERROR__VEHICLE__MISSING_DATA_BATTERY = 602
@@ -1243,9 +1233,9 @@
   * WARNING__TEMPERATURE__LINUX_TOO_HIGH = 211
   * WARNING__COMMS_LOW_SIGNAL_STRENGTH = 300
   * WARNING__VEHICLE__LOW_BATTERY = 400
-  * WARNING__SYSTEM__NTP_NOT_SYNCHRONIZED = 500
-  * WARNING__SYSTEM__NTP_OFFSET_HIGH = 501
-  * WARNING__SYSTEM__NTP_JITTER_HIGH = 502
+  * WARNING__SYSTEM__CHRONY_NOT_SYNCHRONIZED = 500
+  * WARNING__SYSTEM__CHRONY_OFFSET_HIGH = 501
+  * WARNING__SYSTEM__CHRONY_STD_DEV_HIGH = 502
   * WARNING__SYSTEM__RAM_SPACE_LOW = 503
   * WARNING__SYSTEM__CPU_LOAD_FACTOR_HIGH = 504
   * WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW = 505

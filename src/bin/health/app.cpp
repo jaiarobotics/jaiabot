@@ -301,7 +301,7 @@ jaiabot::apps::Health::Health()
     if (!cfg().is_in_sim() || cfg().test_hardware_in_sim())
     {
         launch_thread<LinuxHardwareThread>(cfg().linux_hw());
-        launch_thread<NTPStatusThread>(cfg().ntp());
+        launch_thread<ChronyStatusThread>(cfg().chrony());
 
         if (cfg().motor().motor_harness_type() != jaiabot::protobuf::MotorHarnessType::NONE)
         {

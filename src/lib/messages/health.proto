@@ -209,9 +209,9 @@ enum Error
     ERROR__SYSTEM__DATA_DISK_SPACE_CRITICAL = 506
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
-    ERROR__SYSTEM__NTP_PEERS_QUERY_FAILED = 510
+    ERROR__SYSTEM__CHRONY_SOURCES_QUERY_FAILED = 510
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__SYSTEM__NTP_STATUS_QUERY_FAILED = 511
+    ERROR__SYSTEM__CHRONY_TRACKING_QUERY_FAILED = 511
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     ERROR__VEHICLE__VERY_LOW_BATTERY = 600
@@ -299,11 +299,11 @@ enum Warning
     WARNING__VEHICLE__LOW_BATTERY = 400
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
-    WARNING__SYSTEM__NTP_NOT_SYNCHRONIZED = 500
+    WARNING__SYSTEM__CHRONY_NOT_SYNCHRONIZED = 500
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__SYSTEM__NTP_OFFSET_HIGH = 501
+    WARNING__SYSTEM__CHRONY_OFFSET_HIGH = 501
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    WARNING__SYSTEM__NTP_JITTER_HIGH = 502
+    WARNING__SYSTEM__CHRONY_STD_DEV_HIGH = 502
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__SYSTEM__RAM_SPACE_LOW = 503
         [(jaia.ev).rest_api.presence = GUARANTEED];
@@ -432,105 +432,112 @@ message LinuxHardwareStatus
     optional WiFi wifi = 50;
 }
 
-message NTPStatus
+message ChronyStatus
 {
     option (dccl.msg) = {
         unit_system: "si"
     };
-    // from chronyc -c tracking and the mode of the selected source
-    enum SyncSource
-    {
-        SYNC_UNKNOWN = -1;
-        SYNC_UNSPECIFIED = 0;
-        SYNC_PPS = 1;
-        SYNC_LF_RADIO = 2;
-        SYNC_HF_RADIO = 3;
-        SYNC_UHF_RADIO = 4;
-        SYNC_LOCAL = 5;
-        SYNC_NTP = 6;
-        SYNC_OTHER = 7;
-        SYNC_WRISTWATCH = 8;
-        SYNC_TELEPHONE = 9;
-    }
 
-    optional SyncSource sync_source = 10 [default = SYNC_UNKNOWN];
+    // from chronyc -c tracking
+    optional string reference_id = 10;
+    optional string reference_name = 11;
+    optional int32 stratum = 12 [default = 16];
+    optional double reference_time = 13
+        [(dccl.field) = { units { base_dimensions: "T" } }];
+    optional float system_time_offset = 14 [
+        default = nan,
+        (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
+    ];
+    optional float last_offset = 15 [
+        default = nan,
+        (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
+    ];
+    optional float rms_offset = 16 [
+        default = nan,
+        (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
+    ];
+    // parts per million
+    optional float frequency = 17 [default = nan];
+    optional float residual_frequency = 18 [default = nan];
+    optional float skew = 19 [default = nan];
+    optional float root_delay = 20 [
+        default = nan,
+        (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
+    ];
+    optional float root_dispersion = 21 [
+        default = nan,
+        (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
+    ];
+    optional float update_interval = 22
+        [default = nan, (dccl.field) = { units { base_dimensions: "T" } }];
 
-    enum LeapIndicator
+    enum LeapStatus
     {
         LEAP_UNKNOWN = -1;
-        LEAP_NONE = 0x00;
-        LEAP_LAST_MINUTE_HAS_61_SECONDS = 0x01;
-        LEAP_LAST_MINUTE_HAS_59_SECONDS = 0x02;
-        LEAP_CLOCK_NOT_SYNCHRONIZED = 0x03;
+        LEAP_NORMAL = 0;
+        LEAP_INSERT_SECOND = 1;
+        LEAP_DELETE_SECOND = 2;
+        LEAP_NOT_SYNCHRONISED = 3;
     }
-    optional LeapIndicator leap_indicator = 11 [default = LEAP_UNKNOWN];
-    optional int32 system_event_counter = 12 [default = 0];
-    enum NTPSystemEvent
-    {
-        NTP_SYSTEM_EVENT_UNKNOWN = -1;
-        NTP_SYSTEM_EVENT_UNSPECIFIED = 0x0;
-        NTP_SYSTEM_FREQ_NOT_SET = 0x1;
-        NTP_SYSTEM_FREQ_SET = 0x2;
-        NTP_SYSTEM_SPIKE_DETECT = 0x3;
-        NTP_SYSTEM_FREQ_MODE = 0x4;
-        NTP_SYSTEM_CLOCK_SYNC = 0x5;
-        NTP_SYSTEM_RESTART = 0x6;
-        NTP_SYSTEM_PANIC_STOP = 0x7;
-        NTP_SYSTEM_NO_SYSTEM_PEER = 0x8;
-        NTP_SYSTEM_LEAP_ARMED = 0x9;
-        NTP_SYSTEM_LEAP_DISARMED = 0xa;
-        NTP_SYSTEM_LEAP_EVENT = 0xb;
-        NTP_SYSTEM_CLOCK_STEP = 0xc;
-        NTP_SYSTEM_KERNEL_INFO = 0xd;
-        NTP_SYSTEM_LEAPSECOND_VALUES_UPDATE_FROM_FILE = 0xe;
-        NTP_SYSTEM_STALE_LEAPSECOND_VALUES = 0xf;
-    }
-    optional NTPSystemEvent last_system_event = 13
-        [default = NTP_SYSTEM_EVENT_UNKNOWN];
+    optional LeapStatus leap_status = 23 [default = LEAP_UNKNOWN];
 
-    // from chronyc -c sources and -c sourcestats
-    message NTPPeer
+    // from chronyc -c sources and chronyc -c sourcestats
+    message Source
     {
-        enum TallyCode
+        enum Mode
         {
-            PEER_CODE_UNKNOWN = -1;
-            PEER_NOT_VALID = 0x20;                       // ' '
-            PEER_DISCARDED_BY_INTERSECTION = 0x78;       // 'x'
-            PEER_DISCARDED_BY_TABLE_OVERFLOW = 0x2E;     // '.'
-            PEER_DISCARDED_BY_CLUSTER_ALGORITHM = 0x2D;  // '-'
-            PEER_INCLUDED_IN_COMBINE = 0x2B;             // '+'
-            PEER_ALTERNATIVE_BACKUP = 0x23;              // '#'
-            PEER_SYSTEM_SYNC_SOURCE = 0x2A;              // '*'
-            PEER_PPS_SYNC = 0x6F;                        // 'o'
-            PEER_UNREACHABLE = 0x3F;                     // '?'
-            PEER_TOO_VARIABLE = 0x7E;                    // '~'
+            MODE_UNKNOWN = -1;
+            MODE_REFERENCE_CLOCK = 0x23;  // '#'
+            MODE_PEER = 0x3D;             // '='
+            MODE_SERVER = 0x5E;           // '^'
         }
+        optional Mode mode = 1 [default = MODE_UNKNOWN];
 
-        required TallyCode tally_code = 1 [default = PEER_CODE_UNKNOWN];
-        required string remote = 2;
-        required string refid = 3;
+        enum State
+        {
+            STATE_UNKNOWN = -1;
+            STATE_SELECTED = 0x2A;      // '*'
+            STATE_COMBINED = 0x2B;      // '+'
+            STATE_NOT_COMBINED = 0x2D;  // '-'
+            STATE_UNREACHABLE = 0x3F;   // '?'
+            STATE_FALSETICKER = 0x78;   // 'x'
+            STATE_TOO_VARIABLE = 0x7E;  // '~'
+        }
+        optional State state = 2 [default = STATE_UNKNOWN];
+
+        required string name = 3;
         optional int32 stratum = 4 [default = 16];
-        optional int32 when = 5
-            [default = -1, (dccl.field) = { units { base_dimensions: "T" } }];
-        optional int32 poll = 6
+        optional int32 poll_interval = 5
             [default = -1, (dccl.field) = { units { base_dimensions: "T" } }];
         // bitmask
-        optional int32 reach = 7 [default = 0];
-        optional float delay = 8 [
+        optional int32 reach = 6 [default = 0];
+        optional int32 last_sample_age = 7
+            [default = -1, (dccl.field) = { units { base_dimensions: "T" } }];
+        optional float adjusted_offset = 8 [
             default = nan,
             (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
         ];
-        optional float offset = 9 [
+        optional float measured_offset = 9 [
             default = nan,
             (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
         ];
-        optional float jitter = 10 [
+        optional float estimated_error = 10 [
+            default = nan,
+            (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
+        ];
+
+        // from chronyc -c sourcestats
+        optional int32 sample_points = 11 [default = 0];
+        optional int32 runs = 12 [default = 0];
+        optional int32 span = 13
+            [default = -1, (dccl.field) = { units { base_dimensions: "T" } }];
+        optional float std_dev = 14 [
             default = nan,
             (dccl.field) = { units { prefix: "milli" base_dimensions: "T" } }
         ];
     }
-    optional NTPPeer system_sync_peer = 20;
-    repeated NTPPeer peer = 21;
+    optional Source selected_source = 30;
+    repeated Source source = 31;
 }
 
 message HelmIVPStatus

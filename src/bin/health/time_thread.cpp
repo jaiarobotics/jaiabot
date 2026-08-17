@@ -49,6 +49,19 @@ bool try_convert_to_float(const std::string& s, float& f)
     }
 }
 
+bool try_convert_to_double(const std::string& s, double& d)
+{
+    try
+    {
+        d = std::stod(s);
+        return true;
+    }
+    catch (std::exception& e)
+    {
+        return false;
+    }
+}
+
 std::vector<std::string> split_csv(std::string line)
 {
     std::vector<std::string> fields;
@@ -58,12 +71,13 @@ std::vector<std::string> split_csv(std::string line)
 }
 } // namespace
 
-jaiabot::apps::NTPStatusThread::NTPStatusThread(const jaiabot::config::NTPStatusConfig& cfg)
-    : HealthMonitorThread(cfg, "ntp_status", 1.0 / 60.0 * boost::units::si::hertz)
+jaiabot::apps::ChronyStatusThread::ChronyStatusThread(
+    const jaiabot::config::ChronyStatusConfig& cfg)
+    : HealthMonitorThread(cfg, "chrony_status", 1.0 / 60.0 * boost::units::si::hertz)
 {
 }
 
-void jaiabot::apps::NTPStatusThread::issue_status_summary()
+void jaiabot::apps::ChronyStatusThread::issue_status_summary()
 {
     status_.Clear();
     chrony_tracking_successful_ = read_chrony_tracking();
@@ -73,7 +87,7 @@ void jaiabot::apps::NTPStatusThread::issue_status_summary()
     interprocess().publish<jaiabot::groups::time_status>(status_);
 }
 
-bool jaiabot::apps::NTPStatusThread::run_chronyc(const std::string& command, std::string& result)
+bool jaiabot::apps::ChronyStatusThread::run_chronyc(const std::string& command, std::string& result)
 {
     // -c gives comma separated values rather than the human readable tables
     const std::string chronyc_command = "/usr/bin/chronyc -c " + command;
@@ -104,21 +118,30 @@ bool jaiabot::apps::NTPStatusThread::run_chronyc(const std::string& command, std
     return true;
 }
 
-bool jaiabot::apps::NTPStatusThread::read_chrony_tracking()
+bool jaiabot::apps::ChronyStatusThread::read_chrony_tracking()
 {
     std::string result;
     if (!run_chronyc("tracking", result))
         return false;
 
-    // reference id, reference name, stratum, reference time, system time offset,
-    // last offset, RMS offset, frequency, residual frequency, skew, root delay,
-    // root dispersion, update interval, leap status
-    //
     // for example
     // 47505300,GPS,1,1786829173.850841072,0.000000000,0.000000000,0.000000000,0.000,0.000,0.000,0.000000001,0.010001998,2.0,Normal
     enum
     {
-        TRACKING_LEAP = 13
+        TRACKING_REFERENCE_ID = 0,
+        TRACKING_REFERENCE_NAME = 1,
+        TRACKING_STRATUM = 2,
+        TRACKING_REFERENCE_TIME = 3,
+        TRACKING_SYSTEM_TIME_OFFSET = 4,
+        TRACKING_LAST_OFFSET = 5,
+        TRACKING_RMS_OFFSET = 6,
+        TRACKING_FREQUENCY = 7,
+        TRACKING_RESIDUAL_FREQUENCY = 8,
+        TRACKING_SKEW = 9,
+        TRACKING_ROOT_DELAY = 10,
+        TRACKING_ROOT_DISPERSION = 11,
+        TRACKING_UPDATE_INTERVAL = 12,
+        TRACKING_LEAP_STATUS = 13
     };
     const int tracking_num_fields = 14;
 
@@ -132,27 +155,62 @@ bool jaiabot::apps::NTPStatusThread::read_chrony_tracking()
         return false;
     }
 
-    static const std::map<std::string, protobuf::NTPStatus::LeapIndicator> leap_indicators{
-        {"Normal", protobuf::NTPStatus::LEAP_NONE},
-        {"Insert second", protobuf::NTPStatus::LEAP_LAST_MINUTE_HAS_61_SECONDS},
-        {"Delete second", protobuf::NTPStatus::LEAP_LAST_MINUTE_HAS_59_SECONDS},
-        {"Not synchronised", protobuf::NTPStatus::LEAP_CLOCK_NOT_SYNCHRONIZED}};
+    using boost::units::si::seconds;
 
-    auto leap_indicator = leap_indicators.find(fields[TRACKING_LEAP]);
-    if (leap_indicator == leap_indicators.end())
+    status_.set_reference_id(fields[TRACKING_REFERENCE_ID]);
+    status_.set_reference_name(fields[TRACKING_REFERENCE_NAME]);
+
+    int stratum = 0;
+    if (try_convert_to_int(fields[TRACKING_STRATUM], stratum))
+        status_.set_stratum(stratum);
+
+    double reference_time = 0;
+    if (try_convert_to_double(fields[TRACKING_REFERENCE_TIME], reference_time))
+        status_.set_reference_time_with_units(reference_time * seconds);
+
+    float value = std::nanf("");
+    if (try_convert_to_float(fields[TRACKING_SYSTEM_TIME_OFFSET], value))
+        status_.set_system_time_offset_with_units(value * seconds);
+    if (try_convert_to_float(fields[TRACKING_LAST_OFFSET], value))
+        status_.set_last_offset_with_units(value * seconds);
+    if (try_convert_to_float(fields[TRACKING_RMS_OFFSET], value))
+        status_.set_rms_offset_with_units(value * seconds);
+    if (try_convert_to_float(fields[TRACKING_ROOT_DELAY], value))
+        status_.set_root_delay_with_units(value * seconds);
+    if (try_convert_to_float(fields[TRACKING_ROOT_DISPERSION], value))
+        status_.set_root_dispersion_with_units(value * seconds);
+    if (try_convert_to_float(fields[TRACKING_UPDATE_INTERVAL], value))
+        status_.set_update_interval_with_units(value * seconds);
+
+    // parts per million
+    if (try_convert_to_float(fields[TRACKING_FREQUENCY], value))
+        status_.set_frequency(value);
+    if (try_convert_to_float(fields[TRACKING_RESIDUAL_FREQUENCY], value))
+        status_.set_residual_frequency(value);
+    if (try_convert_to_float(fields[TRACKING_SKEW], value))
+        status_.set_skew(value);
+
+    static const std::map<std::string, protobuf::ChronyStatus::LeapStatus> leap_statuses{
+        {"Normal", protobuf::ChronyStatus::LEAP_NORMAL},
+        {"Insert second", protobuf::ChronyStatus::LEAP_INSERT_SECOND},
+        {"Delete second", protobuf::ChronyStatus::LEAP_DELETE_SECOND},
+        {"Not synchronised", protobuf::ChronyStatus::LEAP_NOT_SYNCHRONISED}};
+
+    auto leap_status = leap_statuses.find(fields[TRACKING_LEAP_STATUS]);
+    if (leap_status == leap_statuses.end())
     {
-        glog.is_warn() && glog << group(thread_name()) << "Leap status: [" << fields[TRACKING_LEAP]
-                               << "] is unknown" << std::endl;
-        status_.set_leap_indicator(protobuf::NTPStatus::LEAP_UNKNOWN);
+        glog.is_warn() && glog << group(thread_name()) << "Leap status: ["
+                               << fields[TRACKING_LEAP_STATUS] << "] is unknown" << std::endl;
+        status_.set_leap_status(protobuf::ChronyStatus::LEAP_UNKNOWN);
         return false;
     }
 
-    status_.set_leap_indicator(leap_indicator->second);
+    status_.set_leap_status(leap_status->second);
 
     return true;
 }
 
-bool jaiabot::apps::NTPStatusThread::read_chrony_sources()
+bool jaiabot::apps::ChronyStatusThread::read_chrony_sources()
 {
     std::string sources, sourcestats;
     if (!run_chronyc("sources", sources))
@@ -160,20 +218,22 @@ bool jaiabot::apps::NTPStatusThread::read_chrony_sources()
     if (!run_chronyc("sourcestats", sourcestats))
         return false;
 
-    // name, number of sample points, number of runs, span, frequency,
-    // frequency skew, offset, standard deviation
-    //
+    using boost::units::si::seconds;
+
     // for example
     // GPS,13,13,24,0.000,0.000,0.000000000,0.000000001
     enum
     {
         STATS_NAME = 0,
+        STATS_SAMPLE_POINTS = 1,
+        STATS_RUNS = 2,
+        STATS_SPAN = 3,
         STATS_STD_DEV = 7
     };
     const int stats_num_fields = 8;
 
-    // chrony reports the equivalent of the ntpq jitter separately from the sources
-    std::map<std::string, float> std_dev_by_name;
+    // chrony reports the sample statistics separately from the sources
+    std::map<std::string, std::vector<std::string>> stats_by_name;
     {
         std::stringstream stats_stream(sourcestats);
         std::string line;
@@ -183,16 +243,11 @@ bool jaiabot::apps::NTPStatusThread::read_chrony_sources()
                 continue;
 
             auto fields = split_csv(line);
-            float std_dev = std::nanf("");
-            if (fields.size() == stats_num_fields &&
-                try_convert_to_float(fields[STATS_STD_DEV], std_dev))
-                std_dev_by_name[fields[STATS_NAME]] = std_dev;
+            if (fields.size() == stats_num_fields)
+                stats_by_name[fields[STATS_NAME]] = fields;
         }
     }
 
-    // mode, state, name, stratum, poll, reach, last rx, adjusted offset,
-    // measured offset, estimated error
-    //
     // for example
     // #,*,GPS,0,1,377,1,0.000000000,0.000000000,0.010000001
     // ^,-,192.168.1.1,2,6,377,45,0.000234000,0.000234000,0.000512000
@@ -205,15 +260,15 @@ bool jaiabot::apps::NTPStatusThread::read_chrony_sources()
         SOURCE_POLL = 4,
         SOURCE_REACH = 5,
         SOURCE_LAST_RX = 6,
-        SOURCE_OFFSET = 7
+        SOURCE_ADJUSTED_OFFSET = 7,
+        SOURCE_MEASURED_OFFSET = 8,
+        SOURCE_ESTIMATED_ERROR = 9
     };
     const int source_num_fields = 10;
 
     bool ok = true;
     std::stringstream sources_stream(sources);
     std::string line;
-
-    using boost::units::si::seconds;
 
     while (std::getline(sources_stream, line))
     {
@@ -233,64 +288,80 @@ bool jaiabot::apps::NTPStatusThread::read_chrony_sources()
             continue;
         }
 
-        auto& peer = *status_.add_peer();
+        auto& source = *status_.add_source();
 
-        char tally_code = fields[SOURCE_STATE].empty() ? ' ' : fields[SOURCE_STATE][0];
-        if (protobuf::NTPStatus::NTPPeer::TallyCode_IsValid(tally_code))
+        char mode = fields[SOURCE_MODE].empty() ? ' ' : fields[SOURCE_MODE][0];
+        if (protobuf::ChronyStatus::Source::Mode_IsValid(mode))
         {
-            peer.set_tally_code(static_cast<protobuf::NTPStatus::NTPPeer::TallyCode>(tally_code));
+            source.set_mode(static_cast<protobuf::ChronyStatus::Source::Mode>(mode));
         }
         else
         {
-            glog.is_warn() && glog << group(thread_name()) << "Tally code: [" << tally_code
+            glog.is_warn() && glog << group(thread_name()) << "Source mode: [" << mode
                                    << "] is unknown" << std::endl;
-            peer.set_tally_code(protobuf::NTPStatus::NTPPeer::PEER_CODE_UNKNOWN);
+            source.set_mode(protobuf::ChronyStatus::Source::MODE_UNKNOWN);
             ok = false;
         }
 
-        // chrony has no per source reference id, so the name stands in for both
-        peer.set_remote(fields[SOURCE_NAME]);
-        peer.set_refid(fields[SOURCE_NAME]);
+        char state = fields[SOURCE_STATE].empty() ? ' ' : fields[SOURCE_STATE][0];
+        if (protobuf::ChronyStatus::Source::State_IsValid(state))
+        {
+            source.set_state(static_cast<protobuf::ChronyStatus::Source::State>(state));
+        }
+        else
+        {
+            glog.is_warn() && glog << group(thread_name()) << "Source state: [" << state
+                                   << "] is unknown" << std::endl;
+            source.set_state(protobuf::ChronyStatus::Source::STATE_UNKNOWN);
+            ok = false;
+        }
 
-        const int stratum_max = 16;
-        int stratum = stratum_max, poll_exponent = 0, reach = 0, last_rx = -1;
+        source.set_name(fields[SOURCE_NAME]);
 
-        if (try_convert_to_int(fields[SOURCE_STRATUM], stratum))
-            peer.set_stratum(stratum);
+        int value_int = 0;
+        if (try_convert_to_int(fields[SOURCE_STRATUM], value_int))
+            source.set_stratum(value_int);
 
         // chrony reports the poll interval as a power of two
-        if (try_convert_to_int(fields[SOURCE_POLL], poll_exponent))
-            peer.set_poll_with_units(std::pow(2, poll_exponent) * seconds);
+        if (try_convert_to_int(fields[SOURCE_POLL], value_int))
+            source.set_poll_interval_with_units(std::pow(2, value_int) * seconds);
 
         // bitmask (octal)
-        if (try_convert_to_int(fields[SOURCE_REACH], reach, 8))
-            peer.set_reach(reach);
+        if (try_convert_to_int(fields[SOURCE_REACH], value_int, 8))
+            source.set_reach(value_int);
 
-        if (try_convert_to_int(fields[SOURCE_LAST_RX], last_rx))
-            peer.set_when_with_units(last_rx * seconds);
+        if (try_convert_to_int(fields[SOURCE_LAST_RX], value_int))
+            source.set_last_sample_age_with_units(value_int * seconds);
 
-        float offset = std::nanf("");
-        if (try_convert_to_float(fields[SOURCE_OFFSET], offset))
-            peer.set_offset_with_units(offset * seconds);
+        float value = std::nanf("");
+        if (try_convert_to_float(fields[SOURCE_ADJUSTED_OFFSET], value))
+            source.set_adjusted_offset_with_units(value * seconds);
+        if (try_convert_to_float(fields[SOURCE_MEASURED_OFFSET], value))
+            source.set_measured_offset_with_units(value * seconds);
+        if (try_convert_to_float(fields[SOURCE_ESTIMATED_ERROR], value))
+            source.set_estimated_error_with_units(value * seconds);
 
-        auto std_dev = std_dev_by_name.find(fields[SOURCE_NAME]);
-        if (std_dev != std_dev_by_name.end())
-            peer.set_jitter_with_units(std_dev->second * seconds);
-
-        if (peer.tally_code() == protobuf::NTPStatus::NTPPeer::PEER_SYSTEM_SYNC_SOURCE)
+        auto stats = stats_by_name.find(fields[SOURCE_NAME]);
+        if (stats != stats_by_name.end())
         {
-            *status_.mutable_system_sync_peer() = peer;
-
-            // '#' is a local reference clock, that is the GPS
-            status_.set_sync_source(fields[SOURCE_MODE] == "#" ? protobuf::NTPStatus::SYNC_OTHER
-                                                               : protobuf::NTPStatus::SYNC_NTP);
+            if (try_convert_to_int(stats->second[STATS_SAMPLE_POINTS], value_int))
+                source.set_sample_points(value_int);
+            if (try_convert_to_int(stats->second[STATS_RUNS], value_int))
+                source.set_runs(value_int);
+            if (try_convert_to_int(stats->second[STATS_SPAN], value_int))
+                source.set_span_with_units(value_int * seconds);
+            if (try_convert_to_float(stats->second[STATS_STD_DEV], value))
+                source.set_std_dev_with_units(value * seconds);
         }
+
+        if (source.state() == protobuf::ChronyStatus::Source::STATE_SELECTED)
+            *status_.mutable_selected_source() = source;
     }
 
     return ok;
 }
 
-void jaiabot::apps::NTPStatusThread::health(goby::middleware::protobuf::ThreadHealth& health)
+void jaiabot::apps::ChronyStatusThread::health(goby::middleware::protobuf::ThreadHealth& health)
 {
     auto health_state = goby::middleware::protobuf::HEALTH__OK;
 
@@ -298,38 +369,38 @@ void jaiabot::apps::NTPStatusThread::health(goby::middleware::protobuf::ThreadHe
     {
         demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__SYSTEM__NTP_STATUS_QUERY_FAILED);
+            ->add_error(protobuf::ERROR__SYSTEM__CHRONY_TRACKING_QUERY_FAILED);
     }
     else if (!chrony_sources_successful_)
     {
         demote_health(health_state, goby::middleware::protobuf::HEALTH__FAILED);
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_error(protobuf::ERROR__SYSTEM__NTP_PEERS_QUERY_FAILED);
+            ->add_error(protobuf::ERROR__SYSTEM__CHRONY_SOURCES_QUERY_FAILED);
     }
     else
     {
-        if (!status_.has_system_sync_peer())
+        if (!status_.has_selected_source())
         {
             demote_health(health_state, goby::middleware::protobuf::HEALTH__DEGRADED);
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-                ->add_warning(protobuf::WARNING__SYSTEM__NTP_NOT_SYNCHRONIZED);
+                ->add_warning(protobuf::WARNING__SYSTEM__CHRONY_NOT_SYNCHRONIZED);
         }
         else
         {
-            if (status_.system_sync_peer().offset_with_units() >
+            if (status_.selected_source().adjusted_offset_with_units() >
                 cfg().high_offset_threshold_with_units())
             {
                 demote_health(health_state, goby::middleware::protobuf::HEALTH__DEGRADED);
                 health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-                    ->add_warning(protobuf::WARNING__SYSTEM__NTP_OFFSET_HIGH);
+                    ->add_warning(protobuf::WARNING__SYSTEM__CHRONY_OFFSET_HIGH);
             }
 
-            if (status_.system_sync_peer().jitter_with_units() >
-                cfg().high_jitter_threshold_with_units())
+            if (status_.selected_source().std_dev_with_units() >
+                cfg().high_std_dev_threshold_with_units())
             {
                 demote_health(health_state, goby::middleware::protobuf::HEALTH__DEGRADED);
                 health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-                    ->add_warning(protobuf::WARNING__SYSTEM__NTP_JITTER_HIGH);
+                    ->add_warning(protobuf::WARNING__SYSTEM__CHRONY_STD_DEV_HIGH);
             }
         }
     }
