@@ -503,6 +503,20 @@ BOOST_AUTO_TEST_CASE(test_ip_host_codes)
     BOOST_CHECK_THROW(ip::host_code_to_addr("b4x2"), std::invalid_argument);
 }
 
+BOOST_AUTO_TEST_CASE(test_ip_host_code_version_override)
+{
+    auto addr = [](const std::string& code, ip::IPVersion version)
+    { return ip::host_code_addr(ip::parse_host_code(code), version); };
+
+    BOOST_CHECK_EQUAL(addr("b5sf4", ip::IPVersion::ipv6), "fd91:5457:1e5c:4::1:5");
+    BOOST_CHECK_EQUAL(addr("b5sf4", ip::IPVersion::ipv4), "172.23.4.105");
+    BOOST_CHECK_EQUAL(addr("h1f100", ip::IPVersion::ipv6), "fddd:7f2e:3258:64::1");
+    BOOST_CHECK_EQUAL(addr("h1f100", ip::IPVersion::ipv4), "10.23.100.11");
+    BOOST_CHECK_EQUAL(addr("self", ip::IPVersion::ipv4), "::1");
+
+    BOOST_CHECK_THROW(addr("b4f1000", ip::IPVersion::ipv4), std::invalid_argument);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 } // namespace utils

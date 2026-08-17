@@ -626,6 +626,19 @@ inline HostCode parse_host_code(const std::string& host_code, int default_fleet_
     return result;
 }
 
+// Returns the IP address for a parsed host code in the given IP version, which the fleet need not
+// be the one that uses on that network (e.g. the IPv6 address of an IPv4 fleet)
+inline std::string host_code_addr(const HostCode& host, IPVersion version)
+{
+    if (host.is_literal)
+        return host.literal;
+
+    if (version == IPVersion::ipv4)
+        return ipv4_addr(host.fleet_id, host.net, host.node_type, host.node_id);
+    else
+        return ipv6_addr(host.fleet_id, host.net, host.node_type, host.node_id);
+}
+
 // Returns the IP address for a parsed host code, in whichever IP version the fleet uses on the
 // network the code names
 inline std::string host_code_addr(const HostCode& host)
@@ -633,10 +646,7 @@ inline std::string host_code_addr(const HostCode& host)
     if (host.is_literal)
         return host.literal;
 
-    if (ip_version(host.fleet_id, host.net) == IPVersion::ipv4)
-        return ipv4_addr(host.fleet_id, host.net, host.node_type, host.node_id);
-    else
-        return ipv6_addr(host.fleet_id, host.net, host.node_type, host.node_id);
+    return host_code_addr(host, ip_version(host.fleet_id, host.net));
 }
 
 // Returns the IP address for a host shorthand code (e.g. "b4f2" -> "10.23.2.104")
