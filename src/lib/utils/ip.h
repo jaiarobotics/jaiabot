@@ -506,6 +506,15 @@ inline std::string ipv6_net(int fleet_id, Network net, const std::string& ipv6_b
     return base.to_string() + "/64";
 }
 
+// Returns the address for a node in whichever IP version the fleet uses on the given network
+inline std::string addr(int fleet_id, Network net, NodeType node, int node_id)
+{
+    if (ip_version(fleet_id, net) == IPVersion::ipv4)
+        return ipv4_addr(fleet_id, net, node, node_id);
+    else
+        return ipv6_addr(fleet_id, net, node, node_id);
+}
+
 constexpr const char* host_code_format_msg =
     "It must be b<bot_id>[svc]f<fleet_id> or h<hub_id>[svc]f<fleet_id> or chf<fleet_id> "
     "(for cloudhub)";
@@ -646,7 +655,7 @@ inline std::string host_code_addr(const HostCode& host)
     if (host.is_literal)
         return host.literal;
 
-    return host_code_addr(host, ip_version(host.fleet_id, host.net));
+    return addr(host.fleet_id, host.net, host.node_type, host.node_id);
 }
 
 // Returns the IP address for a host shorthand code (e.g. "b4f2" -> "10.23.2.104")

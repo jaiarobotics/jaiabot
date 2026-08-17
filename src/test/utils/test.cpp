@@ -503,6 +503,18 @@ BOOST_AUTO_TEST_CASE(test_ip_host_codes)
     BOOST_CHECK_THROW(ip::host_code_to_addr("b4x2"), std::invalid_argument);
 }
 
+BOOST_AUTO_TEST_CASE(test_ip_addr)
+{
+    BOOST_CHECK_EQUAL(ip::addr(2, ip::Network::wlan, ip::NodeType::bot, 3), "10.23.2.103");
+    BOOST_CHECK_EQUAL(ip::addr(1000, ip::Network::wlan, ip::NodeType::bot, 3),
+                      "fddd:7f2e:3258:3e8::1:3");
+    BOOST_CHECK_EQUAL(ip::addr(3, ip::Network::fleet_vpn, ip::NodeType::bot, 5), "172.23.3.105");
+    BOOST_CHECK_EQUAL(ip::addr(1000, ip::Network::fleet_vpn, ip::NodeType::bot, 5),
+                      "fd91:5457:1e5c:3e8::1:5");
+    BOOST_CHECK_EQUAL(ip::addr(3, ip::Network::cloudhub_vpn, ip::NodeType::hub, 30),
+                      "fd0f:77ac:4fdf:3::1e");
+}
+
 BOOST_AUTO_TEST_CASE(test_ip_host_code_version_override)
 {
     auto addr = [](const std::string& code, ip::IPVersion version)

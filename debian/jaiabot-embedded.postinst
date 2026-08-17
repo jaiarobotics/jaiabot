@@ -40,7 +40,9 @@ if [[ "$NEW_HOST_NAME" != "$OLD_HOST_NAME" ]]; then
     echo ">>>>> Setting hostname to $NEW_HOST_NAME (log out and in again for the prompt to change) ... "
      /usr/bin/hostnamectl set-hostname $NEW_HOST_NAME
      sed -i "s/^\(127\.0\.[0-9\.]*\).*${OLD_HOST_NAME}$/\1\t${NEW_HOST_NAME}/" /etc/hosts
-     sed -i "s/^\(10\.23\.[0-9\.]*\).*${OLD_HOST_NAME}$/${NODE_WLAN_IP} ${NEW_HOST_NAME}/" /etc/hosts
+     # whatever address this host had, not just an IPv4 one: the loopback line is already renamed
+     # above and so no longer ends in the old name
+     sed -i "s|^[^[:space:]]*[[:space:]]\+${OLD_HOST_NAME}\$|${NODE_WLAN_IP} ${NEW_HOST_NAME}|" /etc/hosts
     echo "<<<<< Setting hostname complete!"
 fi
 
@@ -49,7 +51,17 @@ echo ">>>>> Updating wifi configuration ... "
 FLEET_WLAN_SSID="JAIA-HUB-WIFI-${FLEET_INDEX}"
 NETENV_FILE=/etc/jaiabot/network.env
 FLEET_ADDRESS="${NODE_WLAN_IP}/${FLEET_WLAN_NET##*/}"
-FLEET_GATEWAY=$(/usr/bin/jaia_ip --query_type addr --node_type gateway --ip_net wlan --fleet_id ${FLEET_INDEX})
+
+# A fleet addressed with IPv6 has no IPv4 address of its own. It takes one from the access point
+# by DHCP so that the node still reaches the internet, and carries all fleet traffic on the static
+# IPv6 address above; nothing in the fleet is addressed by whatever DHCP hands out.
+if [ "${FLEET_INDEX}" -le "$(/usr/bin/jaia_bounds --ipv4_fleet_id --max)" ]; then
+    FLEET_GATEWAY=$(/usr/bin/jaia_ip --query_type addr --node_type gateway --ip_net wlan --fleet_id ${FLEET_INDEX})
+    FLEET_DHCP=""
+else
+    FLEET_GATEWAY=""
+    FLEET_DHCP="ipv4"
+fi
 
 # ${NETENV_FILE} ships with the rootfs image (and holds the wifi password set at
 # first boot), so this script only updates the fleet-dependent values in it. If
@@ -61,9 +73,21 @@ if [ ! -f "${NETENV_FILE}" ]; then
     exit 1
 fi
 
-sed -i "s/fleet_ssid=.*/fleet_ssid=\"${FLEET_WLAN_SSID}\"/" ${NETENV_FILE}
-sed -i "s|fleet_address=.*|fleet_address=\"${FLEET_ADDRESS}\"|" ${NETENV_FILE}
-sed -i "s/fleet_gateway=.*/fleet_gateway=\"${FLEET_GATEWAY}\"/" ${NETENV_FILE}
+# an image built before a given setting existed has no line to rewrite, so append it instead
+function set_netenv {
+    local key="$1" value="$2"
+
+    if grep -q "^${key}=" ${NETENV_FILE}; then
+        sed -i "s|^${key}=.*|${key}=\"${value}\"|" ${NETENV_FILE}
+    else
+        echo "${key}=\"${value}\"" >> ${NETENV_FILE}
+    fi
+}
+
+set_netenv jaia_network_fleet_ssid "${FLEET_WLAN_SSID}"
+set_netenv jaia_network_fleet_address "${FLEET_ADDRESS}"
+set_netenv jaia_network_fleet_gateway "${FLEET_GATEWAY}"
+set_netenv jaia_network_fleet_dhcp "${FLEET_DHCP}"
 
 /usr/bin/jaia-update-network.sh
 
