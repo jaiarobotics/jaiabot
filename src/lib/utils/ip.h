@@ -84,6 +84,14 @@ constexpr int fleet_id_min = 0, fleet_id_max = 4000;
 constexpr int fleet_id_ipv4_max = 250;
 static_assert(fleet_id_ipv4_max <= fleet_id_max, "IPv4 fleets must be a subset of all fleets");
 
+// A VirtualFleet mirrors its fleet's WLAN addressing, which a fleet above fleet_id_ipv4_max cannot
+// do: its nodes are EC2 instances, and EC2 assigns IPv6 from the block Amazon gives the VPC rather
+// than from a ULA of ours. Those VirtualFleets stay IPv4 on this octet instead, which cannot
+// collide with anything because the network it belongs to is private to one fleet's VPC.
+constexpr int vfleet_wlan_ipv4_octet = 253;
+static_assert(vfleet_wlan_ipv4_octet > fleet_id_ipv4_max,
+              "the VirtualFleet WLAN octet must not be one an IPv4 fleet uses");
+
 // The CloudHub is always this hub id, on every fleet
 constexpr int cloudhub_id = 30;
 static_assert(cloudhub_id >= hub_id_min && cloudhub_id <= hub_id_max,
@@ -201,13 +209,13 @@ inline IPVersion ip_version(int fleet_id, Network net)
     switch (net)
     {
         case Network::wlan:
-        case Network::fleet_vpn:
-        case Network::vfleet_wlan:
-            return is_ipv4_fleet(fleet_id) ? IPVersion::ipv4 : IPVersion::ipv6;
+        case Network::fleet_vpn: return is_ipv4_fleet(fleet_id) ? IPVersion::ipv4 : IPVersion::ipv6;
 
         case Network::vfleet_vpn:
         case Network::cloudhub_vpn: validate_fleet_id(fleet_id); return IPVersion::ipv6;
 
+        // the VirtualFleet WLAN stays IPv4 for every fleet: see vfleet_wlan_ipv4_octet
+        case Network::vfleet_wlan:
         case Network::cloudhub_eth:
         case Network::vfleet_eth:
         case Network::vpc: validate_fleet_id(fleet_id); return IPVersion::ipv4;
@@ -235,9 +243,15 @@ inline boost::asio::ip::address_v4 ipv4_base(int fleet_id, Network net)
     switch (net)
     {
         case Network::wlan:
-        case Network::vfleet_wlan:
             // 10.23.{fleet_id}.0
             return make_address_v4(address_v4::bytes_type{10, 23, fleet_octet(), 0});
+        case Network::vfleet_wlan:
+            // 10.23.{fleet_id}.0, or 10.23.253.0 for a fleet whose id does not fit the octet
+            return make_address_v4(address_v4::bytes_type{
+                10, 23,
+                is_ipv4_fleet(fleet_id) ? static_cast<uint8_t>(fleet_id)
+                                        : static_cast<uint8_t>(vfleet_wlan_ipv4_octet),
+                0});
         case Network::fleet_vpn:
             // 172.23.{fleet_id}.0
             return make_address_v4(address_v4::bytes_type{172, 23, fleet_octet(), 0});

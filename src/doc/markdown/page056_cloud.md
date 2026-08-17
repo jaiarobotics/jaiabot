@@ -74,18 +74,22 @@ These all need to be different because:
 Additionally, each VPC has two subnets assigned as previously mentioned:
 
 1. CloudHub Subnet: 10.23.255.0/24 and 2001:db8:0:**0**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
-2. VirtualFleet WLAN Subnet: 10.23.{flt}.0/24 and 2001:db8:0:**2**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
+2. VirtualFleet WLAN Subnet: 10.23.{flt}.0/24 (10.23.253.0/24 for a fleet above 250, see below) and 2001:db8:0:**2**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
 
 ### Fleet ID ranges
 
 The fleet WLAN, the fleet VPN and the VirtualFleet WLAN carry the fleet id in a single IPv4 octet, which is what limits how many fleets those schemes can address. Rather than renumber the fleets already using them, the fleet id range is split:
 
-| Fleet ID | Fleet WLAN, fleet VPN, VirtualFleet WLAN | Other networks |
-|----------|------------------------------------------|----------------|
-| 0-250    | IPv4, as below                            | IPv6, as below |
-| 251-4000 | IPv6, as below                            | IPv6, as below |
+| Fleet ID | Fleet WLAN, fleet VPN | VirtualFleet WLAN | Other networks |
+|----------|-----------------------|-------------------|----------------|
+| 0-250    | IPv4, as below         | IPv4 `10.23.{flt}.0/24`, the same addresses as the fleet WLAN | IPv6, as below |
+| 251-4000 | IPv6, as below         | IPv4 `10.23.253.0/24`  | IPv6, as below |
 
-So a fleet above 250 has no IPv4 address of its own anywhere: IPv4 on its WLAN carries internet traffic only, from whatever the access point hands out, and all Jaia traffic is IPv6. The CloudHub and VirtualFleet ethernet subnets of a VPC are the same for every fleet and so stay IPv4 whichever range the fleet is in.
+So a fleet above 250 has no IPv4 address of its own on a real fleet: IPv4 on its WLAN carries internet traffic only, from whatever the access point hands out, and all Jaia traffic is IPv6. The CloudHub and VirtualFleet ethernet subnets of a VPC are the same for every fleet and so stay IPv4 whichever range the fleet is in.
+
+A VirtualFleet is the exception. Its nodes are EC2 instances, and EC2 assigns IPv6 from the block Amazon gives the VPC rather than from a ULA of ours, so a VirtualFleet above 250 cannot mirror its fleet's WLAN the way a lower one does. It stays IPv4 on `10.23.253.0/24` instead, which cannot collide with anything because a VPC belongs to one fleet. Configuration generated on a VirtualFleet node therefore addresses the WIFI link on `vfleet_wlan`; everywhere else it is `wlan`, and for a fleet at or below 250 the two give the same addresses.
+
+A VirtualBox fleet has no such limit - its NAT network is local - so it mirrors the fleet WLAN whichever range the fleet is in, taking `fddd:7f2e:3258:{fleet}::/64` above 250 with IPv4 from the NAT network's DHCP for internet access only, exactly as a real fleet of that id does.
 
 The upper end of the range is 4000 rather than the 65535 the IPv6 scheme has room for, because the fleet id is also the XBee network id (`ATID`), whose documented range is smaller and which the driver writes in a format that does not currently reach it. Raising it is a matter of that driver and of widening `HubStatus.fleet_id`, which is a DCCL wire format change; nothing in the addressing itself is in the way.
 

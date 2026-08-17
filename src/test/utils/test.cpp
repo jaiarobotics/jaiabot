@@ -423,10 +423,28 @@ BOOST_AUTO_TEST_CASE(test_ip_ipv6_fleets)
                       std::invalid_argument);
     BOOST_CHECK_THROW(ip::ipv4_net(251, ip::Network::wlan), std::invalid_argument);
     BOOST_CHECK_THROW(ip::ipv4_net(251, ip::Network::fleet_vpn), std::invalid_argument);
-    BOOST_CHECK_THROW(ip::ipv4_net(251, ip::Network::vfleet_wlan), std::invalid_argument);
 
     // the VPC networks do not carry the fleet id, so they stay IPv4 whatever the fleet
     BOOST_CHECK_EQUAL(ip::ipv4_net(251, ip::Network::cloudhub_eth), "10.23.255.0/24");
+}
+
+BOOST_AUTO_TEST_CASE(test_ip_vfleet_wlan)
+{
+    // a VirtualFleet mirrors its fleet's WLAN while the fleet id fits the octet
+    BOOST_CHECK_EQUAL(ip::ipv4_net(2, ip::Network::vfleet_wlan), "10.23.2.0/24");
+    BOOST_CHECK_EQUAL(ip::ipv4_addr(2, ip::Network::vfleet_wlan, ip::NodeType::bot, 3),
+                      "10.23.2.103");
+    BOOST_CHECK_EQUAL(ip::ipv4_net(2, ip::Network::wlan),
+                      ip::ipv4_net(2, ip::Network::vfleet_wlan));
+
+    // and falls back to its own octet, still IPv4, when it does not
+    BOOST_CHECK_EQUAL(ip::ipv4_net(251, ip::Network::vfleet_wlan), "10.23.253.0/24");
+    BOOST_CHECK_EQUAL(ip::ipv4_net(4000, ip::Network::vfleet_wlan), "10.23.253.0/24");
+    BOOST_CHECK_EQUAL(ip::ipv4_addr(1000, ip::Network::vfleet_wlan, ip::NodeType::bot, 3),
+                      "10.23.253.103");
+    BOOST_CHECK(ip::ip_version(1000, ip::Network::vfleet_wlan) == ip::IPVersion::ipv4);
+    BOOST_CHECK_EQUAL(ip::addr(1000, ip::Network::vfleet_wlan, ip::NodeType::hub, 1),
+                      "10.23.253.11");
 }
 
 BOOST_AUTO_TEST_CASE(test_ip_fleet_subnet_id)
@@ -456,7 +474,7 @@ BOOST_AUTO_TEST_CASE(test_ip_version)
     BOOST_CHECK(ip::ip_version(250, ip::Network::fleet_vpn) == ip::IPVersion::ipv4);
     BOOST_CHECK(ip::ip_version(251, ip::Network::fleet_vpn) == ip::IPVersion::ipv6);
     BOOST_CHECK(ip::ip_version(250, ip::Network::vfleet_wlan) == ip::IPVersion::ipv4);
-    BOOST_CHECK(ip::ip_version(251, ip::Network::vfleet_wlan) == ip::IPVersion::ipv6);
+    BOOST_CHECK(ip::ip_version(251, ip::Network::vfleet_wlan) == ip::IPVersion::ipv4);
 
     BOOST_CHECK(ip::ip_version(1, ip::Network::vfleet_vpn) == ip::IPVersion::ipv6);
     BOOST_CHECK(ip::ip_version(1, ip::Network::cloudhub_vpn) == ip::IPVersion::ipv6);

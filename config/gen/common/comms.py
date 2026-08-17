@@ -1,9 +1,10 @@
 from common import is_simulation, is_runtime
 from common import udp
 from common.hub import expected_hubs_from_inventory
+import common
 import common.bot
-import common.bounds
 import netifaces
+import functools
 import math
 import json
 import subprocess
@@ -55,19 +56,30 @@ def jaia_ip(args):
     """Run the standalone 'jaia_ip' tool (the implementation of 'jaia ip') with the given list of arguments and return the resulting address or network."""
     return subprocess.run(['jaia_ip'] + [str(a) for a in args], capture_output=True, text=True, check=True).stdout.strip()
 
+def wifi_net():
+    """The network a WIFI link is addressed on. A VirtualFleet node is an EC2 instance on its VPC's
+    subnet rather than on a fleet WLAN; for a fleet whose id fits the IPv4 octet the two are the
+    same addresses, and above that they are not (see vfleet_wlan_ipv4_octet in ip.h)."""
+    return 'vfleet_wlan' if common.is_vfleet else 'wlan'
+
+@functools.lru_cache(maxsize=None)
+def wifi_is_ipv6(fleet_id):
+    """Whether the WIFI link is addressed with IPv6, taken from the network 'jaia_ip' gives for it rather than from the fleet id, since the two WIFI networks do not answer alike."""
+    return ':' in jaia_ip(['--query_type', 'net', '--ip_net', wifi_net(), '--fleet_id', fleet_id])
+
 def wifi_link_ipv6(fleet_id):
-    """The 'ipv6' field of the WIFI link's UDP driver: fleets above the IPv4 range are IPv6 on the fleet WLAN."""
-    return '' if common.bounds.is_ipv4_fleet(fleet_id) else 'ipv6: true'
+    """The 'ipv6' field of the WIFI link's UDP driver."""
+    return 'ipv6: true' if wifi_is_ipv6(fleet_id) else ''
 
 def localhost_addr(fleet_id):
-    return '127.0.0.1' if common.bounds.is_ipv4_fleet(fleet_id) else '::1'
+    return '::1' if wifi_is_ipv6(fleet_id) else '127.0.0.1'
 
 def runtime_wifi_ip_addr(node_id, fleet_id, hub_id):
     if node_id == hub_node_id:
-        return jaia_ip(['--query_type', 'addr', '--node_type', 'hub', '--ip_net', 'wlan', '--fleet_id', fleet_id, '--node_id', hub_id])
+        return jaia_ip(['--query_type', 'addr', '--node_type', 'hub', '--ip_net', wifi_net(), '--fleet_id', fleet_id, '--node_id', hub_id])
     else:
         bot_id = node_id - 1
-        return jaia_ip(['--query_type', 'addr', '--node_type', 'bot', '--ip_net', 'wlan', '--fleet_id', fleet_id, '--node_id', bot_id])
+        return jaia_ip(['--query_type', 'addr', '--node_type', 'bot', '--ip_net', wifi_net(), '--fleet_id', fleet_id, '--node_id', bot_id])
 
 def wifi_ip_addr(this_node_id, node_id, fleet_id, hub_id = -1):
     wifi_ip = runtime_wifi_ip_addr(node_id, fleet_id, hub_id)
