@@ -17,7 +17,7 @@ file(GLOB jdv_dist_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_
 file(GLOB jdv_other_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/client/*)
 
 add_custom_command(OUTPUT ${jdv_client_outdir}/bundle.js
-  COMMAND ${CMAKE_COMMAND} -E env NODE_OPTIONS=--max-old-space-size=2048 npx webpack
+  COMMAND npx webpack
   ARGS --mode production --env TARGET_DIR=${jdv_client_outdir} --stats errors-only
   COMMAND touch
   ARGS ${jdv_client_outdir}/bundle.js

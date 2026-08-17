@@ -45,10 +45,8 @@ file(COPY ${src_files} DESTINATION ${intermediate_web_dir})
 
 set(web_out_dir ${project_SHARE_DIR}/jaiabot/web)
 
-# cap the bundler heap so it collects rather than growing into the memory the
-# parallel compile jobs need
 add_custom_command(OUTPUT ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
-  COMMAND ${CMAKE_COMMAND} -E env NODE_OPTIONS=--max-old-space-size=2048 npx webpack
+  COMMAND npx webpack
   ARGS --mode production --env OUTPUT_DIR=${web_out_dir} --stats errors-only
   COMMAND touch
   ARGS ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
