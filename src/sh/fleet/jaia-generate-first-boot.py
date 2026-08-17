@@ -98,10 +98,10 @@ def main():
     fleet_cfg_json['this']['id'] = args.id
     fleet_cfg_json['this']['mode'] = args.mode
 
-    node_ip_result = subprocess.run(['jaia_ip', '--query_type', 'addr', '--node_type', args.type, '--ip_net', 'wlan', '--fleet_id', str(fleet_cfg_json["fleet"]), '--node_id', str(args.id), '--ip_version', 'ipv4'], capture_output=True, text=True, check=True)
+    node_ip_result = subprocess.run(['jaia_ip', '--query_type', 'addr', '--node_type', args.type, '--ip_net', 'wlan', '--fleet_id', str(fleet_cfg_json["fleet"]), '--node_id', str(args.id)], capture_output=True, text=True, check=True)
     fleet_cfg_json['this']['ip'] = node_ip_result.stdout.strip()
 
-    gateway_ip_result = subprocess.run(['jaia_ip', '--query_type', 'addr', '--node_type', 'gateway', '--ip_net', 'wlan', '--fleet_id', str(fleet_cfg_json["fleet"]), '--ip_version', 'ipv4'], capture_output=True, text=True, check=True)
+    gateway_ip_result = subprocess.run(['jaia_ip', '--query_type', 'addr', '--node_type', 'gateway', '--ip_net', 'wlan', '--fleet_id', str(fleet_cfg_json["fleet"])], capture_output=True, text=True, check=True)
     fleet_cfg_json['this']['gateway_ip'] = gateway_ip_result.stdout.strip()
 
     actions=args.action

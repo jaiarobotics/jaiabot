@@ -1,3 +1,4 @@
+import functools
 import subprocess
 
 
@@ -8,3 +9,13 @@ def jaia_bounds(args):
 
 def cloudhub_id():
     return int(jaia_bounds(['--cloudhub_id']))
+
+
+@functools.lru_cache(maxsize=None)
+def ipv4_fleet_id_max():
+    return int(jaia_bounds(['--ipv4_fleet_id', '--max']))
+
+
+def is_ipv4_fleet(fleet_id):
+    """True for the fleets addressed with IPv4 on the fleet WLAN and fleet VPN; the rest are IPv6 on every network."""
+    return int(fleet_id) <= ipv4_fleet_id_max()

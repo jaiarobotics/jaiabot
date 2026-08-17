@@ -63,16 +63,20 @@ if args.fleet_id is None:
         macros['address'] = f'{ip_prefix}.{args.desktop_ip}'
     macros['subnet'] = f'{ip_prefix}.0/24'
 else:
-    # Fleet-specific VPN: use 'jaia_ip' for addresses and the subnet
-    macros['subnet'] = jaia_ip(['--query_type', 'net', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_id, '--ip_version', 'ipv4'])
+    # Fleet-specific VPN: use 'jaia_ip' for addresses and the subnet, in whichever IP version
+    # this fleet uses on that network
+    macros['subnet'] = jaia_ip(['--query_type', 'net', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_id])
     if args.type == 'bot':
-        macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'bot', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_id, '--node_id', args.bot_id, '--ip_version', 'ipv4'])
+        macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'bot', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_id, '--node_id', args.bot_id])
     elif args.type == 'hub':
-        macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'hub', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_id, '--node_id', args.hub_id, '--ip_version', 'ipv4'])
+        macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'hub', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_id, '--node_id', args.hub_id])
     elif args.type == 'desktop':
-        # 'jaia_ip' does not assign IPv4 addresses to desktops, so derive it from the fleet VPN subnet
-        ip_prefix = macros['subnet'].split('/')[0].rsplit('.', 1)[0]
-        macros['address'] = f'{ip_prefix}.{args.desktop_ip}'
+        if ':' in macros['subnet']:
+            macros['address'] = jaia_ip(['--query_type', 'addr', '--node_type', 'desktop', '--ip_net', 'fleet_vpn', '--fleet_id', args.fleet_id, '--node_id', args.desktop_ip])
+        else:
+            # 'jaia_ip' does not assign IPv4 addresses to desktops, so derive it from the fleet VPN subnet
+            ip_prefix = macros['subnet'].split('/')[0].rsplit('.', 1)[0]
+            macros['address'] = f'{ip_prefix}.{args.desktop_ip}'
 
 # Endpoint = vpn.jaia.tech:zzz
 # zzz = 51821 + fleet_id

@@ -149,7 +149,7 @@ We are rolling out fleet specific VPN connections that follow this pattern:
 - Bot address: `172.23.xxx.yyy/24` where xxx is the fleet id, and yyy is 100 + bot_id (e.g. `172.23.1.101` for bot 1 on fleet 1).
 - Hub address: `172.23.xxx.zzz/24` where xxx is the fleet id, and zzz is 10 + hub_id (e.g. `172.23.2.10` for hub 0 on fleet 2).
 
-This IPv4 addressing covers fleets 0-250, which is as many as the single octet holds. Fleets above that are addressed on `fd91:5457:1e5c:{fleet id}::/64` instead, following the same scheme as the other VPNs; see [Cloud Computing](page056_cloud.md) for the fleet id ranges. They will take their server port from a separate base, since `51821 + fleet id` runs out of port numbers; that base is not assigned yet, so no fleet above 250 can be provisioned on this VPN today.
+This IPv4 addressing covers fleets 0-250, which is as many as the single octet holds. Fleets above that are addressed on `fd91:5457:1e5c:{fleet id}::/64` instead, following the same scheme as the other VPNs; see [Cloud Computing](page056_cloud.md) for the fleet id ranges. The server port stays `51821 + fleet id` for every fleet, which the current range of fleet ids fits: it reaches 55821 at fleet 4000, and does not run out of port numbers until fleet 13714.
 
 The existing VPN on vpn.jaia.tech:51820 (subnet `172.20.11.0/24`) will continue to be maintained for testing.
 
