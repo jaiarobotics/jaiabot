@@ -12,4 +12,5 @@ libmoos-ivp
 gpsd
 wireguard
 chrony
+dnsmasq-base
 ansible

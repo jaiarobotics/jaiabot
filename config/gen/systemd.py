@@ -49,6 +49,16 @@ parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .
 
 args=parser.parse_args()
 
+
+def jaia_bounds(query: str) -> int:
+    """Read an id from the standalone 'jaia_bounds' tool (the implementation of
+    'jaia admin bounds'), which reports the ranges defined by
+    jaiabot/src/lib/utils/ip.h."""
+    result = subprocess.run([args.jaiabot_bin_dir + '/jaia_bounds', query],
+                            capture_output=True, text=True, check=True)
+    return int(result.stdout)
+
+
 # Maintainer scripts must pass --debconf_selections: debconf does not write the
 # running script's answers to the on-disk database until that script exits, so a
 # child reading the database directly would see the previous configuration.
@@ -369,7 +379,7 @@ if dc('type') == 'bot':
     jaia_type = Type.BOT
     jaia_bot_id = dc_int('bot_id')
 elif dc('type') == 'hub':
-    cloudhub_id=30
+    cloudhub_id=jaia_bounds('--cloudhub_id')
     jaia_hub_id = dc_int('hub_id')
     if jaia_hub_id == cloudhub_id:
         is_cloudhub=True
@@ -593,6 +603,14 @@ jaiabot_apps = [
     {'service': 'jcc.conf',
      'template': 'jcc.conf.in',
      'runs_on': [Type.HUB]},
+    {'service': 'jaiabot_dns',
+     'description': 'JaiaBot Fleet DNS Server',
+     'template': 'dns.service.in',
+     'runs_on': [Type.HUB],
+     'runs_when': Mode.RUNTIME,
+     # a CloudHub is reachable from the public internet, where an open resolver
+     # is an amplification attack waiting to happen
+     'runs_on_cloudhub': False},
 
     ## ALL BOT Services ##
 
@@ -1039,7 +1057,7 @@ for firmware in jaia_firmware:
         else:
             service = firmware['exe'].replace('.', '_').lower()
             if macros['exe'][0:9] != 'jaia_firm':
-                service = 'jaia_firm_' + servi
+                service = 'jaia_firm_' + service
 
         if not 'bin_dir' in macros:
             if macros['exe'][0:4] == 'goby':
