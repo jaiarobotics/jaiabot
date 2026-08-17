@@ -101,7 +101,8 @@ def main():
     aws_cloud_script_dir = pathlib.Path(jaiabot_dir) / 'rootfs/cloud/aws'
     fleet_cfg = read_fleet_from_textproto(args.fleetcfg)
 
-    cloudhub_id = 30
+    cloudhub_id = int(subprocess.run(['jaia_bounds', '--cloudhub_id'],
+                                     capture_output=True, text=True, check=True).stdout)
     fleet_id=fleet_cfg["fleet"]
     hubs=fleet_cfg["hubs"]
     if not cloudhub_id in hubs:
