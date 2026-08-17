@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.5.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.28.3...4.2.3 FATAL_ERROR)
+
 project(jaiabot CXX C)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/")
@@ -42,7 +43,7 @@ include_directories("${GOBY_INCLUDE_DIR}")
 get_filename_component(project_SRC_DIR src ABSOLUTE)
 get_filename_component(project_ROOTFS_DIR rootfs ABSOLUTE)
 get_filename_component(project_BUILD_DIR ${CMAKE_BINARY_DIR} ABSOLUTE)
-get_filename_component(project_SCRIPTS_DIR scripts ABSOLUTE)
+get_filename_component(project_SH_DIR src/sh ABSOLUTE)
 
 # fetch all the local directories for generated code
 get_filename_component(project_LIB_DIR ${project_BUILD_DIR}/lib ABSOLUTE)
@@ -107,9 +108,11 @@ option(build_jdv "Build jdv ui code (requires npm)" ON)
 file(GLOB_RECURSE INCLUDE_FILES RELATIVE ${project_SRC_DIR}/lib
   src/lib/*.h
   )
+
 file(GLOB_RECURSE PROTO_FILES RELATIVE ${project_SRC_DIR}/lib/messages
   src/lib/messages/*.proto
   )
+
 file(GLOB_RECURSE NANOPB_OPTIONS_FILES RELATIVE ${project_SRC_DIR}/lib/messages
   src/lib/messages/*.options
   )
@@ -173,6 +176,7 @@ file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/f
 
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
+  PATTERN "interfaces/figures" EXCLUDE # any figures are built to doc directory
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
@@ -184,56 +188,16 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/config DESTINATION share/jaiabot USE_SOURC
 
 # etc
 option(install_motd "Install MOTD script" ON)
-if(install_motd)
-  install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION /etc/update-motd.d/)
-endif()
+
+option(install_profile "Install /etc/profile.d script providing the jaia environment to login shells" ON)
 
 option(install_ssh_authorized_keys "Install SSH authorized keys to /etc/jaiabot/ssh" ON)
 if(install_ssh_authorized_keys)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/ssh DESTINATION /etc/jaiabot)
 endif()
 
-install(PROGRAMS ${project_SCRIPTS_DIR}/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
-
 # for use by Docker build install
 file(MAKE_DIRECTORY ${project_BIN_DIR})
-
-set(scripts_to_install
-  # data offload
-  data-offload/jaiahub-dataoffload.sh
-  data-offload/jaiabot-predataoffload.sh
-  data-offload/jaiabot-postdataoffload.sh
-  data-offload/jaiahub-dataoffload-cloudhub.sh
-  # Firmware scripts
-  jaia_firm_backup_date.sh
-  jaia_firm_arduino_flash.sh
-  reset-bio-payload-board.sh
-  geotiff_format.py
-  geotiff_scan.sh
-  # Utilities
-  jaia-ip.py
-  jaia-doc.py
-  jaia-vpn-gen.sh
-  # System scripts
-  system/jaiabot-checkloadavg.py
-  system/jaia_update_ufw_rules.sh
-  system/jaia_update_network.sh
-  system/jaia_iridium_tunnel.sh
-  # Fleet config
-  fleet/jaia-create-fleet-config.sh
-  fleet/jaia-generate-first-boot.py
-  fleet/jaia-fleet-config-update-iso.sh
-  fleet/jaia-create-cloudhub.py
-  fleet/jaia-delete-cloudhub.py
-  # First boot (also used by VirtualFleet creation)
-  init/jaia-create-ansible-inventory.sh
-  )
-
-# Iterate over each script to install and copy
-foreach(script ${scripts_to_install})
-    install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
-    configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
-endforeach()
 
 option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
 if(enable_testing)
@@ -250,8 +214,7 @@ foreach(app_target ${PROJECT_APP_LIST})
 endforeach()
 
 if(export_goby_interfaces)
-  # remove splines= when https://gitlab.com/graphviz/graphviz/-/issues/1408 fix is available (3.y)?
-  set(INTERFACE_COMMON_PARAMS "--splines=line;--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
+  set(INTERFACE_COMMON_PARAMS "--omit-group-regex=jaiabot::state_change;--omit-node-regex='.*statechart::Notify.*'")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces.svg "--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_no_interthread.svg "--omit-interthread;--no-disconnected;${INTERFACE_COMMON_PARAMS}")
   generate_interfaces_figure(${project_SRC_DIR}/doc/deployment/simulation_deployment.yml ${YML_OUT_DIR} simulation_interfaces_inc_unused.svg "${INTERFACE_COMMON_PARAMS}")

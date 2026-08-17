@@ -4,7 +4,7 @@ import { deadMansSwitch } from "./deadMansSwitch.js";
 import { updateStatus } from "./updateStatus.js";
 import { botDropdown } from "./BotDropdown.js";
 import { calibrationApp } from "./calibration.js";
-import { echoApp } from "./echo.js";
+import { pamApp } from "./pam.js";
 
 let FINE_CONTROL_KEY = "ShiftRight";
 let DEAD_MANS_SWITCH_KEY = "ShiftLeft";
@@ -897,7 +897,7 @@ function sendVisibleCommand() {
             updateStatus(status);
             botDropdown.updateWithBots(status.bots);
             calibrationApp.updateStatus(status);
-            echoApp.updateStatus(status);
+            pamApp.updateStatus(status);
         })
         .catch((e) => {
             console.error(e);

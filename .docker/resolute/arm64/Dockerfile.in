@@ -1,0 +1,103 @@
+ARG distro=@JAIA_VERSION_UBUNTU_CODENAME@
+FROM --platform=linux/amd64 ubuntu:${distro}
+ARG distro=@JAIA_VERSION_UBUNTU_CODENAME@
+ARG repo=release
+ARG version=@JAIA_VERSION_RELEASE_BRANCH@
+
+
+SHELL ["/bin/bash", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+ENV CROSS_COMPILE_ARCHS="arm64"
+
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    apt-get -y --no-install-recommends install \
+            git build-essential ssh cmake ninja-build gpg gpg-agent \
+            devscripts equivs ca-certificates quilt \
+            clang clang-tools dirmngr\
+            dput cdbs \
+            gcc-aarch64-linux-gnu \
+            && rm -rf /var/lib/apt/lists/*
+
+# Allow us to install packages for cross-compiling architectures
+RUN ARCHS=(${CROSS_COMPILE_ARCHS}) && \
+    ARCHS_LIST=$(IFS=,; echo "${ARCHS[*]}") && \
+    for ARCH in "${ARCHS[@]}"; do dpkg --add-architecture "$ARCH"; done
+
+# Restrict archives.ubuntu.com to amd64
+RUN sed -i '/Types: deb/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources 
+
+# Add entry for ports.ubuntu.com
+COPY <<EOF /etc/apt/sources.list.d/ubuntu-multiarch.sources
+Types: deb
+URIs: http://ports.ubuntu.com/
+Suites: ${distro} ${distro}-updates ${distro}-backports ${distro}-security
+Components: main universe restricted multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+Architectures: ${CROSS_COMPILE_ARCHS}
+EOF
+
+ENV GOBYSOFT_SIGNING_KEY=19478082E2F8D3FE
+ENV JAIABOT_SIGNING_KEY=954A004CD5D8CF32
+
+# Add packages.jaia.tech and signing key for packages.gobysoft.org and packages.jaia.tech
+RUN install -d -m 0755 /etc/apt/keyrings && \
+    gpg --keyserver keyserver.ubuntu.com --recv-keys ${GOBYSOFT_SIGNING_KEY} && gpg --export ${GOBYSOFT_SIGNING_KEY} > /etc/apt/keyrings/gobysoft.gpg && \
+    gpg --keyserver keyserver.ubuntu.com --recv-keys ${JAIABOT_SIGNING_KEY} && gpg --export ${JAIABOT_SIGNING_KEY} > /etc/apt/keyrings/jaiabot.gpg
+
+RUN echo -e "deb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/${repo}/${version}/ ${distro}/" >> /etc/apt/sources.list.d/jaiabot_${repo}_${version}.list
+
+# Install jaiabot dependencies
+RUN apt-get update && \
+    apt-get -y upgrade && \
+    apt-get -y install --no-install-recommends \
+            libdccl5:arm64 \
+            libdccl5-dev:arm64 \
+            dccl5-compiler:amd64 \
+            libgoby3:arm64 \
+            libgoby3-dev:arm64 \
+            libais-dev:arm64 \
+            libgoby3-moos-dev:arm64 \
+            libgoby3-moos:arm64 \
+            libgoby3-gui-dev:arm64 \
+            goby3-interfaces:amd64 \
+            libnanopb-dev:arm64 \
+            nanopb:amd64 \
+            python3-protobuf:amd64 \
+            wget:amd64 \
+            curl:amd64 \
+            graphviz:amd64 \
+            doxygen:amd64 \
+            && \
+    rm -rf /var/lib/apt/lists/*
+
+
+# Allow compilation of this directory, even if it's owned by someone else, not root
+RUN git config --global --add safe.directory /home/jaia/jaiabot
+
+# arduino-cli install
+RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh -s @JAIA_VERSION_ARDUINO_CLI@ && \
+    arduino-cli config init && \
+    arduino-cli core update-index && \
+    arduino-cli core install arduino:avr
+
+# NVM Pre Install Setup
+RUN mkdir -p /usr/local/nvm
+ENV NVM_DIR=/usr/local/nvm
+ENV NODE_VERSION=@JAIA_VERSION_NODEJS@
+
+# NVM Download
+RUN curl https://raw.githubusercontent.com/creationix/nvm/@JAIA_VERSION_NVM@/install.sh | bash
+
+# NVM Install
+RUN source $NVM_DIR/nvm.sh \
+    && npm install -g npm@@JAIA_VERSION_NPM@ \
+    && nvm install $NODE_VERSION \
+    && nvm use --delete-prefix $NODE_VERSION \
+    && npm i -g webpack webpack-cli
+
+# NVM Post Install Setup
+ENV NODE_PATH=$NVM_DIR/versions/node/$NODE_VERSION/bin
+ENV PATH=$NODE_PATH:$PATH

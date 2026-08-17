@@ -34,7 +34,7 @@ namespace si = boost::units::si;
 
 jaiabot::apps::BlueRoboticsBar30Driver::BlueRoboticsBar30Driver(
     const jaiabot::config::BlueRoboticsBar30ThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::config::BlueRoboticsBar30ThreadConfig>(config)
+    : goby::zeromq::SimpleThread<jaiabot::config::BlueRoboticsBar30ThreadConfig>(config)
 
 {
     glog.add_group("bar30", goby::util::Colors::blue);

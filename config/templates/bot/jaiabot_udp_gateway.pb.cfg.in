@@ -7,7 +7,7 @@ udp_config {
 
 in_simulation: $in_simulation
 
-echo_enabled: $echo_enabled
+pam_enabled: $pam_enabled
 salinity_enabled: $salinity_enabled
 bar30_enabled: $bar30_enabled
 tsys01_enabled: $tsys01_enabled

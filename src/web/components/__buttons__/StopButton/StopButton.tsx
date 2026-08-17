@@ -12,7 +12,7 @@ import { mdiStop } from "@mdi/js";
 
 import Bot from "../../../data/bots/bot";
 
-import { Command, CommandType } from "../../../types/protobuf-types";
+import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
 import { DialogActions } from "../../../types/context-types";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
@@ -51,7 +51,9 @@ export default function StopButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
-        if (!isCommandAvailable(CommandType.STOP, props.bot.getMissionStatus().missionState)) {
+        if (
+            !isCommandAvailable(Command_CommandType.STOP, props.bot.getMissionStatus().missionState)
+        ) {
             return DisabledCodes.MISSION_STATE;
         }
         return DisabledCodes.NONE;
@@ -87,7 +89,7 @@ export default function StopButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             const stopCommand: Command = {
                 bot_id: props.bot.getBotID(),
-                type: CommandType.STOP,
+                type: Command_CommandType.STOP,
             };
             const response = await sendBotCommand(stopCommand);
             if (response && response.status === "ok") {

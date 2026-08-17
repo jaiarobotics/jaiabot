@@ -175,12 +175,12 @@ struct InMission
 
     bool use_heading_constant_pid() const { return use_heading_constant_pid_; }
 
-    void set_is_echo_recording(const bool& is_echo_recording)
+    void set_is_pam_recording(const bool& is_pam_recording)
     {
-        is_echo_recording_ = is_echo_recording;
+        is_pam_recording_ = is_pam_recording;
     }
 
-    bool is_echo_recording() const { return is_echo_recording_; }
+    bool is_pam_recording() const { return is_pam_recording_; }
 
     using reactions = boost::mpl::list<
         boost::statechart::transition<EvNewMission, inmission::underway::Replan>,
@@ -221,7 +221,7 @@ struct InMission
     int repeat_index_{0};
     bool mission_complete_{false};
     bool use_heading_constant_pid_{false};
-    bool is_echo_recording_{false};
+    bool is_pam_recording_{false};
 };
 
 namespace inmission {

@@ -36,9 +36,9 @@ Bots or Hubs may be connected via the Cloud (see the [Cloud Computing](page056_c
 
 Thus, Bot 5 on VirtualFleet 3 would be `b5vf3`, or (real) Hub 1 Fleet 10 via the Cloud would be `h1cf10`. For servicing hosts remotely, Bot 2 on Fleet 4 would be `b2sf4`.
 
-Additionally, if you are on a bot or hub that has `source /etc/jaiabot/runtime.env` so that the environmental variable `jaia_fleet_index` is defined for the current fleet, you can omit `fN` and the current fleet will be used.
+Additionally, if you are on a bot or hub, you can omit `fN` and the current fleet will be used. The fleet is taken from the `jaia_fleet_id` environmental variable, which login shells pick up from `/etc/profile.d/jaia.sh` (which reads `/etc/jaiabot/jaia.env`, written from the debconf database when `jaiabot-embedded` is configured). Where no profile has been sourced — for example under `cron` or `ssh <host> <command>` — the fleet is read from the hostname instead (`hub0-fleet3`).
 
-The regex for this host shorthand is `([bh])([0-9]+)([svc]?)(f([0-9]+))?|(ch)(f([0-9]+))?`.
+The host shorthand format is `b<bot_id>[svc]f<fleet_id>`, `h<hub_id>[svc]f<fleet_id>` or `chf<fleet_id>` (for CloudHub); the `f<fleet_id>` portion may be omitted as described above. Parsing is implemented in `jaiabot::parse_host_code` (`src/lib/utils/ip.h`).
 
 ### Special cases
 
@@ -56,6 +56,8 @@ These related commands provide remote functionality using host codes given above
 - `jaia ip b1sf2` - Bot 1 Fleet 2 via service VPN
 - `jaia ip h3vf1` - Hub 3 VirtualFleet 1
 - `jaia ip b4` - Bot 4 for the same fleet as the machine this was run on.
+
+`jaia ip` is a thin wrapper around the standalone `jaia_ip` binary, which can also be run directly (`jaia_ip b1sf2`). `jaia_ip` does not load the `jaia` tool (or goby/protobuf) and so starts up considerably faster; prefer it in scripts and other non-interactive callers that query many addresses. `jaia_ip` additionally supports an explicit query mode (`jaia_ip --query_type net --fleet_id 3 --ip_net fleet_vpn --ip_version ipv4`); see `jaia_ip --help`.
 
 `jaia ssh ` uses the same codes but runs `ssh` to remotely log into the given system. Any parameters passed **after** the host code is passed unmodified to SSH:
 
@@ -101,6 +103,80 @@ As always, you can use `jaia ssh` to execute remotely, e.g. to restart all servi
 jaia ssh b1f10 sudo jaia ctl restart
 ```
 
+## doc
+
+`jaia doc` provides command line access to this documentation (Markdown). Run with no arguments to list all the available pages, or provide a page name to display it in the terminal.
+
 ## admin
 
-These subactions are used to administer a fleet of JaiaBots. Currently the only subaction is `ssh` which manages SSH keys for a given host. See the [SSH Access](page013_ssh_keys.md) page for more details.
+These subactions are used to administer a fleet of JaiaBots:
+
+- `jaia admin ssh` manages SSH keys for a given host. See the [SSH Access](page013_ssh_keys.md) page for more details.
+- `jaia admin fleet` creates and manages fleet configurations. See the [Embedded Board Deployment](page025_embedded_setup.md) page for more details.
+- `jaia admin debconf` reads and writes this bot/hub's own configuration, as described below.
+
+### debconf
+
+The `jaiabot-embedded` debconf database is the single source of truth for a bot or hub's configuration, and the generated systemd units are derived from it. This subaction reads and writes it without having to go through the interactive `dpkg-reconfigure` menus. Questions are named without the `jaiabot-embedded/` prefix.
+
+```
+jaia admin debconf list
+jaia admin debconf get fleet_id
+jaia admin debconf set fleet_id 3
+```
+
+Reading and writing the debconf database requires root, so `get` and `set` re-run themselves under `sudo` when they are not already root - there is no need to remember to prepend it. (`list` does not, since it does not read the database.)
+
+`get` with no question reports what everything is currently set to, which is the counterpart to `list`'s "what can I set?":
+
+```
+QUESTION                  VALUE
+bot_id                    (unset)
+comms_links               xbee,wifi
+fleet_id                  3
+type                      bot
+```
+
+Questions that have never been answered show as `(unset)`, which is distinct from one deliberately set to the empty string. Unlike `jaia-debconf.sh selections` - which emits `debconf-set-selections` format for another machine to re-import - this is meant for reading.
+
+`--format json` gives the same information in a form a machine can read, which is how the Ansible playbooks (`config/ansible/tasks/read-debconf.yml`) learn what a bot or hub is configured as. Unanswered questions are `null`:
+
+```
+jaia admin debconf get --format json
+{
+    "bot_id": null,
+    "comms_links": "xbee,wifi",
+    "fleet_id": "3",
+    "type": "bot"
+}
+```
+
+A single question in JSON gives an object with just that entry (`jaia admin debconf get fleet_id --format json`).
+
+`list` shows every question the package defines, along with its type, default and permitted choices - that is, what you can pass to `get` and `set`:
+
+```
+QUESTION                  TYPE         DEFAULT   CHOICES
+additional_sensors        multiselect  none      turner_c_flour, aml, ppk, none
+arduino_type              select       none      spi, usb, none
+bot_id                    select                 0-150
+bot_type                  select       hydro     hydro, pam, bio, none
+...
+```
+
+Long runs of consecutive integers are shown as a range (`0-150`) rather than in full. `list` reads the package's templates rather than the debconf database, so it describes what *can* be set. Both `list` and a bare `get` take `--all`, which also shows the internal `debconf_state_*` questions - those record where the interactive menu is rather than any configuration.
+
+`set` validates the value against that question's permitted `Choices`, so a typo fails immediately rather than silently generating the wrong services. By default it then runs `dpkg-reconfigure jaiabot-embedded`, which regenerates and re-enables the systemd units so the change takes effect.
+
+When changing several values, skip the reconfigure on all but the last so the units are only regenerated once:
+
+```
+jaia admin debconf set imu_type bno085 --reconfigure false
+jaia admin debconf set bot_type pam
+```
+
+As with any action, these can be run remotely:
+
+```
+jaia ssh b1f10 jaia admin debconf get imu_type
+```

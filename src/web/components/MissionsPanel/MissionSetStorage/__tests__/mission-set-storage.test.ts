@@ -8,7 +8,7 @@ import {
     locationD,
 } from "../../../../data/tests/__mocks__/waypoint-mock";
 import Task from "../../../../data/tasks/task";
-import { TaskType } from "../../../../types/protobuf-types";
+import { MissionTask_TaskType } from "../../../../shared/proto/jaiabot/messages/mission";
 import { TaskParameterKeys } from "../../../../types/jaia-system-types";
 import {
     saveToHub,
@@ -61,7 +61,7 @@ describe("Exercise functions to save and load missions from the hub", () => {
         mission1.addWaypoint(locationA);
         let waypoint1 = mission1.getWaypoint(1);
         let task1 = new Task();
-        task1.setType(TaskType.DIVE);
+        task1.setType(MissionTask_TaskType.DIVE);
         task1.setParameter({ key: TaskParameterKeys.MAX_DEPTH, value: 13 });
         waypoint1.setTask(task1);
         mission1.addWaypoint(locationB);
@@ -70,7 +70,7 @@ describe("Exercise functions to save and load missions from the hub", () => {
         mission2.addWaypoint(locationC);
         let waypoint2 = mission2.getWaypoint(1);
         let task2 = new Task();
-        task2.setType(TaskType.STATION_KEEP);
+        task2.setType(MissionTask_TaskType.STATION_KEEP);
         waypoint2.setTask(task2);
         mission2.addWaypoint(locationD);
 
@@ -102,7 +102,9 @@ describe("Exercise functions to save and load missions from the hub", () => {
         expect(retrievedMission1.getMissionID()).toEqual(1);
         expect(retrievedMission1.getWaypoint(1).getLocation().lat).toEqual(locationA.lat);
         expect(retrievedMission1.getWaypoint(1).getLocation().lon).toEqual(locationA.lon);
-        expect(retrievedMission1.getWaypoint(1).getTask().getType()).toEqual(TaskType.DIVE);
+        expect(retrievedMission1.getWaypoint(1).getTask().getType()).toEqual(
+            MissionTask_TaskType.DIVE,
+        );
         expect(retrievedMission1.getWaypoint(1).getTask().getDiveParameters().max_depth).toEqual(
             13,
         );
@@ -114,7 +116,9 @@ describe("Exercise functions to save and load missions from the hub", () => {
         expect(retrievedMission2.getMissionID()).toEqual(2);
         expect(retrievedMission2.getWaypoint(1).getLocation().lat).toEqual(locationC.lat);
         expect(retrievedMission2.getWaypoint(1).getLocation().lon).toEqual(locationC.lon);
-        expect(retrievedMission2.getWaypoint(1).getTask().getType()).toEqual(TaskType.STATION_KEEP);
+        expect(retrievedMission2.getWaypoint(1).getTask().getType()).toEqual(
+            MissionTask_TaskType.STATION_KEEP,
+        );
         expect(retrievedMission2.getWaypoint(2).getLocation().lat).toEqual(locationD.lat);
         expect(retrievedMission2.getWaypoint(2).getLocation().lon).toEqual(locationD.lon);
     });

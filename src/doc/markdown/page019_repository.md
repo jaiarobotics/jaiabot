@@ -5,8 +5,43 @@ It consists of source code that is compiled into a variety of binary application
 
 * `jaiabot`
   * `src`: Source code (C++ primarily) that is built into compiled code (binaries and libraries)
-  * `rootfs`: Root filesystem generation for jaiabot (prior to 1.12.0 this was the separate `jaiabot-rootfs-gen` repository).
-  * `debian`: Debian packaging files for jaiabot (prior to 1.12.0 this was the separate `jaiabot-debian` repository).
+    * `src/sh`: Shell and Python scripts that are installed onto and run by the system (via `install()` rules in `src/sh/CMakeLists.txt`)
+  * `scripts`: Scripts run manually by developers as needed; these are never installed onto a system
+  * `rootfs`: Root filesystem generation for jaiabot.
+  * `debian`: Debian packaging files for jaiabot.
+
+## Scripts: `scripts` versus `src/sh`
+
+There is a clear separation between scripts that are installed and run on the system versus those used by people:
+
+- `src/sh`: installed by CMake (into `${CMAKE_INSTALL_BINDIR}`, and copied into the build tree's `bin` directory) and run by the system or by users of a deployed system. Organized into:
+  - `src/sh/system`: system maintenance/monitoring scripts, plus the MOTD script (`75-jaiabot-status`)
+  - `src/sh/fleet`: fleet configuration scripts used by `jaia admin fleet ...`
+  - `src/sh/init`: symbolic link to `rootfs/customization/includes.chroot/etc/jaiabot/init` (the first-boot files baked into the image)
+  - `src/sh/data-offload`: data offload pre/post scripts
+  - `src/sh/firmware`: firmware/payload board scripts
+  - `src/sh/utils`: user-facing utilities (e.g. `jaia-doc.py`, `jaia-vpn-gen.sh`, the `jaia-geotiff-*` tools)
+- `scripts`: developer-only tooling, never installed. Organized into:
+  - `scripts/build`: build, deploy, packaging and toolchain setup scripts
+  - `scripts/dev`: miscellaneous developer helpers
+  - `scripts/git-hooks`: git hook configuration (including the vendored clang-format hooks)
+  - `scripts/hardware`: scripts for working with attached hardware (IMU, XBee, STM32, etc.)
+  - `scripts/log-analysis`: log/offload analysis tooling
+  - `scripts/packages`: apt repository management scripts (run on packages.jaia.tech)
+  - `scripts/sim-docker`: Docker-based simulator
+  - `scripts/svp`, `scripts/util-helpers`: analysis helpers
+  - `scripts/test`: scripts for testing the setup/build process
+  - `scripts/common-versions.env`: shared version definitions, sourced by CMake, CI and many scripts
+
+If you add a new script, put it in `src/sh` only if it needs to be installed onto a bot, hub or cloudhub; otherwise it belongs in `scripts`.
+
+## Script naming convention
+
+Script (and script directory) names use hyphens, not underscores, to separate words: for example `jaia-update-network.sh`, not `jaia_update_network.sh`.
+
+The one exception is a Python file that is imported as a module by another script: Python module names cannot contain hyphens, so these keep underscores (e.g. `scripts/svp/align_ctd.py`, which is imported by `scripts/svp/run-svp-pipeline.py`).
+
+Additionally, every script installed from `src/sh` must be prefixed with `jaia` (e.g. `jaia-geotiff-scan.sh`, `jaiabot-predataoffload.sh`, `jaiahub-dataoffload.sh`), since these end up on the system `PATH` alongside unrelated system commands. The MOTD script `src/sh/system/75-jaiabot-status` keeps its numeric prefix, which `update-motd.d` requires for ordering; it is installed onto the `PATH` as `jaiabot-status`.
 
 # Release Branches
 
@@ -25,8 +60,8 @@ The lifecycle of supported releases is given in this figure:
 ## Ubuntu Releases
 Each `jaiabot` release series is aligned to an long-term support (LTS) release of Ubuntu (except 1.y which supports two LTS releases as a special case):
 - jaiabot 1.y: Ubuntu 20.04 (focal) and 22.04 (jammy)
-- jaiabot 2.y (forthcoming, expected Oct 2024): Ubuntu 24.04 (noble)
-- jaiabot 3.y (future, expected Oct 2026): Ubuntu 26.04
+- jaiabot 2.y: July 2025: Ubuntu 24.04 (noble)
+- jaiabot 3.y (expected Oct 2026): Ubuntu 26.04 (resolute)
 
 ## Updates to create new release branch
 
@@ -35,9 +70,9 @@ Whenever a new release branch is created, the following must be done:
 - Update text in this document for Active/Stable/Maintenance branches.
 - Create new release branch (X.y) where X is one greater than the current Testing. For example, `git checkout -b 2.y 1.y`
 - Update `jaiabot/scripts/common-versions.env` with the new Ubuntu version to support by default (e.g., 'noble') and this new release branch (e.g., '2.y').
-- Update `jaiabot/scripts/packages/update_gobysoft_mirror.sh` to include an entry for the new release branch and add a 'distros_for_releases' key mapping the supported Ubuntu distros for this release branch (comma separated).
+- Update `jaiabot/scripts/packages/update-gobysoft-mirror.sh` to include an entry for the new release branch and add a 'distros_for_releases' key mapping the supported Ubuntu distros for this release branch (comma separated).
   -  Copy to /opt/jaia_packages on packages.jaia.tech.
-  - Run ./update_gobysoft_mirror.sh on packages.jaia.tech to pull the new staging mirror for this release branch.
+  - Run ./update-gobysoft-mirror.sh on packages.jaia.tech to pull the new staging mirror for this release branch.
 - Update `jaiabot/.circleci/config.yml`:
 	-  Change to new release branch in all the "filter-template-*" lists.
 	-  Change distros targeted by this release branch.
@@ -75,4 +110,4 @@ sudo -E rsync -aP /var/spool/apt-mirror/staging/${release_branch}/mirror/package
 ```
 
 - Symlink old docker (preferred) or create new for new distro in `jaiabot/.docker`
-- Add new distro to `docker-create-push-for-circleci.sh` and run `docker-create-push-for-circleci.sh {distroname}`
+- Run `docker-create-push-for-circleci.sh {distroname}`

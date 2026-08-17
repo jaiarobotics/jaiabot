@@ -4,6 +4,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/endian/conversion.hpp>
 #include <iostream>
+#include <boost/asio/steady_timer.hpp>
 
 using goby::glog;
 
@@ -622,16 +623,16 @@ void jaiabot::comms::XBeeDevice::async_read_with_timeout(
     std::string& buffer, const std::string& delimiter, int timeout_seconds,
     std::function<void(const std::string&)> handler)
 {
-    io->reset();
+    io->restart();
 
     // Clear the buffer before starting the read operation
     buffer.clear();
 
     // Create a shared pointer to manage the lifetime of the deadline timer
-    auto timer = std::make_shared<boost::asio::deadline_timer>(*io);
+    auto timer = std::make_shared<boost::asio::steady_timer>(*io);
 
     // Set the expiration time of the timer
-    timer->expires_from_now(boost::posix_time::seconds(timeout_seconds));
+    timer->expires_after(std::chrono::seconds(timeout_seconds));
 
     // Set up the timer's asynchronous wait operation
     timer->async_wait(

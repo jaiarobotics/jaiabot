@@ -23,12 +23,10 @@ add_custom_command(OUTPUT ${jdv_client_outdir}/bundle.js
   ARGS ${jdv_client_outdir}/bundle.js
   WORKING_DIRECTORY ${intermediate_web_dir}/jdv/client
   COMMENT "Building jdv"
-  DEPENDS npm_dependencies ${jdv_src_files}
+  DEPENDS npm_dependencies web_protobuf_types ${web_protobuf_types_stamp} ${jdv_src_files}
   )
 
 add_custom_target(jdv
   ALL
   DEPENDS npm_dependencies ${jdv_client_outdir}/bundle.js
   )
-
-install(DIRECTORY ${jdv_outdir} DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)

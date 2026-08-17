@@ -74,9 +74,9 @@ class Health : public ApplicationBase
         system("systemctl restart apache2 jaiabot");
     }
     void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
-    void restart_echo_py() { system("systemctl restart jaiabot_echo_py"); }
+    void restart_pam_py() { system("systemctl restart jaiabot_pam_py"); }
     void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
-    void reboot_echo() { system("systemctl start jaia_firm_echo_reset_gpio_pin_py"); }
+    void reboot_pam() { system("systemctl start jaia_firm_pam_reset_gpio_pin_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
     void flash_arduino();
 
@@ -250,27 +250,27 @@ jaiabot::apps::Health::Health()
             }
         });
 
-    interprocess().subscribe<jaiabot::groups::echo>(
-        [this](const jaiabot::protobuf::EchoIssue& echo_issue) {
-            glog.is_debug2() && glog << "Received Echo Issue " << echo_issue.ShortDebugString()
+    interprocess().subscribe<jaiabot::groups::pam>(
+        [this](const jaiabot::protobuf::PamIssue& pam_issue) {
+            glog.is_debug2() && glog << "Received PAM Issue " << pam_issue.ShortDebugString()
                                      << std::endl;
 
-            switch (echo_issue.solution())
+            switch (pam_issue.solution())
             {
-                case protobuf::EchoIssue::REPORT_ECHO: break;
-                case protobuf::EchoIssue::RESTART_ECHO_PY:
-                    glog.is_debug2() && glog << "ECHO ERROR: RESTART ECHO PY. " << std::endl;
-                    restart_echo_py();
+                case protobuf::PamIssue::REPORT_PAM: break;
+                case protobuf::PamIssue::RESTART_PAM_PY:
+                    glog.is_debug2() && glog << "PAM ERROR: RESTART PAM PY. " << std::endl;
+                    restart_pam_py();
                     break;
-                case protobuf::EchoIssue::REBOOT_ECHO_IMU_AND_RESTART_ECHO_PY:
-                    glog.is_debug2() && glog << "ECHO ERROR: RESTART ECHO PY. " << std::endl;
+                case protobuf::PamIssue::REBOOT_PAM_IMU_AND_RESTART_PAM_PY:
+                    glog.is_debug2() && glog << "PAM ERROR: RESTART PAM PY. " << std::endl;
                     /*
-                    The echo reboot pin and imu reboot pin are both attached to GPIO 23 on the Pi. 
-                    If we experiece an echo issue (like an unseated SD), we will see the IMU constantly restarting.
-                    Since we do not see echo issues with the PAM stack anymore - only with the SD card coming unseated -
-                    we will remove the reboot echo call. 
+                    The PAM reboot pin and imu reboot pin are both attached to GPIO 23 on the Pi. 
+                    If we experiece a PAM issue (like an unseated SD), we will see the IMU constantly restarting.
+                    Since we do not see PAM issues with the PAM stack anymore - only with the SD card coming unseated -
+                    we will remove the reboot PAM call. 
                     */                    
-                    restart_echo_py();
+                    restart_pam_py();
                     break;
                 default:
                     //TODO Handle Default Case

@@ -1,0 +1,50 @@
+// Copyright 2026:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/protobuf/option_extensions.proto";
+
+package jaiabot.config.dev;
+
+message DockerTool
+{
+    option (goby.msg).cfg.tool = {
+        is_tool: true
+        // Not actually a dispatcher with its own subtools, but this is what gives the CLI parser
+        // the same lenient, pass-everything-through-unmodified behavior used by e.g. "jaia ssh"
+        // and "jaia ctl" to forward arbitrary trailing 'docker' flags and arguments unmodified
+        has_subtools: true
+        has_help_action: false
+    };
+
+    optional goby.middleware.protobuf.AppConfig app = 1
+        [(goby.field) = { cfg { action: DEVELOPER } }];
+
+    optional string command = 2 [
+        default = "ps",
+        (goby.field) = {
+            description: "The 'docker' command to run, e.g. \"image\", \"ps\", \"logs\"; the rest of the command line is passed to 'docker' unmodified",
+            cfg { position: { enable: true } }
+        }
+    ];
+}

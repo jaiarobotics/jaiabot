@@ -58,11 +58,11 @@ source "$(dirname ${BASH_SOURCE:-${(%):-%x}})/../../preseed.goby"
 EOF
 
 for i in `seq 1 $((n_hubs))`; do
-    echo "[env=jaia_hub_index=${i},env=jaia_warp=${warp}] goby_launch -P -d${launchdelay} hub.launch" >> ${launchfile}
+    echo "[env=jaia_hub_id=${i},env=jaia_warp=${warp}] goby_launch -P -d${launchdelay} hub.launch" >> ${launchfile}
 done
 
 for i in `seq 1 $((n_bots))`; do
-    echo "[env=jaia_bot_index=${i},env=jaia_warp=${warp},env=jaia_electronics_stack=2,env=jaia_bot_type=HYDRO] goby_launch -P -d${launchdelay} bot.launch" >> ${launchfile}
+    echo "[env=jaia_bot_id=${i},env=jaia_warp=${warp},env=jaia_electronics_stack=2,env=jaia_bot_type=HYDRO] goby_launch -P -d${launchdelay} bot.launch" >> ${launchfile}
 done
 
 echo "Setting excutable permissions for all.launch"

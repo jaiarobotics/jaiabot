@@ -25,7 +25,7 @@
 
 #include "goby/middleware/group.h"
 
-#include "jaiabot/version.h"
+#include "jaiabot/intervehicle_api_version.h"
 
 namespace jaiabot
 {
@@ -44,7 +44,7 @@ constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 constexpr goby::middleware::Group dissolved_oxygen{"jaiabot::dissolved_oxygen"};
 constexpr goby::middleware::Group ph{"jaiabot::ph"};
 constexpr goby::middleware::Group fluorometer{"jaiabot::fluorometer"};
-constexpr goby::middleware::Group echo{"jaiabot::echo"};
+constexpr goby::middleware::Group pam{"jaiabot::pam"};
 constexpr goby::middleware::Group tsys01{"jaiabot::tsys01"};
 constexpr goby::middleware::Group ctd{"jaiabot::ctd"};
 

@@ -1,31 +1,31 @@
-[jaiabot-test-2.y]
+[jaiabot-test-3.y]
 login = dput
 fqdn = packages.jaia.tech
 method = scp
-incoming = /var/www/html/ubuntu/test/2.y/mini-dinstall/incoming
+incoming = /var/www/html/ubuntu/test/3.y/mini-dinstall/incoming
 allow_unsigned_uploads = 0
-post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/test/2.y
+post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/test/3.y
 
-[jaiabot-continuous-2.y]
+[jaiabot-continuous-3.y]
 login = dput
 fqdn = packages.jaia.tech
 method = scp
-incoming = /var/www/html/ubuntu/continuous/2.y/mini-dinstall/incoming
+incoming = /var/www/html/ubuntu/continuous/3.y/mini-dinstall/incoming
 allow_unsigned_uploads = 0
-post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/continuous/2.y
+post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/continuous/3.y
 
-[jaiabot-beta-2.y]
+[jaiabot-beta-3.y]
 login = dput
 fqdn = packages.jaia.tech
 method = scp
-incoming = /var/www/html/ubuntu/beta/2.y/mini-dinstall/incoming
+incoming = /var/www/html/ubuntu/beta/3.y/mini-dinstall/incoming
 allow_unsigned_uploads = 0
-post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/beta/2.y
+post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/beta/3.y
 
-[jaiabot-release-2.y]
+[jaiabot-release-3.y]
 login = dput
 fqdn = packages.jaia.tech
 method = scp
-incoming = /var/www/html/ubuntu/release/2.y/mini-dinstall/incoming
+incoming = /var/www/html/ubuntu/release/3.y/mini-dinstall/incoming
 allow_unsigned_uploads = 0
-post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/release/2.y
+post_upload_command = ssh dput@packages.jaia.tech /usr/bin/mini-dinstall --batch --config=/opt/jaia_packages/mini-dinstall.conf /var/www/html/ubuntu/release/3.y

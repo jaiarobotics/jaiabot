@@ -1,14 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import TaskParameters from "../TaskParameters";
 import Task from "../../../../data/tasks/task";
-import { TaskType } from "../../../../types/protobuf-types";
+import { MissionTask_TaskType } from "../../../../shared/proto/jaiabot/messages/mission";
 import { jaiaGlobal } from "../../../../data/jaia_global/jaia-global";
 import { TaskParameterKeys } from "../../../../types/jaia-system-types";
 
 const mockTask: Task = new Task();
 
 test("Render dive + drift parameters", () => {
-    mockTask.setType(TaskType.DIVE);
+    mockTask.setType(MissionTask_TaskType.DIVE);
     render(<TaskParameters task={mockTask} isDisabled={false} />);
     const depthParams = screen.getAllByDisplayValue(
         jaiaGlobal.getDefaultTaskParameters().dive.max_depth,
@@ -23,7 +23,7 @@ test("Render dive + drift parameters", () => {
 });
 
 test("Render drift parameters", () => {
-    mockTask.setType(TaskType.SURFACE_DRIFT);
+    mockTask.setType(MissionTask_TaskType.SURFACE_DRIFT);
     render(<TaskParameters task={mockTask} isDisabled={false} />);
     const driftParams = screen.getByDisplayValue(
         jaiaGlobal.getDefaultTaskParameters().drift.drift_time,
@@ -32,7 +32,7 @@ test("Render drift parameters", () => {
 });
 
 test.skip("Render constant heading parameters", () => {
-    mockTask.setType(TaskType.CONSTANT_HEADING);
+    mockTask.setType(MissionTask_TaskType.CONSTANT_HEADING);
     render(<TaskParameters task={mockTask} isDisabled={false} />);
     const heading = screen.getByDisplayValue(
         jaiaGlobal.getDefaultTaskParameters().constantHeading.constant_heading,

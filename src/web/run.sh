@@ -23,6 +23,10 @@ popd > /dev/null
 ./install_dependencies.sh ./
 
 
+# Regenerate the TypeScript protobuf types in case the .proto files changed
+./gen_protobuf_types.sh
+
+
 # Set up pre-commit hooks
 pushd ${JAIA_DIR}/scripts/git-hooks/init/pre-commit/ > /dev/null
     ./set-pre-commit-hook.sh
@@ -30,7 +34,7 @@ popd > /dev/null
 
 
 # Determine ports
-hub_id=${jaia_hub_index:-1}
+hub_id=${jaia_hub_id:-1}
 portal_port=$((40001 - hub_id))
 web_port=$((40000 + hub_id))
 

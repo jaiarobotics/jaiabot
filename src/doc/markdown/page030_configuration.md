@@ -2,7 +2,7 @@
 
 The jaiabot configuration files can be found in the `jaiabot/config` folder of the repository.
 
-At it's simplest, you can simulate any 4 vehicles at 5x real speed by running:
+At it's simplest, you can simulate any 4 vehicles at 5x real speed by running (from `jaiabot/config/launch/simulation`):
 
 ```
 ./generate_all_launch.sh 4 5
@@ -41,7 +41,14 @@ Generally you will need to `source preseed.goby` before running any of these Gen
 
 ## Environmental variables
 
-These environmental variables are set in the `preseed.goby` file (`goby_launch` runs `source preseed.goby` before launching any applications) or in the systemd service jobs:
+The Generators read their inputs from environmental variables. Where those come from depends on how the applications were launched:
+
+- **Simulation** (`goby_launch`): from `config/preseed.goby`, which `goby_launch` sources before launching any applications.
+- **Deployed bots and hubs** (systemd): from `Environment=` lines baked into each generated unit. `config/gen/systemd.py` writes them from the `jaiabot-embedded` debconf database, which is the single source of truth for a deployed system. To change any of them, run `sudo dpkg-reconfigure jaiabot-embedded`.
+
+Note that these variables are for the applications. Interactive shells get a much smaller set — the node's identity only — from `/etc/profile.d/jaia.sh`, which reads `/etc/jaiabot/jaia.env`.
+
+The variables are:
 
 - `jaia_log_dir`: Path to directory base for logging. Within this directory, a substructure will be created by the generator scripts:
     - bot/0: Logs for bot index 0
@@ -53,7 +60,7 @@ These environmental variables are set in the `preseed.goby` file (`goby_launch` 
 - `jaia_max_number_vehicles`: Maximum number of vehicles to configure communications links for (could be greater than the number actually being run).
 - `jaia_n_bots`: Number of vehicles to actually run
 - `jaia_mode`: "simulation" (for simulation) or "runtime" (for in-water/bench testing)
-- `jaia_bot_index`: bot identification number (starting at 0).
+- `jaia_bot_id`: bot identification number (starting at 0).
 
 ## Debugging
 

@@ -25,6 +25,8 @@
 
 #include <string>
 
+#include "jaiabot/intervehicle_api_version.h"
+
 // clang-format off
 // (don't change @@ macros for CMake)
 #define JAIABOT_VERSION_MAJOR "@PROJECT_VERSION_MAJOR@"
@@ -41,7 +43,6 @@
 namespace jaiabot
 {
 constexpr const char* VERSION_STRING = "@PROJECT_VERSION@";
-constexpr std::uint32_t INTERVEHICLE_API_VERSION{@PROJECT_INTERVEHICLE_API_VERSION@};
 }
 // clang-format on
 

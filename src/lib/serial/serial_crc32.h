@@ -84,11 +84,7 @@ template <const goby::middleware::Group& line_in_group,
               goby::middleware::io::PubSubLayer::INTERPROCESS,
           goby::middleware::io::PubSubLayer subscribe_layer =
               goby::middleware::io::PubSubLayer::INTERTHREAD,
-#if GOBY_VERSION_MAJOR == 3 && GOBY_VERSION_MINOR < 4
-          template <class> class ThreadType = goby::middleware::SimpleThread,
-#else
           template <class> class ThreadType = goby::zeromq::SimpleThread,
-#endif
           bool use_indexed_groups = false>
 class SerialThreadCRC32
     : public goby::middleware::io::detail::SerialThread<line_in_group, line_out_group,

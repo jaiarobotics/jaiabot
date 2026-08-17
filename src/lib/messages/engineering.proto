@@ -2,7 +2,7 @@ syntax = "proto2";
 
 import "dccl/option_extensions.proto";
 import "jaiabot/messages/bounds.proto";
-import "jaiabot/messages/echo.proto";
+import "jaiabot/messages/pam.proto";
 import "jaiabot/messages/mission.proto";
 import "jaiabot/messages/link.proto";
 
@@ -112,15 +112,15 @@ message IMUCalibration
     optional bool run_cal = 1 [default = false];
 }
 
-message Echo
+message Pam
 {
     option (dccl.msg) = {
         unit_system: "si"
     };
 
-    optional bool start_echo = 1 [default = false];
-    optional bool stop_echo = 2 [default = false];
-    optional EchoState echo_state = 3 [default = BOOTING];
+    optional bool start_pam = 1 [default = false];
+    optional bool stop_pam = 2 [default = false];
+    optional PamState pam_state = 3 [default = BOOTING];
 }
 
 message Engineering
@@ -136,13 +136,13 @@ message Engineering
     option (dccl.msg) = {
         id: 127
         max_bytes: 250
-        codec_version: 4
+        codec_version: 5
         unit_system: "si"
     };
 
     required uint32 bot_id = 1 [(dccl.field) = { min: 0 max: 255 }];
     optional uint64 time = 2 [(dccl.field) = {
-        codec: "dccl.time2"
+        codec: "dccl.time"
         units { prefix: "micro" derived_dimensions: "time" }
     }];
 
@@ -164,7 +164,7 @@ message Engineering
 
     optional IMUCalibration imu_cal = 18;
 
-    optional Echo echo = 19;
+    optional Pam pam = 19;
 
     // For User flagging of events
     optional uint32 flag = 100 [(dccl.field) = { min: 0 max: 1024 }];

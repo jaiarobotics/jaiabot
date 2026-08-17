@@ -1,0 +1,105 @@
+// Copyright 2026:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Binaries
+// ("The Jaia Binaries").
+//
+// The Jaia Binaries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 2 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Binaries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/protobuf/option_extensions.proto";
+
+package jaiabot.config;
+
+message DevTool
+{
+    option (goby.msg).cfg.tool = {
+        is_tool: true
+        has_subtools: true
+        has_help_action: true
+    };
+
+    optional goby.middleware.protobuf.AppConfig app = 1
+        [(goby.field) = { cfg { action: DEVELOPER } }];
+
+    enum Action
+    {
+        help = 0 [(goby.ev).cfg = {
+            short_help_msg: "Print usage information",
+            full_help_msg: "Usage: \"jaia dev help [action]\""
+        }];
+        local_deploy = 1 [(goby.ev).cfg = {
+            short_help_msg: "Cross-compile this source tree and deploy it to bots and hubs",
+        }];
+        build = 2 [(goby.ev).cfg = {
+            short_help_msg: "Build this source tree using ./build.sh",
+            full_help_msg: "Runs ./build.sh to configure (CMake, using Ninja by default) and build this "
+                           "source tree.\n"
+                           "\n"
+                           "Example commands:\n"
+                           "  jaia dev build: build all targets\n"
+                           "  jaia dev build jaia: build only the 'jaia' target\n"
+                           "  jaia dev build --cmake_var build_doc=ON: set a CMake variable (as -Dbuild_doc=ON)\n"
+                           "  jaia dev build --make_var VERBOSE=1: set a variable passed to the underlying build tool\n"
+                           "  jaia dev build --make: use GNU Make instead of the default Ninja generator\n"
+                           "\n"
+                           "Requires that 'jaia dev setup' has been run first to install the required build tools."
+        }];
+        clean = 3 [(goby.ev).cfg = {
+            short_help_msg: "Remove the build directory",
+            full_help_msg: "By default, removes this machine's local build directory (e.g. \"build/amd64\"), "
+                           "so the next \"jaia dev build\" starts from a clean CMake configuration. If "
+                           "'jaia' itself was built from this tree (e.g. by ./init.sh), the running "
+                           "binary and the shared libraries it has loaded are skipped rather than "
+                           "removed out from under it; rebuild (\"jaia dev build jaia\") to replace them.\n"
+                           "\n"
+                           "With \"--docker\", also removes the cross-compile build directories created by "
+                           "\"jaia dev local_deploy\" (e.g. \"build/resolute-3.y-arm64\"), which are owned by "
+                           "root inside the build container and so are removed with \"sudo\"."
+        }];
+        setup = 4 [(goby.ev).cfg = {
+            short_help_msg: "Install the tools required to build this source tree",
+            full_help_msg: "Runs scripts/build/setup-tools-build.sh, which installs the compilers, CMake, apt "
+                           "build dependencies, arduino-cli, and nvm/npm/webpack required by \"jaia dev build\". "
+                           "Requires root or sudo."
+        }];
+        docker = 5 [(goby.ev).cfg = {
+            short_help_msg: "Frontend to 'docker' scoped to this repository's images and containers",
+            full_help_msg: "Runs 'docker' with the given command, automatically scoped (via \"--filter "
+                           "label=jaiabot_build=true\") to the images and containers created by this "
+                           "repository (the cross-compile build image/container and the simulator image/"
+                           "container), for the 'docker' commands that support filtering.\n"
+                           "\n"
+                           "Example commands:\n"
+                           "  jaia dev docker: list this repository's running containers ('docker ps')\n"
+                           "  jaia dev docker ps -a: list all of this repository's containers, running or not\n"
+                           "  jaia dev docker image list: list this repository's images\n"
+                           "  jaia dev docker container prune: remove this repository's stopped containers\n"
+                           "\n"
+                           "Commands that operate on an explicit container/image (e.g. \"docker logs\", "
+                           "\"docker exec\", \"docker rm\") are passed through to 'docker' unmodified."
+        }];
+    }
+    optional Action action = 2 [
+        default = help,
+        (goby.field) = {
+            description: "The action this tool should take [can omit --action if 1st parameter]",
+            cfg { position: { enable: true }, cli_short: "A", action: HIDDEN }
+        }
+    ];
+}

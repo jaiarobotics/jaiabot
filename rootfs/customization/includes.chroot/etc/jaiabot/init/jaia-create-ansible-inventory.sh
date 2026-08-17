@@ -40,7 +40,9 @@ else
 fi
 
 if [ "$fleet" = "" ]; then
-    fleet=$(debconf-get-selections | grep jaiabot-embedded/fleet_id | cut -f 4)
+    source /usr/bin/jaia-debconf.sh
+    # empty default: the check below produces a better message than the helper
+    fleet=$(jaia_debconf_get fleet_id "")
 fi
 
 if [ "$fleet" = "" ]; then
@@ -55,7 +57,7 @@ hubs_array=($(echo "$hubs" | tr ',' ' '))
 echo "bots:"
 echo "  hosts:"
 for b in "${bots_array[@]}"; do
-    ip=$(eval jaia-ip.py --node bot --net ${net} --fleet_id ${fleet} --node_id ${b} addr --ipv${ipv})
+    ip=$(jaia_ip --query_type addr --node_type bot --ip_net ${net} --fleet_id ${fleet} --node_id ${b} --ip_version ipv${ipv})
     echo "    bot${b}-fleet${fleet}:"
     echo "      ansible_user: jaia"
     echo "      ansible_host: ${ip}"
@@ -64,7 +66,7 @@ done
 echo "hubs:"
 echo "  hosts:"
 for h in "${hubs_array[@]}"; do
-    ip=$(eval jaia-ip.py --node hub --net ${net} --fleet_id ${fleet} --node_id ${h} addr --ipv${ipv})
+    ip=$(jaia_ip --query_type addr --node_type hub --ip_net ${net} --fleet_id ${fleet} --node_id ${h} --ip_version ipv${ipv})
     echo "    hub${h}-fleet${fleet}:"
     echo "      ansible_user: jaia"
     echo "      ansible_host: ${ip}"

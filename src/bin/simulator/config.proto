@@ -47,7 +47,8 @@ message Simulator
 
     optional goby.middleware.protobuf.UDPPointToPointConfig gps_udp_config = 20;
 
-    optional goby.middleware.protobuf.UDPPointToPointConfig udp_gateway_config = 21;
+    optional goby.middleware.protobuf.UDPPointToPointConfig udp_gateway_config =
+        21;
 
     // allow simulator without GPS by setting this false
     optional bool enable_gps = 25 [default = true];
@@ -102,14 +103,17 @@ message Simulator
     }
 
     repeated ScalarSample sample = 40;
-    optional double temperature_stdev = 41 [(dccl.field) = {
-        units {
-            derived_dimensions: "temperature"
-            system: "celsius"
-            relative_temperature: true
-        }
-    }];
-    optional double salinity_stdev = 42;
+    optional double temperature_stdev = 41 [
+        (dccl.field) = {
+            units {
+                derived_dimensions: "temperature"
+                system: "celsius"
+                relative_temperature: true
+            }
+        },
+        default = 1
+    ];
+    optional double salinity_stdev = 42 [default = 1];
 
     optional string hub_gpsd_device = 43;
 

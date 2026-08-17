@@ -32,7 +32,7 @@ using goby::glog;
 
 jaiabot::apps::TurnerCFluorDriver::TurnerCFluorDriver(
     const jaiabot::config::TurnerCFluorThreadConfig& config)
-    : goby::middleware::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>(config)
+    : goby::zeromq::SimpleThread<jaiabot::config::TurnerCFluorThreadConfig>(config)
 {
     glog.add_group("turner_c_fluor", goby::util::Colors::blue);
 

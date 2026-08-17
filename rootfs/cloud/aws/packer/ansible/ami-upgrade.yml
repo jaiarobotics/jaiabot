@@ -41,7 +41,8 @@
         src: templates/do-major-upgrade.sh.j2
         dest: '{{ upgrade_dir_base }}/do-major-upgrade.sh'
         mode: a=rwx
-        
-    - name: Run upgrade script
-      shell: |
-        {{ upgrade_dir_base }}/do-major-upgrade.sh 2>&1 | tee {{ upgrade_dir_base }}/major_upgrade_final.log
+
+        # Actual script is run by packer as pivot_root breaks Ansible config
+#    - name: Run upgrade script
+#      shell: |
+#        {{ upgrade_dir_base }}/do-major-upgrade.sh 2>&1 | tee {{ upgrade_dir_base }}/major_upgrade_final.log

@@ -1,11 +1,11 @@
 import { MapFeatureTypes } from "./openlayers-types";
 import {
-    ConstantHeadingParameters,
-    DiveParameters,
-    DriftParameters,
     MissionState,
-    StationKeepParameters,
-} from "./protobuf-types";
+    MissionTask_ConstantHeadingParameters,
+    MissionTask_DiveParameters,
+    MissionTask_DriftParameters,
+    MissionTask_StationKeepParameters,
+} from "../shared/proto/jaiabot/messages/mission";
 
 export enum NodeTypes {
     NONE = "NONE",
@@ -38,10 +38,10 @@ export interface MissionStatus {
 }
 
 export interface TaskParameters {
-    dive: DiveParameters;
-    drift: DriftParameters;
-    constantHeading: ConstantHeadingParameters;
-    stationKeep: StationKeepParameters;
+    dive: MissionTask_DiveParameters;
+    drift: MissionTask_DriftParameters;
+    constantHeading: MissionTask_ConstantHeadingParameters;
+    stationKeep: MissionTask_StationKeepParameters;
 }
 
 export enum TaskParameterKeys {

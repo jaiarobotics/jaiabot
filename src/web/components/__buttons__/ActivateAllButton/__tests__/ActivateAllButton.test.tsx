@@ -6,7 +6,7 @@ import ActivateAllButton from "../ActivateAllButton";
 import { bots } from "../../../../data/bots/bots";
 
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
-import { MissionState } from "../../../../types/protobuf-types";
+import { MissionState } from "../../../../shared/proto/jaiabot/messages/mission";
 
 const botStatusMock1: PortalBotStatus = {
     bot_id: 1,

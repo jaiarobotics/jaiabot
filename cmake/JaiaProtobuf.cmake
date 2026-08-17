@@ -29,16 +29,13 @@ function(jaiabot_protobuf_generate)
     message(FATAL_ERROR "You must define PROTOC_OUT_DIR or set TARGET_TYPE LIB|BIN for jaiabot_protobuf_generate")
   endif()
 
-  set(project_PROTO_IMPORT_DIRS "${protoc_out_dir};${project_INC_DIR};${GOBY_INCLUDE_DIR};${DCCL_INCLUDE_DIR}")
-
-  
   if("${args_LANGUAGE}" STREQUAL "CXX")
     protobuf_generate(
       LANGUAGE dccl
       PROTOC_OPTIONS --cpp_out=${protoc_out_dir}
       OUT_VAR ${args_OUT_VAR}
       PROTOC_OUT_DIR ${protoc_out_dir}
-      IMPORT_DIRS ${project_PROTO_IMPORT_DIRS} ${args_IMPORT_DIRS}
+      IMPORT_DIRS ${GOBY_INCLUDE_DIR} ${DCCL_INCLUDE_DIR} ${project_SRC_DIR}/lib/messages ${args_IMPORT_DIRS}
       PROTOS ${args_PROTOS}
       GENERATE_EXTENSIONS .pb.h .pb.cc
     )
@@ -47,7 +44,7 @@ function(jaiabot_protobuf_generate)
       LANGUAGE nanopb
       OUT_VAR ${args_OUT_VAR}
       PROTOC_OUT_DIR ${protoc_out_dir}
-      IMPORT_DIRS ${project_PROTO_IMPORT_DIRS} ${args_IMPORT_DIRS}
+      IMPORT_DIRS ${project_SRC_DIR}/lib/messages/nanopb ${args_IMPORT_DIRS}
       PROTOS ${args_PROTOS}
       GENERATE_EXTENSIONS .pb.h .pb.c
     )
@@ -57,7 +54,7 @@ function(jaiabot_protobuf_generate)
       PROTOC_OPTIONS --pyi_out=${protoc_out_dir}
       OUT_VAR ${args_OUT_VAR}
       PROTOC_OUT_DIR ${protoc_out_dir}
-      IMPORT_DIRS ${project_PROTO_IMPORT_DIRS} ${args_IMPORT_DIRS}
+      IMPORT_DIRS ${project_SRC_DIR}/lib/messages/python ${args_IMPORT_DIRS}
       PROTOS ${args_PROTOS}
     )
   else()
@@ -80,7 +77,7 @@ function(jaiabot_protobuf_make_symlinks)
   )
   foreach(lnk ${args_LINK})
     if("${lnk}" STREQUAL "NANOPB")
-      set(NANOPB_PROTO /usr/lib/python3/dist-packages/proto/nanopb.proto)
+      set(NANOPB_PROTO "/usr/lib/python3/dist-packages/nanopb/generator/proto/nanopb.proto")
       file(CREATE_LINK "${NANOPB_PROTO}" "${CMAKE_CURRENT_SOURCE_DIR}/nanopb.proto" SYMBOLIC)
     elseif("${lnk}" STREQUAL "DCCL")
       file(CREATE_LINK "${DCCL_INCLUDE_DIR}/dccl" "${CMAKE_CURRENT_SOURCE_DIR}/dccl" SYMBOLIC)

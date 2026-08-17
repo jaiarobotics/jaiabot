@@ -49,7 +49,7 @@ class MultiThreadPattern : public zeromq::MultiThreadApplication<config::MultiTh
     void loop() override;
 };
 
-class SubThreadA : public middleware::SimpleThread<config::MultiThreadPattern>
+class SubThreadA : public zeromq::SimpleThread<config::MultiThreadPattern>
 {
   public:
     SubThreadA(const config::MultiThreadPattern& config);
@@ -58,7 +58,7 @@ class SubThreadA : public middleware::SimpleThread<config::MultiThreadPattern>
     void loop() override;
 };
 
-class SubThreadB : public middleware::SimpleThread<config::MultiThreadPattern>
+class SubThreadB : public zeromq::SimpleThread<config::MultiThreadPattern>
 {
   public:
     SubThreadB(const config::MultiThreadPattern& config);
@@ -110,20 +110,20 @@ void jaiabot::apps::MultiThreadPattern::timer0()
 
 // Subthread A
 jaiabot::apps::SubThreadA::SubThreadA(const config::MultiThreadPattern& config)
-    : middleware::SimpleThread<config::MultiThreadPattern>(config, 2.0 * si::hertz)
+    : zeromq::SimpleThread<config::MultiThreadPattern>(config, 2.0 * si::hertz)
 {
     glog.add_group("a", goby::util::Colors::blue);
 }
 
 void jaiabot::apps::SubThreadA::loop()
 {
-    // called at frequency passed to middleware::SimpleThread base class
+    // called at frequency passed to zeromq::SimpleThread base class
     glog.is_verbose() && glog << group("a") << "Loop!" << std::endl;
 }
 
 // Subthread B
 jaiabot::apps::SubThreadB::SubThreadB(const config::MultiThreadPattern& config)
-    : middleware::SimpleThread<config::MultiThreadPattern>(config, 1.0 * si::hertz)
+    : zeromq::SimpleThread<config::MultiThreadPattern>(config, 1.0 * si::hertz)
 {
     glog.add_group("b", goby::util::Colors::magenta);
 }

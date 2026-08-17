@@ -1,6 +1,5 @@
 import cloneDeep from "lodash/cloneDeep";
 import {
-    CoordinateSystem,
     NodeTypes,
     SelectedNode,
     SelectedTaskPacket,
@@ -8,7 +7,10 @@ import {
     TaskParameters,
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
-import { Metadata, Version } from "../../types/protobuf-types";
+import {
+    DeviceMetadata,
+    DeviceMetadata_Version,
+} from "../../shared/proto/jaiabot/messages/metadata";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 export interface SelectedZoneVertex {
@@ -61,9 +63,8 @@ export class JaiaGlobal {
     private mapMode: MapModes;
     private defaultTaskParameters: TaskParameters;
     private controllingClientID: string;
-    private coordinateSystem: CoordinateSystem;
-    private metadata: Metadata;
-    private gitHubVersion: Version;
+    private metadata: DeviceMetadata;
+    private gitHubVersion: DeviceMetadata_Version;
     private isUpgradeAvailable: boolean;
     private isConnectedToInternet: boolean;
 
@@ -87,7 +88,6 @@ export class JaiaGlobal {
         this.zoneInEditMode = UNASSIGNED_ID;
         this.mapMode = MapModes.DEFAULT;
         this.defaultTaskParameters = defaultTaskParameters;
-        this.coordinateSystem = CoordinateSystem.LAT_LON;
         this.metadata = {};
         this.gitHubVersion = defaultGitHubVersion;
         this.isUpgradeAvailable = false;
@@ -149,19 +149,11 @@ export class JaiaGlobal {
         this.controllingClientID = controllingClientID;
     }
 
-    getCoordinateSystem() {
-        return this.coordinateSystem;
-    }
-
-    setCoordinateSystem(coordinateSystem: CoordinateSystem) {
-        this.coordinateSystem = coordinateSystem;
-    }
-
     getMetadata() {
         return this.metadata;
     }
 
-    setMetadata(metadata: Metadata) {
+    setMetadata(metadata: DeviceMetadata) {
         this.metadata = metadata;
     }
 
@@ -169,7 +161,7 @@ export class JaiaGlobal {
         return this.gitHubVersion;
     }
 
-    setGitHubVersion(version: Version) {
+    setGitHubVersion(version: DeviceMetadata_Version) {
         this.gitHubVersion = version;
     }
 

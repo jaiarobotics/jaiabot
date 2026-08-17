@@ -10,7 +10,7 @@ message XBeePacket
         id: 32764       // not really used, will be removed from message
         max_bytes: 250  // will be 248 when we remove the ID 2 bytes == default
                         // max packet size (ATNP), where 248 = 256 - 8 bytes (if encryption enabled, supposedly, according to 2025-01-23 with Brenton Mock at Digi
-        codec_version: 4
+        codec_version: 5
     };
 
     // broadcast (0) + 31 hubs (0-30 inclusive) + 151 bots (0-150 inclusive)

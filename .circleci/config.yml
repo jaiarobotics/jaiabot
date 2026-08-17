@@ -9,6 +9,20 @@ environment-template-common: &environment-template-common
   QUILT_REFRESH_ARGS: "-p ab --no-timestamps --no-index --strip-trailing-whitespace"
   CC: /usr/bin/clang
   CXX: /usr/bin/clang++
+  # set to "true" to build jaiabot-doc/jaiabot-interfaces (and run goby_clang_tool) even when JAIABOT_APT_REPO is "test"
+  BUILD_DOC_FOR_TEST_REPO: "false"
+  # set to "true" to compile test-repo builds at -O0 (via the "noopt" DEB_BUILD_OPTIONS flag) for faster
+  # iteration; default keeps full -O2 optimization since test-repo packages may be installed on real hardware
+  DISABLE_OPT_FOR_TEST_REPO: "false"
+  CCACHE_DIR: /root/.ccache
+  CCACHE_MAXSIZE: "3G"
+  # each job starts from a fresh container, so both mtime (default) and hashing the compiler's
+  # raw content are unstable: apt-get dist-upgrade can pull a same-version compiler rebuild with
+  # different bytes, invalidating every cache entry at once. Check the reported version string
+  # instead, which is stable across same-version rebuilds and only changes on a real upgrade.
+  CCACHE_COMPILERCHECK: "%compiler% -v"
+  # fixed, build-directory-independent location webpack.config.js will use for its filesystem cache when set
+  WEBPACK_CACHE_DIR: /root/.cache/webpack
 
 environment-template-amd64: &environment-template-amd64
   TARGET_ARCH: "amd64"
@@ -20,41 +34,43 @@ environment-template-arm64: &environment-template-arm64
   TARGET_ARCH: "arm64"
   DEB_BUILD_OPTIONS: "parallel=4 nocheck"
 
-environment-template-noble: &environment-template-noble
-  DISTRO_RELEASE_CODENAME: "noble"
-  DISTRO_RELEASE_VERSION: "ubuntu24.04"
+environment-template-resolute: &environment-template-resolute
+  DISTRO_RELEASE_CODENAME: "resolute"
+  DISTRO_RELEASE_VERSION: "ubuntu26.04"
 
 ## Pre-declare Docker containers
-docker-base-noble: &docker-base-noble
-  - image: gobysoft/jaiabot-ubuntu-amd64:24.04.1
+docker-base-resolute: &docker-base-resolute
+  - image: gobysoft/jaiabot-ubuntu-amd64:26.04
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
-docker-arm64-noble: &docker-arm64-noble
-  - image: gobysoft/jaiabot-ubuntu-arm64:24.04.1
+docker-arm64-resolute: &docker-arm64-resolute
+  - image: gobysoft/jaiabot-ubuntu-arm64:26.04
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
 
 docker-base-light: &docker-base-light
-  - image: gobysoft/ubuntu-build-base:24.04.1
+  - image: gobysoft/ubuntu-build-base:26.04.1
     auth:
       username: $DOCKERHUB_USERNAME
       password: $DOCKERHUB_PASSWORD
+
 ## Pre-declare job templates
 job-template-amd64: &job-template-amd64
   resource_class: large
   working_directory: /root/jaiabot
   steps:
     - checkout
-    - run: &run-add-gobysoft-packages-key
-        name: Install packages.gobysoft.org key
-        command: |
-          apt-key adv --recv-key --keyserver keyserver.ubuntu.com 19478082E2F8D3FE
-    - run: &run-add-jaia-packages-key
-        name: Install packages.jaia.tech key
-        command: |
-          apt-key adv --recv-key --keyserver keyserver.ubuntu.com 954A004CD5D8CF32
+    - restore_cache: &restore-npm-webpack-cache
+        keys:
+          - jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
+          - jaiabot-npm-webpack-v1-
+    - restore_cache: &restore-ccache
+        keys:
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-
+          - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-
     - run: &run-set-deb-rep-and-version
         name: Set environmental variables for which packages.jaia.tech repo to use
         command: |
@@ -67,16 +83,46 @@ job-template-amd64: &job-template-amd64
         name: Add correct packages.jaia.tech sources.list
         command: |
           echo "JAIABOT_APT_REPO=${JAIABOT_APT_REPO}"
-          echo -e "deb http://packages.jaia.tech/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/\ndeb http://packages.jaia.tech/ubuntu/gobysoft/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
+          echo -e "deb [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/\ndeb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/${JAIABOT_APT_REPO}/${JAIABOT_APT_VERSION}/ ${DISTRO_RELEASE_CODENAME}/" >> /etc/apt/sources.list.d/jaiabot_${JAIABOT_APT_REPO}_${JAIABOT_APT_VERSION}.list
     - run: &run-update-apt
         name: Update apt packages
         command: |
           apt-get update &&
-          apt-get dist-upgrade -y 
-          [[ "${TARGET_ARCH}" == "amd64" ]] && apt-get install -y goby3-clang-tool dccl4-apps || true
+          apt-get dist-upgrade -y &&
+          apt-get install -y ccache
+          [[ "${TARGET_ARCH}" == "amd64" && ( "${JAIABOT_APT_REPO}" != "test" || "${BUILD_DOC_FOR_TEST_REPO}" == "true" ) ]] && apt-get install -y goby3-clang-tool || true
+    - run: &run-zero-ccache-stats
+        name: Reset ccache statistics
+        # the counters live in the cache directory, so without this they accumulate
+        # across every build that restores the cache
+        command: ccache -z || true
     - run: &run-build
         name: Build
-        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON .. && cmake --build . -- -j4
+        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache .. && cmake --build . -- -j4
+    - run: &show-ccache-stats
+        name: Show ccache stats
+        command: ccache -s || true
+    - save_cache: &save-ccache
+        key: jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
+        paths:
+          - /root/.ccache
+    - save_cache: &save-npm-webpack-cache
+        key: jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
+        paths:
+          - /root/.npm
+          - /root/.cache/webpack
+    - run: &run-check-protobuf-types
+        name: Check generated protobuf TypeScript types are up to date
+        command: |
+          PATH=${CIRCLE_WORKING_DIRECTORY}/build/intermediate/web/node_modules/.bin:$PATH \
+            ./src/web/gen_protobuf_types.sh
+          # porcelain rather than diff, so an uncommitted new generated file fails too
+          if [ -n "$(git status --porcelain -- src/web/shared/proto)" ]; then
+            echo "src/web/shared/proto is stale - run 'npm run gen:proto' in src/web"
+            git status --porcelain -- src/web/shared/proto
+            git diff -- src/web/shared/proto
+            exit 1
+          fi
     - run: &run-tests
         name: Run tests
         command: |
@@ -89,13 +135,13 @@ job-template-deb-amd64: &job-template-deb-amd64
   steps:
     - attach_workspace: &attach-src-workspace
         at: /root/src
+    - restore_cache: *restore-ccache
     - run: &run-extract-src
         name: Extract the original source tarball
         command: |
           cp /root/src/*.orig.tar.xz ${CIRCLE_WORKING_DIRECTORY}/.. &&
           tar xfJ ../*.orig.tar.xz --strip-components=1
-    - run: *run-add-gobysoft-packages-key
-    - run: *run-add-jaia-packages-key
+    - restore_cache: *restore-npm-webpack-cache
     - run: *run-set-deb-rep-and-version
     - run: *run-add-jaia-packages-list
     - run: *run-update-apt
@@ -123,13 +169,30 @@ job-template-deb-amd64: &job-template-deb-amd64
           sed -i "s/^set(PROJECT_VERSION_MINOR *\".*\"/set(PROJECT_VERSION_MINOR \"${NEWVERSION_MINOR}\"/" cmake/JaiaVersions.cmake
           sed -i "s/^set(PROJECT_VERSION_PATCH *\".*\"/set(PROJECT_VERSION_PATCH \"${NEWVERSION_PATCH}\"/" cmake/JaiaVersions.cmake
           quilt refresh
+    - run: *run-zero-ccache-stats
     - run: &run-build-pkg
         name: Build the Debian package
         command: |
           export DPKG_BUILDPACKAGE_BUILD_TYPE="-B"
           # default is to do source and binary build
-          [[ "${DO_SOURCE_BUILD}" == "true" ]] && DPKG_BUILDPACKAGE_BUILD_TYPE=""        
-          CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -k954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE}
+          [[ "${DO_SOURCE_BUILD}" == "true" ]] && DPKG_BUILDPACKAGE_BUILD_TYPE=""
+          # skip building jaiabot-doc/jaiabot-interfaces (and the goby_clang_tool run they require) for the test repo to save build time
+          # set BUILD_DOC_FOR_TEST_REPO=true to opt back into building them for test-repo builds
+          export DPKG_BUILDPACKAGE_PROFILE=""
+          if [[ "${JAIABOT_APT_REPO}" == "test" && "${BUILD_DOC_FOR_TEST_REPO}" != "true" ]]; then
+            DPKG_BUILDPACKAGE_PROFILE="-Pnodoc"
+            # "nodoc" is also a legacy DEB_BUILD_OPTIONS flag; set it explicitly so dh doesn't
+            # warn about copying it over from DEB_BUILD_PROFILES on our behalf
+            export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} nodoc"
+          fi
+          # set DISABLE_OPT_FOR_TEST_REPO=true to compile test-repo builds at -O0 for faster iteration
+          if [[ "${JAIABOT_APT_REPO}" == "test" && "${DISABLE_OPT_FOR_TEST_REPO}" == "true" ]]; then
+            export DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS} noopt"
+          fi
+          CONFIG_SITE=/etc/dpkg-cross/cross-config.${TARGET_ARCH} && dpkg-buildpackage -kB90BE706B6A6724592B53B90954A004CD5D8CF32 -a${TARGET_ARCH} ${DPKG_BUILDPACKAGE_BUILD_TYPE} ${DPKG_BUILDPACKAGE_PROFILE}
+    - run: *show-ccache-stats
+    - save_cache: *save-ccache
+    - save_cache: *save-npm-webpack-cache
     - run: &run-store-next-build
         name: Store deb files for next build
         command: |
@@ -145,15 +208,6 @@ job-template-deb-amd64: &job-template-deb-amd64
         name: Remove original source file to avoid conflicts in merging
         command: |
           rm -f /root/deb/*.orig.tar.xz || true
-    - run: &run-python-venv
-        name: Build Python venv to ensure it builds successfully (for later use when jaiabot-python is installed) [only on amd64]
-        command: |
-          if [[ "${TARGET_ARCH}" == "amd64" ]]; then 
-            apt-get update && apt-get -y install rsync python3-venv python3-dev
-            cd ${CIRCLE_WORKING_DIRECTORY}/src/python
-            unset CC CXX
-            ./build_venv.sh /tmp/jaiabot-python-test
-          fi
     - persist_to_workspace: &persist-debs
         root: /root/deb
         paths:
@@ -178,14 +232,16 @@ filter-template-debian-builds: &filter-template-debian-builds
       only: /.*/
     branches:
       only:
-        - "2.y"
-        
+        - "3.y"
+        - "claude/circleci-debian-build-optimization-uwuryg"
+
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
   filters:
     branches:
       ignore:
-        - "2.y"
+        - "3.y"
+        - "claude/circleci-debian-build-optimization-uwuryg"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -194,7 +250,7 @@ filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "2.y"
+        - "3.y"
         
 # which branches to run the rootfs filesystem builds
 filter-template-rootfs-builds: &filter-template-rootfs-builds
@@ -203,7 +259,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "2.y"
+        - "3.y"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -212,7 +268,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
       only: /.*/
     branches:
       only:
-        - "2.y"
+        - "3.y"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -221,9 +277,8 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
       only: /.*/
     branches:
       only:
-        - "2.y"
+        - "3.y"
 
-        
 ## Begin actual config
 version: 2.1
 orbs:
@@ -233,20 +288,24 @@ workflows:
   version: 2
   commit:
     jobs:
-      - amd64-noble-build:
+      - amd64-resolute-build:
           <<: *filter-template-normal-builds
 
       - get-orig-source:
           <<: *filter-template-debian-builds
 
-      - amd64-noble-deb-build:
+      - amd64-resolute-deb-build:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
-      - arm64-noble-deb-build:
+      - arm64-resolute-deb-build:
           <<: *filter-template-debian-builds
           requires:
             - get-orig-source
+
+      # runs in parallel with the deb builds; validated separately so it doesn't block upload
+      - amd64-python-venv-build:
+          <<: *filter-template-debian-builds
 
       # always do the upload if we did the deb builds
       - upload:
@@ -256,56 +315,56 @@ workflows:
             branches:
               only: /.*/
           requires:
-            - amd64-noble-deb-build
-            - arm64-noble-deb-build
+            - amd64-resolute-deb-build
+            - arm64-resolute-deb-build
 
       # rootfs jobs
-      - arm64-raspi-image-create-noble:
+      - arm64-raspi-image-create-resolute:
           <<: *filter-template-rootfs-builds
           requires:
             - upload
 
-      - amd64-virtualbox-image-create-noble:
+      - amd64-virtualbox-image-create-resolute:
           <<: *filter-template-rootfs-builds
           requires:
             - upload
         
-      - raspi0-rpicam-image-create-bookworm:
+      - raspi0-rpicam-image-create-trixie:
           <<: *filter-template-pi0-rootfs-builds
 
       # bundle after each package upload and rootfs
-      - arm64-bundle-noble:
+      - arm64-bundle-resolute:
           filters:
             tags:
               only: /.*/
             branches:
               only: /.*/
           requires:
-            - arm64-raspi-image-create-noble
+            - arm64-raspi-image-create-resolute
 
-      - amd64-bundle-noble:
+      - amd64-bundle-resolute:
           filters:
             tags:
               only: /.*/
             branches:
               only: /.*/
           requires:
-            - amd64-virtualbox-image-create-noble
+            - amd64-virtualbox-image-create-resolute
             
       - aws-sync:
           requires:
-            - arm64-raspi-image-create-noble
-            - amd64-virtualbox-image-create-noble
-            - amd64-bundle-noble
-            - arm64-bundle-noble
+            - arm64-raspi-image-create-resolute
+            - amd64-virtualbox-image-create-resolute
+            - amd64-bundle-resolute
+            - arm64-bundle-resolute
           <<: *filter-template-aws-rootfs-builds
 
       - aws-sync-govcloud:
           requires:
-            - arm64-raspi-image-create-noble
-            - amd64-virtualbox-image-create-noble
-            - amd64-bundle-noble
-            - arm64-bundle-noble
+            - arm64-raspi-image-create-resolute
+            - amd64-virtualbox-image-create-resolute
+            - amd64-bundle-resolute
+            - arm64-bundle-resolute
           <<: *filter-template-aws-rootfs-builds
 
           
@@ -380,9 +439,22 @@ commands:
           command: |
             OVA=$(basename $(ls /tmp/amd64/jaiabot__rootfs-${DISTRO_RELEASE_CODENAME}*.ova))
             IMAGE_NAME=${OVA%.*}
-            # writes result.json for later use
-            rootfs/cloud/aws/import_ova_as_ami.sh ${OVA} ${JAIABOT_ROOTFS_GEN_REPO} ${JAIABOT_ROOTFS_GEN_REPO_VERSION}
+
+            curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+            sudo apt-add-repository -y "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+            sudo apt-get update && sudo apt-get -y install packer
+            packer plugins install github.com/hashicorp/ansible
+            packer plugins install github.com/hashicorp/amazon
+
+            export JAIA_UPGRADE_ISO_SOURCE=local
+            export JAIA_UPGRADE_ISO_LOCAL_DIR=/tmp/bundle/result/amd64
+
+            AMI_NAME=$(echo $IMAGE_NAME | sed 's/+/[plus]/g' | sed 's/~/[tilde]/g')
+
+            rootfs/cloud/aws/packer/packer-create-ami-by-upgrade.sh "${AMI_NAME}" "${JAIABOT_ROOTFS_GEN_REPO}"
+
             echo "export JAIABOT_IMAGE_NAME=${IMAGE_NAME}" >> $BASH_ENV
+            echo "export JAIABOT_AMI_NAME=${AMI_NAME}" >> $BASH_ENV
       - run:
           name: Deregister old AMI and delete snapshots
           command: |
@@ -391,8 +463,10 @@ commands:
           name: Tag new AMI
           command: |
             source /tmp/amd64/*.metadata.txt
-            image_id=$(jq -r '.ImportImageTasks[0].ImageId' result.json)
-            snapshot_id=$(jq -r '.ImportImageTasks[0].SnapshotDetails[0].SnapshotId' result.json)
+
+            image_id=$(aws ec2 describe-images --filters "Name=name,Values=\"${JAIABOT_AMI_NAME}\"" --query 'Images[*].[ImageId]' --output text)
+            snapshot_id=$(aws ec2 describe-images --filters "Name=name,Values=\"${JAIABOT_AMI_NAME}\"" --query 'Images[*].[BlockDeviceMappings[0].Ebs.SnapshotId]' --output text)
+
             aws ec2 create-tags --resources ${image_id} ${snapshot_id} --tags \
               "Key=Name,Value=${JAIABOT_IMAGE_NAME}" \
               "Key=jaia_creator,Value=circleci" \
@@ -413,7 +487,7 @@ jobs:
     resource_class: small
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-amd64
     steps:
       - checkout
@@ -442,7 +516,7 @@ jobs:
             cd /root/jaiabot &&
             export NEWVERSION="$(echo /root/src/*.orig.tar.xz | sed 's/.*_\(.*\)\.orig\.tar\.xz/\1/')"
             COMMENT="Autobuild for version ${NEWVERSION}" &&
-            dch --newversion=${NEWVERSION}-0~DISTRORELEASEVERSION.1 -D DISTRORELEASECODENAME "${COMMENT}" &&
+            dch --newversion=${NEWVERSION}-0+DISTRORELEASEVERSION.1 -D DISTRORELEASECODENAME "${COMMENT}" &&
             cp debian/changelog /root/src
       - store_artifacts:
           path: /root/src
@@ -452,34 +526,54 @@ jobs:
             - "*.tar.xz"
             - "changelog"
 
-  amd64-noble-build:
+  amd64-resolute-build:
     <<: *job-template-amd64
-    docker: *docker-base-noble
+    docker: *docker-base-resolute
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-amd64
 
-  amd64-noble-deb-build:
+  amd64-resolute-deb-build:
     <<: *job-template-deb-amd64
-    docker: *docker-base-noble
+    docker: *docker-base-resolute
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-amd64
-  arm64-noble-deb-build:
+  arm64-resolute-deb-build:
     <<: *job-template-deb-cross
-    docker: *docker-arm64-noble
+    docker: *docker-arm64-resolute
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-arm64
+
+  amd64-python-venv-build:
+    docker: *docker-base-resolute
+    resource_class: large
+    working_directory: /root/jaiabot
+    environment:
+      <<: *environment-template-common
+      <<: *environment-template-resolute
+      <<: *environment-template-amd64
+    steps:
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
+      - run:
+          name: Build Python venv to ensure it builds successfully (for later use when jaiabot-python is installed)
+          command: |
+            apt-get update && apt-get -y install rsync python3-venv python3-dev
+            cd src/python
+            unset CC CXX
+            ./build_venv.sh /tmp/jaiabot-python-test
 
   upload:
     <<: *job-template-upload
     environment:
       <<: *environment-template-common
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-amd64
     resource_class: small
     steps: &steps-upload
@@ -505,13 +599,13 @@ jobs:
             done
 
   # rootfs jobs
-  arm64-raspi-image-create-noble:
+  arm64-raspi-image-create-resolute:
     machine:
       image: ubuntu-2404:current
     resource_class: arm.medium
     environment:
       CREATE_IMAGE_ARGS: "--native"
-      DISTRO_RELEASE_CODENAME: "noble"
+      DISTRO_RELEASE_CODENAME: "resolute"
       DEBIAN_FRONTEND: "noninteractive"
       <<: *environment-template-arm64
     steps:
@@ -552,13 +646,13 @@ jobs:
             - "arm64/*.tar.gz"
             - "arm64/*.metadata.txt"
 
-  amd64-virtualbox-image-create-noble:
+  amd64-virtualbox-image-create-resolute:
     machine:
       image: ubuntu-2404:current
     resource_class: medium
     environment:
       CREATE_IMAGE_ARGS: "--virtualbox"
-      DISTRO_RELEASE_CODENAME: "noble"
+      DISTRO_RELEASE_CODENAME: "resolute"
       DEBIAN_FRONTEND: "noninteractive"
       <<: *environment-template-amd64
     steps:
@@ -581,13 +675,13 @@ jobs:
             - "amd64/*.tar.gz"
             - "amd64/*.metadata.txt"
             
-  arm64-bundle-noble:
+  arm64-bundle-resolute:
     working_directory: /tmp/bundle/jaiabot
     machine:
       image: ubuntu-2404:current
     resource_class: arm.medium
     environment:
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-arm64
     steps:
       - checkout
@@ -614,7 +708,7 @@ jobs:
             EOF
             
             
-            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:${DISTRO_RELEASE_CODENAME} ./scripts/bundle_update.sh ${DISTRO_RELEASE_CODENAME} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
+            sudo docker run --rm -v `pwd`:/jaiabot -w /jaiabot ubuntu:${DISTRO_RELEASE_CODENAME} ./scripts/build/bundle-update.sh ${DISTRO_RELEASE_CODENAME} ${JAIABOT_APT_REPO} ${JAIABOT_APT_VERSION}
             cd build/bundle
             export NEWVERSION="$(echo jaiabot-embedded_*.deb | sed 's/.*_\(.*\)\-.*/\1/')"
 
@@ -636,13 +730,13 @@ jobs:
             - "bundle/result/arm64/*.iso"
             - "bundle/result/arm64/version.txt"
 
-  amd64-bundle-noble:
+  amd64-bundle-resolute:
     working_directory: /tmp/bundle/jaiabot
     machine:
       image: ubuntu-2404:current
     resource_class: medium
     environment:
-      <<: *environment-template-noble
+      <<: *environment-template-resolute
       <<: *environment-template-amd64
     steps:
       - checkout
@@ -658,7 +752,7 @@ jobs:
             - "bundle/result/amd64/*.iso"
             - "bundle/result/amd64/version.txt"
 
-  raspi0-rpicam-image-create-bookworm:
+  raspi0-rpicam-image-create-trixie:
     machine:
       image: ubuntu-2404:current
     resource_class: medium      
@@ -680,7 +774,7 @@ jobs:
             ./build.sh
             
             mkdir /tmp/arm64
-            cp images/jaiabot__rpicam-zero-bookworm.img /tmp/arm64/jaiabot__rpicam-zero-bookworm_${ROOTFS_BUILD_TAG}.img
+            cp images/jaiabot__rpicam-zero-trixie.img /tmp/arm64/jaiabot__rpicam-zero-trixie_${ROOTFS_BUILD_TAG}.img
       - run: *run-compress-image-raspi
       - store_artifacts: *store-raspi
 
@@ -689,7 +783,7 @@ jobs:
       - image: cimg/base:current
     environment:
       AWS_DEFAULT_REGION: "us-east-1"
-      DISTRO_RELEASE_CODENAME: "noble"
+      DISTRO_RELEASE_CODENAME: "resolute"
     resource_class: medium
     steps:
       - aws-sync-command:
@@ -700,7 +794,7 @@ jobs:
       - image: cimg/base:current
     environment:
       AWS_DEFAULT_REGION: "us-gov-east-1"
-      DISTRO_RELEASE_CODENAME: "noble"
+      DISTRO_RELEASE_CODENAME: "resolute"
     resource_class: medium
     steps:
       - aws-sync-command:

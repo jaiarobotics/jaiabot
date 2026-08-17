@@ -7,9 +7,12 @@
 #include <chrono>
 #include <future>
 
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/process.hpp>
-#include <boost/process/pipe.hpp>
+#include <boost/process.hpp>
+#if __has_include(<boost/process/v1.hpp>)
+#include <boost/process/v1.hpp>
+#endif
 
 #include <goby/util/thirdparty/nlohmann/json.hpp>
 #include <goby/zeromq/liaison/liaison_container.h>
@@ -99,9 +102,15 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
                         const std::string& ansible_json_file);
             ~ProcessData();
 
-            boost::asio::io_service io;
+            boost::asio::io_context io;
             std::future<std::string> stderr;
+
+#if __has_include(<boost/process/v1.hpp>)
+            boost::process::v1::child process;
+#else
             boost::process::child process;
+#endif
+            
             std::thread io_thread;
             std::ifstream stdout;
         };

@@ -4,7 +4,7 @@ JaiaBot uses the Raspberry Pi (RP) Compute Module 4 (CM4) as the embedded Linux 
 
 ## Quick start
 
-Download the appropriate `.img.gz` from AWS S3 (produced by CircleCI): https://us-east-1.console.aws.amazon.com/s3/buckets/jaia-disk-images?region=us-east-1&bucketType=general&prefix=release/2.y/rpi/&showversions=false
+Download the appropriate `.img.gz` from AWS S3 (produced by CircleCI): https://us-east-1.console.aws.amazon.com/s3/buckets/jaia-disk-images?region=us-east-1&bucketType=general&prefix=release/3.y/rpi/&showversions=false
 
 Flash this to as many SD cards as you have bots plus hubs:
 ```
@@ -41,7 +41,7 @@ jaia admin fleet vpn_authorize private_jaia/fleet_config/fleet5.cfg --rm
 
 ### Create a Fleet Config (do once for all bots/hubs in a fleet)
 
-This new bot or hub must belong to a configured fleet. Fleets are configured using a Fleet Config file which is a Protobuf TextFormat version of the jaiabot.message.FleetConfig message (`jaiabot/src/lib/message/fleet_config.proto`).
+This new bot or hub must belong to a configured fleet. Fleets are configured using a Fleet Config file which is a Protobuf TextFormat version of the jaiabot.protobuf.FleetConfig message (`jaiabot/src/lib/messages/fleet_config.proto`).
 
 The simplest way to create a new fleet is to use the `jaia` tool (e.g. for fleet5):
 ```
@@ -76,7 +76,7 @@ Normally you will just download the appropriate image from CircleCI or AWS S3.
 
 The jaiabot/rootfs folder is designed to generate a complete filesystem suitable to boot the RP off a USB thumb drive or other USB disk.
 
-To generate the image, follow the steps in https://github.com/jaiarobotics/jaiabot/blob/2.y/rootfs/README.md.
+To generate the image, follow the steps in https://github.com/jaiarobotics/jaiabot/blob/3.y/rootfs/README.md.
 
 The result will be something like `jaiabot_img-1.0.0~alpha1+5+g90e72a3.img`.
 
@@ -137,19 +137,23 @@ Each application has a service definition, and they are all set to `BindTo` the 
 
 When using the `jaiabot-embedded` Debian package, the systemd services are automatically installed to `/etc/systemd/system` and enabled. No further action is required in this case.
 
+All bot/hub configuration is read from the `jaiabot-embedded` debconf database, so there are no configuration flags to pass. To change any of it, run `sudo dpkg-reconfigure jaiabot-embedded`, or use [`jaia admin debconf`](page005_jaia_tool.md) to `list`, `get` and `set` individual values without stepping through the menus.
+
 When using a built-from-source version of jaiabot, ensure that the local bin directory is on your `$PATH` (e.g., check that `which jaiabot_mission_manager` returns the correct binary), then run:
 
-Bot 0 (install and enable):
 ```
 cd jaiabot/config/gen
-./systemd-local.sh bot --bot_index 0 --n_bots 4 --enable
+./systemd-local.sh --enable
 ```
 
-Hub (install and enable):
+If the machine has no `jaiabot-embedded` debconf database — or you want to generate services for a configuration other than the local one — write the answers to a file in `debconf-set-selections` format and point at it instead:
+
 ```
 cd jaiabot/config/gen
-./systemd-local.sh hub --n_bots 4 --enable
+./systemd-local.sh --debconf_selections /path/to/bot.selections --enable
 ```
+
+You can produce such a file from a configured machine with `jaia-debconf.sh selections`. This is also how `container-build-and-deploy.sh` configures a remote target.
 
 See `./systemd-local.sh --help` for more options.
 
@@ -167,11 +171,13 @@ The `jaiabot.service` waits for the system clock to be synchronized via NTP (via
 
 The systemd service files are generated via templates much like the application configuration.
 
-The generation script lives in: `jaiabot/config/gen/systemd.py` and can be run to install systemd service jobs for either a locally built copy of jaiabot or used during the Debian package build.
+The generation script lives in: `jaiabot/config/gen/systemd.py` and is run by the `jaiabot-embedded` postinst, or by hand for a locally built copy of jaiabot. It reads the bot/hub configuration from debconf and takes only the deployment layout (where the binaries and services live) on the command line.
+
+The generated units carry their configuration in `Environment=` lines, which the configuration Generators (`gen/bot.py`, `gen/hub.py`) read when systemd starts them as children.
 
 To see all the options for configuring this script, run `systemd.py --help`
 
-For a locally built copy, you can use the `systemd-local.sh` shell script (a thin wrapper around `systemd.py` that executes `systemd.py` using the current interactive shell settings, such as `$PATH`).
+For a locally built copy, you can use the `systemd-local.sh` shell script (a thin wrapper around `systemd.py` that runs it under `sudo` while preserving the current `$PATH`).
 
 This script will generally have the correct defaults for the various directories, assuming that the version of the `jaiabot` apps and the Goby applications (`gobyd`, etc.) that you wish to run are currently set correctly in the shell `$PATH` environmental variable at the time of running the `gen/systemd-local.sh` generation script.
 

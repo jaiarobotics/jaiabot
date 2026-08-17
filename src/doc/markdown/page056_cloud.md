@@ -16,9 +16,7 @@ It is possible to have a VirtualFleet without a corresponding real fleet or vice
 
 ### Jaia Terms
 - Cloud - remote internet-connected on-demand computing provided (in this case) by Amazon Web Services (AWS) on the Elastic Compute Cloud (EC2) virtual machine system.
-- CloudHub - A hub that lives in the Cloud. This machine is always-on. CloudHub always uses the Hub ID 30 with a given fleet. CloudHub can be one of two forms based on the communications links that are configured:
-   - Primary Cloudhub: This is a full featured hub running nearly the same software as a physical hub. It can only use the communications links that make sense over such a distance (currently Iridium, but not XBee or Wifi).
-   - Secondary Cloudhub: Essentially a "copy" (or secondary hub) of the real fleet's hub (or primary hub) that lives in the cloud rather than in the physical hub hardware. This can send commands / receive data from the real fleet efficiently. It is also used to manage the VirtualFleet. 
+- CloudHub - A hub that lives in the Cloud. This machine is always-on. CloudHub always uses the Hub ID 30 with a given fleet. CloudHub is a full featured hub running nearly the same software as a physical hub, built regardless of the communications links in use (Hub2Hub allows CloudHub to get data even without any direct link, such as Iridium, to the fleet).
 - VirtualFleet -  a set of VirtualBots and VirtualHubs that run in the cloud on virtual machines.
 - VirtualBot - an amd64 version of the real bot that differs in that all the sensors/actuation are hooked up to simulators rather than the real hardware.
 - VirtualHub - Similar to VirtualBot, just for a hub.
@@ -59,7 +57,7 @@ The components of the VPC include:
 
 ## Network addresses
 
-The use of the `jaia ip` tool is recommended for determining IP addresses for a given node, id, fleet, etc.
+The use of the `jaia ip` tool (or, in scripts, the standalone `jaia_ip` binary that it wraps) is recommended for determining IP addresses for a given node, id, fleet, etc.
 
 The network address assignment for the Jaia Cloud is intended to complement the existing fleet specific [VPN](page055_vpn.md). This means that a given fleet may have up to three VPN subnets assigned:
 
@@ -113,7 +111,7 @@ Some examples include:
 | Bot         | 5   | 4        | `fd91:5457:1e5c:4::1:5` | `fd6e:cf0d:aefa:4::1:5` | `fd0f:77ac:4fdf:4::1:5` |
 | Bot         | 6   | 250      | `fd91:5457:1e5c:fa::1:6` | `fd6e:cf0d:aefa:fa::1:6` | `fd0f:77ac:4fdf:fa::1:6` |
 | Hub         | 20 | 10       | `fd91:5457:1e5c:a::14` | `fd6e:cf0d:aefa:a::14` | `fd0f:77ac:4fdf:a::14` |
-| Hub (CloudHub (ch))        | 30 | 15       | `fd91:5457:1e5c:f::1e` | `ffd6e:cf0d:aefa:f::1e` | `fd0f:77ac:4fdf:f::1e` |
+| Hub (CloudHub (ch))        | 30 | 15       | `fd91:5457:1e5c:f::1e` | `fd6e:cf0d:aefa:f::1e` | `fd0f:77ac:4fdf:f::1e` |
 
 You can generate the values for the table above yourself using:
 ```
@@ -141,10 +139,10 @@ jaia ip chf15
 
 ### AMI
 
-- Name: jaiabot__rootfs-feature_aws-cloud-v1.0.0~alpha1+93+g66c96e1__code-v1.7.0
-- jaiabot-rootfs-gen_version: 1.0.0~alpha1+93+g66c96e1
+- Name: jaiabot__rootfs-feature_aws-cloud-v3.0.0
+- jaiabot-rootfs-gen_version: 3.0.0
 - jaiabot-rootfs-gen_repository: release
-- jaiabot-rootfs-gen_repository_version: 2.y
+- jaiabot-rootfs-gen_repository_version: 3.y
 - jaiabot-rootfs-gen_build-date: Fri 08 Dec 2023 02:20:27 UTC
 - jaiabot-rootfs-gen_build-unixtime: 1702002064
 

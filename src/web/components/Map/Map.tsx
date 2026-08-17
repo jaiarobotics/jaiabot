@@ -22,7 +22,7 @@ import { ButtonNames, ButtonTypes, JaiaAction } from "../../types/context-types"
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
 import { MAP_FEATURE_HIT_TOLERANCE, MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { locationToConstantHeadingParams } from "../../utils/conversions";
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
 
 import { missionSet } from "../../data/mission_set/mission-set";
 import Waypoint from "../../data/waypoints/waypoint";

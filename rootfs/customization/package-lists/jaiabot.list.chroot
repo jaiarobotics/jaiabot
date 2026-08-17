@@ -11,6 +11,6 @@ moosdb10
 libmoos-ivp
 gpsd
 wireguard
-ntp
+ntpsec
 ntpstat
 ansible

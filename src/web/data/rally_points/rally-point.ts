@@ -1,4 +1,4 @@
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
 
 export default class RallyPoint {
     private location: GeographicCoordinate;

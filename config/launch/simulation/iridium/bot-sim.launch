@@ -1,4 +1,4 @@
 #!/usr/bin/env -S goby_launch -P -L
 
-[kill=SIGTERM] socat -d -d -v pty,link=/tmp/iridium${jaia_bot_index}_sim,raw,echo=0 pty,link=/tmp/iridium${jaia_bot_index},raw,echo=0
-[kill=SIGTERM] Iridium9602.py -d /tmp/iridium${jaia_bot_index}_sim -m IP --mo_ip=127.0.0.1 --mo_port=11800 --mt_port=$((jaia_bot_index+10800)) --imei=00000000000000${jaia_bot_index}
+[kill=SIGTERM] socat -d -d -v pty,link=/tmp/iridium${jaia_bot_id}_sim,raw,echo=0 pty,link=/tmp/iridium${jaia_bot_id},raw,echo=0
+[kill=SIGTERM] Iridium9602.py -d /tmp/iridium${jaia_bot_id}_sim -m IP --mo_ip=127.0.0.1 --mo_port=11800 --mt_port=$((jaia_bot_id+10800)) --imei=00000000000000${jaia_bot_id}

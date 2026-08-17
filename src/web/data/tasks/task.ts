@@ -11,22 +11,22 @@ import {
 } from "../../utils/constants";
 import { TaskParameterKeys, TaskParameterPair } from "../../types/jaia-system-types";
 import {
-    ConstantHeadingParameters,
-    DiveParameters,
-    DriftParameters,
     MissionTask,
-    StationKeepParameters,
-    TaskType,
-} from "../../types/protobuf-types";
+    MissionTask_ConstantHeadingParameters,
+    MissionTask_DiveParameters,
+    MissionTask_DriftParameters,
+    MissionTask_StationKeepParameters,
+    MissionTask_TaskType,
+} from "../../shared/proto/jaiabot/messages/mission";
 
 export default class Task {
-    private type: TaskType;
+    private type: MissionTask_TaskType;
 
     // Parameters //
-    private diveParameters: DiveParameters;
-    private driftParameters: DriftParameters;
-    private constantHeadingParameters: ConstantHeadingParameters;
-    private stationKeepParameters: StationKeepParameters;
+    private diveParameters: MissionTask_DiveParameters;
+    private driftParameters: MissionTask_DriftParameters;
+    private constantHeadingParameters: MissionTask_ConstantHeadingParameters;
+    private stationKeepParameters: MissionTask_StationKeepParameters;
     private safetyDepth: number;
 
     private isBottomDive: boolean;
@@ -34,7 +34,7 @@ export default class Task {
     private isSurveyTask: boolean;
 
     constructor(isSurveyTask: boolean = false) {
-        this.type = TaskType.NONE;
+        this.type = MissionTask_TaskType.NONE;
         const defaults = jaiaGlobal.getDefaultTaskParameters();
         this.setDiveParameters(defaults.dive);
         this.setDriftParameters(defaults.drift);
@@ -53,24 +53,24 @@ export default class Task {
     /**
      * Initializes the task parameters when an operator selects a new task
      *
-     * @param {TaskType} type Name of selected task
+     * @param {MissionTask_TaskType} type Name of selected task
      * @returns {void}
      */
-    setType(type: TaskType) {
+    setType(type: MissionTask_TaskType) {
         const defaults = jaiaGlobal.getDefaultTaskParameters();
 
         switch (type) {
-            case TaskType.DIVE:
+            case MissionTask_TaskType.DIVE:
                 this.setDiveParameters(defaults.dive);
                 this.setDriftParameters(defaults.drift);
                 break;
-            case TaskType.SURFACE_DRIFT:
+            case MissionTask_TaskType.SURFACE_DRIFT:
                 this.setDriftParameters(defaults.drift);
                 break;
-            case TaskType.CONSTANT_HEADING:
+            case MissionTask_TaskType.CONSTANT_HEADING:
                 this.setConstantHeadingParameters(defaults.constantHeading);
                 break;
-            case TaskType.STATION_KEEP:
+            case MissionTask_TaskType.STATION_KEEP:
                 this.setStationKeepParameters(defaults.stationKeep);
                 break;
         }
@@ -152,7 +152,7 @@ export default class Task {
         return this.diveParameters;
     }
 
-    setDiveParameters(diveParameters: DiveParameters) {
+    setDiveParameters(diveParameters: MissionTask_DiveParameters) {
         this.diveParameters = { ...diveParameters };
     }
 
@@ -160,7 +160,7 @@ export default class Task {
         return this.driftParameters;
     }
 
-    setDriftParameters(driftParameters: DriftParameters) {
+    setDriftParameters(driftParameters: MissionTask_DriftParameters) {
         this.driftParameters = { ...driftParameters };
     }
 
@@ -168,7 +168,7 @@ export default class Task {
         return this.constantHeadingParameters;
     }
 
-    setConstantHeadingParameters(constantHeadingParameters: ConstantHeadingParameters) {
+    setConstantHeadingParameters(constantHeadingParameters: MissionTask_ConstantHeadingParameters) {
         this.constantHeadingParameters = { ...constantHeadingParameters };
     }
 
@@ -176,7 +176,7 @@ export default class Task {
         return this.stationKeepParameters;
     }
 
-    setStationKeepParameters(stationKeepParameters: StationKeepParameters) {
+    setStationKeepParameters(stationKeepParameters: MissionTask_StationKeepParameters) {
         this.stationKeepParameters = { ...stationKeepParameters };
     }
 
@@ -239,21 +239,21 @@ export default class Task {
         };
 
         switch (this.type) {
-            case TaskType.DIVE:
+            case MissionTask_TaskType.DIVE:
                 missionTask.dive = this.getDiveParameters();
                 missionTask.surface_drift = this.driftParameters;
                 break;
-            case TaskType.SURFACE_DRIFT:
+            case MissionTask_TaskType.SURFACE_DRIFT:
                 missionTask.surface_drift = this.driftParameters;
                 break;
-            case TaskType.CONSTANT_HEADING:
+            case MissionTask_TaskType.CONSTANT_HEADING:
                 missionTask.constant_heading = this.constantHeadingParameters;
                 break;
-            case TaskType.STATION_KEEP:
+            case MissionTask_TaskType.STATION_KEEP:
                 missionTask.station_keep = this.stationKeepParameters;
                 break;
         }
-        missionTask.start_echo = this.useHydrophone;
+        missionTask.start_pam = this.useHydrophone;
         return missionTask;
     }
 }

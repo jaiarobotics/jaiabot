@@ -180,7 +180,7 @@ message MissionReport
         [(dccl.field) = { min: 0 max: 30 }];
     optional uint64 mission_command_time = 71 [
         (dccl.field) = {
-            codec: "dccl.time2"
+            codec: "dccl.time"
             units { prefix: "micro" derived_dimensions: "time" },
         }
     ];
@@ -302,7 +302,7 @@ message MissionTask
     // for type == CONSTANT_HEADING
     optional ConstantHeadingParameters constant_heading = 4
         [(jaia.field).rest_api.presence = GUARANTEED];
-    optional bool start_echo = 5
+    optional bool start_pam = 5
         [default = false, (jaia.field).rest_api.presence = GUARANTEED];
 
     message StationKeepParameters

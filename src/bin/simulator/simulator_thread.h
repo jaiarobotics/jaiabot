@@ -36,12 +36,12 @@ namespace jaiabot
 {
 namespace apps
 {
-template <typename Config> class SimulatorThread : public goby::middleware::SimpleThread<Config>
+template <typename Config> class SimulatorThread : public goby::zeromq::SimpleThread<Config>
 {
   public:
     SimulatorThread(const Config& cfg, std::string thread_name,
                     boost::units::quantity<boost::units::si::frequency> report_freq)
-        : goby::middleware::SimpleThread<Config>(cfg, report_freq), thread_name_(thread_name)
+        : goby::zeromq::SimpleThread<Config>(cfg, report_freq), thread_name_(thread_name)
     {
     }
     virtual ~SimulatorThread() {}

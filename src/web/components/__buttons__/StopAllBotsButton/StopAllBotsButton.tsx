@@ -13,7 +13,7 @@ import { mdiStop } from "@mdi/js";
 import Bot from "../../../data/bots/bot";
 
 import { DialogActions } from "../../../types/context-types";
-import { Command, CommandType } from "../../../types/protobuf-types";
+import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 
@@ -48,7 +48,9 @@ export default function StopAllBotsButton(props: Props) {
         for (const [botID, bot] of props.bots.entries()) {
             if (bot.isCommsDropped()) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
-            } else if (!isCommandAvailable(CommandType.STOP, bot.getMissionStatus().missionState)) {
+            } else if (
+                !isCommandAvailable(Command_CommandType.STOP, bot.getMissionStatus().missionState)
+            ) {
                 updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
             } else {
                 updatedBotReadyStates.get(DisabledCodes.NONE).push(botID);
@@ -92,7 +94,7 @@ export default function StopAllBotsButton(props: Props) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
                 const stopCommand: Command = {
                     bot_id: botID,
-                    type: CommandType.STOP,
+                    type: Command_CommandType.STOP,
                 };
                 const response = await sendBotCommand(stopCommand);
                 if (response && response.status === "ok") {

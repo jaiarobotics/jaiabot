@@ -99,7 +99,7 @@ Description: What type of imu does your system have?
 
 Template: jaiabot-embedded/bot_type
 Type: select
-Choices: hydro, echo, bio, none
+Choices: hydro, pam, bio, none
 Default: hydro
 Description: What type of bot is your system?
 

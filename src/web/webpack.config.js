@@ -8,6 +8,14 @@ const webpack = require("webpack");
  */
 const baseConfig = {
     target: "web",
+    // WEBPACK_CACHE_DIR pins the cache to a stable path CI can persist across runs;
+    // without it, fall back to webpack's normal node_modules/.cache/webpack default
+    cache: {
+        type: "filesystem",
+        ...(process.env.WEBPACK_CACHE_DIR
+            ? { cacheDirectory: path.resolve(process.env.WEBPACK_CACHE_DIR, "jcc-jed") }
+            : {}),
+    },
     resolve: {
         extensions: [".*", ".js", ".jsx", ".ts", ".tsx"],
         alias: {

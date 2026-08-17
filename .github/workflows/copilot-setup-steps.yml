@@ -14,7 +14,7 @@ on:
 jobs:
   # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
   copilot-setup-steps:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     # Set the permissions to the lowest permissions possible needed for your steps.
     # Copilot will be given its own token for its operations.
@@ -33,7 +33,7 @@ jobs:
 
       - name: Install build tools
         run: |
-          ./scripts/setup-tools-build.sh
+          ./scripts/build/setup-tools-build.sh
 
       - name: Remove Github built-in cmake and check version
         run: |

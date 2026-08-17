@@ -26,14 +26,16 @@
 #include "config.pb.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
-#include <goby/middleware/application/simple_thread.h>
+
+#include <goby/zeromq/application/simple_thread.h>
+
 
 namespace jaiabot
 {
 namespace apps
 {
 class AMLSensorDriver
-    : public goby::middleware::SimpleThread<jaiabot::config::AMLThreadConfig>
+    : public goby::zeromq::SimpleThread<jaiabot::config::AMLThreadConfig>
 {
   public:
     AMLSensorDriver(const jaiabot::config::AMLThreadConfig& config);
