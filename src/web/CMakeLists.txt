@@ -24,6 +24,33 @@ add_custom_target(npm_dependencies
   )
 
 ###############################################################################
+# Regenerate the TypeScript protobuf types into the intermediate tree, so the built apps always
+# match the .proto files they were built alongside. The copy committed under
+# src/web/shared/proto is what IDEs, tsc and jest use outside of CMake.
+
+set(web_proto_include_dirs ${GOBY_INCLUDE_DIR} ${DCCL_INCLUDE_DIR} ${Protobuf_INCLUDE_DIRS})
+list(REMOVE_DUPLICATES web_proto_include_dirs)
+list(JOIN web_proto_include_dirs ":" web_proto_include_path)
+
+set(web_protobuf_types_stamp ${CMAKE_CURRENT_BINARY_DIR}/protobuf_types.stamp)
+file(GLOB_RECURSE web_proto_files ${project_SRC_DIR}/lib/messages/*.proto)
+
+add_custom_command(OUTPUT ${web_protobuf_types_stamp}
+  COMMAND ${CMAKE_COMMAND} -E env
+    "PATH=${intermediate_web_dir}/node_modules/.bin:$ENV{PATH}"
+    "JAIA_PROTO_INCLUDE_DIRS=${web_proto_include_path}"
+    ${CMAKE_CURRENT_SOURCE_DIR}/gen_protobuf_types.sh ${intermediate_web_dir}/shared/proto
+  COMMAND ${CMAKE_COMMAND} -E touch ${web_protobuf_types_stamp}
+  DEPENDS npm_dependencies ${web_proto_files}
+  COMMENT "Generating TypeScript protobuf types for web apps"
+  )
+
+add_custom_target(web_protobuf_types
+  ALL
+  DEPENDS ${web_protobuf_types_stamp}
+  )
+
+###############################################################################
 
 file(GLOB_RECURSE jcc_src_files FOLLOW_SYMLINKS LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/jcc/*)
 file(GLOB jed_src_files ${CMAKE_CURRENT_SOURCE_DIR}/jed/*)
@@ -43,6 +70,11 @@ list(REMOVE_ITEM src_files
 
 file(COPY ${src_files} DESTINATION ${intermediate_web_dir})
 
+# Drop the copy of the committed types so the intermediate tree only ever holds freshly
+# generated ones, and clear the stamp so the copy just removed gets regenerated
+file(REMOVE_RECURSE ${intermediate_web_dir}/shared/proto)
+file(REMOVE ${web_protobuf_types_stamp})
+
 set(web_out_dir ${project_SHARE_DIR}/jaiabot/web)
 
 add_custom_command(OUTPUT ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
@@ -52,7 +84,7 @@ add_custom_command(OUTPUT ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script
   ARGS ${web_out_dir}/jcc/client.js ${web_out_dir}/jed/script.js
   WORKING_DIRECTORY ${intermediate_web_dir}/
   COMMENT "Building jcc and jed"
-  DEPENDS npm_dependencies ${jcc_src_files} ${jed_src_files} ${shared_src_files}
+  DEPENDS npm_dependencies web_protobuf_types ${web_protobuf_types_stamp} ${jcc_src_files} ${jed_src_files} ${shared_src_files}
   )
 add_custom_target(jcc_jed
   ALL

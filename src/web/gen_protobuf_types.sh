@@ -1,6 +1,10 @@
 #!/bin/bash
 
-# Regenerates src/web/shared/proto from the .proto files in src/lib/messages.
+# Regenerates the TypeScript protobuf types from the .proto files in src/lib/messages.
+#
+# Usage: gen_protobuf_types.sh [output directory]
+# The output directory defaults to the committed src/web/shared/proto; the CMake build passes
+# its own copy of the web tree instead.
 #
 # The ts-proto options below mirror what the servers actually put on the wire, which is
 # google.protobuf.json_format.MessageToDict(preserving_proto_field_name=True): original field
@@ -10,7 +14,7 @@ set -e
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 proto_dir="${script_dir}/../lib/messages"
-out_dir="${script_dir}/shared/proto"
+out_dir="${1:-${script_dir}/shared/proto}"
 
 # goby, dccl and google protos are installed alongside their headers
 : "${JAIA_PROTO_INCLUDE_DIRS:=/usr/include}"

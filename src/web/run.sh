@@ -23,6 +23,10 @@ popd > /dev/null
 ./install_dependencies.sh ./
 
 
+# Regenerate the TypeScript protobuf types in case the .proto files changed
+./gen_protobuf_types.sh
+
+
 # Set up pre-commit hooks
 pushd ${JAIA_DIR}/scripts/git-hooks/init/pre-commit/ > /dev/null
     ./set-pre-commit-hook.sh

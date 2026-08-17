@@ -461,7 +461,7 @@ function createRallyIcon() {
 }
 
 /**
- * MissionPlan_Goal / Waypoint map style function
+ * Goal / Waypoint map style function
  *
  * @param {Feature<Point>} feature
  * @returns {Style} Style(s) for the feature

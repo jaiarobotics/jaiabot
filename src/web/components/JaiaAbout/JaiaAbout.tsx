@@ -99,7 +99,7 @@ export default function JaiaAbout() {
                 <div className="input">{COMPANY_ADDRESS}</div>
             </div>
             <div className="jaia-about-row">
-                <div className="label">Software DeviceMetadata_Version:</div>
+                <div className="label">Software Version:</div>
                 <div className="input">
                     {formatVersion(jaiaContext.jaiaGlobal.getMetadata()?.jaiabot_version)}
                 </div>

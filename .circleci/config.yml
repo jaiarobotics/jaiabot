@@ -116,8 +116,13 @@ job-template-amd64: &job-template-amd64
         command: |
           PATH=${CIRCLE_WORKING_DIRECTORY}/build/intermediate/web/node_modules/.bin:$PATH \
             ./src/web/gen_protobuf_types.sh
-          git diff --exit-code src/web/shared/proto ||
-            { echo "src/web/shared/proto is stale - run 'npm run gen:proto' in src/web"; exit 1; }
+          # porcelain rather than diff, so an uncommitted new generated file fails too
+          if [ -n "$(git status --porcelain -- src/web/shared/proto)" ]; then
+            echo "src/web/shared/proto is stale - run 'npm run gen:proto' in src/web"
+            git status --porcelain -- src/web/shared/proto
+            git diff -- src/web/shared/proto
+            exit 1
+          fi
     - run: &run-tests
         name: Run tests
         command: |
