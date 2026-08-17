@@ -24,9 +24,8 @@ add_custom_target(npm_dependencies
   )
 
 ###############################################################################
-# Regenerate the TypeScript protobuf types into the intermediate tree, so the built apps always
-# match the .proto files they were built alongside. The copy committed under
-# src/web/shared/proto is what IDEs, tsc and jest use outside of CMake.
+# Generate the TypeScript protobuf types into the intermediate tree. They are not checked in;
+# outside of CMake, run.sh and "npm run gen:proto" generate them into src/web/shared/proto.
 
 set(web_proto_include_dirs ${GOBY_INCLUDE_DIR} ${DCCL_INCLUDE_DIR} ${Protobuf_INCLUDE_DIRS})
 list(REMOVE_DUPLICATES web_proto_include_dirs)
@@ -70,8 +69,8 @@ list(REMOVE_ITEM src_files
 
 file(COPY ${src_files} DESTINATION ${intermediate_web_dir})
 
-# Drop the copy of the committed types so the intermediate tree only ever holds freshly
-# generated ones, and clear the stamp so the copy just removed gets regenerated
+# A developer's working tree may hold types generated from older protos; drop that copy and
+# clear the stamp so the intermediate tree only ever holds freshly generated ones
 file(REMOVE_RECURSE ${intermediate_web_dir}/shared/proto)
 file(REMOVE ${web_protobuf_types_stamp})
 

@@ -3,8 +3,8 @@
 # Regenerates the TypeScript protobuf types from the .proto files in src/lib/messages.
 #
 # Usage: gen_protobuf_types.sh [output directory]
-# The output directory defaults to the committed src/web/shared/proto; the CMake build passes
-# its own copy of the web tree instead.
+# The output is not checked in. It defaults to src/web/shared/proto, which run.sh generates for
+# the dev loop; the CMake build passes its own copy of the web tree instead.
 #
 # The ts-proto options below mirror what the servers actually put on the wire, which is
 # google.protobuf.json_format.MessageToDict(preserving_proto_field_name=True): original field
@@ -36,7 +36,6 @@ find_npm_bin()
 }
 
 plugin="$(find_npm_bin protoc-gen-ts_proto)"
-prettier="$(find_npm_bin prettier)"
 
 include_args=("-I" "${proto_dir}")
 for dir in ${JAIA_PROTO_INCLUDE_DIRS//:/ }; do
@@ -71,6 +70,3 @@ protoc "${include_args[@]}" \
         echo "${opts[*]}"
     )" \
     "${roots[@]}"
-
-# match the repo style so the pre-commit prettier hook leaves the output alone
-"${prettier}" --log-level warn --write "${out_dir}"
