@@ -309,9 +309,9 @@ export enum Warning {
     WARNING__TEMPERATURE__LINUX_TOO_HIGH = "WARNING__TEMPERATURE__LINUX_TOO_HIGH",
     WARNING__COMMS_LOW_SIGNAL_STRENGTH = "WARNING__COMMS_LOW_SIGNAL_STRENGTH",
     WARNING__VEHICLE__LOW_BATTERY = "WARNING__VEHICLE__LOW_BATTERY",
-    WARNING__SYSTEM__NTP_NOT_SYNCHRONIZED = "WARNING__SYSTEM__NTP_NOT_SYNCHRONIZED",
-    WARNING__SYSTEM__NTP_OFFSET_HIGH = "WARNING__SYSTEM__NTP_OFFSET_HIGH",
-    WARNING__SYSTEM__NTP_JITTER_HIGH = "WARNING__SYSTEM__NTP_JITTER_HIGH",
+    WARNING__SYSTEM__CHRONY_NOT_SYNCHRONIZED = "WARNING__SYSTEM__CHRONY_NOT_SYNCHRONIZED",
+    WARNING__SYSTEM__CHRONY_OFFSET_HIGH = "WARNING__SYSTEM__CHRONY_OFFSET_HIGH",
+    WARNING__SYSTEM__CHRONY_STD_DEV_HIGH = "WARNING__SYSTEM__CHRONY_STD_DEV_HIGH",
     WARNING__SYSTEM__RAM_SPACE_LOW = "WARNING__SYSTEM__RAM_SPACE_LOW",
     WARNING__SYSTEM__CPU_LOAD_FACTOR_HIGH = "WARNING__SYSTEM__CPU_LOAD_FACTOR_HIGH",
     WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW = "WARNING__SYSTEM__ROOTFS_DISK_SPACE_LOW",
@@ -369,80 +369,65 @@ export interface LinuxHardwareStatus {
     wifi?: WiFi;
 }
 
-export enum SyncSource {
-    SYNC_UNKNOWN = "SYNC_UNKNOWN",
-    SYNC_UNSPECIFIED = "SYNC_UNSPECIFIED",
-    SYNC_PPS = "SYNC_PPS",
-    SYNC_LF_RADIO = "SYNC_LF_RADIO",
-    SYNC_HF_RADIO = "SYNC_HF_RADIO",
-    SYNC_UHF_RADIO = "SYNC_UHF_RADIO",
-    SYNC_LOCAL = "SYNC_LOCAL",
-    SYNC_NTP = "SYNC_NTP",
-    SYNC_OTHER = "SYNC_OTHER",
-    SYNC_WRISTWATCH = "SYNC_WRISTWATCH",
-    SYNC_TELEPHONE = "SYNC_TELEPHONE",
-}
-
-export enum LeapIndicator {
+export enum LeapStatus {
     LEAP_UNKNOWN = "LEAP_UNKNOWN",
-    LEAP_NONE = "LEAP_NONE",
-    LEAP_LAST_MINUTE_HAS_61_SECONDS = "LEAP_LAST_MINUTE_HAS_61_SECONDS",
-    LEAP_LAST_MINUTE_HAS_59_SECONDS = "LEAP_LAST_MINUTE_HAS_59_SECONDS",
-    LEAP_CLOCK_NOT_SYNCHRONIZED = "LEAP_CLOCK_NOT_SYNCHRONIZED",
+    LEAP_NORMAL = "LEAP_NORMAL",
+    LEAP_INSERT_SECOND = "LEAP_INSERT_SECOND",
+    LEAP_DELETE_SECOND = "LEAP_DELETE_SECOND",
+    LEAP_NOT_SYNCHRONISED = "LEAP_NOT_SYNCHRONISED",
 }
 
-export enum NTPSystemEvent {
-    NTP_SYSTEM_EVENT_UNKNOWN = "NTP_SYSTEM_EVENT_UNKNOWN",
-    NTP_SYSTEM_EVENT_UNSPECIFIED = "NTP_SYSTEM_EVENT_UNSPECIFIED",
-    NTP_SYSTEM_FREQ_NOT_SET = "NTP_SYSTEM_FREQ_NOT_SET",
-    NTP_SYSTEM_FREQ_SET = "NTP_SYSTEM_FREQ_SET",
-    NTP_SYSTEM_SPIKE_DETECT = "NTP_SYSTEM_SPIKE_DETECT",
-    NTP_SYSTEM_FREQ_MODE = "NTP_SYSTEM_FREQ_MODE",
-    NTP_SYSTEM_CLOCK_SYNC = "NTP_SYSTEM_CLOCK_SYNC",
-    NTP_SYSTEM_RESTART = "NTP_SYSTEM_RESTART",
-    NTP_SYSTEM_PANIC_STOP = "NTP_SYSTEM_PANIC_STOP",
-    NTP_SYSTEM_NO_SYSTEM_PEER = "NTP_SYSTEM_NO_SYSTEM_PEER",
-    NTP_SYSTEM_LEAP_ARMED = "NTP_SYSTEM_LEAP_ARMED",
-    NTP_SYSTEM_LEAP_DISARMED = "NTP_SYSTEM_LEAP_DISARMED",
-    NTP_SYSTEM_LEAP_EVENT = "NTP_SYSTEM_LEAP_EVENT",
-    NTP_SYSTEM_CLOCK_STEP = "NTP_SYSTEM_CLOCK_STEP",
-    NTP_SYSTEM_KERNEL_INFO = "NTP_SYSTEM_KERNEL_INFO",
-    NTP_SYSTEM_LEAPSECOND_VALUES_UPDATE_FROM_FILE = "NTP_SYSTEM_LEAPSECOND_VALUES_UPDATE_FROM_FILE",
-    NTP_SYSTEM_STALE_LEAPSECOND_VALUES = "NTP_SYSTEM_STALE_LEAPSECOND_VALUES",
+export enum Mode {
+    MODE_UNKNOWN = "MODE_UNKNOWN",
+    MODE_REFERENCE_CLOCK = "MODE_REFERENCE_CLOCK",
+    MODE_PEER = "MODE_PEER",
+    MODE_SERVER = "MODE_SERVER",
 }
 
-export enum TallyCode {
-    PEER_CODE_UNKNOWN = "PEER_CODE_UNKNOWN",
-    PEER_NOT_VALID = "PEER_NOT_VALID",
-    PEER_DISCARDED_BY_INTERSECTION = "PEER_DISCARDED_BY_INTERSECTION",
-    PEER_DISCARDED_BY_TABLE_OVERFLOW = "PEER_DISCARDED_BY_TABLE_OVERFLOW",
-    PEER_DISCARDED_BY_CLUSTER_ALGORITHM = "PEER_DISCARDED_BY_CLUSTER_ALGORITHM",
-    PEER_INCLUDED_IN_COMBINE = "PEER_INCLUDED_IN_COMBINE",
-    PEER_ALTERNATIVE_BACKUP = "PEER_ALTERNATIVE_BACKUP",
-    PEER_SYSTEM_SYNC_SOURCE = "PEER_SYSTEM_SYNC_SOURCE",
-    PEER_PPS_SYNC = "PEER_PPS_SYNC",
+export enum State {
+    STATE_UNKNOWN = "STATE_UNKNOWN",
+    STATE_SELECTED = "STATE_SELECTED",
+    STATE_COMBINED = "STATE_COMBINED",
+    STATE_NOT_COMBINED = "STATE_NOT_COMBINED",
+    STATE_UNREACHABLE = "STATE_UNREACHABLE",
+    STATE_FALSETICKER = "STATE_FALSETICKER",
+    STATE_TOO_VARIABLE = "STATE_TOO_VARIABLE",
 }
 
-export interface NTPPeer {
-    tally_code?: TallyCode;
-    remote?: string;
-    refid?: string;
+export interface Source {
+    mode?: Mode;
+    state?: State;
+    name?: string;
     stratum?: number;
-    when?: number;
-    poll?: number;
+    poll_interval?: number;
     reach?: number;
-    delay?: number;
-    offset?: number;
-    jitter?: number;
+    last_sample_age?: number;
+    adjusted_offset?: number;
+    measured_offset?: number;
+    estimated_error?: number;
+    sample_points?: number;
+    runs?: number;
+    span?: number;
+    std_dev?: number;
 }
 
-export interface NTPStatus {
-    sync_source?: SyncSource;
-    leap_indicator?: LeapIndicator;
-    system_event_counter?: number;
-    last_system_event?: NTPSystemEvent;
-    system_sync_peer?: NTPPeer;
-    peer?: NTPPeer[];
+export interface ChronyStatus {
+    reference_id?: string;
+    reference_name?: string;
+    stratum?: number;
+    reference_time?: number;
+    system_time_offset?: number;
+    last_offset?: number;
+    rms_offset?: number;
+    frequency?: number;
+    residual_frequency?: number;
+    skew?: number;
+    root_delay?: number;
+    root_dispersion?: number;
+    update_interval?: number;
+    leap_status?: LeapStatus;
+    selected_source?: Source;
+    source?: Source[];
 }
 
 export interface HelmIVPStatus {

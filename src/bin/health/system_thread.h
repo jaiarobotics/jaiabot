@@ -78,23 +78,24 @@ class LinuxHardwareThread : public HealthMonitorThread<jaiabot::config::LinuxHar
     bool wifi_connection_successful_{true};
 };
 
-class NTPStatusThread : public HealthMonitorThread<jaiabot::config::NTPStatusConfig>
+class ChronyStatusThread : public HealthMonitorThread<jaiabot::config::ChronyStatusConfig>
 {
   public:
-    NTPStatusThread(const jaiabot::config::NTPStatusConfig& cfg);
-    ~NTPStatusThread() {}
+    ChronyStatusThread(const jaiabot::config::ChronyStatusConfig& cfg);
+    ~ChronyStatusThread() {}
 
   private:
     void issue_status_summary() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
 
-    bool read_ntpq_system_status();
-    bool read_ntpq_peers();
+    bool run_chronyc(const std::string& command, std::string& result);
+    bool read_chrony_tracking();
+    bool read_chrony_sources();
 
   private:
-    jaiabot::protobuf::NTPStatus status_;
-    bool ntpq_system_status_successful_{true};
-    bool ntpq_peers_successful_{true};
+    jaiabot::protobuf::ChronyStatus status_;
+    bool chrony_tracking_successful_{true};
+    bool chrony_sources_successful_{true};
 };
 
 class HelmIVPStatusThread : public HealthMonitorThread<jaiabot::config::HelmIVPStatusConfig>

@@ -3,7 +3,7 @@
 echo "Removing timesyncd (conflicts with ntp)"
 sudo apt remove systemd-timesyncd
 echo "Installing apt packages"
-sudo apt-get install -y goby3-apps goby3-gui goby3-moos parallel moos-ivp-apps moos-ivp-gui libmoos-ivp opencpn i2c-tools libgoby3-moos libgoby3-moos-dev libxcb-xinerama0 ntpsec screen python3-dateutil python3-plotly python3-pyqt5 python3-h5py python3-geopandas python3-matplotlib python3-flask python3-networkx socat python3-dataclasses-json python3-rasterio
+sudo apt-get install -y goby3-apps goby3-gui goby3-moos parallel moos-ivp-apps moos-ivp-gui libmoos-ivp opencpn i2c-tools libgoby3-moos libgoby3-moos-dev libxcb-xinerama0 chrony screen python3-dateutil python3-plotly python3-pyqt5 python3-h5py python3-geopandas python3-matplotlib python3-flask python3-networkx socat python3-dataclasses-json python3-rasterio
 echo "Creating /etc/jaiabot directory"
 sudo install -d -m 0755 -o $USER /etc/jaiabot
 echo "Creating /var/log/jaiabot directory"

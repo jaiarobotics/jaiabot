@@ -1,5 +1,6 @@
 from common import is_simulation
 import common.comms
+import common.udp
 
 def bot_id_to_node_id(bot_id):
     return bot_id+common.comms.hub_node_id+1
@@ -11,13 +12,10 @@ def moos_simulator_port(node_id):
     return 9100 + node_id
 
 def gpsd_device(node_id):
-    if is_simulation():
-        return "udp://127.0.0.1:" + str(gpsd_simulator_udp_port(node_id))
-    else:
-        return '/dev/gps0'
+    return "udp://127.0.0.1:" + str(common.udp.gpsd_udp_port(node_id))
 
 def gpsd_simulator_udp_port(node_id):
-    return 32100 + node_id
+    return common.udp.gpsd_udp_port(node_id)
 
 def gpsd_port(node_id):
     if is_simulation():
