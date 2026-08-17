@@ -62,10 +62,6 @@ job-template-amd64: &job-template-amd64
   working_directory: /root/jaiabot
   steps:
     - checkout
-    - restore_cache: &restore-npm-webpack-cache
-        keys:
-          - jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
-          - jaiabot-npm-webpack-v1-
     - restore_cache: &restore-ccache
         keys:
           - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
@@ -98,7 +94,9 @@ job-template-amd64: &job-template-amd64
         command: ccache -z || true
     - run: &run-build
         name: Build
-        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache .. && cmake --build . -- -j4
+        # the web UI is built by amd64-resolute-web-build instead: webpack alongside
+        # four concurrent clang jobs exceeds the container's memory
+        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug -Denable_testing=ON -Dbuild_web=OFF -Dbuild_jdv=OFF -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache .. && cmake --build . -- -j4
     - run: &show-ccache-stats
         name: Show ccache stats
         command: ccache -s || true
@@ -106,6 +104,30 @@ job-template-amd64: &job-template-amd64
         key: jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
         paths:
           - /root/.ccache
+    - run: &run-tests
+        name: Run tests
+        command: cd build && ctest --output-on-failure
+
+## The web UI half of job-template-amd64. npm/webpack and the C++ compile have no
+## dependency on each other in CMake, and running them in one job is what puts the
+## container over its memory limit, so each gets its own.
+job-template-web-amd64: &job-template-web-amd64
+  resource_class: large
+  working_directory: /root/jaiabot
+  steps:
+    - checkout
+    - restore_cache: &restore-npm-webpack-cache
+        keys:
+          - jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
+          - jaiabot-npm-webpack-v1-
+    - run: *run-set-deb-rep-and-version
+    - run: *run-add-jaia-packages-list
+    - run: *run-update-apt
+    - run: &run-build-web
+        name: Build the web UI
+        # the web targets live in the same CMake project as everything else, so this
+        # configures the whole project but builds only those targets
+        command: mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && cmake --build . --target jcc_jed jdv
     - save_cache: &save-npm-webpack-cache
         key: jaiabot-npm-webpack-v1-{{ checksum "src/web/package-lock.json" }}
         paths:
@@ -123,11 +145,9 @@ job-template-amd64: &job-template-amd64
             git diff -- src/web/shared/proto
             exit 1
           fi
-    - run: &run-tests
-        name: Run tests
-        command: |
-          cd build && ctest --output-on-failure
-          cd intermediate/web && npm test
+    - run: &run-web-tests
+        name: Run web tests
+        command: cd build/intermediate/web && npm test
 
 job-template-deb-amd64: &job-template-deb-amd64
   <<: *job-template-amd64
@@ -289,6 +309,8 @@ workflows:
   commit:
     jobs:
       - amd64-resolute-build:
+          <<: *filter-template-normal-builds
+      - amd64-resolute-web-build:
           <<: *filter-template-normal-builds
 
       - get-orig-source:
@@ -528,6 +550,14 @@ jobs:
 
   amd64-resolute-build:
     <<: *job-template-amd64
+    docker: *docker-base-resolute
+    environment:
+      <<: *environment-template-common
+      <<: *environment-template-resolute
+      <<: *environment-template-amd64
+
+  amd64-resolute-web-build:
+    <<: *job-template-web-amd64
     docker: *docker-base-resolute
     environment:
       <<: *environment-template-common
