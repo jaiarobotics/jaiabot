@@ -114,6 +114,39 @@ These subactions are used to administer a fleet of JaiaBots:
 - `jaia admin ssh` manages SSH keys for a given host. See the [SSH Access](page013_ssh_keys.md) page for more details.
 - `jaia admin fleet` creates and manages fleet configurations. See the [Embedded Board Deployment](page025_embedded_setup.md) page for more details.
 - `jaia admin debconf` reads and writes this bot/hub's own configuration, as described below.
+- `jaia admin bounds` reports the valid id ranges, as described below.
+
+### bounds
+
+The bot, hub and fleet id ranges are defined once, in `src/lib/utils/ip.h`, and this subaction is how a caller outside that header asks what they are rather than hardcoding them:
+
+```
+jaia admin bounds
+bot id: [0 150]
+hub id: [0 30]
+fleet id: [0 255]
+desktop id: [1 9]
+gateway id: [0 0]
+rpicam id: [0 49]
+```
+
+Pass one or more ids to narrow the output (`--bot_id`, `--hub_id`, `--fleet_id`, `--desktop_id`, `--gateway_id`, `--rpicam_id`), and `--min` or `--max` to select one end. A single id with a single end is written as a bare number, so a script can use it directly:
+
+```
+jaia admin bounds --bot_id --max
+150
+```
+
+`--format json` gives the same information as an object, as elsewhere in the tool:
+
+```
+jaia admin bounds --hub_id --format json
+{
+    "hub_id": { "min": 0, "max": 30 }
+}
+```
+
+As with `jaia ip`, this is a thin wrapper around a standalone binary (`jaia_bounds`) that does not load goby/protobuf; prefer calling that directly from scripts. `jaia-update-dns.sh` uses it to enumerate the fleet's names.
 
 ### debconf
 

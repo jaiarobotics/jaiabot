@@ -5,13 +5,6 @@
 
 set -u -e
 
-# same as the node id ranges in jaiabot/src/lib/utils/ip.h
-bot_id_max=150
-hub_id_max=30
-# the highest hub id is the CloudHub, which is reachable over the CloudHub VPN
-# rather than the fleet WLAN
-cloudhub_id=${hub_id_max}
-
 root=""
 type=""
 node_id=""
@@ -130,6 +123,13 @@ function restore_upstream_resolv_conf {
     fi
 }
 
+bot_id_min=$(jaia_bounds --bot_id --min)
+bot_id_max=$(jaia_bounds --bot_id --max)
+hub_id_min=$(jaia_bounds --hub_id --min)
+# the highest hub id is the CloudHub, which is reachable over the CloudHub VPN
+# rather than the fleet WLAN
+cloudhub_id=$(jaia_bounds --hub_id --max)
+
 if [ "${type}" != "hub" ] || [ "${mode}" != "runtime" ] || [ "${node_id}" = "${cloudhub_id}" ]; then
     restore_upstream_resolv_conf
     exit 0
@@ -173,7 +173,7 @@ echo ">>>>> Writing ${dns_hosts} ... "
     echo "${generated_by}"
     echo "# Fleet ${fleet} bot and hub names, from the addressing scheme of 'jaia ip'"
 
-    for id in $(seq 0 $((cloudhub_id - 1))); do
+    for id in $(seq ${hub_id_min} $((cloudhub_id - 1))); do
         if [ "${id}" = "${node_id}" ]; then
             # 'hub' is this hub, so that a client reaches the hub it asked
             wlan_host_record hub "${id}" hub
@@ -182,7 +182,7 @@ echo ">>>>> Writing ${dns_hosts} ... "
         fi
     done
 
-    for id in $(seq 0 ${bot_id_max}); do
+    for id in $(seq ${bot_id_min} ${bot_id_max}); do
         wlan_host_record bot "${id}"
     done
 

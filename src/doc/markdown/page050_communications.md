@@ -212,7 +212,7 @@ Each node answers to four names, for example bot 3 of fleet 2 (`10.23.2.103`):
 
 In addition, `hub` resolves to whichever hub answered the query, which is the name the Apache virtual host serving the JCC uses (so http://hub/ reaches the JCC of the hub you are using), and `cloudhub` is an alias for `hub30`.
 
-Names are served for the whole of the addressing scheme - bots 0-150 and hubs 0-29 on the fleet WLAN, plus the CloudHub on the CloudHub VPN - rather than for the nodes listed in `/etc/jaiabot/inventory.yml`. Adding a bot to a fleet therefore requires no change on the hub, and a name can never resolve to something other than what `jaia ip` reports. The reverse (`10.23.2.103` to `bot3.jaia`) is served as well.
+Names are served for the whole of the addressing scheme - every bot and hub id it allows on the fleet WLAN (`jaia admin bounds`), plus the CloudHub on the CloudHub VPN - rather than for the nodes listed in `/etc/jaiabot/inventory.yml`. Adding a bot to a fleet therefore requires no change on the hub, and a name can never resolve to something other than what `jaia ip` reports. The reverse (`10.23.2.103` to `bot3.jaia`) is served as well.
 
 Anything that is not a fleet name is forwarded to the upstream nameservers the hub itself uses, so the hub's DNS can be the only one a client needs. A name in the `.jaia` domain that is not a fleet name is answered `NXDOMAIN` rather than forwarded.
 
