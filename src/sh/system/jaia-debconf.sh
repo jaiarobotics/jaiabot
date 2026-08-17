@@ -49,8 +49,8 @@ jaia_debconf_template_field() {
 }
 
 # awk source, shared by the two places that show a Choices list to a human.
-# bot_id and fleet_id are contiguous integer runs of 151 and 251 elements; in
-# full they bury whatever else is on screen and say nothing a range does not.
+# bot_id is a contiguous integer run of 151 elements; in full it buries whatever
+# else is on screen and says nothing a range does not.
 JAIA_DEBCONF_AWK_COLLAPSE='
     function collapse(s,   n, a, i) {
         n = split(s, a, ",")
@@ -85,12 +85,28 @@ jaia_debconf_questions() {
     templates=$(jaia_debconf_templates_file) || return 1
 
     awk -v pkg="${JAIA_DEBCONF_PACKAGE}" -v include_internal="${include_internal}" '
+        # an error template is a message shown to the user, not a question with an answer
+        function flush() {
+            if (q != "" && type != "error")
+                print q
+            q = ""; type = ""
+        }
         /^Template:/ {
+            flush()
             q = $2
             sub("^" pkg "/", "", q)
-            if (include_internal == "true" || q !~ /^debconf_state_/)
-                print q
+            # debconf_state_* track where the interactive menu is, they are not
+            # configuration, so hide them unless asked for
+            if (include_internal != "true" && q ~ /^debconf_state_/)
+                q = ""
+            next
         }
+        /^Type:/ {
+            type = substr($0, index($0, ":") + 1)
+            gsub(/^ +| +$/, "", type)
+            next
+        }
+        END { flush() }
     ' "${templates}" | sort
 }
 
@@ -164,7 +180,8 @@ jaia_debconf_list() {
             return v
         }
         function flush() {
-            if (question != "")
+            # an error template is a message shown to the user, not something to set
+            if (question != "" && type != "error")
                 printf "%s\t%s\t%s\t%s\n", question, type, dflt, collapse(choices)
             question = ""; type = ""; dflt = ""; choices = ""
         }
@@ -308,12 +325,22 @@ jaia_debconf_get_all() {
     fi
 }
 
+# jaia_debconf_range_flag <question>
+# The 'jaia_bounds' flag holding a question's valid range, for the questions whose answers are too
+# many to list as Choices. Fails for every other question.
+jaia_debconf_range_flag() {
+    case "$1" in
+        fleet_id) echo "--fleet_id" ;;
+        *) return 1 ;;
+    esac
+}
+
 # jaia_debconf_set <question> <value>
 # debconf itself does not check a value against the template's Choices, and an
 # out-of-range value would silently generate the wrong systemd services rather
 # than failing, so validate here.
 jaia_debconf_set() {
-    local choices type reply element
+    local choices type reply element range_flag min max valid
 
     if [ $# -lt 2 ]; then
         echo "ERROR: usage: jaia_debconf_set <question> <value>" >&2
@@ -343,6 +370,21 @@ jaia_debconf_set() {
             fi
         done
         unset IFS
+    elif range_flag=$(jaia_debconf_range_flag "${question}"); then
+        min=$(jaia_bounds "${range_flag}" --min) || return 1
+        max=$(jaia_bounds "${range_flag}" --max) || return 1
+
+        valid=false
+        case "${value}" in
+            ''|*[!0-9]*) ;;
+            *) if [ "${value}" -ge "${min}" ] && [ "${value}" -le "${max}" ]; then valid=true; fi ;;
+        esac
+
+        if [ "${valid}" = "false" ]; then
+            echo "ERROR: '${value}' is not a valid value for ${JAIA_DEBCONF_PACKAGE}/${question}." >&2
+            echo "       Range: ${min} to ${max}" >&2
+            return 1
+        fi
     fi
 
     reply=$(printf 'SET %s/%s %s\nFSET %s/%s seen true\n' \

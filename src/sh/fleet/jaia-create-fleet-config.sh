@@ -283,7 +283,7 @@ git pull
 
 cat <<EOM | debconf-set-selections
 unknown jaiabot-embedded/type select hub
-unknown jaiabot-embedded/fleet_id select 0
+unknown jaiabot-embedded/fleet_id string 0
 unknown jaiabot-embedded/rf_encryption_password string ${rf_encryption_password}
 unknown jaiabot-embedded/hub_id select 0
 unknown jaiabot-embedded/mode select runtime
