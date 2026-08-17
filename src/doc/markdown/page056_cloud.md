@@ -76,6 +76,21 @@ Additionally, each VPC has two subnets assigned as previously mentioned:
 1. CloudHub Subnet: 10.23.255.0/24 and 2001:db8:0:**0**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
 2. VirtualFleet WLAN Subnet: 10.23.{flt}.0/24 and 2001:db8:0:**2**::/64 where 2001:db8::/56 is replaced by the Amazon EC2 assigned IPv6 block for the VPC.
 
+### Fleet ID ranges
+
+The fleet WLAN, the fleet VPN and the VirtualFleet WLAN carry the fleet id in a single IPv4 octet, which is what limits how many fleets those schemes can address. Rather than renumber the fleets already using them, the fleet id range is split:
+
+| Fleet ID | Fleet WLAN, fleet VPN, VirtualFleet WLAN | Other networks |
+|----------|------------------------------------------|----------------|
+| 0-250    | IPv4, as below                            | IPv6, as below |
+| 251-4000 | IPv6, as below                            | IPv6, as below |
+
+So a fleet above 250 has no IPv4 address of its own anywhere: IPv4 on its WLAN carries internet traffic only, from whatever the access point hands out, and all Jaia traffic is IPv6. The CloudHub and VirtualFleet ethernet subnets of a VPC are the same for every fleet and so stay IPv4 whichever range the fleet is in.
+
+The upper end of the range is 4000 rather than the 65535 the IPv6 scheme has room for, because the fleet id is also the XBee network id (`ATID`), whose documented range is smaller and which the driver writes in a format that does not currently reach it. Raising it is a matter of that driver and of widening `HubStatus.fleet_id`, which is a DCCL wire format change; nothing in the addressing itself is in the way.
+
+`jaia ip` gives the address in the version the fleet actually uses, and `jaia admin bounds --ipv4_fleet_id --max` reports where the split is. Both come from `fleet_id_ipv4_max` in `src/lib/utils/ip.h`, which is the one place it is written down.
+
 ### IPv4 
 
 1. Fleet VPN: The IPv4 addresses remain as assigned in [VPN](page055_vpn.md) document: 172.23.flt.bot_or_hub, where flt = Fleet ID, bot_or_hub = 10 + hub ID or 100 + bot ID.
@@ -102,7 +117,7 @@ For each VPN class, the Subnet ID is the Fleet ID, so for example, VirtualFleet 
 
 #### Address
 
-For a given node (bot or hub) on the VPN, the 64-bit interface identifier is given as `::0:hub_id` for hubs, `::1:bot_id` for bots, and `::2:customer_id` for various customer machines (desktop / laptop / tablet). This allows up to 2^16 = 65536 bots and hubs to be assigned per fleet.
+For a given node on the network, the 64-bit interface identifier is given as `::0:hub_id` for hubs, `::1:bot_id` for bots, `::2:customer_id` for various customer machines (desktop / laptop / tablet), `::3:rpicam_id` for rpicams, and `::4:0` for the gateway (the fleet WiFi access point, which on the IPv4 networks is `.1`). This allows up to 2^16 = 65536 nodes of each type to be assigned per fleet.
 
 Some examples include:
 

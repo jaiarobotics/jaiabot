@@ -39,7 +39,7 @@ namespace
 {
 const char* const usage_msg =
     "Usage: jaia_ip <host code>\n"
-    "       jaia_ip --fleet_id <id> --ip_net <net> --ip_version <ipv4|ipv6>\n"
+    "       jaia_ip --fleet_id <id> --ip_net <net> [--ip_version <ipv4|ipv6|auto>]\n"
     "               [--query_type <addr|net>] [--node_type <type>] [--node_id <id>]\n"
     "               [--ipv6_base <address or CIDR>]\n"
     "\n"
@@ -66,15 +66,16 @@ const char* const usage_msg =
     "  --node_id      node ID (required for addr queries, except gateway)\n"
     "  --ip_net       wlan, fleet_vpn, vfleet_vpn, cloudhub_vpn, cloudhub_eth, vfleet_eth,\n"
     "                 vfleet_wlan, or vpc\n"
-    "  --fleet_id     fleet ID (0-255)\n"
-    "  --ip_version   ipv4 or ipv6\n"
+    "  --fleet_id     fleet ID: 0-250 are addressed with IPv4 on the fleet WLAN and fleet VPN,\n"
+    "                 251-4000 with IPv6 on every network\n"
+    "  --ip_version   ipv4, ipv6, or auto (the default): whichever version the given fleet uses\n"
+    "                 on the given network\n"
     "  --ipv6_base    IPv6 base address or CIDR block, required for cloudhub_eth, vfleet_eth\n"
     "                 and vfleet_wlan with --ip_version ipv6\n"
     "\n"
     "  Examples:\n"
-    "    jaia_ip --query_type addr --node_type bot --node_id 5 --fleet_id 3 --ip_net wlan "
-    "--ip_version ipv4\n"
-    "    jaia_ip --query_type net --fleet_id 3 --ip_net fleet_vpn --ip_version ipv4\n";
+    "    jaia_ip --query_type addr --node_type bot --node_id 5 --fleet_id 3 --ip_net wlan\n"
+    "    jaia_ip --query_type net --fleet_id 3 --ip_net fleet_vpn\n";
 
 [[noreturn]] void die(const std::string& msg)
 {
@@ -100,7 +101,7 @@ int main(int argc, char* argv[])
     std::string query_type = "addr";
     std::string node_type_str;
     std::string ip_net_str;
-    std::string ip_version;
+    std::string ip_version_str = "auto";
     std::string ipv6_base;
     int fleet_id = 0, node_id = 0;
     bool has_fleet_id = false, has_node_id = false;
@@ -153,7 +154,7 @@ int main(int argc, char* argv[])
             else if (flag == "--ip_net")
                 ip_net_str = value;
             else if (flag == "--ip_version")
-                ip_version = value;
+                ip_version_str = value;
             else if (flag == "--ipv6_base")
                 ipv6_base = value;
             else if (flag == "--host")
@@ -195,13 +196,14 @@ int main(int argc, char* argv[])
                 die("--fleet_id is required in explicit mode");
             if (ip_net_str.empty())
                 die("--ip_net is required in explicit mode");
-            if (ip_version.empty())
-                die("--ip_version is required in explicit mode");
-            if (ip_version != "ipv4" && ip_version != "ipv6")
-                die("--ip_version must be ipv4 or ipv6");
+            if (ip_version_str != "ipv4" && ip_version_str != "ipv6" && ip_version_str != "auto")
+                die("--ip_version must be ipv4, ipv6 or auto");
 
-            bool is_ipv4 = ip_version == "ipv4";
             auto ip_net = jaiabot::ip::network_from_string(ip_net_str);
+
+            bool is_ipv4 = ip_version_str == "auto" ? jaiabot::ip::ip_version(fleet_id, ip_net) ==
+                                                          jaiabot::ip::IPVersion::ipv4
+                                                    : ip_version_str == "ipv4";
 
             if (query_type == "addr")
             {

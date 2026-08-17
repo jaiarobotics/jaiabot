@@ -63,13 +63,26 @@ enum class Network
     vpc,
 };
 
+// IP versions a network can be addressed with
+enum class IPVersion
+{
+    ipv4,
+    ipv6,
+};
+
 // Node ID valid ranges
 constexpr int bot_id_min = 0, bot_id_max = 150;
 constexpr int hub_id_min = 0, hub_id_max = 30;
 constexpr int desktop_id_min = 1, desktop_id_max = 9;
 constexpr int gateway_id_min = 0, gateway_id_max = 0;
 constexpr int rpicam_id_min = 0, rpicam_id_max = 49;
-constexpr int fleet_id_min = 0, fleet_id_max = 255;
+constexpr int fleet_id_min = 0, fleet_id_max = 4000;
+
+// The fleet WLAN and fleet VPN carry the fleet id in a single IPv4 octet, which is why fleets
+// above this are addressed with IPv6 on every network. 10.23.254.0/24 and 10.23.255.0/24 are the
+// VirtualFleet and CloudHub subnets of a VPC, so the octet runs out a little before 255 does.
+constexpr int fleet_id_ipv4_max = 250;
+static_assert(fleet_id_ipv4_max <= fleet_id_max, "IPv4 fleets must be a subset of all fleets");
 
 // The CloudHub is always this hub id, on every fleet
 constexpr int cloudhub_id = 30;
@@ -173,23 +186,61 @@ inline void validate_node_id(NodeType node, int node_id)
                                     std::to_string(range.second));
 }
 
+// True for fleets that keep the original IPv4 addressing on the fleet WLAN and fleet VPN
+inline bool is_ipv4_fleet(int fleet_id)
+{
+    validate_fleet_id(fleet_id);
+    return fleet_id <= fleet_id_ipv4_max;
+}
+
+// The IP version a given fleet is addressed with on a given network. The VirtualFleet and CloudHub
+// VPNs are IPv6 for every fleet; the VPC networks are dual stack, and IPv4 here because their IPv6
+// side is the block EC2 assigned to the VPC rather than anything derived from the fleet id.
+inline IPVersion ip_version(int fleet_id, Network net)
+{
+    switch (net)
+    {
+        case Network::wlan:
+        case Network::fleet_vpn:
+        case Network::vfleet_wlan:
+            return is_ipv4_fleet(fleet_id) ? IPVersion::ipv4 : IPVersion::ipv6;
+
+        case Network::vfleet_vpn:
+        case Network::cloudhub_vpn: validate_fleet_id(fleet_id); return IPVersion::ipv6;
+
+        case Network::cloudhub_eth:
+        case Network::vfleet_eth:
+        case Network::vpc: validate_fleet_id(fleet_id); return IPVersion::ipv4;
+    }
+    throw std::invalid_argument("Unknown network");
+}
+
 namespace detail
 {
 
 inline boost::asio::ip::address_v4 ipv4_base(int fleet_id, Network net)
 {
     using namespace boost::asio::ip;
+
+    // without this a fleet that does not fit in the octet would silently alias onto another one
+    auto fleet_octet = [&]()
+    {
+        if (!is_ipv4_fleet(fleet_id))
+            throw std::invalid_argument("fleet_id " + std::to_string(fleet_id) + " has no IPv4 " +
+                                        network_to_string(net) + " address: fleets above " +
+                                        std::to_string(fleet_id_ipv4_max) + " are IPv6 only");
+        return static_cast<uint8_t>(fleet_id);
+    };
+
     switch (net)
     {
         case Network::wlan:
         case Network::vfleet_wlan:
             // 10.23.{fleet_id}.0
-            return make_address_v4(
-                address_v4::bytes_type{10, 23, static_cast<uint8_t>(fleet_id), 0});
+            return make_address_v4(address_v4::bytes_type{10, 23, fleet_octet(), 0});
         case Network::fleet_vpn:
             // 172.23.{fleet_id}.0
-            return make_address_v4(
-                address_v4::bytes_type{172, 23, static_cast<uint8_t>(fleet_id), 0});
+            return make_address_v4(address_v4::bytes_type{172, 23, fleet_octet(), 0});
         case Network::cloudhub_eth:
             // 10.23.255.0
             return make_address_v4(address_v4::bytes_type{10, 23, 255, 0});
@@ -291,9 +342,9 @@ inline boost::asio::ip::address_v6 ipv6_base(int fleet_id, Network net,
     auto make_prefix_addr = [&](const char* prefix)
     {
         // format fleet_id as lowercase hex without <sstream>, e.g. "fddd:7f2e:3258:" + "ff" + "::"
-        char hex[4];
+        char hex[5];
         int n = 0;
-        for (int shift = 8; shift >= 0; shift -= 4)
+        for (int shift = 12; shift >= 0; shift -= 4)
         {
             int nibble = (fleet_id >> shift) & 0xF;
             if (nibble != 0 || n != 0)
@@ -344,8 +395,10 @@ inline uint64_t ipv6_node_offset(NodeType node, int node_id)
         case NodeType::bot: return static_cast<uint64_t>(1 * 65536 + node_id); // 1*2^16 + node_id
         case NodeType::desktop:
             return static_cast<uint64_t>(2 * 65536 + node_id); // 2*2^16 + node_id
-        case NodeType::gateway: return 1;                      // node_id ignored
-        case NodeType::rpicam: throw std::invalid_argument("rpicam node is not supported for ipv6");
+        case NodeType::rpicam:
+            return static_cast<uint64_t>(3 * 65536 + node_id); // 3*2^16 + node_id
+        // its own group rather than the IPv4 scheme's ".1", which here is hub 1
+        case NodeType::gateway: return 4 * 65536; // node_id ignored
     }
     throw std::invalid_argument("Unknown node type for IPv6");
 }
@@ -573,14 +626,14 @@ inline HostCode parse_host_code(const std::string& host_code, int default_fleet_
     return result;
 }
 
-// Returns the IP address for a parsed host code, using IPv4 for the wlan and fleet VPN networks
-// and IPv6 for the other VPN networks
+// Returns the IP address for a parsed host code, in whichever IP version the fleet uses on the
+// network the code names
 inline std::string host_code_addr(const HostCode& host)
 {
     if (host.is_literal)
         return host.literal;
 
-    if (host.net == Network::wlan || host.net == Network::fleet_vpn)
+    if (ip_version(host.fleet_id, host.net) == IPVersion::ipv4)
         return ipv4_addr(host.fleet_id, host.net, host.node_type, host.node_id);
     else
         return ipv6_addr(host.fleet_id, host.net, host.node_type, host.node_id);
