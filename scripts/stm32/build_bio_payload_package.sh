@@ -27,13 +27,13 @@ done
 # --- Toolchain check ---
 if ! command -v arm-none-eabi-gcc &>/dev/null; then
     echo "[STM32] ERROR: arm-none-eabi-gcc not found."
-    echo "  Run: bash ${script_dir}/setup_tools_build.sh"
+    echo "  Run: bash ${project_dir}/scripts/setup-tools-build.sh"
     exit 1
 fi
 
 if ! command -v nanopb_generator.py &>/dev/null; then
     echo "[STM32] ERROR: nanopb_generator.py not found."
-    echo "  Run: bash ${script_dir}/setup_tools_build.sh"
+    echo "  Run: bash ${project_dir}/scripts/setup-tools-build.sh"
     exit 1
 fi
 
