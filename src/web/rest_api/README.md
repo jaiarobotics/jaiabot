@@ -177,7 +177,7 @@ Add a `lattice` block to `/etc/jaiabot/rest_api.pb.cfg`:
 
 ```protobuf
 lattice {
-    endpoint: "abc123.env.sandboxes.developer.anduril.com"
+    endpoint: "lattice-abc123.env.sandboxes.developer.anduril.com"
     environment_token: "your-lattice-environment-token"
 
     # only needed for a Lattice Sandboxes environment
@@ -187,11 +187,18 @@ lattice {
 
 Leave the `lattice` block out and nothing is published.
 
+> **The endpoint is the environment host**, the single label in front of
+> `.env.sandboxes.developer.anduril.com` - for example
+> `lattice-abc123.env.sandboxes.developer.anduril.com`. A sandbox also publishes a
+> host per service running in it, which carries an extra label on the front
+> (`someservice.lattice-abc123.env.sandboxes.developer.anduril.com`). Those serve
+> that one service, not the Entities API, so drop any leading service label.
+
 **All the options:**
 
 | Field                          | Default   | What it does                                                      |
 | ------------------------------ | --------- | ----------------------------------------------------------------- |
-| `endpoint`                     | required  | Lattice environment hostname                                      |
+| `endpoint`                     | required  | Lattice environment hostname, with no service label and no scheme |
 | `environment_token`            | required  | Bearer token for that environment                                 |
 | `sandbox_token`                | -         | Sandboxes account token, for sandbox environments only            |
 | `integration_name`             | `JaiaBot` | Name Lattice attributes these entities to                         |
@@ -209,8 +216,8 @@ Run two fleets into the same Lattice environment? Give each one its own `integra
 A [sandbox environment](https://developer.anduril.com/guides/developer-tools/sandboxes) lasts 12 hours and hands you fresh tokens each time, so it's easier to pass them in the environment than to keep editing the config file:
 
 ```bash
-# Resource Endpoint, without the https://
-export JAIA_LATTICE_ENDPOINT="abc123.env.sandboxes.developer.anduril.com"
+# Resource Endpoint, without the https:// and without a service label
+export JAIA_LATTICE_ENDPOINT="lattice-abc123.env.sandboxes.developer.anduril.com"
 # "Lattice Auth Token" from the environment page
 export JAIA_LATTICE_ENVIRONMENT_TOKEN="..."
 # Sandboxes token from Account & Security
@@ -219,7 +226,7 @@ export JAIA_LATTICE_SANDBOX_TOKEN="..."
 ./run.sh
 ```
 
-Then open the Lattice UI for that environment and the bots, hub and task packets should appear on the map. Anything Lattice rejects is logged as an error with its response body.
+Then open the Lattice UI for that environment and the bots, hub and task packets should appear on the map. Signing in to that UI goes through the Sandboxes login, which needs a Chromium-based browser and the passkey registered on your Anduril account - the Lattice user for the environment is only asked for after that. Anything Lattice rejects is logged as an error with its response body.
 
 > **Careful:** the tokens end up in the API's own log, because it logs its whole configuration on startup (as it already does for API keys). Don't publish those logs.
 
