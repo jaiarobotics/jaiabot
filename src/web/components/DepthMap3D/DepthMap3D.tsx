@@ -40,7 +40,7 @@ export default function DepthMap3D() {
                 setWindowPosition={setWindowPosition}
                 onClose={onClose}
             />
-            <div id={DEPTH_MAP_3D_NAME}></div>
+            <div id={DEPTH_MAP_3D_NAME} className="depth-map-3D-plot"></div>
         </div>
     );
 }

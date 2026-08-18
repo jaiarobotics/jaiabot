@@ -184,6 +184,10 @@ export default function HubDetails() {
                             <table>
                                 <tbody>
                                     <tr>
+                                        <td>System Time (UTC)</td>
+                                        <td>{hub.getSystemTime()}</td>
+                                    </tr>
+                                    <tr>
                                         <td>Latitude</td>
                                         <td>
                                             {formatLatitude(hub.getHubSensors().getGPS()?.getLat())}
