@@ -11,4 +11,5 @@ fluorometer {
     resend_cfg_timeout_seconds: 20
     $fluorometer_coefficients
 }
+$tsys01_config
 

@@ -72,6 +72,7 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
   private:
     std::set<jaiabot::sensor::protobuf::Sensor> drivers_launched_;
     std::set<jaiabot::sensor::protobuf::Sensor> failed_initializations;
+    goby::time::SteadyClock::time_point start_time_{goby::time::SteadyClock::now()};
     std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Error>
         initialization_error_names;
     std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Warning>
@@ -152,6 +153,22 @@ void jaiabot::apps::Sensors::health(goby::middleware::protobuf::ThreadHealth& he
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                 ->add_warning(initialization_warning_names.at(sensor));
         }
+    }
+
+    // A TSYS01 that never initializes is reported by the payload board as absent rather
+    // than failed, since the same firmware runs on BIO bots built without one. That is
+    // silent by design -- but if this bot was configured for a TSYS01, silence means the
+    // sensor we were told to expect never showed up, and no driver thread exists to time
+    // out and report it. Warn on its behalf.
+    if (cfg().has_tsys01() && !drivers_launched_.count(jaiabot::sensor::protobuf::TSYS01__SENSOR) &&
+        start_time_ + std::chrono::seconds(cfg().tsys01().report_timeout_seconds()) <
+            goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Configured for TSYS01 but the payload board never "
+                                  "reported one"
+                               << std::endl;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(jaiabot::protobuf::WARNING__MISSING_DATA__TSYS01_DATA);
     }
 }
 

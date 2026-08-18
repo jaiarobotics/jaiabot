@@ -48,6 +48,7 @@ Core/Src/command.c \
 Core/Src/crc32.c \
 Core/Src/oem_library.c \
 Core/Src/MS5837.c \
+Core/Src/celsius_tsys01.c \
 Core/Src/cfluor.c \
 Core/Src/aml.c \
 Core/Src/stm32l4xx_it.c \

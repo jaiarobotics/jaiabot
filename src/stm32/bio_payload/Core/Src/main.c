@@ -167,6 +167,7 @@ void init_atlas_scientific_DO();
 void init_atlas_scientific_pH();
 void init_CFluor();
 void init_AML();
+void init_celsius_tsys01();
 
 // Transmit Data
 void process_sensor_request(SensorRequest *sensor_request);
@@ -177,6 +178,7 @@ void transmit_atlas_scientific_do_data();
 void transmit_atlas_scientific_ph_data();
 void transmit_blue_robotics_bar30_data();
 void transmit_turner_c_fluor_data();
+void transmit_celsius_tsys01_data();
 
 // Utility
 int hz_to_ms(int hz);
@@ -238,7 +240,8 @@ int main(void)
   init_atlas_scientific_DO();
   init_atlas_scientific_pH();
   init_blue_robotics_bar30();
-  
+  init_celsius_tsys01();
+
   init_CFluor();
   init_AML();
 
@@ -272,6 +275,7 @@ int main(void)
   double bar30_target_send_time = 0;
   double turner_c_fluor_target_send_time = 0;
   double aml_target_send_time = 0;
+  double tsys01_target_send_time = 0;
   double sensor_request_target_check_time = 0;
 
   while (1)
@@ -330,6 +334,12 @@ int main(void)
     {
       aml_target_send_time = time + SensorSampleRates[jaiabot_sensor_protobuf_Sensor_AML__SENSOR];
       transmit_aml_data();
+    }
+
+    if (Sensors[jaiabot_sensor_protobuf_Sensor_TSYS01__SENSOR] == REQUESTED && time >= tsys01_target_send_time)
+    {
+      tsys01_target_send_time = time + SensorSampleRates[jaiabot_sensor_protobuf_Sensor_TSYS01__SENSOR];
+      transmit_celsius_tsys01_data();
     }
 
     time = HAL_GetTick();
@@ -404,6 +414,25 @@ void init_blue_robotics_bar30()
   }
 }
 
+void init_celsius_tsys01()
+{
+  // Shares the external Blue Robotics I2C bus with the Bar30 (0x77 vs 0x76, so no address clash)
+  int res = initTSYS01(&hi2c3);
+
+  if (res == 0)
+  {
+    Sensors[jaiabot_sensor_protobuf_Sensor_TSYS01__SENSOR] = INITIALIZED;
+  }
+  else
+  {
+    // Unlike the Bar30 and the Atlas boards, the Celsius is an optional add-on: this same
+    // firmware runs on BIO bots built without one. Leaving it UNINITIALIZED (rather than
+    // FAILED) keeps it out of transmit_metadata(), so jaiabot_sensors neither launches a
+    // TSYS01 driver nor raises WARNING__INIT_FAILED__TSYS01 for a sensor that isn't fitted.
+    Sensors[jaiabot_sensor_protobuf_Sensor_TSYS01__SENSOR] = UNINITIALIZED;
+  }
+}
+
 void init_CFluor()
 {
   Sensors[jaiabot_sensor_protobuf_Sensor_TURNER__C_FLUOR] = INITIALIZED;
@@ -466,6 +495,12 @@ void process_sensor_request(SensorRequest *sensor_request)
     {
       SensorSampleRates[jaiabot_sensor_protobuf_Sensor_AML__SENSOR] = hz_to_ms(sensor_request->request_data.cfg.sample_freq);
       Sensors[jaiabot_sensor_protobuf_Sensor_AML__SENSOR] = REQUESTED;
+    }
+
+    if (sensor_request->request_data.cfg.sensor == jaiabot_sensor_protobuf_Sensor_TSYS01__SENSOR && Sensors[jaiabot_sensor_protobuf_Sensor_TSYS01__SENSOR] != STOPPED)
+    {
+      SensorSampleRates[jaiabot_sensor_protobuf_Sensor_TSYS01__SENSOR] = hz_to_ms(sensor_request->request_data.cfg.sample_freq);
+      Sensors[jaiabot_sensor_protobuf_Sensor_TSYS01__SENSOR] = REQUESTED;
     }
   }
 
@@ -809,6 +844,23 @@ void transmit_turner_c_fluor_data()
   }
 
   sensor_data.data.c_fluor = c_fluor;
+  transmit_sensor_data(&sensor_data);
+}
+
+void transmit_celsius_tsys01_data()
+{
+  SensorData sensor_data = jaiabot_sensor_protobuf_SensorData_init_zero;
+  sensor_data.time = HAL_GetTick();
+  sensor_data.which_data = jaiabot_sensor_protobuf_SensorData_tsys01_tag;
+  Tsys01 tsys01 = jaiabot_sensor_protobuf_TSYS01_init_zero;
+
+  if (readTSYS01() == 0)
+  {
+    tsys01.has_temperature = true;
+    tsys01.temperature = getTSYS01Temperature();
+  }
+
+  sensor_data.data.tsys01 = tsys01;
   transmit_sensor_data(&sensor_data);
 }
 

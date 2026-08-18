@@ -719,7 +719,14 @@ if 'ppk' in jaia_additional_sensors:
 
     jaiabot_apps.append(jaiabot_ubx_ppk)
 
-if jaia_temperature_sensor_type.value == 'tsys01':
+# A BIO bot reads its TSYS01 through the bio payload board instead: the STM32
+# celsius_tsys01 driver reports it over the MCU serial link to jaiabot_sensors, which
+# publishes the same TSYS01Data the UDP gateway would have -- running the Python driver
+# there too would double-publish on the jaiabot::tsys01 group. The BIO test belongs here
+# rather than in 'runs_on': that is a flat OR, so it cannot express "is a bot AND is not
+# BIO", and a hub reports BOT_TYPE.NONE as well, so any bot-type list permissive enough
+# to keep unconfigured bots would also pull this service onto hubs.
+if jaia_temperature_sensor_type.value == 'tsys01' and jaia_bot_type != BOT_TYPE.BIO:
     jaiabot_apps_tsys01 = [
         {'exe': 'jaiabot_tsys01.py',
          'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',

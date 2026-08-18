@@ -23,7 +23,6 @@ if "jaia_electronics_stack" in os.environ:
     jaia_electronics_stack=os.environ['jaia_electronics_stack']
 
 jaia_temperature_sensor_type = os.environ.get('jaia_temperature_sensor_type', default='bar30')
-tsys01_enabled = jaia_temperature_sensor_type == 'tsys01'
 
 if jaia_electronics_stack == '0':
     helm_app_tick=1
@@ -75,6 +74,21 @@ echo_enabled=(bot_type == "ECHO")
 # Ignore health warnings from UDP gateway if data comes from BIO payload board
 salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
+
+# Only enable TSYS01 driver if the Bot is not a BIO and the TSYS01 is the selected temperature sensor type
+tsys01_enabled=(jaia_temperature_sensor_type == 'tsys01' and bot_type != 'BIO')
+
+# The mirror of the above: on a BIO bot the TSYS01 is the payload board's job, so tell
+# jaiabot_sensors it is expected. That stanza's presence (has_tsys01) is what lets the
+# app warn when a bot configured for a TSYS01 never receives any TSYS01 data.
+if jaia_temperature_sensor_type == 'tsys01' and bot_type == 'BIO':
+    tsys01_config = ('tsys01 {\n'
+                     '    sample_rate: 10\n'
+                     '    report_timeout_seconds: 20\n'
+                     '    resend_cfg_timeout_seconds: 20\n'
+                     '}')
+else:
+    tsys01_config = ''
 
 jaia_motor_harness_type="NONE"
 
@@ -360,7 +374,8 @@ elif common.app == 'jaiabot_sensors':
                                      interprocess_block=interprocess_common,
                                      port='/dev/bio-payload',
                                      baud=115200,
-                                     fluorometer_coefficients=fluorometer_coefficients))
+                                     fluorometer_coefficients=fluorometer_coefficients,
+                                     tsys01_config=tsys01_config))
 elif common.app == 'jaiabot_power_board':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_power_board.pb.cfg.in',
                                      app_block=app_common,
