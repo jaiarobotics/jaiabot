@@ -18,6 +18,7 @@ dependencies = [
     'numpy',
     'cmocean',
     'pyturf',
+    'geojson',
     'h5py',
     'plotly',
 ]

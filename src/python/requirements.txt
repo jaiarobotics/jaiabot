@@ -8,10 +8,16 @@ Adafruit-PlatformDetect==3.88.0
 Adafruit-PureIO==1.1.11
 binho-host-adapter==0.1.6
 cmocean==4.0.3
+dataclasses-json
 digi-xbee==1.5.0
 Flask-Compress==1.24
+geopandas
 h5py-stubs==0.1.2
+networkx
+pytest
 pyturf==0.6.14
+rasterio
+simplejson
 ./pyjaia
 ./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x
