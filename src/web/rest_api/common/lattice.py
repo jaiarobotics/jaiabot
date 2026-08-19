@@ -202,7 +202,7 @@ class LatticePublisher:
             'disposition': 'DISPOSITION_FRIENDLY',
             'environment': 'ENVIRONMENT_SURFACE',
         }
-        entity['location'] = {'position': location}
+        entity['location'] = location
         return entity
 
     def new_entity(self, source_id, source_utime, now, expiry_seconds):
@@ -277,15 +277,33 @@ def bot_description(bot_status):
 
 
 def task_packet_location(task_packet):
-    """Finds where a task packet was taken, which differs by task type."""
+    """Finds where a task packet was taken and what it measured there."""
     if task_packet.dive.HasField('start_location'):
-        location = task_packet.dive.start_location
+        coordinate = task_packet.dive.start_location
     elif task_packet.drift.HasField('start_location'):
-        location = task_packet.drift.start_location
+        coordinate = task_packet.drift.start_location
     else:
         return None
 
-    return {'latitudeDegrees': location.lat, 'longitudeDegrees': location.lon}
+    location = {'position': {
+        'latitudeDegrees': coordinate.lat,
+        'longitudeDegrees': coordinate.lon,
+    }}
+
+    # the depth reached is the point of a dive, so publish it as a value rather
+    # than only in the description
+    if task_packet.HasField('dive'):
+        location['position']['pressureDepthMeters'] = task_packet.dive.depth_achieved
+
+    # the estimated drift is the ocean current, which Lattice carries as the
+    # velocity of the entity
+    if task_packet.drift.HasField('estimated_drift'):
+        drift = task_packet.drift.estimated_drift
+        location['speedMps'] = drift.speed
+        if drift.HasField('heading'):
+            location['velocityEnu'] = velocity_enu(drift.speed, drift.heading)
+
+    return location
 
 
 def task_packet_description(task_packet):
@@ -302,11 +320,19 @@ def task_packet_description(task_packet):
         if salinities:
             parts.append(f'{sum(salinities) / len(salinities):.1f} PSU')
 
-    if task_packet.drift.HasField('estimated_drift'):
-        drift = task_packet.drift.estimated_drift
-        parts.append(f'drift {drift.speed:.1f} m/s')
-        if drift.HasField('heading'):
-            parts.append(f'heading {drift.heading:.0f} deg')
+    if task_packet.HasField('drift'):
+        drift = task_packet.drift
+
+        if drift.HasField('estimated_drift'):
+            parts.append(f'drift {drift.estimated_drift.speed:.1f} m/s')
+            if drift.estimated_drift.HasField('heading'):
+                parts.append(f'heading {drift.estimated_drift.heading:.0f} deg')
+
+        if drift.HasField('drift_duration'):
+            parts.append(f'over {drift.drift_duration} s')
+
+        if drift.HasField('significant_wave_height'):
+            parts.append(f'wave height {drift.significant_wave_height:.2f} m')
 
     return ', '.join(parts)
 

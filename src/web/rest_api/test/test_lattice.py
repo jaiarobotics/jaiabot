@@ -83,6 +83,22 @@ def task_packet():
 
 
 @pytest.fixture
+def drift_packet():
+    drift_packet = TaskPacket()
+    drift_packet.bot_id = 2
+    drift_packet.start_time = NOW_UTIME - int(120 * 1e6)
+    drift_packet.end_time = NOW_UTIME
+    drift_packet.type = MissionTask.SURFACE_DRIFT
+    drift_packet.drift.drift_duration = 120
+    drift_packet.drift.estimated_drift.speed = 0.4
+    drift_packet.drift.estimated_drift.heading = 210
+    drift_packet.drift.significant_wave_height = 0.35
+    drift_packet.drift.start_location.lat = 41.6572
+    drift_packet.drift.start_location.lon = -71.2673
+    return drift_packet
+
+
+@pytest.fixture
 def shared_data():
     """Empties the shared data so each test only sees what it adds."""
     with common.shared_data.data_lock:
@@ -162,6 +178,36 @@ def test_task_packet_entity(publisher, task_packet):
     # a task packet is published where it was taken, not where the bot is now
     assert entity["location"]["position"]["latitudeDegrees"] == pytest.approx(41.67)
     assert entity["description"] == "depth 9.8 m, 18.2 C, 31.4 PSU"
+
+
+def test_dive_depth_is_published_as_a_value(publisher, task_packet):
+    position = publisher.task_packet_entity(task_packet, NOW)["location"]["position"]
+
+    assert position["pressureDepthMeters"] == pytest.approx(9.8)
+
+
+def test_drift_packet_entity(publisher, drift_packet):
+    entity = publisher.task_packet_entity(drift_packet, NOW)
+
+    # the estimated drift is an ocean current, so it publishes as a velocity
+    assert entity["location"]["speedMps"] == pytest.approx(0.4)
+    velocity = entity["location"]["velocityEnu"]
+    assert velocity["e"] == pytest.approx(0.4 * math.sin(math.radians(210)))
+    assert velocity["n"] == pytest.approx(0.4 * math.cos(math.radians(210)))
+
+    # a drift has no depth to report
+    assert "pressureDepthMeters" not in entity["location"]["position"]
+
+    assert entity["description"] == "drift 0.4 m/s, heading 210 deg, over 120 s, wave height 0.35 m"
+
+
+def test_drift_without_an_estimate_still_publishes(publisher, drift_packet):
+    drift_packet.drift.ClearField("estimated_drift")
+
+    entity = publisher.task_packet_entity(drift_packet, NOW)
+
+    assert "speedMps" not in entity["location"]
+    assert entity["description"] == "over 120 s, wave height 0.35 m"
 
 
 def test_task_packet_is_only_published_once(publisher, task_packet):
