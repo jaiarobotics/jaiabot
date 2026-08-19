@@ -48,9 +48,9 @@ jaia_debconf_template_field() {
     ' "${templates}"
 }
 
-# awk source, shared by the two places that show a Choices list to a human.
-# bot_id is a contiguous integer run of 151 elements; in full it buries whatever
-# else is on screen and says nothing a range does not.
+# awk source, shared by the two places that show a Choices list to a human. A
+# long contiguous run of integers buries whatever else is on screen and says
+# nothing a range does not.
 JAIA_DEBCONF_AWK_COLLAPSE='
     function collapse(s,   n, a, i) {
         n = split(s, a, ",")
@@ -330,7 +330,7 @@ jaia_debconf_get_all() {
 # many to list as Choices. Fails for every other question.
 jaia_debconf_range_flag() {
     case "$1" in
-        fleet_id) echo "--fleet_id" ;;
+        bot_id|fleet_id|hub_id) echo "--$1" ;;
         *) return 1 ;;
     esac
 }

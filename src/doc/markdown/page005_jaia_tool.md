@@ -198,14 +198,14 @@ A single question in JSON gives an object with just that entry (`jaia admin debc
 QUESTION                  TYPE         DEFAULT   CHOICES
 additional_sensors        multiselect  none      turner_c_flour, aml, ppk, none
 arduino_type              select       none      spi, usb, none
-bot_id                    select                 0-150
+bot_id                    string       0
 bot_type                  select       hydro     hydro, pam, bio, none
 ...
 ```
 
-Long runs of consecutive integers are shown as a range (`0-150`) rather than in full. `list` reads the package's templates rather than the debconf database, so it describes what *can* be set. Both `list` and a bare `get` take `--all`, which also shows the internal `debconf_state_*` questions - those record where the interactive menu is rather than any configuration.
+`list` reads the package's templates rather than the debconf database, so it describes what *can* be set. Both `list` and a bare `get` take `--all`, which also shows the internal `debconf_state_*` questions - those record where the interactive menu is rather than any configuration.
 
-`set` validates the value against that question's permitted `Choices`, so a typo fails immediately rather than silently generating the wrong services. `fleet_id` has too many valid answers to list as choices, so it is a string whose range is checked against `jaia admin bounds --fleet_id` instead. By default it then runs `dpkg-reconfigure jaiabot-embedded`, which regenerates and re-enables the systemd units so the change takes effect.
+`set` validates the value against that question's permitted `Choices`, so a typo fails immediately rather than silently generating the wrong services. The `bot_id`, `hub_id` and `fleet_id` questions have too many valid answers to list as choices, so they are strings whose ranges are checked against `jaia admin bounds` instead. By default it then runs `dpkg-reconfigure jaiabot-embedded`, which regenerates and re-enables the systemd units so the change takes effect.
 
 When changing several values, skip the reconfigure on all but the last so the units are only regenerated once:
 

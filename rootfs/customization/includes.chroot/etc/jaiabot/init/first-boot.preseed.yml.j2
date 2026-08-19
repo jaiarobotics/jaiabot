@@ -14,8 +14,8 @@ apt:
     jaiabot_embedded_set: |
       jaiabot-embedded jaiabot-embedded/fleet_id string {{ fleet }}
       jaiabot-embedded jaiabot-embedded/type select {{ this.type }}
-      jaiabot-embedded jaiabot-embedded/bot_id select {{ this.id if this.type == "bot" else 0 }}
-      jaiabot-embedded jaiabot-embedded/hub_id select {{ this.id if this.type == "hub" else 0  }}
+      jaiabot-embedded jaiabot-embedded/bot_id string {{ this.id if this.type == "bot" else 0 }}
+      jaiabot-embedded jaiabot-embedded/hub_id string {{ this.id if this.type == "hub" else 0  }}
       jaiabot-embedded jaiabot-embedded/mode select {{ this.mode }}
 {%- for d in debconf %}
       jaiabot-embedded {{ d.key }} {{ d.type|lower }} {{ d.value }}
