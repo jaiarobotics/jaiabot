@@ -117,26 +117,11 @@ void power_board_command_process(void)
 
     if (request.has_control_surfaces)
     {
-        // Handle control surfaces command
-        // For example, you can call a function to process the control surfaces data
-        handle_control_surfaces(request.control_surfaces);
+        handle_control_surfaces(&request.control_surfaces);
     }
-}
 
-void handle_control_surfaces(const jaiabot_protobuf_ControlSurfaces control_surfaces)
-{
-    int motor_value = control_surfaces.motor;
-    int rudder_value = control_surfaces.rudder;
-    int stbd_elevator_value = control_surfaces.stbd_elevator;
-    int port_elevator_value = control_surfaces.port_elevator;
-    int timeout_value = control_surfaces.timeout;
-    bool led_switch_on = control_surfaces.led_switch_on;
-
-    HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin,
-                      led_switch_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    (void)motor_value;
-    (void)rudder_value;
-    (void)stbd_elevator_value;
-    (void)port_elevator_value;
-    (void)timeout_value;
+    if (request.has_low_power_request)
+    {
+        power_board_request_low_power_mode_seconds(request.low_power_request.duration_seconds);
+    }
 }

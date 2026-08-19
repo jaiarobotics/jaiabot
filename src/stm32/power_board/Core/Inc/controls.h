@@ -8,15 +8,24 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
-// Motor
-extern int target_motor_;
-extern int max_reverse_;
-extern int motor_off_;
+    typedef struct _jaiabot_protobuf_ControlSurfaces jaiabot_protobuf_ControlSurfaces;
 
-// Rudder and Elevators
-extern int rudder_;
-extern int port_elevator_;
-extern int stbd_elevator_;
+    // Motor
+    extern int target_motor_;
+    extern int max_reverse_;
+    extern int motor_off_;
+
+    // Rudder and Elevators
+    extern int rudder_;
+    extern int port_elevator_;
+    extern int stbd_elevator_;
+
+    // Applies incoming control-surface commands from the host link to local
+    // actuator outputs (GPIO / PWM) and cached state.
+    void handle_control_surfaces(const jaiabot_protobuf_ControlSurfaces* control_surfaces);
+
+    // Runs control watchdog checks that should be serviced from the main loop.
+    void controls_periodic_update(void);
 
 #ifdef __cplusplus
 }

@@ -67,11 +67,17 @@ TIM_HandleTypeDef htim16;
 
 /* USER CODE BEGIN PV */
 static volatile uint8_t lptim_wake_flag = 0;
-/* LSI ~32 kHz, LPTIM prescaler /128 -> 250 Hz. 10 s = 2500 counts. */
-#define LPTIM_10SEC_PERIOD  (2500U - 1U)
+
+/* LSI ~32 kHz, LPTIM prescaler /128 -> 250 Hz. */
+#define LPTIM_TICK_HZ            250U
+#define LPTIM_MAX_COUNTS         65536U
+#define SLEEP_INTERVAL_MS        10000U
 
 uint8_t bits_in_byte = 8;
 bool usb_tx_busy = false;
+enum state current_state = INIT_STATE;
+static volatile uint32_t sleep_interval_ms = SLEEP_INTERVAL_MS;
+static volatile uint32_t requested_low_power_ms = 0U;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -116,6 +122,83 @@ static uint32_t adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
 }
 
 #define ADC_TO_VOLTS(raw) ((raw) / 4095.0f * 3.3f)
+
+static bool low_power_request_pending(void)
+{
+  return requested_low_power_ms != 0U;
+}
+
+static uint32_t take_low_power_request_ms(void)
+{
+  uint32_t duration_ms = requested_low_power_ms;
+  requested_low_power_ms = 0U;
+
+  return duration_ms;
+}
+
+static void service_host_commands(uint32_t budget_ms)
+{
+  uint32_t start = HAL_GetTick();
+
+  do
+  {
+    power_board_command_process();
+    controls_periodic_update();
+    HAL_IWDG_Refresh(&hiwdg);
+    if (low_power_request_pending())
+    {
+      break;
+    }
+    HAL_Delay(5);
+  } while ((HAL_GetTick() - start) < budget_ms);
+}
+
+static uint64_t lptim_counts_from_ms(uint32_t duration_ms)
+{
+  uint64_t counts = ((uint64_t)duration_ms * LPTIM_TICK_HZ + 999U) / 1000U;
+
+  return (counts == 0U) ? 1U : counts;
+}
+
+static void sleep_until_lptim_wake_counts(uint16_t period)
+{
+  lptim_wake_flag = 0U;
+
+  if (HAL_LPTIM_Counter_Start_IT(&hlptim1, period) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  HAL_SuspendTick();
+  while (lptim_wake_flag == 0U)
+  {
+    // Process any host command frame completed by USB IRQ before
+    // re-entering low-power sleep.
+    power_board_command_process();
+    controls_periodic_update();
+    if (low_power_request_pending())
+    {
+      break;
+    }
+    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+    HAL_IWDG_Refresh(&hiwdg);
+  }
+  HAL_ResumeTick();
+
+  HAL_LPTIM_Counter_Stop_IT(&hlptim1);
+}
+
+static void sleep_for_ms(uint32_t duration_ms)
+{
+  uint64_t remaining_counts = lptim_counts_from_ms(duration_ms);
+
+  while (remaining_counts > 0U)
+  {
+    uint32_t chunk_counts = (remaining_counts > LPTIM_MAX_COUNTS) ? LPTIM_MAX_COUNTS : (uint32_t)remaining_counts;
+    sleep_until_lptim_wake_counts((uint16_t)(chunk_counts - 1U));
+    remaining_counts -= chunk_counts;
+  }
+}
 
 /* USER CODE END 0 */
 
@@ -168,14 +251,14 @@ int main(void)
 
   // HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);   /* DEEP SLEEP for current measurement */
 
-  //HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_SET);
 
   HAL_Delay(300);
 
   /* Enable 12V / 5V / 3V3 regulators. */
-  //HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_SET);
-  //HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port,  EN_5V_REG_Pin,  GPIO_PIN_SET);
-  //HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port,  EN_5V_REG_Pin,  GPIO_PIN_SET);
+  HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
 
   /* Allow USB host time to enumerate the CDC device before the first TX. */
   HAL_Delay(2000);
@@ -190,51 +273,55 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    uint32_t requested_sleep_ms = take_low_power_request_ms();
+    if (requested_sleep_ms != 0U)
+    {
+      sleep_for_ms(requested_sleep_ms);
+      current_state = SLEEP_STATE;
+      continue;
+    }
+
     HAL_IWDG_Refresh(&hiwdg);
 
-    power_board_command_process();
+    // State loop: short command-service window while awake, then sleep.
+    switch(current_state)
+    {
+      case INIT_STATE:
+        // Reserved for longer awake workflows (e.g., data offload windows).
+        // service_host_commands(150);
+        current_state = BROADCAST_STATE;
+        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
 
-    // HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+        break;
 
-    PowerBoardResponse power_board_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
-    power_board_response.time = (uint64_t)HAL_GetTick() * 1000ULL;
-    power_board_response.has_thermocouple_temperature_C = true;
-    power_board_response.thermocouple_temperature_C = 20.0f;
-    HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
-    HAL_Delay(1);
-    power_board_response.has_vccvoltage = true;
-    power_board_response.vccvoltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_1));
-    HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
-    power_board_response.has_vcccurrent = true;
-    power_board_response.vcccurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_2));
-    power_board_response.has_vvcurrent = true;
-    power_board_response.vvcurrent = 0.7f;
-    power_board_response.has_motor = true;
-    power_board_response.motor = 1550;
-    power_board_response.has_thermistor_voltage = true;
-    power_board_response.thermistor_voltage = 0.8f;
-    power_board_response.has_generic_gpio_voltage = true;
-    power_board_response.generic_gpio_voltage = 0.9f;
+      case BROADCAST_STATE:
+        // Reserved for longer awake workflows (e.g., data offload windows).
+        // service_host_commands(150);
+        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
 
-    usb_transmit(&power_board_response);
+        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
+        current_state = SLEEP_STATE;
 
-    HAL_Delay(100);
-    // HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+        break;
 
-    // lptim_wake_flag = 0U;
-    // if (HAL_LPTIM_Counter_Start_IT(&hlptim1, LPTIM_10SEC_PERIOD) != HAL_OK)
-    // {
-    //   Error_Handler();
-    // }
+      case SLEEP_STATE:
+      //   // Low power mode to save battery between active windows.
+      //   sleep_for_ms(sleep_interval_ms);
+        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
 
-    // HAL_SuspendTick();
-    // while (lptim_wake_flag == 0U)
-    // {
-    //   HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
-    // }
-    // HAL_ResumeTick();
+        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+        current_state = INIT_STATE;
+        break;
 
-    // HAL_LPTIM_Counter_Stop_IT(&hlptim1);
+      default:
+        current_state = INIT_STATE;
+    }
+
+    HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }
@@ -1026,6 +1113,43 @@ void HAL_LPTIM_AutoReloadMatchCallback(LPTIM_HandleTypeDef *hlptim)
   {
     lptim_wake_flag = 1U;
   }
+}
+
+void power_board_set_sleep_interval_ms(uint32_t interval_ms)
+{
+  sleep_interval_ms = (interval_ms == 0U) ? 1U : interval_ms;
+}
+
+void power_board_set_sleep_interval_seconds(uint32_t interval_s)
+{
+  if (interval_s > (UINT32_MAX / 1000U))
+  {
+    power_board_set_sleep_interval_ms(UINT32_MAX);
+    return;
+  }
+
+  power_board_set_sleep_interval_ms(interval_s * 1000U);
+}
+
+uint32_t power_board_get_sleep_interval_ms(void)
+{
+  return sleep_interval_ms;
+}
+
+void power_board_request_low_power_mode_ms(uint32_t duration_ms)
+{
+  requested_low_power_ms = (duration_ms == 0U) ? 1U : duration_ms;
+}
+
+void power_board_request_low_power_mode_seconds(uint32_t duration_s)
+{
+  if (duration_s > (UINT32_MAX / 1000U))
+  {
+    power_board_request_low_power_mode_ms(UINT32_MAX);
+    return;
+  }
+
+  power_board_request_low_power_mode_ms(duration_s * 1000U);
 }
 
 // Jumps to the STM32 ROM bootloader (system memory), which on this part

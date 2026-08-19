@@ -53,6 +53,13 @@ struct boot_vectable_ {
 };
 
 typedef jaiabot_protobuf_PowerBoardResponse PowerBoardResponse;
+
+enum state{
+  INIT_STATE,
+  DIVE_STATE,
+  BROADCAST_STATE,
+  SLEEP_STATE
+};
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -75,6 +82,11 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 void jumpToBootloader(void);
+void power_board_set_sleep_interval_ms(uint32_t interval_ms);
+void power_board_set_sleep_interval_seconds(uint32_t interval_s);
+uint32_t power_board_get_sleep_interval_ms(void);
+void power_board_request_low_power_mode_ms(uint32_t duration_ms);
+void power_board_request_low_power_mode_seconds(uint32_t duration_s);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

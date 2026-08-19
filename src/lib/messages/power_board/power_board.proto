@@ -13,6 +13,11 @@ enum PowerBoardMCUCommand
     ENTER_BOOTLOADER_MODE = 1;
 }
 
+message LowPowerRequest
+{
+    required uint32 duration_seconds = 1;
+}
+
 
 message PowerBoardRequest
 {
@@ -32,6 +37,7 @@ message PowerBoardRequest
 
     optional PowerBoardMCUCommand power_board_mcu_command = 20;
     optional ControlSurfaces control_surfaces = 21;
+    optional LowPowerRequest low_power_request = 22;
 }
 
 
