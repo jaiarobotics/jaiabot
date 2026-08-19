@@ -90,7 +90,7 @@ else
         ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c \"./jaiabot/scripts/arm64-deploy.sh ${build_dir}\""
 
         if [ ! -z $jaiabot_systemd_type ]; then
-            echo "When you're ready, ssh ${botuser}@${hostname} and run 'sudo systemctl start jaiabot'"
+            echo "When you're ready, ssh ${botuser}@${remote} and run 'sudo systemctl start jaiabot'"
         fi
 
     done
