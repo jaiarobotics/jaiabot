@@ -56,6 +56,9 @@ const char* const usage_msg =
     "  --bot_id, --hub_id, --fleet_id, --desktop_id, --gateway_id, --rpicam_id\n"
     "                 report only the given id(s); all of them if none is given\n"
     "  --cloudhub_id  the hub id the CloudHub always uses: one id, not a range\n"
+    "  --ipv4_fleet_id\n"
+    "                 the fleet ids addressed with IPv4 on the fleet WLAN and fleet VPN; the\n"
+    "                 rest of --fleet_id is addressed with IPv6 on every network\n"
     "  --min, --max   report only that end of the range; both if neither is given\n"
     "  --format       text (the default) or json\n"
     "\n"
@@ -87,6 +90,7 @@ std::vector<Bound> all_bounds()
     return {{"bot_id", "bot id", bot.first, bot.second, false},
             {"hub_id", "hub id", hub.first, hub.second, false},
             {"fleet_id", "fleet id", fleet_id_min, fleet_id_max, false},
+            {"ipv4_fleet_id", "ipv4 fleet id", fleet_id_min, fleet_id_ipv4_max, false},
             {"desktop_id", "desktop id", desktop.first, desktop.second, false},
             {"gateway_id", "gateway id", gateway.first, gateway.second, false},
             {"rpicam_id", "rpicam id", rpicam.first, rpicam.second, false},

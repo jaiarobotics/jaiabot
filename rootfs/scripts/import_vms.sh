@@ -66,11 +66,45 @@ fi
 
 N_CPUS=4
 
+# the fleet's addresses come from the addressing scheme rather than being rebuilt here
+if ! command -v jaia_ip > /dev/null; then
+    echo "This script needs the 'jaia_ip' tool to work out the fleet's addresses."
+    echo "Install the jaiabot-embedded package, or build it from src/bin/jaia_ip."
+    exit 1
+fi
+
 HOST_SSH_PORT=$((20000 + ${FLEET}*100))
 
+# these ports are forwarded on this machine, so a fleet id big enough to push its block past the
+# end of the port range cannot be imported here whatever the addressing scheme allows
+MAX_PORT=65535
+if (( HOST_SSH_PORT + ${#BOTS[@]} + ${#HUBS[@]} > MAX_PORT )); then
+    echo "Fleet ${FLEET} would forward host ports from ${HOST_SSH_PORT}, past the end of the port range."
+    echo "A VirtualBox fleet takes one host port per node from 20000 + fleet_id*100, so its fleet id"
+    echo "must be below $(( (MAX_PORT - 20000) / 100 )) on this machine. Import it under a smaller fleet id."
+    exit 1
+fi
+
 NATNET_NAME=$(printf 'jaiafleet%02d' ${FLEET})
+
+# The guests take their addresses from the jaiabot image, which uses the fleet WLAN scheme, so the
+# NAT network has to hand out the same ones. Above the IPv4 fleet range that scheme is IPv6, and
+# the guests then take IPv4 from this network's DHCP for internet access only, matching how a real
+# fleet of that id is set up. VirtualBox needs an IPv4 network either way; --ip_net vfleet_wlan is
+# the one the addressing scheme sets aside for a virtual fleet that cannot mirror its fleet's WLAN.
+FLEET_WLAN_NET=$(jaia_ip --query_type net --ip_net wlan --fleet_id ${FLEET})
+NATNET_IPV4=$(jaia_ip --query_type net --ip_net vfleet_wlan --fleet_id ${FLEET} --ip_version ipv4)
+
 vboxmanage list natnets | grep -q ${NATNET_NAME} && vboxmanage natnetwork remove --netname ${NATNET_NAME}
-vboxmanage natnetwork add --netname ${NATNET_NAME} --network 10.23.${FLEET}.0/24 --enable --dhcp off    
+
+if [[ "${FLEET_WLAN_NET}" == *:* ]]; then
+    # --ipv6-prefix is missing from 'VBoxManage natnetwork --help' but is accepted and applied
+    # (checked against 7.0.16, which rejects an option it does not know)
+    vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp on \
+                              --ipv6 on --ipv6-prefix ${FLEET_WLAN_NET}
+else
+    vboxmanage natnetwork add --netname ${NATNET_NAME} --network ${NATNET_IPV4} --enable --dhcp off
+fi
 
 function import_bot_or_hub()
 {
@@ -95,9 +129,13 @@ function network_bot_or_hub()
     local bot_or_hub=$1
     local n=$2
     VMNAME="${bot_or_hub}${n}"
-    [[ "$bot_or_hub" == "bot" ]] && GUEST_SSH_PORT=$((100+n)) || GUEST_SSH_PORT=$((10+n))    
+    GUEST_IP=$(jaia_ip --query_type addr --node_type ${bot_or_hub} --node_id ${n} --ip_net wlan --fleet_id ${FLEET})
     (set -x
-     vboxmanage natnetwork modify --netname ${NATNET_NAME} --port-forward-4="ssh ${VMNAME}:tcp:[]:${HOST_SSH_PORT}:[10.23.${FLEET}.${GUEST_SSH_PORT}]:22"
+     if [[ "${GUEST_IP}" == *:* ]]; then
+         vboxmanage natnetwork modify --netname ${NATNET_NAME} --port-forward-6="ssh ${VMNAME}:tcp:[]:${HOST_SSH_PORT}:[${GUEST_IP}]:22"
+     else
+         vboxmanage natnetwork modify --netname ${NATNET_NAME} --port-forward-4="ssh ${VMNAME}:tcp:[]:${HOST_SSH_PORT}:[${GUEST_IP}]:22"
+     fi
     )
     SSH_CONFIG+="Host ${VMNAME}-virtualfleet${FLEET}\n  User jaia\n  Port ${HOST_SSH_PORT}\n  HostName 127.0.0.1\n"
     HOST_SSH_PORT=$((HOST_SSH_PORT + 1))

@@ -162,7 +162,7 @@ function wlan_host_record {
     shift 2
 
     ip=$(jaia_ip --query_type addr --node_type "${node_type}" --node_id "${id}" \
-                 --ip_net wlan --fleet_id "${fleet}" --ip_version ipv4)
+                 --ip_net wlan --fleet_id "${fleet}")
 
     host_record "${ip}" "${node_type}${id}" "${node_type}${id}-fleet${fleet}" "$@"
 }
