@@ -11,6 +11,10 @@ BUILD_DIR="${JAIA_DIR}/build/web_dev/"
 # Configure package.json
 (cd ${JAIA_DIR}; cmake -P cmake/ConfigurePackageJSON.cmake)
 
+# build_venv.sh creates the venv with --system-site-packages, and the server imports several
+# modules that are only ever installed as system packages, so these must come first
+${JAIA_DIR}/scripts/build/install-runtime-deps.sh jaiabot-python jaiabot-web
+
 # Build the venv
 pushd ../python > /dev/null
     ./build_venv.sh ${BUILD_DIR}/python
@@ -18,9 +22,19 @@ pushd ../python > /dev/null
 popd > /dev/null
 
 
+if ! which npm; then
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+fi
+
 # Build JCC and JED clients
 # Install pre-requisites
 ./install_dependencies.sh ./
+
+
+# Regenerate the TypeScript protobuf types in case the .proto files changed
+./gen_protobuf_types.sh
 
 
 # Set up pre-commit hooks

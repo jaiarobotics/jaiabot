@@ -1,12 +1,12 @@
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
 import {
     BottomDepthSafetyParams,
-    GeographicCoordinate,
-    Goal,
     MissionPlan,
-    MissionStart,
-    MovementType,
+    MissionPlan_Goal,
+    MissionPlan_MissionStart,
+    MissionPlan_MovementType,
     Speeds,
-} from "../../types/protobuf-types";
+} from "../../shared/proto/jaiabot/messages/mission";
 import Waypoint from "../waypoints/waypoint";
 import Task from "../tasks/task";
 import { GhostParameters } from "../../types/jaia-system-types";
@@ -125,8 +125,8 @@ export default class Mission {
 
     packageMissionForHub(missionSetName: string) {
         const missionPlan: MissionPlan = {
-            start: MissionStart.START_IMMEDIATELY,
-            movement: MovementType.TRANSIT,
+            start: MissionPlan_MissionStart.START_IMMEDIATELY,
+            movement: MissionPlan_MovementType.TRANSIT,
             goal: this.packageWaypointsForHub(),
             recovery: {
                 recover_at_final_goal: true,
@@ -137,14 +137,14 @@ export default class Mission {
         };
 
         if (this.bottomDepthSafetyParams) {
-            missionPlan.bottomDepthSafetyParams = this.bottomDepthSafetyParams;
+            missionPlan.bottom_depth_safety_params = this.bottomDepthSafetyParams;
         }
 
         return missionPlan;
     }
 
     packageWaypointsForHub() {
-        const goals: Goal[] = [];
+        const goals: MissionPlan_Goal[] = [];
 
         for (const waypoint of this.waypoints) {
             goals.push(waypoint.packageWaypointForHub());

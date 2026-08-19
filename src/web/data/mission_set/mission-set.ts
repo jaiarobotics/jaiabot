@@ -1,7 +1,7 @@
 import cloneDeep from "lodash/cloneDeep";
 import Mission from "./mission";
 import { DEFAULT_MISSION_SET_NAME, UNASSIGNED_ID } from "../../utils/constants";
-import { Speeds } from "../../types/protobuf-types";
+import { Speeds } from "../../shared/proto/jaiabot/messages/mission";
 
 // This constant will be used to track versions of mission sets
 // exported to files, update whenever the class or supporting

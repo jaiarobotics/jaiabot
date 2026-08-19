@@ -1,6 +1,7 @@
 import Task from "../tasks/task";
 
-import { GeographicCoordinate, Goal } from "../../types/protobuf-types";
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
+import { MissionPlan_Goal } from "../../shared/proto/jaiabot/messages/mission";
 
 export default class Waypoint {
     private location: GeographicCoordinate;
@@ -36,7 +37,7 @@ export default class Waypoint {
     }
 
     packageWaypointForHub() {
-        const goal: Goal = {
+        const goal: MissionPlan_Goal = {
             location: this.location,
             task: this.task.packageTaskForHub(),
         };

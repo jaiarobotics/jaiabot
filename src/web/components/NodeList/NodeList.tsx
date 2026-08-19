@@ -4,7 +4,7 @@ import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaContextType, JaiaAction } from "../../types/context-types";
 
 import { NodeTypes } from "../../types/jaia-system-types";
-import { HealthState } from "../../types/protobuf-types";
+import { HealthState } from "../../shared/proto/goby/middleware/protobuf/coroner";
 import { CLOUD_HUB_ID } from "../../utils/constants";
 import "./NodeList.less";
 
