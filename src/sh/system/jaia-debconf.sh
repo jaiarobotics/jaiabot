@@ -48,31 +48,6 @@ jaia_debconf_template_field() {
     ' "${templates}"
 }
 
-# awk source, shared by the two places that show a Choices list to a human. A
-# long contiguous run of integers buries whatever else is on screen and says
-# nothing a range does not.
-JAIA_DEBCONF_AWK_COLLAPSE='
-    function collapse(s,   n, a, i) {
-        n = split(s, a, ",")
-        if (n < 4)
-            return s
-        for (i = 1; i <= n; i++) {
-            gsub(/^ +| +$/, "", a[i])
-            if (a[i] !~ /^-?[0-9]+$/)
-                return s
-        }
-        for (i = 2; i <= n; i++)
-            if (a[i] + 0 != a[i - 1] + 1)
-                return s
-        return a[1] "-" a[n]
-    }
-'
-
-# jaia_debconf_collapse_choices <choices>
-jaia_debconf_collapse_choices() {
-    echo "$1" | awk "${JAIA_DEBCONF_AWK_COLLAPSE}"' { print collapse($0) }'
-}
-
 # jaia_debconf_questions [include_internal]
 # Every question the package defines, one per line, sorted.
 #
@@ -171,8 +146,7 @@ jaia_debconf_list() {
     # First pass emits one tab-separated record per question, second pass pads
     # the columns to the widest entry. sort in between so the table reads as a
     # lookup rather than in templates-file order.
-    awk -v pkg="${JAIA_DEBCONF_PACKAGE}" -v include_internal="${include_internal}" \
-        "${JAIA_DEBCONF_AWK_COLLAPSE}"'
+    awk -v pkg="${JAIA_DEBCONF_PACKAGE}" -v include_internal="${include_internal}" '
         # value of "Field: value", empty when the field has none
         function value(   v) {
             v = substr($0, index($0, ":") + 1)
@@ -182,7 +156,7 @@ jaia_debconf_list() {
         function flush() {
             # an error template is a message shown to the user, not something to set
             if (question != "" && type != "error")
-                printf "%s\t%s\t%s\t%s\n", question, type, dflt, collapse(choices)
+                printf "%s\t%s\t%s\t%s\n", question, type, dflt, choices
             question = ""; type = ""; dflt = ""; choices = ""
         }
         /^Template:/ {
@@ -365,7 +339,7 @@ jaia_debconf_set() {
                     | grep -qxF "${element}"; then
                 unset IFS
                 echo "ERROR: '${element}' is not a valid value for ${JAIA_DEBCONF_PACKAGE}/${question}." >&2
-                echo "       Choices: $(jaia_debconf_collapse_choices "${choices}")" >&2
+                echo "       Choices: ${choices}" >&2
                 return 1
             fi
         done
