@@ -280,13 +280,13 @@ If you are modifying code on a Mac, [create an SSH Key](#creating-an-ssh-key-mac
     ```
     Deploy to the BOT
     ```
-    jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
+    jaiabot_systemd_type=bot ./docker-arm64-build-and-deploy.sh 10.23.X.Y 
     ```
     Note: X indicates fleet number and Y indicates bot number plus 100. 
 
     Deploy to the HUB
     ```
-    jaiabot_systemd_type=hub ./docker-arm64-build-and-deploy.sh jaia@10.23.X.Y 
+    jaiabot_systemd_type=hub ./docker-arm64-build-and-deploy.sh 10.23.X.Y 
     ```
     Note: X indicates fleet number and Y indicates hub number plus 10. 
 
