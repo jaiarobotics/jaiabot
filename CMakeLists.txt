@@ -101,6 +101,7 @@ endif()
 
 option(build_web "Build web ui code (requires npm)" ON)
 option(build_jdv "Build jdv ui code (requires npm)" ON)
+option(build_python_venv "Build the Python venv used by the dev/sim scripts (requires python3-venv)" ON)
 
 
 # configure the headers to build/include
@@ -173,6 +174,7 @@ file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/f
 
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
+  PATTERN "venv" EXCLUDE # jaiabot-python.postinst builds this on the target, see src/python/CMakeLists.txt
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
