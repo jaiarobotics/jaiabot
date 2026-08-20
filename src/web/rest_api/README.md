@@ -177,21 +177,9 @@ tracked by what has been published rather than by their timestamps, because
 `TaskPacket.start_time` is the bot's own idea of the time and can sit hours away from
 the wall clock.
 
-### Configure it
+### Settings
 
-Add a `lattice` block to `/etc/jaiabot/rest_api.pb.cfg`:
-
-```protobuf
-lattice {
-    endpoint: "lattice-abc123.env.sandboxes.developer.anduril.com"
-    environment_token: "your-lattice-environment-token"
-
-    # only needed for a Lattice Sandboxes environment
-    sandbox_token: "your-sandboxes-account-token"
-}
-```
-
-Leave the `lattice` block out and nothing is published.
+Publishing is off until it is configured, either way round below.
 
 > **The endpoint is the environment host**, the single label in front of
 > `.env.sandboxes.developer.anduril.com` - for example
@@ -223,24 +211,56 @@ checks that deadline against its own clock, so the same number is how far behind
 Lattice this machine's clock may drift before it rejects every publish as
 already expired. Keep it comfortably larger than any clock error you expect.
 
-### Testing against a Lattice sandbox
+### Run it in the simulator
 
-A [sandbox environment](https://developer.anduril.com/guides/developer-tools/sandboxes) lasts 12 hours and hands you fresh tokens each time, so it's easier to pass them in the environment than to keep editing the config file:
+Two terminals. In the first, start the simulator:
 
 ```bash
-# Resource Endpoint, without the https:// and without a service label
-export JAIA_LATTICE_ENDPOINT="lattice-abc123.env.sandboxes.developer.anduril.com"
-# "Lattice Auth Token" from the environment page
-export JAIA_LATTICE_ENVIRONMENT_TOKEN="..."
-# Sandboxes token from Account & Security
-export JAIA_LATTICE_SANDBOX_TOKEN="..."
+cd config/launch/simulation
+./generate_all_launch.sh 4 5
+./all.launch
+```
 
+In the second, start the REST API with your Lattice details:
+
+```bash
+cd src/web/rest_api
+export JAIA_REST_API_PRIVATE_KEY=""
+export JAIA_LATTICE_ENDPOINT="lattice-abc123.env.sandboxes.developer.anduril.com"
+export JAIA_LATTICE_ENVIRONMENT_TOKEN="..."
+export JAIA_LATTICE_SANDBOX_TOKEN="..."
 ./run.sh
 ```
 
-Then open the Lattice UI for that environment and the bots, hub and task packets should appear on the map. Signing in to that UI goes through the Sandboxes login, which needs a Chromium-based browser and the passkey registered on your Anduril account - the Lattice user for the environment is only asked for after that. Anything Lattice rejects is logged as an error with its response body.
+The bots appear in Lattice about twenty seconds later.
 
-> **Careful:** the tokens end up in the API's own log, because it logs its whole configuration on startup (as it already does for API keys). Don't publish those logs.
+Take the endpoint and the environment token from your [sandbox
+environment](https://developer.anduril.com/guides/developer-tools/sandboxes) page,
+and the Sandboxes token from Account & Security. Use `run.sh` from `rest_api`:
+`src/web/server` has one too, and it ignores these variables.
+
+### Run it on a hub
+
+The REST API starts with Apache at boot, so it only needs the configuration on
+disk:
+
+```bash
+sudo tee -a /etc/jaiabot/rest_api.pb.cfg > /dev/null <<'EOF'
+lattice {
+    endpoint: "your-lattice-host"
+    environment_token: "your-lattice-environment-token"
+}
+EOF
+sudo chmod 600 /etc/jaiabot/rest_api.pb.cfg
+sudo systemctl reload apache2
+```
+
+The hub publishes from then on, including after a reboot. Environment variables
+are no help here because Apache starts the API, not your shell.
+
+> **Careful:** the tokens end up in the API's own log, because it logs its whole
+> configuration on startup (as it already does for API keys). Don't publish those
+> logs.
 
 ## Running Tests
 
