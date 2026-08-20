@@ -23,14 +23,35 @@ if(NOT CMAKE_CROSSCOMPILING)
 
 	file(GLOB_RECURSE jaiabot_python_venv_proto_deps ${project_SRC_DIR}/lib/messages/*.proto)
 
+	# requirements.txt installs these as non-editable local paths, so pip has to be re-run
+	# whenever their sources change (pyjaiaprotobuf is covered by its own target below).
+	file(GLOB_RECURSE jaiabot_python_venv_pkg_deps
+		${CMAKE_CURRENT_SOURCE_DIR}/pyjaia/*
+		${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x/*
+		${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial/*)
+
+	# Drop VCS/CI metadata and gitignored build leftovers (build/, *.egg-info, __pycache__).
+	# They are not inputs to the install, and depending on them would break the build for
+	# anyone whose checkout does not happen to have them.
+	list(FILTER jaiabot_python_venv_pkg_deps EXCLUDE REGEX
+		"(^|/)(\\.git|\\.github|__pycache__|\\.pytest_cache|build)(/|$)|\\.egg-info/|\\.pyc$")
+
 	add_custom_command(
 		OUTPUT ${jaiabot_python_venv_stamp}
+		# pip installs from the copies in the share dir, but the file(COPY) calls above only
+		# run at configure time. Refresh them here so an incremental build installs the
+		# current sources instead of whatever was copied at the last cmake run.
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt ${jaiabot_python_share_dir}/requirements.txt
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/pyjaia ${jaiabot_python_share_dir}/pyjaia
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x ${jaiabot_python_share_dir}/Adafruit_CircuitPython_BNO08x
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial ${jaiabot_python_share_dir}/jaia_serial
 		COMMAND python3 -m venv venv --system-site-packages --clear
 		COMMAND ./venv/bin/pip install -qU wheel
 		COMMAND ./venv/bin/pip install -r requirements.txt
 		COMMAND ${CMAKE_COMMAND} -E touch ${jaiabot_python_venv_stamp}
 		WORKING_DIRECTORY ${jaiabot_python_share_dir}
 		DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt
+						${jaiabot_python_venv_pkg_deps}
 						${jaiabot_python_venv_proto_deps}
 						pyjaiaprotobuf
 		COMMENT "Building Python venv for jaiabot dev/sim scripts (e.g. motor/rpm.py)"
