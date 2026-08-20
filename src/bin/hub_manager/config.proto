@@ -112,7 +112,5 @@ message HubManager
     repeated protobuf.Link link_to_subscribe_on =
         51;  // when subscribing to managed bots, use these links, otherwise
              // wait for bots to subscribe first
-    optional bool broadcast_bot_status = 52
-        [default = false];  // only applies to LINK_XBEE subscriptions; the WiFi and
-                            // Iridium drivers do not handle broadcast messages
+    optional bool broadcast_bot_status = 52 [default = false];
 }

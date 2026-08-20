@@ -566,10 +566,6 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
 
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
 
-            // Broadcast is implemented by mapping destination 0 onto the XBee broadcast
-            // address, so it only applies to XBee links. The WiFi and Iridium drivers have
-            // no equivalent, and requesting it there would break BotStatus delivery for
-            // bots subscribed on those links.
             if (link == jaiabot::protobuf::LINK_XBEE)
                 subscriber_cfg.mutable_intervehicle()->set_broadcast(cfg().broadcast_bot_status());
 
