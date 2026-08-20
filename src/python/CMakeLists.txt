@@ -72,4 +72,9 @@ endif()
 #  DEPENDS ${pyjaiaprotobuf_outdir}/src/jaiabot/messages/jaia_dccl_pb2.py
 #  )
 
-install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+# venv is excluded because pip hardcodes this machine's absolute paths into the console
+# scripts it generates, so a packaged venv would be broken on the target. Instead,
+# jaiabot-python.postinst builds the venv when the package is installed.
+install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS
+  PATTERN "venv" EXCLUDE
+  )

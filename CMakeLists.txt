@@ -173,6 +173,7 @@ file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/f
 
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
+  PATTERN "venv" EXCLUDE # jaiabot-python.postinst builds this on the target, see src/python/CMakeLists.txt
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
