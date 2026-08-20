@@ -26,6 +26,7 @@
 //     jaiabot::utils::downsampleDatasetToMaxBytes(
 //         data_to_downsample,
 //         maximum_bytes,
+//         3, // values[2] is indexed below, so rows need 3 numeric columns
 //         [](const std::vector<double>& values) { return values[0]; }, // X = value1
 //         [](const std::vector<double>& values) { return values[2]; }  // Y = value3
 //     );
@@ -147,14 +148,16 @@ inline std::vector<size_t> downsampleIndices(const std::vector<Point>& data, siz
 /**
  * @brief Parses a data row into its numeric columns after the integer row index.
  *
- * The row is expected to begin with an integer index followed by at least two numeric
- * values.
+ * The row is expected to begin with an integer index followed by at least
+ * @p min_value_count numeric values.
  *
  * @param line Input row to parse.
  * @param values_out Parsed numeric columns written on success.
+ * @param min_value_count Minimum numeric columns the row must contain to be accepted.
  * @return True when the row matches the expected shape and contains enough numeric data.
  */
-inline bool parseDataRowValues(const std::string& line, std::vector<double>& values_out)
+inline bool parseDataRowValues(const std::string& line, std::vector<double>& values_out,
+                               size_t min_value_count = 2)
 {
     // Expected row shape: "index value1 value2 ... valueN" where index is integer.
     std::istringstream iss(line);
@@ -168,7 +171,8 @@ inline bool parseDataRowValues(const std::string& line, std::vector<double>& val
     double value = 0.0;
     while (iss >> value) { values_out.push_back(value); }
 
-    if (values_out.size() < 2)
+    // Never accept an empty row, so front()/back() stay in bounds.
+    if (values_out.empty() || values_out.size() < min_value_count)
     {
         return false;
     }
@@ -278,12 +282,16 @@ buildOutputWithSelectedRows(const std::vector<std::string>& input_lines,
  * The selectors receive the numeric values after that index, so they can map arbitrary
  * columns to x/y coordinates without needing to parse the row themselves.
  *
+ * Since the selectors index those values directly, @p min_value_count must cover the
+ * widest column they read; narrower rows are left as metadata instead of being selected on.
+ *
  * @tparam XSelector Callable with signature compatible with
  *         `double(const std::vector<double>& values)`.
  * @tparam YSelector Callable with signature compatible with
  *         `double(const std::vector<double>& values)`.
  * @param input_lines Full input dataset, including metadata and data rows.
  * @param max_bytes Maximum allowed serialized size for the returned dataset.
+ * @param min_value_count Minimum numeric columns a data row must contain.
  * @param x_selector Selects the x coordinate from parsed numeric columns.
  * @param y_selector Selects the y coordinate from parsed numeric columns.
  * @return A dataset constrained to the requested byte budget.
@@ -291,7 +299,7 @@ buildOutputWithSelectedRows(const std::vector<std::string>& input_lines,
 template <typename XSelector, typename YSelector>
 inline std::vector<std::string>
 downsampleDatasetToMaxBytes(const std::vector<std::string>& input_lines, size_t max_bytes,
-                            XSelector x_selector, YSelector y_selector)
+                            size_t min_value_count, XSelector x_selector, YSelector y_selector)
 {
     std::vector<Point> data_points;
     std::vector<size_t> data_line_positions;
@@ -302,7 +310,7 @@ downsampleDatasetToMaxBytes(const std::vector<std::string>& input_lines, size_t 
 
     for (size_t i = 0; i < input_lines.size(); ++i)
     {
-        if (parseDataRowValues(input_lines[i], values))
+        if (parseDataRowValues(input_lines[i], values, min_value_count))
         {
             Point point{};
             point.x = static_cast<double>(x_selector(values));
