@@ -17,6 +17,7 @@ import RerouteSummary from "../Common/RerouteSummary";
 export default function WaypointRemovalDialog({ pending }: { pending: PendingWaypointRemoval }) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
+    const gutted = pending.proposals.filter((p) => p.isGutted);
     const reroute = pending.followUpReroute;
     const rerouteFeasible =
         reroute?.proposals.filter((p) => p.status === ProposalStatus.FEASIBLE) ?? [];
@@ -55,6 +56,20 @@ export default function WaypointRemovalDialog({ pending }: { pending: PendingWay
                     </li>
                 ))}
             </ul>
+
+            {gutted.length > 0 && (
+                <>
+                    <p className="dialog-warn">
+                        The following mission{gutted.length !== 1 ? "s" : ""} will be left with{" "}
+                        <strong>no waypoints</strong> — its entire route falls inside the zone:
+                    </p>
+                    <ul className="dialog-warn-list">
+                        {gutted.map((p) => (
+                            <li key={p.missionID}>Mission {p.missionID}</li>
+                        ))}
+                    </ul>
+                </>
+            )}
 
             {rerouteFeasible.length > 0 && (
                 <p>

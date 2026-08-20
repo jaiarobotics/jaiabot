@@ -132,6 +132,25 @@ describe("detectWaypointRemovals", () => {
         expect(result!.proposals.length).toBe(1);
         expect(result!.proposals[0].missionID).toBe(missionID);
         expect(result!.proposals[0].removedCount).toBe(1);
+        expect(result!.proposals[0].isGutted).toBe(false);
+    });
+
+    // Regression test for docs/07KNOWN_BUGS.md Bug 2 (fixed): a zone that swallows
+    // every waypoint in a mission must be flagged so the dialog can warn the operator,
+    // instead of looking like any other ordinary partial removal.
+    test("flags a proposal as isGutted when every waypoint in the mission is inside the zone", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const m = new Mission();
+        m.addWaypoint(coord(41.0, -72.0)); // inside zone
+        m.addWaypoint(coord(41.0001, -72.0)); // also inside zone — the whole mission is swallowed
+        const missionID = missionSet.addMission(m);
+
+        const result = detectWaypointRemovals();
+        expect(result).not.toBeNull();
+        expect(result!.proposals.length).toBe(1);
+        expect(result!.proposals[0].missionID).toBe(missionID);
+        expect(result!.proposals[0].newWaypoints).toEqual([]);
+        expect(result!.proposals[0].isGutted).toBe(true);
     });
 
     test("totalRemovedCount sums across all affected missions", () => {

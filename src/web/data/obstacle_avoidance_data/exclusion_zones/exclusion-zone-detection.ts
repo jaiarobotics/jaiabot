@@ -74,7 +74,12 @@ export function detectWaypointRemovals(): WaypointRemovalProposalSet | null {
         const removedCount = cleanWaypoints.length - keepWaypoints.length;
         if (removedCount === 0) continue;
 
-        proposals.push({ missionID, newWaypoints: keepWaypoints, removedCount });
+        proposals.push({
+            missionID,
+            newWaypoints: keepWaypoints,
+            removedCount,
+            isGutted: keepWaypoints.length === 0,
+        });
     }
 
     if (proposals.length === 0) return null;

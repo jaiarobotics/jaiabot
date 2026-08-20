@@ -8,7 +8,7 @@ plus four more (Bugs 4-7) found later while smoke-testing
 and one more (Bug 8) found while reviewing
 [`06ROUTER_REVIEW.md`](./06ROUTER_REVIEW.md)'s target files. All are
 pre-existing — confirmed not caused by any of the refactors that surfaced
-them. Bugs 3, 5, and 7 are fixed; Bugs 1, 2, 4, 6, and 8 are still open.
+them. Bugs 2, 3, 5, and 7 are fixed; Bugs 1, 4, 6, and 8 are still open.
 
 ## Bug 1 — deleting a zone doesn't restore waypoints it removed
 
@@ -45,15 +45,15 @@ cost on.
 
 ## Bug 2 — a zone that guts an entire mission gives no "impossible" warning
 
-_Confirmed real gap, not fixed._
+_Fixed._
 
 If an exclusion zone swallows every waypoint in a mission (or a vertex move
 enlarges a zone to enclose the last remaining waypoint), `detectWaypointRemovals`
 ([exclusion-zone-detection.ts:53](../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection.ts#L53))
-just proposes removing them like any ordinary partial removal — no severity
-concept exists for waypoint-removal proposals. Unlike the mission-_reroute_
+used to propose removing them like any ordinary partial removal — no severity
+concept existed for waypoint-removal proposals. Unlike the mission-_reroute_
 path (`ProposalStatus.OVER_LIMIT`/`IMPOSSIBLE`), waypoint-_removal_ proposals
-have no equivalent "this guts the mission" flag anywhere.
+had no equivalent "this guts the mission" flag anywhere.
 
 Reproduced twice: once via drawing a zone over an entire mission, once via
 moving a zone vertex to enclose the mission's last waypoint (which took
@@ -61,14 +61,24 @@ priority over reroute detection per the "waypoints inside zone take
 priority" comment at
 [exclusion-zone-handlers.ts:505](../../context/handlers/exclusion-zone-handlers.ts#L505)).
 
-**Testing this:** easiest of the three. `detectWaypointRemovals` is a pure
-function already covered by
-`data/obstacle_avoidance_data/__tests__/exclusion-zone-detection.test.ts`,
-which follows a simple "build zones/missions, call the function, assert on
-the result" pattern. Add a zone that swallows every waypoint in a mission
-and assert the returned proposal carries some severity/impossible signal —
-it doesn't today, so the test fails immediately and pins down the gap. No
-new test infrastructure needed.
+**Fix:** `PendingWaypointRemovalProposal`
+([pending-route-data.ts](../../data/obstacle_avoidance_data/pending-route-data.ts))
+gained an `isGutted: boolean` field, set by `detectWaypointRemovals()` when
+`newWaypoints.length === 0` (every waypoint in the mission fell inside a
+zone). `WaypointRemovalDialog.tsx` now renders a `dialog-warn` block listing
+any gutted missions by ID before the operator can confirm, using the same
+list styling as the existing over-limit/impossible warnings in
+`RerouteSummary`. Deliberately left alone: the confirm handler still applies
+the removal as-is (the mission ends up with zero waypoints, same as before)
+— the fix only stops the removal from looking like an ordinary, unremarkable
+change. Whether a gutted mission should instead be auto-deleted on confirm
+(mirroring how `handleConfirmMissionReroute` deletes OVER_LIMIT/IMPOSSIBLE
+missions) is a separate product decision, not part of this fix.
+
+**Test coverage:**
+`data/obstacle_avoidance_data/__tests__/exclusion-zone-detection.test.ts`
+covers both the ordinary partial-removal case (`isGutted: false`) and a zone
+that swallows every waypoint in a mission (`isGutted: true`).
 
 ## Bug 3 — new/moved zone can silently fail to trigger any reroute check
 
@@ -475,10 +485,10 @@ the same not-yet-existing handler-level test setup as Bugs 1/4/5/6.
 
 ## Summary: which bugs are cheap to pin down with tests
 
-Bug 2 is a natural addition to the existing pure-function test files
+Bug 2 was a natural addition to the existing pure-function test files
 (`exclusion-zone-detection.test.ts` / `exclusion-zone-router.test.ts`) — no
-new test infrastructure, same patterns already in use. Bug 3's data-layer
-half was too, and has since been fixed (Part 1 of
+new test infrastructure, same patterns already in use — and has since been
+fixed (see above). Bug 3's data-layer half was too, and has since been fixed (Part 1 of
 [`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)),
 as is Bug 7 (see above). Bug 8's `Mission.fromJSON` half is similarly cheap
 (pure static method, no new infrastructure); its `handleLoadMissionSet`

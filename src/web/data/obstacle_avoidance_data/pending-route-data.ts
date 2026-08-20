@@ -39,6 +39,8 @@ export interface PendingWaypointRemovalProposal {
     /** Clean waypoints to keep (bypass waypoints stripped, inside-zone waypoints removed). */
     newWaypoints: Waypoint[];
     removedCount: number;
+    /** True when every waypoint in the mission falls inside a zone, leaving it with none. */
+    isGutted: boolean;
 }
 
 export interface WaypointRemovalProposalSet {

@@ -271,6 +271,7 @@ describe("handleConfirmWaypointRemoval", () => {
             missionID,
             newWaypoints: kept,
             removedCount: 1,
+            isGutted: false,
         };
         obstacleAvoidanceData.setPendingChange({
             type: "waypointRemoval",
@@ -299,6 +300,7 @@ describe("handleConfirmWaypointRemoval", () => {
             missionID: removalMissionID,
             newWaypoints: kept,
             removedCount: 1,
+            isGutted: false,
         };
         const rerouteWaypoints = cloneDeep(missionSet.getMission(rerouteMissionID).getWaypoints());
         rerouteWaypoints.push(new Waypoint());
