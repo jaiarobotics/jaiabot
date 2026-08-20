@@ -137,7 +137,8 @@ def test_bot_entity(publisher, bot_status):
 
     assert entity["entityId"] == lattice.entity_id("JaiaBot", "bot/1")
     assert entity["isLive"] is True
-    assert entity["expiryTime"] == "2026-08-13T12:01:00.000000Z"
+    # published now, so Lattice keeps it for status_expiry_seconds from now
+    assert entity["expiryTime"] == "2026-08-13T12:05:00.000000Z"
     assert entity["aliases"]["name"] == "JaiaBot 1"
     assert entity["ontology"]["template"] == "TEMPLATE_ASSET"
     assert entity["milView"]["disposition"] == "DISPOSITION_FRIENDLY"

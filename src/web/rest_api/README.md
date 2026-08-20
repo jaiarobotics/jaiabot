@@ -204,12 +204,19 @@ Leave the `lattice` block out and nothing is published.
 | `integration_name`             | `JaiaBot` | Name Lattice attributes these entities to                         |
 | `publish_period_seconds`       | 1         | Seconds between publishes                                         |
 | `status_timeout_seconds`       | 30        | Stop publishing a bot or hub this long after its last status      |
-| `status_expiry_seconds`        | 60        | How long Lattice keeps a bot or hub after its last publish        |
+| `status_expiry_seconds`        | 300       | How long Lattice keeps a bot or hub after its last publish        |
 | `task_packet_lookback_seconds` | 300       | How far back to look for task packets that haven't been published |
 | `task_packet_expiry_seconds`   | 86400     | How long Lattice keeps a task packet                              |
 | `request_timeout_seconds`      | 5         | How long to wait on each request to Lattice                       |
 
 Run two fleets into the same Lattice environment? Give each one its own `integration_name`, or bot 1 of each fleet will fight over the same entity.
+
+`status_expiry_seconds` does two jobs. Each publish tells Lattice to keep the bot
+or hub for that long, and every publish pushes the deadline out again, so a bot
+disappears from Lattice this long after the last time we published it. Lattice
+checks that deadline against its own clock, so the same number is how far behind
+Lattice this machine's clock may drift before it rejects every publish as
+already expired. Keep it comfortably larger than any clock error you expect.
 
 ### Testing against a Lattice sandbox
 

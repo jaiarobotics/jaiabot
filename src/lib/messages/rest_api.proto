@@ -307,8 +307,11 @@ message APIConfig
         // published
         optional double status_timeout_seconds = 6 [default = 30];
 
-        // seconds until Lattice expires a published bot or hub
-        optional double status_expiry_seconds = 7 [default = 60];
+        // seconds until Lattice expires a published bot or hub, refreshed by
+        // every publish. Lattice checks this deadline against its own clock, so
+        // it is also how far behind Lattice this machine's clock may drift
+        // before Lattice rejects every publish as already expired.
+        optional double status_expiry_seconds = 7 [default = 300];
 
         // seconds of task packet history to consider on each publish
         optional double task_packet_lookback_seconds = 8 [default = 300];
