@@ -3,7 +3,6 @@
 set -e
 
 JAIA_DIR="$(pwd)/../../../"
-BUILD_DIR="${JAIA_DIR}/build/web_dev/"
 
 resolve_shared_venv() {
     local venv_path
