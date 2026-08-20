@@ -23,11 +23,8 @@ if(NOT CMAKE_CROSSCOMPILING)
 
 	file(GLOB_RECURSE jaiabot_python_venv_proto_deps ${project_SRC_DIR}/lib/messages/*.proto)
 
-	# requirements.txt installs pyjaia, Adafruit_CircuitPython_BNO08x and jaia_serial as
-	# non-editable local paths, so pip has to be re-run when their sources change.
-	# (pyjaiaprotobuf is covered by the pyjaiaprotobuf target below.) Glob the package code
-	# and packaging config only - the build/ and *.egg-info/ directories sitting alongside
-	# them are gitignored pip leftovers, not build inputs.
+	# requirements.txt installs these as non-editable local paths, so pip must re-run when they
+	# change. Name the source paths so pip's gitignored build/ and *.egg-info/ leftovers stay out.
 	file(GLOB_RECURSE jaiabot_python_venv_pkg_deps
 		${CMAKE_CURRENT_SOURCE_DIR}/pyjaia/pyproject.toml
 		${CMAKE_CURRENT_SOURCE_DIR}/pyjaia/src/pyjaia/*
