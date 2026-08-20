@@ -58,6 +58,7 @@ export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
         ) {
             // Unroutable proposals must not remain loaded in a zone-crossing state.
             missionSet.deleteMission(proposal.missionID);
+            missionsManager.removeAssignment(proposal.missionID);
             continue;
         }
         const mission = missionSet.getMission(proposal.missionID);
@@ -111,6 +112,7 @@ export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
         for (const proposal of pending.followUpReroute.proposals) {
             if (proposal.status !== ProposalStatus.FEASIBLE) {
                 missionSet.deleteMission(proposal.missionID);
+                missionsManager.removeAssignment(proposal.missionID);
                 continue;
             }
             const mission = missionSet.getMission(proposal.missionID);

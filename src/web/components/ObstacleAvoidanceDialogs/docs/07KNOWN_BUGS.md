@@ -8,7 +8,7 @@ plus four more (Bugs 4-7) found later while smoke-testing
 and one more (Bug 8) found while reviewing
 [`06ROUTER_REVIEW.md`](./06ROUTER_REVIEW.md)'s target files. All are
 pre-existing — confirmed not caused by any of the refactors that surfaced
-them. Bugs 3 and 7 are fixed; Bugs 1, 2, 4, 5, 6, and 8 are still open.
+them. Bugs 3, 5, and 7 are fixed; Bugs 1, 2, 4, 6, and 8 are still open.
 
 ## Bug 1 — deleting a zone doesn't restore waypoints it removed
 
@@ -218,47 +218,49 @@ assert the mission's route.
 
 ## Bug 5 — confirming an over-limit/impossible reroute doesn't clean up the mission's bot assignment
 
-_Confirmed real gap, not fixed. Found while designing the mission-load
-revert fix for [`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)._
+_Fixed._
 
 **Symptom:** when a `PendingRerouteProposal` is `OVER_LIMIT` or
 `IMPOSSIBLE` and the operator confirms the reroute dialog,
 `handleConfirmMissionReroute`
 ([obstacle-avoidance-handlers.ts](../../context/handlers/obstacle-avoidance-handlers.ts))
-deletes the mission (`missionSet.deleteMission(proposal.missionID)`) but
-never calls `missionsManager.removeAssignment(proposal.missionID)`. Compare
+deleted the mission (`missionSet.deleteMission(proposal.missionID)`) but
+never called `missionsManager.removeAssignment(proposal.missionID)`. Compare
 `handleDeleteMission`
 ([mission-handlers.ts:50-54](../../context/handlers/mission-handlers.ts#L50-L54)),
-which calls both. Any bot assigned to the deleted mission is left with a
+which calls both. Any bot assigned to the deleted mission was left with a
 `botsToMissions` entry pointing at a mission ID that no longer exists.
 
 **Effect:** `MissionsManager.autoAssign()` skips bots whose
 `botsToMissions` entry is already set (not `UNASSIGNED_ID`) when assigning
-bots to open missions — so an orphaned bot stays unassigned to anything new
-until the operator manually clears it. Any UI reading the assignment could
+bots to open missions — so an orphaned bot stayed unassigned to anything new
+until the operator manually cleared it. Any UI reading the assignment could
 also show a bot linked to a mission that no longer exists.
 
-**Scope:** not specific to mission-load — `handleConfirmMissionReroute`'s
-mission-deletion branch never calls `removeAssignment` regardless of
-whether the reroute came from a load or a regular zone/waypoint edit. Any
-OVER_LIMIT/IMPOSSIBLE proposal confirmed anywhere hits this.
+**Scope:** the same delete-without-unassign gap existed at **two** call
+sites, not one — `handleConfirmMissionReroute`'s OVER_LIMIT/IMPOSSIBLE
+branch, and the structurally identical OVER_LIMIT/IMPOSSIBLE branch inside
+`handleConfirmWaypointRemoval`'s follow-up-reroute loop (same file). Both
+hit this regardless of whether the reroute came from a load or a regular
+zone/waypoint edit.
 
 **Confirmed pre-existing:** the mission-deletion-without-assignment-cleanup
-logic in `handleConfirmMissionReroute` is unchanged by the Part 1-5 handler
+logic in `handleConfirmMissionReroute` was unchanged by the Part 1-5 handler
 refactor — only the unrelated `isMissionLoad` derivation
 (`pending.loadedMissionIDs !== undefined` → `pending.loadSummary?.kind ===
 "missionLoad"`) changed in that function.
 
-**Candidate fix direction (not implemented):** call
-`missionsManager.removeAssignment(proposal.missionID)` alongside
-`missionSet.deleteMission(proposal.missionID)` in both OVER_LIMIT and
-IMPOSSIBLE branches of `handleConfirmMissionReroute`.
+**Fix:** added `missionsManager.removeAssignment(proposal.missionID)`
+alongside `missionSet.deleteMission(proposal.missionID)` in both branches —
+`handleConfirmMissionReroute`'s OVER_LIMIT/IMPOSSIBLE case, and
+`handleConfirmWaypointRemoval`'s follow-up-reroute non-FEASIBLE case.
 
-**Testing this:** same shape as Bug 1/4 — needs the not-yet-existing
-handler-level test setup (`context/handlers/__tests__/`) to stage a
-pendingChange with an OVER_LIMIT/IMPOSSIBLE proposal, call
-`handleConfirmMissionReroute`, and assert `missionsManager`'s assignment
-for that mission ID is cleared.
+**Test coverage:** `context/handlers/__tests__/obstacle-avoidance-handlers.test.ts`
+covers both call sites — staging an OVER_LIMIT proposal via each of
+`handleConfirmMissionReroute` and `handleConfirmWaypointRemoval`'s
+follow-up reroute, and asserting `missionsManager`'s assignment for the
+deleted mission ID (and the bot's own assignment) is cleared back to
+`UNASSIGNED_ID`.
 
 ## Bug 6 — editing one zone's vertices can silently strip a different mission's valid bypass waypoints
 
@@ -480,7 +482,10 @@ half was too, and has since been fixed (Part 1 of
 [`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)),
 as is Bug 7 (see above). Bug 8's `Mission.fromJSON` half is similarly cheap
 (pure static method, no new infrastructure); its `handleLoadMissionSet`
-half, along with Bugs 1, 4, 5, and 6 (and the full end-to-end version of
-Bug 3, now moot), all need the first handler-level test in the codebase
-(`context/handlers/__tests__/`), a bigger one-time setup cost rather than
-an incremental addition.
+half, along with Bugs 1, 4, and 6 (and the full end-to-end version of
+Bug 3, now moot), all need the handler-level test setup in
+`context/handlers/__tests__/`, a bigger one-time setup cost rather than an
+incremental addition. That directory now exists — Bug 5 was fixed and
+covered there first (see above), and Part G's proposed
+`exclusion-zone-reroute-undo.test.ts` naming was superseded by
+`obstacle-avoidance-handlers.test.ts` / `reroute-revert-producers.test.ts`.

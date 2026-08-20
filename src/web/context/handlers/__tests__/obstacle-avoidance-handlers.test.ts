@@ -80,12 +80,10 @@ describe("handleConfirmMissionReroute", () => {
         expect(missionSet.getMission(missionID)).toBeUndefined();
     });
 
-    // Known gap — see docs/07KNOWN_BUGS.md Bug 5. handleConfirmMissionReroute deletes
-    // the mission via missionSet.deleteMission() but never calls
-    // missionsManager.removeAssignment(), unlike handleDeleteMission. This pins down the
-    // orphaned-assignment behavior as it exists today; if Bug 5 is fixed, this assertion
-    // should flip to expect UNASSIGNED_ID.
-    test("does not clear a bot assignment when deleting an unroutable mission (documents Bug 5)", () => {
+    // Regression test for docs/07KNOWN_BUGS.md Bug 5 (fixed): deleting an unroutable
+    // mission must also clear its bot assignment, or the bot is left pointing at a
+    // mission ID that no longer exists and autoAssign() will skip it forever.
+    test("clears the bot assignment when deleting an unroutable mission (Bug 5)", () => {
         const missionID = addMission([
             [41.0, -72.005],
             [41.0, -71.995],
@@ -109,10 +107,9 @@ describe("handleConfirmMissionReroute", () => {
         handleConfirmMissionReroute(makeMutableState());
 
         expect(missionSet.getMission(missionID)).toBeUndefined();
-        // Bug 5: this should be UNASSIGNED_ID once fixed — the mission is gone but the
-        // bot's assignment still silently points at the deleted mission ID.
-        expect(missionsManager.getBotID(missionID)).toBe(botID);
-        expect(missionsManager.getMissionID(botID)).toBe(missionID);
+        // removeAssignment() frees the bot side of the mapping — the bot is no longer
+        // tied up waiting on a mission that's gone, so autoAssign() can reuse it.
+        expect(missionsManager.getMissionID(botID)).toBe(UNASSIGNED_ID);
     });
 
     test("is a no-op when the pending change is not a reroute", () => {
@@ -333,8 +330,12 @@ describe("handleConfirmWaypointRemoval", () => {
         expect(missionSet.getMission(rerouteMissionID).getWaypoints()).toEqual(rerouteWaypoints);
     });
 
-    test("deletes missions whose follow-up reroute is unroutable", () => {
+    // Regression test for docs/07KNOWN_BUGS.md Bug 5 (fixed) — the same
+    // delete-without-unassign gap also existed in this follow-up-reroute branch.
+    test("deletes missions whose follow-up reroute is unroutable, and clears their bot assignment", () => {
         const missionID = addMission([[41.0, -72.0]]);
+        const botID = 5;
+        missionsManager.assign(botID, missionID);
         const rerouteProposal: PendingRerouteProposal = {
             missionID,
             newWaypoints: [],
@@ -356,6 +357,7 @@ describe("handleConfirmWaypointRemoval", () => {
         handleConfirmWaypointRemoval(makeMutableState());
 
         expect(missionSet.getMission(missionID)).toBeUndefined();
+        expect(missionsManager.getMissionID(botID)).toBe(UNASSIGNED_ID);
     });
 
     test("is a no-op when the pending change is not a waypointRemoval", () => {
