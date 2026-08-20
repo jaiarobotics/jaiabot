@@ -37,20 +37,20 @@ VALID_REQUEST = {
 def test_missing_field_returns_error_not_prediction():
     body = dict(VALID_REQUEST)
     del body["dive_energy_wh"]
-    response = client.post("/battery-prediction", json=body)
+    response = client.post("/jaia/v0/battery-prediction", json=body)
     assert response.status_code == 400
     assert "error" in response.get_json()
 
 
 def test_wrong_type_value_returns_error_not_prediction():
     body = dict(VALID_REQUEST, transit_energy_wh="not-a-number")
-    response = client.post("/battery-prediction", json=body)
+    response = client.post("/jaia/v0/battery-prediction", json=body)
     assert response.status_code >= 400
     assert "error" in response.get_json()
 
 
 def test_well_formed_request_returns_prediction():
-    response = client.post("/battery-prediction", json=VALID_REQUEST)
+    response = client.post("/jaia/v0/battery-prediction", json=VALID_REQUEST)
     assert response.status_code == 200
     result = response.get_json()
     assert isinstance(result["predicted_drain_pct"], (int, float))
@@ -60,7 +60,7 @@ def test_well_formed_request_returns_prediction():
 def test_untrained_bot_type_returns_error_not_prediction():
     # BIO (bot_type 3) has no samples in the training data.
     body = dict(VALID_REQUEST, bot_type="BIO")
-    response = client.post("/battery-prediction", json=body)
+    response = client.post("/jaia/v0/battery-prediction", json=body)
     assert response.status_code == 422
     result = response.get_json()
     assert "error" in result

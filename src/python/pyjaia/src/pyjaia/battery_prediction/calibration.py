@@ -9,7 +9,7 @@ def load_calibration() -> dict:
     produced by calibrate.py.
 
     Returns a flat dict with the constants extract_features.py (training) and
-    the /battery-calibration endpoint (inference) actually consume, with safe
+    the /jaia/v0/battery-calibration endpoint (inference) actually consume, with safe
     fallbacks when a state has no measured samples in the dataset.
     """
     with open(_CALIBRATION_PATH) as f:

@@ -554,7 +554,7 @@ def get_ctd_profiles():
         mimetype="application/zip",
     )
 
-@app.route('/battery-calibration', methods=['GET'])
+@app.route('/jaia/v0/battery-calibration', methods=['GET'])
 def battery_calibration():
     """Returns the calibrated wattage/energy constants used to turn a mission
     plan into the features the battery drain model expects, plus the bot type
@@ -567,8 +567,9 @@ def battery_calibration():
     })
 
 
-@app.route('/battery-prediction', methods=['POST'])
+@app.route('/jaia/v0/battery-prediction', methods=['POST'])
 def battery_prediction():
+    """Predicts the battery drain for a mission from its extracted features."""
     body = request.get_json()
     required = [
         'bot_type', 'transit_energy_wh', 'transit_time_s',
@@ -591,14 +592,10 @@ def battery_prediction():
             starting_battery_pct=float(body['starting_battery_pct']),
         )
         starting = float(body['starting_battery_pct'])
-        return Response(
-            json.dumps({
-                'predicted_drain_pct': round(drain, 1),
-                'predicted_final_pct': round(starting - drain, 1),
-            }),
-            status=HTTPStatus.OK,
-            mimetype='application/json',
-        )
+        return JSONResponse(obj={
+            'predicted_drain_pct': round(drain, 1),
+            'predicted_final_pct': round(starting - drain, 1),
+        })
     except (UnsupportedBotTypeError, ValueError) as e:
         return ErrorResponse(HTTPStatus.UNPROCESSABLE_ENTITY, str(e), 1)
     except Exception as e:

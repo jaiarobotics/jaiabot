@@ -9,8 +9,8 @@ import { BOTTOM_DIVE_DEPTH_PRIOR_M } from "../../utils/constants";
 // display cap is well above it and callers flag anything at the cap as "greater than"
 export const MAX_DISPLAYED_DRAIN_PERCENT = 1000;
 
-const BATTERY_CALIBRATION_URL = "/battery-calibration";
-const BATTERY_PREDICTION_URL = "/battery-prediction";
+const BATTERY_CALIBRATION_URL = "/jaia/v0/battery-calibration";
+const BATTERY_PREDICTION_URL = "/jaia/v0/battery-prediction";
 
 const EARTH_R = 6_371_000;
 

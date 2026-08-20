@@ -32,10 +32,10 @@ function installFetchMock(
 ) {
     capturedPredictionRequestBody = null;
     global.fetch = jest.fn(async (url: string, options?: RequestInit) => {
-        if (url === "/battery-calibration") {
+        if (url === "/jaia/v0/battery-calibration") {
             return { ok: true, json: async () => MOCK_CALIBRATION } as Response;
         }
-        if (url === "/battery-prediction") {
+        if (url === "/jaia/v0/battery-prediction") {
             capturedPredictionRequestBody = JSON.parse(options.body as string);
             return { ok: predictionResult.ok, json: async () => predictionResult.body } as Response;
         }
