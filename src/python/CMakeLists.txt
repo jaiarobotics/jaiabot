@@ -21,11 +21,11 @@ if(build_python_venv AND NOT CMAKE_CROSSCOMPILING)
   set(jaiabot_python_share_dir ${project_SHARE_DIR}/jaiabot/python)
   set(jaiabot_python_venv_stamp ${jaiabot_python_share_dir}/venv/.venv_complete)
 
-  file(GLOB_RECURSE jaiabot_python_venv_proto_deps ${project_SRC_DIR}/lib/messages/*.proto)
+  file(GLOB_RECURSE jaiabot_python_venv_proto_deps CONFIGURE_DEPENDS ${project_SRC_DIR}/lib/messages/*.proto)
 
   # requirements.txt installs these as non-editable local paths, so pip must re-run when they
   # change. Name the source paths so pip's gitignored build/ and *.egg-info/ leftovers stay out.
-  file(GLOB_RECURSE jaiabot_python_venv_pkg_deps
+  file(GLOB_RECURSE jaiabot_python_venv_pkg_deps CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/pyjaia/pyproject.toml
     ${CMAKE_CURRENT_SOURCE_DIR}/pyjaia/src/pyjaia/*
     ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial/pyproject.toml
