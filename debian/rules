@@ -9,7 +9,9 @@ include /usr/share/cdbs/1/class/cmake.mk
 DEB_MAKE_ENVVARS = CTEST_OUTPUT_ON_FAILURE=ON
 
 DEB_BUILD_PARALLEL = true
-DEB_CMAKE_EXTRA_FLAGS =
+# jaiabot-python.postinst builds the venv on the target, so one built here would only
+# be discarded by the install rules
+DEB_CMAKE_EXTRA_FLAGS = -Dbuild_python_venv=OFF
 
 DEB_BUILD_ARCH ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
 DEB_TARGET_ARCH ?= $(shell dpkg-architecture -qDEB_TARGET_ARCH)
