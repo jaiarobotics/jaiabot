@@ -23,18 +23,18 @@ if(NOT CMAKE_CROSSCOMPILING)
 
 	file(GLOB_RECURSE jaiabot_python_venv_proto_deps ${project_SRC_DIR}/lib/messages/*.proto)
 
-	# requirements.txt installs these as non-editable local paths, so pip has to be re-run
-	# whenever their sources change (pyjaiaprotobuf is covered by its own target below).
+	# requirements.txt installs pyjaia, Adafruit_CircuitPython_BNO08x and jaia_serial as
+	# non-editable local paths, so pip has to be re-run when their sources change.
+	# (pyjaiaprotobuf is covered by the pyjaiaprotobuf target below.) Glob the package code
+	# and packaging config only - the build/ and *.egg-info/ directories sitting alongside
+	# them are gitignored pip leftovers, not build inputs.
 	file(GLOB_RECURSE jaiabot_python_venv_pkg_deps
-		${CMAKE_CURRENT_SOURCE_DIR}/pyjaia/*
-		${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x/*
-		${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial/*)
-
-	# Drop VCS/CI metadata and gitignored build leftovers (build/, *.egg-info, __pycache__).
-	# They are not inputs to the install, and depending on them would break the build for
-	# anyone whose checkout does not happen to have them.
-	list(FILTER jaiabot_python_venv_pkg_deps EXCLUDE REGEX
-		"(^|/)(\\.git|\\.github|__pycache__|\\.pytest_cache|build)(/|$)|\\.egg-info/|\\.pyc$")
+		${CMAKE_CURRENT_SOURCE_DIR}/pyjaia/pyproject.toml
+		${CMAKE_CURRENT_SOURCE_DIR}/pyjaia/src/pyjaia/*
+		${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial/pyproject.toml
+		${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial/src/jaia_serial/*
+		${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x/pyproject.toml
+		${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x/adafruit_bno08x/*)
 
 	add_custom_command(
 		OUTPUT ${jaiabot_python_venv_stamp}
