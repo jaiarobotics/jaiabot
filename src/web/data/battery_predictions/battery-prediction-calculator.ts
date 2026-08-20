@@ -1,9 +1,16 @@
 import { getDistance } from "ol/sphere";
 
-import Bot from "../data/bots/bot";
-import Mission from "../data/mission_set/mission";
-import { TaskType } from "../types/protobuf-types";
-import { BOTTOM_DIVE_DEPTH_PRIOR_M } from "./constants";
+import Bot from "../bots/bot";
+import Mission from "../mission_set/mission";
+import { TaskType } from "../../types/protobuf-types";
+import { BOTTOM_DIVE_DEPTH_PRIOR_M } from "../../utils/constants";
+
+// Drain can legitimately exceed 100% (the mission needs more than one battery), so the
+// display cap is well above it and callers flag anything at the cap as "greater than"
+export const MAX_DISPLAYED_DRAIN_PERCENT = 1000;
+
+const BATTERY_CALIBRATION_URL = "/battery-calibration";
+const BATTERY_PREDICTION_URL = "/battery-prediction";
 
 const EARTH_R = 6_371_000;
 
@@ -49,7 +56,7 @@ let calibrationPromise: Promise<Calibration> | null = null;
  */
 function getCalibration(): Promise<Calibration> {
     if (calibrationPromise === null) {
-        calibrationPromise = fetch("/battery-calibration")
+        calibrationPromise = fetch(BATTERY_CALIBRATION_URL)
             .then((response) => {
                 if (!response.ok) throw new Error("battery-calibration request failed");
                 return response.json();
@@ -105,14 +112,13 @@ export function clampBatteryPercentForDisplay(predictedFinalPct: number): number
 }
 
 /**
- * Clamps a predicted drain percentage for display. Drain can legitimately exceed
- * 100% (the mission needs more than one battery).
+ * Clamps a predicted drain percentage for display
  *
  * @param {number} predictedDrainPct Raw predicted drain percentage
- * @returns {number} Predicted drain percentage clamped to a maximum of 1000
+ * @returns {number} Predicted drain percentage clamped to MAX_DISPLAYED_DRAIN_PERCENT
  */
 export function clampDrainPercentForDisplay(predictedDrainPct: number): number {
-    return Math.min(1000, predictedDrainPct);
+    return Math.min(MAX_DISPLAYED_DRAIN_PERCENT, predictedDrainPct);
 }
 
 /**
@@ -132,8 +138,9 @@ function estimatedTransitEnergyWh(
     transitPowerCurve: Map<number, number>,
 ): number {
     if (speedMs <= 0) return 0;
-    const speeds = Array.from(transitPowerCurve.keys()).sort((a, b) => a - b);
-    const watts = speeds.map((s) => transitPowerCurve.get(s)!);
+    const curve = Array.from(transitPowerCurve.entries()).sort((a, b) => a[0] - b[0]);
+    const speeds = curve.map(([speed]) => speed);
+    const watts = curve.map(([, w]) => w);
     let motorW = watts[watts.length - 1];
     if (speedMs <= speeds[0]) {
         motorW = watts[0];
@@ -152,8 +159,8 @@ function estimatedTransitEnergyWh(
 /**
  * Computes turning geometry features from a sequence of waypoint locations
  *
- * @param {Array} locs Array of {lat, lon} waypoint locations in degrees
- * @returns {{ totalTurnAngleDeg: number; meanTurnAngleDeg: number; turnDensityDegPerKm: number }} Geometry summary
+ * @param {{ lat: number; lon: number }[]} locs Waypoint locations in degrees
+ * @returns {{ turnDensityDegPerKm: number }} Total turn angle per km travelled
  */
 function waypointGeometry(locs: { lat: number; lon: number }[]): {
     turnDensityDegPerKm: number;
@@ -340,7 +347,7 @@ export async function fetchBatteryPrediction(
         diveCount * (calibration.diveEnergyBaseWh + calibration.diveEnergyPerMWh * meanDiveDepthM);
 
     try {
-        const response = await fetch("/battery-prediction", {
+        const response = await fetch(BATTERY_PREDICTION_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

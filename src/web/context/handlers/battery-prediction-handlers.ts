@@ -5,7 +5,10 @@ import {
 import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { bots } from "../../data/bots/bots";
-import { fetchBatteryPrediction, isBotTypeSupported } from "../../utils/battery_prediction";
+import {
+    fetchBatteryPrediction,
+    isBotTypeSupported,
+} from "../../data/battery_predictions/battery-prediction-calculator";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 let isRefreshing = false;

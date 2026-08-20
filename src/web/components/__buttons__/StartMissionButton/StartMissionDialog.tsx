@@ -5,7 +5,7 @@ import {
     BatteryPrediction,
     clampBatteryPercentForDisplay,
     clampDrainPercentForDisplay,
-} from "../../../utils/battery_prediction";
+} from "../../../data/battery_predictions/battery-prediction-calculator";
 
 interface DialogProps {
     isVisible: boolean;

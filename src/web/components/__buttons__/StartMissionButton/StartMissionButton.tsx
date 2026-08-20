@@ -11,7 +11,10 @@ import { Button } from "@mui/material";
 
 import Bot from "../../../data/bots/bot";
 import Mission from "../../../data/mission_set/mission";
-import { BatteryPrediction, fetchBatteryPrediction } from "../../../utils/battery_prediction";
+import {
+    BatteryPrediction,
+    fetchBatteryPrediction,
+} from "../../../data/battery_predictions/battery-prediction-calculator";
 
 import { Command, CommandType, MissionPlan } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";

@@ -3,11 +3,11 @@ import {
     clampDrainPercentForDisplay,
     fetchBatteryPrediction,
     isBotTypeSupported,
-} from "../battery_prediction";
-import Mission from "../../data/mission_set/mission";
-import Bot from "../../data/bots/bot";
-import Task from "../../data/tasks/task";
-import { BotType, TaskType } from "../../types/protobuf-types";
+} from "../battery-prediction-calculator";
+import Mission from "../../mission_set/mission";
+import Bot from "../../bots/bot";
+import Task from "../../tasks/task";
+import { BotType, TaskType } from "../../../types/protobuf-types";
 
 // Round calibration constants (not the real calibration.json values)
 // so the expected feature values below can be derived independently.

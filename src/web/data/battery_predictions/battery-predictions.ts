@@ -1,4 +1,4 @@
-import { BatteryPrediction } from "../../utils/battery_prediction";
+import { BatteryPrediction } from "./battery-prediction-calculator";
 
 export interface MissionBatteryStatus {
     prediction: BatteryPrediction | null;

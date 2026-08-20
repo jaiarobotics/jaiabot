@@ -14,7 +14,7 @@ import Bot from "../../../data/bots/bot";
 import Mission from "../../../data/mission_set/mission";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import { fetchBatteryPrediction } from "../../../utils/battery_prediction";
+import { fetchBatteryPrediction } from "../../../data/battery_predictions/battery-prediction-calculator";
 
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { ButtonNames, ButtonTypes, DialogActions } from "../../../types/context-types";

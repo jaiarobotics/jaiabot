@@ -13,7 +13,7 @@ import { missionsManager } from "../../../data/missions_manager/missions-manager
 import {
     BatteryPrediction,
     clampBatteryPercentForDisplay,
-} from "../../../utils/battery_prediction";
+} from "../../../data/battery_predictions/battery-prediction-calculator";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
 import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
 
