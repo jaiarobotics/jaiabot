@@ -113,9 +113,24 @@ static uint32_t adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
     sConfig.SingleDiff = ADC_SINGLE_ENDED;
     sConfig.OffsetNumber = ADC_OFFSET_NONE;
     sConfig.Offset = 0;
-    HAL_ADC_ConfigChannel(hadc, &sConfig);
-    HAL_ADC_Start(hadc);
-    HAL_ADC_PollForConversion(hadc, HAL_MAX_DELAY);
+
+    // Bounded timeout so a misconfigured/failed conversion can't hang the
+    // main loop forever
+    const uint32_t adc_poll_timeout_ms = 10U;
+
+    if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK)
+    {
+        return 0U;
+    }
+    if (HAL_ADC_Start(hadc) != HAL_OK)
+    {
+        return 0U;
+    }
+    if (HAL_ADC_PollForConversion(hadc, adc_poll_timeout_ms) != HAL_OK)
+    {
+        HAL_ADC_Stop(hadc);
+        return 0U;
+    }
     uint32_t raw = HAL_ADC_GetValue(hadc);
     HAL_ADC_Stop(hadc);
     return raw;
@@ -330,6 +345,8 @@ int main(void)
           power_board_build_telemetry(&telemetry_response);
           usb_transmit(&telemetry_response);
         }
+        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
 
         // current_state = SLEEP_STATE;
 
