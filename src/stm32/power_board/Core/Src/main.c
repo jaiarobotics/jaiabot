@@ -324,47 +324,111 @@ int main(void)
 
     HAL_IWDG_Refresh(&hiwdg);
 
+    // Always service the motor ramp/timeout, regardless of state, so it
+    // keeps stepping toward target_motor_ (e.g. ramping down to neutral)
+    // even after leaving TEST_STATE.
+    controls_periodic_update();
+
     // State loop: short command-service window while awake, then sleep.
     switch(current_state)
     {
       case INIT_STATE:
-        // Reserved for longer awake workflows (e.g., data offload windows).
-        // service_host_commands(150);
-        current_state = BROADCAST_STATE;
+        {
+          // Guarded so this only runs once at boot, not on every wake from
+          // SLEEP_STATE: calibrate the ADC before any telemetry reads rely
+          // on it, and let the host know we just came up.
+          HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
 
-        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
+          static bool did_startup_init = false;
+          if (!did_startup_init)
+          {
+            did_startup_init = true;
+            bool init_failed = (HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED) != HAL_OK);
+
+            PowerBoardResponse startup_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
+            startup_response.time = (uint64_t)HAL_GetTick() * 1000ULL;
+            startup_response.which_data = jaiabot_protobuf_PowerBoardResponse_metadata_tag;
+            startup_response.data.metadata.has_init_failed = true;
+            startup_response.data.metadata.init_failed = init_failed;
+            startup_response.data.metadata.has_power_board_version = true;
+            startup_response.data.metadata.power_board_version = 1;
+            usb_transmit(&startup_response);
+          }
+        }
+
+        current_state = TEST_STATE;
+
         break;
 
       case BROADCAST_STATE:
-        // Reserved for longer awake workflows (e.g., data offload windows).
-        // service_host_commands(150);
+        // Broadcast telemetry to the host over USB.
         HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
 
         {
           PowerBoardResponse telemetry_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
           power_board_build_telemetry(&telemetry_response);
           usb_transmit(&telemetry_response);
         }
-        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
 
         // current_state = SLEEP_STATE;
-
         break;
 
       case SLEEP_STATE:
-      //   // Low power mode to save battery between active windows.
-      //   sleep_for_ms(sleep_interval_ms);
+        // Low power mode to save battery between active windows.
         HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
+        sleep_for_ms(power_board_get_sleep_interval_ms());
         current_state = INIT_STATE;
+        break;
+
+      case TEST_STATE:
+        {
+          // Bench test: wait 2 minutes, then run the motor at 1650us for 1
+          // minute. Non-blocking (tracked via HAL_GetTick()) so the IWDG
+          // still gets refreshed and host commands still get serviced
+          // while this runs.
+
+          const uint32_t test_wait_ms = 120000U; // 120 seconds
+          const uint32_t test_motor_run_ms = 60000U; // 60 seconds
+          const int test_motor_pulse_us = 1740;
+
+          static bool test_state_started = false;
+          static uint32_t test_state_start_tick = 0U;
+
+          if (!test_state_started)
+          {
+            test_state_started = true;
+            test_state_start_tick = HAL_GetTick();
+          }
+
+          uint32_t elapsed_ms = HAL_GetTick() - test_state_start_tick;
+
+          if (elapsed_ms < test_wait_ms)
+          {
+            HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
+            target_motor_ = motor_off_;
+          }
+          else if (elapsed_ms < test_wait_ms + test_motor_run_ms)
+          {
+            HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
+            target_motor_ = test_motor_pulse_us;
+          }
+          else
+          {
+            target_motor_ = motor_off_;
+            test_state_started = false;
+            current_state = BROADCAST_STATE;
+            
+            HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+          }
+        }
         break;
 
       default:
         current_state = INIT_STATE;
     }
 
-    HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
 
     HAL_Delay(500);
