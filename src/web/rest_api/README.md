@@ -225,6 +225,7 @@ In the second, start the REST API with your Lattice details:
 
 ```bash
 cd src/web/rest_api
+# leave blank - the empty string is what turns authentication off for development
 export JAIA_REST_API_PRIVATE_KEY=""
 export JAIA_LATTICE_ENDPOINT="lattice-abc123.env.sandboxes.developer.anduril.com"
 export JAIA_LATTICE_ENVIRONMENT_TOKEN="..."
