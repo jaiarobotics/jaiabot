@@ -204,7 +204,10 @@ class LatticePublisher:
 
         source_id = f'task_packet/{task_packet.bot_id}/{task_packet.start_time}'
         task_type = MissionTask.TaskType.Name(task_packet.type)
-        entity = self.new_entity(source_id, task_packet.end_time, now,
+        # dated when we learned of the task, not when the bot says it ran, because
+        # TaskPacket times sit hours from the wall clock and Lattice would show
+        # every marker as hours stale
+        entity = self.new_entity(source_id, int(now.timestamp() * 1e6), now,
                                  self.cfg.task_packet_expiry_seconds)
         entity['aliases'] = {'name': f'JaiaBot {task_packet.bot_id} {task_type}'}
         entity['description'] = task_packet_description(task_packet)

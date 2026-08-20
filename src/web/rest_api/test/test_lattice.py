@@ -233,6 +233,16 @@ def test_task_packet_that_arrives_later_is_published_once(publisher, task_packet
     assert publisher.task_packet_entities([task_packet, drift_packet], NOW) == []
 
 
+def test_task_packet_is_dated_when_we_learned_of_it(publisher, task_packet):
+    # the bot dated this task hours ago, which Lattice would render as stale
+    task_packet.start_time = NOW_UTIME - int(7 * 3600 * 1e6)
+    task_packet.end_time = NOW_UTIME - int(7 * 3600 * 1e6) + int(60 * 1e6)
+
+    entity = publisher.task_packet_entity(task_packet, NOW)
+
+    assert entity["provenance"]["sourceUpdateTime"] == "2026-08-13T12:00:00.000000Z"
+
+
 def test_a_task_packet_dated_hours_ago_is_still_published(publisher, task_packet, drift_packet):
     # TaskPacket.start_time is the bot's own idea of the time and can sit hours
     # away from the wall clock, which must not stop it being published
