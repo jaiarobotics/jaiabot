@@ -68,6 +68,10 @@ jaia_data_offload_ignore_type="NONE"
 if "jaia_data_offload_ignore_type" in os.environ:
     jaia_data_offload_ignore_type=os.environ['jaia_data_offload_ignore_type']
 
+if common.CommsMode.IRIDIUM in common.jaia_comms_modes: 
+    jaia_iridium_enabled=True
+else:
+    jaia_iridium_enabled=False
 bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 
 echo_enabled=(bot_type == "ECHO")
@@ -226,7 +230,7 @@ if common.CommsMode.WIFI in common.jaia_comms_modes:
                                              ipv6='')
 
 
-if common.CommsMode.IRIDIUM in common.jaia_comms_modes:    
+if jaia_iridium_enabled:    
     if is_simulation():
         iridium_serial_port='/tmp/iridium' + str(bot_index)
     else:
@@ -446,7 +450,7 @@ elif common.app == 'jaiabot_driver_camera':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_camera.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     serial_camera_port=common.bot.serial_camera_port(bot_index)))
+                                     serial_camera_port=common.bot.serial_camera_port(bot_index, jaia_iridium_enabled),))
 elif common.app == 'jaiabot_comms_manager':
     print(config.template_substitute(templates_dir+'/jaiabot_comms_manager.pb.cfg.in',
                                      app_block=app_common,
