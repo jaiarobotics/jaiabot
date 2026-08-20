@@ -474,6 +474,15 @@ jaiabot::apps::MissionManager::~MissionManager()
                                                               command_subscriber);
     }
 
+    if (cfg().has_bot_status_sub_cfg())
+    {
+        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> bot_status_subscriber{
+            latest_bot_status_sub_cfg_,
+            intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>};
+
+        intervehicle().unsubscribe<jaiabot::groups::bot_status>(bot_status_subscriber);
+    }
+
     if (cfg().has_contact_update_sub_cfg())
     {
         auto on_contact_update_unsubscribed =
@@ -566,15 +575,16 @@ void jaiabot::apps::MissionManager::intervehicle_subscribe(
     // subscribe to BotStatus messages broadcasted by other Bots
     if (cfg().has_bot_status_sub_cfg())
     {
-        goby::middleware::protobuf::TransporterConfig subscriber_cfg = cfg().bot_status_sub_cfg();
-        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
-            subscriber_cfg,
-            intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>);
+        latest_bot_status_sub_cfg_ = cfg().bot_status_sub_cfg();
+
+        goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> bot_status_subscriber{
+            latest_bot_status_sub_cfg_,
+            intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>};
 
         intervehicle().subscribe<jaiabot::groups::bot_status, jaiabot::protobuf::BotStatus>(
             [this](const jaiabot::protobuf::BotStatus& bot_status)
             { interprocess().publish<jaiabot::groups::bot2bot_data>(bot_status); },
-            subscriber);
+            bot_status_subscriber);
     }
 
     if (cfg().has_contact_update_sub_cfg())
