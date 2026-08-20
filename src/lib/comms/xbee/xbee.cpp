@@ -67,7 +67,7 @@ string frame_data(const string& packet_data)
 //   https://www.digi.com/resources/documentation/Digidocs/90002173/#tasks/t_transmit_broadcast.htm?TocPath=Networking%2520methods%257C_____4
 const NodeId jaiabot::comms::XBeeDevice::broadcast = "BROADCAST";
 const SerialNumber jaiabot::comms::XBeeDevice::broadcast_serial_number =
-    native_to_big((SerialNumber)0x000000000000FFFF);
+    (SerialNumber)0x000000000000FFFF;
 
 jaiabot::comms::XBeeDevice::XBeeDevice()
 {
