@@ -55,7 +55,7 @@ file(MAKE_DIRECTORY ${project_INTERMEDIATE_DIR})
 
 # Write the version to a simple text file for scripts to use
 if(PROJECT_VERSION_GITHASH)
-  file(WRITE ${project_SHARE_DIR}/version.txt ${PROJECT_VERSION_GITDESCRIBE})
+  file(WRITE ${project_SHARE_DIR}/version.txt "${PROJECT_GIT_VERSION}${PROJECT_DIRTY_REV_STRING}")
 endif()
 
 ## set the cmake defaults for libraries and binaries

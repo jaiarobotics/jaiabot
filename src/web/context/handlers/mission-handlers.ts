@@ -195,6 +195,7 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
 
     missionSet.setName(action.missionSetSnapshot.name);
     missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
+    missionSet.setMissionSpeeds(action.missionSetSnapshot.speeds);
     mutableState.missionAccordionStates = {};
     missionsManager.autoAssign();
     missionLayer.updateFeatures();

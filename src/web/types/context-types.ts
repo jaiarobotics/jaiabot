@@ -124,12 +124,14 @@ export interface JaiaAction {
 export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",
     COMMANDS = "commands",
+    HEALTH = "health",
     LINKS = "links",
 }
 
 export interface HubAccordionStates {
     quickLook: boolean;
     commands: boolean;
+    health: boolean;
     links: boolean;
 }
 
