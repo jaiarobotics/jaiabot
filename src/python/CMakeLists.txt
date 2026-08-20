@@ -31,7 +31,10 @@ if(build_python_venv AND NOT CMAKE_CROSSCOMPILING)
     ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial/pyproject.toml
     ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial/src/jaia_serial/*
     ${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x/pyproject.toml
-    ${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x/adafruit_bno08x/*)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x/adafruit_bno08x/*
+    # pyjaiaprotobuf/src is generated into the share dir by the pyjaiaprotobuf target
+    # (which the DEPENDS below covers), so only its pyproject.toml is tracked here.
+    ${CMAKE_CURRENT_SOURCE_DIR}/pyjaiaprotobuf/pyproject.toml)
 
   add_custom_command(
     OUTPUT ${jaiabot_python_venv_stamp}
@@ -41,6 +44,7 @@ if(build_python_venv AND NOT CMAKE_CROSSCOMPILING)
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/pyjaia ${jaiabot_python_share_dir}/pyjaia
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x ${jaiabot_python_share_dir}/Adafruit_CircuitPython_BNO08x
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial ${jaiabot_python_share_dir}/jaia_serial
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/pyjaiaprotobuf/pyproject.toml ${jaiabot_python_share_dir}/pyjaiaprotobuf/pyproject.toml
     COMMAND python3 -m venv venv --system-site-packages --clear
     COMMAND ./venv/bin/pip install -qU wheel
     COMMAND ./venv/bin/pip install -r requirements.txt
