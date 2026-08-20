@@ -5,7 +5,7 @@ test("getStatus returns undefined for a mission with no computed status yet", ()
     expect(predictions.getStatus(1)).toBeUndefined();
 });
 
-test("setStatuses replaces the whole map, so missions dropped from a refresh disappear", () => {
+test("setStatuses updates statuses in place, so missions dropped from a refresh disappear", () => {
     const predictions = new BatteryPredictions();
     predictions.setStatuses(
         new Map([

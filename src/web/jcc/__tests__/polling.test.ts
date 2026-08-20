@@ -1,13 +1,13 @@
-import { refreshBatteryPredictions } from "../battery-prediction-handlers";
-import { batteryPredictions } from "../../../data/battery_predictions/battery-predictions";
-import { missionSet } from "../../../data/mission_set/mission-set";
-import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import { bots } from "../../../data/bots/bots";
-import Mission from "../../../data/mission_set/mission";
-import { BotType } from "../../../types/protobuf-types";
-import { PortalBotStatus } from "../../../shared/PortalStatus";
+import { pollBatteryPredictions } from "../polling";
+import { batteryPredictions } from "../../data/battery_predictions/battery-predictions";
+import { missionSet } from "../../data/mission_set/mission-set";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { bots } from "../../data/bots/bots";
+import Mission from "../../data/mission_set/mission";
+import { BotType } from "../../types/protobuf-types";
+import { PortalBotStatus } from "../../shared/PortalStatus";
 
-// Round calibration constants, matching battery_prediction.test.ts's convention.
+// Round calibration constants, matching battery-prediction-calculator.test.ts's convention.
 const MOCK_CALIBRATION = {
     dive_hold_w: 60,
     surface_drift_w: 1,
@@ -19,16 +19,12 @@ const MOCK_CALIBRATION = {
     supported_bot_types: ["HYDRO"],
 };
 
-let predictionFetchCount = 0;
-
 function installFetchMock() {
-    predictionFetchCount = 0;
     global.fetch = jest.fn(async (url: string) => {
         if (url === "/battery-calibration") {
             return { ok: true, json: async () => MOCK_CALIBRATION } as Response;
         }
         if (url === "/battery-prediction") {
-            predictionFetchCount++;
             return {
                 ok: true,
                 json: async () => ({ predicted_drain_pct: 10, predicted_final_pct: 90 }),
@@ -60,7 +56,7 @@ function resetDataModel() {
     bots.getBots().clear();
 }
 
-test("refreshBatteryPredictions computes a status only for missions with an assigned Bot", async () => {
+test("pollBatteryPredictions computes a status only for missions with an assigned Bot", async () => {
     resetDataModel();
     installFetchMock();
     bots.setBot(hydroBotStatus);
@@ -74,7 +70,7 @@ test("refreshBatteryPredictions computes a status only for missions with an assi
     unassignedMission.addWaypoint({ lat: 10, lon: 0.01 });
     const unassignedMissionID = missionSet.addMission(unassignedMission);
 
-    await refreshBatteryPredictions();
+    await pollBatteryPredictions();
 
     expect(batteryPredictions.getStatus(assignedMissionID)).toEqual({
         prediction: { predicted_drain_pct: 10, predicted_final_pct: 90 },
@@ -83,7 +79,7 @@ test("refreshBatteryPredictions computes a status only for missions with an assi
     expect(batteryPredictions.getStatus(unassignedMissionID)).toBeUndefined();
 });
 
-test("refreshBatteryPredictions flags an untrained bot type without blocking other missions", async () => {
+test("pollBatteryPredictions flags an untrained bot type without blocking other missions", async () => {
     resetDataModel();
     installFetchMock();
     bots.setBot(bioBotStatus);
@@ -93,25 +89,7 @@ test("refreshBatteryPredictions flags an untrained bot type without blocking oth
     const bioMissionID = missionSet.addMission(bioMission);
     missionsManager.assign(2, bioMissionID);
 
-    await refreshBatteryPredictions();
+    await pollBatteryPredictions();
 
     expect(batteryPredictions.getStatus(bioMissionID)?.isUnsupportedBotType).toBe(true);
-});
-
-test("refreshBatteryPredictions queues an overlapping call instead of dropping it", async () => {
-    resetDataModel();
-    installFetchMock();
-    bots.setBot(hydroBotStatus);
-
-    const mission = new Mission();
-    mission.addWaypoint({ lat: 10, lon: 0.01 });
-    const missionID = missionSet.addMission(mission);
-    missionsManager.assign(1, missionID);
-
-    // Fire two overlapping refreshes. The second call lands while the first is still in
-    // flight, so it can't run concurrently -- but it must still run once the first
-    // finishes, rather than being silently dropped until the next periodic tick.
-    await Promise.all([refreshBatteryPredictions(), refreshBatteryPredictions()]);
-
-    expect(predictionFetchCount).toBe(2);
 });

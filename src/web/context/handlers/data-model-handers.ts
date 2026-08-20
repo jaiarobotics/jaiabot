@@ -73,7 +73,6 @@ export function handleInit(mutableState: JaiaContextType) {
         taskPackets: taskPackets,
         exclusionZoneSet: exclusionZoneSet,
         batteryPredictions: batteryPredictions,
-        predictionsVersion: 0,
         pendingReroute: null,
         pendingWaypointRemoval: null,
         placementError: "",

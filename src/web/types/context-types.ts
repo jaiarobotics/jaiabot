@@ -42,7 +42,6 @@ export interface JaiaContextType {
     missionsManager: MissionsManager;
     exclusionZoneSet: ExclusionZoneSet;
     batteryPredictions: BatteryPredictions;
-    predictionsVersion: number;
     pendingReroute: PendingReroute | null;
     pendingWaypointRemoval: PendingWaypointRemoval | null;
     placementError: string;
