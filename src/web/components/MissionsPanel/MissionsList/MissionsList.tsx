@@ -5,6 +5,10 @@ import { useContext, useEffect } from "react";
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 import { DisabledCodes } from "../../__buttons__/disabled-codes";
+import {
+    isCritiallyLowBattery,
+    isInsufficientPredictedBattery,
+} from "../../__buttons__/button-utils";
 import MissionAssignMenu from "../MissionAssignMenu/MissionAssignMenu";
 import DeleteMissionButton from "../../../components/__buttons__/DeleteMissionButton/DeleteMissionButton";
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
@@ -15,7 +19,7 @@ import {
     clampBatteryPercentForDisplay,
 } from "../../../data/battery_predictions/battery-prediction-calculator";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
-import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
+import { MDI_BUTTON_SIZE, UNASSIGNED_ID } from "../../../utils/constants";
 
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -55,8 +59,6 @@ interface MissionStatsProps {
 
 /**
  * Renders the list of mission accordions for the operator to manage
- *
- * @returns {JSX.Element} List of mission accordions
  */
 export default function MissionsList() {
     const jaiaContext = useContext(JaiaContext);
@@ -169,22 +171,12 @@ export default function MissionsList() {
  * Grey when no bot is assigned or no battery prediction is available, green when assigned with
  * no issues, red when assigned with an issue.
  * Reads its battery prediction from the shared batteryPredictions data model, which is kept
- * current by a periodic and event-driven refresh in JaiaContext.
- *
- * @param {number} props.missionID ID of the mission to render
- * @param {boolean} props.isExpanded Whether the accordion is currently expanded
- * @param {boolean} props.isInEditMode Whether this mission is currently in edit mode
- * @param {number} props.repeats Number of times the mission repeats
- * @param {Function} props.onAccordionChange Called when the accordion is expanded or collapsed
- * @param {Function} props.onRepeatsChange Called when the repeats value is changed
- * @param {Function} props.onDuplicateClick Called when the duplicate button is clicked
- * @param {Function} props.onToggleEditClick Called when the edit toggle is clicked
- * @returns {JSX.Element} The mission accordion
+ * current by the periodic refresh in polling.ts.
  */
 function MissionAccordion(props: MissionAccordionProps) {
     const jaiaContext = useContext(JaiaContext);
 
-    const assignedBotID = missionsManager.getBotID(props.missionID) ?? UNASSIGNED_ID;
+    const assignedBotID = missionsManager.getBotID(props.missionID);
     const bot = assignedBotID !== UNASSIGNED_ID ? jaiaContext.bots.getBot(assignedBotID) : null;
     const batteryStatus = jaiaContext.batteryPredictions.getStatus(props.missionID);
     const prediction = batteryStatus?.prediction ?? null;
@@ -197,10 +189,8 @@ function MissionAccordion(props: MissionAccordionProps) {
      */
     const getDisabledCode = () => {
         if (!bot) return DisabledCodes.NO_MISSION;
-        if (bot.getBatteryPercent() < MIN_BATTERY_PERCENT) return DisabledCodes.LOW_BATTERY;
-        if (prediction !== null && prediction.predicted_final_pct < MIN_BATTERY_PERCENT) {
-            return DisabledCodes.INSUFFICIENT_BATTERY;
-        }
+        if (isCritiallyLowBattery(bot.getBatteryPercent())) return DisabledCodes.LOW_BATTERY;
+        if (isInsufficientPredictedBattery(prediction)) return DisabledCodes.INSUFFICIENT_BATTERY;
         return DisabledCodes.NONE;
     };
     const disabledCode = getDisabledCode();
@@ -216,12 +206,12 @@ function MissionAccordion(props: MissionAccordionProps) {
      */
     const getSummaryClass = () => {
         if (disabledCode === DisabledCodes.NO_MISSION || noPredictionAvailable) {
-            return "mission-accordion-summary mission-accordion-summary--unassigned";
+            return "mission-accordion-summary unassigned";
         }
         if (disabledCode !== DisabledCodes.NONE) {
-            return "mission-accordion-summary mission-accordion-summary--warning";
+            return "mission-accordion-summary warning";
         }
-        return "mission-accordion-summary mission-accordion-summary--good";
+        return "mission-accordion-summary good";
     };
 
     return (
@@ -283,10 +273,6 @@ function MissionAccordion(props: MissionAccordionProps) {
 /**
  * Renders a label-value stats block for a mission.
  * Values show "--" when not yet available (e.g. no bot assigned).
- *
- * @param {BatteryPrediction | null} props.prediction Battery prediction result, or null if unavailable
- * @param {string} [props.unavailableBotType] Bot type to name when no prediction could be obtained for it
- * @returns {JSX.Element} Stats table with mission metrics
  */
 function MissionStats(props: MissionStatsProps) {
     const batteryAfter = props.prediction
@@ -309,12 +295,9 @@ function MissionStats(props: MissionStatsProps) {
 
 /**
  * Renders the title bar content for a mission accordion
- *
- * @param {number} props.missionID Used to look up the assigned bot
- * @returns {JSX.Element} Mission ID and bot assignment labels
  */
 function MissionAccordionTitle(props: MissionAccordionTitleProps) {
-    const assignedBotID = missionsManager.getBotID(props.missionID) ?? -1;
+    const assignedBotID = missionsManager.getBotID(props.missionID);
     return (
         <div className="mission-accordion-title">
             <p>{`Mission-${props.missionID}`}</p>

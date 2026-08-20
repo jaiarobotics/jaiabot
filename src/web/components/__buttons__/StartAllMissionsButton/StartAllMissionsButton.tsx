@@ -1,10 +1,11 @@
 import { useContext, useState } from "react";
-import { JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
 import TakeControlDialog from "../TakeControl/TakeControlDialog/TakeControlDialog";
 import { StartAllMissionsDialog } from "./StartAllMissionsDialog";
 import { DisabledCodes } from "../disabled-codes";
+import { getMissionDisabledCode } from "../button-utils";
 
 import { Icon } from "@mdi/react";
 import { Button } from "@mui/material";
@@ -14,12 +15,11 @@ import Bot from "../../../data/bots/bot";
 import Mission from "../../../data/mission_set/mission";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import { fetchBatteryPrediction } from "../../../data/battery_predictions/battery-prediction-calculator";
 
 import { Command, CommandType } from "../../../types/protobuf-types";
 import { ButtonNames, ButtonTypes, DialogActions } from "../../../types/context-types";
-import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
+import { isControllingClient, sendBotCommand } from "../../../utils/commands";
+import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 
 interface Props {
     bots: Map<number, Bot>;
@@ -34,6 +34,7 @@ type DisabledCodeGroup = [DisabledCodes, number[]];
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function StartAllMissionsButton(props: Props) {
+    const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
     const [botReadyStates, setBotReadyStates] = useState(
@@ -42,22 +43,22 @@ export default function StartAllMissionsButton(props: Props) {
     const [isTakeControlVisible, setIsTakeControlVisible] = useState(false);
 
     /**
-     * Loops through the connected Bots and categorizes them based on their
-     * readiness to start a mission, fetching a fresh battery prediction per Bot rather
-     * than reading the periodically-updated cache -- this is the moment commands are
-     * about to be sent, so a stale "safe to start" read here is worse than the brief pause.
+     * Loops through the connected Bots and categorizes them based on their readiness to
+     * start a mission, reading each Bot's battery prediction from the shared context cache
+     * so this dialog can never disagree with the rest of the app about a mission's status.
      *
      * @returns {void}
      */
-    const groupBotsByReadyState = async () => {
+    const groupBotsByReadyState = () => {
         const updatedBotReadyStates = new Map<DisabledCodes, number[]>(initBotReadyStates());
 
-        await Promise.all(
-            Array.from(props.bots.entries()).map(async ([botID, bot]) => {
-                const disabledCode = await getBotReadyState(botID, bot, props.missions);
-                updatedBotReadyStates.get(disabledCode).push(botID);
-            }),
-        );
+        for (const [botID, bot] of props.bots) {
+            const missionID = missionsManager.getMissionID(botID);
+            const prediction =
+                jaiaContext.batteryPredictions.getStatus(missionID)?.prediction ?? null;
+            const disabledCode = getMissionDisabledCode(bot, missionID, prediction);
+            updatedBotReadyStates.get(disabledCode).push(botID);
+        }
 
         setBotReadyStates(updatedBotReadyStates);
     };
@@ -68,7 +69,7 @@ export default function StartAllMissionsButton(props: Props) {
      *
      * @returns {void}
      */
-    const handleClick = async () => {
+    const handleClick = () => {
         if (props.bots.size === 0) {
             return;
         }
@@ -78,7 +79,7 @@ export default function StartAllMissionsButton(props: Props) {
         if (!hasControl) {
             setIsTakeControlVisible(true);
         } else {
-            await groupBotsByReadyState();
+            groupBotsByReadyState();
             setIsDialogVisible(true);
             jaiaDispatch({
                 type: JaiaActions.CLICKED_BUTTON,
@@ -158,66 +159,4 @@ function initBotReadyStates() {
         [DisabledCodes.INSUFFICIENT_BATTERY, []],
     ];
     return botReadyStates;
-}
-
-/**
- * Checks whether the supplied Bot ID is associated with a mission
- *
- * @param {number} botID Used in mission lookup
- * @returns {boolean} True if the Bot does not have an assigned mission
- */
-function isMissionUnassigned(botID: number) {
-    return missionsManager.getMissionID(botID) === UNASSIGNED_ID;
-}
-
-/**
- * Checks whether the supplied battery percent is below the min threshold
- *
- * @param {number} batteryPercent Bot's battery percent
- * @returns {boolean} True if the Bots battery is below the min threshold
- */
-function isCritiallyLowBattery(batteryPercent: number) {
-    return batteryPercent < MIN_BATTERY_PERCENT;
-}
-
-/**
- * Determines the disabled code that applies to a single Bot for the start-all-missions flow
- *
- * @param {number} botID Bot to evaluate
- * @param {Bot} bot The Bot instance
- * @param {Map<number, Mission>} missions Missions keyed by mission ID, used to look up the Bot's assigned mission
- * @returns {Promise<DisabledCodes>} The applicable disabled code for this Bot
- */
-async function getBotReadyState(
-    botID: number,
-    bot: Bot,
-    missions: Map<number, Mission>,
-): Promise<DisabledCodes> {
-    if (bot.isCommsDropped()) {
-        return DisabledCodes.NO_COMMS;
-    }
-
-    if (!isCommandAvailable(CommandType.START_MISSION, bot.getMissionStatus().missionState)) {
-        return DisabledCodes.MISSION_STATE;
-    }
-
-    if (isMissionUnassigned(botID)) {
-        return DisabledCodes.NO_MISSION;
-    }
-
-    if (isCritiallyLowBattery(bot.getBatteryPercent())) {
-        return DisabledCodes.LOW_BATTERY;
-    }
-
-    const missionID = missionsManager.getMissionID(botID);
-    const mission = missions.get(missionID);
-    const prediction = mission ? await fetchBatteryPrediction(mission, bot) : null;
-    // A null prediction (unsupported bot type, request failure, etc.)
-    // intentionally does not block starting the mission -- the battery check is
-    // advisory, not a safety gate, so we fail open when we have no prediction to check.
-    if (prediction !== null && prediction.predicted_final_pct < MIN_BATTERY_PERCENT) {
-        return DisabledCodes.INSUFFICIENT_BATTERY;
-    }
-
-    return DisabledCodes.NONE;
 }

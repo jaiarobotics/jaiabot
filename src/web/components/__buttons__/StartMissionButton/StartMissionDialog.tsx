@@ -5,6 +5,7 @@ import {
     BatteryPrediction,
     clampBatteryPercentForDisplay,
     clampDrainPercentForDisplay,
+    MAX_DISPLAYED_DRAIN_PERCENT,
 } from "../../../data/battery_predictions/battery-prediction-calculator";
 
 interface DialogProps {
@@ -29,6 +30,12 @@ interface ButtonRowProps {
  * sent or a confirmation prior to sending the command.
  */
 export function StartMissionDialog(props: DialogProps) {
+    /**
+     * Forms the class name with a base of "jaia-dialog" and adds
+     * "alert" when the disabled code does not equal NONE.
+     *
+     * @returns {string} General class name jaia-dialog plus confirm/alert type
+     */
     const getClassName = () => {
         return `jaia-dialog ${props.disabledCode === DisabledCodes.NONE ? "" : "alert"}`;
     };
@@ -52,7 +59,10 @@ export function StartMissionDialog(props: DialogProps) {
                             ).toFixed(1)}
                             %
                         </strong>{" "}
-                        (drain: {props.batteryPrediction.predicted_drain_pct > 1000 ? ">" : ""}
+                        (drain:{" "}
+                        {props.batteryPrediction.predicted_drain_pct > MAX_DISPLAYED_DRAIN_PERCENT
+                            ? ">"
+                            : ""}
                         {clampDrainPercentForDisplay(
                             props.batteryPrediction.predicted_drain_pct,
                         ).toFixed(1)}
