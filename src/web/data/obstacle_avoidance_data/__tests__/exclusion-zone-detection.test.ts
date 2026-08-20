@@ -1,8 +1,13 @@
-import { exclusionZoneSet, ExclusionZone } from "../exclusion-zone-set";
+import { ExclusionZone } from "../exclusion_zones/exclusion-zone-set";
+import { obstacleAvoidanceData } from "../obstacle-avoidance-data";
 import { missionSet } from "../../mission_set/mission-set";
 import Mission from "../../mission_set/mission";
-import { detectMissionReroutes, detectWaypointRemovals } from "../exclusion-zone-detection";
+import {
+    detectMissionReroutes,
+    detectWaypointRemovals,
+} from "../exclusion_zones/exclusion-zone-detection";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
+import { ProposalStatus } from "../pending-route-data";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
     return { lat, lon };
@@ -21,12 +26,12 @@ function squareZone(lat: number, lon: number, halfSide = 0.0005): ExclusionZone 
 
 describe("detectMissionReroutes", () => {
     beforeEach(() => {
-        exclusionZoneSet.clearZones();
+        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
         missionSet.deleteAllMissions();
     });
 
     test("returns null when no missions exist", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
         expect(detectMissionReroutes()).toBeNull();
     });
 
@@ -39,7 +44,7 @@ describe("detectMissionReroutes", () => {
     });
 
     test("returns null when no missions cross a zone", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
         const m = new Mission();
         m.addWaypoint(coord(42.0, -73.0));
         m.addWaypoint(coord(42.01, -73.0));
@@ -48,7 +53,7 @@ describe("detectMissionReroutes", () => {
     });
 
     test("detects a reroute when a mission crosses a zone", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
         const m = new Mission();
         m.addWaypoint(coord(41.0, -72.005));
         m.addWaypoint(coord(41.0, -71.995));
@@ -62,7 +67,7 @@ describe("detectMissionReroutes", () => {
     });
 
     test("detects reroutes across multiple missions", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
 
         const m1 = new Mission();
         m1.addWaypoint(coord(41.0, -72.005));
@@ -80,7 +85,7 @@ describe("detectMissionReroutes", () => {
     });
 
     test("totalBypassCount excludes over-limit proposals", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
         const m = new Mission();
         m.addWaypoint(coord(41.0, -72.005));
         m.addWaypoint(coord(41.0, -71.995));
@@ -88,7 +93,7 @@ describe("detectMissionReroutes", () => {
 
         const result = detectMissionReroutes();
         expect(result).not.toBeNull();
-        const feasible = result!.proposals.filter((p) => !p.isOverLimit);
+        const feasible = result!.proposals.filter((p) => p.status === ProposalStatus.FEASIBLE);
         const expectedTotal = feasible.reduce((sum, p) => sum + p.bypassCount, 0);
         expect(result!.totalBypassCount).toBe(expectedTotal);
     });
@@ -96,7 +101,7 @@ describe("detectMissionReroutes", () => {
 
 describe("detectWaypointRemovals", () => {
     beforeEach(() => {
-        exclusionZoneSet.clearZones();
+        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
         missionSet.deleteAllMissions();
     });
 
@@ -108,7 +113,7 @@ describe("detectWaypointRemovals", () => {
     });
 
     test("returns null when no waypoints are inside any zone", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
         const m = new Mission();
         m.addWaypoint(coord(42.0, -73.0));
         missionSet.addMission(m);
@@ -116,7 +121,7 @@ describe("detectWaypointRemovals", () => {
     });
 
     test("detects removal when a waypoint is inside a zone", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
         const m = new Mission();
         m.addWaypoint(coord(41.0, -72.0)); // inside zone
         m.addWaypoint(coord(42.0, -73.0)); // outside zone
@@ -127,10 +132,29 @@ describe("detectWaypointRemovals", () => {
         expect(result!.proposals.length).toBe(1);
         expect(result!.proposals[0].missionID).toBe(missionID);
         expect(result!.proposals[0].removedCount).toBe(1);
+        expect(result!.proposals[0].isGutted).toBe(false);
+    });
+
+    // Regression test for docs/07KNOWN_BUGS.md Bug 2 (fixed): a zone that swallows
+    // every waypoint in a mission must be flagged so the dialog can warn the operator,
+    // instead of looking like any other ordinary partial removal.
+    test("flags a proposal as isGutted when every waypoint in the mission is inside the zone", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const m = new Mission();
+        m.addWaypoint(coord(41.0, -72.0)); // inside zone
+        m.addWaypoint(coord(41.0001, -72.0)); // also inside zone — the whole mission is swallowed
+        const missionID = missionSet.addMission(m);
+
+        const result = detectWaypointRemovals();
+        expect(result).not.toBeNull();
+        expect(result!.proposals.length).toBe(1);
+        expect(result!.proposals[0].missionID).toBe(missionID);
+        expect(result!.proposals[0].newWaypoints).toEqual([]);
+        expect(result!.proposals[0].isGutted).toBe(true);
     });
 
     test("totalRemovedCount sums across all affected missions", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
 
         const m1 = new Mission();
         m1.addWaypoint(coord(41.0, -72.0)); // inside
@@ -147,19 +171,19 @@ describe("detectWaypointRemovals", () => {
         expect(result!.totalRemovedCount).toBe(2);
     });
 
-    test("sets triggeringZoneID on the result when provided", () => {
-        const zoneID = exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+    test("includes offendingZoneIDs for the zone(s) causing the removal", () => {
+        const zoneID = obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
         const m = new Mission();
         m.addWaypoint(coord(41.0, -72.0));
         m.addWaypoint(coord(42.0, -73.0));
         missionSet.addMission(m);
 
-        const result = detectWaypointRemovals(zoneID);
-        expect(result!.triggeringZoneID).toBe(zoneID);
+        const result = detectWaypointRemovals();
+        expect(result!.offendingZoneIDs).toEqual([zoneID]);
     });
 
     test("does not include bypass waypoints in removal candidates", () => {
-        exclusionZoneSet.addZone(squareZone(41.0, -72.0));
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
         const m = new Mission();
         m.addWaypoint(coord(41.0, -72.005)); // outside
         m.addWaypoint(coord(41.0, -72.0)); // inside zone — bypass

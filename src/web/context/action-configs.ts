@@ -16,7 +16,6 @@ import {
 } from "./handlers/mission-handlers";
 import {
     handleAddWaypoint,
-    handleAddWaypointsBulk,
     handleDeleteWaypoint,
     handleMoveWaypoint,
     handleSelectTask,
@@ -66,20 +65,21 @@ import {
     handleLoadExclusionZones,
     handleRestoreExclusionZoneSnapshot,
     handleToggleExclusionZoneDrawing,
-    handleConfirmMissionReroute,
-    handleCancelMissionReroute,
-    handleConfirmWaypointRemoval,
-    handleCancelWaypointRemoval,
     handleSelectZoneVertex,
     handleAddZoneVertex,
     handleMoveZoneVertex,
     handleDeleteZoneVertex,
     handleToggleZoneEditMode,
     handleToggleZoneVertexTapToMove,
-    handleSetPlacementError,
-    handleClearPlacementError,
     handleChangeExclusionZoneSetName,
 } from "./handlers/exclusion-zone-handlers";
+import {
+    handleConfirmMissionReroute,
+    handleCancelMissionReroute,
+    handleConfirmWaypointRemoval,
+    handleCancelWaypointRemoval,
+    handleClearPlacementError,
+} from "./handlers/obstacle-avoidance-handlers";
 
 // Standard profile for action handling functions
 type HandlerFn = (mutableState: JaiaContextType, action?: JaiaAction) => JaiaContextType; // Configuration for handling JaiaActions
@@ -112,7 +112,6 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
 
     // Waypoint & Task Actions
     [JaiaActions.ADD_WAYPOINT, { handler: handleAddWaypoint, tracked: true }],
-    [JaiaActions.ADD_WAYPOINTS_BULK, { handler: handleAddWaypointsBulk, tracked: true }],
     [JaiaActions.DELETE_WAYPOINT, { handler: handleDeleteWaypoint, tracked: true }],
     [JaiaActions.MOVE_WAYPOINT, { handler: handleMoveWaypoint, tracked: true }],
     [JaiaActions.SELECT_TASK, { handler: handleSelectTask, tracked: true }],
@@ -236,6 +235,5 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         { handler: handleToggleZoneVertexTapToMove, tracked: false },
     ],
 
-    [JaiaActions.SET_PLACEMENT_ERROR, { handler: handleSetPlacementError, tracked: false }],
     [JaiaActions.CLEAR_PLACEMENT_ERROR, { handler: handleClearPlacementError, tracked: false }],
 ]);

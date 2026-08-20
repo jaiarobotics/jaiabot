@@ -10,7 +10,10 @@ import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zon
 import { bots } from "../../data/bots/bots";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
-import { getBlockingZoneIDs } from "../../data/exclusion_zones/exclusion-zone-router";
+import {
+    getBlockingZoneIDs,
+    buildZoneBufferCache,
+} from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 import cloneDeep from "lodash/cloneDeep";
 import Waypoint from "../../data/waypoints/waypoint";
 
@@ -54,12 +57,17 @@ export function stripBypassesInsideZoneWithSnapshot(zoneID: number): {
 } {
     const affected = new Set<number>();
     const priorMissionWaypoints = new Map<number, Waypoint[]>();
+    // Build zone buffer geometry once for this call instead of letting each
+    // bypass waypoint's getBlockingZoneIDs() call rebuild every zone from scratch.
+    const zoneBufferCache = buildZoneBufferCache();
     for (const [missionID, mission] of missionSet.getMissions()) {
         const all = mission.getWaypoints();
         const hasBlockedBypass = all.some((wp) => {
             if (!wp.getIsBypass()) return false;
             const loc = wp.getLocation();
-            return loc ? getBlockingZoneIDs(loc).includes(zoneID) : false;
+            return loc
+                ? getBlockingZoneIDs(loc, undefined, zoneBufferCache).includes(zoneID)
+                : false;
         });
         if (!hasBlockedBypass) continue;
         priorMissionWaypoints.set(missionID, cloneDeep(all));

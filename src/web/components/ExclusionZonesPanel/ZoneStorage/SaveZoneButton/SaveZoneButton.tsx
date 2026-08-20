@@ -1,8 +1,7 @@
 import { useContext, useState } from "react";
-import { JaiaDispatchContext } from "../../../../context/JaiaContext";
+import { JaiaContext, JaiaDispatchContext } from "../../../../context/JaiaContext";
 import { JaiaActions } from "../../../../context/jaia-actions";
 import { DialogActions } from "../../../../types/context-types";
-import { exclusionZoneSet } from "../../../../data/exclusion_zones/exclusion-zone-set";
 import { saveToHub } from "../zone-storage";
 import { DisabledCodes } from "./save-messages";
 import { SaveZoneDialog } from "./SaveZoneDialog";
@@ -18,6 +17,7 @@ interface Props {
  * It manages the alert/confirm dialog that appears when clicking on the button.
  */
 export default function SaveZoneButton(props: Props) {
+    const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
     const [isDialogVisible, setIsDialogVisible] = useState(false);
 
@@ -27,7 +27,8 @@ export default function SaveZoneButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the zone set conditions.
      */
     const getDisabledCode = () => {
-        if (exclusionZoneSet.getZones().size === 0) return DisabledCodes.NO_ZONES;
+        if (jaiaContext?.obstacleAvoidanceData.getExclusionZoneSet().getZones().size === 0)
+            return DisabledCodes.NO_ZONES;
         if (!props.saveName.trim()) return DisabledCodes.NO_NAME;
         if (props.savedNames.includes(props.saveName.trim())) return DisabledCodes.OVERWRITE;
         return DisabledCodes.NONE;

@@ -12,9 +12,9 @@ import { fromLonLat, toLonLat } from "ol/proj";
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { layersZIndexes } from "../zindex";
 import { LayerTitles, MapFeatureTypes } from "../../../types/openlayers-types";
-import { getZoneBufferVertices } from "../../../data/exclusion_zones/exclusion-zone-router";
+import { getZoneBufferVertices } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
-import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
+import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
 import { GeographicCoordinate } from "../../../shared/JAIAProtobuf";
 
@@ -113,44 +113,47 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
         let zoneNum = 0;
         const selected = jaiaGlobal.getSelectedZoneVertex();
 
-        exclusionZoneSet.getZones().forEach((zone, zoneID) => {
-            if (!zone.vertices || zone.vertices.length < 3) return;
-            zoneNum++;
+        obstacleAvoidanceData
+            .getExclusionZoneSet()
+            .getZones()
+            .forEach((zone, zoneID) => {
+                if (!zone.vertices || zone.vertices.length < 3) return;
+                zoneNum++;
 
-            // Draw the safety buffer ring first (underneath the zone).
-            const bufferVerts = getZoneBufferVertices(zone);
-            if (bufferVerts.length >= 3) {
-                const bufferCoords = bufferVerts.map((v) => fromLonLat([v.lon, v.lat]));
-                bufferCoords.push(bufferCoords[0]);
-                const bufferFeature = new Feature({ geometry: new Polygon([bufferCoords]) });
-                bufferFeature.set("isBuffer", true);
-                this.getVectorLayer().getSource().addFeature(bufferFeature);
-            }
+                // Draw the safety buffer ring first (underneath the zone).
+                const bufferVerts = getZoneBufferVertices(zone);
+                if (bufferVerts.length >= 3) {
+                    const bufferCoords = bufferVerts.map((v) => fromLonLat([v.lon, v.lat]));
+                    bufferCoords.push(bufferCoords[0]);
+                    const bufferFeature = new Feature({ geometry: new Polygon([bufferCoords]) });
+                    bufferFeature.set("isBuffer", true);
+                    this.getVectorLayer().getSource().addFeature(bufferFeature);
+                }
 
-            // Draw the zone polygon.
-            const coords3857 = zone.vertices.map((v) => fromLonLat([v.lon, v.lat]));
-            coords3857.push(coords3857[0]); // close ring
+                // Draw the zone polygon.
+                const coords3857 = zone.vertices.map((v) => fromLonLat([v.lon, v.lat]));
+                coords3857.push(coords3857[0]); // close ring
 
-            const polygon = new Polygon([coords3857]);
-            const feature = new Feature({ geometry: polygon });
-            feature.set("zoneID", zoneID);
-            feature.set("label", zone.label ?? `Zone ${zoneNum}`);
-            this.getVectorLayer().getSource().addFeature(feature);
+                const polygon = new Polygon([coords3857]);
+                const feature = new Feature({ geometry: polygon });
+                feature.set("zoneID", zoneID);
+                feature.set("label", zone.label ?? `Zone ${zoneNum}`);
+                this.getVectorLayer().getSource().addFeature(feature);
 
-            // Draw vertex handles for editing.
-            const editVertices = zone.vertices;
-            editVertices.forEach((v, i) => {
-                const coord = fromLonLat([v.lon, v.lat]);
-                const vertexFeature = new Feature({ geometry: new Point(coord) });
-                vertexFeature.set("type", MapFeatureTypes.ZONE_VERTEX);
-                vertexFeature.set("zoneID", zoneID);
-                vertexFeature.set("vertexIndex", i);
-                const isSelected = selected?.zoneID === zoneID && selected?.vertexIndex === i;
-                const isMoveable = isSelected && selected?.isMoveable;
-                vertexFeature.setStyle(this.getVertexStyle(isSelected, isMoveable));
-                this.getVectorLayer().getSource().addFeature(vertexFeature);
+                // Draw vertex handles for editing.
+                const editVertices = zone.vertices;
+                editVertices.forEach((v, i) => {
+                    const coord = fromLonLat([v.lon, v.lat]);
+                    const vertexFeature = new Feature({ geometry: new Point(coord) });
+                    vertexFeature.set("type", MapFeatureTypes.ZONE_VERTEX);
+                    vertexFeature.set("zoneID", zoneID);
+                    vertexFeature.set("vertexIndex", i);
+                    const isSelected = selected?.zoneID === zoneID && selected?.vertexIndex === i;
+                    const isMoveable = isSelected && selected?.isMoveable;
+                    vertexFeature.setStyle(this.getVertexStyle(isSelected, isMoveable));
+                    this.getVectorLayer().getSource().addFeature(vertexFeature);
+                });
             });
-        });
     }
 
     /**

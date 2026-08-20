@@ -20,39 +20,28 @@ import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-
 import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
 import { ButtonNames, ButtonTypes, JaiaAction } from "../../types/context-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
-import { MAP_FEATURE_HIT_TOLERANCE, MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
+import { MAP_FEATURE_HIT_TOLERANCE, UNASSIGNED_ID } from "../../utils/constants";
 import { locationToConstantHeadingParams } from "../../utils/conversions";
-import { GeographicCoordinate } from "../../types/protobuf-types";
 
 import { missionSet } from "../../data/mission_set/mission-set";
-import Waypoint from "../../data/waypoints/waypoint";
-import { missionsManager } from "../../data/missions_manager/missions-manager";
-import { bots } from "../../data/bots/bots";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
-import {
-    routeAroundExclusionZones,
-    isLocationBlockedByZone,
-} from "../../data/exclusion_zones/exclusion-zone-router";
+import { isLocationBlockedByZone } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 
-import ZoneCrossingDialog from "../ZoneCrossingDialog/ZoneCrossingDialog";
+import PlacementErrorDialog from "../ObstacleAvoidanceDialogs/PlacementErrorDialog/PlacementErrorDialog";
 
 import "./Map.less";
 
-interface ZoneCrossingDialogState {
-    /** Locations to add: bypass waypoints (if any) followed by the destination */
-    locations: GeographicCoordinate[];
-    bypassCount: number;
-    waypointNumber: number;
-}
+const PLACEMENT_ERROR_MESSAGE =
+    "Cannot place a point inside an exclusion zone or its safety buffer.";
 
 /**
  * Renders the OpenLayers map and routes map click events to the appropriate handlers
  *
- * @returns {JSX.Element} The map container, including any active zone crossing dialogs
+ * @returns {JSX.Element} The map container, including any active dialogs
  */
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
-    const [zoneCrossing, setZoneCrossing] = useState<ZoneCrossingDialogState | null>(null);
+    const [placementError, setPlacementError] = useState<string | null>(null);
 
     useEffect(() => {
         map.setTarget("map");
@@ -179,7 +168,7 @@ export default function Map() {
         const lonLat = toLonLat(coordinate, view.getProjection());
         const location = { lon: lonLat[0], lat: lonLat[1] };
         if (isLocationBlockedByZone(location)) {
-            jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+            setPlacementError(PLACEMENT_ERROR_MESSAGE);
             return;
         }
         jaiaDispatch({ type: JaiaActions.ADD_RALLY_POINT, location });
@@ -199,7 +188,7 @@ export default function Map() {
         switch (gridPlan.getState()) {
             case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
                 if (isLocationBlockedByZone(location)) {
-                    jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+                    setPlacementError(PLACEMENT_ERROR_MESSAGE);
                     return;
                 }
                 gridPlan.setMissionStart(location);
@@ -211,7 +200,7 @@ export default function Map() {
                 break;
             case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
                 if (isLocationBlockedByZone(location)) {
-                    jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+                    setPlacementError(PLACEMENT_ERROR_MESSAGE);
                     return;
                 }
                 gridPlan.setMissionEnd(location);
@@ -455,67 +444,19 @@ export default function Map() {
     };
 
     /**
-     * Adds a waypoint to the current mission, routing around any exclusion zones
-     * that the new segment would cross. If a crossing is detected, shows a dialog
-     * so the operator can confirm (with bypass waypoints) or cancel.
+     * Dispatches action to add a waypoint to the current mission. Any zone-crossing
+     * detection and confirm/revert dialog is handled by the reducer, the same way
+     * moving a waypoint is.
      *
      * @param {Coordinate} coordinate Location of click on map
      * @returns {void}
      */
     const handleAddWaypointClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
-        const newLocation: GeographicCoordinate = { lon: lonLat[0], lat: lonLat[1] };
-
-        if (isLocationBlockedByZone(newLocation)) {
-            jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
-            return;
-        }
-
-        const missionID = missionSet.getMissionIDInEditMode();
-        const mission = missionSet.getMission(missionID);
-        const waypoints = mission?.getWaypoints() ?? [];
-
-        // Determine start of the segment to check:
-        // - if waypoints exist, use the last one
-        // - if this is the first waypoint, use the bot's current position (if assigned)
-        let fromLocation: GeographicCoordinate | undefined;
-        if (waypoints.length >= 1) {
-            fromLocation = waypoints[waypoints.length - 1].getLocation();
-        } else {
-            const botID = missionsManager.getBotID(missionID);
-            fromLocation = bots.getBot(botID)?.getLocation();
-        }
-
-        if (fromLocation) {
-            const miniPlan = {
-                goal: [{ location: fromLocation }, { location: newLocation }],
-            };
-            // Use the first clean waypoint as the projection origin so bypass
-            // lat/lon values match those produced by detectMissionReroutes,
-            // which also uses the first clean waypoint as origin.
-            const firstCleanLoc = waypoints.filter((wp) => !wp.getIsBypass())[0]?.getLocation();
-            const result = routeAroundExclusionZones(miniPlan, 5, firstCleanLoc ?? fromLocation);
-            const locations = result.plan.goal.slice(1).map((g) => g.location!);
-
-            // Let the normal waypoint-add handler reject impossible or over-limit
-            // placements so the user gets a placement error instead of a confirm dialog.
-            if (result.isRoutingImpossible || waypoints.length + locations.length > MAX_WAYPOINTS) {
-                jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location: newLocation });
-                return;
-            }
-
-            if (result.bypassCount > 0) {
-                const userWaypointCount = waypoints.filter((wp) => !wp.getIsBypass()).length;
-                setZoneCrossing({
-                    locations,
-                    bypassCount: result.bypassCount,
-                    waypointNumber: userWaypointCount + 1,
-                });
-                return;
-            }
-        }
-
-        jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location: newLocation });
+        jaiaDispatch({
+            type: JaiaActions.ADD_WAYPOINT,
+            location: { lon: lonLat[0], lat: lonLat[1] },
+        });
     };
 
     /**
@@ -535,44 +476,14 @@ export default function Map() {
         });
     };
 
-    /**
-     * Confirms the zone crossing dialog and dispatches bypass and destination waypoints
-     *
-     * @returns {void}
-     */
-    const onZoneCrossingConfirm = () => {
-        if (!zoneCrossing) return;
-        // Build Waypoint objects so bypass waypoints carry their name through to the map layer.
-        const waypoints = zoneCrossing.locations.map((loc, i) => {
-            const wp = new Waypoint();
-            wp.setLocation(loc);
-            // All locations except the last are bypass waypoints.
-            if (i < zoneCrossing.locations.length - 1) {
-                wp.setIsBypass(true);
-            }
-            return wp;
-        });
-        jaiaDispatch({ type: JaiaActions.ADD_WAYPOINTS_BULK, waypoints });
-        setZoneCrossing(null);
-    };
-
-    /**
-     * Cancels the zone crossing dialog without adding any waypoints
-     *
-     * @returns {void}
-     */
-    const onZoneCrossingCancel = () => setZoneCrossing(null);
-
     return (
         <div>
             <div id="map" data-testid="map"></div>
 
-            {zoneCrossing && (
-                <ZoneCrossingDialog
-                    waypointNumber={zoneCrossing.waypointNumber}
-                    bypassCount={zoneCrossing.bypassCount}
-                    onConfirm={onZoneCrossingConfirm}
-                    onCancel={onZoneCrossingCancel}
+            {placementError && (
+                <PlacementErrorDialog
+                    message={placementError}
+                    onDismiss={() => setPlacementError(null)}
                 />
             )}
         </div>

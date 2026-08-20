@@ -7,16 +7,13 @@
  */
 
 import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
-import { GeographicCoordinate, Goal, MissionPlan } from "../../types/protobuf-types";
-import { METERS_PER_DEG } from "../../utils/constants";
-import {
-    ExclusionZone,
-    exclusionZoneSet,
-    PendingReroute,
-    PendingRerouteProposal,
-} from "./exclusion-zone-set";
-import { missionSet } from "../mission_set/mission-set";
-import Waypoint from "../waypoints/waypoint";
+import { GeographicCoordinate, Goal, MissionPlan } from "../../../types/protobuf-types";
+import { METERS_PER_DEG } from "../../../utils/constants";
+import { ExclusionZone } from "./exclusion-zone-set";
+import { RerouteProposalSet, PendingRerouteProposal, ProposalStatus } from "../pending-route-data";
+import { obstacleAvoidanceData } from "../obstacle-avoidance-data";
+import { missionSet } from "../../mission_set/mission-set";
+import Waypoint from "../../waypoints/waypoint";
 
 interface XYPt {
     x: number;
@@ -200,12 +197,17 @@ function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
     const output = simplified.length > 0 ? simplified[0] : merged[0];
     const pts = output.map((p: { x: number; y: number }) => ({ x: p.x, y: p.y }));
 
-    // Ensure consistent winding — centroid must be inside.
-    const centroid = {
-        x: pts.reduce((s: number, p: XYPt) => s + p.x, 0) / pts.length,
-        y: pts.reduce((s: number, p: XYPt) => s + p.y, 0) / pts.length,
-    };
-    return pointInPolygon(centroid, pts) ? pts : [...pts].reverse();
+    // Ensure consistent winding via signed area (shoelace formula), which is
+    // well-defined for any simple polygon regardless of convexity — unlike a
+    // vertex-average centroid, which isn't guaranteed to lie inside a
+    // concave shape and could flip a polygon that was already correct.
+    let signedArea = 0;
+    for (let i = 0; i < pts.length; i++) {
+        const a = pts[i];
+        const b = pts[(i + 1) % pts.length];
+        signedArea += a.x * b.y - b.x * a.y;
+    }
+    return signedArea < 0 ? [...pts].reverse() : pts;
 }
 
 // ── Zone geometry ──────────────────────────────────────────────────────────────
@@ -215,6 +217,30 @@ interface ZoneGeom {
     raw: XYPt[];
     /** Expanded safety buffer polygon. */
     expanded: XYPt[];
+}
+
+/**
+ * Projects and buffers every exclusion zone relative to a single shared
+ * origin. Callers that process multiple missions/waypoints against the same
+ * zone set in one pass should build this once and reuse it, instead of
+ * letting each per-mission/per-waypoint call rebuild it from scratch.
+ *
+ * @param {GeographicCoordinate} origin Shared projection origin for every zone
+ * @param {number} safetyMargin Safety buffer distance in metres around each zone
+ * @returns {Array<ZoneGeom & { zoneID: number }>} Projected, buffered geometry for every valid zone
+ */
+function buildZoneGeoms(
+    origin: GeographicCoordinate,
+    safetyMargin: number,
+): Array<ZoneGeom & { zoneID: number }> {
+    const zoneGeoms: Array<ZoneGeom & { zoneID: number }> = [];
+    for (const [zoneID, zone] of obstacleAvoidanceData.getExclusionZoneSet().getZones()) {
+        if (!zone.vertices || zone.vertices.length < 3) continue;
+        const raw = zone.vertices.map((v) => toXY(origin, v));
+        if (raw.length < 3) continue;
+        zoneGeoms.push({ zoneID, raw, expanded: expandPolygon(raw, safetyMargin) });
+    }
+    return zoneGeoms;
 }
 
 // ── A* grid pathfinding ────────────────────────────────────────────────────────
@@ -228,6 +254,54 @@ interface GridNode {
     g: number;
     f: number;
     parent: number | null;
+}
+
+/**
+ * Minimal binary min-heap keyed on `f`, used as the A* open set. Callers use
+ * lazy deletion: push a new entry every time a node's `f` improves rather
+ * than trying to update an already-inserted entry in place, and discard a
+ * popped entry whose `f` no longer matches the caller's current best for
+ * that node.
+ */
+class MinHeap {
+    private items: Array<{ idx: number; f: number }> = [];
+
+    get size(): number {
+        return this.items.length;
+    }
+
+    push(idx: number, f: number): void {
+        this.items.push({ idx, f });
+        let i = this.items.length - 1;
+        while (i > 0) {
+            const parent = (i - 1) >> 1;
+            if (this.items[parent].f <= this.items[i].f) break;
+            [this.items[parent], this.items[i]] = [this.items[i], this.items[parent]];
+            i = parent;
+        }
+    }
+
+    pop(): { idx: number; f: number } | undefined {
+        const top = this.items[0];
+        if (top === undefined) return undefined;
+        const last = this.items.pop()!;
+        if (this.items.length > 0) {
+            this.items[0] = last;
+            let i = 0;
+            const n = this.items.length;
+            for (;;) {
+                const left = 2 * i + 1;
+                const right = 2 * i + 2;
+                let smallest = i;
+                if (left < n && this.items[left].f < this.items[smallest].f) smallest = left;
+                if (right < n && this.items[right].f < this.items[smallest].f) smallest = right;
+                if (smallest === i) break;
+                [this.items[smallest], this.items[i]] = [this.items[i], this.items[smallest]];
+                i = smallest;
+            }
+        }
+        return top;
+    }
 }
 
 /**
@@ -326,7 +400,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
 
         // A* with 8-directional movement.
         const nodes = new Map<number, GridNode>();
-        const open = new Set<number>();
+        const open = new MinHeap();
 
         const heuristic = (idx: number): number => {
             const col = idx % cols;
@@ -338,7 +412,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
         };
 
         nodes.set(startIdx, { g: 0, f: heuristic(startIdx), parent: null });
-        open.add(startIdx);
+        open.push(startIdx, heuristic(startIdx));
 
         const directions = [
             [1, 0],
@@ -354,23 +428,20 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
 
         let found = false;
         while (open.size > 0) {
-            let current = -1;
-            let bestF = Infinity;
-            for (const idx of open) {
-                const n = nodes.get(idx)!;
-                if (n.f < bestF) {
-                    bestF = n.f;
-                    current = idx;
-                }
-            }
-            if (current === -1) break;
+            const popped = open.pop()!;
+            const current = popped.idx;
+
+            // Lazy deletion: this entry was superseded by a later, cheaper
+            // push for the same cell — skip it rather than trying to fix an
+            // already-inserted heap entry in place.
+            const currentNode = nodes.get(current)!;
+            if (popped.f > currentNode.f) continue;
+
             if (current === goalIdx) {
                 found = true;
                 break;
             }
 
-            open.delete(current);
-            const currentNode = nodes.get(current)!;
             const col = current % cols;
             const row = Math.floor(current / cols);
 
@@ -385,8 +456,9 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
                 const existing = nodes.get(nIdx);
                 if (existing && existing.g <= ng) continue;
 
-                nodes.set(nIdx, { g: ng, f: ng + heuristic(nIdx), parent: current });
-                open.add(nIdx);
+                const nf = ng + heuristic(nIdx);
+                nodes.set(nIdx, { g: ng, f: nf, parent: current });
+                open.push(nIdx, nf);
             }
         }
 
@@ -500,30 +572,22 @@ interface RouteResult {
  * @param {MissionPlan} plan Mission plan whose goal waypoints need routing
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
  * @param {GeographicCoordinate} [originOverride] Optional projection origin; defaults to the first goal location
+ * @param {Array<ZoneGeom & { zoneID: number }>} [zoneGeomsOverride] Optional precomputed zone geometry
+ *   (see `buildZoneGeoms`), for callers routing multiple missions against the same zone set in one pass.
+ *   Must have been built with the same origin passed as `originOverride`.
  * @returns {RouteResult} Routed plan with bypass waypoints inserted, plus metadata about the routing outcome
  */
 export function routeAroundExclusionZones(
     plan: MissionPlan,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
     originOverride?: GeographicCoordinate,
+    zoneGeomsOverride?: Array<ZoneGeom & { zoneID: number }>,
 ): RouteResult {
     const goals = plan.goal ?? [];
     if (goals.length < 2) return { plan, bypassCount: 0, involvedZoneIDs: [] };
 
-    const zoneEntries: [number, ExclusionZone][] = Array.from(
-        exclusionZoneSet.getZones().entries(),
-    );
-    if (zoneEntries.length === 0) return { plan, bypassCount: 0, involvedZoneIDs: [] };
-
     const origin = originOverride ?? goals[0].location!;
-
-    const zoneGeoms: Array<ZoneGeom & { zoneID: number }> = [];
-    for (const [zoneID, zone] of zoneEntries) {
-        if (!zone.vertices || zone.vertices.length < 3) continue;
-        const raw = zone.vertices.map((v) => toXY(origin, v));
-        if (raw.length < 3) continue;
-        zoneGeoms.push({ zoneID, raw, expanded: expandPolygon(raw, safetyMargin) });
-    }
+    const zoneGeoms = zoneGeomsOverride ?? buildZoneGeoms(origin, safetyMargin);
     if (zoneGeoms.length === 0) return { plan, bypassCount: 0, involvedZoneIDs: [] };
 
     interface WorkingGoal {
@@ -615,20 +679,53 @@ export function getZoneBufferVertices(
     return expandPolygon(raw, safetyMargin).map((p) => toLatLon(origin, p));
 }
 
+/** Per-zone buffer geometry, each relative to its own zone's first vertex as origin. */
+type ZoneBufferCache = Map<number, { origin: GeographicCoordinate; expanded: XYPt[] }>;
+
+/**
+ * Projects and buffers every exclusion zone, each relative to its own first
+ * vertex as origin (matching `getBlockingZoneIDs`'s per-zone default).
+ * Callers that check multiple locations against the same zone set in one
+ * pass (e.g. once per waypoint) should build this once and reuse it, instead
+ * of letting each `getBlockingZoneIDs` call rebuild every zone from scratch.
+ *
+ * @param {number} safetyMargin Safety buffer distance in metres around each zone
+ * @returns {ZoneBufferCache} Buffer geometry for every valid zone, keyed by zone ID
+ */
+export function buildZoneBufferCache(safetyMargin = DEFAULT_SAFETY_MARGIN_METERS): ZoneBufferCache {
+    const cache: ZoneBufferCache = new Map();
+    for (const [zoneID, zone] of obstacleAvoidanceData.getExclusionZoneSet().getZones()) {
+        if (!zone.vertices || zone.vertices.length < 3) continue;
+        const origin = zone.vertices[0];
+        const raw = zone.vertices.map((v) => toXY(origin, v));
+        cache.set(zoneID, { origin, expanded: expandPolygon(raw, safetyMargin) });
+    }
+    return cache;
+}
+
 /**
  * Returns the IDs of every zone whose safety-margin buffer contains the given
  * location.
  *
  * @param {GeographicCoordinate} location Geographic point to test against all zone buffers
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
+ * @param {ZoneBufferCache} [zoneBufferCache] Optional precomputed buffer geometry
+ *   (see `buildZoneBufferCache`), for callers checking many locations against the same zone set.
  * @returns {number[]} IDs of zones whose buffer contains the location
  */
 export function getBlockingZoneIDs(
     location: GeographicCoordinate,
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
+    zoneBufferCache?: ZoneBufferCache,
 ): number[] {
     const ids: number[] = [];
-    for (const [zoneID, zone] of exclusionZoneSet.getZones()) {
+    if (zoneBufferCache) {
+        for (const [zoneID, { origin, expanded }] of zoneBufferCache) {
+            if (pointInPolygon(toXY(origin, location), expanded)) ids.push(zoneID);
+        }
+        return ids;
+    }
+    for (const [zoneID, zone] of obstacleAvoidanceData.getExclusionZoneSet().getZones()) {
         if (!zone.vertices || zone.vertices.length < 3) continue;
         const origin = zone.vertices[0];
         const raw = zone.vertices.map((v) => toXY(origin, v));
@@ -676,12 +773,23 @@ function waypointListsMatch(a: Waypoint[], b: Waypoint[]): boolean {
  * model.
  *
  * @param {Map<number, Waypoint[]>} overrides Per-mission waypoint overrides to use instead of the live mission state
- * @returns {PendingReroute | null} Reroute proposals for all missions that cross a zone, or null if none are affected
+ * @returns {RerouteProposalSet | null} Reroute proposals for all missions that cross a zone, or null if none are affected
  */
 export function detectReroutesWithOverrides(
     overrides: Map<number, Waypoint[]>,
-): PendingReroute | null {
+): RerouteProposalSet | null {
     const proposals: PendingRerouteProposal[] = [];
+
+    // Build the zone geometry once per pass, relative to a shared origin
+    // (any valid zone's first vertex — the specific choice doesn't affect
+    // results, it's just the local-projection reference point), instead of
+    // letting each mission's routeAroundExclusionZones() call rebuild it.
+    const sharedOrigin = Array.from(
+        obstacleAvoidanceData.getExclusionZoneSet().getZones().values(),
+    ).find((z) => z.vertices && z.vertices.length >= 3)?.vertices?.[0];
+    const sharedZoneGeoms = sharedOrigin
+        ? buildZoneGeoms(sharedOrigin, DEFAULT_SAFETY_MARGIN_METERS)
+        : undefined;
 
     for (const [missionID, mission] of missionSet.getMissions()) {
         const hasOverride = overrides.has(missionID);
@@ -693,7 +801,14 @@ export function detectReroutesWithOverrides(
         if (cleanWaypoints.length < 2) continue;
 
         const cleanPlan = { goal: cleanWaypoints.map((wp) => wp.packageWaypointForHub()) };
-        const result = routeAroundExclusionZones(cleanPlan);
+        const result = sharedOrigin
+            ? routeAroundExclusionZones(
+                  cleanPlan,
+                  DEFAULT_SAFETY_MARGIN_METERS,
+                  sharedOrigin,
+                  sharedZoneGeoms,
+              )
+            : routeAroundExclusionZones(cleanPlan);
 
         if (result.bypassCount === 0 && !result.isRoutingImpossible) continue;
 
@@ -703,7 +818,7 @@ export function detectReroutesWithOverrides(
                 newWaypoints: cleanWaypoints,
                 bypassCount: 0,
                 involvedZoneIDs: result.involvedZoneIDs,
-                isImpossible: true,
+                status: ProposalStatus.IMPOSSIBLE,
             });
             continue;
         }
@@ -734,6 +849,7 @@ export function detectReroutesWithOverrides(
             newWaypoints,
             bypassCount: result.bypassCount,
             involvedZoneIDs: result.involvedZoneIDs,
+            status: ProposalStatus.FEASIBLE,
         });
     }
 
