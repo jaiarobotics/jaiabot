@@ -35,6 +35,12 @@ if [[ "$jaia_mode" == "simulation" ]]; then
     jaia_simulation="--simulation --warp ${jaia_warp}"
 fi
 
+# systemd.py writes jaia_temperature_sensor_type into runtime.env from its own --temperature_sensor_type
+# argument, so the value only survives a redeploy if it is passed back in below. Without that round trip
+# it silently resets to "none" on every deploy, which drops the TSYS01 stanza from jaiabot_sensors and
+# unregisters the jaiabot_tsys01.py service. Default for bots provisioned before this var was recorded.
+jaia_temperature_sensor_type=${jaia_temperature_sensor_type:-none}
+
 echo "🟢 Creating and setting permissions on log dir"
 sudo mkdir -p /var/log/jaiabot/bot_offload && sudo chown -R ${USER}:${USER} /var/log/jaiabot
 
@@ -44,7 +50,7 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
     if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
         cd ${HOME}/jaiabot/config/gen
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} --bot_vin "$jaia_bot_vin" --pam_connection_type ${jaia_pam_connection_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,} --camera_positions ${jaia_camera_positions,,} --additional_sensors ${jaia_additional_sensors}) || { echo "❌ Failed to install the $jaiabot_systemd_type systemd services, so this deploy is still running the previously installed code"; exit 1; }
+        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} --bot_vin "$jaia_bot_vin" --pam_connection_type ${jaia_pam_connection_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,} --camera_positions ${jaia_camera_positions,,} --additional_sensors ${jaia_additional_sensors} --temperature_sensor_type ${jaia_temperature_sensor_type,,}) || { echo "❌ Failed to install the $jaiabot_systemd_type systemd services, so this deploy is still running the previously installed code"; exit 1; }
 
     else
 
