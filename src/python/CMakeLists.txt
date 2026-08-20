@@ -38,9 +38,8 @@ if(NOT CMAKE_CROSSCOMPILING)
 
 	add_custom_command(
 		OUTPUT ${jaiabot_python_venv_stamp}
-		# pip installs from the copies in the share dir, but the file(COPY) calls above only
-		# run at configure time. Refresh them here so an incremental build installs the
-		# current sources instead of whatever was copied at the last cmake run.
+		# Do not drop these: the file(COPY) calls above run only at configure time, and pip
+		# installs from the share dir (the only place pyjaiaprotobuf's generated messages exist).
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt ${jaiabot_python_share_dir}/requirements.txt
 		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/pyjaia ${jaiabot_python_share_dir}/pyjaia
 		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Adafruit_CircuitPython_BNO08x ${jaiabot_python_share_dir}/Adafruit_CircuitPython_BNO08x
