@@ -95,9 +95,10 @@ class LatticePublisher:
         if cfg.HasField('sandbox_token'):
             self.session.headers['Anduril-Sandbox-Authorization'] = f'Bearer {cfg.sandbox_token}'
 
-        # Entity ids of the task packets already published, so the rolling query
-        # window doesn't republish them
-        self.published_task_packet_ids = set()
+        # Entity ids of the task packets we have already dealt with, so we publish
+        # each one once. None until the first publish, which takes everything the
+        # database already holds as history rather than news.
+        self.published_task_packet_ids = None
 
     def publish(self):
         """Publishes every bot, hub and new task packet we know about to Lattice."""
@@ -106,7 +107,7 @@ class LatticePublisher:
         for entity in self.status_entities(now):
             self.put_entity(entity)
 
-        for entity in self.task_packet_entities(self.recent_task_packets(now), now):
+        for entity in self.task_packet_entities(self.stored_task_packets(), now):
             self.put_entity(entity)
 
     def status_entities(self, now):
@@ -124,32 +125,37 @@ class LatticePublisher:
 
         return entities
 
-    def recent_task_packets(self, now):
-        lookback_utime = int((now.timestamp() - self.cfg.task_packet_lookback_seconds) * 1e6)
+    def stored_task_packets(self):
+        """Reads the task packets the database holds.
 
+        Deliberately not filtered by time: TaskPacket.start_time is the bot's own
+        idea of when the task ran and can sit hours away from the wall clock, so
+        which packets are new is decided by what we have already published.
+        """
         with common.shared_data.data_lock:
             task_packet_database = common.shared_data.data.task_packet_database
 
         # queried outside the shared data lock because the database does its own
         # locking and reads the task packet files from disk
-        return task_packet_database.query_task_packets(start_utime=lookback_utime)
+        return task_packet_database.query_task_packets()
 
     def task_packet_entities(self, task_packets, now):
         """Builds an entity for each of these task packets we haven't published yet."""
         entities = []
-        window_ids = set()
+        stored_ids = set()
 
         for task_packet in task_packets:
             entity = self.task_packet_entity(task_packet, now)
             if entity is None:
                 continue
 
-            window_ids.add(entity['entityId'])
-            if entity['entityId'] not in self.published_task_packet_ids:
+            stored_ids.add(entity['entityId'])
+            if self.published_task_packet_ids is not None \
+                    and entity['entityId'] not in self.published_task_packet_ids:
                 entities.append(entity)
 
-        # forget the task packets that have aged out of the lookback window
-        self.published_task_packet_ids = window_ids
+        # what the database held when we started is history, so publish from here on
+        self.published_task_packet_ids = stored_ids
         return entities
 
     def bot_entity(self, bot_status, now):

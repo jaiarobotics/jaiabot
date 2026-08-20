@@ -311,8 +311,7 @@ message APIConfig
         // every publish
         optional double status_expiry_seconds = 7 [default = 300];
 
-        // seconds of task packet history to consider on each publish
-        optional double task_packet_lookback_seconds = 8 [default = 300];
+        reserved 8;  // was task_packet_lookback_seconds
 
         // seconds until Lattice expires a published task packet
         optional double task_packet_expiry_seconds = 9 [default = 86400];

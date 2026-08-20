@@ -171,6 +171,12 @@ The API can forward the bot status, hub status and task packets it receives on t
 
 Each bot, hub and task packet keeps the same Lattice entity ID across restarts, so nothing gets duplicated on the map.
 
+Task packets already in the database when publishing starts are treated as history
+and are not published; anything that arrives afterwards is. Which packets are new is
+tracked by what has been published rather than by their timestamps, because
+`TaskPacket.start_time` is the bot's own idea of the time and can sit hours away from
+the wall clock.
+
 ### Configure it
 
 Add a `lattice` block to `/etc/jaiabot/rest_api.pb.cfg`:
@@ -196,18 +202,17 @@ Leave the `lattice` block out and nothing is published.
 
 **All the options:**
 
-| Field                          | Default   | What it does                                                      |
-| ------------------------------ | --------- | ----------------------------------------------------------------- |
-| `endpoint`                     | required  | Lattice environment hostname, with no service label and no scheme |
-| `environment_token`            | required  | Bearer token for that environment                                 |
-| `sandbox_token`                | -         | Sandboxes account token, for sandbox environments only            |
-| `integration_name`             | `JaiaBot` | Name Lattice attributes these entities to                         |
-| `publish_period_seconds`       | 1         | Seconds between publishes                                         |
-| `status_timeout_seconds`       | 30        | Stop publishing a bot or hub this long after its last status      |
-| `status_expiry_seconds`        | 300       | How long Lattice keeps a bot or hub after its last publish        |
-| `task_packet_lookback_seconds` | 300       | How far back to look for task packets that haven't been published |
-| `task_packet_expiry_seconds`   | 86400     | How long Lattice keeps a task packet                              |
-| `request_timeout_seconds`      | 5         | How long to wait on each request to Lattice                       |
+| Field                        | Default   | What it does                                                      |
+| ---------------------------- | --------- | ----------------------------------------------------------------- |
+| `endpoint`                   | required  | Lattice environment hostname, with no service label and no scheme |
+| `environment_token`          | required  | Bearer token for that environment                                 |
+| `sandbox_token`              | -         | Sandboxes account token, for sandbox environments only            |
+| `integration_name`           | `JaiaBot` | Name Lattice attributes these entities to                         |
+| `publish_period_seconds`     | 1         | Seconds between publishes                                         |
+| `status_timeout_seconds`     | 30        | Stop publishing a bot or hub this long after its last status      |
+| `status_expiry_seconds`      | 300       | How long Lattice keeps a bot or hub after its last publish        |
+| `task_packet_expiry_seconds` | 86400     | How long Lattice keeps a task packet                              |
+| `request_timeout_seconds`    | 5         | How long to wait on each request to Lattice                       |
 
 Run two fleets into the same Lattice environment? Give each one its own `integration_name`, or bot 1 of each fleet will fight over the same entity.
 

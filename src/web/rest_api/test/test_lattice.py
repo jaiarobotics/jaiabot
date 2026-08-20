@@ -221,20 +221,25 @@ def test_drift_without_an_estimate_still_publishes(publisher, drift_packet):
     assert entity["description"] == "over 120 s, wave height 0.35 m"
 
 
-def test_task_packet_is_only_published_once(publisher, task_packet):
-    assert len(publisher.task_packet_entities([task_packet], NOW)) == 1
-    # it stays in the lookback window, so it is offered again on every publish
-    assert publisher.task_packet_entities([task_packet], NOW) == []
+def test_task_packets_already_stored_are_treated_as_history(publisher, task_packet):
+    # whatever the database holds when publishing starts predates us
     assert publisher.task_packet_entities([task_packet], NOW) == []
 
 
-def test_task_packets_are_forgotten_once_they_leave_the_lookback_window(publisher, task_packet):
+def test_task_packet_that_arrives_later_is_published_once(publisher, task_packet, drift_packet):
     publisher.task_packet_entities([task_packet], NOW)
-    assert publisher.published_task_packet_ids
 
-    # so the ids we track don't grow without bound over a long deployment
-    publisher.task_packet_entities([], NOW)
-    assert publisher.published_task_packet_ids == set()
+    assert len(publisher.task_packet_entities([task_packet, drift_packet], NOW)) == 1
+    assert publisher.task_packet_entities([task_packet, drift_packet], NOW) == []
+
+
+def test_a_task_packet_dated_hours_ago_is_still_published(publisher, task_packet, drift_packet):
+    # TaskPacket.start_time is the bot's own idea of the time and can sit hours
+    # away from the wall clock, which must not stop it being published
+    publisher.task_packet_entities([task_packet], NOW)
+    drift_packet.start_time = NOW_UTIME - int(8 * 3600 * 1e6)
+
+    assert len(publisher.task_packet_entities([task_packet, drift_packet], NOW)) == 1
 
 
 def test_task_packet_without_a_location_is_not_published(publisher, task_packet):
