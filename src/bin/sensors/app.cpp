@@ -70,13 +70,16 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
     void receive_metadata_from_mcu(const sensor::protobuf::Metadata& metadata);
 
   private:
-    std::set<jaiabot::sensor::protobuf::Sensor> drivers_launched_;
-    std::set<jaiabot::sensor::protobuf::Sensor> failed_initializations;
+    // several instances of the same sensor may be present on the payload board, so all
+    // per-sensor state is keyed by sensor and instance together
+    using SensorKey =
+        std::pair<jaiabot::sensor::protobuf::Sensor, jaiabot::sensor::protobuf::SensorInstance>;
+
+    std::set<SensorKey> drivers_launched_;
+    std::set<SensorKey> failed_initializations;
     goby::time::SteadyClock::time_point start_time_{goby::time::SteadyClock::now()};
-    std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Error>
-        initialization_error_names;
-    std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Warning>
-        initialization_warning_names;
+    std::map<SensorKey, jaiabot::protobuf::Error> initialization_error_names;
+    std::map<SensorKey, jaiabot::protobuf::Warning> initialization_warning_names;
     boost::crc_32_type crc32_calc_;
 };
 
@@ -111,20 +114,24 @@ jaiabot::apps::Sensors::Sensors()
 
     launch_thread<MCUSerialThread>(cfg().mcu_serial());
 
-    initialization_error_names = {{jaiabot::sensor::protobuf::BLUE_ROBOTICS__BAR30,
-                                   jaiabot::protobuf::ERROR__INIT_FAILED__BLUE_ROBOTICS__BAR30}};
+    initialization_error_names = {
+        {{jaiabot::sensor::protobuf::BLUE_ROBOTICS__BAR30, jaiabot::sensor::protobuf::INSTANCE_1},
+         jaiabot::protobuf::ERROR__INIT_FAILED__BLUE_ROBOTICS__BAR30}};
 
     initialization_warning_names = {
-        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO,
+        {{jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO,
+          jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_DO},
-        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_EC,
+        {{jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_EC,
+          jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_EC},
-        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH,
+        {{jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH,
+          jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH},
-        {jaiabot::sensor::protobuf::TURNER__C_FLUOR,
+        {{jaiabot::sensor::protobuf::TURNER__C_FLUOR, jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR},
-        {jaiabot::sensor::protobuf::AML__SENSOR, jaiabot::protobuf::WARNING__INIT_FAILED__AML},
-        {jaiabot::sensor::protobuf::TSYS01__SENSOR,
+        {{jaiabot::sensor::protobuf::AML__SENSOR, jaiabot::protobuf::WARNING__INIT_FAILED__AML},
+         {jaiabot::sensor::protobuf::TSYS01__SENSOR, jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__TSYS01}};
 }
 
@@ -141,7 +148,7 @@ void jaiabot::apps::Sensors::health(goby::middleware::protobuf::ThreadHealth& he
 {
     health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
 
-    for (const jaiabot::sensor::protobuf::Sensor& sensor : failed_initializations)
+    for (const SensorKey& sensor : failed_initializations)
     {
         if (initialization_error_names.count(sensor) == 1)
         {
@@ -224,7 +231,10 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
         std::size_t i = 0;
         for (auto it = encoded.rbegin(), end = encoded.rbegin() + bytes_in_crc32; it != end;
              ++it, ++i)
-            provided_crc |= (*it) << (i * bits_in_byte);
+            // cast is required as char is signed on some platforms, which would sign-extend
+            // any CRC byte >= 0x80 and corrupt the comparison
+            provided_crc |= static_cast<std::uint32_t>(static_cast<std::uint8_t>(*it))
+                            << (i * bits_in_byte);
 
         if (computed_crc != provided_crc)
         {
@@ -253,10 +263,15 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
 
 void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::Metadata& metadata)
 {
-    if (drivers_launched_.count(metadata.sensor()))
+    // MCUs predating multiple instances of a sensor leave instance unset, which reads back
+    // as INSTANCE_1
+    SensorKey sensor_key{metadata.sensor(), metadata.instance()};
+
+    if (drivers_launched_.count(sensor_key))
     {
         glog.is_warn() && glog << "Driver already launched for sensor: "
-                               << sensor::protobuf::Sensor_Name(metadata.sensor())
+                               << sensor::protobuf::Sensor_Name(metadata.sensor()) << " instance: "
+                               << sensor::protobuf::SensorInstance_Name(metadata.instance())
                                << ", not launching another." << std::endl;
 
         return;
@@ -264,7 +279,7 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
 
     if (metadata.init_failed())
     {
-        failed_initializations.insert(metadata.sensor());
+        failed_initializations.insert(sensor_key);
         return;
     }
 
@@ -292,8 +307,12 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
             launch_thread<AtlasScientificOEMDODriver>(cfg().dissolved_oxygen());
             break;
 
+        // launched with an index so that a second fluorometer gets its own thread
         case sensor::protobuf::TURNER__C_FLUOR:
-            launch_thread<TurnerCFluorDriver>(cfg().fluorometer());
+            launch_thread<TurnerCFluorDriver>(metadata.instance(),
+                                              metadata.instance() == sensor::protobuf::INSTANCE_2
+                                                  ? cfg().fluorometer_2()
+                                                  : cfg().fluorometer());
             break;
 
         case sensor::protobuf::AML__SENSOR: 
@@ -307,5 +326,5 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
                                    << sensor::protobuf::Sensor_Name(metadata.sensor()) << std::endl;
     }
 
-    drivers_launched_.insert(metadata.sensor());
+    drivers_launched_.insert(sensor_key);
 }
