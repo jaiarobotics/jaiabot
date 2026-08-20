@@ -48,6 +48,15 @@ def datetime_to_iso(value):
     return value.isoformat(timespec='microseconds').replace('+00:00', 'Z')
 
 
+def source_update_time(source_utime, now):
+    """Converts the time of a status to the time Lattice records the data as updated.
+
+    Lattice rejects an update time more than ten minutes ahead of its own clock,
+    and HubStatus.time is not a wall clock time, so never report the future.
+    """
+    return utime_to_iso(min(source_utime, int(now.timestamp() * 1e6)))
+
+
 def entity_id(integration_name, source_id):
     """Builds the stable GUID Lattice identifies this entity by."""
     return str(uuid.uuid5(ENTITY_ID_NAMESPACE, f'{integration_name}/{source_id}'))
@@ -214,7 +223,7 @@ class LatticePublisher:
             'provenance': {
                 'integrationName': self.cfg.integration_name,
                 'sourceId': source_id,
-                'sourceUpdateTime': utime_to_iso(source_utime),
+                'sourceUpdateTime': source_update_time(source_utime, now),
             },
         }
 

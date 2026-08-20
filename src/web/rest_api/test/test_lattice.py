@@ -157,6 +157,16 @@ def test_bot_entity(publisher, bot_status):
     assert "WARNING__VEHICLE__LOW_BATTERY" in entity["description"]
 
 
+def test_status_time_in_the_future_is_not_published(publisher, hub_status):
+    # HubStatus.time is not a wall clock time and reads years ahead, which Lattice
+    # rejects as too far in the future
+    hub_status.time = NOW_UTIME + int(365 * 24 * 3600 * 1e6)
+
+    entity = publisher.hub_entity(hub_status, NOW)
+
+    assert entity["provenance"]["sourceUpdateTime"] == "2026-08-13T12:00:00.000000Z"
+
+
 def test_hub_entity(publisher, hub_status):
     entity = publisher.hub_entity(hub_status, NOW)
 
