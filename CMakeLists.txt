@@ -101,6 +101,7 @@ endif()
 
 option(build_web "Build web ui code (requires npm)" ON)
 option(build_jdv "Build jdv ui code (requires npm)" ON)
+option(build_python_venv "Build the Python venv used by the dev/sim scripts (requires python3-venv)" ON)
 
 
 # configure the headers to build/include

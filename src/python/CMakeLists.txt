@@ -17,7 +17,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/motor DESTINATION ${project_SHARE_DIR}/jai
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ubx_ppk DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 
-if(NOT CMAKE_CROSSCOMPILING)
+if(build_python_venv AND NOT CMAKE_CROSSCOMPILING)
 	set(jaiabot_python_share_dir ${project_SHARE_DIR}/jaiabot/python)
 	set(jaiabot_python_venv_stamp ${jaiabot_python_share_dir}/venv/.venv_complete)
 
