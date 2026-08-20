@@ -167,19 +167,31 @@ https://github.com/jaiarobotics/jaiabot/tree/task/developer-log-analysis-tools
 ### Fluorometer Data
 - ***Concentration*** - *The concentration of a fluorophore reported by the fluorometer* <br>
 - ***Sensor Voltage*** - *The raw voltage reported by the fluorometer, before a calibration coefficient or offset have been applied* <br>
+- ***Analyte*** - *What the probe measures, taken from its configured coefficients. The probes are analog, so this cannot be detected and comes from `/etc/jaiabot/fluorometer_coefficients_N.pb.cfg`* <br>
 - *Measured via a **Turner Designs C Fluor***
   - http://docs.turnerdesigns.com/t2/doc/spec-guides/998-2125.pdf
+
+A BIO payload board may carry two fluorometers. The second reports under `jaiabot::fluorometer_2`; the paths are otherwise identical.
 
 ##### Data Paths
 | Data Field       | Unit   | Frequency | JDV Path                                       | HDF5 Log Path                                                                    |
 |------------------|--------|-----------|------------------------------------------------|----------------------------------------------------------------------------------|
 |**Concentration** |*Varies*|*10 Hz*    |`jaiabot::fluorometer` ➔ `concentration`        |`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/concentration`        |
 |**Sensor Voltage**|*V*     |*10 Hz*    |`jaiabot::fluorometer` ➔ `concentration_voltage`|`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/concentration_voltage`|
+|**Analyte**       |*N/A*   |*10 Hz*    |`jaiabot::fluorometer` ➔ `analyte_name`         |`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/analyte_name`        |
+
+##### Data Paths (Second Fluorometer)
+| Data Field       | Unit   | Frequency | JDV Path                                         | HDF5 Log Path                                                                      |
+|------------------|--------|-----------|--------------------------------------------------|------------------------------------------------------------------------------------|
+|**Concentration** |*Varies*|*10 Hz*    |`jaiabot::fluorometer_2` ➔ `concentration`        |`/jaiabot::fluorometer_2/jaiabot.sensor.protobuf.TurnerCFluor/concentration`        |
+|**Sensor Voltage**|*V*     |*10 Hz*    |`jaiabot::fluorometer_2` ➔ `concentration_voltage`|`/jaiabot::fluorometer_2/jaiabot.sensor.protobuf.TurnerCFluor/concentration_voltage`|
+|**Analyte**       |*N/A*   |*10 Hz*    |`jaiabot::fluorometer_2` ➔ `analyte_name`         |`/jaiabot::fluorometer_2/jaiabot.sensor.protobuf.TurnerCFluor/analyte_name`        |
 
 ##### Timestamp Paths
-| Units        | JDV Path                         | HDF5 Log Path                                                      |
-|--------------|----------------------------------|--------------------------------------------------------------------|
-|*Microseconds*|`jaiabot::fluorometer` ➔ `_utime_`|`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/_utime_`|
+| Units        | JDV Path                           | HDF5 Log Path                                                        |
+|--------------|------------------------------------|----------------------------------------------------------------------|
+|*Microseconds*|`jaiabot::fluorometer` ➔ `_utime_`  |`/jaiabot::fluorometer/jaiabot.sensor.protobuf.TurnerCFluor/_utime_`  |
+|*Microseconds*|`jaiabot::fluorometer_2` ➔ `_utime_`|`/jaiabot::fluorometer_2/jaiabot.sensor.protobuf.TurnerCFluor/_utime_`|
 <br>
 
 
