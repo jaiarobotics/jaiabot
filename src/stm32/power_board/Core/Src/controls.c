@@ -13,6 +13,23 @@ int rudder_ = 1500;
 int port_elevator_ = 1500;
 int stbd_elevator_ = 1500;
 
+// motor_min_forward/motor_min_reverse: the smallest pulse offset from
+// neutral needed for the ESC to actually engage. These are near-neutral
+// thresholds, NOT the same as max_reverse_, which is the far outer safety
+// limit (e.g. 1100us == -100% throttle) applied by the host driver.
+static const int motor_min_forward_ = 1600;
+static const int motor_min_reverse_ = 1400;
+
+// Max change in microseconds applied to the motor per ramp step
+static const int motor_max_step_ = 12;
+
+// Time between ramp steps (~16 Hz)
+static const uint32_t motor_ramp_interval_ms_ = 62U;
+
+static int motor_tracked_ = 1500;
+static int motor_actual_ = 1500;
+static uint32_t motor_last_ramp_ms_ = 0U;
+
 static bool esc_pwm_started = false;
 static uint32_t motor_timeout_ms = 0U;
 static uint32_t motor_last_command_ms = 0U;
@@ -31,6 +48,8 @@ static uint32_t clamp_u32(uint32_t value, uint32_t min_value, uint32_t max_value
     return value;
 }
 
+static int min_int(int a, int b) { return (a < b) ? a : b; }
+
 static void ensure_esc_pwm_started(void)
 {
     if (esc_pwm_started)
@@ -44,11 +63,64 @@ static void ensure_esc_pwm_started(void)
     }
 }
 
-static void apply_motor_output_us(uint32_t pulse_us)
+static void apply_motor_output_us(int pulse_us)
 {
     ensure_esc_pwm_started();
-    __HAL_TIM_SET_COMPARE(&htim16, TIM_CHANNEL_1, pulse_us);
+    __HAL_TIM_SET_COMPARE(&htim16, TIM_CHANNEL_1, clamp_u32((uint32_t)pulse_us, 1000U, 2000U));
 }
+
+// Only clamps values that are actively driving the motor; neutral always
+// passes through so the motor can stop regardless of the forward/reverse
+// bound currently in effect.
+static int motor_forward_clamp(int value)
+{
+    if (value == motor_off_)
+        return motor_off_;
+    if (value < motor_min_forward_)
+        return motor_min_forward_;
+    return value;
+}
+
+static int motor_reverse_clamp(int value)
+{
+    if (value == motor_off_)
+        return motor_off_;
+    if (value > motor_min_reverse_)
+        return motor_min_reverse_;
+    return value;
+}
+
+// Steps motor_tracked_ toward target_motor_ by at most motor_max_step_ so
+// the ESC sees a ramp rather than an instantaneous jump
+static void step_motor_toward_target(void)
+{
+    if (target_motor_ > motor_off_ && target_motor_ > motor_tracked_)
+    {
+        motor_tracked_ += min_int(target_motor_ - motor_tracked_, motor_max_step_);
+        motor_actual_ = motor_forward_clamp(motor_tracked_);
+    }
+    else if ((target_motor_ > motor_off_ && target_motor_ < motor_tracked_) ||
+             (target_motor_ == motor_off_ && motor_tracked_ > motor_off_))
+    {
+        motor_tracked_ -= min_int(motor_tracked_ - target_motor_, motor_max_step_);
+        motor_actual_ = motor_forward_clamp(motor_tracked_);
+    }
+    else if ((target_motor_ < motor_off_ && target_motor_ > motor_tracked_) ||
+             (target_motor_ == motor_off_ && motor_tracked_ < motor_off_))
+    {
+        motor_tracked_ += min_int(target_motor_ - motor_tracked_, motor_max_step_);
+        motor_actual_ = motor_reverse_clamp(motor_tracked_);
+    }
+    else if (target_motor_ < motor_off_ && target_motor_ < motor_tracked_)
+    {
+        motor_tracked_ -= min_int(motor_tracked_ - target_motor_, motor_max_step_);
+        motor_actual_ = motor_reverse_clamp(motor_tracked_);
+    }
+
+    apply_motor_output_us(motor_actual_);
+}
+
+int controls_get_motor_actual(void) { return motor_actual_; }
 
 void handle_control_surfaces(const jaiabot_protobuf_ControlSurfaces* control_surfaces)
 {
@@ -82,12 +154,6 @@ void handle_control_surfaces(const jaiabot_protobuf_ControlSurfaces* control_sur
         motor_timeout_active = false;
     }
 
-    // ESC command is RC-style pulse width in microseconds (typically
-    // 1000..2000us, 1500us neutral). TIM16 uses a 1 MHz counter, so CCR1 can
-    // be written directly in microseconds.
-    uint32_t motor_pulse_us = clamp_u32((uint32_t)target_motor_, 1000U, 2000U);
-    apply_motor_output_us(motor_pulse_us);
-
     // Keep GPIO-level control in this module as well.
     HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin,
                       control_surfaces->led_switch_on ? GPIO_PIN_SET : GPIO_PIN_RESET);
@@ -96,47 +162,16 @@ void handle_control_surfaces(const jaiabot_protobuf_ControlSurfaces* control_sur
 
 void controls_periodic_update(void)
 {
-    if (!motor_timeout_active)
+    if (motor_timeout_active && (HAL_GetTick() - motor_last_command_ms) >= motor_timeout_ms)
     {
-        return;
+        motor_timeout_active = false;
+        target_motor_ = motor_off_;
+        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
     }
 
-    uint32_t elapsed_ms = HAL_GetTick() - motor_last_command_ms;
-    if (elapsed_ms >= motor_timeout_ms)
+    if ((HAL_GetTick() - motor_last_ramp_ms_) >= motor_ramp_interval_ms_)
     {
-        target_motor_ = motor_off_;
-        apply_motor_output_us((uint32_t)motor_off_);
-        motor_timeout_active = false;
+        motor_last_ramp_ms_ = HAL_GetTick();
+        step_motor_toward_target();
     }
 }
-
-/*
-    *** USED TO TURN MOTOR ON AND OFF FOR TESTING ***
-
-    power_board_command_process();
-
-    // HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
-
-    PowerBoardResponse power_board_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
-    power_board_response.time = (uint64_t)HAL_GetTick() * 1000ULL;
-    power_board_response.has_thermocouple_temperature_C = true;
-    power_board_response.thermocouple_temperature_C = 20.0f;
-    HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
-    HAL_Delay(1);
-    power_board_response.has_vccvoltage = true;
-    power_board_response.vccvoltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_1));
-    HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
-    power_board_response.has_vcccurrent = true;
-    power_board_response.vcccurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_2));
-    power_board_response.has_vvcurrent = true;
-    power_board_response.vvcurrent = 0.7f;
-    power_board_response.has_motor = true;
-    power_board_response.motor = 1550;
-    power_board_response.has_thermistor_voltage = true;
-    power_board_response.thermistor_voltage = 0.8f;
-    power_board_response.has_generic_gpio_voltage = true;
-    power_board_response.generic_gpio_voltage = 0.9f;
-
-    usb_transmit(&power_board_response);
-
-*/

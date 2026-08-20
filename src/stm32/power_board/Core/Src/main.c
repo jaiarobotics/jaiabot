@@ -123,6 +123,32 @@ static uint32_t adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
 
 #define ADC_TO_VOLTS(raw) ((raw) / 4095.0f * 3.3f)
 
+static void power_board_build_telemetry(PowerBoardResponse *response)
+{
+  response->time = (uint64_t)HAL_GetTick() * 1000ULL;
+
+  // VS_OP_EN gates the voltage/current sense circuit for VCC.
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
+  HAL_Delay(1);
+  response->has_vccvoltage = true;
+  response->vccvoltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_1));
+  response->has_vcccurrent = true;
+  response->vcccurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_2));
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
+
+  response->has_vvcurrent = true;
+  response->vvcurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_3));
+
+  response->has_thermistor_voltage = true;
+  response->thermistor_voltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_10));
+
+  response->has_generic_gpio_voltage = true;
+  response->generic_gpio_voltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_13));
+
+  response->has_motor = true;
+  response->motor = controls_get_motor_actual();
+}
+
 static bool low_power_request_pending(void)
 {
   return requested_low_power_ms != 0U;
@@ -290,36 +316,39 @@ int main(void)
         // Reserved for longer awake workflows (e.g., data offload windows).
         // service_host_commands(150);
         current_state = BROADCAST_STATE;
-        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
 
-        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
         break;
 
       case BROADCAST_STATE:
         // Reserved for longer awake workflows (e.g., data offload windows).
         // service_host_commands(150);
-        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
 
-        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
-        current_state = SLEEP_STATE;
+        {
+          PowerBoardResponse telemetry_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
+          power_board_build_telemetry(&telemetry_response);
+          usb_transmit(&telemetry_response);
+        }
+
+        // current_state = SLEEP_STATE;
 
         break;
 
       case SLEEP_STATE:
       //   // Low power mode to save battery between active windows.
       //   sleep_for_ms(sleep_interval_ms);
-        HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_SET);
-
-        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
         current_state = INIT_STATE;
         break;
 
       default:
         current_state = INIT_STATE;
     }
+
+    HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
 
     HAL_Delay(500);
   }

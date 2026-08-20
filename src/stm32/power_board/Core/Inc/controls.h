@@ -27,6 +27,10 @@ extern "C" {
     // Runs control watchdog checks that should be serviced from the main loop.
     void controls_periodic_update(void);
 
+    // Returns the motor pulse width (microseconds) currently being driven to
+    // the ESC, after ramping/clamping, for telemetry reporting.
+    int controls_get_motor_actual(void);
+
 #ifdef __cplusplus
 }
 #endif
