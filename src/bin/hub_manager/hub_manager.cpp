@@ -565,6 +565,10 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
                 jaiabot::comms::buffer_for_link(cfg().status_buffer(), link);
 
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
+
+            if (link == jaiabot::protobuf::LINK_XBEE)
+                subscriber_cfg.mutable_intervehicle()->set_broadcast(cfg().broadcast_bot_status());
+
             goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
                 subscriber_cfg,
                 intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>,
