@@ -213,7 +213,7 @@ already expired. Keep it comfortably larger than any clock error you expect.
 
 ### Run it in the simulator
 
-Two terminals. In the first, start the simulator:
+In the first terminal, start the simulator:
 
 ```bash
 cd config/launch/simulation
@@ -237,7 +237,21 @@ The bots appear in Lattice about twenty seconds later.
 Take the endpoint and the environment token from your [sandbox
 environment](https://developer.anduril.com/guides/developer-tools/sandboxes) page,
 and the Sandboxes token from Account & Security. Use `run.sh` from `rest_api`:
-`src/web/server` has one too, and it ignores these variables.
+`src/web/server` has one too, it serves the JCC instead, and it ignores these
+variables.
+
+Publish the simulator to a sandbox rather than to a stack anyone else is watching.
+The bots are real entities on the map to everyone else looking at it.
+
+To drive the bots and make them dive, start the JCC in a third terminal.
+`all.launch` does not start it - the line is commented out in `hub.launch`:
+
+```bash
+cd src/web/server
+./run.sh
+```
+
+It serves the JCC at `http://localhost:40001/`.
 
 ### Run it on a hub
 
