@@ -243,11 +243,10 @@ variables.
 Publish the simulator to a sandbox rather than to a stack anyone else is watching.
 The bots are real entities on the map to everyone else looking at it.
 
-To drive the bots and make them dive, start the JCC in a third terminal.
-`all.launch` does not start it - the line is commented out in `hub.launch`:
+Finally, start the JCC in a third terminal:
 
 ```bash
-cd src/web/server
+cd src/web
 ./run.sh
 ```
 
