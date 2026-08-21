@@ -663,12 +663,22 @@ void jaiabot::apps::MissionManager::publish_mission_report(protobuf::MissionStat
     }
 
     // Relay the time left in the constant heading task
-    const auto* constant_heading =
-        machine_->state_cast<const statechart::inmission::underway::task::ConstantHeading*>();
-
-    if (constant_heading)
+    if (state == protobuf::IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING)
     {
-        report.set_constant_heading_time_remaining(constant_heading->time_remaining());
+        const auto* constant_heading =
+            machine_->state_cast<const statechart::inmission::underway::task::ConstantHeading*>();
+
+        if (constant_heading)
+        {
+            report.set_constant_heading_time_remaining(constant_heading->time_remaining());
+        }
+        else if (in_mission && in_mission->current_goal().has_value())
+        {
+            // This report is published as the task is entered, before the state is active,
+            // so the whole configured time is still remaining
+            report.set_constant_heading_time_remaining(
+                in_mission->current_goal()->task().constant_heading().constant_heading_time());
+        }
     }
 
     // only report the goal index when not in recovery or trail
