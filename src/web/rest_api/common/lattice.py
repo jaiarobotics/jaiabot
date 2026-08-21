@@ -221,7 +221,10 @@ class LatticePublisher:
         }
         entity['milView'] = {
             'disposition': 'DISPOSITION_FRIENDLY',
-            'environment': 'ENVIRONMENT_SURFACE',
+            # a dive happened below the surface, and Lattice shows the depth of an
+            # entity only when it says it is under the water
+            'environment': 'ENVIRONMENT_SUB_SURFACE' if task_packet.HasField('dive')
+                           else 'ENVIRONMENT_SURFACE',
         }
         entity['location'] = location
         return entity

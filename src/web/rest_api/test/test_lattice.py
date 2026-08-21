@@ -199,6 +199,19 @@ def test_dive_depth_is_published_as_a_value(publisher, task_packet):
     assert position["altitudeHaeMeters"] == pytest.approx(-9.8)
 
 
+def test_dive_is_published_below_the_surface(publisher, task_packet):
+    # Lattice shows the depth only for an entity it believes is under the water
+    entity = publisher.task_packet_entity(task_packet, NOW)
+
+    assert entity["milView"]["environment"] == "ENVIRONMENT_SUB_SURFACE"
+
+
+def test_drift_is_published_on_the_surface(publisher, drift_packet):
+    entity = publisher.task_packet_entity(drift_packet, NOW)
+
+    assert entity["milView"]["environment"] == "ENVIRONMENT_SURFACE"
+
+
 def test_drift_packet_entity(publisher, drift_packet):
     entity = publisher.task_packet_entity(drift_packet, NOW)
 
