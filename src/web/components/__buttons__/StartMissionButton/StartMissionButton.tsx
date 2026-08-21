@@ -46,14 +46,21 @@ export default function StartMissionButton(props: Props) {
     const disabledCode = getMissionDisabledCode(props.bot, missionID, prediction);
 
     /**
-     * Forms the style of the button (light if enabled, dark if disabled)
+     * Forms the style of the button (light if enabled, dark if disabled).
+     * LOW_BATTERY and INSUFFICIENT_BATTERY are overridable warnings rather than hard
+     * blocks (the dialog still lets the operator confirm and start the mission), so the
+     * button stays active-looking for those codes to match its actual behavior.
      *
      * @returns {string} General class name jaia-button plus enable/disable factor
      */
     const getClassName = () => {
         let className = "jaia-button";
 
-        if (disabledCode !== DisabledCodes.NONE) {
+        if (
+            disabledCode !== DisabledCodes.NONE &&
+            disabledCode !== DisabledCodes.LOW_BATTERY &&
+            disabledCode !== DisabledCodes.INSUFFICIENT_BATTERY
+        ) {
             className += " disabled";
         }
 
