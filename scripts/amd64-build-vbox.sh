@@ -47,6 +47,8 @@ npm -v
 
 echo "Building with ${JAIA_BUILD_NPROC} parallel processes..."
 
-(set -x; cmake ../..)
+# The venv is excluded from the rsync to the target, which builds its own in
+# arm64-deploy.sh, and this build image has no python3-venv
+(set -x; cmake ../.. -Dbuild_python_venv=OFF)
 (set -x; time make -j${JAIA_BUILD_NPROC})
 (set -x; chmod -R ugo+r *)
