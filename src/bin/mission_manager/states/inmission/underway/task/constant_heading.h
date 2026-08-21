@@ -55,6 +55,9 @@ struct ConstantHeading
         goby::time::SteadyClock::duration setpoint_duration = std::chrono::seconds(setpoint_seconds);
         setpoint_stop_ = setpoint_start + setpoint_duration;
 
+        // Share the deadline so the mission report can count down to it
+        this->machine().set_constant_heading_stop(setpoint_stop_);
+
         // Turn on pid for constant heading (different than the transit pid)
         context<InMission>().set_use_heading_constant_pid(true);
     }
@@ -68,6 +71,8 @@ struct ConstantHeading
         this->interprocess().publish<groups::mission_ivp_behavior_update>(constantHeadingUpdate);
         this->interprocess().publish<groups::mission_ivp_behavior_update>(constantSpeedUpdate);
 
+        this->machine().clear_constant_heading_stop();
+
         // Turn off pid for constant heading (different than the transit pid)
         context<InMission>().set_use_heading_constant_pid(false);
     }
@@ -77,13 +82,6 @@ struct ConstantHeading
         goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
         if (now >= setpoint_stop_)
             post_event(EvTaskComplete());
-    }
-
-    int time_remaining() const
-    {
-        auto remaining = std::chrono::duration_cast<std::chrono::seconds>(
-            setpoint_stop_ - goby::time::SteadyClock::now());
-        return std::max<std::int64_t>(0, remaining.count());
     }
 
     using reactions = boost::mpl::list<
