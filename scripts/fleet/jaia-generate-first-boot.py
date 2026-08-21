@@ -87,7 +87,7 @@ def main():
     parser.add_argument('--debug',  help="Output debugging information", action="store_true")
     parser.add_argument('--hub-ssh-keys-only',  help="Only output the hub SSH keys (skip all other actions). Same as --action=hub_ssh_keys.", action="store_true")
     parser.add_argument('--mode', default="runtime", choices=["runtime", "simulation"], help="Whether this is a real (runtime) or virtual (simulation) system")
-    parser.add_argument('--action', action='append', choices=["hub_ssh_keys", "vpn_key", "first_boot", "store_fleet_cfg", "new_hub_script"], help="Actions to take (default is ['hub_ssh_keys', 'vpn_key', 'first_boot', 'store_fleet_cfg'])")
+    parser.add_argument('--action', action='append', choices=["hub_ssh_keys", "vpn_key", "first_boot", "store_fleet_cfg", "new_hub_script", "write_cloudhub_auth"], help="Actions to take (default is ['hub_ssh_keys', 'vpn_key', 'first_boot', 'store_fleet_cfg'])")
     parser.add_argument('type', choices=["bot", "hub", "rpicam"], help="Type of system to generate for")
     parser.add_argument('id', type=int, help="ID of bot or hub") 
     args = parser.parse_args()
@@ -181,7 +181,7 @@ def main():
                 iridium_cfg = bootdir + '/jaiabot/init/iridium.json'
                 with open(iridium_cfg, "w") as f:
                     json.dump(fleet_cfg_json['comms']['iridiumSbd'], f)
-
+                    
     if type == 'hub':
         if 'hub_ssh_keys' in actions:
             key_found=False
@@ -203,6 +203,20 @@ def main():
             # Also put a copy of fleet config on hubs for future upgrades
             with open(args.fleetcfg, "rb") as src, open(bootdir + f'/jaiabot/init/fleet{fleet_cfg_json["fleet"]}.cfg', "wb") as dst:
                 dst.write(src.read())
+
+        if 'write_cloudhub_auth' in actions:
+            cloudhub_auth_sh = bootdir + '/jaiabot/init/cloudhub_auth.sh'
+
+            if not 'cloudhubAuth' in fleet_cfg_json:
+                # defaults
+                fleet_cfg_json.update({"cloudhubAuth" : {"baseUri": f"fleet{fleet_cfg_json['fleet']}.jaia.tech", "adminEmail" : "matt.ferro@jaia.tech", "smtpAddress": "smtp://smtp-relay.gmail.com:587"}})
+            
+            with open(cloudhub_auth_sh, "w") as sh:
+                sh.write(f"AUTH_BASE_URI={fleet_cfg_json['cloudhubAuth']['baseUri']}\n")
+                sh.write(f"AUTH_ADMIN_EMAIL={fleet_cfg_json['cloudhubAuth']['adminEmail']}\n")
+                sh.write(f"AUTH_SMTP_ADDRESS={fleet_cfg_json['cloudhubAuth']['smtpAddress']}\n")
+            print(f"Wrote cloudhub auth variables to: {cloudhub_auth_sh}")
+
 
     if args.debug:
         print(f"Rendered FleetConfig as JSON: {json.dumps(fleet_cfg_json, indent=2)}")
