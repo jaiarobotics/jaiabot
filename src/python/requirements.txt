@@ -13,6 +13,8 @@ turfpy==0.0.7
 pytest==9.0.2
 h5py-stubs
 flask-compress==1.23
+numpy==1.26.4
+scikit-learn==1.8.0
 ./pyjaia
 ./pyjaiaprotobuf
 ./Adafruit_CircuitPython_BNO08x
