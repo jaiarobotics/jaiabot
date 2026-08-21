@@ -195,6 +195,8 @@ def test_dive_depth_is_published_as_a_value(publisher, task_packet):
     position = publisher.task_packet_entity(task_packet, NOW)["location"]["position"]
 
     assert position["pressureDepthMeters"] == pytest.approx(9.8)
+    # the same depth as an altitude, for the views that read one and not the other
+    assert position["altitudeHaeMeters"] == pytest.approx(-9.8)
 
 
 def test_drift_packet_entity(publisher, drift_packet):

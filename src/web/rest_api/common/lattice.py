@@ -312,9 +312,13 @@ def task_packet_location(task_packet):
     }}
 
     # the depth reached is the point of a dive, so publish it as a value rather
-    # than only in the description
+    # than only in the description. Also as a negative altitude, which is the
+    # depth read by the Lattice views that show an altitude rather than a
+    # pressure depth; the sea surface is taken as the ellipsoid, which is off by
+    # the local geoid height.
     if task_packet.HasField('dive'):
         location['position']['pressureDepthMeters'] = task_packet.dive.depth_achieved
+        location['position']['altitudeHaeMeters'] = -task_packet.dive.depth_achieved
 
     # the estimated drift is the ocean current, which Lattice carries as the
     # velocity of the entity
