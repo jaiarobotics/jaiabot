@@ -154,6 +154,10 @@ export class Bots {
             missionStatus.repeatIndex = botStatus.repeat_index;
         }
 
+        if (botStatus.constant_heading_time_remaining !== undefined) {
+            missionStatus.constantHeadingTimeRemaining = botStatus.constant_heading_time_remaining;
+        }
+
         bot.setMissionStatus(missionStatus);
 
         // BotSensors
