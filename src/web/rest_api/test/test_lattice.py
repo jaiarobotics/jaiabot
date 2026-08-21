@@ -290,6 +290,19 @@ def test_status_without_a_location_is_not_published(publisher, shared_data, bot_
     assert publisher.status_entities(NOW) == []
 
 
+def test_a_pasted_newline_does_not_break_the_endpoint_or_the_tokens():
+    cfg = APIConfig.Lattice()
+    cfg.endpoint = "test.env.sandboxes.developer.anduril.com\n"
+    cfg.environment_token = "test-environment-token\n"
+    cfg.sandbox_token = " test-sandbox-token\n"
+
+    publisher = lattice.LatticePublisher(cfg)
+
+    assert publisher.entities_url == "https://test.env.sandboxes.developer.anduril.com/api/v1/entities"
+    assert publisher.session.headers["Authorization"] == "Bearer test-environment-token"
+    assert publisher.session.headers["Anduril-Sandbox-Authorization"] == "Bearer test-sandbox-token"
+
+
 def test_sandbox_token_is_only_sent_when_configured():
     cfg = APIConfig.Lattice()
     cfg.endpoint = "test.env.sandboxes.developer.anduril.com"

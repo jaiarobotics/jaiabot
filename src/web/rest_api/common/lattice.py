@@ -85,15 +85,18 @@ def velocity_enu(speed_over_ground, course_over_ground_degrees):
 class LatticePublisher:
     def __init__(self, cfg):
         self.cfg = cfg
-        self.entities_url = f'https://{cfg.endpoint}/api/v1/entities'
+        # the endpoint and the tokens are pasted by hand, and a stray newline
+        # leaves the endpoint unresolvable and the tokens unusable as headers
+        self.entities_url = f'https://{cfg.endpoint.strip()}/api/v1/entities'
 
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {cfg.environment_token}',
+            'Authorization': f'Bearer {cfg.environment_token.strip()}',
         })
         if cfg.HasField('sandbox_token'):
-            self.session.headers['Anduril-Sandbox-Authorization'] = f'Bearer {cfg.sandbox_token}'
+            self.session.headers['Anduril-Sandbox-Authorization'] = \
+                f'Bearer {cfg.sandbox_token.strip()}'
 
         # Entity ids of the task packets we have already dealt with, so we publish
         # each one once. None until the first publish, which takes everything the
