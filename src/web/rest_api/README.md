@@ -228,7 +228,7 @@ cd src/web/rest_api
 export JAIA_REST_API_PRIVATE_KEY="" # leave blank - the empty string is what turns authentication off for development
 export JAIA_LATTICE_ENDPOINT="lattice-abc123.env.sandboxes.developer.anduril.com"
 export JAIA_LATTICE_ENVIRONMENT_TOKEN="..."
-export JAIA_LATTICE_SANDBOX_TOKEN="..."
+export JAIA_LATTICE_SANDBOX_TOKEN="..." # remove if you are not using a sandbox
 ./run.sh
 ```
 
