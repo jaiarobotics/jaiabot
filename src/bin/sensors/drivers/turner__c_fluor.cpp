@@ -85,9 +85,14 @@ void jaiabot::apps::TurnerCFluorDriver::receive_data(
     turner_c_fluor_msg.set_instance(instance_);
 
     // the probes are analog, so only the configured coefficients know what is being measured
-    if (fluorometer_coefficients_.has_analyte_name())
+    if (fluorometer_coefficients_.has_analyte())
     {
-        turner_c_fluor_msg.set_analyte_name(fluorometer_coefficients_.analyte_name());
+        turner_c_fluor_msg.set_analyte(fluorometer_coefficients_.analyte());
+    }
+
+    if (fluorometer_coefficients_.has_units())
+    {
+        turner_c_fluor_msg.set_units(fluorometer_coefficients_.units());
     }
 
     if (instance_ == jaiabot::sensor::protobuf::INSTANCE_2)

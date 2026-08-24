@@ -17,7 +17,8 @@ message TurnerCFluor
     optional double concentration_voltage = 2;
     optional SensorInstance instance = 3 [default = INSTANCE_1];
     // set by the driver from this instance's coefficients, never by the MCU
-    optional string analyte_name = 4 [(nanopb).max_size = 32];
+    optional string analyte = 4 [(nanopb).max_size = 32];
+    optional string units = 5 [(nanopb).max_size = 32];
 }
 
 message FluorCoefficients
@@ -26,7 +27,8 @@ message FluorCoefficients
     optional double coefficient = 2;
     optional int32 serial_number = 3;
     // what this probe measures, e.g. "Chlorophyll-a"
-    optional string analyte_name = 4;
+    optional string analyte = 4; 
+    optional string units = 5;
 }
 
 

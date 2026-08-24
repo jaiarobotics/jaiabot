@@ -91,9 +91,14 @@ jaiabot::apps::TurnerCFluorSensorDriver::TurnerCFluorSensorDriver()
                 double concentration = (turner_c_fluor_msg.concentration_voltage() - fcoefficients_.offset()) * fcoefficients_.coefficient();
                 turner_c_fluor_msg.set_concentration(concentration);
 
-                if (fcoefficients_.has_analyte_name())
+                if (fcoefficients_.has_analyte())
                 {
-                    turner_c_fluor_msg.set_analyte_name(fcoefficients_.analyte_name());
+                    turner_c_fluor_msg.set_analyte(fcoefficients_.analyte());
+                }
+
+                if (fcoefficients_.has_units())
+                {
+                    turner_c_fluor_msg.set_units(fcoefficients_.units());
                 }
             }
         }
