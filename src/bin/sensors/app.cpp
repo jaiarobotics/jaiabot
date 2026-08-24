@@ -20,6 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <chrono>
+
 #include <boost/crc.hpp>
 
 #include <goby/middleware/marshalling/protobuf.h>
@@ -130,8 +132,9 @@ jaiabot::apps::Sensors::Sensors()
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH},
         {{jaiabot::sensor::protobuf::TURNER__C_FLUOR, jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR},
-        {{jaiabot::sensor::protobuf::AML__SENSOR, jaiabot::protobuf::WARNING__INIT_FAILED__AML},
-         {jaiabot::sensor::protobuf::TSYS01__SENSOR, jaiabot::sensor::protobuf::INSTANCE_1},
+        {{jaiabot::sensor::protobuf::AML__SENSOR, jaiabot::sensor::protobuf::INSTANCE_1},
+         jaiabot::protobuf::WARNING__INIT_FAILED__AML},
+        {{jaiabot::sensor::protobuf::TSYS01__SENSOR, jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__TSYS01}};
 }
 
@@ -167,7 +170,9 @@ void jaiabot::apps::Sensors::health(goby::middleware::protobuf::ThreadHealth& he
     // silent by design -- but if this bot was configured for a TSYS01, silence means the
     // sensor we were told to expect never showed up, and no driver thread exists to time
     // out and report it. Warn on its behalf.
-    if (cfg().has_tsys01() && !drivers_launched_.count(jaiabot::sensor::protobuf::TSYS01__SENSOR) &&
+    if (cfg().has_tsys01() &&
+        !drivers_launched_.count(SensorKey{jaiabot::sensor::protobuf::TSYS01__SENSOR,
+                                           jaiabot::sensor::protobuf::INSTANCE_1}) &&
         start_time_ + std::chrono::seconds(cfg().tsys01().report_timeout_seconds()) <
             goby::time::SteadyClock::now())
     {

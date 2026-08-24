@@ -15,7 +15,7 @@
  * to by "dst".
  */
 #define COBSFinishBlock(X) (*code_ptr = (X), code_ptr = dst++, code = 0x01)
-void COBSStuffData(const unsigned char* ptr, unsigned long length, unsigned char* dst)
+static inline void COBSStuffData(const unsigned char* ptr, unsigned long length, unsigned char* dst)
 {
     const unsigned char* end = ptr + length;
     unsigned char* code_ptr = dst++;
@@ -43,7 +43,8 @@ void COBSStuffData(const unsigned char* ptr, unsigned long length, unsigned char
  * writing the output to the location pointed
  * to by "dst".
  */
-unsigned long COBSUnStuffData(const unsigned char* ptr, unsigned long length, unsigned char* dst)
+static inline unsigned long COBSUnStuffData(const unsigned char* ptr, unsigned long length,
+                                            unsigned char* dst)
 {
     const unsigned char* end = ptr + length;
     unsigned long len = 0;

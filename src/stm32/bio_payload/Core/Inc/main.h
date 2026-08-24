@@ -145,6 +145,7 @@ extern float adc_voltage2;
 extern float adc_voltage3;
 extern float adc_voltage4;
 extern float adc_voltage5;
+extern float adc_voltage6;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

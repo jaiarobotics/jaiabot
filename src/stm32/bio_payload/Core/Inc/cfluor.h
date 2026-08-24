@@ -3,6 +3,9 @@
 
 #include "main.h"
 
+// Number of fluorometers the payload board can carry
+#define CFLUOR_INSTANCE_COUNT 2
+
 typedef struct CFluor
 {
     I2C_HandleTypeDef* pi2c;
@@ -13,18 +16,18 @@ typedef struct CFluor
     float serial_number;
 } CFluor;
 
-extern CFluor sFluorometer;  
+extern CFluor sFluorometer[CFLUOR_INSTANCE_COUNT];
 
-int readCFluor(void);
+int readCFluor(int instance);
 void initCFluor(void);
-void set_CFluorOffset(float offset);
-void set_CFluorCalCoefficient(float cal_coefficient);
-void set_CFluorSerialNumber(float serial_number);
-float getConcentration(void);
+void set_CFluorOffset(int instance, float offset);
+void set_CFluorCalCoefficient(int instance, float cal_coefficient);
+void set_CFluorSerialNumber(int instance, float serial_number);
+float getConcentration(int instance);
 float convert_3_3_to_5_0(float voltage);
-float getConcentrationVoltage(void);
-float getOffset(void);
-float getCalCoefficient(void);
-float getSerialNumber(void);
+float getConcentrationVoltage(int instance);
+float getOffset(int instance);
+float getCalCoefficient(int instance);
+float getSerialNumber(int instance);
 
 #endif /* INC_CFluor_H_ */

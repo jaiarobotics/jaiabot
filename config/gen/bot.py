@@ -388,7 +388,8 @@ elif common.app == 'jaiabot_sensors':
                                      port='/dev/bio-payload',
                                      baud=115200,
                                      fluorometer_coefficients=fluorometer_coefficients,
-                                     fluorometer_coefficients_2=fluorometer_coefficients_2))
+                                     fluorometer_coefficients_2=fluorometer_coefficients_2,
+                                     tsys01_config=tsys01_config))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,

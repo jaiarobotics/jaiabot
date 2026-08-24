@@ -1,11 +1,18 @@
 #include "cfluor.h"
 
-CFluor sFluorometer;
+CFluor sFluorometer[CFLUOR_INSTANCE_COUNT];
 
-int readCFluor()
+// Each fluorometer is wired to its own analog input on the payload board.
+// On Rev 1.1 these are PC2 and PA7; PC1 carries the thermistor.
+static float getInputVoltage(int instance)
 {
-    sFluorometer.concentration_voltage = convert_3_3_to_5_0(adc_voltage1);
-    sFluorometer.concentration = (sFluorometer.concentration_voltage - sFluorometer.offset) * sFluorometer.cal_coefficient;
+    return (instance == 1) ? adc_voltage6 : adc_voltage2;
+}
+
+int readCFluor(int instance)
+{
+    sFluorometer[instance].concentration_voltage = convert_3_3_to_5_0(getInputVoltage(instance));
+    sFluorometer[instance].concentration = (sFluorometer[instance].concentration_voltage - sFluorometer[instance].offset) * sFluorometer[instance].cal_coefficient;
 
     return 0;
 }
@@ -17,46 +24,49 @@ float convert_3_3_to_5_0(float voltage)
 
 void initCFluor()
 {
-    sFluorometer.offset = 0.0f;
-    sFluorometer.cal_coefficient = 1.0f;
+    for (int instance = 0; instance < CFLUOR_INSTANCE_COUNT; instance++)
+    {
+        sFluorometer[instance].offset = 0.0f;
+        sFluorometer[instance].cal_coefficient = 1.0f;
+    }
 }
 
-void set_CFluorOffset(float offset)
+void set_CFluorOffset(int instance, float offset)
 {
-    sFluorometer.offset = offset;
+    sFluorometer[instance].offset = offset;
 }
 
-void set_CFluorCalCoefficient(float cal_coefficient)
+void set_CFluorCalCoefficient(int instance, float cal_coefficient)
 {
-    sFluorometer.cal_coefficient = cal_coefficient;
+    sFluorometer[instance].cal_coefficient = cal_coefficient;
 }
 
-void set_CFluorSerialNumber(float serial_number)
+void set_CFluorSerialNumber(int instance, float serial_number)
 {
-    sFluorometer.serial_number = serial_number;
+    sFluorometer[instance].serial_number = serial_number;
 }
 
-float getConcentration()
+float getConcentration(int instance)
 {
-    return sFluorometer.concentration;
+    return sFluorometer[instance].concentration;
 }
 
-float getConcentrationVoltage()
+float getConcentrationVoltage(int instance)
 {
-    return sFluorometer.concentration_voltage;
+    return sFluorometer[instance].concentration_voltage;
 }
 
-float getOffset()
+float getOffset(int instance)
 {
-    return sFluorometer.offset;
+    return sFluorometer[instance].offset;
 }
 
-float getCalCoefficient()
+float getCalCoefficient(int instance)
 {
-    return sFluorometer.cal_coefficient;
+    return sFluorometer[instance].cal_coefficient;
 }
 
-float getSerialNumber()
+float getSerialNumber(int instance)
 {
-    return sFluorometer.serial_number;
+    return sFluorometer[instance].serial_number;
 }
