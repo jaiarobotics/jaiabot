@@ -611,10 +611,125 @@ message DivePacket
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
+message CurrentPacket
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    required double speed = 1 [
+        (dccl.field) = {
+            min: 0
+            max: 10
+            precision: 1
+            units { derived_dimensions: "velocity" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    // uncertainty metrics are either stdev of driflets within Station Keep (n > 1), or default stdev metric derived from static testing (n = 1)
+    required double speed_stdev = 2 [
+        (dccl.field) = {
+            min: 0.05
+            max: 2.0
+            precision: 2
+            units { derived_dimensions: "velocity" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    required double heading = 3 [
+        (dccl.field) = {
+            min: 0
+            max: 360
+            precision: 0
+            units {
+                derived_dimensions: "plane_angle"
+                system: "angle::degree"
+            }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    required double heading_stdev = 4 [
+        (dccl.field) = {
+            min: 0.1
+            max: 45.0
+            precision: 1
+            units {
+                derived_dimensions: "plane_angle"
+                system: "angle::degree"
+            }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    // location to associate measurement with, currently mean lat/lon of stationkeep
+    optional GeographicCoordinate location = 5
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
+message WavePacket
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    // significant wave height calculated and reported during each stationkeep
+    // hub will ignore significant wave heights calculated from surface drifts
+    // source of WavePacket determined using wrapping TaskPacket's type field
+
+    optional double significant_wave_height = 1 [
+        (dccl.field) = {
+            min: 0.1 // real value informed by noise floor
+            max: 5.0
+            precision: 1
+            units { derived_dimensions: "length" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    optional double hs_stdev = 2 [
+        (dccl.field) = {
+            min: 0.1 
+            max: 1.0
+            precision: 2
+            units { derived_dimensions: "length" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    // wave period calculated during furthest offshore stationkeep or during surface drift
+
+    optional double period = 3 [
+        (dccl.field) = {
+            min: 2.0 // real value informed by natural frequency of bot
+            max: 30.0
+            precision: 1
+            units { base_dimensions: "T" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    optional double period_stdev = 4 [
+        (dccl.field) = {
+            min: 1.0 
+            max: 3.0
+            precision: 2
+            units { base_dimensions: "T" }
+        },
+        (jaia.field).rest_api.presence = GUARANTEED
+    ];
+
+    // location to associate measurement with, currently mean lat/lon of collection
+    optional GeographicCoordinate location = 5
+        [(jaia.field).rest_api.presence = GUARANTEED];
+}
+
 message TaskPacket
 {
     /*
-    Actual maximum size of message: 220 bytes / 1760 bits
+    Actual maximum size of message: 220 bytes / 1760 bits TODO: Update this calculation with current/wave packet sizes
             dccl.id head..........................16
             user head..............................0
             body................................1744
@@ -656,6 +771,9 @@ message TaskPacket
     optional DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];
+    optional CurrentPacket current = 12
+        [(jaia.field).rest_api.presence = GUARANTEED];
+    optional WavePacket wave = 13 [(jaia.field).rest_api.presence = GUARANTEED];
 
     // The command_time is the time that the command associated with this task
     // was sent from the Hub. This is used, along with the bot_id, to populate

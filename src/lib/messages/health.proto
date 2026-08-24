@@ -88,7 +88,10 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_UDP_GATEWAY = 43
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_PPK = 44 [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_PPK = 44
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_CURRENTS_AND_WAVE_ESTIMATOR = 45
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -269,6 +272,8 @@ enum Warning
     WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 106
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER = 107
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__NOT_RESPONDING__JAIABOT_CURRENTS_AND_WAVE_ESTIMATOR = 108
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion

@@ -75,6 +75,8 @@ echo_enabled=(bot_type == "ECHO")
 salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
 
+currents_and_waves_estimation_enabled=(bot_type == "HYDRO" or bot_type == "ECHO")
+
 jaia_motor_harness_type="NONE"
 
 if "jaia_motor_harness_type" in os.environ:
@@ -326,7 +328,8 @@ elif common.app == 'jaiabot_udp_gateway':
                                      echo_enabled=str(echo_enabled).lower(),
                                      salinity_enabled=str(salinity_enabled).lower(),
                                      bar30_enabled=str(bar30_enabled).lower(),
-                                     tsys01_enabled=str(tsys01_enabled).lower()))
+                                     tsys01_enabled=str(tsys01_enabled).lower(),
+                                     currents_and_waves_estimation_enabled=str(currents_and_waves_estimation_enabled).lower()))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,

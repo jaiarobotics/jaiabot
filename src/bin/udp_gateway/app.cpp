@@ -20,8 +20,15 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <iostream>
+#include <numeric>
+
+#include <goby/middleware/marshalling/protobuf.h>
+// this space intentionally left blank
 #include <dccl/codec.h>
+#include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/io/udp_point_to_point.h>
+#include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/middleware/marshalling/protobuf.h>
 #include <goby/util/constants.h>
 #include <goby/util/seawater/units.h>
@@ -31,6 +38,15 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/udp_gateway.pb.h"
+#include "jaiabot/messages/moos.pb.h"
+#include "jaiabot/messages/engineering.pb.h"
+#include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/messages/arduino.pb.h"
+#include "jaiabot/messages/mission.pb.h"
+
+#include "jaiabot/intervehicle.h"
+#include "jaiabot/utils/derived_salinity.h"
+#include "jaiabot/utils/specific_conductivity.h"
 
 using goby::glog;
 using namespace std;
@@ -62,6 +78,8 @@ class UDPGateway
 
     void send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command);
     void send_echo_command(const jaiabot::protobuf::EchoCommand& echo_command);
+    void send_currents_and_waves_estimator_payload(
+        const jaiabot::protobuf::CurrentsAndWavesEstimatorPayload& currents_and_waves_estimator_payload);
 
     void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
     void process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_src);
@@ -69,6 +87,7 @@ class UDPGateway
   private:
     dccl::Codec dccl_;
     bool helm_ivp_in_mission_{false};
+    bool rf_enabled_{true};
     goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
         goby::time::SteadyClock::now()};
 
@@ -93,6 +112,11 @@ class UDPGateway
         goby::time::SteadyClock::now()};
     goby::middleware::protobuf::UDPEndPoint echo_udp_src_;
     goby::middleware::protobuf::UDPEndPoint ppk_udp_src_;
+
+    // Currents and Waves Estimator data tracking
+    goby::time::SteadyClock::time_point last_currents_and_waves_estimation_time_{
+        std::chrono::seconds(0)};
+    goby::middleware::protobuf::UDPEndPoint currents_and_waves_estimator_udp_src_;
 };
 
 } // namespace apps
@@ -151,6 +175,52 @@ jaiabot::apps::UDPGateway::UDPGateway()
             send_echo_command(echo_command);
         });
 
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
+            jaiabot::protobuf::CurrentsAndWavesEstimatorPayload
+                currents_and_waves_estimator_payload;
+            *currents_and_waves_estimator_payload.mutable_arduino_response() = arduino_response;
+            send_currents_and_waves_estimator_payload(currents_and_waves_estimator_payload);
+        });
+
+    interprocess().subscribe<jaiabot::groups::mission_report>(
+        [this](const protobuf::MissionReport& mission_report)
+        {
+            jaiabot::protobuf::CurrentsAndWavesEstimatorPayload
+                currents_and_waves_estimator_payload;
+            *currents_and_waves_estimator_payload.mutable_mission_report() = mission_report;
+            send_currents_and_waves_estimator_payload(currents_and_waves_estimator_payload);
+        });
+
+    interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
+        [this](const goby::middleware::protobuf::gpsd::TimePositionVelocity& tpv)
+        {
+            jaiabot::protobuf::CurrentsAndWavesEstimatorPayload
+                currents_and_waves_estimator_payload;
+            *currents_and_waves_estimator_payload.mutable_time_position_velocity() = tpv;
+            send_currents_and_waves_estimator_payload(currents_and_waves_estimator_payload);
+        });
+
+    // handle rf disable commands to make sure task packets are not sent
+    interprocess().subscribe<jaiabot::groups::powerstate_command>(
+        [this](const jaiabot::protobuf::Engineering& power_rf)
+        {
+            if (power_rf.has_rf_disable_options())
+            {
+                if (power_rf.rf_disable_options().has_rf_disable())
+                {
+                    if (power_rf.rf_disable_options().rf_disable())
+                    {
+                        this->rf_enabled_ = false;
+                    }
+                    else
+                    {
+                        this->rf_enabled_ = true;
+                    }
+                }
+            }
+        });
 }
 
 
@@ -212,6 +282,38 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             glog.is_debug1() && glog << "Received EchoData" << endl;
             break;
         }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kCurrentsAndWavesEstimatorPayload:
+        {
+            glog.is_debug1() && glog << "Received CurrentsAndWavesEstimatorPayload" << endl;
+            if (envelope.currents_and_waves_estimator_payload().has_heartbeat())
+            {
+                last_currents_and_waves_estimation_time_ = goby::time::SteadyClock::now();
+                currents_and_waves_estimator_udp_src_ = udp_src;
+            }
+            if (envelope.currents_and_waves_estimator_payload().has_task_packet())
+            {
+                auto task_packet = envelope.currents_and_waves_estimator_payload().task_packet();
+                last_currents_and_waves_estimation_time_ = goby::time::SteadyClock::now();
+                currents_and_waves_estimator_udp_src_ = udp_src;
+
+                if (this->rf_enabled_)
+                {
+                    glog.is_debug1() && glog << "(RF Enabled) Publishing task packet "
+                                                "intervehicle: "
+                                             << task_packet.DebugString() << std::endl;
+                    intervehicle().publish<groups::task_packet>(
+                        task_packet, intervehicle::default_publisher<protobuf::TaskPacket>);
+                }
+                else
+                {
+                    glog.is_debug1() && glog << "(RF Disabled) Publishing task packet "
+                                                "interprocess: "
+                                             << task_packet.DebugString() << std::endl;
+                    interprocess().publish<groups::task_packet>(task_packet);
+                }
+            }
+            break;
+        }
         case jaiabot::protobuf::UDPGatewayEnvelope::kUbxChunk:
         {
             interprocess().publish<groups::ppk>(envelope.ubx_chunk());
@@ -231,8 +333,8 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
 
 void jaiabot::apps::UDPGateway::send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst) {
     if (!udp_dst.has_addr() || !udp_dst.has_port()) {
-        glog.is_warn() && glog << "UDP destination is not set, cannot send UDPGatewayEnvelope"
-                               << endl;
+        glog.is_warn() && glog << "UDP destination is not set, cannot send UDPGatewayEnvelope: "
+                               << envelope.DebugString() << endl;
         return;
     }
 
@@ -258,6 +360,14 @@ void jaiabot::apps::UDPGateway::send_echo_command(const jaiabot::protobuf::EchoC
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
     *envelope.mutable_echo_command() = echo_command;
     send_envelope(envelope, echo_udp_src_);
+}
+
+void jaiabot::apps::UDPGateway::send_currents_and_waves_estimator_payload(
+    const jaiabot::protobuf::CurrentsAndWavesEstimatorPayload& currents_and_waves_estimator_payload)
+{
+    auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
+    *envelope.mutable_currents_and_waves_estimator_payload() = currents_and_waves_estimator_payload;
+    send_envelope(envelope, currents_and_waves_estimator_udp_src_);
 }
 
 void jaiabot::apps::UDPGateway::loop()
@@ -366,4 +476,16 @@ void jaiabot::apps::UDPGateway::check_last_report(
         }
     }
 
+    // Current and Waves Estimation Heartbeat timeout check
+    if (cfg().currents_and_waves_estimation_enabled() &&
+        last_currents_and_waves_estimation_time_ +
+                std::chrono::seconds(
+                    cfg().currents_and_waves_estimation_heartbeat_report_timeout_seconds()) <
+            goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on Currents and Waves Estimator" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_CURRENTS_AND_WAVE_ESTIMATOR);
+    }
 }

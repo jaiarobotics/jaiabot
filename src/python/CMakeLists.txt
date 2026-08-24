@@ -16,6 +16,7 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/requirements.txt DESTINATION ${project_SHA
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/motor DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/jaia_serial DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ubx_ppk DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/currents_and_waves_estimation DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 
 if(build_python_venv AND NOT CMAKE_CROSSCOMPILING)
   set(jaiabot_python_share_dir ${project_SHARE_DIR}/jaiabot/python)
