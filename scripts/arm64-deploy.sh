@@ -75,7 +75,7 @@ if [ "$jaia_arduino_type" != "none" ]; then
     sudo ${HOME}/jaiabot/${build_dir}/share/jaiabot/arduino/jaiabot_runtime/$jaia_arduino_type/upload.sh
 fi
 
-# Check for STM32 deploy scripts (one per sketch, e.g. bio_payload, power_board)
+# Check for STM32 deploy scripts (one per sketch, e.g. bio_payload)
 for stm32_upload in ${HOME}/jaiabot/${build_dir}/share/jaiabot/stm32/*/uart/upload.sh; do
     if [ -f "${stm32_upload}" ]; then
         echo "🟢 STM32 firmware deployment script found at:"

@@ -272,7 +272,8 @@ jaiabot::apps::MissionManager::MissionManager()
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
         [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         {
-            glog.is_debug2() && glog << "Received Power Board Response " << arduino_response.ShortDebugString() << std::endl;
+            glog.is_debug2() && glog << "Received Arduino Response "
+                                     << arduino_response.ShortDebugString() << std::endl;
 
             if (arduino_response.has_motor())
             {

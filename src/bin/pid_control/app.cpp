@@ -467,7 +467,7 @@ void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottl
             case MANUAL: break;
             case PID_SPEED: throttle_speed_pid_->reset_iterm(); break;
             case PID_DEPTH:
-                // Set the throttle to what the power board is reporting
+                // Set the throttle to what the arduino is reporting
                 // based on its ramping. This way our PID is not skewed
                 // when switching from manual to dive.
                 throttle_ = arduino_motor_throttle_;
