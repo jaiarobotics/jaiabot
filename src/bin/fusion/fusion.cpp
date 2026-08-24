@@ -48,8 +48,6 @@
 #include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/utils/specific_conductivity.h"
 
-#include "jaiabot/messages/power_board/power_board.pb.h"
-
 #include "wmm/WMM.h"
 #include <cmath>
 #include <math.h>
@@ -465,10 +463,11 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             }
         });
 
-    interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
-        [this](const jaiabot::protobuf::PowerBoardResponse& power_board_response) {
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
             //takes data from one message to the next (clarified by different names)
-            if (power_board_response.has_vccvoltage())
+            if (arduino_response.has_vccvoltage())
             {
                 //TODO ADD FUNCTION / CODE TO REPORT BATTERY PERCENTAGE
                 std::map<float, float> voltage_to_battery_percent_{
@@ -476,7 +475,7 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
                     {23.49, 80.0}, {24.0, 95.0}, {24.5, 100.0}}; // map of voltage to battery %
 
                 float battery_percentage = goby::util::linear_interpolate(
-                    power_board_response.vccvoltage(), voltage_to_battery_percent_);
+                    arduino_response.vccvoltage(), voltage_to_battery_percent_);
 
                 latest_bot_status_.set_battery_percent(battery_percentage);
             }

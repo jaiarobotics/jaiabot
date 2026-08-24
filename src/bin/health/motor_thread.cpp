@@ -66,11 +66,11 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
             last_motor_rpm_report_time_ = goby::time::SteadyClock::now();
         });
 
-    interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
-        [this](const jaiabot::protobuf::PowerBoardResponse& power_board_response) {
-            if (power_board_response.has_thermistor_voltage())
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
+            if (arduino_response.has_thermistor_voltage())
             {
-                float voltage = power_board_response.thermistor_voltage();
+                float voltage = arduino_response.thermistor_voltage();
                 float resistance =
                     thermistor_ohms_neutral * voltage / (thermistor_voltage - voltage);
                 float temperature =
@@ -84,14 +84,14 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
                 last_motor_thermistor_report_time_ = goby::time::SteadyClock::now();
             }
 
-            if (power_board_response.has_motor())
+            if (arduino_response.has_motor())
             {
-                if (power_board_response.motor() > MOTOR_OFF_MICROS)
+                if (arduino_response.motor() > MOTOR_OFF_MICROS)
                 {
                     // motor is spinning in forward direction
                     status_.set_rpm(std::abs(rpm_value_));
                 }
-                else if (power_board_response.motor() < MOTOR_OFF_MICROS)
+                else if (arduino_response.motor() < MOTOR_OFF_MICROS)
                 {
                     // motor is spinning in reverse direction
                     status_.set_rpm(-std::abs(rpm_value_));
@@ -103,7 +103,7 @@ jaiabot::apps::MotorStatusThread::MotorStatusThread(const jaiabot::config::Motor
                 }
             }
 
-            log_usage(power_board_response);
+            log_usage(arduino_response);
         });
 }
 
@@ -340,13 +340,13 @@ void jaiabot::apps::MotorStatusThread::update_total_motor_usage()
 }
 
 void jaiabot::apps::MotorStatusThread::log_usage(
-    const jaiabot::protobuf::PowerBoardResponse& power_board_response)
+    const jaiabot::protobuf::ArduinoResponse& arduino_response)
 {
     // Log the motor usage
-    static jaiabot::protobuf::PowerBoardResponse previous_response;
+    static jaiabot::protobuf::ArduinoResponse previous_response;
     static int64_t previous_response_time = 0;
 
-    if (power_board_response.has_motor())
+    if (arduino_response.has_motor())
     {
         if (previous_response_time != 0 && previous_response.has_motor())
         {
@@ -355,7 +355,7 @@ void jaiabot::apps::MotorStatusThread::log_usage(
             log_motor(previous_response.motor(), previous_response_duration_seconds, rpm_value_);
         }
 
-        previous_response = power_board_response;
+        previous_response = arduino_response;
         previous_response_time = now_microseconds();
     }
 }

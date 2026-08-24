@@ -1,2 +1,1 @@
 add_subdirectory(bio_payload)
-add_subdirectory(power_board)

@@ -28,7 +28,6 @@
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/frontseat_data.pb.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
-#include "jaiabot/messages/power_board/power_board.pb.h"
 
 #include "goby/util/sci.h" // for linear_interpolate
 
@@ -247,13 +246,13 @@ jaiabot::apps::BotPidControl::BotPidControl()
                                      << " depth: " << actual_depth_ << std::endl;
         });
 
-    interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
-        [this](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         {
-            if (power_board_response.has_motor())
+            if (arduino_response.has_motor())
             {
-                power_board_motor_throttle_ = ((power_board_response.motor() - 1500) / 400);
-                glog.is_debug2() && glog << "Power Board Reported Throttle: " << power_board_motor_throttle_
+                arduino_motor_throttle_ = ((arduino_response.motor() - 1500) / 400);
+                glog.is_debug2() && glog << "Arduino Reported Throttle: " << arduino_motor_throttle_
                                          << endl;
             }
         });
@@ -471,7 +470,7 @@ void jaiabot::apps::BotPidControl::setThrottleMode(const ThrottleMode newThrottl
                 // Set the throttle to what the power board is reporting
                 // based on its ramping. This way our PID is not skewed
                 // when switching from manual to dive.
-                throttle_ = power_board_motor_throttle_;
+                throttle_ = arduino_motor_throttle_;
                 glog.is_debug2() && glog << "Init Depth PID Throttle: " << throttle_ << endl;
                 throttle_depth_pid_->reset_iterm();
                 break;

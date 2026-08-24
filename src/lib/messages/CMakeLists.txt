@@ -19,16 +19,9 @@ set(SENSOR_PROTOS
   sensor/tsys01.proto
 )
 
-set(POWER_BOARD_PROTOS
-  power_board/actuators.proto
-  power_board/metadata.proto
-  power_board/power_board.proto
-)
-
 # All messages used by microcontrollers (C code)
 set(MCU_PROTOS
   ${SENSOR_PROTOS}
-  ${POWER_BOARD_PROTOS}
   arduino.proto
   feather.proto
   control_surfaces.proto

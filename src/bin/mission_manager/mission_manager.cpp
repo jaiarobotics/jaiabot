@@ -43,7 +43,6 @@ namespace middleware = goby::middleware;
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/mission.pb.h"
-#include "jaiabot/messages/power_board/power_board.pb.h"
 
 // Mission Manager app
 #include "states.h"
@@ -270,15 +269,15 @@ jaiabot::apps::MissionManager::MissionManager()
             }
         });
 
-    interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
-        [this](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
+    interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
         {
-            glog.is_debug2() && glog << "Received Power Board Response " << power_board_response.ShortDebugString() << std::endl;
+            glog.is_debug2() && glog << "Received Power Board Response " << arduino_response.ShortDebugString() << std::endl;
 
-            if (power_board_response.has_motor())
+            if (arduino_response.has_motor())
             {
                 statechart::EvMotorStopped ev;
-                ev.is_motor_stopped = power_board_response.motor() == 1500;
+                ev.is_motor_stopped = arduino_response.motor() == 1500;
                 machine_->process_event(ev);
             }
         });
