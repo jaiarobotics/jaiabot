@@ -14,7 +14,11 @@ src/stm32/*/Debug
 src/stm32/*/jaiabot
 src/stm32/*/nanopb
 src/stm32/*/build
-.claude
+src/stm32/*/.project
+src/stm32/*/.mxproject
+src/stm32/*/.cproject
+src/stm32/.settings/language.settings.xml
+.claude/*
 
 # === private files ===
 

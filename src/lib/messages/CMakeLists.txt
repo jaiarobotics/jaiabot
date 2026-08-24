@@ -24,7 +24,6 @@ set(MCU_PROTOS
   ${SENSOR_PROTOS}
   arduino.proto
   feather.proto
-  control_surfaces.proto
 )
 
 # All messages for C++ and Python generation
@@ -34,6 +33,7 @@ set(JAIABOT_PROTOS
   geographic_coordinate.proto
   camera_driver.proto
   high_control.proto
+  control_surfaces.proto
   imu.proto
   mission.proto
   jaia_dccl.proto
