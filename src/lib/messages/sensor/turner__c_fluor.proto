@@ -6,6 +6,33 @@ import "nanopb.proto";
 
 package jaiabot.sensor.protobuf;
 
+enum CFluorAnalytes
+{
+    CDOM = 0;
+    Chlorophyll_Blue = 1;
+    Chlorophyll_Red = 2;
+    Fluorescein = 3;
+    Crude_Oil = 4;
+    Optical_Brighteners = 5;
+    Hycocyanin = 6;
+    Phycoerythrin = 7;
+    Rhodamine_WT = 8;
+    Tryptophan = 9;
+    Turbidity = 10;
+}
+
+enum CFluorUnits
+{
+    ppb = 0;
+    ug_per_L = 1;
+    NTU = 2;
+    ppb_PTSA = 3;
+    ppb_Uvitex = 4;
+    ppbPC = 5;
+    ppbPE = 6;
+    ppb_QSU = 7;
+}
+
 message TurnerCFluor
 {
     option (dccl.msg) = {
@@ -17,8 +44,8 @@ message TurnerCFluor
     optional double concentration_voltage = 2;
     optional SensorInstance instance = 3 [default = INSTANCE_1];
     // set by the driver from this instance's coefficients, never by the MCU
-    optional string analyte = 4 [(nanopb).max_size = 32];
-    optional string units = 5 [(nanopb).max_size = 32];
+    optional CFluorAnalytes analyte = 4;
+    optional CFluorUnits units = 5;
 }
 
 message FluorCoefficients
@@ -27,8 +54,8 @@ message FluorCoefficients
     optional double coefficient = 2;
     optional int32 serial_number = 3;
     // what this probe measures, e.g. "Chlorophyll-a"
-    optional string analyte = 4; 
-    optional string units = 5;
+    optional CFluorAnalytes analyte = 4; 
+    optional CFluorUnits units = 5;
 }
 
 

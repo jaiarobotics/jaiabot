@@ -175,8 +175,7 @@ def read_fluorometer_coefficients(*paths):
 
 # bots provisioned before dual fluorometer support have a single unnumbered file, which
 # belongs to the first fluorometer
-fluorometer_coefficients = read_fluorometer_coefficients('/etc/jaiabot/fluorometer_coefficients_1.pb.cfg',
-                                                         '/etc/jaiabot/fluorometer_coefficients.pb.cfg')
+fluorometer_coefficients = read_fluorometer_coefficients('/etc/jaiabot/fluorometer_coefficients.pb.cfg')
 fluorometer_coefficients_2 = read_fluorometer_coefficients('/etc/jaiabot/fluorometer_coefficients_2.pb.cfg')
 
 ack_timeout=10

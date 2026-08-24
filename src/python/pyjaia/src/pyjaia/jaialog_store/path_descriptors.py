@@ -268,7 +268,7 @@ path_descriptors = [
     PathDescriptor(
         name='Fluorometer 2 Analyte',
         path_suffix=None,
-        path_regex=r'.*jaiabot::fluorometer_2/.*TurnerCFluor/analyte_name$',
+        path_regex=r'.*jaiabot::fluorometer_2/.*TurnerCFluor/analyte$',
         units='',
         frequency=10,
         description='What the second fluorometer measures, from its configured coefficients.'
@@ -289,7 +289,7 @@ path_descriptors = [
     ), 
     PathDescriptor(
         name='Fluorometer Analyte',
-        path_suffix='TurnerCFluor/analyte_name',
+        path_suffix='TurnerCFluor/analyte',
         units='',
         frequency=10,
         description='What the fluorometer measures, from its configured coefficients.'
