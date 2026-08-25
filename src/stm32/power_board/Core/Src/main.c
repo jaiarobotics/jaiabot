@@ -423,8 +423,8 @@ int main(void)
         break;
 
       case BROADCAST_STATE:
-        // Broadcast telemetry to the host over USB.
-
+        // Send telemetry only in response to a valid control-surfaces command.
+        if (power_board_take_telemetry_request())
         {
           PowerBoardResponse telemetry_response = jaiabot_protobuf_PowerBoardResponse_init_zero;
           power_board_build_telemetry(&telemetry_response);

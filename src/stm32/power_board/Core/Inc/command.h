@@ -26,6 +26,9 @@ void power_board_command_process(void);
 // Sends an immediate command/status response over the host link.
 void power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode status_code);
 
+// Returns true once after a valid control-surfaces command is processed.
+bool power_board_take_telemetry_request(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -18,6 +18,7 @@ static uint16_t rx_accum_len = 0;
 static uint8_t pending_frame[POWER_BOARD_CMD_BUF_SIZE];
 static uint16_t pending_frame_len = 0;
 static volatile bool pending_frame_ready = false;
+static bool telemetry_request_pending = false;
 
 void power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode status_code)
 {
@@ -28,6 +29,13 @@ void power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode status_code)
     response.has_motor = true;
     response.motor = controls_get_motor_actual();
     usb_transmit(&response);
+}
+
+bool power_board_take_telemetry_request(void)
+{
+    bool telemetry_requested = telemetry_request_pending;
+    telemetry_request_pending = false;
+    return telemetry_requested;
 }
 
 void power_board_command_receive(const uint8_t* data, uint32_t len)
@@ -134,6 +142,7 @@ void power_board_command_process(void)
     if (request.has_control_surfaces)
     {
         handle_control_surfaces(&request.control_surfaces);
+        telemetry_request_pending = true;
         request_handled = true;
     }
 
