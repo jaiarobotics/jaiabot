@@ -437,7 +437,6 @@ int main(void)
           usb_transmit(&telemetry_response);
         }
 
-        power_board_request_low_power_mode_seconds(10U);
         // current_state = SLEEP_STATE;
         break;
 
