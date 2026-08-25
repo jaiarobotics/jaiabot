@@ -19,6 +19,17 @@ static uint8_t pending_frame[POWER_BOARD_CMD_BUF_SIZE];
 static uint16_t pending_frame_len = 0;
 static volatile bool pending_frame_ready = false;
 
+void power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode status_code)
+{
+    PowerBoardResponse response = jaiabot_protobuf_PowerBoardResponse_init_zero;
+    response.time = (uint64_t)HAL_GetTick() * 1000ULL;
+    response.has_status_code = true;
+    response.status_code = status_code;
+    response.has_motor = true;
+    response.motor = controls_get_motor_actual();
+    usb_transmit(&response);
+}
+
 void power_board_command_receive(const uint8_t* data, uint32_t len)
 {
     for (uint32_t i = 0; i < len; ++i)
@@ -69,6 +80,7 @@ void power_board_command_process(void)
 
     if (decoded_length < CRC32_SIZE)
     {
+        power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_FRAME_ERROR);
         return;
     }
 
@@ -81,6 +93,7 @@ void power_board_command_process(void)
 
     if (computed_crc != provided_crc)
     {
+        power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_CRC_ERROR);
         return;
     }
 
@@ -88,8 +101,11 @@ void power_board_command_process(void)
     pb_istream_t istream = pb_istream_from_buffer(decoded_msg, decoded_length - CRC32_SIZE);
     if (!pb_decode(&istream, jaiabot_protobuf_PowerBoardRequest_fields, &request))
     {
+        power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_DECODE_ERROR);
         return;
     }
+
+    bool request_handled = false;
 
     if (request.has_power_board_mcu_command)
     {
@@ -112,15 +128,23 @@ void power_board_command_process(void)
         response.data.metadata.power_board_version = 1;
         
         usb_transmit(&response);
+        request_handled = true;
     }
 
     if (request.has_control_surfaces)
     {
         handle_control_surfaces(&request.control_surfaces);
+        request_handled = true;
     }
 
     if (request.has_low_power_request)
     {
         power_board_request_low_power_mode_seconds(request.low_power_request.duration_seconds);
+        request_handled = true;
+    }
+
+    if (request_handled)
+    {
+        power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_ACK);
     }
 }

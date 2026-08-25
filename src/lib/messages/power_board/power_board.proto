@@ -13,6 +13,16 @@ enum PowerBoardMCUCommand
     ENTER_BOOTLOADER_MODE = 1;
 }
 
+enum PowerBoardStatusCode
+{
+    POWER_BOARD_STARTUP = 1;
+    POWER_BOARD_ACK = 2;
+    POWER_BOARD_TIMEOUT = 3;
+    POWER_BOARD_FRAME_ERROR = 4;
+    POWER_BOARD_CRC_ERROR = 5;
+    POWER_BOARD_DECODE_ERROR = 6;
+}
+
 message LowPowerRequest
 {
     required uint32 duration_seconds = 1;
@@ -64,4 +74,5 @@ message PowerBoardResponse
     optional float thermistor_voltage = 25;
     optional float generic_gpio_voltage = 26; 
     optional uint32 vccvoltage_raw = 27;
+    optional PowerBoardStatusCode status_code = 30;
 }

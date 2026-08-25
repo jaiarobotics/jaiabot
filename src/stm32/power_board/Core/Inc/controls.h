@@ -27,6 +27,9 @@ extern "C" {
     // Runs control watchdog checks that should be serviced from the main loop.
     void controls_periodic_update(void);
 
+    // Returns true once after a command timeout has neutralized the outputs.
+    bool controls_take_timeout_event(void);
+
     // Returns the motor pulse width (microseconds) currently being driven to
     // the ESC, after ramping/clamping, for telemetry reporting.
     int controls_get_motor_actual(void);

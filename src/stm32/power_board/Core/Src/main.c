@@ -392,6 +392,10 @@ int main(void)
     // keeps stepping toward target_motor_ (e.g. ramping down to neutral)
     // even after leaving TEST_STATE.
     controls_periodic_update();
+    if (controls_take_timeout_event())
+    {
+      power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_TIMEOUT);
+    }
 
     // State loop: short command-service window while awake, then sleep.
     switch(current_state)
@@ -417,6 +421,7 @@ int main(void)
             startup_response.data.metadata.has_power_board_version = true;
             startup_response.data.metadata.power_board_version = 1;
             usb_transmit(&startup_response);
+            power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_STARTUP);
           }
         }
 

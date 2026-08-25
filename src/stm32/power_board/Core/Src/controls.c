@@ -34,6 +34,7 @@ static bool esc_pwm_started = false;
 static uint32_t motor_timeout_ms = 0U;
 static uint32_t motor_last_command_ms = 0U;
 static bool motor_timeout_active = false;
+static bool motor_timeout_event_pending = false;
 
 static uint32_t clamp_u32(uint32_t value, uint32_t min_value, uint32_t max_value)
 {
@@ -170,6 +171,7 @@ void controls_periodic_update(void)
         stbd_elevator_ = 1500;
         port_elevator_ = 1500;
         HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+        motor_timeout_event_pending = true;
     }
 
     if ((HAL_GetTick() - motor_last_ramp_ms_) >= motor_ramp_interval_ms_)
@@ -177,4 +179,11 @@ void controls_periodic_update(void)
         motor_last_ramp_ms_ = HAL_GetTick();
         step_motor_toward_target();
     }
+}
+
+bool controls_take_timeout_event(void)
+{
+    bool timeout_event = motor_timeout_event_pending;
+    motor_timeout_event_pending = false;
+    return timeout_event;
 }

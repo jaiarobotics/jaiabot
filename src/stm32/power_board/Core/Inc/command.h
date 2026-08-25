@@ -23,6 +23,9 @@ void power_board_command_receive(const uint8_t* data, uint32_t len);
 // context, since dispatched commands (e.g. ENTER_BOOTLOADER_MODE) erase flash.
 void power_board_command_process(void);
 
+// Sends an immediate command/status response over the host link.
+void power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode status_code);
+
 #ifdef __cplusplus
 }
 #endif
