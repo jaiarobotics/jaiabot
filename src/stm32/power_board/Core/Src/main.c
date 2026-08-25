@@ -146,9 +146,9 @@ static void power_board_build_telemetry(PowerBoardResponse *response)
 {
   response->time = (uint64_t)HAL_GetTick() * 1000ULL;
 
-  // Enable the battery-sense rail and op-amp only while measuring VCC.
-  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
+  // // Enable the battery-sense rail and op-amp only while measuring VCC.
+  // HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
+  // HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
   HAL_Delay(10);
   uint32_t vcc_raw = 0U;
   response->has_vccvoltage = true;
@@ -164,8 +164,8 @@ static void power_board_build_telemetry(PowerBoardResponse *response)
   uint32_t vcc_current_raw = 0U;
   adc_read_channel(&hadc1, ADC_CHANNEL_2, &vcc_current_raw);
   response->vcccurrent = ADC_TO_VOLTS(vcc_current_raw);
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
+  // HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
+  // HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
 
   uint32_t vv_current_raw = 0U;
   response->has_vvcurrent = true;
@@ -322,6 +322,8 @@ int main(void)
   HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port,  EN_5V_REG_Pin,  GPIO_PIN_SET);
   HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
 
   /* Allow USB host time to enumerate the CDC device before the first TX. */
   HAL_Delay(2000);
@@ -336,13 +338,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    uint32_t requested_sleep_ms = take_low_power_request_ms();
-    if (requested_sleep_ms != 0U)
-    {
-      sleep_for_ms(requested_sleep_ms);
-      current_state = SLEEP_STATE;
-      continue;
-    }
+    // uint32_t requested_sleep_ms = take_low_power_request_ms();
+    // if (requested_sleep_ms != 0U)
+    // {
+    //   sleep_for_ms(requested_sleep_ms);
+    //   current_state = SLEEP_STATE;
+    //   continue;
+    // }
 
     HAL_IWDG_Refresh(&hiwdg);
 
@@ -401,10 +403,20 @@ int main(void)
         break;
 
       case SLEEP_STATE:
-        // Low power mode to save battery between active windows.
-        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
-        sleep_for_ms(power_board_get_sleep_interval_ms());
-        current_state = INIT_STATE;
+        // A host request overrides the normal periodic sleep interval. Consume
+        // it before sleeping so it does not immediately interrupt the LPTIM
+        // wait; a newly received request can still interrupt and reschedule.
+        {
+          uint32_t sleep_duration_ms = take_low_power_request_ms();
+          if (sleep_duration_ms == 0U)
+          {
+            sleep_duration_ms = power_board_get_sleep_interval_ms();
+          }
+
+          HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
+          sleep_for_ms(sleep_duration_ms);
+          current_state = INIT_STATE;
+        }
         break;
 
       case TEST_STATE:
@@ -1279,6 +1291,7 @@ void power_board_request_low_power_mode_ms(uint32_t duration_ms)
 
 void power_board_request_low_power_mode_seconds(uint32_t duration_s)
 {
+  current_state = SLEEP_STATE;
   if (duration_s > (UINT32_MAX / 1000U))
   {
     power_board_request_low_power_mode_ms(UINT32_MAX);
