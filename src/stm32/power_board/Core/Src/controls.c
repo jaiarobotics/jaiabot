@@ -23,8 +23,8 @@ static const int motor_min_reverse_ = 1400;
 // Max change in microseconds applied to the motor per ramp step
 static const int motor_max_step_ = 12;
 
-// Time between ramp steps (~16 Hz)
-static const uint32_t motor_ramp_interval_ms_ = 62U;
+// Time between ramp steps (20 Hz)
+static const uint32_t motor_ramp_interval_ms_ = 50U;
 
 static int motor_tracked_ = 1500;
 static int motor_actual_ = 1500;

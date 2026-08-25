@@ -104,7 +104,7 @@ static void MX_LPTIM1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-static uint32_t adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
+static bool adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel, uint32_t *raw)
 {
     ADC_ChannelConfTypeDef sConfig = {0};
     sConfig.Channel = channel;
@@ -120,50 +120,67 @@ static uint32_t adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
 
     if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK)
     {
-        return 0U;
+      return false;
     }
     if (HAL_ADC_Start(hadc) != HAL_OK)
     {
-        return 0U;
+      return false;
     }
     if (HAL_ADC_PollForConversion(hadc, adc_poll_timeout_ms) != HAL_OK)
     {
         HAL_ADC_Stop(hadc);
-        return 0U;
+      return false;
     }
-    uint32_t raw = HAL_ADC_GetValue(hadc);
+    *raw = HAL_ADC_GetValue(hadc);
     HAL_ADC_Stop(hadc);
-    return raw;
+    return true;
 }
 
 #define ADC_TO_VOLTS(raw) ((raw) / 4095.0f * 3.3f)
 // VCC_V_SENSE uses the same battery-sense divider calibration as the former
 // Arduino implementation: analogRead(VccVoltage) * 0.0306.
 #define ADC_TO_BATTERY_VOLTS(raw) ((raw) * 0.00503f)
+#define HARDCODED_BATTERY_VOLTS 24.5f
 
 static void power_board_build_telemetry(PowerBoardResponse *response)
 {
   response->time = (uint64_t)HAL_GetTick() * 1000ULL;
 
-  // Enable both the battery-sense rail and its op-amp before reading VCC.
+  // Enable the battery-sense rail and op-amp only while measuring VCC.
   HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
-  HAL_Delay(1);
+  HAL_Delay(10);
+  uint32_t vcc_raw = 0U;
   response->has_vccvoltage = true;
-  response->vccvoltage = ADC_TO_BATTERY_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_1));
+  if (adc_read_channel(&hadc1, ADC_CHANNEL_1, &vcc_raw))
+  {
+    response->vccvoltage = ADC_TO_BATTERY_VOLTS(vcc_raw);
+  }
+  // Temporary override until the battery-sense divider is calibrated.
+  response->vccvoltage = HARDCODED_BATTERY_VOLTS;
+  response->has_vccvoltage_raw = true;
+  response->vccvoltage_raw = vcc_raw;
   response->has_vcccurrent = true;
-  response->vcccurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_2));
+  uint32_t vcc_current_raw = 0U;
+  adc_read_channel(&hadc1, ADC_CHANNEL_2, &vcc_current_raw);
+  response->vcccurrent = ADC_TO_VOLTS(vcc_current_raw);
   HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
 
+  uint32_t vv_current_raw = 0U;
   response->has_vvcurrent = true;
-  response->vvcurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_3));
+  adc_read_channel(&hadc1, ADC_CHANNEL_3, &vv_current_raw);
+  response->vvcurrent = ADC_TO_VOLTS(vv_current_raw);
 
+  uint32_t thermistor_raw = 0U;
   response->has_thermistor_voltage = true;
-  response->thermistor_voltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_10));
+  adc_read_channel(&hadc1, ADC_CHANNEL_10, &thermistor_raw);
+  response->thermistor_voltage = ADC_TO_VOLTS(thermistor_raw);
 
+  uint32_t generic_gpio_raw = 0U;
   response->has_generic_gpio_voltage = true;
-  response->generic_gpio_voltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_13));
+  adc_read_channel(&hadc1, ADC_CHANNEL_13, &generic_gpio_raw);
+  response->generic_gpio_voltage = ADC_TO_VOLTS(generic_gpio_raw);
 
   response->has_motor = true;
   response->motor = controls_get_motor_actual();
@@ -440,7 +457,7 @@ int main(void)
 
     HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
 
-    HAL_Delay(500);
+    HAL_Delay(50);
   }
   /* USER CODE END 3 */
 }

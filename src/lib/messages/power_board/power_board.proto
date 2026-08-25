@@ -63,4 +63,5 @@ message PowerBoardResponse
     optional int32 motor = 24;
     optional float thermistor_voltage = 25;
     optional float generic_gpio_voltage = 26; 
+    optional uint32 vccvoltage_raw = 27;
 }
