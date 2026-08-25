@@ -14,7 +14,7 @@ enum CFluorAnalytes
     Fluorescein = 3;
     Crude_Oil = 4;
     Optical_Brighteners = 5;
-    Hycocyanin = 6;
+    Phycocyanin = 6;
     Phycoerythrin = 7;
     Rhodamine_WT = 8;
     Tryptophan = 9;

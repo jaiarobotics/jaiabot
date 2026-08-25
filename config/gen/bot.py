@@ -23,6 +23,10 @@ if "jaia_electronics_stack" in os.environ:
 
 jaia_temperature_sensor_type = os.environ.get('jaia_temperature_sensor_type', default='bar30')
 
+jaia_additional_sensors = [sensor for sensor in
+                           os.environ.get('jaia_additional_sensors', default='none').split(',')
+                           if sensor]
+
 if jaia_electronics_stack == '0':
     helm_app_tick=1
     helm_comms_tick=4
@@ -177,6 +181,21 @@ def read_fluorometer_coefficients(*paths):
 # belongs to the first fluorometer
 fluorometer_coefficients = read_fluorometer_coefficients('/etc/jaiabot/fluorometer_coefficients.pb.cfg')
 fluorometer_coefficients_2 = read_fluorometer_coefficients('/etc/jaiabot/fluorometer_coefficients_2.pb.cfg')
+
+# The payload board announces two fluorometer channels whether or not a second sensor is
+# wired, and an unconnected channel reads as a valid zero rather than failing, so the
+# firmware cannot tell us which bots actually have one. The presence of this stanza
+# (has_fluorometer_2) is what lets jaiabot_sensors launch the second driver thread; without
+# it the phantom instance is ignored instead of reported as data.
+if 'turner_c_fluor_2' in jaia_additional_sensors:
+    fluorometer_2_config = ('fluorometer_2 {\n'
+                            '    sample_rate: 10\n'
+                            '    report_timeout_seconds: 20\n'
+                            '    resend_cfg_timeout_seconds: 20\n'
+                            '    ' + fluorometer_coefficients_2 + '\n'
+                            '}')
+else:
+    fluorometer_2_config = ''
 
 ack_timeout=10
 iridium_ack_timeout=120
@@ -385,7 +404,7 @@ elif common.app == 'jaiabot_sensors':
                                      port='/dev/bio-payload',
                                      baud=115200,
                                      fluorometer_coefficients=fluorometer_coefficients,
-                                     fluorometer_coefficients_2=fluorometer_coefficients_2,
+                                     fluorometer_2_config=fluorometer_2_config,
                                      tsys01_config=tsys01_config))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',

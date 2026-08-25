@@ -101,25 +101,43 @@ NANOPB_SENSOR_DIR="${NANOPB_MSG_DIR}/sensor"
 mkdir -p "${NANOPB_MSG_DIR}"
 mkdir -p "${NANOPB_SENSOR_DIR}"
 
+# Run nanopb_generator.py, filtering its chatty output but preserving its exit
+# status (a bare "| grep -v ... || true" would report grep's status instead).
+generate_nanopb() {
+    local output status=0
+    output=$(nanopb_generator.py "$@" 2>&1) || status=$?
+    if [[ -n "${output}" ]]; then
+        if [[ ${status} -ne 0 ]]; then
+            printf '%s\n' "${output}" >&2
+        else
+            printf '%s\n' "${output}" | grep -v '^Writing to\|warning:' || true
+        fi
+    fi
+    if [[ ${status} -ne 0 ]]; then
+        echo "[STM32] ERROR: nanopb_generator.py failed (exit ${status})" >&2
+        exit 1
+    fi
+}
+
 # --- Generate nanopb sources from .proto files ---
 echo "[STM32] Generating nanopb sources..."
 # Top-level messages
-nanopb_generator.py \
+generate_nanopb \
     --output-dir="${NANOPB_MSG_DIR}" \
     --options-path="${MESSAGES_DIR}" \
     -I "${PROTO_STAGING}" \
-    "${MESSAGES_DIR}"/*.proto 2>&1 | grep -v '^Writing to\|warning:' || true
+    "${MESSAGES_DIR}"/*.proto
 
 # Sensor messages — pass via staging symlink so protoc sees them as
 # "jaiabot/messages/sensor/..." (matching the fully-qualified imports in the protos).
 # Use NANOPB_OUT (not NANOPB_SENSOR_DIR) as --output-dir: nanopb appends the proto's
 # path relative to the -I root (jaiabot/messages/sensor/) automatically, so using
 # NANOPB_SENSOR_DIR would produce a doubly-nested output path.
-nanopb_generator.py \
+generate_nanopb \
     --output-dir="${NANOPB_OUT}" \
     --options-path="${MESSAGES_DIR}/sensor" \
     -I "${PROTO_STAGING}" \
-    "${PROTO_STAGING}/jaiabot/messages/sensor"/*.proto 2>&1 | grep -v '^Writing to\|warning:' || true
+    "${PROTO_STAGING}/jaiabot/messages/sensor"/*.proto
 
 # --- Build ---
 # NANOPB_INC: root of jaiabot/messages/ tree → NANOPB_SENSOR_GEN_DIR = $(NANOPB_INC)/jaiabot/messages/sensor

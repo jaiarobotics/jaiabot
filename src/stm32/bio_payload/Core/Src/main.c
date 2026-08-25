@@ -1750,13 +1750,19 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     {
       uartrxbuff[Size] = '\0';
 
-      if (uQueue.msgCount < UART_QUEUE_SIZE)
+      // Producer side of the single-producer/single-consumer queue: only this
+      // ISR touches wIndex, and rIndex is read but never written here, so no
+      // critical section is needed against process_cmd() in the main loop.
+      uint8_t write_index = uQueue.wIndex;
+      uint8_t next_index = UART_QUEUE_NEXT(write_index);
+
+      if (next_index != uQueue.rIndex)
       {
-        uQueue.msgCount++;
-        if (uQueue.wIndex >= UART_QUEUE_SIZE)
-          uQueue.wIndex = 0;
-        strcpy((char *)uQueue.msgQueue[uQueue.wIndex], (char *)uartrxbuff);
-        uQueue.wIndex++;
+        strcpy((char *)uQueue.msgQueue[write_index], (char *)uartrxbuff);
+
+        // Publish the slot only once it is fully written.
+        UART_QUEUE_BARRIER();
+        uQueue.wIndex = next_index;
       }
       else
       {

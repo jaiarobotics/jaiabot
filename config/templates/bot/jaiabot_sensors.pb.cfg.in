@@ -13,10 +13,4 @@ fluorometer {
 }
 $tsys01_config
 
-fluorometer_2 {
-    sample_rate: 10
-    report_timeout_seconds: 20
-    resend_cfg_timeout_seconds: 20
-    $fluorometer_coefficients_2
-}
-
+$fluorometer_2_config

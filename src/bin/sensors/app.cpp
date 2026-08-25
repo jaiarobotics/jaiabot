@@ -314,6 +314,19 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
 
         // launched with an index so that a second fluorometer gets its own thread
         case sensor::protobuf::TURNER__C_FLUOR:
+            // The payload board announces both fluorometer channels whether or not a second
+            // sensor is wired, and an unconnected channel reads back as a valid zero rather
+            // than failing or timing out. Only a bot configured for a second fluorometer
+            // gets a driver for it; otherwise the phantom instance is dropped here so it is
+            // never reported as data.
+            if (metadata.instance() == sensor::protobuf::INSTANCE_2 && !cfg().has_fluorometer_2())
+            {
+                glog.is_verbose() && glog << "Payload board reported a second fluorometer but "
+                                             "this bot is not configured for one, ignoring it."
+                                          << std::endl;
+                return;
+            }
+
             launch_thread<TurnerCFluorDriver>(metadata.instance(),
                                               metadata.instance() == sensor::protobuf::INSTANCE_2
                                                   ? cfg().fluorometer_2()

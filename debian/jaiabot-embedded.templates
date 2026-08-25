@@ -157,9 +157,12 @@ Description: Encryption passphrase for DCCL (intervehicle) messages: can be any 
 
 Template: jaiabot-embedded/additional_sensors
 Type: multiselect
-Choices: turner_c_fluor, aml, ppk, none
+Choices: turner_c_fluor, turner_c_fluor_2, aml, ppk, none
 Default: none
 Description: Which additional sensors?
+ Select turner_c_fluor_2 only if a second fluorometer is physically installed:
+ the BIO payload board announces two fluorometer channels regardless of what is
+ wired, so an unselected second channel is not read or reported.
 
 Template: jaiabot-embedded/tail_serial_number
 Type: string
