@@ -170,7 +170,6 @@ void controls_periodic_update(void)
         rudder_ = 1500;
         stbd_elevator_ = 1500;
         port_elevator_ = 1500;
-        HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
         motor_timeout_event_pending = true;
     }
 
