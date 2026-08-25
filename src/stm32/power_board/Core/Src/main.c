@@ -137,19 +137,24 @@ static uint32_t adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel)
 }
 
 #define ADC_TO_VOLTS(raw) ((raw) / 4095.0f * 3.3f)
+// VCC_V_SENSE uses the same battery-sense divider calibration as the former
+// Arduino implementation: analogRead(VccVoltage) * 0.0306.
+#define ADC_TO_BATTERY_VOLTS(raw) ((raw) * 0.00503f)
 
 static void power_board_build_telemetry(PowerBoardResponse *response)
 {
   response->time = (uint64_t)HAL_GetTick() * 1000ULL;
 
-  // VS_OP_EN gates the voltage/current sense circuit for VCC.
+  // Enable both the battery-sense rail and its op-amp before reading VCC.
+  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
   HAL_Delay(1);
   response->has_vccvoltage = true;
-  response->vccvoltage = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_1));
+  response->vccvoltage = ADC_TO_BATTERY_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_1));
   response->has_vcccurrent = true;
   response->vcccurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_2));
   HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
 
   response->has_vvcurrent = true;
   response->vvcurrent = ADC_TO_VOLTS(adc_read_channel(&hadc1, ADC_CHANNEL_3));
