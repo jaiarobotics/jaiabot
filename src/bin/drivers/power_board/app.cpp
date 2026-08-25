@@ -290,7 +290,8 @@ int jaiabot::apps::PowerBoard::calculateMotorMicroseconds(const int& input)
 void jaiabot::apps::PowerBoard::handle_control_surfaces(const jaiabot::protobuf::ControlSurfaces& control_surfaces)
 {
     jaiabot::protobuf::PowerBoardRequest request;
-    
+    request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+
     if (control_surfaces.has_motor())
     {
         target_motor_ = calculateMotorMicroseconds(control_surfaces.motor());
@@ -300,14 +301,12 @@ void jaiabot::apps::PowerBoard::handle_control_surfaces(const jaiabot::protobuf:
         {
             target_motor_ = max_reverse_;
         }
-        request.mutable_control_surfaces()->set_motor(target_motor_);
     }
 
     if (control_surfaces.has_rudder())
     {
         rudder_ = surfaceValueToMicroseconds(control_surfaces.rudder(), bounds_.rudder().lower(),
                                              bounds_.rudder().center(), bounds_.rudder().upper());
-        request.mutable_control_surfaces()->set_rudder(rudder_);
     }
 
     if (control_surfaces.has_stbd_elevator())
@@ -315,7 +314,6 @@ void jaiabot::apps::PowerBoard::handle_control_surfaces(const jaiabot::protobuf:
         stbd_elevator_ =
             surfaceValueToMicroseconds(control_surfaces.stbd_elevator(), bounds_.strb().lower(),
                                        bounds_.strb().center(), bounds_.strb().upper());
-        request.mutable_control_surfaces()->set_stbd_elevator(stbd_elevator_);
     }
 
     if (control_surfaces.has_port_elevator())
@@ -323,24 +321,28 @@ void jaiabot::apps::PowerBoard::handle_control_surfaces(const jaiabot::protobuf:
         port_elevator_ =
             surfaceValueToMicroseconds(control_surfaces.port_elevator(), bounds_.port().lower(),
                                        bounds_.port().center(), bounds_.port().upper());
-        request.mutable_control_surfaces()->set_port_elevator(port_elevator_);
     }
 
     if (control_surfaces.has_timeout())
     {
         power_board_timeout_ = control_surfaces.timeout();
-        request.mutable_control_surfaces()->set_timeout(power_board_timeout_);
     }
 
-    //pulls the data from on message to another
+    // Mirror LED state from incoming control message when provided.
     if (control_surfaces.has_led_switch_on())
     {
         led_switch_on = control_surfaces.led_switch_on();
-        request.mutable_control_surfaces()->set_led_switch_on(led_switch_on);
     }
 
-    _time_last_command_received_ = now_microseconds();
+    auto* cs = request.mutable_control_surfaces();
+    cs->set_motor(target_motor_);
+    cs->set_rudder(rudder_);
+    cs->set_stbd_elevator(stbd_elevator_);
+    cs->set_port_elevator(port_elevator_);
+    cs->set_timeout(power_board_timeout_);
+    cs->set_led_switch_on(led_switch_on);
 
+    _time_last_command_received_ = now_microseconds();
 
     send_to_mcu(request);
 }

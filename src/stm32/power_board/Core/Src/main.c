@@ -324,6 +324,9 @@ int main(void)
 
     HAL_IWDG_Refresh(&hiwdg);
 
+    // Dispatch complete USB commands while the board is awake.
+    power_board_command_process();
+
     // Always service the motor ramp/timeout, regardless of state, so it
     // keeps stepping toward target_motor_ (e.g. ramping down to neutral)
     // even after leaving TEST_STATE.
@@ -356,7 +359,8 @@ int main(void)
           }
         }
 
-        current_state = TEST_STATE;
+        // current_state = TEST_STATE;
+        current_state = BROADCAST_STATE;
 
         break;
 
@@ -383,7 +387,7 @@ int main(void)
 
       case TEST_STATE:
         {
-          // Bench test: wait 2 minutes, then run the motor at 1650us for 1
+          // Bench test: wait 2 minutes, then run the motor at 1740us for 1
           // minute. Non-blocking (tracked via HAL_GetTick()) so the IWDG
           // still gets refreshed and host commands still get serviced
           // while this runs.
@@ -1265,53 +1269,30 @@ void power_board_request_low_power_mode_seconds(uint32_t duration_s)
 // Jumps to the STM32 ROM bootloader (system memory), which on this part
 // (STM32L433) re-enumerates the USB peripheral as a DFU device so the
 // application can be reflashed with dfu-util over the same USB cable.
-// Erases the application's first flash page (its vector table) first, so
-// this is a one-way trip: if the reflash is aborted, the board will sit in
-// the bootloader rather than boot back into the old application.
+// Do not erase the application before the jump. If the ROM bootloader fails
+// to start, erasing the vector table would leave the board unable to recover
+// without an SWD programmer.
 void jumpToBootloader(void)
 {
-  HAL_FLASH_Unlock();
-
-  FLASH_EraseInitTypeDef eraseInitStruct = {0};
-  uint32_t pageError = 0;
-
-  eraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
-  eraseInitStruct.Banks = FLASH_BANK_1;
-  eraseInitStruct.Page = 0;
-  eraseInitStruct.NbPages = 1;
-
-  if (HAL_FLASHEx_Erase(&eraseInitStruct, &pageError) != HAL_OK)
-  {
-    HAL_FLASH_GetError();
-    while (1)
-      ;
-  }
-
-  uint32_t address = 0x08000000;
-  uint64_t data_to_write = 0xFFFFFFFFFFFFFFFF;
-
-  if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address, data_to_write) != HAL_OK)
-  {
-    HAL_FLASH_GetError();
-    while (1)
-      ;
-  }
-
-  HAL_FLASH_Lock();
-
   __disable_irq();
 
-  SysTick->CTRL = 0;
+  extern USBD_HandleTypeDef hUsbDeviceFS;
+  USBD_DeInit(&hUsbDeviceFS);
 
+  SysTick->CTRL = 0;
+  SysTick->LOAD = 0;
+  SysTick->VAL = 0;
+
+  HAL_DeInit();
   HAL_RCC_DeInit();
+
+  SCB->VTOR = (uint32_t)BOOTVTAB;
 
   for (uint8_t i = 0; i < (sizeof(NVIC->ICER) / sizeof(NVIC->ICER[0])); i++)
   {
     NVIC->ICER[i] = 0xFFFFFFFF;
     NVIC->ICPR[i] = 0xFFFFFFFF;
   }
-
-  __enable_irq();
 
   __set_MSP(BOOTVTAB->Initial_SP);
 

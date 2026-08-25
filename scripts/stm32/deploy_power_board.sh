@@ -20,6 +20,40 @@ DFU_VID_PID="0483:df11"
 # device (this bot has no lsusb installed, so dfu-util -l is the check).
 sudo apt install -y gcc-arm-none-eabi binutils-arm-none-eabi dfu-util
 
+POWER_BOARD_DEVICE=/dev/power-board
+if [ ! -e "$POWER_BOARD_DEVICE" ]; then
+    for device in /dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_*; do
+        if [ -e "$device" ] && udevadm info -q property -n "$device" 2>/dev/null |
+            grep -q '^ID_VENDOR_ID=0483$' &&
+            udevadm info -q property -n "$device" 2>/dev/null | grep -q '^ID_MODEL_ID=5740$'; then
+            sudo ln -sfn "$device" "$POWER_BOARD_DEVICE"
+            break
+        fi
+    done
+fi
+
+if [ ! -e "$POWER_BOARD_DEVICE" ]; then
+    echo "ERROR: STM32 CDC device not found; cannot create $POWER_BOARD_DEVICE."
+    exit 1
+fi
+
+if ! systemctl is-active --quiet jaiabot_power_board; then
+    sudo systemctl start jaiabot_power_board
+fi
+
+for attempt in $(seq 1 30); do
+    if systemctl is-active --quiet jaiabot_power_board && [ -e "$POWER_BOARD_DEVICE" ]; then
+        sleep 1
+        break
+    fi
+    sleep 1
+done
+
+if ! systemctl is-active --quiet jaiabot_power_board; then
+    echo "ERROR: jaiabot_power_board did not become active."
+    exit 1
+fi
+
 # Publish ENTER_BOOTLOADER_MODE command. jaiabot_power_board must already be
 # running (and connected to /dev/power-board) for this to reach the MCU -
 # it jumps to the STM32 ROM bootloader, which re-enumerates the board's USB
@@ -29,14 +63,40 @@ echo "Sending ENTER_BOOTLOADER_MODE..."
 # so prefer the freshly-built library sitting alongside it in <build_dir>/lib over the
 # system package, which may predate this branch's message changes (e.g. mcu_command).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEV_BUILD_LIB="${SCRIPT_DIR}/../../../../../lib/libjaiabot_messages.so.1"
-if [ -f "$DEV_BUILD_LIB" ]; then
-    export GOBY_TOOL_LOAD_SHARED_LIBRARY="$(cd "$(dirname "$DEV_BUILD_LIB")" && pwd)/libjaiabot_messages.so.1"
-else
-    export GOBY_TOOL_LOAD_SHARED_LIBRARY=/usr/lib/aarch64-linux-gnu/libjaiabot_messages.so.1
+LIB_CANDIDATES=(
+    "${SCRIPT_DIR}/../../build/noble-2.y-arm64/lib/libjaiabot_messages.so.1"
+    "${SCRIPT_DIR}/../../build/amd64/lib/libjaiabot_messages.so.1"
+    "${SCRIPT_DIR}/../../../../../lib/libjaiabot_messages.so.1"
+    "/usr/lib/aarch64-linux-gnu/libjaiabot_messages.so.1"
+)
+
+for candidate in "${LIB_CANDIDATES[@]}"; do
+    if [ -f "$candidate" ]; then
+        export GOBY_TOOL_LOAD_SHARED_LIBRARY="$(cd "$(dirname "$candidate")" && pwd)/$(basename "$candidate")"
+        break
+    fi
+done
+
+if [ -z "${GOBY_TOOL_LOAD_SHARED_LIBRARY:-}" ]; then
+    echo "ERROR: libjaiabot_messages.so.1 not found in the build or installed library paths."
+    exit 1
 fi
-command="goby zeromq publish jaiabot_power_board::mcu_command jaiabot.protobuf.PowerBoardRequest 'time: $(date +%s%6N) mcu_command: ENTER_BOOTLOADER_MODE' --interprocess 'platform: \"${PLATFORM}\"'"
-eval "$command"
+
+# Goby's publish command remains alive after publishing while it services the
+# middleware connection, so bound each invocation before continuing.
+for attempt in $(seq 1 5); do
+    timeout 2s goby zeromq publish \
+        jaiabot_power_board::mcu_command \
+        jaiabot.protobuf.PowerBoardRequest \
+        "time: $(date +%s%6N) power_board_mcu_command: ENTER_BOOTLOADER_MODE" \
+        --interprocess "platform: \"${PLATFORM}\"" || publish_status=$?
+    if [ "${publish_status:-0}" -ne 0 ] && [ "${publish_status}" -ne 124 ]; then
+        echo "ERROR: failed to publish ENTER_BOOTLOADER_MODE (status ${publish_status})."
+        exit "${publish_status}"
+    fi
+    unset publish_status
+    sleep 1
+done
 
 # Give the publish a moment to actually reach the running jaiabot_power_board
 # process (zeromq pub/sub has no delivery ack) before we stop that process.

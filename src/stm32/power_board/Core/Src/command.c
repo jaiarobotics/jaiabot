@@ -96,8 +96,7 @@ void power_board_command_process(void)
         switch (request.power_board_mcu_command)
         {
             case jaiabot_protobuf_PowerBoardMCUCommand_ENTER_BOOTLOADER_MODE:
-                
-                // jumpToBootloader();
+                jumpToBootloader();
                 break;
             default:
                 break;

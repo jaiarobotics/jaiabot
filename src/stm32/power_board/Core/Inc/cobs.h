@@ -46,21 +46,17 @@ static void COBSStuffData(const unsigned char* ptr, unsigned long length, unsign
 static unsigned long COBSUnStuffData(const unsigned char* ptr, unsigned long length, unsigned char* dst)
 {
     const unsigned char* end = ptr + length;
-    unsigned long len = 0;
+    unsigned char* start = dst;
     while (ptr < end)
     {
         int i, code = *ptr++;
-        for (i = 1; i < code; i++)
-        {
-        	len++;
-        	*dst++ = *ptr++;
-        }
-        if (code < 0xFF)
+        for (i = 1; i < code; i++) { *dst++ = *ptr++; }
+        if (code < 0xFF && ptr < end)
         {
             *dst++ = 0;
         }
     }
 
-    return len;
+    return (unsigned long)(dst - start);
 }
 #endif
