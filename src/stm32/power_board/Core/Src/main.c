@@ -243,7 +243,9 @@ static void sleep_until_lptim_wake_counts(uint16_t period)
     {
       break;
     }
-    HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
+    HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+    SystemClock_Config();
     HAL_IWDG_Refresh(&hiwdg);
   }
   HAL_ResumeTick();
@@ -259,8 +261,43 @@ static void sleep_for_ms(uint32_t duration_ms)
   {
     uint32_t chunk_counts = (remaining_counts > LPTIM_MAX_COUNTS) ? LPTIM_MAX_COUNTS : (uint32_t)remaining_counts;
     sleep_until_lptim_wake_counts((uint16_t)(chunk_counts - 1U));
+    if (low_power_request_pending())
+    {
+      return;
+    }
     remaining_counts -= chunk_counts;
   }
+}
+
+static void power_board_enter_low_power_mode(uint32_t duration_ms)
+{
+  extern USBD_HandleTypeDef hUsbDeviceFS;
+
+  target_motor_ = motor_off_;
+  controls_periodic_update();
+
+  HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
+  // HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET); // THIS IS CURRENTLY BACKWARDS. THE OP-AMP ENABLE IS ACTIVE HIGH, BUT THE PCB HAS IT ACTIVE LOW. SO WE'RE JUST INVERTING IT HERE.
+  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_RESET);
+
+  USBD_Stop(&hUsbDeviceFS);
+  USBD_DeInit(&hUsbDeviceFS);
+
+  sleep_for_ms(duration_ms);
+
+  HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
+
+  HAL_Delay(300);
+  MX_USB_DEVICE_Init();
 }
 
 /* USER CODE END 0 */
@@ -323,7 +360,7 @@ int main(void)
   HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port,  EN_5V_REG_Pin,  GPIO_PIN_SET);
   HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET); // THIS IS CURRENTLY BACKWARDS. THE OP-AMP ENABLE IS ACTIVE HIGH, BUT THE PCB HAS IT ACTIVE LOW. SO WE'RE JUST INVERTING IT HERE.
 
   /* Allow USB host time to enumerate the CDC device before the first TX. */
   HAL_Delay(2000);
@@ -385,6 +422,7 @@ int main(void)
 
         // current_state = TEST_STATE;
         current_state = BROADCAST_STATE;
+        // current_state = BROADCAST_STATE;
 
         break;
 
@@ -399,6 +437,7 @@ int main(void)
           usb_transmit(&telemetry_response);
         }
 
+        power_board_request_low_power_mode_seconds(10U);
         // current_state = SLEEP_STATE;
         break;
 
@@ -414,8 +453,8 @@ int main(void)
           }
 
           HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
-          sleep_for_ms(sleep_duration_ms);
-          current_state = INIT_STATE;
+          power_board_enter_low_power_mode(sleep_duration_ms);
+          current_state = low_power_request_pending() ? SLEEP_STATE : INIT_STATE;
         }
         break;
 
