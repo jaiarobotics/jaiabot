@@ -65,6 +65,8 @@ class PowerBoard : public zeromq::MultiThreadApplication<config::PowerBoardConfi
     void send_to_mcu(const jaiabot::protobuf::PowerBoardRequest& request);
     void receive_from_mcu(const goby::middleware::protobuf::IOData& io_msg);
     void receive_metadata_from_mcu(const jaiabot::protobuf::Metadata& metadata);
+    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
+                           goby::middleware::protobuf::HealthState& health_state);
     int calculateMotorMicroseconds(const int& input);
     int surfaceValueToMicroseconds(int input, int lower, int center, int upper);
     void handle_control_surfaces(const jaiabot::protobuf::ControlSurfaces& control_surfaces);
@@ -73,6 +75,8 @@ class PowerBoard : public zeromq::MultiThreadApplication<config::PowerBoardConfi
     int64_t lastAckTime_;
     boost::crc_32_type crc32_calc_;
     jaiabot::protobuf::Bounds bounds_;
+
+    goby::time::SteadyClock::time_point last_report_time_{goby::time::SteadyClock::now()};
 
     uint64_t _time_last_command_received_ = 0;
     bool led_switch_on = true;
@@ -156,6 +160,25 @@ void jaiabot::apps::PowerBoard::loop()
 void jaiabot::apps::PowerBoard::health(goby::middleware::protobuf::ThreadHealth& health)
 {
     health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
+    auto health_state = goby::middleware::protobuf::HEALTH__OK;
+
+    check_last_report(health, health_state);
+
+    health.set_state(health_state);
+}
+
+void jaiabot::apps::PowerBoard::check_last_report(
+    goby::middleware::protobuf::ThreadHealth& health,
+    goby::middleware::protobuf::HealthState& health_state)
+{
+    if (last_report_time_ + std::chrono::seconds(cfg().power_board_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on power board report" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__FAILED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_error(protobuf::ERROR__MISSING_DATA__POWER_BOARD_REPORT);
+    }
 }
 
 void jaiabot::apps::PowerBoard::query_metadata()
@@ -221,6 +244,8 @@ void jaiabot::apps::PowerBoard::receive_from_mcu(const goby::middleware::protobu
 
         jaiabot::protobuf::PowerBoardResponse power_board_msg;
         power_board_msg.ParseFromArray(encoded.data(), encoded.size() - bytes_in_crc32);
+
+        last_report_time_ = goby::time::SteadyClock::now();
 
         glog.is_verbose() && glog << "Received data from MCU: "
                                   << power_board_msg.ShortDebugString() << std::endl;
