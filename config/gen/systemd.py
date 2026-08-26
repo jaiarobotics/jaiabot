@@ -510,6 +510,13 @@ jaiabot_apps = [
      'runs_on': [Type.BOT],
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_power_board',
+     'description': 'JaiaBot Power Board',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_POWER_BOARD',
+     'runs_on': [Type.BOT],
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_engineering',
      'description': 'JaiaBot Engineering Support',
      'template': 'goby-app.service.in',
@@ -542,8 +549,7 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__MOOS_SIM_MOOSDB',
      'runs_on': [Type.BOT],
      'runs_when': Mode.SIMULATION,
-     'service': 'jaiabot_moosdb_sim' # override default service name to avoid conflict with jaiabot_moosdb
-    },
+     'service': 'jaiabot_moosdb_sim'}, # override default service name to avoid conflict with jaiabot_moosdb
     {'exe': 'uSimMarine',
      'description': 'uSimMarine marine vehicle simulator',
      'template': 'moos-app-sim.service.in',
@@ -699,6 +705,7 @@ if 'aml' in jaia_additional_sensors:
         'wanted_by': 'jaiabot_health.service'},
     ]
     jaiabot_apps.extend(jaiabot_aml_sensor)
+    
 if 'ppk' in jaia_additional_sensors:
     jaiabot_ubx_ppk = {
         'exe': 'jaiabot_ubx_ppk.py',

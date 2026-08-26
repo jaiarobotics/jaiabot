@@ -1,0 +1,472 @@
+ARM GAS  /tmp/ccSz5YBE.s 			page 1
+
+
+   1              		.cpu cortex-m4
+   2              		.arch armv7e-m
+   3              		.fpu fpv4-sp-d16
+   4              		.eabi_attribute 27, 1
+   5              		.eabi_attribute 28, 1
+   6              		.eabi_attribute 20, 1
+   7              		.eabi_attribute 21, 1
+   8              		.eabi_attribute 23, 3
+   9              		.eabi_attribute 24, 1
+  10              		.eabi_attribute 25, 1
+  11              		.eabi_attribute 26, 1
+  12              		.eabi_attribute 30, 1
+  13              		.eabi_attribute 34, 1
+  14              		.eabi_attribute 18, 4
+  15              		.file	"diskio.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.file 1 "Middlewares/Third_Party/FatFs/src/diskio.c"
+  20              		.section	.text.disk_status,"ax",%progbits
+  21              		.align	1
+  22              		.global	disk_status
+  23              		.syntax unified
+  24              		.thumb
+  25              		.thumb_func
+  27              	disk_status:
+  28              	.LVL0:
+  29              	.LFB384:
+   1:Middlewares/Third_Party/FatFs/src/diskio.c **** /*-----------------------------------------------------------------------*/
+   2:Middlewares/Third_Party/FatFs/src/diskio.c **** /* Low level disk I/O module skeleton for FatFs     (C)ChaN, 2017        */
+   3:Middlewares/Third_Party/FatFs/src/diskio.c **** /*                                                                       */
+   4:Middlewares/Third_Party/FatFs/src/diskio.c **** /*   Portions COPYRIGHT 2017 STMicroelectronics                          */
+   5:Middlewares/Third_Party/FatFs/src/diskio.c **** /*   Portions Copyright (C) 2017, ChaN, all right reserved               */
+   6:Middlewares/Third_Party/FatFs/src/diskio.c **** /*-----------------------------------------------------------------------*/
+   7:Middlewares/Third_Party/FatFs/src/diskio.c **** /* If a working storage control module is available, it should be        */
+   8:Middlewares/Third_Party/FatFs/src/diskio.c **** /* attached to the FatFs via a glue function rather than modifying it.   */
+   9:Middlewares/Third_Party/FatFs/src/diskio.c **** /* This is an example of glue functions to attach various existing      */
+  10:Middlewares/Third_Party/FatFs/src/diskio.c **** /* storage control modules to the FatFs module with a defined API.       */
+  11:Middlewares/Third_Party/FatFs/src/diskio.c **** /*-----------------------------------------------------------------------*/
+  12:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  13:Middlewares/Third_Party/FatFs/src/diskio.c **** /* Includes ------------------------------------------------------------------*/
+  14:Middlewares/Third_Party/FatFs/src/diskio.c **** #include "diskio.h"
+  15:Middlewares/Third_Party/FatFs/src/diskio.c **** #include "ff_gen_drv.h"
+  16:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  17:Middlewares/Third_Party/FatFs/src/diskio.c **** #if defined ( __GNUC__ )
+  18:Middlewares/Third_Party/FatFs/src/diskio.c **** #ifndef __weak
+  19:Middlewares/Third_Party/FatFs/src/diskio.c **** #define __weak __attribute__((weak))
+  20:Middlewares/Third_Party/FatFs/src/diskio.c **** #endif
+  21:Middlewares/Third_Party/FatFs/src/diskio.c **** #endif
+  22:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  23:Middlewares/Third_Party/FatFs/src/diskio.c **** /* Private typedef -----------------------------------------------------------*/
+  24:Middlewares/Third_Party/FatFs/src/diskio.c **** /* Private define ------------------------------------------------------------*/
+  25:Middlewares/Third_Party/FatFs/src/diskio.c **** /* Private variables ---------------------------------------------------------*/
+  26:Middlewares/Third_Party/FatFs/src/diskio.c **** extern Disk_drvTypeDef  disk;
+  27:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  28:Middlewares/Third_Party/FatFs/src/diskio.c **** /* Private function prototypes -----------------------------------------------*/
+  29:Middlewares/Third_Party/FatFs/src/diskio.c **** /* Private functions ---------------------------------------------------------*/
+ARM GAS  /tmp/ccSz5YBE.s 			page 2
+
+
+  30:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  31:Middlewares/Third_Party/FatFs/src/diskio.c **** /**
+  32:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @brief  Gets Disk Status
+  33:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  pdrv: Physical drive number (0..)
+  34:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @retval DSTATUS: Operation status
+  35:Middlewares/Third_Party/FatFs/src/diskio.c ****   */
+  36:Middlewares/Third_Party/FatFs/src/diskio.c **** DSTATUS disk_status (
+  37:Middlewares/Third_Party/FatFs/src/diskio.c **** 	BYTE pdrv		/* Physical drive number to identify the drive */
+  38:Middlewares/Third_Party/FatFs/src/diskio.c **** )
+  39:Middlewares/Third_Party/FatFs/src/diskio.c **** {
+  30              		.loc 1 39 1 view -0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 0, uses_anonymous_args = 0
+  34              		.loc 1 39 1 is_stmt 0 view .LVU1
+  35 0000 08B5     		push	{r3, lr}
+  36              	.LCFI0:
+  37              		.cfi_def_cfa_offset 8
+  38              		.cfi_offset 3, -8
+  39              		.cfi_offset 14, -4
+  40:Middlewares/Third_Party/FatFs/src/diskio.c ****   DSTATUS stat;
+  40              		.loc 1 40 3 is_stmt 1 view .LVU2
+  41:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  42:Middlewares/Third_Party/FatFs/src/diskio.c ****   stat = disk.drv[pdrv]->disk_status(disk.lun[pdrv]);
+  41              		.loc 1 42 3 view .LVU3
+  42              		.loc 1 42 18 is_stmt 0 view .LVU4
+  43 0002 044B     		ldr	r3, .L3
+  44 0004 03EB8002 		add	r2, r3, r0, lsl #2
+  45 0008 5268     		ldr	r2, [r2, #4]
+  46              		.loc 1 42 24 view .LVU5
+  47 000a 5268     		ldr	r2, [r2, #4]
+  48              		.loc 1 42 10 view .LVU6
+  49 000c 0344     		add	r3, r3, r0
+  50 000e 187A     		ldrb	r0, [r3, #8]	@ zero_extendqisi2
+  51              	.LVL1:
+  52              		.loc 1 42 10 view .LVU7
+  53 0010 9047     		blx	r2
+  54              	.LVL2:
+  43:Middlewares/Third_Party/FatFs/src/diskio.c ****   return stat;
+  55              		.loc 1 43 3 is_stmt 1 view .LVU8
+  44:Middlewares/Third_Party/FatFs/src/diskio.c **** }
+  56              		.loc 1 44 1 is_stmt 0 view .LVU9
+  57 0012 08BD     		pop	{r3, pc}
+  58              	.L4:
+  59              		.align	2
+  60              	.L3:
+  61 0014 00000000 		.word	disk
+  62              		.cfi_endproc
+  63              	.LFE384:
+  65              		.section	.text.disk_initialize,"ax",%progbits
+  66              		.align	1
+  67              		.global	disk_initialize
+  68              		.syntax unified
+  69              		.thumb
+  70              		.thumb_func
+  72              	disk_initialize:
+  73              	.LVL3:
+ARM GAS  /tmp/ccSz5YBE.s 			page 3
+
+
+  74              	.LFB385:
+  45:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  46:Middlewares/Third_Party/FatFs/src/diskio.c **** /**
+  47:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @brief  Initializes a Drive
+  48:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  pdrv: Physical drive number (0..)
+  49:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @retval DSTATUS: Operation status
+  50:Middlewares/Third_Party/FatFs/src/diskio.c ****   */
+  51:Middlewares/Third_Party/FatFs/src/diskio.c **** DSTATUS disk_initialize (
+  52:Middlewares/Third_Party/FatFs/src/diskio.c **** 	BYTE pdrv				/* Physical drive nmuber to identify the drive */
+  53:Middlewares/Third_Party/FatFs/src/diskio.c **** )
+  54:Middlewares/Third_Party/FatFs/src/diskio.c **** {
+  75              		.loc 1 54 1 is_stmt 1 view -0
+  76              		.cfi_startproc
+  77              		@ args = 0, pretend = 0, frame = 0
+  78              		@ frame_needed = 0, uses_anonymous_args = 0
+  79              		.loc 1 54 1 is_stmt 0 view .LVU11
+  80 0000 08B5     		push	{r3, lr}
+  81              	.LCFI1:
+  82              		.cfi_def_cfa_offset 8
+  83              		.cfi_offset 3, -8
+  84              		.cfi_offset 14, -4
+  55:Middlewares/Third_Party/FatFs/src/diskio.c ****   DSTATUS stat = RES_OK;
+  85              		.loc 1 55 3 is_stmt 1 view .LVU12
+  86              	.LVL4:
+  56:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  57:Middlewares/Third_Party/FatFs/src/diskio.c ****   if(disk.is_initialized[pdrv] == 0)
+  87              		.loc 1 57 3 view .LVU13
+  88              		.loc 1 57 25 is_stmt 0 view .LVU14
+  89 0002 084B     		ldr	r3, .L9
+  90 0004 1B5C     		ldrb	r3, [r3, r0]	@ zero_extendqisi2
+  91              		.loc 1 57 5 view .LVU15
+  92 0006 53B9     		cbnz	r3, .L7
+  58:Middlewares/Third_Party/FatFs/src/diskio.c ****   {
+  59:Middlewares/Third_Party/FatFs/src/diskio.c ****     disk.is_initialized[pdrv] = 1;
+  93              		.loc 1 59 5 is_stmt 1 view .LVU16
+  94              		.loc 1 59 31 is_stmt 0 view .LVU17
+  95 0008 064B     		ldr	r3, .L9
+  96 000a 0122     		movs	r2, #1
+  97 000c 1A54     		strb	r2, [r3, r0]
+  60:Middlewares/Third_Party/FatFs/src/diskio.c ****     stat = disk.drv[pdrv]->disk_initialize(disk.lun[pdrv]);
+  98              		.loc 1 60 5 is_stmt 1 view .LVU18
+  99              		.loc 1 60 20 is_stmt 0 view .LVU19
+ 100 000e 03EB8002 		add	r2, r3, r0, lsl #2
+ 101 0012 5268     		ldr	r2, [r2, #4]
+ 102              		.loc 1 60 26 view .LVU20
+ 103 0014 1268     		ldr	r2, [r2]
+ 104              		.loc 1 60 12 view .LVU21
+ 105 0016 0344     		add	r3, r3, r0
+ 106 0018 187A     		ldrb	r0, [r3, #8]	@ zero_extendqisi2
+ 107              	.LVL5:
+ 108              		.loc 1 60 12 view .LVU22
+ 109 001a 9047     		blx	r2
+ 110              	.LVL6:
+ 111              	.L6:
+  61:Middlewares/Third_Party/FatFs/src/diskio.c ****   }
+  62:Middlewares/Third_Party/FatFs/src/diskio.c ****   return stat;
+ 112              		.loc 1 62 3 is_stmt 1 view .LVU23
+ARM GAS  /tmp/ccSz5YBE.s 			page 4
+
+
+  63:Middlewares/Third_Party/FatFs/src/diskio.c **** }
+ 113              		.loc 1 63 1 is_stmt 0 view .LVU24
+ 114 001c 08BD     		pop	{r3, pc}
+ 115              	.LVL7:
+ 116              	.L7:
+  55:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+ 117              		.loc 1 55 11 view .LVU25
+ 118 001e 0020     		movs	r0, #0
+ 119              	.LVL8:
+  55:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+ 120              		.loc 1 55 11 view .LVU26
+ 121 0020 FCE7     		b	.L6
+ 122              	.L10:
+ 123 0022 00BF     		.align	2
+ 124              	.L9:
+ 125 0024 00000000 		.word	disk
+ 126              		.cfi_endproc
+ 127              	.LFE385:
+ 129              		.section	.text.disk_read,"ax",%progbits
+ 130              		.align	1
+ 131              		.global	disk_read
+ 132              		.syntax unified
+ 133              		.thumb
+ 134              		.thumb_func
+ 136              	disk_read:
+ 137              	.LVL9:
+ 138              	.LFB386:
+  64:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  65:Middlewares/Third_Party/FatFs/src/diskio.c **** /**
+  66:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @brief  Reads Sector(s)
+  67:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  pdrv: Physical drive number (0..)
+  68:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  *buff: Data buffer to store read data
+  69:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  sector: Sector address (LBA)
+  70:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  count: Number of sectors to read (1..128)
+  71:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @retval DRESULT: Operation result
+  72:Middlewares/Third_Party/FatFs/src/diskio.c ****   */
+  73:Middlewares/Third_Party/FatFs/src/diskio.c **** DRESULT disk_read (
+  74:Middlewares/Third_Party/FatFs/src/diskio.c **** 	BYTE pdrv,		/* Physical drive nmuber to identify the drive */
+  75:Middlewares/Third_Party/FatFs/src/diskio.c **** 	BYTE *buff,		/* Data buffer to store read data */
+  76:Middlewares/Third_Party/FatFs/src/diskio.c **** 	DWORD sector,	        /* Sector address in LBA */
+  77:Middlewares/Third_Party/FatFs/src/diskio.c **** 	UINT count		/* Number of sectors to read */
+  78:Middlewares/Third_Party/FatFs/src/diskio.c **** )
+  79:Middlewares/Third_Party/FatFs/src/diskio.c **** {
+ 139              		.loc 1 79 1 is_stmt 1 view -0
+ 140              		.cfi_startproc
+ 141              		@ args = 0, pretend = 0, frame = 0
+ 142              		@ frame_needed = 0, uses_anonymous_args = 0
+ 143              		.loc 1 79 1 is_stmt 0 view .LVU28
+ 144 0000 38B5     		push	{r3, r4, r5, lr}
+ 145              	.LCFI2:
+ 146              		.cfi_def_cfa_offset 16
+ 147              		.cfi_offset 3, -16
+ 148              		.cfi_offset 4, -12
+ 149              		.cfi_offset 5, -8
+ 150              		.cfi_offset 14, -4
+  80:Middlewares/Third_Party/FatFs/src/diskio.c ****   DRESULT res;
+ 151              		.loc 1 80 3 is_stmt 1 view .LVU29
+ARM GAS  /tmp/ccSz5YBE.s 			page 5
+
+
+  81:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  82:Middlewares/Third_Party/FatFs/src/diskio.c ****   res = disk.drv[pdrv]->disk_read(disk.lun[pdrv], buff, sector, count);
+ 152              		.loc 1 82 3 view .LVU30
+ 153              		.loc 1 82 17 is_stmt 0 view .LVU31
+ 154 0002 044C     		ldr	r4, .L13
+ 155 0004 04EB8005 		add	r5, r4, r0, lsl #2
+ 156 0008 6D68     		ldr	r5, [r5, #4]
+ 157              		.loc 1 82 23 view .LVU32
+ 158 000a AD68     		ldr	r5, [r5, #8]
+ 159              		.loc 1 82 9 view .LVU33
+ 160 000c 0444     		add	r4, r4, r0
+ 161 000e 207A     		ldrb	r0, [r4, #8]	@ zero_extendqisi2
+ 162              	.LVL10:
+ 163              		.loc 1 82 9 view .LVU34
+ 164 0010 A847     		blx	r5
+ 165              	.LVL11:
+  83:Middlewares/Third_Party/FatFs/src/diskio.c ****   return res;
+ 166              		.loc 1 83 3 is_stmt 1 view .LVU35
+  84:Middlewares/Third_Party/FatFs/src/diskio.c **** }
+ 167              		.loc 1 84 1 is_stmt 0 view .LVU36
+ 168 0012 38BD     		pop	{r3, r4, r5, pc}
+ 169              	.L14:
+ 170              		.align	2
+ 171              	.L13:
+ 172 0014 00000000 		.word	disk
+ 173              		.cfi_endproc
+ 174              	.LFE386:
+ 176              		.section	.text.disk_write,"ax",%progbits
+ 177              		.align	1
+ 178              		.global	disk_write
+ 179              		.syntax unified
+ 180              		.thumb
+ 181              		.thumb_func
+ 183              	disk_write:
+ 184              	.LVL12:
+ 185              	.LFB387:
+  85:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+  86:Middlewares/Third_Party/FatFs/src/diskio.c **** /**
+  87:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @brief  Writes Sector(s)
+  88:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  pdrv: Physical drive number (0..)
+  89:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  *buff: Data to be written
+  90:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  sector: Sector address (LBA)
+  91:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  count: Number of sectors to write (1..128)
+  92:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @retval DRESULT: Operation result
+  93:Middlewares/Third_Party/FatFs/src/diskio.c ****   */
+  94:Middlewares/Third_Party/FatFs/src/diskio.c **** #if _USE_WRITE == 1
+  95:Middlewares/Third_Party/FatFs/src/diskio.c **** DRESULT disk_write (
+  96:Middlewares/Third_Party/FatFs/src/diskio.c **** 	BYTE pdrv,		/* Physical drive nmuber to identify the drive */
+  97:Middlewares/Third_Party/FatFs/src/diskio.c **** 	const BYTE *buff,	/* Data to be written */
+  98:Middlewares/Third_Party/FatFs/src/diskio.c **** 	DWORD sector,		/* Sector address in LBA */
+  99:Middlewares/Third_Party/FatFs/src/diskio.c **** 	UINT count        	/* Number of sectors to write */
+ 100:Middlewares/Third_Party/FatFs/src/diskio.c **** )
+ 101:Middlewares/Third_Party/FatFs/src/diskio.c **** {
+ 186              		.loc 1 101 1 is_stmt 1 view -0
+ 187              		.cfi_startproc
+ 188              		@ args = 0, pretend = 0, frame = 0
+ 189              		@ frame_needed = 0, uses_anonymous_args = 0
+ARM GAS  /tmp/ccSz5YBE.s 			page 6
+
+
+ 190              		.loc 1 101 1 is_stmt 0 view .LVU38
+ 191 0000 38B5     		push	{r3, r4, r5, lr}
+ 192              	.LCFI3:
+ 193              		.cfi_def_cfa_offset 16
+ 194              		.cfi_offset 3, -16
+ 195              		.cfi_offset 4, -12
+ 196              		.cfi_offset 5, -8
+ 197              		.cfi_offset 14, -4
+ 102:Middlewares/Third_Party/FatFs/src/diskio.c ****   DRESULT res;
+ 198              		.loc 1 102 3 is_stmt 1 view .LVU39
+ 103:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+ 104:Middlewares/Third_Party/FatFs/src/diskio.c ****   res = disk.drv[pdrv]->disk_write(disk.lun[pdrv], buff, sector, count);
+ 199              		.loc 1 104 3 view .LVU40
+ 200              		.loc 1 104 17 is_stmt 0 view .LVU41
+ 201 0002 044C     		ldr	r4, .L17
+ 202 0004 04EB8005 		add	r5, r4, r0, lsl #2
+ 203 0008 6D68     		ldr	r5, [r5, #4]
+ 204              		.loc 1 104 23 view .LVU42
+ 205 000a ED68     		ldr	r5, [r5, #12]
+ 206              		.loc 1 104 9 view .LVU43
+ 207 000c 0444     		add	r4, r4, r0
+ 208 000e 207A     		ldrb	r0, [r4, #8]	@ zero_extendqisi2
+ 209              	.LVL13:
+ 210              		.loc 1 104 9 view .LVU44
+ 211 0010 A847     		blx	r5
+ 212              	.LVL14:
+ 105:Middlewares/Third_Party/FatFs/src/diskio.c ****   return res;
+ 213              		.loc 1 105 3 is_stmt 1 view .LVU45
+ 106:Middlewares/Third_Party/FatFs/src/diskio.c **** }
+ 214              		.loc 1 106 1 is_stmt 0 view .LVU46
+ 215 0012 38BD     		pop	{r3, r4, r5, pc}
+ 216              	.L18:
+ 217              		.align	2
+ 218              	.L17:
+ 219 0014 00000000 		.word	disk
+ 220              		.cfi_endproc
+ 221              	.LFE387:
+ 223              		.section	.text.disk_ioctl,"ax",%progbits
+ 224              		.align	1
+ 225              		.global	disk_ioctl
+ 226              		.syntax unified
+ 227              		.thumb
+ 228              		.thumb_func
+ 230              	disk_ioctl:
+ 231              	.LVL15:
+ 232              	.LFB388:
+ 107:Middlewares/Third_Party/FatFs/src/diskio.c **** #endif /* _USE_WRITE == 1 */
+ 108:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+ 109:Middlewares/Third_Party/FatFs/src/diskio.c **** /**
+ 110:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @brief  I/O control operation
+ 111:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  pdrv: Physical drive number (0..)
+ 112:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  cmd: Control code
+ 113:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  *buff: Buffer to send/receive control data
+ 114:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @retval DRESULT: Operation result
+ 115:Middlewares/Third_Party/FatFs/src/diskio.c ****   */
+ 116:Middlewares/Third_Party/FatFs/src/diskio.c **** #if _USE_IOCTL == 1
+ 117:Middlewares/Third_Party/FatFs/src/diskio.c **** DRESULT disk_ioctl (
+ARM GAS  /tmp/ccSz5YBE.s 			page 7
+
+
+ 118:Middlewares/Third_Party/FatFs/src/diskio.c **** 	BYTE pdrv,		/* Physical drive nmuber (0..) */
+ 119:Middlewares/Third_Party/FatFs/src/diskio.c **** 	BYTE cmd,		/* Control code */
+ 120:Middlewares/Third_Party/FatFs/src/diskio.c **** 	void *buff		/* Buffer to send/receive control data */
+ 121:Middlewares/Third_Party/FatFs/src/diskio.c **** )
+ 122:Middlewares/Third_Party/FatFs/src/diskio.c **** {
+ 233              		.loc 1 122 1 is_stmt 1 view -0
+ 234              		.cfi_startproc
+ 235              		@ args = 0, pretend = 0, frame = 0
+ 236              		@ frame_needed = 0, uses_anonymous_args = 0
+ 237              		.loc 1 122 1 is_stmt 0 view .LVU48
+ 238 0000 10B5     		push	{r4, lr}
+ 239              	.LCFI4:
+ 240              		.cfi_def_cfa_offset 8
+ 241              		.cfi_offset 4, -8
+ 242              		.cfi_offset 14, -4
+ 123:Middlewares/Third_Party/FatFs/src/diskio.c ****   DRESULT res;
+ 243              		.loc 1 123 3 is_stmt 1 view .LVU49
+ 124:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+ 125:Middlewares/Third_Party/FatFs/src/diskio.c ****   res = disk.drv[pdrv]->disk_ioctl(disk.lun[pdrv], cmd, buff);
+ 244              		.loc 1 125 3 view .LVU50
+ 245              		.loc 1 125 17 is_stmt 0 view .LVU51
+ 246 0002 044B     		ldr	r3, .L21
+ 247 0004 03EB8004 		add	r4, r3, r0, lsl #2
+ 248 0008 6468     		ldr	r4, [r4, #4]
+ 249              		.loc 1 125 23 view .LVU52
+ 250 000a 2469     		ldr	r4, [r4, #16]
+ 251              		.loc 1 125 9 view .LVU53
+ 252 000c 0344     		add	r3, r3, r0
+ 253 000e 187A     		ldrb	r0, [r3, #8]	@ zero_extendqisi2
+ 254              	.LVL16:
+ 255              		.loc 1 125 9 view .LVU54
+ 256 0010 A047     		blx	r4
+ 257              	.LVL17:
+ 126:Middlewares/Third_Party/FatFs/src/diskio.c ****   return res;
+ 258              		.loc 1 126 3 is_stmt 1 view .LVU55
+ 127:Middlewares/Third_Party/FatFs/src/diskio.c **** }
+ 259              		.loc 1 127 1 is_stmt 0 view .LVU56
+ 260 0012 10BD     		pop	{r4, pc}
+ 261              	.L22:
+ 262              		.align	2
+ 263              	.L21:
+ 264 0014 00000000 		.word	disk
+ 265              		.cfi_endproc
+ 266              	.LFE388:
+ 268              		.section	.text.get_fattime,"ax",%progbits
+ 269              		.align	1
+ 270              		.weak	get_fattime
+ 271              		.syntax unified
+ 272              		.thumb
+ 273              		.thumb_func
+ 275              	get_fattime:
+ 276              	.LFB389:
+ 128:Middlewares/Third_Party/FatFs/src/diskio.c **** #endif /* _USE_IOCTL == 1 */
+ 129:Middlewares/Third_Party/FatFs/src/diskio.c **** 
+ 130:Middlewares/Third_Party/FatFs/src/diskio.c **** /**
+ 131:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @brief  Gets Time from RTC
+ 132:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @param  None
+ARM GAS  /tmp/ccSz5YBE.s 			page 8
+
+
+ 133:Middlewares/Third_Party/FatFs/src/diskio.c ****   * @retval Time in DWORD
+ 134:Middlewares/Third_Party/FatFs/src/diskio.c ****   */
+ 135:Middlewares/Third_Party/FatFs/src/diskio.c **** __weak DWORD get_fattime (void)
+ 136:Middlewares/Third_Party/FatFs/src/diskio.c **** {
+ 277              		.loc 1 136 1 is_stmt 1 view -0
+ 278              		.cfi_startproc
+ 279              		@ args = 0, pretend = 0, frame = 0
+ 280              		@ frame_needed = 0, uses_anonymous_args = 0
+ 281              		@ link register save eliminated.
+ 137:Middlewares/Third_Party/FatFs/src/diskio.c ****   return 0;
+ 282              		.loc 1 137 3 view .LVU58
+ 138:Middlewares/Third_Party/FatFs/src/diskio.c **** }
+ 283              		.loc 1 138 1 is_stmt 0 view .LVU59
+ 284 0000 0020     		movs	r0, #0
+ 285 0002 7047     		bx	lr
+ 286              		.cfi_endproc
+ 287              	.LFE389:
+ 289              		.text
+ 290              	.Letext0:
+ 291              		.file 2 "Middlewares/Third_Party/FatFs/src/integer.h"
+ 292              		.file 3 "Middlewares/Third_Party/FatFs/src/diskio.h"
+ 293              		.file 4 "/usr/lib/gcc/arm-none-eabi/13.2.1/include/stdint.h"
+ 294              		.file 5 "Middlewares/Third_Party/FatFs/src/ff_gen_drv.h"
+ 295              		.file 6 "Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ll_dma.h"
+ARM GAS  /tmp/ccSz5YBE.s 			page 9
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 diskio.c
+     /tmp/ccSz5YBE.s:21     .text.disk_status:00000000 $t
+     /tmp/ccSz5YBE.s:27     .text.disk_status:00000000 disk_status
+     /tmp/ccSz5YBE.s:61     .text.disk_status:00000014 $d
+     /tmp/ccSz5YBE.s:66     .text.disk_initialize:00000000 $t
+     /tmp/ccSz5YBE.s:72     .text.disk_initialize:00000000 disk_initialize
+     /tmp/ccSz5YBE.s:125    .text.disk_initialize:00000024 $d
+     /tmp/ccSz5YBE.s:130    .text.disk_read:00000000 $t
+     /tmp/ccSz5YBE.s:136    .text.disk_read:00000000 disk_read
+     /tmp/ccSz5YBE.s:172    .text.disk_read:00000014 $d
+     /tmp/ccSz5YBE.s:177    .text.disk_write:00000000 $t
+     /tmp/ccSz5YBE.s:183    .text.disk_write:00000000 disk_write
+     /tmp/ccSz5YBE.s:219    .text.disk_write:00000014 $d
+     /tmp/ccSz5YBE.s:224    .text.disk_ioctl:00000000 $t
+     /tmp/ccSz5YBE.s:230    .text.disk_ioctl:00000000 disk_ioctl
+     /tmp/ccSz5YBE.s:264    .text.disk_ioctl:00000014 $d
+     /tmp/ccSz5YBE.s:269    .text.get_fattime:00000000 $t
+     /tmp/ccSz5YBE.s:275    .text.get_fattime:00000000 get_fattime
+
+UNDEFINED SYMBOLS
+disk

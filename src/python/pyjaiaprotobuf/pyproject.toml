@@ -21,3 +21,12 @@ Homepage = "https://www.jaia.tech"
 
 [tool.setuptools.packages.find]
 where = ["src"] # Specify where Setuptools should look for packages
+
+[tool.setuptools]
+# nanopb.proto generates a standalone nanopb_pb2.py at the src root (not inside
+# a package directory), so packages.find alone won't include it in the wheel.
+py-modules = ["nanopb_pb2"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+

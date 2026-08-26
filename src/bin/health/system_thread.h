@@ -19,6 +19,8 @@
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/arduino.pb.h"
 
+#include "jaiabot/messages/power_board/power_board.pb.h"
+
 #include "config.pb.h"
 
 namespace jaiabot
@@ -139,7 +141,7 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
     void open_vehicle_database();
     void load_motor_usage_from_db();
     void log_motor(int32_t motor_micros, double usage_duration_seconds, float rpm);
-    void log_usage(const jaiabot::protobuf::ArduinoResponse& arduino_response);
+    void log_usage(const jaiabot::protobuf::PowerBoardResponse& power_board_response);
     void update_total_motor_usage();
     sqlite3* vehicle_db_;
     std::map<int32_t, jaiabot::protobuf::MotorUsageBin> motor_usage_cache_;
