@@ -144,6 +144,13 @@ target_interval = 1.0 / args.data_rate
 next_send_time = time.perf_counter()  
 
 while True:
+    # Pace at the top of the loop so error paths that `continue` are throttled too
+    now = time.perf_counter()
+    if next_send_time > now:
+        time.sleep(next_send_time - now)
+    # if we fell behind (e.g. a long sensor outage) resync rather than bursting
+    next_send_time = max(next_send_time + target_interval, time.perf_counter())
+
     # Read data from sensor
     try:
         p_mbar, t_celsius = sensor.read()
@@ -172,14 +179,4 @@ while True:
         log.debug(f'Sent: {envelope} to {udp_gateway_address}')
     except Exception as e:
         log.error(f"Failed to send data: {e}")
-
-    # Adjust next send time dynamically
-    next_send_time += target_interval
-
-    # Calculate time remaining before next send
-    sleep_time = max(0, next_send_time - time.perf_counter())
-
-    # Sleep for the remaining interval
-    time.sleep(sleep_time)
-
 
