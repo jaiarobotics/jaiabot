@@ -81,6 +81,16 @@ initial_mission {
             conductivity: inf
         }
     }
+    recovery_action {
+      thrust_percentage: 60
+      thrust_duration: 5 # seconds
+      count: 3
+    }
+    recovery_action {
+      thrust_percentage: -30
+      thrust_duration: 5 # seconds
+      count: 1
+    }
   }
 }
 

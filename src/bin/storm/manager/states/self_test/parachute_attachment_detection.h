@@ -30,6 +30,7 @@ struct ParachuteAttachmentDetection
 {
     using StateBase = boost::statechart::state<ParachuteAttachmentDetection, SelfTest>;
     using ThresholdBase = ThresholdCommon<ParachuteAttachmentDetection>;
+    using ThresholdBase::react;
 
     ParachuteAttachmentDetection(typename StateBase::my_context c) : StateBase(c)
     {
@@ -43,8 +44,20 @@ struct ParachuteAttachmentDetection
     }
     ~ParachuteAttachmentDetection() {}
 
+    boost::statechart::result react(const EvParachuteReleased&)
+    {
+        if (this->machine().parachute_attachment_recovery_attempted())
+        {
+            this->machine().insert_warning(
+                protobuf::
+                    WARNING__STORM_SELF_TEST__PARACHUTE_BELIEVED_ATTACHED__RECOVERY_SUCCESSFUL);
+        }
+
+        return transit<AirDescentDataOffload>();
+    }
+
     using local_reactions = boost::mpl::list<
-        boost::statechart::transition<EvParachuteReleased, AirDescentDataOffload>,
+        boost::statechart::custom_reaction<EvParachuteReleased>,
         boost::statechart::transition<EvParachuteStillAttached, ParachuteAttachmentRecovery>>;
     using common_reactions = ThresholdBase::common_reactions; // typedef for jaia_state_tool
 

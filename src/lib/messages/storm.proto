@@ -168,7 +168,25 @@ message StormMission
     {
         required Threshold cleared_threshold = 1;
         required Threshold entangled_threshold = 2;
-        // TBD
+
+        message Action
+        {
+            required int32 thrust_percentage = 1
+                [(dccl.field) = { min: -100 max: 100 }];
+
+            required uint32 thrust_duration = 2 [
+                default = 5,
+                (dccl.field) = {
+                    min: 0
+                    max: 60
+                    units { base_dimensions: "T" }
+                }
+            ];
+            optional uint32 count = 3
+                [default = 1, (dccl.field) = { min: 1 max: 10 }];
+        }
+
+        repeated Action recovery_action = 3 [(dccl.field) = { max_repeat: 10 }];
     }
 
     optional ParachuteAttachmentDetectionParams parachute =

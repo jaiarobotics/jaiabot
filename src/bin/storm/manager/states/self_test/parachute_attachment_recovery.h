@@ -29,11 +29,78 @@ struct ParachuteAttachmentRecovery
 {
     using StateBase = boost::statechart::state<ParachuteAttachmentRecovery, SelfTest>;
 
-    ParachuteAttachmentRecovery(typename StateBase::my_context c) : StateBase(c) {}
-    ~ParachuteAttachmentRecovery() {}
+    ParachuteAttachmentRecovery(typename StateBase::my_context c) : StateBase(c)
+    {
+        this->machine().mark_parachute_attachment_recovery_attempted();
+        start_next_action();
+    }
 
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvParachuteAttachmentRecoveryComplete,
-                                                       AirDescentDataOffload>>;
+    ~ParachuteAttachmentRecovery() { send_motor_command(0, 0); }
+
+    void loop(const EvLoop&)
+    {
+        if (goby::time::SteadyClock::now() < action_end_time_)
+            return;
+
+        send_motor_command(0, 0);
+        start_next_action();
+    }
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvParachuteAttachmentRecoveryComplete,
+                                      ParachuteAttachmentDetection>,
+        boost::statechart::in_state_reaction<EvLoop, ParachuteAttachmentRecovery,
+                                             &ParachuteAttachmentRecovery::loop>>;
+
+  private:
+    void start_next_action()
+    {
+        const auto& actions = this->machine().mission().parachute().recovery_action();
+
+        if (action_index_ == actions.size())
+        {
+            post_event(EvParachuteAttachmentRecoveryComplete());
+            return;
+        }
+
+        const auto& action = actions.Get(action_index_);
+        if (action_repeat_ == action.count())
+        {
+            ++action_index_;
+            action_repeat_ = 0;
+            start_next_action();
+            return;
+        }
+
+        ++action_repeat_;
+        const auto duration = action.thrust_duration_with_units<goby::time::SITime>();
+        const auto action_duration =
+            goby::time::convert_duration<goby::time::SteadyClock::duration>(duration);
+        send_motor_command(action.thrust_percentage(), static_cast<int>(duration.value()) + 1);
+        action_end_time_ = goby::time::SteadyClock::now() + action_duration;
+    }
+
+    void send_motor_command(int thrust_percentage, int timeout_seconds)
+    {
+        protobuf::LowControl command;
+        command.set_id(command_id_++);
+        command.set_vehicle(this->cfg().bot_id());
+        command.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+
+        auto* control_surfaces = command.mutable_control_surfaces();
+        control_surfaces->set_motor(thrust_percentage);
+        control_surfaces->set_port_elevator(0);
+        control_surfaces->set_stbd_elevator(0);
+        control_surfaces->set_rudder(0);
+        control_surfaces->set_timeout(timeout_seconds);
+        control_surfaces->set_led_switch_on(true);
+
+        this->interprocess().publish<::jaiabot::groups::low_control>(command);
+    }
+
+    int action_index_{0};
+    int action_repeat_{0};
+    uint32_t command_id_{0};
+    goby::time::SteadyClock::time_point action_end_time_{goby::time::SteadyClock::now()};
 };
 #endif

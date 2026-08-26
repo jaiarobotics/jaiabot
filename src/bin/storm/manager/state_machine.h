@@ -76,6 +76,15 @@ struct StormManagerStateMachine
     void mark_launch_tube_recovery_attempted() { launch_tube_recovery_attempted_ = true; }
     bool launch_tube_recovery_attempted() const { return launch_tube_recovery_attempted_; }
 
+    void mark_parachute_attachment_recovery_attempted()
+    {
+        parachute_attachment_recovery_attempted_ = true;
+    }
+    bool parachute_attachment_recovery_attempted() const
+    {
+        return parachute_attachment_recovery_attempted_;
+    }
+
     void add_id(protobuf::TaskPacket& task_packet) { task_packet.set_storm_id(task_packet_id_++); }
     std::deque<protobuf::TaskPacket>& task_packet_queue() { return task_packet_queue_; }
 
@@ -94,6 +103,7 @@ struct StormManagerStateMachine
     protobuf::GeographicCoordinate latest_location_;
 
     bool launch_tube_recovery_attempted_{false};
+    bool parachute_attachment_recovery_attempted_{false};
     int task_packet_id_{0};
     std::deque<protobuf::TaskPacket> task_packet_queue_;
 };
