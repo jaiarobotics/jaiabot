@@ -23,6 +23,7 @@ if "jaia_electronics_stack" in os.environ:
 
 jaia_temperature_sensor_type = os.environ.get('jaia_temperature_sensor_type', default='bar30')
 tsys01_enabled = jaia_temperature_sensor_type == 'tsys01'
+jaia_pressure_sensor_type = os.environ.get('jaia_pressure_sensor_type', default='bar30')
 
 if jaia_electronics_stack == '0':
     helm_app_tick=1
@@ -73,7 +74,8 @@ bot_type = os.environ.get("jaia_bot_type", default="HYDRO")
 echo_enabled=(bot_type == "ECHO")
 # Ignore health warnings from UDP gateway if data comes from BIO payload board
 salinity_enabled=(bot_type != "BIO")
-bar30_enabled=(bot_type != "BIO")
+bar30_enabled=(bot_type != "BIO") and jaia_pressure_sensor_type != 'barxt'
+barxt_enabled=(bot_type != "BIO") and jaia_pressure_sensor_type == 'barxt'
 storm_enabled=(bot_type == "STORM")
 
 jaia_motor_harness_type="NONE"
@@ -257,7 +259,7 @@ else:
     total_imu_issue_checks = 4
 
 
-pressure_sensor_type = 'sim' if is_simulation() else 'bar30'
+pressure_sensor_type = 'sim' if is_simulation() else jaia_pressure_sensor_type
 
 
 if common.app == 'gobyd':    
@@ -330,6 +332,7 @@ elif common.app == 'jaiabot_udp_gateway':
                                      echo_enabled=str(echo_enabled).lower(),
                                      salinity_enabled=str(salinity_enabled).lower(),
                                      bar30_enabled=str(bar30_enabled).lower(),
+                                     barxt_enabled=str(barxt_enabled).lower(),
                                      tsys01_enabled=str(tsys01_enabled).lower()))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
