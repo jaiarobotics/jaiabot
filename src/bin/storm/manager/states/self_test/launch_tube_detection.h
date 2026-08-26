@@ -31,6 +31,7 @@ struct LaunchTubeDetection
     using StateBase = boost::statechart::state<LaunchTubeDetection, SelfTest>;
 
     using ThresholdBase = ThresholdCommon<LaunchTubeDetection>;
+    using ThresholdBase::react;
 
     LaunchTubeDetection(typename StateBase::my_context c) : StateBase(c)
     {
@@ -44,9 +45,21 @@ struct LaunchTubeDetection
     }
     ~LaunchTubeDetection() {}
 
-    using local_reactions = boost::mpl::list<
-        boost::statechart::transition<EvLaunchTubeCleared, ParachuteAttachmentDetection>,
-        boost::statechart::transition<EvLaunchTubeStuck, LaunchTubeRecovery>>;
+    boost::statechart::result react(const EvLaunchTubeCleared&)
+    {
+        if (this->machine().launch_tube_recovery_attempted())
+        {
+            this->machine().insert_warning(
+                protobuf::
+                    WARNING__STORM_SELF_TEST__LAUNCH_TUBE_BELIEVED_STUCK__RECOVERY_SUCCESSFUL);
+        }
+
+        return transit<ParachuteAttachmentDetection>();
+    }
+
+    using local_reactions =
+        boost::mpl::list<boost::statechart::custom_reaction<EvLaunchTubeCleared>,
+                         boost::statechart::transition<EvLaunchTubeStuck, LaunchTubeRecovery>>;
 
     using common_reactions = ThresholdBase::common_reactions; // typedef for jaia_state_tool
 

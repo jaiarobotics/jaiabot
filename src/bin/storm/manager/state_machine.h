@@ -73,6 +73,9 @@ struct StormManagerStateMachine
     void set_latest_location(const protobuf::GeographicCoordinate& loc) { latest_location_ = loc; };
     const protobuf::GeographicCoordinate& latest_location() { return latest_location_; }
 
+    void mark_launch_tube_recovery_attempted() { launch_tube_recovery_attempted_ = true; }
+    bool launch_tube_recovery_attempted() const { return launch_tube_recovery_attempted_; }
+
     void add_id(protobuf::TaskPacket& task_packet) { task_packet.set_storm_id(task_packet_id_++); }
     std::deque<protobuf::TaskPacket>& task_packet_queue() { return task_packet_queue_; }
 
@@ -90,6 +93,7 @@ struct StormManagerStateMachine
     jaiabot::protobuf::StormMission mission_;
     protobuf::GeographicCoordinate latest_location_;
 
+    bool launch_tube_recovery_attempted_{false};
     int task_packet_id_{0};
     std::deque<protobuf::TaskPacket> task_packet_queue_;
 };
