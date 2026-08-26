@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
 import { JCC_CONTAINER } from "../../../utils/constants";
-import { listSavedMissionSets } from "./mission-set-storage";
+import { listSavedMissionSetsFromHub } from "./mission-set-storage";
 import SaveMissionSetButton from "./SaveMissionSetButton/SaveMissionSetButton";
 import LoadMissionSetButton from "./LoadMissionSetButton/LoadMissionSetButton";
 import DeleteMissionSetButton from "./DeleteMissionSetButton/DeleteMissionSetButton";
@@ -28,6 +28,22 @@ interface MissionSetRowProps {
  */
 export function MissionSetStorageDialog(props: DialogProps) {
     const [saveName, setSaveName] = useState(props.missionSetName);
+    const [savedNames, setSavedNames] = useState<string[]>([]);
+
+    /**
+     * Fetches the list of saved mission set names from the Hub and updates state.
+     *
+     * @returns {void}.
+     */
+    const refreshNames = () => {
+        listSavedMissionSetsFromHub()
+            .then(setSavedNames)
+            .catch(() => setSavedNames([]));
+    };
+
+    useEffect(() => {
+        refreshNames();
+    }, []);
 
     /**
      * Updates the selected mission set in state
@@ -51,7 +67,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
     return createPortal(
         <div className="jaia-dialog-container">
             <div className="blocking-overlay" onClick={() => {}}>
-                <div className="jaia-dialog mission-set-storage">
+                <div className="jaia-dialog set-storage">
                     <h1>Mission Set Storage</h1>
                     <div className="input-container">
                         <label>Mission Set Name</label>
@@ -63,10 +79,10 @@ export function MissionSetStorageDialog(props: DialogProps) {
                             }}
                         />
                     </div>
-                    <div className="mission-sets-container">
+                    <div className="stored-sets-container">
                         <label>Stored Mission Sets</label>
-                        <ul className="mission-set-names">
-                            {listSavedMissionSets().map((name) => {
+                        <ul className="stored-set-names">
+                            {savedNames.map((name) => {
                                 return (
                                     <MissionSetRow
                                         name={name}
@@ -79,9 +95,22 @@ export function MissionSetStorageDialog(props: DialogProps) {
                         </ul>
                     </div>
                     <div className="button-row">
-                        <DeleteMissionSetButton saveName={saveName} clearSaveName={clearSaveName} />
-                        <SaveMissionSetButton saveName={saveName} />
-                        <LoadMissionSetButton saveName={saveName} onClose={props.onClose} />
+                        <DeleteMissionSetButton
+                            saveName={saveName}
+                            savedNames={savedNames}
+                            clearSaveName={clearSaveName}
+                            onDeleted={refreshNames}
+                        />
+                        <SaveMissionSetButton
+                            saveName={saveName}
+                            savedNames={savedNames}
+                            onSaved={refreshNames}
+                        />
+                        <LoadMissionSetButton
+                            saveName={saveName}
+                            savedNames={savedNames}
+                            onClose={props.onClose}
+                        />
                     </div>
                     <div className="line-break"></div>
                     <div className="button-row">
@@ -97,7 +126,7 @@ export function MissionSetStorageDialog(props: DialogProps) {
 }
 
 /**
- * Produces a clickable list item for each mission set in local storage
+ * Produces a clickable list item for each mission set in the hub
  */
 function MissionSetRow(props: MissionSetRowProps) {
     /**
@@ -106,7 +135,7 @@ function MissionSetRow(props: MissionSetRowProps) {
      * @returns {string} Class name that will apply correct style
      */
     const getClassName = () => {
-        let className = "mission-set-row";
+        let className = "stored-set-row";
         if (props.name === props.saveName) {
             className += " selected";
         }

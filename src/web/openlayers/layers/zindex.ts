@@ -8,6 +8,7 @@ layersZIndexes.set(LayerTitles.HUB_LAYER, 7);
 layersZIndexes.set(LayerTitles.MISSION_LAYER, 6);
 layersZIndexes.set(LayerTitles.GRID_LAYER, 6);
 layersZIndexes.set(LayerTitles.GHOST_MISSION_LAYER, 5);
+layersZIndexes.set(LayerTitles.EXCLUSION_ZONE_LAYER, 4);
 layersZIndexes.set(LayerTitles.RALLY_LAYER, 4);
 layersZIndexes.set(LayerTitles.DIVE_LAYER, 3);
 layersZIndexes.set(LayerTitles.DRIFT_LAYER, 3);

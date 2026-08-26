@@ -59,4 +59,15 @@ message ArduinoDebug
 {
     optional bool arduino_restarted = 1 [default = false];
     optional bool arduino_not_responding = 2 [default = false];
+    optional bool arduino_flash_requested = 3 [default = false];
+}
+
+message ArduinoIssue
+{
+    enum SolutionType
+    {
+        FLASH_ARDUINO = 0;
+    }
+
+    required SolutionType solution = 1 [default = FLASH_ARDUINO];
 }

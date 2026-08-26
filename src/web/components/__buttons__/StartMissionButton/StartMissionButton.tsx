@@ -12,7 +12,7 @@ import { Button } from "@mui/material";
 import Bot from "../../../data/bots/bot";
 import Mission from "../../../data/mission_set/mission";
 
-import { Command, CommandType } from "../../../types/protobuf-types";
+import { Command, CommandType, MissionPlan } from "../../../types/protobuf-types";
 import { DialogActions } from "../../../types/context-types";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 
@@ -98,6 +98,24 @@ export default function StartMissionButton(props: Props) {
     };
 
     /**
+     * Sends a mission plan to the bot
+     *
+     * @param {MissionPlan} plan The mission plan to send
+     * @returns {void}
+     */
+    const sendPlan = async (plan: MissionPlan) => {
+        const startMissionCommand: Command = {
+            bot_id: props.bot.getBotID(),
+            type: CommandType.MISSION_PLAN,
+            plan,
+        };
+        const response = await sendBotCommand(startMissionCommand);
+        if (response && response.status === "ok") {
+            jaiaDispatch({ type: JaiaActions.SENT_COMMAND, command: startMissionCommand });
+        }
+    };
+
+    /**
      * Closes the dialog box then acts based on the type of button clicked
      *
      * @param {DialogActions} dialogAction Indicates which button was clicked
@@ -105,20 +123,9 @@ export default function StartMissionButton(props: Props) {
      */
     const onDialogClose = async (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
-
-        if (dialogAction === DialogActions.CONFIRMED) {
-            const missionPlan = props.mission.packageMissionForHub(props.missionSetName);
-
-            const startMissionCommand: Command = {
-                bot_id: props.bot.getBotID(),
-                type: CommandType.MISSION_PLAN,
-                plan: missionPlan,
-            };
-            const response = await sendBotCommand(startMissionCommand);
-            if (response && response.status === "ok") {
-                jaiaDispatch({ type: JaiaActions.SENT_COMMAND, command: startMissionCommand });
-            }
-        }
+        if (dialogAction !== DialogActions.CONFIRMED) return;
+        const missionPlan = props.mission.packageMissionForHub(props.missionSetName);
+        await sendPlan(missionPlan);
     };
 
     return (

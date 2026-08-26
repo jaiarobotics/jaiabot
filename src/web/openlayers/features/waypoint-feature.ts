@@ -51,10 +51,12 @@ export function generateWaypointFeature(
         geometry: new Point(fromLonLat(coordinate, view.getProjection())),
     });
 
+    const isBypass = mission.getWaypoint(waypointNum).getIsBypass();
     feature.set("type", MapFeatureTypes.WAYPOINT);
     feature.set("waypointNum", waypointNum);
     feature.set("missionID", mission.getMissionID());
-    feature.setStyle(generateWaypointStyle(waypointNum, mission));
+    feature.set("isBypass", isBypass);
+    feature.setStyle(generateWaypointStyle(waypointNum, mission, isBypass));
     return feature;
 }
 
@@ -65,7 +67,18 @@ export function generateWaypointFeature(
  * @param {Mission} mission Used to determine color of waypoint
  * @returns {Style} Style to be applied to a waypoint feature
  */
-function generateWaypointStyle(waypointNum: number, mission: Mission) {
+function generateWaypointStyle(waypointNum: number, mission: Mission, isBypass = false) {
+    if (isBypass) {
+        return new Style({
+            image: new Icon({
+                src: waypointIcon,
+                anchor: [0.5, 1],
+                color: OpenLayersColors.BYPASS,
+            }),
+            zIndex: getWaypointZIndex(mission, waypointNum),
+        });
+    }
+
     const task = mission.getWaypoint(waypointNum).getTask();
 
     return new Style({

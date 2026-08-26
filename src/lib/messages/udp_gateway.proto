@@ -4,6 +4,7 @@ import "jaiabot/messages/sensor/salinity.proto";
 import "jaiabot/messages/sensor/pressure_temperature.proto";
 import "jaiabot/messages/tsys01.proto";
 import "jaiabot/messages/echo.proto";
+import "jaiabot/messages/ppk.proto";
 
 package jaiabot.protobuf;
 
@@ -23,6 +24,10 @@ message UDPGatewayEnvelope
 
         EchoCommand echo_command = 6;
         EchoData echo_data = 7;
+
+        // jaiabot_ubx_ppk.py
+        UBXChunk ubx_chunk = 8;
+
     }
 
 }

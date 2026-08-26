@@ -1,0 +1,50 @@
+@import "../../../style/stylesheets/vars.less";
+
+#zones-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.zone-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: white;
+    gap: 12px;
+}
+
+.zone-row-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 4px;
+}
+
+.zone-label {
+    font-weight: 600;
+    color: @cc-text-color;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.zone-vertex-count {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.zone-row-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.zone-row button {
+    min-width: unset !important;
+}

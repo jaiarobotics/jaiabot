@@ -12,7 +12,7 @@ from jaiabot.messages.engineering_pb2 import Engineering
 from jaiabot.messages.jaia_dccl_pb2 import *
 
 from pyjaia.task_packet_database import TaskPacketDatabase
-from pyjaia.utils import now_utime
+from pyjaia.utils import now_utime, now_utime_sim_corrected
 
 import google.protobuf.json_format
 
@@ -115,23 +115,17 @@ class Interface:
             except socket.timeout:
                 self.ping_portal()
 
-    def update_active_link_status_ages(self, status: dict, warp_factor: int = 1):
-        now = self.current_utime()
+    def update_active_link_status_ages(self, status: dict):
+        warp_factor = int(self.metadata.get('simulation_warp', 1))
+        simulation_reference_time = int(self.metadata.get('simulation_reference_time', 0))
+
+        now = now_utime_sim_corrected(warp_factor, simulation_reference_time)
+
         status['active_link_status_age'] = {
             entry['link']: (now - int(entry['last_received_time'])) / warp_factor
             for entry in status.get('active_links', [])
             if 'last_received_time' in entry
         }
-    
-    def current_utime(self):
-        """Return the current time in microseconds.
-        
-        In real-time operation, equivalent to now_utime().
-        In simulation, time is warped from the reference time by the warp factor.
-        """
-        warp_factor = int(self.metadata.get('simulation_warp', 1))
-        simulation_reference_time = int(self.metadata.get('simulation_reference_time', 0))
-        return now_utime(warp_factor, simulation_reference_time)
 
     def process_portal_to_client_message(self, data):
         if len(data) > 0:
@@ -153,6 +147,9 @@ class Interface:
 
             if msg.HasField('bot_status'):
                 botStatus = protobufMessageToDict(msg.bot_status)
+
+                # Set the time of last status to now
+                botStatus['lastStatusReceivedTime'] = now_utime()
 
                 bot_id = botStatus['bot_id']
                 self.bots[bot_id] = botStatus
@@ -186,7 +183,7 @@ class Interface:
                         self.task_packet_database._update()
 
                 # Set the time of last status to now
-                hubStatus['lastStatusReceivedTime'] = self.current_utime()
+                hubStatus['lastStatusReceivedTime'] = now_utime()
 
                 self.hubs[hubStatus['hub_id']] = hubStatus
 
@@ -251,7 +248,7 @@ class Interface:
         command = google.protobuf.json_format.ParseDict(command_dict, Command())
 
         logging.debug(f'Sending command: {command}')
-        command.time = self.current_utime()
+        command.time = now_utime()
 
         if (
                 command.type == Command.MISSION_PLAN
@@ -273,7 +270,7 @@ class Interface:
         logging.debug(f'Sending single waypoint coordinate: {single_waypoint_mission_dict}')
 
         if 'lat' in single_waypoint_mission_dict and 'lon' in single_waypoint_mission_dict:
-            command_dict = {'bot_id': 1, 'time': self.current_utime(), 'type': 'MISSION_PLAN', 
+            command_dict = {'bot_id': 1, 'time': now_utime(), 'type': 'MISSION_PLAN', 
                             'plan': {'start': 'START_IMMEDIATELY', 'movement': 'TRANSIT', 
                             'goal': [{'location': {'lat': single_waypoint_mission_dict["lat"], 'lon': single_waypoint_mission_dict["lon"]}}], 
                             'recovery': {'recover_at_final_goal': True}, 'speeds': {'transit': 2, 'stationkeep_outer': 1.5}}}
@@ -331,7 +328,7 @@ class Interface:
     def post_command_for_hub(self, command_for_hub_dict, clientId):
         command_for_hub = google.protobuf.json_format.ParseDict(command_for_hub_dict, CommandForHub())
         logging.debug(f'Sending command for hub: {command_for_hub}')
-        command_for_hub.time = self.current_utime()
+        command_for_hub.time = now_utime()
         msg = ClientToPortalMessage()
         msg.command_for_hub.CopyFrom(command_for_hub)
         
@@ -348,7 +345,7 @@ class Interface:
         for bot in self.bots.values():
             cmd = {
                 'bot_id': bot['bot_id'],
-                'time': str(self.current_utime()),
+                'time': str(now_utime()),
                 'type': 'STOP', 
             }
             self.post_command(cmd, clientId)
@@ -363,7 +360,7 @@ class Interface:
         for bot in self.bots.values():
             cmd = {
                 'bot_id': bot['bot_id'],
-                'time': str(self.current_utime()),
+                'time': str(now_utime()),
                 'type': 'ACTIVATE' 
             }
             self.post_command(cmd, clientId)
@@ -379,7 +376,7 @@ class Interface:
         for bot in self.bots.values():
             cmd = {
                 'bot_id': bot['bot_id'],
-                'time': str(self.current_utime()),
+                'time': str(now_utime()),
                 'type': 'RECOVERED' 
             }
             self.post_command(cmd, clientId)
@@ -395,7 +392,7 @@ class Interface:
         for bot in self.bots.values():
             cmd = {
                 'bot_id': bot['bot_id'],
-                'time': str(self.current_utime()),
+                'time': str(now_utime()),
                 'type': 'NEXT_TASK'
             }
             self.post_command(cmd, clientId)
@@ -405,23 +402,16 @@ class Interface:
         return {'status': 'ok'}
 
     def get_status(self):
-        now = self.current_utime()
-        warp_factor = int(self.metadata.get('simulation_warp', 1))
-
         for hub in self.hubs.values():
             # Add the time since last status
-            hub['portalStatusAge'] = now - hub['lastStatusReceivedTime']
+            hub['portalStatusAge'] = now_utime() - hub['lastStatusReceivedTime']
 
 
         for bot in self.bots.values():
-            # Derive last received time from the most recent link timestamp
-            link_times = [int(entry['last_received_time']) for entry in bot.get('active_links', [])
-                  if 'last_received_time' in entry]
-            
-            if link_times:
-                bot['portalStatusAge'] = int((now - max(link_times)) / warp_factor)
+            # Add the time since last status
+            bot['portalStatusAge'] = now_utime() - bot['lastStatusReceivedTime']
 
-            self.update_active_link_status_ages(bot, warp_factor)
+            self.update_active_link_status_ages(bot)
 
             if bot['bot_id'] in self.bots_engineering:
                 bot['engineering'] = self.bots_engineering[bot['bot_id']]
@@ -447,7 +437,7 @@ class Interface:
         Returns:
             {[hub_id: int]: HubStatus}: The status for all online hubs
         """
-        now = self.current_utime()
+        now = now_utime()
 
         for hub in self.hubs.values():
             # Add the time since last status
@@ -458,7 +448,7 @@ class Interface:
 
     def post_engineering_command(self, command, clientId):
         cmd = google.protobuf.json_format.ParseDict(command, Engineering())
-        cmd.time = self.current_utime()
+        cmd.time = now_utime()
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
 
@@ -474,7 +464,7 @@ class Interface:
 
     def post_ep_command(self, command, clientId):
         cmd = google.protobuf.json_format.ParseDict(command, Engineering())
-        cmd.time = self.current_utime()
+        cmd.time = now_utime()
         msg = ClientToPortalMessage()
         msg.engineering_command.CopyFrom(cmd)
 

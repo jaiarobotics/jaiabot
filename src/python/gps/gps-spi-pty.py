@@ -382,6 +382,7 @@ def _configure_messages(spi, is_f9p: bool) -> None:
     # RXM-RAWX and RXM-SFRBX are F9P only - M9N does not produce raw measurements.
     f9p_messages = [
         MessageType("RXM-RAWX",  0x02, 0x15, 1),
+        MessageType("RXM-SFRBX", 0x02, 0x13, 1),
     ]
 
     for msg in common_messages + (f9p_messages if is_f9p else []):

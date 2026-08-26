@@ -45,9 +45,7 @@ if [[ "$comms_mode" == *w* && "$comms_mode" == *x* ]]; then
     jaia_comms_mode="xbee,wifi"
 fi
 
-if [[ "$n_hubs" != "1" ]]; then
-    ${script_dir}/../../../rootfs/customization/includes.chroot/etc/jaiabot/init/jaia-create-ansible-inventory.sh -b $(seq -s , 1 ${n_bots}) -h $(seq -s , 1 ${n_hubs}) -f 0 > /etc/jaiabot/inventory.yml
-fi
+${script_dir}/../../../rootfs/customization/includes.chroot/etc/jaiabot/init/jaia-create-ansible-inventory.sh -b $(seq -s , 1 ${n_bots}) -h $(seq -s , 1 ${n_hubs}) -f 0 > /etc/jaiabot/inventory.yml
 
 launchdelay=100
 
@@ -55,6 +53,7 @@ cat <<EOF > ${preseedfile}
 export jaia_mode=simulation
 export jaia_sim_type=single_host
 export jaia_comms_mode=${jaia_comms_mode}
+export jaia_motor_harness_type=RPM_AND_THERMISTOR
 source "$(dirname ${BASH_SOURCE:-${(%):-%x}})/../../preseed.goby"
 EOF
 

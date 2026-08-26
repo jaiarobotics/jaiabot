@@ -36,6 +36,7 @@ class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThrea
   public:
     ArduinoSimThread(const jaiabot::config::ArduinoSimThread& cfg);
     ~ArduinoSimThread() {}
+    void handle_arduino_command(const jaiabot::protobuf::ArduinoCommand& arduino_command);
 
   private:
     void loop() override;

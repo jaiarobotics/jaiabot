@@ -6,6 +6,7 @@ import MissionsList from "./MissionsList/MissionsList";
 import DeleteMissionButton from "../../components/__buttons__/DeleteMissionButton/DeleteMissionButton";
 import MissionSpeedSliders from "./MissionSpeedSliders/MissionSpeedSliders";
 import MissionSetStorageButton from "./MissionSetStorage/MissionSetStorageButton";
+import MissionSetEditorButton from "./MissionSetEditor/MissionSetEditorButton";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { MDI_BUTTON_SIZE } from "../../utils/constants";
@@ -77,6 +78,7 @@ export default function MissionsPanel() {
                 </Button>
                 <DeleteMissionButton deleteAll={true} />
                 <MissionSetStorageButton missionSetName={jaiaContext.missionSet.getName()} />
+                <MissionSetEditorButton />
                 <Button
                     className="jaia-button"
                     aria-label="auto-assign-bots"
@@ -102,7 +104,7 @@ function MissionSetName(props: Props) {
     if (props.numOfMissions > 0) {
         return (
             <input
-                className="mission-set-name"
+                className="set-name"
                 placeholder="Mission Set Name"
                 value={props.missionSetName}
                 onChange={(event) => props.handleNameChange(event.target.value)}

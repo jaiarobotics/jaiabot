@@ -35,4 +35,5 @@ message CTDManager
     optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
 
     // any specific configuration parameters for your application
+    optional string log_dir = 3;
 }

@@ -79,6 +79,7 @@ constexpr goby::middleware::Group self_command{"jaiabot::self_command"};
 constexpr goby::middleware::Group state_change{"jaiabot::state_change"};
 constexpr goby::middleware::Group state_delegate_request{"jaiabot::state_delegate_request"};
 constexpr goby::middleware::Group state_delegate_response{"jaiabot::state_delegate_response"};
+constexpr goby::middleware::Group bot2bot_data{"jaiabot::bot2bot_data"};
 
 // hub manager
 constexpr goby::middleware::Group hub_status{"jaiabot::hub_status"};
@@ -91,6 +92,7 @@ constexpr goby::middleware::Group systemd_report_ack{"jaiabot::systemd_report_ac
 constexpr goby::middleware::Group motor_udp_in{"motor_udp_in"};
 constexpr goby::middleware::Group motor_udp_out{"motor_udp_out"};
 constexpr goby::middleware::Group motor_status{"jaiabot::motor_status"};
+constexpr goby::middleware::Group motor_usage_report{"jaiabot::motor_usage_report"};
 
 // DCCL (intervehicle)
 // The group used is an API version integer that allows us to check for incompatible
@@ -120,6 +122,7 @@ constexpr goby::middleware::Group hub_command_result{
 constexpr goby::middleware::Group arduino_from_pi{"jaiabot::arduino_from_pi"};
 constexpr goby::middleware::Group arduino_to_pi{"jaiabot::arduino_to_pi"};
 constexpr goby::middleware::Group arduino_debug{"jaiabot::arduino_debug"};
+constexpr goby::middleware::Group arduino_issue{"jaiabot::arduino_issue"};
 
 // Metadata
 constexpr goby::middleware::Group metadata{"jaiabot::metadata"};

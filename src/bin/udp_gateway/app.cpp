@@ -92,7 +92,7 @@ class UDPGateway
     goby::time::SteadyClock::time_point last_echo_trigger_issue_time_{
         goby::time::SteadyClock::now()};
     goby::middleware::protobuf::UDPEndPoint echo_udp_src_;
-
+    goby::middleware::protobuf::UDPEndPoint ppk_udp_src_;
 };
 
 } // namespace apps
@@ -212,6 +212,13 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             glog.is_debug1() && glog << "Received EchoData" << endl;
             break;
         }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kUbxChunk:
+        {
+            interprocess().publish<groups::ppk>(envelope.ubx_chunk());
+            ppk_udp_src_ = udp_src;
+            glog.is_debug1() && glog << "Received UBXChunk" << endl;
+            break;
+        }
         default:
         {
             glog.is_warn() && glog << "Received unknown payload in UDPGatewayEnvelope"
@@ -252,7 +259,6 @@ void jaiabot::apps::UDPGateway::send_echo_command(const jaiabot::protobuf::EchoC
     *envelope.mutable_echo_command() = echo_command;
     send_envelope(envelope, echo_udp_src_);
 }
-
 
 void jaiabot::apps::UDPGateway::loop()
 {

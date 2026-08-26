@@ -230,12 +230,17 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_HUB = 702 [
         (jaia.ev).rest_api.presence = GUARANTEED
-    ];  // INTERVEHICLE_API_VERSION_mismatch - hub version < bot_version
+    ];  // INTERVEHICLE_API_VERSION_mismatch - hub version < bot_version OR this
+        // hub version < other hub version
     ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_BOT = 703 [
         (jaia.ev).rest_api.presence = GUARANTEED
     ];  // INTERVEHICLE_API_VERSION_mismatch - hub_version > bot_version
     ERROR__ARDUINO_CONNECTION_FAILED = 704
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__VERSION__MISMATCH_INTERVEHICLE__UPGRADE_OTHER_HUB = 705
+        [(jaia.ev).rest_api.presence =
+             GUARANTEED];  // INTERVEHICLE_API_VERSION_mismatch - other hub
+                           // version < this hub version
 
     // jaiabot_sensor
     ERROR__INIT_FAILED__BLUE_ROBOTICS__BAR30 = 800

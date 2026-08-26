@@ -6,6 +6,7 @@ import { Coordinate } from "ol/coordinate";
 import { layers } from "../layers/layers";
 import { gridLayer } from "../layers/vector/grid-layer";
 import { measureLayer } from "../layers/vector/measure-layer";
+import { exclusionZoneLayer } from "../layers/vector/exclusion-zone-layer";
 import { touches } from "../controls/touches";
 import { controls } from "../controls/controls";
 import { view } from "../views/view";
@@ -61,6 +62,9 @@ export function handleMapModeChange(mapMode: MapModes) {
         case MapModes.MEASURE:
             map.addInteraction(measureLayer.createDrawInteraction());
             break;
+        case MapModes.EXCLUSION_ZONE_DRAWING:
+            // Zone panel active — Draw is managed separately via setExclusionZoneDrawActive().
+            break;
         default:
             changeCursor(Cursors.DEFAULT);
     }
@@ -80,7 +84,35 @@ export function handleMapModeChange(mapMode: MapModes) {
         gridPlan.reset();
     }
 
+    if (mapMode !== MapModes.EXCLUSION_ZONE_DRAWING) {
+        const draw = exclusionZoneLayer.getDraw();
+        if (draw && exclusionZoneLayer.isDrawActive()) {
+            draw.abortDrawing();
+            map.removeInteraction(draw);
+            exclusionZoneLayer.setDrawActive(false);
+        }
+    }
+
     jaiaGlobal.setMapMode(mapMode);
+}
+
+/**
+ * Activates or deactivates the exclusion zone Draw interaction on the map.
+ * Only activate while the map is in EXCLUSION_ZONE_DRAWING mode.
+ * @param {boolean} active Whether to activate or deactivate the exclusion zone Draw interaction
+ * @returns {void}
+ */
+export function setExclusionZoneDrawActive(active: boolean) {
+    const draw = exclusionZoneLayer.getDraw();
+    if (!draw) return;
+    if (active) {
+        exclusionZoneLayer.setDrawActive(true);
+        map.addInteraction(draw);
+    } else {
+        draw.abortDrawing();
+        map.removeInteraction(draw);
+        exclusionZoneLayer.setDrawActive(false);
+    }
 }
 
 /**

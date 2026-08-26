@@ -32,4 +32,12 @@ linux_hw {
 
 motor {
     motor_harness_type: $motor_harness_type
+    vehicle_db_path: "/var/log/jaiabot/db/bot_vin_${jaia_bot_vin}.db"
+    tail_serial_number: "${jaia_tail_serial_number}"
+}
+
+arduino_recovery {
+    enable_auto_flash: true
+    max_attempts: 3
+    flash_script: "jaia_firm_arduino_flash.sh"
 }

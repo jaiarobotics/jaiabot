@@ -7,6 +7,13 @@ import {
 import { GridPlan, GridPlanningStates, GridPanSnapshot } from "../data/survey_planner/grid-plan";
 import { RallyPoints, RallyPointsSnapshot } from "../data/rally_points/rally-points";
 import { JaiaGlobal, JaiaGlobalSnapshot } from "../data/jaia_global/jaia-global";
+import {
+    ExclusionZone,
+    ExclusionZoneSet,
+    ExclusionZoneSetSnapshot,
+    PendingReroute,
+    PendingWaypointRemoval,
+} from "../data/exclusion_zones/exclusion-zone-set";
 import { Bots } from "../data/bots/bots";
 import { Hubs } from "../data/hubs/hubs";
 import { TaskPackets } from "../data/task_packets/task-packets";
@@ -18,10 +25,11 @@ import {
     SelectedTaskPacket,
     NodeTypes,
     TaskParameterPair,
+    CoordinateSystem,
 } from "./jaia-system-types";
 import { Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
 
-// Type used to captue the JCC context
+// Type used to capture the JCC context
 export interface JaiaContextType {
     bots: Bots;
     hubs: Hubs;
@@ -31,9 +39,14 @@ export interface JaiaContextType {
     rallyPoints: RallyPoints;
     jaiaGlobal: JaiaGlobal;
     missionsManager: MissionsManager;
+    exclusionZoneSet: ExclusionZoneSet;
+    pendingReroute: PendingReroute | null;
+    pendingWaypointRemoval: PendingWaypointRemoval | null;
+    placementError: string;
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
+    visibleWaypointSection: WaypointSections;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     mapLayerAccordionStates: MapLayerAccordionStates;
@@ -41,7 +54,7 @@ export interface JaiaContextType {
     previousTick: number;
 }
 
-// snapshot of contect data not held in data model
+// snapshot of context data not held in data model
 export interface JaiaContextDataSnapshot {
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
@@ -59,6 +72,7 @@ export interface JaiaSnapshot {
     jaiaGlobalSnapshot: JaiaGlobalSnapshot;
     missionsManagerSnapshot: MissionsManagerSnapshot;
     jaiaContextDataSnapshot: JaiaContextDataSnapshot;
+    exclusionZoneSetSnapshot: ExclusionZoneSetSnapshot;
 }
 
 // Type used for actions dispatched to the context provider
@@ -67,18 +81,22 @@ export interface JaiaAction {
     botID?: number;
     missionID?: number;
     rallyID?: number;
+    zoneID?: number;
 
     clickedNode?: SelectedNode;
     clickedWaypoint?: SelectedWaypoint;
     clickedTaskPacket?: SelectedTaskPacket;
 
     waypoint?: Waypoint;
+    waypoints?: Waypoint[];
     location?: GeographicCoordinate;
+    locations?: GeographicCoordinate[];
     task?: Task;
     taskType?: TaskType;
     taskParameterPairs?: TaskParameterPair[];
     taskPacketID?: string;
     taskPacketVisibility?: TaskPacketVisibility;
+    coordinateSystem?: CoordinateSystem;
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
@@ -87,11 +105,18 @@ export interface JaiaAction {
     buttonType?: ButtonTypes;
     buttonName?: ButtonNames;
     isMissionAccordionExpanded?: boolean;
+    waypointSection?: WaypointSections;
+
+    vertexIndex?: number;
 
     command?: Command;
+    exclusionZone?: ExclusionZone;
+    exclusionZones?: ExclusionZone[];
+    exclusionZoneSnapshot?: ExclusionZoneSetSnapshot;
     missionSpeeds?: Speeds;
     missionRepeats?: number;
     missionSetName?: string;
+    exclusionZoneSetName?: string;
     missionSetSnapshot?: MissionSetSnapshot;
     gridPlanningState?: GridPlanningStates;
 }
@@ -99,12 +124,14 @@ export interface JaiaAction {
 export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",
     COMMANDS = "commands",
+    HEALTH = "health",
     LINKS = "links",
 }
 
 export interface HubAccordionStates {
     quickLook: boolean;
     commands: boolean;
+    health: boolean;
     links: boolean;
 }
 
@@ -163,12 +190,14 @@ export const enum ButtonNames {
     JAIA_ABOUT_PANEL = "jaia_about_panel",
     MEASURE_TOOL = "measure_tool",
     MISSIONS_PANEL = "missions_panel",
+    EXCLUSION_ZONES_PANEL = "exclusion_zones_panel",
     RALLY_PANEL = "rally_panel",
     SETTINGS_PANEL = "settings_panel",
     SURVEY_TOOL = "survey_tool",
     START_ALL_MISSIONS = "start_all_missions",
     TASK_PACKET_PANEL = "task_packet_panel",
     WAYPOINT_PANEL = "waypoint_panel",
+    ZONE_VERTEX_PANEL = "zone_vertex_panel",
     DEPTH_MAP_3D = "depth_map_3d",
 }
 
@@ -186,4 +215,10 @@ export enum PanelActions {
 export enum TaskPacketVisibility {
     EXCLUDE = 1,
     INCLUDE = 2,
+}
+
+export enum WaypointSections {
+    NONE = 1,
+    LOCATION = 2,
+    TASK = 3,
 }

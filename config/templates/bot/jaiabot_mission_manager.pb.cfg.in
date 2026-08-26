@@ -33,6 +33,19 @@ contact_update_sub_cfg {
   }
 }
 
+bot_status_sub_cfg {
+    intervehicle {
+        broadcast: true
+        buffer {
+            ack_required: false
+            blackout_time: 1
+            max_queue: 1
+            newest_first: true
+            ttl: 60
+            value_base: 10
+    }
+  }
+}
 
 # rc_setpoint_end: RC_SETPOINT_ENDS_IN_STATIONKEEP  # OR RC_SETPOINT_ENDS_IN_SURFACE_DRIFT
 rc_setpoint_end: RC_SETPOINT_ENDS_IN_SURFACE_DRIFT

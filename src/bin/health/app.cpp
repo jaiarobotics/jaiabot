@@ -27,6 +27,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/engineering.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "system_thread.h"
@@ -77,6 +78,7 @@ class Health : public ApplicationBase
     void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
     void reboot_echo() { system("systemctl start jaia_firm_echo_reset_gpio_pin_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
+    void flash_arduino();
 
   private:
     goby::time::SteadyClock::time_point next_check_time_;
@@ -84,6 +86,8 @@ class Health : public ApplicationBase
     const std::map<std::string, jaiabot::protobuf::Error> process_to_not_responding_error_;
     std::set<jaiabot::protobuf::Error> failed_services_;
     jaiabot::protobuf::LinuxHardwareStatus sim_hardware_status_;
+    int arduino_flash_attempts_{0};
+    bool arduino_flash_in_progress_{false};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -104,6 +108,9 @@ jaiabot::apps::Health::Health()
     using MotorRPMUDPThread =
         goby::middleware::io::UDPPointToPointThread<jaiabot::groups::motor_udp_in,
                                                     jaiabot::groups::motor_udp_out>;
+
+    glog.is_debug1() && glog << "Health thread started. " << std::endl;
+    glog.is_debug1() && glog << cfg().DebugString() << std::endl;
 
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
@@ -271,6 +278,39 @@ jaiabot::apps::Health::Health()
             }
         });
 
+    interprocess().subscribe<jaiabot::groups::arduino_issue>(
+        [this](const jaiabot::protobuf::ArduinoIssue& issue)
+        {
+            if (issue.solution() != protobuf::ArduinoIssue::FLASH_ARDUINO)
+                return;
+
+            if (cfg().is_in_sim() && !cfg().test_hardware_in_sim())
+            {
+                glog.is_debug2() && glog << "Arduino FLASH_ARDUINO ignored in simulation"
+                                         << std::endl;
+                return;
+            }
+
+            const auto& recovery = cfg().arduino_recovery();
+            if (!recovery.enable_auto_flash())
+                return;
+
+            if (arduino_flash_in_progress_)
+                return;
+
+            if (arduino_flash_attempts_ >= recovery.max_attempts())
+            {
+                glog.is_warn() && glog << "Arduino auto-flash max attempts ("
+                                       << recovery.max_attempts() << ") reached; skipping"
+                                       << std::endl;
+                return;
+            }
+
+            glog.is_warn() && glog << "Received ArduinoIssue FLASH_ARDUINO; starting recovery"
+                                   << std::endl;
+            flash_arduino();
+        });
+
     interprocess().subscribe<goby::middleware::groups::health_report>(
         [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
             process_coroner_report(vehicle_health);
@@ -383,6 +423,36 @@ void jaiabot::apps::Health::loop()
         wifi.set_signal_level(33);
         wifi.set_noise_level(0);
         interprocess().publish<jaiabot::groups::linux_hardware_status>(sim_hardware_status_);
+    }
+}
+
+void jaiabot::apps::Health::flash_arduino()
+{
+    const auto& recovery = cfg().arduino_recovery();
+    if (recovery.flash_script().empty())
+    {
+        glog.is_warn() && glog << "Arduino auto-flash enabled but flash_script is empty"
+                               << std::endl;
+        return;
+    }
+
+    arduino_flash_in_progress_ = true;
+    glog.is_warn() && glog << "Running Arduino auto-flash: " << recovery.flash_script()
+                           << std::endl;
+
+    const int status = std::system(recovery.flash_script().c_str());
+    arduino_flash_in_progress_ = false;
+    ++arduino_flash_attempts_;
+
+    if (status != 0)
+    {
+        glog.is_warn() && glog << "Arduino auto-flash script exited with status " << status
+                               << std::endl;
+    }
+    else
+    {
+        glog.is_verbose() && glog << "Arduino auto-flash script completed successfully"
+                                  << std::endl;
     }
 }
 

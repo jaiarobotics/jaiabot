@@ -16,7 +16,6 @@ add_subdirectory(mission_repeater)
 add_subdirectory(comms_manager)
 add_subdirectory(ctd_manager)
 add_subdirectory(udp_gateway)
-add_subdirectory(ppk)
 add_subdirectory(storm)
 
 if(build_state_diagrams)

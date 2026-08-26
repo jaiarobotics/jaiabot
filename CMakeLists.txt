@@ -55,7 +55,7 @@ file(MAKE_DIRECTORY ${project_INTERMEDIATE_DIR})
 
 # Write the version to a simple text file for scripts to use
 if(PROJECT_VERSION_GITHASH)
-  file(WRITE ${project_SHARE_DIR}/version.txt ${PROJECT_VERSION_GITDESCRIBE})
+  file(WRITE ${project_SHARE_DIR}/version.txt "${PROJECT_GIT_VERSION}${PROJECT_DIRTY_REV_STRING}")
 endif()
 
 ## set the cmake defaults for libraries and binaries
@@ -101,6 +101,7 @@ endif()
 
 option(build_web "Build web ui code (requires npm)" ON)
 option(build_jdv "Build jdv ui code (requires npm)" ON)
+option(build_python_venv "Build the Python venv used by the dev/sim scripts (requires python3-venv)" ON)
 
 
 # configure the headers to build/include
@@ -173,6 +174,7 @@ file(COPY ${project_ROOTFS_DIR}/customization/includes.chroot/etc/jaiabot/init/f
 
 install(DIRECTORY ${project_SHARE_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX}/share
   PATTERN "arduino" EXCLUDE # this is specially installed by ArduinoCompile.cmake
+  PATTERN "venv" EXCLUDE # jaiabot-python.postinst builds this on the target, see src/python/CMakeLists.txt
   )
 
 unset(PROJECT_LIBRARY_LIST CACHE)
@@ -204,9 +206,9 @@ set(scripts_to_install
   data-offload/jaiabot-predataoffload.sh
   data-offload/jaiabot-postdataoffload.sh
   data-offload/jaiahub-dataoffload-cloudhub.sh
-  data-offload/ctd-offload.sh
   # Firmware scripts
   jaia_firm_backup_date.sh
+  jaia_firm_arduino_flash.sh
   reset-bio-payload-board.sh
   geotiff_format.py
   geotiff_scan.sh
@@ -234,7 +236,6 @@ foreach(script ${scripts_to_install})
     install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
     configure_file(${project_SCRIPTS_DIR}/${script} ${project_BIN_DIR} COPYONLY)
 endforeach()
-
 
 option(enable_testing "Enable building of tests using CTest (if set to ON, you can run tests with 'make test')" OFF)
 if(enable_testing)

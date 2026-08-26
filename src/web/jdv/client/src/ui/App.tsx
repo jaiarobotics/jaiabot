@@ -183,9 +183,7 @@ export class App extends React.Component<AppProps, State> {
                             <button
                                 id="ubxExportButton"
                                 className="mapButton"
-                                onClick={() => {
-                                    window.location.href = `/jdv/ubx?file=${this.state.chosenLogs.join(",")}`;
-                                }}
+                                onClick={this.ubxDownloadButtonPressed.bind(this)}
                             >
                                 <Icon path={mdiDownload} size={1}></Icon>
                                 UBX
@@ -244,6 +242,18 @@ export class App extends React.Component<AppProps, State> {
                 {this.state.customAlert}
             </div>
         );
+    }
+
+    ubxDownloadButtonPressed() {
+        this.startBusyIndicator();
+
+        LogApi.getUBX(this.state.chosenLogs)
+            .catch((err) => {
+                CustomAlert.presentAlert({ text: `Failed to download UBX file.\n${err}` });
+            })
+            .finally(() => {
+                this.stopBusyIndicator();
+            });
     }
 
     chosenLogsListElement() {

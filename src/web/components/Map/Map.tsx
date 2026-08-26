@@ -1,4 +1,4 @@
-import { useEffect, useContext } from "react";
+import { useEffect, useContext, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
@@ -6,29 +6,53 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 
 import { Feature, MapBrowserEvent } from "ol";
 import { Coordinate } from "ol/coordinate";
-import { Geometry } from "ol/geom";
+import { Geometry, Polygon } from "ol/geom";
+import { DrawEvent } from "ol/interaction/Draw";
 import { toLonLat } from "ol/proj";
 
 import { map } from "../../openlayers/maps/map";
 import { view } from "../../openlayers/views/view";
 import { gridLayer } from "../../openlayers/layers/vector/grid-layer";
+import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { styleControlButtons } from "../../openlayers/controls/controls";
 import { generateSurveyEndpoint } from "../../openlayers/features/survey/survey-endpoints";
 
 import { NodeTypes, TaskParameterKeys } from "../../types/jaia-system-types";
-import { ButtonNames, ButtonTypes } from "../../types/context-types";
+import { ButtonNames, ButtonTypes, JaiaAction } from "../../types/context-types";
 import { MapFeatureTypes, MapModes, SurveyEndpoints } from "../../types/openlayers-types";
-import { MAP_FEATURE_HIT_TOLERANCE, UNASSIGNED_ID } from "../../utils/constants";
+import { MAP_FEATURE_HIT_TOLERANCE, MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { locationToConstantHeadingParams } from "../../utils/conversions";
+import { GeographicCoordinate } from "../../types/protobuf-types";
 
-import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { missionSet } from "../../data/mission_set/mission-set";
+import Waypoint from "../../data/waypoints/waypoint";
+import { missionsManager } from "../../data/missions_manager/missions-manager";
+import { bots } from "../../data/bots/bots";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
+import {
+    routeAroundExclusionZones,
+    isLocationBlockedByZone,
+} from "../../data/exclusion_zones/exclusion-zone-router";
+
+import ZoneCrossingDialog from "../ZoneCrossingDialog/ZoneCrossingDialog";
 
 import "./Map.less";
 
+interface ZoneCrossingDialogState {
+    /** Locations to add: bypass waypoints (if any) followed by the destination */
+    locations: GeographicCoordinate[];
+    bypassCount: number;
+    waypointNumber: number;
+}
+
+/**
+ * Renders the OpenLayers map and routes map click events to the appropriate handlers
+ *
+ * @returns {JSX.Element} The map container, including any active zone crossing dialogs
+ */
 export default function Map() {
     const jaiaDispatch = useContext(JaiaDispatchContext);
+    const [zoneCrossing, setZoneCrossing] = useState<ZoneCrossingDialogState | null>(null);
 
     useEffect(() => {
         map.setTarget("map");
@@ -36,12 +60,13 @@ export default function Map() {
             handleMapClick(event);
         });
         styleControlButtons();
+        initExclusionZoneDraw();
     }, []);
 
     /**
      * Distributes map clicks to appropriate handlers
      *
-     * @param {MapBrowserEvent<PointerEvent>} event Contains data assoicated with map click
+     * @param {MapBrowserEvent<PointerEvent>} event Contains data associated with map click
      * @returns {void}
      */
     const handleMapClick = (event: MapBrowserEvent<PointerEvent>) => {
@@ -65,6 +90,9 @@ export default function Map() {
             case MapModes.HUB_LOCATION_SELECT:
                 handleHubLocationSelectClick(event.coordinate);
                 return;
+            case MapModes.EXCLUSION_ZONE_DRAWING:
+                // When drawing is active, the OL Draw interaction handles pointer events directly
+                return;
         }
 
         if (jaiaGlobal.getSelectedWaypoint().isMoveable) {
@@ -72,40 +100,72 @@ export default function Map() {
             return;
         }
 
-        const feature = map.forEachFeatureAtPixel(event.pixel, (feature: Feature) => feature, {
-            hitTolerance: MAP_FEATURE_HIT_TOLERANCE,
-        });
-        if (feature && feature.get("type")) {
-            switch (feature.get("type")) {
-                case MapFeatureTypes.BOT:
-                    handleNodeClick(feature);
-                    return;
-                case MapFeatureTypes.HUB:
-                    handleNodeClick(feature);
-                    return;
-                case MapFeatureTypes.WAYPOINT:
-                    handleWaypointClick(feature);
-                    return;
-                case MapFeatureTypes.RALLY_POINT:
-                    handleRallyPointClick(feature);
-                    return;
-                case MapFeatureTypes.DIVE:
-                    handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
-                    return;
-                case MapFeatureTypes.DRIFT:
-                    handleTaskPacketClick(feature, MapFeatureTypes.DRIFT);
-                    return;
-                case MapFeatureTypes.DEPTH_CONTOUR:
-                    handleDepthContourClick(event);
-                    return;
-                default:
-                    return;
-            }
+        // A zone vertex is awaiting relocation — the click destination is all we need, so skip
+        // the feature lookup below that identifies what was clicked (bot, waypoint, zone, etc.).
+        if (jaiaGlobal.getSelectedZoneVertex().isMoveable) {
+            handleMoveZoneVertexClick(event.coordinate);
+            return;
+        }
+
+        const featureClicked = map.forEachFeatureAtPixel(
+            event.pixel,
+            (feature: Feature) => handleMapFeatureClick(feature, event),
+            { hitTolerance: MAP_FEATURE_HIT_TOLERANCE },
+        );
+
+        if (featureClicked) {
+            return;
+        }
+
+        // Zone edit mode takes priority: any empty-map click adds a vertex.
+        if (jaiaGlobal.getZoneInEditMode() !== UNASSIGNED_ID) {
+            handleAddZoneVertexClick(event.coordinate);
+            return;
         }
 
         // Prevent generating false ADD_WAYPOINT actions
         if (missionSet.getMissionIDInEditMode() !== UNASSIGNED_ID) {
             handleAddWaypointClick(event.coordinate);
+        }
+    };
+
+    /**
+     * Calls the appropriate handler for a feature clicked on the map
+     *
+     * @param {Feature} feature The OpenLayers Feature clicked
+     * @param {MapBrowserEvet} event  Contains location data
+     * @returns {boolean} True prevents subsequent calls for Features that exist below the clicked Feature
+     */
+    const handleMapFeatureClick = (feature: Feature, event: MapBrowserEvent<PointerEvent>) => {
+        if (feature && feature.get("type")) {
+            switch (feature.get("type")) {
+                case MapFeatureTypes.BOT:
+                    handleNodeClick(feature);
+                    return true;
+                case MapFeatureTypes.HUB:
+                    handleNodeClick(feature);
+                    return true;
+                case MapFeatureTypes.WAYPOINT:
+                    handleWaypointClick(feature);
+                    return true;
+                case MapFeatureTypes.RALLY_POINT:
+                    handleRallyPointClick(feature);
+                    return true;
+                case MapFeatureTypes.ZONE_VERTEX:
+                    handleZoneVertexClick(feature);
+                    return true;
+                case MapFeatureTypes.DIVE:
+                    handleTaskPacketClick(feature, MapFeatureTypes.DIVE);
+                    return true;
+                case MapFeatureTypes.DRIFT:
+                    handleTaskPacketClick(feature, MapFeatureTypes.DRIFT);
+                    return true;
+                case MapFeatureTypes.DEPTH_CONTOUR:
+                    handleDepthContourClick(event);
+                    return true;
+                default:
+                    return false;
+            }
         }
     };
 
@@ -117,10 +177,12 @@ export default function Map() {
      */
     const handleAddRallyPoint = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
-        jaiaDispatch({
-            type: JaiaActions.ADD_RALLY_POINT,
-            location: { lon: lonLat[0], lat: lonLat[1] },
-        });
+        const location = { lon: lonLat[0], lat: lonLat[1] };
+        if (isLocationBlockedByZone(location)) {
+            jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+            return;
+        }
+        jaiaDispatch({ type: JaiaActions.ADD_RALLY_POINT, location });
     };
 
     /**
@@ -136,6 +198,10 @@ export default function Map() {
 
         switch (gridPlan.getState()) {
             case GridPlanningStates.ACCEPTING_MISSION_START_LOCATION:
+                if (isLocationBlockedByZone(location)) {
+                    jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+                    return;
+                }
                 gridPlan.setMissionStart(location);
                 gridLayer
                     .getVectorLayer()
@@ -144,6 +210,10 @@ export default function Map() {
                 nextState = GridPlanningStates.ACCEPTING_MISSION_END_LOCATION;
                 break;
             case GridPlanningStates.ACCEPTING_MISSION_END_LOCATION:
+                if (isLocationBlockedByZone(location)) {
+                    jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+                    return;
+                }
                 gridPlan.setMissionEnd(location);
                 gridLayer
                     .getVectorLayer()
@@ -235,8 +305,7 @@ export default function Map() {
      */
     const handleHubLocationSelectClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
-        const location = { lon: lonLat[0], lat: lonLat[1] };
-        jaiaDispatch({ type: JaiaActions.MOVE_HUB, location: location });
+        jaiaDispatch({ type: JaiaActions.MOVE_HUB, location: { lon: lonLat[0], lat: lonLat[1] } });
     };
 
     /**
@@ -248,7 +317,6 @@ export default function Map() {
     const handleNodeClick = (feature: Feature<Geometry>) => {
         const nodeType = feature.get("type");
         const nodeID = feature.get("id");
-
         if (nodeType === NodeTypes.BOT || nodeType == NodeTypes.HUB) {
             jaiaDispatch({
                 type: JaiaActions.CLICKED_NODE,
@@ -264,20 +332,15 @@ export default function Map() {
      * @returns {void}
      */
     const handleWaypointClick = (feature: Feature<Geometry>) => {
-        const selectedWaypoint = jaiaGlobal.getSelectedWaypoint();
-        if (
-            feature.get("missionID") !== selectedWaypoint.missionID ||
-            feature.get("waypointNum") !== selectedWaypoint.waypointNum
-        ) {
-            jaiaDispatch({
-                type: JaiaActions.CLICKED_WAYPOINT,
-                clickedWaypoint: {
-                    waypointNum: feature.get("waypointNum"),
-                    missionID: feature.get("missionID"),
-                    isMoveable: false,
-                },
-            });
-        }
+        if (feature.get("isBypass")) return;
+        jaiaDispatch({
+            type: JaiaActions.CLICKED_WAYPOINT,
+            clickedWaypoint: {
+                waypointNum: feature.get("waypointNum"),
+                missionID: feature.get("missionID"),
+                isMoveable: false,
+            },
+        });
     };
 
     /**
@@ -293,7 +356,8 @@ export default function Map() {
         });
     };
 
-    /** Dispatches action to set the selected task packet
+    /**
+     * Dispatches action to set the selected task packet
      *
      * @param {Feature<Geometry>} feature Clicked task packet
      * @param {MapFeatureTypes} type Distinguishes between dives and drifts
@@ -348,22 +412,169 @@ export default function Map() {
     };
 
     /**
-     * Dispatches action to add a waypoint to the map
+     * Dispatches action to select a zone vertex for editing
+     *
+     * @param {Feature} feature Clicked zone vertex feature containing zoneID and vertexIndex
+     * @returns {void}
+     */
+    const handleZoneVertexClick = (feature: Feature) => {
+        jaiaDispatch({
+            type: JaiaActions.SELECT_ZONE_VERTEX,
+            zoneID: feature.get("zoneID") as number,
+            vertexIndex: feature.get("vertexIndex") as number,
+        });
+    };
+
+    /**
+     * Dispatches action to move the selected zone vertex to the click location
      *
      * @param {Coordinate} coordinate Location of click on map
      * @returns {void}
-     *
-     * @notes
-     * We convert click coordinate to lat/lon. The click
-     * coordinate is based on the map's projection.
      */
-    const handleAddWaypointClick = (coordinate: Coordinate) => {
+    const handleMoveZoneVertexClick = (coordinate: Coordinate) => {
         const lonLat = toLonLat(coordinate, view.getProjection());
         jaiaDispatch({
-            type: JaiaActions.ADD_WAYPOINT,
+            type: JaiaActions.MOVE_ZONE_VERTEX,
             location: { lon: lonLat[0], lat: lonLat[1] },
         });
     };
 
-    return <div id="map" data-testid="map"></div>;
+    /**
+     * Dispatches action to add a vertex to the zone currently in edit mode
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
+    const handleAddZoneVertexClick = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        jaiaDispatch({
+            type: JaiaActions.ADD_ZONE_VERTEX,
+            zoneID: jaiaGlobal.getZoneInEditMode()!,
+            location: { lon: lonLat[0], lat: lonLat[1] },
+        });
+    };
+
+    /**
+     * Adds a waypoint to the current mission, routing around any exclusion zones
+     * that the new segment would cross. If a crossing is detected, shows a dialog
+     * so the operator can confirm (with bypass waypoints) or cancel.
+     *
+     * @param {Coordinate} coordinate Location of click on map
+     * @returns {void}
+     */
+    const handleAddWaypointClick = (coordinate: Coordinate) => {
+        const lonLat = toLonLat(coordinate, view.getProjection());
+        const newLocation: GeographicCoordinate = { lon: lonLat[0], lat: lonLat[1] };
+
+        if (isLocationBlockedByZone(newLocation)) {
+            jaiaDispatch({ type: JaiaActions.SET_PLACEMENT_ERROR });
+            return;
+        }
+
+        const missionID = missionSet.getMissionIDInEditMode();
+        const mission = missionSet.getMission(missionID);
+        const waypoints = mission?.getWaypoints() ?? [];
+
+        // Determine start of the segment to check:
+        // - if waypoints exist, use the last one
+        // - if this is the first waypoint, use the bot's current position (if assigned)
+        let fromLocation: GeographicCoordinate | undefined;
+        if (waypoints.length >= 1) {
+            fromLocation = waypoints[waypoints.length - 1].getLocation();
+        } else {
+            const botID = missionsManager.getBotID(missionID);
+            fromLocation = bots.getBot(botID)?.getLocation();
+        }
+
+        if (fromLocation) {
+            const miniPlan = {
+                goal: [{ location: fromLocation }, { location: newLocation }],
+            };
+            // Use the first clean waypoint as the projection origin so bypass
+            // lat/lon values match those produced by detectMissionReroutes,
+            // which also uses the first clean waypoint as origin.
+            const firstCleanLoc = waypoints.filter((wp) => !wp.getIsBypass())[0]?.getLocation();
+            const result = routeAroundExclusionZones(miniPlan, 5, firstCleanLoc ?? fromLocation);
+            const locations = result.plan.goal.slice(1).map((g) => g.location!);
+
+            // Let the normal waypoint-add handler reject impossible or over-limit
+            // placements so the user gets a placement error instead of a confirm dialog.
+            if (result.isRoutingImpossible || waypoints.length + locations.length > MAX_WAYPOINTS) {
+                jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location: newLocation });
+                return;
+            }
+
+            if (result.bypassCount > 0) {
+                const userWaypointCount = waypoints.filter((wp) => !wp.getIsBypass()).length;
+                setZoneCrossing({
+                    locations,
+                    bypassCount: result.bypassCount,
+                    waypointNumber: userWaypointCount + 1,
+                });
+                return;
+            }
+        }
+
+        jaiaDispatch({ type: JaiaActions.ADD_WAYPOINT, location: newLocation });
+    };
+
+    /**
+     * Creates the exclusion zone Draw interaction and wires its drawend handler.
+     * Defined outside the component so dispatch is passed explicitly rather than
+     * captured implicitly — keeping the OL singleton free of React references.
+     *
+     * @returns {void}
+     */
+    const initExclusionZoneDraw = () => {
+        const draw = exclusionZoneLayer.createDrawInteraction();
+        draw.on("drawend", (event: DrawEvent) => {
+            const vertices = exclusionZoneLayer.configureDrawEnd(event);
+            if (vertices.length >= 3) {
+                jaiaDispatch({ type: JaiaActions.ADD_EXCLUSION_ZONE, exclusionZone: { vertices } });
+            }
+        });
+    };
+
+    /**
+     * Confirms the zone crossing dialog and dispatches bypass and destination waypoints
+     *
+     * @returns {void}
+     */
+    const onZoneCrossingConfirm = () => {
+        if (!zoneCrossing) return;
+        // Build Waypoint objects so bypass waypoints carry their name through to the map layer.
+        const waypoints = zoneCrossing.locations.map((loc, i) => {
+            const wp = new Waypoint();
+            wp.setLocation(loc);
+            // All locations except the last are bypass waypoints.
+            if (i < zoneCrossing.locations.length - 1) {
+                wp.setIsBypass(true);
+            }
+            return wp;
+        });
+        jaiaDispatch({ type: JaiaActions.ADD_WAYPOINTS_BULK, waypoints });
+        setZoneCrossing(null);
+    };
+
+    /**
+     * Cancels the zone crossing dialog without adding any waypoints
+     *
+     * @returns {void}
+     */
+    const onZoneCrossingCancel = () => setZoneCrossing(null);
+
+    return (
+        <div>
+            <div id="map" data-testid="map"></div>
+
+            {zoneCrossing && (
+                <ZoneCrossingDialog
+                    waypointNumber={zoneCrossing.waypointNumber}
+                    bypassCount={zoneCrossing.bypassCount}
+                    onConfirm={onZoneCrossingConfirm}
+                    onCancel={onZoneCrossingCancel}
+                />
+            )}
+        </div>
+    );
 }
