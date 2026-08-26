@@ -24,6 +24,15 @@ pushd ${HOME}/jaiabot/${build_dir}/share/jaiabot/python
     # /tmp does not necessarily have enough space on the embedded boards, but /var/log is large
     python3 -m pip -q install wheel
     python3 -m pip install -q -r requirements.txt
+
+    # The local packages carry a fixed version (e.g. pyjaia 1.0.0) that never changes, so pip
+    # cannot tell when their contents change and may leave stale or partially-written files
+    # behind. Reinstall them explicitly so a deploy always lands the code we just built.
+    local_pkgs=$(grep '^\./' requirements.txt)
+    if [ -n "${local_pkgs}" ]; then
+        echo "🟢 Reinstalling local python packages: $(echo ${local_pkgs} | tr '\n' ' ')"
+        python3 -m pip install -q --force-reinstall --no-deps --no-cache-dir ${local_pkgs}
+    fi
 popd
 
 jaiabot_version=$(cat ${HOME}/jaiabot/${build_dir}/share/version.txt)
@@ -54,6 +63,11 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
 
         sudo chmod o+x ${HOME}
         sudo a2ensite jcc
+
+        # mod_wsgi daemon processes are long-lived and keep the previously imported python
+        # modules in memory, so they must be restarted to pick up the venv we just updated.
+        echo "🟢 Restarting apache2 to reload the updated python code"
+        sudo systemctl restart apache2
     fi
 
 fi
