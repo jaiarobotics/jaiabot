@@ -252,6 +252,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__MISSING_DATA__BLUEROBOTICS_BAR30_DATA = 801
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__MISSING_DATA__POWER_BOARD_REPORT = 802
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 enum Warning
