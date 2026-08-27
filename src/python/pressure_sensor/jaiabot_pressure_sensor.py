@@ -21,6 +21,7 @@ class Args:
     data_rate: int
 
 args: Args = parser.parse_args()
+sample_rate = 20 if args.sensor_type == 'barxt' else args.data_rate
 
 logging.basicConfig(format='%(asctime)s %(levelname)10s %(message)s')
 log = logging.getLogger('pressure')
@@ -67,7 +68,7 @@ class Sensor:
         self.is_setup = False
         self.pressure_0 = None
         self.sensor_type = None
-        self.osr_value = self.osr_mapping.get(args.data_rate, 5)
+        self.osr_value = self.osr_mapping.get(sample_rate, 5)
 
     def setup(self):
         if not self.is_setup:
@@ -139,7 +140,7 @@ sock.bind(('', 0))
 udp_gateway_address = ("localhost", args.udp_gateway_port)
 
 # Target send interval (in seconds)
-target_interval = 1.0 / args.data_rate  
+target_interval = 1.0 / sample_rate
 # Next scheduled send time
 next_send_time = time.perf_counter()  
 
