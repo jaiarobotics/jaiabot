@@ -86,11 +86,30 @@ struct Dive : boost::statechart::state<Dive, Task, dive::DivePrep>, AppMethodsAc
                                             .max_repeat();
         if (dive_packet().measurement_size() > max_measurement_size)
         {
+            std::vector<jaiabot::utils::Point> measurements;
+            measurements.reserve(dive_packet().measurement_size());
+            for (int measurement_index = 0; measurement_index < dive_packet().measurement_size();
+                 ++measurement_index)
+            {
+                const auto& measurement = dive_packet().measurement(measurement_index);
+                measurements.push_back(
+                    {static_cast<double>(measurement_index),
+                     measurement.has_mean_depth() ? measurement.mean_depth() : 0.0});
+            }
+
+            const auto selected_indices =
+                jaiabot::utils::downsampleIndices(measurements, max_measurement_size);
+            std::vector<protobuf::DivePacket::Measurements> selected_measurements;
+            selected_measurements.reserve(selected_indices.size());
+            for (const auto selected_index : selected_indices)
+                selected_measurements.push_back(dive_packet().measurement(selected_index));
+
             glog.is_warn() && glog << "Number of measurements (" << dive_packet().measurement_size()
                                 << ") exceed DivePacket maximum of " << max_measurement_size
-                                << ". Truncating." << std::endl;
-            while (dive_packet().measurement_size() > max_measurement_size)
-                dive_packet().mutable_measurement()->RemoveLast();
+                                << ". Downsampling." << std::endl;
+            dive_packet().clear_measurement();
+            for (const auto& measurement : selected_measurements)
+                *dive_packet().add_measurement() = measurement;
         }
 
         glog.is_debug1() && glog << group("task") << "Dive::~Dive() Stopping Bottom Type Sampling"

@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 // Boost
 #include <boost/statechart/state_machine.hpp>
 
@@ -86,6 +88,11 @@ struct StormManagerStateMachine
     }
 
     void add_id(protobuf::TaskPacket& task_packet) { task_packet.set_storm_id(task_packet_id_++); }
+    void observe_id(const protobuf::TaskPacket& task_packet)
+    {
+        if (task_packet.has_storm_id())
+            task_packet_id_ = std::max(task_packet_id_, task_packet.storm_id() + 1);
+    }
     std::deque<protobuf::TaskPacket>& task_packet_queue() { return task_packet_queue_; }
 
     // how often to send requests to the MCU

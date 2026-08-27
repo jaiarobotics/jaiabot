@@ -143,7 +143,6 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::
         auto end_time = start_time + this_packet_duration;
         task_packet.set_start_time_with_units(start_time);
         task_packet.set_end_time_with_units(end_time);
-        this->machine().add_id(task_packet);
-        this->machine().task_packet_queue().push_back(task_packet);
+        this->app().enqueue_task_packet(task_packet);
     }
 }

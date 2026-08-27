@@ -35,10 +35,11 @@
 
 // Jaiabot
 #include "jaiabot/intervehicle.h"
-#include "jaiabot/utils/mission_manager_utils.h"
 #include "jaiabot/messages/dive_debug.pb.h"
-#include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/echo.pb.h"
+#include "jaiabot/messages/imu.pb.h"
+#include "jaiabot/utils/downsample.h"
+#include "jaiabot/utils/mission_manager_utils.h"
 using namespace jaiabot::protobuf;
 
 // Mission Manager app

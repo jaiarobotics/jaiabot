@@ -39,6 +39,7 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
                      [&]
                      {
                          auto& tp_queue = self->machine().task_packet_queue();
+                         self->app().acknowledge_task_packet(msg);
                          std::erase(tp_queue, msg);
                          if (tp_queue.empty())
                          {

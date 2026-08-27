@@ -23,6 +23,8 @@
 #ifndef JAIABOT_BIN_STORM_MANAGER_STORM_MANAGER_H
 #define JAIABOT_BIN_STORM_MANAGER_STORM_MANAGER_H
 
+#include <filesystem>
+
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/middleware/io/cobs/serial.h>
@@ -48,6 +50,8 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
 
     // so states can send directly to MCU
     void send_to_mcu(const protobuf::StormMCURequest& request);
+    void enqueue_task_packet(protobuf::TaskPacket task_packet);
+    void acknowledge_task_packet(const protobuf::TaskPacket& task_packet);
 
   private:
     void initialize() override;
@@ -61,6 +65,9 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     void receive_from_mcu(const goby::middleware::protobuf::IOData& io_msg);
     void handle_command(const protobuf::Command& command);
     void handle_storm_mission_update(const protobuf::StormMissionUpdate& storm_mission_update);
+    void load_pending_task_packets();
+    std::filesystem::path outbox_dir() const;
+    std::filesystem::path task_packet_path(const protobuf::TaskPacket& task_packet) const;
 
     template <typename Derived> friend class statechart::AppMethodsAccess;
 

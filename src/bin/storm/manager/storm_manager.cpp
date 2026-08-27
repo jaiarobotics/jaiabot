@@ -21,6 +21,9 @@
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <boost/units/systems/si/frequency.hpp>
+#include <algorithm>
+#include <cstdlib>
+#include <fstream>
 namespace si = boost::units::si;
 using boost::units::quantity;
 
@@ -51,6 +54,7 @@ constexpr goby::middleware::Group mcu_serial_out{"jaiabot::storm::mcu_serial_out
 void jaiabot::apps::StormManager::initialize()
 {
     machine_.reset(new statechart::StormManagerStateMachine(*this, cfg().initial_mission()));
+    load_pending_task_packets();
 
     machine_->initiate();
 }
@@ -168,14 +172,107 @@ jaiabot::apps::StormManager::StormManager()
         [this](const protobuf::TaskPacket& task_packet)
         {
             if (!task_packet.has_storm_id()) // reject our own publications
-            {
-                machine_->task_packet_queue().push_back(task_packet);
-                machine_->add_id(machine_->task_packet_queue().back());
-            }
+                enqueue_task_packet(task_packet);
         });
 }
 
 jaiabot::apps::StormManager::~StormManager() {}
+
+std::filesystem::path
+jaiabot::apps::StormManager::outbox_dir() const
+{
+    const char* log_dir = std::getenv("jaia_log_dir");
+    const char* bot_index = std::getenv("jaia_bot_index");
+    const std::filesystem::path root = log_dir ? log_dir : "/var/log/jaiabot";
+    const std::string bot = bot_index ? bot_index : std::to_string(cfg().bot_id());
+    return root / "bot" / bot / "storm_outbox";
+}
+
+std::filesystem::path
+jaiabot::apps::StormManager::task_packet_path(const protobuf::TaskPacket& task_packet) const
+{
+    return outbox_dir() / (std::to_string(task_packet.storm_id()) + ".taskpacket");
+}
+
+void jaiabot::apps::StormManager::enqueue_task_packet(protobuf::TaskPacket task_packet)
+{
+    machine_->add_id(task_packet);
+
+    try
+    {
+        std::filesystem::create_directories(outbox_dir());
+        const auto packet_path = task_packet_path(task_packet);
+        const auto temporary_path = packet_path.string() + ".tmp";
+
+        std::ofstream file(temporary_path, std::ios::binary | std::ios::trunc);
+        if (!file || !task_packet.SerializeToOstream(&file))
+            throw std::runtime_error("failed to write packet");
+        file.close();
+        std::filesystem::rename(temporary_path, packet_path);
+
+        machine_->task_packet_queue().push_back(std::move(task_packet));
+    }
+    catch (const std::exception& exception)
+    {
+        glog.is_warn() && glog << "[iridium] Failed to persist TaskPacket: " << exception.what()
+                               << std::endl;
+    }
+}
+
+void jaiabot::apps::StormManager::acknowledge_task_packet(const protobuf::TaskPacket& task_packet)
+{
+    std::error_code error;
+    std::filesystem::remove(task_packet_path(task_packet), error);
+    if (error)
+        glog.is_warn() && glog << "[iridium] Failed to remove acknowledged TaskPacket: "
+                               << error.message() << std::endl;
+}
+
+void jaiabot::apps::StormManager::load_pending_task_packets()
+{
+    const auto outbox_dir = this->outbox_dir();
+    std::error_code error;
+    std::filesystem::create_directories(outbox_dir, error);
+    if (error)
+    {
+        glog.is_warn() && glog << "[iridium] Failed to create TaskPacket outbox: "
+                               << error.message() << std::endl;
+        return;
+    }
+
+    std::vector<std::pair<int, std::filesystem::path>> packet_paths;
+    for (const auto& entry : std::filesystem::directory_iterator(outbox_dir))
+        if (entry.is_regular_file() && entry.path().extension() == ".taskpacket")
+        {
+            try
+            {
+                packet_paths.emplace_back(std::stoi(entry.path().stem()), entry.path());
+            }
+            catch (const std::exception&)
+            {
+                glog.is_warn() && glog << "[iridium] Ignoring invalid TaskPacket outbox file: "
+                                       << entry.path() << std::endl;
+            }
+        }
+    std::sort(packet_paths.begin(), packet_paths.end(),
+              [](const auto& left, const auto& right) { return left.first < right.first; });
+
+    for (const auto& [storm_id, packet_path] : packet_paths)
+    {
+        protobuf::TaskPacket task_packet;
+        std::ifstream file(packet_path, std::ios::binary);
+        if (!file || !task_packet.ParseFromIstream(&file) || !task_packet.has_storm_id() ||
+            task_packet.storm_id() != storm_id)
+        {
+            glog.is_warn() && glog << "[iridium] Ignoring invalid TaskPacket outbox file: "
+                                   << packet_path << std::endl;
+            continue;
+        }
+
+        machine_->observe_id(task_packet);
+        machine_->task_packet_queue().push_back(std::move(task_packet));
+    }
+}
 
 void jaiabot::apps::StormManager::loop()
 {
