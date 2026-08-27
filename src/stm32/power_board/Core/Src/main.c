@@ -417,6 +417,14 @@ int main(void)
         {
           static uint8_t reed_active_samples = 0U;
           
+          if(true) // For testing
+          {
+              power_board_enable_external_power();
+              current_state = INIT_STATE;
+              break;
+          }
+          
+          
           if (HAL_GPIO_ReadPin(REED_WAKE_GPIO_Port, REED_WAKE_Pin) ==
               REED_WAKE_ACTIVE_STATE)
           {
@@ -458,7 +466,7 @@ int main(void)
           }
         }
 
-        current_state = BROADCAST_STATE;
+        current_state = TEST_STATE;
 
         break;
 
@@ -488,6 +496,52 @@ int main(void)
           current_state = low_power_request_pending() ? SLEEP_STATE : INIT_STATE;
         }
         break;
+      
+      case TEST_STATE:
+        {
+          // Bench test: wait 2 minutes, then run the motor at 1740us for 1
+          // minute. Non-blocking (tracked via HAL_GetTick()) so the IWDG
+          // still gets refreshed and host commands still get serviced
+          // while this runs.
+
+          const uint32_t test_wait_ms = 120000U; // 120 seconds
+          const uint32_t test_motor_run_ms = 60000U; // 60 seconds
+          const int test_motor_pulse_us = 1740;
+
+          static bool test_state_started = false;
+          static uint32_t test_state_start_tick = 0U;
+
+          if (!test_state_started)
+          {
+            test_state_started = true;
+            test_state_start_tick = HAL_GetTick();
+          }
+
+          uint32_t elapsed_ms = HAL_GetTick() - test_state_start_tick;
+
+          if (elapsed_ms < test_wait_ms)
+          {
+            HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_SET);
+            target_motor_ = motor_off_;
+          }
+          else if (elapsed_ms < test_wait_ms + test_motor_run_ms)
+          {
+            HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_SET);
+            target_motor_ = test_motor_pulse_us;
+          }
+          else
+          {
+            target_motor_ = motor_off_;
+            test_state_started = false;
+            current_state = BROADCAST_STATE;
+            
+            HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+          }
+        }
+        break;
+
+
 
       default:
         current_state = INIT_STATE;
