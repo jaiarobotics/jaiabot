@@ -53,7 +53,7 @@ if not sensor.init():
     print("Error initializing sensor")
     exit(1)
 
-SAMPLE_RATE_HZ = 10
+SAMPLE_RATE_HZ = 20
 
 while True:
     sleep(1 / SAMPLE_RATE_HZ)

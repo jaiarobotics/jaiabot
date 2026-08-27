@@ -84,7 +84,7 @@ else:
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', 0))
 
-MEASUREMENT_INTERVAL_SECONDS = 0.1
+MEASUREMENT_INTERVAL_SECONDS = 1.0 / 20 # 20hz
 
 while True:
     try:
