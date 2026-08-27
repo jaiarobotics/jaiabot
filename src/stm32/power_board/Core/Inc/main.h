@@ -55,8 +55,8 @@ struct boot_vectable_ {
 typedef jaiabot_protobuf_PowerBoardResponse PowerBoardResponse;
 
 enum state{
+  REED_WAIT_STATE,
   INIT_STATE,
-  DIVE_STATE,
   BROADCAST_STATE,
   SLEEP_STATE
 };
@@ -73,6 +73,7 @@ extern bool usb_tx_busy;
 #define MAX_MSG_SIZE 256
 #define BOOT_ADDR 0x1FFF0000
 #define BOOTVTAB  ((struct boot_vectable_ *)BOOT_ADDR)
+#define REED_WAKE_ACTIVE_STATE GPIO_PIN_SET
 /* USER CODE END EM */
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);

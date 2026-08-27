@@ -75,7 +75,7 @@ static volatile uint8_t lptim_wake_flag = 0;
 
 uint8_t bits_in_byte = 8;
 bool usb_tx_busy = false;
-enum state current_state = INIT_STATE;
+enum state current_state = REED_WAIT_STATE;
 static volatile uint32_t sleep_interval_ms = SLEEP_INTERVAL_MS;
 static volatile uint32_t requested_low_power_ms = 0U;
 /* USER CODE END PV */
@@ -300,6 +300,34 @@ static void power_board_enter_low_power_mode(uint32_t duration_ms)
   MX_USB_DEVICE_Init();
 }
 
+static void power_board_disable_external_power(void)
+{
+  target_motor_ = motor_off_;
+  controls_periodic_update();
+
+  HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_RESET);
+}
+
+static void power_board_enable_external_power(void)
+{
+  HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_SET);
+  HAL_Delay(300);
+
+  HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -351,16 +379,7 @@ int main(void)
 
   // HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);   /* DEEP SLEEP for current measurement */
 
-  HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_SET);
-
-  HAL_Delay(300);
-
-  /* Enable 12V / 5V / 3V3 regulators. */
-  HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port,  EN_5V_REG_Pin,  GPIO_PIN_SET);
-  HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET); // THIS IS CURRENTLY BACKWARDS. THE OP-AMP ENABLE IS ACTIVE HIGH, BUT THE PCB HAS IT ACTIVE LOW. SO WE'RE JUST INVERTING IT HERE.
+  power_board_disable_external_power();
 
   /* Allow USB host time to enumerate the CDC device before the first TX. */
   HAL_Delay(2000);
@@ -394,6 +413,27 @@ int main(void)
     // State loop: short command-service window while awake, then sleep.
     switch(current_state)
     {
+      case REED_WAIT_STATE:
+        {
+          static uint8_t reed_active_samples = 0U;
+          
+          if (HAL_GPIO_ReadPin(REED_WAKE_GPIO_Port, REED_WAKE_Pin) ==
+              REED_WAKE_ACTIVE_STATE)
+          {
+            ++reed_active_samples;
+            if (reed_active_samples >= 3U) 
+            {
+              power_board_enable_external_power();
+              current_state = INIT_STATE;
+            }
+          }
+          else
+          {
+            reed_active_samples = 0U;
+          }
+        }
+        break;
+
       case INIT_STATE:
         {
           // Guarded so this only runs once at boot, not on every wake from
@@ -1235,6 +1275,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(RTC_INT_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
+  GPIO_InitStruct.Pin = REED_WAKE_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(REED_WAKE_GPIO_Port, &GPIO_InitStruct);
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
