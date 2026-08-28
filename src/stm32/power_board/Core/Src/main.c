@@ -140,7 +140,6 @@ static bool adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel, uint32_t
 // VCC_V_SENSE uses the same battery-sense divider calibration as the former
 // Arduino implementation: analogRead(VccVoltage) * 0.0306.
 #define ADC_TO_BATTERY_VOLTS(raw) ((raw) * 0.00503f)
-#define HARDCODED_BATTERY_VOLTS 24.5f
 
 static void power_board_build_telemetry(PowerBoardResponse *response)
 {
@@ -152,12 +151,8 @@ static void power_board_build_telemetry(PowerBoardResponse *response)
   HAL_Delay(10);
   uint32_t vcc_raw = 0U;
   response->has_vccvoltage = true;
-  if (adc_read_channel(&hadc1, ADC_CHANNEL_1, &vcc_raw))
-  {
-    response->vccvoltage = ADC_TO_BATTERY_VOLTS(vcc_raw);
-  }
-  // Temporary override until the battery-sense divider is calibrated.
-  response->vccvoltage = HARDCODED_BATTERY_VOLTS;
+  adc_read_channel(&hadc1, ADC_CHANNEL_1, &vcc_raw);
+  response->vccvoltage = ADC_TO_BATTERY_VOLTS(vcc_raw);
   response->has_vccvoltage_raw = true;
   response->vccvoltage_raw = vcc_raw;
   response->has_vcccurrent = true;
@@ -300,6 +295,8 @@ static void power_board_enter_low_power_mode(uint32_t duration_ms)
   MX_USB_DEVICE_Init();
 }
 
+
+
 static void power_board_disable_external_power(void)
 {
   target_motor_ = motor_off_;
@@ -308,7 +305,6 @@ static void power_board_disable_external_power(void)
   HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(EN_12V_REG_GPIO_Port, EN_12V_REG_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_RESET);
@@ -325,7 +321,8 @@ static void power_board_enable_external_power(void)
   HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
+  
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET); // Needs to be RESET to enable the op-amp
 }
 
 /* USER CODE END 0 */
