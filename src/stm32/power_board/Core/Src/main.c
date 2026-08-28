@@ -67,6 +67,7 @@ TIM_HandleTypeDef htim16;
 
 /* USER CODE BEGIN PV */
 static volatile uint8_t lptim_wake_flag = 0;
+static volatile uint8_t reed_wake_flag = 0;
 
 /* LSI ~32 kHz, LPTIM prescaler /128 -> 250 Hz. */
 #define LPTIM_TICK_HZ            250U
@@ -216,6 +217,29 @@ static uint64_t lptim_counts_from_ms(uint32_t duration_ms)
   uint64_t counts = ((uint64_t)duration_ms * LPTIM_TICK_HZ + 999U) / 1000U;
 
   return (counts == 0U) ? 1U : counts;
+}
+
+static void wait_for_reed_wake(void)
+{
+  const uint16_t period = (uint16_t)(lptim_counts_from_ms(SLEEP_INTERVAL_MS) - 1U);
+  lptim_wake_flag = 0U;
+  reed_wake_flag = 0U;
+
+  if (HAL_LPTIM_Counter_Start_IT(&hlptim1, period) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  HAL_SuspendTick();
+  while (reed_wake_flag == 0U && lptim_wake_flag == 0U)
+  {
+    HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+    SystemClock_Config();
+  }
+  HAL_ResumeTick();
+
+  HAL_LPTIM_Counter_Stop_IT(&hlptim1);
+  HAL_IWDG_Refresh(&hiwdg);
 }
 
 static void sleep_until_lptim_wake_counts(uint16_t period)
@@ -427,6 +451,7 @@ int main(void)
           else
           {
             reed_active_samples = 0U;
+            wait_for_reed_wake();
           }
         }
         break;
@@ -1273,9 +1298,11 @@ static void MX_GPIO_Init(void)
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   GPIO_InitStruct.Pin = REED_WAKE_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(REED_WAKE_GPIO_Port, &GPIO_InitStruct);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
@@ -1285,6 +1312,14 @@ void HAL_LPTIM_AutoReloadMatchCallback(LPTIM_HandleTypeDef *hlptim)
   if (hlptim->Instance == LPTIM1)
   {
     lptim_wake_flag = 1U;
+  }
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == REED_WAKE_Pin)
+  {
+    reed_wake_flag = 1U;
   }
 }
 

@@ -217,4 +217,9 @@ void LPTIM1_IRQHandler(void)
 {
   HAL_LPTIM_IRQHandler(&hlptim1);
 }
+
+void EXTI15_10_IRQHandler(void)
+{
+  HAL_GPIO_EXTI_IRQHandler(REED_WAKE_Pin);
+}
 /* USER CODE END 1 */
