@@ -95,6 +95,11 @@ void jaiabot::apps::TurnerCFluorDriver::receive_data(
         turner_c_fluor_msg.set_units(fluorometer_coefficients_.units());
     }
 
+    if (fluorometer_coefficients_.has_serial_number())
+    {
+        turner_c_fluor_msg.set_serial_number(fluorometer_coefficients_.serial_number());
+    }
+
     if (instance_ == jaiabot::sensor::protobuf::INSTANCE_2)
     {
         interprocess().publish<jaiabot::groups::fluorometer_2>(turner_c_fluor_msg);

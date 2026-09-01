@@ -46,6 +46,7 @@ message TurnerCFluor
     // set by the driver from this instance's coefficients, never by the MCU
     optional CFluorAnalytes analyte = 4;
     optional CFluorUnits units = 5;
+    optional int32 serial_number = 6;
 }
 
 message FluorCoefficients

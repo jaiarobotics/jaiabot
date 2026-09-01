@@ -40,8 +40,13 @@ jaiabot::apps::AtlasScientificOEMECDriver::AtlasScientificOEMECDriver(
         [this](const sensor::protobuf::SensorData& sensor_data) {
             if (sensor_data.has_oem_ec())
                 receive_data(sensor_data.oem_ec());
-            if (sensor_data.has_oem_ph())
-                last_ph_data_ = sensor_data.oem_ph();
+            if (sensor_data.has_bar30())
+                last_bar30_data_ = sensor_data.bar30();
+            if (sensor_data.has_tsys01())
+            {
+                using_tsys01_ = true;
+                last_tsys01_data_ = sensor_data.tsys01();
+            }
         });
 
     // subscribe for pressure adjusted measurements (pressure -> depth)
@@ -80,21 +85,45 @@ void jaiabot::apps::AtlasScientificOEMECDriver::receive_data(
     {
         ec_msg.set_salinity_raw(ec_data.salinity_raw());
     }
-    // Using do data temperature because the bar30 is not
-    // reporting accurately enough embedded into the midbody
-    if (last_ph_data_.has_temperature())
+
+    // Determine whether we want tsys01 or bar30 temperature data for conductivity compensation and salinity calculation
+    if (using_tsys01_)
     {
-        const double specific_conductivity =
-            calculate_specific_conductivity(ec_msg.conductivity_raw(), last_ph_data_.temperature());
-        ec_msg.set_conductivity(specific_conductivity);
+        if (last_tsys01_data_.has_temperature())
+        {
+            const double specific_conductivity = calculate_specific_conductivity(
+                ec_msg.conductivity_raw(), last_tsys01_data_.temperature());
+            ec_msg.set_conductivity(specific_conductivity);
+
+            if (last_pressure_adjusted_data_.has_pressure_adjusted())
+            {
+                const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
+                const double salinity = calculate_derived_salinity(
+                    ec_msg.conductivity_raw(), last_tsys01_data_.temperature(),
+                    last_pressure_adjusted_data_.pressure_adjusted() +
+                        ATMOSPHERIC_PRESSURE_DECIBARS);
+                ec_msg.set_salinity(salinity);
+            }
+        }
     }
-    if (last_ph_data_.has_temperature() && last_pressure_adjusted_data_.has_pressure_adjusted())
+    else
     {
-        const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
-        const double salinity = calculate_derived_salinity(
-            ec_msg.conductivity_raw(), last_ph_data_.temperature(),
-            last_pressure_adjusted_data_.pressure_adjusted() + ATMOSPHERIC_PRESSURE_DECIBARS);
-        ec_msg.set_salinity(salinity);
+        if (last_bar30_data_.has_temperature())
+        {
+            const double specific_conductivity = calculate_specific_conductivity(
+                ec_msg.conductivity_raw(), last_bar30_data_.temperature());
+            ec_msg.set_conductivity(specific_conductivity);
+
+            if (last_pressure_adjusted_data_.has_pressure_adjusted())
+            {
+                const double ATMOSPHERIC_PRESSURE_DECIBARS = 10.1325;
+                const double salinity = calculate_derived_salinity(
+                    ec_msg.conductivity_raw(), last_bar30_data_.temperature(),
+                    last_pressure_adjusted_data_.pressure_adjusted() +
+                        ATMOSPHERIC_PRESSURE_DECIBARS);
+                ec_msg.set_salinity(salinity);
+            }
+        }
     }
 
     interprocess().publish<jaiabot::groups::salinity>(ec_msg);

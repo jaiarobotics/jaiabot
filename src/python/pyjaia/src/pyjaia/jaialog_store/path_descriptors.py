@@ -274,6 +274,14 @@ path_descriptors = [
         description='What the second fluorometer measures, from its configured coefficients.'
     ),
     PathDescriptor(
+        name='Fluorometer 2 Serial Number',
+        path_suffix=None,
+        path_regex=r'.*jaiabot::fluorometer_2/.*TurnerCFluor/serial_number$',
+        units='',
+        frequency=10,
+        description='Serial number of the second fluorometer probe, from its configured coefficients.'
+    ),
+    PathDescriptor(
         name='Fluorometer Concentration',
         path_suffix='TurnerCFluor/concentration',
         units='See fluorometer spec. sheet.',
@@ -293,6 +301,13 @@ path_descriptors = [
         units='',
         frequency=10,
         description='What the fluorometer measures, from its configured coefficients.'
+    ),
+    PathDescriptor(
+        name='Fluorometer Serial Number',
+        path_suffix='TurnerCFluor/serial_number',
+        units='',
+        frequency=10,
+        description='Serial number of the fluorometer probe, from its configured coefficients.'
     ),
     PathDescriptor(
         name='Latitude',

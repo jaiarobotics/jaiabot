@@ -100,6 +100,11 @@ jaiabot::apps::TurnerCFluorSensorDriver::TurnerCFluorSensorDriver()
                 {
                     turner_c_fluor_msg.set_units(fcoefficients_.units());
                 }
+
+                if (fcoefficients_.has_serial_number())
+                {
+                    turner_c_fluor_msg.set_serial_number(fcoefficients_.serial_number());
+                }
             }
         }
 
