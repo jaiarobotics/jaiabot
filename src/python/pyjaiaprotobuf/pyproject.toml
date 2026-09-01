@@ -19,5 +19,10 @@ dependencies = [
 Homepage = "https://www.jaia.tech"
 "Bug Tracker" = "https://github.com/jaiarobotics/jaiabot"
 
+# nanopb_pb2.py is generated flat at the src/ root (no package dir), so
+# packages.find won't pick it up on its own
+[tool.setuptools]
+py-modules = ["nanopb_pb2"]
+
 [tool.setuptools.packages.find]
 where = ["src"] # Specify where Setuptools should look for packages

@@ -58,7 +58,7 @@ parser.add_argument('--imu_type', choices=['bno055', 'bno085', 'none'], help='If
 parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none'], help='If set, configure services for imu install type')
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--pam_connection_type', choices=['uart', 'usb', 'none'], help='If set, configure services for PAM connection type')
-parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'none'], help='If set, configure services for bot type')
+parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'storm', 'none'], help='If set, configure services for bot type')
 parser.add_argument('--bot_vin', default='unknown_vin', help='If set, configure services for bot vin (defaults to "unknown_vin")')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
@@ -112,6 +112,7 @@ class BOT_TYPE(Enum):
     HYDRO = 'HYDRO'
     ECHO = 'ECHO'
     BIO = 'BIO'
+    STORM = 'STORM'
     NONE = 'NONE'
 
 class DATA_OFFLOAD_IGNORE_TYPE(Enum):
@@ -191,6 +192,8 @@ elif args.bot_type == 'echo':
     jaia_bot_type = BOT_TYPE.ECHO
 elif args.bot_type == 'bio':
     jaia_bot_type = BOT_TYPE.BIO
+elif args.bot_type == 'storm':
+    jaia_bot_type = BOT_TYPE.STORM
 else:
     jaia_bot_type = BOT_TYPE.NONE
 
@@ -493,6 +496,12 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__JAIABOT_MISSION_MANAGER',
      'extra_service': 'Environment=PATH=' + args.jaiabot_bin_dir + ':/usr/bin', # to execute correct data pre/post offload scripts
      'runs_on': [Type.BOT],
+     'wanted_by': 'jaiabot_health.service'},
+    {'exe': 'jaiabot_storm_manager',
+     'description': 'JaiaBot Storm Manager',
+     'template': 'goby-app.service.in',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_STORM_MANAGER',
+     'runs_on': [BOT_TYPE.STORM],
      'wanted_by': 'jaiabot_health.service'},
     {'exe': 'jaiabot_pid_control',
      'description': 'JaiaBot PID Controller',
