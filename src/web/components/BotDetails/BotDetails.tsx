@@ -28,6 +28,7 @@ import {
     getBotOffloadPercent,
     getRepeatProgress,
     getDistToWaypoint,
+    getStormReadinessStatus,
     isBotLogging,
     searchGhostMissions,
 } from "./bot-details";
@@ -150,8 +151,18 @@ export default function BotDetails() {
                                 <table>
                                     <tbody>
                                         <tr>
-                                            <td>Sleep Duration</td>
+                                            <td>Status</td>
                                             <td>
+                                                {getStormReadinessStatus(
+                                                    missionStatus?.missionState,
+                                                )}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style={{ verticalAlign: "middle" }}>
+                                                Sleep Duration
+                                            </td>
+                                            <td style={{ verticalAlign: "middle" }}>
                                                 <SleepDuration bot={bot} />
                                             </td>
                                         </tr>
