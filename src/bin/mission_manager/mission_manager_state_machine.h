@@ -344,6 +344,13 @@ struct MissionManagerStateMachine
     }
     const std::string& data_offload_exclude() { return data_offload_exclude_; }
 
+    // bot-level config, independent of any mission plan
+    void set_sleep_duration_seconds(uint32_t sleep_duration_seconds)
+    {
+        sleep_duration_seconds_ = sleep_duration_seconds;
+    }
+    uint32_t sleep_duration_seconds() { return sleep_duration_seconds_; }
+
   private:
     apps::MissionManager& app_;
     jaiabot::protobuf::MissionState state_{jaiabot::protobuf::PRE_DEPLOYMENT__IDLE};
@@ -386,6 +393,7 @@ struct MissionManagerStateMachine
     int32_t hub_id_{0};
     std::string data_offload_exclude_{""};
     uint64_t mission_command_time_{0};
+    uint32_t sleep_duration_seconds_{10800};
 };
 
 } // namespace statechart
