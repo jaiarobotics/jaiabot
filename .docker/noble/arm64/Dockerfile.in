@@ -19,6 +19,7 @@ RUN apt-get update && \
             clang clang-tools dirmngr\
             dput cdbs \
             gcc-aarch64-linux-gnu \
+            gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi \
             && rm -rf /var/lib/apt/lists/*
 
 # Allow us to install packages for cross-compiling architectures

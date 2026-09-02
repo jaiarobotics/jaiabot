@@ -56,6 +56,12 @@ constexpr goby::middleware::Group mcu_command{"jaiabot_sensors::mcu_command"};
 constexpr goby::middleware::Group mcu_calibration_command{
     "jaiabot_sensors::mcu_calibration_command"};
 
+constexpr goby::middleware::Group power_board_pb_data_out{
+    "jaiabot::power_board::mcu_pb_data_out"}; // parsed PowerBoardRequest
+constexpr goby::middleware::Group power_board_pb_data_in{
+    "jaiabot::power_board::mcu_pb_data_in"}; // parsed PowerBoardMessage
+constexpr goby::middleware::Group power_board_command{"jaiabot_power_board::mcu_command"};
+
 constexpr goby::middleware::Group aml_in{"jaiabot::sensors::aml::in"};
 constexpr goby::middleware::Group aml_out{"jaiabot::sensors::aml::out"};
 constexpr goby::middleware::Group aml{"jaiabot::sensors::aml"};

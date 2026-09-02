@@ -15,6 +15,7 @@ jaia_electronics_stack='0'
 jaia_imu_type='bno055'
 jaia_arduino_type='spi'
 jaia_pam_connection_type='none'
+jaia_power_board_mcu='stm32'
 jaia_tail_serial_number = os.environ.get('jaia_tail_serial_number', default='unknown_serial_number')
 jaia_bot_vin = os.environ.get('jaia_bot_vin', default='unknown_vin')
 
@@ -130,6 +131,7 @@ verbosities = \
   'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_aml_sensor_driver':                    { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ctd_manager':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_power_board':                          { 'runtime': { 'tty': 'DEBUG1', 'log': 'DEBUG1' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -352,14 +354,20 @@ elif common.app == 'jaiabot_mission_manager':
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
                                      subnet_mask=common.comms.subnet_mask,
                                      camera_available=common.camera_available))
-
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block=interprocess_common,
-                                     port='/dev/ttyUSB0',
+                                     port='/dev/bio-payload',
                                      baud=115200,
                                      fluorometer_coefficients=fluorometer_coefficients))
+elif common.app == 'jaiabot_power_board':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_power_board.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block=interprocess_common,
+                                     port='/dev/power-board',
+                                     baud=115200,
+                                     bounds=jaiabot_driver_arduino_bounds))
 elif common.app == 'jaiabot_engineering':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_engineering.pb.cfg.in',
                                      app_block=app_common,
