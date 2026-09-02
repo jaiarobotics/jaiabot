@@ -179,6 +179,9 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
                                   << std::endl;
         // publish for appropriate thread and for logging
         interprocess().publish<jaiabot::groups::mcu_pb_data_in>(sensor_data);
+
+        if (sensor_data.has_metadata())
+            receive_metadata_from_mcu(sensor_data.metadata());
     }
     catch (std::exception& e)
     {
