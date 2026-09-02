@@ -32,9 +32,16 @@ except ModuleNotFoundError as e:
     log.warning(e)
     log.warning('So, no physical device will be available')
 
+try:
+    from kellerLD import KellerLD
+except ModuleNotFoundError as e:
+    log.warning(e)
+    log.warning('So, no physical device will be available')
+
 class SensorType(Enum):
     BAR02 = ('bar02', 1)
     BAR30 = ('bar30', 2)
+    BARXT = ('barxt', 3)
 
     @property
     def name(self):
@@ -67,6 +74,9 @@ class Sensor:
             if args.sensor_type == SensorType.BAR02.name:
                 self.sensor = ms5837.MS5837_02BA()
                 self.sensor_type = SensorType.BAR02.num
+            elif args.sensor_type == SensorType.BARXT.name:
+                self.sensor = KellerLD()
+                self.sensor_type = SensorType.BARXT.num
             else:
                 self.sensor = ms5837.MS5837_30BA()
                 self.sensor_type = SensorType.BAR30.num
@@ -84,12 +94,18 @@ class Sensor:
         if not self.is_setup:
             self.setup()
 
-        try:
-            if self.sensor.read(oversampling=self.osr_value):
-                if self.pressure_0 is None:
-                    self.pressure_0 = self.sensor.pressure()
+        # KellerLD (BarXT) has no oversampling option and reports pressure in bar rather than mbar
+        is_keller = self.sensor_type == SensorType.BARXT.num
 
-                return (self.sensor.pressure() - self.pressure_0, self.sensor.temperature())
+        try:
+            read_ok = self.sensor.read() if is_keller else self.sensor.read(oversampling=self.osr_value)
+            if read_ok:
+                pressure_mbar = self.sensor.pressure() * 1000 if is_keller else self.sensor.pressure()
+
+                if self.pressure_0 is None:
+                    self.pressure_0 = pressure_mbar
+
+                return (pressure_mbar - self.pressure_0, self.sensor.temperature())
             else:
                 log.warning('Sensor read fail')
                 self.is_setup = False

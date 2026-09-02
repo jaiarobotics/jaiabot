@@ -63,7 +63,7 @@ parser.add_argument('--bot_vin', default='unknown_vin', help='If set, configure 
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
 parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsys01', 'none'], help='If set, configure services for temperature sensor')
-parser.add_argument('--pressure_sensor_type', choices=['bar02', 'bar30', 'none'], help='If set, configure services for pressure sensor')
+parser.add_argument('--pressure_sensor_type', choices=['bar02', 'bar30', 'barxt', 'none'], help='If set, configure services for pressure sensor')
 parser.add_argument('--rf_encryption_password', default ='', help='Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex')
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
@@ -132,6 +132,7 @@ class TEMPERATURE_SENSOR_TYPE(Enum):
 class PRESSURE_SENSOR_TYPE(Enum):
     BAR02 = 'bar02'
     BAR30 = 'bar30'
+    BARXT = 'barxt'
     NONE = 'none'
 
 # Set the arduino type based on the argument
@@ -217,6 +218,8 @@ else:
 
 if args.pressure_sensor_type == 'bar02':
     jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BAR02
+elif args.pressure_sensor_type == 'barxt':
+    jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BARXT
 else:
     jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BAR30
 

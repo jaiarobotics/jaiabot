@@ -323,9 +323,10 @@ void jaiabot::apps::UDPGateway::check_last_report(
     }
 
     // Pressure temperature data timeout check
-    if (cfg().bar30_enabled() && last_pressure_temperature_data_time_ +
-        std::chrono::seconds(cfg().pressure_temperature_data_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
+    if ((cfg().bar30_enabled() || cfg().barxt_enabled()) &&
+        last_pressure_temperature_data_time_ +
+                std::chrono::seconds(cfg().pressure_temperature_data_report_timeout_seconds()) <
+            goby::time::SteadyClock::now())
     {
         glog.is_warn() && glog << "Timeout on pressure temperature data" << std::endl;
         health_state = goby::middleware::protobuf::HEALTH__DEGRADED;

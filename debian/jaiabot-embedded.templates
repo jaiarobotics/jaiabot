@@ -129,7 +129,7 @@ Description: What temperature sensor do you want to use?
 
 Template: jaiabot-embedded/pressure_sensor_type
 Type: select
-Choices: bar02, bar30, none
+Choices: bar02, bar30, barxt, none
 Default: bar30
 Description: What pressure sensor do you have?
 
