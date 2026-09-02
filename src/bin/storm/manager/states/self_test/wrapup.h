@@ -32,6 +32,16 @@ struct Wrapup : boost::statechart::state<Wrapup, SelfTest>,
     {
         // currently this state is a no-op, but exists to make a single clean final substate of SelfTest
         post_event(EvSelfTestComplete());
+
+        // inform jaiabot_mission_manager of the result of this delegated state; only
+        // reached via the intended completion path, not on machine teardown/shutdown
+        protobuf::MissionStateDelegateResponse resp;
+        resp.set_state(protobuf::PRE_DEPLOYMENT__SELF_TEST);
+        // STORM state machine self test can have warnings
+        // but we always want to continue the mission no matter what,
+        // which means we always consider the self test successful.
+        resp.set_event(protobuf::MissionStateDelegateResponse::EV_SELF_TEST_SUCCESSFUL);
+        interprocess().publish<::jaiabot::groups::state_delegate_response>(resp);
     }
     ~Wrapup() {}
 

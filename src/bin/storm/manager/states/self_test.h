@@ -31,17 +31,7 @@ struct SelfTest
         boost::statechart::state<SelfTest, StormManagerStateMachine, self_test::InWaterDetection>;
 
     SelfTest(typename StateBase::my_context c) : StateBase(c) {}
-    ~SelfTest()
-    {
-        // inform jaiabot_mission_manager of the result of this delegated state
-        protobuf::MissionStateDelegateResponse resp;
-        resp.set_state(protobuf::PRE_DEPLOYMENT__SELF_TEST);
-        // STORM state machine self test can have warnings
-        // but we always want to continue the mission no matter what,
-        // which means we always consider the self test successful.
-        resp.set_event(protobuf::MissionStateDelegateResponse::EV_SELF_TEST_SUCCESSFUL);
-        interprocess().publish<jaiabot::groups::state_delegate_response>(resp);
-    }
+    ~SelfTest() {}
 
     using reactions = boost::mpl::list<>;
 };

@@ -31,8 +31,31 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
 {
     using StateBase = boost::statechart::state<SendMission, MissionPlanning>;
 
-    SendMission(typename StateBase::my_context c) : StateBase(c)
+    SendMission(typename StateBase::my_context c) : StateBase(c) { try_send_mission(); }
+    ~SendMission() {}
+
+    void loop(const EvLoop& ev) { try_send_mission(); }
+
+    using reactions = boost::mpl::list<
+        boost::statechart::transition<EvMissionRunning, MissionRunning>,
+        boost::statechart::in_state_reaction<EvLoop, SendMission, &SendMission::loop>>;
+
+  private:
+    void try_send_mission()
     {
+        if (sent_)
+            return;
+
+        // wait for a real GPS fix before commanding a mission; latest_location()
+        // defaults to (0, 0) until set_latest_location() is called
+        if (!this->machine().has_latest_location())
+        {
+            goby::glog.is_warn() &&
+                goby::glog << group("statechart")
+                           << "Waiting for a valid location before sending mission" << std::endl;
+            return;
+        }
+
         // create a regular mission and send it over to jaiabot_mission_manager
         protobuf::Command command;
         command.set_bot_id(cfg().bot_id());
@@ -58,10 +81,9 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
                                               << "Sending command: " << command.ShortDebugString()
                                               << std::endl;
         this->interprocess().publish<::jaiabot::groups::self_command>(command);
+        sent_ = true;
     }
-    ~SendMission() {}
 
-    using reactions =
-        boost::mpl::list<boost::statechart::transition<EvMissionRunning, MissionRunning>>;
+    bool sent_{false};
 };
 #endif

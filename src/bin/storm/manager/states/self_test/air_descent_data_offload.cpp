@@ -49,7 +49,7 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::mcu_response(const E
             air_descent_data_[ev.resp.air_descent_data().packet_index()] =
                 ev.resp.air_descent_data();
 
-            if (air_descent_metadata_ &&
+            if (!data_offloaded_from_mcu_ && air_descent_metadata_ &&
                 air_descent_data_.size() == air_descent_metadata_->num_packets())
             {
                 glog.is_verbose() && glog << group("statechart")
