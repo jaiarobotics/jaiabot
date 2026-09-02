@@ -68,6 +68,12 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
                                  protobuf::Command& out_command);
     void handle_bottom_dive_safety_params(const protobuf::BottomDepthSafetyParams);
 
+    // sleep_duration_seconds must survive a full power cycle (the bot's power board
+    // shuts the Pi down between missions), so it's persisted to disk rather than
+    // just kept in memory on the state machine
+    uint32_t load_sleep_duration_seconds();
+    void save_sleep_duration_seconds(uint32_t sleep_duration_seconds);
+
     bool health_considered_ok(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
     void handle_self_test_results(bool result); // TODO: replace with Protobuf message
     void intervehicle_subscribe(const jaiabot::protobuf::IntervehicleSubscribeRequest& req);
