@@ -92,31 +92,37 @@ static int motor_reverse_clamp(int value)
 }
 
 // Steps motor_tracked_ toward target_motor_ by at most motor_max_step_ so
-// the ESC sees a ramp rather than an instantaneous jump
+// the ESC sees a ramp rather than an instantaneous jump. The clamp side is
+// chosen by the sign of motor_tracked_ (the value being applied), not
+// target_motor_, so a direction-reversal command still ramps through neutral
+// instead of snapping straight to the opposite side's near-neutral threshold.
 static void step_motor_toward_target(void)
 {
     if (target_motor_ > motor_off_ && target_motor_ > motor_tracked_)
     {
         motor_tracked_ += min_int(target_motor_ - motor_tracked_, motor_max_step_);
-        motor_actual_ = motor_forward_clamp(motor_tracked_);
     }
     else if ((target_motor_ > motor_off_ && target_motor_ < motor_tracked_) ||
              (target_motor_ == motor_off_ && motor_tracked_ > motor_off_))
     {
         motor_tracked_ -= min_int(motor_tracked_ - target_motor_, motor_max_step_);
-        motor_actual_ = motor_forward_clamp(motor_tracked_);
     }
     else if ((target_motor_ < motor_off_ && target_motor_ > motor_tracked_) ||
              (target_motor_ == motor_off_ && motor_tracked_ < motor_off_))
     {
         motor_tracked_ += min_int(target_motor_ - motor_tracked_, motor_max_step_);
-        motor_actual_ = motor_reverse_clamp(motor_tracked_);
     }
     else if (target_motor_ < motor_off_ && target_motor_ < motor_tracked_)
     {
         motor_tracked_ -= min_int(motor_tracked_ - target_motor_, motor_max_step_);
-        motor_actual_ = motor_reverse_clamp(motor_tracked_);
     }
+
+    if (motor_tracked_ > motor_off_)
+        motor_actual_ = motor_forward_clamp(motor_tracked_);
+    else if (motor_tracked_ < motor_off_)
+        motor_actual_ = motor_reverse_clamp(motor_tracked_);
+    else
+        motor_actual_ = motor_off_;
 
     apply_motor_output_us(motor_actual_);
 }

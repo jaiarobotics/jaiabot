@@ -128,6 +128,8 @@ jaiabot::apps::PowerBoard::PowerBoard()
     interprocess().subscribe<jaiabot::groups::low_control>(
         [this](const jaiabot::protobuf::LowControl& low_control) { handle_control_surfaces(low_control.control_surfaces()); });
 
+    bounds_ = cfg().bounds();
+
     launch_thread<MCUSerialThread>(cfg().power_board_serial());
 }
 
