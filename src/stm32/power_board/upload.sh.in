@@ -1,0 +1,47 @@
+#!/bin/bash
+
+sharedir=@sharedir@
+sketch=@sketchname@
+hex=@hex_name@
+nickname=@nickname@
+programmer=@programmer@
+device=@device@
+interface=@interface@
+baudrate=@baudrate@
+serial_port=@STM32_SERIAL_PORT@
+
+hex_path=${sharedir}/${sketch}/${nickname}/${hex}
+hex_mtime=$(stat -c %Y ${hex_path})
+
+# uploaded_path is an empty file touched on successful upload
+# skip flashing if hex is not newer than last upload
+uploaded_path=${hex_path}.uploaded
+
+if [[ ! -f ${uploaded_path} || ${hex_mtime} -gt $(stat -c %Y ${uploaded_path}) ]]; then
+    if [ "${programmer}" = "uart" ]; then
+        # UART bootloader upload via STM32CubeProgrammer CLI
+        if STM32_Programmer_CLI \
+            --connect port=${serial_port} br=${baudrate} \
+            --write ${hex_path} \
+            --verify \
+            --go; then
+            touch ${uploaded_path}
+        else
+            echo "STM32 UART UPLOAD FAILED!"
+            exit 1
+        fi
+    else
+        # ST-Link/SWD upload via OpenOCD
+        if openocd \
+            -f interface/${interface}.cfg \
+            -f target/${device}.cfg \
+            -c "program ${hex_path} verify reset exit"; then
+            touch ${uploaded_path}
+        else
+            echo "STM32 ST-LINK UPLOAD FAILED!"
+            exit 1
+        fi
+    fi
+else
+    echo "SKIPPING STM32 UPLOAD: ${hex_path} is older than ${uploaded_path}"
+fi
