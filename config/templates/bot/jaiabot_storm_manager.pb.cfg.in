@@ -21,13 +21,13 @@ initial_mission {
       check { 
         condition: GREATER_THAN 
         stat: MEAN
-        conductivity: 1000 # uS/cm
-        hold_time: 10 # sec
+        conductivity: 10000 # uS/cm
+        hold_time: 5 # sec
       }
       check { 
         condition: GREATER_THAN 
         stat: MEAN
-        pressure: -1 # dBar
+        pressure: 1 # dBar
         hold_time: 5 # sec
       }
     }
