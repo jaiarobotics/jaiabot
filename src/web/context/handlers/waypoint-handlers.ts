@@ -14,6 +14,7 @@ import {
 } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
 import { jaiaAPI } from "../../utils/jaia-api";
+import { fetchTaskPacketsForWindow } from "../../jcc/polling";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { isLocationBlockedByZone } from "../../data/exclusion_zones/exclusion-zone-router";
 import { detectMissionReroutes } from "../../data/exclusion_zones/exclusion-zone-detection";
@@ -316,8 +317,8 @@ export function handleChangeTaskPacketVisibility(
     action: JaiaAction,
 ) {
     const include = action.taskPacketVisibility === TaskPacketVisibility.INCLUDE;
-    jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then((response) => {
-        jaiaAPI.getTaskPackets().then((response) => {
+    jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then(() => {
+        fetchTaskPacketsForWindow().then((response) => {
             taskPackets.setIncludedTaskPackets(response.result.included);
             taskPackets.setExcludedTaskPackets(response.result.excluded);
             syncTaskLayers();

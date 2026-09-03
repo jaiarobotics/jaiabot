@@ -4,10 +4,12 @@ export class TaskPackets {
     private includedTaskPackets: TaskPacket[];
     private excludedTaskPackets: TaskPacket[];
     private version: number;
+    private revision: number;
 
     constructor() {
         this.includedTaskPackets = [];
         this.excludedTaskPackets = [];
+        this.revision = 0;
     }
 
     getIncludedTaskPackets() {
@@ -16,6 +18,7 @@ export class TaskPackets {
 
     setIncludedTaskPackets(taskPackets: TaskPacket[]) {
         this.includedTaskPackets = taskPackets;
+        this.revision += 1;
     }
 
     getExcludedTaskPackets() {
@@ -24,6 +27,7 @@ export class TaskPackets {
 
     setExcludedTaskPackets(taskPackets: TaskPacket[]) {
         this.excludedTaskPackets = taskPackets;
+        this.revision += 1;
     }
 
     getVersion() {
@@ -32,6 +36,10 @@ export class TaskPackets {
 
     setVersion(version: number) {
         this.version = version;
+    }
+
+    getRevision() {
+        return this.revision;
     }
 
     getTaskPacket(botID: number, startTime: number) {

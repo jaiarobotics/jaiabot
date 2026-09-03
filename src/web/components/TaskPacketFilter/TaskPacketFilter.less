@@ -1,0 +1,91 @@
+@import "../../style/stylesheets/vars.less";
+
+.task-packet-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.task-packet-filter-intro {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.task-packet-filter-step {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.task-packet-filter-step-label {
+    font-weight: 600;
+}
+
+.task-packet-filter-step-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.task-packet-filter-dates {
+    display: flex;
+    gap: 12px;
+}
+
+.task-packet-filter-dates label {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 3px;
+    font-size: 0.85rem;
+}
+
+.task-packet-filter-dates input {
+    padding: 3px;
+}
+
+.task-packet-filter-results {
+    display: flex;
+    flex-direction: column;
+    max-height: 30vh;
+    overflow-y: auto;
+    border: 3px solid @panel-accent-color;
+}
+
+.task-packet-filter-result-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 3px;
+    cursor: pointer;
+}
+
+.task-packet-filter-result-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.task-packet-filter-result-name {
+    font-weight: 600;
+}
+
+.task-packet-filter-result-meta {
+    font-size: 0.75rem;
+}
+
+.task-packet-filter-hint {
+    padding: 3px 3px;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+.task-packet-filter-slider {
+    padding: 0 9px;
+}
+
+.task-packet-filter-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+}

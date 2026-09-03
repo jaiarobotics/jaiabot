@@ -2,6 +2,7 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import { taskPackets } from "../../../data/task_packets/task-packets";
+import { taskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { generateDriftFeature } from "../../features/drift-feature";
 
 class DriftLayer extends JaiaVectorLayer {
@@ -17,7 +18,7 @@ class DriftLayer extends JaiaVectorLayer {
     override updateFeatures() {
         let source = this.getVectorLayer().getSource();
         source.clear();
-        for (let taskPacket of taskPackets.getIncludedTaskPackets()) {
+        for (let taskPacket of taskPacketFilter.filter(taskPackets.getIncludedTaskPackets())) {
             if (taskPacket.drift) {
                 const driftFeature = generateDriftFeature(taskPacket);
                 source.addFeature(driftFeature);

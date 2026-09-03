@@ -504,6 +504,17 @@ class Interface:
         """
         return pyjaia.contours.taskPacketsToColorMap(self.task_packet_database.get_task_packets(start_date, end_date)["included"])
 
+    def get_depth_contours_for_task_packets(self, task_packets):
+        """Gets the depth contours as a colormap for a caller-provided set of task packets.
+
+        Args:
+            task_packets (list[dict]): The task packet dictionaries to contour.
+
+        Returns:
+            dict[str, any]: A GeoJSON dictionary representing a depth color map for the bottom dives.
+        """
+        return pyjaia.contours.taskPacketsToColorMap(task_packets)
+
     # Drift map
 
     def get_drift_map(self, start_date, end_date):
