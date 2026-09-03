@@ -57,6 +57,8 @@ struct LaunchTubeRecovery : boost::statechart::state<LaunchTubeRecovery, SelfTes
 
         if (action_index_ == actions.size())
         {
+            goby::glog.is_debug1() && goby::glog << group("statechart")
+                                                 << "Launch tube recovery complete" << std::endl;
             post_event(EvLaunchTubeRecoveryComplete());
             return;
         }
@@ -75,6 +77,11 @@ struct LaunchTubeRecovery : boost::statechart::state<LaunchTubeRecovery, SelfTes
         const auto action_duration =
             goby::time::convert_duration<goby::time::SteadyClock::duration>(duration);
         send_motor_command(action.thrust_percentage(), static_cast<int>(duration.value()) + 1);
+        goby::glog.is_debug1() && goby::glog
+                                      << group("statechart") << "Launch tube recovery action "
+                                      << action_index_ + 1 << ", repeat " << action_repeat_ << "/"
+                                      << action.count() << ": motor=" << action.thrust_percentage()
+                                      << "%, duration=" << duration.value() << " s" << std::endl;
         action_end_time_ = goby::time::SteadyClock::now() + action_duration;
     }
 
@@ -93,6 +100,11 @@ struct LaunchTubeRecovery : boost::statechart::state<LaunchTubeRecovery, SelfTes
         control_surfaces->set_timeout(timeout_seconds);
         control_surfaces->set_led_switch_on(true);
 
+        goby::glog.is_debug1() && goby::glog
+                                      << group("statechart")
+                                      << "Publishing low-control motor command: id=" << command.id()
+                                      << ", motor=" << thrust_percentage
+                                      << "%, timeout=" << timeout_seconds << " s" << std::endl;
         this->interprocess().publish<::jaiabot::groups::low_control>(command);
     }
 

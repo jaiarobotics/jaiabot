@@ -21,8 +21,8 @@ initial_mission {
       check { 
         condition: GREATER_THAN 
         stat: MEAN
-        conductivity: 10000 # uS/cm
-        hold_time: 5 # sec
+        conductivity: -1 # uS/cm
+        hold_time: 1 # sec
       }
       check { 
         condition: GREATER_THAN 
@@ -39,8 +39,8 @@ initial_mission {
       check { 
         condition: GREATER_THAN 
         stat: MEAN
-        pressure: 20 # dBar
-        hold_time: 0 # sec
+        pressure: 5 # dBar
+        hold_time: 5 # sec
       }
      }
      # cleared if we're near the surface
@@ -48,8 +48,8 @@ initial_mission {
       check { 
         condition: LESS_THAN 
         stat: MEAN
-        pressure: 3 # dBar
-        hold_time: 10 # sec
+        pressure: 1 # dBar
+        hold_time: 2 # sec
       }
     }
     
@@ -60,7 +60,7 @@ initial_mission {
     }
     recovery_action { 
       thrust_percentage: -30
-      thrust_duration: 5 # seconds
+      thrust_duration: 1 # seconds
       count: 1
     }
   }

@@ -135,7 +135,7 @@ verbosities = \
   'jaiabot_aml_sensor_driver':                    { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ctd_manager':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ppk':                                  { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
-    'jaiabot_storm_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }},
+  'jaiabot_storm_manager':                        { 'runtime': { 'tty': 'DEBUG1', 'log': 'DEBUG1'  }, 'simulation': { 'tty': 'DEBUG1', 'log': 'DEBUG1' }},
   'jaiabot_power_board':                          { 'runtime': { 'tty': 'DEBUG1', 'log': 'DEBUG1' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
 }
 

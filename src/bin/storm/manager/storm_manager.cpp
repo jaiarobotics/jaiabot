@@ -81,15 +81,15 @@ jaiabot::apps::StormManager::StormManager()
 
             if (state_change.direction() == protobuf::StormMissionStateChange::ENTERED)
             {
-                glog.is_verbose() && glog << group("statechart") << "Entered: " << state_name
-                                          << std::endl;
+                glog.is_debug1() && glog << group("statechart") << "Entered: " << state_name
+                                         << std::endl;
 
                 // publish the mission report on each state change
                 publish_mission_report(state_change.state());
             }
             else
-                glog.is_verbose() && glog << group("statechart") << "Exited: " << state_name
-                                          << std::endl;
+                glog.is_debug1() && glog << group("statechart") << "Exited: " << state_name
+                                         << std::endl;
         });
 
     // trigger events on delegate request
@@ -122,6 +122,8 @@ jaiabot::apps::StormManager::StormManager()
         [this](boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit> c)
     {
         raw_conductivity_.push_back(c);
+        glog.is_debug1() && glog << group("statechart") << "Conductivity sample: " << c
+                                 << ", mean: " << raw_conductivity_.mean() << std::endl;
         machine_->process_event(statechart::EvConductivity(
             raw_conductivity_.mean(), raw_conductivity_.median(), raw_conductivity_.stddev()));
     };
@@ -140,6 +142,9 @@ jaiabot::apps::StormManager::StormManager()
         [this](const jaiabot::protobuf::PressureTemperatureData& pt)
         {
             raw_pressure_.push_back(pt.pressure_raw_with_units<quantity<si::pressure>>());
+            glog.is_debug1() && glog << group("statechart") << "Pressure sample: "
+                                     << pt.pressure_raw_with_units<quantity<si::pressure>>()
+                                     << ", mean: " << raw_pressure_.mean() << std::endl;
             machine_->process_event(statechart::EvPressure(
                 raw_pressure_.mean(), raw_pressure_.median(), raw_pressure_.stddev()));
         });
@@ -339,8 +344,8 @@ void jaiabot::apps::StormManager::receive_from_mcu(const goby::middleware::proto
     try
     {
         auto mcu_response = jaiabot::serial::decode_from_mcu<protobuf::StormMCUResponse>(io_msg);
-        glog.is_verbose() && glog << "Received data from MCU: " << mcu_response.ShortDebugString()
-                                  << std::endl;
+        glog.is_debug1() && glog << "Received data from MCU: " << mcu_response.ShortDebugString()
+                     << std::endl;
         // publish for logging
         interprocess().publish<jaiabot::groups::storm::mcu_pb_data_in>(mcu_response);
         // post for state machine
