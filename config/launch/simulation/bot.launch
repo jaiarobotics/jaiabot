@@ -56,5 +56,4 @@ jaiabot_ctd_manager <(../../gen/bot.py jaiabot_ctd_manager)
 jaiabot_driver_arduino <(../../gen/bot.py jaiabot_driver_arduino)
 
 # Run rpm.py in simulator mode if we're in the simulator
-# Disabled for now: depends on build/web_dev/python/venv, which requires src/web/run.sh
-# [kill=SIGTERM] ../../../build/web_dev/python/venv/bin/python3 ../../../src/python/motor/rpm.py --simulator `../../gen/bot.py rpm.py`
+[kill=SIGTERM] ${jaia_share_dir}/jaiabot/python/venv/bin/python3 ../../../src/python/motor/rpm.py --simulator `../../gen/bot.py rpm.py`
