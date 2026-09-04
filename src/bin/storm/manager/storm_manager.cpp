@@ -57,6 +57,8 @@ void jaiabot::apps::StormManager::initialize()
     load_pending_task_packets();
 
     machine_->initiate();
+    machine_->process_event(statechart::EvStarted());
+    machine_->process_event(statechart::EvBeginSelfTest());
 }
 
 void jaiabot::apps::StormManager::finalize()
