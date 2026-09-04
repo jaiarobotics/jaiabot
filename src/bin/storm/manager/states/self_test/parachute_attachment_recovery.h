@@ -39,6 +39,12 @@ struct ParachuteAttachmentRecovery
 
     void loop(const EvLoop&)
     {
+        if (this->machine().stopped())
+        {
+            send_motor_command(0, 0);
+            return;
+        }
+
         if (goby::time::SteadyClock::now() < action_end_time_)
             return;
 
@@ -55,6 +61,9 @@ struct ParachuteAttachmentRecovery
   private:
     void start_next_action()
     {
+        if (this->machine().stopped())
+            return;
+
         const auto& actions = this->machine().mission().parachute().recovery_action();
 
         if (action_index_ == actions.size())

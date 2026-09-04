@@ -5,30 +5,30 @@ bot_id: $bot_id
 
 initial_mission { 
   dive { 
-    max_depth: 50 
+    max_depth: 5 
     depth_interval: inf
     hold_time: 0
     bottom_dive: false
   }
   
-  sleep_for_minutes: 1 
+  sleep_for_minutes: 5
   min_battery_percentage: 10 
-  remote_mission_wait_minutes: 10 
-  data_offload_timeout_minutes: 1
+  remote_mission_wait_minutes: 5 
+  data_offload_timeout_minutes: 5
   in_water {
     # in-water if conductivity is definitely seawater and pressure is definitely sea level or greater
     threshold { 
       check { 
         condition: GREATER_THAN 
         stat: MEAN
-        conductivity: -1 # uS/cm
+        conductivity: 5000 # uS/cm
         hold_time: 1 # sec
       }
       check { 
         condition: GREATER_THAN 
         stat: MEAN
-        pressure: 1 # dBar
-        hold_time: 5 # sec
+        pressure: -1 # dBar
+        hold_time: 1 # sec
       }
     }
   }
@@ -40,7 +40,7 @@ initial_mission {
         condition: GREATER_THAN 
         stat: MEAN
         pressure: 5 # dBar
-        hold_time: 5 # sec
+        hold_time: 3 # sec
       }
      }
      # cleared if we're near the surface
@@ -48,8 +48,8 @@ initial_mission {
       check { 
         condition: LESS_THAN 
         stat: MEAN
-        pressure: 1 # dBar
-        hold_time: 2 # sec
+        pressure: 2 # dBar
+        hold_time: 5 # sec
       }
     }
     

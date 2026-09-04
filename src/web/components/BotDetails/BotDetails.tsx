@@ -159,6 +159,12 @@ export default function BotDetails() {
                                             </td>
                                         </tr>
                                         <tr>
+                                            <td>Motor</td>
+                                            <td>
+                                                <StopButton bot={bot} allowAnyState />
+                                            </td>
+                                        </tr>
+                                        <tr>
                                             <td style={{ verticalAlign: "middle" }}>
                                                 Sleep Duration
                                             </td>

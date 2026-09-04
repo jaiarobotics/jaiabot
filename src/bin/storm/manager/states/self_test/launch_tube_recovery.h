@@ -39,6 +39,12 @@ struct LaunchTubeRecovery : boost::statechart::state<LaunchTubeRecovery, SelfTes
 
     void loop(const EvLoop&)
     {
+        if (this->machine().stopped())
+        {
+            send_motor_command(0, 0);
+            return;
+        }
+
         if (goby::time::SteadyClock::now() < action_end_time_)
             return;
 
@@ -53,6 +59,9 @@ struct LaunchTubeRecovery : boost::statechart::state<LaunchTubeRecovery, SelfTes
   private:
     void start_next_action()
     {
+        if (this->machine().stopped())
+            return;
+
         const auto& actions = this->machine().mission().launch_tube().recovery_action();
 
         if (action_index_ == actions.size())

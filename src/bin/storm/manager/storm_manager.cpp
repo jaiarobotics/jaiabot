@@ -130,12 +130,12 @@ jaiabot::apps::StormManager::StormManager()
 
     // conductivity - currently comes in two different messages
     // TODO - replace with _with_units
-    interprocess().subscribe<jaiabot::groups::raw_salinity>(
+    interprocess().subscribe<jaiabot::groups::salinity>(
         [this, post_conductivity_event](const jaiabot::protobuf::SalinityData& sal)
         { post_conductivity_event(sal.conductivity_raw() * jaiabot::units::microsiemens_per_cm); });
-    interprocess().subscribe<jaiabot::groups::raw_salinity>(
-        [this, post_conductivity_event](const jaiabot::sensor::protobuf::AtlasScientificOEMEC& sal)
-        { post_conductivity_event(sal.conductivity_raw() * jaiabot::units::microsiemens_per_cm); });
+    // interprocess().subscribe<jaiabot::groups::raw_salinity>(
+    //     [this, post_conductivity_event](const jaiabot::sensor::protobuf::AtlasScientificOEMEC& sal)
+    //     { post_conductivity_event(sal.conductivity_raw() * jaiabot::units::microsiemens_per_cm); });
 
     // pressure
     interprocess().subscribe<jaiabot::groups::pressure_temperature>(
@@ -282,7 +282,8 @@ void jaiabot::apps::StormManager::load_pending_task_packets()
 void jaiabot::apps::StormManager::loop()
 {
     publish_mission_report(machine_->state());
-    machine_->process_event(statechart::EvLoop());
+    if (!machine_->stopped())
+        machine_->process_event(statechart::EvLoop());
 }
 
 void jaiabot::apps::StormManager::health(goby::middleware::protobuf::ThreadHealth& health)
@@ -305,6 +306,9 @@ void jaiabot::apps::StormManager::publish_mission_report(protobuf::StormMissionS
 
 void jaiabot::apps::StormManager::process_mission_manager_state(protobuf::MissionState state)
 {
+    if (machine_->stopped())
+        return;
+
     switch (state)
     {
         case protobuf::PRE_DEPLOYMENT__IDLE:
@@ -368,8 +372,34 @@ void jaiabot::apps::StormManager::send_to_mcu(const protobuf::StormMCURequest& r
 
 void jaiabot::apps::StormManager::handle_command(const protobuf::Command& command)
 {
+    if (machine_->stopped() && command.type() != protobuf::Command::STOP)
+        return;
+
     switch (command.type())
     {
+        case protobuf::Command::STOP:
+        {
+            machine_->request_stop();
+
+            protobuf::LowControl stop_command;
+            stop_command.set_id(0);
+            stop_command.set_vehicle(cfg().bot_id());
+            stop_command.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+            auto* control_surfaces = stop_command.mutable_control_surfaces();
+            control_surfaces->set_motor(0);
+            control_surfaces->set_port_elevator(0);
+            control_surfaces->set_stbd_elevator(0);
+            control_surfaces->set_rudder(0);
+            control_surfaces->set_timeout(0);
+            control_surfaces->set_led_switch_on(true);
+
+            glog.is_debug1() && glog << group("statechart")
+                                     << "Storm stop requested; publishing neutral motor command"
+                                     << std::endl;
+            interprocess().publish<jaiabot::groups::low_control>(stop_command);
+            break;
+        }
+
         default: break; // handled elsewhere, usually jaiabot_mission_manager
         case protobuf::Command::STORM_DYNAMIC_MISSION_UPDATE:
         {

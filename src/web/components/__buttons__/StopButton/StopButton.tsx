@@ -19,6 +19,7 @@ import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../.
 
 interface Props {
     bot: Bot;
+    allowAnyState?: boolean;
 }
 
 /**
@@ -51,7 +52,10 @@ export default function StopButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the Bot and button conditions
      */
     const getDisabledCode = () => {
-        if (!isCommandAvailable(CommandType.STOP, props.bot.getMissionStatus().missionState)) {
+        if (
+            !props.allowAnyState &&
+            !isCommandAvailable(CommandType.STOP, props.bot.getMissionStatus().missionState)
+        ) {
             return DisabledCodes.MISSION_STATE;
         }
         return DisabledCodes.NONE;
