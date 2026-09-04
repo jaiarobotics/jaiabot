@@ -74,6 +74,7 @@ echo_enabled=(bot_type == "ECHO")
 # Ignore health warnings from UDP gateway if data comes from BIO payload board
 salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
+storm_enabled=(bot_type == "STORM")
 
 jaia_motor_harness_type="NONE"
 
@@ -130,6 +131,8 @@ verbosities = \
   'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_aml_sensor_driver':                    { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ctd_manager':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_ppk':                                  { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_storm_manager':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN'  }, 'simulation': { 'tty': 'WARN', 'log': 'WARN' }}
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -316,7 +319,8 @@ elif common.app == 'jaiabot_simulator':
                                      interprocess_block = interprocess_common,
                                      moos_port=common.bot.moos_simulator_port(node_id),
                                      gpsd_simulator_udp_port=common.bot.gpsd_simulator_udp_port(node_id),
-                                     udp_gateway_port=udp_gateway_port))
+                                     udp_gateway_port=udp_gateway_port,
+                                     bot_type=bot_type))
 elif common.app == 'jaiabot_udp_gateway':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_udp_gateway.pb.cfg.in',
                                      app_block=app_common,
@@ -339,6 +343,15 @@ elif common.app == 'jaiabot_fusion':
                                      imu_detection_solution=imu_detection_solution,
                                      bot_gpsd_device=common.bot.gpsd_device(node_id)))
 elif common.app == 'jaiabot_mission_manager':
+
+    delegated_states=''
+    send_task_packets_to_hub="true"
+    if storm_enabled:
+        # delegated to jaiabot_storm_manager
+        delegated_states='delegated_states: [IN_MISSION__UNDERWAY__SLEEP__PREP, PRE_DEPLOYMENT__SELF_TEST]'
+        # TaskPacket intervehicle publish is handled by jaiabot_storm_manager
+        send_task_packets_to_hub="false"
+        
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
@@ -351,7 +364,9 @@ elif common.app == 'jaiabot_mission_manager':
                                      fleet_id=fleet_index,
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,
                                      subnet_mask=common.comms.subnet_mask,
-                                     camera_available=common.camera_available))
+                                     camera_available=common.camera_available,
+                                     delegated_states=delegated_states,
+                                     send_task_packets_to_hub=send_task_packets_to_hub))
 
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
@@ -443,7 +458,14 @@ elif common.app == 'jaiabot_ctd_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_ctd_manager.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
+                                     fleet_id=fleet_index,
+                                     use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),
                                      log_dir=log_file_dir))
+elif common.app == 'jaiabot_storm_manager':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_storm_manager.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     bot_id=bot_index))
 else:
     print(config.template_substitute(templates_dir+f'/bot/{common.app}.pb.cfg.in',
                                      app_block=app_common,

@@ -1,0 +1,37 @@
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+import "goby/middleware/protobuf/serial_config.proto";
+
+import "dccl/option_extensions.proto";
+
+import "jaiabot/messages/storm.proto";
+
+package jaiabot.config;
+
+message StormManager
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+
+    required int32 bot_id = 5;
+
+    required jaiabot.protobuf.StormMission initial_mission = 10;
+
+    // number of counts to consider for stats (mean, median, etc) - set to 1 to
+    // use latest value only
+    message RollingStatsSampleCount
+    {
+        optional uint32 conductivity = 1 [default = 100];
+        optional uint32 pressure = 2 [default = 100];
+        optional uint32 gps_altitude = 3 [default = 10];
+    }
+    optional RollingStatsSampleCount rolling_stats_sample_count = 20;
+
+    optional goby.middleware.protobuf.SerialConfig mcu_serial = 30;
+
+}

@@ -2,6 +2,7 @@
 //   JaiaRobotics LLC
 // File authors:
 //   Matt Ferro <matt.ferro@jaia.tech>
+//   Toby Schneider <toby@gobysoft.org>
 //
 //
 // This file is part of the JaiaBot Project Binaries
@@ -27,15 +28,63 @@
 #include <goby/zeromq/application/multi_thread.h>
 
 #include "jaiabot/messages/health.pb.h"
-#include "jaiabot/messages/arduino.pb.h"
 #include <goby/time/steady_clock.h>
 
 #include "config.pb.h"
+
+#include "jaiabot/units/conductivity.h"
 
 namespace jaiabot
 {
 namespace apps
 {
+
+constexpr goby::middleware::Group gateway_udp_in{"gateway_udp_in"};
+constexpr goby::middleware::Group gateway_udp_out{"gateway_udp_out"};
+
+constexpr goby::middleware::Group gps_udp_in{"gps_udp_in"};
+constexpr goby::middleware::Group gps_udp_out{"gps_udp_out"};
+
+constexpr goby::middleware::Group to_moos{"to_moos"};
+
+// written by main moos translator thread
+constexpr goby::middleware::Group moos_nav{"moos_nav"};
+
+// written by STORM simulator
+constexpr goby::middleware::Group storm_nav{"storm_nav"};
+
+// written by dive simulator
+constexpr goby::middleware::Group dive_nav{"dive_nav"};
+
+// Most downstream threads use this nav
+constexpr goby::middleware::Group sim_nav{"sim_nav"};
+
+constexpr goby::middleware::Group sim_oceanography{"sim_oceanography"};
+
+struct SimNav
+{
+    boost::units::quantity<boost::units::si::length> x;
+    boost::units::quantity<boost::units::si::length> y;
+    boost::units::quantity<boost::units::si::velocity> speed_over_ground;
+    boost::units::quantity<boost::units::degree::plane_angle> course_over_ground;
+    boost::units::quantity<boost::units::si::length> depth;
+    boost::units::quantity<boost::units::degree::plane_angle> heading;
+    boost::units::quantity<boost::units::si::plane_angle> pitch;
+    boost::units::quantity<boost::units::si::plane_angle> roll;
+
+    // added by main thread before publishing "sim_nav"
+    goby::util::UTMGeodesy::LatLonPoint latlon;
+};
+
+struct SimOceanography
+{
+    SimNav nav;
+    boost::units::quantity<boost::units::si::pressure> pressure;
+    boost::units::quantity<boost::units::absolute<boost::units::celsius::temperature>> temperature;
+    double salinity;
+    boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit> conductivity;
+};
+
 template <typename Config> class SimulatorThread : public goby::middleware::SimpleThread<Config>
 {
   public:
@@ -54,23 +103,6 @@ template <typename Config> class SimulatorThread : public goby::middleware::Simp
 
   private:
     std::string thread_name_;
-};
-
-class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThread>
-{
-  public:
-    ArduinoSimThread(const jaiabot::config::ArduinoSimThread& cfg);
-    virtual ~ArduinoSimThread() {}
-    virtual void handle_arduino_command(const jaiabot::protobuf::ArduinoCommand& arduino_command);
-
-  private:
-    int voltage_period_{1};
-    double voltage_step_decrease_{0.1};
-    double voltage_start_{24.0};
-    double reset_voltage_level_{15};
-
-    goby::time::SteadyClock::time_point voltage_updated_{std::chrono::seconds(0)};
-
 };
 
 } // namespace apps

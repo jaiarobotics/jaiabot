@@ -28,7 +28,9 @@ import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "goby/moos/protobuf/moos_gateway_config.proto";
 import "goby/middleware/protobuf/udp_config.proto";
+import "goby/middleware/protobuf/pty_config.proto";
 import "jaiabot/messages/geographic_coordinate.proto";
+import "jaiabot/messages/node.proto";
 
 package jaiabot.config;
 
@@ -45,40 +47,13 @@ message Simulator
 
     optional goby.apps.moos.protobuf.GobyMOOSGatewayConfig.MOOSConfig moos = 10;
 
-    optional goby.middleware.protobuf.UDPPointToPointConfig gps_udp_config = 20;
-
-    optional goby.middleware.protobuf.UDPPointToPointConfig udp_gateway_config = 21;
-
-    // allow simulator without GPS by setting this false
-    optional bool enable_gps = 25 [default = true];
+    optional goby.middleware.protobuf.UDPPointToPointConfig udp_gateway_config =
+        21;
 
     optional jaiabot.protobuf.GeographicCoordinate start_location = 26;
 
-    // Default is to use the hdop value so bot does not need to reacquire gps
-    optional double gps_hdop_rand_max = 27 [default = 1.3];
-
-    optional bool is_bot_sim = 28 [default = true];
-
-    // Default is to use the pdop value so bot does not need to reacquire gps
-    optional double gps_pdop_rand_max = 29 [default = 2.2];
-
-    optional double heading_rand_max = 30 [default = 0];
-
-    optional double vertical_dive_rate = 31
-        [(dccl.field) = { units { derived_dimensions: "velocity" } }];
-    optional double seafloor_depth = 32
-        [(dccl.field) = { units { derived_dimensions: "length" } }];
-    optional double seafloor_wavelength = 33 [
-        (dccl.field) = { units { derived_dimensions: "length" } },
-        default = 100
-    ];
-    optional double seafloor_amplitude = 34 [
-        (dccl.field) = { units { derived_dimensions: "length" } },
-        default = 5
-    ];
-
-    optional double gps_hdop_dropout = 35 [default = 20];
-    optional double gps_pdop_dropout = 36 [default = 20];
+    required jaiabot.protobuf.NodeType node_type = 28;
+    optional jaiabot.protobuf.BotType bot_type = 29 [default = HYDRO];
 
     // minimum thrust value for forward motion (-100-100 scale)
     optional double minimum_thrust = 37 [default = 5];
@@ -90,30 +65,35 @@ message Simulator
         }
     ];
 
-    message ScalarSample
-    {
-        optional double depth = 1
-            [(dccl.field) = { units: { derived_dimensions: "length" } }];
-
-        optional double temperature = 2 [(dccl.field) = {
-            units { derived_dimensions: "temperature" system: "celsius" }
-        }];
-        optional double salinity = 3;
-    }
-
-    repeated ScalarSample sample = 40;
-    optional double temperature_stdev = 41 [(dccl.field) = {
-        units {
-            derived_dimensions: "temperature"
-            system: "celsius"
-            relative_temperature: true
-        }
-    }];
-    optional double salinity_stdev = 42;
-
-    optional string hub_gpsd_device = 43;
-
     optional ArduinoSimThread arduino_config = 60;
+    optional GPSSimThread gps_config = 61;
+    optional OceanographicSimThread oceanographic_config = 62;
+    optional Bar30SimThread bar30_config = 63;
+    optional EzoECSimThread ezo_ec_config = 64;
+    optional IMUSimThread imu_config = 65;
+    optional DiveSimThread dive_config = 66;
+
+    optional HubSimThread hub_config = 70;
+
+    optional StormSimThread storm_config = 80;
+}
+
+message GPSSimThread
+{
+    // allow simulator without GPS by setting this false
+    optional bool enable_gps = 1 [default = true];
+    optional goby.middleware.protobuf.UDPPointToPointConfig udp_config = 2;
+
+    optional double heading_rand_max = 10 [default = 0];
+
+    // Default is to use the hdop value so bot does not need to reacquire gps
+    optional double hdop_rand_max = 20 [default = 1.3];
+
+    // Default is to use the pdop value so bot does not need to reacquire gps
+    optional double pdop_rand_max = 21 [default = 2.2];
+
+    optional double hdop_dropout = 22 [default = 20];
+    optional double pdop_dropout = 23 [default = 20];
 }
 
 message ArduinoSimThread
@@ -126,4 +106,137 @@ message ArduinoSimThread
     optional double voltage_step_decrease = 2 [default = 0.1];
     optional double voltage_start = 3 [default = 24.0];
     optional double reset_voltage_level = 4 [default = 15.0];
+}
+
+message OceanographicSimThread
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    message ScalarSample
+    {
+        optional double depth = 1
+            [(dccl.field) = { units: { derived_dimensions: "length" } }];
+        optional double temperature = 2 [(dccl.field) = {
+            units { derived_dimensions: "temperature" system: "celsius" }
+        }];
+        optional double salinity = 3;
+    }
+
+    repeated ScalarSample sample = 10;
+    optional double temperature_stdev = 11 [(dccl.field) = {
+        units {
+            derived_dimensions: "temperature"
+            system: "celsius"
+            relative_temperature: true
+        }
+    }];
+    optional double salinity_stdev = 12;
+}
+
+message IMUSimThread {}
+
+message EzoECSimThread {}
+
+message Bar30SimThread {}
+
+message DiveSimThread
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    optional double vertical_dive_rate = 1
+        [(dccl.field) = { units { derived_dimensions: "velocity" } }];
+    optional double seafloor_depth = 2
+        [(dccl.field) = { units { derived_dimensions: "length" } }];
+    optional double seafloor_wavelength = 3 [
+        (dccl.field) = { units { derived_dimensions: "length" } },
+        default = 100
+    ];
+    optional double seafloor_amplitude = 4 [
+        (dccl.field) = { units { derived_dimensions: "length" } },
+        default = 5
+    ];
+}
+
+message HubSimThread
+{
+    optional string gpsd_device = 1;
+}
+
+message StormSimThread
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional double launch_altitude = 1 [
+        default = 3000,
+        (dccl.field) = { units { derived_dimensions: "length" } }
+    ];
+
+    optional double air_descent_rate = 2 [
+        default = 30,
+        (dccl.field) = { units { derived_dimensions: "velocity" } }
+    ];
+
+    optional double pitch_during_air_descent = 3 [
+        default = 89,
+        (dccl.field).units = {
+            derived_dimensions: "plane_angle"
+            system: "angle::degree"
+        }
+    ];
+
+    message InWaterDelays
+    {
+        optional double parachute_detachment = 1
+            [default = 0, (dccl.field).units = { derived_dimensions: "time" }];
+        optional double tube_release = 2
+            [default = 0, (dccl.field).units = { derived_dimensions: "time" }];
+    }
+
+    optional InWaterDelays delay = 4;
+
+    message InTubeSinkRates
+    {
+        optional double with_parachute = 1 [
+            default = .3,
+            (dccl.field) = { units { derived_dimensions: "velocity" } }
+        ];
+        optional double without_parachute = 2 [
+            default = 1,
+            (dccl.field) = { units { derived_dimensions: "velocity" } }
+        ];
+    }
+
+    optional InTubeSinkRates in_tube_sink_rates = 5;
+
+    enum SimFailureType
+    {
+        // STUCK_IN_TUBE_RESOLVABLE = 1;
+        STUCK_IN_TUBE_UNRESOLVABLE = 2;
+
+        // PARACHUTE_NOT_DETACHED_RESOLVABLE = 3;
+        PARACHUTE_NOT_DETACHED_UNRESOLVABLE = 4;
+
+        // AIR_DESCENT_DATA_OFFLOAD_FAILS = 5;
+
+        // POST_DIVE_DATA_OFFLOAD_FAILS = 6;
+    }
+
+    message SimFailure
+    {
+        required SimFailureType type = 1;
+        optional float probability = 2 [default = 1];
+    }
+
+    repeated SimFailure failures = 10;
+
+    required goby.middleware.protobuf.PTYConfig mcu_pty = 20;
+    optional float air_data_sample_rate = 21 [
+        default = 1,
+        (dccl.field) = { units { derived_dimensions: "frequency" } }
+    ];
 }

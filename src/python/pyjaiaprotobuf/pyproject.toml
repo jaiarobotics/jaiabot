@@ -21,3 +21,12 @@ Homepage = "https://www.jaia.tech"
 
 [tool.setuptools.packages.find]
 where = ["src"] # Specify where Setuptools should look for packages
+
+# setuptools' package discovery only picks up directories (packages), not loose
+# top-level modules; nanopb.proto's generated nanopb_pb2.py sits directly in
+# src/ and is imported by any *_pb2.py generated from a .proto that uses nanopb
+# options (e.g. storm_mcu.proto), so it must be listed explicitly.
+[tool.setuptools]
+package-dir = {"" = "src"}
+py-modules = ["nanopb_pb2"]
+

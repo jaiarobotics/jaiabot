@@ -196,7 +196,7 @@ message MissionManager
     repeated jaiabot.protobuf.Error ignore_error = 81;
 
     optional bool is_sim = 82 [default = false];
-    
+
     // Determines if the acceleration is hard or soft
     optional double hard_bottom_type_acceleration = 84 [default = 100];
 
@@ -246,15 +246,20 @@ message MissionManager
     optional jaiabot.protobuf.CameraCommand stop_camera_command = 91;
 
     optional bool camera_available = 92 [default = false];
-    
+
     // The distance from the pressure sensor to the waterline
-    optional double pressure_sensor_to_waterline = 93 
+    optional double pressure_sensor_to_waterline = 93
         [default = 0.4572, (dccl.field).units = { base_dimensions: "L" }];
 
     // The distance from the pressure sensor to the end of the tail
     optional double pressure_sensor_to_tail = 94
         [default = 0.3683, (dccl.field).units = { base_dimensions: "L" }];
-        
+
     optional int32 min_subsurface_current_vector_hold_time = 95 [default = 10];
     optional int32 min_subsurface_current_vector_drift_time = 96 [default = 15];
+
+    // states that are managed external (their transitions are delegated to an
+    // external app)
+    repeated jaiabot.protobuf.MissionState delegated_states = 97;
+    optional bool send_task_packets_to_hub = 98 [default = true];
 }

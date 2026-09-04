@@ -63,6 +63,9 @@ enum MissionState
 
     IN_MISSION__UNDERWAY__ABORT = 150;
 
+    IN_MISSION__UNDERWAY__SLEEP__PREP = 170
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+
     IN_MISSION__PAUSE__IMU_RESTART = 160;
     IN_MISSION__PAUSE__REACQUIRE_GPS = 161
         [(jaia.ev).rest_api.presence = GUARANTEED];
@@ -178,12 +181,10 @@ message MissionReport
         [(dccl.field) = { min: 0 max: 1000 precision: 0 }];
     optional uint32 command_from_hub_id = 70
         [(dccl.field) = { min: 0 max: 30 }];
-    optional uint64 mission_command_time = 71 [
-        (dccl.field) = {
-            codec: "dccl.time2"
-            units { prefix: "micro" derived_dimensions: "time" },
-        }
-    ];
+    optional uint64 mission_command_time = 71 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" },
+    }];
 }
 
 message MissionTask
@@ -199,6 +200,7 @@ message MissionTask
         STATION_KEEP = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
         SURFACE_DRIFT = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
         CONSTANT_HEADING = 4 [(jaia.ev).rest_api.presence = GUARANTEED];
+        STORM_AIR_DESCENT = 5 [(jaia.ev).rest_api.presence = GUARANTEED];
     }
     optional TaskType type = 1
         [default = NONE, (jaia.field).rest_api.presence = GUARANTEED];
@@ -372,6 +374,7 @@ message MissionPlan
             [default = true, (jaia.field).rest_api.presence = GUARANTEED];
         optional GeographicCoordinate location = 2
             [(jaia.field).rest_api.presence = GUARANTEED];
+        optional bool sleep_once_goal_reached = 3 [default = false];
     }
     optional Recovery recovery = 4
         [(jaia.field).rest_api.presence = GUARANTEED];
@@ -426,7 +429,9 @@ message MissionPlan
         (dccl.field) = { min: 1 max: 100 }
     ];
 
-    optional string mission_name = 11 [(dccl.field).omit = true]; // not sent over radio, only saved to the hub
+    optional string mission_name = 11
+        [(dccl.field).omit =
+             true];  // not sent over radio, only saved to the hub
 
     // A Segment groups a contiguous range of goals (by global index) and
     // carries the metadata that applies to that range.
@@ -611,4 +616,43 @@ message MissionSummary
     optional uint64 start_time = 2;
     optional uint64 end_time = 3;
     optional uint32 task_packet_count = 4;
+}
+
+message MissionStateChange
+{
+    required MissionState state = 1;
+
+    enum Direction
+    {
+        ENTERED = 1;
+        EXITED = 2;
+    }
+
+    required Direction direction = 2;
+}
+
+enum DelegateType
+{
+    NOT_DELEGATED = 0;
+    CAN_BE_DELEGATED = 1;
+};
+
+message MissionStateDelegateRequest
+{
+    required MissionState state = 1;
+}
+
+message MissionStateDelegateResponse
+{
+    required MissionState state = 1;
+
+    enum MissionEvent
+    {
+        EV_SELF_TEST_FAILS = 1;
+        EV_SELF_TEST_SUCCESSFUL = 2;
+
+        EV_SHUTDOWN = 10;
+    }
+
+    required MissionEvent event = 2;
 }

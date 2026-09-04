@@ -1,6 +1,7 @@
 #ifndef JAIABOT_UNITS_CONDUCTIVITY_H
 #define JAIABOT_UNITS_CONDUCTIVITY_H
 
+#include <boost/units/quantity.hpp>
 #include <boost/units/systems/si/conductivity.hpp>
 #include <boost/units/systems/si/prefixes.hpp>
 
@@ -18,4 +19,12 @@ static const microsiemens_per_cm_unit microsiemens_per_cm;
 } // namespace units
 } // namespace jaiabot
 
+template <typename ValueType>
+inline std::ostream&
+operator<<(std::ostream& os,
+           const boost::units::quantity<jaiabot::units::microsiemens_per_cm_unit, ValueType>& q)
+{
+    ValueType v = q.value();
+    return os << v << " uS/cm";
+}
 #endif

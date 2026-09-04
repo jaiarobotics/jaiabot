@@ -150,3 +150,6 @@ stop_camera_command {
 }
 
 camera_available: $camera_available
+
+$delegated_states
+send_task_packets_to_hub: $send_task_packets_to_hub

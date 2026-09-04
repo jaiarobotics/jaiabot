@@ -1,0 +1,89 @@
+syntax = "proto2";
+
+import "nanopb.proto";
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+message StormAirDescentData
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    message Sample
+    {
+        optional float temperature = 1 [(dccl.field) = {
+            units { derived_dimensions: "temperature" system: "celsius" }
+            min: -70      // TODO verify
+            max: 130      // TODO verify
+            precision: 1  // TODO verify
+        }];
+
+        // TODO add additional fields for air data
+    }
+
+    required uint32 packet_index = 1 [
+        (dccl.field) = { min: 0 max: 99 }
+        // must match bounds in AirDescentMetadata num_packets
+    ];
+
+    repeated Sample sample = 2 [
+        (nanopb).max_count = 100,
+        (dccl.field) = { max_repeat: 100 }  // must be same as nanopb max_count
+    ];  // TODO verify max_count / max_repeat
+}
+
+message StormMCURequest
+{
+    enum Type
+    {
+        AIR_DESCENT_METADATA_REQUEST = 1;
+        AIR_DESCENT_DATA_REQUEST = 2;
+        SLEEP_REQUEST = 3;
+    }
+
+    required Type type = 1;
+
+    // for AIR_DESCENT_DATA_REQUEST
+    optional int32 packet_index = 2;
+
+    // for SLEEP_REQUEST
+    optional int32 sleep_for_minutes = 3
+        [(dccl.field) = { units { unit: "metric::minute" } }];
+}
+
+// sent once before streaming data in StormAirDescentData
+message StormAirDescentMetadata
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+    required uint64 start_time = 1 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+    required uint64 end_time = 2 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+    required float sample_rate = 3 [(dccl.field) = {
+        units { derived_dimensions: "frequency" }
+        min: 0.1      // TODO verify
+        max: 100      // TODO verify
+        precision: 1  // TODO verify
+    }];
+
+    required uint32 num_packets = 4
+        [(dccl.field) = { min: 1 max: 100 }];  // TODO verify bounds
+}
+
+message StormMCUResponse
+{
+    oneof payload
+    {
+        StormAirDescentMetadata air_descent_metadata = 1;
+        StormAirDescentData air_descent_data = 2;
+        bool sleep_initiated = 3 [default = false];
+    }
+}
