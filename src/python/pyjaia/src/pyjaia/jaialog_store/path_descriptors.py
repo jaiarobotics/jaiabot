@@ -247,6 +247,40 @@ path_descriptors = [
         frequency=10,
         description='Temperature as reported by the dissolved oxygen sensor.'
     ),
+    # both fluorometers log the same message type, so the second one is matched on its group
+    # name and must be listed before the suffix-matched entries below
+    PathDescriptor(
+        name='Fluorometer 2 Concentration',
+        path_suffix=None,
+        path_regex=r'.*jaiabot::fluorometer_2/.*TurnerCFluor/concentration$',
+        units='See fluorometer spec. sheet.',
+        frequency=10,
+        description='Concentration as reported by the second fluorometer.'
+    ),
+    PathDescriptor(
+        name='Fluorometer 2 Concentration Voltage',
+        path_suffix=None,
+        path_regex=r'.*jaiabot::fluorometer_2/.*TurnerCFluor/concentration_voltage$',
+        units='V',
+        frequency=10,
+        description='Raw voltage reported by the second analog fluorometer sensor.'
+    ),
+    PathDescriptor(
+        name='Fluorometer 2 Analyte',
+        path_suffix=None,
+        path_regex=r'.*jaiabot::fluorometer_2/.*TurnerCFluor/analyte$',
+        units='',
+        frequency=10,
+        description='What the second fluorometer measures, from its configured coefficients.'
+    ),
+    PathDescriptor(
+        name='Fluorometer 2 Serial Number',
+        path_suffix=None,
+        path_regex=r'.*jaiabot::fluorometer_2/.*TurnerCFluor/serial_number$',
+        units='',
+        frequency=10,
+        description='Serial number of the second fluorometer probe, from its configured coefficients.'
+    ),
     PathDescriptor(
         name='Fluorometer Concentration',
         path_suffix='TurnerCFluor/concentration',
@@ -261,6 +295,20 @@ path_descriptors = [
         frequency=10,
         description='Raw voltage reported by the analog fluorometer sensor.'
     ), 
+    PathDescriptor(
+        name='Fluorometer Analyte',
+        path_suffix='TurnerCFluor/analyte',
+        units='',
+        frequency=10,
+        description='What the fluorometer measures, from its configured coefficients.'
+    ),
+    PathDescriptor(
+        name='Fluorometer Serial Number',
+        path_suffix='TurnerCFluor/serial_number',
+        units='',
+        frequency=10,
+        description='Serial number of the fluorometer probe, from its configured coefficients.'
+    ),
     PathDescriptor(
         name='Latitude',
         path_suffix='TimePositionVelocity/location/lat',

@@ -7,4 +7,5 @@ add_jaiabot_application(TARGET jaiabot_sensors
     drivers/blue_robotics_bar30.cpp
     drivers/turner__c_fluor.cpp
     drivers/aml.cpp
+    drivers/celsius_tsys01.cpp
   LINK_DEFAULT_LIBRARIES)

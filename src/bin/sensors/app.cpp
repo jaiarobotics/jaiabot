@@ -20,6 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <chrono>
+
 #include <boost/crc.hpp>
 
 #include <goby/middleware/marshalling/protobuf.h>
@@ -33,6 +35,7 @@
 #include "drivers/atlas_scientific__oem_ec.h"
 #include "drivers/atlas_scientific__oem_ph.h"
 #include "drivers/blue_robotics_bar30.h"
+#include "drivers/celsius_tsys01.h"
 #include "drivers/turner__c_fluor.h"
 #include "jaiabot/crc/crc32.h"
 #include "jaiabot/groups.h"
@@ -69,12 +72,16 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
     void receive_metadata_from_mcu(const sensor::protobuf::Metadata& metadata);
 
   private:
-    std::set<jaiabot::sensor::protobuf::Sensor> drivers_launched_;
-    std::set<jaiabot::sensor::protobuf::Sensor> failed_initializations;
-    std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Error>
-        initialization_error_names;
-    std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Warning>
-        initialization_warning_names;
+    // several instances of the same sensor may be present on the payload board, so all
+    // per-sensor state is keyed by sensor and instance together
+    using SensorKey =
+        std::pair<jaiabot::sensor::protobuf::Sensor, jaiabot::sensor::protobuf::SensorInstance>;
+
+    std::set<SensorKey> drivers_launched_;
+    std::set<SensorKey> failed_initializations;
+    goby::time::SteadyClock::time_point start_time_{goby::time::SteadyClock::now()};
+    std::map<SensorKey, jaiabot::protobuf::Error> initialization_error_names;
+    std::map<SensorKey, jaiabot::protobuf::Warning> initialization_warning_names;
     boost::crc_32_type crc32_calc_;
 };
 
@@ -109,20 +116,26 @@ jaiabot::apps::Sensors::Sensors()
 
     launch_thread<MCUSerialThread>(cfg().mcu_serial());
 
-    initialization_error_names = {{jaiabot::sensor::protobuf::BLUE_ROBOTICS__BAR30,
-                                   jaiabot::protobuf::ERROR__INIT_FAILED__BLUE_ROBOTICS__BAR30}};
+    initialization_error_names = {
+        {{jaiabot::sensor::protobuf::BLUE_ROBOTICS__BAR30, jaiabot::sensor::protobuf::INSTANCE_1},
+         jaiabot::protobuf::ERROR__INIT_FAILED__BLUE_ROBOTICS__BAR30}};
 
     initialization_warning_names = {
-        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO,
+        {{jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_DO,
+          jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_DO},
-        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_EC,
+        {{jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_EC,
+          jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_EC},
-        {jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH,
+        {{jaiabot::sensor::protobuf::ATLAS_SCIENTIFIC__OEM_PH,
+          jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH},
-        {jaiabot::sensor::protobuf::TURNER__C_FLUOR,
+        {{jaiabot::sensor::protobuf::TURNER__C_FLUOR, jaiabot::sensor::protobuf::INSTANCE_1},
          jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR},
-        {jaiabot::sensor::protobuf::AML__SENSOR, 
-         jaiabot::protobuf::WARNING__INIT_FAILED__AML}};
+        {{jaiabot::sensor::protobuf::AML__SENSOR, jaiabot::sensor::protobuf::INSTANCE_1},
+         jaiabot::protobuf::WARNING__INIT_FAILED__AML},
+        {{jaiabot::sensor::protobuf::TSYS01__SENSOR, jaiabot::sensor::protobuf::INSTANCE_1},
+         jaiabot::protobuf::WARNING__INIT_FAILED__TSYS01}};
 }
 
 void jaiabot::apps::Sensors::loop()
@@ -138,7 +151,7 @@ void jaiabot::apps::Sensors::health(goby::middleware::protobuf::ThreadHealth& he
 {
     health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
 
-    for (const jaiabot::sensor::protobuf::Sensor& sensor : failed_initializations)
+    for (const SensorKey& sensor : failed_initializations)
     {
         if (initialization_error_names.count(sensor) == 1)
         {
@@ -150,6 +163,24 @@ void jaiabot::apps::Sensors::health(goby::middleware::protobuf::ThreadHealth& he
             health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                 ->add_warning(initialization_warning_names.at(sensor));
         }
+    }
+
+    // A TSYS01 that never initializes is reported by the payload board as absent rather
+    // than failed, since the same firmware runs on BIO bots built without one. That is
+    // silent by design -- but if this bot was configured for a TSYS01, silence means the
+    // sensor we were told to expect never showed up, and no driver thread exists to time
+    // out and report it. Warn on its behalf.
+    if (cfg().has_tsys01() &&
+        !drivers_launched_.count(SensorKey{jaiabot::sensor::protobuf::TSYS01__SENSOR,
+                                           jaiabot::sensor::protobuf::INSTANCE_1}) &&
+        start_time_ + std::chrono::seconds(cfg().tsys01().report_timeout_seconds()) <
+            goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Configured for TSYS01 but the payload board never "
+                                  "reported one"
+                               << std::endl;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(jaiabot::protobuf::WARNING__MISSING_DATA__TSYS01_DATA);
     }
 }
 
@@ -205,7 +236,10 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
         std::size_t i = 0;
         for (auto it = encoded.rbegin(), end = encoded.rbegin() + bytes_in_crc32; it != end;
              ++it, ++i)
-            provided_crc |= (*it) << (i * bits_in_byte);
+            // cast is required as char is signed on some platforms, which would sign-extend
+            // any CRC byte >= 0x80 and corrupt the comparison
+            provided_crc |= static_cast<std::uint32_t>(static_cast<std::uint8_t>(*it))
+                            << (i * bits_in_byte);
 
         if (computed_crc != provided_crc)
         {
@@ -234,10 +268,15 @@ void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::
 
 void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::Metadata& metadata)
 {
-    if (drivers_launched_.count(metadata.sensor()))
+    // MCUs predating multiple instances of a sensor leave instance unset, which reads back
+    // as INSTANCE_1
+    SensorKey sensor_key{metadata.sensor(), metadata.instance()};
+
+    if (drivers_launched_.count(sensor_key))
     {
         glog.is_warn() && glog << "Driver already launched for sensor: "
-                               << sensor::protobuf::Sensor_Name(metadata.sensor())
+                               << sensor::protobuf::Sensor_Name(metadata.sensor()) << " instance: "
+                               << sensor::protobuf::SensorInstance_Name(metadata.instance())
                                << ", not launching another." << std::endl;
 
         return;
@@ -245,7 +284,7 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
 
     if (metadata.init_failed())
     {
-        failed_initializations.insert(metadata.sensor());
+        failed_initializations.insert(sensor_key);
         return;
     }
 
@@ -273,18 +312,37 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
             launch_thread<AtlasScientificOEMDODriver>(cfg().dissolved_oxygen());
             break;
 
+        // launched with an index so that a second fluorometer gets its own thread
         case sensor::protobuf::TURNER__C_FLUOR:
-            launch_thread<TurnerCFluorDriver>(cfg().fluorometer());
+            // The payload board announces both fluorometer channels whether or not a second
+            // sensor is wired, and an unconnected channel reads back as a valid zero rather
+            // than failing or timing out. Only a bot configured for a second fluorometer
+            // gets a driver for it; otherwise the phantom instance is dropped here so it is
+            // never reported as data.
+            if (metadata.instance() == sensor::protobuf::INSTANCE_2 && !cfg().has_fluorometer_2())
+            {
+                glog.is_verbose() && glog << "Payload board reported a second fluorometer but "
+                                             "this bot is not configured for one, ignoring it."
+                                          << std::endl;
+                return;
+            }
+
+            launch_thread<TurnerCFluorDriver>(metadata.instance(),
+                                              metadata.instance() == sensor::protobuf::INSTANCE_2
+                                                  ? cfg().fluorometer_2()
+                                                  : cfg().fluorometer());
             break;
 
         case sensor::protobuf::AML__SENSOR: 
             launch_thread<AMLSensorDriver>(cfg().aml()); 
             break;
 
+        case sensor::protobuf::TSYS01__SENSOR: launch_thread<TSYS01Driver>(cfg().tsys01()); break;
+
         default:
             glog.is_warn() && glog << "Driver not implemented for sensor: "
                                    << sensor::protobuf::Sensor_Name(metadata.sensor()) << std::endl;
     }
 
-    drivers_launched_.insert(metadata.sensor());
+    drivers_launched_.insert(sensor_key);
 }

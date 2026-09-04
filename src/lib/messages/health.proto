@@ -88,7 +88,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_UDP_GATEWAY = 43
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_PPK = 44 [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_PPK = 44 
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -365,6 +366,10 @@ enum Warning
     WARNING__MISSING_DATA__AML_DATA = 808
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__INIT_FAILED__AML = 809 [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__INIT_FAILED__TSYS01 = 810
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__MISSING_DATA__TSYS01_DATA = 811
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 message LinuxHardwareStatus
