@@ -1257,6 +1257,24 @@ bool jaiabot::apps::MissionManager::health_considered_ok(
     {
         return true;
     }
+    else if (cfg().allow_gps_error_during_pre_deployment_startup() &&
+             machine_->state() == protobuf::PRE_DEPLOYMENT__STARTING_UP)
+    {
+        jaiabot::protobuf::BotStatus status;
+        jaiabot::health::populate_status_from_health(status, vehicle_health, false);
+
+        for (auto e : status.error())
+        {
+            switch (static_cast<protobuf::Error>(e))
+            {
+                case protobuf::ERROR__MISSING_DATA__GPS_FIX:
+                case protobuf::ERROR__MISSING_DATA__GPS_POSITION:
+                case protobuf::ERROR__NOT_RESPONDING__GOBY_GPS: break;
+                default: return false;
+            }
+        }
+        return true;
+    }
     else if (is_test_mode(config::MissionManager::ENGINEERING_TEST__IGNORE_SOME_ERRORS))
     {
         jaiabot::protobuf::BotStatus status;

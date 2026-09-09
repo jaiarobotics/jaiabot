@@ -76,6 +76,10 @@ salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
 storm_enabled=(bot_type == "STORM")
 
+allow_gps_error_during_pre_deployment_startup=""
+if storm_enabled:
+    allow_gps_error_during_pre_deployment_startup="allow_gps_error_during_pre_deployment_startup: true"
+
 jaia_motor_harness_type="NONE"
 
 if "jaia_motor_harness_type" in os.environ:
@@ -366,7 +370,8 @@ elif common.app == 'jaiabot_mission_manager':
                                      subnet_mask=common.comms.subnet_mask,
                                      camera_available=common.camera_available,
                                      delegated_states=delegated_states,
-                                     send_task_packets_to_hub=send_task_packets_to_hub))
+                                     send_task_packets_to_hub=send_task_packets_to_hub,
+                                     allow_gps_error_during_pre_deployment_startup=allow_gps_error_during_pre_deployment_startup))
 
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
