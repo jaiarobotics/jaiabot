@@ -120,6 +120,19 @@ export function getStormReadinessStatus(missionState: MissionState) {
     return "Deployed";
 }
 
+export function getStormReadinessStatusClassName(missionState: MissionState) {
+    switch (getStormReadinessStatus(missionState)) {
+        case "Initializing":
+            return "storm-status-initializing";
+        case "Ready to Deploy":
+        case "Deployed":
+            return "storm-status-ready";
+        case "Startup Failed":
+        case "N/A":
+            return "storm-status-failed";
+    }
+}
+
 /**
  * Checks if Bot is logging
  *
