@@ -70,8 +70,15 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         *goal.mutable_location() = this->machine().latest_location();
 
         auto& task = *goal.mutable_task();
-        task.set_type(protobuf::MissionTask::DIVE);
-        *task.mutable_dive() = this->machine().mission().dive();
+        if (skip_dive())
+        {
+            task.set_type(protobuf::MissionTask::NONE);
+        }
+        else
+        {
+            task.set_type(protobuf::MissionTask::DIVE);
+            *task.mutable_dive() = this->machine().mission().dive();
+        }
 
         auto& recovery = *mission_plan.mutable_recovery();
         recovery.set_recover_at_final_goal(true);
@@ -82,6 +89,33 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
                                               << std::endl;
         this->interprocess().publish<::jaiabot::groups::self_command>(command);
         sent_ = true;
+    }
+
+    // do not risk the dive if we're low on battery and still holding storm data that
+    // hasn't been acknowledged over Iridium
+    bool skip_dive()
+    {
+        auto& machine = this->machine();
+        if (!machine.has_latest_battery_percent())
+            return false;
+
+        const bool low_battery =
+            machine.latest_battery_percent() < machine.mission().min_battery_percentage();
+        const bool undelivered_data = !machine.task_packet_queue().empty();
+
+        if (low_battery && undelivered_data)
+        {
+            goby::glog.is_warn() &&
+                goby::glog << group("statechart") << "Skipping dive: battery at "
+                           << machine.latest_battery_percent() << "% is below minimum of "
+                           << machine.mission().min_battery_percentage() << "% and "
+                           << machine.task_packet_queue().size()
+                           << " TaskPacket(s) remain un-offloaded" << std::endl;
+            machine.insert_warning(
+                protobuf::WARNING__STORM_MISSION_PLANNING__DIVE_SKIPPED_LOW_BATTERY);
+            return true;
+        }
+        return false;
     }
 
     bool sent_{false};

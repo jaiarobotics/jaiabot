@@ -80,6 +80,14 @@ struct StormManagerStateMachine
     const protobuf::GeographicCoordinate& latest_location() { return latest_location_; }
     bool has_latest_location() const { return has_latest_location_; }
 
+    void set_latest_battery_percent(double percent)
+    {
+        latest_battery_percent_ = percent;
+        has_latest_battery_percent_ = true;
+    };
+    double latest_battery_percent() const { return latest_battery_percent_; }
+    bool has_latest_battery_percent() const { return has_latest_battery_percent_; }
+
     void mark_launch_tube_recovery_attempted() { launch_tube_recovery_attempted_ = true; }
     bool launch_tube_recovery_attempted() const { return launch_tube_recovery_attempted_; }
 
@@ -114,6 +122,9 @@ struct StormManagerStateMachine
     jaiabot::protobuf::StormMission mission_;
     protobuf::GeographicCoordinate latest_location_;
     bool has_latest_location_{false};
+
+    double latest_battery_percent_{0};
+    bool has_latest_battery_percent_{false};
 
     bool launch_tube_recovery_attempted_{false};
     bool parachute_attachment_recovery_attempted_{false};
