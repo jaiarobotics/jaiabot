@@ -50,6 +50,11 @@ message StormMission
     optional uint32 min_battery_percentage = 30
         [default = 10, (dccl.field) = { min: 0 max: 99 }];
 
+    // number of un-offloaded datasets that must be stored (in addition to the
+    // current one) before a low battery will cancel the dive
+    optional uint32 min_stored_datasets = 31
+        [default = 2, (dccl.field) = { min: 0 max: 100 }];
+
     optional uint32 remote_mission_wait_minutes = 40 [
         default = 0,
         (dccl.field) = {

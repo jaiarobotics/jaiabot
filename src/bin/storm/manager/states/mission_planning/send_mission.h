@@ -91,8 +91,8 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         sent_ = true;
     }
 
-    // do not risk the dive if we're low on battery and still holding storm data that
-    // hasn't been acknowledged over Iridium
+    // do not risk the dive if we're low on battery and already holding several datasets
+    // of storm data that haven't been acknowledged over Iridium
     bool skip_dive()
     {
         auto& machine = this->machine();
@@ -101,16 +101,18 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
 
         const bool low_battery =
             machine.latest_battery_percent() < machine.mission().min_battery_percentage();
-        const bool undelivered_data = !machine.task_packet_queue().empty();
+        const bool too_much_undelivered_data =
+            machine.task_packet_queue().size() >= machine.mission().min_stored_datasets();
 
-        if (low_battery && undelivered_data)
+        if (low_battery && too_much_undelivered_data)
         {
             goby::glog.is_warn() &&
                 goby::glog << group("statechart") << "Skipping dive: battery at "
                            << machine.latest_battery_percent() << "% is below minimum of "
                            << machine.mission().min_battery_percentage() << "% and "
                            << machine.task_packet_queue().size()
-                           << " TaskPacket(s) remain un-offloaded" << std::endl;
+                           << " TaskPacket(s) remain un-offloaded (minimum "
+                           << machine.mission().min_stored_datasets() << ")" << std::endl;
             machine.insert_warning(
                 protobuf::WARNING__STORM_MISSION_PLANNING__DIVE_SKIPPED_LOW_BATTERY);
             return true;
