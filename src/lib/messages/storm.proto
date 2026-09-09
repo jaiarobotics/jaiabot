@@ -55,6 +55,9 @@ message StormMission
     optional uint32 min_stored_datasets = 31
         [default = 2, (dccl.field) = { min: 0 max: 100 }];
 
+    optional uint32 surface_drift_time = 32
+        [default = 30, (dccl.field) = { min: 0 max: 3600 units { base_dimensions: "T" } }];
+
     optional uint32 remote_mission_wait_minutes = 40 [
         default = 0,
         (dccl.field) = {

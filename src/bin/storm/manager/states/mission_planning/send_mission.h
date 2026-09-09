@@ -69,8 +69,9 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         auto& goal = *mission_plan.add_goal();
         *goal.mutable_location() = this->machine().latest_location();
 
+        const bool skip_dive = this->skip_dive();
         auto& task = *goal.mutable_task();
-        if (skip_dive())
+        if (skip_dive)
         {
             task.set_type(protobuf::MissionTask::NONE);
         }
@@ -78,6 +79,13 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         {
             task.set_type(protobuf::MissionTask::DIVE);
             *task.mutable_dive() = this->machine().mission().dive();
+
+            auto& drift_goal = *mission_plan.add_goal();
+            *drift_goal.mutable_location() = this->machine().latest_location();
+            auto& drift_task = *drift_goal.mutable_task();
+            drift_task.set_type(protobuf::MissionTask::SURFACE_DRIFT);
+            drift_task.mutable_surface_drift()->set_drift_time(
+                this->machine().mission().surface_drift_time());
         }
 
         auto& recovery = *mission_plan.mutable_recovery();
