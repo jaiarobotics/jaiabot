@@ -12,9 +12,9 @@ initial_mission {
   }
   
   sleep_for_minutes: 5
-  min_battery_percentage: 10 
-  remote_mission_wait_minutes: 5 
-  data_offload_timeout_minutes: 5
+  min_battery_percentage: 40 
+  remote_mission_wait_minutes: 0 
+  data_offload_timeout_minutes: 30
   in_water {
     # in-water if conductivity is definitely seawater and pressure is definitely sea level or greater
     threshold { 

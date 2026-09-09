@@ -102,8 +102,14 @@ data_offload_exclude: $jaia_data_offload_ignore_type # (optional)
 #test_mode: ENGINEERING_TEST__ALWAYS_LOG_EVEN_WHEN_IDLE
 #test_mode: ENGINEERING_TEST__INDOOR_MODE__NO_GPS
 
-# test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
-# ignore_error: ERROR__MISSING_DATA__PRESSURE
+# Treat HEALTH__FAILED as OK when the only errors present are in the ignore set.
+# This mode auto-ignores the GPS/heading/speed/course missing-data errors.
+test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
+# Additional errors to ignore (GPS/heading/speed/course are auto-included above):
+ignore_error: ERROR__MISSING_DATA__PRESSURE
+ignore_error: ERROR__VEHICLE__VERY_LOW_BATTERY
+ignore_error: ERROR__VEHICLE__CRITICALLY_LOW_BATTERY
+ignore_error: ERROR__VEHICLE__MISSING_DATA_BATTERY
 
 # When to stop logging in a failed state
 failed_startup_log_timeout: 300 # (optional) (default=300)
