@@ -156,10 +156,12 @@ export default function BotDetails() {
                                             <td
                                                 className={getStormReadinessStatusClassName(
                                                     missionStatus?.missionState,
+                                                    bot.isCommsDropped(),
                                                 )}
                                             >
                                                 {getStormReadinessStatus(
                                                     missionStatus?.missionState,
+                                                    bot.isCommsDropped(),
                                                 )}
                                             </td>
                                         </tr>

@@ -96,7 +96,11 @@ export function getRepeatProgress(repeats: number, missionStatus: MissionStatus)
  * @param {MissionState} missionState Contains the state of the Bot
  * @returns {string} "Initializing", "Ready to Deploy", "Broken", or "Deployed"
  */
-export function getStormReadinessStatus(missionState: MissionState) {
+export function getStormReadinessStatus(missionState: MissionState, isCommsDropped = false) {
+    if (isCommsDropped) {
+        return "Disconnected";
+    }
+
     if (!missionState) {
         return "N/A";
     }
@@ -120,14 +124,18 @@ export function getStormReadinessStatus(missionState: MissionState) {
     return "Deployed";
 }
 
-export function getStormReadinessStatusClassName(missionState: MissionState) {
-    switch (getStormReadinessStatus(missionState)) {
+export function getStormReadinessStatusClassName(
+    missionState: MissionState,
+    isCommsDropped = false,
+) {
+    switch (getStormReadinessStatus(missionState, isCommsDropped)) {
         case "Initializing":
             return "storm-status-initializing";
         case "Ready to Deploy":
         case "Deployed":
             return "storm-status-ready";
         case "Startup Failed":
+        case "Disconnected":
         case "N/A":
             return "storm-status-failed";
     }
