@@ -1,3 +1,5 @@
 add_executable(jaiabot_test_utils test.cpp)
-
 add_test(NAME jaiabot_test_utils COMMAND jaiabot_test_utils)
+
+add_executable(jaiabot_test_utils_stats stats.cpp)
+add_test(NAME jaiabot_test_utils_stats COMMAND jaiabot_test_utils_stats)

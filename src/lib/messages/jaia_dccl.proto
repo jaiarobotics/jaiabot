@@ -9,6 +9,9 @@ import "jaiabot/messages/health.proto";
 import "jaiabot/messages/imu.proto";
 import "jaiabot/messages/option_extensions.proto";
 import "jaiabot/messages/link.proto";
+import "jaiabot/messages/storm.proto";
+import "jaiabot/messages/storm_mcu.proto";
+import "jaiabot/messages/node.proto";
 import "jaiabot/messages/hub.proto";
 
 package jaiabot.protobuf;
@@ -71,6 +74,9 @@ message Command
         REMOTE_CONTROL_TASK = 21;
         REMOTE_CONTROL_RESUME_MOVEMENT = 22;
 
+        // during STORM mission
+        STORM_DYNAMIC_MISSION_UPDATE = 25;
+
         // post mission
         RECOVERED = 30 [(jaia.ev).rest_api.presence = GUARANTEED];
         SHUTDOWN = 31 [(jaia.ev).rest_api.presence = GUARANTEED];
@@ -103,6 +109,9 @@ message Command
 
         // required for type == REMOTE_CONTROL_TASK
         MissionTask rc_task = 31;
+
+        // required for type == STORM_DYNAMIC_MISSION_UPDATE
+        StormMissionUpdate storm = 40;
     }
 }
 
@@ -187,12 +196,6 @@ message BotStatus
         (dccl.field).max_repeat = 5,
         (jaia.field).rest_api.presence = GUARANTEED
     ];
-    enum BotType
-    {
-        HYDRO = 1 [(jaia.ev).rest_api.presence = GUARANTEED];
-        ECHO = 2 [(jaia.ev).rest_api.presence = GUARANTEED];
-        BIO = 3 [(jaia.ev).rest_api.presence = GUARANTEED];
-    }
     optional BotType bot_type = 7 [(jaia.field).rest_api.presence = GUARANTEED];
 
     // Special case: not sent in message - written upon receipt
@@ -390,6 +393,11 @@ message BotStatus
 
     optional string mission_name = 72
         [(dccl.field).omit = true];  // not sent, restored on Hub from map
+
+    oneof bot_type_status
+    {
+        StormStatus storm = 100;
+    }
 }
 
 message DriftPacket
@@ -653,7 +661,15 @@ message TaskPacket
     // Link traversed
     optional Link link = 5 [(dccl.field).omit = true];
 
-    optional DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
+    // used by storm manager to ensure all packets are ack'd
+    optional int32 storm_id = 6 [(dccl.field) = { min: 0 max: 10000 }];
+
+    oneof vertical_data
+    {
+        DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
+        StormAirDescentData storm_air_descent = 12;
+    }
+
     optional DriftPacket drift = 11
         [(jaia.field).rest_api.presence = GUARANTEED];
 

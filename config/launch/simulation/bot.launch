@@ -13,7 +13,7 @@ gobyd <(../../gen/bot.py gobyd)
 [env=GOBY_MODEMDRIVER_PLUGINS=libjaiabot_xbee.so.1:libjaiabot_wifi.so.1] goby_intervehicle_portal <(../../gen/bot.py goby_intervehicle_portal)
 [env=GOBY_MOOS_GATEWAY_PLUGINS=libgoby_ivp_frontseat_moos_gateway_plugin.so.30:libjaiabot_moos_gateway_plugin.so.1] goby_moos_gateway <(../../gen/bot.py goby_moos_gateway)
 [env=GOBY_LIAISON_PLUGINS=libjaiabot_liaison.so.1] goby_liaison <(../../gen/bot.py goby_liaison)
-jaiabot_simulator <(../../gen/bot.py jaiabot_simulator)
+jaiabot_simulator <(../../gen/bot.py jaiabot_simulator) -vvv -n
 jaiabot_fusion <(../../gen/bot.py jaiabot_fusion)
 jaiabot_mission_manager <(../../gen/bot.py jaiabot_mission_manager)
 goby_gps <(../../gen/bot.py goby_gps)
@@ -21,6 +21,9 @@ goby_logger <(../../gen/bot.py goby_logger)
 jaiabot_metadata <(../../gen/bot.py jaiabot_metadata)
 jaiabot_sensors <(../../gen/bot.py jaiabot_sensors)
 jaiabot_comms_manager <(../../gen/bot.py jaiabot_comms_manager)
+
+[kill=SIGTERM,name=jaiabot_storm_manager] /bin/bash -c "echo $jaia_bot_type | grep -q -i STORM && exec jaiabot_storm_manager <(../../gen/bot.py jaiabot_storm_manager) -vvv -n || sleep infinity"
+
 
 # vehicle MOOS components
 [kill=SIGTERM] MOOSDB /tmp/jaiabot_${jaia_bot_index}.moos
@@ -37,7 +40,7 @@ jaiabot_comms_manager <(../../gen/bot.py jaiabot_comms_manager)
 jaiabot_pid_control <(../../gen/bot.py jaiabot_pid_control)
 jaiabot_engineering <(../../gen/bot.py jaiabot_engineering)
 
-goby_coroner <(../../gen/bot.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_simulator --expected_name jaiabot_fusion --expected_name jaiabot_mission_manager --expected_name goby_gps --expected_name goby_logger --expected_name jaiabot_metadata --expected_name jaiabot_pid_control --expected_name jaiabot_health --expected_name jaiabot_udp_gateway
+[kill=SIGTERM] /bin/bash -c "STORM_EXPECTED_NAME=; echo $jaia_bot_type | grep -q -i STORM && STORM_EXPECTED_NAME='--expected_name jaiabot_storm_manager'; exec goby_coroner <(../../gen/bot.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_simulator --expected_name jaiabot_fusion --expected_name jaiabot_mission_manager --expected_name goby_gps --expected_name goby_logger --expected_name jaiabot_metadata --expected_name jaiabot_pid_control --expected_name jaiabot_health --expected_name jaiabot_udp_gateway \$STORM_EXPECTED_NAME"
 jaiabot_health <(../../gen/bot.py jaiabot_health)
 
 # Need to confirm the below lines included from engineering launch, but commented to match standard

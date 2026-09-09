@@ -126,6 +126,8 @@ class MissionManager : public goby::zeromq::MultiThreadApplication<config::Missi
     };
 
     ForwardProgressData fwd_progress_data_;
+
+    std::set<jaiabot::protobuf::MissionState> delegated_states_;
 };
 
 } // namespace apps

@@ -20,12 +20,14 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <boost/crc.hpp>
-
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/middleware/io/cobs/serial.h>
 #include <goby/zeromq/application/multi_thread.h>
+
+#include "jaiabot/messages/health.pb.h"
+#include "jaiabot/messages/sensor/catalog.pb.h"
+#include "jaiabot/messages/sensor/sensor_core.pb.h"
 
 #include "config.pb.h"
 #include "drivers/aml.h"
@@ -36,9 +38,7 @@
 #include "drivers/turner__c_fluor.h"
 #include "jaiabot/crc/crc32.h"
 #include "jaiabot/groups.h"
-#include "jaiabot/messages/health.pb.h"
-#include "jaiabot/messages/sensor/catalog.pb.h"
-#include "jaiabot/messages/sensor/sensor_core.pb.h"
+#include "jaiabot/serial/mcu.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -75,7 +75,6 @@ class Sensors : public zeromq::MultiThreadApplication<config::Sensors>
         initialization_error_names;
     std::map<jaiabot::sensor::protobuf::Sensor, jaiabot::protobuf::Warning>
         initialization_warning_names;
-    boost::crc_32_type crc32_calc_;
 };
 
 } // namespace apps
@@ -97,8 +96,8 @@ jaiabot::apps::Sensors::Sensors()
                                                goby::middleware::io::PubSubLayer::INTERTHREAD>;
 
     // receive data from MCU
-    interthread().subscribe<mcu_serial_in>(
-        [this](const goby::middleware::protobuf::IOData& io_msg) { receive_from_mcu(io_msg); });
+    interthread().subscribe<mcu_serial_in>([this](const goby::middleware::protobuf::IOData& io_msg)
+                                           { receive_from_mcu(io_msg); });
 
     // send requests from driver threads
     interthread().subscribe<jaiabot::groups::mcu_pb_data_out>(
@@ -121,8 +120,7 @@ jaiabot::apps::Sensors::Sensors()
          jaiabot::protobuf::WARNING__INIT_FAILED__ATLAS_SCIENTIFIC__OEM_PH},
         {jaiabot::sensor::protobuf::TURNER__C_FLUOR,
          jaiabot::protobuf::WARNING__INIT_FAILED__TURNER__C_FLUOR},
-        {jaiabot::sensor::protobuf::AML__SENSOR, 
-         jaiabot::protobuf::WARNING__INIT_FAILED__AML}};
+        {jaiabot::sensor::protobuf::AML__SENSOR, jaiabot::protobuf::WARNING__INIT_FAILED__AML}};
 }
 
 void jaiabot::apps::Sensors::loop()
@@ -164,62 +162,21 @@ void jaiabot::apps::Sensors::query_metadata()
 void jaiabot::apps::Sensors::send_to_mcu(sensor::protobuf::SensorRequest request)
 {
     glog.is_verbose() && glog << "Send data to MCU: " << request.ShortDebugString() << std::endl;
-
-    auto io_msg = std::make_shared<goby::middleware::protobuf::IOData>();
-    std::string* encoded = io_msg->mutable_data();
-    request.SerializeToString(encoded);
-
-    uint32_t crc32_value = crc::calculate_crc32(encoded->data(), encoded->size());
-
-    constexpr int bits_in_byte = 8;
-    constexpr int bytes_in_crc32 = 4;
-
-    for (int i = bytes_in_crc32 - 1; i >= 0; --i)
-    { encoded->push_back((crc32_value >> (i * bits_in_byte)) & 0xFF); }
-
+    auto io_msg = jaiabot::serial::encode_for_mcu(request);
     glog.is_debug1() && glog << "Sending bytes to MCU: " << goby::util::hex_encode(io_msg->data())
                              << std::endl;
-
     interthread().publish<mcu_serial_out>(io_msg);
 }
 
 void jaiabot::apps::Sensors::receive_from_mcu(const goby::middleware::protobuf::IOData& io_msg)
 {
-    constexpr int bits_in_byte = 8;
-    constexpr int bytes_in_crc32 = 4;
-
+    glog.is_debug1() && glog << "Received bytes from MCU: " << goby::util::hex_encode(io_msg.data())
+                             << std::endl;
     try
     {
-        glog.is_debug1() && glog << "Received bytes from MCU: "
-                                 << goby::util::hex_encode(io_msg.data()) << std::endl;
-
-        const auto& encoded = io_msg.data();
-
-        if (encoded.size() < bytes_in_crc32)
-            throw(std::runtime_error("Message is too small"));
-
-        uint32_t computed_crc =
-            crc::calculate_crc32(encoded.data(), encoded.size() - bytes_in_crc32);
-        uint32_t provided_crc = 0;
-
-        std::size_t i = 0;
-        for (auto it = encoded.rbegin(), end = encoded.rbegin() + bytes_in_crc32; it != end;
-             ++it, ++i)
-            provided_crc |= (*it) << (i * bits_in_byte);
-
-        if (computed_crc != provided_crc)
-        {
-            throw(std::runtime_error("Computed CRC (" + std::to_string(computed_crc) +
-                                     ") does not equal CRC on message (" +
-                                     std::to_string(provided_crc) + ")"));
-        }
-
-        sensor::protobuf::SensorData sensor_data;
-        sensor_data.ParseFromArray(encoded.data(), encoded.size() - bytes_in_crc32);
-
+        auto sensor_data = jaiabot::serial::decode_from_mcu<sensor::protobuf::SensorData>(io_msg);
         glog.is_verbose() && glog << "Received data from MCU: " << sensor_data.ShortDebugString()
                                   << std::endl;
-
         // publish for appropriate thread and for logging
         interprocess().publish<jaiabot::groups::mcu_pb_data_in>(sensor_data);
 
@@ -277,9 +234,7 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
             launch_thread<TurnerCFluorDriver>(cfg().fluorometer());
             break;
 
-        case sensor::protobuf::AML__SENSOR: 
-            launch_thread<AMLSensorDriver>(cfg().aml()); 
-            break;
+        case sensor::protobuf::AML__SENSOR: launch_thread<AMLSensorDriver>(cfg().aml()); break;
 
         default:
             glog.is_warn() && glog << "Driver not implemented for sensor: "

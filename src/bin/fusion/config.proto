@@ -25,7 +25,7 @@ syntax = "proto2";
 import "goby/middleware/protobuf/app_config.proto";
 import "goby/zeromq/protobuf/interprocess_config.proto";
 import "jaiabot/messages/mission.proto";
-import "jaiabot/messages/jaia_dccl.proto";
+import "jaiabot/messages/node.proto";
 import "jaiabot/messages/imu.proto";
 import "dccl/option_extensions.proto";
 
@@ -44,7 +44,7 @@ message Fusion
 
     required int32 bot_id = 10;
 
-    required jaiabot.protobuf.BotStatus.BotType bot_type = 11;
+    required jaiabot.protobuf.BotType bot_type = 11;
 
     optional int32 health_report_timeout_seconds = 12 [default = 20];
 
@@ -59,22 +59,25 @@ message Fusion
     optional double imu_heading_course_max_diff = 31 [default = 45];
 
     // timeout in seconds
-    optional int32 course_over_ground_timeout = 32 [default = 3]; 
+    optional int32 course_over_ground_timeout = 32 [default = 3];
 
-    optional jaiabot.protobuf.IMUIssue.SolutionType imu_issue_solution = 33 [default = REPORT_IMU];
+    optional jaiabot.protobuf.IMUIssue.SolutionType imu_issue_solution = 33
+        [default = REPORT_IMU];
 
     optional bool is_sim = 34 [default = false];
 
-    // How many times to verify data is indicating imu issue before declaring one
+    // How many times to verify data is indicating imu issue before declaring
+    // one
     optional int32 total_imu_issue_checks = 35 [default = 4];
 
     // When to start detecting imu issues again after detecting one
-    optional int32 imu_detect_timeout = 36 [default = 20]; 
+    optional int32 imu_detect_timeout = 36 [default = 20];
 
     // Rate in milliseconds
-    optional int32 bot_status_period_ms = 37 [default = 1000]; 
+    optional int32 bot_status_period_ms = 37 [default = 1000];
 
-    repeated jaiabot.protobuf.MissionState include_course_error_detection_states = 38;
+    repeated jaiabot.protobuf.MissionState
+        include_course_error_detection_states = 38;
 
     repeated jaiabot.protobuf.MissionState include_imu_detection_states = 39;
 
@@ -85,13 +88,14 @@ message Fusion
     optional float battery_percentage_critically_low_level = 43 [default = 10];
 
     // The period to check for a imu issue in seconds
-    optional int32 imu_detect_period = 44 [default = 1]; 
+    optional int32 imu_detect_period = 44 [default = 1];
 
-    // When the bots pitch is horizontal then we can start detecting imu issues again
+    // When the bots pitch is horizontal then we can start detecting imu issues
+    // again
     optional int32 imu_issue_detect_horizontal_pitch_checks = 45 [default = 3];
-    
+
     // The min amount of time to determine the bot is horizontal
-    optional double imu_issue_detect_horizontal_pitch_min_time = 46 
+    optional double imu_issue_detect_horizontal_pitch_min_time = 46
         [default = 1, (dccl.field).units = { base_dimensions: "T" }];
 
     // The angle at which we determine the bot to be horizontal
@@ -99,11 +103,11 @@ message Fusion
 
     // The max diff between desired heading and current heading when
     // detecting an imu issue
-    optional double imu_detect_desired_heading_vs_current_max_diff = 48 [default = 45];
+    optional double imu_detect_desired_heading_vs_current_max_diff = 48
+        [default = 45];
 
     // Dive states to send node status based on published depth values
     repeated jaiabot.protobuf.MissionState diving_states = 49;
 
     required string bot_gpsd_device = 50;  // gpsd device for bot itself
-
 }

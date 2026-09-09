@@ -105,6 +105,8 @@ data_offload_exclude: $jaia_data_offload_ignore_type # (optional)
 # test_mode: ENGINEERING_TEST__IGNORE_SOME_ERRORS
 # ignore_error: ERROR__MISSING_DATA__PRESSURE
 
+$allow_gps_error_during_pre_deployment_startup
+
 # When to stop logging in a failed state
 failed_startup_log_timeout: 300 # (optional) (default=300)
 
@@ -150,3 +152,6 @@ stop_camera_command {
 }
 
 camera_available: $camera_available
+
+$delegated_states
+send_task_packets_to_hub: $send_task_packets_to_hub
