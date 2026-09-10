@@ -121,16 +121,18 @@ For each VPN class, the Subnet ID is the Fleet ID, so for example, VirtualFleet 
 
 #### Address
 
-For a given node on the network, the 64-bit interface identifier is given as `::0:hub_id` for hubs, `::1:bot_id` for bots, `::2:customer_id` for various customer machines (desktop / laptop / tablet), `::3:rpicam_id` for rpicams, and `::4:0` for the gateway (the fleet WiFi access point, which on the IPv4 networks is `.1`). This allows up to 2^16 = 65536 nodes of each type to be assigned per fleet.
+For a given node on the network, the 64-bit interface identifier is given as `::1:hub_id` for hubs, `::2:bot_id` for bots, `::3:customer_id` for various customer machines (desktop / laptop / tablet), `::4:rpicam_id` for rpicams, and `::5:0` for the gateway (the fleet WiFi access point, which on the IPv4 networks is `.1`). This allows up to 2^16 = 65536 nodes of each type to be assigned per fleet.
+
+Group `::0:` is left unassigned: it holds the subnet-router anycast address (`::`) and `::1`, which a router sharing the segment conventionally claims for itself. A node given either address fails Duplicate Address Detection and is unreachable.
 
 Some examples include:
 
 | Bot (b) or Hub (h)? | ID  | Fleet     | Fleet VPN Address (s) |  VirtualFleet VPN (v) Address (fN)  |  CloudHub VPN Address (c) |
 |-----------|-------------|-----|--------------------|--------------------|--------------------|
-| Bot         | 5   | 4        | `fd91:5457:1e5c:4::1:5` | `fd6e:cf0d:aefa:4::1:5` | `fd0f:77ac:4fdf:4::1:5` |
-| Bot         | 6   | 250      | `fd91:5457:1e5c:fa::1:6` | `fd6e:cf0d:aefa:fa::1:6` | `fd0f:77ac:4fdf:fa::1:6` |
-| Hub         | 20 | 10       | `fd91:5457:1e5c:a::14` | `fd6e:cf0d:aefa:a::14` | `fd0f:77ac:4fdf:a::14` |
-| Hub (CloudHub (ch))        | 30 | 15       | `fd91:5457:1e5c:f::1e` | `fd6e:cf0d:aefa:f::1e` | `fd0f:77ac:4fdf:f::1e` |
+| Bot         | 5   | 4        | `fd91:5457:1e5c:4::2:5` | `fd6e:cf0d:aefa:4::2:5` | `fd0f:77ac:4fdf:4::2:5` |
+| Bot         | 6   | 250      | `fd91:5457:1e5c:fa::2:6` | `fd6e:cf0d:aefa:fa::2:6` | `fd0f:77ac:4fdf:fa::2:6` |
+| Hub         | 20 | 10       | `fd91:5457:1e5c:a::1:14` | `fd6e:cf0d:aefa:a::1:14` | `fd0f:77ac:4fdf:a::1:14` |
+| Hub (CloudHub (ch))        | 30 | 15       | `fd91:5457:1e5c:f::1:1e` | `fd6e:cf0d:aefa:f::1:1e` | `fd0f:77ac:4fdf:f::1:1e` |
 
 Every fleet in the table is an IPv4 fleet, so `jaia ip` gives its fleet VPN address as IPv4 (`jaia ip b5sf4` is `172.23.4.105`); `--ip_version ipv6` asks for the IPv6 address listed here instead. The VirtualFleet and CloudHub VPNs are IPv6 for every fleet, so those need no flag.
 

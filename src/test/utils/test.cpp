@@ -395,15 +395,15 @@ BOOST_AUTO_TEST_CASE(test_ip_vpn_ipv6)
 {
     // the examples tabulated in src/doc/markdown/page056_cloud.md
     BOOST_CHECK_EQUAL(ip::ipv6_addr(4, ip::Network::fleet_vpn, ip::NodeType::bot, 5),
-                      "fd91:5457:1e5c:4::1:5");
+                      "fd91:5457:1e5c:4::2:5");
     BOOST_CHECK_EQUAL(ip::ipv6_addr(250, ip::Network::fleet_vpn, ip::NodeType::bot, 6),
-                      "fd91:5457:1e5c:fa::1:6");
+                      "fd91:5457:1e5c:fa::2:6");
     BOOST_CHECK_EQUAL(ip::ipv6_addr(10, ip::Network::fleet_vpn, ip::NodeType::hub, 20),
-                      "fd91:5457:1e5c:a::14");
+                      "fd91:5457:1e5c:a::1:14");
     BOOST_CHECK_EQUAL(ip::ipv6_addr(4, ip::Network::vfleet_vpn, ip::NodeType::bot, 5),
-                      "fd6e:cf0d:aefa:4::1:5");
+                      "fd6e:cf0d:aefa:4::2:5");
     BOOST_CHECK_EQUAL(ip::ipv6_addr(15, ip::Network::cloudhub_vpn, ip::NodeType::hub, 30),
-                      "fd0f:77ac:4fdf:f::1e");
+                      "fd0f:77ac:4fdf:f::1:1e");
     BOOST_CHECK_EQUAL(ip::ipv6_net(4, ip::Network::cloudhub_vpn), "fd0f:77ac:4fdf:4::/64");
 }
 
@@ -413,7 +413,7 @@ BOOST_AUTO_TEST_CASE(test_ip_ipv6_fleets)
     BOOST_CHECK(!ip::is_ipv4_fleet(ip::fleet_id_ipv4_max + 1));
 
     BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::bot, 3),
-                      "fddd:7f2e:3258:fb::1:3");
+                      "fddd:7f2e:3258:fb::2:3");
     BOOST_CHECK_EQUAL(ip::ipv6_net(251, ip::Network::wlan), "fddd:7f2e:3258:fb::/64");
     BOOST_CHECK_EQUAL(ip::ipv6_net(1000, ip::Network::wlan), "fddd:7f2e:3258:3e8::/64");
     BOOST_CHECK_EQUAL(ip::ipv6_net(4000, ip::Network::wlan), "fddd:7f2e:3258:fa0::/64");
@@ -489,17 +489,23 @@ BOOST_AUTO_TEST_CASE(test_ip_version)
 
 BOOST_AUTO_TEST_CASE(test_ip_ipv6_node_offsets)
 {
-    // a group of its own per node type, so that the gateway is not also hub 1
+    // a group of its own per node type, with group 0 left to the anycast and router addresses
     BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::hub, 1),
-                      "fddd:7f2e:3258:fb::1");
-    BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::bot, 1),
                       "fddd:7f2e:3258:fb::1:1");
-    BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::desktop, 1),
+    BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::bot, 1),
                       "fddd:7f2e:3258:fb::2:1");
-    BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::rpicam, 1),
+    BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::desktop, 1),
                       "fddd:7f2e:3258:fb::3:1");
+    BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::rpicam, 1),
+                      "fddd:7f2e:3258:fb::4:1");
     BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::gateway, 0),
-                      "fddd:7f2e:3258:fb::4:0");
+                      "fddd:7f2e:3258:fb::5:0");
+
+    // the lowest hub and bot ids clear group 0, which is what the shift is for
+    BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::hub, ip::hub_id_min),
+                      "fddd:7f2e:3258:fb::1:0");
+    BOOST_CHECK_EQUAL(ip::ipv6_addr(251, ip::Network::wlan, ip::NodeType::bot, ip::bot_id_min),
+                      "fddd:7f2e:3258:fb::2:0");
 }
 
 BOOST_AUTO_TEST_CASE(test_ip_host_codes)
@@ -507,15 +513,15 @@ BOOST_AUTO_TEST_CASE(test_ip_host_codes)
     BOOST_CHECK_EQUAL(ip::host_code_to_addr("b4f10"), "10.23.10.104");
     BOOST_CHECK_EQUAL(ip::host_code_to_addr("h1f2"), "10.23.2.11");
     BOOST_CHECK_EQUAL(ip::host_code_to_addr("b5sf3"), "172.23.3.105");
-    BOOST_CHECK_EQUAL(ip::host_code_to_addr("b5vf3"), "fd6e:cf0d:aefa:3::1:5");
-    BOOST_CHECK_EQUAL(ip::host_code_to_addr("chf3"), "fd0f:77ac:4fdf:3::1e");
+    BOOST_CHECK_EQUAL(ip::host_code_to_addr("b5vf3"), "fd6e:cf0d:aefa:3::2:5");
+    BOOST_CHECK_EQUAL(ip::host_code_to_addr("chf3"), "fd0f:77ac:4fdf:3::1:1e");
     BOOST_CHECK_EQUAL(ip::host_code_to_addr("self"), "::1");
     BOOST_CHECK_EQUAL(ip::host_code_to_addr("hub.jaia.tech"), "hub.jaia.tech");
 
-    BOOST_CHECK_EQUAL(ip::host_code_to_addr("b4f1000"), "fddd:7f2e:3258:3e8::1:4");
-    BOOST_CHECK_EQUAL(ip::host_code_to_addr("h1f1000"), "fddd:7f2e:3258:3e8::1");
-    BOOST_CHECK_EQUAL(ip::host_code_to_addr("b5sf1000"), "fd91:5457:1e5c:3e8::1:5");
-    BOOST_CHECK_EQUAL(ip::host_code_to_addr("chf1000"), "fd0f:77ac:4fdf:3e8::1e");
+    BOOST_CHECK_EQUAL(ip::host_code_to_addr("b4f1000"), "fddd:7f2e:3258:3e8::2:4");
+    BOOST_CHECK_EQUAL(ip::host_code_to_addr("h1f1000"), "fddd:7f2e:3258:3e8::1:1");
+    BOOST_CHECK_EQUAL(ip::host_code_to_addr("b5sf1000"), "fd91:5457:1e5c:3e8::2:5");
+    BOOST_CHECK_EQUAL(ip::host_code_to_addr("chf1000"), "fd0f:77ac:4fdf:3e8::1:1e");
 
     BOOST_CHECK_THROW(ip::host_code_to_addr("b4f5000"), std::invalid_argument);
     BOOST_CHECK_THROW(ip::host_code_to_addr("b4x2"), std::invalid_argument);
@@ -525,12 +531,12 @@ BOOST_AUTO_TEST_CASE(test_ip_addr)
 {
     BOOST_CHECK_EQUAL(ip::addr(2, ip::Network::wlan, ip::NodeType::bot, 3), "10.23.2.103");
     BOOST_CHECK_EQUAL(ip::addr(1000, ip::Network::wlan, ip::NodeType::bot, 3),
-                      "fddd:7f2e:3258:3e8::1:3");
+                      "fddd:7f2e:3258:3e8::2:3");
     BOOST_CHECK_EQUAL(ip::addr(3, ip::Network::fleet_vpn, ip::NodeType::bot, 5), "172.23.3.105");
     BOOST_CHECK_EQUAL(ip::addr(1000, ip::Network::fleet_vpn, ip::NodeType::bot, 5),
-                      "fd91:5457:1e5c:3e8::1:5");
+                      "fd91:5457:1e5c:3e8::2:5");
     BOOST_CHECK_EQUAL(ip::addr(3, ip::Network::cloudhub_vpn, ip::NodeType::hub, 30),
-                      "fd0f:77ac:4fdf:3::1e");
+                      "fd0f:77ac:4fdf:3::1:1e");
 }
 
 BOOST_AUTO_TEST_CASE(test_ip_host_code_version_override)
@@ -538,9 +544,9 @@ BOOST_AUTO_TEST_CASE(test_ip_host_code_version_override)
     auto addr = [](const std::string& code, ip::IPVersion version)
     { return ip::host_code_addr(ip::parse_host_code(code), version); };
 
-    BOOST_CHECK_EQUAL(addr("b5sf4", ip::IPVersion::ipv6), "fd91:5457:1e5c:4::1:5");
+    BOOST_CHECK_EQUAL(addr("b5sf4", ip::IPVersion::ipv6), "fd91:5457:1e5c:4::2:5");
     BOOST_CHECK_EQUAL(addr("b5sf4", ip::IPVersion::ipv4), "172.23.4.105");
-    BOOST_CHECK_EQUAL(addr("h1f100", ip::IPVersion::ipv6), "fddd:7f2e:3258:64::1");
+    BOOST_CHECK_EQUAL(addr("h1f100", ip::IPVersion::ipv6), "fddd:7f2e:3258:64::1:1");
     BOOST_CHECK_EQUAL(addr("h1f100", ip::IPVersion::ipv4), "10.23.100.11");
     BOOST_CHECK_EQUAL(addr("self", ip::IPVersion::ipv4), "::1");
 

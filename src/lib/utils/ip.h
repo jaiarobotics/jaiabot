@@ -401,18 +401,19 @@ inline boost::asio::ip::address_v6 ipv6_base(int fleet_id, Network net,
     }
 }
 
+// Group 0 is reserved: it holds the subnet-router anycast address (::) and ::1, which routers on
+// the segment conventionally claim -- a node given either one fails DAD and is unreachable.
 inline uint64_t ipv6_node_offset(NodeType node, int node_id)
 {
     switch (node)
     {
-        case NodeType::hub: return static_cast<uint64_t>(node_id);             // 0*2^16 + node_id
-        case NodeType::bot: return static_cast<uint64_t>(1 * 65536 + node_id); // 1*2^16 + node_id
+        case NodeType::hub: return static_cast<uint64_t>(1 * 65536 + node_id); // 1*2^16 + node_id
+        case NodeType::bot: return static_cast<uint64_t>(2 * 65536 + node_id); // 2*2^16 + node_id
         case NodeType::desktop:
-            return static_cast<uint64_t>(2 * 65536 + node_id); // 2*2^16 + node_id
-        case NodeType::rpicam:
             return static_cast<uint64_t>(3 * 65536 + node_id); // 3*2^16 + node_id
-        // its own group rather than the IPv4 scheme's ".1", which here is hub 1
-        case NodeType::gateway: return 4 * 65536; // node_id ignored
+        case NodeType::rpicam:
+            return static_cast<uint64_t>(4 * 65536 + node_id); // 4*2^16 + node_id
+        case NodeType::gateway: return 5 * 65536;              // node_id ignored
     }
     throw std::invalid_argument("Unknown node type for IPv6");
 }
