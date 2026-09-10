@@ -130,12 +130,18 @@ function network_bot_or_hub()
     local n=$2
     VMNAME="${bot_or_hub}${n}"
     GUEST_IP=$(jaia_ip --query_type addr --node_type ${bot_or_hub} --node_id ${n} --ip_net wlan --fleet_id ${FLEET})
+    if [[ "${GUEST_IP}" == *:* ]]; then
+        # VirtualBox stores an IPv6 port forward but never activates it, registering every rule
+        # through the IPv4-only slirp_add_hostfwd, so forward to the IPv4 the guest takes from this
+        # network's DHCP, reserved at the node's vfleet_wlan address to make it predictable.
+        GUEST_IP=$(jaia_ip --query_type addr --node_type ${bot_or_hub} --node_id ${n} --ip_net vfleet_wlan --fleet_id ${FLEET} --ip_version ipv4)
+        find_uuid ${VMNAME} ${GROUP}
+        (set -x
+         vboxmanage dhcpserver modify --network=${NATNET_NAME} --vm=${UUID} --nic=2 --fixed-address=${GUEST_IP}
+        )
+    fi
     (set -x
-     if [[ "${GUEST_IP}" == *:* ]]; then
-         vboxmanage natnetwork modify --netname ${NATNET_NAME} --port-forward-6="ssh ${VMNAME}:tcp:[]:${HOST_SSH_PORT}:[${GUEST_IP}]:22"
-     else
-         vboxmanage natnetwork modify --netname ${NATNET_NAME} --port-forward-4="ssh ${VMNAME}:tcp:[]:${HOST_SSH_PORT}:[${GUEST_IP}]:22"
-     fi
+     vboxmanage natnetwork modify --netname ${NATNET_NAME} --port-forward-4="ssh ${VMNAME}:tcp:[]:${HOST_SSH_PORT}:[${GUEST_IP}]:22"
     )
     SSH_CONFIG+="Host ${VMNAME}-virtualfleet${FLEET}\n  User jaia\n  Port ${HOST_SSH_PORT}\n  HostName 127.0.0.1\n"
     HOST_SSH_PORT=$((HOST_SSH_PORT + 1))
