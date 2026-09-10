@@ -26,6 +26,14 @@ package jaiabot.protobuf;
 
 message FleetConfig
 {
+    // Fleet config contract version, independent of the software version.
+    // Files that predate this field are version 1. Bump
+    // PROJECT_FLEET_CONFIG_VERSION (cmake/JaiaVersions.cmake) together with a
+    // migration when the build-time contract check reports a breaking change.
+    // Fields are never removed or renamed, only marked [deprecated = true],
+    // so that every earlier version still parses.
+    optional uint32 version = 10 [default = 1];
+
     required int32 fleet = 1;
     repeated int32 hubs = 2;
     repeated int32 bots = 3;
@@ -113,4 +121,11 @@ message FleetConfig
     }
     optional Communications comms = 9;
 
+    message CloudHubAuth
+    {
+        required string base_uri = 1;
+        required string admin_email = 2;
+        required string smtp_address = 3;
+    }
+    optional CloudHubAuth cloudhub_auth = 11;
 }

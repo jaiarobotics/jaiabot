@@ -10,9 +10,9 @@ Build-Depends: debhelper-compat (= 13),
                protobuf-compiler,
                dccl5-compiler,
                libnanopb-dev,
-               nanopb
+               nanopb,
+               python3-protobuf:native
 Build-Depends-Indep:
-               python3-protobuf,
                goby3-clang-tool [amd64] <!nodoc>,
                goby3-interfaces [amd64] <!nodoc>,
                dccl5-apps [amd64]

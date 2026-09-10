@@ -1,0 +1,913 @@
+{
+  "debconf": {
+    "jaiabot-embedded/additional_sensors": {
+      "choices": [
+        "turner_c_flour",
+        "aml",
+        "ppk",
+        "none"
+      ],
+      "default": "none",
+      "type": "multiselect"
+    },
+    "jaiabot-embedded/arduino_type": {
+      "choices": [
+        "spi",
+        "usb",
+        "none"
+      ],
+      "default": "none",
+      "type": "select"
+    },
+    "jaiabot-embedded/bot_id": {
+      "choices": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "68",
+        "69",
+        "70",
+        "71",
+        "72",
+        "73",
+        "74",
+        "75",
+        "76",
+        "77",
+        "78",
+        "79",
+        "80",
+        "81",
+        "82",
+        "83",
+        "84",
+        "85",
+        "86",
+        "87",
+        "88",
+        "89",
+        "90",
+        "91",
+        "92",
+        "93",
+        "94",
+        "95",
+        "96",
+        "97",
+        "98",
+        "99",
+        "100",
+        "101",
+        "102",
+        "103",
+        "104",
+        "105",
+        "106",
+        "107",
+        "108",
+        "109",
+        "110",
+        "111",
+        "112",
+        "113",
+        "114",
+        "115",
+        "116",
+        "117",
+        "118",
+        "119",
+        "120",
+        "121",
+        "122",
+        "123",
+        "124",
+        "125",
+        "126",
+        "127",
+        "128",
+        "129",
+        "130",
+        "131",
+        "132",
+        "133",
+        "134",
+        "135",
+        "136",
+        "137",
+        "138",
+        "139",
+        "140",
+        "141",
+        "142",
+        "143",
+        "144",
+        "145",
+        "146",
+        "147",
+        "148",
+        "149",
+        "150"
+      ],
+      "type": "select"
+    },
+    "jaiabot-embedded/bot_type": {
+      "choices": [
+        "hydro",
+        "pam",
+        "bio",
+        "none"
+      ],
+      "default": "hydro",
+      "type": "select"
+    },
+    "jaiabot-embedded/camera_positions": {
+      "choices": [
+        "aft",
+        "fore",
+        "outward",
+        "none"
+      ],
+      "default": "none",
+      "type": "multiselect"
+    },
+    "jaiabot-embedded/comms_links": {
+      "choices": [
+        "xbee",
+        "wifi",
+        "iridium"
+      ],
+      "default": "xbee",
+      "type": "multiselect"
+    },
+    "jaiabot-embedded/data_offload_ignore_type": {
+      "choices": [
+        "goby",
+        "taskpacket",
+        "none"
+      ],
+      "default": "none",
+      "type": "select"
+    },
+    "jaiabot-embedded/dccl_encryption_password": {
+      "default": "",
+      "type": "string"
+    },
+    "jaiabot-embedded/electronics_stack": {
+      "choices": [
+        "0",
+        "1",
+        "2"
+      ],
+      "default": "0",
+      "type": "select"
+    },
+    "jaiabot-embedded/fleet_id": {
+      "choices": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34",
+        "35",
+        "36",
+        "37",
+        "38",
+        "39",
+        "40",
+        "41",
+        "42",
+        "43",
+        "44",
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57",
+        "58",
+        "59",
+        "60",
+        "61",
+        "62",
+        "63",
+        "64",
+        "65",
+        "66",
+        "67",
+        "68",
+        "69",
+        "70",
+        "71",
+        "72",
+        "73",
+        "74",
+        "75",
+        "76",
+        "77",
+        "78",
+        "79",
+        "80",
+        "81",
+        "82",
+        "83",
+        "84",
+        "85",
+        "86",
+        "87",
+        "88",
+        "89",
+        "90",
+        "91",
+        "92",
+        "93",
+        "94",
+        "95",
+        "96",
+        "97",
+        "98",
+        "99",
+        "100",
+        "101",
+        "102",
+        "103",
+        "104",
+        "105",
+        "106",
+        "107",
+        "108",
+        "109",
+        "110",
+        "111",
+        "112",
+        "113",
+        "114",
+        "115",
+        "116",
+        "117",
+        "118",
+        "119",
+        "120",
+        "121",
+        "122",
+        "123",
+        "124",
+        "125",
+        "126",
+        "127",
+        "128",
+        "129",
+        "130",
+        "131",
+        "132",
+        "133",
+        "134",
+        "135",
+        "136",
+        "137",
+        "138",
+        "139",
+        "140",
+        "141",
+        "142",
+        "143",
+        "144",
+        "145",
+        "146",
+        "147",
+        "148",
+        "149",
+        "150",
+        "151",
+        "152",
+        "153",
+        "154",
+        "155",
+        "156",
+        "157",
+        "158",
+        "159",
+        "160",
+        "161",
+        "162",
+        "163",
+        "164",
+        "165",
+        "166",
+        "167",
+        "168",
+        "169",
+        "170",
+        "171",
+        "172",
+        "173",
+        "174",
+        "175",
+        "176",
+        "177",
+        "178",
+        "179",
+        "180",
+        "181",
+        "182",
+        "183",
+        "184",
+        "185",
+        "186",
+        "187",
+        "188",
+        "189",
+        "190",
+        "191",
+        "192",
+        "193",
+        "194",
+        "195",
+        "196",
+        "197",
+        "198",
+        "199",
+        "200",
+        "201",
+        "202",
+        "203",
+        "204",
+        "205",
+        "206",
+        "207",
+        "208",
+        "209",
+        "210",
+        "211",
+        "212",
+        "213",
+        "214",
+        "215",
+        "216",
+        "217",
+        "218",
+        "219",
+        "220",
+        "221",
+        "222",
+        "223",
+        "224",
+        "225",
+        "226",
+        "227",
+        "228",
+        "229",
+        "230",
+        "231",
+        "232",
+        "233",
+        "234",
+        "235",
+        "236",
+        "237",
+        "238",
+        "239",
+        "240",
+        "241",
+        "242",
+        "243",
+        "244",
+        "245",
+        "246",
+        "247",
+        "248",
+        "249",
+        "250"
+      ],
+      "type": "select"
+    },
+    "jaiabot-embedded/hub_id": {
+      "choices": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30"
+      ],
+      "type": "select"
+    },
+    "jaiabot-embedded/imu_install_type": {
+      "choices": [
+        "embedded",
+        "retrofit",
+        "none"
+      ],
+      "default": "embedded",
+      "type": "select"
+    },
+    "jaiabot-embedded/imu_type": {
+      "choices": [
+        "bno055",
+        "bno085",
+        "none"
+      ],
+      "default": "bno055",
+      "type": "select"
+    },
+    "jaiabot-embedded/led_type": {
+      "choices": [
+        "hub_led",
+        "none"
+      ],
+      "default": "none",
+      "type": "select"
+    },
+    "jaiabot-embedded/mode": {
+      "choices": [
+        "runtime",
+        "simulation"
+      ],
+      "default": "runtime",
+      "type": "select"
+    },
+    "jaiabot-embedded/motor_harness_type": {
+      "choices": [
+        "rpm_and_thermistor",
+        "none"
+      ],
+      "default": "none",
+      "type": "select"
+    },
+    "jaiabot-embedded/pam_connection_type": {
+      "choices": [
+        "uart",
+        "usb",
+        "none"
+      ],
+      "default": "none",
+      "type": "select"
+    },
+    "jaiabot-embedded/pressure_sensor_type": {
+      "choices": [
+        "bar02",
+        "bar30",
+        "none"
+      ],
+      "default": "bar30",
+      "type": "select"
+    },
+    "jaiabot-embedded/rf_encryption_password": {
+      "default": "",
+      "type": "string"
+    },
+    "jaiabot-embedded/temperature_sensor_type": {
+      "choices": [
+        "bar02",
+        "bar30",
+        "tsys01",
+        "none"
+      ],
+      "default": "bar30",
+      "type": "select"
+    },
+    "jaiabot-embedded/type": {
+      "choices": [
+        "bot",
+        "hub"
+      ],
+      "type": "select"
+    },
+    "jaiabot-embedded/user_role": {
+      "choices": [
+        "user",
+        "advanced",
+        "developer"
+      ],
+      "default": "user",
+      "type": "select"
+    },
+    "jaiabot-embedded/warp": {
+      "choices": [
+        "1",
+        "2",
+        "5",
+        "10",
+        "20",
+        "30",
+        "40",
+        "50"
+      ],
+      "default": "1",
+      "type": "select"
+    }
+  },
+  "proto": {
+    "enums": {
+      "jaiabot.protobuf.FleetConfig.Communications.IridiumSBD.SBDType": {
+        "SBD_DIRECTIP": {
+          "number": 1
+        },
+        "SBD_ROCKBLOCK": {
+          "number": 2
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.Debconf.DebconfType": {
+        "BOOLEAN": {
+          "number": 3
+        },
+        "MULTISELECT": {
+          "number": 1
+        },
+        "NOTE": {
+          "number": 4
+        },
+        "PASSWORD": {
+          "number": 6
+        },
+        "SELECT": {
+          "number": 0
+        },
+        "STRING": {
+          "number": 2
+        },
+        "TEXT": {
+          "number": 5
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.DebconfOverride.NodeType": {
+        "BOT": {
+          "number": 1
+        },
+        "HUB": {
+          "number": 0
+        }
+      }
+    },
+    "messages": {
+      "jaiabot.protobuf.FleetConfig": {
+        "fields": {
+          "bots": {
+            "label": "repeated",
+            "number": 3,
+            "type": "int32"
+          },
+          "cloudhub_auth": {
+            "label": "optional",
+            "number": 11,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.CloudHubAuth"
+          },
+          "comms": {
+            "label": "optional",
+            "number": 9,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.Communications"
+          },
+          "debconf": {
+            "label": "repeated",
+            "number": 5,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.Debconf"
+          },
+          "debconf_override": {
+            "label": "repeated",
+            "number": 8,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.DebconfOverride"
+          },
+          "fleet": {
+            "label": "required",
+            "number": 1,
+            "type": "int32"
+          },
+          "hubs": {
+            "label": "repeated",
+            "number": 2,
+            "type": "int32"
+          },
+          "service_vpn_enabled": {
+            "label": "required",
+            "number": 7,
+            "type": "bool"
+          },
+          "ssh": {
+            "label": "required",
+            "number": 4,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.SSHKeys"
+          },
+          "version": {
+            "default": "1",
+            "label": "optional",
+            "number": 10,
+            "type": "uint32"
+          },
+          "wlan_password": {
+            "label": "required",
+            "number": 6,
+            "type": "string"
+          }
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.CloudHubAuth": {
+        "fields": {
+          "admin_email": {
+            "label": "required",
+            "number": 2,
+            "type": "string"
+          },
+          "base_uri": {
+            "label": "required",
+            "number": 1,
+            "type": "string"
+          },
+          "smtp_address": {
+            "label": "required",
+            "number": 3,
+            "type": "string"
+          }
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.Communications": {
+        "fields": {
+          "iridium_sbd": {
+            "label": "optional",
+            "number": 1,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.Communications.IridiumSBD"
+          }
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.Communications.IridiumSBD": {
+        "fields": {
+          "bot": {
+            "label": "repeated",
+            "number": 1,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.Communications.IridiumSBD.BotToIMEI"
+          },
+          "rockblock": {
+            "label": "optional",
+            "number": 3,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.Communications.IridiumSBD.RockBLOCKParams"
+          },
+          "sbd_type": {
+            "label": "required",
+            "number": 2,
+            "type": "enum",
+            "type_name": "jaiabot.protobuf.FleetConfig.Communications.IridiumSBD.SBDType"
+          }
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.Communications.IridiumSBD.BotToIMEI": {
+        "fields": {
+          "id": {
+            "label": "required",
+            "number": 1,
+            "type": "int32"
+          },
+          "imei": {
+            "label": "required",
+            "number": 2,
+            "type": "string"
+          }
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.Communications.IridiumSBD.RockBLOCKParams": {
+        "fields": {
+          "password": {
+            "label": "required",
+            "number": 2,
+            "type": "string"
+          },
+          "username": {
+            "label": "required",
+            "number": 1,
+            "type": "string"
+          }
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.Debconf": {
+        "fields": {
+          "key": {
+            "label": "required",
+            "number": 1,
+            "type": "string"
+          },
+          "type": {
+            "default": "SELECT",
+            "label": "optional",
+            "number": 2,
+            "type": "enum",
+            "type_name": "jaiabot.protobuf.FleetConfig.Debconf.DebconfType"
+          },
+          "value": {
+            "label": "required",
+            "number": 3,
+            "type": "string"
+          }
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.DebconfOverride": {
+        "fields": {
+          "debconf": {
+            "label": "repeated",
+            "number": 3,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.Debconf"
+          },
+          "id": {
+            "label": "required",
+            "number": 2,
+            "type": "int32"
+          },
+          "type": {
+            "label": "required",
+            "number": 1,
+            "type": "enum",
+            "type_name": "jaiabot.protobuf.FleetConfig.DebconfOverride.NodeType"
+          }
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.SSHKeys": {
+        "fields": {
+          "hub": {
+            "label": "repeated",
+            "number": 2,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.SSHKeys.HubKey"
+          },
+          "permanent_authorized_keys": {
+            "label": "repeated",
+            "number": 1,
+            "type": "string"
+          },
+          "vpn_tmp": {
+            "label": "optional",
+            "number": 3,
+            "type": "message",
+            "type_name": "jaiabot.protobuf.FleetConfig.SSHKeys.VPNTempKey"
+          }
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.SSHKeys.HubKey": {
+        "fields": {
+          "id": {
+            "label": "required",
+            "number": 1,
+            "type": "int32"
+          },
+          "private_key": {
+            "label": "required",
+            "number": 2,
+            "type": "string"
+          },
+          "public_key": {
+            "label": "required",
+            "number": 3,
+            "type": "string"
+          }
+        }
+      },
+      "jaiabot.protobuf.FleetConfig.SSHKeys.VPNTempKey": {
+        "fields": {
+          "private_key": {
+            "label": "required",
+            "number": 2,
+            "type": "string"
+          },
+          "public_key": {
+            "label": "required",
+            "number": 3,
+            "type": "string"
+          }
+        }
+      }
+    },
+    "root": "jaiabot.protobuf.FleetConfig"
+  },
+  "version": 1
+}

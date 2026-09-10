@@ -88,3 +88,11 @@ set(PROJECT_SOVERSION "1")
 # increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
 # start at 1 as 0 would be used prior to introducing this version (goby::middleware::Group::broadcast_group == 0)
 set(PROJECT_INTERVEHICLE_API_VERSION 23)
+
+# Fleet config contract version
+
+# increment when the fleet config contract (src/lib/messages/fleet_config.proto plus
+# debian/jaiabot-embedded.templates) changes in a way existing fleet configs cannot satisfy.
+# The build checks this against src/lib/messages/fleet_config/contract/vN.json.
+# Files that predate this version are version 1.
+set(PROJECT_FLEET_CONFIG_VERSION 1)

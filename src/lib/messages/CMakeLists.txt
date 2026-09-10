@@ -77,6 +77,47 @@ add_jaiabot_library(TARGET jaiabot_messages
 add_subdirectory(nanopb)
 add_subdirectory(python)
 
+# Fleet config contract check: fleet_config.proto plus the jaiabot-embedded debconf
+# templates must match the committed snapshot for PROJECT_FLEET_CONFIG_VERSION, so that
+# a change existing fleet configs can't satisfy is caught here rather than during a
+# major upgrade. See src/doc/markdown/page123_fleet_config_versioning.md
+find_program(PYTHON3_EXECUTABLE python3 REQUIRED)
+set(FLEET_CONFIG_CONTRACT_SCRIPT ${CMAKE_SOURCE_DIR}/scripts/build/fleet-config-contract.py)
+set(FLEET_CONFIG_CONTRACT_SNAPSHOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fleet_config/contract)
+set(FLEET_CONFIG_TEMPLATES ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.templates)
+set(FLEET_CONFIG_SHARE_DIR ${project_SHARE_DIR}/jaiabot/fleet_config)
+set(FLEET_CONFIG_DESCRIPTOR_SET ${FLEET_CONFIG_SHARE_DIR}/fleet_config.desc)
+set(FLEET_CONFIG_CONTRACT ${FLEET_CONFIG_SHARE_DIR}/contract.json)
+file(GLOB FLEET_CONFIG_CONTRACT_SNAPSHOTS ${FLEET_CONFIG_CONTRACT_SNAPSHOT_DIR}/v*.json)
+
+# Installed alongside contract.json so tools can parse fleet configs without the
+# generated protobuf bindings
+add_custom_command(
+  OUTPUT ${FLEET_CONFIG_DESCRIPTOR_SET}
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${FLEET_CONFIG_SHARE_DIR}
+  COMMAND protobuf::protoc --descriptor_set_out=${FLEET_CONFIG_DESCRIPTOR_SET} --include_imports
+          -I ${project_INC_DIR} jaiabot/messages/fleet_config.proto
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fleet_config.proto
+  COMMENT "Generating fleet config descriptor set"
+  VERBATIM
+)
+
+add_custom_command(
+  OUTPUT ${FLEET_CONFIG_CONTRACT}
+  COMMAND ${PYTHON3_EXECUTABLE} ${FLEET_CONFIG_CONTRACT_SCRIPT} check
+          --descriptor-set ${FLEET_CONFIG_DESCRIPTOR_SET}
+          --templates ${FLEET_CONFIG_TEMPLATES}
+          --version ${PROJECT_FLEET_CONFIG_VERSION}
+          --snapshot-dir ${FLEET_CONFIG_CONTRACT_SNAPSHOT_DIR}
+          --output ${FLEET_CONFIG_CONTRACT}
+  DEPENDS ${FLEET_CONFIG_DESCRIPTOR_SET} ${FLEET_CONFIG_TEMPLATES} ${FLEET_CONFIG_CONTRACT_SCRIPT}
+          ${FLEET_CONFIG_CONTRACT_SNAPSHOTS} ${CMAKE_SOURCE_DIR}/cmake/JaiaVersions.cmake
+  COMMENT "Checking fleet config contract against version ${PROJECT_FLEET_CONFIG_VERSION} snapshot"
+  VERBATIM
+)
+
+add_custom_target(fleet_config_contract ALL DEPENDS ${FLEET_CONFIG_CONTRACT})
+
 function(check_dccl_md5_hash DCCL_NAME EXPECTED_HASH)
   add_custom_command(
         TARGET jaiabot_messages
