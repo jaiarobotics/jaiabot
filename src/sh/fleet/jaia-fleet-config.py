@@ -595,7 +595,10 @@ def cmd_settings(schema, args):
 # --- generate: the first-boot files for one node ----------------------------
 
 def render_template(template_path, context):
-    import jinja2
+    try:
+        import jinja2
+    except ImportError:
+        raise FleetConfigError("python3-jinja2 is required to generate first boot files")
     with open(template_path) as f:
         template = jinja2.Template(f.read(), undefined=jinja2.StrictUndefined)
     return template.render(context)

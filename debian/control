@@ -11,7 +11,9 @@ Build-Depends: debhelper-compat (= 13),
                dccl5-compiler,
                libnanopb-dev,
                nanopb,
-               python3-protobuf:native
+               python3-protobuf:native,
+               python3-jinja2:native,
+               python3-yaml:native
 Build-Depends-Indep:
                goby3-clang-tool [amd64] <!nodoc>,
                goby3-interfaces [amd64] <!nodoc>,
@@ -40,7 +42,7 @@ Description: Libraries for the Jaiabot Project
  The jaiabot project provides binaries and libraries for the Jaiabot Autonomous Underwater Vehicle: https://www.jaia.tech/
 
 Package: jaiabot-apps
-Depends: libjaiabot (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Depends: python3-jinja2, python3-protobuf, libjaiabot (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
 Section: science
 Architecture: any
 Description: Applications for the Jaiabot Project

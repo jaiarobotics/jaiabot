@@ -22,6 +22,14 @@ spec.loader.exec_module(fc)
 DESCRIPTOR_SET = fc.compile_descriptor_set(PROTO, [MESSAGES_DIR])
 SCHEMA = fc.Schema(DESCRIPTOR_SET)
 
+try:
+    import jinja2
+    import yaml
+    HAVE_RENDER_DEPS = True
+except ImportError:
+    HAVE_RENDER_DEPS = False
+needs_render_deps = unittest.skipUnless(HAVE_RENDER_DEPS, "python3-jinja2 and python3-yaml are needed to render first boot files")
+
 
 def fixture(name):
     return os.path.join(FIXTURES, name)
@@ -216,6 +224,7 @@ class CommandTest(unittest.TestCase):
         self.assertIn("valid", result.stdout)
         self.assertNotIn("migration", result.stdout)
 
+    @needs_render_deps
     def test_generate_renders_preseed_and_stores_migrated_config(self):
         bootdir = self.env.bootdir()
         result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "hub", "1")
@@ -228,7 +237,6 @@ class CommandTest(unittest.TestCase):
         self.assertIn("jaiabot-embedded jaiabot-embedded/comms_links multiselect xbee, wifi", preseed)
         self.assertIn("no-touch-required sk-ssh-ed25519@openssh.com AAAAhub1 hub1_fleet7", preseed)
         self.assertNotIn("requires_jaia_fleet_config_tool", preseed)
-        import yaml
         yaml.safe_load(preseed)
         with open(os.path.join(init, "fleet7.cfg")) as f:
             stored = f.read()
@@ -238,6 +246,7 @@ class CommandTest(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(init, "id_vpn_tmp.pub")))
         self.assertTrue(os.path.exists(os.path.join(init, "iridium.json")))
 
+    @needs_render_deps
     def test_generate_applies_override_for_bot(self):
         bootdir = self.env.bootdir()
         result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "bot", "2")
@@ -254,8 +263,8 @@ class CommandTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertFalse(os.path.exists(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")))
 
+    @needs_render_deps
     def test_template_sentinel_fails_without_the_tool(self):
-        import jinja2
         with open(TEMPLATE) as f:
             template = jinja2.Template(f.read())  # default Undefined, as older generators use
         with self.assertRaises(jinja2.UndefinedError):
