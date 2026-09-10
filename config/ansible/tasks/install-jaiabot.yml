@@ -17,3 +17,13 @@
     state: latest
 
 - include_tasks: get-version.yml
+
+- name: Check if this machine is a CloudHub
+  ansible.builtin.stat:
+    path: /etc/jaiabot/cloud.env
+  register: cloud_env_file
+
+- name: Configure Authelia (CloudHub only)
+  ansible.builtin.command: /usr/bin/jaia_configure_authelia.sh
+  when: cloud_env_file.stat.exists
+  changed_when: true

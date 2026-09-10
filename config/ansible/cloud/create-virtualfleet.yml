@@ -1,6 +1,6 @@
 ---
 - name: Create new VirtualFleet EC2 instances (and delete any old ones)
-  hosts: localhost
+  hosts: all
   gather_facts: yes
   vars:
     warp: 5

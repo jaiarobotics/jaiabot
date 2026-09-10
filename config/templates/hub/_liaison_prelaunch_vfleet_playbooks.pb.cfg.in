@@ -11,7 +11,7 @@ ansible_playbook {
         name: "instance_state"
         display_name: "State"
     }
-    limit: "localhost"
+    limit: "$this_hub"
 }
 
 ansible_playbook {
@@ -33,7 +33,7 @@ ansible_playbook {
         display_name: "State"
     }
     role: USER
-    limit: "localhost"
+    limit: "$this_hub"
 }
 
 ansible_playbook {
@@ -46,7 +46,7 @@ ansible_playbook {
         value: "terminated"
     }
     role: ADVANCED
-    limit: "localhost"
+    limit: "$this_hub"
     confirmation_required: true
 }
 
@@ -54,7 +54,7 @@ ansible_playbook {
     file: "cloud/create-virtualfleet.yml"
     name: "(Re)create VirtualFleet machines [DELETES ALL VIRTUALFLEET MACHINE DATA]"
     section: "VirtualFleet"
-    limit: "localhost"
+    limit: "$this_hub"
     role: ADVANCED
     confirmation_required: true
     input_var {
