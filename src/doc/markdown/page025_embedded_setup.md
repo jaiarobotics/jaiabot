@@ -52,6 +52,8 @@ This will prompt you using a whiptail UI to set the various fleet related settin
 
 This tool will also create the hub keys, VPN temporary keys as necessary and include those in the fleet configuration file.
 
+The bot/hub settings are stored as typed fields of the `settings { }` block (with per-node `override { }` blocks), and the file records the fleet config version it was written for. `jaia admin fleet validate fleet5.cfg` checks a file, and `jaia admin fleet migrate` rewrites an older file at the current version; see [Fleet configuration versioning](page091_major_upgrade.md#fleet-configuration-versioning).
+
 Once you have a fleet, you can begin flashing the bots/hubs. 
 
 ### Flashing the bootloader configuration

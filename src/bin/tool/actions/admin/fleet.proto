@@ -50,11 +50,13 @@ message FleetTool
                            "Usage: \"jaia admin fleet create [fleet.cfg]\""
         }];
         validate = 2 [(goby.ev).cfg = {
-            short_help_msg: "Validate a new fleet config",
+            short_help_msg: "Validate a fleet config (and whether it migrates to the current version)",
+            external_command: "jaia-fleet-config.py",
+            external_help_param: "--help"
         }];
         generate = 3 [(goby.ev).cfg = {
             short_help_msg: "Generate first boot configuration and write to disk",
-            external_command: "jaia-generate-first-boot.py",
+            external_command: "jaia-fleet-config.py",
             external_help_param: "--help"
         }];
         vpn_authorize = 4 [(goby.ev).cfg = {
@@ -74,6 +76,16 @@ message FleetTool
         delete_cloudhub = 7 [(goby.ev).cfg = {
             short_help_msg: "Delete VPC and CloudHub",
             external_command: "jaia-delete-cloudhub.py",
+            external_help_param: "--help"
+        }];
+        migrate = 8 [(goby.ev).cfg = {
+            short_help_msg: "Rewrite a fleet config at the current fleet config version",
+            external_command: "jaia-fleet-config.py",
+            external_help_param: "--help"
+        }];
+        version = 9 [(goby.ev).cfg = {
+            short_help_msg: "Print the fleet config version this release writes",
+            external_command: "jaia-fleet-config.py",
             external_help_param: "--help"
         }];
     }

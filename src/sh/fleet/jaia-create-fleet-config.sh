@@ -113,6 +113,7 @@ function run_wt_msg_box() {
 
 script_dir=$(realpath `dirname $0`)
 USING_PRESEED=false
+fleet_config_tool="${script_dir}/jaia-fleet-config.py"
 
 
 echo "######################################################"
@@ -144,7 +145,8 @@ run_wt_checklist "Fleet Configuration" "Which bots are in the fleet?" "${BOTS[@]
 [ $? -eq 0 ] || exit 1
 BOT_IDS="$WT_CHOICE"
 
-echo "fleet: ${FLEET_ID}" > $out
+echo "version: $(${fleet_config_tool} version)" > $out
+echo "fleet: ${FLEET_ID}" >> $out
 echo "hubs: [$(echo ${HUB_IDS[@]} | tr -d '"' | sed 's/ /,/g')]" >> $out
 echo "bots: [$(echo ${BOT_IDS[@]} | tr -d '"' | sed 's/ /,/g')]" >> $out
 
@@ -301,33 +303,9 @@ EOM
 debconf-get-selections | grep jaiabot-embedded | sed 's/^unknown/jaiabot-embedded/' > /tmp/jaia-fleet-selections.txt"
 }
 
-function parse_debconf() {
-    local input=$1
-    local spaces=$2
-    awk -v FS='\t' -v OFS='\t' '
-BEGIN {
-    # Print opening of the debconf entries
-    printf ""
-}
-{
-    # Skip lines containing keys to be excluded
-    if ($2 ~ /\/(bot_id|hub_id|type|fleet_id|mode|debconf_state_common|debconf_state_hub|debconf_state_bot|warp)/) next;
-
-    # Print debconf entry
-
-    # Remove spaces from value
-    gsub(" ", "", $4);
-
-    printf "debconf {\n";
-    printf "  key: \"%s\"\n", $2;
-    printf "  type: %s\n", toupper($3);
-    printf "  value: \"%s\"\n", $4;
-    printf "}\n";
-}' $input | sed "s/^/${spaces}/" >> $out
-}
-
-run_debconf 
-parse_debconf /tmp/jaia-fleet-selections.txt ""
+run_debconf
+# identity answers (type, ids, mode) are dropped: they are set per node at generate time
+${fleet_config_tool} settings /tmp/jaia-fleet-selections.txt >> $out
 
 cp /tmp/jaia-fleet-selections.txt /tmp/jaia-common-fleet-selections.txt
 
@@ -350,26 +328,26 @@ while : ; do
     
     run_debconf
 
-    # keep only lines that changed to reduce clutter in output
-    comm -13 <(sort /tmp/jaia-common-fleet-selections.txt) <(sort /tmp/jaia-fleet-selections.txt) > /tmp/jaia-diff-fleet-selections.txt
+    # only the answers that differ from the common settings
+    ${fleet_config_tool} settings /tmp/jaia-fleet-selections.txt --only-changed-from /tmp/jaia-common-fleet-selections.txt --indent 2 > /tmp/jaia-override-settings.txt
 
     for HUB_ID_QUOTED in ${OVERRIDE_HUB_IDS}
     do
         HUB_ID=$(eval echo ${HUB_ID_QUOTED})
-        echo "debconf_override {" >> $out
+        echo "override {" >> $out
         echo "  type: HUB" >> $out
         echo "  id: ${HUB_ID}" >> $out
-        parse_debconf /tmp/jaia-diff-fleet-selections.txt "  "
+        cat /tmp/jaia-override-settings.txt >> $out
         echo "}" >> $out
     done
 
     for BOT_ID_QUOTED in ${OVERRIDE_BOT_IDS}
     do
         BOT_ID=$(eval echo ${BOT_ID_QUOTED})
-        echo "debconf_override {" >> $out
+        echo "override {" >> $out
         echo "  type: BOT" >> $out
         echo "  id: ${BOT_ID}" >> $out
-        parse_debconf /tmp/jaia-diff-fleet-selections.txt "  "
+        cat /tmp/jaia-override-settings.txt >> $out
         echo "}" >> $out
     done
 
@@ -381,7 +359,7 @@ echo "######################################################"
 
 echo "comms {" >> $out
 
-if grep -q iridium $out; then
+if grep -q COMMS_LINK_IRIDIUM $out; then
     echo "######################################################"
     echo "## Iridium SBD Configuration                        ##"
     echo "######################################################"
@@ -421,7 +399,7 @@ echo "######################################################"
 echo "## Validate fleet configuration                     ##"
 echo "######################################################"
 
-jaia admin fleet validate -v $out
+${fleet_config_tool} validate $out
 
 echo "######################################################"
 echo "## Success                                          ##"

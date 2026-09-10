@@ -723,6 +723,8 @@ jobs:
             major_upgrade_arch=${TARGET_ARCH}
             major_upgrade_rootfs_checksum=sha256:$(sha256sum build/bundle/major_upgrade/${rootfs_version}.rootfs.tar.gz | cut -d ' ' -f 1)
             major_upgrade_bootfs_checksum=sha256:$(sha256sum build/bundle/major_upgrade/${rootfs_version}.boot.tar.gz | cut -d ' ' -f 1)
+            major_upgrade_previous_major=$(( $(echo ${JAIABOT_APT_VERSION} | cut -d '.' -f 1) - 1 ))
+            major_upgrade_fleet_config_version=$(sed -n 's/^option (jaia.file).fleet_config_version = \([0-9]*\);.*/\1/p' src/lib/messages/fleet_config.proto)
             EOF
             
             

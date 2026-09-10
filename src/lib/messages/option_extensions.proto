@@ -25,14 +25,86 @@ message RestAPI
     repeated string permitted_action = 4;
 }
 
+// How a NodeSettings field is asked by debconf. debian/jaiabot-embedded.templates and
+// .config are generated from these, in field declaration order.
+message DebconfField
+{
+    enum Group
+    {
+        ALL = 1;
+        BOT = 2;
+        HUB = 3;
+    }
+    enum Priority
+    {
+        LOW = 1;
+        MEDIUM = 2;
+        HIGH = 3;
+    }
+    required Group group = 1;
+    // Asked on the node but never stored in a fleet config: the fleet config tool
+    // supplies it from the node's own identity (type, ids, mode)
+    optional bool identity = 2 [default = false];
+    optional Priority priority = 3 [default = MEDIUM];
+    optional string description = 4;
+    // Lines of the extended description
+    optional string extended_description = 5;
+    message AskIf
+    {
+        required string field = 1;
+        required string equals = 2;
+    }
+    optional AskIf ask_if = 6;
+    // Set when the question is skipped (ask_if false, or the node is not in the
+    // group); a node holding this value when the question *is* asked is reset to
+    // the default
+    optional string unasked_value = 7;
+    // Choices for integer fields, in order
+    repeated string choices = 8;
+    message Range
+    {
+        required int32 min = 1;
+        required int32 max = 2;
+    }
+    optional Range range = 9;
+    // Default for repeated (multiselect) fields, which have no proto default
+    optional string default = 10;
+}
+
+message DebconfValue
+{
+    // debconf value; defaults to the enum value name without the enum name
+    // prefix, lowercased (BOT_TYPE_PAM -> "pam")
+    optional string value = 1;
+    // For deprecated values: the value they are normalised to
+    optional string replaced_by = 2;
+}
+
+message DebconfMessage
+{
+    required string package = 1;
+    // Field whose value (bot/hub) selects the BOT or HUB question group
+    required string node_type_field = 2;
+}
+
 message FieldOptions
 {
     optional RestAPI rest_api = 1;
+    optional DebconfField debconf = 2;
 }
-message MessageOptions {}
+message MessageOptions
+{
+    optional DebconfMessage debconf = 1;
+}
 message EnumValueOptions
 {
     optional RestAPI rest_api = 1;
+    optional DebconfValue debconf = 2;
+}
+message FileOptions
+{
+    // See "Fleet configuration versioning" in page091_major_upgrade.md
+    optional uint32 fleet_config_version = 1;
 }
 
 // we can use 1252 for all extensions:
@@ -51,4 +123,9 @@ extend .google.protobuf.MessageOptions
 extend .google.protobuf.EnumValueOptions
 {
     optional .jaia.EnumValueOptions ev = 1252;
+}
+
+extend .google.protobuf.FileOptions
+{
+    optional .jaia.FileOptions file = 1252;
 }
