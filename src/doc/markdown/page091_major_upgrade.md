@@ -6,13 +6,12 @@ A major software upgrade is defined as updating the Ubuntu release as well as th
 
 ### Ensure all bots have a BNO085 IMU
 
-The BNO055 IMU is no longer supported. Any bot still fitted with one must have it replaced with a BNO085 before the fleet can be upgraded, and the new IMU recorded by setting the imu type to `bno085` with:
+The BNO055 IMU is no longer supported. Any bot still fitted with one must have it replaced with a BNO085 before the fleet can be upgraded. For each of those bots:
 
-```
-sudo dpkg-reconfigure jaiabot-embedded
-```
+1. Set the imu type to `bno085` on the bot itself with `sudo dpkg-reconfigure jaiabot-embedded`. This is what the major upgrade checks.
+2. Regenerate the fleet configuration with `jaia admin fleet create` so that `imu_type` is `bno085` there too, since the upgraded system is configured from the fleet configuration rather than from the current debconf database. If the fleet configuration is embedded in the upgrade image, re-embed the new one (see the next sections).
 
-The major upgrade playbook checks this on every bot and aborts the entire fleet upgrade if any bot still reports `imu_type` as `bno055`.
+The major upgrade playbook checks every bot and aborts the entire fleet upgrade if any bot still reports `imu_type` as `bno055`.
 
 ### Ensure the Hub has a valid Fleet Configuration
 
