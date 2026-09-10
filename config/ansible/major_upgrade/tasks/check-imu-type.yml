@@ -11,5 +11,5 @@
 - name: Handle deprecated BNO055 IMU
   include_tasks: handle_failure.yml
   vars:
-    error_message: "The BNO055 IMU is no longer supported and must be replaced with a BNO085 IMU before a major upgrade can be run. Still using a BNO055: {{ bno055_bots | join(', ') }}. After fitting the new IMU, run 'jaia admin debconf set imu_type bno085' on each of these bots."
+    error_message: "The BNO055 IMU is no longer supported and must be replaced with a BNO085 IMU before a major upgrade can be run. Still using a BNO055: {{ bno055_bots | join(', ') }}. After fitting the new IMU, run 'jaia admin debconf set imu_type bno085' on each of these bots, and regenerate the fleet configuration with 'jaia admin fleet create' so that the upgraded system is configured for the new IMU as well."
   when: bno055_bots | length > 0
