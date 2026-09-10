@@ -120,5 +120,5 @@ message FleetConfig
         required string smtp_address = 3;
         
     }
-    optional CloudHubAuth cloudhub_auth = 10;
+    optional CloudHubAuth cloudhub_auth = 11;
 }
