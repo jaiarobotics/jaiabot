@@ -88,6 +88,19 @@ class SchemaTest(unittest.TestCase):
             q.from_debconf("sonar")
 
 
+class MigrationChainTest(unittest.TestCase):
+    def test_every_version_has_a_migration_step(self):
+        """A file of any earlier version migrates step by step to the current one."""
+        self.assertEqual(sorted(fc.MIGRATIONS), list(range(1, SCHEMA.version)))
+
+    def test_chain_is_applied_in_order(self):
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_fleet7.cfg"))
+        notes, problems = fc.migrate(SCHEMA, cfg)
+        self.assertEqual(problems, [])
+        self.assertEqual([n for n in notes if n.startswith("migrated to version")],
+                         ["migrated to version {}".format(v) for v in range(2, SCHEMA.version + 1)])
+
+
 class MigrationTest(unittest.TestCase):
     def setUp(self):
         self.cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_fleet7.cfg"))
