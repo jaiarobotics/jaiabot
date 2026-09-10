@@ -193,8 +193,8 @@ Once connected to the appropriate VPN and hosts are configured in `/etc/hosts`, 
 For fleet1, these would be:
 ```
 # /etc/hosts
-fd6e:cf0d:aefa:2::1 hub1-virtualfleet1
-fd0f:77ac:4fdf:2::1e cloudhub-fleet1
+fd6e:cf0d:aefa:1::1:1 hub1-virtualfleet1
+fd0f:77ac:4fdf:1::1:1e cloudhub-fleet1
 ```
 
 - http://cloudhub-fleet1 for CloudHub JCC (remote command and monitoring of real fleet).
