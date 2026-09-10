@@ -113,6 +113,10 @@ export function getStormReadinessStatus(missionState: MissionState, isCommsDropp
         return "Initializing";
     }
 
+    if (missionState === MissionState.PRE_DEPLOYMENT__IDLE) {
+        return "Awaiting Activation";
+    }
+
     if (
         missionState === MissionState.PRE_DEPLOYMENT__SELF_TEST ||
         missionState === MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN ||
@@ -130,6 +134,7 @@ export function getStormReadinessStatusClassName(
 ) {
     switch (getStormReadinessStatus(missionState, isCommsDropped)) {
         case "Initializing":
+        case "Awaiting Activation":
             return "storm-status-initializing";
         case "Ready to Deploy":
         case "Deployed":
