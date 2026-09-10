@@ -16,26 +16,27 @@
   shell: |
     rm -rf {{ fleet_config_tool_dir }}
     mkdir -p {{ fleet_config_tool_dir }}
-    tar -xzf {{ upgrade_boot_tar }} -C {{ fleet_config_tool_dir }} --wildcards '*jaiabot/init/fleet_config/*' 2> /dev/null || true
-    find {{ fleet_config_tool_dir }} -name jaia-fleet-config.py | head -1
+    tar -xzf {{ upgrade_boot_tar }} -C {{ fleet_config_tool_dir }} --wildcards '*jaiabot/init/fleet_config/*'
+    tool=$(find {{ fleet_config_tool_dir }} -name jaia-fleet-config.py | head -1)
+    if [ -z "${tool}" ]; then
+      echo "The boot image carries no fleet config tool"
+      exit 1
+    fi
+    echo "${tool}"
   register: fleet_config_tool_result
 
-# An image that predates the tool (release 2 or earlier) is generated with the
-# installed jaia, as before
-- name: Set fleet config tool
+- name: Set fleet config tool path
   set_fact:
-    fleet_config_tool: "{{ ('python3 ' + fleet_config_tool_result.stdout_lines[-1] + ' generate') if fleet_config_tool_result.stdout_lines else 'jaia admin fleet generate' }}"
-    fleet_config_migrate: "{{ ('python3 ' + fleet_config_tool_result.stdout_lines[-1] + ' migrate') if fleet_config_tool_result.stdout_lines else '' }}"
+    fleet_config_tool: "{{ fleet_config_tool_result.stdout_lines[-1] }}"
 
 - name: Migrate and validate the staged fleet config with the new release's tool
   shell: |
-    {{ fleet_config_migrate }} {{ staged_fleet_cfg }} -o {{ staged_fleet_cfg }}
+    python3 {{ fleet_config_tool }} migrate {{ staged_fleet_cfg }} -o {{ staged_fleet_cfg }}
   register: fleet_config_migrate_result
   ignore_errors: yes
-  when: fleet_config_migrate != ''
 
 - name: Handle fleet config migration failure
   include_tasks: handle_failure.yml
   vars:
     error_message: "Fleet configuration cannot be used with the new release: {{ fleet_config_migrate_result.stderr | default(fleet_config_migrate_result.stdout) }}"
-  when: fleet_config_migrate_result is not skipped and fleet_config_migrate_result.failed
+  when: fleet_config_migrate_result.failed

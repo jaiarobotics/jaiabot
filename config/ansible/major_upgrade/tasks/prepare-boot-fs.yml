@@ -2,13 +2,6 @@
   shell: |
     mkdir -p {{ upgrade_boot_dir }}
     tar -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz -C {{ upgrade_boot_dir }}
-    # the new release's tool when the image carries one, so template, schema and
-    # migrations match whatever release this node runs today
-    tool={{ upgrade_boot_dir }}/jaiabot/init/fleet_config/jaia-fleet-config.py
-    if [ -e "${tool}" ]; then
-      generate="python3 ${tool} generate"
-    else
-      generate="jaia admin fleet generate"
-    fi
-    ${generate} --bootdir {{ upgrade_boot_dir }} {{ upgrade_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }}
+    # the new release's tool, so this works whatever release this node runs today
+    python3 {{ upgrade_boot_dir }}/jaiabot/init/fleet_config/jaia-fleet-config.py generate --bootdir {{ upgrade_boot_dir }} {{ upgrade_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg {{ jaiabot_embedded_type }} {{ jaiabot_embedded_hub_id if jaiabot_embedded_type == 'hub' else jaiabot_embedded_bot_id }}
     rm -f {{ upgrade_boot_dir }}/jaiabot/init/id_vpn_tmp*
