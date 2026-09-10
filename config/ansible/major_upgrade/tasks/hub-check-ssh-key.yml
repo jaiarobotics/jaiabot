@@ -16,7 +16,7 @@
 - name: Generate fleet config hub ssh key
   shell: |
     mkdir -p {{ hub_staging_dir }}/jaiabot/init
-    jaia admin fleet generate --bootdir {{ hub_staging_dir }} {{ staged_fleet_cfg }} hub {{ jaiabot_embedded_hub_id }} --hub-ssh-keys-only
+    {{ fleet_config_tool }} --bootdir {{ hub_staging_dir }} {{ staged_fleet_cfg }} hub {{ jaiabot_embedded_hub_id }} --hub-ssh-keys-only
   
 - name: Check hub ssh key matches fleet config ssh key 
   shell: |
