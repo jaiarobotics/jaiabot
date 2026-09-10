@@ -12,7 +12,7 @@
 # ones need a version bump and a migration, and a few edits (deleting a field)
 # are refused outright because older files would stop parsing.
 #
-# See src/doc/markdown/page123_fleet_config_versioning.md.
+# See src/doc/markdown/page091_major_upgrade.md.
 
 import argparse
 import json
@@ -436,7 +436,7 @@ def cmd_check(args):
         return fail("The fleet config contract has breaking changes relative to version {} (see [breaking] above).".format(version),
                     "To proceed:",
                     "  1. increment PROJECT_FLEET_CONFIG_VERSION in cmake/JaiaVersions.cmake",
-                    "  2. add the matching migration step (see page123_fleet_config_versioning.md)",
+                    "  2. add the matching migration step (see page091_major_upgrade.md)",
                     "  3. write the new snapshot:",
                     how_to_write.replace("--version {}".format(version), "--version {}".format(version + 1)))
     return fail("The fleet config contract changed compatibly relative to version {} (see [compatible] above).".format(version),

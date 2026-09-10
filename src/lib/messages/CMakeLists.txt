@@ -80,7 +80,7 @@ add_subdirectory(python)
 # Fleet config contract check: fleet_config.proto plus the jaiabot-embedded debconf
 # templates must match the committed snapshot for PROJECT_FLEET_CONFIG_VERSION, so that
 # a change existing fleet configs can't satisfy is caught here rather than during a
-# major upgrade. See src/doc/markdown/page123_fleet_config_versioning.md
+# major upgrade. See src/doc/markdown/page091_major_upgrade.md
 find_program(PYTHON3_EXECUTABLE python3 REQUIRED)
 set(FLEET_CONFIG_CONTRACT_SCRIPT ${CMAKE_SOURCE_DIR}/scripts/build/fleet-config-contract.py)
 set(FLEET_CONFIG_CONTRACT_SNAPSHOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fleet_config/contract)
