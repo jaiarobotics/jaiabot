@@ -12,7 +12,7 @@ import common, common.bot, common.comms, common.sim, common.udp
 from pathlib import Path
 
 jaia_electronics_stack='0'
-jaia_imu_type='bno055'
+jaia_imu_type='bno085'
 jaia_arduino_type='spi'
 jaia_pam_connection_type='none'
 
