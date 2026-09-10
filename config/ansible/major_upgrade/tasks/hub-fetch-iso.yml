@@ -1,0 +1,66 @@
+- name: Use the upgrade ISO given on the command line
+  set_fact:
+    major_upgrade_iso_path: "{{ major_upgrade_iso }}"
+  when: major_upgrade_iso | length > 0
+
+- name: Read CloudHub environment
+  include_tasks: ../../cloud/tasks/read-env.yml
+  when: cloud_env_file.stat.exists
+
+- name: Default to downloading the upgrade ISO from the CloudHub's repository
+  set_fact:
+    major_upgrade_iso_repo: "{{ cloud_env_vars.jaia_aws_virtualfleet_repository | default('release') }}"
+  when:
+    - major_upgrade_iso_path is not defined
+    - major_upgrade_iso_url_base | length == 0
+    - major_upgrade_iso_repo | length == 0
+    - cloud_env_file.stat.exists
+
+- name: Default to the next major version
+  set_fact:
+    major_upgrade_iso_version: "{{ (jaiabot_current_version.split('.')[0] | int) + 1 }}.y"
+  when:
+    - major_upgrade_iso_repo | length > 0
+    - major_upgrade_iso_version | length == 0
+
+- name: Set the upgrade ISO URL from the repository and version
+  set_fact:
+    major_upgrade_iso_url_base: "{{ major_upgrade_iso_s3_base }}/{{ major_upgrade_iso_repo }}/{{ major_upgrade_iso_version }}/vbox"
+  when:
+    - major_upgrade_iso_path is not defined
+    - major_upgrade_iso_url_base | length == 0
+    - major_upgrade_iso_repo | length > 0
+
+- name: Download the upgrade ISO
+  when:
+    - major_upgrade_iso_path is not defined
+    - major_upgrade_iso_url_base | length > 0
+  block:
+    - name: Download the upgrade image version.txt
+      get_url:
+        url: "{{ major_upgrade_iso_url_base }}/version.txt"
+        dest: "{{ upgrade_dir_base }}/iso-version.txt"
+        force: true
+      register: iso_version_download
+      until: iso_version_download is success
+      retries: 3
+      delay: 10
+
+    - name: Read the ISO name
+      shell: "grep '^iso_name=' {{ upgrade_dir_base }}/iso-version.txt | cut -d= -f2-"
+      register: iso_name_result
+      changed_when: false
+      failed_when: iso_name_result.stdout | length == 0
+
+    - name: Download the upgrade ISO (skipped if already present)
+      get_url:
+        url: "{{ major_upgrade_iso_url_base }}/{{ iso_name_result.stdout | urlencode }}"
+        dest: "{{ upgrade_dir_base }}/{{ iso_name_result.stdout }}"
+      register: iso_download
+      until: iso_download is success
+      retries: 3
+      delay: 10
+
+    - name: Set the upgrade ISO path
+      set_fact:
+        major_upgrade_iso_path: "{{ upgrade_dir_base }}/{{ iso_name_result.stdout }}"

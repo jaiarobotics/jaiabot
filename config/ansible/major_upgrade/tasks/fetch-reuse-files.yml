@@ -4,3 +4,27 @@
     for file in /etc/wireguard/*; do
       rsync -aPR $file {{ upgrade_reuse_dir }}
     done
+
+- name: Check for CloudHub environment
+  stat:
+    path: /etc/jaiabot/cloud.env
+  register: cloud_env_file
+
+- name: Fetch CloudHub files to reuse on new image
+  shell: |
+    set -e
+    for file in /etc/sysctl.d/wg.conf \
+                /etc/ufw/ufw.conf /etc/ufw/user.rules /etc/ufw/user6.rules \
+                /etc/systemd/system/multi-user.target.wants/wg-quick@wg_cloudhub.service \
+                /etc/systemd/system/multi-user.target.wants/wg-quick@wg_virtualfleet.service \
+                /etc/jaiabot/vfleet-inventory.yml /etc/jaiabot/virtualfleet.cfg \
+                /home/jaia/.ssh/cloudhub_to_vfleet /home/jaia/.ssh/cloudhub_to_vfleet.pub \
+                /home/jaia/.ssh/virtualhub /home/jaia/.ssh/virtualhub.pub; do
+      [ -e "$file" ] && rsync -aPR "$file" {{ upgrade_reuse_dir }}
+    done
+    # jaia_fleet_index was renamed to jaia_fleet_id in 3.y
+    mkdir -p {{ upgrade_reuse_dir }}/etc/jaiabot
+    sed 's/^jaia_fleet_index=/jaia_fleet_id=/' /etc/jaiabot/cloud.env > {{ upgrade_reuse_dir }}/etc/jaiabot/cloud.env
+    # the S3 data bucket mount is not part of the base image's fstab
+    grep 'fuse.s3fs' /etc/fstab > {{ upgrade_dir }}/fstab.extra || true
+  when: cloud_env_file.stat.exists

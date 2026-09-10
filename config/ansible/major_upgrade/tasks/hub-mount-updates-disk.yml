@@ -1,3 +1,18 @@
+- name: Mount upgrade ISO
+  shell: |
+    mkdir -p /var/www/html/updates
+    umount /var/www/html/updates 2> /dev/null || true
+    mount -o loop,ro "{{ major_upgrade_iso_path }}" /var/www/html/updates
+  register: mount_iso_result
+  ignore_errors: yes
+  when: major_upgrade_iso_path is defined
+
+- name: Handle Mount ISO failure
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "Mounting upgrade ISO {{ major_upgrade_iso_path }} failed: {{ mount_iso_result.stderr | default('') }}"
+  when: major_upgrade_iso_path is defined and mount_iso_result.failed
+
 - name: Mount updates disk
   mount:
     path: /var/www/html/updates
@@ -6,10 +21,10 @@
     fstype: auto
   register: mount_updates_result
   ignore_errors: yes
-
+  when: major_upgrade_iso_path is not defined
 
 - name: Handle Mount updates failure
   include_tasks: handle_failure.yml
   vars:
     error_message: "Mounting updates disk failed: Ensure USB key or CD is installed in hub"
-  when: mount_updates_result.failed
+  when: major_upgrade_iso_path is not defined and mount_updates_result.failed

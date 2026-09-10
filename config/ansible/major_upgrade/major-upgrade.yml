@@ -17,8 +17,20 @@
         state: directory
   
     - include_tasks: ../tasks/read-debconf.yml
+    - include_tasks: ../tasks/get-version.yml
+
+    - name: Create the upgrade base working directory
+      file:
+        path: '{{ upgrade_dir_base }}'
+        state: directory
+
+    - name: Check for CloudHub environment
+      stat:
+        path: /etc/jaiabot/cloud.env
+      register: cloud_env_file
 
   tasks:
+    - include_tasks: tasks/hub-fetch-iso.yml
     - include_tasks: tasks/hub-mount-updates-disk.yml
     - include_tasks: tasks/set-fleet-config-facts.yml
     - include_tasks: tasks/hub-stage-fleet-config.yml
@@ -33,8 +45,7 @@
     - vars/disk-space.yml
     - vars/staging.yml
   vars:
-    - upgrade_dir_base: '/var/log/jaiabot/major_upgrade'
-    - do_backup: yes
+    do_backup: yes
       
   pre_tasks:
     - name: Stop Jaiabot

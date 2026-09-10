@@ -360,6 +360,11 @@ done
 ssh -o PasswordAuthentication=No -o StrictHostKeyChecking=no jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
 echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
 
+# Major upgrades regenerate the CloudHub from this file
+scp -o PasswordAuthentication=No -o StrictHostKeyChecking=no ${FLEET_CONFIG} jaia@${PUBLIC_IPV4_ADDRESS}:/tmp/fleet${FLEET_ID}.cfg
+ssh -o PasswordAuthentication=No -o StrictHostKeyChecking=no jaia@${PUBLIC_IPV4_ADDRESS} "sudo install -m 0644 /tmp/fleet${FLEET_ID}.cfg /etc/jaiabot/fleet${FLEET_ID}.cfg && rm /tmp/fleet${FLEET_ID}.cfg"
+echo ">>>>>> Installed fleet configuration at /etc/jaiabot/fleet${FLEET_ID}.cfg on CloudHub"
+
 run "" aws ec2 revoke-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
 echo ">>>>>> Removed SSH (port 22) on Security Group"
 

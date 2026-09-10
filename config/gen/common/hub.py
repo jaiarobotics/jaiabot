@@ -26,3 +26,17 @@ def expected_hubs_from_inventory():
         default_hub_id = 1
         return [default_hub_id]
     
+
+def cloud_env():
+    env = {}
+    try:
+        with open('/etc/jaiabot/cloud.env', 'r') as file:
+            for line in file:
+                line = line.strip()
+                if not line or line.startswith('#') or '=' not in line:
+                    continue
+                key, value = line.split('=', 1)
+                env[key] = value.strip('"')
+    except FileNotFoundError:
+        pass
+    return env

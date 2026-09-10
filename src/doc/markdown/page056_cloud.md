@@ -179,6 +179,8 @@ fd0f:77ac:4fdf:2::1e cloudhub-fleet1
 - http://hub1-virtualfleet1 for the VirtualFleet JCC (command and monitoring of Virtual Fleet).
 - http://hub1-virtualfleet1:9091 for the VirtualFleet Jaiabot Fleet Upgrade and Configuration (for updating the VirtualFleet).
 
+To move a CloudHub to a new Ubuntu/Jaiabot major release in place, see [Major software upgrade](page091_major_upgrade.md).
+
 ## Specialty Servers
 
 In addition to the CloudHub and VirtualFleet mentioned above, Jaia runs a number of "speciality" AWS servers, each with a specific primary task:

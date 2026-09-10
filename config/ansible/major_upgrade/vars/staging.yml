@@ -1,1 +1,13 @@
 hub_staging_dir: "/tmp/jaiabot/major_upgrade/staging"
+upgrade_dir_base: "/var/log/jaiabot/major_upgrade"
+
+# Alternatives to a USB key/CD labeled "updates" (e.g. for the CloudHub):
+# a local ISO, a full URL base, or a repository whose ISO is fetched from S3.
+major_upgrade_iso: ""
+major_upgrade_iso_url_base: ""
+major_upgrade_iso_repo: ""
+major_upgrade_iso_version: ""
+major_upgrade_iso_s3_base: "https://jaia-disk-images.s3.us-east-1.amazonaws.com"
+
+# Fleet configuration file to use instead of the one embedded in the ISO or /etc/jaiabot
+fleet_cfg: ""
