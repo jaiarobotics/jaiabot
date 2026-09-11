@@ -1,0 +1,12 @@
+application:
+  name: JaiabotDriverSalinity
+  cpp_type: goby::zeromq::SingleThreadApplication
+  config:
+    scheme: PROTOBUF
+    type: jaiabot.config.SalinityDriver
+
+interprocess:
+  publishes:
+    - group: jaiabot::groups::raw_salinity
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.SalinityData

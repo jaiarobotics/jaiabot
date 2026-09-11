@@ -710,24 +710,20 @@ jaiabot_apps = [
 
     ## Bot Types: HYDRO, PAM, NONE Services
 
-    {'exe': 'jaiabot_pressure_sensor.py',
+    {'exe': 'jaiabot_driver_pressure.py',
      'description': 'JaiaBot Pressure Sensor Python Driver',
-     'template': 'py-app.service.in',
+     'template': 'goby-py-app.service.in',
      'subdir': 'pressure_sensor',
-     'args': f'-t {jaia_pressure_sensor_type.value} -p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
      'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.PAM],
-     'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
-    {'exe': 'jaiabot_as-ezo-ec.py',
+    {'exe': 'jaiabot_driver_salinity.py',
      'description': 'JaiaBot Salinity Sensor Python Driver',
-     'template': 'py-app.service.in',
+     'template': 'goby-py-app.service.in',
      'subdir': 'atlas_scientific_ezo_ec',
-     'args': f'-p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
      'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.PAM],
-     'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
 
@@ -847,14 +843,12 @@ if 'aml' in jaia_additional_sensors:
     jaiabot_apps.extend(jaiabot_aml_sensor)
 if 'ppk' in jaia_additional_sensors:
     jaiabot_ubx_ppk = {
-        'exe': 'jaiabot_ubx_ppk.py',
+        'exe': 'jaiabot_ppk_logger.py',
         'description': 'JaiaBot UBX PPK Logger',
-        'template': 'py-app.service.in',
+        'template': 'goby-py-app.service.in',
         'subdir': 'ubx_ppk',
-        'args': f'-p {UDP_GATEWAY_PORT}',
         'error_on_fail': 'ERROR__FAILED__JAIABOT_PPK',
         'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'
     }

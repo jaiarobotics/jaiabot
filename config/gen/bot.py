@@ -22,6 +22,8 @@ if "jaia_electronics_stack" in os.environ:
 jaia_temperature_sensor_type = os.environ.get('jaia_temperature_sensor_type', default='bar30')
 tsys01_enabled = jaia_temperature_sensor_type == 'tsys01'
 
+jaia_pressure_sensor_type = os.environ.get('jaia_pressure_sensor_type', default='bar30')
+
 helm_tick_config = common.bot.helm_tick_config(jaia_electronics_stack)
 helm_app_tick=helm_tick_config['helm_app_tick']
 helm_comms_tick=helm_tick_config['helm_comms_tick']
@@ -111,6 +113,9 @@ verbosities = \
   'jaiabot_aml_sensor_driver':                    { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ctd_manager':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_tsys01':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_driver_salinity':                      { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_driver_pressure':                      { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_ppk_logger':                           { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -291,6 +296,25 @@ elif common.app == 'jaiabot_driver_tsys01':
                                      interprocess_block = interprocess_common,
                                      simulate=str(is_simulation()).lower(),
                                      sample_frequency=10))
+elif common.app == 'jaiabot_driver_salinity':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_salinity.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     simulate=str(is_simulation()).lower(),
+                                     sample_frequency=10,
+                                     i2c_address=100))
+elif common.app == 'jaiabot_driver_pressure':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_pressure.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     simulate=str(is_simulation()).lower(),
+                                     sample_frequency=10,
+                                     sensor_type=jaia_pressure_sensor_type.upper()))
+elif common.app == 'jaiabot_ppk_logger':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_ppk_logger.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     simulate=str(is_simulation()).lower()))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,

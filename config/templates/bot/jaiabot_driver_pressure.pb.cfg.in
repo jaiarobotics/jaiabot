@@ -1,0 +1,6 @@
+$app_block
+$interprocess_block
+
+simulate: $simulate
+sample_frequency: $sample_frequency
+sensor_type: $sensor_type

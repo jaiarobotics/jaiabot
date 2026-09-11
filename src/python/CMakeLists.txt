@@ -35,6 +35,9 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ubx_ppk DESTINATION ${project_SHARE_DIR}/j
 #  )
 
 add_subdirectory(tsys01_temperature_sensor)
+add_subdirectory(atlas_scientific_ezo_ec)
+add_subdirectory(pressure_sensor)
+add_subdirectory(ubx_ppk)
 
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
 
