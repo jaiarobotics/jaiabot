@@ -10,3 +10,7 @@ interprocess:
     - group: jaiabot::groups::raw_salinity
       scheme: PROTOBUF
       type: jaiabot.protobuf.SalinityData
+  subscribes:
+    - group: jaiabot::groups::sim_environment
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.SimEnvironment

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import logging
-import random
 import sys
 
 import goby
@@ -8,6 +7,7 @@ from jaiabot_driver_pressure_goby import SingleThreadApplication, groups
 from jaiabot.messages.python_driver_config_pb2 import PressureDriver
 from jaiabot.messages.sensor.pressure_temperature_pb2 import (PressureTemperatureData,
                                                               BAR02, BAR30)
+from jaiabot.messages.simulator_pb2 import SimEnvironment
 
 log = logging.getLogger('jaiabot_driver_pressure')
 
@@ -20,8 +20,23 @@ SENSOR_TYPE = {PressureDriver.BAR02: BAR02, PressureDriver.BAR30: BAR30}
 
 
 class SensorSimulator:
+    """Follows the simulator's water column; holds the last value until it publishes.
+
+    Reports millibar like the real MS5837, so the driver's conversion is the one under test.
+    """
+
+    def __init__(self):
+        self._pressure_mbar = 0.0
+        self._temperature = 20.0
+
+    def update(self, env: SimEnvironment):
+        if env.HasField('pressure'):
+            self._pressure_mbar = env.pressure * MBAR_PER_DBAR
+        if env.HasField('temperature'):
+            self._temperature = env.temperature
+
     def read(self):
-        return (random.uniform(1300, 1400), random.uniform(20, 25))
+        return (self._pressure_mbar, self._temperature)
 
 
 class Sensor:
@@ -55,6 +70,8 @@ class JaiabotDriverPressure(SingleThreadApplication):
 
         if self.cfg.simulate:
             self._sensor = SensorSimulator()
+            self.interprocess().subscribe(groups.sim_environment, SimEnvironment,
+                                          self._sensor.update)
         else:
             oversampling = OVERSAMPLING_FOR_FREQUENCY.get(int(self.cfg.sample_frequency), 5)
             self._sensor = Sensor(self.cfg.sensor_type, oversampling)

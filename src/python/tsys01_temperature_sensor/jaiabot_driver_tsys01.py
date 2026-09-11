@@ -4,22 +4,26 @@ import sys
 
 import goby
 from jaiabot_driver_tsys01_goby import SingleThreadApplication, groups
+from jaiabot.messages.simulator_pb2 import SimEnvironment
 from jaiabot.messages.tsys01_pb2 import TSYS01Data
 
 log = logging.getLogger('jaiabot_driver_tsys01')
 
 
 class SensorSimulator:
+    """Follows the simulator's water column; holds the last value until it publishes."""
+
     def __init__(self):
         self._temperature = 20.0
 
     def init(self):
         return True
 
+    def update(self, env: SimEnvironment):
+        if env.HasField('temperature'):
+            self._temperature = env.temperature
+
     def read(self):
-        self._temperature += 0.1
-        if self._temperature > 30.0:
-            self._temperature = 20.0
         return True
 
     def temperature(self):
@@ -33,6 +37,8 @@ class JaiabotDriverTSYS01(SingleThreadApplication):
 
         if self.cfg.simulate:
             self._sensor = SensorSimulator()
+            self.interprocess().subscribe(groups.sim_environment, SimEnvironment,
+                                          self._sensor.update)
         else:
             import tsys01
             self._sensor = tsys01.TSYS01()

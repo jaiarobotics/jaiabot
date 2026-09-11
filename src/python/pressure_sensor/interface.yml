@@ -10,3 +10,7 @@ interprocess:
     - group: jaiabot::groups::pressure_temperature
       scheme: PROTOBUF
       type: jaiabot.protobuf.PressureTemperatureData
+  subscribes:
+    - group: jaiabot::groups::sim_environment
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.SimEnvironment

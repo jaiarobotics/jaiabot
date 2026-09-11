@@ -10,3 +10,7 @@ interprocess:
     - group: jaiabot::groups::tsys01
       scheme: PROTOBUF
       type: jaiabot.protobuf.TSYS01Data
+  subscribes:
+    - group: jaiabot::groups::sim_environment
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.SimEnvironment

@@ -6,6 +6,7 @@ import goby
 from jaiabot_driver_imu_goby import SingleThreadApplication, groups
 from jaiabot.messages.imu_pb2 import IMUData, IMUCommand
 from jaiabot.messages.python_driver_config_pb2 import IMUDriver
+from jaiabot.messages.simulator_pb2 import SimEnvironment
 from pyjaia.waves.acceleration_analyzer import AccelerationAnalyzer
 
 log = logging.getLogger('jaiabot_driver_imu')
@@ -38,6 +39,9 @@ class JaiabotDriverIMU(SingleThreadApplication):
         self._responding = True
 
         self.interprocess().subscribe(groups.imu, IMUCommand, self._on_command)
+        if self.cfg.simulate:
+            self.interprocess().subscribe(groups.sim_environment, SimEnvironment,
+                                          self._imu.update)
 
     def _on_command(self, command: IMUCommand) -> None:
         log.debug(f'received command: {command}')

@@ -37,6 +37,7 @@ function(add_jaiabot_python_app)
     INCLUDES goby/zeromq/application/single_thread.h
              jaiabot/groups.h
              jaiabot/messages/python_driver_config.pb.h
+             jaiabot/messages/simulator.pb.h
              ${args_INCLUDES}
     PROTO_MODULES jaiabot.messages.python_driver_config_pb2
     LINK_LIBRARIES goby goby_zeromq jaiabot_messages jaiabot_python_driver_config ${args_LINK_LIBRARIES})

@@ -1,7 +1,7 @@
 from imu import *
 from threading import Lock
 
-import datetime
+import goby
 
 imu_log = logging.getLogger('imu.simulator')
 
@@ -16,7 +16,17 @@ class Simulator(IMU):
 
         self.wave_frequency = wave_frequency
         self.wave_height = wave_height
+        self._pitch = 0.0
+        self._roll = 0.0
         self._lock = Lock()
+
+    def update(self, env):
+        """Follow the simulated vehicle's attitude; the wave motion is generated here."""
+        with self._lock:
+            if env.HasField('pitch'):
+                self._pitch = env.pitch
+            if env.HasField('roll'):
+                self._roll = env.roll
 
     def _setup(self):
         pass
@@ -27,14 +37,17 @@ class Simulator(IMU):
 
     def takeReading(self) -> IMUReading:
         with self._lock:
-            t = datetime.datetime.now().timestamp()
+            # the simulated clock, so the wave keeps its period under time warp
+            t = goby.time.now()
             a_z = self.wave_height * 0.5 * sin(t * 2 * pi * self.wave_frequency) * (2 * pi * self.wave_frequency) ** 2
             linear_acceleration = Vector3(0, 0, a_z)
 
             quaternion = Quaternion(1, 0, 0, 0)
             linear_acceleration_world = quaternion.apply(linear_acceleration)
 
-            return IMUReading(orientation=None, 
+            return IMUReading(orientation=Orientation(heading=0,
+                                                      pitch=degrees(self._pitch),
+                                                      roll=degrees(self._roll)),
                             linear_acceleration=linear_acceleration,
                             linear_acceleration_world=linear_acceleration_world,
                             gravity=Vector3(0.03, 0.03, 9.8), # We need to use 0.03, to avoid looking like a common glitch that gets filtered

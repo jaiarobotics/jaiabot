@@ -17,11 +17,6 @@ start_location {
     lon: -71.273018
 }
 
-udp_gateway_config { 
-    bind_port: 0
-    remote_address: "127.0.0.1"
-    remote_port: $udp_gateway_port
-}
 
 
 # m/s

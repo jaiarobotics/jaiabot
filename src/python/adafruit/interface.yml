@@ -14,3 +14,6 @@ interprocess:
     - group: jaiabot::groups::imu
       scheme: PROTOBUF
       type: jaiabot.protobuf.IMUCommand
+    - group: jaiabot::groups::sim_environment
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.SimEnvironment
