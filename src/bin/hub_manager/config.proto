@@ -73,8 +73,8 @@ message HubManager
     optional string log_staging_dir = 31 [default = "/var/log/jaiabot/staging"];
     optional string log_offload_dir = 32
         [default = "/var/log/jaiabot/bot_offload"];
-    optional int32 bot_start_ip = 33 [default = 100];
-    optional string class_b_network = 34 [default = "10.23"];
+    // 33 and 34 built the bot's address from the fleet id; jaiabot::ip::addr does that now
+    reserved 33, 34;
     optional bool use_localhost_for_data_offload = 35 [default = false];
     optional string ctd_offload_script = 36;
 

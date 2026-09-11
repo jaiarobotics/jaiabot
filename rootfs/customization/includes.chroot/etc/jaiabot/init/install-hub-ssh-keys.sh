@@ -42,6 +42,10 @@ Host 10.23.*.*
     StrictHostKeyChecking accept-new
     IdentityFile $SSH_DIR/$PRIVATE_BASENAME
 
+Host fddd:7f2e:3258:*
+    StrictHostKeyChecking accept-new
+    IdentityFile $SSH_DIR/$PRIVATE_BASENAME
+
 Host fd0f:77ac:4fdf:*
     StrictHostKeyChecking accept-new
     IdentityFile $SSH_DIR/$PRIVATE_BASENAME

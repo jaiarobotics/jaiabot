@@ -33,12 +33,6 @@ while getopts "b:h:f:n:" opt; do
     esac
 done
 
-if [ "$net" = "wlan" ]; then
-    ipv="4"
-else
-    ipv="6"
-fi
-
 if [ "$fleet" = "" ]; then
     source /usr/bin/jaia-debconf.sh
     # empty default: the check below produces a better message than the helper
@@ -57,7 +51,7 @@ hubs_array=($(echo "$hubs" | tr ',' ' '))
 echo "bots:"
 echo "  hosts:"
 for b in "${bots_array[@]}"; do
-    ip=$(jaia_ip --query_type addr --node_type bot --ip_net ${net} --fleet_id ${fleet} --node_id ${b} --ip_version ipv${ipv})
+    ip=$(jaia_ip --query_type addr --node_type bot --ip_net ${net} --fleet_id ${fleet} --node_id ${b})
     echo "    bot${b}-fleet${fleet}:"
     echo "      ansible_user: jaia"
     echo "      ansible_host: ${ip}"
@@ -66,7 +60,7 @@ done
 echo "hubs:"
 echo "  hosts:"
 for h in "${hubs_array[@]}"; do
-    ip=$(jaia_ip --query_type addr --node_type hub --ip_net ${net} --fleet_id ${fleet} --node_id ${h} --ip_version ipv${ipv})
+    ip=$(jaia_ip --query_type addr --node_type hub --ip_net ${net} --fleet_id ${fleet} --node_id ${h})
     echo "    hub${h}-fleet${fleet}:"
     echo "      ansible_user: jaia"
     echo "      ansible_host: ${ip}"
