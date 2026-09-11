@@ -339,7 +339,7 @@ def stage_boot(args, nodes):
             log(f'{node.name} already running')
             continue
         log(f'starting {node.name} ({args.vm_type})')
-        vbm('startvm', node.uuid, '--type', args.vm_type)
+        start_vm(args, node)
 
     for node in nodes:
         wait_for(lambda n=node: ssh_ok(args, n), args.boot_timeout,
@@ -365,6 +365,25 @@ def booted_since_first_boot(args, node):
     return subprocess.run(ssh_args(args, node) + [FIRST_BOOT_DONE],
                           stdout=subprocess.DEVNULL,
                           stderr=subprocess.DEVNULL).returncode == 0
+
+
+def start_vm(args, node):
+    """Start a VM, waiting out a medium the importer has not let go of yet.
+
+    import_vms.sh writes each node's preseed through vboximg-mount and releases it
+    with a lazy unmount, so the last VM imported can still have its disk held for a
+    few seconds after the import returns.
+    """
+    deadline = time.time() + args.start_timeout
+    while True:
+        proc = subprocess.run(['VBoxManage', 'startvm', node.uuid, '--type', args.vm_type],
+                              text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if proc.returncode == 0:
+            return
+        if 'Locking of attached media failed' not in proc.stderr or time.time() > deadline:
+            raise TestFailure(f'could not start {node.name}: {proc.stderr.strip()}')
+        log(f'  {node.name}: disk still held by the importer, retrying')
+        time.sleep(5)
 
 
 def stage_network(args, nodes):
@@ -735,6 +754,7 @@ def parse_args(argv):
     p.add_argument('--allow-tool-mismatch', action='store_true',
                    help='import even though the jaia tooling on PATH was built from a '
                         'different commit than the OVA')
+    p.add_argument('--start-timeout', type=int, default=120)
     p.add_argument('--boot-timeout', type=int, default=1800)
     p.add_argument('--network-timeout', type=int, default=300)
     p.add_argument('--api-timeout', type=int, default=900)
