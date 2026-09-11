@@ -286,13 +286,22 @@ def compile_descriptor_set(proto, includes, protoc="protoc"):
 ###############################################################################
 
 
-def parse_fleet_config(schema, path):
+def parse_fleet_config(schema, path, allow_unknown=False, echo=None):
     cfg = schema.FleetConfig()
     with open(path) as f:
-        try:
-            text_format.Parse(f.read(), cfg)
-        except text_format.ParseError as e:
+        text = f.read()
+    try:
+        text_format.Parse(text, cfg)
+    except text_format.ParseError as e:
+        if not allow_unknown:
             raise FleetConfigError("{}: {}".format(path, e))
+        cfg.Clear()
+        try:
+            text_format.Parse(text, cfg, allow_unknown_field=True)
+        except text_format.ParseError as e2:
+            raise FleetConfigError("{}: {}".format(path, e2))
+        if echo:
+            echo("ignored what this release cannot read: {}".format(e))
     if cfg.version > schema.version:
         raise FleetConfigError(
             "{} is fleet config version {}, which is newer than this software supports (version {}). "
@@ -315,6 +324,16 @@ def node_type_name(schema, cfg_node_type):
     return enum.values_by_number[cfg_node_type].name.lower()
 
 
+def apply_settings(merged, settings):
+    """Fields set in settings replace those in merged (repeated ones wholesale)."""
+    for field, value in settings.ListFields():
+        if field.label == FieldDescriptor.LABEL_REPEATED:
+            merged.ClearField(field.name)
+            getattr(merged, field.name).extend(value)
+        else:
+            setattr(merged, field.name, value)
+
+
 def node_settings_for(schema, cfg, node_type, node_id):
     """Common settings with this node's override applied field by field."""
     merged = schema.NodeSettings()
@@ -322,12 +341,7 @@ def node_settings_for(schema, cfg, node_type, node_id):
         merged.CopyFrom(cfg.settings)
     for override in cfg.override:
         if node_type_name(schema, override.type) == node_type and override.id == node_id:
-            for field, value in override.settings.ListFields():
-                if field.label == FieldDescriptor.LABEL_REPEATED:
-                    merged.ClearField(field.name)
-                    getattr(merged, field.name).extend(value)
-                else:
-                    setattr(merged, field.name, value)
+            apply_settings(merged, override.settings)
     return merged
 
 
@@ -501,6 +515,21 @@ def load_migrated(schema, path, echo=print):
     problems = validate(schema, cfg)
     if problems:
         raise FleetConfigError(problem_report(path, problems))
+    return cfg
+
+
+def load_for_edit(schema, path, echo=print):
+    """Parse and migrate as far as it goes. What could not be carried over is
+    reported and left at its default, for the operator to answer again."""
+    cfg = parse_fleet_config(schema, path, allow_unknown=True, echo=echo)
+    if cfg.version < schema.version:
+        notes, problems = migrate(schema, cfg)
+        for note in notes:
+            echo("migrate: " + note)
+        for problem in problems:
+            echo("not carried over, answer it again: " + problem)
+    for problem in validate(schema, cfg):
+        echo("needs an answer: " + problem)
     return cfg
 
 
@@ -902,10 +931,10 @@ def node_id_range(name):
     return max(jaia_bounds(name, "min"), 1), jaia_bounds(name, "max")
 
 
-def ask_id(ui, name, text):
+def ask_id(ui, name, text, current=None):
     lo, hi = jaia_bounds(name, "min"), jaia_bounds(name, "max")
     while True:
-        answer = ui.inputbox("{} ({} to {})".format(text, lo, hi))
+        answer = ui.inputbox("{} ({} to {})".format(text, lo, hi), "" if current is None else str(current))
         if answer.isdigit() and lo <= int(answer) <= hi:
             return int(answer)
         ui.msgbox("'{}' is not a whole number from {} to {}".format(answer, lo, hi))
@@ -1059,13 +1088,40 @@ def node_type_number(schema, name):
     return enum.values_by_name[name.upper()].number
 
 
-def create(schema, ui, banner=None):
+def override_sets(schema, cfg):
+    """Existing overrides, grouped by the settings the nodes share."""
+    sets = []
+    for override in cfg.override:
+        node_type = node_type_name(schema, override.type)
+        entry = next((e for e in sets if e["settings"] == override.settings), None)
+        if entry is None:
+            entry = {"hub": [], "bot": [], "settings": schema.NodeSettings()}
+            entry["settings"].CopyFrom(override.settings)
+            sets.append(entry)
+        entry[node_type].append(override.id)
+    return sets
+
+
+def create(schema, ui, banner=None, existing=None):
+    """Ask every question, starting from an existing configuration when given."""
     cfg = schema.FleetConfig()
+    if existing is not None:
+        cfg.CopyFrom(existing)
     cfg.version = schema.version
-    state = {"cloudhub": False, "hubs": [], "keys": {}}
+    state = {
+        "cloudhub": CLOUDHUB_ID in cfg.hubs,
+        "hubs": [h for h in cfg.hubs if h != CLOUDHUB_ID],
+        # by hub: a key that already exists is never generated again, so editing
+        # a fleet does not ask for every Yubikey
+        "keys": {k.id: (k.private_key, k.public_key) for k in cfg.ssh.hub},
+        "override_sets": override_sets(schema, cfg),
+    }
+    if cfg.ssh.HasField("vpn_tmp"):
+        state["vpn_tmp"] = (cfg.ssh.vpn_tmp.private_key, cfg.ssh.vpn_tmp.public_key)
 
     def choose_fleet():
-        cfg.fleet = ask_id(ui, "fleet_id", "Which fleet to create?")
+        cfg.fleet = ask_id(ui, "fleet_id", "Which fleet is this?",
+                           cfg.fleet if cfg.HasField("fleet") else None)
 
     def choose_cloudhub():
         state["cloudhub"] = ui.yesno(
@@ -1088,30 +1144,33 @@ def create(schema, ui, banner=None):
     def generate_keys():
         cfg.ssh.ClearField("hub")
         for hub in cfg.hubs:
-            if (cfg.fleet, hub) not in state["keys"]:
-                state["keys"][(cfg.fleet, hub)] = hub_key(ui, cfg.fleet, hub)
+            if hub not in state["keys"]:
+                state["keys"][hub] = hub_key(ui, cfg.fleet, hub)
             key = cfg.ssh.hub.add()
             key.id = hub
-            key.private_key, key.public_key = state["keys"][(cfg.fleet, hub)]
+            key.private_key, key.public_key = state["keys"][hub]
         if "vpn_tmp" not in state:
             state["vpn_tmp"] = ssh_keygen("id_vpn_tmp")
         cfg.ssh.vpn_tmp.private_key, cfg.ssh.vpn_tmp.public_key = state["vpn_tmp"]
 
     def permanent_keys():
-        keys, proposed = [], ""
+        pending = list(cfg.ssh.permanent_authorized_keys)
+        keys = []
         while True:
+            proposed = pending.pop(0) if pending else ""
             try:
                 key = ui.inputbox("Enter a permanent SSH public key (for /home/jaia/.ssh/authorized_keys). "
-                                  "Leave blank to continue", proposed)
+                                  "Leave blank to {}".format("drop it" if proposed else "continue"), proposed)
             except GoBack:
                 if not keys:
                     raise
-                proposed = keys.pop()
+                pending.insert(0, proposed)
+                pending.insert(0, keys.pop())
                 continue
-            if not key:
+            if key:
+                keys.append(key)
+            elif not pending:
                 break
-            keys.append(key)
-            proposed = ""
         cfg.ssh.ClearField("permanent_authorized_keys")
         cfg.ssh.permanent_authorized_keys.extend(keys)
 
@@ -1141,32 +1200,48 @@ def create(schema, ui, banner=None):
         ])
 
     def common_settings():
-        defaults = schema.NodeSettings()
-        fill_defaults(schema, defaults)
-        cfg.settings.CopyFrom(ask_settings(ui, schema, {"ALL", "BOT", "HUB"}, defaults))
+        base = schema.NodeSettings()
+        base.CopyFrom(cfg.settings)
+        fill_defaults(schema, base)
+        cfg.settings.CopyFrom(ask_settings(ui, schema, {"ALL", "BOT", "HUB"}, base))
 
     def overrides():
         del cfg.override[:]
+        pending = list(state["override_sets"])
         while True:
-            if not ui.yesno("Do you have any bot/hub specific settings that differ from the common ones?",
-                            default="no"):
-                return
-            chosen = {"hub": [], "bot": [], "settings": None}
+            previous = pending.pop(0) if pending else None
+            if previous is None:
+                if not ui.yesno("Do you have {}bot/hub specific settings that differ from the common ones?".format(
+                        "any other " if cfg.override else "any "), default="no"):
+                    return
+            chosen = {"hub": list(previous["hub"]) if previous else [],
+                      "bot": list(previous["bot"]) if previous else [],
+                      "settings": None}
+            base = schema.NodeSettings()
+            base.CopyFrom(cfg.settings)
+            if previous:
+                apply_settings(base, previous["settings"])
 
             def pick(node_type, ids):
                 chosen[node_type] = [int(x) for x in ui.checklist(
-                    "Which {}s are in this override set?".format(node_type), [str(i) for i in ids],
-                    checked=[str(i) for i in chosen[node_type]])]
+                    "Which {}s are in this override set? (none removes it)".format(node_type),
+                    [str(i) for i in ids], checked=[str(i) for i in chosen[node_type]])]
 
             def answer():
+                if not chosen["hub"] and not chosen["bot"]:
+                    return
                 groups = {"ALL"} | ({"HUB"} if chosen["hub"] else set()) | ({"BOT"} if chosen["bot"] else set())
-                chosen["settings"] = ask_settings(ui, schema, groups, cfg.settings)
+                chosen["settings"] = ask_settings(ui, schema, groups, base)
 
             try:
                 run_steps([Step(None, lambda: pick("hub", cfg.hubs)),
                            Step(None, lambda: pick("bot", cfg.bots)),
                            Step(None, answer)])
             except GoBack:
+                if previous:
+                    pending.insert(0, previous)
+                continue
+            if chosen["settings"] is None:
                 continue
             diff = changed_fields(schema, chosen["settings"], cfg.settings)
             if not diff.ListFields():
@@ -1180,21 +1255,27 @@ def create(schema, ui, banner=None):
                     override.settings.CopyFrom(diff)
 
     def iridium():
+        previous = type(cfg.comms.iridium_sbd)()
+        previous.CopyFrom(cfg.comms.iridium_sbd)
         cfg.ClearField("comms")
         sbd = cfg.comms.iridium_sbd
         sbd_types = sbd.DESCRIPTOR.fields_by_name["sbd_type"].enum_type
+        known_imei = {b.id: b.imei for b in previous.bot}
 
         def imeis():
             sbd.ClearField("bot")
             for bot in cfg.bots:
                 entry = sbd.bot.add()
                 entry.id = bot
-                entry.imei = ui.inputbox("Enter the Iridium IMEI for bot {}".format(bot))
+                entry.imei = ui.inputbox("Enter the Iridium IMEI for bot {}".format(bot),
+                                         known_imei.get(bot, ""))
+                known_imei[bot] = entry.imei
 
         def service():
+            current = sbd_types.values_by_number[previous.sbd_type].name if previous.HasField("sbd_type") else None
             sbd.sbd_type = sbd_types.values_by_name[ui.menu(
                 "Which Iridium shore service does this fleet use (MetOcean is SBD_DIRECTIP)?",
-                [v.name for v in sbd_types.values])].number
+                [v.name for v in sbd_types.values], default=current)].number
 
         def rockblock():
             if sbd_types.values_by_number[sbd.sbd_type].name != "SBD_ROCKBLOCK":
@@ -1202,9 +1283,9 @@ def create(schema, ui, banner=None):
                 return
             run_steps([
                 Step(None, lambda: setattr(sbd.rockblock, "username", ui.inputbox(
-                    "Enter the RockBLOCK portal username", sbd.rockblock.username))),
+                    "Enter the RockBLOCK portal username", sbd.rockblock.username or previous.rockblock.username))),
                 Step(None, lambda: setattr(sbd.rockblock, "password", ui.inputbox(
-                    "Enter the RockBLOCK portal password", sbd.rockblock.password))),
+                    "Enter the RockBLOCK portal password", sbd.rockblock.password or previous.rockblock.password))),
             ])
 
         run_steps([Step(None, imeis), Step(None, service), Step(None, rockblock)])
@@ -1228,25 +1309,34 @@ def create(schema, ui, banner=None):
 
     problems = validate(schema, cfg)
     if problems:
-        raise FleetConfigError("the new fleet configuration is not valid:\n  " + "\n  ".join(problems))
+        raise FleetConfigError("the fleet configuration is not valid:\n  " + "\n  ".join(problems))
     return cfg
 
 
-def cmd_create(schema, args):
+def ask_and_write(schema, args, existing, out):
     ui = ScriptedUI(args.answers) if args.answers else WhiptailUI()
 
     def banner(text):
         print("## " + text)
 
     try:
-        cfg = create(schema, ui, banner)
+        cfg = create(schema, ui, banner, existing)
     except GoBack:
         print("Cancelled; nothing written", file=sys.stderr)
         return 1
-    with open(args.fleetcfg, "w") as f:
+    with open(out, "w") as f:
         f.write(fleet_config_text(cfg))
-    print("Output written to " + args.fleetcfg)
+    print("Output written to " + out)
     return 0
+
+
+def cmd_create(schema, args):
+    return ask_and_write(schema, args, None, args.fleetcfg)
+
+
+def cmd_edit(schema, args):
+    existing = load_for_edit(schema, args.fleetcfg, lambda line: print("## " + line))
+    return ask_and_write(schema, args, existing, args.output or args.fleetcfg)
 
 
 def build_parser():
@@ -1272,6 +1362,12 @@ def build_parser():
     p.add_argument("fleetcfg", help="Path to write the fleet configuration file to")
     p.add_argument("--answers", help=argparse.SUPPRESS)
     p.set_defaults(func=cmd_create)
+
+    p = sub.add_parser("edit", help="Interactively re-answer the questions of an existing fleet configuration")
+    p.add_argument("fleetcfg", help="Path to the fleet configuration file to edit")
+    p.add_argument("-o", "--output", help="Write here instead of in place")
+    p.add_argument("--answers", help=argparse.SUPPRESS)
+    p.set_defaults(func=cmd_edit)
 
     p = sub.add_parser("generate", help="Generate first boot configuration and write to disk")
     p.add_argument("fleetcfg", help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")

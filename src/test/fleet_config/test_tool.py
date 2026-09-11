@@ -332,10 +332,23 @@ def settings_answers(groups, chosen):
 ALL_GROUPS = {"ALL", "BOT", "HUB"}
 
 
+def accept(settings, groups=ALL_GROUPS):
+    """One <default> per question the flow asks for these settings."""
+    asked = [q for q in SCHEMA.questions
+             if not q.identity and q.group in groups and fc.asked(q, SCHEMA, settings)]
+    return ["<default>"] * len(asked)
+
+
 class CreateTest(unittest.TestCase):
     def setUp(self):
         self.env = Env()
         self.addCleanup(self.env.cleanup)
+
+    def run_edit(self, path, answers):
+        answers_file = os.path.join(self.env.dir, "edit-answers.txt")
+        with open(answers_file, "w") as f:
+            f.write("\n".join(answers) + "\n")
+        return self.env.run("edit", path, "--answers", answers_file), path
 
     def run_create(self, answers):
         path = os.path.join(self.env.dir, "answers.txt")
@@ -474,6 +487,83 @@ class CreateTest(unittest.TestCase):
         self.assertRegex(first, "^[0-9a-f]{32}$")
         self.assertNotEqual(first, second)
         self.assertEqual(fc.ask_question(AcceptDefault(), q, "keep"), "keep")
+
+    def test_edit_keeps_everything_when_every_answer_is_accepted(self):
+        """Accepting every prefilled answer rewrites the same configuration."""
+        before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
+        out = os.path.join(self.env.dir, "edited.cfg")
+        shutil.copyfile(fixture("v1_fleet7.cfg"), out)
+        override = fc.node_settings_for(SCHEMA, before, "bot", 2)
+        answers = ["<default>"] * 4                 # fleet, cloudhub, hubs, bots
+        answers += ["<default>", ""]                # keep the permanent key, then no more
+        answers += ["<default>"] * 2                # wlan password, service vpn
+        answers += ["<default>"] * 3                # cloudhub auth
+        answers += accept(before.settings)
+        answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"})  # the existing override set
+        answers += ["no"]
+        result, _ = self.run_edit(out, answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        after = fc.parse_fleet_config(SCHEMA, out)
+        self.assertEqual(fc.validate(SCHEMA, after), [])
+        self.assertEqual((after.fleet, list(after.hubs), list(after.bots)),
+                         (before.fleet, list(before.hubs), list(before.bots)))
+        self.assertEqual(after.settings, before.settings)
+        self.assertEqual(list(after.override), list(before.override))
+        self.assertEqual(list(after.ssh.permanent_authorized_keys), list(before.ssh.permanent_authorized_keys))
+        # the Yubikey is not asked for again: the keys in the file are kept
+        self.assertEqual([(k.id, k.public_key) for k in after.ssh.hub],
+                         [(k.id, k.public_key) for k in before.ssh.hub])
+        self.assertEqual(after.ssh.vpn_tmp.private_key, before.ssh.vpn_tmp.private_key)
+
+    def test_edit_repairs_a_config_that_does_not_migrate(self):
+        out = os.path.join(self.env.dir, "bad.cfg")
+        shutil.copyfile(fixture("v1_bad_values.cfg"), out)
+        loaded = SCHEMA.NodeSettings()
+        fc.fill_defaults(SCHEMA, loaded)
+        answers = ["<default>"] * 4 + ["", "<default>", "<default>"]
+        answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
+        answers += ["no"]
+        result, _ = self.run_edit(out, answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        # the answers it could not carry over are named before the questions start
+        self.assertIn("not carried over", result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, out)
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        self.assertEqual(cfg.version, SCHEMA.version)
+        self.assertEqual(SCHEMA.questions_by_name["bot_type"].to_debconf(cfg.settings.bot_type), "bio")
+
+    def test_edit_adds_a_bot_and_keeps_the_existing_hub_keys(self):
+        out = os.path.join(self.env.dir, "grow.cfg")
+        shutil.copyfile(fixture("v1_fleet7.cfg"), out)
+        before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
+        override = fc.node_settings_for(SCHEMA, before, "bot", 2)
+        answers = ["<default>", "<default>", "<default>", "1, 2, 3"]
+        answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 3
+        answers += accept(before.settings)
+        answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
+        result, _ = self.run_edit(out, answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, out)
+        self.assertEqual(list(cfg.bots), [1, 2, 3])
+        self.assertEqual({k.id for k in cfg.ssh.hub}, {1, 30})
+        self.assertTrue(all(k.public_key.startswith(("no-touch-required sk-ssh", "ssh-ed25519 AAAAhub30"))
+                            for k in cfg.ssh.hub))
+
+    def test_edit_writes_elsewhere_with_output(self):
+        src = os.path.join(self.env.dir, "src.cfg")
+        dst = os.path.join(self.env.dir, "dst.cfg")
+        shutil.copyfile(fixture("v2_no_permanent_keys.cfg"), src)
+        loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
+        answers = ["<default>"] * 4 + [""]
+        answers += ["<default>"] * 2 + ["<default>"] * 3
+        answers += accept(loaded.settings) + ["no"]
+        path = os.path.join(self.env.dir, "answers.txt")
+        with open(path, "w") as f:
+            f.write("\n".join(answers) + "\n")
+        result = self.env.run("edit", src, "-o", dst, "--answers", path)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertEqual(open(src).read(), open(fixture("v2_no_permanent_keys.cfg")).read())
+        self.assertEqual(fc.validate(SCHEMA, fc.parse_fleet_config(SCHEMA, dst)), [])
 
     def test_nothing_written_when_answers_run_out(self):
         result, out = self.run_create(["7", "yes", "1"])

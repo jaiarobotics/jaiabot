@@ -54,6 +54,14 @@ This tool will also create the hub keys (with a Yubikey per hub, or a file key f
 
 The bot/hub settings are stored as typed fields of the `settings { }` block (with per-node `override { }` blocks), and the file records the fleet config version it was written for. `jaia admin fleet validate fleet5.cfg` checks a file, and `jaia admin fleet migrate` rewrites an older file at the current version; see [Fleet configuration versioning](page091_major_upgrade.md#fleet-configuration-versioning).
 
+To change an existing fleet, run
+
+```
+jaia admin fleet edit fleet5.cfg
+```
+
+which asks the same questions with the file's own answers filled in, so you step through with Back and forward and change only what you need. Hub keys already in the file are kept, so no Yubikey is needed unless you add a hub. An older file is migrated first, and anything a failed migration could not carry over is listed before the questions start and begins at its default.
+
 Once you have a fleet, you can begin flashing the bots/hubs. 
 
 ### Flashing the bootloader configuration

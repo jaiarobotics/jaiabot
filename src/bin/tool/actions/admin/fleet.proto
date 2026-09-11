@@ -48,6 +48,11 @@ message FleetTool
             external_command: "jaia-fleet-config.py",
             external_help_param: "--help"
         }];
+        edit = 10 [(goby.ev).cfg = {
+            short_help_msg: "Re-answer the questions of an existing fleet config",
+            external_command: "jaia-fleet-config.py",
+            external_help_param: "--help"
+        }];
         validate = 2 [(goby.ev).cfg = {
             short_help_msg: "Validate a fleet config (and whether it migrates to the current version)",
             external_command: "jaia-fleet-config.py",
