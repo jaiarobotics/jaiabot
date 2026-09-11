@@ -89,7 +89,7 @@ for remote in "$@"; do
     else
         echo "🟢 Reading debconf selections from ${remote}"
         # debconf-get-selections writes 'unknown' as the owner when the package
-        # isn't registered; rewrite as jaia-create-fleet-config.sh does
+        # isn't registered; rewrite it to the package name
         ssh ${botuser}@"${remote}" "${remote_locale} sudo debconf-get-selections | grep 'jaiabot-embedded/'" \
             | sed 's/^unknown/jaiabot-embedded/' > "${selections}"
     fi

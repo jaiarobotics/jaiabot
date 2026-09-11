@@ -44,6 +44,8 @@ RUN apt-get update && \
             libnanopb-dev:amd64 \
             nanopb:amd64 \
             python3-protobuf:amd64 \
+            python3-jinja2:amd64 \
+            python3-yaml:amd64 \
             wget:amd64 \
             curl:amd64 \
             graphviz:amd64 \

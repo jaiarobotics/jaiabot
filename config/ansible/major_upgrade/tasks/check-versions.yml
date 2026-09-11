@@ -44,6 +44,27 @@
     error_message: "No major upgrade to perform: current jaiabot version is greater than new version."
   when: major_upgrade_version_check_result.failed
 
+# Major upgrades go one release at a time (1.y -> 2.y -> 3.y): fleet configs are
+# migrated one version per release, and each release's upgrade tooling only
+# knows the release before it. Older ISOs don't declare previous_major.
+- name: Check that this system runs the release the upgrade expects
+  shell: |
+    current_major=$(echo {{ jaiabot_current_version }} | cut -d '.' -f1)
+    new_major=$(echo {{ major_upgrade_version }} | cut -d '.' -f1)
+    if [ "${current_major}" != "{{ major_upgrade_previous_major }}" ] && [ "${current_major}" != "${new_major}" ]; then
+      echo "Major upgrades must be done one release at a time: this system runs ${current_major}.y, so upgrade to the latest {{ major_upgrade_previous_major }}.y first, then to ${new_major}.y"
+      return 1
+    fi
+  register: previous_major_check_result
+  ignore_errors: yes
+  when: major_upgrade_previous_major is defined
+
+- name: Handle upgrade path check failure
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "{{ previous_major_check_result.stdout }}"
+  when: previous_major_check_result is not skipped and previous_major_check_result.failed
+
 - name: Install rpi-eeprom package
   apt:
     name: rpi-eeprom

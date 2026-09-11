@@ -88,3 +88,13 @@ set(PROJECT_SOVERSION "1")
 # increment when DCCL messages change. See also src/lib/messages/CMakeLists.txt
 # start at 1 as 0 would be used prior to introducing this version (goby::middleware::Group::broadcast_group == 0)
 set(PROJECT_INTERVEHICLE_API_VERSION 25)
+
+# Fleet config contract version: declared in fleet_config.proto itself
+# ("option (jaia.file).fleet_config_version = N;") so that the proto is the whole
+# contract; see "Fleet configuration versioning" in page091_major_upgrade.md
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/messages/fleet_config.proto
+  FLEET_CONFIG_VERSION_LINE REGEX "^option \\(jaia\\.file\\)\\.fleet_config_version = [0-9]+;")
+if(NOT FLEET_CONFIG_VERSION_LINE)
+  message(FATAL_ERROR "fleet_config.proto does not declare option (jaia.file).fleet_config_version")
+endif()
+string(REGEX MATCH "[0-9]+" PROJECT_FLEET_CONFIG_VERSION "${FLEET_CONFIG_VERSION_LINE}")
