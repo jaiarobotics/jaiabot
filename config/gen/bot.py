@@ -63,7 +63,6 @@ jaia_motor_harness_type="NONE"
 if "jaia_motor_harness_type" in os.environ:
     jaia_motor_harness_type=os.environ['jaia_motor_harness_type']
 
-bot_index = -1
 try:
     bot_id=int(os.environ['jaia_bot_id'])
 except:
@@ -240,12 +239,12 @@ elif common.app == 'goby_coroner':
 elif common.app == 'jaiabot_health':
     ignore_powerstate_changes=is_simulation() and not common.is_vfleet
     print(config.template_substitute(templates_dir+'/bot/jaiabot_health.pb.cfg.in',
-                                     bot_id=bot_index,
-                                     fleet_id=fleet_index,
+                                     bot_id=bot_id,
+                                     fleet_id=fleet_id,
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      bind_port=common.udp.motor_cpp_udp_port(),
-                                     remote_port=common.udp.motor_py_udp_port(bot_index),
+                                     remote_port=common.udp.motor_py_udp_port(bot_id),
                                      # do not power off or restart the simulator computer unless we're a VirtualFleet
                                      ignore_powerstate_changes=ignore_powerstate_changes,
                                      is_in_sim=is_simulation(),
@@ -421,4 +420,4 @@ else:
                                      imu_type=imu_type,
                                      pressure_sensor_type=pressure_sensor_type,
                                      log_file_dir=log_file_dir,
-                                     motor_py_udp_port=common.udp.motor_py_udp_port(bot_index)))
+                                     motor_py_udp_port=common.udp.motor_py_udp_port(bot_id)))
