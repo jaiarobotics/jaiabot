@@ -25,6 +25,7 @@ import {
     SelectedTaskPacket,
     NodeTypes,
     TaskParameterPair,
+    CoordinateSystem,
 } from "./jaia-system-types";
 import { GeographicCoordinate } from "../shared/proto/jaiabot/messages/geographic_coordinate";
 import { Command } from "../shared/proto/jaiabot/messages/jaia_dccl";
@@ -47,6 +48,7 @@ export interface JaiaContextType {
 
     visibleDetails: NodeTypes;
     visiblePanel: ButtonNames;
+    visibleWaypointSection: WaypointSections;
     hubAccordionStates: HubAccordionStates;
     botAccordionStates: BotAccordionStates;
     mapLayerAccordionStates: MapLayerAccordionStates;
@@ -96,6 +98,7 @@ export interface JaiaAction {
     taskParameterPairs?: TaskParameterPair[];
     taskPacketID?: string;
     taskPacketVisibility?: TaskPacketVisibility;
+    coordinateSystem?: CoordinateSystem;
 
     hubAccordionName?: HubAccordionNames;
     botAccordionName?: BotAccordionNames;
@@ -104,6 +107,7 @@ export interface JaiaAction {
     buttonType?: ButtonTypes;
     buttonName?: ButtonNames;
     isMissionAccordionExpanded?: boolean;
+    waypointSection?: WaypointSections;
 
     vertexIndex?: number;
 
@@ -122,12 +126,14 @@ export interface JaiaAction {
 export const enum HubAccordionNames {
     QUICKLOOK = "quickLook",
     COMMANDS = "commands",
+    HEALTH = "health",
     LINKS = "links",
 }
 
 export interface HubAccordionStates {
     quickLook: boolean;
     commands: boolean;
+    health: boolean;
     links: boolean;
 }
 
@@ -211,4 +217,10 @@ export enum PanelActions {
 export enum TaskPacketVisibility {
     EXCLUDE = 1,
     INCLUDE = 2,
+}
+
+export enum WaypointSections {
+    NONE = 1,
+    LOCATION = 2,
+    TASK = 3,
 }

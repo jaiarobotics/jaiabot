@@ -8,7 +8,7 @@ import os
 from common import config
 from common import logger
 from common import is_simulation, is_runtime
-import common, common.hub, common.comms, common.sim, common.bot, common.udp
+import common, common.hub, common.comms, common.sim, common.bot, common.udp, common.bounds
 from pathlib import Path
 import subprocess
 
@@ -21,7 +21,7 @@ try:
     hub_id=int(os.environ['jaia_hub_id'])
 except:
     hub_id=0
-cloudhub_id=30
+cloudhub_id=common.bounds.cloudhub_id()
 
 try:
     user_role=os.environ['jaia_user_role'].upper()
@@ -71,10 +71,7 @@ app_common = common.app_block(verbosities, debug_log_file_dir)
 interprocess_common = config.template_substitute(templates_dir+'/_interprocess.pb.cfg.in',
                                                  platform='hub'+ str(hub_id) +'_fleet' + str(fleet_id))
 
-try:
-    xbee_info = 'xbee { \n' + open('/etc/jaiabot/xbee_info.pb.cfg').read() + '\n}\n'
-except FileNotFoundError:
-    xbee_info = 'xbee {}'
+xbee_info = config.read_pb_cfg_block('/etc/jaiabot/xbee_info.pb.cfg', 'xbee')
 
 ack_timeout=10
 iridium_ack_timeout=120
@@ -129,7 +126,7 @@ if common.app == 'goby_intervehicle_portal':
                                                  mac_slots=common.comms.wifi_mac_slots(node_id),
                                                  sub_buffer=sub_buffer_config,
                                                  ack_timeout=ack_timeout,
-                                                 ipv6='')
+                                                 ipv6=common.comms.wifi_link_ipv6(fleet_id))
 
     if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
         sbd_type=common.comms.iridium_sbd_type()

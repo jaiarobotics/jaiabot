@@ -3,7 +3,10 @@ import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
 import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
 import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
-import { BottomDepthSafetyParams } from "../../shared/proto/jaiabot/messages/mission";
+import {
+    BottomDepthSafetyParams,
+    MissionPlan_Segment,
+} from "../../shared/proto/jaiabot/messages/mission";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,
@@ -221,16 +224,24 @@ export class GridPlan {
 
         while (lanesCovered < this.numOfLanes) {
             let updatedLanesPerBot = lanesPerBot;
+            let nextLaneStartIndex = 1;
+
             if (extraLanes > 0) {
                 updatedLanesPerBot += 1;
                 extraLanes -= 1;
             }
 
             const baseMission = new Mission();
+            const segment: MissionPlan_Segment = {
+                start_goal_index: 0,
+                lane_start_goal_indices: [nextLaneStartIndex],
+            };
             baseMission.setMissionID(missionID);
 
             for (let i = lanesCovered; i < lanesCovered + updatedLanesPerBot; i++) {
                 const mission = this.missions.get(i + 1);
+                // Do not count start + end points
+                nextLaneStartIndex += mission.getWaypoints().length - 2;
                 // Remove mission end location if not last lane in group
                 if (i + 1 < lanesCovered + updatedLanesPerBot) {
                     mission.getWaypoints().pop();
@@ -241,10 +252,11 @@ export class GridPlan {
                     mission.getWaypoints().shift();
                 }
 
+                segment.lane_start_goal_indices.push(nextLaneStartIndex);
                 baseMission.addWaypoints(cloneDeep(mission.getWaypoints()));
+                baseMission.setSegments([segment]);
                 this.missions.delete(mission.getMissionID());
             }
-
             this.missions.set(baseMission.getMissionID(), baseMission);
             lanesCovered += updatedLanesPerBot;
             missionID += 1;

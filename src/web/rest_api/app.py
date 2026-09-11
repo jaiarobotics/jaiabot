@@ -26,7 +26,7 @@ from jaiabot.messages.rest_api_pb2 import APIConfig, APIResponse, APIRequest
 
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("-e", "--streaming_endpoint", type=str, nargs="?", help="HubID:Hostname:Port for streaming API (jaiabot_web_portal) - more than one hub can be comma delimited, e.g. '1:[fd0f:77ac:4fdf::1]:40000,2:[fd0f:77ac:4fdf::2]:40000'")
+parser.add_argument("-e", "--streaming_endpoint", type=str, nargs="?", help="HubID:Hostname:Port for streaming API (jaiabot_web_portal) - more than one hub can be comma delimited, e.g. '1:[fd0f:77ac:4fdf::1:1]:40000,2:[fd0f:77ac:4fdf::1:2]:40000'")
 parser.add_argument("-l", dest='logLevel', type=str, default='WARNING', help="Logging level (CRITICAL, ERROR, WARNING, INFO, DEBUG)")
 parser.add_argument("-b", dest='bindPort', type=int, nargs="?", help="bind port for flask server")
 parser.add_argument("-c", dest='cfgFile', type=str, default='/etc/jaiabot/rest_api.pb.cfg',  help="Configuration file (TextFormat version of jaiabot.protobuf.APIConfig)")

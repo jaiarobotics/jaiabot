@@ -13,4 +13,5 @@ gpsd
 wireguard
 ntpsec
 ntpstat
+dnsmasq-base
 ansible

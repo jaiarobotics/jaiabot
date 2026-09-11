@@ -84,21 +84,21 @@ message Speeds
         unit_system: "si"
     };
 
-    optional double transit = 1 [
+    optional uint32 transit = 1 [
         default = 2,
         (dccl.field) = {
-            min: 0.1,
-            max: 3.0,
-            precision: 1,
+            min: 1,
+            max: 3,
+            precision: 0,
             units { base_dimensions: "LT^-1" }
         }
     ];
-    optional double stationkeep_outer = 2 [
-        default = 0.5,
+    optional uint32 stationkeep_outer = 2 [
+        default = 1,
         (dccl.field) = {
-            min: 0.1,
-            max: 3.0,
-            precision: 1,
+            min: 1,
+            max: 3,
+            precision: 0,
             units { base_dimensions: "LT^-1" }
         }
     ];
@@ -130,12 +130,12 @@ message BottomDepthSafetyParams
         }
     ];
 
-    required double constant_heading_speed = 3 [
+    required uint32 constant_heading_speed = 3 [
         default = 2,
         (dccl.field) = {
-            min: 0,
-            max: 3.0,
-            precision: 1,
+            min: 1,
+            max: 3,
+            precision: 0,
             units { base_dimensions: "LT^-1" }
         }
     ];
@@ -144,9 +144,9 @@ message BottomDepthSafetyParams
         default = -1,
         (dccl.field) = {
             min: -1,
-            max: 60,
+            max: 10,
             precision: 1,
-            units { base_dimensions: "LT^-1" }
+            units { base_dimensions: "L" }
         }
     ];
 }
@@ -287,12 +287,12 @@ message MissionTask
             (jaia.field).rest_api.presence = GUARANTEED
         ];
 
-        optional double constant_heading_speed = 3 [
+        optional uint32 constant_heading_speed = 3 [
             default = 2,
             (dccl.field) = {
-                min: 0.1,
-                max: 3.0,
-                precision: 1,
+                min: 1,
+                max: 3,
+                precision: 0,
                 units { base_dimensions: "LT^-1" }
             },
             (jaia.field).rest_api.presence = GUARANTEED
@@ -427,6 +427,41 @@ message MissionPlan
     ];
 
     optional string mission_name = 11 [(dccl.field).omit = true]; // not sent over radio, only saved to the hub
+
+    // A Segment groups a contiguous range of goals (by global index) and
+    // carries the metadata that applies to that range.
+    message Segment
+    {
+        // Start of this segment (inclusive). End is inferred from the
+        // next segment's start_goal_index, or the total goal count for
+        // the last segment.
+        required uint32 start_goal_index = 2
+            [(dccl.field) = { min: 0, max: 79 }];
+
+        // Global goal indices marking the start of each survey lane within
+        // this segment.
+        repeated uint32 lane_start_goal_indices = 6
+            [(dccl.field) = { max_repeat: 7, min: 1, max: 80 }];
+
+        // Per-segment transit speed override (m/s).
+        // Omit to use plan-level speeds.transit.
+        optional uint32 speed = 4 [
+            default = 2,
+            (dccl.field) = {
+                min: 1,
+                max: 3,
+                precision: 0,
+                units { base_dimensions: "LT^-1" }
+            }
+        ];
+
+        optional BottomDepthSafetyParams bottom_depth_safety_params = 5;
+    }
+
+    // Segments in mission execution order. Non-overlapping goal index
+    // ranges are enforced by the UI before sending.
+    repeated Segment segments = 12
+        [(dccl.field).max_repeat = 5, (jaia.field).rest_api.presence = GUARANTEED];
 
 }
 

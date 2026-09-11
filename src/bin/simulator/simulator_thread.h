@@ -26,6 +26,7 @@
 #include <boost/units/systems/si.hpp>
 #include <goby/zeromq/application/multi_thread.h>
 
+#include "jaiabot/messages/arduino.pb.h"
 #include "jaiabot/messages/health.pb.h"
 #include <goby/time/steady_clock.h>
 
@@ -59,16 +60,15 @@ class ArduinoSimThread : public SimulatorThread<jaiabot::config::ArduinoSimThrea
 {
   public:
     ArduinoSimThread(const jaiabot::config::ArduinoSimThread& cfg);
-    ~ArduinoSimThread() {}
-
-  private:
-    void loop() override;
+    virtual ~ArduinoSimThread() {}
+    virtual void handle_arduino_command(const jaiabot::protobuf::ArduinoCommand& arduino_command);
 
   private:
     int voltage_period_{1};
     double voltage_step_decrease_{0.1};
     double voltage_start_{24.0};
     double reset_voltage_level_{15};
+
     goby::time::SteadyClock::time_point voltage_updated_{std::chrono::seconds(0)};
 };
 

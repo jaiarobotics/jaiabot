@@ -8,6 +8,7 @@ In simulation all the nodes may run on a single host, so ports that would otherw
 
 | Port | Use |
 |------|-----|
+| 53 | Fleet DNS (`jaiabot_dns`, hub only) |
 | 2947 | GPSD (runtime default) |
 | 9000 + node_id | MOOSDB (`moos_port`) |
 | 9100 + node_id | MOOSDB for the simulator (`moos_simulator_port`) |
@@ -19,6 +20,7 @@ In simulation all the nodes may run on a single host, so ports that would otherw
 
 | Port | Use |
 |------|-----|
+| 53 | Fleet DNS (`jaiabot_dns`, hub only) |
 | 20000 | `jaiabot_udp_gateway` (runtime): all the Python sensor drivers (IMU, pressure/temperature, EC, PAM, TSYS01) publish to this single port |
 | 20400 + node_id | `jaiabot_udp_gateway` (simulation) |
 | 20005 | Python motor driver |

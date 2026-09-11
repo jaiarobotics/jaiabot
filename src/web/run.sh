@@ -8,18 +8,17 @@ trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 JAIA_DIR="$(pwd)/../../"
 BUILD_DIR="${JAIA_DIR}/build/web_dev/"
 
+source "$(dirname "${BASH_SOURCE[0]}")/../python/resolve_venv.sh"
+require_venv
+
 # Configure package.json
 (cd ${JAIA_DIR}; cmake -P cmake/ConfigurePackageJSON.cmake)
 
-# build_venv.sh creates the venv with --system-site-packages, and the server imports several
-# modules that are only ever installed as system packages, so these must come first
+# the venv is built with --system-site-packages, so the server's imports resolve to these
 ${JAIA_DIR}/scripts/build/install-runtime-deps.sh jaiabot-python jaiabot-web
 
-# Build the venv
-pushd ../python > /dev/null
-    ./build_venv.sh ${BUILD_DIR}/python
-    source ${BUILD_DIR}/python/venv/bin/activate
-popd > /dev/null
+# Source the python venv built by CMake.
+source "${JAIA_VENV_DIR}/bin/activate"
 
 
 if ! which npm; then

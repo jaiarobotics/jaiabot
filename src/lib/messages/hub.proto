@@ -20,7 +20,7 @@ message HubStatus
         (jaia.field).rest_api.presence = GUARANTEED
     ];
     required uint32 fleet_id = 2 [
-        (dccl.field) = { min: 0 max: 255 },
+        (dccl.field) = { min: 0 max: 4000 },
         (jaia.field).rest_api.presence = GUARANTEED
     ];
     required uint64 time = 3 [

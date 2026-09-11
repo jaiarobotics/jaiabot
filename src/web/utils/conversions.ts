@@ -36,6 +36,24 @@ export function timestampToISOString(tMicroseconds: number) {
 }
 
 /**
+ * Converts a Unix timestamp (microseconds) to an locale time string
+ *
+ * @param {number} tMicroseconds Unix timestamp in microseconds since Unix epoch
+ * @returns {string} Time string in UTC time format
+ */
+export function timestampToLocaleTimeString(tMicroseconds: number) {
+    if (!tMicroseconds) {
+        return "";
+    }
+    const options = {
+        timeZone: "UTC",
+        hour12: false,
+    };
+
+    return new Date(tMicroseconds / 1000).toLocaleTimeString("en-US", options);
+}
+
+/**
  * Return a human-readable data size value (i.e. "10.2 GB" or "356.2 MB")
  *
  * @param {number} bytes Number of bytes.

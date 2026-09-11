@@ -3,8 +3,9 @@ set -e
 
 . /usr/share/debconf/confmodule
 
-# Only what this script itself needs: identity (hostname, addressing, VPN) and
-# the arduino type (flashing). systemd.py reads the rest from debconf directly.
+# Only what this script itself needs: identity (hostname, addressing, VPN), the
+# arduino type (flashing) and the mode (fleet DNS). systemd.py reads the rest
+# from debconf directly.
 # Nothing here writes to the database - normalization lives in .config so the
 # on-disk copy stays authoritative.
 db_get jaiabot-embedded/type
@@ -24,10 +25,13 @@ FLEET_INDEX=$RET
 db_get jaiabot-embedded/arduino_type
 JAIA_ARDUINO_TYPE=$RET
 
+db_get jaiabot-embedded/mode
+JAIA_MODE=$RET
+
 # WLAN (fleet) addressing, as defined by the 'jaia_ip' tool
-NODE_WLAN_IP=$(/usr/bin/jaia_ip --query_type addr --node_type ${JAIA_TYPE} --node_id ${BOT_OR_HUB_INDEX} --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
-FLEET_WLAN_NET=$(/usr/bin/jaia_ip --query_type net --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
-HUB0_WLAN_IP=$(/usr/bin/jaia_ip --query_type addr --node_type hub --node_id 0 --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
+NODE_WLAN_IP=$(/usr/bin/jaia_ip --query_type addr --node_type ${JAIA_TYPE} --node_id ${BOT_OR_HUB_INDEX} --ip_net wlan --fleet_id ${FLEET_INDEX})
+FLEET_WLAN_NET=$(/usr/bin/jaia_ip --query_type net --ip_net wlan --fleet_id ${FLEET_INDEX})
+HUB0_WLAN_IP=$(/usr/bin/jaia_ip --query_type addr --node_type hub --node_id 0 --ip_net wlan --fleet_id ${FLEET_INDEX})
 
 OLD_HOST_NAME=`/bin/hostname`
 NEW_HOST_NAME=${JAIA_TYPE}${BOT_OR_HUB_INDEX}-fleet${FLEET_INDEX}
@@ -36,7 +40,9 @@ if [[ "$NEW_HOST_NAME" != "$OLD_HOST_NAME" ]]; then
     echo ">>>>> Setting hostname to $NEW_HOST_NAME (log out and in again for the prompt to change) ... "
      /usr/bin/hostnamectl set-hostname $NEW_HOST_NAME
      sed -i "s/^\(127\.0\.[0-9\.]*\).*${OLD_HOST_NAME}$/\1\t${NEW_HOST_NAME}/" /etc/hosts
-     sed -i "s/^\(10\.23\.[0-9\.]*\).*${OLD_HOST_NAME}$/${NODE_WLAN_IP} ${NEW_HOST_NAME}/" /etc/hosts
+     # whatever address this host had, not just an IPv4 one: the loopback line is already renamed
+     # above and so no longer ends in the old name
+     sed -i "s|^[^[:space:]]*[[:space:]]\+${OLD_HOST_NAME}\$|${NODE_WLAN_IP} ${NEW_HOST_NAME}|" /etc/hosts
     echo "<<<<< Setting hostname complete!"
 fi
 
@@ -45,7 +51,17 @@ echo ">>>>> Updating wifi configuration ... "
 FLEET_WLAN_SSID="JAIA-HUB-WIFI-${FLEET_INDEX}"
 NETENV_FILE=/etc/jaiabot/network.env
 FLEET_ADDRESS="${NODE_WLAN_IP}/${FLEET_WLAN_NET##*/}"
-FLEET_GATEWAY=$(/usr/bin/jaia_ip --query_type addr --node_type gateway --ip_net wlan --fleet_id ${FLEET_INDEX} --ip_version ipv4)
+
+# A fleet addressed with IPv6 has no IPv4 address of its own. It takes one from the access point
+# by DHCP so that the node still reaches the internet, and carries all fleet traffic on the static
+# IPv6 address above; nothing in the fleet is addressed by whatever DHCP hands out.
+if [ "${FLEET_INDEX}" -le "$(/usr/bin/jaia_bounds --ipv4_fleet_id --max)" ]; then
+    FLEET_GATEWAY=$(/usr/bin/jaia_ip --query_type addr --node_type gateway --ip_net wlan --fleet_id ${FLEET_INDEX})
+    FLEET_DHCP=""
+else
+    FLEET_GATEWAY=""
+    FLEET_DHCP="ipv4"
+fi
 
 # ${NETENV_FILE} ships with the rootfs image (and holds the wifi password set at
 # first boot), so this script only updates the fleet-dependent values in it. If
@@ -57,9 +73,21 @@ if [ ! -f "${NETENV_FILE}" ]; then
     exit 1
 fi
 
-sed -i "s/fleet_ssid=.*/fleet_ssid=\"${FLEET_WLAN_SSID}\"/" ${NETENV_FILE}
-sed -i "s|fleet_address=.*|fleet_address=\"${FLEET_ADDRESS}\"|" ${NETENV_FILE}
-sed -i "s/fleet_gateway=.*/fleet_gateway=\"${FLEET_GATEWAY}\"/" ${NETENV_FILE}
+# an image built before a given setting existed has no line to rewrite, so append it instead
+function set_netenv {
+    local key="$1" value="$2"
+
+    if grep -q "^${key}=" ${NETENV_FILE}; then
+        sed -i "s|^${key}=.*|${key}=\"${value}\"|" ${NETENV_FILE}
+    else
+        echo "${key}=\"${value}\"" >> ${NETENV_FILE}
+    fi
+}
+
+set_netenv jaia_network_fleet_ssid "${FLEET_WLAN_SSID}"
+set_netenv jaia_network_fleet_address "${FLEET_ADDRESS}"
+set_netenv jaia_network_fleet_gateway "${FLEET_GATEWAY}"
+set_netenv jaia_network_fleet_dhcp "${FLEET_DHCP}"
 
 /usr/bin/jaia-update-network.sh
 
@@ -68,6 +96,13 @@ echo "<<<<< Updating wifi configuration complete (IP address changes won't take 
 echo ">>>>> Updating hub0 address ... "
 sed -i "s/.*hub0/${HUB0_WLAN_IP} hub0/" /etc/hosts
 echo "<<<<< Updating hub0 address complete!"
+
+echo ">>>>> Updating fleet DNS configuration ... "
+
+/usr/bin/jaia-update-dns.sh -t ${JAIA_TYPE} -i ${BOT_OR_HUB_INDEX} \
+                            -f ${FLEET_INDEX} -m ${JAIA_MODE}
+
+echo "<<<<< Updating fleet DNS configuration complete (the jaiabot_dns service starts serving them on reboot)!"
 
 
 echo ">>>>> Writing /etc/jaiabot/jaia.env ... "

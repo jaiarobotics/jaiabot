@@ -49,6 +49,16 @@ parser.add_argument('--goby_log_level', default='RELEASE', help='Log level for .
 
 args=parser.parse_args()
 
+
+def jaia_bounds(query: str) -> int:
+    """Read an id from the standalone 'jaia_bounds' tool (the implementation of
+    'jaia admin bounds'), which reports the ranges defined by
+    jaiabot/src/lib/utils/ip.h."""
+    result = subprocess.run([args.jaiabot_bin_dir + '/jaia_bounds', query],
+                            capture_output=True, text=True, check=True)
+    return int(result.stdout)
+
+
 # Maintainer scripts must pass --debconf_selections: debconf does not write the
 # running script's answers to the on-disk database until that script exits, so a
 # child reading the database directly would see the previous configuration.
@@ -204,7 +214,6 @@ class PAM_CONNECTION_TYPE(Enum):
     NONE = 'none'
 
 class IMU_TYPE(Enum):
-    BNO055 = 'bno055'
     BNO085 = 'bno085'
     NONE = 'none'
 
@@ -270,10 +279,11 @@ elif dc('pam_connection_type') == 'usb':
 else:
     jaia_pam_connection_type = PAM_CONNECTION_TYPE.NONE
 
-if dc('imu_type') == 'bno055':
-    jaia_imu_type = IMU_TYPE.BNO055
-elif dc('imu_type') == 'bno085':
+if dc('imu_type') == 'bno085':
     jaia_imu_type = IMU_TYPE.BNO085
+elif dc('imu_type') == 'bno055':
+    sys.exit('ERROR: the BNO055 IMU is no longer supported. Fit a BNO085 and set it with '
+             '"jaia admin debconf set imu_type bno085".')
 else:
     jaia_imu_type = IMU_TYPE.NONE
 
@@ -369,7 +379,7 @@ if dc('type') == 'bot':
     jaia_type = Type.BOT
     jaia_bot_id = dc_int('bot_id')
 elif dc('type') == 'hub':
-    cloudhub_id=30
+    cloudhub_id=jaia_bounds('--cloudhub_id')
     jaia_hub_id = dc_int('hub_id')
     if jaia_hub_id == cloudhub_id:
         is_cloudhub=True
@@ -414,6 +424,7 @@ service_environment = {
     'jaia_arduino_type': jaia_arduino_type.value,
     'jaia_pam_connection_type': jaia_pam_connection_type.value,
     'jaia_bot_type': jaia_bot_type.value,
+    'jaia_bot_vin': dc('bot_vin'),
     'jaia_data_offload_ignore_type': jaia_data_offload_ignore_type.value,
     'jaia_motor_harness_type': jaia_motor_harness_type.value,
     'jaia_temperature_sensor_type': jaia_temperature_sensor_type.value,
@@ -423,6 +434,7 @@ service_environment = {
     'jaia_comms_mode': ','.join(comms_links_in_use),
     'jaia_camera_positions': ','.join(camera_positions_in_use),
     'jaia_additional_sensors': ','.join(jaia_additional_sensors),
+    'jaia_tail_serial_number': dc('tail_serial_number'),
     # previously derived by preseed.goby from $PATH
     'jaia_lib_dir': jaia_lib_dir,
     'jaia_share_dir': args.jaiabot_share_dir,
@@ -593,6 +605,14 @@ jaiabot_apps = [
     {'service': 'jcc.conf',
      'template': 'jcc.conf.in',
      'runs_on': [Type.HUB]},
+    {'service': 'jaiabot_dns',
+     'description': 'JaiaBot Fleet DNS Server',
+     'template': 'dns.service.in',
+     'runs_on': [Type.HUB],
+     'runs_when': Mode.RUNTIME,
+     # a CloudHub is reachable from the public internet, where an open resolver
+     # is an amplification attack waiting to happen
+     'runs_on_cloudhub': False},
 
     ## ALL BOT Services ##
 
@@ -745,7 +765,7 @@ jaiabot_apps = [
 
 ]
 
-if jaia_imu_type.value == 'bno085':
+if jaia_imu_type == IMU_TYPE.BNO085:
     jaiabot_apps_imu = [
         {'exe': 'jaiabot_imu.py',
         'description': 'JaiaBot BNO085 IMU Python Driver',
@@ -758,20 +778,6 @@ if jaia_imu_type.value == 'bno085':
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'},
     ] 
-    jaiabot_apps.extend(jaiabot_apps_imu)
-else:
-    jaiabot_apps_imu = [
-        {'exe': 'jaiabot_imu.py',
-        'description': 'JaiaBot BNO055 IMU Python Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO055.value} -p {UDP_GATEWAY_PORT}',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-        'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'},
-    ]
     jaiabot_apps.extend(jaiabot_apps_imu)
 
 if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
@@ -1039,7 +1045,7 @@ for firmware in jaia_firmware:
         else:
             service = firmware['exe'].replace('.', '_').lower()
             if macros['exe'][0:9] != 'jaia_firm':
-                service = 'jaia_firm_' + servi
+                service = 'jaia_firm_' + service
 
         if not 'bin_dir' in macros:
             if macros['exe'][0:4] == 'goby':

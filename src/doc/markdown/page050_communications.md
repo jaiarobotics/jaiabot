@@ -189,3 +189,47 @@ The figure below diagrams the flow for messages between the bots and hubs using 
 ![Iridium Multiplexing layout](../figures/iridium-server.png)
 
 Communication between the Cloudhub and iridium.jaia.tech happens within the Cloudhub (Wireguard) VPN, where iridium.jaia.tech is assigned the address of hub25 (and Cloudhub is hub30 as usual). 
+
+
+## Fleet DNS
+
+Every hub runs a DNS server (`dnsmasq`, as the `jaiabot_dns` service) that resolves the names of all the bots and hubs in its fleet, so that neither operators nor tooling need to look up an address from the `jaia ip` scheme:
+
+```
+jaia@hub1-fleet2:~$ ssh bot3
+jaia@hub1-fleet2:~$ rsync bot3:/var/log/jaiabot/ .
+jaia@hub1-fleet2:~$ ping hub0
+```
+
+Each node answers to four names, for example bot 3 of fleet 2 (`10.23.2.103`):
+
+| Name | Notes |
+|------|-------|
+| `bot3` | the short name, without the fleet |
+| `bot3.jaia` | the same name in the fleet DNS domain |
+| `bot3-fleet2` | the machine's actual hostname |
+| `bot3-fleet2.jaia` | |
+
+In addition, `hub` resolves to whichever hub answered the query, which is the name the Apache virtual host serving the JCC uses (so http://hub/ reaches the JCC of the hub you are using), and `cloudhub` is an alias for `hub30`.
+
+Names are served for the whole of the addressing scheme - every bot and hub id it allows on the fleet WLAN (`jaia admin bounds`), plus the CloudHub on the CloudHub VPN - rather than for the nodes listed in `/etc/jaiabot/inventory.yml`. Adding a bot to a fleet therefore requires no change on the hub, and a name can never resolve to something other than what `jaia ip` reports. The reverse (`10.23.2.103` to `bot3.jaia`) is served as well.
+
+Anything that is not a fleet name is forwarded to the upstream nameservers the hub itself uses, so the hub's DNS can be the only one a client needs. A name in the `.jaia` domain that is not a fleet name is answered `NXDOMAIN` rather than forwarded.
+
+### Configuration
+
+`jaia-update-dns.sh` generates `/etc/jaiabot/dnsmasq.conf` and `/etc/jaiabot/dns-hosts` from the fleet id, and points the hub's own `/etc/resolv.conf` at `127.0.0.1` (keeping the upstream nameservers as fallbacks, so the hub still resolves public names if `dnsmasq` is stopped). It runs from the `jaiabot-embedded` postinst and again before `dnsmasq` starts, so a change of fleet id takes effect on the next reboot.
+
+The DNS domain is `jaia`; set `jaia_network_dns_domain` in `/etc/jaiabot/network.env` to use a different one. `.local` is deliberately not used, as it is reserved for multicast DNS (RFC 6762).
+
+Only a physical hub of a runtime fleet serves DNS. Bots do not run a DNS server, a fleet in simulation mode does not (several simulated hubs typically share one machine, and so one port 53), and neither does the CloudHub, which is reachable from the public internet where an open resolver is a liability.
+
+### Using the fleet DNS from another machine
+
+The bots and any laptop on the fleet WiFi keep resolving through their own nameservers by default: a hub that is powered off should not be able to take name resolution with it. To use a hub's DNS from another machine, add it as that machine's first nameserver, for example on a bot:
+
+```
+jaia@bot3-fleet2:~$ sudo sed -i "1i nameserver $(jaia ip h1)" /etc/resolv.conf
+```
+
+The fleet WiFi firewall rules allow this; the service WiFi rules do not (see `jaia-update-ufw-rules.sh`), so the DNS server is not reachable when a hub is connected to a network other than its fleet's.

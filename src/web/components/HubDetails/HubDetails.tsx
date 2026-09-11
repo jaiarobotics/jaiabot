@@ -4,6 +4,7 @@ import { JaiaActions } from "../../context/jaia-actions";
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaAction } from "../../types/context-types";
 import SystemButton from "../../components/__buttons__/SystemButton/SystemButton";
+import HealthRow from "../BotDetails/HealthRow/HealthRow";
 
 // Utilities
 import {
@@ -183,6 +184,10 @@ export default function HubDetails() {
                             <table>
                                 <tbody>
                                     <tr>
+                                        <td>System Time (UTC)</td>
+                                        <td>{hub.getSystemTime()}</td>
+                                    </tr>
+                                    <tr>
                                         <td>Latitude</td>
                                         <td>
                                             {formatLatitude(hub.getHubSensors().getGPS()?.getLat())}
@@ -248,6 +253,26 @@ export default function HubDetails() {
                             <SystemButton node={hub} type={SystemButtonTypes.SHUTDOWN} />
                             <SystemButton node={hub} type={SystemButtonTypes.REBOOT} />
                             <SystemButton node={hub} type={SystemButtonTypes.RESTART_SERVICES} />
+                        </AccordionDetails>
+                    </Accordion>
+                </ThemeProvider>
+
+                <ThemeProvider theme={accordionTheme}>
+                    <Accordion
+                        expanded={jaiaContext.hubAccordionStates.health}
+                        onChange={() => {
+                            handleAccordionClick(HubAccordionNames.HEALTH);
+                        }}
+                        className="accordion-container"
+                    >
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}
+                            className="accordion-summary"
+                        >
+                            <Typography>Health</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <HealthRow />
                         </AccordionDetails>
                     </Accordion>
                 </ThemeProvider>

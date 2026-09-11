@@ -8,6 +8,7 @@ message JaiabotConfig
 {
     optional bool minimize_bot_panel = 1 [default = false];
     optional bool minimize_hub_panel = 2 [default = false];
+    optional bool minimize_chart_panel = 4 [default = false];
     repeated int32 load_vehicle = 3;
 
     message LowLevelControlBounds

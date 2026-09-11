@@ -13,20 +13,20 @@ test("Package a mission with bottom depth safety params for the hub", () => {
 
     const missionPlan = mission.packageMissionForHub("test-mission");
 
-    expect(missionPlan.bottom_depth_safety_params).toEqual({
+    expect(missionPlan.segments[0].bottom_depth_safety_params).toEqual({
         constant_heading: 234,
         constant_heading_time: 11,
         constant_heading_speed: 2.5,
         safety_depth: 5,
     });
-    expect(missionPlan).not.toHaveProperty("bottomDepthSafetyParams");
+    expect(missionPlan.segments[0]).not.toHaveProperty("bottomDepthSafetyParams");
 });
 
 test("Omit bottom depth safety params when unset", () => {
     const mission = new Mission();
     mission.addWaypoint(locationA);
 
-    expect(mission.packageMissionForHub("test-mission")).not.toHaveProperty(
+    expect(mission.packageMissionForHub("test-mission").segments[0]).not.toHaveProperty(
         "bottom_depth_safety_params",
     );
 });

@@ -62,6 +62,12 @@ job-template-amd64: &job-template-amd64
   working_directory: /root/jaiabot
   steps:
     - checkout
+    - run: &run-submodule-sync
+        name: Sync git submodules
+        command: git submodule sync
+    - run: &run-submodule-update
+        name: Update git submodules
+        command: git submodule update --init --recursive
     - restore_cache: &restore-ccache
         keys:
           - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
@@ -85,7 +91,7 @@ job-template-amd64: &job-template-amd64
         command: |
           apt-get update &&
           apt-get dist-upgrade -y &&
-          apt-get install -y ccache
+          apt-get install -y ccache python3-venv
           [[ "${TARGET_ARCH}" == "amd64" && ( "${JAIABOT_APT_REPO}" != "test" || "${BUILD_DOC_FOR_TEST_REPO}" == "true" ) ]] && apt-get install -y goby3-clang-tool || true
     - run: &run-zero-ccache-stats
         name: Reset ccache statistics
@@ -242,6 +248,7 @@ filter-template-debian-builds: &filter-template-debian-builds
       only:
         - "3.y"
         - "claude/circleci-debian-build-optimization-uwuryg"
+        - "claude/fleet-ipv4-ipv6-split-amk5n9"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -268,6 +275,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
+        - "claude/fleet-ipv4-ipv6-split-amk5n9"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -277,6 +285,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "3.y"
+        - "claude/fleet-ipv4-ipv6-split-amk5n9"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds

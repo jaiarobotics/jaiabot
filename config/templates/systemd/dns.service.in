@@ -1,0 +1,12 @@
+[Unit]
+Description=$description
+After=network.target
+
+[Service]
+ExecStartPre=$jaiabot_bin_dir/jaia-update-dns.sh
+ExecStart=/usr/sbin/dnsmasq --keep-in-foreground --conf-file=/etc/jaiabot/dnsmasq.conf
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
