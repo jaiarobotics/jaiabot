@@ -94,9 +94,11 @@ def ova_commit(ova):
 def tool_commit():
     """The commit and branch `jaia` reports itself as built from."""
     out = run(['jaia', 'version'], check=False)
-    sha = re.search(r'^\s*git hash:\s*([0-9a-f]{7,40})\s*$', out, re.M)
+    sha = re.search(r'^\s*git hash:\s*([0-9a-f]{7,40})(-dirty)?\s*$', out, re.M)
     branch = re.search(r'^\s*git branch:\s*(\S+)\s*$', out, re.M)
-    return (sha.group(1) if sha else None, branch.group(1) if branch else None)
+    dirty = bool(sha and sha.group(2))
+    return (sha.group(1) if sha else None,
+            branch.group(1) if branch and branch.group(1) else None, dirty)
 
 
 def check_tools_match_ova(args, ova):
@@ -107,9 +109,10 @@ def check_tools_match_ova(args, ova):
     accept, which surfaces much later as a node that fails to configure itself.
     """
     expected = ova_commit(ova)
-    sha, branch = tool_commit()
+    sha, branch, dirty = tool_commit()
     log(f'jaia: {shutil.which("jaia")}, built from {sha or "an unknown commit"}'
-        + (f' on {branch}' if branch else ''))
+        + (f' on {branch}' if branch else '')
+        + (' (tree was dirty)' if dirty else ''))
     if not expected:
         log(f'{os.path.basename(ova)} carries no +g<commit>, so the tooling cannot be '
             'checked against it')
