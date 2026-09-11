@@ -175,6 +175,21 @@ Version 1 to 2 turns the string debconf answers (`debconf { key: "jaiabot-embedd
 
 In text format the field *name* is the wire format, so removing or renaming a field would stop every existing fleet config from parsing. Fields are therefore never deleted, only deprecated, and the check refuses a snapshot history that removes anything - including a removal committed together with a version bump.
 
+#### Deleting a retired field (planned for release 4)
+
+How old a file has to be readable is not bounded by the upgrade policy. A hub's stored copy is rewritten at every major upgrade, but the copy kept with the fleet's keys is not, and minor upgrades never rewrite either, so a fleet created years ago can still be version 1 on someone's disk when a much newer release is asked to read it.
+
+The plan for bounding the schema is to declare an oldest readable version beside the current one, set to the fleet config version that the **first** release of the previous major shipped (the first, because a system on the last minor of 3.y may still hold the file 3.0 wrote). A field or enum value deprecated strictly before that floor can then be deleted, so the schema carries at most two majors of history. For release 3 the floor is 1 and nothing is deletable; release 4 would set it to 2 and retire the version 1 scaffolding in one go - `debconf`, `debconf_override`, the replaced enum values, `migrate_1_to_2` and the v1 snapshot.
+
+Four things make it enforceable, each an extension of something that already exists:
+
+- the floor is declared as a file option next to `fleet_config_version`, so the two move together;
+- the contract check already walks the snapshot history pairwise, so it can tell which version first deprecated an item and allow the deletion only when that version is below the floor;
+- the tool reads the version before parsing (it is written first, and absent means 1), so a file below the floor is refused with a message rather than a parse error;
+- the migration chain, and the test that asserts one step per version, start at the floor instead of at 1.
+
+Below the floor the promise changes from "migrated automatically" to "answer the questions again": `jaia admin fleet edit` reads what it can of the old file and asks the rest, so no one has to find an old release to move forward. Raising the floor therefore has an operational cost - somebody has to touch the oldest fleet configs before their next major upgrade - which is the reason to raise it only when a major release is already being cut.
+
 #### Compatible change
 
 ```
