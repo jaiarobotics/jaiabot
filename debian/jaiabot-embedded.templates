@@ -5,7 +5,7 @@ Description: Choose a common option to edit
 
 Template: jaiabot-embedded/debconf_state_bot
 Type: select
-Choices: BACK, bot_id, arduino_type, pam_connection_type, imu_type, bot_type, data_offload_ignore_type, imu_install_type, temperature_sensor_type, pressure_sensor_type, motor_harness_type, camera_positions, additional_sensors, EXIT
+Choices: BACK, bot_id, bot_vin, arduino_type, tail_serial_number, pam_connection_type, imu_type, bot_type, data_offload_ignore_type, imu_install_type, temperature_sensor_type, pressure_sensor_type, motor_harness_type, camera_positions, additional_sensors, EXIT
 Description: Choose a bot option to edit
 
 Template: jaiabot-embedded/debconf_state_hub
@@ -46,6 +46,13 @@ Type: error
 Description: Invalid bot identification number
   The bot_id must be a whole number in the range reported by
   "jaia admin bounds --bot_id". Please enter one in that range.
+
+Template: jaiabot-embedded/bot_vin
+Type: string
+Default:
+Description: Bot Vehicle Identification Number (VIN)
+  Unique identifier for this physical bot.
+  To change in the future, run "sudo dpkg-reconfigure jaiabot-embedded"
 
 Template: jaiabot-embedded/hub_id
 Type: string
@@ -175,3 +182,8 @@ Type: multiselect
 Choices: turner_c_flour, aml, ppk, none
 Default: none
 Description: Which additional sensors?
+
+Template: jaiabot-embedded/tail_serial_number
+Type: string
+Default: 
+Description: What is the serial number of this bot's tail unit?

@@ -424,6 +424,7 @@ service_environment = {
     'jaia_arduino_type': jaia_arduino_type.value,
     'jaia_pam_connection_type': jaia_pam_connection_type.value,
     'jaia_bot_type': jaia_bot_type.value,
+    'jaia_bot_vin': dc('bot_vin'),
     'jaia_data_offload_ignore_type': jaia_data_offload_ignore_type.value,
     'jaia_motor_harness_type': jaia_motor_harness_type.value,
     'jaia_temperature_sensor_type': jaia_temperature_sensor_type.value,
@@ -433,6 +434,7 @@ service_environment = {
     'jaia_comms_mode': ','.join(comms_links_in_use),
     'jaia_camera_positions': ','.join(camera_positions_in_use),
     'jaia_additional_sensors': ','.join(jaia_additional_sensors),
+    'jaia_tail_serial_number': dc('tail_serial_number'),
     # previously derived by preseed.goby from $PATH
     'jaia_lib_dir': jaia_lib_dir,
     'jaia_share_dir': args.jaiabot_share_dir,

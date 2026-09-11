@@ -7,6 +7,9 @@ trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
 JAIA_DIR="$(pwd)/../../../"
 
+source "$(dirname "${BASH_SOURCE[0]}")/../../python/resolve_venv.sh"
+require_venv
+
 # Install the dependency packages
 ../install_dependencies.sh ../
 
@@ -18,14 +21,9 @@ popd > /dev/null
 WEB_APPS_DIR="$(pwd)/../../../build/web_dev/"
 JDV_DIR="${WEB_APPS_DIR}/jdv"
 
-# Build messages and install pyjaia
-pushd ../../python/ > /dev/null
-    ./build_venv.sh ${WEB_APPS_DIR}/python
-popd > /dev/null
-
 # Start server
 pushd server > /dev/null
-    ${WEB_APPS_DIR}/python/venv/bin/python3 jaiabot_data_vision.py -a ${JDV_DIR} -p 40011 -l INFO $@ &
+    "${JAIA_VENV_DIR}/bin/python3" jaiabot_data_vision.py -a ${JDV_DIR} -p 40011 -l INFO $@ &
 popd > /dev/null
 
 # Build client

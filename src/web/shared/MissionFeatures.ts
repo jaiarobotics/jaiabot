@@ -9,6 +9,9 @@ import { transformTranslate, point } from "@turf/turf";
 import { PortalBotStatus } from "./PortalStatus";
 import { getMapCoordinate } from "./Utilities";
 
+const CONSTANT_HEADING_DEFAULT_SPEED = 2; // meters per second
+const CONSTANT_HEADING_DEFAULT_TIME = 0; // seconds
+
 export function createMissionFeatures(
     map: Map,
     bot: PortalBotStatus,
@@ -83,13 +86,16 @@ export function createMissionFeatures(
         let task = goal.task;
         var startCoordinate: Coordinate;
 
-        if (task?.type == TaskType.CONSTANT_HEADING) {
+        const constantHeadingParameters =
+            task?.type == TaskType.CONSTANT_HEADING ? task.constant_heading : null;
+        let distance =
+            (constantHeadingParameters?.constant_heading_speed ?? CONSTANT_HEADING_DEFAULT_SPEED) *
+            (constantHeadingParameters?.constant_heading_time ?? CONSTANT_HEADING_DEFAULT_TIME);
+        let heading = constantHeadingParameters?.constant_heading;
+
+        if (isFinite(distance) && isFinite(heading)) {
             // Calculate targetPoint
             let constantHeadingStartPoint = point([location.lon, location.lat]);
-            let distance =
-                task.constant_heading.constant_heading_speed *
-                task.constant_heading.constant_heading_time;
-            let heading = task.constant_heading.constant_heading;
             let constantHeadingEndPoint = transformTranslate(
                 constantHeadingStartPoint,
                 distance,

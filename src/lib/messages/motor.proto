@@ -10,6 +10,13 @@ enum MotorHarnessType
     RPM_AND_THERMISTOR = 2;
 }
 
+message MotorUsageBin {
+    required sint32 motor_micros = 1;
+    optional double average_rpm = 2;
+    optional double usage_time_seconds = 3;
+}
+
+
 message Motor
 {
     message Thermistor {
@@ -23,4 +30,12 @@ message Motor
     optional double rpm = 1;
     optional Thermistor thermistor = 2;
     optional MotorHarnessType motor_harness_type = 3 [default = NONE];
+}
+
+message MotorUsageReport
+{
+    optional string bot_vin = 1;
+    optional string tail_serial_number = 2;
+    optional double total_running_time_seconds = 3; 
+    repeated MotorUsageBin motor_usage_bins = 4;
 }
