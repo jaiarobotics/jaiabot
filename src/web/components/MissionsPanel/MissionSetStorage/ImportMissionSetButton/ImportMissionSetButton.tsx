@@ -57,6 +57,7 @@ export default function ImportMissionSetButton(props: Props) {
                     type: JaiaActions.LOAD_MISSION_SET,
                     missionSetSnapshot: loadResults.snapshot,
                 });
+
                 if (loadResults.resultType === LoadResultType.OLD_FORMAT) {
                     setDialogWarningType(DialogWarningType.OLD_FORMAT);
                     setIsDialogVisible(true);

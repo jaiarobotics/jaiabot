@@ -17,6 +17,10 @@ export DEB_BUILD_MAINT_OPTIONS = optimize=-lto
 # our CMakeLists.txt doesn't all consume; suppress the resulting "unused variable" noise
 CMAKE_EXTRA_FLAGS = --no-warn-unused-cli
 
+# jaiabot-python.postinst builds the venv on the target, so one built here would only
+# be discarded by the install rules
+CMAKE_EXTRA_FLAGS += -Dbuild_python_venv=OFF
+
 # route the compile through ccache (if installed) to speed up rebuilds on unchanged source
 CCACHE := $(shell command -v ccache)
 ifneq ($(CCACHE),)

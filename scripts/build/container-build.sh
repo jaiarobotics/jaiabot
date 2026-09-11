@@ -34,6 +34,10 @@ if [[ "${jaiabot_machine_type}" != "virtualbox" ]]; then
     cmake_args=(-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64
                 -DCMAKE_C_FLAGS="-target aarch64-linux-gnu"
                 -DCMAKE_CXX_FLAGS="-target aarch64-linux-gnu")
+else
+    # the venv is excluded from the rsync to the target, which builds its own in
+    # target-deploy.sh, and the container has no python3-venv
+    cmake_args=(-Dbuild_python_venv=OFF)
 fi
 
 # cmake refuses to reconfigure a directory that another generator wrote

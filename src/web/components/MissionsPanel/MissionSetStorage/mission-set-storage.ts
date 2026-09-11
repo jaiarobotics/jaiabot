@@ -8,7 +8,8 @@ import Waypoint from "../../../data/waypoints/waypoint";
 import Task from "../../../data/tasks/task";
 import { TaskType } from "../../../types/protobuf-types";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
-import { UNASSIGNED_ID } from "../../../utils/constants";
+import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
+import { jaiaAPI } from "../../../utils/jaia-api";
 
 export enum LoadResultType {
     CURRENT_FORMAT = "CURRENT_FORMAT",
@@ -21,21 +22,29 @@ export interface LoadSnapshotResult {
 }
 
 /**
- * Saves the current mission set to local storage
+ * Saves a pre-built mission set snapshot directly to the hub under the given name
+ *
+ * @param {string} name Name to use for storing the mission set
+ * @param {MissionSetSnapshot} snapshot Snapshot to save
+ * @returns {void}
+ */
+export async function saveSnapshotToHub(name: string, snapshot: MissionSetSnapshot): Promise<void> {
+    await jaiaAPI.saveMissionSet(name, { ...snapshot, name, version: MISSION_SET_VERSION });
+}
+
+/**
+ * Saves the current mission set to the hub under the given name
  *
  * @param {string} name Name to use for storing the mission set
  * @returns {void}
  */
-export function saveToLocalStorage(name: string) {
+export async function saveToHub(name: string): Promise<void> {
     missionSet.setName(name);
-    // Read the saved mission sets from  local storage (or start fresh)
-    const missionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    missionSets[name] = missionSet.captureSnapshot();
-    localStorage.setItem("missionSets", JSON.stringify(missionSets));
+    await saveSnapshotToHub(name, missionSet.captureSnapshot());
 }
 
 /**
- * Loads a single mission set from localStorage by name and returns it as MissionSetSnapshot.
+ * Loads a single mission set from the hub by name and returns it as MissionSetSnapshot.
  *
  * @param {string} saveName The key of the mission set to retrieve
  * @returns {MissionSetSnapshot} Snapshot of mission set
@@ -43,13 +52,20 @@ export function saveToLocalStorage(name: string) {
  * @notes
  * Called by UI code, snapshot is sent to the reducer/action handler
  */
-export function loadSnapshotFromLocalStorage(saveName: string) {
-    const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    const targetSet = allMissionSets[saveName] || {};
+export async function loadSnapshotFromHub(saveName: string): Promise<LoadSnapshotResult> {
+    const targetSet = await jaiaAPI.loadMissionSet(saveName);
+    if (!targetSet) {
+        return {
+            snapshot: null,
+            resultType: LoadResultType.INVALID_FORMAT,
+        };
+    }
+    const version: string = targetSet.version ?? "2.0";
+    const migrated = migrateSnapshot(targetSet, version);
     const missions: [number, Mission][] = [];
-    if (Array.isArray(targetSet.missions)) {
+    if (Array.isArray(migrated.missions)) {
         missions.push(
-            ...targetSet.missions.map(([missionID, serializedMission]: [any, any]) => [
+            ...migrated.missions.map(([missionID, serializedMission]: [any, any]) => [
                 Number(missionID),
                 Mission.fromJSON(serializedMission),
             ]),
@@ -58,41 +74,41 @@ export function loadSnapshotFromLocalStorage(saveName: string) {
 
     const snapshot: MissionSetSnapshot = {
         missions: missions,
-        nextMissionID: targetSet.nextMissionID ?? 0,
-        missionIDInEditMode: targetSet.missionIDInEditMode ?? UNASSIGNED_ID,
-        missionSpeeds: targetSet.missionSpeeds ?? {},
-        name: targetSet.name ?? "",
+        nextMissionID: migrated.nextMissionID ?? 0,
+        missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
+        name: migrated.name ?? "",
+        speeds: migrated.speeds ?? {
+            transit: DEFAULT_SPEED,
+            stationkeep_outer: DEFAULT_SPEED,
+        },
     };
-    return snapshot;
+
+    return {
+        snapshot,
+        resultType:
+            version === MISSION_SET_VERSION
+                ? LoadResultType.CURRENT_FORMAT
+                : LoadResultType.OLD_FORMAT,
+    };
 }
 
 /**
- * Deletes a saved mission set from localStorage
+ * Deletes a saved mission set from the hub
  *
  * @param {string} name Identifies the mission set to delete
  * @returns {boolean} False if the mission set was not found
  */
-export function deleteFromLocalStorage(name: string) {
-    const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-
-    if (!(name in allMissionSets)) {
-        return false;
-    }
-
-    delete allMissionSets[name];
-
-    localStorage.setItem("missionSets", JSON.stringify(allMissionSets));
-    return true;
+export async function deleteFromHub(name: string): Promise<void> {
+    await jaiaAPI.deleteMissionSet(name);
 }
 
 /**
- * Provides an array of all saved mission set names in localStorage, sorted alphabetically.
+ * Provides an array of all saved mission set names in the hub, sorted alphabetically.
  *
  * @returns {string[]} Names of all saved missions sets
  */
-export function listSavedMissionSets() {
-    const allMissionSets = JSON.parse(localStorage.getItem("missionSets") || "{}");
-    return Object.keys(allMissionSets).sort((a, b) => a.localeCompare(b));
+export async function listSavedMissionSetsFromHub(): Promise<string[]> {
+    return jaiaAPI.listMissionSets();
 }
 
 /**
@@ -130,7 +146,7 @@ export function exportMissionSetToFile(name: string) {
  * Prompts user to open a file with a serialized mission set
  * and returns a MissionSetSnapshot if succesful
  *
- * @retruns Promis of {MissionSetSnapshot | null} Snapshot of mission set if the selected
+ * @returns Promise of {MissionSetSnapshot | null} Snapshot of mission set if the selected
  * file can be parsed correctly otherwise returns null
  *
  * @notes
@@ -165,8 +181,14 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
 
                 // Check version of parsed file
                 if (isCurrentMissionFile(parsed)) {
-                    loadSnapshotResult.snapshot = extractMissionSetSnapshot(parsed.snapshot);
-                    loadSnapshotResult.resultType = LoadResultType.CURRENT_FORMAT;
+                    loadSnapshotResult.snapshot = extractMissionSetSnapshot(
+                        parsed.snapshot,
+                        parsed.version,
+                    );
+                    loadSnapshotResult.resultType =
+                        parsed.version === MISSION_SET_VERSION
+                            ? LoadResultType.CURRENT_FORMAT
+                            : LoadResultType.OLD_FORMAT;
                     resolve(loadSnapshotResult);
                     return;
                 }
@@ -197,11 +219,11 @@ export async function loadSnapshotFromFile(): Promise<LoadSnapshotResult> {
  * @returns {Boolean} True if current format
  */
 function isCurrentMissionFile(value: any) {
-    return value && value.version === MISSION_SET_VERSION && value.snapshot !== undefined;
+    return value && value.version !== undefined && value.snapshot !== undefined;
 }
 
 /**
- * Checks if parsed datsa matches the legacy format
+ * Checks if parsed data matches the legacy format
  *
  * @param {any} value Raw parsed data
  * @returns {Boolean} True if legacy format
@@ -210,11 +232,54 @@ function isLegacyMissionFile(value: any): boolean {
     return value && value.runs !== undefined;
 }
 
+// Migrates a raw snapshot from 2.0 to 2.1.
+// Per-mission changes are handled here as internal details.
+function migrateSnapshot_2_0(rawSnapshot: any): any {
+    if (!Array.isArray(rawSnapshot.missions)) return rawSnapshot;
+    return {
+        ...rawSnapshot,
+        missions: rawSnapshot.missions.map(([id, mission]: [any, any]) => {
+            // bottomDepthSafetyParams moves from mission-level into segments
+            if (mission.bottomDepthSafetyParams) {
+                const { bottomDepthSafetyParams, ...rest } = mission;
+                mission = {
+                    ...rest,
+                    segments: [
+                        {
+                            start_goal_index: 0,
+                            bottom_depth_safety_params: bottomDepthSafetyParams,
+                        },
+                    ],
+                };
+            }
+            // Stamp snapshot-level missionSpeeds onto missions that don't have their own
+            if (rawSnapshot.missionSpeeds && !mission.speeds) {
+                mission = { ...mission, speeds: rawSnapshot.missionSpeeds };
+            }
+            return [id, mission];
+        }),
+    };
+}
+
+// Each entry migrates from that version to the next, applied in order
+const SNAPSHOT_MIGRATIONS: [string, (s: any) => any][] = [["2.0", migrateSnapshot_2_0]];
+
+// Applies all needed snapshot migrations from fromVersion up to current
+function migrateSnapshot(rawSnapshot: any, fromVersion: string): any {
+    let snapshot = rawSnapshot;
+    let applying = false;
+    for (const [version, migrate] of SNAPSHOT_MIGRATIONS) {
+        if (version === fromVersion) applying = true;
+        if (applying) snapshot = migrate(snapshot);
+    }
+    return snapshot;
+}
+
 /**
  * Extracts a mission set from a raw snapshot data
  *
  * @param {any} rawMissionSet Raw mission set data parsed from file
- * @param {number} version Optional version number for future use
+ * @param {string} version Version string of the data being loaded
  * @returns {MissionSetSnapshot} Snapshot of mission set
  *
  * @notes
@@ -222,22 +287,27 @@ function isLegacyMissionFile(value: any): boolean {
  * contains a mission set version. Changes to the MissionSet interface
  * may affect this function.
  */
-function extractMissionSetSnapshot(rawMissionSet: any, version?: number) {
+function extractMissionSetSnapshot(rawMissionSet: any, version: string = MISSION_SET_VERSION) {
+    const migrated = migrateSnapshot(rawMissionSet, version);
     const missionsArray: [number, Mission][] = [];
-    if (Array.isArray(rawMissionSet.missions)) {
+    if (Array.isArray(migrated.missions)) {
         missionsArray.push(
-            ...rawMissionSet.missions.map(([missionID, serializedMission]: [number, string]) => [
+            ...migrated.missions.map(([, serializedMission]: [number, any]) => [
                 0, // Ignore original key
                 Mission.fromJSON(serializedMission),
             ]),
         );
     }
+
     const snapshot: MissionSetSnapshot = {
         missions: missionsArray,
-        nextMissionID: rawMissionSet.nextMissionID ?? 1,
-        missionIDInEditMode: rawMissionSet.missionIDInEditMode ?? UNASSIGNED_ID,
-        missionSpeeds: rawMissionSet.missionSpeeds ?? { transit: 2, stationkeep_outer: 2 },
-        name: rawMissionSet.name ?? "",
+        nextMissionID: migrated.nextMissionID ?? 1,
+        missionIDInEditMode: migrated.missionIDInEditMode ?? UNASSIGNED_ID,
+        name: migrated.name ?? "",
+        speeds: migrated.speeds ?? {
+            transit: DEFAULT_SPEED,
+            stationkeep_outer: DEFAULT_SPEED,
+        },
     };
 
     return snapshot;
@@ -257,8 +327,8 @@ function extractLegacyMissionData(rawMission: LegacyMissionInterface) {
         missions: [],
         nextMissionID: 1,
         missionIDInEditMode: UNASSIGNED_ID,
-        missionSpeeds: { transit: 2, stationkeep_outer: 2 },
         name: "",
+        speeds: { transit: DEFAULT_SPEED, stationkeep_outer: DEFAULT_SPEED },
     };
 
     // Build missions from runs

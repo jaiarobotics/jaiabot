@@ -566,6 +566,10 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
                 jaiabot::comms::buffer_for_link(cfg().status_buffer(), link);
 
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
+
+            if (link == jaiabot::protobuf::LINK_XBEE)
+                subscriber_cfg.mutable_intervehicle()->set_broadcast(cfg().broadcast_bot_status());
+
             goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
                 subscriber_cfg,
                 intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>,
@@ -1258,6 +1262,13 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                 if (command.plan().has_mission_name())
                 {
                     mutable_plan->set_mission_name(command.plan().mission_name());
+                }
+                if (command.plan().segments_size() > 0)
+                {
+                    for (const auto& segment : command.plan().segments())
+                    {
+                        *mutable_plan->add_segments() = segment;
+                    }
                 }
             }
 
