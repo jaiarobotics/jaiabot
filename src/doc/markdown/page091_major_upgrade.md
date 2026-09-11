@@ -53,6 +53,25 @@ where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD c
 
 To upgrade multiple Hubs, you will need to re-run this command (with the update hub_id) after moving the USB flash key to the new hub. Any number of bots will be updated from a single Hub as part of this command.
 
+## Upgrading a CloudHub (or other virtual machine)
+
+A CloudHub is upgraded in place with the same `major-upgrade.yml` playbook, with a few differences from a physical hub:
+
+- There is no USB key or CD. The upgrade ISO is downloaded from the `jaia-disk-images` S3 bucket (`https://jaia-disk-images.s3.us-east-1.amazonaws.com/{repo}/{version}/vbox/`) into `/var/log/jaiabot/major_upgrade` and loop-mounted at `/var/www/html/updates`. On a machine with `/etc/jaiabot/cloud.env` this happens automatically, using the repository from `jaia_aws_virtualfleet_repository` and the next major version (e.g. `3.y` when 2.y is installed). Override with `-e major_upgrade_iso_repo=beta`, `-e major_upgrade_iso_version=3.y`, `-e major_upgrade_iso_url_base=URL`, or `-e major_upgrade_iso=/path/to/local.iso` (also usable on a physical hub).
+- The fleet configuration must contain hub 30 (the CloudHub). CloudHubs created with 3.y `create_vpc.sh` store it at `/etc/jaiabot/fleetN.cfg`; for older CloudHubs copy it there first, or pass it with `-e fleet_cfg=/path/to/fleetN.cfg`.
+- The CloudHub inventory also lists the real fleet over the CloudHub VPN, so the run must be limited to the CloudHub itself (the JCU does this automatically):
+
+```
+cd /usr/share/jaiabot/config/ansible/major_upgrade
+ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=30 -e do_backup=no --limit hub30-fleetN
+```
+
+- The CloudHub's own configuration survives the upgrade: `/etc/wireguard`, `/etc/jaiabot/cloud.env` (the 2.y key `jaia_fleet_index` is renamed to `jaia_fleet_id`), the WireGuard sysctl and service enablement, `ufw` rules, the S3 data bucket `fstab` entry, and the VirtualFleet SSH keys and inventory.
+- The new root filesystem boots with the same NoCloud `cloud-init` seed as a VirtualBox VM (kernel command line `ds=nocloud;s=file:///etc/jaiabot/init/`), so first boot is configured from the fleet configuration rather than from the EC2 user data used to create the instance (which would regenerate the VPN keys). The AWS CLI and boto3 are installed by first boot on hub 30.
+- VirtualFleet machines are not upgraded; recreate them from the JCU once the CloudHub is running the new release.
+
+Because the playbook runs from the release installed on the machine being upgraded, the release must contain this CloudHub support (2.y from the version that first backported it).
+
 ## Major upgrade design
 
 The major upgrade extracts a new filesystem image and configures it, much like a generating a new bot or hub as described in the [Embedded Board Deployment](page025_embedded_setup.md) document. This means that the state of the previous installation filesystem is largely irrelevant.

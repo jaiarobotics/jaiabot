@@ -110,7 +110,7 @@ upper_right_logo_link: "https://www.jaia.tech/"
 
     ansible_playbook {
         file: "major_upgrade/major-upgrade.yml" 
-        name: "Major Upgrade Jaiabot and Ubuntu release (Requires Major Upgrade image to be connected to this Hub via USB Key or CD)"
+        name: "Major Upgrade Jaiabot and Ubuntu release (Requires Major Upgrade image to be connected to this Hub via USB Key or CD, or downloaded from the repository on a CloudHub)"
         section: "Upgrade"
         role: USER
 
@@ -127,13 +127,15 @@ upper_right_logo_link: "https://www.jaia.tech/"
             value: "no"
         }
 
+        $major_upgrade_input_vars
+
         output_var {
             name: "major_upgrade_error"
             display_name: "Error"
         }
         
         causes_hub_reboot: true
-        $limit
+        $major_upgrade_limit
     }
 
     

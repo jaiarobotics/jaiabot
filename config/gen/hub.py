@@ -230,8 +230,19 @@ elif common.app == 'goby_liaison_prelaunch':
         vfleet_playbooks=''
 
     limit=''
+    major_upgrade_limit=''
+    major_upgrade_input_vars=''
     if is_cloudhub:
         limit='limit: "all"'
+        # the CloudHub inventory reaches the real fleet over the CloudHub VPN,
+        # so a major upgrade must only touch the CloudHub itself
+        major_upgrade_limit='limit: "' + this_hub + '"'
+        repos=['release', 'beta', 'continuous']
+        default_repo=common.hub.cloud_env().get('jaia_aws_virtualfleet_repository', 'release')
+        if default_repo in repos:
+            repos.remove(default_repo)
+        repos.insert(0, default_repo)
+        major_upgrade_input_vars='input_var { name: "major_upgrade_iso_repo" display_name: "Repository to download the major upgrade image from" ' + ' '.join('value: "' + r + '"' for r in repos) + ' }'
     print(config.template_substitute(templates_dir+'/hub/goby_liaison_prelaunch.pb.cfg.in',
                                      app_block=app_common,
                                      http_port=liaison_port,
@@ -242,6 +253,8 @@ elif common.app == 'goby_liaison_prelaunch':
                                      vfleet_playbooks=vfleet_playbooks,
                                      this_hub_id=hub_id,
                                      limit=limit,
+                                     major_upgrade_limit=major_upgrade_limit,
+                                     major_upgrade_input_vars=major_upgrade_input_vars,
                                      ansible_log_dir=common.jaia_log_dir + '/ansible'))
 elif common.app == 'goby_gps':
     print(config.template_substitute(templates_dir+'/goby_gps.pb.cfg.in',

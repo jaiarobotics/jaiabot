@@ -3,33 +3,28 @@
     iso_fleet_cfg: "/var/www/html/updates/major_upgrade/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
     existing_fleet_cfg: "/etc/jaiabot/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
 
-- name: Check if the iso fleet config file exists 
+- name: Set candidate fleet configuration files (first that exists is used)
+  set_fact:
+    fleet_cfg_candidates: "{{ ([fleet_cfg] if fleet_cfg | length > 0 else []) + [iso_fleet_cfg, existing_fleet_cfg] }}"
+
+- name: Check which fleet configuration files exist
   stat:
-    path: "{{ iso_fleet_cfg }}"
-  register: iso_fleet_file
+    path: "{{ item }}"
+  register: fleet_cfg_stats
+  loop: "{{ fleet_cfg_candidates }}"
 
-- name: Check if the existing fleet config file exists 
-  stat:
-    path: "{{ existing_fleet_cfg }}"
-  register: existing_fleet_file
-  when: not iso_fleet_file.stat.exists
-
-- name: Stage the iso fleet config file if it exists
-  copy:
-    src: "{{ iso_fleet_cfg }}"
-    dest: "{{ hub_staging_dir }}"
-    remote_src: yes
-  when: iso_fleet_file.stat.exists
-
-- name: Stage the existing fleet config file if the iso config does not exist
-  copy:
-    src: "{{ existing_fleet_cfg }}"
-    dest: "{{ hub_staging_dir }}"
-    remote_src: yes
-  when: not iso_fleet_file.stat.exists and existing_fleet_file.stat.exists
+- name: Select the fleet configuration file
+  set_fact:
+    selected_fleet_cfg: "{{ fleet_cfg_stats.results | selectattr('stat.exists') | map(attribute='item') | first | default('') }}"
 
 - name: Handle fleet config failure
   include_tasks: handle_failure.yml
   vars:
-    error_message: "Failed to find fleet configuration: Please contact JaiaRobotics for a USB key or CD with an embedded fleet configuration."
-  when: not iso_fleet_file.stat.exists and not existing_fleet_file.stat.exists
+    error_message: "Failed to find fleet configuration (looked for {{ fleet_cfg_candidates | join(', ') }}): Please contact JaiaRobotics for a USB key or CD with an embedded fleet configuration, or provide one with -e fleet_cfg=/path/to/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
+  when: selected_fleet_cfg | length == 0
+
+- name: Stage the fleet configuration file
+  copy:
+    src: "{{ selected_fleet_cfg }}"
+    dest: "{{ staged_fleet_cfg }}"
+    remote_src: yes

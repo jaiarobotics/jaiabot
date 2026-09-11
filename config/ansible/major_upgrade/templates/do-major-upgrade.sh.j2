@@ -84,6 +84,10 @@ if [ "{{ upgrade_type }}" = "embedded" ]; then
 
     rsync -aP {{ upgrade_reuse_dir }}/ ${new_ro_rootfs_mountpoint}/
 
+    if [ -e {{ upgrade_dir }}/fstab.extra ]; then
+        cat {{ upgrade_dir }}/fstab.extra >> ${new_ro_rootfs_mountpoint}/etc/fstab
+    fi
+
     ###############################
     # Write new boot dir
     ###############################
@@ -127,6 +131,8 @@ if [ "{{ upgrade_type }}" = "embedded" ]; then
     rm {{ upgrade_dir }}/*.rootfs.tar.gz
     rm {{ upgrade_dir }}/do-major-upgrade.sh
     rm {{ upgrade_dir }}/fleet*.cfg
+    rm -f {{ upgrade_dir }}/fstab.extra
+    rm -f {{ upgrade_dir_base }}/*.iso {{ upgrade_dir_base }}/iso-version.txt
     mv {{ upgrade_dir_base }}/version.txt {{ upgrade_dir }}
 fi
 
@@ -165,18 +171,30 @@ if [ -e /boot/grub/grub.cfg ]; then
     fi
 
     # update grub
-    if ! which cloud-init || [ "$(cloud-init query cloud_id)" = "nocloud" ] || [ "$(cloud-init query cloud_id)" = "" ]; then
-        # VirtualBox cloud init source
-        sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
-    elif [ "$(cloud-init query cloud_id)" = "aws" ]; then       
+    cloud_id=""
+    if which cloud-init > /dev/null; then
+        cloud_id=$(cloud-init query cloud_id 2> /dev/null || true)
+    fi
+
+    if [ "${cloud_id}" = "aws" ]; then
         # Enable serial console for AWS debugging
         sed -i 's/GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 console=ttyS0"/' /etc/default/grub
+    fi
+
+    # An in-place upgrade seeds first boot from the fleet configuration written
+    # to the boot partition, never from the cloud provider's original user data
+    # (which would regenerate keys and rewrite the CloudHub configuration).
+    # Only a fresh AMI build (upgrade_type aws_ami) keeps the EC2 datasource.
+    if [ "{{ upgrade_type }}" = "embedded" ] || [ "${cloud_id}" != "aws" ]; then
+        sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
     fi
        
     update-grub
 fi
 
 if [ "{{ upgrade_type }}" = "embedded" ]; then
-    systemctl reboot --force
+    sync
+    # after pivot_root the old systemd may refuse the request; fall back to a direct reboot
+    systemctl reboot --force || systemctl reboot --force --force
 fi
 

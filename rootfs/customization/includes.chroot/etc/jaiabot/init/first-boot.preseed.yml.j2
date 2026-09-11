@@ -52,3 +52,8 @@ runcmd:
   - networkctl reload
   - networkctl up wlan0
   - /etc/jaiabot/init/configure-wireguard-service-vpn.sh
+{%- if this.type == "hub" and this.id == 30 %}
+  # CloudHub tools (VirtualFleet management and S3 data) that are not part of the base image
+  - apt-get -y install python3-boto3
+  - (cd /tmp && curl -sS "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.18.8.zip" -o awscliv2.zip && unzip -q -o awscliv2.zip && ./aws/install --update)
+{%- endif %}

@@ -95,15 +95,6 @@ jaia_aws_virtualfleet_repository_version={{REPO_VERSION}}
 jaia_jcc_hub_ip={{JCC_HUB_IP}}
 EOF
 
-## Ansible jobs for VFleet need boto3
-apt-get -y install python3-boto3
-
-cd /tmp
-AWSCLI_VERSION=2.18.8
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VERSION}.zip" -o "awscliv2.zip"
-unzip -q awscliv2.zip
-./aws/install
-
 ## Add s3 entry for data
 cat <<EOF >> /etc/fstab
 {{CLOUDHUB_DATA_BUCKET}} /var/log/jaiabot/bot_offload/ fuse.s3fs _netdev,allow_other,use_path_request_style,iam_role=auto,url=https://s3.{{REGION}}.amazonaws.com,dbglevel=warn,endpoint={{REGION}} 0 0
