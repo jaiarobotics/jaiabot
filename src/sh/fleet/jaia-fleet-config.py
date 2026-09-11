@@ -633,7 +633,7 @@ def cmd_generate(schema, args):
         raise FleetConfigError("No partition with label 'boot' or 'bootfs' found. Please insert and mount disk or provide --bootdir")
 
     settings = node_settings_for(schema, cfg, node_type, args.id)
-    context = json.loads(json_format_message(cfg))
+    context = json_context(cfg)
     context["debconf"] = debconf_selections(schema, settings)
     context["this"] = {
         "type": args.type,
@@ -720,6 +720,25 @@ def json_format_message(msg):
     return json_format.MessageToJson(msg)
 
 
+def json_context(msg):
+    """The message as template context: every repeated field is present, empty when
+    nothing is set, so a template can iterate it under StrictUndefined."""
+    context = json.loads(json_format_message(msg))
+    add_empty_repeated(msg, context)
+    return context
+
+
+def add_empty_repeated(msg, obj):
+    for field in msg.DESCRIPTOR.fields:
+        if field.label == FieldDescriptor.LABEL_REPEATED:
+            obj.setdefault(field.json_name, [])
+            if field.type == FieldDescriptor.TYPE_MESSAGE:
+                for sub, sub_obj in zip(getattr(msg, field.name), obj[field.json_name]):
+                    add_empty_repeated(sub, sub_obj)
+        elif field.type == FieldDescriptor.TYPE_MESSAGE and msg.HasField(field.name):
+            add_empty_repeated(getattr(msg, field.name), obj[field.json_name])
+
+
 def redacted(obj):
     if isinstance(obj, dict):
         return {k: ("<redacted>" if any(k.lower().startswith(s.replace("_", "")) or k == s for s in SECRET_FIELDS)
@@ -735,29 +754,33 @@ def redacted(obj):
 
 
 
+
 # --- create: interactive fleet configuration ----------------------------------
 
 DIALOG_TITLE = "Fleet Configuration"
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+SCRIPTED_BACK = "<back>"
+SCRIPTED_DEFAULT = "<default>"
 
 
-class Cancelled(FleetConfigError):
-    pass
+class GoBack(Exception):
+    """The user asked to return to the previous question."""
 
 
 class WhiptailUI:
-    """Dialogs drawn with whiptail on the controlling terminal."""
+    """Dialogs drawn with whiptail on the controlling terminal. Every dialog has a
+    Back button (Esc also goes back) that raises GoBack."""
 
     def __init__(self):
         self.tty = open("/dev/tty", "w")
 
-    def _run(self, box, text, tail=(), options=(), cancel_ok=False):
+    def _run(self, box, text, tail=(), options=()):
         cols, lines = shutil.get_terminal_size((80, 24))
-        cmd = ["whiptail", "--title", DIALOG_TITLE] + list(options) + [box, text, str(lines - 4), str(cols - 4)] + list(tail)
+        cmd = ["whiptail", "--title", DIALOG_TITLE, "--cancel-button", "Back"] + list(options) + \
+              [box, text, str(lines - 4), str(cols - 4)] + list(tail)
         result = subprocess.run(cmd, stdout=self.tty, stderr=subprocess.PIPE, text=True)
-        if result.returncode == 1 and cancel_ok:
-            return None
         if result.returncode != 0:
-            raise Cancelled("cancelled")
+            raise GoBack()
         return result.stderr
 
     def _list_height(self, choices):
@@ -774,16 +797,21 @@ class WhiptailUI:
     def inputbox(self, text, default=""):
         return self._run("--inputbox", text, [default]).strip()
 
-    def yesno(self, text):
-        return self._run("--yesno", text, cancel_ok=True) is not None
+    def yesno(self, text, default=None):
+        # a menu rather than --yesno, so that Back is a button here too
+        return self.menu(text, ["yes", "no"], default=default) == "yes"
 
     def msgbox(self, text):
-        self._run("--msgbox", text)
+        try:
+            self._run("--msgbox", text)
+        except GoBack:
+            pass
 
 
 class ScriptedUI:
     """Answers read from a file, one per line and dialog: checklists comma-separated,
-    yes/no as yes or no, an empty line for an empty answer."""
+    yes/no as yes or no, an empty line for an empty answer, <back> to go back and
+    <default> to accept what the dialog proposes."""
 
     def __init__(self, path):
         with open(path) as f:
@@ -792,26 +820,73 @@ class ScriptedUI:
     def _next(self, text):
         if not self.answers:
             raise FleetConfigError("no scripted answer for: {}".format(text.splitlines()[0]))
-        return self.answers.pop(0)
+        answer = self.answers.pop(0)
+        if answer == SCRIPTED_BACK:
+            raise GoBack()
+        return answer
 
     def menu(self, text, choices, default=None):
         answer = self._next(text)
+        if answer == SCRIPTED_DEFAULT:
+            return default
         if answer not in choices:
             raise FleetConfigError("scripted answer '{}' is not one of {}".format(answer, collapse(choices)))
         return answer
 
     def checklist(self, text, choices, checked=()):
         answer = self._next(text)
+        if answer == SCRIPTED_DEFAULT:
+            return list(checked)
         return [a.strip() for a in answer.split(",") if a.strip()]
 
     def inputbox(self, text, default=""):
-        return self._next(text)
+        answer = self._next(text)
+        return default if answer == SCRIPTED_DEFAULT else answer
 
-    def yesno(self, text):
-        return self._next(text).lower() == "yes"
+    def yesno(self, text, default=None):
+        return self.menu(text, ["yes", "no"], default=default) == "yes"
 
     def msgbox(self, text):
         pass
+
+
+class Step:
+    """One stage of the create flow. Re-running a step rebuilds its part of the
+    configuration, so the answers always describe what the user last chose."""
+
+    def __init__(self, title, run, enabled=None, revisit=True, clear=None):
+        self.title = title
+        self.run = run
+        self.is_enabled = enabled or (lambda: True)
+        # False for a step that only generates: going back moves past it
+        self.revisit = revisit
+        # Undoes the step, for when an earlier answer turns it off
+        self.clear = clear
+
+
+def run_steps(steps, banner=None):
+    """Run steps in order; GoBack returns to the previous one. GoBack from the first
+    step propagates to the caller."""
+    i = 0
+    while i < len(steps):
+        step = steps[i]
+        if not step.is_enabled():
+            if step.clear:
+                step.clear()
+            i += 1
+            continue
+        if banner and step.title:
+            banner(step.title)
+        try:
+            step.run()
+        except GoBack:
+            i -= 1
+            while i >= 0 and not (steps[i].is_enabled() and steps[i].revisit):
+                i -= 1
+            if i < 0:
+                raise
+            continue
+        i += 1
 
 
 def jaia_bounds(flag, end):
@@ -820,6 +895,11 @@ def jaia_bounds(flag, end):
     except (OSError, subprocess.CalledProcessError) as e:
         raise FleetConfigError("jaia_bounds --{} failed ({}); is jaiabot-apps installed?".format(flag, e))
     return int(out.strip())
+
+
+def node_id_range(name):
+    # 0 is the unassigned placeholder, never a node in a fleet
+    return max(jaia_bounds(name, "min"), 1), jaia_bounds(name, "max")
 
 
 def ask_id(ui, name, text):
@@ -831,10 +911,17 @@ def ask_id(ui, name, text):
         ui.msgbox("'{}' is not a whole number from {} to {}".format(answer, lo, hi))
 
 
-def ask_ids(ui, name, text):
-    # 0 is the unassigned placeholder, never a node in a fleet
-    lo, hi = max(jaia_bounds(name, "min"), 1), jaia_bounds(name, "max")
-    return [int(x) for x in ui.checklist(text, [str(i) for i in range(lo, hi + 1)])]
+def ask_ids(ui, text, lo, hi, checked=()):
+    checked = [str(i) for i in checked]
+    return sorted(int(x) for x in ui.checklist(text, [str(i) for i in range(lo, hi + 1)], checked=checked))
+
+
+def ask_matching(ui, text, pattern, what, default=""):
+    while True:
+        answer = ui.inputbox(text, default)
+        if pattern.match(answer):
+            return answer
+        ui.msgbox("'{}' is not {}".format(answer, what))
 
 
 def ssh_keygen(comment, security_key=False):
@@ -902,31 +989,49 @@ def ask_question(ui, q, current):
         checked = [c.strip() for c in (current or "").split(",")]
         return ", ".join(ui.checklist(text, q.choices, checked=checked))
     if q.type == "boolean":
-        return "true" if ui.yesno(text) else "false"
+        return "true" if ui.yesno(text, default=current) else "false"
     if current in (None, "") and q.name in GENERATED_DEFAULTS:
         current = GENERATED_DEFAULTS[q.name]()
     return ui.inputbox(text, current or "")
+
+
+def asked(q, schema, settings):
+    if q.identity:
+        return False
+    if q.ask_if:
+        field, equals = q.ask_if
+        return current_answer(schema.questions_by_name[field], settings) == equals
+    return True
 
 
 def ask_settings(ui, schema, groups, base):
     """Ask every non-identity question of the given groups, starting from base's answers."""
     settings = schema.NodeSettings()
     settings.CopyFrom(base)
-    for q in schema.questions:
-        if q.identity or q.group not in groups:
+    questions = [q for q in schema.questions if not q.identity and q.group in groups]
+    i = 0
+    while i < len(questions):
+        q = questions[i]
+        if not asked(q, schema, settings):
+            if q.unasked_value is not None:
+                set_answer(settings, q, q.from_debconf(q.unasked_value))
+            i += 1
             continue
-        if q.ask_if:
-            field, equals = q.ask_if
-            if current_answer(schema.questions_by_name[field], settings) != equals:
-                if q.unasked_value is not None:
-                    set_answer(settings, q, q.from_debconf(q.unasked_value))
-                continue
-        while True:
-            try:
-                set_answer(settings, q, q.from_debconf(ask_question(ui, q, current_answer(q, settings))))
-                break
-            except FleetConfigError as e:
-                ui.msgbox(str(e))
+        try:
+            answer = ask_question(ui, q, current_answer(q, settings))
+        except GoBack:
+            i -= 1
+            while i >= 0 and not asked(questions[i], schema, settings):
+                i -= 1
+            if i < 0:
+                raise
+            continue
+        try:
+            set_answer(settings, q, q.from_debconf(answer))
+        except FleetConfigError as e:
+            ui.msgbox(str(e))
+            continue
+        i += 1
     return settings
 
 
@@ -954,81 +1059,172 @@ def node_type_number(schema, name):
     return enum.values_by_name[name.upper()].number
 
 
-def create(schema, ui, banner=print):
+def create(schema, ui, banner=None):
     cfg = schema.FleetConfig()
     cfg.version = schema.version
+    state = {"cloudhub": False, "hubs": [], "keys": {}}
 
-    banner("Choose fleet")
-    cfg.fleet = ask_id(ui, "fleet_id", "Which fleet to create?")
-    banner("Choose hubs")
-    cfg.hubs.extend(ask_ids(ui, "hub_id", "Which hubs are in the fleet?"))
-    banner("Choose bots")
-    cfg.bots.extend(ask_ids(ui, "bot_id", "Which bots are in the fleet?"))
+    def choose_fleet():
+        cfg.fleet = ask_id(ui, "fleet_id", "Which fleet to create?")
 
-    banner("Generating hub SSH keys")
-    for hub in cfg.hubs:
-        key = cfg.ssh.hub.add()
-        key.id = hub
-        key.private_key, key.public_key = hub_key(ui, cfg.fleet, hub)
+    def choose_cloudhub():
+        state["cloudhub"] = ui.yesno(
+            "Does this fleet include a CloudHub (hub {}, running in the cloud)?".format(CLOUDHUB_ID),
+            default="yes" if state["cloudhub"] else "no")
 
-    banner("Generating service Wireguard VPN temporary key")
-    cfg.ssh.vpn_tmp.private_key, cfg.ssh.vpn_tmp.public_key = ssh_keygen("id_vpn_tmp")
+    def choose_hubs():
+        lo, hi = node_id_range("hub_id")
+        state["hubs"] = ask_ids(ui, "Which physical hubs are in the fleet?", lo, min(hi, CLOUDHUB_ID - 1),
+                                checked=state["hubs"])
+        del cfg.hubs[:]
+        cfg.hubs.extend(state["hubs"] + ([CLOUDHUB_ID] if state["cloudhub"] else []))
 
-    banner("Permanent SSH keys (for /home/jaia/.ssh/authorized_keys)")
-    while True:
-        key = ui.inputbox("Enter a permanent SSH public key (for /home/jaia/.ssh/authorized_keys). Leave blank to continue")
-        if not key:
-            break
-        cfg.ssh.permanent_authorized_keys.append(key)
+    def choose_bots():
+        lo, hi = node_id_range("bot_id")
+        bots = ask_ids(ui, "Which bots are in the fleet?", lo, hi, checked=list(cfg.bots))
+        del cfg.bots[:]
+        cfg.bots.extend(bots)
 
-    banner("Wifi password")
-    cfg.wlan_password = ui.inputbox("Enter the WIFI password")
+    def generate_keys():
+        cfg.ssh.ClearField("hub")
+        for hub in cfg.hubs:
+            if (cfg.fleet, hub) not in state["keys"]:
+                state["keys"][(cfg.fleet, hub)] = hub_key(ui, cfg.fleet, hub)
+            key = cfg.ssh.hub.add()
+            key.id = hub
+            key.private_key, key.public_key = state["keys"][(cfg.fleet, hub)]
+        if "vpn_tmp" not in state:
+            state["vpn_tmp"] = ssh_keygen("id_vpn_tmp")
+        cfg.ssh.vpn_tmp.private_key, cfg.ssh.vpn_tmp.public_key = state["vpn_tmp"]
 
-    banner("Service Wireguard VPN")
-    cfg.service_vpn_enabled = ui.yesno("Should the service Wireguard VPN be enabled at boot?")
+    def permanent_keys():
+        keys, proposed = [], ""
+        while True:
+            try:
+                key = ui.inputbox("Enter a permanent SSH public key (for /home/jaia/.ssh/authorized_keys). "
+                                  "Leave blank to continue", proposed)
+            except GoBack:
+                if not keys:
+                    raise
+                proposed = keys.pop()
+                continue
+            if not key:
+                break
+            keys.append(key)
+            proposed = ""
+        cfg.ssh.ClearField("permanent_authorized_keys")
+        cfg.ssh.permanent_authorized_keys.extend(keys)
 
-    if CLOUDHUB_ID in cfg.hubs:
-        banner("CloudHub authentication")
-        cfg.cloudhub_auth.base_uri = ui.inputbox("CloudHub base URI (e.g. https://cloudhub.example.com)")
-        cfg.cloudhub_auth.admin_email = ui.inputbox("CloudHub administrator email")
-        cfg.cloudhub_auth.smtp_address = ui.inputbox("SMTP server for CloudHub login emails (host:port)")
+    def wlan_password():
+        cfg.wlan_password = ui.inputbox("Enter the WIFI password", cfg.wlan_password)
 
-    banner("Common jaiabot-embedded settings")
-    defaults = schema.NodeSettings()
-    fill_defaults(schema, defaults)
-    cfg.settings.CopyFrom(ask_settings(ui, schema, {"ALL", "BOT", "HUB"}, defaults))
+    def service_vpn():
+        cfg.service_vpn_enabled = ui.yesno("Should the service Wireguard VPN be enabled at boot?",
+                                           default="yes" if cfg.service_vpn_enabled else "no")
 
-    banner("Overrides (settings that differ from the common ones)")
-    while ui.yesno("Do you have any bot/hub specific settings that differ from the common ones?"):
-        hubs = [int(x) for x in ui.checklist("Which hubs are in this override set?", [str(h) for h in cfg.hubs])]
-        bots = [int(x) for x in ui.checklist("Which bots are in this override set?", [str(b) for b in cfg.bots])]
-        groups = {"ALL"} | ({"HUB"} if hubs else set()) | ({"BOT"} if bots else set())
-        answers = ask_settings(ui, schema, groups, cfg.settings)
-        diff = changed_fields(schema, answers, cfg.settings)
-        if not diff.ListFields():
-            ui.msgbox("No setting differs from the common ones; no override written")
-            continue
-        for node_type, ids in (("hub", hubs), ("bot", bots)):
-            for node_id in ids:
-                override = cfg.override.add()
-                override.type = node_type_number(schema, node_type)
-                override.id = node_id
-                override.settings.CopyFrom(diff)
+    def cloudhub_auth():
+        auth = cfg.cloudhub_auth
 
-    if uses_comms_link(schema, cfg, "iridium"):
-        banner("Iridium SBD configuration")
+        def base_uri():
+            proposed = "fleet{}.jaia.tech".format(cfg.fleet)
+            # a base_uri the user did not type follows the fleet number when it changes
+            current = auth.base_uri if auth.base_uri and auth.base_uri != state.get("base_uri") else proposed
+            state["base_uri"] = proposed
+            auth.base_uri = ui.inputbox("CloudHub base URI", current)
+
+        run_steps([
+            Step(None, base_uri),
+            Step(None, lambda: setattr(auth, "admin_email", ask_matching(
+                ui, "Enter the initial 'admin' user email", EMAIL_RE, "an email address", auth.admin_email))),
+            Step(None, lambda: setattr(auth, "smtp_address", ui.inputbox(
+                "Enter the SMTP server address", auth.smtp_address or "smtp://smtp-relay.gmail.com:587"))),
+        ])
+
+    def common_settings():
+        defaults = schema.NodeSettings()
+        fill_defaults(schema, defaults)
+        cfg.settings.CopyFrom(ask_settings(ui, schema, {"ALL", "BOT", "HUB"}, defaults))
+
+    def overrides():
+        del cfg.override[:]
+        while True:
+            if not ui.yesno("Do you have any bot/hub specific settings that differ from the common ones?",
+                            default="no"):
+                return
+            chosen = {"hub": [], "bot": [], "settings": None}
+
+            def pick(node_type, ids):
+                chosen[node_type] = [int(x) for x in ui.checklist(
+                    "Which {}s are in this override set?".format(node_type), [str(i) for i in ids],
+                    checked=[str(i) for i in chosen[node_type]])]
+
+            def answer():
+                groups = {"ALL"} | ({"HUB"} if chosen["hub"] else set()) | ({"BOT"} if chosen["bot"] else set())
+                chosen["settings"] = ask_settings(ui, schema, groups, cfg.settings)
+
+            try:
+                run_steps([Step(None, lambda: pick("hub", cfg.hubs)),
+                           Step(None, lambda: pick("bot", cfg.bots)),
+                           Step(None, answer)])
+            except GoBack:
+                continue
+            diff = changed_fields(schema, chosen["settings"], cfg.settings)
+            if not diff.ListFields():
+                ui.msgbox("No setting differs from the common ones; no override written")
+                continue
+            for node_type, ids in (("hub", chosen["hub"]), ("bot", chosen["bot"])):
+                for node_id in ids:
+                    override = cfg.override.add()
+                    override.type = node_type_number(schema, node_type)
+                    override.id = node_id
+                    override.settings.CopyFrom(diff)
+
+    def iridium():
+        cfg.ClearField("comms")
         sbd = cfg.comms.iridium_sbd
-        for bot in cfg.bots:
-            entry = sbd.bot.add()
-            entry.id = bot
-            entry.imei = ui.inputbox("Enter the Iridium IMEI for bot {}".format(bot))
         sbd_types = sbd.DESCRIPTOR.fields_by_name["sbd_type"].enum_type
-        sbd.sbd_type = sbd_types.values_by_name[
-            ui.menu("Which Iridium shore service does this fleet use (MetOcean is SBD_DIRECTIP)?",
-                    [v.name for v in sbd_types.values])].number
-        if sbd_types.values_by_number[sbd.sbd_type].name == "SBD_ROCKBLOCK":
-            sbd.rockblock.username = ui.inputbox("Enter the RockBLOCK portal username")
-            sbd.rockblock.password = ui.inputbox("Enter the RockBLOCK portal password")
+
+        def imeis():
+            sbd.ClearField("bot")
+            for bot in cfg.bots:
+                entry = sbd.bot.add()
+                entry.id = bot
+                entry.imei = ui.inputbox("Enter the Iridium IMEI for bot {}".format(bot))
+
+        def service():
+            sbd.sbd_type = sbd_types.values_by_name[ui.menu(
+                "Which Iridium shore service does this fleet use (MetOcean is SBD_DIRECTIP)?",
+                [v.name for v in sbd_types.values])].number
+
+        def rockblock():
+            if sbd_types.values_by_number[sbd.sbd_type].name != "SBD_ROCKBLOCK":
+                sbd.ClearField("rockblock")
+                return
+            run_steps([
+                Step(None, lambda: setattr(sbd.rockblock, "username", ui.inputbox(
+                    "Enter the RockBLOCK portal username", sbd.rockblock.username))),
+                Step(None, lambda: setattr(sbd.rockblock, "password", ui.inputbox(
+                    "Enter the RockBLOCK portal password", sbd.rockblock.password))),
+            ])
+
+        run_steps([Step(None, imeis), Step(None, service), Step(None, rockblock)])
+
+    run_steps([
+        Step("Choose fleet", choose_fleet),
+        Step("CloudHub", choose_cloudhub),
+        Step("Choose hubs", choose_hubs),
+        Step("Choose bots", choose_bots),
+        Step("Generating hub SSH keys", generate_keys, revisit=False),
+        Step("Permanent SSH keys (for /home/jaia/.ssh/authorized_keys)", permanent_keys),
+        Step("Wifi password", wlan_password),
+        Step("Service Wireguard VPN", service_vpn),
+        Step("CloudHub authentication", cloudhub_auth, enabled=lambda: state["cloudhub"],
+             clear=lambda: cfg.ClearField("cloudhub_auth")),
+        Step("Common jaiabot-embedded settings", common_settings),
+        Step("Overrides (settings that differ from the common ones)", overrides),
+        Step("Iridium SBD configuration", iridium, enabled=lambda: uses_comms_link(schema, cfg, "iridium"),
+             clear=lambda: cfg.ClearField("comms")),
+    ], banner)
 
     problems = validate(schema, cfg)
     if problems:
@@ -1044,7 +1240,7 @@ def cmd_create(schema, args):
 
     try:
         cfg = create(schema, ui, banner)
-    except Cancelled:
+    except GoBack:
         print("Cancelled; nothing written", file=sys.stderr)
         return 1
     with open(args.fleetcfg, "w") as f:

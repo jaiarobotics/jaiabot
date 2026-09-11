@@ -279,6 +279,17 @@ class CommandTest(unittest.TestCase):
         self.assertIn("jaiabot-embedded/camera_positions multiselect outward", preseed)
         self.assertIn("jaiabot-embedded/bot_id string 2", preseed)
 
+    @needs_render_deps
+    def test_generate_without_permanent_keys_or_overrides(self):
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v2_no_permanent_keys.cfg"), "--bootdir", bootdir, "hub", "30")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        with open(os.path.join(bootdir, "jaiabot", "init", "first-boot.preseed.yml")) as f:
+            preseed = f.read()
+        # the empty repeated field renders as no keys rather than failing the render
+        self.assertIn("- path: /etc/jaiabot/ssh/jaia_authorized_keys\n    content: |\n", preseed)
+        yaml.safe_load(preseed)
+
     def test_generate_refuses_invalid_config_before_writing(self):
         bootdir = self.env.bootdir()
         result = self.env.run("generate", fixture("v1_bad_values.cfg"), "--bootdir", bootdir, "bot", "1")
@@ -318,6 +329,9 @@ def settings_answers(groups, chosen):
     return answers
 
 
+ALL_GROUPS = {"ALL", "BOT", "HUB"}
+
+
 class CreateTest(unittest.TestCase):
     def setUp(self):
         self.env = Env()
@@ -334,15 +348,19 @@ class CreateTest(unittest.TestCase):
     def test_creates_a_valid_current_version_file(self):
         answers = [
             "abc", "7",                      # fleet id: re-asked until it is in range
-            "1, 30", "1, 2",                 # hubs, bots
+            "yes",                           # CloudHub in the fleet
+            "1, 2", "1, 2",                  # physical hubs, bots
             "ssh-ed25519 AAAAperm me", "",   # permanent keys
             "wifipass", "yes",               # wlan password, service vpn
-            "https://cloudhub.example.com", "admin@example.com", "smtp.example.com:587",
+            "<default>",                     # base_uri: fleet7.jaia.tech
+            "nobody", "admin@example.com",   # admin_email: re-asked until it is one
+            "<default>",                     # smtp_address
         ]
-        answers += settings_answers({"ALL", "BOT", "HUB"}, {"comms_links": "xbee, iridium", "bot_type": "pam",
-                                                           "pam_connection_type": "uart", "user_role": "advanced"})
-        answers += ["yes", "", "2"] + settings_answers({"ALL", "BOT"}, {"comms_links": "xbee, iridium", "bot_type": "bio",
-                                                                         "camera_positions": "outward"})
+        answers += settings_answers(ALL_GROUPS, {"comms_links": "xbee, iridium", "bot_type": "pam",
+                                                 "pam_connection_type": "uart", "user_role": "advanced"})
+        answers += ["yes", "", "2"] + settings_answers({"ALL", "BOT"}, {"comms_links": "xbee, iridium",
+                                                                       "bot_type": "bio",
+                                                                       "camera_positions": "outward"})
         answers += ["no"]
         answers += ["300234010753370", "300234010753371", "SBD_ROCKBLOCK", "rbuser", "rbpass"]
         result, out = self.run_create(answers)
@@ -351,7 +369,8 @@ class CreateTest(unittest.TestCase):
 
         cfg = fc.parse_fleet_config(SCHEMA, out)
         self.assertEqual(fc.validate(SCHEMA, cfg), [])
-        self.assertEqual((cfg.version, cfg.fleet, list(cfg.hubs), list(cfg.bots)), (SCHEMA.version, 7, [1, 30], [1, 2]))
+        self.assertEqual((cfg.version, cfg.fleet, list(cfg.hubs), list(cfg.bots)),
+                         (SCHEMA.version, 7, [1, 2, 30], [1, 2]))
         keys = {k.id: k for k in cfg.ssh.hub}
         self.assertEqual(keys[1].public_key, "no-touch-required ssh-ed25519-sk AAAAhub1_fleet7 hub1_fleet7")
         self.assertEqual(keys[30].public_key, "ssh-ed25519 AAAAhub30_fleet7 hub30_fleet7")
@@ -359,7 +378,8 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(cfg.ssh.vpn_tmp.public_key, "ssh-ed25519 AAAAid_vpn_tmp id_vpn_tmp")
         self.assertEqual(list(cfg.ssh.permanent_authorized_keys), ["ssh-ed25519 AAAAperm me"])
         self.assertEqual((cfg.wlan_password, cfg.service_vpn_enabled), ("wifipass", True))
-        self.assertEqual(cfg.cloudhub_auth.admin_email, "admin@example.com")
+        self.assertEqual([cfg.cloudhub_auth.base_uri, cfg.cloudhub_auth.admin_email, cfg.cloudhub_auth.smtp_address],
+                         ["fleet7.jaia.tech", "admin@example.com", "smtp://smtp-relay.gmail.com:587"])
 
         s = cfg.settings
         q = SCHEMA.questions_by_name
@@ -377,7 +397,8 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(len(cfg.override), 1)
         o = cfg.override[0]
         self.assertEqual((fc.node_type_name(SCHEMA, o.type), o.id), ("bot", 2))
-        self.assertEqual(sorted(f.name for f, _ in o.settings.ListFields()), ["bot_type", "camera_positions", "pam_connection_type"])
+        self.assertEqual(sorted(f.name for f, _ in o.settings.ListFields()),
+                         ["bot_type", "camera_positions", "pam_connection_type"])
         self.assertEqual(q["bot_type"].to_debconf(o.settings.bot_type), "bio")
         self.assertEqual(q["pam_connection_type"].to_debconf(o.settings.pam_connection_type), "none")
 
@@ -388,16 +409,61 @@ class CreateTest(unittest.TestCase):
         result = self.env.run("validate", out)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_no_iridium_no_comms_and_no_empty_override(self):
-        answers = ["7", "1", "1", "", "wifipass", "no"]
-        answers += settings_answers({"ALL", "BOT", "HUB"}, {})
+    def test_no_cloudhub_means_no_auth_and_no_hub_30(self):
+        answers = ["7", "no", "1", "1", "", "wifipass", "no"]
+        answers += settings_answers(ALL_GROUPS, {})
         answers += ["yes", "", "1"] + settings_answers({"ALL", "BOT"}, {}) + ["no"]
         result, out = self.run_create(answers)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         cfg = fc.parse_fleet_config(SCHEMA, out)
-        self.assertFalse(cfg.HasField("comms"))
+        self.assertEqual(list(cfg.hubs), [1])
         self.assertFalse(cfg.HasField("cloudhub_auth"))
+        self.assertFalse(cfg.HasField("comms"))
+        # an override set whose answers all match the common ones writes nothing
         self.assertEqual(len(cfg.override), 0)
+
+    def test_back_returns_to_the_previous_question(self):
+        back = fc.SCRIPTED_BACK
+        answers = [
+            "8", back, "7",          # fleet id, then back from the CloudHub question
+            "no", back, "yes",       # CloudHub: answered no, back, then yes
+            "1", "2",                # physical hubs, bots
+            back,                    # from the permanent keys, back past key generation to bots
+            "1, 2",                  # bots again
+            "", "wifipass", "yes",   # permanent keys, wlan password, service vpn
+            "<default>", "admin@example.com", "<default>",
+        ]
+        # back from the second settings question returns to the first, re-answered here
+        first = [q for q in SCHEMA.questions if not q.identity][0]
+        answers += [first.default, back, "hub_led"]
+        answers += settings_answers(ALL_GROUPS, {"comms_links": "xbee"})[1:]
+        answers += ["no"]
+        result, out = self.run_create(answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, out)
+        self.assertEqual((cfg.fleet, list(cfg.hubs), list(cfg.bots)), (7, [1, 30], [1, 2]))
+        self.assertEqual(SCHEMA.questions_by_name["comms_links"].to_debconf(list(cfg.settings.comms_links)), "xbee")
+        self.assertEqual(SCHEMA.questions_by_name[first.name].to_debconf(getattr(cfg.settings, first.name)), "hub_led")
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+
+    def test_turning_the_cloudhub_off_drops_its_auth(self):
+        back = fc.SCRIPTED_BACK
+        # back from the CloudHub authentication all the way to the CloudHub question,
+        # answered no the second time round
+        answers = ["7", "yes", "1", "1", "", "wifipass", "no"] + [back] * 6
+        answers += ["no", "1", "1", "", "wifipass", "no"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"]
+        result, out = self.run_create(answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, out)
+        self.assertEqual(list(cfg.hubs), [1])
+        self.assertFalse(cfg.HasField("cloudhub_auth"))
+
+    def test_back_out_of_the_first_question_writes_nothing(self):
+        result, out = self.run_create([fc.SCRIPTED_BACK])
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Cancelled", result.stderr)
+        self.assertFalse(os.path.exists(out))
 
     def test_rf_encryption_password_is_proposed_at_random(self):
         class AcceptDefault:
@@ -410,7 +476,7 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(fc.ask_question(AcceptDefault(), q, "keep"), "keep")
 
     def test_nothing_written_when_answers_run_out(self):
-        result, out = self.run_create(["7", "1"])
+        result, out = self.run_create(["7", "yes", "1"])
         self.assertEqual(result.returncode, 1)
         self.assertIn("no scripted answer", result.stderr)
         self.assertFalse(os.path.exists(out))
