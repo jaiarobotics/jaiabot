@@ -45,9 +45,8 @@ message FleetTool
         }];
         create = 1 [(goby.ev).cfg = {
             short_help_msg: "Create a new fleet config",
-            external_command: "jaia-create-fleet-config.sh",
-            full_help_msg: "Interactive tool to create a new fleet configuration.\n"
-                           "Usage: \"jaia admin fleet create [fleet.cfg]\""
+            external_command: "jaia-fleet-config.py",
+            external_help_param: "--help"
         }];
         validate = 2 [(goby.ev).cfg = {
             short_help_msg: "Validate a fleet config (and whether it migrates to the current version)",

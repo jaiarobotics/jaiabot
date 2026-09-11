@@ -48,9 +48,18 @@ class Env:
             f.write(DESCRIPTOR_SET)
         fake_bin = os.path.join(self.dir, "bin")
         os.makedirs(fake_bin)
-        with open(os.path.join(fake_bin, "jaia_ip"), "w") as f:
-            f.write("#!/bin/sh\ncase \"$*\" in *gateway*) echo 10.23.7.1 ;; *) echo 10.23.7.100 ;; esac\n")
-        os.chmod(os.path.join(fake_bin, "jaia_ip"), 0o755)
+        fakes = {
+            "jaia_ip": 'case "$*" in *gateway*) echo 10.23.7.1 ;; *) echo 10.23.7.100 ;; esac',
+            "jaia_bounds": 'case "$*" in *--min*) echo 0 ;; *fleet_id*) echo 4000 ;; *hub_id*) echo 30 ;; *bot_id*) echo 150 ;; esac',
+            "ykman": "echo 12345678",
+            # writes the key files ssh-keygen would, without a real key or Yubikey
+            "ssh-keygen": 'while [ $# -gt 0 ]; do case "$1" in -f) shift; f="$1" ;; -C) shift; c="$1" ;; -t) shift; t="$1" ;; esac; shift; done\n'
+                          'printf "PRIVATE %s\\n" "$c" > "$f"; printf "ssh-%s AAAA%s %s\\n" "$t" "$c" "$c" > "$f.pub"',
+        }
+        for name, body in fakes.items():
+            with open(os.path.join(fake_bin, name), "w") as f:
+                f.write("#!/bin/sh\n" + body + "\n")
+            os.chmod(os.path.join(fake_bin, name), 0o755)
         self.env = dict(os.environ, PATH=fake_bin + os.pathsep + os.environ["PATH"])
 
     def run(self, *args):
@@ -285,22 +294,126 @@ class CommandTest(unittest.TestCase):
                              "bots": [], "hubs": [], "this": {"type": "bot", "id": 1, "mode": "runtime"},
                              "serviceVpnEnabled": False, "wlanPassword": "x"})
 
-    def test_settings_from_selections(self):
-        selections = os.path.join(self.env.dir, "sel.txt")
-        with open(selections, "w") as f:
-            f.write("jaiabot-embedded\tjaiabot-embedded/type\tselect\tbot\n"
-                    "jaiabot-embedded\tjaiabot-embedded/bot_type\tselect\techo\n"
-                    "jaiabot-embedded\tjaiabot-embedded/comms_links\tmultiselect\txbee, iridium\n"
-                    "jaiabot-embedded\tjaiabot-embedded/debconf_state_bot\tselect\tEXIT\n")
-        result = self.env.run("settings", selections, "--indent", "2")
+    def test_binary_dispatch_create_help(self):
+        result = self.env.run("--binary=jaia admin fleet create", "--help")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, "  settings {\n    comms_links: COMMS_LINK_XBEE\n    comms_links: COMMS_LINK_IRIDIUM\n    bot_type: BOT_TYPE_PAM\n  }\n")
-        base = os.path.join(self.env.dir, "base.txt")
-        with open(base, "w") as f:
-            f.write("jaiabot-embedded\tjaiabot-embedded/bot_type\tselect\tpam\n"
-                    "jaiabot-embedded\tjaiabot-embedded/comms_links\tmultiselect\txbee\n")
-        result = self.env.run("settings", selections, "--only-changed-from", base)
-        self.assertEqual(result.stdout, "settings {\n  comms_links: COMMS_LINK_XBEE\n  comms_links: COMMS_LINK_IRIDIUM\n}\n")
+        self.assertIn("fleetcfg", result.stdout)
+
+
+def settings_answers(groups, chosen):
+    """The answers the create flow asks for, in order, as ask_settings asks them."""
+    answers = []
+    given = {}
+    for q in SCHEMA.questions:
+        if q.identity or q.group not in groups:
+            continue
+        if q.ask_if:
+            field, equals = q.ask_if
+            cond = SCHEMA.questions_by_name[field]
+            if given.get(field, cond.default) != equals:
+                continue
+        answer = chosen.get(q.name, q.default if q.default is not None else "")
+        given[q.name] = answer
+        answers.append(answer)
+    return answers
+
+
+class CreateTest(unittest.TestCase):
+    def setUp(self):
+        self.env = Env()
+        self.addCleanup(self.env.cleanup)
+
+    def run_create(self, answers):
+        path = os.path.join(self.env.dir, "answers.txt")
+        with open(path, "w") as f:
+            f.write("\n".join(answers) + "\n")
+        out = os.path.join(self.env.dir, "fleet7.cfg")
+        result = self.env.run("create", out, "--answers", path)
+        return result, out
+
+    def test_creates_a_valid_current_version_file(self):
+        answers = [
+            "abc", "7",                      # fleet id: re-asked until it is in range
+            "1, 30", "1, 2",                 # hubs, bots
+            "ssh-ed25519 AAAAperm me", "",   # permanent keys
+            "wifipass", "yes",               # wlan password, service vpn
+            "https://cloudhub.example.com", "admin@example.com", "smtp.example.com:587",
+        ]
+        answers += settings_answers({"ALL", "BOT", "HUB"}, {"comms_links": "xbee, iridium", "bot_type": "pam",
+                                                           "pam_connection_type": "uart", "user_role": "advanced"})
+        answers += ["yes", "", "2"] + settings_answers({"ALL", "BOT"}, {"comms_links": "xbee, iridium", "bot_type": "bio",
+                                                                         "camera_positions": "outward"})
+        answers += ["no"]
+        answers += ["300234010753370", "300234010753371", "SBD_ROCKBLOCK", "rbuser", "rbpass"]
+        result, out = self.run_create(answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("Output written to", result.stdout)
+
+        cfg = fc.parse_fleet_config(SCHEMA, out)
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        self.assertEqual((cfg.version, cfg.fleet, list(cfg.hubs), list(cfg.bots)), (SCHEMA.version, 7, [1, 30], [1, 2]))
+        keys = {k.id: k for k in cfg.ssh.hub}
+        self.assertEqual(keys[1].public_key, "no-touch-required ssh-ed25519-sk AAAAhub1_fleet7 hub1_fleet7")
+        self.assertEqual(keys[30].public_key, "ssh-ed25519 AAAAhub30_fleet7 hub30_fleet7")
+        self.assertEqual(keys[1].private_key, "PRIVATE hub1_fleet7\n")
+        self.assertEqual(cfg.ssh.vpn_tmp.public_key, "ssh-ed25519 AAAAid_vpn_tmp id_vpn_tmp")
+        self.assertEqual(list(cfg.ssh.permanent_authorized_keys), ["ssh-ed25519 AAAAperm me"])
+        self.assertEqual((cfg.wlan_password, cfg.service_vpn_enabled), ("wifipass", True))
+        self.assertEqual(cfg.cloudhub_auth.admin_email, "admin@example.com")
+
+        s = cfg.settings
+        q = SCHEMA.questions_by_name
+        self.assertEqual(q["comms_links"].to_debconf(list(s.comms_links)), "xbee, iridium")
+        self.assertEqual(q["bot_type"].to_debconf(s.bot_type), "pam")
+        self.assertEqual(q["pam_connection_type"].to_debconf(s.pam_connection_type), "uart")
+        self.assertEqual(q["user_role"].to_debconf(s.user_role), "advanced")
+        # every question is answered, identity ones never
+        for question in SCHEMA.questions:
+            if question.identity:
+                self.assertFalse(s.HasField(question.name))
+            elif not question.repeated:
+                self.assertTrue(s.HasField(question.name), question.name)
+
+        self.assertEqual(len(cfg.override), 1)
+        o = cfg.override[0]
+        self.assertEqual((fc.node_type_name(SCHEMA, o.type), o.id), ("bot", 2))
+        self.assertEqual(sorted(f.name for f, _ in o.settings.ListFields()), ["bot_type", "camera_positions", "pam_connection_type"])
+        self.assertEqual(q["bot_type"].to_debconf(o.settings.bot_type), "bio")
+        self.assertEqual(q["pam_connection_type"].to_debconf(o.settings.pam_connection_type), "none")
+
+        sbd = cfg.comms.iridium_sbd
+        self.assertEqual([(b.id, b.imei) for b in sbd.bot], [(1, "300234010753370"), (2, "300234010753371")])
+        self.assertEqual((sbd.rockblock.username, sbd.rockblock.password), ("rbuser", "rbpass"))
+
+        result = self.env.run("validate", out)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_no_iridium_no_comms_and_no_empty_override(self):
+        answers = ["7", "1", "1", "", "wifipass", "no"]
+        answers += settings_answers({"ALL", "BOT", "HUB"}, {})
+        answers += ["yes", "", "1"] + settings_answers({"ALL", "BOT"}, {}) + ["no"]
+        result, out = self.run_create(answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, out)
+        self.assertFalse(cfg.HasField("comms"))
+        self.assertFalse(cfg.HasField("cloudhub_auth"))
+        self.assertEqual(len(cfg.override), 0)
+
+    def test_rf_encryption_password_is_proposed_at_random(self):
+        class AcceptDefault:
+            def inputbox(self, text, default=""):
+                return default
+        q = SCHEMA.questions_by_name["rf_encryption_password"]
+        first, second = fc.ask_question(AcceptDefault(), q, ""), fc.ask_question(AcceptDefault(), q, "")
+        self.assertRegex(first, "^[0-9a-f]{32}$")
+        self.assertNotEqual(first, second)
+        self.assertEqual(fc.ask_question(AcceptDefault(), q, "keep"), "keep")
+
+    def test_nothing_written_when_answers_run_out(self):
+        result, out = self.run_create(["7", "1"])
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no scripted answer", result.stderr)
+        self.assertFalse(os.path.exists(out))
 
 
 if __name__ == "__main__":

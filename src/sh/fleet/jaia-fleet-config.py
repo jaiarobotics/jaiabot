@@ -15,8 +15,12 @@ import io
 import json
 import os
 import re
+import secrets
+import shlex
+import shutil
 import subprocess
 import sys
+import tempfile
 
 from google.protobuf import descriptor_pb2, descriptor_pool, message_factory, text_format
 from google.protobuf.descriptor import FieldDescriptor
@@ -265,7 +269,6 @@ def load_schema(descriptor_set=None):
 
 def compile_descriptor_set(proto, includes, protoc="protoc"):
     """Build-time helper: fleet_config.proto -> FileDescriptorSet bytes."""
-    import tempfile
     proto = os.path.abspath(proto)
     with tempfile.TemporaryDirectory() as tmp:
         out = os.path.join(tmp, DESCRIPTOR_SET_NAME)
@@ -347,23 +350,6 @@ def debconf_selections(schema, settings, include_identity=False):
     return out
 
 
-def settings_from_selections(schema, lines, problems, notes):
-    """debconf-set-selections lines -> NodeSettings (identity keys dropped)."""
-    settings = schema.NodeSettings()
-    for line in lines:
-        line = line.rstrip("\n")
-        if not line.strip() or line.startswith("#"):
-            continue
-        parts = line.split("\t") if "\t" in line else line.split(None, 3)
-        if len(parts) < 3:
-            problems.append("cannot parse selection line: {}".format(line))
-            continue
-        key = parts[1]
-        value = parts[3] if len(parts) > 3 else ""
-        apply_selection(schema, settings, key, value, problems, notes)
-    return settings
-
-
 def apply_selection(schema, settings, key, value, problems, notes):
     q = schema.questions_by_key.get(key)
     if q is None:
@@ -379,11 +365,7 @@ def apply_selection(schema, settings, key, value, problems, notes):
     except FleetConfigError as e:
         problems.append(str(e))
         return
-    if q.repeated:
-        settings.ClearField(q.name)
-        getattr(settings, q.name).extend(parsed)
-    else:
-        setattr(settings, q.name, parsed)
+    set_answer(settings, q, parsed)
 
 
 ###############################################################################
@@ -408,15 +390,27 @@ def migrate_1_to_2(schema, cfg, notes, problems):
     cfg.ClearField("debconf_override")
     if not cfg.HasField("settings"):
         cfg.settings.SetInParent()
-    # Every question is written out so the file is a complete record
+    fill_defaults(schema, cfg.settings)
+
+
+def fill_defaults(schema, settings):
+    """Every unanswered question at its default, so the file is a complete record."""
     for q in schema.questions:
         if q.identity or q.default is None:
             continue
         if q.repeated:
-            if not getattr(cfg.settings, q.name):
-                getattr(cfg.settings, q.name).extend(q.from_debconf(q.default))
-        elif not cfg.settings.HasField(q.name):
-            setattr(cfg.settings, q.name, q.from_debconf(q.default))
+            if not getattr(settings, q.name):
+                getattr(settings, q.name).extend(q.from_debconf(q.default))
+        elif not settings.HasField(q.name):
+            setattr(settings, q.name, q.from_debconf(q.default))
+
+
+def set_answer(settings, q, parsed):
+    if q.repeated:
+        settings.ClearField(q.name)
+        getattr(settings, q.name).extend(parsed)
+    else:
+        setattr(settings, q.name, parsed)
 
 
 MIGRATIONS = {
@@ -563,36 +557,6 @@ def cmd_migrate(schema, args):
     with open(out, "w") as f:
         f.write(fleet_config_text(cfg))
     print("wrote {} (version {})".format(out, schema.version))
-    return 0
-
-
-def cmd_settings(schema, args):
-    """debconf-set-selections file -> 'settings { ... }' text for jaia admin fleet create."""
-    problems, notes = [], []
-    with open(args.selections) as f:
-        settings = settings_from_selections(schema, f, problems, notes)
-    for note in notes:
-        print("settings: " + note, file=sys.stderr)
-    if problems:
-        print("\n".join(problems), file=sys.stderr)
-        return 1
-    if args.only_changed_from:
-        with open(args.only_changed_from) as f:
-            base = settings_from_selections(schema, f, [], [])
-        for field, value in list(settings.ListFields()):
-            if field.label == FieldDescriptor.LABEL_REPEATED:
-                same = list(value) == list(getattr(base, field.name))
-            else:
-                same = base.HasField(field.name) and getattr(base, field.name) == value
-            if same:
-                settings.ClearField(field.name)
-    body = text_format.MessageToString(settings)
-    indent = " " * args.indent
-    name = args.field_name
-    print("{}{} {{".format(indent, name))
-    for line in body.splitlines():
-        print("{}  {}".format(indent, line))
-    print("{}}}".format(indent))
     return 0
 
 
@@ -770,6 +734,325 @@ def redacted(obj):
 ###############################################################################
 
 
+
+# --- create: interactive fleet configuration ----------------------------------
+
+DIALOG_TITLE = "Fleet Configuration"
+
+
+class Cancelled(FleetConfigError):
+    pass
+
+
+class WhiptailUI:
+    """Dialogs drawn with whiptail on the controlling terminal."""
+
+    def __init__(self):
+        self.tty = open("/dev/tty", "w")
+
+    def _run(self, box, text, tail=(), options=(), cancel_ok=False):
+        cols, lines = shutil.get_terminal_size((80, 24))
+        cmd = ["whiptail", "--title", DIALOG_TITLE] + list(options) + [box, text, str(lines - 4), str(cols - 4)] + list(tail)
+        result = subprocess.run(cmd, stdout=self.tty, stderr=subprocess.PIPE, text=True)
+        if result.returncode == 1 and cancel_ok:
+            return None
+        if result.returncode != 0:
+            raise Cancelled("cancelled")
+        return result.stderr
+
+    def _list_height(self, choices):
+        return str(min(len(choices), max(shutil.get_terminal_size((80, 24)).lines - 12, 4)))
+
+    def menu(self, text, choices, default=None):
+        options = ["--default-item", default] if default is not None else []
+        return self._run("--menu", text, [self._list_height(choices)] + [x for c in choices for x in (c, "")], options)
+
+    def checklist(self, text, choices, checked=()):
+        items = [x for c in choices for x in (c, "", "on" if c in checked else "off")]
+        return shlex.split(self._run("--checklist", text, [self._list_height(choices)] + items))
+
+    def inputbox(self, text, default=""):
+        return self._run("--inputbox", text, [default]).strip()
+
+    def yesno(self, text):
+        return self._run("--yesno", text, cancel_ok=True) is not None
+
+    def msgbox(self, text):
+        self._run("--msgbox", text)
+
+
+class ScriptedUI:
+    """Answers read from a file, one per line and dialog: checklists comma-separated,
+    yes/no as yes or no, an empty line for an empty answer."""
+
+    def __init__(self, path):
+        with open(path) as f:
+            self.answers = [line.rstrip("\n") for line in f if not line.startswith("#")]
+
+    def _next(self, text):
+        if not self.answers:
+            raise FleetConfigError("no scripted answer for: {}".format(text.splitlines()[0]))
+        return self.answers.pop(0)
+
+    def menu(self, text, choices, default=None):
+        answer = self._next(text)
+        if answer not in choices:
+            raise FleetConfigError("scripted answer '{}' is not one of {}".format(answer, collapse(choices)))
+        return answer
+
+    def checklist(self, text, choices, checked=()):
+        answer = self._next(text)
+        return [a.strip() for a in answer.split(",") if a.strip()]
+
+    def inputbox(self, text, default=""):
+        return self._next(text)
+
+    def yesno(self, text):
+        return self._next(text).lower() == "yes"
+
+    def msgbox(self, text):
+        pass
+
+
+def jaia_bounds(flag, end):
+    try:
+        out = subprocess.run(["jaia_bounds", "--" + flag, "--" + end], capture_output=True, text=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError) as e:
+        raise FleetConfigError("jaia_bounds --{} failed ({}); is jaiabot-apps installed?".format(flag, e))
+    return int(out.strip())
+
+
+def ask_id(ui, name, text):
+    lo, hi = jaia_bounds(name, "min"), jaia_bounds(name, "max")
+    while True:
+        answer = ui.inputbox("{} ({} to {})".format(text, lo, hi))
+        if answer.isdigit() and lo <= int(answer) <= hi:
+            return int(answer)
+        ui.msgbox("'{}' is not a whole number from {} to {}".format(answer, lo, hi))
+
+
+def ask_ids(ui, name, text):
+    # 0 is the unassigned placeholder, never a node in a fleet
+    lo, hi = max(jaia_bounds(name, "min"), 1), jaia_bounds(name, "max")
+    return [int(x) for x in ui.checklist(text, [str(i) for i in range(lo, hi + 1)])]
+
+
+def ssh_keygen(comment, security_key=False):
+    """(private key file contents, public key line) for a fresh ed25519 key."""
+    with tempfile.TemporaryDirectory() as tmp:
+        private = os.path.join(tmp, comment)
+        cmd = ["ssh-keygen", "-f", private, "-N", "", "-C", comment]
+        if security_key:
+            cmd += ["-t", "ed25519-sk", "-O", "no-touch-required"]
+        else:
+            cmd += ["-t", "ed25519"]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
+        with open(private) as f:
+            private_key = f.read()
+        with open(private + ".pub") as f:
+            public_key = f.read().strip()
+    return private_key, public_key
+
+
+def yubikey_present():
+    try:
+        out = subprocess.run(["ykman", "list", "-s"], capture_output=True, text=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError) as e:
+        raise FleetConfigError("ykman failed ({}); is yubikey-manager installed?".format(e))
+    return len(out.split()) == 1
+
+
+def hub_key(ui, fleet, hub):
+    comment = "hub{}_fleet{}".format(hub, fleet)
+    if hub == CLOUDHUB_ID:
+        # no USB port in the cloud, so a file key
+        return ssh_keygen(comment)
+    ui.msgbox("Hub {} SSH Private Key: insert the Yubikey for hub {} into a USB port to generate its SSH key, "
+              "then press OK".format(hub, hub))
+    while not yubikey_present():
+        ui.msgbox("ERROR: exactly one Yubikey must be inserted. Check that the Yubikey for hub {} is connected "
+                  "and no other Yubikey is.".format(hub))
+    private_key, public_key = ssh_keygen(comment, security_key=True)
+    return private_key, "no-touch-required " + public_key
+
+
+# Answers proposed for questions whose default is empty
+GENERATED_DEFAULTS = {"rf_encryption_password": lambda: secrets.token_hex(16)}
+
+
+def current_answer(q, settings):
+    """The debconf-form answer a question currently holds, or its default."""
+    if q.identity:
+        return q.default
+    if q.repeated:
+        values = list(getattr(settings, q.name))
+        return q.to_debconf(values) if values else q.default
+    if settings.HasField(q.name):
+        return q.to_debconf(getattr(settings, q.name))
+    return q.default
+
+
+def ask_question(ui, q, current):
+    text = q.description
+    if q.extended_description:
+        text += "\n\n" + q.extended_description
+    if q.type == "select":
+        return ui.menu(text, q.choices, default=current)
+    if q.type == "multiselect":
+        checked = [c.strip() for c in (current or "").split(",")]
+        return ", ".join(ui.checklist(text, q.choices, checked=checked))
+    if q.type == "boolean":
+        return "true" if ui.yesno(text) else "false"
+    if current in (None, "") and q.name in GENERATED_DEFAULTS:
+        current = GENERATED_DEFAULTS[q.name]()
+    return ui.inputbox(text, current or "")
+
+
+def ask_settings(ui, schema, groups, base):
+    """Ask every non-identity question of the given groups, starting from base's answers."""
+    settings = schema.NodeSettings()
+    settings.CopyFrom(base)
+    for q in schema.questions:
+        if q.identity or q.group not in groups:
+            continue
+        if q.ask_if:
+            field, equals = q.ask_if
+            if current_answer(schema.questions_by_name[field], settings) != equals:
+                if q.unasked_value is not None:
+                    set_answer(settings, q, q.from_debconf(q.unasked_value))
+                continue
+        while True:
+            try:
+                set_answer(settings, q, q.from_debconf(ask_question(ui, q, current_answer(q, settings))))
+                break
+            except FleetConfigError as e:
+                ui.msgbox(str(e))
+    return settings
+
+
+def changed_fields(schema, settings, base):
+    """The fields of settings whose value differs from base."""
+    diff = schema.NodeSettings()
+    for q in schema.questions:
+        if q.identity:
+            continue
+        if current_answer(q, settings) != current_answer(q, base):
+            set_answer(diff, q, q.from_debconf(current_answer(q, settings)))
+    return diff
+
+
+def uses_comms_link(schema, cfg, link):
+    q = schema.questions_by_name["comms_links"]
+    for settings in [cfg.settings] + [o.settings for o in cfg.override]:
+        if link in [v.strip() for v in (current_answer(q, settings) or "").split(",")]:
+            return True
+    return False
+
+
+def node_type_number(schema, name):
+    enum = schema.pool.FindEnumTypeByName(FLEET_CONFIG_TYPE + ".DebconfOverride.NodeType")
+    return enum.values_by_name[name.upper()].number
+
+
+def create(schema, ui, banner=print):
+    cfg = schema.FleetConfig()
+    cfg.version = schema.version
+
+    banner("Choose fleet")
+    cfg.fleet = ask_id(ui, "fleet_id", "Which fleet to create?")
+    banner("Choose hubs")
+    cfg.hubs.extend(ask_ids(ui, "hub_id", "Which hubs are in the fleet?"))
+    banner("Choose bots")
+    cfg.bots.extend(ask_ids(ui, "bot_id", "Which bots are in the fleet?"))
+
+    banner("Generating hub SSH keys")
+    for hub in cfg.hubs:
+        key = cfg.ssh.hub.add()
+        key.id = hub
+        key.private_key, key.public_key = hub_key(ui, cfg.fleet, hub)
+
+    banner("Generating service Wireguard VPN temporary key")
+    cfg.ssh.vpn_tmp.private_key, cfg.ssh.vpn_tmp.public_key = ssh_keygen("id_vpn_tmp")
+
+    banner("Permanent SSH keys (for /home/jaia/.ssh/authorized_keys)")
+    while True:
+        key = ui.inputbox("Enter a permanent SSH public key (for /home/jaia/.ssh/authorized_keys). Leave blank to continue")
+        if not key:
+            break
+        cfg.ssh.permanent_authorized_keys.append(key)
+
+    banner("Wifi password")
+    cfg.wlan_password = ui.inputbox("Enter the WIFI password")
+
+    banner("Service Wireguard VPN")
+    cfg.service_vpn_enabled = ui.yesno("Should the service Wireguard VPN be enabled at boot?")
+
+    if CLOUDHUB_ID in cfg.hubs:
+        banner("CloudHub authentication")
+        cfg.cloudhub_auth.base_uri = ui.inputbox("CloudHub base URI (e.g. https://cloudhub.example.com)")
+        cfg.cloudhub_auth.admin_email = ui.inputbox("CloudHub administrator email")
+        cfg.cloudhub_auth.smtp_address = ui.inputbox("SMTP server for CloudHub login emails (host:port)")
+
+    banner("Common jaiabot-embedded settings")
+    defaults = schema.NodeSettings()
+    fill_defaults(schema, defaults)
+    cfg.settings.CopyFrom(ask_settings(ui, schema, {"ALL", "BOT", "HUB"}, defaults))
+
+    banner("Overrides (settings that differ from the common ones)")
+    while ui.yesno("Do you have any bot/hub specific settings that differ from the common ones?"):
+        hubs = [int(x) for x in ui.checklist("Which hubs are in this override set?", [str(h) for h in cfg.hubs])]
+        bots = [int(x) for x in ui.checklist("Which bots are in this override set?", [str(b) for b in cfg.bots])]
+        groups = {"ALL"} | ({"HUB"} if hubs else set()) | ({"BOT"} if bots else set())
+        answers = ask_settings(ui, schema, groups, cfg.settings)
+        diff = changed_fields(schema, answers, cfg.settings)
+        if not diff.ListFields():
+            ui.msgbox("No setting differs from the common ones; no override written")
+            continue
+        for node_type, ids in (("hub", hubs), ("bot", bots)):
+            for node_id in ids:
+                override = cfg.override.add()
+                override.type = node_type_number(schema, node_type)
+                override.id = node_id
+                override.settings.CopyFrom(diff)
+
+    if uses_comms_link(schema, cfg, "iridium"):
+        banner("Iridium SBD configuration")
+        sbd = cfg.comms.iridium_sbd
+        for bot in cfg.bots:
+            entry = sbd.bot.add()
+            entry.id = bot
+            entry.imei = ui.inputbox("Enter the Iridium IMEI for bot {}".format(bot))
+        sbd_types = sbd.DESCRIPTOR.fields_by_name["sbd_type"].enum_type
+        sbd.sbd_type = sbd_types.values_by_name[
+            ui.menu("Which Iridium shore service does this fleet use (MetOcean is SBD_DIRECTIP)?",
+                    [v.name for v in sbd_types.values])].number
+        if sbd_types.values_by_number[sbd.sbd_type].name == "SBD_ROCKBLOCK":
+            sbd.rockblock.username = ui.inputbox("Enter the RockBLOCK portal username")
+            sbd.rockblock.password = ui.inputbox("Enter the RockBLOCK portal password")
+
+    problems = validate(schema, cfg)
+    if problems:
+        raise FleetConfigError("the new fleet configuration is not valid:\n  " + "\n  ".join(problems))
+    return cfg
+
+
+def cmd_create(schema, args):
+    ui = ScriptedUI(args.answers) if args.answers else WhiptailUI()
+
+    def banner(text):
+        print("## " + text)
+
+    try:
+        cfg = create(schema, ui, banner)
+    except Cancelled:
+        print("Cancelled; nothing written", file=sys.stderr)
+        return 1
+    with open(args.fleetcfg, "w") as f:
+        f.write(fleet_config_text(cfg))
+    print("Output written to " + args.fleetcfg)
+    return 0
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description="Jaiabot fleet configuration tool")
     parser.add_argument("--descriptor-set", help="fleet_config.desc to use (default: next to this script or in share/jaiabot/fleet_config)")
@@ -789,12 +1072,10 @@ def build_parser():
     p.add_argument("--check", action="store_true", help="Report whether migration would succeed without writing")
     p.set_defaults(func=cmd_migrate)
 
-    p = sub.add_parser("settings", help="Convert a debconf-set-selections file to a 'settings { }' block")
-    p.add_argument("selections")
-    p.add_argument("--only-changed-from", help="Selections file to diff against; only differing answers are output")
-    p.add_argument("--field-name", default="settings", help="Name of the emitted block")
-    p.add_argument("--indent", type=int, default=0)
-    p.set_defaults(func=cmd_settings)
+    p = sub.add_parser("create", help="Interactively create a new fleet configuration")
+    p.add_argument("fleetcfg", help="Path to write the fleet configuration file to")
+    p.add_argument("--answers", help=argparse.SUPPRESS)
+    p.set_defaults(func=cmd_create)
 
     p = sub.add_parser("generate", help="Generate first boot configuration and write to disk")
     p.add_argument("fleetcfg", help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")

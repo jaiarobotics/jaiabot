@@ -34,7 +34,6 @@ set(scripts_to_install
   system/jaia-update-dns.sh
   system/jaia-iridium-tunnel.sh
   # Fleet config
-  fleet/jaia-create-fleet-config.sh
   fleet/jaia-fleet-config.py
   fleet/jaia-fleet-config-update-iso.sh
   fleet/jaia-create-cloudhub.py

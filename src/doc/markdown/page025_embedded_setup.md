@@ -48,9 +48,9 @@ The simplest way to create a new fleet is to use the `jaia` tool (e.g. for fleet
 jaia admin fleet create fleet5.cfg
 ```
 
-This will prompt you using a whiptail UI to set the various fleet related settings, and write the contents to `fleet5.cfg`.
+This will prompt you using a whiptail UI to set the various fleet related settings, and write the contents to `fleet5.cfg`. The bot/hub settings it asks for are the same questions, in the same order, as `jaiabot-embedded` asks on a node (both come from `fleet_config.proto`), first for the whole fleet and then, optionally, for sets of bots or hubs whose answers differ.
 
-This tool will also create the hub keys, VPN temporary keys as necessary and include those in the fleet configuration file.
+This tool will also create the hub keys (with a Yubikey per hub, or a file key for the CloudHub), VPN temporary keys as necessary and include those in the fleet configuration file. It needs `ssh-keygen`, `ykman` (yubikey-manager) and `whiptail` on the machine running it.
 
 The bot/hub settings are stored as typed fields of the `settings { }` block (with per-node `override { }` blocks), and the file records the fleet config version it was written for. `jaia admin fleet validate fleet5.cfg` checks a file, and `jaia admin fleet migrate` rewrites an older file at the current version; see [Fleet configuration versioning](page091_major_upgrade.md#fleet-configuration-versioning).
 
