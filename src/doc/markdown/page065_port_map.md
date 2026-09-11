@@ -21,8 +21,6 @@ In simulation all the nodes may run on a single host, so ports that would otherw
 | Port | Use |
 |------|-----|
 | 53 | Fleet DNS (`jaiabot_dns`, hub only) |
-| 20000 | `jaiabot_udp_gateway` (runtime): all the Python sensor drivers (IMU, pressure/temperature, EC, PAM, TSYS01) publish to this single port |
-| 20400 + node_id | `jaiabot_udp_gateway` (simulation) |
 | 20005 | Python motor driver |
 | 31000 | WiFi comms link (runtime) |
 | 31000 + hub_id | WiFi comms link to a hub (simulation) |

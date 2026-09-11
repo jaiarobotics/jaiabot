@@ -117,6 +117,7 @@ verbosities = \
   'jaiabot_ppk_logger':                           { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_imu':                           { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_pam':                           { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_imu_test':                             { 'runtime': { 'tty': 'VERBOSE', 'log': 'QUIET' },  'simulation': { 'tty': 'VERBOSE', 'log': 'QUIET' }},
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -316,6 +317,10 @@ elif common.app == 'jaiabot_driver_imu':
                                      simulate=str(is_simulation()).lower(),
                                      sample_frequency=10,
                                      device_type=jaia_imu_type.upper()))
+elif common.app == 'jaiabot_imu_test':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_imu_test.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common))
 elif common.app == 'jaiabot_driver_pam':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_pam.pb.cfg.in',
                                      app_block=app_common,

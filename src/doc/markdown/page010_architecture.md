@@ -32,18 +32,18 @@ In addition, we expect to support clients using `ROS` in the future.
 
 #### In jaiabot project
 
-- `jaiabot_as-ezo-ec.py`: Python driver for Atlas Scientific conductivity sensor.
-- `jaiabot_udp_gateway`: Middleman between our python drivers and the Goby system. Listens on UDP to Python driver and republishes as a Goby3 message.
+- `jaiabot_driver_salinity.py`: Python driver for the Atlas Scientific conductivity sensor.
+- `jaiabot_driver_imu.py`, `jaiabot_driver_pressure.py`, `jaiabot_driver_tsys01.py`, `jaiabot_driver_pam.py`, `jaiabot_ppk_logger.py`: the remaining Python drivers. All are Goby3 applications written in Python (see `interface.yml` beside each), publishing to `gobyd` directly.
 - `jaiabot_driver_arduino`: This is the driver for the Arduino which controls the elevators, rudder, motor, diagnostic LEDs, and power monitoring.
 - `jaiabot_engineering`: Handles commands from the Engineering Interface web page to set and test low level functionality.
 - `jaiabot_fusion`: Assembles the `goby::middleware::frontseat::protobuf::NodeStatus` message used by the `goby_moos_gateway` from the `goby_gps` output, pressure sensor, and other sources, as needed.
 - `jaiabot_health`: Overall system health using data from `goby_coroner` and eventually other sources.
 - `jaiabot_hub_manager`: Interface between the bots and the web sites. Sends and receives inter-vehicle messages on the radio and republishes / subscribes to their Goby3 counterparts on inter-process.
-- `jaiabot_imu.py`: Python driver for the Adafruit BNO055 and BNO085 IMUs.
+- `jaiabot_driver_imu.py`: Python driver for the Adafruit BNO055 and BNO085 IMUs.
 - `jaiabot_metadata`: Logs information about the system including current jaiabot build number, current Goby3 build number, computing platform, etc.
 - `jaiabot_mission_manager`: Keeps a state machine of the overall mission state and switches from pHelmIvP control to profile mode as required.
 - `jaiabot_pid_control`: Determines values to output to motor and control surfaces via pid control loops
-- `jaiabot_pressure_sensor.py`: Python driver for Blue Robotics Bar02 and Bar30.
+- `jaiabot_driver_pressure.py`: Python driver for Blue Robotics Bar02 and Bar30.
 - `jaiabot_sensors`: Driver for sensors attached to the sensor MCU (see the [Sensors](page014_sensors.md) page).
 - `jaiabot_comms_manager`: Manages the intervehicle comms links (XBee, WiFi, Iridium).
 - `jaiabot_ctd_manager`: Manages CTD (conductivity/temperature/depth) data products.
