@@ -28,15 +28,18 @@ class GeneratedFilesTest(unittest.TestCase):
         result = subprocess.run([sys.executable, GEN, "--check"], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_generated_templates_match_the_hand_written_v1_file(self):
-        """Same questions, types, choices and defaults as before they were generated,
-        except the ids, which are now strings checked against jaia_bounds."""
+    def test_generated_templates_keep_every_hand_written_v1_question(self):
+        """Every question of the hand-written file survives with the same type,
+        choices and default. Later releases may add questions; the ids became
+        strings checked against jaia_bounds."""
         with open(os.path.join(SNAPSHOT_DIR, "v1", "jaiabot-embedded.templates")) as f:
             v1 = contract.debconf_contract_from_templates(f.read())
         with open(os.path.join(SOURCE_DIR, "debian", "jaiabot-embedded.templates")) as f:
             now = contract.debconf_contract_from_templates(f.read())
         ids = {"jaiabot-embedded/" + name for name in ("fleet_id", "bot_id", "hub_id")}
-        self.assertEqual({k: v for k, v in v1.items() if k not in ids}, {k: v for k, v in now.items() if k not in ids})
+        for key, entry in v1.items():
+            if key not in ids:
+                self.assertEqual(entry, now.get(key), key)
         for key in ids:
             self.assertEqual(now[key], {"type": "string", "default": "0"})
 

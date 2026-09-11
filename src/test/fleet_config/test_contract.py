@@ -63,8 +63,12 @@ class SnapshotTest(unittest.TestCase):
         # every stored v1 question survives with the same type, choices and default; the
         # per-node ids became bounds-checked strings but are never in a fleet config
         identity = {k for k, v in v2["debconf"].items() if v.get("identity")}
-        self.assertEqual({k: {a: v[a] for a in ("type", "choices", "default") if a in v} for k, v in v1["debconf"].items() if k not in identity},
-                         {k: {a: v[a] for a in ("type", "choices", "default") if a in v} for k, v in v2["debconf"].items() if k not in identity})
+        def stored(model):
+            return {k: {a: v[a] for a in ("type", "choices", "default") if a in v}
+                    for k, v in model["debconf"].items() if k not in identity}
+        v2_stored = stored(v2)
+        for key, entry in stored(v1).items():
+            self.assertEqual(entry, v2_stored.get(key), key)
         for key in sorted(identity):
             if v1["debconf"][key]["type"] != v2["debconf"][key]["type"]:
                 self.assertIn("debconf {} changed type from select to string".format(key), texts)
