@@ -121,7 +121,9 @@ For each VPN class, the Subnet ID is the Fleet ID, so for example, VirtualFleet 
 
 #### Address
 
-For a given node on the network, the 64-bit interface identifier is given as `::1:hub_id` for hubs, `::2:bot_id` for bots, `::3:customer_id` for various customer machines (desktop / laptop / tablet), `::4:rpicam_id` for rpicams, and `::5:0` for the gateway (the fleet WiFi access point, which on the IPv4 networks is `.1`). This allows up to 2^16 = 65536 nodes of each type to be assigned per fleet.
+For a given node on the network, the 64-bit interface identifier is given as `::1:hub_id` for hubs, `::2:bot_id` for bots, `::3:customer_id` for various customer machines (desktop / laptop / tablet), `::4:rpicam_id` for rpicams, and `::5:0` for the gateway, which is the Wireguard server on the VPN networks (`.1` on the IPv4 networks). This allows up to 2^16 = 65536 nodes of each type to be assigned per fleet.
+
+Nothing is assigned the gateway address on the fleet WLAN. A node there finds its router by Router Advertisement, and the generated network configuration sets no IPv6 gateway; the address is reserved so that a Wireguard server, which is inside a tunnel where there is no Router Advertisement to answer, has the same identifier on every network.
 
 Group `::0:` is left unassigned: it holds the subnet-router anycast address (`::`) and `::1`, which a router sharing the segment conventionally claims for itself. A node given either address fails Duplicate Address Detection and is unreachable.
 
