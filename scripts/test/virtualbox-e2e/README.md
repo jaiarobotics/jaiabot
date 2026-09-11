@@ -34,6 +34,18 @@ of the previous OVA, whose NIC 2 is left on a network that no longer carries the
 address. The same prompt therefore also offers to delete fleet nodes left behind by
 an earlier OVA.
 
+## Matching tooling to the image
+
+`import_vms.sh` generates every node's first-boot configuration with the `jaia` on
+`PATH`, so that tooling has to come from the same commit as the OVA. Tooling from
+another branch writes debconf answers the image's packages no longer accept, and the
+result does not appear until first boot, as a node that fails to configure itself -
+on a hub, with no systemd units and no web apps at all.
+
+The `import` stage therefore compares the commit `jaia version` reports against the
+`+g<commit>` in the OVA's filename and refuses to import on a mismatch.
+`--allow-tool-mismatch` overrides it.
+
 ## Stages
 
 Stages run in order and are selected with `--stages`, so a run can be resumed or

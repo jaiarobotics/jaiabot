@@ -85,6 +85,51 @@ def group_name(ova_path):
     return '/' + re.sub(r'[+~.]', '_', stem)
 
 
+def ova_commit(ova):
+    """The commit an OVA was built from, from the +g<commit> in its version suffix."""
+    m = re.search(r'\+g([0-9a-f]{7,40})\.ova$', os.path.basename(ova))
+    return m.group(1) if m else None
+
+
+def tool_commit():
+    """The commit and branch `jaia` reports itself as built from."""
+    out = run(['jaia', 'version'], check=False)
+    sha = re.search(r'^\s*git hash:\s*([0-9a-f]{7,40})\s*$', out, re.M)
+    branch = re.search(r'^\s*git branch:\s*(\S+)\s*$', out, re.M)
+    return (sha.group(1) if sha else None, branch.group(1) if branch else None)
+
+
+def check_tools_match_ova(args, ova):
+    """Refuse tooling built from a different commit than the OVA under test.
+
+    import_vms.sh generates every node's first-boot configuration with the `jaia` on
+    PATH. Tooling from another branch writes answers the image's packages no longer
+    accept, which surfaces much later as a node that fails to configure itself.
+    """
+    expected = ova_commit(ova)
+    sha, branch = tool_commit()
+    log(f'jaia: {shutil.which("jaia")}, built from {sha or "an unknown commit"}'
+        + (f' on {branch}' if branch else ''))
+    if not expected:
+        log(f'{os.path.basename(ova)} carries no +g<commit>, so the tooling cannot be '
+            'checked against it')
+        return
+    if sha and sha.startswith(expected):
+        return
+
+    complaint = (f'the jaia tooling on PATH was built from {sha or "an unknown commit"}'
+                 + (f' on branch {branch}' if branch else '')
+                 + f', but this OVA was built from {expected}')
+    if args.allow_tool_mismatch:
+        log(f'WARNING: {complaint}; importing anyway as asked')
+    else:
+        raise TestFailure(
+            complaint + '. import_vms.sh generates each node\'s first-boot '
+            'configuration with that tooling, so the fleet would not be configured the '
+            'way this image expects. Build this tree at the OVA\'s commit, or pass '
+            '--allow-tool-mismatch.')
+
+
 def jaia_ip(*args):
     """Query the addressing scheme, using a build tree's jaia_ip if one is on PATH."""
     return run(['jaia_ip'] + list(args)).strip()
@@ -184,6 +229,7 @@ def stage_import(args, ova, nodes):
     stage_banner('import')
     group = group_name(ova)
     log(f'VirtualBox group: {group}')
+    check_tools_match_ova(args, ova)
 
     names = [n.name for n in nodes]
     existing = vms_in_group(group)
@@ -683,6 +729,9 @@ def parse_args(argv):
                    help=f'comma separated subset of: {",".join(STAGES)}')
     p.add_argument('--yes', action='store_true',
                    help='replace existing VMs without prompting')
+    p.add_argument('--allow-tool-mismatch', action='store_true',
+                   help='import even though the jaia tooling on PATH was built from a '
+                        'different commit than the OVA')
     p.add_argument('--boot-timeout', type=int, default=1800)
     p.add_argument('--network-timeout', type=int, default=300)
     p.add_argument('--api-timeout', type=int, default=900)
