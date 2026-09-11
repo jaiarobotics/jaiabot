@@ -1,0 +1,12 @@
+application:
+  name: JaiabotDriverTSYS01
+  cpp_type: goby::zeromq::SingleThreadApplication
+  config:
+    scheme: PROTOBUF
+    type: jaiabot.config.TSYS01Driver
+
+interprocess:
+  publishes:
+    - group: jaiabot::groups::tsys01
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.TSYS01Data

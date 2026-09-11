@@ -74,6 +74,14 @@ add_jaiabot_library(TARGET jaiabot_messages
   PROTOS ${CXX_PROTOS}
   LINK_LIBRARIES protobuf::libprotobuf goby)
 
+# Configuration for the Python drivers. Kept out of jaiabot_messages because it imports the
+# Goby interprocess config, and a jaiabot_messages that pulled in goby_zeromq could no longer
+# be dlopen'd by the DCCL hash check below.
+add_jaiabot_library(TARGET jaiabot_python_driver_config
+  TARGET_TYPE LIB
+  PROTOS jaiabot/messages/python_driver_config.proto
+  LINK_LIBRARIES protobuf::libprotobuf jaiabot_messages goby goby_zeromq)
+
 add_subdirectory(nanopb)
 add_subdirectory(python)
 

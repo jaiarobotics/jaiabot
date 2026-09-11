@@ -110,6 +110,7 @@ verbosities = \
   'jaiabot_turner_c_fluor_sensor_driver':         { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_aml_sensor_driver':                    { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ctd_manager':                          { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_driver_tsys01':                        { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -285,6 +286,12 @@ elif common.app == 'jaiabot_udp_gateway':
                                      salinity_enabled=str(salinity_enabled).lower(),
                                      bar30_enabled=str(bar30_enabled).lower(),
                                      tsys01_enabled=str(tsys01_enabled).lower()))
+elif common.app == 'jaiabot_driver_tsys01':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_tsys01.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     simulate=str(is_simulation()).lower(),
+                                     sample_frequency=10))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,

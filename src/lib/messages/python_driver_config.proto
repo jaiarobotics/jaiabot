@@ -1,0 +1,98 @@
+syntax = "proto2";
+
+import "goby/middleware/protobuf/app_config.proto";
+import "goby/zeromq/protobuf/interprocess_config.proto";
+
+
+package jaiabot.config;
+
+// Goby requires a configuration message per application, so the six Python drivers share one
+// file rather than scattering near-identical protos through src/python. In every one of them
+// `simulate` takes readings from a device driven by jaiabot_simulator rather than hardware.
+
+message TSYS01Driver
+{
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+    optional bool simulate = 3 [default = false];
+
+    optional double sample_frequency = 10 [default = 10];
+}
+
+message SalinityDriver
+{
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+    optional bool simulate = 3 [default = false];
+
+    optional double sample_frequency = 10 [default = 10];
+
+    // I2C address of the Atlas Scientific EZO EC sensor; 100 is 0x64.
+    optional int32 i2c_address = 11 [default = 100];
+}
+
+message PressureDriver
+{
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+    optional bool simulate = 3 [default = false];
+
+    // The Bar30/Bar02 oversampling rate is chosen from this, so only these values are accepted.
+    optional double sample_frequency = 10 [default = 10];
+
+    enum SensorType
+    {
+        BAR02 = 1;
+        BAR30 = 2;
+    }
+    optional SensorType sensor_type = 11 [default = BAR30];
+}
+
+message IMUDriver
+{
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+    optional bool simulate = 3 [default = false];
+
+    optional double sample_frequency = 10 [default = 10];
+
+    enum DeviceType
+    {
+        BNO055 = 1;
+        BNO085 = 2;
+    }
+    optional DeviceType device_type = 11 [default = BNO085];
+
+    // Frequency the acceleration analyzer resamples to for wave height analysis.
+    optional double wave_analysis_frequency = 12 [default = 4];
+    optional bool dump_wave_analysis_html = 13 [default = false];
+
+    // Simulated sea state, used only when simulate: true and no simulator is publishing.
+    optional double simulated_wave_height = 20 [default = 1];
+    optional double simulated_wave_period = 21 [default = 5];
+}
+
+message PamDriver
+{
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+    optional bool simulate = 3 [default = false];
+
+    optional double status_frequency = 10 [default = 1];
+    optional string serial_device = 11 [default = "/dev/ttyAMA5"];
+}
+
+message PPKDriver
+{
+    optional goby.middleware.protobuf.AppConfig app = 1;
+    optional goby.zeromq.protobuf.InterProcessPortalConfig interprocess = 2;
+    optional bool simulate = 3 [default = false];
+
+    optional string gpsd_host = 10 [default = "localhost"];
+    optional int32 gpsd_port = 11 [default = 2947];
+
+    // Read UBX from this file instead of GPSD; implies simulate.
+    optional string input_file = 12;
+    // Write the raw UBX stream here in addition to publishing it.
+    optional string output_file = 13;
+}

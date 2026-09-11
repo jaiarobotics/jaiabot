@@ -1,3 +1,5 @@
+include(JaiaPythonApp)
+
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/adafruit DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/arduino DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/camera DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
@@ -32,4 +34,9 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ubx_ppk DESTINATION ${project_SHARE_DIR}/j
 #  DEPENDS ${pyjaiaprotobuf_outdir}/src/jaiabot/messages/jaia_dccl_pb2.py
 #  )
 
+add_subdirectory(tsys01_temperature_sensor)
+
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
+
+# architecture-dependent, so packaged apart from the pure-Python half above
+install(DIRECTORY ${JAIA_PYTHON_APP_DIR} DESTINATION lib/jaiabot USE_SOURCE_PERMISSIONS)
