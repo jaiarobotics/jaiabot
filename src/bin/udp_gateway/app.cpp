@@ -48,8 +48,7 @@ namespace apps
 constexpr goby::middleware::Group udp_gateway_in{"udp_gateway_in"};
 constexpr goby::middleware::Group udp_gateway_out{"udp_gateway_out"};
 
-class UDPGateway
-    : public zeromq::MultiThreadApplication<config::UDPGateway>
+class UDPGateway : public zeromq::MultiThreadApplication<config::UDPGateway>
 {
   public:
     UDPGateway();
@@ -57,42 +56,19 @@ class UDPGateway
   private:
     void loop() override;
     void health(goby::middleware::protobuf::ThreadHealth& health) override;
-    void check_last_report(goby::middleware::protobuf::ThreadHealth& health,
-                           goby::middleware::protobuf::HealthState& health_state);
 
     void send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command);
     void send_pam_command(const jaiabot::protobuf::PamCommand& pam_command);
 
-    void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
-    void process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_src);
+    void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope,
+                       const goby::middleware::protobuf::UDPEndPoint& udp_dst);
+    void process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope,
+                                   const goby::middleware::protobuf::UDPEndPoint& udp_src);
 
   private:
-    dccl::Codec dccl_;
-    bool helm_ivp_in_mission_{false};
-    goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
-        goby::time::SteadyClock::now()};
-
-    // IMU data tracking
-    goby::time::SteadyClock::time_point last_imu_data_time_{std::chrono::seconds(0)};
+    // remembered so a command can be addressed back to the driver that last reported
     goby::middleware::protobuf::UDPEndPoint imu_udp_src_;
-
-    // Salinity data tracking
-    goby::time::SteadyClock::time_point last_salinity_data_time_{std::chrono::seconds(0)};
-    goby::middleware::protobuf::UDPEndPoint salinity_udp_src_;
-
-    // PressureTemperature data tracking
-    goby::time::SteadyClock::time_point last_pressure_temperature_data_time_{std::chrono::seconds(0)};
-
-    // TSYS01 data tracking
-    goby::time::SteadyClock::time_point last_tsys01_data_time_{std::chrono::seconds(0)};
-
-    // PAM data tracking
-    jaiabot::protobuf::PamData latest_pam_data_;
-    goby::time::SteadyClock::time_point last_pam_data_time_{std::chrono::seconds(0)};
-    goby::time::SteadyClock::time_point last_pam_trigger_issue_time_{
-        goby::time::SteadyClock::now()};
     goby::middleware::protobuf::UDPEndPoint pam_udp_src_;
-    goby::middleware::protobuf::UDPEndPoint ppk_udp_src_;
 };
 
 } // namespace apps
@@ -113,10 +89,8 @@ jaiabot::apps::UDPGateway::UDPGateway()
 {
     glog.add_group("main", goby::util::Colors::yellow);
 
-    using UDPThread =
-        goby::middleware::io::UDPOneToManyThread<udp_gateway_in, udp_gateway_out>;
+    using UDPThread = goby::middleware::io::UDPOneToManyThread<udp_gateway_in, udp_gateway_out>;
     launch_thread<UDPThread>(cfg().udp_config());
-
 
     glog.is_verbose() && glog << "Config : " << cfg().ShortDebugString() << endl;
 
@@ -124,45 +98,37 @@ jaiabot::apps::UDPGateway::UDPGateway()
         [this](const goby::middleware::protobuf::IOData& data)
         {
             // Deserialize from the UDP packet
-            glog.is_debug2() && glog << "Received UDP packet of size "
-                                     << data.data().size() << " bytes"
-                                     << endl;
+            glog.is_debug2() && glog << "Received UDP packet of size " << data.data().size()
+                                     << " bytes" << endl;
 
             jaiabot::protobuf::UDPGatewayEnvelope envelope;
             if (!envelope.ParseFromString(data.data()))
             {
-                glog.is_warn() && glog << "Couldn't deserialize UDPGatewayEnvelope from the UDP packet"
-                                       << endl;
+                glog.is_warn() &&
+                    glog << "Couldn't deserialize UDPGatewayEnvelope from the UDP packet" << endl;
                 return;
             }
 
             process_received_envelope(envelope, data.udp_src());
-
         });
 
-    interprocess().subscribe<jaiabot::groups::imu>(
-        [this](const protobuf::IMUCommand& imu_command)
-        {
-            send_imu_command(imu_command);
-        });
+    interprocess().subscribe<jaiabot::groups::imu>([this](const protobuf::IMUCommand& imu_command)
+                                                   { send_imu_command(imu_command); });
 
-    interprocess().subscribe<jaiabot::groups::pam>(
-        [this](const protobuf::PamCommand& pam_command) {
-            send_pam_command(pam_command);
-        });
-
+    interprocess().subscribe<jaiabot::groups::pam>([this](const protobuf::PamCommand& pam_command)
+                                                   { send_pam_command(pam_command); });
 }
 
-
-void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_src)
+void jaiabot::apps::UDPGateway::process_received_envelope(
+    const jaiabot::protobuf::UDPGatewayEnvelope& envelope,
+    const goby::middleware::protobuf::UDPEndPoint& udp_src)
 {
     // Process the contents of the envelope
-    switch(envelope.payload_case())
+    switch (envelope.payload_case())
     {
         case jaiabot::protobuf::UDPGatewayEnvelope::kImuData:
         {
             interprocess().publish<groups::imu>(envelope.imu_data());
-            last_imu_data_time_ = goby::time::SteadyClock::now();
             imu_udp_src_ = udp_src;
             glog.is_debug1() && glog << "Received IMUData" << endl;
             break;
@@ -171,8 +137,6 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
         {
             glog.is_debug1() && glog << "Received SalinityData" << endl;
             interprocess().publish<groups::raw_salinity>(envelope.salinity_data());
-            last_salinity_data_time_ = goby::time::SteadyClock::now();
-            salinity_udp_src_ = udp_src;
             break;
         }
         case jaiabot::protobuf::UDPGatewayEnvelope::kPressureTemperatureData:
@@ -194,20 +158,17 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             }
             interprocess().publish<jaiabot::groups::pressure_temperature>(
                 pressure_temperature_data);
-            last_pressure_temperature_data_time_ = goby::time::SteadyClock::now();
             break;
         }
         case jaiabot::protobuf::UDPGatewayEnvelope::kTsys01Data:
         {
             interprocess().publish<groups::tsys01>(envelope.tsys01_data());
-            last_tsys01_data_time_ = goby::time::SteadyClock::now();
             glog.is_debug1() && glog << "Received TSYS01Data" << endl;
             break;
         }
         case jaiabot::protobuf::UDPGatewayEnvelope::kPamData:
         {
             interprocess().publish<groups::pam>(envelope.pam_data());
-            last_pam_data_time_ = goby::time::SteadyClock::now();
             pam_udp_src_ = udp_src;
             glog.is_debug1() && glog << "Received PamData" << endl;
             break;
@@ -215,22 +176,23 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
         case jaiabot::protobuf::UDPGatewayEnvelope::kUbxChunk:
         {
             interprocess().publish<groups::ppk>(envelope.ubx_chunk());
-            ppk_udp_src_ = udp_src;
             glog.is_debug1() && glog << "Received UBXChunk" << endl;
             break;
         }
         default:
         {
-            glog.is_warn() && glog << "Received unknown payload in UDPGatewayEnvelope"
-                                << endl;
+            glog.is_warn() && glog << "Received unknown payload in UDPGatewayEnvelope" << endl;
             break;
         }
     }
 }
 
-
-void jaiabot::apps::UDPGateway::send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst) {
-    if (!udp_dst.has_addr() || !udp_dst.has_port()) {
+void jaiabot::apps::UDPGateway::send_envelope(
+    const jaiabot::protobuf::UDPGatewayEnvelope& envelope,
+    const goby::middleware::protobuf::UDPEndPoint& udp_dst)
+{
+    if (!udp_dst.has_addr() || !udp_dst.has_port())
+    {
         glog.is_warn() && glog << "UDP destination is not set, cannot send UDPGatewayEnvelope"
                                << endl;
         return;
@@ -242,128 +204,29 @@ void jaiabot::apps::UDPGateway::send_envelope(const jaiabot::protobuf::UDPGatewa
     io_data->set_data(envelope.SerializeAsString());
     interthread().publish<udp_gateway_out>(io_data);
 
-    glog.is_debug1() && glog << "Sent UDPGatewayEnvelope: " << envelope.ShortDebugString()
-                             << endl;
+    glog.is_debug1() && glog << "Sent UDPGatewayEnvelope: " << envelope.ShortDebugString() << endl;
 }
 
-
-void jaiabot::apps::UDPGateway::send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command) {
+void jaiabot::apps::UDPGateway::send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command)
+{
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
     *envelope.mutable_imu_command() = imu_command;
     send_envelope(envelope, imu_udp_src_);
 }
 
-
-void jaiabot::apps::UDPGateway::send_pam_command(const jaiabot::protobuf::PamCommand& pam_command) {
+void jaiabot::apps::UDPGateway::send_pam_command(const jaiabot::protobuf::PamCommand& pam_command)
+{
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
     *envelope.mutable_pam_command() = pam_command;
     send_envelope(envelope, pam_udp_src_);
 }
 
-void jaiabot::apps::UDPGateway::loop()
-{
-}
+void jaiabot::apps::UDPGateway::loop() {}
 
 // Health checks
 
-void jaiabot::apps::UDPGateway::health(
-    goby::middleware::protobuf::ThreadHealth& health)
+void jaiabot::apps::UDPGateway::health(goby::middleware::protobuf::ThreadHealth& health)
 {
-    health.ClearExtension(jaiabot::protobuf::jaiabot_thread);
     health.set_name(this->app_name());
-    auto health_state = goby::middleware::protobuf::HEALTH__OK;
-
-    //Check to see if the sensors are reporting
-    check_last_report(health, health_state);
-
-    health.set_state(health_state);
-}
-
-void jaiabot::apps::UDPGateway::check_last_report(
-    goby::middleware::protobuf::ThreadHealth& health,
-    goby::middleware::protobuf::HealthState& health_state)
-{
-
-    // IMU timeout check
-    // We don't simulate the IMU driver, so skip this check in sim mode.
-    // The jaiabot_simulator app currently publishes IMU data directly.
-    if (!cfg().in_simulation()) { 
-        if (last_imu_data_time_ +
-                std::chrono::seconds(cfg().imu_data_report_timeout_seconds()) <
-            goby::time::SteadyClock::now())
-        {
-            glog.is_warn() && glog << "Timeout on IMU data" << std::endl;
-            health_state = goby::middleware::protobuf::HEALTH__FAILED;
-            health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-                ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_IMU);
-
-            // Wait a certain amount of time before publishing issue
-            if (last_imu_trigger_issue_time_ +
-                    std::chrono::seconds(cfg().imu_trigger_issue_timeout_seconds()) <
-                goby::time::SteadyClock::now())
-            {
-                jaiabot::protobuf::IMUIssue imu_issue;
-                imu_issue.set_solution(cfg().imu_issue_solution());
-                interprocess().publish<jaiabot::groups::imu>(imu_issue);
-                last_imu_trigger_issue_time_ = goby::time::SteadyClock::now();
-            }
-        }
-    }
-
-    // Salinity data timeout check
-    if (cfg().salinity_enabled() && last_salinity_data_time_ +
-        std::chrono::seconds(cfg().salinity_data_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
-    {
-        glog.is_warn() && glog << "Timeout on salinity data" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(
-                protobuf::WARNING__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
-    }
-
-    // Pressure temperature data timeout check
-    if (cfg().bar30_enabled() && last_pressure_temperature_data_time_ +
-        std::chrono::seconds(cfg().pressure_temperature_data_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
-    {
-        glog.is_warn() && glog << "Timeout on pressure temperature data" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(
-                protobuf::WARNING__NOT_RESPONDING__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER);
-    }
-
-    // TSYS01 data timeout check
-    if (cfg().tsys01_enabled() && last_tsys01_data_time_ + std::chrono::seconds(cfg().tsys01_data_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
-    {
-        glog.is_warn() && glog << "Timeout on TSYS01 temperature sensor" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(
-                protobuf::WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER);
-    }
-
-    // PAM data timeout check
-    if (cfg().pam_enabled() && last_pam_data_time_ + std::chrono::seconds(cfg().pam_data_report_timeout_seconds()) <
-        goby::time::SteadyClock::now())
-    {
-        glog.is_warn() && glog << "Timeout on PAM" << std::endl;
-        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_PAM_DRIVER);
-
-        // Wait a certain amount of time before publishing issue
-        if (last_pam_trigger_issue_time_ +
-                std::chrono::seconds(cfg().pam_trigger_issue_timeout_seconds()) <
-            goby::time::SteadyClock::now())
-        {
-            jaiabot::protobuf::PamIssue pam_issue;
-            pam_issue.set_solution(cfg().pam_issue_solution());
-            interprocess().publish<jaiabot::groups::pam>(pam_issue);
-            last_pam_trigger_issue_time_ = goby::time::SteadyClock::now();
-        }
-    }
-
+    health.set_state(goby::middleware::protobuf::HEALTH__OK);
 }

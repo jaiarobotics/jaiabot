@@ -39,4 +39,5 @@ add_subdirectory(tsys01_temperature_sensor)
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS)
 
 # architecture-dependent, so packaged apart from the pure-Python half above
-install(DIRECTORY ${JAIA_PYTHON_APP_DIR} DESTINATION lib/jaiabot USE_SOURCE_PERMISSIONS)
+install(DIRECTORY ${JAIA_PYTHON_APP_DIR} DESTINATION lib/jaiabot USE_SOURCE_PERMISSIONS
+  PATTERN "*.cpp" EXCLUDE)

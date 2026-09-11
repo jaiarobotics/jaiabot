@@ -310,6 +310,9 @@ jaiabot::apps::Health::Health()
         }
     }
 
+    // Watches the sensor groups rather than the hardware, so it runs in simulation too
+    launch_thread<SensorWatchdogThread>(cfg().sensor_watchdog());
+
     // Only run these on the bot
     if (cfg().check_helm_ivp_status())
     {

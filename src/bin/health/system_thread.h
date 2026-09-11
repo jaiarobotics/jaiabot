@@ -334,6 +334,34 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
         {13.95, 351}};
 };
 
+// Watches the sensor groups for silence. The Python drivers publish directly to gobyd, so no
+// one process sees all of their traffic; a driver that has died cannot report that itself.
+class SensorWatchdogThread : public HealthMonitorThread<jaiabot::config::SensorWatchdogConfig>
+{
+  public:
+    SensorWatchdogThread(const jaiabot::config::SensorWatchdogConfig& cfg);
+    ~SensorWatchdogThread() {}
+
+  private:
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+
+    // true when nothing has arrived on the group for timeout_seconds
+    bool timed_out(const goby::time::SteadyClock::time_point& last, int timeout_seconds) const;
+
+  private:
+    goby::time::SteadyClock::time_point last_imu_data_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_salinity_data_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_pressure_temperature_data_time_{
+        std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_tsys01_data_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_pam_data_time_{std::chrono::seconds(0)};
+
+    goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
+        goby::time::SteadyClock::now()};
+    goby::time::SteadyClock::time_point last_pam_trigger_issue_time_{
+        goby::time::SteadyClock::now()};
+};
+
 } // namespace apps
 } // namespace jaiabot
 

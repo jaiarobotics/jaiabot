@@ -245,6 +245,10 @@ elif common.app == 'jaiabot_health':
                                      # do not power off or restart the simulator computer unless we're a VirtualFleet
                                      ignore_powerstate_changes=ignore_powerstate_changes,
                                      is_in_sim=is_simulation(),
+                                     pam_enabled=str(pam_enabled).lower(),
+                                     salinity_enabled=str(salinity_enabled).lower(),
+                                     bar30_enabled=str(bar30_enabled).lower(),
+                                     tsys01_enabled=str(tsys01_enabled).lower(),
                                      motor_harness_type=jaia_motor_harness_type))
 elif common.app == 'goby_logger':    
     print(config.template_substitute(templates_dir+'/goby_logger.pb.cfg.in',
@@ -280,12 +284,7 @@ elif common.app == 'jaiabot_udp_gateway':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_udp_gateway.pb.cfg.in',
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
-                                     in_simulation=is_simulation(),
-                                     udp_gateway_port=udp_gateway_port,
-                                     pam_enabled=str(pam_enabled).lower(),
-                                     salinity_enabled=str(salinity_enabled).lower(),
-                                     bar30_enabled=str(bar30_enabled).lower(),
-                                     tsys01_enabled=str(tsys01_enabled).lower()))
+                                     udp_gateway_port=udp_gateway_port))
 elif common.app == 'jaiabot_driver_tsys01':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_tsys01.pb.cfg.in',
                                      app_block=app_common,

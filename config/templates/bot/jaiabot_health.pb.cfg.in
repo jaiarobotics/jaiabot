@@ -33,3 +33,10 @@ linux_hw {
 motor {
     motor_harness_type: $motor_harness_type
 }
+
+sensor_watchdog {
+    salinity_enabled: $salinity_enabled
+    bar30_enabled: $bar30_enabled
+    tsys01_enabled: $tsys01_enabled
+    pam_enabled: $pam_enabled
+}

@@ -32,9 +32,13 @@ export DEB_LDFLAGS_APPEND = -Wl,--as-needed
 DEB_BUILD_ARCH ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
 DEB_TARGET_ARCH ?= $(shell dpkg-architecture -qDEB_TARGET_ARCH)
 DEB_TARGET_GNU_CPU ?= $(shell dpkg-architecture -qDEB_TARGET_GNU_CPU)
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 ifneq ($(DEB_BUILD_ARCH),$(DEB_TARGET_ARCH))
         # cross compiling
         CMAKE_EXTRA_FLAGS += -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=$(DEB_TARGET_GNU_CPU)
+        # the Python extension modules are compiled against the target's headers and named
+        # with its ABI suffix, both of which goby_add_python_app derives from this
+        CMAKE_EXTRA_FLAGS += -DCMAKE_LIBRARY_ARCHITECTURE=$(DEB_HOST_MULTIARCH)
         # -DCMAKE_C_FLAGS/-DCMAKE_CXX_FLAGS would replace the distro CFLAGS/CXXFLAGS
         # (optimization, debug info, hardening) rather than add to them
         export DEB_CFLAGS_APPEND = -target $(DEB_HOST_GNU_TYPE)

@@ -5,6 +5,7 @@ add_jaiabot_application(TARGET jaiabot_health
     time_thread.cpp
     helm_ivp_thread.cpp
     motor_thread.cpp
+    sensor_watchdog_thread.cpp
   LINK_DEFAULT_LIBRARIES
   LINK_LIBRARIES boost_filesystem
 )
