@@ -12,6 +12,8 @@ served.
   source tree's `build/amd64/bin`.
 - A public key in `~/.ssh/*.pub`; `import_vms.sh` installs all of them on every
   node. Pass the matching private key with `--ssh-key` (default `~/.ssh/id_rsa`).
+  SSH runs unattended, so a passphrase-protected key has to be in `ssh-agent`
+  (`ssh-add ~/.ssh/id_rsa`).
 - Root, for the `import` stage only: `import_vms.sh` mounts each imported disk to
   write the node's preseed.
 

@@ -73,6 +73,7 @@ class Node:
         self.uuid = None
         self.ssh_port = None
         self.hostonly_ip = None
+        self.ssh_error = ''
 
     def __repr__(self):
         return f'<{self.name} uuid={self.uuid} ssh_port={self.ssh_port}>'
@@ -343,7 +344,8 @@ def stage_boot(args, nodes):
 
     for node in nodes:
         wait_for(lambda n=node: ssh_ok(args, n), args.boot_timeout,
-                 f'ssh to {node.name} on port {node.ssh_port}')
+                 f'ssh to {node.name} on port {node.ssh_port}',
+                 progress=lambda n=node: n.ssh_error or 'no answer')
         log(f'{node.name}: ssh up, waiting for first boot to finish')
         wait_for(lambda n=node: booted_since_first_boot(args, n), args.boot_timeout,
                  f'{node.name} to reboot after its first boot')
@@ -620,9 +622,30 @@ def ssh(args, node, command, check=True):
 
 
 def ssh_ok(args, node):
-    return subprocess.run(ssh_args(args, node) + ['true'],
-                          stdout=subprocess.DEVNULL,
-                          stderr=subprocess.DEVNULL).returncode == 0
+    proc = subprocess.run(ssh_args(args, node) + ['true'], text=True,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    lines = proc.stderr.strip().splitlines()
+    node.ssh_error = lines[-1] if lines else ''
+    return proc.returncode == 0
+
+
+def check_ssh_key_usable(args):
+    """ssh runs with BatchMode, which has no way to ask for a passphrase.
+
+    Without this the key silently fails to sign every time and the boot stage waits
+    out its whole timeout on hosts that would let a human straight in.
+    """
+    if subprocess.run(['ssh-keygen', '-y', '-P', '', '-f', args.ssh_key],
+                      stdout=subprocess.DEVNULL,
+                      stderr=subprocess.DEVNULL).returncode == 0:
+        return
+    fingerprint = run(['ssh-keygen', '-lf', args.ssh_key], check=False).split()
+    if len(fingerprint) > 1 and fingerprint[1] in run(['ssh-add', '-l'], check=False):
+        return
+    raise TestFailure(
+        f'{args.ssh_key} is passphrase protected and is not loaded in ssh-agent, so '
+        f'the unattended ssh this test uses can never authenticate with it.\n'
+        f'Run `ssh-add {args.ssh_key}` and try again.')
 
 
 def host_can_reach(ip, port, timeout=2):
@@ -787,6 +810,7 @@ def main(argv):
             "tree's build/amd64/bin to PATH")
     if not os.path.exists(args.ssh_key):
         raise TestFailure(f'ssh key {args.ssh_key} does not exist')
+    check_ssh_key_usable(args)
 
     nodes = ([Node('bot', int(i)) for i in args.bots.split(',') if i.strip()]
              + [Node('hub', int(i)) for i in args.hubs.split(',') if i.strip()])
