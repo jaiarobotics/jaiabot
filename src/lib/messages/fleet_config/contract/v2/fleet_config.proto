@@ -52,7 +52,6 @@ message NodeSettings
     optional NodeType type = 1 [(jaia.field).debconf = {
         group: ALL
         identity: true
-        priority: HIGH
         description: "Is this a bot or a hub?"
         extended_description: "This choice will determine which applications will be configured to launch with systemd."
     }];
@@ -60,7 +59,6 @@ message NodeSettings
     optional int32 fleet_id = 2 [default = 0, (jaia.field).debconf = {
         group: ALL
         identity: true
-        priority: HIGH
         bounded_id: true
         description: "Fleet identification number"
         extended_description: "This is used to set the correct value in the jaiabot configuration.\nValid fleet ids are 0 to 4000, as reported by \"jaia admin bounds --fleet_id\";\nthose above 250 are addressed with IPv6 rather than IPv4.\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
@@ -75,7 +73,6 @@ message NodeSettings
         default = LED_TYPE_NONE,
         (jaia.field).debconf = {
             group: ALL
-            priority: HIGH
             description: "What type of leds does your system have?"
         }
     ];
@@ -84,7 +81,6 @@ message NodeSettings
         default = 0,
         (jaia.field).debconf = {
             group: ALL
-            priority: HIGH
             choices: [ "0", "1", "2" ]
             description: "What type of electronics stack do you have?"
         }
@@ -152,7 +148,6 @@ message NodeSettings
     optional int32 bot_id = 10 [default = 0, (jaia.field).debconf = {
         group: BOT
         identity: true
-        priority: HIGH
         bounded_id: true
         description: "Bot identification number"
         extended_description: "This is used to set the hostname of the computer and set the correct value in the jaiabot configuration.\nValid bot_ids are 0 to 150, as reported by \"jaia admin bounds --bot_id\".\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
@@ -170,7 +165,6 @@ message NodeSettings
         default = ARDUINO_TYPE_NONE,
         (jaia.field).debconf = {
             group: BOT
-            priority: HIGH
             description: "What type of Arduino connection does this bot have?"
         }
     ];
@@ -187,7 +181,6 @@ message NodeSettings
         default = BOT_TYPE_HYDRO,
         (jaia.field).debconf = {
             group: BOT
-            priority: HIGH
             unasked_value: "none"
             description: "What type of bot is your system?"
         }
@@ -203,7 +196,6 @@ message NodeSettings
         default = PAM_CONNECTION_TYPE_NONE,
         (jaia.field).debconf = {
             group: BOT
-            priority: HIGH
             ask_if { field: "bot_type" equals: "pam" }
             unasked_value: "none"
             description: "What type of PAM connection does this bot have?"
@@ -220,7 +212,6 @@ message NodeSettings
         default = IMU_TYPE_BNO055,
         (jaia.field).debconf = {
             group: BOT
-            priority: HIGH
             description: "What type of imu does your system have?"
         }
     ];
@@ -331,7 +322,6 @@ message NodeSettings
     optional int32 hub_id = 22 [default = 0, (jaia.field).debconf = {
         group: HUB
         identity: true
-        priority: HIGH
         bounded_id: true
         description: "Hub identification number"
         extended_description: "This is used to set the hostname of the computer and set the correct value in the jaiabot configuration.\nValid hub_ids are 0 to 30, as reported by \"jaia admin bounds --hub_id\".\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""

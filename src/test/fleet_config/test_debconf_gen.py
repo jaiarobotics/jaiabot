@@ -46,6 +46,14 @@ class GeneratedFilesTest(unittest.TestCase):
         for name in ("fleet_id", "bot_id", "hub_id"):
             self.assertIn("Template: jaiabot-embedded/{}_invalid\nType: error\n".format(name), templates)
 
+    def test_no_question_interrupts_an_interactive_upgrade(self):
+        """debconf's default threshold is "high", so a question asked below it is
+        skipped and keeps its default when a release adds one; dpkg-reconfigure
+        lowers the threshold and asks every question regardless."""
+        with open(os.path.join(SOURCE_DIR, "debian", "jaiabot-embedded.config")) as f:
+            config = f.read()
+        self.assertNotIn("debconf_input_and_go high", config)
+
     def test_generated_config_is_valid_shell(self):
         result = subprocess.run(["sh", "-n", os.path.join(SOURCE_DIR, "debian", "jaiabot-embedded.config")],
                                 capture_output=True, text=True)

@@ -45,6 +45,8 @@ message DebconfField
     // Asked on the node but never stored in a fleet config: the fleet config tool
     // supplies it from the node's own identity (type, ids, mode)
     optional bool identity = 2 [default = false];
+    // MEDIUM keeps a question debconf has never asked out of an interactive
+    // "apt upgrade"; dpkg-reconfigure asks every question whatever this says
     optional Priority priority = 3 [default = MEDIUM];
     optional string description = 4;
     // Lines of the extended description
