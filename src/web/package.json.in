@@ -42,7 +42,7 @@
         "@types/jest": "^29.5.13",
         "@types/jquery": "^4.0.0",
         "@types/lodash.clonedeep": "^4.5.9",
-        "@types/node": "^24.0.0",
+        "@types/node": "^26.0.0",
         "@types/plotly.js": "^3.0.10",
         "@types/proj4": "^2.19.0",
         "@types/react": "^19.2.14",
