@@ -218,12 +218,14 @@ message NodeSettings
 
     enum ImuType
     {
-        IMU_TYPE_BNO055 = 0;
+        // No replaced_by: the hardware has to be swapped, so a fleet still on one
+        // is refused rather than migrated (see check-imu-type.yml)
+        IMU_TYPE_BNO055 = 0 [deprecated = true];
         IMU_TYPE_BNO085 = 1;
         IMU_TYPE_NONE = 2;
     }
     optional ImuType imu_type = 14 [
-        default = IMU_TYPE_BNO055,
+        default = IMU_TYPE_BNO085,
         (jaia.field).debconf = {
             group: BOT
             description: "What type of imu does your system have?"

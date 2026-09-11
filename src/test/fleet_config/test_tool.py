@@ -193,6 +193,12 @@ class MigrationFailureTest(unittest.TestCase):
             "jaiabot-embedded/warp: '3' is not one of 1, 2, 5, 10, 20, 30, 40, 50",
         ]))
 
+    def test_retired_value_with_no_replacement_is_refused_by_name(self):
+        """A BNO055 has to be swapped for a BNO085: there is nothing to migrate to."""
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_retired_imu.cfg"))
+        notes, problems = fc.migrate(SCHEMA, cfg)
+        self.assertEqual(problems, ["jaiabot-embedded/imu_type: 'bno055' is no longer supported"])
+
     def test_cloudhub_requires_auth(self):
         cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_cloudhub_no_auth.cfg"))
         fc.migrate(SCHEMA, cfg)
@@ -235,7 +241,7 @@ class CommandTest(unittest.TestCase):
         result = self.env.run("validate", fixture("v1_bad_values.cfg"))
         self.assertEqual(result.returncode, 1)
         self.assertIn("no_such_question", result.stderr)
-        self.assertIn("regenerate it with 'jaia admin fleet create'", result.stderr)
+        self.assertIn("'jaia admin fleet edit'", result.stderr)
 
     def test_migrate_writes_current_version(self):
         out = os.path.join(self.env.dir, "fleet7.cfg")

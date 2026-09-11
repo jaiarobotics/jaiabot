@@ -182,6 +182,9 @@ def debconf_contract_from_schema(schema):
             entry["identity"] = True
         if q.per_node:
             entry["per_node"] = True
+        retired = [v.value for v in q.enum_values if v.deprecated]
+        if retired:
+            entry["deprecated"] = retired
         replaced = {v.value: v.replaced_by for v in q.enum_values if v.deprecated and v.replaced_by}
         if replaced:
             entry["replaced"] = replaced
@@ -294,6 +297,8 @@ def diff_debconf(old, new, changes):
         for choice in sorted(old_choices - new_choices):
             if choice in replaced:
                 changes.append(Change(BREAKING, "debconf {} choice {!r} now maps to {!r}: migration".format(key, choice, replaced[choice])))
+            elif choice in new_entry.get("deprecated", []):
+                changes.append(Change(BREAKING, "debconf {} choice {!r} retired with no replacement: a config still using it is refused".format(key, choice)))
             else:
                 changes.append(Change(BREAKING, "debconf {} choice {!r} removed: migration must map it".format(key, choice)))
         for choice in sorted(new_choices - old_choices):

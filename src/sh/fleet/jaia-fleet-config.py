@@ -541,7 +541,8 @@ def load_for_edit(schema, path, echo=print):
 def problem_report(path, problems):
     return "{} cannot be used with this release:\n  {}\n{}".format(
         path, "\n  ".join(problems),
-        "Fix the fleet configuration, or regenerate it with 'jaia admin fleet create'.")
+        "Answer the questions again with 'jaia admin fleet edit', which fills in what could be "
+        "read, or start over with 'jaia admin fleet create'.")
 
 
 ###############################################################################

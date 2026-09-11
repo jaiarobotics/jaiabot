@@ -21,6 +21,10 @@ def load(path, name):
 
 gen = load(GEN, "fleet_config_debconf_gen")
 contract = load(CONTRACT, "fleet_config_contract")
+CURRENT = contract.debconf_contract_from_schema(
+    gen.fc.Schema(gen.fc.compile_descriptor_set(
+        os.path.join(SOURCE_DIR, "src", "lib", "messages", "fleet_config.proto"),
+        [os.path.join(SOURCE_DIR, "src", "lib", "messages")])))
 
 
 class GeneratedFilesTest(unittest.TestCase):
@@ -38,8 +42,15 @@ class GeneratedFilesTest(unittest.TestCase):
             now = contract.debconf_contract_from_templates(f.read())
         ids = {"jaiabot-embedded/" + name for name in ("fleet_id", "bot_id", "hub_id")}
         for key, entry in v1.items():
-            if key not in ids:
-                self.assertEqual(entry, now.get(key), key)
+            if key in ids:
+                continue
+            current = now.get(key)
+            self.assertIsNotNone(current, key)
+            self.assertEqual(entry["type"], current["type"], key)
+            # a choice may only disappear by being retired in the schema
+            for choice in entry.get("choices", []):
+                if choice not in current.get("choices", []):
+                    self.assertIn(choice, CURRENT[key].get("deprecated", []), key + "/" + choice)
         for key in ids:
             self.assertEqual(now[key], {"type": "string", "default": "0"})
 

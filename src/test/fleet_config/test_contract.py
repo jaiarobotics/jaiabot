@@ -68,7 +68,12 @@ class SnapshotTest(unittest.TestCase):
                     for k, v in model["debconf"].items() if k not in identity}
         v2_stored = stored(v2)
         for key, entry in stored(v1).items():
-            self.assertEqual(entry, v2_stored.get(key), key)
+            current = v2_stored.get(key)
+            self.assertIsNotNone(current, key)
+            self.assertEqual(entry["type"], current["type"], key)
+            for choice in entry.get("choices", []):
+                if choice not in current.get("choices", []):
+                    self.assertIn(choice, v2["debconf"][key].get("deprecated", []), key + "/" + choice)
         for key in sorted(identity):
             if v1["debconf"][key]["type"] != v2["debconf"][key]["type"]:
                 self.assertIn("debconf {} changed type from select to string".format(key), texts)
@@ -142,8 +147,8 @@ class ClassificationTest(unittest.TestCase):
 
     def test_settings_default_change_is_compatible(self):
         new = self.modified()
-        self.fields(new, NODE_SETTINGS)["imu_type"]["default"] = "IMU_TYPE_BNO085"
-        new["debconf"]["jaiabot-embedded/imu_type"]["default"] = "bno085"
+        self.fields(new, NODE_SETTINGS)["imu_type"]["default"] = "IMU_TYPE_NONE"
+        new["debconf"]["jaiabot-embedded/imu_type"]["default"] = "none"
         self.assertEqual(self.kinds(new), {contract.COMPATIBLE})
 
     def test_message_removed_is_forbidden(self):

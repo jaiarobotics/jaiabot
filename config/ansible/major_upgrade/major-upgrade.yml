@@ -54,6 +54,7 @@
   tasks:
     - name: Run Major Upgrade with Hub cleanup
       block:
+        - include_tasks: tasks/check-imu-type.yml
         - include_tasks: ../tasks/get-version.yml
         - include_tasks: tasks/check-latest-minor-version-installed.yml
         - include_tasks: tasks/get-major-version.yml

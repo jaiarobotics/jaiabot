@@ -122,8 +122,8 @@ Description: What type of PAM connection does this bot have?
 
 Template: jaiabot-embedded/imu_type
 Type: select
-Choices: bno055, bno085, none
-Default: bno055
+Choices: bno085, none
+Default: bno085
 Description: What type of imu does your system have?
 
 Template: jaiabot-embedded/data_offload_ignore_type
