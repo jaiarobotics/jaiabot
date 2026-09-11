@@ -27,7 +27,9 @@ import {
     TaskParameterPair,
     CoordinateSystem,
 } from "./jaia-system-types";
-import { Speeds, Command, GeographicCoordinate, TaskType } from "./protobuf-types";
+import { GeographicCoordinate } from "../shared/proto/jaiabot/messages/geographic_coordinate";
+import { Command } from "../shared/proto/jaiabot/messages/jaia_dccl";
+import { MissionTask_TaskType, Speeds } from "../shared/proto/jaiabot/messages/mission";
 
 // Type used to capture the JCC context
 export interface JaiaContextType {
@@ -92,7 +94,7 @@ export interface JaiaAction {
     location?: GeographicCoordinate;
     locations?: GeographicCoordinate[];
     task?: Task;
-    taskType?: TaskType;
+    taskType?: MissionTask_TaskType;
     taskParameterPairs?: TaskParameterPair[];
     taskPacketID?: string;
     taskPacketVisibility?: TaskPacketVisibility;

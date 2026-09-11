@@ -22,7 +22,8 @@ import {
     generateSurveyEndpoint,
     generateSurveyEndpointCircle,
 } from "../../features/survey/survey-endpoints";
-import { GeographicCoordinate, TaskType } from "../../../types/protobuf-types";
+import { GeographicCoordinate } from "../../../shared/proto/jaiabot/messages/geographic_coordinate";
+import { MissionTask_TaskType } from "../../../shared/proto/jaiabot/messages/mission";
 import { LayerTitles, LineType, SurveyEndpoints } from "../../../types/openlayers-types";
 import { constantHeadingParamsToLocation } from "../../../utils/conversions";
 
@@ -217,7 +218,7 @@ class GridLayer extends JaiaVectorLayer {
             }
         }
 
-        if (gridPlan.getEndTask().getType() === TaskType.CONSTANT_HEADING) {
+        if (gridPlan.getEndTask().getType() === MissionTask_TaskType.CONSTANT_HEADING) {
             const point = points[points.length - 1];
             const startLocation = { lat: point[1], lon: point[0] };
             this.createConstantHeadingProjection(startLocation, gridPlan.getEndTask());
@@ -246,7 +247,7 @@ class GridLayer extends JaiaVectorLayer {
             generateSurveyEndpoint(gridPlan.getMissionEnd(), SurveyEndpoints.END),
         );
 
-        if (gridPlan.getStartTask().getType() === TaskType.CONSTANT_HEADING) {
+        if (gridPlan.getStartTask().getType() === MissionTask_TaskType.CONSTANT_HEADING) {
             this.createConstantHeadingProjection(
                 gridPlan.getMissionStart(),
                 gridPlan.getStartTask(),

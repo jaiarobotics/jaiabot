@@ -23,7 +23,7 @@ import {
     MGRSComponents,
 } from "../../types/jaia-system-types";
 import { PanelActions, WaypointSections } from "../../types/context-types";
-import { TaskType } from "../../types/protobuf-types";
+import { MissionTask_TaskType } from "../../shared/proto/jaiabot/messages/mission";
 import { MapModes } from "../../types/openlayers-types";
 
 import Icon from "@mdi/react";
@@ -287,20 +287,20 @@ function TaskSelection(props: Props) {
                         disabled={props.isDisabled}
                         sx={{ height: 30 }}
                     >
-                        <MenuItem value={TaskType.NONE}>
-                            {snakeCaseToTitleCase(TaskType.NONE)}
+                        <MenuItem value={MissionTask_TaskType.NONE}>
+                            {snakeCaseToTitleCase(MissionTask_TaskType.NONE)}
                         </MenuItem>
-                        <MenuItem value={TaskType.DIVE}>
-                            {snakeCaseToTitleCase(TaskType.DIVE)}
+                        <MenuItem value={MissionTask_TaskType.DIVE}>
+                            {snakeCaseToTitleCase(MissionTask_TaskType.DIVE)}
                         </MenuItem>
-                        <MenuItem value={TaskType.SURFACE_DRIFT}>
-                            {snakeCaseToTitleCase(TaskType.SURFACE_DRIFT)}
+                        <MenuItem value={MissionTask_TaskType.SURFACE_DRIFT}>
+                            {snakeCaseToTitleCase(MissionTask_TaskType.SURFACE_DRIFT)}
                         </MenuItem>
-                        <MenuItem value={TaskType.CONSTANT_HEADING}>
-                            {snakeCaseToTitleCase(TaskType.CONSTANT_HEADING)}
+                        <MenuItem value={MissionTask_TaskType.CONSTANT_HEADING}>
+                            {snakeCaseToTitleCase(MissionTask_TaskType.CONSTANT_HEADING)}
                         </MenuItem>
-                        <MenuItem value={TaskType.STATION_KEEP}>
-                            {snakeCaseToTitleCase(TaskType.STATION_KEEP)}
+                        <MenuItem value={MissionTask_TaskType.STATION_KEEP}>
+                            {snakeCaseToTitleCase(MissionTask_TaskType.STATION_KEEP)}
                         </MenuItem>
                     </Select>
                 </FormControl>

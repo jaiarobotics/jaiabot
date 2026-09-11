@@ -6,7 +6,7 @@ import { Fill, Icon, Style, Text } from "ol/style";
 
 import { view } from "../views/view";
 
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 
 import rallyIcon from "../../style/icons/rally-point.svg";

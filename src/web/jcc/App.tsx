@@ -3,7 +3,7 @@ import { JaiaContext, JaiaContextProvider } from "../context/JaiaContext";
 
 import { gridPlan } from "../data/survey_planner/grid-plan";
 import { ButtonNames } from "../types/context-types";
-import { MissionState } from "../types/protobuf-types";
+import { MissionState } from "../shared/proto/jaiabot/messages/mission";
 import { BotModes, ButtonListTypes, NodeTypes } from "../types/jaia-system-types";
 import { isControllingClient } from "../utils/commands";
 import { JCC_CONTAINER } from "../utils/constants";

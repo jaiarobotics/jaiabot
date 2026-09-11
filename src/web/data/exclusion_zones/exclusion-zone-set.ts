@@ -1,5 +1,5 @@
 import cloneDeep from "lodash/cloneDeep";
-import { GeographicCoordinate } from "../../types/protobuf-types";
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
 import { MissionSetSnapshot } from "../mission_set/mission-set";
 import { MissionsManagerSnapshot } from "../missions_manager/missions-manager";
 

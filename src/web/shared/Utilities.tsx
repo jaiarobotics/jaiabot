@@ -1,7 +1,7 @@
 import { Map } from "ol";
 import { Coordinate } from "ol/coordinate";
 import { toLonLat, fromLonLat } from "ol/proj";
-import { GeographicCoordinate } from "./JAIAProtobuf";
+import { GeographicCoordinate } from "./proto/jaiabot/messages/geographic_coordinate";
 import { getLength as OlGetLength } from "ol/sphere";
 import { Geometry } from "ol/geom";
 

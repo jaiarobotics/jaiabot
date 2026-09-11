@@ -1,4 +1,4 @@
-import { TaskPacket } from "../../types/protobuf-types";
+import { TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
 
 export class TaskPackets {
     private includedTaskPackets: TaskPacket[];
@@ -37,7 +37,7 @@ export class TaskPackets {
     getTaskPacket(botID: number, startTime: number) {
         const allTaskPackets = this.includedTaskPackets.concat(this.excludedTaskPackets);
         for (const taskPacket of allTaskPackets) {
-            if (taskPacket.start_time === startTime && taskPacket.bot_id === botID) {
+            if (Number(taskPacket.start_time) === startTime && taskPacket.bot_id === botID) {
                 return taskPacket;
             }
         }

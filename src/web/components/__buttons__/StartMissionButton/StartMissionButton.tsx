@@ -12,7 +12,8 @@ import { Button } from "@mui/material";
 import Bot from "../../../data/bots/bot";
 import Mission from "../../../data/mission_set/mission";
 
-import { Command, CommandType, MissionPlan } from "../../../types/protobuf-types";
+import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
+import { MissionPlan } from "../../../shared/proto/jaiabot/messages/mission";
 import { DialogActions } from "../../../types/context-types";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 
@@ -62,7 +63,7 @@ export default function StartMissionButton(props: Props) {
 
         if (
             !isCommandAvailable(
-                CommandType.START_MISSION,
+                Command_CommandType.START_MISSION,
                 props.bot.getMissionStatus().missionState,
             )
         ) {
@@ -106,7 +107,7 @@ export default function StartMissionButton(props: Props) {
     const sendPlan = async (plan: MissionPlan) => {
         const startMissionCommand: Command = {
             bot_id: props.bot.getBotID(),
-            type: CommandType.MISSION_PLAN,
+            type: Command_CommandType.MISSION_PLAN,
             plan,
         };
         const response = await sendBotCommand(startMissionCommand);

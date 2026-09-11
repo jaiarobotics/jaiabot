@@ -7,7 +7,7 @@ import { DisabledCodes } from "../../disabled-codes";
 
 import { bots } from "../../../../data/bots/bots";
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
-import { MissionState } from "../../../../types/protobuf-types";
+import { MissionState } from "../../../../shared/proto/jaiabot/messages/mission";
 
 // Place user in control by default
 jest.mock("../../../../utils/commands", () => {

@@ -2,7 +2,10 @@ import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { JaiaContext } from "../../../context/JaiaContext";
 import { sendHubCommand } from "../../../utils/commands";
-import { CommandForHub, HubCommandType } from "../../../types/protobuf-types";
+import {
+    CommandForHub,
+    CommandForHub_HubCommandType,
+} from "../../../shared/proto/jaiabot/messages/jaia_dccl";
 import { success } from "../../../utils/notifications";
 import "../../../style/stylesheets/engineering.less";
 
@@ -38,7 +41,7 @@ export default function ScanForBot() {
 
         const command: CommandForHub = {
             hub_id: hub.getHubID(),
-            type: HubCommandType.SCAN_FOR_BOTS,
+            type: CommandForHub_HubCommandType.SCAN_FOR_BOTS,
             scan_for_bot_id: botID,
         };
 

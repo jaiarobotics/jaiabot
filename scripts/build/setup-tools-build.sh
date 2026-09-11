@@ -40,9 +40,15 @@ step() {
     fi
 }
 
+# Wraps apt-get so it never prompts. Passed via env rather than exported, since sudo's
+# env_reset would otherwise strip DEBIAN_FRONTEND before apt-get sees it.
+apt_get() {
+    $SUDO env DEBIAN_FRONTEND=noninteractive apt-get -y "$@"
+}
+
 install_prereqs() {
-    $SUDO apt-get -y update
-    $SUDO apt-get -y install gnupg lsb-release curl git
+    apt_get update
+    apt_get install gnupg lsb-release curl git
 }
 
 install_apt_keys() {
@@ -63,14 +69,14 @@ add_apt_sources() {
     target_ubuntu_codename=${jaia_version_ubuntu_codename}
     echo "deb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/continuous/${default_version}/ $(. /etc/os-release; echo "$VERSION_CODENAME")/" | $SUDO tee /etc/apt/sources.list.d/gobysoft_continuous.list
     echo "deb-src [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/continuous/${default_version}/ ${target_ubuntu_codename}/" | $SUDO tee /etc/apt/sources.list.d/jaiabot_continuous.list
-    $SUDO apt-get -y update
+    apt_get update
 }
 
 install_build_deps() {
-    $SUDO apt-get -y build-dep jaiabot --install-recommends
+    apt_get build-dep jaiabot --install-recommends
     # (BUG) Need non-soversioned lib?
     # gmake[2]: *** No rule to make target '/usr/lib/x86_64-linux-gnu/libais.so', needed by 'lib/libjaiabot_messages.so.2.6.0+0+ge328122e'.  Stop.
-    $SUDO apt-get -y install libais-dev ninja-build
+    apt_get install libais-dev ninja-build clang clang-tools
 }
 
 install_arduino_cli() {

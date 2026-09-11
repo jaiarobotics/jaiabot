@@ -2,7 +2,7 @@ import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { UNASSIGNED_ID } from "../../../utils/constants";
-import { Segment } from "../../../types/protobuf-types";
+import { MissionPlan_Segment } from "../../../shared/proto/jaiabot/messages/mission";
 
 /**
  * Returns the largest mission count across the named sets in the snapshot cache.
@@ -67,7 +67,7 @@ function applySourceMission(sourceMission: Mission, combined: Mission): void {
         const offsetStart = seg.start_goal_index + waypointOffset;
         const offsetLaneIndices = seg.lane_start_goal_indices?.map((i) => i + waypointOffset);
 
-        const updatedSegment: Segment = {
+        const updatedSegment: MissionPlan_Segment = {
             start_goal_index: offsetStart,
             lane_start_goal_indices: offsetLaneIndices,
             speed: seg.speed,

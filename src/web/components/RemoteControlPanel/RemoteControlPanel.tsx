@@ -11,13 +11,13 @@ import { Dashboard } from "./Dashboard/Dashboard";
 import { DiveCommand, DiveInputs, RCDiveParameters } from "./DiveControls/DiveControls";
 import { OverdriveWarningDialog } from "./OverdriveWarning/OverdriveWarningDialog";
 
+import { Engineering } from "../../shared/proto/jaiabot/messages/engineering";
+import { Command_CommandType } from "../../shared/proto/jaiabot/messages/jaia_dccl";
 import {
-    CommandType,
-    Engineering,
-    TaskType,
-    DiveParameters,
-    DriftParameters,
-} from "../../types/protobuf-types";
+    MissionTask_DiveParameters,
+    MissionTask_DriftParameters,
+    MissionTask_TaskType,
+} from "../../shared/proto/jaiabot/messages/mission";
 import { sendBotCommand, sendEngineeringCommand } from "../../utils/commands";
 import { error, success } from "../../utils/notifications";
 import { DialogActions } from "../../types/context-types";
@@ -256,20 +256,22 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
      * @returns {void}
      */
     const handleRCDiveCommand = async () => {
-        const diveParameters: DiveParameters = {
+        const diveParameters: MissionTask_DiveParameters = {
             max_depth: rcDiveParameters.max_depth,
             depth_interval: rcDiveParameters.depth_interval,
             hold_time: rcDiveParameters.hold_time,
             bottom_dive: false,
         };
 
-        const driftParameters: DriftParameters = { drift_time: rcDiveParameters.drift_time };
+        const driftParameters: MissionTask_DriftParameters = {
+            drift_time: rcDiveParameters.drift_time,
+        };
 
         const rcDiveCommand = {
             bot_id: props.botID,
-            type: CommandType.REMOTE_CONTROL_TASK,
+            type: Command_CommandType.REMOTE_CONTROL_TASK,
             rc_task: {
-                type: TaskType.DIVE,
+                type: MissionTask_TaskType.DIVE,
                 dive: diveParameters,
                 surface_drift: driftParameters,
             },

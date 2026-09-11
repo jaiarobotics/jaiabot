@@ -6,7 +6,7 @@ import { Fill, Icon, Style, Stroke, Text } from "ol/style";
 
 import { view } from "../../views/view";
 import { getWaypointSrc } from "../waypoint-feature";
-import { GeographicCoordinate } from "../../../types/protobuf-types";
+import { GeographicCoordinate } from "../../../shared/proto/jaiabot/messages/geographic_coordinate";
 import { LineType, MapFeatureTypes } from "../../../types/openlayers-types";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
 import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";

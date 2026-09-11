@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { JaiaContext } from "../../../context/JaiaContext";
-import { Engineering } from "../../../types/protobuf-types";
+import { Engineering } from "../../../shared/proto/jaiabot/messages/engineering";
 import { success } from "../../../utils/notifications";
 import { sendEngineeringCommand } from "../../../utils/commands";
 import "../../../style/stylesheets/engineering.less";

@@ -9,7 +9,7 @@ import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { DEFAULT_MISSION_SET_NAME, MISSION_ENDPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { MapModes } from "../../types/openlayers-types";
-import { TaskType } from "../../types/protobuf-types";
+import { MissionTask_TaskType } from "../../shared/proto/jaiabot/messages/mission";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import {
     detectMissionReroutes,
@@ -54,13 +54,13 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
 
         case GridPlanningStates.OFFERING_SRP:
             gridLayer.finalizeGrid();
-            gridPlan.getSRPTask().setType(TaskType.NONE);
+            gridPlan.getSRPTask().setType(MissionTask_TaskType.NONE);
             handleMapModeChange(MapModes.SURVEY_PLANNING);
             break;
 
         case GridPlanningStates.ACCEPTING_SRP:
             // Update constant heading parameters
-            gridPlan.getSRPTask().setType(TaskType.CONSTANT_HEADING);
+            gridPlan.getSRPTask().setType(MissionTask_TaskType.CONSTANT_HEADING);
             break;
 
         case GridPlanningStates.APPROVED:
@@ -82,7 +82,7 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             }
             gridPlan.fitLanesToBots();
 
-            if (gridPlan.getSRPTask().getType() === TaskType.CONSTANT_HEADING) {
+            if (gridPlan.getSRPTask().getType() === MissionTask_TaskType.CONSTANT_HEADING) {
                 gridPlan.applySafetyReturnParameters();
             }
 

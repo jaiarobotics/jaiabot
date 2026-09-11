@@ -1,6 +1,6 @@
 import Mission from "../../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../../data/mission_set/mission-set";
-import { BottomDepthSafetyParams } from "../../../../types/protobuf-types";
+import { BottomDepthSafetyParams } from "../../../../shared/proto/jaiabot/messages/mission";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../../utils/constants";
 import { getMaxWaypointsPerOutputMission, combineMissionSets } from "../mission-set-editor";
 import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
@@ -160,10 +160,10 @@ describe("combineMissionSets", () => {
 
     test("SRP: carried from source mission into output segment", () => {
         const srp: BottomDepthSafetyParams = {
-            constant_heading: "90",
-            constant_heading_time: "30",
-            constant_heading_speed: "2",
-            safety_depth: "20",
+            constant_heading: 90,
+            constant_heading_time: 30,
+            constant_heading_speed: 2,
+            safety_depth: 20,
         };
         const survey = makeMission(3);
         survey.setBottomDepthSafetyParams(srp);
@@ -177,10 +177,10 @@ describe("combineMissionSets", () => {
 
     test("SRP: segment start_goal_index is offset by preceding waypoints", () => {
         const srp: BottomDepthSafetyParams = {
-            constant_heading: "0",
-            constant_heading_time: "60",
-            constant_heading_speed: "1",
-            safety_depth: "15",
+            constant_heading: 0,
+            constant_heading_time: 60,
+            constant_heading_speed: 1,
+            safety_depth: 15,
         };
         const survey = makeMission(3);
         survey.setBottomDepthSafetyParams(srp);

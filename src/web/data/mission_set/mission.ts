@@ -1,12 +1,12 @@
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
 import {
     BottomDepthSafetyParams,
-    GeographicCoordinate,
-    Goal,
     MissionPlan,
-    MissionStart,
-    MovementType,
-    Segment,
-} from "../../types/protobuf-types";
+    MissionPlan_Goal,
+    MissionPlan_MissionStart,
+    MissionPlan_MovementType,
+    MissionPlan_Segment,
+} from "../../shared/proto/jaiabot/messages/mission";
 import Waypoint from "../waypoints/waypoint";
 import Task from "../tasks/task";
 import { GhostParameters } from "../../types/jaia-system-types";
@@ -17,7 +17,7 @@ export default class Mission {
     private waypoints: Waypoint[];
     private stationkeepSpeed: number;
     private repeats: number;
-    private segments: Segment[];
+    private segments: MissionPlan_Segment[];
     private ghostParameters: GhostParameters;
 
     constructor() {
@@ -88,7 +88,7 @@ export default class Mission {
         return this.segments;
     }
 
-    setSegments(segments: Segment[]) {
+    setSegments(segments: MissionPlan_Segment[]) {
         this.segments = segments;
     }
 
@@ -148,8 +148,8 @@ export default class Mission {
 
     packageMissionForHub(missionSetName: string) {
         const missionPlan: MissionPlan = {
-            start: MissionStart.START_IMMEDIATELY,
-            movement: MovementType.TRANSIT,
+            start: MissionPlan_MissionStart.START_IMMEDIATELY,
+            movement: MissionPlan_MovementType.TRANSIT,
             goal: this.packageWaypointsForHub(),
             recovery: {
                 recover_at_final_goal: true,
@@ -167,7 +167,7 @@ export default class Mission {
     }
 
     packageWaypointsForHub() {
-        const goals: Goal[] = [];
+        const goals: MissionPlan_Goal[] = [];
 
         for (const waypoint of this.waypoints) {
             goals.push(waypoint.packageWaypointForHub());

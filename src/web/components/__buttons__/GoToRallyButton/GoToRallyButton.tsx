@@ -14,13 +14,12 @@ import { mdiPlay } from "@mdi/js";
 import Bot from "../../../data/bots/bot";
 import { DialogActions } from "../../../types/context-types";
 
+import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
 import {
-    Command,
-    CommandType,
-    MissionStart,
-    MovementType,
+    MissionPlan_MissionStart,
+    MissionPlan_MovementType,
     Speeds,
-} from "../../../types/protobuf-types";
+} from "../../../shared/proto/jaiabot/messages/mission";
 import { ButtonNames, ButtonTypes } from "../../../types/context-types";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
@@ -60,7 +59,10 @@ export default function GoToRallyButton(props: Props) {
             if (bot.isCommsDropped()) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (
-                !isCommandAvailable(CommandType.START_MISSION, bot.getMissionStatus().missionState)
+                !isCommandAvailable(
+                    Command_CommandType.START_MISSION,
+                    bot.getMissionStatus().missionState,
+                )
             ) {
                 updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
             }
@@ -127,10 +129,10 @@ export default function GoToRallyButton(props: Props) {
         const rallyPointLocation = props.rallyPoint.getLocation();
         const rallyCommand: Command = {
             bot_id: botID,
-            type: CommandType.MISSION_PLAN,
+            type: Command_CommandType.MISSION_PLAN,
             plan: {
-                start: MissionStart.START_IMMEDIATELY,
-                movement: MovementType.TRANSIT,
+                start: MissionPlan_MissionStart.START_IMMEDIATELY,
+                movement: MissionPlan_MovementType.TRANSIT,
                 goal: [{ location: rallyPointLocation }],
                 recovery: {
                     recover_at_final_goal: true,

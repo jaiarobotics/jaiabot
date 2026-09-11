@@ -10,7 +10,8 @@ import { mdiCheckboxMarkedCirclePlusOutline } from "@mdi/js";
 
 import Bot from "../../../data/bots/bot";
 import { DialogActions } from "../../../types/context-types";
-import { Command, CommandType, MissionState } from "../../../types/protobuf-types";
+import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
+import { MissionState } from "../../../shared/proto/jaiabot/messages/mission";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 
@@ -57,7 +58,12 @@ export default function ActivateButton(props: Props) {
             return DisabledCodes.STARTING_UP;
         }
 
-        if (!isCommandAvailable(CommandType.ACTIVATE, props.bot.getMissionStatus().missionState)) {
+        if (
+            !isCommandAvailable(
+                Command_CommandType.ACTIVATE,
+                props.bot.getMissionStatus().missionState,
+            )
+        ) {
             return DisabledCodes.MISSION_STATE;
         }
         return DisabledCodes.NONE;
@@ -93,7 +99,7 @@ export default function ActivateButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             const activateCommand: Command = {
                 bot_id: props.bot.getBotID(),
-                type: CommandType.ACTIVATE,
+                type: Command_CommandType.ACTIVATE,
             };
             sendBotCommand(activateCommand);
         }

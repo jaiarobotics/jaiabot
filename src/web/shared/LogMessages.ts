@@ -1,4 +1,4 @@
-import { Command, TaskPacket } from "./JAIAProtobuf";
+import { Command, TaskPacket } from "./proto/jaiabot/messages/jaia_dccl";
 
 /**
  * Messages stored in Jaia .goby and .h5 files that contain a few extra fields

@@ -1,7 +1,7 @@
 import * as turf from "@turf/turf";
 import { Units } from "@turf/helpers";
 
-import { GeographicCoordinate } from "../types/protobuf-types";
+import { GeographicCoordinate } from "../shared/proto/jaiabot/messages/geographic_coordinate";
 import Task from "../data/tasks/task";
 
 const units: Units = "kilometers";

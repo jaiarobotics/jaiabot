@@ -2,7 +2,11 @@ import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
 import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
-import { BottomDepthSafetyParams, GeographicCoordinate, Segment } from "../../types/protobuf-types";
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
+import {
+    BottomDepthSafetyParams,
+    MissionPlan_Segment,
+} from "../../shared/proto/jaiabot/messages/mission";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,
@@ -228,7 +232,7 @@ export class GridPlan {
             }
 
             const baseMission = new Mission();
-            const segment: Segment = {
+            const segment: MissionPlan_Segment = {
                 start_goal_index: 0,
                 lane_start_goal_indices: [nextLaneStartIndex],
             };
@@ -269,10 +273,10 @@ export class GridPlan {
         for (const mission of this.missions.values()) {
             const constantHeadingParams = this.srpTask.getConstantHeadingParameters();
             const bottomDepthSafetyParams: BottomDepthSafetyParams = {
-                constant_heading: constantHeadingParams.constant_heading.toString(),
-                constant_heading_speed: constantHeadingParams.constant_heading_speed.toString(),
-                constant_heading_time: constantHeadingParams.constant_heading_time.toString(),
-                safety_depth: gridPlan.getSRPTask().getSafetyDepth().toString(),
+                constant_heading: constantHeadingParams.constant_heading,
+                constant_heading_speed: constantHeadingParams.constant_heading_speed,
+                constant_heading_time: constantHeadingParams.constant_heading_time,
+                safety_depth: gridPlan.getSRPTask().getSafetyDepth(),
             };
             mission.setBottomDepthSafetyParams(bottomDepthSafetyParams);
         }

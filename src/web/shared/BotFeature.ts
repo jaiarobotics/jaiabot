@@ -1,4 +1,4 @@
-import { BotStatus } from "./JAIAProtobuf";
+import { BotStatus } from "./proto/jaiabot/messages/jaia_dccl";
 import { Point } from "ol/geom";
 import { fromLonLat } from "ol/proj";
 import { Feature, Map } from "ol";

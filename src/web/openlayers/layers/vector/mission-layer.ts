@@ -1,7 +1,7 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet } from "../../../data/mission_set/mission-set";
-import { TaskType } from "../../../types/protobuf-types";
+import { MissionTask_TaskType } from "../../../shared/proto/jaiabot/messages/mission";
 import { LayerTitles, LineType } from "../../../types/openlayers-types";
 import { constantHeadingParamsToLocation } from "../../../utils/conversions";
 import { layersZIndexes } from "../zindex";
@@ -38,7 +38,7 @@ class MissionLayer extends JaiaVectorLayer {
             let lineStartLocation = previousWaypoint.getLocation();
 
             // Start connecting line at end of constant heading
-            if (previousWaypoint.getTask().getType() === TaskType.CONSTANT_HEADING) {
+            if (previousWaypoint.getTask().getType() === MissionTask_TaskType.CONSTANT_HEADING) {
                 lineStartLocation = constantHeadingParamsToLocation(
                     previousWaypoint.getLocation(),
                     previousWaypoint.getTask(),
@@ -59,7 +59,7 @@ class MissionLayer extends JaiaVectorLayer {
         source.addFeature(generateWaypointFeature(waypoint.getLocation(), waypointNum, mission));
 
         // Add projected constant heading track
-        if (waypoint.getTask().getType() === TaskType.CONSTANT_HEADING) {
+        if (waypoint.getTask().getType() === MissionTask_TaskType.CONSTANT_HEADING) {
             source.addFeature(
                 generateWaypointLineFeature(
                     waypoint.getLocation(),

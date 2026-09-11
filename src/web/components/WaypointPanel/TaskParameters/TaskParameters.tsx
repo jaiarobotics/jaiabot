@@ -9,7 +9,7 @@ import { bots } from "../../../data/bots/bots";
 import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
 
 import { TaskParameterKeys } from "../../../types/jaia-system-types";
-import { TaskType } from "../../../types/protobuf-types";
+import { MissionTask_TaskType } from "../../../shared/proto/jaiabot/messages/mission";
 import { MapModes } from "../../../types/openlayers-types";
 import { formatNumericalInput } from "../../../utils/input";
 
@@ -104,7 +104,7 @@ export default function TaskParameters(props: Props) {
     };
 
     switch (props.task?.getType()) {
-        case TaskType.DIVE:
+        case MissionTask_TaskType.DIVE:
             return (
                 <DiveParameters
                     task={props.task}
@@ -114,7 +114,7 @@ export default function TaskParameters(props: Props) {
                     handleUseHydrophoneClick={handleUseHydrophoneClick}
                 />
             );
-        case TaskType.SURFACE_DRIFT:
+        case MissionTask_TaskType.SURFACE_DRIFT:
             return (
                 <DriftParameters
                     task={props.task}
@@ -123,7 +123,7 @@ export default function TaskParameters(props: Props) {
                     handleUseHydrophoneClick={handleUseHydrophoneClick}
                 />
             );
-        case TaskType.CONSTANT_HEADING:
+        case MissionTask_TaskType.CONSTANT_HEADING:
             return (
                 <ConstantHeading
                     task={props.task}
@@ -133,7 +133,7 @@ export default function TaskParameters(props: Props) {
                     handleSelectOnMapClick={handleSelectOnMapClick}
                 />
             );
-        case TaskType.STATION_KEEP:
+        case MissionTask_TaskType.STATION_KEEP:
             return (
                 <StationKeepParameters
                     task={props.task}

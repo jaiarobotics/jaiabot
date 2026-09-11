@@ -12,7 +12,7 @@ import Bot from "../../../data/bots/bot";
 
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { Command, CommandType } from "../../../types/protobuf-types";
+import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
 import { DialogActions } from "../../../types/context-types";
 
 interface Props {
@@ -48,11 +48,11 @@ export default function DataOffloadAllButton(props: Props) {
             } else if (
                 !(
                     isCommandAvailable(
-                        CommandType.RECOVERED,
+                        Command_CommandType.RECOVERED,
                         bot.getMissionStatus().missionState,
                     ) ||
                     isCommandAvailable(
-                        CommandType.RETRY_DATA_OFFLOAD,
+                        Command_CommandType.RETRY_DATA_OFFLOAD,
                         bot.getMissionStatus().missionState,
                     )
                 )
@@ -101,7 +101,7 @@ export default function DataOffloadAllButton(props: Props) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
                 const dataOffloadCommand: Command = {
                     bot_id: botID,
-                    type: CommandType.RECOVERED,
+                    type: Command_CommandType.RECOVERED,
                 };
                 sendBotCommand(dataOffloadCommand);
             }

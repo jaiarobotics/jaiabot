@@ -14,7 +14,8 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { LineType, MapFeatureTypes } from "../../types/openlayers-types";
-import { GeographicCoordinate, MissionState, TaskType } from "../../types/protobuf-types";
+import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
+import { MissionState, MissionTask_TaskType } from "../../shared/proto/jaiabot/messages/mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";
@@ -217,13 +218,13 @@ function generateMissionFlagStyle(mission: Mission) {
         image: new Icon({
             src: missionFlagIcon,
             color: getWaypointColor(mission),
-            anchor: taskType === TaskType.NONE ? [0.21, 1.62] : [0.21, 1.92],
+            anchor: taskType === MissionTask_TaskType.NONE ? [0.21, 1.62] : [0.21, 1.92],
         }),
         text: new Text({
             text: `M${mission.getMissionID()}`,
             font: "12pt sans-serif",
             fill: new Fill({ color: "black" }),
-            offsetY: taskType === TaskType.NONE ? -61.2175 : -76.75,
+            offsetY: taskType === MissionTask_TaskType.NONE ? -61.2175 : -76.75,
             offsetX: 20,
         }),
         zIndex: getWaypointZIndex(mission),
@@ -238,19 +239,19 @@ function generateMissionFlagStyle(mission: Mission) {
  */
 export function getWaypointSrc(task: Task) {
     switch (task.getType()) {
-        case TaskType.DIVE:
+        case MissionTask_TaskType.DIVE:
             if (task.getUseHydrophone()) {
                 return waypointDiveListenIcon;
             }
             return waypointDiveIcon;
-        case TaskType.SURFACE_DRIFT:
+        case MissionTask_TaskType.SURFACE_DRIFT:
             if (task.getUseHydrophone()) {
                 return waypointDriftListenIcon;
             }
             return waypointDriftIcon;
-        case TaskType.CONSTANT_HEADING:
+        case MissionTask_TaskType.CONSTANT_HEADING:
             return waypointConstantHeadingIcon;
-        case TaskType.STATION_KEEP:
+        case MissionTask_TaskType.STATION_KEEP:
             return waypointStationKeepIcon;
         default:
             return waypointIcon;

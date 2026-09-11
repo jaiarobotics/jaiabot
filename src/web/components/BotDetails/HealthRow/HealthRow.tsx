@@ -2,7 +2,8 @@ import { useContext } from "react";
 import { JaiaContext } from "../../../context/JaiaContext";
 
 import { NodeTypes } from "../../../types/jaia-system-types";
-import { HealthState, Error, Warning } from "../../../types/protobuf-types";
+import { HealthState } from "../../../shared/proto/goby/middleware/protobuf/coroner";
+import { Error, Warning } from "../../../shared/proto/jaiabot/messages/health";
 
 import "./HealthRow.less";
 

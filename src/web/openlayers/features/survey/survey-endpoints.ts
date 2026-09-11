@@ -5,7 +5,7 @@ import { Coordinate } from "ol/coordinate";
 import { Fill, Icon, Stroke, Style } from "ol/style";
 import { view } from "../../views/view";
 import { SurveyEndpoints } from "../../../types/openlayers-types";
-import { GeographicCoordinate } from "../../../types/protobuf-types";
+import { GeographicCoordinate } from "../../../shared/proto/jaiabot/messages/geographic_coordinate";
 
 import surveyStartIcon from "../../../style/icons/survey-start.svg";
 import surveyEndIcon from "../../../style/icons/survey-end.svg";

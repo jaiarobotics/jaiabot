@@ -1,5 +1,6 @@
 node_modules
 /dist/
+shared/proto
 typescript
 jcc/typescript
 jdv/client/typescript

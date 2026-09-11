@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 
-import { DriftPacket, TaskPacket } from "../../types/protobuf-types";
+import { DriftPacket, TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
 import { timestampToISOString } from "../conversions";
 import { DRIFT_INTENSITY_INTERVAL, MAX_DRIFT_INTENSITY } from "../constants";
 
@@ -36,7 +36,7 @@ function getDriftArrow(driftPacket: DriftPacket) {
  */
 export function getKMZFilename(taskPackets: TaskPacket[]) {
     const timestamp = taskPackets[0]?.start_time;
-    const fileDate = timestamp ? timestampToISOString(timestamp) : new Date().toISOString();
+    const fileDate = timestamp ? timestampToISOString(Number(timestamp)) : new Date().toISOString();
     return `task-packets-${fileDate}.kmz`;
 }
 
@@ -55,7 +55,7 @@ function taskPacketToKMLPlacemarks(taskPacket: TaskPacket) {
 
     let startTimeString = "N/A";
     if (taskPacket.start_time) {
-        const startTime = new Date(taskPacket.start_time / 1e3);
+        const startTime = new Date(Number(taskPacket.start_time) / 1e3);
         startTimeString = formatter.format(startTime);
     }
 

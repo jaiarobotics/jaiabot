@@ -12,7 +12,10 @@ import Bot from "../../../data/bots/bot";
 import Hub from "../../../data/hubs/hub";
 import { DialogActions } from "../../../types/context-types";
 import { SystemButtonTypes } from "../../../types/jaia-system-types";
-import { CommandType, HubCommandType } from "../../../types/protobuf-types";
+import {
+    CommandForHub_HubCommandType,
+    Command_CommandType,
+} from "../../../shared/proto/jaiabot/messages/jaia_dccl";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import {
     isCommandAvailable,
@@ -26,16 +29,16 @@ interface Props {
     type: SystemButtonTypes;
 }
 
-const botCommands: Map<SystemButtonTypes, CommandType> = new Map([
-    [SystemButtonTypes.SHUTDOWN, CommandType.SHUTDOWN],
-    [SystemButtonTypes.REBOOT, CommandType.REBOOT_COMPUTER],
-    [SystemButtonTypes.RESTART_SERVICES, CommandType.RESTART_ALL_SERVICES],
+const botCommands: Map<SystemButtonTypes, Command_CommandType> = new Map([
+    [SystemButtonTypes.SHUTDOWN, Command_CommandType.SHUTDOWN],
+    [SystemButtonTypes.REBOOT, Command_CommandType.REBOOT_COMPUTER],
+    [SystemButtonTypes.RESTART_SERVICES, Command_CommandType.RESTART_ALL_SERVICES],
 ]);
 
-const hubCommands: Map<SystemButtonTypes, HubCommandType> = new Map([
-    [SystemButtonTypes.SHUTDOWN, HubCommandType.SHUTDOWN_COMPUTER],
-    [SystemButtonTypes.REBOOT, HubCommandType.REBOOT_COMPUTER],
-    [SystemButtonTypes.RESTART_SERVICES, HubCommandType.RESTART_ALL_SERVICES],
+const hubCommands: Map<SystemButtonTypes, CommandForHub_HubCommandType> = new Map([
+    [SystemButtonTypes.SHUTDOWN, CommandForHub_HubCommandType.SHUTDOWN_COMPUTER],
+    [SystemButtonTypes.REBOOT, CommandForHub_HubCommandType.REBOOT_COMPUTER],
+    [SystemButtonTypes.RESTART_SERVICES, CommandForHub_HubCommandType.RESTART_ALL_SERVICES],
 ]);
 
 /**
@@ -111,17 +114,17 @@ export default function SystemButton(props: Props) {
     };
 
     /**
-     * Provides the CommandType or HubCommandType for a Bot or Hub based on system button type
+     * Provides the Command_CommandType or CommandForHub_HubCommandType for a Bot or Hub based on system button type
      *
      * @param {Bot | Hub} node Type of node for which the button applies
      * @param {SystemButtonTypes} type Button to produce
-     * @returns {CommandType | HubCommandType} Command that maps to the button type
+     * @returns {Command_CommandType | CommandForHub_HubCommandType} Command that maps to the button type
      *
      * @notes
      * Function is overloaded to satsify type checking downstream
      */
-    function getCommandType(node: Bot, type: SystemButtonTypes): CommandType;
-    function getCommandType(node: Hub, type: SystemButtonTypes): HubCommandType;
+    function getCommandType(node: Bot, type: SystemButtonTypes): Command_CommandType;
+    function getCommandType(node: Hub, type: SystemButtonTypes): CommandForHub_HubCommandType;
     function getCommandType(node: Bot | Hub, type: SystemButtonTypes) {
         if (node instanceof Bot) {
             return botCommands.get(type);
