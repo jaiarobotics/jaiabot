@@ -28,6 +28,12 @@ An OVA already on disk is used with `--ova` instead, which skips the download.
 If bots or hubs of the same name already exist in the OVA's VirtualBox group the
 script lists them and asks before deleting and re-importing; `--yes` answers yes.
 
+A newer OVA of the same branch lands in its own group, so it does not clash by
+name - but importing it re-creates the fleet's NAT network and strands the nodes
+of the previous OVA, whose NIC 2 is left on a network that no longer carries their
+address. The same prompt therefore also offers to delete fleet nodes left behind by
+an earlier OVA.
+
 ## Stages
 
 Stages run in order and are selected with `--stages`, so a run can be resumed or

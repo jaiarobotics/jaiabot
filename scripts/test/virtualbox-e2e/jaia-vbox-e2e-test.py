@@ -94,18 +94,36 @@ def jaia_ip(*args):
 # VirtualBox inventory
 # ---------------------------------------------------------------------------
 
-def vms_in_group(group):
-    """Map of VM name -> uuid for every VM registered in `group`."""
-    found = {}
+def registered_vms():
+    """Every registered VM as (name, uuid, group, natnet), natnet from NIC 2."""
+    vms = []
     for line in vbm('list', 'vms').splitlines():
         m = re.match(r'^"(.*)" \{(.*)\}$', line.strip())
         if not m:
             continue
         name, uuid = m.group(1), m.group(2)
         info = vbm('showvminfo', '--machinereadable', uuid, check=False)
-        if f'groups="{group}"' in info:
-            found[name] = uuid
-    return found
+        group = re.search(r'^groups="(.*)"$', info, re.M)
+        natnet = re.search(r'^nat-network2="(.*)"$', info, re.M)
+        vms.append((name, uuid, group.group(1) if group else '',
+                    natnet.group(1) if natnet else ''))
+    return vms
+
+
+def vms_in_group(group):
+    """Map of VM name -> uuid for every VM registered in `group`."""
+    return {name: uuid for name, uuid, g, _ in registered_vms() if g == group}
+
+
+def stale_fleet_vms(group, natnet, names):
+    """Same-named nodes of this fleet left behind by an earlier OVA.
+
+    Importing a newer OVA of the same branch lands in its own group, so these do
+    not clash by name, but re-creating the NAT network below strands them - their
+    NIC 2 is left pointing at a network that no longer holds their address.
+    """
+    return {name: (uuid, g) for name, uuid, g, n in registered_vms()
+            if name in names and g != group and n == natnet}
 
 
 def vm_state(uuid):
@@ -167,15 +185,28 @@ def stage_import(args, ova, nodes):
     group = group_name(ova)
     log(f'VirtualBox group: {group}')
 
+    names = [n.name for n in nodes]
     existing = vms_in_group(group)
-    clashes = {n.name: existing[n.name] for n in nodes if n.name in existing}
-    if clashes:
-        log(f'these VMs already exist in {group}: {", ".join(sorted(clashes))}')
+    # keyed by uuid: the same node name exists in both groups once an earlier OVA
+    # of this fleet is still around
+    doomed = {uuid: name for name, uuid in existing.items() if name in names}
+    if doomed:
+        log(f'these VMs already exist in {group}: {", ".join(sorted(doomed.values()))}')
+
+    stale = stale_fleet_vms(group, natnet_name(args.fleet), names)
+    if stale:
+        log(f'these VMs are fleet {args.fleet} nodes from an earlier OVA, and '
+            f'importing this one strands them:')
+        for name, (uuid, g) in sorted(stale.items()):
+            log(f'  {name} in {g}')
+            doomed[uuid] = name
+
+    if doomed:
         if not args.yes:
             answer = input('Delete and re-import them? [y/N] ').strip().lower()
             if answer not in ('y', 'yes'):
                 raise TestFailure('existing VMs left in place; aborting')
-        for name, uuid in sorted(clashes.items()):
+        for uuid, name in sorted(doomed.items(), key=lambda kv: kv[1]):
             if vm_state(uuid) != 'poweroff':
                 log(f'powering off {name}')
                 vbm('controlvm', uuid, 'poweroff', check=False)
