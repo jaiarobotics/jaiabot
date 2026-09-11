@@ -1,8 +1,8 @@
 # Add a jaiabot application written in Python against the Goby3 Python bindings.
 #
 # add_jaiabot_python_app(TARGET jaiabot_driver_tsys01
-#                        MAIN jaiabot_driver_tsys01.py
 #                        SUBDIR tsys01_temperature_sensor
+#                        INTERFACE_YML <file>  (default: interface.yml beside the CMakeLists)
 #                        INCLUDES header1.h;header2.h)
 #
 # Wraps goby_add_python_app with the conventions this project needs:
@@ -17,7 +17,7 @@ set(JAIA_PYTHON_APP_DIR "${project_LIB_DIR}/jaiabot/python"
   CACHE INTERNAL "Where generated Goby Python extension modules are written")
 
 function(add_jaiabot_python_app)
-  cmake_parse_arguments(args "" "TARGET;MAIN;SUBDIR" "INCLUDES;LINK_LIBRARIES" ${ARGN})
+  cmake_parse_arguments(args "" "TARGET;SUBDIR;INTERFACE_YML" "INCLUDES;LINK_LIBRARIES" ${ARGN})
 
   if(NOT args_TARGET)
     message(FATAL_ERROR "You must provide a TARGET")
@@ -26,9 +26,13 @@ function(add_jaiabot_python_app)
     message(FATAL_ERROR "You must provide a SUBDIR")
   endif()
 
+  if(NOT args_INTERFACE_YML)
+    set(args_INTERFACE_YML ${CMAKE_CURRENT_SOURCE_DIR}/interface.yml)
+  endif()
+
   goby_add_python_app(
     TARGET ${args_TARGET}
-    INTERFACE_YML ${CMAKE_CURRENT_SOURCE_DIR}/interface.yml
+    INTERFACE_YML ${args_INTERFACE_YML}
     OUTPUT_DIRECTORY ${JAIA_PYTHON_APP_DIR}
     INCLUDES goby/zeromq/application/single_thread.h
              jaiabot/groups.h

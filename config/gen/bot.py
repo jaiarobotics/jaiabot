@@ -116,6 +116,8 @@ verbosities = \
   'jaiabot_driver_salinity':                      { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_driver_pressure':                      { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
   'jaiabot_ppk_logger':                           { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_driver_imu':                           { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
+  'jaiabot_driver_pam':                           { 'runtime': { 'tty': 'WARN', 'log': 'WARN' },  'simulation': { 'tty': 'WARN', 'log': 'QUIET' }},
 }
 
 app_common = common.app_block(verbosities, debug_log_file_dir)
@@ -315,6 +317,20 @@ elif common.app == 'jaiabot_ppk_logger':
                                      app_block=app_common,
                                      interprocess_block = interprocess_common,
                                      simulate=str(is_simulation()).lower()))
+elif common.app == 'jaiabot_driver_imu':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_imu.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     simulate=str(is_simulation()).lower(),
+                                     sample_frequency=10,
+                                     device_type=jaia_imu_type.upper()))
+elif common.app == 'jaiabot_driver_pam':
+    print(config.template_substitute(templates_dir+'/bot/jaiabot_driver_pam.pb.cfg.in',
+                                     app_block=app_common,
+                                     interprocess_block = interprocess_common,
+                                     simulate=str(is_simulation()).lower(),
+                                     status_frequency=1,
+                                     serial_device=jaia_pam_connection_type))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,

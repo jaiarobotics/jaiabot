@@ -72,8 +72,8 @@ class Health : public ApplicationBase
         // Restart jaiabot applications and apache which is hosting JCC
         system("systemctl restart apache2 jaiabot");
     }
-    void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
-    void restart_pam_py() { system("systemctl restart jaiabot_pam_py"); }
+    void restart_imu_py() { system("systemctl restart jaiabot_driver_imu_py"); }
+    void restart_pam_py() { system("systemctl restart jaiabot_driver_pam_py"); }
     void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
     void reboot_pam() { system("systemctl start jaia_firm_pam_reset_gpio_pin_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);

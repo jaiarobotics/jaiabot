@@ -1,0 +1,6 @@
+$app_block
+$interprocess_block
+
+simulate: $simulate
+sample_frequency: $sample_frequency
+device_type: $device_type

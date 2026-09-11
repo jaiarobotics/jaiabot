@@ -1,0 +1,16 @@
+application:
+  name: JaiabotDriverIMU
+  cpp_type: goby::zeromq::SingleThreadApplication
+  config:
+    scheme: PROTOBUF
+    type: jaiabot.config.IMUDriver
+
+interprocess:
+  publishes:
+    - group: jaiabot::groups::imu
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.IMUData
+  subscribes:
+    - group: jaiabot::groups::imu
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.IMUCommand

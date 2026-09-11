@@ -729,14 +729,12 @@ jaiabot_apps = [
 
     ## PAM Services ##
 
-    {'exe': 'jaiabot_pam.py',
+    {'exe': 'jaiabot_driver_pam.py',
      'description': 'JaiaBot MAI PAM Python Driver',
-     'template': 'py-app.service.in',
+     'template': 'goby-py-app.service.in',
      'subdir': 'pam',
-     'args': f'-p {UDP_GATEWAY_PORT} -d {jaia_pam_connection_type.value}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PAM',
      'runs_on': [BOT_TYPE.PAM],
-     'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
 
@@ -760,34 +758,15 @@ jaiabot_apps = [
 
 ]
 
-if jaia_imu_type.value == 'bno085':
-    jaiabot_apps_imu = [
-        {'exe': 'jaiabot_imu.py',
-        'description': 'JaiaBot BNO085 IMU Python Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO085.value} -p {UDP_GATEWAY_PORT}',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-        'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'},
-    ] 
-    jaiabot_apps.extend(jaiabot_apps_imu)
-else:
-    jaiabot_apps_imu = [
-        {'exe': 'jaiabot_imu.py',
-        'description': 'JaiaBot BNO055 IMU Python Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO055.value} -p {UDP_GATEWAY_PORT}',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-        'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'},
-    ]
-    jaiabot_apps.extend(jaiabot_apps_imu)
+jaiabot_apps.append(
+    {'exe': 'jaiabot_driver_imu.py',
+     'description': 'JaiaBot IMU Python Driver',
+     'template': 'goby-py-app.service.in',
+     'subdir': 'adafruit',
+     'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+     'runs_on': [Type.BOT],
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'})
 
 if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
     jaiabot_apps_motor_harness_type = [
