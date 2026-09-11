@@ -80,6 +80,7 @@ class Question:
         self.extended_description = d.extended_description
         self.ask_if = (d.ask_if.field, d.ask_if.equals) if d.HasField("ask_if") else None
         self.unasked_value = d.unasked_value if d.HasField("unasked_value") else None
+        self.bounded_id = d.bounded_id
         self.enum_values = enum_values  # for enum fields, in declaration order
 
         self.repeated = field.label == FieldDescriptor.LABEL_REPEATED
@@ -88,10 +89,11 @@ class Question:
             self.choices = [v.value for v in enum_values if not v.deprecated]
         elif field.type in (FieldDescriptor.TYPE_INT32, FieldDescriptor.TYPE_UINT32,
                             FieldDescriptor.TYPE_INT64, FieldDescriptor.TYPE_UINT64):
-            self.type = "select"
-            if d.HasField("range"):
-                self.choices = [str(i) for i in range(d.range.min, d.range.max + 1)]
+            if self.bounded_id:
+                self.type = "string"
+                self.choices = None
             else:
+                self.type = "select"
                 self.choices = list(d.choices)
         elif field.type == FieldDescriptor.TYPE_STRING:
             self.type = "string"
@@ -145,6 +147,8 @@ class Question:
         text = text.strip()
         if self.choices is not None and text not in self.choices:
             raise FleetConfigError("{}: '{}' is not one of {}".format(self.key, text, collapse(self.choices)))
+        if not text.isdigit():
+            raise FleetConfigError("{}: '{}' is not a whole number".format(self.key, text))
         return int(text)
 
     def check_value(self, value):
@@ -633,7 +637,7 @@ def find_bootdir(label):
 
 def jaia_ip(query_type, node_type, fleet, node_id=None):
     cmd = ["jaia_ip", "--query_type", query_type, "--node_type", node_type, "--ip_net", "wlan",
-           "--fleet_id", str(fleet), "--ip_version", "ipv4"]
+           "--fleet_id", str(fleet)]
     if node_id is not None:
         cmd += ["--node_id", str(node_id)]
     return subprocess.run(cmd, capture_output=True, text=True, check=True).stdout.strip()

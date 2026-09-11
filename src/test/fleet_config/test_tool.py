@@ -245,7 +245,7 @@ class CommandTest(unittest.TestCase):
         init = os.path.join(bootdir, "jaiabot", "init")
         with open(os.path.join(init, "first-boot.preseed.yml")) as f:
             preseed = f.read()
-        self.assertIn("jaiabot-embedded jaiabot-embedded/hub_id select 1", preseed)
+        self.assertIn("jaiabot-embedded jaiabot-embedded/hub_id string 1", preseed)
         self.assertIn("jaiabot-embedded jaiabot-embedded/bot_type select pam", preseed)
         self.assertIn("jaiabot-embedded jaiabot-embedded/comms_links multiselect xbee, wifi", preseed)
         self.assertIn("no-touch-required sk-ssh-ed25519@openssh.com AAAAhub1 hub1_fleet7", preseed)
@@ -268,7 +268,7 @@ class CommandTest(unittest.TestCase):
             preseed = f.read()
         self.assertIn("jaiabot-embedded/bot_type select bio", preseed)
         self.assertIn("jaiabot-embedded/camera_positions multiselect outward", preseed)
-        self.assertIn("jaiabot-embedded/bot_id select 2", preseed)
+        self.assertIn("jaiabot-embedded/bot_id string 2", preseed)
 
     def test_generate_refuses_invalid_config_before_writing(self):
         bootdir = self.env.bootdir()

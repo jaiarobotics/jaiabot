@@ -54,6 +54,15 @@ def templates_text(schema):
         for line in q.extended_description.splitlines():
             out.append("  " + line)
         out.append("")
+        if q.bounded_id:
+            out += [
+                "Template: " + q.key + "_invalid",
+                "Type: error",
+                "Description: Invalid " + q.description.lower(),
+                "  The {} must be a whole number in the range reported by".format(q.name),
+                '  "jaia admin bounds --{}". Please enter one in that range.'.format(q.name),
+                "",
+            ]
     return "\n".join(out)
 
 
@@ -84,6 +93,28 @@ go_menu() {{
     db_go
     db_get $1
     state=$RET
+}}
+
+# The bot, hub and fleet ids are runs of integers too long to offer as debconf Choices, so those
+# questions are strings and their ranges are checked here instead. Each one names its own
+# 'jaia_bounds' flag. That tool is in jaiabot-apps, which a first install has not unpacked by the
+# time this runs, so only the form of the answer can be checked then; the postinst rejects an
+# out-of-range id either way, as every address and hostname it builds comes from the ranges.
+id_is_valid() {{
+    local question="$1" value min max
+
+    db_get {package}/${{question}}
+    value="$RET"
+
+    case "${{value}}" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+
+    if command -v jaia_bounds > /dev/null 2>&1; then
+        min=$(jaia_bounds --${{question}} --min)
+        max=$(jaia_bounds --${{question}} --max)
+        [ "${{value}}" -ge "${{min}}" ] && [ "${{value}}" -le "${{max}}" ]
+    fi
 }}
 '''
 
@@ -134,7 +165,18 @@ def question_arm(schema, q, next_state, menu):
         for old, new in arms:
             body.append("        {}) db_set {} {} ;;".format(old, q.key, new))
         body.append("    esac")
-    body.append("    " + next_state)
+    if q.bounded_id:
+        body += [
+            "    if id_is_valid {}; then".format(q.name),
+            "        " + next_state,
+            "    else",
+            "        db_input critical {}_invalid || true".format(q.key),
+            "        db_go || true",
+            "        db_fset {} seen false".format(q.key),
+            "    fi",
+        ]
+    else:
+        body.append("    " + next_state)
     body.append("else")
     body.append("    go_menu {}".format(menu))
     body.append("fi")
@@ -211,7 +253,7 @@ def config_text(schema):
             "                fi",
             "                ;;",
         ]
-    text = CONFIG_PROLOGUE.format(notice=GENERATED_NOTICE)
+    text = CONFIG_PROLOGUE.format(notice=GENERATED_NOTICE, package=schema.package)
     for group in ("ALL", "BOT", "HUB"):
         text += group_function(schema, group) + "\n"
     text += CONFIG_EPILOGUE.format(node_type_key=node_type.key,

@@ -48,6 +48,7 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/link.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/utils/ip.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -1402,8 +1403,8 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
                               << std::endl;
     current_offload_bot_id_ = bot_id;
 
-    std::string bot_ip = cfg().class_b_network() + "." + std::to_string(cfg().fleet_id()) + "." +
-                         std::to_string((cfg().bot_start_ip() + bot_id));
+    std::string bot_ip = jaiabot::ip::addr(cfg().fleet_id(), jaiabot::ip::Network::wlan,
+                                           jaiabot::ip::NodeType::bot, bot_id);
 
     if (cfg().use_localhost_for_data_offload())
         bot_ip = "127.0.0.1";

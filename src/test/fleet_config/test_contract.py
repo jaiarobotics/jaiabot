@@ -60,9 +60,14 @@ class SnapshotTest(unittest.TestCase):
         texts = [c.text for c in contract.diff(v1, v2)]
         self.assertIn("field jaiabot.protobuf.FleetConfig.debconf deprecated: migration must clear it", texts)
         self.assertIn("optional field jaiabot.protobuf.FleetConfig.settings added", texts)
-        # every v1 question survives with the same type, choices and default
-        self.assertEqual({k: {a: v[a] for a in ("type", "choices", "default") if a in v} for k, v in v1["debconf"].items()},
-                         {k: {a: v[a] for a in ("type", "choices", "default") if a in v} for k, v in v2["debconf"].items()})
+        # every stored v1 question survives with the same type, choices and default; the
+        # per-node ids became bounds-checked strings but are never in a fleet config
+        identity = {k for k, v in v2["debconf"].items() if v.get("identity")}
+        self.assertEqual({k: {a: v[a] for a in ("type", "choices", "default") if a in v} for k, v in v1["debconf"].items() if k not in identity},
+                         {k: {a: v[a] for a in ("type", "choices", "default") if a in v} for k, v in v2["debconf"].items() if k not in identity})
+        for key in sorted(identity):
+            if v1["debconf"][key]["type"] != v2["debconf"][key]["type"]:
+                self.assertIn("debconf {} changed type from select to string".format(key), texts)
 
     def test_generated_view_marks_identity_and_replacements(self):
         debconf = current()["debconf"]

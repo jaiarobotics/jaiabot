@@ -29,12 +29,22 @@ class GeneratedFilesTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_generated_templates_match_the_hand_written_v1_file(self):
-        """Same questions, types, choices and defaults as before they were generated."""
+        """Same questions, types, choices and defaults as before they were generated,
+        except the ids, which are now strings checked against jaia_bounds."""
         with open(os.path.join(SNAPSHOT_DIR, "v1", "jaiabot-embedded.templates")) as f:
             v1 = contract.debconf_contract_from_templates(f.read())
         with open(os.path.join(SOURCE_DIR, "debian", "jaiabot-embedded.templates")) as f:
             now = contract.debconf_contract_from_templates(f.read())
-        self.assertEqual(v1, now)
+        ids = {"jaiabot-embedded/" + name for name in ("fleet_id", "bot_id", "hub_id")}
+        self.assertEqual({k: v for k, v in v1.items() if k not in ids}, {k: v for k, v in now.items() if k not in ids})
+        for key in ids:
+            self.assertEqual(now[key], {"type": "string", "default": "0"})
+
+    def test_generated_templates_carry_an_error_for_each_id(self):
+        with open(os.path.join(SOURCE_DIR, "debian", "jaiabot-embedded.templates")) as f:
+            templates = f.read()
+        for name in ("fleet_id", "bot_id", "hub_id"):
+            self.assertIn("Template: jaiabot-embedded/{}_invalid\nType: error\n".format(name), templates)
 
     def test_generated_config_is_valid_shell(self):
         result = subprocess.run(["sh", "-n", os.path.join(SOURCE_DIR, "debian", "jaiabot-embedded.config")],
@@ -53,6 +63,10 @@ class GeneratedFilesTest(unittest.TestCase):
         self.assertIn('db_get jaiabot-embedded/mode\n                if [ "$RET" = "simulation" ]; then', config)
         self.assertIn("db_set jaiabot-embedded/pam_connection_type none", config)
         self.assertNotIn("camera_positions aft", config)
+        # ids are re-asked until they pass the bounds check
+        for name in ("fleet_id", "bot_id", "hub_id"):
+            self.assertIn("if id_is_valid {}; then".format(name), config)
+            self.assertIn("db_input critical jaiabot-embedded/{}_invalid || true".format(name), config)
 
 
 if __name__ == "__main__":

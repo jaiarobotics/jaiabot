@@ -57,13 +57,13 @@ message NodeSettings
         extended_description: "This choice will determine which applications will be configured to launch with systemd."
     }];
 
-    optional int32 fleet_id = 2 [(jaia.field).debconf = {
+    optional int32 fleet_id = 2 [default = 0, (jaia.field).debconf = {
         group: ALL
         identity: true
         priority: HIGH
-        range { min: 0 max: 250 }
+        bounded_id: true
         description: "Fleet identification number"
-        extended_description: "This is used to set the correct value in the jaiabot configuration.\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
+        extended_description: "This is used to set the correct value in the jaiabot configuration.\nValid fleet ids are 0 to 4000, as reported by \"jaia admin bounds --fleet_id\";\nthose above 250 are addressed with IPv6 rather than IPv4.\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
     }];
 
     enum LedType
@@ -149,13 +149,13 @@ message NodeSettings
         }
     ];
 
-    optional int32 bot_id = 10 [(jaia.field).debconf = {
+    optional int32 bot_id = 10 [default = 0, (jaia.field).debconf = {
         group: BOT
         identity: true
         priority: HIGH
-        range { min: 0 max: 150 }
+        bounded_id: true
         description: "Bot identification number"
-        extended_description: "This is used to set the hostname of the computer and set the correct value in the jaiabot configuration.\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
+        extended_description: "This is used to set the hostname of the computer and set the correct value in the jaiabot configuration.\nValid bot_ids are 0 to 150, as reported by \"jaia admin bounds --bot_id\".\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
     }];
 
     enum ArduinoType
@@ -328,13 +328,13 @@ message NodeSettings
         description: "Which additional sensors?"
     }];
 
-    optional int32 hub_id = 22 [(jaia.field).debconf = {
+    optional int32 hub_id = 22 [default = 0, (jaia.field).debconf = {
         group: HUB
         identity: true
         priority: HIGH
-        range { min: 0 max: 30 }
+        bounded_id: true
         description: "Hub identification number"
-        extended_description: "This is used to set the hostname of the computer and set the correct value in the jaiabot configuration.\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
+        extended_description: "This is used to set the hostname of the computer and set the correct value in the jaiabot configuration.\nValid hub_ids are 0 to 30, as reported by \"jaia admin bounds --hub_id\".\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
     }];
 
     enum UserRole

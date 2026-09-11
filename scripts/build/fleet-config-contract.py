@@ -159,6 +159,8 @@ def debconf_contract_from_templates(templates_text):
             continue
         if key[len(DEBCONF_PACKAGE) + 1:].startswith(DEBCONF_INTERNAL_PREFIX):
             continue
+        if stanza.get("Type") == "error":
+            continue
         entry = {"type": stanza.get("Type", "")}
         if "Choices" in stanza:
             entry["choices"] = [c.strip() for c in stanza["Choices"].split(",")]

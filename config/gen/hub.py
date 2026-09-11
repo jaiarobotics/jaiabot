@@ -126,7 +126,7 @@ if common.app == 'goby_intervehicle_portal':
                                                  mac_slots=common.comms.wifi_mac_slots(node_id),
                                                  sub_buffer=sub_buffer_config,
                                                  ack_timeout=ack_timeout,
-                                                 ipv6='')
+                                                 ipv6=common.comms.wifi_link_ipv6(fleet_id))
 
     if common.CommsMode.IRIDIUM in common.jaia_comms_modes:
         sbd_type=common.comms.iridium_sbd_type()

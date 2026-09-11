@@ -57,7 +57,7 @@ These related commands provide remote functionality using host codes given above
 - `jaia ip h3vf1` - Hub 3 VirtualFleet 1
 - `jaia ip b4` - Bot 4 for the same fleet as the machine this was run on.
 
-`jaia ip` is a thin wrapper around the standalone `jaia_ip` binary, which can also be run directly (`jaia_ip b1sf2`). `jaia_ip` does not load the `jaia` tool (or goby/protobuf) and so starts up considerably faster; prefer it in scripts and other non-interactive callers that query many addresses. `jaia_ip` additionally supports an explicit query mode (`jaia_ip --query_type net --fleet_id 3 --ip_net fleet_vpn --ip_version ipv4`); see `jaia_ip --help`.
+`jaia ip` is a thin wrapper around the standalone `jaia_ip` binary, which can also be run directly (`jaia_ip b1sf2`). `jaia_ip` does not load the `jaia` tool (or goby/protobuf) and so starts up considerably faster; prefer it in scripts and other non-interactive callers that query many addresses. `jaia_ip` additionally supports an explicit query mode (`jaia_ip --query_type net --fleet_id 3 --ip_net fleet_vpn`); see `jaia_ip --help`. Both modes give the address in whichever IP version the fleet uses on the network asked for; `--ip_version ipv4` or `--ip_version ipv6` asks for one in particular, and works with a host code too (`jaia ip b5sf3 --ip_version ipv6`). The rest of the explicit mode flags cannot be combined with a host code, which already names the node, its fleet and its network.
 
 `jaia ssh ` uses the same codes but runs `ssh` to remotely log into the given system. Any parameters passed **after** the host code is passed unmodified to SSH:
 
@@ -124,14 +124,17 @@ The bot, hub and fleet id ranges are defined once, in `src/lib/utils/ip.h`, and 
 jaia admin bounds
 bot id: [0 150]
 hub id: [0 30]
-fleet id: [0 255]
+fleet id: [0 4000]
+ipv4 fleet id: [0 250]
 desktop id: [1 9]
 gateway id: [0 0]
 rpicam id: [0 49]
 cloudhub id: 30
 ```
 
-Pass one or more ids to narrow the output (`--bot_id`, `--hub_id`, `--fleet_id`, `--desktop_id`, `--gateway_id`, `--rpicam_id`), and `--min` or `--max` to select one end. A single id that comes out as a single number is written bare, so a script can use it directly:
+`ipv4 fleet id` is the part of the fleet id range that is addressed with IPv4 on the fleet WLAN and fleet VPN; the rest is addressed with IPv6 on every network (see [Cloud Computing](page056_cloud.md)).
+
+Pass one or more ids to narrow the output (`--bot_id`, `--hub_id`, `--fleet_id`, `--ipv4_fleet_id`, `--desktop_id`, `--gateway_id`, `--rpicam_id`), and `--min` or `--max` to select one end. A single id that comes out as a single number is written bare, so a script can use it directly:
 
 ```
 jaia admin bounds --bot_id --max
@@ -195,14 +198,14 @@ A single question in JSON gives an object with just that entry (`jaia admin debc
 QUESTION                  TYPE         DEFAULT   CHOICES
 additional_sensors        multiselect  none      turner_c_flour, aml, ppk, none
 arduino_type              select       none      spi, usb, none
-bot_id                    select                 0-150
+bot_id                    string       0
 bot_type                  select       hydro     hydro, pam, bio, none
 ...
 ```
 
-Long runs of consecutive integers are shown as a range (`0-150`) rather than in full. `list` reads the package's templates rather than the debconf database, so it describes what *can* be set. Both `list` and a bare `get` take `--all`, which also shows the internal `debconf_state_*` questions - those record where the interactive menu is rather than any configuration.
+`list` reads the package's templates rather than the debconf database, so it describes what *can* be set. Both `list` and a bare `get` take `--all`, which also shows the internal `debconf_state_*` questions - those record where the interactive menu is rather than any configuration.
 
-`set` validates the value against that question's permitted `Choices`, so a typo fails immediately rather than silently generating the wrong services. By default it then runs `dpkg-reconfigure jaiabot-embedded`, which regenerates and re-enables the systemd units so the change takes effect.
+`set` validates the value against that question's permitted `Choices`, so a typo fails immediately rather than silently generating the wrong services. The `bot_id`, `hub_id` and `fleet_id` questions have too many valid answers to list as choices, so they are strings whose ranges are checked against `jaia admin bounds` instead. By default it then runs `dpkg-reconfigure jaiabot-embedded`, which regenerates and re-enables the systemd units so the change takes effect.
 
 When changing several values, skip the reconfigure on all but the last so the units are only regenerated once:
 

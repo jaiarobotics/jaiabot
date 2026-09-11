@@ -61,12 +61,9 @@ message DebconfField
     optional string unasked_value = 7;
     // Choices for integer fields, in order
     repeated string choices = 8;
-    message Range
-    {
-        required int32 min = 1;
-        required int32 max = 2;
-    }
-    optional Range range = 9;
+    // Asked as a string and checked against "jaia_bounds --<field>": the run of
+    // valid ids is too long to offer as Choices
+    optional bool bounded_id = 9 [default = false];
     // Default for repeated (multiselect) fields, which have no proto default
     optional string default = 10;
 }
