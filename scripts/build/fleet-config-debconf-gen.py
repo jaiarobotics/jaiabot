@@ -2,8 +2,8 @@
 #
 # Generates debian/jaiabot-embedded.templates and debian/jaiabot-embedded.config
 # from the NodeSettings message in fleet_config.proto (see "Fleet configuration
-# versioning" in page091_major_upgrade.md). Both generated files are committed;
-# the build runs --check to make sure they are current.
+# versioning" in page091_major_upgrade.md). The build regenerates both files;
+# they are committed so a proto change shows its effect in review.
 
 import argparse
 import importlib.util
@@ -297,6 +297,8 @@ def main():
         for path, text in generated.items():
             with open(path, "w") as f:
                 f.write(text)
+            if path == args.config:
+                os.chmod(path, 0o755)
             print("wrote " + path)
         return 0
 
@@ -313,7 +315,7 @@ def main():
         print("debconf files are out of date with fleet_config.proto:", file=sys.stderr)
         for path in stale:
             print("  " + path, file=sys.stderr)
-        print("Regenerate them with:\n  {} --write".format(os.path.relpath(__file__, SOURCE_DIR)), file=sys.stderr)
+        print("Regenerate them with a build, or:\n  {} --write".format(os.path.relpath(__file__, SOURCE_DIR)), file=sys.stderr)
         return 1
     return 0
 

@@ -118,7 +118,7 @@ The fleet configuration is written once when a fleet is created and read again a
 
 `src/lib/messages/fleet_config.proto` is the single description of what a fleet config may contain, including the bot/hub settings that debconf asks for on first boot: the `NodeSettings` message lists every question as a typed field, and its `(jaia.field).debconf` options say which nodes it applies to (`group: ALL|BOT|HUB`), whether it is asked before or after another (declaration order), its priority, description, and the few conditions the interactive flow needs (`ask_if`, `unasked_value`). Enum values map to debconf values by dropping the enum name prefix and lowercasing (`BOT_TYPE_PAM` is `pam`); a deprecated value says what it maps to (`(jaia.ev).debconf.replaced_by`).
 
-From this, `scripts/build/fleet-config-debconf-gen.py` generates `debian/jaiabot-embedded.templates` and `debian/jaiabot-embedded.config`. Both are committed and the build fails if they are out of date; never edit them by hand:
+From this, `scripts/build/fleet-config-debconf-gen.py` generates `debian/jaiabot-embedded.templates` and `debian/jaiabot-embedded.config`. The build regenerates both whenever the proto or the generator changes, so never edit them by hand. They are committed so that a change to the proto shows its effect on the debconf questions in review; commit the regenerated files with the proto change (the `fleet_config` unit tests fail if the committed copy is stale). Without a build, regenerate them with:
 
 ```
 scripts/build/fleet-config-debconf-gen.py --write
@@ -157,7 +157,7 @@ Version 1 to 2 turns the string debconf answers (`debconf { key: "jaiabot-embedd
 
 ### The build-time check
 
-`fleet_config_contract` (built as part of `all`) compares the current proto against the frozen copy for the version it declares, `src/lib/messages/fleet_config/contract/vN/fleet_config.proto` (plus, for version 1 whose questions were still a hand-written templates file, `jaiabot-embedded.templates`). It reruns whenever the proto, the generated debconf files, a snapshot or the tool changes, and also checks that the generated debconf files are current. Differences are classified and the build fails with instructions unless the two match:
+`fleet_config_contract` (built as part of `all`) compares the current proto against the frozen copy for the version it declares, `src/lib/messages/fleet_config/contract/vN/fleet_config.proto` (plus, for version 1 whose questions were still a hand-written templates file, `jaiabot-embedded.templates`). It reruns whenever the proto, a snapshot or the tool changes. Differences are classified and the build fails with instructions unless the two match:
 
 | Change | Classification | What to do |
 |---|---|---|

@@ -78,10 +78,10 @@ add_subdirectory(nanopb)
 add_subdirectory(python)
 
 # Fleet config contract: fleet_config.proto (with the debconf questions it declares) must
-# match the committed snapshot for the version it declares, and the generated debconf
-# templates/config must be current, so that a change existing fleet configs can't satisfy
-# is caught here rather than during a major upgrade. See "Fleet configuration versioning"
-# in src/doc/markdown/page091_major_upgrade.md
+# match the committed snapshot for the version it declares, so that a change existing
+# fleet configs can't satisfy is caught here rather than during a major upgrade. The
+# debconf templates/config are generated from the same proto. See "Fleet configuration
+# versioning" in src/doc/markdown/page091_major_upgrade.md
 find_program(PYTHON3_EXECUTABLE python3 REQUIRED)
 set(FLEET_CONFIG_TOOL ${project_SH_DIR}/fleet/jaia-fleet-config.py)
 set(FLEET_CONFIG_CONTRACT_SCRIPT ${CMAKE_SOURCE_DIR}/scripts/build/fleet-config-contract.py)
@@ -102,24 +102,34 @@ add_custom_command(
   VERBATIM
 )
 
+# Written into the source tree: dh_installdebconf reads them from debian/, and they are
+# committed so a proto change shows its debconf effect in review (the fleet_config unit
+# tests fail if the committed copy is stale)
+set(FLEET_CONFIG_DEBCONF_TEMPLATES ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.templates)
+set(FLEET_CONFIG_DEBCONF_CONFIG ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.config)
+add_custom_command(
+  OUTPUT ${FLEET_CONFIG_DEBCONF_TEMPLATES} ${FLEET_CONFIG_DEBCONF_CONFIG}
+  COMMAND ${PYTHON3_EXECUTABLE} ${FLEET_CONFIG_DEBCONF_SCRIPT}
+          --descriptor-set ${FLEET_CONFIG_DESCRIPTOR_SET}
+          --templates ${FLEET_CONFIG_DEBCONF_TEMPLATES} --config ${FLEET_CONFIG_DEBCONF_CONFIG} --write
+  DEPENDS ${FLEET_CONFIG_DESCRIPTOR_SET} ${FLEET_CONFIG_TOOL} ${FLEET_CONFIG_DEBCONF_SCRIPT}
+  COMMENT "Generating jaiabot-embedded debconf templates and config from fleet_config.proto"
+  VERBATIM
+)
+
 set(FLEET_CONFIG_CONTRACT_STAMP ${CMAKE_CURRENT_BINARY_DIR}/fleet_config_contract.stamp)
 add_custom_command(
   OUTPUT ${FLEET_CONFIG_CONTRACT_STAMP}
   COMMAND ${PYTHON3_EXECUTABLE} ${FLEET_CONFIG_CONTRACT_SCRIPT}
           --proto ${CMAKE_CURRENT_SOURCE_DIR}/fleet_config.proto
-          --templates ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.templates
+          --templates ${FLEET_CONFIG_DEBCONF_TEMPLATES}
           -I ${project_INC_DIR} --protoc $<TARGET_FILE:protobuf::protoc>
           --snapshot-dir ${FLEET_CONFIG_CONTRACT_SNAPSHOT_DIR} check
-  COMMAND ${PYTHON3_EXECUTABLE} ${FLEET_CONFIG_DEBCONF_SCRIPT}
-          --descriptor-set ${FLEET_CONFIG_DESCRIPTOR_SET}
-          --templates ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.templates
-          --config ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.config --check
   COMMAND ${CMAKE_COMMAND} -E touch ${FLEET_CONFIG_CONTRACT_STAMP}
   DEPENDS ${FLEET_CONFIG_DESCRIPTOR_SET} ${CMAKE_CURRENT_SOURCE_DIR}/fleet_config.proto
-          ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.templates ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.config
-          ${FLEET_CONFIG_TOOL} ${FLEET_CONFIG_CONTRACT_SCRIPT} ${FLEET_CONFIG_DEBCONF_SCRIPT}
-          ${FLEET_CONFIG_CONTRACT_SNAPSHOTS}
-  COMMENT "Checking fleet config contract (version ${PROJECT_FLEET_CONFIG_VERSION}) and generated debconf files"
+          ${FLEET_CONFIG_DEBCONF_TEMPLATES} ${FLEET_CONFIG_DEBCONF_CONFIG}
+          ${FLEET_CONFIG_TOOL} ${FLEET_CONFIG_CONTRACT_SCRIPT} ${FLEET_CONFIG_CONTRACT_SNAPSHOTS}
+  COMMENT "Checking fleet config contract (version ${PROJECT_FLEET_CONFIG_VERSION})"
   VERBATIM
 )
 
