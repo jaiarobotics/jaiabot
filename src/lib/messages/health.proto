@@ -86,9 +86,10 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_CTD_MANAGER = 42
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_UDP_GATEWAY = 43
-        [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_PPK = 44 [(jaia.ev).rest_api.presence = GUARANTEED];
+
+    // 43 was ERROR__FAILED__JAIABOT_UDP_GATEWAY, removed with the app
+    reserved 43;
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -151,6 +152,20 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER = 130
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_CTD_MANAGER = 131
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_TSYS01 = 132
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_SALINITY = 133
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_PRESSURE = 134
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_IMU = 135
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_DRIVER_PAM = 136
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_PPK_LOGGER = 137
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_IMU_TEST = 138
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion

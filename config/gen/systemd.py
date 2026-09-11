@@ -350,7 +350,6 @@ if dc('pressure_sensor_type') == 'bar02':
 else:
     jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BAR30
 
-UDP_GATEWAY_PORT = 20000
 
 class Mode(Enum):
     SIMULATION = 'simulation'
@@ -747,14 +746,6 @@ jaiabot_apps = [
      'exec_start_pre': '/usr/bin/jaia-reset-bio-payload-board.sh',
      'runs_on': [BOT_TYPE.BIO],
      'wanted_by': 'jaiabot_health.service'},
-
-     ## UDP Gateway Services ##
-    {'exe': 'jaiabot_udp_gateway',
-    'description': 'JaiaBot UDP Gateway',
-    'template': 'goby-app.service.in',
-    'error_on_fail': 'ERROR__FAILED__JAIABOT_UDP_GATEWAY',
-    'runs_on': [Type.BOT],
-    'wanted_by': 'jaiabot_health.service'},
 
 ]
 

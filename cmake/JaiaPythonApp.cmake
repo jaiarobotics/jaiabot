@@ -46,4 +46,8 @@ function(add_jaiabot_python_app)
   # pyjaiaprotobuf generates have to exist before the app can run
   add_dependencies(${args_TARGET} pyjaiaprotobuf)
   target_include_directories(${args_TARGET} PRIVATE ${project_INC_DIR})
+
+  # so jaiabot_health can map this app's coroner report name to its ERROR__NOT_RESPONDING enum
+  list(APPEND PROJECT_APP_LIST ${args_TARGET})
+  set(PROJECT_APP_LIST ${PROJECT_APP_LIST} CACHE INTERNAL "project_app_list")
 endfunction()

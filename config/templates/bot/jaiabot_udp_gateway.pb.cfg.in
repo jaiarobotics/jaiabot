@@ -1,6 +1,0 @@
-$app_block
-$interprocess_block
-
-udp_config { 
-    bind_port: $udp_gateway_port
-}
