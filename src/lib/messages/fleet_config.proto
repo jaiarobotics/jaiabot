@@ -90,7 +90,6 @@ message NodeSettings
         default = "",
         (jaia.field).debconf = {
             group: ALL
-            priority: MEDIUM
             description: "Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex"
         }
     ];
@@ -99,7 +98,6 @@ message NodeSettings
         default = "",
         (jaia.field).debconf = {
             group: ALL
-            priority: MEDIUM
             description: "Encryption passphrase for DCCL (intervehicle) messages: can be any string."
         }
     ];
@@ -112,7 +110,6 @@ message NodeSettings
     }
     repeated CommsLink comms_links = 7 [(jaia.field).debconf = {
         group: ALL
-        priority: MEDIUM
         default: "xbee"
         description: "Which comms links to activate?"
     }];
@@ -127,7 +124,6 @@ message NodeSettings
         (jaia.field).debconf = {
             group: ALL
             identity: true
-            priority: MEDIUM
             description: "Is this bot or hub to be run in runtime (operational) or simulation mode?"
             extended_description: "This choice will determine which applications will be configured to launch with systemd."
         }
@@ -137,7 +133,6 @@ message NodeSettings
         default = 1,
         (jaia.field).debconf = {
             group: ALL
-            priority: MEDIUM
             choices: [ "1", "2", "5", "10", "20", "30", "40", "50" ]
             ask_if { field: "mode" equals: "simulation" }
             description: "At what multiple of real speed should this simulation be run?"
@@ -226,7 +221,6 @@ message NodeSettings
         default = DATA_OFFLOAD_IGNORE_TYPE_NONE,
         (jaia.field).debconf = {
             group: BOT
-            priority: MEDIUM
             description: "What data types to ignore when sending data to the hub?"
         }
     ];
@@ -241,7 +235,6 @@ message NodeSettings
         default = IMU_INSTALL_TYPE_EMBEDDED,
         (jaia.field).debconf = {
             group: BOT
-            priority: MEDIUM
             description: "What type of imu installation does your system have?"
         }
     ];
@@ -257,7 +250,6 @@ message NodeSettings
         default = TEMPERATURE_SENSOR_TYPE_BAR30,
         (jaia.field).debconf = {
             group: BOT
-            priority: MEDIUM
             description: "What temperature sensor do you want to use?"
         }
     ];
@@ -272,7 +264,6 @@ message NodeSettings
         default = PRESSURE_SENSOR_TYPE_BAR30,
         (jaia.field).debconf = {
             group: BOT
-            priority: MEDIUM
             description: "What pressure sensor do you have?"
         }
     ];
@@ -286,7 +277,6 @@ message NodeSettings
         default = MOTOR_HARNESS_TYPE_NONE,
         (jaia.field).debconf = {
             group: BOT
-            priority: MEDIUM
             description: "What type of motor harness does your bot have?"
         }
     ];
@@ -300,7 +290,6 @@ message NodeSettings
     }
     repeated CameraPosition camera_positions = 20 [(jaia.field).debconf = {
         group: BOT
-        priority: MEDIUM
         default: "none"
         description: "Which camera positions?"
     }];
@@ -314,7 +303,6 @@ message NodeSettings
     }
     repeated AdditionalSensor additional_sensors = 21 [(jaia.field).debconf = {
         group: BOT
-        priority: MEDIUM
         default: "none"
         description: "Which additional sensors?"
     }];
@@ -337,7 +325,6 @@ message NodeSettings
         default = USER_ROLE_USER,
         (jaia.field).debconf = {
             group: HUB
-            priority: MEDIUM
             description: "The user role to be set in the Upgrade UI (this sets which Ansible playbooks are visible to the user)."
         }
     ];
