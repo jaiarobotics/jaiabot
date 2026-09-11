@@ -6,7 +6,7 @@ add_jaiabot_application(TARGET jaiabot_health
     helm_ivp_thread.cpp
     motor_thread.cpp
   LINK_DEFAULT_LIBRARIES
-  LINK_LIBRARIES boost_filesystem
+  LINK_LIBRARIES boost_filesystem sqlite3
 )
 
 # Automatically add any apps built by this project to the name -> enum mapping used by jaiabot_health to parse the goby_coroner health report name strings

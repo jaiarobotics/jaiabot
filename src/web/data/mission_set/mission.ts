@@ -5,26 +5,28 @@ import {
     MissionPlan,
     MissionStart,
     MovementType,
-    Speeds,
+    Segment,
 } from "../../types/protobuf-types";
 import Waypoint from "../waypoints/waypoint";
 import Task from "../tasks/task";
 import { GhostParameters } from "../../types/jaia-system-types";
-import { UNASSIGNED_ID } from "../../utils/constants";
+import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../utils/constants";
 
 export default class Mission {
     private missionID: number;
     private waypoints: Waypoint[];
-    private speeds: Speeds;
+    private stationkeepSpeed: number;
     private repeats: number;
-    private bottomDepthSafetyParams: BottomDepthSafetyParams;
+    private segments: Segment[];
     private ghostParameters: GhostParameters;
 
     constructor() {
         // missionID assigned by missionSet singleton
         // speeds set by missionSet singleton
         this.waypoints = [];
+        this.stationkeepSpeed = DEFAULT_SPEED;
         this.repeats = 1;
+        this.segments = [{ start_goal_index: 0 }];
         this.ghostParameters = { hasStarted: false, botID: UNASSIGNED_ID, repeats: 1 };
     }
 
@@ -45,12 +47,22 @@ export default class Mission {
         this.waypoints = waypoints;
     }
 
-    getSpeeds() {
-        return this.speeds;
+    getTransitSpeed(segmentIndex: number = 0): number {
+        return this.segments[segmentIndex]?.speed ?? DEFAULT_SPEED;
     }
 
-    setSpeeds(speeds: Speeds) {
-        this.speeds = { ...speeds };
+    setTransitSpeed(speed: number) {
+        for (const segment of this.segments) {
+            segment.speed = speed;
+        }
+    }
+
+    getStationkeepSpeed(): number {
+        return this.stationkeepSpeed;
+    }
+
+    setStationkeepSpeed(speed: number) {
+        this.stationkeepSpeed = speed;
     }
 
     getRepeats() {
@@ -61,12 +73,23 @@ export default class Mission {
         this.repeats = repeats;
     }
 
-    getBottomDepthSafetyParams() {
-        return this.bottomDepthSafetyParams;
+    getBottomDepthSafetyParams(segmentIndex: number = 0) {
+        return this.segments[segmentIndex]?.bottom_depth_safety_params;
     }
 
-    setBottomDepthSafetyParams(bottomDepthSafetyParams: BottomDepthSafetyParams) {
-        this.bottomDepthSafetyParams = bottomDepthSafetyParams;
+    setBottomDepthSafetyParams(
+        bottomDepthSafetyParams: BottomDepthSafetyParams,
+        segmentIndex: number = 0,
+    ) {
+        this.segments[segmentIndex].bottom_depth_safety_params = bottomDepthSafetyParams;
+    }
+
+    getSegments() {
+        return this.segments;
+    }
+
+    setSegments(segments: Segment[]) {
+        this.segments = segments;
     }
 
     getGhostParameters() {
@@ -131,14 +154,14 @@ export default class Mission {
             recovery: {
                 recover_at_final_goal: true,
             },
-            speeds: this.speeds,
+            speeds: {
+                transit: this.getTransitSpeed(),
+                stationkeep_outer: this.getStationkeepSpeed(),
+            },
             repeats: this.repeats,
             mission_name: missionSetName,
+            segments: this.segments,
         };
-
-        if (this.bottomDepthSafetyParams) {
-            missionPlan.bottomDepthSafetyParams = this.bottomDepthSafetyParams;
-        }
 
         return missionPlan;
     }
@@ -169,6 +192,27 @@ export default class Mission {
             waypoint.setLocation(serializedWaypoint.location);
             return waypoint;
         });
+        mission.segments = (mission.segments ?? []).map((seg: any) => ({
+            ...seg,
+            ...(seg.lane_start_goal_indices && {
+                lane_start_goal_indices: [...seg.lane_start_goal_indices],
+            }),
+            ...(seg.bottom_depth_safety_params && {
+                bottom_depth_safety_params: { ...seg.bottom_depth_safety_params },
+            }),
+        }));
+        // Migrate legacy mission-level speeds into the new fields
+        const legacySpeeds = (serializedMission as any).speeds;
+        if (legacySpeeds !== undefined) {
+            if (legacySpeeds.transit !== undefined && mission.segments.length > 0) {
+                if (mission.segments[0].speed === undefined) {
+                    mission.segments[0] = { ...mission.segments[0], speed: legacySpeeds.transit };
+                }
+            }
+            if (legacySpeeds.stationkeep_outer !== undefined) {
+                mission.setStationkeepSpeed(legacySpeeds.stationkeep_outer);
+            }
+        }
         return mission;
     }
 }

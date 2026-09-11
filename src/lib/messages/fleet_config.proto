@@ -148,6 +148,15 @@ message NodeSettings
         extended_description: "This is used to set the hostname of the computer and set the correct value in the jaiabot configuration.\nValid bot_ids are 0 to 150, as reported by \"jaia admin bounds --bot_id\".\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
     }];
 
+    optional string bot_vin = 24 [
+        default = "",
+        (jaia.field).debconf = {
+            group: BOT
+            description: "Bot Vehicle Identification Number (VIN)"
+            extended_description: "Unique identifier for this physical bot.\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
+        }
+    ];
+
     enum ArduinoType
     {
         ARDUINO_TYPE_SPI = 0;
@@ -161,6 +170,14 @@ message NodeSettings
         (jaia.field).debconf = {
             group: BOT
             description: "What type of Arduino connection does this bot have?"
+        }
+    ];
+
+    optional string tail_serial_number = 25 [
+        default = "",
+        (jaia.field).debconf = {
+            group: BOT
+            description: "What is the serial number of this bot's tail unit?"
         }
     ];
 

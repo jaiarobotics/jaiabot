@@ -63,7 +63,7 @@ export function handleMapModeChange(mapMode: MapModes) {
             map.addInteraction(measureLayer.createDrawInteraction());
             break;
         case MapModes.EXCLUSION_ZONE_DRAWING:
-            map.addInteraction(exclusionZoneLayer.createDrawInteraction());
+            // Zone panel active — Draw is managed separately via setExclusionZoneDrawActive().
             break;
         default:
             changeCursor(Cursors.DEFAULT);
@@ -72,11 +72,6 @@ export function handleMapModeChange(mapMode: MapModes) {
     if (mapMode !== MapModes.MEASURE) {
         map.removeInteraction(measureLayer.getDraw());
         measureLayer.clearDrawInteraction();
-    }
-
-    if (mapMode !== MapModes.EXCLUSION_ZONE_DRAWING) {
-        map.removeInteraction(exclusionZoneLayer.getDraw());
-        exclusionZoneLayer.clearDrawInteraction();
     }
 
     if (
@@ -89,7 +84,35 @@ export function handleMapModeChange(mapMode: MapModes) {
         gridPlan.reset();
     }
 
+    if (mapMode !== MapModes.EXCLUSION_ZONE_DRAWING) {
+        const draw = exclusionZoneLayer.getDraw();
+        if (draw && exclusionZoneLayer.isDrawActive()) {
+            draw.abortDrawing();
+            map.removeInteraction(draw);
+            exclusionZoneLayer.setDrawActive(false);
+        }
+    }
+
     jaiaGlobal.setMapMode(mapMode);
+}
+
+/**
+ * Activates or deactivates the exclusion zone Draw interaction on the map.
+ * Only activate while the map is in EXCLUSION_ZONE_DRAWING mode.
+ * @param {boolean} active Whether to activate or deactivate the exclusion zone Draw interaction
+ * @returns {void}
+ */
+export function setExclusionZoneDrawActive(active: boolean) {
+    const draw = exclusionZoneLayer.getDraw();
+    if (!draw) return;
+    if (active) {
+        exclusionZoneLayer.setDrawActive(true);
+        map.addInteraction(draw);
+    } else {
+        draw.abortDrawing();
+        map.removeInteraction(draw);
+        exclusionZoneLayer.setDrawActive(false);
+    }
 }
 
 /**

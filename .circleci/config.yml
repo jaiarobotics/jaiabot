@@ -62,6 +62,12 @@ job-template-amd64: &job-template-amd64
   working_directory: /root/jaiabot
   steps:
     - checkout
+    - run: &run-submodule-sync
+        name: Sync git submodules
+        command: git submodule sync
+    - run: &run-submodule-update
+        name: Update git submodules
+        command: git submodule update --init --recursive
     - restore_cache: &restore-ccache
         keys:
           - jaiabot-ccache-v1-{{ .Environment.CIRCLE_JOB }}-{{ .Branch }}-{{ .Revision }}
@@ -85,7 +91,7 @@ job-template-amd64: &job-template-amd64
         command: |
           apt-get update &&
           apt-get dist-upgrade -y &&
-          apt-get install -y ccache
+          apt-get install -y ccache python3-venv
           [[ "${TARGET_ARCH}" == "amd64" && ( "${JAIABOT_APT_REPO}" != "test" || "${BUILD_DOC_FOR_TEST_REPO}" == "true" ) ]] && apt-get install -y goby3-clang-tool || true
     - run: &run-zero-ccache-stats
         name: Reset ccache statistics

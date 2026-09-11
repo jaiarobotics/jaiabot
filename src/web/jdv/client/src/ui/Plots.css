@@ -45,7 +45,128 @@
     align-items: center;
 }
 
+#plotInfoDialogHeader h2 {
+    flex: 1;
+}
+
 #plotInfoDialog .text {
     max-height: 60vh;
     overflow-y: auto;
+    bottom: 10pt;
+}
+
+.lineLegendRow {
+    display: flex;
+    align-items: center;
+}
+
+/* ── Stat-line toggle controls in the action bar ── */
+
+.statToggleDivider {
+    display: inline-block;
+    width: 1px;
+    height: 24px;
+    background-color: #ccc;
+    margin: 0 6pt;
+    vertical-align: middle;
+}
+
+.statToggleLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4pt 8pt;
+    cursor: pointer;
+    font-size: 0.9em;
+    border-radius: 4pt;
+    user-select: none;
+}
+
+.statToggleLabel:hover {
+    background-color: lightgray;
+}
+
+.statToggleLabel input[type="checkbox"] {
+    cursor: pointer;
+    margin: 0;
+}
+
+/* Small colour swatch dot shown next to each toggle label */
+.statToggleSwatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Base swatch style shared by all legend entries */
+.lineLegendSwatch {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 40px;
+    height: 0;
+    margin-top: 8px;
+    border-top-width: 2.5px;
+    border-top-style: solid;
+}
+
+/* Solid line swatch (data series) */
+.lineLegendSwatch--solid {
+    border-top-style: solid;
+    border-color: #1f77b4;
+}
+
+/* Dashed line swatch (mean) */
+.lineLegendSwatch--dashed {
+    border-top-style: dashed;
+    border-color: red;
+}
+
+/* Dotted line swatch (std. dev.) */
+.lineLegendSwatch--dotted {
+    border-top-style: dotted;
+    border-top-width: 3px;
+    border-color: orange;
+}
+
+/* Left swatch in a legend row (label follows) */
+.lineLegendSwatch--left {
+    margin-top: 0;
+    margin-right: 0.5em;
+}
+
+/* Right swatch in a legend row (label precedes) */
+.lineLegendSwatch--right {
+    margin-top: 0;
+    margin-left: 0.5em;
+}
+
+/* Stat toggle swatches */
+.statToggleSwatch--mean {
+    background-color: red;
+}
+
+.statToggleSwatch--std {
+    background-color: orange;
+}
+
+/* Inline colour references in descriptive text */
+.textMeanColor {
+    color: red;
+}
+
+.textStdColor {
+    color: orange;
+}
+
+/* Icon rendered inline within descriptive text */
+.inlineIconButton {
+    vertical-align: middle;
+    background-color: lightgray;
+}
+
+/* Icons inside .plotButton — align SVG to surrounding text baseline */
+.plotButton svg {
+    vertical-align: middle;
 }
