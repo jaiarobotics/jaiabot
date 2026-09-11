@@ -316,7 +316,7 @@ def settings_answers(groups, chosen):
     answers = []
     given = {}
     for q in SCHEMA.questions:
-        if q.identity or q.group not in groups:
+        if q.identity or q.per_node or q.group not in groups:
             continue
         if q.ask_if:
             field, equals = q.ask_if
@@ -330,6 +330,15 @@ def settings_answers(groups, chosen):
 
 
 ALL_GROUPS = {"ALL", "BOT", "HUB"}
+
+
+def node_answers(hubs, bots, value="<default>"):
+    """One answer per node for each question that is different on every node."""
+    out = []
+    for node_type, ids in (("hub", hubs), ("bot", bots)):
+        for _ in ids:
+            out += [value] * len(fc.per_node_questions(SCHEMA, node_type))
+    return out
 
 
 def accept(settings, groups=ALL_GROUPS):
@@ -375,6 +384,7 @@ class CreateTest(unittest.TestCase):
                                                                        "bot_type": "bio",
                                                                        "camera_positions": "outward"})
         answers += ["no"]
+        answers += ["VIN001", "TAIL001", "VIN002", "TAIL002"]
         answers += ["300234010753370", "300234010753371", "SBD_ROCKBLOCK", "rbuser", "rbpass"]
         result, out = self.run_create(answers)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
@@ -400,20 +410,26 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(q["bot_type"].to_debconf(s.bot_type), "pam")
         self.assertEqual(q["pam_connection_type"].to_debconf(s.pam_connection_type), "uart")
         self.assertEqual(q["user_role"].to_debconf(s.user_role), "advanced")
-        # every question is answered, identity ones never
+        # every shared question is answered; identity and per-node ones are never here
         for question in SCHEMA.questions:
-            if question.identity:
-                self.assertFalse(s.HasField(question.name))
+            if question.identity or question.per_node:
+                self.assertFalse(s.HasField(question.name), question.name)
             elif not question.repeated:
                 self.assertTrue(s.HasField(question.name), question.name)
 
-        self.assertEqual(len(cfg.override), 1)
-        o = cfg.override[0]
-        self.assertEqual((fc.node_type_name(SCHEMA, o.type), o.id), ("bot", 2))
-        self.assertEqual(sorted(f.name for f, _ in o.settings.ListFields()),
-                         ["bot_type", "camera_positions", "pam_connection_type"])
-        self.assertEqual(q["bot_type"].to_debconf(o.settings.bot_type), "bio")
-        self.assertEqual(q["pam_connection_type"].to_debconf(o.settings.pam_connection_type), "none")
+        # the answers that differ on every node are stored against that node
+        by_node = {(fc.node_type_name(SCHEMA, o.type), o.id): o.settings for o in cfg.override}
+        self.assertEqual(by_node[("bot", 1)].bot_vin, "VIN001")
+        self.assertEqual(by_node[("bot", 1)].tail_serial_number, "TAIL001")
+        self.assertEqual(by_node[("bot", 2)].bot_vin, "VIN002")
+        # bot 2 already had an override: the per-node answers join it
+        self.assertEqual(q["bot_type"].to_debconf(by_node[("bot", 2)].bot_type), "bio")
+
+        self.assertEqual(len(cfg.override), 2)
+        o = by_node[("bot", 2)]
+        self.assertEqual(sorted(f.name for f, _ in o.ListFields()),
+                         ["bot_type", "bot_vin", "camera_positions", "pam_connection_type", "tail_serial_number"])
+        self.assertEqual(q["pam_connection_type"].to_debconf(o.pam_connection_type), "none")
 
         sbd = cfg.comms.iridium_sbd
         self.assertEqual([(b.id, b.imei) for b in sbd.bot], [(1, "300234010753370"), (2, "300234010753371")])
@@ -426,6 +442,7 @@ class CreateTest(unittest.TestCase):
         answers = ["7", "no", "1", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {})
         answers += ["yes", "", "1"] + settings_answers({"ALL", "BOT"}, {}) + ["no"]
+        answers += node_answers([1], [1])
         result, out = self.run_create(answers)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         cfg = fc.parse_fleet_config(SCHEMA, out)
@@ -450,7 +467,7 @@ class CreateTest(unittest.TestCase):
         first = [q for q in SCHEMA.questions if not q.identity][0]
         answers += [first.default, back, "hub_led"]
         answers += settings_answers(ALL_GROUPS, {"comms_links": "xbee"})[1:]
-        answers += ["no"]
+        answers += ["no"] + node_answers([1, 30], [1, 2])
         result, out = self.run_create(answers)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         cfg = fc.parse_fleet_config(SCHEMA, out)
@@ -465,7 +482,7 @@ class CreateTest(unittest.TestCase):
         # answered no the second time round
         answers = ["7", "yes", "1", "1", "", "wifipass", "no"] + [back] * 6
         answers += ["no", "1", "1", "", "wifipass", "no"]
-        answers += settings_answers(ALL_GROUPS, {}) + ["no"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1], [1])
         result, out = self.run_create(answers)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         cfg = fc.parse_fleet_config(SCHEMA, out)
@@ -500,7 +517,7 @@ class CreateTest(unittest.TestCase):
         answers += ["<default>"] * 3                # cloudhub auth
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"})  # the existing override set
-        answers += ["no"]
+        answers += ["no"] + node_answers([1, 30], [1, 2])
         result, _ = self.run_edit(out, answers)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         after = fc.parse_fleet_config(SCHEMA, out)
@@ -522,7 +539,7 @@ class CreateTest(unittest.TestCase):
         fc.fill_defaults(SCHEMA, loaded)
         answers = ["<default>"] * 4 + ["", "<default>", "<default>"]
         answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
-        answers += ["no"]
+        answers += ["no"] + node_answers([1], [1])
         result, _ = self.run_edit(out, answers)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         # the answers it could not carry over are named before the questions start
@@ -541,6 +558,7 @@ class CreateTest(unittest.TestCase):
         answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 3
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
+        answers += node_answers([1, 30], [1, 2, 3])
         result, _ = self.run_edit(out, answers)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         cfg = fc.parse_fleet_config(SCHEMA, out)
@@ -549,6 +567,40 @@ class CreateTest(unittest.TestCase):
         self.assertTrue(all(k.public_key.startswith(("no-touch-required sk-ssh", "ssh-ed25519 AAAAhub30"))
                             for k in cfg.ssh.hub))
 
+    def test_per_node_answers_are_asked_once_per_node_and_kept_by_edit(self):
+        out = os.path.join(self.env.dir, "serials.cfg")
+        shutil.copyfile(fixture("v1_fleet7.cfg"), out)
+        before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
+        override = fc.node_settings_for(SCHEMA, before, "bot", 2)
+        common = ["<default>"] * 4 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 3
+        tail = ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
+
+        # hub 1 and hub 30 are not asked: neither question applies to a hub
+        answers = common + accept(before.settings) + tail + ["VIN-A", "TAIL-A", "VIN-B", "TAIL-B"]
+        result, _ = self.run_edit(out, answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, out)
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        by_node = {(fc.node_type_name(SCHEMA, o.type), o.id): o.settings for o in cfg.override}
+        self.assertEqual((by_node[("bot", 1)].bot_vin, by_node[("bot", 1)].tail_serial_number), ("VIN-A", "TAIL-A"))
+        self.assertEqual((by_node[("bot", 2)].bot_vin, by_node[("bot", 2)].tail_serial_number), ("VIN-B", "TAIL-B"))
+        self.assertFalse(cfg.settings.HasField("bot_vin"))
+
+        # editing again offers each node its own answer back
+        answers = common + accept(before.settings) + tail + ["<default>", "<default>", "VIN-C", "<default>"]
+        result, _ = self.run_edit(out, answers)
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        cfg = fc.parse_fleet_config(SCHEMA, out)
+        by_node = {(fc.node_type_name(SCHEMA, o.type), o.id): o.settings for o in cfg.override}
+        self.assertEqual(by_node[("bot", 1)].bot_vin, "VIN-A")
+        self.assertEqual((by_node[("bot", 2)].bot_vin, by_node[("bot", 2)].tail_serial_number), ("VIN-C", "TAIL-B"))
+
+    def test_per_node_answer_in_the_common_settings_is_refused(self):
+        cfg = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
+        cfg.settings.bot_vin = "shared-by-every-bot"
+        problems = fc.validate(SCHEMA, cfg)
+        self.assertTrue(any("bot_vin" in p and "different on every node" in p for p in problems), problems)
+
     def test_edit_writes_elsewhere_with_output(self):
         src = os.path.join(self.env.dir, "src.cfg")
         dst = os.path.join(self.env.dir, "dst.cfg")
@@ -556,7 +608,7 @@ class CreateTest(unittest.TestCase):
         loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
         answers = ["<default>"] * 4 + [""]
         answers += ["<default>"] * 2 + ["<default>"] * 3
-        answers += accept(loaded.settings) + ["no"]
+        answers += accept(loaded.settings) + ["no"] + node_answers([30], [1])
         path = os.path.join(self.env.dir, "answers.txt")
         with open(path, "w") as f:
             f.write("\n".join(answers) + "\n")

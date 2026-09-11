@@ -68,6 +68,9 @@ message DebconfField
     optional bool bounded_id = 9 [default = false];
     // Default for repeated (multiselect) fields, which have no proto default
     optional string default = 10;
+    // Different on every node (a serial number, a VIN): asked once per bot or
+    // hub and stored in that node's override, never in the common settings
+    optional bool per_node = 11 [default = false];
 }
 
 message DebconfValue

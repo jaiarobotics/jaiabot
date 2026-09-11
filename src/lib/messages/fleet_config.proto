@@ -152,6 +152,7 @@ message NodeSettings
         default = "",
         (jaia.field).debconf = {
             group: BOT
+            per_node: true
             description: "Bot Vehicle Identification Number (VIN)"
             extended_description: "Unique identifier for this physical bot.\nTo change in the future, run \"sudo dpkg-reconfigure jaiabot-embedded\""
         }
@@ -177,6 +178,7 @@ message NodeSettings
         default = "",
         (jaia.field).debconf = {
             group: BOT
+            per_node: true
             description: "What is the serial number of this bot's tail unit?"
         }
     ];

@@ -60,7 +60,7 @@ To change an existing fleet, run
 jaia admin fleet edit fleet5.cfg
 ```
 
-which asks the same questions with the file's own answers filled in, so you step through with Back and forward and change only what you need. Hub keys already in the file are kept, so no Yubikey is needed unless you add a hub. An older file is migrated first, and anything a failed migration could not carry over is listed before the questions start and begins at its default.
+which asks the same questions with the file's own answers filled in (including the ones that are different on every node, such as each bot's VIN and tail serial number, asked once per bot), so you step through with Back and forward and change only what you need. Hub keys already in the file are kept, so no Yubikey is needed unless you add a hub. An older file is migrated first, and anything a failed migration could not carry over is listed before the questions start and begins at its default.
 
 Once you have a fleet, you can begin flashing the bots/hubs. 
 

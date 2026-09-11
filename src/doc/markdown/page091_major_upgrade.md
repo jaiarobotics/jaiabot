@@ -118,6 +118,11 @@ The fleet configuration is written once when a fleet is created and read again a
 
 `src/lib/messages/fleet_config.proto` is the single description of what a fleet config may contain, including the bot/hub settings that debconf asks for on first boot: the `NodeSettings` message lists every question as a typed field, and its `(jaia.field).debconf` options say which nodes it applies to (`group: ALL|BOT|HUB`), whether it is asked before or after another (declaration order), its description, and the few conditions the interactive flow needs (`ask_if`, `unasked_value`). Questions are asked at debconf priority `MEDIUM`, which keeps a question added in a later release from interrupting an interactive `apt upgrade`; `dpkg-reconfigure jaiabot-embedded` asks every question regardless. Enum values map to debconf values by dropping the enum name prefix and lowercasing (`BOT_TYPE_PAM` is `pam`); a deprecated value says what it maps to (`(jaia.ev).debconf.replaced_by`).
 
+Two annotations say that an answer does not belong in the fleet-wide `settings` block, and validation rejects it there:
+
+- `identity: true` for what identifies the node itself (`type`, the ids, `mode`). It is never stored in a fleet config at all; the tool supplies it per node when it generates the first-boot files.
+- `per_node: true` for an answer that is different on every node, such as a VIN or a serial number. `jaia admin fleet create` and `edit` ask it once per bot or hub and store it in that node's `override { }` block, so nobody has to build an override set by hand.
+
 From this, `scripts/build/fleet-config-debconf-gen.py` generates `debian/jaiabot-embedded.templates` and `debian/jaiabot-embedded.config`. The build regenerates both whenever the proto or the generator changes, so never edit them by hand. They are committed so that a change to the proto shows its effect on the debconf questions in review; commit the regenerated files with the proto change (the `fleet_config` unit tests fail if the committed copy is stale). Without a build, regenerate them with:
 
 ```

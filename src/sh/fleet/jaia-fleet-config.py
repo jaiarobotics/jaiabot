@@ -85,6 +85,7 @@ class Question:
         self.ask_if = (d.ask_if.field, d.ask_if.equals) if d.HasField("ask_if") else None
         self.unasked_value = d.unasked_value if d.HasField("unasked_value") else None
         self.bounded_id = d.bounded_id
+        self.per_node = d.per_node
         self.enum_values = enum_values  # for enum fields, in declaration order
 
         self.repeated = field.label == FieldDescriptor.LABEL_REPEATED
@@ -410,7 +411,7 @@ def migrate_1_to_2(schema, cfg, notes, problems):
 def fill_defaults(schema, settings):
     """Every unanswered question at its default, so the file is a complete record."""
     for q in schema.questions:
-        if q.identity or q.default is None:
+        if q.identity or q.per_node or q.default is None:
             continue
         if q.repeated:
             if not getattr(settings, q.name):
@@ -474,6 +475,10 @@ def validate(schema, cfg):
                 continue
             if q.identity:
                 problems.append("{}: {} is set per node and must not be in {}".format(where, q.name, where))
+                continue
+            if q.per_node and where == "settings":
+                problems.append("settings: {} is different on every node: answer it per bot or hub "
+                                "(jaia admin fleet edit) instead of in settings".format(q.name))
                 continue
             problem = q.check_value(value)
             if problem:
@@ -1025,7 +1030,7 @@ def ask_question(ui, q, current):
 
 
 def asked(q, schema, settings):
-    if q.identity:
+    if q.identity or q.per_node:
         return False
     if q.ask_if:
         field, equals = q.ask_if
@@ -1037,7 +1042,7 @@ def ask_settings(ui, schema, groups, base):
     """Ask every non-identity question of the given groups, starting from base's answers."""
     settings = schema.NodeSettings()
     settings.CopyFrom(base)
-    questions = [q for q in schema.questions if not q.identity and q.group in groups]
+    questions = [q for q in schema.questions if not q.identity and not q.per_node and q.group in groups]
     i = 0
     while i < len(questions):
         q = questions[i]
@@ -1068,7 +1073,7 @@ def changed_fields(schema, settings, base):
     """The fields of settings whose value differs from base."""
     diff = schema.NodeSettings()
     for q in schema.questions:
-        if q.identity:
+        if q.identity or q.per_node:
             continue
         if current_answer(q, settings) != current_answer(q, base):
             set_answer(diff, q, q.from_debconf(current_answer(q, settings)))
@@ -1088,18 +1093,46 @@ def node_type_number(schema, name):
     return enum.values_by_name[name.upper()].number
 
 
+def per_node_questions(schema, node_type):
+    groups = {"ALL", "BOT" if node_type == "bot" else "HUB"}
+    return [q for q in schema.questions if q.per_node and not q.identity and q.group in groups]
+
+
+def shared_settings(schema, settings):
+    """The settings without the per-node answers, which every node has its own of."""
+    shared = schema.NodeSettings()
+    shared.CopyFrom(settings)
+    for q in schema.questions:
+        if q.per_node:
+            shared.ClearField(q.name)
+    return shared
+
+
 def override_sets(schema, cfg):
     """Existing overrides, grouped by the settings the nodes share."""
     sets = []
     for override in cfg.override:
         node_type = node_type_name(schema, override.type)
-        entry = next((e for e in sets if e["settings"] == override.settings), None)
+        shared = shared_settings(schema, override.settings)
+        if not shared.ListFields():
+            continue
+        entry = next((e for e in sets if e["settings"] == shared), None)
         if entry is None:
-            entry = {"hub": [], "bot": [], "settings": schema.NodeSettings()}
-            entry["settings"].CopyFrom(override.settings)
+            entry = {"hub": [], "bot": [], "settings": shared}
             sets.append(entry)
         entry[node_type].append(override.id)
     return sets
+
+
+def per_node_answers(schema, cfg):
+    """{(node type, id): {question name: answer}} from the overrides on file."""
+    answers = {}
+    for override in cfg.override:
+        node = (node_type_name(schema, override.type), override.id)
+        for q in per_node_questions(schema, node[0]):
+            if override.settings.HasField(q.name):
+                answers.setdefault(node, {})[q.name] = current_answer(q, override.settings)
+    return answers
 
 
 def create(schema, ui, banner=None, existing=None):
@@ -1115,6 +1148,7 @@ def create(schema, ui, banner=None, existing=None):
         # a fleet does not ask for every Yubikey
         "keys": {k.id: (k.private_key, k.public_key) for k in cfg.ssh.hub},
         "override_sets": override_sets(schema, cfg),
+        "per_node": per_node_answers(schema, cfg),
     }
     if cfg.ssh.HasField("vpn_tmp"):
         state["vpn_tmp"] = (cfg.ssh.vpn_tmp.private_key, cfg.ssh.vpn_tmp.public_key)
@@ -1254,6 +1288,38 @@ def create(schema, ui, banner=None, existing=None):
                     override.id = node_id
                     override.settings.CopyFrom(diff)
 
+    def node_settings():
+        """One question per node for the answers that are never shared."""
+        answers = state["per_node"]
+
+        def ask(node_type, node_id, q):
+            def run():
+                current = answers.get((node_type, node_id), {}).get(q.name, q.default or "")
+                answers.setdefault((node_type, node_id), {})[q.name] = ask_question(ui, q, current)
+            return run
+
+        steps = []
+        for node_type, ids in (("hub", list(cfg.hubs)), ("bot", list(cfg.bots))):
+            for node_id in ids:
+                for q in per_node_questions(schema, node_type):
+                    steps.append(Step("{} {}".format(node_type, node_id), ask(node_type, node_id, q)))
+        run_steps(steps)
+
+        for (node_type, node_id), given in answers.items():
+            if node_id not in (cfg.hubs if node_type == "hub" else cfg.bots):
+                continue
+            override = next((o for o in cfg.override
+                             if node_type_name(schema, o.type) == node_type and o.id == node_id), None)
+            for q in per_node_questions(schema, node_type):
+                answer = given.get(q.name)
+                if answer is None or answer == q.default:
+                    continue
+                if override is None:
+                    override = cfg.override.add()
+                    override.type = node_type_number(schema, node_type)
+                    override.id = node_id
+                set_answer(override.settings, q, q.from_debconf(answer))
+
     def iridium():
         previous = type(cfg.comms.iridium_sbd)()
         previous.CopyFrom(cfg.comms.iridium_sbd)
@@ -1303,6 +1369,8 @@ def create(schema, ui, banner=None, existing=None):
              clear=lambda: cfg.ClearField("cloudhub_auth")),
         Step("Common jaiabot-embedded settings", common_settings),
         Step("Overrides (settings that differ from the common ones)", overrides),
+        Step("Settings that are different on every node", node_settings,
+             enabled=lambda: any(per_node_questions(schema, t) for t in ("bot", "hub"))),
         Step("Iridium SBD configuration", iridium, enabled=lambda: uses_comms_link(schema, cfg, "iridium"),
              clear=lambda: cfg.ClearField("comms")),
     ], banner)

@@ -180,6 +180,8 @@ def debconf_contract_from_schema(schema):
             entry["default"] = q.default
         if q.identity:
             entry["identity"] = True
+        if q.per_node:
+            entry["per_node"] = True
         replaced = {v.value: v.replaced_by for v in q.enum_values if v.deprecated and v.replaced_by}
         if replaced:
             entry["replaced"] = replaced
@@ -284,6 +286,8 @@ def diff_debconf(old, new, changes):
             changes.append(Change(BREAKING, "debconf {} changed type from {} to {}".format(key, old_entry["type"], new_entry["type"])))
         if bool(old_entry.get("identity")) != bool(new_entry.get("identity")):
             changes.append(Change(BREAKING, "debconf {} changed whether it is set per node".format(key)))
+        if bool(old_entry.get("per_node")) != bool(new_entry.get("per_node")):
+            changes.append(Change(BREAKING, "debconf {} changed whether every node answers it separately".format(key)))
         old_choices = set(old_entry.get("choices", []))
         new_choices = set(new_entry.get("choices", []))
         replaced = new_entry.get("replaced", {})
