@@ -2,7 +2,7 @@ export interface Plot {
     title: string;
     y_axis_title: string;
     _utime_: number[];
-    series_y: number[];
+    series_y: (number | null)[];
     hovertext_map?: { [key: number]: string };
     hovertext?: string[];
     path: string;
@@ -112,6 +112,7 @@ export function Plot_generate_downsampled_plots(
         // Find the point with the largest delta in this segment
         for (let j = i; j < i + 2; j++) {
             let y = plot.series_y[j];
+            if (y === null) continue;
 
             let abs_delta = Math.abs(y - last_y);
             if (abs_delta > largest_abs_delta) {
@@ -200,6 +201,7 @@ export function Plot_calculate_yminmax_indices(plot: Plot) {
     let ymax = Number.MIN_VALUE;
 
     plot.series_y.forEach((y, i) => {
+        if (y === null) return;
         if (y < ymin) {
             ymin = y;
             ymin_index = i;

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# IPv6 address of data.cloud.jaia.tech
+DATA_SERVER_IPV6="2600:1f13:501:a400:512:d470:42d7:6e98"
+
 # Swap file
 fallocate -l 1G /swapfile
 chmod 600 /swapfile
@@ -93,12 +96,21 @@ access_control:
     - domain: 'lldap.cloud.jaia.tech'
       policy: 'two_factor'
       subject: 'group:lldap_admin'
+    - domain: 'data.cloud.jaia.tech'
+      policy: 'two_factor'
+      subject: 'group:data'
+    - domain: 'cc.cloud.jaia.tech'
+      policy: 'two_factor'
+      subject: 'group:cc_db'
 session:
   secret: '$session_secret'
   cookies:
      -
       domain: 'jaia.tech'
       authelia_url: 'https://auth.cloud.jaia.tech'
+      expiration: '12h'
+      inactivity: '1h'
+      remember_me: '1M'
 storage:
   encryption_key: '$storage_encryption_key'
   local:
@@ -137,6 +149,12 @@ lldap.cloud.jaia.tech {
         import authelia_forward_auth
         reverse_proxy :17170
 }
+
+cc.cloud.jaia.tech {
+        import authelia_forward_auth
+        reverse_proxy [2600:1f13:501:a400:546a:73cf:10af:9579]:80
+}
+
 EOF
 
 
@@ -153,6 +171,15 @@ f${fleet_id}.cloud.jaia.tech {
 }
 EOF
 done
+
+if [[ ! -z "${DATA_SERVER_IPV6}" ]]; then
+    cat <<EOF >> /etc/caddy/Caddyfile
+data.cloud.jaia.tech {
+        import authelia_forward_auth
+        reverse_proxy [${DATA_SERVER_IPV6}]:80
+}
+EOF
+fi
 
 systemctl restart caddy
 
@@ -201,6 +228,22 @@ WantedBy=multi-user.target
 EOF
 systemctl enable lldap
 systemctl start lldap
+
+# Authelia depends on lldap (port 3890) being up; without this Authelia can
+# win the boot race and fail to ever recover its LDAP connection
+mkdir -p /etc/systemd/system/authelia.service.d
+cat <<EOF > /etc/systemd/system/authelia.service.d/override.conf
+[Unit]
+After=lldap.service
+Wants=lldap.service
+
+[Service]
+ExecStartPre=-/bin/sh -c 'until nc -z localhost 3890; do sleep 1; done'
+TimeoutStartSec=120
+Restart=on-failure
+RestartSec=10s
+EOF
+systemctl daemon-reload
 
 # Enable Authelia service
 systemctl enable authelia

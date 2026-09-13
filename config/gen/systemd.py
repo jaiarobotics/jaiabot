@@ -214,7 +214,6 @@ class PAM_CONNECTION_TYPE(Enum):
     NONE = 'none'
 
 class IMU_TYPE(Enum):
-    BNO055 = 'bno055'
     BNO085 = 'bno085'
     NONE = 'none'
 
@@ -280,10 +279,11 @@ elif dc('pam_connection_type') == 'usb':
 else:
     jaia_pam_connection_type = PAM_CONNECTION_TYPE.NONE
 
-if dc('imu_type') == 'bno055':
-    jaia_imu_type = IMU_TYPE.BNO055
-elif dc('imu_type') == 'bno085':
+if dc('imu_type') == 'bno085':
     jaia_imu_type = IMU_TYPE.BNO085
+elif dc('imu_type') == 'bno055':
+    sys.exit('ERROR: the BNO055 IMU is no longer supported. Fit a BNO085 and set it with '
+             '"jaia admin debconf set imu_type bno085".')
 else:
     jaia_imu_type = IMU_TYPE.NONE
 
@@ -424,6 +424,7 @@ service_environment = {
     'jaia_arduino_type': jaia_arduino_type.value,
     'jaia_pam_connection_type': jaia_pam_connection_type.value,
     'jaia_bot_type': jaia_bot_type.value,
+    'jaia_bot_vin': dc('bot_vin'),
     'jaia_data_offload_ignore_type': jaia_data_offload_ignore_type.value,
     'jaia_motor_harness_type': jaia_motor_harness_type.value,
     'jaia_temperature_sensor_type': jaia_temperature_sensor_type.value,
@@ -433,6 +434,7 @@ service_environment = {
     'jaia_comms_mode': ','.join(comms_links_in_use),
     'jaia_camera_positions': ','.join(camera_positions_in_use),
     'jaia_additional_sensors': ','.join(jaia_additional_sensors),
+    'jaia_tail_serial_number': dc('tail_serial_number'),
     # previously derived by preseed.goby from $PATH
     'jaia_lib_dir': jaia_lib_dir,
     'jaia_share_dir': args.jaiabot_share_dir,
@@ -763,7 +765,7 @@ jaiabot_apps = [
 
 ]
 
-if jaia_imu_type.value == 'bno085':
+if jaia_imu_type == IMU_TYPE.BNO085:
     jaiabot_apps_imu = [
         {'exe': 'jaiabot_imu.py',
         'description': 'JaiaBot BNO085 IMU Python Driver',
@@ -776,20 +778,6 @@ if jaia_imu_type.value == 'bno085':
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'},
     ] 
-    jaiabot_apps.extend(jaiabot_apps_imu)
-else:
-    jaiabot_apps_imu = [
-        {'exe': 'jaiabot_imu.py',
-        'description': 'JaiaBot BNO055 IMU Python Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO055.value} -p {UDP_GATEWAY_PORT}',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-        'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'},
-    ]
     jaiabot_apps.extend(jaiabot_apps_imu)
 
 if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':

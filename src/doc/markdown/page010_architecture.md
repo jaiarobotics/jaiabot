@@ -39,7 +39,7 @@ In addition, we expect to support clients using `ROS` in the future.
 - `jaiabot_fusion`: Assembles the `goby::middleware::frontseat::protobuf::NodeStatus` message used by the `goby_moos_gateway` from the `goby_gps` output, pressure sensor, and other sources, as needed.
 - `jaiabot_health`: Overall system health using data from `goby_coroner` and eventually other sources.
 - `jaiabot_hub_manager`: Interface between the bots and the web sites. Sends and receives inter-vehicle messages on the radio and republishes / subscribes to their Goby3 counterparts on inter-process.
-- `jaiabot_imu.py`: Python driver for the Adafruit BNO055 and BNO085 IMUs.
+- `jaiabot_imu.py`: Python driver for the Adafruit BNO085 IMU.
 - `jaiabot_metadata`: Logs information about the system including current jaiabot build number, current Goby3 build number, computing platform, etc.
 - `jaiabot_mission_manager`: Keeps a state machine of the overall mission state and switches from pHelmIvP control to profile mode as required.
 - `jaiabot_pid_control`: Determines values to output to motor and control surfaces via pid control loops

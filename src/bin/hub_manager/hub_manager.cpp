@@ -48,6 +48,7 @@
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/link.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/utils/ip.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -565,6 +566,10 @@ void jaiabot::apps::HubManager::intervehicle_subscribe(int bot_id,
                 jaiabot::comms::buffer_for_link(cfg().status_buffer(), link);
 
             subscriber_cfg.mutable_intervehicle()->add_publisher_id(modem_id);
+
+            if (link == jaiabot::protobuf::LINK_XBEE)
+                subscriber_cfg.mutable_intervehicle()->set_broadcast(cfg().broadcast_bot_status());
+
             goby::middleware::Subscriber<jaiabot::protobuf::BotStatus> subscriber(
                 subscriber_cfg,
                 intervehicle::default_subscriber_group_func<jaiabot::protobuf::BotStatus>,
@@ -1258,6 +1263,13 @@ void jaiabot::apps::HubManager::handle_command(const jaiabot::protobuf::Command&
                 {
                     mutable_plan->set_mission_name(command.plan().mission_name());
                 }
+                if (command.plan().segments_size() > 0)
+                {
+                    for (const auto& segment : command.plan().segments())
+                    {
+                        *mutable_plan->add_segments() = segment;
+                    }
+                }
             }
 
             mutable_plan->set_fragment_index(fragment_index);
@@ -1402,8 +1414,8 @@ void jaiabot::apps::HubManager::start_dataoffload(int bot_id)
                               << std::endl;
     current_offload_bot_id_ = bot_id;
 
-    std::string bot_ip = cfg().class_b_network() + "." + std::to_string(cfg().fleet_id()) + "." +
-                         std::to_string((cfg().bot_start_ip() + bot_id));
+    std::string bot_ip = jaiabot::ip::addr(cfg().fleet_id(), jaiabot::ip::Network::wlan,
+                                           jaiabot::ip::NodeType::bot, bot_id);
 
     if (cfg().use_localhost_for_data_offload())
         bot_ip = "127.0.0.1";

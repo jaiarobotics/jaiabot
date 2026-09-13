@@ -1,0 +1,91 @@
+#cloud-config
+
+hostname: jaia-data
+
+ssh_pwauth: false
+
+users:
+  - name: jaia
+    groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/jaia_sshd.conf
+    content: |
+      AuthorizedKeysFile .ssh/authorized_keys /etc/jaiabot/ssh/root_authorized_keys /etc/jaiabot/ssh/tmp_authorized_keys
+  - path: /etc/jaiabot/ssh/root_authorized_keys
+    content: |
+${INDENTED_ROOT_PUBKEYS}
+  - path: /etc/jaiabot/ssh/tmp_authorized_keys
+    content: |
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCWVm+RgEobZnz2gsOBBQ8jinPxmuroios5L0Jpb7XVw0/wr730JqIY4Pr7zipTTiwZSSuFCvT0vjAA2aQbw3witiPyhYpffXHtM6mpxvdj9U3dsTth2bbkolI28/J8P/AO8nUPsjh/Zack1a4vtVP+PJGSK9yHR54hkbBnDZ+MrjMpnHteTVAF2SEJF3IlpqeIpAja/qceflPL24LgMPq5rlY7f0K0xxT6YDPToRaZ/rNO+FgzW4ZaKOrU51TNX5WgN2AiiavyqKa3iVT/9VTo+HveWldoW1p9Ov4iCY6QfP2kiF7gfsxZZJ/Xpn99H3ya5SIng1Qs+gQ40vvKQVVT toby@yubikey16719472
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDBxM4LhQ6Kfohk6oMesU9iPYsqiu1bI6hXS0TWQSsqF3sZgTb5BWO4FuoDXrc49EeeG8fQv0UKeZKmEK/VcXlu/YbHtirl0DYcsIA1SEBoTWEvwTN7SNf4hA9kDZH4WB+xJq2Ob+qmcRDmbVSovE9WSJUujJdYkZuuFl7w6j/UDys8waxV0vlw9FqY6bN/slxr26xY7CUwDygljP+b/VDzn4WNBZGLP8Xlb5vMtw9Gg5Jr0jH+IdVXpPtqhFa2zlWhpKTHq0mx7w6iKVaa1NZVyOX1Jlodml1NTted3P73K6dQ8g/SlKBTUvO/en6R+ZUpJFY3QvO/w5KgTl6d3v17 toby@yubikey16719053
+      ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDkhjS74aGshxZcl2yTzJIDlxhVdA4aeMdSwHyXNolNzem5kowIrBp5/twQmaUPpUegk/fy8PSSB36qoCEde+8saFfYKKMKW/u4WApWs8nrKljBJg+tAPXwMdkowhIaFM2FNoo8GGa9LsssaCHNG8McYGS5IBjoU2+xlIw+Wo5w9fVLNpp+uXJopO4GFsEXYHj5ZnCUFTxAVrHcVVv3rBOdZ6acrPoayi3SExhSWzKpG9OE9r6Qwip+TT6LuBVr7fzExSFl6dynJhjXbyNuTHQFLRgt2MaRb2Zcfmcvb7o4KVO3cuIDQ/c/gwlk1x+9KWKllExEaUXIO4etlTgSoZUF toby@yubikey16718427
+  - path: /etc/apt/apt.conf.d/50unattended-upgrades
+    content: |
+      Unattended-Upgrade::Allowed-Origins {
+          "${distro_id}:${distro_codename}-security";
+      };
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+  - path: /etc/systemd/system/jaiabot-data-vision.service
+    content: |
+      [Unit]
+      Description=Jaia Data Vision Server
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      ExecStart=/usr/share/jaiabot/python/venv/bin/python3 /usr/share/jaiabot/web/jdv/server/jaiabot_data_vision.py -d /var/log/jaiabot/bot_offload -a /usr/share/jaiabot/web/jdv/client/dist/ -p 40011
+      Restart=always
+      RestartSec=5
+      StandardOutput=journal
+      StandardError=journal
+
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/apache2/sites-available/001-jaia-data.conf
+    content: |
+      <VirtualHost *:80>
+        ServerName data.cloud.jaia.tech
+        ProxyPreserveHost On
+        ProxyPass / http://localhost:40011/
+        ProxyPassReverse / http://localhost:40011/
+      </VirtualHost>
+
+apt:
+  sources:
+    jaiabot.list:
+      source: "deb http://packages.jaia.tech/ubuntu/${REPO}/${jaia_version_release_branch}/ ${jaia_version_ubuntu_codename}/"
+      keyid: "954A004CD5D8CF32"
+    gobysoft.list:
+      source: "deb http://packages.jaia.tech/ubuntu/gobysoft/${REPO}/${jaia_version_release_branch}/ ${jaia_version_ubuntu_codename}/"
+      keyid: "19478082E2F8D3FE"
+
+packages:
+  - zile
+  - jaiabot-apps
+  - jaiabot-web
+  - goby3-apps
+  - s3fs
+  - apache2
+
+runcmd:
+  - ln -s /usr/bin/zile /usr/local/bin/emacs
+  # Swap, so goby->h5 conversion of large logs doesn't OOM-kill jaiabot-data-vision
+  - fallocate -l 4G /swapfile
+  - chmod 600 /swapfile
+  - mkswap /swapfile
+  - swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  - mkdir -p /var/log/jaiabot/bot_offload
+  - chown jaia:jaia /var/log/jaiabot
+  - a2enmod proxy proxy_http
+  - a2dissite 000-default
+  - a2ensite 001-jaia-data
+  - systemctl daemon-reload
+  - systemctl enable jaiabot-data-vision
+  - systemctl restart apache2
+  - systemctl start jaiabot-data-vision

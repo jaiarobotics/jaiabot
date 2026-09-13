@@ -43,7 +43,9 @@ def gpsd_udp_port(node_id):
 def motor_cpp_udp_port():
     return 0
 
-def motor_py_udp_port():
+def motor_py_udp_port(bot_id):
+    if is_simulation():
+        return 20005 + bot_id
     return 20005 
 
 def web_portal_udp_port(hub_id):

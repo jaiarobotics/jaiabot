@@ -4,79 +4,115 @@
     position: absolute;
     top: @panel-top;
     right: @panel-right;
-
     z-index: @jaia-panel-z-index;
+
+    min-width: 204px;
 
     padding: 6px;
 
     max-height: @panel-max-height;
 
     background-color: @overlay-background;
+    color: @cc-text-color-light;
+
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
-.waypoint-panel {
+.waypoint-panel-container .MuiSelect-select {
+    font-size: 0.9rem;
+}
+
+.waypoint-panel-container .MuiInputBase-root {
+    background-color: @panel-accent-color;
+    color: #000;
+}
+
+.waypoint-panel-container .MuiSvgIcon-root {
+    fill: #000;
+}
+
+.waypoint-id-container {
+    padding: 9px;
+
     display: grid;
     grid-template-columns: min-content min-content;
+    gap: 6px;
+    justify-content: center;
+    border: 1px solid @panel-accent-color;
+}
+
+.waypoint-toggle-container {
+    padding: 9px;
+
+    display: grid;
+    grid-template-columns: max-content min-content;
+    column-gap: 9px;
+    row-gap: 3px;
     align-items: center;
+    border: 1px solid @panel-accent-color;
+}
+
+.waypoint-toggle-container svg {
+    height: 38px;
+    width: 30px;
+    margin-left: 1px;
+}
+
+.waypoint-button-container {
+    padding: 9px 0;
+
+    display: flex;
+    justify-content: center;
     gap: 12px;
 
-    padding: 12px;
-
-    max-height: calc(@panel-max-height - 52px);
-    overflow: auto;
-
-    background-color: @cc-background-color;
-    font-size: 1.1rem;
+    border: 1px solid @panel-accent-color;
 }
 
-.waypoint-panel .label {
-    font-weight: 600;
+.waypoint-button-container button {
+    all: unset;
+    box-sizing: border-box;
+    width: 75px;
+    padding: 6px 0;
+    border: 1px solid @panel-accent-color;
+    border-radius: 3px;
+    text-align: center;
 }
 
-.jaia-input.coordinate {
-    width: 90px;
+.waypoint-button-container .selected {
+    background-color: @panel-accent-color;
+    color: #000;
 }
 
-.waypoint-input-container {
+.waypoint-subsection {
+    padding: 9px;
+    border: 1px solid @panel-accent-color;
     display: grid;
-    grid-template-columns: min-content 1fr;
-    column-gap: 12px;
+    grid-template-columns: max-content min-content;
+    gap: 9px;
+    justify-content: center;
     align-items: center;
 }
 
-.waypoint-panel .line-break {
+.task-parameters-container {
     grid-column: 1 / 3;
-    height: 1px;
-    background-color: #d1d5db;
 }
 
-.toggle-row {
-    grid-column: 1 / 3;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.toggle-row div {
-    width: max-content;
-}
-
-.jaia-input.coordinate {
-    width: 90px;
-}
-
-.jaia-button.delete-waypoint {
-    justify-self: center;
-}
-
-.waypoint-panel .task-parameters-container {
+.waypoint-subsection button {
+    all: unset;
+    width: 24px;
     grid-column: 2 / 3;
+    justify-self: end;
+}
+
+.jaia-input.location {
+    width: 90px;
 }
 
 .waypoint-panel-container .button-row {
     display: flex;
     justify-content: space-between;
-    padding: 6px 0 0 0;
 }
 
 .waypoint-panel-container .button-row button {

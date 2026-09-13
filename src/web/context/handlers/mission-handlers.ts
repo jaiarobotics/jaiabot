@@ -182,7 +182,7 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
     const priorMissionSetSnapshot = missionSet.captureSnapshot();
     const priorMissionsManagerSnapshot = missionsManager.captureSnapshot();
     missionSet.deleteAllMissions();
-    missionsManager.unassignAll();
+    missionsManager.clear();
 
     if (Array.isArray(action.missionSetSnapshot.missions)) {
         action.missionSetSnapshot.missions.forEach(
@@ -195,8 +195,9 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
 
     missionSet.setName(action.missionSetSnapshot.name);
     missionSet.setMissionIDInEditMode(UNASSIGNED_ID);
-    missionSet.setMissionSpeeds(action.missionSetSnapshot.missionSpeeds);
+    missionSet.setMissionSpeeds(action.missionSetSnapshot.speeds);
     mutableState.missionAccordionStates = {};
+    missionsManager.autoAssign();
     missionLayer.updateFeatures();
 
     const pendingRemoval = detectWaypointRemovals();

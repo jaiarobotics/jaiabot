@@ -42,7 +42,7 @@ export function ImportMissionSetDialog(props: DialogProps) {
             case DialogWarningType.CLEAR_MISSIONS:
                 return "The mission set panel will be cleared prior to importing.";
             case DialogWarningType.OLD_FORMAT:
-                return "The imported file is an old format. Export to make a copy in the new format.";
+                return "This mission set was saved in an older format and has been migrated. Please export to update to the latest version.";
             case DialogWarningType.INVALID_FORMAT:
                 return "The file could not be imported, it is an invalid format.";
         }

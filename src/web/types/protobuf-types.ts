@@ -677,6 +677,13 @@ export interface Recovery {
     location?: GeographicCoordinate;
 }
 
+export interface Segment {
+    start_goal_index: number;
+    lane_start_goal_indices?: number[];
+    speed?: number;
+    bottom_depth_safety_params?: BottomDepthSafetyParams;
+}
+
 export interface MissionPlan {
     start?: MissionStart;
     movement?: MovementType;
@@ -689,6 +696,7 @@ export interface MissionPlan {
     repeats?: number;
     trail?: TrailParameters;
     mission_name?: string;
+    segments?: Segment[];
 }
 
 export interface TransitUpdate {

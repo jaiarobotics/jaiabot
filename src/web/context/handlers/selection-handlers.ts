@@ -4,10 +4,17 @@ import { rallyPoints } from "../../data/rally_points/rally-points";
 import { diveLayer } from "../../openlayers/layers/vector/dive-layer";
 import { driftLayer } from "../../openlayers/layers/vector/drift-layer";
 import { excludedTaskPacketsLayer } from "../../openlayers/layers/vector/excluded-task-packets-layer";
+import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { MapModes } from "../../types/openlayers-types";
-import { JaiaContextType, JaiaAction, ButtonNames, ButtonTypes } from "../../types/context-types";
+import {
+    JaiaContextType,
+    JaiaAction,
+    ButtonNames,
+    ButtonTypes,
+    WaypointSections,
+} from "../../types/context-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { syncOpenLayers, syncTaskLayers } from "./handler-utils";
 import { gridPlan, GridPlanningStates } from "../../data/survey_planner/grid-plan";
@@ -107,9 +114,33 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
         gridPlan.reset();
     }
 
+    // Clear zone edit mode when navigating away from zone panels
+    if (
+        jaiaGlobal.getZoneInEditMode() !== UNASSIGNED_ID ||
+        jaiaGlobal.getSelectedZoneVertex().zoneID !== UNASSIGNED_ID
+    ) {
+        jaiaGlobal.setZoneInEditMode(UNASSIGNED_ID);
+        jaiaGlobal.resetSelectedZoneVertex();
+        exclusionZoneLayer.updateFeatures();
+    }
+
     handleMapModeChange(mapMode);
     mutableState.visiblePanel = visiblePanel;
     return mutableState;
+}
+
+/**
+ * Carries out resets and updates that need to occur on map feature clicks
+ *
+ * @returns {void}
+ */
+function handleClickedFeature() {
+    jaiaGlobal.resetSelectedWaypoint();
+    jaiaGlobal.resetSelectedTaskPacket();
+    missionLayer.updateFeatures();
+    diveLayer.updateFeatures();
+    driftLayer.updateFeatures();
+    excludedTaskPacketsLayer.updateFeatures();
 }
 
 /**
@@ -120,16 +151,9 @@ export function handleClickedButton(mutableState: JaiaContextType, action: JaiaA
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedWaypoint(mutableState: JaiaContextType, action: JaiaAction) {
-    if (!missionSet.getMission(action.clickedWaypoint.missionID)) {
-        jaiaGlobal.resetSelectedWaypoint();
-        if (mutableState.visiblePanel === ButtonNames.WAYPOINT_PANEL) {
-            mutableState.visiblePanel = ButtonNames.NONE;
-        }
-    } else {
-        jaiaGlobal.setSelectedWaypoint(action.clickedWaypoint);
-        mutableState.visiblePanel = ButtonNames.WAYPOINT_PANEL;
-    }
-    missionLayer.updateFeatures();
+    handleClickedFeature();
+    jaiaGlobal.setSelectedWaypoint(action.clickedWaypoint);
+    mutableState.visiblePanel = ButtonNames.WAYPOINT_PANEL;
     return mutableState;
 }
 
@@ -161,6 +185,7 @@ export function handleClickedEditMission(mutableState: JaiaContextType, action: 
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedRallyPoint(mutableState: JaiaContextType, action: JaiaAction) {
+    handleClickedFeature();
     rallyPoints.setSelectedRallyPointID(action.rallyID);
     mutableState.visiblePanel = ButtonNames.RALLY_PANEL;
     return mutableState;
@@ -173,6 +198,7 @@ export function handleClickedRallyPoint(mutableState: JaiaContextType, action: J
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleClickedTaskPacket(mutableState: JaiaContextType, action: JaiaAction) {
+    handleClickedFeature();
     const selectedTaskPacket = jaiaGlobal.getSelectedTaskPacket();
 
     if (
@@ -188,5 +214,21 @@ export function handleClickedTaskPacket(mutableState: JaiaContextType, action: J
     diveLayer.updateFeatures();
     driftLayer.updateFeatures();
     excludedTaskPacketsLayer.updateFeatures();
+    return mutableState;
+}
+
+/**
+ * Updates the section to show in the waypoint panel
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @param {JaiaAction} action Includes the name of the section clicked
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleClickedWaypointSection(mutableState: JaiaContextType, action: JaiaAction) {
+    if (mutableState.visibleWaypointSection === action.waypointSection) {
+        mutableState.visibleWaypointSection = WaypointSections.NONE;
+    } else {
+        mutableState.visibleWaypointSection = action.waypointSection;
+    }
     return mutableState;
 }

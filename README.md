@@ -40,7 +40,7 @@ Please visit our website to learn more: [Jaia Robotics](https://www.jaia.tech)
 | **MOOS-IvP**  | **24.8.1**                    |
 | **Goby**      | **3.5.1**                     |
 | **Wt**        | **4.13.2**                    |
-| **Node.js**   | **24.14**                   |
+| **Node.js**   | **26.8**                   |
 | **Languages**   | **C++, Python, TypeScript, Shell**                   |
 
 The authoritative Ubuntu, Node.js and toolchain versions for this branch are defined in [`scripts/common-versions.env`](scripts/common-versions.env).

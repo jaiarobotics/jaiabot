@@ -25,6 +25,7 @@ import {
     handleToggleBottomDive,
     handleToggleHydrophone,
     handleToggleConstantHeadingSelect,
+    handleChangeCoordinateSystem,
 } from "./handlers/waypoint-handlers";
 import {
     handleAddRallyPoint,
@@ -53,6 +54,7 @@ import {
     handleClickedWaypoint,
     handleClickedRallyPoint,
     handleClickedTaskPacket,
+    handleClickedWaypointSection,
 } from "./handlers/selection-handlers";
 import { handleClickedUndo } from "./handlers/history-handlers";
 import { handleChangeGridPlanningState } from "./handlers/survey-handlers";
@@ -125,6 +127,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
         JaiaActions.CHANGE_TASK_PACKET_VISIBILITY,
         { handler: handleChangeTaskPacketVisibility, tracked: false },
     ],
+    [
+        JaiaActions.CHANGE_COORDINATE_SYSTEM,
+        { handler: handleChangeCoordinateSystem, tracked: false },
+    ],
 
     // Survey Actions
     [JaiaActions.SURVEY_APPROVED, { handler: handleChangeGridPlanningState, tracked: true }],
@@ -184,6 +190,10 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.CLICKED_WAYPOINT, { handler: handleClickedWaypoint, tracked: false }],
     [JaiaActions.CLICKED_RALLY_POINT, { handler: handleClickedRallyPoint, tracked: false }],
     [JaiaActions.CLICKED_TASK_PACKET, { handler: handleClickedTaskPacket, tracked: false }],
+    [
+        JaiaActions.CLICKED_WAYPOINT_SECTION,
+        { handler: handleClickedWaypointSection, tracked: false },
+    ],
 
     // History Actions
     [JaiaActions.CLICKED_UNDO, { handler: handleClickedUndo, tracked: false }],

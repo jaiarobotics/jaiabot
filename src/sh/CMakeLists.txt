@@ -20,6 +20,7 @@ set(scripts_to_install
   data-offload/jaiahub-dataoffload-cloudhub.sh
   # Firmware scripts
   firmware/jaia-firm-backup-date.sh
+  firmware/jaia-firm-arduino-flash.sh
   firmware/jaia-reset-bio-payload-board.sh
   # Utilities
   utils/jaia-geotiff-format.py

@@ -40,11 +40,14 @@ elif [[ "$VPN_TYPE" = "fleet_vpn" ]]; then
     FLEET_ID=$4
     SERVER_IP="vpn.jaia.tech"
     
-    WG_SERVER_PROFILE=wg_fleet${FLEET_ID}    
+    WG_SERVER_PROFILE=wg_fleet${FLEET_ID}
     WG_CLIENT_PROFILE=wg_jaia_sf${FLEET_ID}
     VPN_PORT=$((51821+${FLEET_ID}))
-    IPVERSION="4"
-    SUBNET_BITS="32"
+    # this VPN is IPv4 for the fleets whose id fits the 172.23.{fleet}.0/24 scheme, IPv6 above that
+    if [ "${FLEET_ID}" -le "$(jaia_bounds --ipv4_fleet_id --max)" ]; then
+        IPVERSION="4"
+        SUBNET_BITS="32"
+    fi
 else
     echo "Invalid VPN: $VPN_TYPE; must be cloudhub_vpn, vfleet_vpn, or fleet_vpn"
     exit 1
@@ -61,7 +64,7 @@ PUBKEY=$(echo $PRIVKEY | wg pubkey)
 
 if [[ "$VPN_TYPE" = "fleet_vpn" ]]; then
     # the fleet VPN server is the gateway node on the fleet_vpn network
-    SERVER_VPN_IP=$(jaia_ip --query_type addr --node_type gateway --ip_net fleet_vpn --fleet_id ${FLEET_ID} --ip_version ipv4)
+    SERVER_VPN_IP=$(jaia_ip --query_type addr --node_type gateway --ip_net fleet_vpn --fleet_id ${FLEET_ID} --ip_version ipv${IPVERSION})
     # Totally new fleet - add server config
     if ! sudo test -e /etc/wireguard/${WG_SERVER_PROFILE}.conf; then
         cat <<EOF | sudo tee /etc/wireguard/${WG_SERVER_PROFILE}.conf
@@ -91,7 +94,7 @@ EOF
     fi
 fi
 
-sudo grep -q "${CLIENT_IP}/128" /etc/wireguard/${WG_SERVER_PROFILE}.conf && (echo "${NODE_TYPE} ${NODE_ID} is already configured in /etc/wireguard/${WG_SERVER_PROFILE}.conf. If you wish to continue, manually remove this Peer entry" && exit 1)
+sudo grep -q "${CLIENT_IP}/${SUBNET_BITS}" /etc/wireguard/${WG_SERVER_PROFILE}.conf && (echo "${NODE_TYPE} ${NODE_ID} is already configured in /etc/wireguard/${WG_SERVER_PROFILE}.conf. If you wish to continue, manually remove this Peer entry" && exit 1)
 
 cat <<EOF | sudo tee -a /etc/wireguard/${WG_SERVER_PROFILE}.conf
 # BEGIN PEER ${NODE_TYPE} ${NODE_ID}: CONFIGURED BY vpn_gen.sh

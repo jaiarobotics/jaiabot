@@ -1,0 +1,15 @@
+- name: Determine the IMU type in use
+  set_fact:
+    jaia_imu_type_in_use: "{{ jaiabot_embedded_imu_type | default('none') if jaiabot_embedded_type == 'bot' else 'none' }}"
+
+- name: Find any bots using the deprecated BNO055 IMU
+  set_fact:
+    bno055_bots: "{{ ansible_play_hosts | map('extract', hostvars) | selectattr('jaia_imu_type_in_use', 'defined') | selectattr('jaia_imu_type_in_use', 'equalto', 'bno055') | map(attribute='inventory_hostname') | list }}"
+
+# Fail every machine, not just the offending bots: a fleet split across two major
+# versions can't operate, so the whole upgrade must wait for the new hardware.
+- name: Handle deprecated BNO055 IMU
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "The BNO055 IMU is no longer supported and must be replaced with a BNO085 IMU before a major upgrade can be run. Still using a BNO055: {{ bno055_bots | join(', ') }}. After fitting the new IMU, run 'jaia admin debconf set imu_type bno085' on each of these bots, and regenerate the fleet configuration with 'jaia admin fleet create' so that the upgraded system is configured for the new IMU as well."
+  when: bno055_bots | length > 0
