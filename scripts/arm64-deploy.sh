@@ -44,6 +44,14 @@ if [[ "$jaia_mode" == "simulation" ]]; then
     jaia_simulation="--simulation --warp ${jaia_warp}"
 fi
 
+jaia_comms_links_args=${jaia_comms_mode,,}
+jaia_comms_links_args=${jaia_comms_links_args//,/ }
+
+jaia_comms_links_flag=
+if [ ! -z "${jaia_comms_links_args// /}" ]; then
+    jaia_comms_links_flag="--comms_links ${jaia_comms_links_args}"
+fi
+
 echo "🟢 Creating and setting permissions on log dir"
 sudo mkdir -p /var/log/jaiabot/bot_offload && sudo chown -R ${USER}:${USER} /var/log/jaiabot
 
@@ -53,13 +61,13 @@ if [ ! -z "$jaiabot_systemd_type" ]; then
     if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
         cd ${HOME}/jaiabot/config/gen
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} --bot_vin "$jaia_bot_vin" --pam_connection_type ${jaia_pam_connection_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,} --camera_positions ${jaia_camera_positions,,} --additional_sensors ${jaia_additional_sensors} --pressure_sensor_type ${jaia_pressure_sensor_type,,}) || { echo "❌ Failed to install the $jaiabot_systemd_type systemd services, so this deploy is still running the previously installed code"; exit 1; }
+    ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} --bot_vin "$jaia_bot_vin" --pam_connection_type ${jaia_pam_connection_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,} --camera_positions ${jaia_camera_positions,,} --additional_sensors ${jaia_additional_sensors} --pressure_sensor_type ${jaia_pressure_sensor_type,,} ${jaia_comms_links_flag}) || { echo "❌ Failed to install the $jaiabot_systemd_type systemd services, so this deploy is still running the previously installed code"; exit 1; }
 
     else
 
         cd ${HOME}/jaiabot/config/gen
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-         ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced) || { echo "❌ Failed to install the $jaiabot_systemd_type systemd services, so this deploy is still running the previously installed code"; exit 1; }
+         ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced ${jaia_comms_links_flag}) || { echo "❌ Failed to install the $jaiabot_systemd_type systemd services, so this deploy is still running the previously installed code"; exit 1; }
 
         sudo chmod o+x ${HOME}
         sudo a2ensite jcc
