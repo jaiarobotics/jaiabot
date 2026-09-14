@@ -1,7 +1,9 @@
 - name: Set download URL
   set_fact:
     upgrade_rootfs_url: 'http://{{ hub_ip }}/updates/major_upgrade/{{ major_upgrade_rootfs_version }}.rootfs.tar.gz'
-    upgrade_boot_url: 'http://{{ hub_ip }}/updates/major_upgrade/{{ major_upgrade_rootfs_version }}.boot.tar.gz'    
+    upgrade_boot_url: 'http://{{ hub_ip }}/updates/major_upgrade/{{ major_upgrade_rootfs_version }}.boot.tar.gz'
+    # VirtualBox fleets and VirtualFleets run in simulation mode and have no radio link to spare
+    upgrade_download_limit_rate: "{{ major_upgrade_download_limit_rate | default('' if (jaiabot_embedded_mode | default('runtime')) == 'simulation' else '1500K') }}"
 
 - name: Download the upgrade image boot fs
   shell: |
@@ -14,7 +16,7 @@
       exit 0
     fi
     tmp="${dest}.part"
-    curl -f -sS --limit-rate 1500K -o "$tmp" "{{ upgrade_boot_url }}"
+    curl -f -sS {{ '--limit-rate ' ~ upgrade_download_limit_rate if upgrade_download_limit_rate not in ['', '0'] else '' }} -o "$tmp" "{{ upgrade_boot_url }}"
     echo "$checksum  $tmp" | sha256sum -c - --status
     mv "$tmp" "$dest"
   args:
@@ -34,7 +36,7 @@
       exit 0
     fi
     tmp="${dest}.part"
-    curl -f -sS --limit-rate 1500K -o "$tmp" "{{ upgrade_rootfs_url }}"
+    curl -f -sS {{ '--limit-rate ' ~ upgrade_download_limit_rate if upgrade_download_limit_rate not in ['', '0'] else '' }} -o "$tmp" "{{ upgrade_rootfs_url }}"
     echo "$checksum  $tmp" | sha256sum -c - --status
     mv "$tmp" "$dest"
   args:
