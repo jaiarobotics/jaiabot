@@ -53,6 +53,7 @@ message RemoveTool
     ];
 
     optional string user = 10 [default = "jaia"];
-    optional string authorized_keys_file = 11
-        [default = "/etc/jaiabot/ssh/tmp_authorized_keys"];
+    optional string authorized_keys_file = 11 [(goby.field) = {
+        description: "Remove the key from this file only. If omitted, the key is removed from the temporary, permanent and hub authorized_keys files, but never from the root keys, which are managed by the jaiabot-embedded package."
+    }];
 }

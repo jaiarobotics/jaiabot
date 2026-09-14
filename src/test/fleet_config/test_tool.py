@@ -203,7 +203,7 @@ class MigrationFailureTest(unittest.TestCase):
         cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_cloudhub_no_auth.cfg"))
         fc.migrate(SCHEMA, cfg)
         problems = fc.validate(SCHEMA, cfg)
-        self.assertIn("cloudhub_auth: required when hub 30 (CloudHub) is in the fleet", problems)
+        self.assertIn("cloudhub_auth: required", problems)
 
     def test_newer_than_tool_is_refused(self):
         with tempfile.NamedTemporaryFile("w", suffix=".cfg", delete=False) as f:
@@ -444,19 +444,15 @@ class CreateTest(unittest.TestCase):
         result = self.env.run("validate", out)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_no_cloudhub_means_no_auth_and_no_hub_30(self):
+    def test_a_fleet_without_a_cloudhub_is_refused(self):
         answers = ["7", "no", "1", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {})
         answers += ["yes", "", "1"] + settings_answers({"ALL", "BOT"}, {}) + ["no"]
         answers += node_answers([1], [1])
         result, out = self.run_create(answers)
-        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-        cfg = fc.parse_fleet_config(SCHEMA, out)
-        self.assertEqual(list(cfg.hubs), [1])
-        self.assertFalse(cfg.HasField("cloudhub_auth"))
-        self.assertFalse(cfg.HasField("comms"))
-        # an override set whose answers all match the common ones writes nothing
-        self.assertEqual(len(cfg.override), 0)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("hub 30 (the CloudHub) is required", result.stderr)
+        self.assertFalse(os.path.exists(out))
 
     def test_back_returns_to_the_previous_question(self):
         back = fc.SCRIPTED_BACK
@@ -482,7 +478,7 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(SCHEMA.questions_by_name[first.name].to_debconf(getattr(cfg.settings, first.name)), "hub_led")
         self.assertEqual(fc.validate(SCHEMA, cfg), [])
 
-    def test_turning_the_cloudhub_off_drops_its_auth(self):
+    def test_turning_the_cloudhub_off_on_the_way_back_is_refused(self):
         back = fc.SCRIPTED_BACK
         # back from the CloudHub authentication all the way to the CloudHub question,
         # answered no the second time round
@@ -490,10 +486,9 @@ class CreateTest(unittest.TestCase):
         answers += ["no", "1", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1], [1])
         result, out = self.run_create(answers)
-        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-        cfg = fc.parse_fleet_config(SCHEMA, out)
-        self.assertEqual(list(cfg.hubs), [1])
-        self.assertFalse(cfg.HasField("cloudhub_auth"))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("hub 30 (the CloudHub) is required", result.stderr)
+        self.assertFalse(os.path.exists(out))
 
     def test_back_out_of_the_first_question_writes_nothing(self):
         result, out = self.run_create([fc.SCRIPTED_BACK])
@@ -543,7 +538,8 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_bad_values.cfg"), out)
         loaded = SCHEMA.NodeSettings()
         fc.fill_defaults(SCHEMA, loaded)
-        answers = ["<default>"] * 4 + ["", "<default>", "<default>"]
+        answers = ["<default>", "yes", "<default>", "<default>"] + ["", "<default>", "<default>"]
+        answers += ["<default>", "admin@example.com", "<default>"]
         answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
         answers += ["no"] + node_answers([1], [1])
         result, _ = self.run_edit(out, answers)
