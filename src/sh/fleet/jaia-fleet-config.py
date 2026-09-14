@@ -1146,6 +1146,7 @@ def create(schema, ui, banner=None, existing=None):
         cfg.CopyFrom(existing)
     cfg.version = schema.version
     state = {
+        "cloudhub": CLOUDHUB_ID in cfg.hubs,
         "hubs": [h for h in cfg.hubs if h != CLOUDHUB_ID],
         # by hub: a key that already exists is never generated again, so editing
         # a fleet does not ask for every Yubikey
@@ -1160,13 +1161,17 @@ def create(schema, ui, banner=None, existing=None):
         cfg.fleet = ask_id(ui, "fleet_id", "Which fleet is this?",
                            cfg.fleet if cfg.HasField("fleet") else None)
 
+    def choose_cloudhub():
+        state["cloudhub"] = ui.yesno(
+            "Does this fleet include a CloudHub (hub {}, running in the cloud)?".format(CLOUDHUB_ID),
+            default="yes" if state["cloudhub"] else "no")
+
     def choose_hubs():
         lo, hi = node_id_range("hub_id")
         state["hubs"] = ask_ids(ui, "Which physical hubs are in the fleet?", lo, min(hi, CLOUDHUB_ID - 1),
                                 checked=state["hubs"])
         del cfg.hubs[:]
-        # the CloudHub is required, so it is never offered as a choice
-        cfg.hubs.extend(state["hubs"] + [CLOUDHUB_ID])
+        cfg.hubs.extend(state["hubs"] + ([CLOUDHUB_ID] if state["cloudhub"] else []))
 
     def choose_bots():
         lo, hi = node_id_range("bot_id")
@@ -1357,13 +1362,15 @@ def create(schema, ui, banner=None, existing=None):
 
     run_steps([
         Step("Choose fleet", choose_fleet),
+        Step("CloudHub", choose_cloudhub),
         Step("Choose hubs", choose_hubs),
         Step("Choose bots", choose_bots),
         Step("Generating hub SSH keys", generate_keys, revisit=False),
         Step("Permanent SSH keys (for /home/jaia/.ssh/authorized_keys)", permanent_keys),
         Step("Wifi password", wlan_password),
         Step("Service Wireguard VPN", service_vpn),
-        Step("CloudHub authentication", cloudhub_auth),
+        Step("CloudHub authentication", cloudhub_auth, enabled=lambda: state["cloudhub"],
+             clear=lambda: cfg.ClearField("cloudhub_auth")),
         Step("Common jaiabot-embedded settings", common_settings),
         Step("Overrides (settings that differ from the common ones)", overrides),
         Step("Settings that are different on every node", node_settings,

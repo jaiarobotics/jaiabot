@@ -376,6 +376,7 @@ class CreateTest(unittest.TestCase):
     def test_creates_a_valid_current_version_file(self):
         answers = [
             "abc", "7",                      # fleet id: re-asked until it is in range
+            "yes",                           # CloudHub in the fleet
             "1, 2", "1, 2",                  # physical hubs, bots
             "ssh-ed25519 AAAAperm me", "",   # permanent keys
             "wifipass", "yes",               # wlan password, service vpn
@@ -443,22 +444,21 @@ class CreateTest(unittest.TestCase):
         result = self.env.run("validate", out)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_the_cloudhub_is_always_in_the_fleet(self):
-        answers = ["7", "1", "1", "", "wifipass", "no"]
-        answers += ["<default>", "admin@example.com", "<default>"]
+    def test_a_fleet_without_a_cloudhub_is_refused(self):
+        answers = ["7", "no", "1", "1", "", "wifipass", "no"]
         answers += settings_answers(ALL_GROUPS, {})
         answers += ["yes", "", "1"] + settings_answers({"ALL", "BOT"}, {}) + ["no"]
-        answers += node_answers([1, 30], [1])
+        answers += node_answers([1], [1])
         result, out = self.run_create(answers)
-        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-        cfg = fc.parse_fleet_config(SCHEMA, out)
-        self.assertEqual(list(cfg.hubs), [1, 30])
-        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("hub 30 (the CloudHub) is required", result.stderr)
+        self.assertFalse(os.path.exists(out))
 
     def test_back_returns_to_the_previous_question(self):
         back = fc.SCRIPTED_BACK
         answers = [
-            "8", back, "7",          # fleet id, then back from the physical hubs
+            "8", back, "7",          # fleet id, then back from the CloudHub question
+            "no", back, "yes",       # CloudHub: answered no, back, then yes
             "1", "2",                # physical hubs, bots
             back,                    # from the permanent keys, back past key generation to bots
             "1, 2",                  # bots again
@@ -477,6 +477,18 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(SCHEMA.questions_by_name["comms_links"].to_debconf(list(cfg.settings.comms_links)), "xbee")
         self.assertEqual(SCHEMA.questions_by_name[first.name].to_debconf(getattr(cfg.settings, first.name)), "hub_led")
         self.assertEqual(fc.validate(SCHEMA, cfg), [])
+
+    def test_turning_the_cloudhub_off_on_the_way_back_is_refused(self):
+        back = fc.SCRIPTED_BACK
+        # back from the CloudHub authentication all the way to the CloudHub question,
+        # answered no the second time round
+        answers = ["7", "yes", "1", "1", "", "wifipass", "no"] + [back] * 6
+        answers += ["no", "1", "1", "", "wifipass", "no"]
+        answers += settings_answers(ALL_GROUPS, {}) + ["no"] + node_answers([1], [1])
+        result, out = self.run_create(answers)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("hub 30 (the CloudHub) is required", result.stderr)
+        self.assertFalse(os.path.exists(out))
 
     def test_back_out_of_the_first_question_writes_nothing(self):
         result, out = self.run_create([fc.SCRIPTED_BACK])
@@ -500,7 +512,7 @@ class CreateTest(unittest.TestCase):
         out = os.path.join(self.env.dir, "edited.cfg")
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        answers = ["<default>"] * 3                 # fleet, hubs, bots
+        answers = ["<default>"] * 4                 # fleet, cloudhub, hubs, bots
         answers += ["<default>", ""]                # keep the permanent key, then no more
         answers += ["<default>"] * 2                # wlan password, service vpn
         answers += ["<default>"] * 3                # cloudhub auth
@@ -526,7 +538,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_bad_values.cfg"), out)
         loaded = SCHEMA.NodeSettings()
         fc.fill_defaults(SCHEMA, loaded)
-        answers = ["<default>"] * 3 + ["", "<default>", "<default>"]
+        answers = ["<default>", "yes", "<default>", "<default>"] + ["", "<default>", "<default>"]
         answers += ["<default>", "admin@example.com", "<default>"]
         answers += settings_answers(ALL_GROUPS, {"bot_type": "bio"})
         answers += ["no"] + node_answers([1], [1])
@@ -544,7 +556,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        answers = ["<default>", "<default>", "1, 2, 3"]
+        answers = ["<default>", "<default>", "<default>", "1, 2, 3"]
         answers += ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 3
         answers += accept(before.settings)
         answers += ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
@@ -562,7 +574,7 @@ class CreateTest(unittest.TestCase):
         shutil.copyfile(fixture("v1_fleet7.cfg"), out)
         before = fc.load_migrated(SCHEMA, fixture("v1_fleet7.cfg"), echo=lambda _: None)
         override = fc.node_settings_for(SCHEMA, before, "bot", 2)
-        common = ["<default>"] * 3 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 3
+        common = ["<default>"] * 4 + ["<default>", ""] + ["<default>"] * 2 + ["<default>"] * 3
         tail = ["<default>", "<default>"] + accept(override, {"ALL", "BOT"}) + ["no"]
 
         # hub 1 and hub 30 are not asked: neither question applies to a hub
@@ -596,7 +608,7 @@ class CreateTest(unittest.TestCase):
         dst = os.path.join(self.env.dir, "dst.cfg")
         shutil.copyfile(fixture("v2_no_permanent_keys.cfg"), src)
         loaded = fc.parse_fleet_config(SCHEMA, fixture("v2_no_permanent_keys.cfg"))
-        answers = ["<default>"] * 3 + [""]
+        answers = ["<default>"] * 4 + [""]
         answers += ["<default>"] * 2 + ["<default>"] * 3
         answers += accept(loaded.settings) + ["no"] + node_answers([30], [1])
         path = os.path.join(self.env.dir, "answers.txt")
@@ -608,7 +620,7 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(fc.validate(SCHEMA, fc.parse_fleet_config(SCHEMA, dst)), [])
 
     def test_nothing_written_when_answers_run_out(self):
-        result, out = self.run_create(["7", "1"])
+        result, out = self.run_create(["7", "yes", "1"])
         self.assertEqual(result.returncode, 1)
         self.assertIn("no scripted answer", result.stderr)
         self.assertFalse(os.path.exists(out))
