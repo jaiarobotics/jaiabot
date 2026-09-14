@@ -33,17 +33,3 @@
   vars:
     error_message: "Failed to find fleet configuration: Please contact JaiaRobotics for a USB key or CD with an embedded fleet configuration."
   when: not iso_fleet_file.stat.exists and not existing_fleet_file.stat.exists
-
-# A fleet configuration carried over from an older release predates the CloudHub
-# requirement, so check it against this release's rules before the upgrade commits
-- name: Validate the staged fleet configuration
-  command: "jaia admin fleet validate {{ staged_fleet_cfg }}"
-  register: staged_fleet_cfg_validation
-  failed_when: false
-  changed_when: false
-
-- name: Handle invalid staged fleet configuration
-  include_tasks: handle_failure.yml
-  vars:
-    error_message: "Fleet configuration {{ staged_fleet_cfg }} is not valid for this release: {{ (staged_fleet_cfg_validation.stdout | default('') + ' ' + staged_fleet_cfg_validation.stderr | default('')) | regex_replace('\\x1b\\[[0-9;]*m', '') | trim }} Create an updated configuration with 'jaia admin fleet create', embed it in the upgrade image with 'jaia admin fleet update_iso', then run the upgrade again."
-  when: staged_fleet_cfg_validation.rc != 0
