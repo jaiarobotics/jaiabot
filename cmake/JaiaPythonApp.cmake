@@ -11,7 +11,16 @@
 #   - protobuf Python modules come from the pyjaiaprotobuf target rather than being regenerated
 #   - JAIA_PYTHON_APP_PYTHONPATH accumulates what every driver needs on its PYTHONPATH
 
-include(GobyPython)
+# GobyPython.cmake ships in libgoby3-dev, but only since the Goby Python bindings were added.
+# Without this check an older Goby fails twice over, on a missing include and then on an
+# undefined command, neither of which names the package that is actually behind.
+include(GobyPython OPTIONAL RESULT_VARIABLE GOBY_PYTHON_CMAKE)
+if(NOT GOBY_PYTHON_CMAKE)
+  message(FATAL_ERROR
+    "This project's Python applications need the Goby3 Python bindings, but the installed "
+    "Goby has no GobyPython.cmake. Install a libgoby3-dev that provides it, along with "
+    "python3-goby3 and pybind11-dev.")
+endif()
 
 set(JAIA_PYTHON_APP_DIR "${project_LIB_DIR}/jaiabot/python"
   CACHE INTERNAL "Where generated Goby Python extension modules are written")
