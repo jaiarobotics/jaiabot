@@ -27,9 +27,9 @@ function write_preseed()
     tmp_boot="${tmp_dir}/import_vms"
     rm -rf ${tmp_boot}
     mkdir -p ${tmp_boot}/jaiabot/init
-    cp /mnt/jaiabot/init/* ${tmp_boot}/jaiabot/init
+    cp -r /mnt/jaiabot/init/* ${tmp_boot}/jaiabot/init
     jaia admin fleet generate ${tmp_dir}/fleet.cfg --mode simulation ${BOT_OR_HUB} ${N} --bootdir ${tmp_boot}
-    sudo cp ${tmp_boot}/jaiabot/init/* /mnt/jaiabot/init/
+    sudo cp -r ${tmp_boot}/jaiabot/init/* /mnt/jaiabot/init/
     
     sudo umount /mnt
 
