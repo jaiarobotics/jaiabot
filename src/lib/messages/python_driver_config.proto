@@ -17,6 +17,10 @@ message TSYS01Driver
     optional bool simulate = 3 [default = false];
 
     optional double sample_frequency = 10 [default = 10];
+
+    // How long the driver may go without publishing a reading before it reports itself
+    // degraded; jaiabot_health has no separate watchdog for these sensors.
+    optional int32 data_timeout_seconds = 90 [default = 40];
 }
 
 message SalinityDriver
@@ -29,6 +33,10 @@ message SalinityDriver
 
     // I2C address of the Atlas Scientific EZO EC sensor; 100 is 0x64.
     optional int32 i2c_address = 11 [default = 100];
+
+    // How long the driver may go without publishing a reading before it reports itself
+    // degraded; jaiabot_health has no separate watchdog for these sensors.
+    optional int32 data_timeout_seconds = 90 [default = 60];
 }
 
 message PressureDriver
@@ -46,6 +54,10 @@ message PressureDriver
         BAR30 = 2;
     }
     optional SensorType sensor_type = 11 [default = BAR30];
+
+    // How long the driver may go without publishing a reading before it reports itself
+    // degraded; jaiabot_health has no separate watchdog for these sensors.
+    optional int32 data_timeout_seconds = 90 [default = 60];
 }
 
 message IMUDriver

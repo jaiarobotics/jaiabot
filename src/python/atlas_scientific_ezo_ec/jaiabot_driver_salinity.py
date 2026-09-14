@@ -51,6 +51,7 @@ class JaiabotDriverSalinity(SingleThreadApplication):
         goby.glog.install()
 
         self._responding = True
+        self._last_published = goby.time.now()
         if self.cfg.simulate:
             self._sensor = SensorSimulator()
             self.interprocess().subscribe(groups.sim_environment, SimEnvironment,
@@ -72,11 +73,19 @@ class JaiabotDriverSalinity(SingleThreadApplication):
 
         log.debug(f'salinity: {data.salinity_raw}')
         self.interprocess().publish(groups.raw_salinity, data)
+        self._last_published = goby.time.now()
 
     def health(self, health):
         from goby.middleware.protobuf import coroner_pb2
+        from jaiabot.messages import health_pb2
+
         if not self._responding:
             health.state = coroner_pb2.HEALTH__FAILED
+        elif goby.time.now() - self._last_published > self.cfg.data_timeout_seconds:
+            # reading without error but publishing nothing looks healthy from the outside
+            health.state = coroner_pb2.HEALTH__DEGRADED
+            health.Extensions[health_pb2.jaiabot_thread].warning.append(
+                health_pb2.WARNING__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER)
 
 
 if __name__ == '__main__':

@@ -67,6 +67,7 @@ class JaiabotDriverPressure(SingleThreadApplication):
 
         self._sensor_type = SENSOR_TYPE[self.cfg.sensor_type]
         self._responding = True
+        self._last_published = goby.time.now()
 
         if self.cfg.simulate:
             self._sensor = SensorSimulator()
@@ -92,11 +93,19 @@ class JaiabotDriverPressure(SingleThreadApplication):
 
         log.debug(f'pressure: {data.pressure_raw} dbar, temperature: {data.temperature} C')
         self.interprocess().publish(groups.pressure_temperature, data)
+        self._last_published = goby.time.now()
 
     def health(self, health):
         from goby.middleware.protobuf import coroner_pb2
+        from jaiabot.messages import health_pb2
+
         if not self._responding:
             health.state = coroner_pb2.HEALTH__FAILED
+        elif goby.time.now() - self._last_published > self.cfg.data_timeout_seconds:
+            # reading without error but publishing nothing looks healthy from the outside
+            health.state = coroner_pb2.HEALTH__DEGRADED
+            health.Extensions[health_pb2.jaiabot_thread].warning.append(
+                health_pb2.WARNING__NOT_RESPONDING__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER)
 
 
 if __name__ == '__main__':

@@ -347,8 +347,10 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
         {13.95, 351}};
 };
 
-// Watches the sensor groups for silence. The Python drivers publish directly to gobyd, so no
-// one process sees all of their traffic; a driver that has died cannot report that itself.
+// Watches the IMU and PAM groups for silence so it can trigger their recoveries. goby_coroner
+// reports whether each driver application is running, and each driver reports its own device
+// through health(), so this thread exists for what neither can do: publish the IMUIssue and
+// PamIssue that drive an automated recovery.
 class SensorWatchdogThread : public HealthMonitorThread<jaiabot::config::SensorWatchdogConfig>
 {
   public:
@@ -363,10 +365,6 @@ class SensorWatchdogThread : public HealthMonitorThread<jaiabot::config::SensorW
 
   private:
     goby::time::SteadyClock::time_point last_imu_data_time_{std::chrono::seconds(0)};
-    goby::time::SteadyClock::time_point last_salinity_data_time_{std::chrono::seconds(0)};
-    goby::time::SteadyClock::time_point last_pressure_temperature_data_time_{
-        std::chrono::seconds(0)};
-    goby::time::SteadyClock::time_point last_tsys01_data_time_{std::chrono::seconds(0)};
     goby::time::SteadyClock::time_point last_pam_data_time_{std::chrono::seconds(0)};
 
     goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{

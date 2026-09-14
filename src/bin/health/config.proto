@@ -100,26 +100,19 @@ message ArduinoRecoveryConfig
     optional string flash_script = 10 [default = "jaia-firm-arduino-flash.sh"];
 }
 
+// Sensor data freshness, for the two sensors that have an automated recovery. Whether a
+// driver application is running at all is goby_coroner's question, and whether its device is
+// answering is the driver's own, reported through health().
 message SensorWatchdogConfig
 {
     option (dccl.msg) = {
         unit_system: "si"
     };
 
-    // The IMU is required on every bot, so it is not gated by an enabled flag.
     optional int32 imu_data_report_timeout_seconds = 10 [default = 30];
     optional jaiabot.protobuf.IMUIssue.SolutionType imu_issue_solution = 11
         [default = REBOOT_BNO085_IMU];
     optional int32 imu_trigger_issue_timeout_seconds = 12 [default = 30];
-
-    optional bool salinity_enabled = 20 [default = true];
-    optional int32 salinity_data_report_timeout_seconds = 21 [default = 60];
-
-    optional bool bar30_enabled = 30 [default = true];
-    optional int32 pressure_temperature_data_report_timeout_seconds = 31 [default = 60];
-
-    optional bool tsys01_enabled = 40 [default = false];
-    optional int32 tsys01_data_report_timeout_seconds = 41 [default = 40];
 
     optional bool pam_enabled = 50 [default = true];
     optional int32 pam_data_report_timeout_seconds = 51 [default = 20];

@@ -256,9 +256,6 @@ elif common.app == 'jaiabot_health':
                                      ignore_powerstate_changes=ignore_powerstate_changes,
                                      is_in_sim=is_simulation(),
                                      pam_enabled=str(pam_enabled).lower(),
-                                     salinity_enabled=str(salinity_enabled).lower(),
-                                     bar30_enabled=str(bar30_enabled).lower(),
-                                     tsys01_enabled=str(tsys01_enabled).lower(),
                                      motor_harness_type=jaia_motor_harness_type,
                                      jaia_tail_serial_number=jaia_tail_serial_number,
                                      jaia_bot_vin=jaia_bot_vin))

@@ -25,9 +25,6 @@
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/imu.pb.h"
 #include "jaiabot/messages/pam.pb.h"
-#include "jaiabot/messages/sensor/pressure_temperature.pb.h"
-#include "jaiabot/messages/sensor/salinity.pb.h"
-#include "jaiabot/messages/tsys01.pb.h"
 
 using goby::glog;
 
@@ -38,18 +35,6 @@ jaiabot::apps::SensorWatchdogThread::SensorWatchdogThread(
     interprocess().subscribe<jaiabot::groups::imu>(
         [this](const protobuf::IMUData& /*data*/)
         { last_imu_data_time_ = goby::time::SteadyClock::now(); });
-
-    interprocess().subscribe<jaiabot::groups::raw_salinity>(
-        [this](const protobuf::SalinityData& /*data*/)
-        { last_salinity_data_time_ = goby::time::SteadyClock::now(); });
-
-    interprocess().subscribe<jaiabot::groups::pressure_temperature>(
-        [this](const protobuf::PressureTemperatureData& /*data*/)
-        { last_pressure_temperature_data_time_ = goby::time::SteadyClock::now(); });
-
-    interprocess().subscribe<jaiabot::groups::tsys01>(
-        [this](const protobuf::TSYS01Data& /*data*/)
-        { last_tsys01_data_time_ = goby::time::SteadyClock::now(); });
 
     interprocess().subscribe<jaiabot::groups::pam>(
         [this](const protobuf::PamData& /*data*/)
@@ -75,6 +60,7 @@ void jaiabot::apps::SensorWatchdogThread::health(goby::middleware::protobuf::Thr
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_error(protobuf::ERROR__NOT_RESPONDING__JAIABOT_IMU);
 
+        // spaced out so a recovery is given time to take effect before the next one
         if (timed_out(last_imu_trigger_issue_time_, cfg().imu_trigger_issue_timeout_seconds()))
         {
             jaiabot::protobuf::IMUIssue imu_issue;
@@ -82,37 +68,6 @@ void jaiabot::apps::SensorWatchdogThread::health(goby::middleware::protobuf::Thr
             interprocess().publish<jaiabot::groups::imu>(imu_issue);
             last_imu_trigger_issue_time_ = goby::time::SteadyClock::now();
         }
-    }
-
-    if (cfg().salinity_enabled() &&
-        timed_out(last_salinity_data_time_, cfg().salinity_data_report_timeout_seconds()))
-    {
-        glog.is_warn() && glog << "Timeout on salinity data" << std::endl;
-        demote_health(health_state, goby::middleware::protobuf::HEALTH__DEGRADED);
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(
-                protobuf::WARNING__NOT_RESPONDING__JAIABOT_ATLAS_SCIENTIFIC_EZO_EC_DRIVER);
-    }
-
-    if (cfg().bar30_enabled() &&
-        timed_out(last_pressure_temperature_data_time_,
-                  cfg().pressure_temperature_data_report_timeout_seconds()))
-    {
-        glog.is_warn() && glog << "Timeout on pressure temperature data" << std::endl;
-        demote_health(health_state, goby::middleware::protobuf::HEALTH__DEGRADED);
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(
-                protobuf::WARNING__NOT_RESPONDING__JAIABOT_BLUEROBOTICS_PRESSURE_SENSOR_DRIVER);
-    }
-
-    if (cfg().tsys01_enabled() &&
-        timed_out(last_tsys01_data_time_, cfg().tsys01_data_report_timeout_seconds()))
-    {
-        glog.is_warn() && glog << "Timeout on TSYS01 temperature sensor" << std::endl;
-        demote_health(health_state, goby::middleware::protobuf::HEALTH__DEGRADED);
-        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
-            ->add_warning(
-                protobuf::WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER);
     }
 
     if (cfg().pam_enabled() &&

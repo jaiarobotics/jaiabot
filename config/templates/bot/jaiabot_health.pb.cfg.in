@@ -43,8 +43,5 @@ arduino_recovery {
 }
 
 sensor_watchdog {
-    salinity_enabled: $salinity_enabled
-    bar30_enabled: $bar30_enabled
-    tsys01_enabled: $tsys01_enabled
     pam_enabled: $pam_enabled
 }
