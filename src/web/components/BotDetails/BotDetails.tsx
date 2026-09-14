@@ -29,6 +29,7 @@ import {
     getRepeatProgress,
     getDistToWaypoint,
     getStormReadinessStatus,
+    getStormReadinessStatusClassName,
     isBotLogging,
     searchGhostMissions,
 } from "./bot-details";
@@ -152,9 +153,15 @@ export default function BotDetails() {
                                     <tbody>
                                         <tr>
                                             <td>Status</td>
-                                            <td>
+                                            <td
+                                                className={getStormReadinessStatusClassName(
+                                                    missionStatus?.missionState,
+                                                    bot.isCommsDropped(),
+                                                )}
+                                            >
                                                 {getStormReadinessStatus(
                                                     missionStatus?.missionState,
+                                                    bot.isCommsDropped(),
                                                 )}
                                             </td>
                                         </tr>
