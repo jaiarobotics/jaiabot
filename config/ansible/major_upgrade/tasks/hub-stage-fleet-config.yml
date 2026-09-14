@@ -33,3 +33,32 @@
   vars:
     error_message: "Failed to find fleet configuration: Please contact JaiaRobotics for a USB key or CD with an embedded fleet configuration."
   when: not iso_fleet_file.stat.exists and not existing_fleet_file.stat.exists
+
+# From 3.y a fleet is reached over its own CloudHub rather than vpn.jaia.tech, so a
+# configuration carried over from this release names no CloudHub and would leave the
+# upgraded fleet unreachable. An unreadable version.txt is left to check-versions.yml.
+- name: Read the version of the staged major upgrade
+  slurp:
+    src: /var/www/html/updates/major_upgrade/version.txt
+  register: staged_version_file
+  failed_when: false
+
+- name: Set the major version being upgraded to
+  set_fact:
+    staged_major_version: "{{ staged_version_file['content'] | b64decode | regex_search('major_upgrade_version=([0-9]+)', '\\1') | first | int }}"
+  when: staged_version_file.content is defined
+
+- name: Check whether the staged fleet configuration names the CloudHub
+  shell: >
+    sed -n 's/^[[:space:]]*hubs[[:space:]]*:[[:space:]]*//p' {{ staged_fleet_cfg }}
+    | tr -d '[]' | tr ',' '\n' | tr -d '[:blank:]' | grep -qx {{ cloudhub_id }}
+  register: staged_fleet_cfg_cloudhub
+  failed_when: false
+  changed_when: false
+  when: staged_major_version is defined and staged_major_version >= 3
+
+- name: Handle fleet configuration without a CloudHub
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "Fleet configuration {{ staged_fleet_cfg }} does not include hub {{ cloudhub_id }} (the CloudHub), which upgrading to {{ staged_major_version }}.y requires: from that release a fleet is reached over its own CloudHub rather than vpn.jaia.tech. Create an updated configuration with 'jaia admin fleet create', embed it in the upgrade image with 'jaia admin fleet update_iso', then run the upgrade again."
+  when: staged_fleet_cfg_cloudhub.rc is defined and staged_fleet_cfg_cloudhub.rc != 0

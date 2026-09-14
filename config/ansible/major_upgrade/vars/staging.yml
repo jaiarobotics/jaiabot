@@ -1,1 +1,3 @@
 hub_staging_dir: "/tmp/jaiabot/major_upgrade/staging"
+# hub ID of the CloudHub, as in config/gen/systemd.py
+cloudhub_id: 30
