@@ -498,16 +498,13 @@ def validate(schema, cfg):
     for hub in cfg.hubs:
         if hub not in hub_keys:
             problems.append("ssh: no hub key for hub {}".format(hub))
-    # The CloudHub hosts the fleet's VPN and is how the fleet is reached for
-    # remote support, so a fleet without one is a fleet nobody can service
-    if CLOUDHUB_ID not in cfg.hubs:
-        problems.append("hubs: hub {} (the CloudHub) is required".format(CLOUDHUB_ID))
-    elif not cfg.HasField("cloudhub_auth"):
-        problems.append("cloudhub_auth: required")
-    else:
-        for name in ("base_uri", "admin_email", "smtp_address"):
-            if not getattr(cfg.cloudhub_auth, name):
-                problems.append("cloudhub_auth.{}: must be set".format(name))
+    if CLOUDHUB_ID in cfg.hubs:
+        if not cfg.HasField("cloudhub_auth"):
+            problems.append("cloudhub_auth: required when hub {} (CloudHub) is in the fleet".format(CLOUDHUB_ID))
+        else:
+            for name in ("base_uri", "admin_email", "smtp_address"):
+                if not getattr(cfg.cloudhub_auth, name):
+                    problems.append("cloudhub_auth.{}: must be set".format(name))
     return problems
 
 
