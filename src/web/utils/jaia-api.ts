@@ -348,6 +348,29 @@ export class JaiaAPI {
     async deleteExclusionZone(name: string): Promise<void> {
         await this.delete(`jaia/v0/exclusion-zones/${encodeURIComponent(name)}`);
     }
+
+    // ── Mission set hub storage ─────────────────────────────────────────────
+
+    async listMissionSets(): Promise<string[]> {
+        const response = await this.get("jaia/v0/mission-sets");
+        return response?.result ?? [];
+    }
+
+    async saveMissionSet(name: string, snapshot: any): Promise<void> {
+        await this.post(`jaia/v0/mission-sets/${encodeURIComponent(name)}`, snapshot);
+    }
+
+    async loadMissionSet(name: string): Promise<any | null> {
+        try {
+            return await this.get(`jaia/v0/mission-sets/${encodeURIComponent(name)}`);
+        } catch {
+            return null;
+        }
+    }
+
+    async deleteMissionSet(name: string): Promise<void> {
+        await this.delete(`jaia/v0/mission-sets/${encodeURIComponent(name)}`);
+    }
 }
 
 /**

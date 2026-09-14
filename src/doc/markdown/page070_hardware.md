@@ -87,7 +87,6 @@
 ## I2C Addresses
 | Address | Device                                  |
 | --:     | ---                                     |
-| 0x28    | Adafruit IMU Breakout - Bosch BNO055    |
 | 0x64    | Atlas Scientific EC-OEM Salinity Sensor |
 | 0x76    | Blue Robotics Bar30 Pressure Sensor     |
 | 0x42    | uBlox NEO-M8M-0 GPS                     |

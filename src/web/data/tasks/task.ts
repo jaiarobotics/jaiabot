@@ -135,8 +135,13 @@ export default class Task {
     }
 
     private updateDefaultTaskParameters() {
+        let diveParams = { ...this.diveParameters };
+        // Do not update default dive parameters if we have a bottom dive
+        if (diveParams.max_depth === TASK_MAX_DEPTH_CONSTRAINT) {
+            diveParams = jaiaGlobal.getDefaultTaskParameters().dive;
+        }
         jaiaGlobal.setDefaultTaskParameters({
-            dive: this.diveParameters,
+            dive: diveParams,
             drift: this.driftParameters,
             constantHeading: this.constantHeadingParameters,
             stationKeep: this.stationKeepParameters,

@@ -85,7 +85,7 @@ echo "🟢 Installing and enabling ${jaia_type} systemd services"
     set -x
     export PATH=${jaia_dir}/${build_dir}/bin:$PATH
     ./systemd-local.sh --debconf_selections ${selections} --enable
-)
+) || { echo "❌ Failed to install the ${jaia_type} systemd services, so this machine is still running the previously installed code"; exit 1; }
 
 if [ "${jaia_type}" != "bot" ]; then
     sudo chmod o+x ${HOME}

@@ -58,7 +58,7 @@ message IMUDriver
 
     enum DeviceType
     {
-        BNO055 = 1;
+        // 1 was BNO055, no longer supported
         BNO085 = 2;
     }
     optional DeviceType device_type = 11 [default = BNO085];

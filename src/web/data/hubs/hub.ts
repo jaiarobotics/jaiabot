@@ -8,6 +8,7 @@ import {
 } from "../../types/protobuf-types";
 import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
+import { timestampToLocaleTimeString } from "../../utils/conversions";
 import HubSensors from "./hub-sensors";
 
 export default class Hub {
@@ -21,6 +22,7 @@ export default class Hub {
     private linuxHardwareStatus: LinuxHardwareStatus;
     private botOffload: BotOffloadData;
     private statusAge: number;
+    private systemTime: string;
 
     constructor() {
         // Init base sensors
@@ -101,6 +103,14 @@ export default class Hub {
 
     setStatusAge(statusAge: number) {
         this.statusAge = statusAge;
+    }
+
+    getSystemTime() {
+        return this.systemTime;
+    }
+
+    setSystemTime(systemTime: number) {
+        this.systemTime = timestampToLocaleTimeString(systemTime);
     }
 
     /**

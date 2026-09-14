@@ -52,4 +52,7 @@ message ArduinoDriverConfig
     optional int32 arduino_report_timeout_seconds = 22 [default = 2];
 
     optional int32 arduino_restart_timeout_seconds = 23 [default = 10];
+
+    // Seconds after driver startup before publishing FLASH_ARDUINO on connection/version failure
+    optional int32 flash_startup_delay_seconds = 24 [default = 15];
 }

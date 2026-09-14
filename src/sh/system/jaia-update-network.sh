@@ -35,7 +35,24 @@ ${FLEET_SSID_LINE}
 
 [Network]
 Address=${jaia_network_fleet_address}
+EOF
+
+# An IPv6 fleet has no IPv4 address of its own, so it takes one from the access point for internet
+# access only; nothing in the fleet is addressed by it. An IPv4 fleet routes through the access
+# point statically, as it always has.
+if [[ "${jaia_network_fleet_dhcp:-}" != "" ]]; then
+    cat <<EOF >> /etc/systemd/network/10-${jaia_network_wifi_iface}-fleet.network
+DHCP=${jaia_network_fleet_dhcp}
+EOF
+fi
+
+if [[ "${jaia_network_fleet_gateway}" != "" ]]; then
+    cat <<EOF >> /etc/systemd/network/10-${jaia_network_wifi_iface}-fleet.network
 Gateway=${jaia_network_fleet_gateway}
+EOF
+fi
+
+    cat <<EOF >> /etc/systemd/network/10-${jaia_network_wifi_iface}-fleet.network
 DNS=1.1.1.1
 DNS=8.8.8.8
 

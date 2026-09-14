@@ -18,6 +18,7 @@ DISK_SIZE_GB=8
 ELASTIC_IP_ALLOCATION_ID=
 CREATE_NUM_DAILY_BACKUPS=1
 IPV6_ADDRESS=
+IAM_INSTANCE_PROFILE_NAME=
 
 set -a; source $1; set +a;
 
@@ -93,13 +94,20 @@ block_device_mappings_json=$(jq -n -c \
                    ]')
 
 
+# Build optional IAM instance profile argument
+iam_instance_profile_args=()
+if [[ ! -z "${IAM_INSTANCE_PROFILE_NAME}" ]]; then
+    iam_instance_profile_args=(--iam-instance-profile "Name=${IAM_INSTANCE_PROFILE_NAME}")
+fi
+
 # Launch the EC2 instance
 INSTANCE_ID=$(run ".Instances[0].InstanceId" aws ec2 run-instances \
                     --image-id "$AMI_ID" \
                     --instance-type "$INSTANCE_TYPE" \
                     --block-device-mappings "$block_device_mappings_json" \
                     --user-data file://"$USER_DATA_FILE" \
-                    --network-interfaces "$network_interfaces_json")
+                    --network-interfaces "$network_interfaces_json" \
+                    "${iam_instance_profile_args[@]}")
 
 echo ">>>>>> EC2 Instance launched successfully with ID: $INSTANCE_ID"
 

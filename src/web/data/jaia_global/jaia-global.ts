@@ -1,5 +1,6 @@
 import cloneDeep from "lodash/cloneDeep";
 import {
+    CoordinateSystem,
     NodeTypes,
     SelectedNode,
     SelectedTaskPacket,
@@ -60,6 +61,7 @@ export class JaiaGlobal {
     private mapMode: MapModes;
     private defaultTaskParameters: TaskParameters;
     private controllingClientID: string;
+    private coordinateSystem: CoordinateSystem;
     private metadata: Metadata;
     private gitHubVersion: Version;
     private isUpgradeAvailable: boolean;
@@ -85,6 +87,7 @@ export class JaiaGlobal {
         this.zoneInEditMode = UNASSIGNED_ID;
         this.mapMode = MapModes.DEFAULT;
         this.defaultTaskParameters = defaultTaskParameters;
+        this.coordinateSystem = CoordinateSystem.LAT_LON;
         this.metadata = {};
         this.gitHubVersion = defaultGitHubVersion;
         this.isUpgradeAvailable = false;
@@ -144,6 +147,14 @@ export class JaiaGlobal {
 
     setControllingClientID(controllingClientID: string) {
         this.controllingClientID = controllingClientID;
+    }
+
+    getCoordinateSystem() {
+        return this.coordinateSystem;
+    }
+
+    setCoordinateSystem(coordinateSystem: CoordinateSystem) {
+        this.coordinateSystem = coordinateSystem;
     }
 
     getMetadata() {

@@ -11,7 +11,7 @@ from pyjaia.waves.acceleration_analyzer import AccelerationAnalyzer
 
 log = logging.getLogger('jaiabot_driver_imu')
 
-DEVICE_NAME = {IMUDriver.BNO055: 'bno055', IMUDriver.BNO085: 'bno085'}
+DEVICE_NAME = {IMUDriver.BNO085: 'bno085'}
 
 
 def make_imu(cfg):
@@ -19,9 +19,6 @@ def make_imu(cfg):
         from imu_simulator import Simulator
         return Simulator(wave_frequency=1 / cfg.simulated_wave_period,
                          wave_height=cfg.simulated_wave_height)
-    if cfg.device_type == IMUDriver.BNO055:
-        from imu_bno055 import AdafruitBNO055
-        return AdafruitBNO055()
     from imu_bno085 import AdafruitBNO085
     return AdafruitBNO085()
 
