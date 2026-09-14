@@ -262,4 +262,6 @@ message MissionManager
     // external app)
     repeated jaiabot.protobuf.MissionState delegated_states = 97;
     optional bool send_task_packets_to_hub = 98 [default = true];
+
+    optional bool allow_gps_error_during_pre_deployment_startup = 99 [default = false];
 }

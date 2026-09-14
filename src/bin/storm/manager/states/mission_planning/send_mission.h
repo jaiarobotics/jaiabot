@@ -69,9 +69,24 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         auto& goal = *mission_plan.add_goal();
         *goal.mutable_location() = this->machine().latest_location();
 
+        const bool skip_dive = this->skip_dive();
         auto& task = *goal.mutable_task();
-        task.set_type(protobuf::MissionTask::DIVE);
-        *task.mutable_dive() = this->machine().mission().dive();
+        if (skip_dive)
+        {
+            task.set_type(protobuf::MissionTask::NONE);
+        }
+        else
+        {
+            task.set_type(protobuf::MissionTask::DIVE);
+            *task.mutable_dive() = this->machine().mission().dive();
+
+            auto& drift_goal = *mission_plan.add_goal();
+            *drift_goal.mutable_location() = this->machine().latest_location();
+            auto& drift_task = *drift_goal.mutable_task();
+            drift_task.set_type(protobuf::MissionTask::SURFACE_DRIFT);
+            drift_task.mutable_surface_drift()->set_drift_time(
+                this->machine().mission().surface_drift_time());
+        }
 
         auto& recovery = *mission_plan.mutable_recovery();
         recovery.set_recover_at_final_goal(true);
@@ -82,6 +97,35 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
                                               << std::endl;
         this->interprocess().publish<::jaiabot::groups::self_command>(command);
         sent_ = true;
+    }
+
+    // do not risk the dive if we're low on battery and already holding several datasets
+    // of storm data that haven't been acknowledged over Iridium
+    bool skip_dive()
+    {
+        auto& machine = this->machine();
+        if (!machine.has_latest_battery_percent())
+            return false;
+
+        const bool low_battery =
+            machine.latest_battery_percent() < machine.mission().min_battery_percentage();
+        const bool too_much_undelivered_data =
+            machine.task_packet_queue().size() >= machine.mission().min_stored_datasets();
+
+        if (low_battery && too_much_undelivered_data)
+        {
+            goby::glog.is_warn() &&
+                goby::glog << group("statechart") << "Skipping dive: battery at "
+                           << machine.latest_battery_percent() << "% is below minimum of "
+                           << machine.mission().min_battery_percentage() << "% and "
+                           << machine.task_packet_queue().size()
+                           << " TaskPacket(s) remain un-offloaded (minimum "
+                           << machine.mission().min_stored_datasets() << ")" << std::endl;
+            machine.insert_warning(
+                protobuf::WARNING__STORM_MISSION_PLANNING__DIVE_SKIPPED_LOW_BATTERY);
+            return true;
+        }
+        return false;
     }
 
     bool sent_{false};

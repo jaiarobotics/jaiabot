@@ -57,6 +57,8 @@ void jaiabot::apps::StormManager::initialize()
     load_pending_task_packets();
 
     machine_->initiate();
+    machine_->process_event(statechart::EvStarted());
+    machine_->process_event(statechart::EvBeginSelfTest());
 }
 
 void jaiabot::apps::StormManager::finalize()
@@ -170,6 +172,8 @@ jaiabot::apps::StormManager::StormManager()
         {
             if (status.has_location())
                 machine_->set_latest_location(status.location());
+            if (status.has_battery_percent())
+                machine_->set_latest_battery_percent(status.battery_percent());
         });
 
     // queue up TaskPackets

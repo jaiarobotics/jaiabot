@@ -111,6 +111,8 @@ ignore_error: ERROR__VEHICLE__VERY_LOW_BATTERY
 ignore_error: ERROR__VEHICLE__CRITICALLY_LOW_BATTERY
 ignore_error: ERROR__VEHICLE__MISSING_DATA_BATTERY
 
+$allow_gps_error_during_pre_deployment_startup
+
 # When to stop logging in a failed state
 failed_startup_log_timeout: 300 # (optional) (default=300)
 

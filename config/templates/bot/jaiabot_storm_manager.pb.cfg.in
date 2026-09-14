@@ -13,6 +13,8 @@ initial_mission {
   
   sleep_for_minutes: 5
   min_battery_percentage: 40 
+  min_stored_datasets: 2
+  surface_drift_time: 300
   remote_mission_wait_minutes: 0 
   data_offload_timeout_minutes: 30
   in_water {
