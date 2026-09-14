@@ -2,8 +2,8 @@
 
 `jaia-vbox-e2e-test.py` takes a VirtualBox OVA built by CircleCI and checks that a
 fleet imported from it actually works: the VMs boot, the hubs are reachable from
-the host, the REST API drives a bot to a waypoint, and JCC, JCU and JDV are
-served.
+the host, the REST API runs a bot through a dive mission, and JCC, JCU and JDV
+are served.
 
 ## Requirements
 
@@ -58,9 +58,9 @@ a single check repeated (`--stages api,web`) against a fleet that is already up.
 | `download` | Fetches the OVA into `--cache-dir`, resuming a partial file and checking the length against the server's |
 | `import` | Deletes clashing VMs (after asking) and runs `rootfs/scripts/import_vms.sh` |
 | `hostonly` | Creates `vboxnet0` if needed, addresses it `192.168.56.1/24`, and moves each hub's NIC 1 to it |
-| `boot` | Starts every VM headless and waits for SSH, for the first-boot reboot onto the overlay root, and for cloud-init to finish |
+| `boot` | Starts every VM headless and waits for SSH, for the first-boot reboot onto the overlay root, and for cloud-init to finish, logging its status and any errors it reports |
 | `network` | Sets `jaia_network_eth_address` in each hub's `/etc/jaiabot/network.env`, runs `jaia-update-network.sh`, reloads networkd, and waits for the hub to answer on its host-only address |
-| `api` | Waits for the REST API on each hub, then activates a bot, sends it a single-goal `MISSION_PLAN`, and waits for it to reach the waypoint and enter a recovery state |
+| `api` | Waits for the REST API on each hub, then activates every bot (or `--mission-bots`) and sends each a `MISSION_PLAN` of `--waypoints` (default 10) goals, each with a dive. The missions run at the same time, laid out from the first bot's position 1 km to its west, each `--mission-separation` (default 500 m) south of the one before. The stage waits for every bot to enter recovery at its last goal, and checks each bot's dive task packets show a dive to `--dive-depth` at every one of its waypoints. The simulator places a bot on its first goal, so a single goal would not show it transiting |
 | `web` | Fetches JCC (`/`), JCU (`/jcu/`) and JDV (`/jdv/`) from each hub and checks the bodies |
 | `shutdown` | ACPI power button on every VM, falling back to a forced power off |
 

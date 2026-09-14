@@ -3,7 +3,8 @@
 
 Imports an OVA as a fleet of VirtualBox bots and hubs, boots them, puts the hubs
 on a host-only network so the host can reach them, then exercises the REST API
-(drive a bot to a waypoint) and the web applications (JCC, JCU, JDV).
+(run the bots through multi-waypoint dive missions) and the web applications (JCC,
+JCU, JDV).
 
 Run with --help for the stage list and options.
 """
@@ -349,8 +350,28 @@ def stage_boot(args, nodes):
         log(f'{node.name}: ssh up, waiting for first boot to finish')
         wait_for(lambda n=node: booted_since_first_boot(args, n), args.boot_timeout,
                  f'{node.name} to reboot after its first boot')
-        status = ssh(args, node, 'cloud-init status --wait', check=False).strip()
-        log(f'{node.name}: cloud-init {status.splitlines()[-1] if status else "(no status)"}')
+        report_cloud_init(args, node)
+
+
+def report_cloud_init(args, node):
+    # --wait prints progress dots ahead of the JSON
+    out = ssh(args, node, 'cloud-init status --wait --format json', check=False)
+    try:
+        status = json.loads(out[out.index('{'):])
+    except ValueError:
+        log(f'{node.name}: cloud-init status unreadable: {out.strip()[-200:]!r}')
+        return
+    log(f'{node.name}: cloud-init {status.get("status")}')
+    # each stage repeats the errors that carried over from an earlier one
+    for error in dict.fromkeys(status.get('errors', [])):
+        log(f'  error: {error}')
+    # recoverable errors leave cloud-init "degraded done" but did not stop it; the
+    # image masks systemd-networkd-wait-online, so cloud-init always reports one
+    recovered = [' '.join(message.split())
+                 for messages in status.get('recoverable_errors', {}).values()
+                 for message in messages]
+    for message in dict.fromkeys(recovered):
+        log(f'  recovered: {message}')
 
 
 # cloud-init's first boot installs jaiabot-embedded, stamps the image version file and
@@ -436,8 +457,11 @@ def stage_api(args, nodes):
     wait_for(lambda: all(b.id in bot_ids(api_status(args, hub)) for b in bots),
              args.api_timeout, 'every bot to report status to the hub')
 
-    bot_id = args.mission_bot if args.mission_bot else bots[0].id
-    drive_bot_to_waypoint(args, hub, bot_id)
+    mission_bots = args.mission_bots or [b.id for b in bots]
+    unknown = sorted(set(mission_bots) - {b.id for b in bots})
+    if unknown:
+        raise TestFailure(f'--mission-bots {unknown} are not in the fleet')
+    run_dive_missions(args, hub, mission_bots)
 
 
 def bot_ids(status):
@@ -453,9 +477,95 @@ def bot_status(status, bot_id):
     return None
 
 
-def drive_bot_to_waypoint(args, hub, bot_id):
-    log(f'commanding bot {bot_id} via {hub.name} to transit to a waypoint')
+class DiveMission:
+    def __init__(self, bot_id, waypoints, earlier_packets):
+        self.bot_id = bot_id
+        self.waypoints = waypoints
+        self.earlier_packets = earlier_packets
+        self.state, self.goal, self.distance = '', None, float('nan')
+        self.dive_count, self.missing = 0, list(range(1, len(waypoints) + 1))
 
+    def summary(self):
+        return (f'bot {self.bot_id} {self.state or "(no state)"}, goal {self.goal}, '
+                f'{self.distance:.1f} m from its last waypoint')
+
+
+def run_dive_missions(args, hub, bot_ids):
+    log(f'commanding bots {bot_ids} via {hub.name} to each dive at {args.waypoints} waypoints')
+
+    starts = {bot_id: activate_bot(args, hub, bot_id) for bot_id in bot_ids}
+
+    # every mission is laid out from the first bot so they sit side by side whatever
+    # the others' starting positions; the simulator places each bot on its first goal
+    # when the mission starts, so only the legs after that one show it transiting
+    first = starts[bot_ids[0]]['location']
+    reference = (first['lat'], first['lon'])
+    missions = []
+    for n, bot_id in enumerate(bot_ids):
+        north = args.waypoint_north - n * args.mission_separation
+        waypoints = [offset_latlon(reference, north,
+                                   args.waypoint_east + i * args.waypoint_spacing)
+                     for i in range(args.waypoints)]
+        log(f'bot {bot_id}: {len(waypoints)} waypoints {args.waypoint_spacing} m apart '
+            f'heading east from {waypoints[0][0]:.6f},{waypoints[0][1]:.6f} '
+            f'({north} m N, {args.waypoint_east} m E of bot {bot_ids[0]})')
+        missions.append(DiveMission(bot_id, waypoints, existing_task_packets(args, hub, bot_id)))
+
+    for mission in missions:
+        api_command(args, hub, mission.bot_id, dive_mission_plan(args, mission.waypoints))
+
+    def all_underway():
+        status = api_status(args, hub)
+        return all((bot_status(status, m.bot_id) or {}).get('mission_state', '')
+                   .startswith('IN_MISSION__') for m in missions)
+
+    wait_for(all_underway, args.api_timeout, 'every bot to start its mission')
+    log(f'bots {bot_ids} underway')
+
+    def all_recovered():
+        status = api_status(args, hub)
+        if status is None:
+            return False
+        return all([mission_progress(args, m, bot_status(status, m.bot_id))
+                    for m in missions])
+
+    try:
+        wait_for(all_recovered, args.mission_timeout,
+                 'every bot to work through its waypoints and enter recovery',
+                 progress=lambda: '; '.join(m.summary() for m in missions))
+    except TestFailure as e:
+        raise TestFailure(f'{e}: ' + '; '.join(m.summary() for m in missions)
+                          + f' (tolerance {args.waypoint_tolerance} m)')
+    for mission in missions:
+        log(f'bot {mission.bot_id} in {mission.state}, '
+            f'{mission.distance:.1f} m from its last waypoint')
+
+    # recovering at the last waypoint does not show a dive was done at every one, so
+    # match the dive task packets each bot sent back against its waypoints
+    try:
+        wait_for(lambda: all([not m.missing or dives_reported(args, hub, m)
+                              for m in missions]),
+                 args.api_timeout, 'every bot to report a completed dive at each waypoint',
+                 progress=lambda: '; '.join(
+                     f'bot {m.bot_id} {m.dive_count} dive packets, waypoints without a '
+                     f'dive: {m.missing}' for m in missions if m.missing))
+    except TestFailure as e:
+        raise TestFailure(
+            f'{e}: ' + '; '.join(
+                f'bot {m.bot_id} sent {m.dive_count} dive task packets, none reaching '
+                f'{args.dive_depth - DIVE_DEPTH_TOLERANCE_M:.1f} m within '
+                f'{args.waypoint_tolerance} m of waypoints {m.missing}'
+                for m in missions if m.missing)
+            + f' ({api_task_packets.last_error or "API answering"})')
+
+    for mission in missions:
+        log(f'bot {mission.bot_id} completed a dive at each of its '
+            f'{len(mission.waypoints)} waypoints ({mission.dive_count} dive task packets)')
+
+
+def activate_bot(args, hub, bot_id):
+    """Brings a bot to PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN, returning the status it
+    reported before being activated."""
     # ACTIVATE is only accepted from IDLE or FAILED, so wait for the bot to settle
     # out of STARTING_UP/SELF_TEST rather than command it mid self test
     ready_states = ('PRE_DEPLOYMENT__IDLE', 'PRE_DEPLOYMENT__FAILED',
@@ -472,13 +582,8 @@ def drive_bot_to_waypoint(args, hub, bot_id):
              progress=lambda: commandable.state or api_status.last_error)
 
     start = bot_status(api_status(args, hub), bot_id)
-    if 'location' not in start:
+    if not start or 'location' not in start:
         raise TestFailure(f'bot {bot_id} has no location: {start}')
-    origin = (start['location']['lat'], start['location']['lon'])
-    waypoint = offset_latlon(origin, args.waypoint_north, args.waypoint_east)
-    log(f'bot {bot_id} at {origin[0]:.6f},{origin[1]:.6f}; '
-        f'waypoint {waypoint[0]:.6f},{waypoint[1]:.6f} '
-        f'({args.waypoint_north} m N, {args.waypoint_east} m E)')
 
     state = start.get('mission_state')
     if state != 'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN':
@@ -487,55 +592,91 @@ def drive_bot_to_waypoint(args, hub, bot_id):
         wait_for(lambda: (bot_status(api_status(args, hub), bot_id) or {})
                  .get('mission_state') == 'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN',
                  args.api_timeout, f'bot {bot_id} to finish its self test')
+    return start
 
-    plan = {
+
+def dive_mission_plan(args, waypoints):
+    dive_task = {
+        'type': 'DIVE',
+        'dive': {'max_depth': args.dive_depth, 'depth_interval': args.dive_depth,
+                 'hold_time': 0},
+        'surface_drift': {'drift_time': 0},
+    }
+    return {
         'type': 'MISSION_PLAN',
         'plan': {
             'start': 'START_IMMEDIATELY',
             'movement': 'TRANSIT',
-            'goal': [{'location': {'lat': waypoint[0], 'lon': waypoint[1]}}],
+            'goal': [{'location': {'lat': lat, 'lon': lon}, 'task': dive_task}
+                     for lat, lon in waypoints],
             'recovery': {'recover_at_final_goal': True},
             'mission_name': 'vbox-e2e-test',
         },
     }
-    api_command(args, hub, bot_id, plan)
 
-    wait_for(lambda: (bot_status(api_status(args, hub), bot_id) or {})
-             .get('mission_state', '').startswith('IN_MISSION__'),
-             args.api_timeout, f'bot {bot_id} to start the mission')
-    log(f'bot {bot_id} underway')
 
-    def arrived():
-        bot = bot_status(api_status(args, hub), bot_id) or {}
-        state = bot.get('mission_state', '')
-        loc = bot.get('location')
-        if not loc:
-            return False
-        here = (loc['lat'], loc['lon'])
-        arrived.last = (state, distance_m(here, waypoint), distance_m(here, origin))
-        return (state.startswith('IN_MISSION__UNDERWAY__RECOVERY')
-                and arrived.last[1] <= args.waypoint_tolerance)
+def mission_progress(args, mission, bot):
+    """Logs each change in a bot's mission state; True once it is recovering at its
+    last waypoint."""
+    state = (bot or {}).get('mission_state', '')
+    if not state:
+        return False
+    goal = bot.get('active_goal')
+    if (state, goal) != (mission.state, mission.goal):
+        mission.state, mission.goal = state, goal
+        log(f'  bot {mission.bot_id}: {state}'
+            + (f' (goal {goal} of {len(mission.waypoints)})' if goal else ''))
+    if state == 'IN_MISSION__UNDERWAY__ABORT' or not state.startswith('IN_MISSION__'):
+        raise TestFailure(f'bot {mission.bot_id} left the mission early')
+    loc = bot.get('location')
+    if not loc:
+        return False
+    mission.distance = distance_m((loc['lat'], loc['lon']), mission.waypoints[-1])
+    return (state.startswith('IN_MISSION__UNDERWAY__RECOVERY')
+            and mission.distance <= args.waypoint_tolerance)
 
-    arrived.last = ('', float('nan'), float('nan'))
-    try:
-        wait_for(arrived, args.mission_timeout,
-                 f'bot {bot_id} to reach the waypoint and enter recovery',
-                 progress=lambda: f'{arrived.last[0]} {arrived.last[1]:.1f} m away')
-    except TestFailure:
-        raise TestFailure(
-            f'bot {bot_id} did not reach the waypoint: state {arrived.last[0]}, '
-            f'{arrived.last[1]:.1f} m away (tolerance {args.waypoint_tolerance} m)')
 
-    # a bot that never moved but whose waypoint happened to land on it would satisfy
-    # the tolerance above, so require that it actually travelled there
-    travelled = arrived.last[2]
-    if travelled < args.waypoint_tolerance:
-        raise TestFailure(
-            f'bot {bot_id} is within {arrived.last[1]:.1f} m of the waypoint but only '
-            f'{travelled:.1f} m from where it started; it did not transit')
+def dives_reported(args, hub, mission):
+    packets = api_task_packets(args, hub, mission.bot_id)
+    if packets is None:
+        return False
+    dives = [p['dive'] for p in packets
+             if p.get('type') == 'DIVE' and 'dive' in p
+             and task_packet_key(p) not in mission.earlier_packets]
+    mission.dive_count = len(dives)
+    mission.missing = [
+        n for n, waypoint in enumerate(mission.waypoints, 1)
+        if not any(dive_completed_at(args, dive, waypoint) for dive in dives)]
+    return not mission.missing
 
-    log(f'bot {bot_id} reached the waypoint: {arrived.last[0]}, '
-        f'{arrived.last[1]:.1f} m from it, {travelled:.1f} m from where it started')
+
+def existing_task_packets(args, hub, bot_id):
+    """Keys of the task packets a bot has already sent, so a mission counts only its own.
+
+    Simulated bots stamp task packets with the simulator's accelerated clock, so a start
+    time cannot tell this mission's packets from an earlier run's.
+    """
+    def fetch():
+        fetch.packets = api_task_packets(args, hub, bot_id)
+        return fetch.packets is not None
+
+    wait_for(fetch, args.api_timeout, f'bot {bot_id} task packets from {hub.name}',
+             progress=lambda: api_task_packets.last_error)
+    return {task_packet_key(p) for p in fetch.packets}
+
+
+def task_packet_key(packet):
+    return (packet.get('type'), packet.get('start_time'), packet.get('end_time'))
+
+
+DIVE_DEPTH_TOLERANCE_M = 1.0
+
+
+def dive_completed_at(args, dive, waypoint):
+    loc = dive.get('start_location')
+    return (loc is not None
+            and distance_m((loc['lat'], loc['lon']), waypoint) <= args.waypoint_tolerance
+            and dive.get('depth_achieved', 0) >= args.dive_depth - DIVE_DEPTH_TOLERANCE_M)
 
 
 def stage_web(args, nodes):
@@ -717,6 +858,28 @@ def api_command(args, hub, bot_id, command):
     return response
 
 
+def api_task_packets(args, hub, bot_id):
+    """The latest task packets a bot has sent, or None while the API is not answering."""
+    payload = {}
+    if args.api_key:
+        payload['api_key'] = args.api_key
+    url = f'http://{hub.hostonly_ip}/jaia/v1/task_packets/b{bot_id}'
+    code, body = http_get(url, data=json.dumps(payload).encode())
+    try:
+        response = json.loads(body) if code == 200 else None
+    except json.JSONDecodeError:
+        response = None
+    if response is None or 'error' in response:
+        api_task_packets.last_error = (str(response['error']) if response
+                                       else f'task_packets HTTP {code}')
+        return None
+    api_task_packets.last_error = ''
+    return response.get('task_packets', {}).get('packets', [])
+
+
+api_task_packets.last_error = ''
+
+
 EARTH_RADIUS_M = 6371000.0
 
 
@@ -762,14 +925,30 @@ def parse_args(argv):
                    help='REST API key, if the hubs require one')
     p.add_argument('--vm-type', default='headless', choices=['headless', 'gui', 'separate'],
                    help='how to start the VMs (default: %(default)s)')
-    p.add_argument('--mission-bot', type=int,
-                   help='bot to drive to a waypoint (default: the first one)')
+    p.add_argument('--mission-bots',
+                   help='comma separated bots to run dive missions, all at once '
+                        '(default: every bot in --bots)')
+    p.add_argument('--mission-separation', type=float, default=500.0,
+                   help='distance each mission is laid out south of the previous one, in '
+                        'metres (default: %(default)s)')
+    p.add_argument('--waypoints', type=int, default=10,
+                   help='number of waypoints in each mission, each with a dive '
+                        '(default: %(default)s)')
+    p.add_argument('--waypoint-spacing', type=float, default=60.0,
+                   help='distance between successive waypoints, heading east, in metres '
+                        '(default: %(default)s)')
     p.add_argument('--waypoint-north', type=float, default=150.0,
-                   help='waypoint offset north of the bot, in metres (default: %(default)s)')
-    p.add_argument('--waypoint-east', type=float, default=150.0,
-                   help='waypoint offset east of the bot, in metres (default: %(default)s)')
+                   help='first waypoint of the first mission, north of the first mission '
+                        'bot, in metres (default: %(default)s)')
+    # the simulator starts the bots on land, so put the missions out on the water
+    p.add_argument('--waypoint-east', type=float, default=-850.0,
+                   help='first waypoint of the first mission, east of the first mission '
+                        'bot, in metres (default: %(default)s)')
     p.add_argument('--waypoint-tolerance', type=float, default=25.0,
-                   help='how close counts as arrived, in metres (default: %(default)s)')
+                   help='how close counts as at a waypoint, in metres (default: %(default)s)')
+    p.add_argument('--dive-depth', type=float, default=3.0,
+                   help='depth of each dive, in metres; the simulated seafloor is '
+                        '5-9 m (default: %(default)s)')
     p.add_argument('--stages', default=','.join(STAGES),
                    help=f'comma separated subset of: {",".join(STAGES)}')
     p.add_argument('--yes', action='store_true',
@@ -781,7 +960,7 @@ def parse_args(argv):
     p.add_argument('--boot-timeout', type=int, default=1800)
     p.add_argument('--network-timeout', type=int, default=300)
     p.add_argument('--api-timeout', type=int, default=900)
-    p.add_argument('--mission-timeout', type=int, default=900)
+    p.add_argument('--mission-timeout', type=int, default=2400)
     p.add_argument('--web-timeout', type=int, default=300)
     p.add_argument('--shutdown-timeout', type=int, default=300)
     args = p.parse_args(argv)
@@ -789,6 +968,15 @@ def parse_args(argv):
     if not args.ova and not args.ova_url:
         p.error('one of --ova-url or --ova is required')
 
+    # the hub fragments a plan into at most 8 messages of 10 goals
+    if not 2 <= args.waypoints <= 80:
+        p.error('--waypoints must be between 2 and 80')
+    # otherwise one dive could be matched to two neighbouring waypoints
+    if args.waypoint_spacing <= 2 * args.waypoint_tolerance:
+        p.error('--waypoint-spacing must be more than twice --waypoint-tolerance')
+
+    args.mission_bots = ([int(b) for b in args.mission_bots.split(',') if b.strip()]
+                         if args.mission_bots else [])
     args.hostonly_net = ipaddress.ip_network(args.hostonly_net)
     args.hostonly_base = args.hostonly_net.network_address + 10
     args.stages = [s.strip() for s in args.stages.split(',') if s.strip()]
