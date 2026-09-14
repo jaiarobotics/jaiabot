@@ -57,7 +57,7 @@ where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD c
 
 Each node downloads the new images from the hub one at a time, capped at 1.5 MB/s so the upgrade does not saturate the fleet's radio link. Fleets in simulation mode (VirtualBox fleets and VirtualFleets) download uncapped. Pass `-e major_upgrade_download_limit_rate=<rate>` (a curl `--limit-rate` value such as `500K`, or `0` for no cap) to override either.
 
-To upgrade multiple Hubs, you will need to re-run this command (with the update hub_id) after moving the USB flash key to the new hub. Any number of bots will be updated from a single Hub as part of this command.
+Run this once, from the hub with the USB flash key or CD connected: it upgrades every bot and every hub in the fleet. Only that hub stages the upgrade (mounts the updates disk and checks the fleet configuration and its SSH key); the other hubs skip staging and download the new images from it like the bots do.
 
 ## Major upgrade design
 
