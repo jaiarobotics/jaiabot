@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <ctime>
 #include <iomanip>
@@ -32,6 +33,21 @@ int jaiabot::apps::admin::fleet::ValidateTool::validate()
     if (!fleet_cfg.IsInitialized())
     {
         glog.is_die() && glog << "Protobuf fleet_cfg is not fully initialized." << std::endl;
+        return 1;
+    }
+
+    const auto& hubs = fleet_cfg.hubs();
+    if (std::find(hubs.begin(), hubs.end(), jaiabot::ip::cloudhub_id) == hubs.end())
+    {
+        glog.is_die() && glog << "Fleet " << fleet_cfg.fleet() << " does not include hub "
+                              << jaiabot::ip::cloudhub_id
+                              << " (the CloudHub), which hosts the fleet's VPN and is how the "
+                                 "fleet is reached for remote support. Re-run 'jaia admin fleet "
+                                 "create' with hub "
+                              << jaiabot::ip::cloudhub_id
+                              << " selected, then create it with 'jaia admin fleet "
+                                 "create_cloudhub'."
+                              << std::endl;
         return 1;
     }
 
