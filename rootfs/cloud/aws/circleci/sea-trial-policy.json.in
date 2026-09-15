@@ -71,7 +71,6 @@
 			"Effect": "Allow",
 			"Action": [
 				"iam:CreateRole",
-				"iam:DeleteRolePolicy",
 				"iam:PutRolePolicy"
 			],
 			"Resource": "{{ARN_PREFIX}}:iam::{{ACCOUNT_ID}}:role/JaiaCloudHubFleet{{FLEET_ID}}__Role",
@@ -86,6 +85,7 @@
 			"Effect": "Allow",
 			"Action": [
 				"iam:DeleteRole",
+				"iam:DeleteRolePolicy",
 				"iam:GetRole",
 				"iam:TagRole"
 			],

@@ -146,6 +146,7 @@ def main():
     parser.add_argument('--virtualfleet-instance-type', type=str, help=f"AWS instance type the VirtualFleet will be created with, which constrains the availability zone chosen (default: {DEFAULT_VIRTUALFLEET_INSTANCE_TYPE})", default=DEFAULT_VIRTUALFLEET_INSTANCE_TYPE)
     parser.add_argument('--aws-profile', type=str, help="AWS profile to authenticate with (default: $AWS_PROFILE, otherwise a per-region default). Pass an empty string to use credentials from the environment instead.")
     parser.add_argument('--output-json', type=str, help="Write the IDs of the created AWS resources to this path as JSON")
+    parser.add_argument('--permissions-boundary', type=str, help="Name of an IAM policy to attach to the CloudHub's role as its permissions boundary")
     parser.add_argument('--govcloud', help=f"Shorthand for --region {GOVCLOUD_REGION}", action="store_true")
     parser.add_argument('--repo', help="Jaiabot Repo", default="release", choices=["release", "beta", "continuous", "test"])
     parser.add_argument('--disk-size-gb', help="CloudHub disk size in GB", default=32, type=int)
@@ -225,6 +226,9 @@ def main():
 
         if args.output_json:
             f.write(f'OUTPUT_JSON={pathlib.Path(args.output_json).resolve()}\n')
+
+        if args.permissions_boundary:
+            f.write(f'CLOUDHUB_PERMISSIONS_BOUNDARY={args.permissions_boundary}\n')
 
     logger.info(f"Running create_vpc.sh ...")
 

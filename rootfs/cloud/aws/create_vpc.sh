@@ -71,6 +71,7 @@ set +a
 
 # Optional settings, absent from configs written before they existed
 OUTPUT_JSON=${OUTPUT_JSON:-}
+CLOUDHUB_PERMISSIONS_BOUNDARY=${CLOUDHUB_PERMISSIONS_BOUNDARY:-}
 WAIT_TIMEOUT_SECONDS=${WAIT_TIMEOUT_SECONDS:-1800}
 
 # An unattended run has to fail rather than hang, so every wait below is bounded
@@ -192,7 +193,14 @@ if run "" aws iam get-role --role-name $role_name; then
 fi
 
 echo ">>>>>> Creating role."
-run "" aws iam create-role --role-name $role_name --assume-role-policy-document file://cloudhub-trust-policy.json
+# A boundary caps what this role can ever be granted, so that whoever may write its
+# inline policy cannot use it to escalate beyond the CloudHub's own job
+boundary_args=()
+if [[ -n "$CLOUDHUB_PERMISSIONS_BOUNDARY" ]]; then
+    boundary_args=(--permissions-boundary "${ARN_PREFIX}:iam::${ACCOUNT_ID}:policy/${CLOUDHUB_PERMISSIONS_BOUNDARY}")
+    echo ">>>>>> Bounding the role by ${CLOUDHUB_PERMISSIONS_BOUNDARY}"
+fi
+run "" aws iam create-role --role-name $role_name --assume-role-policy-document file://cloudhub-trust-policy.json "${boundary_args[@]}"
 on_rollback aws iam delete-role --role-name $role_name
 run "" aws iam put-role-policy --role-name $role_name --policy-name $policy_name --policy-document file://${POLICY_FILE}
 on_rollback aws iam delete-role-policy --role-name $role_name --policy-name $policy_name

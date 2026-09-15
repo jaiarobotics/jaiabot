@@ -43,6 +43,13 @@ and the sea-trial policy then permits role creation *only* when that boundary is
 attached. The boundary allows EC2 and the fleet data buckets and nothing else, so
 a CloudHub role cannot be given IAM permissions whatever its inline policy says.
 
-This requires `create_vpc.sh` to pass `--permissions-boundary` when it creates the
-role. Without that change the `ManageCloudHubRoleWithinBoundary` statement denies
-every `CreateRole` call and nothing works.
+`create_vpc.sh` attaches it when `CLOUDHUB_PERMISSIONS_BOUNDARY` names a policy, so
+the CI fleet config sets `CLOUDHUB_PERMISSIONS_BOUNDARY=JaiaCloudHubBoundary`, or
+`jaia admin fleet create_cloudhub --permissions-boundary JaiaCloudHubBoundary`.
+Create the boundary before attaching the sea-trial policy: with the policy attached
+and no boundary named, every `CreateRole` call is denied.
+
+```
+aws iam create-policy --policy-name JaiaCloudHubBoundary \
+    --policy-document file://cloudhub-boundary-policy.json
+```
