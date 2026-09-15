@@ -78,8 +78,7 @@ health_report() {
     ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 "jaia@${addr}" \
         "goby log convert --input_file /var/log/jaiabot/bot/${id} \
              --output_file /tmp/${name}-health.txt --format DEBUG_TEXT \
-             --type_regex '.*VehicleHealth' \
-             --load_shared_library libjaiabot_messages.so.1 > /dev/null 2>&1; \
+             --type_regex '.*VehicleHealth' > /dev/null 2>&1; \
          cat /tmp/${name}-health.txt 2>/dev/null" > "${OUT}/${name}-health.txt" 2>/dev/null
 
     # empty means the offload already moved the log off the bot, so convert the hub's copy
@@ -90,8 +89,7 @@ health_report() {
             "for f in /var/log/jaiabot/bot_offload/${name}_fleet*_*.goby; do \
                  [ -e \"\$f\" ] || continue; \
                  goby log convert --input_file \"\$f\" --output_file /tmp/${name}-health.txt \
-                     --format DEBUG_TEXT --type_regex '.*VehicleHealth' \
-                     --load_shared_library libjaiabot_messages.so.1 > /dev/null 2>&1; \
+                     --format DEBUG_TEXT --type_regex '.*VehicleHealth' > /dev/null 2>&1; \
                  cat /tmp/${name}-health.txt 2>/dev/null; \
              done" > "${OUT}/${name}-health.txt" 2>/dev/null
     fi

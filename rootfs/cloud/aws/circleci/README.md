@@ -122,8 +122,7 @@ logged as a message, so it can be read back in full:
 
 ```
 goby log convert --input_file bot1_fleet9_20260915T230500.goby \
-    --output_file bot1-health.txt --format DEBUG_TEXT \
-    --type_regex '.*VehicleHealth' --load_shared_library libjaiabot_messages.so.1
+    --output_file bot1-health.txt --format DEBUG_TEXT --type_regex '.*VehicleHealth'
 ```
 
 That is what recovers a fault which has already cleared by the time anything polls
