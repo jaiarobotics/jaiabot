@@ -10,20 +10,26 @@
   pre_tasks:
     - include_tasks: tasks/set-error-fact.yml
     - include_tasks: tasks/check-hub-id.yml
-      
+
     - name: Create the staging directory
       file:
         path: '{{ hub_staging_dir }}'
         state: directory
-  
+
     - include_tasks: ../tasks/read-debconf.yml
+
+    # the other hubs are upgraded from this one's updates disk in the next play
+    - name: Stage only on the hub with the updates disk
+      meta: end_host
+      when: jaiabot_embedded_hub_id | int != hub_id | int
 
   tasks:
     - include_tasks: tasks/hub-mount-updates-disk.yml
     - include_tasks: tasks/set-fleet-config-facts.yml
     - include_tasks: tasks/hub-stage-fleet-config.yml
+    - include_tasks: tasks/hub-check-fleet-config.yml
     - include_tasks: tasks/hub-check-ssh-key.yml
-      
+
 # Tasks for all bots and hub
 - name: Jaiabot major upgrade - Upgrade all
   hosts: all
@@ -35,21 +41,17 @@
   vars:
     - upgrade_dir_base: '/var/log/jaiabot/major_upgrade'
     - do_backup: yes
-      
-  pre_tasks:
-    - name: Stop Jaiabot
-      shell: |
-        systemctl stop jaiabot
 
+  pre_tasks:
     - include_tasks: tasks/set-error-fact.yml
     - include_tasks: tasks/check-hub-id.yml
     - include_tasks: ../tasks/read-debconf.yml
-      
+
     - name: Create the upgrade base working directory
       file:
         path: '{{ upgrade_dir_base }}'
         state: directory
-        
+
   tasks:
     - name: Run Major Upgrade with Hub cleanup
       block:
@@ -59,6 +61,12 @@
         - include_tasks: tasks/check-versions.yml
         - include_tasks: tasks/directory_creation.yml
         - include_tasks: tasks/check-disk-space.yml
+
+          # only once the checks pass, so a node that is not upgraded (e.g. one already upgraded from another hub) keeps running
+        - name: Stop Jaiabot
+          shell: |
+            systemctl stop jaiabot
+
         - include_tasks: tasks/get-new-filesystems.yml
         - include_tasks: tasks/set-fleet-config-facts.yml
         - include_tasks: tasks/copy-fleet-config.yml
