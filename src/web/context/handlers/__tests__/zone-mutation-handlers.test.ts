@@ -19,6 +19,7 @@ import { missionSet } from "../../../data/mission_set/mission-set";
 import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import Mission from "../../../data/mission_set/mission";
+import Waypoint from "../../../data/waypoints/waypoint";
 import { ExclusionZone } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
 import { detectMissionReroutes } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
 import { routeNeedsBypass } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
@@ -63,6 +64,33 @@ const CROSSING_ROUTE: [number, number][] = [
     [40.998, -72.002],
     [41.002, -72.002],
 ];
+
+// NOTCHED is a square with a wide slot cut up into it from the south edge, laid out on
+// a grid of 0.0002 deg steps from (41.0, -72.0). Vertices 2 and 3 are the slot's upper
+// corners and are reflex: deleting either one fills part of the slot, so the zone covers
+// MORE ground after the deletion than before. NOTCH_INTERIOR sits in the part that gets
+// filled, well clear of the slot walls so the safety buffer does not reach it beforehand.
+const STEP = 0.0002;
+const gridCoord = (x: number, y: number) => coord(41.0 + y * STEP, -72.0 + x * STEP);
+const NOTCHED_REFLEX_INDEX = 2;
+
+function notchedZone(): ExclusionZone {
+    return {
+        vertices: [
+            gridCoord(0, 0),
+            gridCoord(3, 0),
+            gridCoord(3, 6),
+            gridCoord(7, 6),
+            gridCoord(7, 0),
+            gridCoord(10, 0),
+            gridCoord(10, 10),
+            gridCoord(0, 10),
+        ],
+    };
+}
+
+const NOTCH_INTERIOR: [number, number] = [41.0 + 4 * STEP, -72.0 + 5 * STEP];
+const BELOW_ZONE: [number, number] = [41.0 - 5 * STEP, -72.0 + 5 * STEP];
 
 function addMission(waypoints: [number, number][]): number {
     const mission = new Mission();
@@ -591,5 +619,67 @@ describe("deleting a zone while others remain", () => {
 
         expect(missionSet.getMission(missionID).getWaypoints()).toEqual(priorWaypoints);
         expect(obstacleAvoidanceData.getExclusionZoneSet().getZone(firstZoneID)).toBeUndefined();
+    });
+});
+
+describe("deleting a vertex that enlarges a concave zone", () => {
+    test("detects a waypoint the filled notch now encloses", () => {
+        addMission([NOTCH_INTERIOR, BELOW_ZONE]);
+
+        // The waypoint sits in the open slot, so adding the zone flags nothing.
+        handleAddExclusionZone(makeMutableState(), { exclusionZone: notchedZone() } as any);
+        expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
+
+        const zoneID = zoneIDs()[0];
+        const priorZone = cloneDeep(obstacleAvoidanceData.getExclusionZoneSet().getZone(zoneID));
+
+        handleDeleteZoneVertex(makeMutableState(), {
+            zoneID,
+            vertexIndex: NOTCHED_REFLEX_INDEX,
+        } as any);
+
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("waypointRemoval");
+        expect(pending!.type === "waypointRemoval" && pending.data.totalRemovedCount).toBe(1);
+        expect(pending!.type === "waypointRemoval" && pending.data.revert).toEqual([
+            { kind: "restoreZoneShape", zoneID, zone: priorZone },
+        ]);
+
+        handleCancelWaypointRemoval(makeMutableState());
+
+        expect(obstacleAvoidanceData.getExclusionZoneSet().getZone(zoneID)).toEqual(priorZone);
+    });
+
+    test("discards a detour waypoint the filled notch now contains", () => {
+        // The mission's own route crosses the zone, so its detour is still required and
+        // cannot be discarded as stale — only the enlarged zone can account for the
+        // waypoint disappearing. The detour waypoint is placed directly rather than
+        // routed, since producing one inside a notch would need a contrived zone layout.
+        const mission = new Mission();
+        mission.addWaypoint(gridCoord(5, -5));
+        mission.addWaypoint(gridCoord(5, 12));
+        const missionID = missionSet.addMission(mission);
+        const detourWaypoint = new Waypoint();
+        detourWaypoint.setLocation(gridCoord(5, 4));
+        detourWaypoint.setIsBypass(true);
+        const [start, end] = mission.getWaypoints();
+        mission.setWaypoints([start, detourWaypoint, end]);
+
+        const zoneID = obstacleAvoidanceData.getExclusionZoneSet().addZone(notchedZone());
+        expect(bypassCount(missionID)).toBe(1);
+
+        handleDeleteZoneVertex(makeMutableState(), {
+            zoneID,
+            vertexIndex: NOTCHED_REFLEX_INDEX,
+        } as any);
+
+        expect(bypassCount(missionID)).toBe(0);
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("reroute");
+        // The discarded waypoint is captured so cancelling can put it back.
+        expect(pending!.type === "reroute" && pending.data.revert[0]).toEqual({
+            kind: "restoreWaypoints",
+            missions: [{ missionID, waypoints: [start, detourWaypoint, end] }],
+        });
     });
 });

@@ -472,7 +472,9 @@ export function handleAddZoneVertex(mutableState: JaiaContextType, action: JaiaA
 
 /**
  * Deletes a vertex from a zone. Requires at least 3 vertices to remain.
- * Triggers reroute detection after deletion.
+ * Removing a reflex vertex fills in the notch it formed, so a deletion can enlarge a
+ * concave zone rather than shrink it — detection therefore runs the same way it does
+ * for the handlers that grow a zone outright.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the zone ID and vertex index to delete
@@ -496,7 +498,8 @@ export function handleDeleteZoneVertex(mutableState: JaiaContextType, action: Ja
 
     applyZoneMutation(mutableState, {
         revert: [{ kind: "restoreZoneShape", zoneID: priorZone.zoneID, zone: priorZone.zone }],
-        detectRemovals: false,
+        strippableZoneID: action.zoneID,
+        detectRemovals: true,
         detectReroutes: true,
         stripStale: true,
     });
