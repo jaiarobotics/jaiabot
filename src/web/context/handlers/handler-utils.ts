@@ -13,9 +13,11 @@ import { missionSet } from "../../data/mission_set/mission-set";
 import {
     getBlockingZoneIDs,
     buildZoneBufferCache,
+    routeNeedsBypass,
 } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 import cloneDeep from "lodash/cloneDeep";
 import Waypoint from "../../data/waypoints/waypoint";
+import { GeographicCoordinate } from "../../types/protobuf-types";
 
 /**
  * Repaints the map layers using the latest data
@@ -78,9 +80,14 @@ export function stripBypassesInsideZoneWithSnapshot(zoneID: number): {
 }
 
 /**
- * Strips bypass waypoints from any mission not represented in the given proposal set.
+ * Strips bypass waypoints from missions whose routes no longer need a detour.
  * Call this after zone changes that may have eliminated previously necessary detours.
  * Missions with active proposals keep their current waypoints until the operator confirms.
+ *
+ * Absence from the proposal set does not by itself mean a detour is obsolete: reroute
+ * detection also omits a mission whose current route already matches what it would
+ * compute. Each candidate's clean route is therefore re-checked against the zones, and
+ * its bypasses are kept if that route is still blocked.
  *
  * @param {Set<number>} activeMissionIDs Mission IDs with pending reroute proposals that should keep their bypasses
  * @returns {void}
@@ -90,7 +97,14 @@ export function stripStaleBypasses(activeMissionIDs: Set<number> = new Set()) {
         if (activeMissionIDs.has(missionID)) continue;
         const all = mission.getWaypoints();
         const clean = all.filter((wp) => !wp.getIsBypass());
-        if (clean.length !== all.length) mission.setWaypoints(clean);
+        if (clean.length === all.length) continue;
+
+        const route = clean
+            .map((wp) => wp.getLocation())
+            .filter((location): location is GeographicCoordinate => !!location);
+        if (routeNeedsBypass(route)) continue;
+
+        mission.setWaypoints(clean);
     }
 }
 

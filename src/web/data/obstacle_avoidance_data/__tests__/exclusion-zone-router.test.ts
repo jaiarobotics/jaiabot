@@ -10,6 +10,7 @@ import {
     getBlockingZoneIDs,
     isLocationBlockedByZone,
     detectReroutesWithOverrides,
+    routeNeedsBypass,
 } from "../exclusion_zones/exclusion-zone-router";
 import { METERS_PER_DEG } from "../../../utils/constants";
 
@@ -598,6 +599,78 @@ describe("detectReroutesWithOverrides", () => {
             const a = wps[i].getLocation();
             const b = wps[i + 1].getLocation();
             expect(segmentCrossesHull(a, b, hull)).toBe(false);
+        }
+    });
+});
+
+// ── routeNeedsBypass ───────────────────────────────────────────────────────────
+
+describe("routeNeedsBypass", () => {
+    beforeEach(() => {
+        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
+    });
+
+    test("returns false when no zones exist", () => {
+        expect(routeNeedsBypass([coord(41.0, -72.005), coord(41.0, -71.995)])).toBe(false);
+    });
+
+    test("returns false for a route of fewer than two points", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
+
+        expect(routeNeedsBypass([])).toBe(false);
+        expect(routeNeedsBypass([coord(41.0, -72.0)])).toBe(false);
+    });
+
+    test("returns false for a route clear of every zone", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.01, -72.0, 0.0005));
+
+        expect(routeNeedsBypass([coord(41.0, -72.005), coord(41.0, -71.995)])).toBe(false);
+    });
+
+    test("returns true when a leg crosses a zone", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
+
+        expect(routeNeedsBypass([coord(41.0, -72.005), coord(41.0, -71.995)])).toBe(true);
+    });
+
+    test("returns true when only a later leg crosses a zone", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -71.99, 0.0005));
+
+        expect(
+            routeNeedsBypass([coord(41.0, -72.005), coord(41.0, -71.995), coord(41.0, -71.985)]),
+        ).toBe(true);
+    });
+
+    test("counts the safety buffer, not just the drawn hull", () => {
+        const halfSide = 0.0005;
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, halfSide));
+
+        // A leg passing ~2 m north of the hull edge clears the zone itself but not its
+        // safety buffer, so a detour is still required.
+        const justOutside = 41.0 + halfSide + 2 / METERS_PER_DEG;
+        expect(routeNeedsBypass([coord(justOutside, -72.005), coord(justOutside, -71.995)])).toBe(
+            true,
+        );
+    });
+
+    test("ignores a zone that already contains an endpoint, matching the router", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
+
+        // Starting inside the zone is unroutable rather than blocked; the router skips
+        // such zones when deciding whether a detour exists, so this must agree.
+        expect(routeNeedsBypass([coord(41.0, -72.0), coord(41.0, -71.99)])).toBe(false);
+    });
+
+    test("agrees with routeAroundExclusionZones about whether a detour is needed", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
+
+        for (const route of [
+            [coord(41.0, -72.005), coord(41.0, -71.995)],
+            [coord(41.01, -72.005), coord(41.01, -71.995)],
+        ]) {
+            const routed = routeAroundExclusionZones(plan(...route.map((c) => ({ location: c }))));
+            const needsDetour = routed.bypassCount > 0 || !!routed.isRoutingImpossible;
+            expect(routeNeedsBypass(route)).toBe(needsDetour);
         }
     });
 });

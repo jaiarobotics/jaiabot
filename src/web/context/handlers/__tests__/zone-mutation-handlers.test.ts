@@ -3,6 +3,7 @@ import cloneDeep from "lodash/cloneDeep";
 import {
     handleAddExclusionZone,
     handleAddZoneVertex,
+    handleMoveZoneVertex,
     handleDeleteZoneVertex,
     handleDeleteExclusionZone,
     handleClearExclusionZones,
@@ -453,5 +454,64 @@ describe("handleRestoreExclusionZoneSnapshot", () => {
         const pending = obstacleAvoidanceData.getPendingChange();
         expect(pending?.type).toBe("waypointRemoval");
         expect(pending!.type === "waypointRemoval" && pending.data.revert).toEqual([]);
+    });
+});
+
+describe("edits to an unrelated zone", () => {
+    // Runs through the zone close to its northern edge, so detouring north is
+    // decisively shorter than south and the computed route is stable.
+    const CROSSED_ROUTE: [number, number][] = [
+        [41.0004, -72.005],
+        [41.0004, -71.995],
+    ];
+
+    /**
+     * Gives the mission a confirmed detour around one zone, alongside a second zone
+     * that affects nothing. The second zone is deliberately small, sits well south of
+     * both the route and its northward detour, and lies inside the bounding box the
+     * first zone already defines — so editing it cannot shift the pathfinding grid or
+     * change the detour that was confirmed.
+     */
+    function missionDetouredPastAnUnrelatedZone() {
+        const missionID = addMission(CROSSED_ROUTE);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const unrelatedZoneID = obstacleAvoidanceData
+            .getExclusionZoneSet()
+            .addZone(squareZone(40.99965, -72.004, 0.0001));
+        const reroutedWaypoints = confirmReroute(missionID);
+        obstacleAvoidanceData.setPendingChange(null);
+        return { missionID, unrelatedZoneID, reroutedWaypoints };
+    }
+
+    test("moving a vertex on an unrelated zone keeps a still-needed detour", () => {
+        const { missionID, unrelatedZoneID, reroutedWaypoints } =
+            missionDetouredPastAnUnrelatedZone();
+
+        jaiaGlobal.setSelectedZoneVertex({
+            zoneID: unrelatedZoneID,
+            vertexIndex: 0,
+            isMoveable: false,
+        });
+        handleMoveZoneVertex(makeMutableState(), { location: coord(40.9997, -72.00395) } as any);
+
+        // No proposal is staged because the mission's route is already correct — which is
+        // exactly why its waypoints must not be treated as obsolete.
+        expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
+        expect(bypassCount(missionID)).toBeGreaterThan(0);
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(reroutedWaypoints);
+    });
+
+    test("deleting a vertex on an unrelated zone keeps a still-needed detour", () => {
+        const { missionID, unrelatedZoneID, reroutedWaypoints } =
+            missionDetouredPastAnUnrelatedZone();
+
+        handleDeleteZoneVertex(makeMutableState(), {
+            zoneID: unrelatedZoneID,
+            vertexIndex: 0,
+        } as any);
+
+        expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
+        expect(bypassCount(missionID)).toBeGreaterThan(0);
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(reroutedWaypoints);
     });
 });
