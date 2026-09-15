@@ -23,6 +23,18 @@ aws iam attach-role-policy --role-name JaiaCircleCI \
     --policy-arn arn:aws:iam::<account>:policy/JaiaCircleCISeaTrial
 ```
 
+## The fleet config
+
+`jaia admin fleet create` is interactive, and a config checked into the repository would
+mean private keys checked into the repository, so CI writes one per run:
+
+```
+./make-ci-fleet-config.sh --fleet 9 --bots 2 --warp 5 /tmp/ci-fleet9.cfg
+```
+
+It generates the hub keys and, unless given `--authorized-key`, the runner's own key, so
+the fleet is reachable only by the run that created it and the keys go away with it.
+
 ## Why it is scoped the way it is
 
 Sea trials share an account with customer fleets, so the region is the boundary:
