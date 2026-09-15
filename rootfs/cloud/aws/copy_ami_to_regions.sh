@@ -20,7 +20,9 @@ SOURCE_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 COPY_TIMEOUT_SECONDS="${COPY_TIMEOUT_SECONDS:-3600}"
 COPY_POLL_SECONDS=30
 
-source_image_id=$(aws ec2 describe-images --region "${SOURCE_REGION}" --filters "Name=name,Values=${AMI_NAME}" --query 'Images[0].ImageId' --output text)
+# JSON rather than shorthand: AMI names carry the "[plus]"/"[tilde]" substitutions for characters
+# AMI names disallow, and the shorthand parser reads the square brackets as list syntax.
+source_image_id=$(aws ec2 describe-images --region "${SOURCE_REGION}" --filters "[{\"Name\":\"name\",\"Values\":[\"${AMI_NAME}\"]}]" --query 'Images[0].ImageId' --output text)
 
 if [[ -z "${source_image_id}" || "${source_image_id}" == "None" ]]; then
     echo "No AMI named \"${AMI_NAME}\" found in ${SOURCE_REGION}"
