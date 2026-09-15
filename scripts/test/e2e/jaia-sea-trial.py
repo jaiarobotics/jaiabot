@@ -111,7 +111,9 @@ class SeaTrial:
             log(f'bot {bot_id}: {len(goals)} dive goals from '
                 f'{goals[0][0]:.6f},{goals[0][1]:.6f}')
             self.hub.command(bot_id, mission.dive_mission_plan(
-                goals, task, self.args.mission_name))
+                goals, task, self.args.mission_name,
+                transit_speed=self.args.transit_speed,
+                stationkeep_speed=self.args.stationkeep_speed))
 
         self.started_at = time.time()
         wait_for(lambda: all((api.bot_status(self.poll(), b) or {})
@@ -202,6 +204,8 @@ def parse_args(argv):
     parser.add_argument('--hold-time', type=float, default=5.0, metavar='S')
     parser.add_argument('--drift-time', type=float, default=45.0, metavar='S')
     parser.add_argument('--mission-name', default='sea-trial')
+    parser.add_argument('--transit-speed', type=float, default=2.5, metavar='M_PER_S')
+    parser.add_argument('--stationkeep-speed', type=float, default=0.5, metavar='M_PER_S')
     parser.add_argument('--expect-version', help='fail unless the hub reports this jaiabot version')
     parser.add_argument('--position-tolerance', type=float, default=25.0, metavar='M')
     parser.add_argument('--depth-tolerance', type=float, default=1.0, metavar='M')

@@ -18,9 +18,11 @@ def offset_latlon(origin, north_m, east_m):
 
 
 def distance_m(a, b):
-    north = math.radians(b[0] - a[0]) * EARTH_RADIUS_M
-    east = math.radians(b[1] - a[1]) * EARTH_RADIUS_M * math.cos(math.radians(a[0]))
-    return math.hypot(north, east)
+    lat1, lon1 = math.radians(a[0]), math.radians(a[1])
+    lat2, lon2 = math.radians(b[0]), math.radians(b[1])
+    dlat, dlon = lat2 - lat1, lon2 - lon1
+    h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(h))
 
 
 def lawnmower(origin, count, spacing_m, row_length=5, row_offset_m=None):
@@ -46,17 +48,17 @@ def dive_task(max_depth, depth_interval, hold_time, drift_time):
     }
 
 
-def dive_mission_plan(goals, task, mission_name, transit_speed=2.5,
-                      stationkeep_speed=0.5, start='START_IMMEDIATELY'):
-    return {
-        'type': 'MISSION_PLAN',
-        'plan': {
-            'start': start,
-            'movement': 'TRANSIT',
-            'goal': [{'location': {'lat': lat, 'lon': lon}, 'task': copy.deepcopy(task)}
-                     for lat, lon in goals],
-            'recovery': {'recover_at_final_goal': True},
-            'speeds': {'transit': transit_speed, 'stationkeep_outer': stationkeep_speed},
-            'mission_name': mission_name,
-        },
+def dive_mission_plan(goals, task, mission_name, transit_speed=None,
+                      stationkeep_speed=None, start='START_IMMEDIATELY'):
+    plan = {
+        'start': start,
+        'movement': 'TRANSIT',
+        'goal': [{'location': {'lat': lat, 'lon': lon}, 'task': copy.deepcopy(task)}
+                 for lat, lon in goals],
+        'recovery': {'recover_at_final_goal': True},
+        'mission_name': mission_name,
     }
+    # left out entirely when unset, so the bot keeps its configured speeds
+    if transit_speed is not None or stationkeep_speed is not None:
+        plan['speeds'] = {'transit': transit_speed, 'stationkeep_outer': stationkeep_speed}
+    return {'type': 'MISSION_PLAN', 'plan': plan}

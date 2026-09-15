@@ -47,6 +47,12 @@ slow" from "the dive controller regressed".
 The tiers are disjoint on purpose: a post-deployment failure is an `offload` fault and
 must not also redden `execution`, or one fault reddens two tiers and neither names it.
 
+## Shared code
+
+`jaia_e2e` is also what `scripts/test/virtualbox-e2e` drives its hubs through, so the
+REST client, the dive-mission plan and the geodesy have one implementation rather than
+two that drift. Changing them means running that suite's contract test here too.
+
 ## Tests
 
 ```bash

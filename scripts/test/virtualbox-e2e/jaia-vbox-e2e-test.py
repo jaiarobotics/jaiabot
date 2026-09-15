@@ -12,7 +12,6 @@ Run with --help for the stage list and options.
 import argparse
 import ipaddress
 import json
-import math
 import os
 import re
 import shlex
@@ -26,6 +25,12 @@ import urllib.request
 
 JAIA_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 IMPORT_VMS_DIR = os.path.join(JAIA_ROOT, 'rootfs', 'scripts')
+
+sys.path.insert(0, os.path.join(JAIA_ROOT, 'scripts', 'test', 'e2e'))
+from jaia_e2e import api as jaia_api
+from jaia_e2e import mission as jaia_mission
+from jaia_e2e.api import bot_ids, bot_status
+from jaia_e2e.mission import EARTH_RADIUS_M, distance_m, offset_latlon
 
 DEFAULT_OVA_URL_BASE = 'https://jaia-disk-images.s3.us-east-1.amazonaws.com'
 
@@ -464,19 +469,6 @@ def stage_api(args, nodes):
     run_dive_missions(args, hub, mission_bots)
 
 
-def bot_ids(status):
-    if not status:
-        return []
-    return [b['bot_id'] for b in status.get('bots', [])]
-
-
-def bot_status(status, bot_id):
-    for b in (status or {}).get('bots', []):
-        if b['bot_id'] == bot_id:
-            return b
-    return None
-
-
 class DiveMission:
     def __init__(self, bot_id, waypoints, earlier_packets):
         self.bot_id = bot_id
@@ -596,23 +588,9 @@ def activate_bot(args, hub, bot_id):
 
 
 def dive_mission_plan(args, waypoints):
-    dive_task = {
-        'type': 'DIVE',
-        'dive': {'max_depth': args.dive_depth, 'depth_interval': args.dive_depth,
-                 'hold_time': 0},
-        'surface_drift': {'drift_time': 0},
-    }
-    return {
-        'type': 'MISSION_PLAN',
-        'plan': {
-            'start': 'START_IMMEDIATELY',
-            'movement': 'TRANSIT',
-            'goal': [{'location': {'lat': lat, 'lon': lon}, 'task': dive_task}
-                     for lat, lon in waypoints],
-            'recovery': {'recover_at_final_goal': True},
-            'mission_name': 'vbox-e2e-test',
-        },
-    }
+    task = jaia_mission.dive_task(max_depth=args.dive_depth, depth_interval=args.dive_depth,
+                                  hold_time=0, drift_time=0)
+    return jaia_mission.dive_mission_plan(waypoints, task, 'vbox-e2e-test')
 
 
 def mission_progress(args, mission, bot):
@@ -798,104 +776,46 @@ def host_can_reach(ip, port, timeout=2):
         return False
 
 
-def http_get(url, timeout=10, data=None):
-    req = urllib.request.Request(url, data=data,
-                                 headers={'Content-Type': 'application/json'} if data else {})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.status, resp.read().decode('utf-8', 'replace')
-    except urllib.error.HTTPError as e:
-        return e.code, e.read().decode('utf-8', 'replace')
-    except (urllib.error.URLError, OSError):
-        return 0, ''
+def hub_api(args, hub):
+    """The shared REST client for a hub, one per address."""
+    if hub.hostonly_ip not in hub_api.clients:
+        hub_api.clients[hub.hostonly_ip] = jaia_api.HubApi(
+            f'http://{hub.hostonly_ip}', args.api_key)
+    return hub_api.clients[hub.hostonly_ip]
 
 
-def api_url(args, hub, path):
-    url = f'http://{hub.hostonly_ip}/jaia/v1{path}'
-    if args.api_key:
-        url += ('&' if '?' in url else '?') + f'api_key={args.api_key}'
-    return url
+hub_api.clients = {}
 
 
 def api_status(args, hub):
     """Bot/hub statuses from a hub, or None while the API is not answering yet."""
-    code, body = http_get(api_url(args, hub, '/status/all'))
-    if code != 200:
-        api_status.last_error = f'HTTP {code}' if code else 'no answer'
-        return None
-    try:
-        response = json.loads(body)
-    except json.JSONDecodeError:
-        api_status.last_error = f'unparseable response: {body[:200]!r}'
-        return None
-    if 'error' in response:
-        api_status.last_error = str(response['error'])
-        return None
-    api_status.last_error = ''
-    return response.get('status')
+    client = hub_api(args, hub)
+    status = client.status()
+    api_status.last_error = client.last_error
+    return status
 
 
 api_status.last_error = ''
 
 
 def api_command(args, hub, bot_id, command):
-    payload = dict(command)
-    if args.api_key:
-        payload['api_key'] = args.api_key
-    url = f'http://{hub.hostonly_ip}/jaia/v1/command/b{bot_id}'
-    code, body = http_get(url, data=json.dumps(payload).encode())
-    if code != 200:
-        raise TestFailure(f'command {command["type"]} to bot {bot_id} failed '
-                          f'({code}): {body[:400]}')
-    response = json.loads(body)
-    if 'error' in response:
-        raise TestFailure(f'command {command["type"]} to bot {bot_id} rejected: '
-                          f'{response["error"]}')
-    if not response.get('command_result', {}).get('command_sent'):
-        raise TestFailure(f'command {command["type"]} to bot {bot_id} was not sent: '
-                          f'{body[:400]}')
+    try:
+        response = hub_api(args, hub).command(bot_id, command)
+    except jaia_api.ApiError as e:
+        raise TestFailure(str(e))
     log(f'  sent {command["type"]} to bot {bot_id}')
     return response
 
 
 def api_task_packets(args, hub, bot_id):
     """The latest task packets a bot has sent, or None while the API is not answering."""
-    payload = {}
-    if args.api_key:
-        payload['api_key'] = args.api_key
-    url = f'http://{hub.hostonly_ip}/jaia/v1/task_packets/b{bot_id}'
-    code, body = http_get(url, data=json.dumps(payload).encode())
-    try:
-        response = json.loads(body) if code == 200 else None
-    except json.JSONDecodeError:
-        response = None
-    if response is None or 'error' in response:
-        api_task_packets.last_error = (str(response['error']) if response
-                                       else f'task_packets HTTP {code}')
-        return None
-    api_task_packets.last_error = ''
-    return response.get('task_packets', {}).get('packets', [])
+    client = hub_api(args, hub)
+    packets = client.task_packets(f'b{bot_id}')
+    api_task_packets.last_error = client.last_error
+    return packets
 
 
 api_task_packets.last_error = ''
-
-
-EARTH_RADIUS_M = 6371000.0
-
-
-def offset_latlon(origin, north_m, east_m):
-    lat, lon = origin
-    dlat = math.degrees(north_m / EARTH_RADIUS_M)
-    dlon = math.degrees(east_m / (EARTH_RADIUS_M * math.cos(math.radians(lat))))
-    return (lat + dlat, lon + dlon)
-
-
-def distance_m(a, b):
-    lat1, lon1 = math.radians(a[0]), math.radians(a[1])
-    lat2, lon2 = math.radians(b[0]), math.radians(b[1])
-    dlat, dlon = lat2 - lat1, lon2 - lon1
-    h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-    return 2 * EARTH_RADIUS_M * math.asin(math.sqrt(h))
 
 
 # ---------------------------------------------------------------------------
@@ -1038,7 +958,7 @@ def main(argv):
 if __name__ == '__main__':
     try:
         sys.exit(main(sys.argv[1:]))
-    except TestFailure as e:
+    except (TestFailure, jaia_api.ApiError) as e:
         log(f'FAILED: {e}')
         sys.exit(1)
     except KeyboardInterrupt:
