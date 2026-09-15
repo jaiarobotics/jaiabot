@@ -1,10 +1,13 @@
 import cloneDeep from "lodash/cloneDeep";
 
 import {
+    handleAddExclusionZone,
     handleAddZoneVertex,
     handleDeleteZoneVertex,
     handleDeleteExclusionZone,
     handleClearExclusionZones,
+    handleLoadExclusionZones,
+    handleRestoreExclusionZoneSnapshot,
 } from "../exclusion-zone-handlers";
 import {
     handleCancelMissionReroute,
@@ -17,14 +20,13 @@ import Mission from "../../../data/mission_set/mission";
 import { ExclusionZone } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
 import { detectMissionReroutes } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
 import { ButtonNames } from "../../../types/context-types";
-import { UNASSIGNED_ID } from "../../../utils/constants";
+import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../../utils/constants";
 import { makeMutableState, resetHandlerSingletons, coord, squareZone } from "./handler-test-utils";
 
 /**
  * Characterization tests for the four zone handlers that mutate the zone set
  * without going through handleAddExclusionZone/handleMoveZoneVertex (already
  * covered by reroute-revert-producers.test.ts).
- *
  */
 
 // ── Zone geometry ──────────────────────────────────────────────────────────────
@@ -86,7 +88,61 @@ function bypassCount(missionID: number): number {
         .filter((wp) => wp.getIsBypass()).length;
 }
 
+// A long east-west line of waypoints 84 m apart, used to push a rerouted mission
+// past MAX_WAYPOINTS: any inserted bypass takes a full-length line over the limit.
+function addLineMission(count: number): number {
+    const waypoints: [number, number][] = [];
+    for (let i = 0; i < count; i++) waypoints.push([41.0, -72.1 + i * 0.001]);
+    return addMission(waypoints);
+}
+
+/** A zone small enough to sit in the gap between two consecutive line waypoints. */
+function gapZone(lon: number): ExclusionZone {
+    return squareZone(41.0, lon, 0.0002);
+}
+
+function zoneIDs(): number[] {
+    return Array.from(obstacleAvoidanceData.getExclusionZoneSet().getZones().keys());
+}
+
 beforeEach(resetHandlerSingletons);
+
+describe("handleAddExclusionZone", () => {
+    test("a zone landing on an existing bypass waypoint stages a reroute that reverts the waypoints before the zone", () => {
+        const missionID = addMission([
+            [41.0, -72.005],
+            [41.0, -71.995],
+        ]);
+        const firstZoneID = obstacleAvoidanceData
+            .getExclusionZoneSet()
+            .addZone(squareZone(41.0, -72.0));
+        const reroutedWaypoints = confirmReroute(missionID);
+        obstacleAvoidanceData.setPendingChange(null);
+
+        // Drop a second zone directly over one of the detour's bypass waypoints, so
+        // the bypass has to be discarded and the mission re-planned from clean.
+        const bypass = reroutedWaypoints.find((wp) => wp.getIsBypass())!;
+        const bypassLocation = bypass.getLocation()!;
+        handleAddExclusionZone(makeMutableState(), {
+            exclusionZone: squareZone(bypassLocation.lat, bypassLocation.lon, 0.0002),
+        } as any);
+
+        const secondZoneID = Array.from(
+            obstacleAvoidanceData.getExclusionZoneSet().getZones().keys(),
+        ).find((id) => id !== firstZoneID)!;
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("reroute");
+        expect(pending!.type === "reroute" && pending.data.revert).toEqual([
+            { kind: "restoreWaypoints", missions: [{ missionID, waypoints: reroutedWaypoints }] },
+            { kind: "deleteZone", zoneID: secondZoneID },
+        ]);
+
+        handleCancelMissionReroute(makeMutableState());
+
+        expect(obstacleAvoidanceData.getExclusionZoneSet().getZone(secondZoneID)).toBeUndefined();
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(reroutedWaypoints);
+    });
+});
 
 describe("handleAddZoneVertex", () => {
     test("growing a zone onto a mission's route stages a reroute with a restoreZoneShape revert; cancel restores the shape", () => {
@@ -282,5 +338,120 @@ describe("handleClearExclusionZones", () => {
             isMoveable: false,
         });
         expect(jaiaGlobal.getZoneInEditMode()).toBe(UNASSIGNED_ID);
+    });
+});
+
+describe("handleLoadExclusionZones", () => {
+    test("replaces the existing zone set and stages a reroute carrying a zoneLoad summary and no revert", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.5, -72.5));
+        addMission([
+            [41.0, -72.005],
+            [41.0, -71.995],
+        ]);
+
+        handleLoadExclusionZones(makeMutableState(), {
+            exclusionZones: [squareZone(41.0, -72.0)],
+        } as any);
+
+        // The pre-existing zone is gone: a load replaces the set rather than merging.
+        expect(zoneIDs()).toHaveLength(1);
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("reroute");
+        expect(pending!.type === "reroute" && pending.data.revert).toEqual([]);
+        expect(pending!.type === "reroute" && pending.data.loadSummary).toEqual({
+            kind: "zoneLoad",
+            loadedZoneIDs: zoneIDs(),
+            skippedZoneIDs: [],
+        });
+    });
+
+    test("stages a waypoint removal with no revert when a loaded zone encloses a waypoint", () => {
+        addMission([
+            [41.0, -72.0],
+            [41.0, -71.99],
+        ]);
+
+        handleLoadExclusionZones(makeMutableState(), {
+            exclusionZones: [squareZone(41.0, -72.0)],
+        } as any);
+
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("waypointRemoval");
+        expect(pending!.type === "waypointRemoval" && pending.data.revert).toEqual([]);
+    });
+
+    test("drops a loaded zone that would push a rerouted mission over the waypoint limit", () => {
+        addLineMission(MAX_WAYPOINTS);
+
+        handleLoadExclusionZones(makeMutableState(), {
+            // The first zone blocks the line between two waypoints; the second is clear of it.
+            exclusionZones: [gapZone(-72.0605), squareZone(41.002, -72.0595, 0.0003)],
+        } as any);
+
+        const surviving = zoneIDs();
+        expect(surviving).toHaveLength(1);
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("reroute");
+        expect(pending!.type === "reroute" && pending.data.loadSummary).toEqual({
+            kind: "zoneLoad",
+            loadedZoneIDs: surviving,
+            skippedZoneIDs: [expect.any(Number)],
+        });
+    });
+
+    test("drops a loaded zone whose enclosed-waypoint removal would leave the mission over the limit", () => {
+        addLineMission(MAX_WAYPOINTS + 1);
+
+        handleLoadExclusionZones(makeMutableState(), {
+            exclusionZones: [gapZone(-72.06)],
+        } as any);
+
+        // Removing the enclosed waypoint leaves a route that still needs a detour around
+        // the same zone, which no longer fits — so the zone is dropped and nothing is staged.
+        expect(zoneIDs()).toHaveLength(0);
+        expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
+    });
+});
+
+describe("handleRestoreExclusionZoneSnapshot", () => {
+    test("stages a reroute carrying a zoneLoad summary and no revert", () => {
+        addMission([
+            [41.0, -72.005],
+            [41.0, -71.995],
+        ]);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const snapshot = obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot();
+        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
+
+        handleRestoreExclusionZoneSnapshot(makeMutableState(), {
+            exclusionZoneSnapshot: snapshot,
+        } as any);
+
+        expect(zoneIDs()).toHaveLength(1);
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("reroute");
+        expect(pending!.type === "reroute" && pending.data.revert).toEqual([]);
+        expect(pending!.type === "reroute" && pending.data.loadSummary).toEqual({
+            kind: "zoneLoad",
+            loadedZoneIDs: zoneIDs(),
+            skippedZoneIDs: [],
+        });
+    });
+
+    test("keeps a restored zone whose enclosed-waypoint removal would leave the mission over the limit", () => {
+        addLineMission(MAX_WAYPOINTS + 1);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(gapZone(-72.06));
+        const snapshot = obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot();
+        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
+
+        handleRestoreExclusionZoneSnapshot(makeMutableState(), {
+            exclusionZoneSnapshot: snapshot,
+        } as any);
+
+        // Unlike a load, a restore keeps the zone and stages the removal dialog.
+        expect(zoneIDs()).toHaveLength(1);
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("waypointRemoval");
+        expect(pending!.type === "waypointRemoval" && pending.data.revert).toEqual([]);
     });
 });
