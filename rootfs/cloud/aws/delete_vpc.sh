@@ -94,12 +94,17 @@ if [ -n "$CUSTOMER" ]; then
                     "Name=instance-state-name,Values=pending,running,stopping,stopped" \
                     --query "Reservations[].Instances[].Tags[?Key=='jaia_customer'].Value" --output text
               } | tr '\t' '\n' | sort -u | grep -v '^$' || true)
-    for owner in $owners; do
-        if [ "$owner" != "$CUSTOMER" ]; then
-            echo "❌ Fleet $FLEET_TAG_VALUE belongs to $owner, not $CUSTOMER. Refusing to delete it." >&2
-            exit 1
+    others=$(echo "$owners" | grep -vx "$CUSTOMER" || true)
+    if [ -n "$others" ]; then
+        if echo "$owners" | grep -qx "$CUSTOMER"; then
+            echo "❌ Fleet $FLEET_TAG_VALUE carries resources from more than one run:" >&2
+            echo "$owners" | sed 's/^/     /' >&2
+            echo "   Two runs raced for it. Refusing to delete it; clean it up by hand." >&2
+        else
+            echo "❌ Fleet $FLEET_TAG_VALUE belongs to $(echo "$others" | head -1), not $CUSTOMER. Refusing to delete it." >&2
         fi
-    done
+        exit 1
+    fi
 fi
 
 echo "✅ Proceeding with cleanup of jaia_fleet=$FLEET_TAG_VALUE..."
@@ -139,10 +144,15 @@ else
     echo "No instances found."
 fi
 
-# Get VPC ID associated with the fleet
-VPC_ID=$(aws ec2 describe-vpcs --filters "$TAG_FILTER" --query "Vpcs[].VpcId" --output text)
+# Two runs that raced for the same fleet leave a VPC each, so this is a list
+VPC_IDS=$(aws ec2 describe-vpcs --filters "$TAG_FILTER" --query "Vpcs[].VpcId" --output text)
 
-if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
+if [ -z "$VPC_IDS" ] || [ "$VPC_IDS" = "None" ]; then
+    echo "No VPC found."
+fi
+
+for VPC_ID in $VPC_IDS; do
+    [ "$VPC_ID" != "None" ] || continue
     echo "Found VPC: $VPC_ID"
 
     # Delete dependent resources before deleting the VPC
@@ -189,9 +199,7 @@ if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
     # Finally, delete the VPC
     echo "Deleting VPC $VPC_ID..."
     attempt "delete VPC $VPC_ID" aws ec2 delete-vpc --vpc-id "$VPC_ID"
-else
-    echo "No VPC found."
-fi
+done
 
 if [ "$KEEP_IAM" = "false" ]; then
     role_name="JaiaCloudHubFleet${FLEET_TAG_VALUE}__Role"
