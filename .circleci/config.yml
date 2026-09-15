@@ -447,6 +447,16 @@ workflows:
           requires:
             - aws-sync
 
+      # TEMPORARY: trial every push while this job is being brought up. Delete this
+      # entry, and the repo_override job parameter, once it runs green.
+      - sea-trial-virtualfleet:
+          name: sea-trial-virtualfleet-branch
+          repo_override: continuous
+          filters:
+            branches:
+              only:
+                - ci-safe-cloudhub-create
+
   # Driven by a scheduled pipeline that sets run-sea-trial, rather than by a branch
   # filter, so the nightly does not rebuild everything first.
   sea-trial:
@@ -610,6 +620,11 @@ jobs:
           path: /tmp/sea-trial-sim
 
   sea-trial-virtualfleet:
+    parameters:
+      # like the sea-trial-repo pipeline parameter, but settable per workflow entry
+      repo_override:
+        type: string
+        default: ""
     # 26.04 so the jaiabot packages install natively, and a machine executor so the
     # fleet VPN can be brought up the way an operator's machine does
     machine:
@@ -629,6 +644,7 @@ jobs:
             echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
             echo "export JAIA_CI_CUSTOMER=jaia-ci-${CIRCLE_WORKFLOW_ID}" >> $BASH_ENV
             trial_repo="<< pipeline.parameters.sea-trial-repo >>"
+            trial_repo="${trial_repo:-<< parameters.repo_override >>}"
             echo "export JAIA_CI_REPO=${trial_repo:-$repo}" >> $BASH_ENV
       - aws-cli/setup:
           profile_name: OIDC-User
