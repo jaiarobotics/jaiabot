@@ -7,12 +7,20 @@ import argparse
 import os
 import stat
 import pty
+import fcntl
+import socket
 import systemd.daemon
 
-'''Create a pty, and send all the i2c gps data to it'''
+'''Send all the i2c gps data to gpsd over UDP, with a pty as a debugging tap.
+
+The UDP feed is what allows gpsd to serve GPS time to chrony: gpsd refuses to
+export time for a PTY-backed device, treating it as a test harness.
+'''
 
 parser = argparse.ArgumentParser()
 parser.add_argument('pty_path')
+parser.add_argument('--udp-host', default='127.0.0.1', help='Host running gpsd')
+parser.add_argument('--udp-port', type=int, default=32100, help='UDP port gpsd is listening on')
 args = parser.parse_args()
 
 internal_pty, external_pty = pty.openpty()
@@ -25,7 +33,14 @@ external_pty_name=os.ttyname(external_pty)
 os.symlink(external_pty_name, args.pty_path)
 os.chmod(external_pty_name, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP |stat.S_IROTH | stat.S_IWOTH)
 
+# nothing has to be reading the debug tap, so never let a full buffer stall the
+# i2c loop
+fcntl.fcntl(internal_pty, fcntl.F_SETFL,
+            fcntl.fcntl(internal_pty, fcntl.F_GETFL) | os.O_NONBLOCK)
 output = os.fdopen(internal_pty, "wb")
+
+udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+udp_address = (args.udp_host, args.udp_port)
 
 # Notify systemd after we have set up the PTY
 # to ensure that dependencies (e.g. GPSD) can see it when they start
@@ -57,8 +72,12 @@ def parseResponse(gpsLine):
                      chkVal ^= ord(ch)
                 if (chkVal == int(chkSum, 16)): # Compare the calculated checksum with the one in the NMEA sentence
                      gpsChars = gpsChars.strip() + '\n'
-                     output.write(bytes(gpsChars, "ascii"))
-                     output.flush()
+                     udp_socket.sendto(bytes(gpsChars, "ascii"), udp_address)
+                     try:
+                         output.write(bytes(gpsChars, "ascii"))
+                         output.flush()
+                     except BlockingIOError:
+                         pass
 
 
 def handle_ctrl_c(signal, frame):
