@@ -759,8 +759,11 @@ jobs:
               echo "sea-trial-keep-fleet is set; leaving fleet ${JAIA_CI_FLEET} up for the reaper"
               exit 0
             fi
+            # only this run's fleet: a concurrent trial reuses the same fleet id, and
+            # this step runs under when: always, including when create never got there
             jaia admin fleet delete_cloudhub --region "${AWS_DEFAULT_REGION}" \
-              --aws-profile OIDC-User --jaiabot-dir "${PWD}" --yes "${JAIA_CI_FLEET}"
+              --aws-profile OIDC-User --jaiabot-dir "${PWD}" --yes \
+              --customer "${JAIA_CI_CUSTOMER}" "${JAIA_CI_FLEET}"
             rootfs/cloud/aws/circleci/delete-ci-bucket.sh "${JAIA_CI_FLEET}"
           no_output_timeout: 30m
       - store_test_results:

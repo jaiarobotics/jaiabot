@@ -55,7 +55,8 @@ fleets=$(
         add // [] | map(
             (map(select(.Key == "jaia_fleet")) | .[0].Value // empty) as $fleet |
             (map(select(.Key == "jaia_created_unixtime")) | .[0].Value // "0") as $created |
-            select($fleet != null) | "\($fleet) \($created)"
+            (map(select(.Key == "jaia_customer")) | .[0].Value // "") as $customer |
+            select($fleet != null) | "\($fleet) \($created) \($customer)"
         ) | unique | .[]'
 )
 
@@ -66,7 +67,7 @@ fi
 
 reaped=0
 failed=0
-while read -r fleet created; do
+while read -r fleet created customer; do
     [[ -n "$fleet" ]] || continue
 
     # An untagged creation time means the fleet predates the tag; treat it as old enough
@@ -87,7 +88,7 @@ while read -r fleet created; do
         continue
     fi
 
-    if "${SCRIPT_PATH}/delete_vpc.sh" --yes "$fleet" \
+    if "${SCRIPT_PATH}/delete_vpc.sh" --yes --customer "$customer" "$fleet" \
        && "${SCRIPT_PATH}/circleci/delete-ci-bucket.sh" --customer-prefix "$CUSTOMER_PREFIX" "$fleet"; then
         reaped=$(( reaped + 1 ))
     else

@@ -83,6 +83,7 @@ def main():
     parser.add_argument('--aws-profile', type=str, help="AWS profile to authenticate with (default: $AWS_PROFILE, otherwise a per-region default). Pass an empty string to use credentials from the environment instead.")
     parser.add_argument('--yes', '-y', help="Do not ask for confirmation", action="store_true")
     parser.add_argument('--keep-iam', help="Leave the CloudHub's IAM role and instance profile in place", action="store_true")
+    parser.add_argument('--customer', type=str, help="Only delete this fleet if it carries this jaia_customer tag")
     parser.add_argument('--jaiabot-dir', type=str, help="Path to the JaiaBot checkout holding rootfs/cloud/aws (default: the checkout this script is in)")
     args = parser.parse_args()
 
@@ -108,6 +109,8 @@ def main():
         command.append('--yes')
     if args.keep_iam:
         command.append('--keep-iam')
+    if args.customer:
+        command += ['--customer', args.customer]
     command.append(str(args.fleetid))
 
     # a teardown that failed halfway must not report success, or its leak goes unnoticed

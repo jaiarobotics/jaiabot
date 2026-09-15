@@ -8,6 +8,9 @@ Usage: $0 [options] <fleet ID>
 
   --yes                 Do not ask for confirmation (for unattended use)
   --keep-iam            Leave the CloudHub's IAM role and instance profile in place
+  --customer <name>     Only delete this fleet if it carries this jaia_customer tag.
+                        A fleet ID is reused, so an unattended teardown that names the
+                        fleet alone will happily delete whatever is using it now.
 
 The CloudHub's data bucket is never deleted: its logs outlive the fleet that wrote
 them. Remove one deliberately with 'aws s3 rb --force' when that is really wanted.
@@ -19,12 +22,14 @@ set -u
 
 ASSUME_YES=false
 KEEP_IAM=false
+CUSTOMER=""
 FLEET_TAG_VALUE=""
 
 while (( $# > 0 )); do
     case "$1" in
         --yes) ASSUME_YES=true; shift ;;
         --keep-iam) KEEP_IAM=true; shift ;;
+        --customer) CUSTOMER="${2:-}"; shift 2 ;;
         -h|--help) usage ;;
         -*) echo "Unknown option: $1"; usage ;;
         *) [[ -z "$FLEET_TAG_VALUE" ]] || usage; FLEET_TAG_VALUE="$1"; shift ;;
@@ -80,6 +85,21 @@ if [ "$ASSUME_YES" = "false" ]; then
         echo "❌ Fleet number mismatch. Aborting."
         exit 1
     fi
+fi
+
+if [ -n "$CUSTOMER" ]; then
+    owners=$( { aws ec2 describe-vpcs --filters "Name=tag:jaia_fleet,Values=$FLEET_TAG_VALUE" \
+                    --query "Vpcs[].Tags[?Key=='jaia_customer'].Value" --output text
+                aws ec2 describe-instances --filters "Name=tag:jaia_fleet,Values=$FLEET_TAG_VALUE" \
+                    "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+                    --query "Reservations[].Instances[].Tags[?Key=='jaia_customer'].Value" --output text
+              } | tr '\t' '\n' | sort -u | grep -v '^$' || true)
+    for owner in $owners; do
+        if [ "$owner" != "$CUSTOMER" ]; then
+            echo "❌ Fleet $FLEET_TAG_VALUE belongs to $owner, not $CUSTOMER. Refusing to delete it." >&2
+            exit 1
+        fi
+    done
 fi
 
 echo "✅ Proceeding with cleanup of jaia_fleet=$FLEET_TAG_VALUE..."
