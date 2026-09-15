@@ -418,6 +418,7 @@ run "" aws ec2 create-tags --resources "$VPC_ID" \
     --tags \
     "Key=jaia_customer,Value=${JAIA_CUSTOMER_NAME}" \
     "Key=jaia_fleet,Value=${FLEET_ID}" \
+    "Key=jaia_created_unixtime,Value=$(date -u +%s)" \
     "Key=jaiabot-rootfs-gen_repository,Value=${REPO}" \
     "Key=jaiabot-rootfs-gen_repository_version,Value=${REPO_VERSION}"
 
