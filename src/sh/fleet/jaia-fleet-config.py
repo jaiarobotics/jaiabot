@@ -635,10 +635,18 @@ def find_bootdir(label):
 
 
 def jaia_ip(query_type, node_type, fleet, node_id=None):
-    cmd = ["jaia_ip", "--query_type", query_type, "--node_type", node_type, "--ip_net", "wlan",
-           "--fleet_id", str(fleet)]
-    if node_id is not None:
-        cmd += ["--node_id", str(node_id)]
+    if shutil.which("jaia_ip"):
+        cmd = ["jaia_ip", "--query_type", query_type, "--node_type", node_type, "--ip_net", "wlan",
+               "--fleet_id", str(fleet)]
+        if node_id is not None:
+            cmd += ["--node_id", str(node_id)]
+    else:
+        # 2.y has no jaia_ip (the major upgrade runs this tool there), and its fleets are IPv4
+        cmd = ["jaia-ip.py", query_type, "--net", "wlan", "--fleet_id", str(fleet), "--ipv4"]
+        if node_type is not None:
+            cmd += ["--node", node_type]
+        if node_id is not None:
+            cmd += ["--node_id", str(node_id)]
     return subprocess.run(cmd, capture_output=True, text=True, check=True).stdout.strip()
 
 

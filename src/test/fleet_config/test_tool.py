@@ -296,6 +296,26 @@ class CommandTest(unittest.TestCase):
         self.assertIn("- path: /etc/jaiabot/ssh/jaia_authorized_keys\n    content: |\n", preseed)
         yaml.safe_load(preseed)
 
+    @needs_render_deps
+    def test_generate_without_jaia_ip_uses_the_2y_tool(self):
+        fake_bin = os.path.join(self.env.dir, "bin")
+        os.remove(os.path.join(fake_bin, "jaia_ip"))
+        calls = os.path.join(self.env.dir, "calls")
+        name = "jaia-ip.py"
+        with open(os.path.join(fake_bin, name), "w") as f:
+            f.write('#!/bin/sh\necho "{} $*" >> {}\ncase "$*" in *gateway*) echo 10.23.7.1 ;; *) echo 10.23.7.11 ;; esac\n'.format(name, calls))
+        os.chmod(os.path.join(fake_bin, name), 0o755)
+        self.env.env["PATH"] = fake_bin + os.pathsep + "/usr/bin:/bin"
+        if shutil.which("jaia_ip", path=self.env.env["PATH"]):
+            self.skipTest("jaia_ip is installed in /usr/bin")
+        bootdir = self.env.bootdir()
+        result = self.env.run("generate", fixture("v1_fleet7.cfg"), "--bootdir", bootdir, "hub", "1")
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        with open(calls) as f:
+            self.assertEqual(f.read().splitlines(),
+                             ["jaia-ip.py addr --net wlan --fleet_id 7 --ipv4 --node hub --node_id 1",
+                              "jaia-ip.py addr --net wlan --fleet_id 7 --ipv4 --node gateway"])
+
     def test_generate_refuses_invalid_config_before_writing(self):
         bootdir = self.env.bootdir()
         result = self.env.run("generate", fixture("v1_bad_values.cfg"), "--bootdir", bootdir, "bot", "1")
