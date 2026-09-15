@@ -112,18 +112,11 @@ def liveness_checks(status, metadata, expected_bots, expected_version=None):
 def execution_checks(observations, expected_bots, expected_dives, goals_by_bot,
                      position_tolerance_m):
     checks = []
+    # What the bot did is judged by whether the mission ran to recovery and by the task
+    # packets it sent, not by which states a 5-second poll happened to catch. A state the
+    # bot passes through quickly - reacquiring GPS, a powered descent under warp - is
+    # routinely missed, and asserting on that reddens runs that dived perfectly well.
     for bot_id in expected_bots:
-        # How many dives happened is asserted from the task packets in the content tier.
-        # This is a poll trace, so a state the bot passes through quickly - a powered
-        # descent under warp - is often not sampled, and counting samples would fail a
-        # run that dived perfectly well.
-        unseen = [s for s in DIVE_STATES if not observations.saw(bot_id, s)]
-        seen = ', '.join(f'{s.rsplit("__", 1)[-1]}={observations.states[bot_id][s]}'
-                         for s in DIVE_STATES)
-        checks.append(Check(EXECUTION, f'bot {bot_id} dived through every state',
-                            not unseen,
-                            f'never observed {", ".join(s.rsplit("__", 1)[-1] for s in unseen)}'
-                            f' ({seen})' if unseen else seen))
         checks.append(Check(EXECUTION, f'bot {bot_id} never aborted',
                             not observations.saw(bot_id, ABORT),
                             'entered ABORT' if observations.saw(bot_id, ABORT) else 'no abort'))

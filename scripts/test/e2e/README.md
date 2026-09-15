@@ -52,18 +52,19 @@ Checks are grouped so that a failure names the layer at fault rather than just t
 | Tier | Asks |
 |------|------|
 | `liveness` | Did every bot and the hub report, healthy, at the expected version? |
-| `execution` | Did each bot complete its dive cycles, avoid aborting, and stop at its last goal? |
+| `execution` | Did each bot run to recovery without aborting or failing, and stop near its last goal? |
 | `offload` | Did each bot pass through `DATA_OFFLOAD` and reach `POST_DEPLOYMENT__IDLE`? |
 | `content` | Do the task packets hold the dives — commanded depth, populated measurements, a paired drift of the commanded duration? |
 
 `summary.json` reports `first_failing_tier`, which is the fastest way to tell "AWS was
 slow" from "the dive controller regressed".
 
-How many dives happened is asserted from the task packets, not from the poll trace. The
-trace is a sample: a state the bot passes through quickly - a powered descent under warp
-- is often not caught, so counting samples would fail a run that dived perfectly well.
-Execution therefore asserts that each dive state was reached at all, and content counts
-the dives.
+What a bot did is judged by whether its mission ran to recovery and by the task packets
+it sent, never by which states a poll happened to catch. The trace is a sample: a bot
+reacquiring GPS, or descending under warp, is routinely missed between polls, so
+asserting on it reddens runs that dived perfectly well. The trace is still logged, and
+still names the fault when a bot does fail - it just does not decide whether the run
+passed.
 
 Alongside `junit.xml` the driver writes `task_packets.kmz` and `task_packets.csv`, so a
 bad run can be opened on a chart rather than read as a stack trace.
