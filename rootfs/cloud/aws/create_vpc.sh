@@ -69,6 +69,19 @@ set -a
 source $1
 set +a
 
+# Optional settings, absent from configs written before they existed
+OUTPUT_JSON=${OUTPUT_JSON:-}
+WAIT_TIMEOUT_SECONDS=${WAIT_TIMEOUT_SECONDS:-1800}
+
+# An unattended run has to fail rather than hang, so every wait below is bounded
+function abort_if_timed_out() {
+    # $1: deadline, $2: what is being waited for
+    if (( SECONDS > $1 )); then
+        echo ">>>>>> Timed out after ${WAIT_TIMEOUT_SECONDS}s waiting for $2" >&2
+        exit 1
+    fi
+}
+
 source ${SCRIPT_PATH}/../../../scripts/common-versions.env
 REPO_VERSION=${jaia_version_release_branch}
 
@@ -97,12 +110,11 @@ CLIENT_VPN_WIREGUARD_PUBKEY=$(echo $CLIENT_VPN_WIREGUARD_PRIVATEKEY | wg pubkey)
 
 export AWS_DEFAULT_REGION=$REGION
 
-aws configure list-profiles | grep -q $AWS_PROFILE || (
-    echo -e "ERROR: Failed to find required AWS profile \033[1m${AWS_PROFILE}\033[0m. Add this profile to \033[1m$HOME/.aws/credentials\033[0m using the instructions at https://docs.aws.amazon.com/cli/latest/userguide/cli-authentication-user.html. Your user must also be in the JaiaCloudCreation IAM group."
-    exit 1)
-
-
-ACCOUNT_ID=$(run ".Account" aws sts get-caller-identity)
+# Checking the credentials rather than a named profile: CI authenticates with OIDC or with the environment
+if ! ACCOUNT_ID=$(run ".Account" aws sts get-caller-identity); then
+    echo -e "ERROR: no usable AWS credentials for region \033[1m${REGION}\033[0m. Add a profile to \033[1m$HOME/.aws/credentials\033[0m using the instructions at https://docs.aws.amazon.com/cli/latest/userguide/cli-authentication-user.html and select it with AWS_PROFILE, or set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY. Your identity must also hold the JaiaCloudCreation permissions."
+    exit 1
+fi
 
 ARN_PREFIX="arn:aws"
 if [[ $REGION == *"us-gov"* ]]; then
@@ -368,7 +380,9 @@ echo ">>>>>> EC2 Instance launched successfully with ID: $INSTANCE_ID"
 
 # Wait for the instance to be in a running state
 echo ">>>>>> Waiting for instance to be in 'running' state..."
+deadline=$((SECONDS + WAIT_TIMEOUT_SECONDS))
 while state=$(run '.Reservations[].Instances[].State.Name' aws ec2 describe-instances --instance-ids $INSTANCE_ID); [ "$state" != "running" ]; do
+  abort_if_timed_out $deadline "instance ${INSTANCE_ID} to reach the running state"
   exit_if_interrupted
   sleep 5
   echo ">>>>>> Instance state: $state"
@@ -421,16 +435,20 @@ SSH_OPTS=(-o ConnectTimeout=10 -o PasswordAuthentication=No -o StrictHostKeyChec
 
 # Wait to get public key
 echo ">>>>>> Waiting for server to startup and first-boot configure to get Wireguard public key";
+deadline=$((SECONDS + WAIT_TIMEOUT_SECONDS))
 while SERVER_WIREGUARD_PUBKEY=$(ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo cat /etc/wireguard/publickey" || echo Fail); [ "${SERVER_WIREGUARD_PUBKEY}" == "Fail" ]; do
     echo ">>>>>> Please keep waiting (Connection refused and Permission denied are *expected* for a while...)";
+    abort_if_timed_out $deadline "the CloudHub to finish first boot and publish its Wireguard public key"
     exit_if_interrupted
     sleep 5
 done
 
 echo ">>>>>> Server Wireguard Pubkey: ${SERVER_WIREGUARD_PUBKEY}"
 
+deadline=$((SECONDS + WAIT_TIMEOUT_SECONDS))
 while ! ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "mount | grep -q overlayroot"; do
     echo ">>>>>> Nearly there... please keep waiting (Connection refused and Permission denied are *expected* for a while...)";
+    abort_if_timed_out $deadline "the CloudHub to reboot onto its overlay root"
     exit_if_interrupted
     sleep 5
 done
@@ -445,6 +463,34 @@ exit_if_interrupted
 # CloudHub is fully set up in AWS; failures after this point only affect local client configuration
 ROLLBACK_ARMED=false
 trap - INT TERM
+
+if [[ -n "$OUTPUT_JSON" ]]; then
+    jq -n \
+       --arg region "$REGION" \
+       --arg availability_zone "$AVAILABILITY_ZONE" \
+       --arg fleet_id "$FLEET_ID" \
+       --arg customer "$JAIA_CUSTOMER_NAME" \
+       --arg repo "$REPO" \
+       --arg repo_version "$REPO_VERSION" \
+       --arg ami_id "$AMI_ID" \
+       --arg instance_id "$INSTANCE_ID" \
+       --arg vpc_id "$VPC_ID" \
+       --arg cloudhub_subnet_id "$SUBNET_CLOUDHUB_ID" \
+       --arg virtualfleet_subnet_id "$SUBNET_VIRTUALFLEET_WLAN_ID" \
+       --arg cloudhub_security_group_id "$CLOUDHUB_SECURITY_GROUP_ID" \
+       --arg virtualfleet_security_group_id "$VIRTUALFLEET_SECURITY_GROUP_ID" \
+       --arg internet_gateway_id "$INTERNET_GATEWAY_ID" \
+       --arg route_table_id "$ROUTE_TABLE_ID" \
+       --arg eip_allocation_id "$EIP_ALLOCATION_ID" \
+       --arg public_ipv4_address "$PUBLIC_IPV4_ADDRESS" \
+       --arg cloudhub_vpn_server_ipv6 "$CLOUDHUB_VPN_SERVER_IPV6" \
+       --arg virtualfleet_vpn_server_ipv6 "$VIRTUALFLEET_VPN_SERVER_IPV6" \
+       --arg data_bucket "$CLOUDHUB_DATA_BUCKET" \
+       --arg iam_role_name "$role_name" \
+       --arg instance_profile_name "$instance_profile_name" \
+       '$ARGS.named' > "$OUTPUT_JSON"
+    echo ">>>>>> Wrote the created resource IDs to ${OUTPUT_JSON}"
+fi
 
 VFLEET_VPN=wg_jaia_vf${FLEET_ID}
 CLOUD_VPN=wg_jaia_ch${FLEET_ID}
@@ -513,9 +559,11 @@ if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
     echo ">>>>>> Enabled VPNs:"
     sudo wg show ${VFLEET_VPN}
     sudo wg show ${CLOUD_VPN}
+    deadline=$((SECONDS + WAIT_TIMEOUT_SECONDS))
     while ! ping6 -c 1 "${CLOUDHUB_VPN_SERVER_IPV6}" &> /dev/null
     do
         echo ">>>>>> Waiting for CloudHub (${CLOUDHUB_VPN_SERVER_IPV6}) to respond (this may take several minutes)..."
+        abort_if_timed_out $deadline "the CloudHub to answer over the ${CLOUD_VPN} tunnel"
         sleep 1
     done
     echo ">>>>>> Ping successful!"   
