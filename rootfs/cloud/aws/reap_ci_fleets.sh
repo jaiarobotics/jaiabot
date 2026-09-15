@@ -83,11 +83,12 @@ while read -r fleet created; do
     fi
 
     if [[ "$DRY_RUN" == "true" ]]; then
-        echo ">>>>>> (dry run) would run delete_vpc.sh --yes --delete-bucket ${fleet}"
+        echo ">>>>>> (dry run) would delete fleet ${fleet} and its bucket"
         continue
     fi
 
-    if "${SCRIPT_PATH}/delete_vpc.sh" --yes --delete-bucket "$fleet"; then
+    if "${SCRIPT_PATH}/delete_vpc.sh" --yes "$fleet" \
+       && "${SCRIPT_PATH}/circleci/delete-ci-bucket.sh" --customer-prefix "$CUSTOMER_PREFIX" "$fleet"; then
         reaped=$(( reaped + 1 ))
     else
         echo "⚠️  Reaping fleet ${fleet} did not complete" >&2

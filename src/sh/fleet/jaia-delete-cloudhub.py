@@ -82,7 +82,6 @@ def main():
     parser.add_argument('--govcloud', help=f"Shorthand for --region {GOVCLOUD_REGION}", action="store_true")
     parser.add_argument('--aws-profile', type=str, help="AWS profile to authenticate with (default: $AWS_PROFILE, otherwise a per-region default). Pass an empty string to use credentials from the environment instead.")
     parser.add_argument('--yes', '-y', help="Do not ask for confirmation", action="store_true")
-    parser.add_argument('--delete-bucket', help="Also delete the CloudHub data bucket and everything in it", action="store_true")
     parser.add_argument('--keep-iam', help="Leave the CloudHub's IAM role and instance profile in place", action="store_true")
     parser.add_argument('--jaiabot-dir', type=str, help="Path to the JaiaBot checkout holding rootfs/cloud/aws (default: the checkout this script is in)")
     args = parser.parse_args()
@@ -107,8 +106,6 @@ def main():
     command = ['./delete_vpc.sh']
     if args.yes:
         command.append('--yes')
-    if args.delete_bucket:
-        command.append('--delete-bucket')
     if args.keep_iam:
         command.append('--keep-iam')
     command.append(str(args.fleetid))

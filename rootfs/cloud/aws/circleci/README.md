@@ -35,6 +35,19 @@ mean private keys checked into the repository, so CI writes one per run:
 It generates the hub keys and, unless given `--authorized-key`, the runner's own key, so
 the fleet is reachable only by the run that created it and the keys go away with it.
 
+## Deleting the bucket
+
+`delete_vpc.sh` never deletes a CloudHub's data bucket: a fleet's logs normally outlive
+the fleet that wrote them. A CI fleet's do not, so its teardown deletes the bucket in a
+separate step:
+
+```
+./delete-ci-bucket.sh 9
+```
+
+It refuses any bucket whose `jaia_customer` tag does not mark it as CI's, so the same
+command pointed at a customer fleet's number does nothing.
+
 ## Why it is scoped the way it is
 
 Sea trials share an account with customer fleets, so the region is the boundary:

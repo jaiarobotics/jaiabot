@@ -7,9 +7,10 @@ usage() {
 Usage: $0 [options] <fleet ID>
 
   --yes                 Do not ask for confirmation (for unattended use)
-  --delete-bucket       Also delete the CloudHub data bucket and everything in it
-  --bucket <name>       Bucket to delete (default: jaia--cloudhub-data--fleet<fleet ID>)
   --keep-iam            Leave the CloudHub's IAM role and instance profile in place
+
+The CloudHub's data bucket is never deleted: its logs outlive the fleet that wrote
+them. Remove one deliberately with 'aws s3 rb --force' when that is really wanted.
 EOF
     exit 1
 }
@@ -17,16 +18,12 @@ EOF
 set -u
 
 ASSUME_YES=false
-DELETE_BUCKET=false
 KEEP_IAM=false
-BUCKET=""
 FLEET_TAG_VALUE=""
 
 while (( $# > 0 )); do
     case "$1" in
         --yes) ASSUME_YES=true; shift ;;
-        --delete-bucket) DELETE_BUCKET=true; shift ;;
-        --bucket) BUCKET="${2:-}"; shift 2 ;;
         --keep-iam) KEEP_IAM=true; shift ;;
         -h|--help) usage ;;
         -*) echo "Unknown option: $1"; usage ;;
@@ -35,7 +32,6 @@ while (( $# > 0 )); do
 done
 
 [[ -n "$FLEET_TAG_VALUE" ]] || usage
-BUCKET="${BUCKET:-jaia--cloudhub-data--fleet${FLEET_TAG_VALUE}}"
 
 # Partial creates leave some resources and not others, so a step that finds nothing to
 # do must not stop the ones after it; failures are collected and reported at the end
@@ -75,9 +71,6 @@ echo "  - Disassociating and releasing Elastic IPs"
 echo "  - Deleting VPC and all associated resources (subnets, route tables, security groups, internet gateways)"
 if [ "$KEEP_IAM" = "false" ]; then
     echo "  - Deleting the CloudHub IAM role and instance profile for fleet $FLEET_TAG_VALUE"
-fi
-if [ "$DELETE_BUCKET" = "true" ]; then
-    echo -e "  - \033[1mDeleting bucket $BUCKET and every object in it\033[0m"
 fi
 echo "This action is irreversible!"
 
@@ -195,14 +188,6 @@ if [ "$KEEP_IAM" = "false" ]; then
         echo "Deleting role $role_name..."
         aws iam delete-role-policy --role-name "$role_name" --policy-name "$policy_name" > /dev/null 2>&1
         attempt "delete role $role_name" aws iam delete-role --role-name "$role_name"
-    fi
-fi
-
-if [ "$DELETE_BUCKET" = "true" ]; then
-    if exists "bucket $BUCKET" aws s3api head-bucket --bucket "$BUCKET"; then
-        echo "Emptying and deleting bucket $BUCKET..."
-        attempt "empty bucket $BUCKET" aws s3 rm "s3://${BUCKET}" --recursive --only-show-errors \
-            && attempt "delete bucket $BUCKET" aws s3api delete-bucket --bucket "$BUCKET"
     fi
 fi
 
