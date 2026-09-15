@@ -25,9 +25,14 @@ class FakeTransport:
         return response if isinstance(response, tuple) else (200, json.dumps(response))
 
 
-def bot(bot_id, state, lat=41.66, lon=-71.27, health='HEALTH__OK'):
-    return {'bot_id': bot_id, 'mission_state': state, 'health_state': health,
-            'location': {'lat': lat, 'lon': lon}}
+def bot(bot_id, state, lat=41.66, lon=-71.27, health='HEALTH__OK', errors=(), warnings=()):
+    status = {'bot_id': bot_id, 'mission_state': state, 'health_state': health,
+              'location': {'lat': lat, 'lon': lon}}
+    if errors:
+        status['error'] = list(errors)
+    if warnings:
+        status['warning'] = list(warnings)
+    return status
 
 
 def dive_packet(bot_id, depth=8.0, drift_duration=45, measurements=(1.0, 2.0, 3.0)):
@@ -171,6 +176,29 @@ class CheckTest(unittest.TestCase):
         missing = [c for c in result if c.name == 'all bots report status'][0]
         self.assertFalse(missing.passed)
         self.assertIn('[2]', missing.detail)
+
+    def test_liveness_names_the_errors_a_bot_reports(self):
+        status = {'bots': [bot(1, checks.READY, errors=['ERROR__FAILED__GPS_NOT_LOCKED'])],
+                  'hubs': [{}]}
+        check = [c for c in checks.liveness_checks(status, {}, [1]) if 'health' in c.name][0]
+        self.assertFalse(check.passed)
+        self.assertIn('ERROR__FAILED__GPS_NOT_LOCKED', check.detail)
+
+    def test_execution_says_what_the_fault_was(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, 'PRE_DEPLOYMENT__FAILED',
+                                          errors=['ERROR__FAILED__GPS_NOT_LOCKED'])]})
+        result = checks.execution_checks(observations, [1], 0, {}, 25)
+        check = [c for c in result if 'no failed state' in c.name][0]
+        self.assertFalse(check.passed)
+        self.assertIn('ERROR__FAILED__GPS_NOT_LOCKED', check.detail)
+
+    def test_execution_says_so_when_no_fault_was_reported(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, 'PRE_DEPLOYMENT__FAILED')]})
+        result = checks.execution_checks(observations, [1], 0, {}, 25)
+        check = [c for c in result if 'no failed state' in c.name][0]
+        self.assertIn('no fault reported', check.detail)
 
     def test_liveness_flags_a_failed_bot(self):
         status = {'bots': [bot(1, checks.READY, health='HEALTH__FAILED')], 'hubs': [{}]}

@@ -141,5 +141,10 @@ def bot_status(status, bot_id):
     return None
 
 
+def bot_faults(bot):
+    """What a bot says is wrong with it, as BotStatus reports it."""
+    return list((bot or {}).get('error', [])), list((bot or {}).get('warning', []))
+
+
 def bot_ids(status):
     return sorted(bot['bot_id'] for bot in bot_statuses(status) if 'bot_id' in bot)

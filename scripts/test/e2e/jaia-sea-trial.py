@@ -77,13 +77,19 @@ class SeaTrial:
             'hub_location': {'lat': self.args.lat, 'lon': self.args.lon}})
 
     def activate(self, bot_id):
+        def describe(bot_id):
+            bot = api.bot_status(self.last_status, bot_id) or {}
+            errors, warnings = api.bot_faults(bot)
+            faults = ', '.join(errors or warnings)
+            return bot.get('mission_state', '?') + (f' [{faults}]' if faults else '')
+
         def commandable():
             commandable.state = (api.bot_status(self.poll(), bot_id) or {}).get('mission_state', '')
             return commandable.state in ACTIVATABLE
         commandable.state = ''
         wait_for(commandable, self.args.api_timeout,
                  f'bot {bot_id} to accept commands', self.args.poll_interval,
-                 progress=lambda: commandable.state)
+                 progress=lambda: describe(bot_id))
 
         start = api.bot_status(self.last_status, bot_id)
         if not start or 'location' not in start:
@@ -93,7 +99,7 @@ class SeaTrial:
             wait_for(lambda: (api.bot_status(self.poll(), bot_id) or {})
                      .get('mission_state') == WAIT_FOR_PLAN,
                      self.args.api_timeout, f'bot {bot_id} to finish its self test',
-                     self.args.poll_interval)
+                     self.args.poll_interval, progress=lambda: describe(bot_id))
         return start
 
     def send_missions(self, bots):

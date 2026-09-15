@@ -44,6 +44,8 @@ class Observations:
         self.transitions = collections.defaultdict(list)
         self.last_location = {}
         self.health = collections.defaultdict(set)
+        self.errors = collections.defaultdict(set)
+        self.warnings = collections.defaultdict(set)
         self.hub_offload_percentage = {}
 
     def ingest(self, status):
@@ -60,6 +62,9 @@ class Observations:
                 self.last_location[bot_id] = (bot['location']['lat'], bot['location']['lon'])
             if bot.get('health_state'):
                 self.health[bot_id].add(bot['health_state'])
+            errors, warnings = api.bot_faults(bot)
+            self.errors[bot_id].update(errors)
+            self.warnings[bot_id].update(warnings)
         for hub in api.hub_statuses(status):
             percentage = hub.get('bot_offload', {}).get('data_offload_percentage')
             if percentage is not None:
@@ -87,8 +92,14 @@ def liveness_checks(status, metadata, expected_bots, expected_version=None):
                         f'{len(api.hub_statuses(status))} hub(s)'))
     for bot in api.bot_statuses(status):
         health = bot.get('health_state', '')
-        checks.append(Check(LIVENESS, f'bot {bot["bot_id"]} health', health != 'HEALTH__FAILED',
-                            health or '(none reported)'))
+        errors, warnings = api.bot_faults(bot)
+        detail = health or '(none reported)'
+        if errors:
+            detail += f'; errors: {", ".join(errors)}'
+        if warnings:
+            detail += f'; warnings: {", ".join(warnings)}'
+        checks.append(Check(LIVENESS, f'bot {bot["bot_id"]} health',
+                            health != 'HEALTH__FAILED' and not errors, detail))
     if expected_version:
         for hub in metadata.get('hubs', []):
             reported = hub.get('jaiabot_version', {}).get('full_version', '')
@@ -120,8 +131,12 @@ def execution_checks(observations, expected_bots, expected_dives, goals_by_bot,
         # redden two tiers for one fault and hide which layer actually broke
         failed = sorted(s for s in observations.states[bot_id]
                         if s.endswith('__FAILED') and not s.startswith('POST_DEPLOYMENT__'))
+        # a state name alone does not say what went wrong, and that is the first thing
+        # anyone reading a red run wants to know
+        faults = sorted(observations.errors[bot_id]) or sorted(observations.warnings[bot_id])
         checks.append(Check(EXECUTION, f'bot {bot_id} entered no failed state', not failed,
-                            ', '.join(failed) if failed else 'none'))
+                            f'{", ".join(failed)} ({", ".join(faults) or "no fault reported"})'
+                            if failed else 'none'))
         checks.append(Check(EXECUTION, f'bot {bot_id} reached recovery',
                             observations.reached_recovery(bot_id),
                             'recovered' if observations.reached_recovery(bot_id)
