@@ -115,8 +115,22 @@ the CloudHub reaches the VirtualFleet, so the journals are pulled from there:
 
 It resolves each node with `jaia_ip` and dumps the units that decide a bot's health -
 `goby_coroner` judges whether every app is alive, `jaiabot_health` turns that into the
-report `jaiabot_mission_manager` self-tests against. CI runs it before teardown, under
-`when: always`, so a failed run still yields them.
+report `jaiabot_mission_manager` self-tests against.
+
+The journals only carry what those apps chose to print at `WARN`. The report itself is
+logged as a message, so it can be read back in full:
+
+```
+goby log convert --input_file bot1_fleet9_20260915T230500.goby \
+    --output_file bot1-health.txt --format DEBUG_TEXT \
+    --type_regex '.*VehicleHealth' --load_shared_library libjaiabot_messages.so.1
+```
+
+That is what recovers a fault which has already cleared by the time anything polls
+`BotStatus`. A bot keeps its own log until the offload moves it to the hub, so the
+script tries the bot first and falls back to the hub's `bot_offload` copy.
+
+CI runs all of this before teardown, under `when: always`, so a failed run still yields it.
 
 ## Deleting the bucket
 
