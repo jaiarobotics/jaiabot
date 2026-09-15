@@ -655,6 +655,10 @@ jobs:
             # jaiabot-python's postinst pip-installs pyjaia, so this step needs PyPI
             sudo apt-get install -y jaiabot-apps jaiabot-python wireguard wireguard-tools \
               cloud-init ansible jq rsync
+            # the images point python3 at pyenv, which cannot see the protobuf bindings
+            # these packages install for the system interpreter
+            if command -v pyenv > /dev/null; then pyenv global system; fi
+            python3 -c "import sys; from google.protobuf import text_format; print('protobuf bindings visible to', sys.executable)"
       - run:
           name: Reap any CI fleet a killed build left behind
           command: rootfs/cloud/aws/reap_ci_fleets.sh --max-age-hours 4
