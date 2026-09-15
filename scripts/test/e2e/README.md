@@ -67,10 +67,11 @@ that dived perfectly well. The trace is still logged, and
 still names the fault when a bot does fail - it just does not decide whether the run
 passed.
 
-The offload tier needs `--offload-dir` to see those logs, so it only makes that check
-where the trial runs somewhere that can reach the hub's `bot_offload` directory - CI
-drives the trial from the CloudHub itself for exactly this reason. Without it the tier
-falls back to the terminal state alone.
+The offload tier needs `--offload-dir` to see those logs, and `--offload-host` when the
+hub that ran the offload is not the machine driving the trial - on a VirtualFleet the
+logs stay on the VirtualHub while the trial runs from the CloudHub. Without
+`--offload-dir` the tier falls back to the terminal state alone; with it, a directory
+it cannot read fails the tier rather than quietly weakening it.
 
 Alongside `junit.xml` the driver writes `task_packets.kmz` and `task_packets.csv`, so a
 bad run can be opened on a chart rather than read as a stack trace.

@@ -739,15 +739,23 @@ jobs:
           name: Send the fleet on its dive mission
           command: |
             CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
-            # driven from the CloudHub, which already reaches the VirtualFleet and holds
-            # the offloaded logs locally
+            # driven from the CloudHub, which is what reaches the VirtualFleet; the
+            # offloaded logs stay on the VirtualHub that pulled them, so the offload
+            # check reads that directory over ssh rather than this machine's own
             rsync -a -e "ssh -o StrictHostKeyChecking=no" scripts/test/e2e/ jaia@${CLOUDHUB}:/tmp/e2e/
+            # the CloudHub's ssh config keys the VirtualFleet identity off the VPN
+            # address range, so the offload check has to address the hub by address
+            HUB_ADDR=$(ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
+              "jaia_ip --query_type addr --node_type hub --ip_net vfleet_vpn \
+                 --fleet_id ${JAIA_CI_FLEET} --node_id 1")
+            echo "VirtualHub 1 is at ${HUB_ADDR}"
             ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
               "python3 /tmp/e2e/jaia-sea-trial.py \
                  --hub-url http://hub1-virtualfleet${JAIA_CI_FLEET} \
                  --bots << pipeline.parameters.sea-trial-bots >> \
                  --goals << pipeline.parameters.sea-trial-goals >> \
                  --warp << pipeline.parameters.sea-trial-warp >> \
+                 --offload-host jaia@${HUB_ADDR} \
                  --offload-dir /var/log/jaiabot/bot_offload \
                  --output-dir /tmp/sea-trial"
           no_output_timeout: 60m

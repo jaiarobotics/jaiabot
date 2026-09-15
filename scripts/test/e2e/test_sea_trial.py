@@ -4,9 +4,11 @@
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -172,6 +174,42 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         self.assertEqual(summary['first_failing_tier'], checks.OFFLOAD)
         names = [f['name'] for f in summary['tiers'][checks.OFFLOAD]['failures']]
         self.assertEqual(names, ['bot 1 offloaded its data'])
+
+    def offline_trial(self, *extra):
+        args = sea_trial.parse_args(['--hub-url', 'http://hub', *extra])
+        trial = sea_trial.SeaTrial(sea_trial.api.HubApi('http://hub'), args)
+        trial.started_at = 1000.0
+        return trial
+
+    def test_the_offload_tier_reads_the_hub_that_ran_the_offload_over_ssh(self):
+        trial = self.offline_trial('--offload-dir', '/var/log/jaiabot/bot_offload',
+                                   '--offload-host', 'hub1-virtualfleet9')
+        listed = subprocess.CompletedProcess([], 0, stderr='', stdout=(
+            '1500.5 bot1_fleet9_20260915T210000.goby\n'
+            '900.0 bot1_fleet9_20260101T000000.goby\n'
+            '1600.0 bot2_fleet9_20260915T210000.h5\n'
+            '1600.0 bot2_fleet9_20260915T210000.txt\n'))
+        with unittest.mock.patch.object(sea_trial.subprocess, 'run',
+                                        return_value=listed) as run:
+            found = trial.offloaded_logs([1, 2])
+        command = run.call_args[0][0]
+        self.assertEqual(command[0], 'ssh')
+        self.assertIn('hub1-virtualfleet9', command)
+        self.assertIn('/var/log/jaiabot/bot_offload', command[-1])
+        # the .txt is not a log, and the 900.0 file predates the run
+        self.assertEqual(found, {1: ['bot1_fleet9_20260915T210000.goby'],
+                                 2: ['bot2_fleet9_20260915T210000.h5']})
+
+    def test_an_unreadable_offload_directory_fails_the_tier(self):
+        trial = self.offline_trial('--offload-dir', '/var/log/jaiabot/bot_offload',
+                                   '--offload-host', 'hub1-virtualfleet9')
+        refused = subprocess.CompletedProcess([], 255, stdout='',
+                                              stderr='ssh: Could not resolve hostname')
+        with unittest.mock.patch.object(sea_trial.subprocess, 'run', return_value=refused):
+            found = trial.offloaded_logs([1])
+        self.assertEqual(found, {})
+        result = checks.offload_checks(checks.Observations(), [1], found)
+        self.assertFalse([c for c in result if 'offloaded its data' in c.name][0].passed)
 
     def test_the_mission_plan_reaches_the_hub(self):
         hub = fake_hub.FakeHub(bots=1, dives_to_run=10)

@@ -10,6 +10,8 @@ import collections
 import glob
 import json
 import os
+import shlex
+import subprocess
 import sys
 import time
 
@@ -223,23 +225,52 @@ class SeaTrial:
             log(f'bot {bot_id}: {len(packets[bot_id])} task packets')
         return packets
 
+    def offload_listing(self):
+        """(mtime, name) per file in the hub's offload directory, which is on the hub
+        that ran the offload rather than wherever this trial is being driven from."""
+        pattern = 'bot*_fleet*_*'
+        if not self.args.offload_host:
+            return [(os.path.getmtime(path), os.path.basename(path))
+                    for path in glob.glob(os.path.join(self.args.offload_dir, pattern))]
+        find = (f'find {shlex.quote(self.args.offload_dir)} -maxdepth 1 '
+                f'-name {shlex.quote(pattern)} -printf "%T@ %f\\n"')
+        done = subprocess.run(['ssh', '-o', 'StrictHostKeyChecking=no',
+                               self.args.offload_host, find],
+                              capture_output=True, text=True)
+        if done.returncode != 0:
+            raise OSError(f'listing {self.args.offload_host}:{self.args.offload_dir} '
+                          f'failed: {done.stderr.strip()[:200]}')
+        listing = []
+        for line in done.stdout.splitlines():
+            stamp, _, name = line.partition(' ')
+            listing.append((float(stamp), name))
+        return listing
+
     def offloaded_logs(self, bots):
         """The log files the hub ended up holding, which is what an offload leaves
         behind; the DATA_OFFLOAD state can pass between two polls."""
         if not self.args.offload_dir:
             log('no --offload-dir given, so the offload tier judges by state alone')
             return None
+        where = (f'{self.args.offload_host}:' if self.args.offload_host else '') \
+            + self.args.offload_dir
+        try:
+            listing = self.offload_listing()
+        except OSError as e:
+            # not being able to look is not the same as looking and finding nothing,
+            # but neither one establishes that the data arrived
+            log(f'could not read {where}: {e}')
+            return {}
         found = {}
         for bot_id in bots:
-            paths = [path for suffix in ('goby', 'h5')
-                     for path in glob.glob(os.path.join(self.args.offload_dir,
-                                                        f'bot{bot_id}_fleet*_*.{suffix}'))]
-            found[bot_id] = sorted(p for p in paths
-                                   if os.path.getmtime(p) >= (self.started_at or 0))
-            stale = len(paths) - len(found[bot_id])
-            log(f'bot {bot_id}: {len(found[bot_id])} offloaded log files in '
-                f'{self.args.offload_dir}' + (f' ({stale} from before this run)'
-                                              if stale else ''))
+            mine = [(stamp, name) for stamp, name in listing
+                    if name.startswith(f'bot{bot_id}_fleet')
+                    and name.endswith(('.goby', '.h5'))]
+            found[bot_id] = sorted(name for stamp, name in mine
+                                   if stamp >= (self.started_at or 0))
+            stale = len(mine) - len(found[bot_id])
+            log(f'bot {bot_id}: {len(found[bot_id])} offloaded log files in {where}'
+                + (f' ({stale} from before this run)' if stale else ''))
         return found
 
     def evaluate(self, bots, packets):
@@ -301,6 +332,9 @@ def parse_args(argv):
     parser.add_argument('--api-timeout', type=float, default=300.0, metavar='S')
     parser.add_argument('--mission-timeout', type=float, default=3600.0, metavar='S')
     parser.add_argument('--offload-timeout', type=float, default=1200.0, metavar='S')
+    parser.add_argument('--offload-host', default='',
+                        help='ssh to this host to read --offload-dir, for when the hub '
+                             'that ran the offload is not this machine')
     parser.add_argument('--offload-dir', default='',
                         help="the hub's bot_offload directory, when the trial runs "
                              "somewhere that can see it (usually the hub itself); "
