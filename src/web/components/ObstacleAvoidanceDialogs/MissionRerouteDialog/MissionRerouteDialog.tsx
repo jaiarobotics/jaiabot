@@ -8,6 +8,7 @@ import {
 } from "../../../data/obstacle_avoidance_data/pending-route-data";
 import ObstacleAvoidanceBaseDialog from "../Common/ObstacleAvoidanceBaseDialog";
 import RerouteSummary from "../Common/RerouteSummary";
+import { describeRevert, dismissButtonLabel } from "../Common/revert-messaging";
 
 export default function MissionRerouteDialog({ pending }: { pending: PendingReroute }) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -36,9 +37,10 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
     const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_MISSION_REROUTE });
     const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_MISSION_REROUTE });
 
+    const revertDescription = describeRevert(pending.revert);
     const buttons = [
         {
-            label: isZoneLoad || isMissionLoad || !hasFeasibleReroute ? "Revert All" : "Revert",
+            label: dismissButtonLabel(pending.revert, !hasFeasibleReroute),
             onClick: handleCancel,
         },
     ];
@@ -124,6 +126,8 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
             {!isZoneLoad && !isMissionLoad && feasible.length === 0 && (
                 <p className="dialog-warn">None of the missions can be rerouted.</p>
             )}
+
+            {revertDescription && <p>Reverting will {revertDescription}.</p>}
 
             <RerouteSummary
                 proposals={pending.proposals}

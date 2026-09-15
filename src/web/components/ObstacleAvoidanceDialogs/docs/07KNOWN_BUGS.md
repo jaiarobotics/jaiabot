@@ -394,6 +394,12 @@ faithfully until this fix.
   reroute/waypoint-removal dialogs — there's nothing left to undo, since
   nothing is mutated until confirm and the load itself is intentionally
   out of scope for Cancel.
+- Both dialogs choose their dismissal button's label from `pending.revert`
+  rather than from where the dialog came from: an empty revert list means the
+  operator's own action already stands and only the proposal is being declined,
+  so the button reads "Cancel"; otherwise it reads "Revert"/"Revert All" and the
+  dialog names what will be undone. Keying off the revert list rather than
+  `loadSummary` also covers non-load producers that stage `revert: []`.
 - `RerouteSummary` gained a `showImpossible` prop (mirroring the existing
   `showOverLimit`), suppressed for mission-load in
   `MissionRerouteDialog.tsx` — needed because impossible mission-load

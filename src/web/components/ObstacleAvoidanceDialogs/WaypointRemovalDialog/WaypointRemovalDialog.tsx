@@ -8,6 +8,7 @@ import {
 } from "../../../data/obstacle_avoidance_data/pending-route-data";
 import ObstacleAvoidanceBaseDialog from "../Common/ObstacleAvoidanceBaseDialog";
 import RerouteSummary from "../Common/RerouteSummary";
+import { describeRevert, dismissButtonLabel } from "../Common/revert-messaging";
 
 /**
  * Shown when waypoints fall inside an exclusion zone. If the post-removal
@@ -31,9 +32,10 @@ export default function WaypointRemovalDialog({ pending }: { pending: PendingWay
     const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_WAYPOINT_REMOVAL });
     const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_WAYPOINT_REMOVAL });
 
+    const revertDescription = describeRevert(pending.revert);
     const buttons = [
         {
-            label: hasFollowUpReroute && !hasFeasibleFollowUp ? "Revert All" : "Revert",
+            label: dismissButtonLabel(pending.revert, hasFollowUpReroute && !hasFeasibleFollowUp),
             onClick: handleCancel,
         },
     ];
@@ -85,6 +87,8 @@ export default function WaypointRemovalDialog({ pending }: { pending: PendingWay
                     None of the remaining missions can be rerouted with the current zone layout.
                 </p>
             )}
+
+            {revertDescription && <p>Reverting will {revertDescription}.</p>}
 
             <RerouteSummary
                 proposals={reroute?.proposals ?? []}
