@@ -13,6 +13,7 @@ import {
 import {
     handleCancelMissionReroute,
     handleCancelWaypointRemoval,
+    handleConfirmMissionReroute,
 } from "../obstacle-avoidance-handlers";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
@@ -20,6 +21,7 @@ import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import Mission from "../../../data/mission_set/mission";
 import { ExclusionZone } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
 import { detectMissionReroutes } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
+import { routeNeedsBypass } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 import { ButtonNames } from "../../../types/context-types";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../../utils/constants";
 import { makeMutableState, resetHandlerSingletons, coord, squareZone } from "./handler-test-utils";
@@ -513,5 +515,81 @@ describe("edits to an unrelated zone", () => {
         expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
         expect(bypassCount(missionID)).toBeGreaterThan(0);
         expect(missionSet.getMission(missionID).getWaypoints()).toEqual(reroutedWaypoints);
+    });
+});
+
+describe("deleting a zone while others remain", () => {
+    // Runs near the northern edge of both zones, so detouring north is decisively
+    // shorter than south and the computed route is stable.
+    const ROUTE_ACROSS_TWO_ZONES: [number, number][] = [
+        [41.0004, -72.005],
+        [41.0004, -71.995],
+    ];
+
+    function missionDetouredAroundTwoZones() {
+        const missionID = addMission(ROUTE_ACROSS_TWO_ZONES);
+        const firstZoneID = obstacleAvoidanceData
+            .getExclusionZoneSet()
+            .addZone(squareZone(41.0, -72.002));
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -71.998));
+        confirmReroute(missionID);
+        obstacleAvoidanceData.setPendingChange(null);
+        return { missionID, firstZoneID };
+    }
+
+    /** Eastern edge of the zone the tests delete, before its safety buffer. */
+    const DELETED_ZONE_EAST_EDGE = -72.0015;
+
+    function currentRoute(missionID: number) {
+        return missionSet
+            .getMission(missionID)
+            .getWaypoints()
+            .map((wp) => wp.getLocation()!);
+    }
+
+    test("proposes a new route when a remaining zone still blocks the mission", () => {
+        const { missionID, firstZoneID } = missionDetouredAroundTwoZones();
+        const priorWaypoints = cloneDeep(missionSet.getMission(missionID).getWaypoints());
+
+        handleDeleteExclusionZone(makeMutableState(), { zoneID: firstZoneID } as any);
+
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("reroute");
+        // The deletion stands either way, so there is nothing to revert.
+        expect(pending!.type === "reroute" && pending.data.revert).toEqual([]);
+        expect(obstacleAvoidanceData.getExclusionZoneSet().getZone(firstZoneID)).toBeUndefined();
+        // Nothing is applied to the mission until the operator confirms.
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(priorWaypoints);
+    });
+
+    test("confirming drops the detour around the deleted zone and keeps the rest", () => {
+        const { missionID, firstZoneID } = missionDetouredAroundTwoZones();
+
+        handleDeleteExclusionZone(makeMutableState(), { zoneID: firstZoneID } as any);
+        expect(obstacleAvoidanceData.getPendingChange()?.type).toBe("reroute");
+        handleConfirmMissionReroute(makeMutableState());
+
+        const bypassLocations = missionSet
+            .getMission(missionID)
+            .getWaypoints()
+            .filter((wp) => wp.getIsBypass())
+            .map((wp) => wp.getLocation()!);
+
+        // Still detouring, but no longer reaching back over where the deleted zone was.
+        expect(bypassLocations.length).toBeGreaterThan(0);
+        expect(bypassLocations.every((loc) => loc.lon! > DELETED_ZONE_EAST_EDGE)).toBe(true);
+        expect(routeNeedsBypass(currentRoute(missionID))).toBe(false);
+    });
+
+    test("declining leaves the mission's existing route untouched", () => {
+        const { missionID, firstZoneID } = missionDetouredAroundTwoZones();
+        const priorWaypoints = cloneDeep(missionSet.getMission(missionID).getWaypoints());
+
+        handleDeleteExclusionZone(makeMutableState(), { zoneID: firstZoneID } as any);
+        expect(obstacleAvoidanceData.getPendingChange()?.type).toBe("reroute");
+        handleCancelMissionReroute(makeMutableState());
+
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(priorWaypoints);
+        expect(obstacleAvoidanceData.getExclusionZoneSet().getZone(firstZoneID)).toBeUndefined();
     });
 });

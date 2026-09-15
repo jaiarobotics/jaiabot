@@ -115,7 +115,11 @@ export function handleAddExclusionZone(mutableState: JaiaContextType, action: Ja
 }
 
 /**
- * Deletes an exclusion zone and strips any bypass waypoints that were generated for it.
+ * Deletes an exclusion zone and re-detects against the zones that remain, so a mission
+ * whose route still crosses one of them is proposed a new detour rather than silently
+ * reverting to a blocked route. Removal detection is not needed: deleting a zone only
+ * ever frees space, so it cannot enclose a waypoint. Cancelling the resulting dialog
+ * declines the new route only — the deletion itself stands.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the ID of the zone to delete
@@ -134,7 +138,7 @@ export function handleDeleteExclusionZone(mutableState: JaiaContextType, action:
     applyZoneMutation(mutableState, {
         revert: [],
         detectRemovals: false,
-        detectReroutes: false,
+        detectReroutes: true,
         stripStale: true,
     });
     exclusionZoneLayer.updateFeatures();
