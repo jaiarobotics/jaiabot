@@ -88,6 +88,21 @@ mean private keys checked into the repository, so CI writes one per run:
 It generates the hub keys and, unless given `--authorized-key`, the runner's own key, so
 the fleet is reachable only by the run that created it and the keys go away with it.
 
+## Sharing one fleet
+
+A CI fleet is a single reserved ID, and `create_vpc.sh` will not build a second VPC for
+a fleet that already has one. Overlapping runs therefore queue: the job waits up to
+thirty minutes for the fleet to be released before giving up, naming whoever holds it
+while it waits.
+
+```
+./wait-for-free-fleet.sh --timeout-minutes 30 9
+```
+
+Teardown is scoped the same way. `delete_vpc.sh --customer` refuses a fleet whose
+`jaia_customer` tag says it belongs to another run, so a job that fails before creating
+anything cannot tear down the fleet a concurrent one is still using.
+
 ## Deleting the bucket
 
 `delete_vpc.sh` never deletes a CloudHub's data bucket: a fleet's logs normally outlive

@@ -698,6 +698,15 @@ jobs:
           name: Reap any CI fleet a killed build left behind
           command: rootfs/cloud/aws/reap_ci_fleets.sh --max-age-hours 4
       - run:
+          # a CI fleet is one reserved id, so overlapping runs queue rather than the
+          # later one failing outright; the reaper above has already taken any fleet
+          # whose run is long gone
+          name: Wait for the fleet to be free
+          command: |
+            rootfs/cloud/aws/circleci/wait-for-free-fleet.sh \
+              --timeout-minutes 30 "${JAIA_CI_FLEET}"
+          no_output_timeout: 35m
+      - run:
           name: Create the CloudHub
           command: |
             mkdir -p /tmp/sea-trial
