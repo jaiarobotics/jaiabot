@@ -617,9 +617,6 @@ jobs:
     resource_class: medium
     environment:
       AWS_DEFAULT_REGION: ca-central-1
-      # the shell scripts call aws directly, so the profile the orb writes has to be
-      # the one they pick up
-      AWS_PROFILE: OIDC-User
       JAIA_CI_FLEET: 9
     steps:
       - checkout
@@ -636,6 +633,11 @@ jobs:
       - aws-cli/setup:
           profile_name: OIDC-User
           role_arn: arn:aws:iam::120512385734:role/JaiaCircleCI
+      - run:
+          # only once the orb has written it: setting it any earlier and the orb's own
+          # aws calls fail looking for a profile that does not exist yet
+          name: Use the profile the orb just wrote
+          command: echo "export AWS_PROFILE=OIDC-User" >> $BASH_ENV
       - run:
           name: Install the jaiabot tooling this commit built
           command: |
@@ -704,6 +706,7 @@ jobs:
           name: Collect results
           when: always
           command: |
+            mkdir -p /tmp/sea-trial
             CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
             rsync -a -e "ssh -o StrictHostKeyChecking=no" \
               jaia@${CLOUDHUB}:/tmp/sea-trial/ /tmp/sea-trial/ || true
