@@ -35,6 +35,32 @@ LOG_LEVELS = {
     'debug': logging.DEBUG,
 }
 
+DEFAULT_REGION = 'us-east-1'
+GOVCLOUD_REGION = 'us-gov-east-1'
+
+# us-east-1 predates the --availability-zone option; every other region uses its first zone
+DEFAULT_AVAILABILITY_ZONES = {
+    'us-east-1': 'us-east-1c',
+}
+
+
+def is_govcloud(region):
+    return region.startswith('us-gov-')
+
+
+def resolve_region(args, logger):
+    if args.govcloud:
+        if args.region is not None and not is_govcloud(args.region):
+            logger.error(f"ERROR: --govcloud conflicts with --region {args.region}")
+            exit(1)
+        return args.region or GOVCLOUD_REGION
+    return args.region or DEFAULT_REGION
+
+
+def aws_profile_for_region(region):
+    return 'jaiagovcloudcreatevpc' if is_govcloud(region) else 'jaiacreatevpc'
+
+
 def read_fleet_from_textproto(file_path):
     fleet_cfg = FleetConfig()
     with open(file_path, "r") as f:
@@ -70,7 +96,9 @@ def main():
     parser.add_argument("--loglevel", help="Set logging level", choices=LOG_LEVELS.keys(), default='info')
     parser.add_argument('--binary', type=str, help="Name of binary")
     parser.add_argument('--instance-type', type=str, help="AWS Instance type for CloudHub", default="t3a.micro")
-    parser.add_argument('--govcloud', help="Use GovCloud AWS Region us-gov-east-1 instead of us-east-1", action="store_true")
+    parser.add_argument('--region', type=str, help=f"AWS region to create the CloudHub in (default: {DEFAULT_REGION}). A jaiabot AMI must be available in this region.")
+    parser.add_argument('--availability-zone', type=str, help="AWS availability zone for the CloudHub and VirtualFleet subnets (default: first zone of the region)")
+    parser.add_argument('--govcloud', help=f"Shorthand for --region {GOVCLOUD_REGION}", action="store_true")
     parser.add_argument('--repo', help="Jaiabot Repo", default="release", choices=["release", "beta", "continuous", "test"])
     parser.add_argument('--disk-size-gb', help="CloudHub disk size in GB", default=32, type=int)
     parser.add_argument('--no-enable-client-vpn', help="If set, do not create a client vpn configuration on this machine", action="store_true")
@@ -113,12 +141,10 @@ def main():
 
     vpc_conffile = aws_cloud_script_dir / f'vpc.conf.fleet{fleet_id}'
     logger.info(f"Generating config file for create_vpc.sh: {vpc_conffile}")
-    region='us-east-1'
-    a_zone='us-east-1c'
-    if args.govcloud:
-        region='us-gov-east-1'
-        a_zone='us-gov-east-1a'
-    
+    region = resolve_region(args, logger)
+    a_zone = args.availability_zone or DEFAULT_AVAILABILITY_ZONES.get(region, f'{region}a')
+    logger.info(f"Using AWS region {region}, availability zone {a_zone}")
+
     with open(vpc_conffile, 'w') as f:
         debug='false'
         if loglevel in ['info', 'debug']:
@@ -149,9 +175,7 @@ def main():
 
     logger.info(f"Running create_vpc.sh ...")
 
-    aws_profile='jaiacreatevpc'
-    if args.govcloud:
-        aws_profile='jaiagovcloudcreatevpc'
+    aws_profile = aws_profile_for_region(region)
 
     env = os.environ.copy()
     env |= {"AWS_DEFAULT_REGION": region, "AWS_PROFILE": f"{aws_profile}"}

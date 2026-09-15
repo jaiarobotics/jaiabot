@@ -403,6 +403,10 @@ commands:
     parameters:
       role_arn:
         type: string
+      # space separated regions, within the same partition as the job's AWS_DEFAULT_REGION
+      ami_copy_regions:
+        type: string
+        default: ""
     steps:
       - checkout
       - attach_workspace:
@@ -492,8 +496,17 @@ commands:
               "Key=jaiabot-rootfs-gen_build-unixtime,Value=$(date -u +%s)" \
               "Key=jaiabot_version_when_built,Value=${JAIABOT_VERSION}" \
               "Key=goby_version_when_built,Value=${GOBY_VERSION}"
+      - run:
+          name: Copy new AMI to additional regions
+          command: |
+            ami_copy_regions="<< parameters.ami_copy_regions >>"
+            if [ -z "${ami_copy_regions}" ]; then
+              echo "No additional AMI regions configured"
+              exit 0
+            fi
+            rootfs/cloud/aws/copy_ami_to_regions.sh "${JAIABOT_AMI_NAME}" "${JAIABOT_ROOTFS_GEN_REPO}" "${JAIABOT_ROOTFS_GEN_REPO_VERSION}" ${ami_copy_regions}
 
-            
+
 jobs:
   get-orig-source:
     <<: *job-template-deb-amd64
@@ -812,6 +825,7 @@ jobs:
     steps:
       - aws-sync-command:
           role_arn: arn:aws:iam::120512385734:role/JaiaCircleCI
+          ami_copy_regions: "ca-central-1"
 
   aws-sync-govcloud:
     docker:
@@ -821,8 +835,9 @@ jobs:
       DISTRO_RELEASE_CODENAME: "resolute"
     resource_class: medium
     steps:
+      # no ami_copy_regions: GovCloud is a separate partition, so AMIs cannot be copied to or from commercial regions
       - aws-sync-command:
-          role_arn: arn:aws-us-gov:iam::497433381399:role/JaiaCircleCI        
+          role_arn: arn:aws-us-gov:iam::497433381399:role/JaiaCircleCI
 
   arm64-docker-sim:
     environment:
