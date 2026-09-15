@@ -43,7 +43,7 @@ RUN apt-get update && \
             goby3-interfaces:amd64 \
             python3-goby3 \
             pybind11-dev \
-            python3-dev:amd64 \
+            libpython3-dev:amd64 \
             libnanopb-dev:amd64 \
             nanopb:amd64 \
             python3-protobuf:amd64 \

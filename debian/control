@@ -16,7 +16,7 @@ Build-Depends: debhelper-compat (= 13),
                nanopb,
                python3-goby3,
                pybind11-dev,
-               python3-dev,
+               libpython3-dev,
                python3:native,
                python3-protobuf:native
 Build-Depends-Indep:
