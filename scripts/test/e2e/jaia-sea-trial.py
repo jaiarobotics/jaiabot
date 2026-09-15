@@ -6,6 +6,7 @@ one. Run with --help for the options.
 """
 
 import argparse
+import collections
 import json
 import os
 import sys
@@ -148,6 +149,21 @@ class SeaTrial:
                  self.args.poll_interval)
         log(f'bots {bots} underway')
 
+    def dives_so_far(self):
+        """Dives counted from the packets the hub holds; short states fall between polls."""
+        packets = self.hub.task_packets('all', start_time=self.started_at and
+                                        int(self.started_at * 1e6))
+        if packets is None:
+            return None
+        return collections.Counter(p.get('bot_id') for p in packets
+                                   if p.get('type') == 'DIVE')
+
+    def mission_progress(self, bots):
+        dives = self.dives_so_far()
+        return '; '.join(
+            f'bot {b} {(api.bot_status(self.last_status, b) or {}).get("mission_state", "?")}'
+            f' [{"?" if dives is None else dives[b]} dives]' for b in bots)
+
     def run_mission(self, bots):
         def recovered():
             status = self.poll()
@@ -156,9 +172,7 @@ class SeaTrial:
 
         wait_for(recovered, self.args.mission_timeout,
                  'every bot to work its goals and reach recovery', self.args.poll_interval,
-                 progress=lambda: '; '.join(
-                     f'bot {b} {(api.bot_status(self.last_status, b) or {}).get("mission_state", "?")}'
-                     f' [{self.observations.dive_cycles(b)} dives]' for b in bots))
+                 progress=lambda: self.mission_progress(bots))
         log('every bot is stopped at recovery')
 
     def offload(self, bots):

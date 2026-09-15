@@ -70,10 +70,6 @@ class Observations:
             if percentage is not None:
                 self.hub_offload_percentage[hub.get('hub_id')] = percentage
 
-    def dive_cycles(self, bot_id):
-        """Complete descent-to-drift passes, counted by the rarest state in the cycle."""
-        return min(self.states[bot_id][state] for state in DIVE_STATES)
-
     def saw(self, bot_id, state):
         return self.states[bot_id][state] > 0
 

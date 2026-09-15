@@ -140,22 +140,6 @@ class HubApiTest(unittest.TestCase):
 
 
 class ObservationsTest(unittest.TestCase):
-    def _dive_cycle(self, observations, bot_id, times=1):
-        for _ in range(times):
-            for state in checks.DIVE_STATES:
-                observations.ingest({'bots': [bot(bot_id, state)]})
-
-    def test_dive_cycles_counts_complete_passes(self):
-        observations = checks.Observations()
-        self._dive_cycle(observations, 1, times=3)
-        self.assertEqual(observations.dive_cycles(1), 3)
-
-    def test_a_missing_substate_means_no_complete_cycle(self):
-        observations = checks.Observations()
-        for state in checks.DIVE_STATES[:-1]:
-            observations.ingest({'bots': [bot(1, state)]})
-        self.assertEqual(observations.dive_cycles(1), 0)
-
     def test_transitions_collapse_repeats(self):
         observations = checks.Observations()
         for state in ['A', 'A', 'B', 'B', 'A']:
