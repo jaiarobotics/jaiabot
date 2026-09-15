@@ -32,14 +32,18 @@ warp without hand-tuning seconds.
 
 ## Activation
 
-A bot self-tests as soon as its apps are up, and the test passes exactly when its health
-is not `HEALTH__FAILED`. Activating it before then puts it in `PRE_DEPLOYMENT__FAILED`,
-so the driver waits for the bot to report healthy first.
+A bot reaches `PRE_DEPLOYMENT__IDLE` once it reports healthy, and fails its own startup
+into `PRE_DEPLOYMENT__FAILED` if that has not happened within `startup_timeout` (120 s
+by default) - neither needs anything from a client. Activating runs the self test, which
+passes exactly when health is not `HEALTH__FAILED`, so the driver waits for a healthy
+report before asking.
 
-That state is not fatal - it reacts to `ACTIVATE` by running the self test again, which
-is how a fault that clears on its own (a GPS fix arriving) is meant to be picked up - so
-the driver keeps re-sending. A bot that reaches it still fails the trial: coming up
-unhealthy is the kind of thing these runs exist to catch.
+`Failed` is not a dead end: it reacts to `ACTIVATE` by running the self test again, which
+is how a fault that clears on its own (a GPS fix arriving, an app finishing startup) is
+meant to be picked up, so the driver keeps re-sending rather than waiting out a
+transition that cannot come. A bot that reaches it still fails the trial - coming up
+unhealthy is the kind of thing these runs exist to catch - and the reported errors are
+logged so the next question is which app, not whether.
 
 ## Tiers
 
