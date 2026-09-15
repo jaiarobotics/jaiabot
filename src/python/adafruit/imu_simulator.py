@@ -45,7 +45,7 @@ class Simulator(IMU):
             quaternion = Quaternion(1, 0, 0, 0)
             linear_acceleration_world = quaternion.apply(linear_acceleration)
 
-            return IMUReading(orientation=Orientation(heading=0,
+            return IMUReading(orientation=Orientation(heading=None,
                                                       pitch=degrees(self._pitch),
                                                       roll=degrees(self._roll)),
                             linear_acceleration=linear_acceleration,
