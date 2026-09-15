@@ -74,5 +74,7 @@ message PowerBoardResponse
     optional float thermistor_voltage = 25;
     optional float generic_gpio_voltage = 26; 
     optional uint32 vccvoltage_raw = 27;
+    optional uint32 vcc_mid_sense_raw = 28;
+    optional uint32 vcc_direct_sense_raw = 29;
     optional PowerBoardStatusCode status_code = 30;
 }
