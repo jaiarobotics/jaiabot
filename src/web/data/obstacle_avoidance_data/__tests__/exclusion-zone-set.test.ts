@@ -1,4 +1,4 @@
-import { ExclusionZone, ExclusionZoneSet } from "../exclusion-zone-set";
+import { ExclusionZone, ExclusionZoneSet } from "../exclusion_zones/exclusion-zone-set";
 import { GeographicCoordinate } from "../../../types/protobuf-types";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
