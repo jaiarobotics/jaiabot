@@ -5,6 +5,7 @@ Bots advance one mission state per status poll, so a whole trial runs in millise
 
 import json
 import http.server
+import os
 import threading
 
 from jaia_e2e import checks
@@ -71,7 +72,8 @@ class FakeBot:
 
 class FakeHub:
     def __init__(self, bots=2, dives_to_run=10, lat=41.6618, lon=-71.2731, api_key='',
-                 depth_error=0.0, idle_until_activated=False):
+                 depth_error=0.0, idle_until_activated=False, offload_dir=None):
+        self.offload_dir = offload_dir
         self.api_key = api_key
         self.bots = {i: FakeBot(i, lat, lon - 0.01 * i, [], dives_to_run, depth_error,
                                 idle_until_activated)
@@ -137,6 +139,11 @@ class FakeHub:
                               task['surface_drift']['drift_time'])
         elif kind == 'RECOVERED':
             bot.states = list(POST_MISSION)
+            if self.offload_dir:
+                path = os.path.join(self.offload_dir,
+                                    f'bot{bot.bot_id}_fleet9_20240101T000000.goby')
+                with open(path, 'wb') as f:
+                    f.write(b'log')
 
 
 class _Handler(http.server.BaseHTTPRequestHandler):

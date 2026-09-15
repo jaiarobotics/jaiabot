@@ -156,7 +156,22 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(summary['first_failing_tier'], checks.OFFLOAD)
         names = [f['name'] for f in summary['tiers'][checks.OFFLOAD]['failures']]
-        self.assertIn('bot 1 offloaded its data', names)
+        self.assertIn('bot 1 finished post-deployment idle', names)
+
+    def test_the_offload_tier_reads_the_logs_the_hub_holds(self):
+        offload_dir = tempfile.mkdtemp()
+        _, summary, _ = self.run_trial(
+            fake_hub.FakeHub(bots=1, dives_to_run=10, offload_dir=offload_dir),
+            extra=['--offload-dir', offload_dir])
+        self.assertEqual(summary['tiers'][checks.OFFLOAD]['failed'], 0)
+        self.assertEqual(summary['tiers'][checks.OFFLOAD]['total'], 2)
+
+    def test_the_offload_tier_fails_when_no_logs_reached_the_hub(self):
+        _, summary, _ = self.run_trial(fake_hub.FakeHub(bots=1, dives_to_run=10),
+                                       extra=['--offload-dir', tempfile.mkdtemp()])
+        self.assertEqual(summary['first_failing_tier'], checks.OFFLOAD)
+        names = [f['name'] for f in summary['tiers'][checks.OFFLOAD]['failures']]
+        self.assertEqual(names, ['bot 1 offloaded its data'])
 
     def test_the_mission_plan_reaches_the_hub(self):
         hub = fake_hub.FakeHub(bots=1, dives_to_run=10)

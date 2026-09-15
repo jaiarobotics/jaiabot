@@ -748,6 +748,7 @@ jobs:
                  --bots << pipeline.parameters.sea-trial-bots >> \
                  --goals << pipeline.parameters.sea-trial-goals >> \
                  --warp << pipeline.parameters.sea-trial-warp >> \
+                 --offload-dir /var/log/jaiabot/bot_offload \
                  --output-dir /tmp/sea-trial"
           no_output_timeout: 60m
       - run:

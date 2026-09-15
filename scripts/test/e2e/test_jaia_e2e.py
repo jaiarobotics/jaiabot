@@ -230,11 +230,23 @@ class CheckTest(unittest.TestCase):
         result = checks.execution_checks(observations, [1], 0, {}, 25)
         self.assertFalse([c for c in result if 'no failed state' in c.name][0].passed)
 
-    def test_offload_flags_a_bot_that_never_offloaded(self):
+    def test_offload_flags_a_bot_whose_logs_never_arrived(self):
         observations = checks.Observations()
-        observations.ingest({'bots': [bot(1, checks.RECOVERY_STOPPED)]})
-        result = checks.offload_checks(observations, [1])
+        observations.ingest({'bots': [bot(1, checks.POST_IDLE)]})
+        result = checks.offload_checks(observations, [1], {1: []})
         self.assertFalse([c for c in result if 'offloaded its data' in c.name][0].passed)
+
+    def test_offload_passes_on_logs_alone_however_polling_caught_the_state(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, checks.POST_IDLE)]})
+        result = checks.offload_checks(observations, [1], {1: ['bot1_fleet9_x.goby']})
+        self.assertTrue(all(c.passed for c in result), [c for c in result if not c.passed])
+
+    def test_offload_judges_by_state_alone_when_the_logs_are_out_of_reach(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, checks.POST_IDLE)]})
+        result = checks.offload_checks(observations, [1])
+        self.assertEqual([c.name for c in result], ['bot 1 finished post-deployment idle'])
 
     def test_offload_flags_post_deployment_failed(self):
         observations = checks.Observations()

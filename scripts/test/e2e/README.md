@@ -53,18 +53,24 @@ Checks are grouped so that a failure names the layer at fault rather than just t
 |------|------|
 | `liveness` | Did every bot and the hub report, healthy, at the expected version? |
 | `execution` | Did each bot run to recovery without aborting or failing, and stop near its last goal? |
-| `offload` | Did each bot pass through `DATA_OFFLOAD` and reach `POST_DEPLOYMENT__IDLE`? |
+| `offload` | Did each bot's logs land in the hub's offload directory, and did it reach `POST_DEPLOYMENT__IDLE`? |
 | `content` | Do the task packets hold the dives — commanded depth, populated measurements, a paired drift of the commanded duration? |
 
 `summary.json` reports `first_failing_tier`, which is the fastest way to tell "AWS was
 slow" from "the dive controller regressed".
 
-What a bot did is judged by whether its mission ran to recovery and by the task packets
-it sent, never by which states a poll happened to catch. The trace is a sample: a bot
-reacquiring GPS, or descending under warp, is routinely missed between polls, so
-asserting on it reddens runs that dived perfectly well. The trace is still logged, and
+What a bot did is judged by whether its mission ran to recovery, by the task packets it
+sent and by the logs the hub ended up holding, never by which states a poll happened to
+catch. The trace is a sample: a bot reacquiring GPS, descending under warp, or handing
+its logs to the hub is routinely missed between polls, so asserting on it reddens runs
+that dived perfectly well. The trace is still logged, and
 still names the fault when a bot does fail - it just does not decide whether the run
 passed.
+
+The offload tier needs `--offload-dir` to see those logs, so it only makes that check
+where the trial runs somewhere that can reach the hub's `bot_offload` directory - CI
+drives the trial from the CloudHub itself for exactly this reason. Without it the tier
+falls back to the terminal state alone.
 
 Alongside `junit.xml` the driver writes `task_packets.kmz` and `task_packets.csv`, so a
 bad run can be opened on a chart rather than read as a stack trace.

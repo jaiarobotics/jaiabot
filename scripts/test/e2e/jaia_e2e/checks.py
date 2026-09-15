@@ -140,13 +140,17 @@ def execution_checks(observations, expected_bots, expected_dives, goals_by_bot,
     return checks
 
 
-def offload_checks(observations, expected_bots):
+def offload_checks(observations, expected_bots, offloaded_logs=None):
+    """offloaded_logs maps a bot to the log files the hub holds for it, where the run
+    can see the hub's offload directory; the DATA_OFFLOAD state itself is too short
+    to poll for reliably."""
     checks = []
     for bot_id in expected_bots:
-        checks.append(Check(OFFLOAD, f'bot {bot_id} offloaded its data',
-                            observations.saw(bot_id, DATA_OFFLOAD),
-                            'passed through DATA_OFFLOAD' if observations.saw(bot_id, DATA_OFFLOAD)
-                            else 'never entered DATA_OFFLOAD'))
+        if offloaded_logs is not None:
+            logs = offloaded_logs.get(bot_id, [])
+            checks.append(Check(OFFLOAD, f'bot {bot_id} offloaded its data', bool(logs),
+                                f'{len(logs)} log files on the hub' if logs
+                                else 'no log files reached the hub'))
         checks.append(Check(OFFLOAD, f'bot {bot_id} finished post-deployment idle',
                             observations.saw(bot_id, POST_IDLE)
                             and not observations.saw(bot_id, POST_FAILED),

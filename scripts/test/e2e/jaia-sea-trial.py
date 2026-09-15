@@ -7,6 +7,7 @@ one. Run with --help for the options.
 
 import argparse
 import collections
+import glob
 import json
 import os
 import sys
@@ -222,6 +223,25 @@ class SeaTrial:
             log(f'bot {bot_id}: {len(packets[bot_id])} task packets')
         return packets
 
+    def offloaded_logs(self, bots):
+        """The log files the hub ended up holding, which is what an offload leaves
+        behind; the DATA_OFFLOAD state can pass between two polls."""
+        if not self.args.offload_dir:
+            log('no --offload-dir given, so the offload tier judges by state alone')
+            return None
+        found = {}
+        for bot_id in bots:
+            paths = [path for suffix in ('goby', 'h5')
+                     for path in glob.glob(os.path.join(self.args.offload_dir,
+                                                        f'bot{bot_id}_fleet*_*.{suffix}'))]
+            found[bot_id] = sorted(p for p in paths
+                                   if os.path.getmtime(p) >= (self.started_at or 0))
+            stale = len(paths) - len(found[bot_id])
+            log(f'bot {bot_id}: {len(found[bot_id])} offloaded log files in '
+                f'{self.args.offload_dir}' + (f' ({stale} from before this run)'
+                                              if stale else ''))
+        return found
+
     def evaluate(self, bots, packets):
         status = self.poll() or {}
         try:
@@ -233,7 +253,8 @@ class SeaTrial:
         results += checks.liveness_checks(status, metadata, bots, self.args.expect_version)
         results += checks.execution_checks(self.observations, bots, self.args.goals,
                                            self.goals_by_bot, self.args.position_tolerance)
-        results += checks.offload_checks(self.observations, bots)
+        results += checks.offload_checks(self.observations, bots,
+                                         self.offloaded_logs(bots))
         results += checks.content_checks(packets, bots, self.args.goals, self.args.dive_depth,
                                          self.args.depth_tolerance, self.args.drift_time,
                                          self.args.drift_tolerance)
@@ -280,6 +301,10 @@ def parse_args(argv):
     parser.add_argument('--api-timeout', type=float, default=300.0, metavar='S')
     parser.add_argument('--mission-timeout', type=float, default=3600.0, metavar='S')
     parser.add_argument('--offload-timeout', type=float, default=1200.0, metavar='S')
+    parser.add_argument('--offload-dir', default='',
+                        help="the hub's bot_offload directory, when the trial runs "
+                             "somewhere that can see it (usually the hub itself); "
+                             "without it the offload tier cannot check that logs arrived")
     parser.add_argument('--output-dir', default='.', help='where junit.xml and summary.json go')
     args = parser.parse_args(argv)
 
