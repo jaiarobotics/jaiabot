@@ -1,6 +1,7 @@
 import React, { useContext } from "react";
 
 import JaiaToggle from "../../JaiaToggle/JaiaToggle";
+import JaiaNumberInput from "../../JaiaNumberInput/JaiaNumberInput";
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
 
@@ -168,12 +169,10 @@ function DiveParameters(props: Props) {
                 />
                 <div className="task-parameters">
                     <div>Drift Time</div>
-                    <input
+                    <JaiaNumberInput
                         name={TaskParameterKeys.DRIFT_TIME}
-                        type="number"
                         value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
                         className="jaia-input"
-                        autoComplete="off"
                         disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
@@ -197,48 +196,40 @@ function DiveParameters(props: Props) {
 
                 <div className="task-parameters">
                     <div>Max Depth</div>
-                    <input
+                    <JaiaNumberInput
                         name={TaskParameterKeys.MAX_DEPTH}
-                        type="number"
                         value={formatNumericalInput(diveParameters.max_depth)}
                         className="jaia-input"
-                        autoComplete="off"
                         disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
                     <div className="units">m</div>
 
                     <div>Depth Interval</div>
-                    <input
+                    <JaiaNumberInput
                         name={TaskParameterKeys.DEPTH_INTERVAL}
-                        type="number"
                         value={formatNumericalInput(diveParameters.depth_interval)}
                         className="jaia-input"
-                        autoComplete="off"
                         disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
                     <div className="units">m</div>
 
                     <div>Hold Time</div>
-                    <input
+                    <JaiaNumberInput
                         name={TaskParameterKeys.HOLD_TIME}
-                        type="number"
                         value={formatNumericalInput(diveParameters.hold_time)}
                         className="jaia-input"
-                        autoComplete="off"
                         disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
                     <div className="units">s</div>
 
                     <div>Drift Time</div>
-                    <input
+                    <JaiaNumberInput
                         name={TaskParameterKeys.DRIFT_TIME}
-                        type="number"
                         value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
                         className="jaia-input"
-                        autoComplete="off"
                         disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
@@ -262,14 +253,12 @@ function DriftParameters(props: Props) {
             />
             <div className="task-parameters">
                 <div>Drift Time</div>
-                <input
+                <JaiaNumberInput
                     name={TaskParameterKeys.DRIFT_TIME}
-                    type="number"
                     value={formatNumericalInput(props.task.getDriftParameters().drift_time)}
                     className="jaia-input"
-                    autoComplete="off"
                     disabled={props.isDisabled}
-                    onChange={(evt) => props.onChange(evt)}
+                    onChange={props.onChange}
                 />
                 <div className="units">s</div>
             </div>
@@ -315,12 +304,10 @@ function ConstantHeading(props: Props) {
                 return <div>Safety Depth</div>;
             case TaskParameterElements.INPUT:
                 return (
-                    <input
+                    <JaiaNumberInput
                         name={TaskParameterKeys.SAFETY_DEPTH}
-                        type="number"
                         value={formatNumericalInput(props.task.getSafetyDepth())}
                         className="jaia-input srp"
-                        autoComplete="off"
                         disabled={props.isDisabled}
                         onChange={(evt) => props.onChange(evt)}
                     />
@@ -346,36 +333,30 @@ function ConstantHeading(props: Props) {
             </div>
 
             <div>Heading</div>
-            <input
+            <JaiaNumberInput
                 name={TaskParameterKeys.HEADING}
-                type="number"
                 value={formatNumericalInput(constantHeadingParameters.constant_heading)}
                 className="jaia-input"
-                autoComplete="off"
                 disabled={props.isDisabled}
                 onChange={(evt) => props.onChange(evt)}
             />
             <div className="units">deg</div>
 
             <div>Time</div>
-            <input
+            <JaiaNumberInput
                 name={TaskParameterKeys.CONSTANT_HEADING_TIME}
-                type="number"
                 value={formatNumericalInput(constantHeadingParameters.constant_heading_time)}
                 className="jaia-input"
-                autoComplete="off"
                 disabled={props.isDisabled}
                 onChange={(evt) => props.onChange(evt)}
             />
             <div className="units">s</div>
 
             <div>Speed</div>
-            <input
+            <JaiaNumberInput
                 name={TaskParameterKeys.SPEED}
-                type="number"
                 value={formatNumericalInput(constantHeadingParameters.constant_heading_speed)}
                 className="jaia-input"
-                autoComplete="off"
                 disabled={props.isDisabled}
                 onChange={(evt) => props.onChange(evt)}
             />
@@ -406,14 +387,12 @@ function StationKeepParameters(props: Props) {
             />
             <div className="task-parameters">
                 <div>Time</div>
-                <input
+                <JaiaNumberInput
                     name={TaskParameterKeys.STATION_KEEP_TIME}
-                    type="number"
                     value={formatNumericalInput(
                         props.task.getStationKeepParameters().station_keep_time,
                     )}
                     className="jaia-input"
-                    autoComplete="off"
                     disabled={props.isDisabled}
                     onChange={(evt) => props.onChange(evt)}
                 />

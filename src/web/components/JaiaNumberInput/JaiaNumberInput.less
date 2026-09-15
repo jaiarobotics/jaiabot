@@ -1,0 +1,48 @@
+.jaia-number-input {
+    position: relative;
+    display: flex;
+}
+
+.jaia-number-input > input {
+    width: 100%;
+}
+
+.jaia-number-input input[type="number"]::-webkit-inner-spin-button,
+.jaia-number-input input[type="number"]::-webkit-outer-spin-button {
+    appearance: none;
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.jaia-stepper {
+    display: flex;
+    flex-direction: column;
+    width: 15px;
+}
+
+.jaia-number-input .jaia-stepper {
+    position: absolute;
+    top: 0;
+    right: 3px;
+    bottom: 0;
+}
+
+.jaia-stepper-button {
+    all: unset;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: inherit;
+}
+
+.jaia-stepper-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.jaia-stepper-button svg {
+    width: 15px;
+    height: 15px;
+}
