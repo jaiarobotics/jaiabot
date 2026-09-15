@@ -5,7 +5,10 @@ import collections
 from . import api, mission
 
 LIVENESS, EXECUTION, OFFLOAD, CONTENT = 'liveness', 'execution', 'offload', 'content'
-TIERS = (LIVENESS, EXECUTION, OFFLOAD, CONTENT)
+# last, so that first_failing_tier names the layer that broke rather than the fact
+# that the run stopped
+TRIAL = 'trial'
+TIERS = (LIVENESS, EXECUTION, OFFLOAD, CONTENT, TRIAL)
 
 DIVE_STATES = (
     'IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT',

@@ -42,7 +42,10 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         self.assertIsNone(summary['first_failing_tier'])
         self.assertEqual(summary['bots'], [1, 2])
         self.assertTrue(os.path.exists(os.path.join(directory, 'junit.xml')))
-        self.assertEqual(set(summary['tiers']), set(checks.TIERS))
+        # 'trial' only appears when the run stops short, so a clean run has the
+        # four system tiers and nothing else
+        self.assertEqual(set(summary['tiers']),
+                         {checks.LIVENESS, checks.EXECUTION, checks.OFFLOAD, checks.CONTENT})
 
     def test_a_short_run_fails_the_execution_tier_first(self):
         code, summary, _ = self.run_trial(fake_hub.FakeHub(bots=1, dives_to_run=3))

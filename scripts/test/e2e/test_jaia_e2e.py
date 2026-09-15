@@ -281,6 +281,20 @@ class JunitTest(unittest.TestCase):
         self.assertEqual(summary['first_failing_tier'], checks.EXECUTION)
         self.assertEqual(summary['failed'], 1)
 
+    def test_a_stopped_run_does_not_mask_the_layer_that_broke(self):
+        summary = junit.summary([
+            checks.Check(checks.LIVENESS, 'bots report', True),
+            checks.Check(checks.EXECUTION, 'dives', False, 'saw 0'),
+            checks.Check(checks.TRIAL, 'the trial ran to completion', False, 'rejected'),
+        ])
+        self.assertEqual(summary['first_failing_tier'], checks.EXECUTION)
+        self.assertEqual(summary['tiers'][checks.TRIAL]['failed'], 1)
+
+    def test_a_run_that_stopped_before_anything_ran_reports_trial(self):
+        summary = junit.summary([
+            checks.Check(checks.TRIAL, 'the trial ran to completion', False, 'no answer')])
+        self.assertEqual(summary['first_failing_tier'], checks.TRIAL)
+
     def test_summary_of_a_clean_run_has_no_failing_tier(self):
         summary = junit.summary([checks.Check(checks.LIVENESS, 'a', True)])
         self.assertIsNone(summary['first_failing_tier'])

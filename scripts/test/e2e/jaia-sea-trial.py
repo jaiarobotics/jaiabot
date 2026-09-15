@@ -204,8 +204,10 @@ def parse_args(argv):
     parser.add_argument('--hold-time', type=float, default=5.0, metavar='S')
     parser.add_argument('--drift-time', type=float, default=45.0, metavar='S')
     parser.add_argument('--mission-name', default='sea-trial')
-    parser.add_argument('--transit-speed', type=float, default=2.5, metavar='M_PER_S')
-    parser.add_argument('--stationkeep-speed', type=float, default=0.5, metavar='M_PER_S')
+    # Speeds are uint32 with min 1, max 3 in mission.proto. Left unset the bot keeps
+    # its configured speeds, which is what the VirtualBox suite has always done.
+    parser.add_argument('--transit-speed', type=int, choices=[1, 2, 3], metavar='M_PER_S')
+    parser.add_argument('--stationkeep-speed', type=int, choices=[1, 2, 3], metavar='M_PER_S')
     parser.add_argument('--expect-version', help='fail unless the hub reports this jaiabot version')
     parser.add_argument('--position-tolerance', type=float, default=25.0, metavar='M')
     parser.add_argument('--depth-tolerance', type=float, default=1.0, metavar='M')
@@ -247,7 +249,7 @@ def main(argv):
         log(f'TRIAL FAILED: {failure}')
         if bots:
             results = trial.evaluate(bots, trial.collect(bots))
-        results.append(checks.Check(checks.LIVENESS, 'the trial ran to completion', False, failure))
+        results.append(checks.Check(checks.TRIAL, 'the trial ran to completion', False, failure))
 
     os.makedirs(args.output_dir, exist_ok=True)
     junit.write(os.path.join(args.output_dir, 'junit.xml'), results)
