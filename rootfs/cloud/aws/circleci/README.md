@@ -35,10 +35,37 @@ The trial runs as the `sea-trial-virtualfleet` job, from two places:
   `true`. That parameter selects the `sea-trial` workflow and deselects `commit`, so a
   nightly does not rebuild the world first.
 
-The other parameters - `sea-trial-bots`, `sea-trial-goals`, `sea-trial-warp` and
-`sea-trial-keep-fleet` - can be set on the scheduled pipeline, or passed when
-triggering a pipeline by hand to reproduce a failure. `sea-trial-keep-fleet` leaves
-the fleet up for inspection; the reaper still clears it on the next run.
+The other parameters - `sea-trial-bots`, `sea-trial-goals`, `sea-trial-warp`,
+`sea-trial-repo` and `sea-trial-keep-fleet` - can be set on the scheduled pipeline, or
+passed when triggering a pipeline by hand to reproduce a failure.
+`sea-trial-keep-fleet` leaves the fleet up for inspection; the reaper still clears it
+on the next run.
+
+### Running it by hand
+
+From the CircleCI UI, use *Trigger Pipeline* on the project and add the parameter
+`run-sea-trial` = `true`. Or over the API:
+
+```
+curl -X POST https://circleci.com/api/v2/project/gh/jaiarobotics/jaiabot/pipeline \
+     -H "Circle-Token: $CIRCLECI_TOKEN" -H 'Content-Type: application/json' \
+     -d '{"branch": "3.y", "parameters": {"run-sea-trial": true}}'
+```
+
+A pipeline only accepts parameters the config *on that branch* declares, so a branch
+that predates these has to be triggered without them.
+
+Trialling from a feature branch needs `sea-trial-repo`: the repo a branch maps to is
+`test`, and no `test` AMI is published, so the run would stop at the image lookup.
+Name a published one instead:
+
+```
+     -d '{"branch": "my-branch",
+          "parameters": {"run-sea-trial": true, "sea-trial-repo": "continuous"}}'
+```
+
+That trials the newest `continuous` image with this branch's scripts, which is what
+you want when changing the trial itself rather than the image.
 
 The job installs `jaiabot-apps` and `jaiabot-python` from packages.jaia.tech for the
 repo and version this commit built, because `jaia admin fleet create_cloudhub`

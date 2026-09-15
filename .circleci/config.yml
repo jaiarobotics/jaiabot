@@ -321,6 +321,12 @@ parameters:
   sea-trial-warp:
     type: integer
     default: 5
+  # Which image to trial. Empty follows the branch or tag, which is what the nightly
+  # and the tag runs want; set it to trial a published image from a branch whose own
+  # packages were never published, such as a feature branch.
+  sea-trial-repo:
+    type: string
+    default: ""
   # Leaves the fleet up for inspection after a failure. The reaper still clears it.
   sea-trial-keep-fleet:
     type: boolean
@@ -625,6 +631,8 @@ jobs:
             echo "export JAIABOT_APT_REPO=${repo}" >> $BASH_ENV
             echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
             echo "export JAIA_CI_CUSTOMER=jaia-ci-${CIRCLE_WORKFLOW_ID}" >> $BASH_ENV
+            trial_repo="<< pipeline.parameters.sea-trial-repo >>"
+            echo "export JAIA_CI_REPO=${trial_repo:-$repo}" >> $BASH_ENV
       - aws-cli/setup:
           profile_name: OIDC-User
           role_arn: arn:aws:iam::120512385734:role/JaiaCircleCI
@@ -659,7 +667,7 @@ jobs:
               /tmp/sea-trial/fleet.cfg
             jaia admin fleet create_cloudhub /tmp/sea-trial/fleet.cfg "${JAIA_CI_CUSTOMER}" \
               --region "${AWS_DEFAULT_REGION}" \
-              --repo "${JAIABOT_APT_REPO}" \
+              --repo "${JAIA_CI_REPO}" \
               --permissions-boundary JaiaCloudHubBoundary \
               --virtualfleet-instance-type t3a.small \
               --output-json /tmp/sea-trial/cloudhub.json \
