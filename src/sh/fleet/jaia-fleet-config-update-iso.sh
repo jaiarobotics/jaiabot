@@ -51,7 +51,23 @@ sudo mount -o loop,ro ${input_iso} ${iso_mountdir}
 iso_contents_dir=${workdir}/newiso
 mkdir ${iso_contents_dir}
 rsync -a ${iso_mountdir}/ ${iso_contents_dir}/
-sudo cp ${fleet_cfg} ${iso_contents_dir}/major_upgrade/fleet${fleet_id}.cfg
+
+# Migrate and validate with the tool of the release on the ISO, so the ISO only
+# ever carries a fleet config that release accepts
+boot_tar=$(ls ${iso_contents_dir}/major_upgrade/*.boot.tar.gz 2> /dev/null | head -1)
+tool_dir=${workdir}/fleet_config
+mkdir -p ${tool_dir}
+fleet_config_tool=
+if [ -n "${boot_tar}" ]; then
+    tar -xzf ${boot_tar} -C ${tool_dir} --wildcards '*jaiabot/init/fleet_config/*' 2> /dev/null || true
+    fleet_config_tool=$(find ${tool_dir} -name jaia-fleet-config.py | head -1)
+fi
+if [ -z "${fleet_config_tool}" ]; then
+    echo "WARNING: ${input_iso} carries no fleet config tool; validating with this machine's jaia-fleet-config.py instead"
+    fleet_config_tool=$(dirname $(realpath $0))/jaia-fleet-config.py
+fi
+python3 ${fleet_config_tool} migrate ${fleet_cfg} -o ${workdir}/fleet${fleet_id}.cfg
+sudo cp ${workdir}/fleet${fleet_id}.cfg ${iso_contents_dir}/major_upgrade/fleet${fleet_id}.cfg
 
 cd ${iso_contents_dir}
 genisoimage -quiet -V updates -r -m rr_moved -o ${output_iso} .

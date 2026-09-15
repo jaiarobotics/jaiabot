@@ -155,12 +155,15 @@ def main():
 
     env = os.environ.copy()
     env |= {"AWS_DEFAULT_REGION": region, "AWS_PROFILE": f"{aws_profile}"}
-    subprocess.run(
-        f'./create_vpc.sh {vpc_conffile}',
-        cwd=aws_cloud_script_dir,
-        env=env,
-        shell=True,
-        capture_output=False)
+    process = subprocess.Popen(['./create_vpc.sh', str(vpc_conffile)], cwd=aws_cloud_script_dir, env=env)
+    # create_vpc.sh also receives Ctrl-C and rolls back; don't kill it or exit before it finishes
+    while True:
+        try:
+            returncode = process.wait()
+            break
+        except KeyboardInterrupt:
+            logger.warning("Interrupted, waiting for create_vpc.sh to clean up and exit ...")
+    sys.exit(returncode)
 
 if __name__ == "__main__":
     main()

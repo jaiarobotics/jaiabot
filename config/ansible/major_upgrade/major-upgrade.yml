@@ -22,6 +22,7 @@
     - include_tasks: tasks/hub-mount-updates-disk.yml
     - include_tasks: tasks/set-fleet-config-facts.yml
     - include_tasks: tasks/hub-stage-fleet-config.yml
+    - include_tasks: tasks/hub-check-fleet-config.yml
     - include_tasks: tasks/hub-check-ssh-key.yml
       
 # Tasks for all bots and hub

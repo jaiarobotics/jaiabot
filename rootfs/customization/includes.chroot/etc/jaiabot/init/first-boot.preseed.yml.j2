@@ -1,5 +1,6 @@
 #cloud-config
-
+{#- An older 'jaia admin fleet generate' does not define this and fails here instead of writing blanks #}
+{{ requires_jaia_fleet_config_tool.v2 }}
 # Allows this config to merge correctly with common-first-boot.yml
 # See https://cloudinit.readthedocs.io/en/latest/reference/merging.html
 merge_how:

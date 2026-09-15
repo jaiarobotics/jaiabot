@@ -1,6 +1,9 @@
 Source: jaiabot
 Priority: extra
 Maintainer: Toby Schneider <toby@gobysoft.org>
+# python3-jinja2 and python3-yaml are deliberately not build dependencies: only the
+# tests use them, and they skip without. The build itself needs python3-protobuf to
+# generate the debconf files and check the fleet config contract.
 Build-Depends: debhelper-compat (= 13),
                cmake (>= 3.5.1~),
                clang (>= 1:3.8~),
@@ -10,9 +13,9 @@ Build-Depends: debhelper-compat (= 13),
                protobuf-compiler,
                dccl5-compiler,
                libnanopb-dev,
-               nanopb
+               nanopb,
+               python3-protobuf:native
 Build-Depends-Indep:
-               python3-protobuf,
                goby3-clang-tool [amd64] <!nodoc>,
                goby3-interfaces [amd64] <!nodoc>,
                dccl5-apps [amd64]
@@ -40,7 +43,7 @@ Description: Libraries for the Jaiabot Project
  The jaiabot project provides binaries and libraries for the Jaiabot Autonomous Underwater Vehicle: https://www.jaia.tech/
 
 Package: jaiabot-apps
-Depends: libjaiabot (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Depends: python3-jinja2, python3-protobuf, libjaiabot (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
 Section: science
 Architecture: any
 Description: Applications for the Jaiabot Project

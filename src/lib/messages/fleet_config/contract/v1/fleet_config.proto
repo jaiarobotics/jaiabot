@@ -1,0 +1,134 @@
+// Copyright 2025:
+//   JaiaRobotics LLC
+// File authors:
+//   Toby Schneider <toby@gobysoft.org>
+//
+//
+// This file is part of the JaiaBot Project Libraries
+// ("The Jaia Libraries").
+//
+// The Jaia Libraries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 2.1 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Libraries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the Jaia Libraries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+import "jaiabot/messages/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+option (jaia.file).fleet_config_version = 1;
+
+message FleetConfig
+{
+    // Fleet config contract version, independent of the software version.
+    // Files that predate this field are version 1. Bump
+    // PROJECT_FLEET_CONFIG_VERSION (cmake/JaiaVersions.cmake) together with a
+    // migration when the build-time contract check reports a breaking change.
+    // Fields are never removed or renamed, only marked [deprecated = true],
+    // so that every earlier version still parses.
+    optional uint32 version = 10 [default = 1];
+
+    required int32 fleet = 1;
+    repeated int32 hubs = 2;
+    repeated int32 bots = 3;
+
+    message SSHKeys
+    {
+        repeated string permanent_authorized_keys = 1;
+        message HubKey
+        {
+            required int32 id = 1;
+            required string private_key = 2;
+            required string public_key = 3;
+        }
+        repeated HubKey hub = 2;
+        message VPNTempKey
+        {
+            required string private_key = 2;
+            required string public_key = 3;
+        }
+        optional VPNTempKey vpn_tmp = 3;
+    }
+    required SSHKeys ssh = 4;
+
+    message Debconf
+    {
+        enum DebconfType
+        {
+            SELECT = 0;
+            MULTISELECT = 1;
+            STRING = 2;
+            BOOLEAN = 3;
+            NOTE = 4;
+            TEXT = 5;
+            PASSWORD = 6;
+        }
+
+        required string key = 1;
+        optional DebconfType type = 2 [default = SELECT];
+        required string value = 3;
+    }
+    repeated Debconf debconf = 5;
+    required string wlan_password = 6;
+    required bool service_vpn_enabled = 7;
+
+    message DebconfOverride
+    {
+        enum NodeType
+        {
+            HUB = 0;
+            BOT = 1;
+        }
+
+        required NodeType type = 1;
+        required int32 id = 2;
+        repeated Debconf debconf = 3;
+    }
+    repeated DebconfOverride debconf_override = 8;
+
+
+    message Communications
+    {
+        message IridiumSBD
+        {
+            message BotToIMEI
+            {
+                required int32 id = 1;
+                required string imei = 2;
+            }
+            repeated BotToIMEI bot = 1;
+            // Matches enum in Goby driver
+            enum SBDType
+            {
+                SBD_DIRECTIP = 1;
+                SBD_ROCKBLOCK = 2;
+            }
+            required SBDType sbd_type = 2;
+            message RockBLOCKParams
+            {
+                required string username = 1;
+                required string password = 2;
+            }
+            optional RockBLOCKParams rockblock = 3;
+        }
+        optional IridiumSBD iridium_sbd = 1;
+    }
+    optional Communications comms = 9;
+
+    message CloudHubAuth
+    {
+        required string base_uri = 1;
+        required string admin_email = 2;
+        required string smtp_address = 3;
+    }
+    optional CloudHubAuth cloudhub_auth = 11;
+}
