@@ -219,8 +219,10 @@ def parse_args(argv):
                         help=f'dive goals per bot, at most {mission.MAX_GOALS} (default: %(default)s)')
     parser.add_argument('--warp', type=float, default=1.0,
                         help='simulator warp, which every timeout below is divided by')
+    # the hub's position, which is where the simulator places the fleet and so where
+    # the goals are laid out from; out in the bay rather than over the land to its east
     parser.add_argument('--lat', type=float, default=41.6618)
-    parser.add_argument('--lon', type=float, default=-71.2731)
+    parser.add_argument('--lon', type=float, default=-71.2821)
     parser.add_argument('--goal-spacing', type=float, default=100.0, metavar='M')
     parser.add_argument('--bot-separation', type=float, default=500.0, metavar='M')
     parser.add_argument('--dive-depth', type=float, default=8.0, metavar='M')
