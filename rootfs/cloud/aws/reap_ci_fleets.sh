@@ -42,8 +42,9 @@ NOW=$(date -u +%s)
 
 echo ">>>>>> Reaping fleets tagged jaia_customer=${CUSTOMER_PREFIX}* older than ${MAX_AGE_HOURS}h in ${AWS_DEFAULT_REGION}"
 
-# VPCs carry the fleet's identity and creation time; instances are checked too so that a
-# fleet whose VPC deletion already succeeded does not strand its instances
+# Only create_vpc.sh stamps a creation time, so a VirtualFleet instance carries none.
+# Resources are therefore grouped per fleet and dated by the best any of them knows,
+# rather than each being judged on its own.
 fleets=$(
     {
         aws ec2 describe-vpcs --filters "Name=tag:jaia_customer,Values=${CUSTOMER_PREFIX}*" \
@@ -56,9 +57,27 @@ fleets=$(
             (map(select(.Key == "jaia_fleet")) | .[0].Value // empty) as $fleet |
             (map(select(.Key == "jaia_created_unixtime")) | .[0].Value // "0") as $created |
             (map(select(.Key == "jaia_customer")) | .[0].Value // "") as $customer |
-            select($fleet != null) | "\($fleet) \($created) \($customer)"
-        ) | unique | .[]'
+            select($fleet != null) |
+            {fleet: $fleet, created: ($created | tonumber), customer: $customer}
+        ) | group_by(.fleet) | map({
+            fleet: .[0].fleet,
+            created: (map(.created) | max),
+            customer: (map(select(.customer != "")) | .[0].customer // "")
+        }) | .[] | "\(.fleet) \(.created) \(.customer)"'
 )
+
+# EC2 dates its own instances, so a fleet whose tag is missing can still be aged
+function oldest_launch_epoch() {
+    local launched
+    launched=$(aws ec2 describe-instances --filters "Name=tag:jaia_fleet,Values=$1" \
+                   "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+                   --query 'min(Reservations[].Instances[].LaunchTime)' --output text 2>/dev/null || true)
+    if [[ -z "$launched" || "$launched" == "None" ]]; then
+        echo 0
+    else
+        date -d "$launched" +%s 2>/dev/null || echo 0
+    fi
+}
 
 if [[ -z "$fleets" ]]; then
     echo ">>>>>> Nothing tagged jaia_customer=${CUSTOMER_PREFIX}* found"
@@ -67,21 +86,26 @@ fi
 
 reaped=0
 failed=0
+skipped=0
 while read -r fleet created customer; do
     [[ -n "$fleet" ]] || continue
 
-    # An untagged creation time means the fleet predates the tag; treat it as old enough
-    # to reap rather than leaving it to accumulate forever
-    if (( created > 0 )); then
-        age=$(( NOW - created ))
-        if (( age < MAX_AGE_SECONDS )); then
-            echo ">>>>>> Fleet ${fleet} is $(( age / 60 ))m old, leaving it alone"
-            continue
-        fi
-        echo ">>>>>> Fleet ${fleet} is $(( age / 3600 ))h old, reaping"
-    else
-        echo ">>>>>> Fleet ${fleet} carries no creation time, reaping"
+    (( created > 0 )) || created=$(oldest_launch_epoch "$fleet")
+
+    # Not knowing how old a fleet is has to mean leaving it alone: guessing the other
+    # way deletes whatever is using it right now
+    if (( created == 0 )); then
+        echo "⚠️  Fleet ${fleet} has no creation time and no instance to date it by; leaving it alone" >&2
+        skipped=$(( skipped + 1 ))
+        continue
     fi
+
+    age=$(( NOW - created ))
+    if (( age < MAX_AGE_SECONDS )); then
+        echo ">>>>>> Fleet ${fleet} is $(( age / 60 ))m old, leaving it alone"
+        continue
+    fi
+    echo ">>>>>> Fleet ${fleet} is $(( age / 3600 ))h old, reaping"
 
     if [[ "$DRY_RUN" == "true" ]]; then
         echo ">>>>>> (dry run) would delete fleet ${fleet} and its bucket"
@@ -97,5 +121,5 @@ while read -r fleet created customer; do
     fi
 done <<< "$fleets"
 
-echo ">>>>>> Reaped ${reaped} fleet(s), ${failed} incomplete"
+echo ">>>>>> Reaped ${reaped} fleet(s), ${failed} incomplete, ${skipped} left alone for want of an age"
 (( failed == 0 ))
