@@ -1,13 +1,15 @@
 # Obstacle avoidance: two event streams
 
-_Status: reference documentation, current as of
-[`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)
-and [`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md)'s Bug 7 fix._
+_Status: reference documentation, current as of the zone-handler bug fixes in
+[`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md) (Bugs 4, 6, 9, 11)._
 
-The system is a fan-in / fan-out, not a single pipeline: **12 producer
+The system is a fan-in / fan-out, not a single pipeline: **13 producer
 functions** across 4 handler files each apply a user edit immediately and
 _stage_ a proposal; **5 consumer functions** in one file resolve whatever
 got staged, regardless of which producer staged it.
+
+Deliberately no line numbers below — they go stale faster than the structure
+does. Names are the stable handle.
 
 ## 1. Architecture: fan-in → shared contract → fan-out
 
@@ -18,26 +20,27 @@ flowchart TD
         subgraph EZ["exclusion-zone-handlers.ts"]
             direction TB
             p1["handleAddExclusionZone"]
-            p2["handleLoadExclusionZones"]
-            p3["handleRestoreExclusionZoneSnapshot"]
-            p4["handleMoveZoneVertex"]
-            p5["handleAddZoneVertex"]
-            p6["handleDeleteZoneVertex"]
+            p2["handleDeleteExclusionZone"]
+            p3["handleLoadExclusionZones"]
+            p4["handleRestoreExclusionZoneSnapshot"]
+            p5["handleMoveZoneVertex"]
+            p6["handleAddZoneVertex"]
+            p7["handleDeleteZoneVertex"]
         end
         subgraph WP["waypoint-handlers.ts"]
             direction TB
-            p7["handleAddWaypoint"]
-            p8["handleDeleteWaypoint"]
-            p9["handleMoveWaypoint"]
+            p8["handleAddWaypoint"]
+            p9["handleDeleteWaypoint"]
+            p10["handleMoveWaypoint"]
         end
         subgraph MS["mission-handlers.ts"]
             direction TB
-            p10["handleDuplicateMission"]
-            p11["handleLoadMissionSet"]
+            p11["handleDuplicateMission"]
+            p12["handleLoadMissionSet"]
         end
         subgraph SV["survey-handlers.ts"]
             direction TB
-            p12["handleChangeGridPlanningState"]
+            p13["handleChangeGridPlanningState"]
         end
     end
 
@@ -77,19 +80,33 @@ load-flow dialog UI and `handleConfirmMissionReroute`'s
 already-deleted-missions guard — never read by the cancel handlers), is the
 entire contract between the two streams.
 
-`revert` is frequently `[]` for load-triggered dialogs. Detection
+`revert` is frequently `[]`. Detection
 (`detectMissionReroutes`/`detectWaypointRemovals`) never mutates the data
 model — only confirming a dialog does — so while a load-triggered dialog is
 pending, the missions/zones are already sitting exactly as loaded. Cancel
 on those just declines the proposal and closes the dialog; there's nothing
 to undo, and the load itself is deliberately out of `revert`'s scope (see
-Bug 7 in [`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md)).
+Bug 7 in [`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md)). `handleDeleteExclusionZone`
+stages an empty `revert` for the same reason: the deletion is the operator's
+own deliberate act and stands regardless of what they decide about the route.
+
+The dialogs read this directly — a dismissal button labelled "Revert" when
+there is something to undo and "Cancel" when `revert` is empty.
 
 `placementError` is a third, simpler case: for those, the producer already
 reverted its own edit synchronously _before_ staging the dialog (see
 `handleAddWaypoint`'s `OVER_LIMIT`/`IMPOSSIBLE` branches below), so the only
 consumer is a plain dismiss — `handleClearPlacementError` — with nothing
 left to revert.
+
+**`PlacementErrorDialog` has a second, parallel path that bypasses this
+machinery entirely.** `Map.tsx` raises its own placement errors from local
+`useState` and renders the dialog directly, dismissing it through the
+component's optional `onDismiss` prop rather than `CLEAR_PLACEMENT_ERROR`. So
+the dialog has two producers and two consumers, only one pair of which appears
+in the streams above. Nothing is wrong with it — a message computed in the
+component with no shared state to coordinate does not need the reducer — but
+`pendingChange` is not the only way that dialog reaches the screen.
 
 ## 2. Stream 1 — producers
 
@@ -98,20 +115,39 @@ Every row: apply the primitive edit → run `detectWaypointRemovals()` /
 proposal with a `revert` list attached (or self-revert and show a blocking
 error).
 
-| File                       | Function                             | Line                                                             | Stages                                         |
-| -------------------------- | ------------------------------------ | ---------------------------------------------------------------- | ---------------------------------------------- |
-| exclusion-zone-handlers.ts | `handleAddExclusionZone`             | [25](../../../context/handlers/exclusion-zone-handlers.ts#L25)   | waypointRemoval (36) · reroute (60)            |
-|                            | `handleLoadExclusionZones`           | [112](../../../context/handlers/exclusion-zone-handlers.ts#L112) | waypointRemoval (139, 146) · reroute (171)     |
-|                            | `handleRestoreExclusionZoneSnapshot` | [205](../../../context/handlers/exclusion-zone-handlers.ts#L205) | waypointRemoval (218) · reroute (245)          |
-|                            | `handleMoveZoneVertex`               | [301](../../../context/handlers/exclusion-zone-handlers.ts#L301) | waypointRemoval (328) · reroute (358)          |
-|                            | `handleAddZoneVertex`                | [422](../../../context/handlers/exclusion-zone-handlers.ts#L422) | waypointRemoval (450) · reroute (480)          |
-|                            | `handleDeleteZoneVertex`             | [496](../../../context/handlers/exclusion-zone-handlers.ts#L496) | reroute (515)                                  |
-| waypoint-handlers.ts       | `handleAddWaypoint`                  | [34](../../../context/handlers/waypoint-handlers.ts#L34)         | placementError (41, 53, 69, 79) · reroute (98) |
-|                            | `handleDeleteWaypoint`               | [113](../../../context/handlers/waypoint-handlers.ts#L113)       | placementError (137, 146) · reroute (154)      |
-|                            | `handleMoveWaypoint`                 | [179](../../../context/handlers/waypoint-handlers.ts#L179)       | placementError (182, 219, 228) · reroute (237) |
-| mission-handlers.ts        | `handleDuplicateMission`             | [64](../../../context/handlers/mission-handlers.ts#L64)          | waypointRemoval (88) · reroute (95)            |
-|                            | `handleLoadMissionSet`               | [190](../../../context/handlers/mission-handlers.ts#L190)        | waypointRemoval (215) · reroute (236)          |
-| survey-handlers.ts         | `handleChangeGridPlanningState`      | [27](../../../context/handlers/survey-handlers.ts#L27)           | waypointRemoval (112) · reroute (119)          |
+| File                       | Function                             | Stages                    |
+| -------------------------- | ------------------------------------ | ------------------------- |
+| exclusion-zone-handlers.ts | `handleAddExclusionZone`             | waypointRemoval · reroute |
+|                            | `handleDeleteExclusionZone`          | waypointRemoval · reroute |
+|                            | `handleLoadExclusionZones`           | waypointRemoval · reroute |
+|                            | `handleRestoreExclusionZoneSnapshot` | waypointRemoval · reroute |
+|                            | `handleMoveZoneVertex`               | waypointRemoval · reroute |
+|                            | `handleAddZoneVertex`                | waypointRemoval · reroute |
+|                            | `handleDeleteZoneVertex`             | waypointRemoval · reroute |
+| waypoint-handlers.ts       | `handleAddWaypoint`                  | placementError · reroute  |
+|                            | `handleDeleteWaypoint`               | placementError · reroute  |
+|                            | `handleMoveWaypoint`                 | placementError · reroute  |
+| mission-handlers.ts        | `handleDuplicateMission`             | waypointRemoval · reroute |
+|                            | `handleLoadMissionSet`               | waypointRemoval · reroute |
+| survey-handlers.ts         | `handleChangeGridPlanningState`      | waypointRemoval · reroute |
+
+None of the seven zone handlers stages a proposal itself any more. Each applies
+its own edit, then delegates to one of two shared sequences in the same file:
+
+- **`applyZoneMutation`** — for the six handlers that change one zone. Runs
+  waypoint-removal detection (which short-circuits the rest if it finds
+  anything, since a waypoint inside a zone takes priority over routing around
+  it), strips detour waypoints the changed zone now contains, runs reroute
+  detection, and finally discards detours no longer needed. Each caller passes
+  which of those steps apply and what to revert.
+- **`applyZoneSetReplacement`** — for the two that replace the whole set
+  (load and snapshot restore). Drops zones that would leave a mission
+  unroutable and reports what survived through `loadSummary`.
+
+Collapsing the sequence into one place is what made the zone-handler bugs
+visible: each was a step one handler skipped, which reads as a missing table
+row rather than as absent code. The steps a handler skips are now stated at its
+call site.
 
 ## 3. Stream 2 — consumers
 
@@ -120,19 +156,27 @@ All five, plus the shared `applyRevert` helper they both call, live in
 mission based on a _proposal_ (insert bypass waypoints, delete an
 unroutable mission, or revert).
 
-| Function                       | Line                                                                 | On the wire from           | Does                                                                                                         |
-| ------------------------------ | -------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `applyRevert` (helper)         | [15](../../../context/handlers/obstacle-avoidance-handlers.ts#L15)   | —                          | loops `RevertContext[]`, `switch`es on `kind`; called by both cancel handlers below                          |
-| `handleConfirmMissionReroute`  | [47](../../../context/handlers/obstacle-avoidance-handlers.ts#L47)   | `CONFIRM_MISSION_REROUTE`  | writes `proposal.newWaypoints` into each mission; deletes `OVER_LIMIT`/`IMPOSSIBLE` missions unconditionally |
-| `handleCancelMissionReroute`   | [75](../../../context/handlers/obstacle-avoidance-handlers.ts#L75)   | `CANCEL_MISSION_REROUTE`   | `applyRevert(pending.revert)` — often a no-op for load-triggered dialogs                                     |
-| `handleConfirmWaypointRemoval` | [94](../../../context/handlers/obstacle-avoidance-handlers.ts#L94)   | `CONFIRM_WAYPOINT_REMOVAL` | applies the removal proposal, plus any feasible follow-up reroute, in one operation                          |
-| `handleCancelWaypointRemoval`  | [130](../../../context/handlers/obstacle-avoidance-handlers.ts#L130) | `CANCEL_WAYPOINT_REMOVAL`  | `applyRevert(pending.revert)`, scoped to the removal's staged data                                           |
-| `handleClearPlacementError`    | [148](../../../context/handlers/obstacle-avoidance-handlers.ts#L148) | dismiss                    | clears the dialog only — the producer already self-reverted                                                  |
+| Function                       | On the wire from           | Does                                                                                                         |
+| ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `applyRevert` (helper)         | —                          | loops `RevertContext[]`, `switch`es on `kind`; called by both cancel handlers below                          |
+| `handleConfirmMissionReroute`  | `CONFIRM_MISSION_REROUTE`  | writes `proposal.newWaypoints` into each mission; deletes `OVER_LIMIT`/`IMPOSSIBLE` missions unconditionally |
+| `handleCancelMissionReroute`   | `CANCEL_MISSION_REROUTE`   | `applyRevert(pending.revert)` — a no-op whenever `revert` is empty                                           |
+| `handleConfirmWaypointRemoval` | `CONFIRM_WAYPOINT_REMOVAL` | applies the removal proposal, plus any feasible follow-up reroute, in one operation                          |
+| `handleCancelWaypointRemoval`  | `CANCEL_WAYPOINT_REMOVAL`  | `applyRevert(pending.revert)`, scoped to the removal's staged data                                           |
+| `handleClearPlacementError`    | dismiss                    | clears the dialog only — the producer already self-reverted                                                  |
+
+`handleConfirmMissionReroute` deleting unroutable missions is why it matters
+that no mission reaches reroute detection with a waypoint already inside a
+zone: routing reports any leg touching such a waypoint as impossible, and
+confirm would then delete a mission that was never actually unroutable. Every
+zone producer runs waypoint-removal detection first to keep that from
+happening (Bug 11).
 
 ## 4. Stream 1 in detail — one producer, worked example
 
-`handleAddExclusionZone` is representative of the pattern all 12 producers
-follow.
+`handleAddExclusionZone` is representative of the pattern all 13 producers
+follow. The detection steps shown inside the handler are the ones
+`applyZoneMutation` now performs on its behalf; the sequence is unchanged.
 
 ```mermaid
 sequenceDiagram
@@ -142,6 +186,7 @@ sequenceDiagram
     participant Ctx as jaiaDispatch
     participant Reducer as jaiaReducer
     participant Handler as handleAddExclusionZone
+    participant Seq as applyZoneMutation
     participant Detect as exclusion-zone-detection
     participant Data as ObstacleAvoidanceData
 
@@ -150,19 +195,20 @@ sequenceDiagram
     Ctx->>Reducer: jaiaReducer(state, action)
     Reducer->>Handler: config.handler(state, action)
     Handler->>Handler: addZone(vertices) — edit applied immediately
-    Handler->>Detect: detectWaypointRemovals()
+    Handler->>Seq: applyZoneMutation({revert, strippableZoneID, ...steps})
+    Seq->>Detect: detectWaypointRemovals()
     alt waypoints stranded
-        Detect-->>Handler: pendingRemoval
-        Handler->>Data: setPendingChange({type: "waypointRemoval",<br/>data: {...pendingRemoval, revert: [{kind: "deleteZone", zoneID}]}})
+        Detect-->>Seq: pendingRemoval
+        Seq->>Data: setPendingChange({type: "waypointRemoval",<br/>data: {...pendingRemoval, revert: [{kind: "deleteZone", zoneID}]}})
     else none stranded
-        Handler->>Detect: detectMissionReroutes()
-        Detect-->>Handler: pending
+        Seq->>Detect: detectMissionReroutes()
+        Detect-->>Seq: pending
         opt pending exists
-            Handler->>Handler: build revert: RevertContext[]<br/>(restoreWaypoints if bypasses were stripped, + deleteZone)
-            Handler->>Data: setPendingChange({type: "reroute", data: {...pending, revert}})
+            Seq->>Seq: build revert: RevertContext[]<br/>(restoreWaypoints if bypasses were stripped, + deleteZone)
+            Seq->>Data: setPendingChange({type: "reroute", data: {...pending, revert}})
         end
     end
-    Note over Handler,Data: mission waypoints are NOT yet changed —<br/>only the zone itself was added
+    Note over Seq,Data: mission waypoints are NOT yet changed —<br/>only the zone itself was added
 ```
 
 Note the absence of any relevance filter here — earlier versions of this

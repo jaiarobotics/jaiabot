@@ -1,5 +1,10 @@
 # Consolidate exclusion-zone dialogs, simplify handler-side reroute logic, and cut unnecessary reducer usage
 
+_Status: Parts A-F implemented; Part G deferred. This is a record of a
+completed pass — its descriptions of the code, including file and line
+references, describe the state **before** that pass and have not been updated
+since. Read it for the reasoning, not as a map of the current code._
+
 **Follow-up:** [`02PENDING_DIALOG_REFACTOR_PLAN.md`](./02PENDING_DIALOG_REFACTOR_PLAN.md)
 in this same folder unifies the three `pendingReroute`/`pendingWaypointRemoval`/
 `placementError` fields this plan's dialogs read from into one discriminated

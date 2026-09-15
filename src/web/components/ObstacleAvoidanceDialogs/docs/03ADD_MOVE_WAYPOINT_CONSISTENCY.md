@@ -1,6 +1,9 @@
 # Add-waypoint / move-waypoint consistency
 
-_Status: implemented._
+_Status: implemented. `ZoneCrossingDialog`, described below as the
+add-waypoint path's dialog, was removed outright as part of this work — the
+add and move paths now share `MissionRerouteDialog`. References to it here are
+historical._
 
 ## Context
 

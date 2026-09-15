@@ -1,8 +1,9 @@
 # Unify pending obstacle-avoidance dialog state and consolidate its dialogs
 
-_Status: Parts 1-6 implemented and committed. `tsc --noEmit` and the full
-test suite pass. Manual smoke test (Verification steps 3-4, including the
-traced race) not yet re-run — needs a live `src/web/run.sh` session._
+_Status: Parts 1-6 implemented and committed; `tsc --noEmit`, the full test
+suite, and a manual smoke test of the exclusion-zone panel all pass. This is a
+record of a completed pass — its file and line references describe the state
+before it and have not been updated since._
 
 ## Context
 

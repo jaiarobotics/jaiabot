@@ -1,8 +1,8 @@
 # Restructure exclusion-zone handlers and the `PendingChange` revert-context types
 
-_Status: implemented and smoke-tested. See
-[`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md) for pre-existing bugs found (and one,
-Bug 7, fixed) along the way._
+_Status: Parts 1-5 implemented and smoke-tested; Parts 6-8 below cover the
+follow-up pass that unified the zone handlers and fixed the bugs this one
+surfaced. See [`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md) for the full list._
 
 ## Context
 
@@ -39,20 +39,25 @@ mission reroutes → filter to `relevant` proposals via
 `involvedZoneIDs`/`bypassAffected` → set `pendingChange`.
 
 `handleDeleteZoneVertex` is the control case: it skips the waypoint-removal
-check (deleting a vertex, or moving one inward, can only shrink a convex
-hull, never newly enclose a waypoint) and skips the `relevant` filter,
-staging whatever `detectMissionReroutes()` returns unfiltered. Include it in
-this pass alongside the other three — comparing all four is what exposes
-both findings below.
+check and skips the `relevant` filter, staging whatever
+`detectMissionReroutes()` returns unfiltered. Include it in this pass
+alongside the other three — comparing all four is what exposes both findings
+below.
+
+**The reason recorded for that skip was wrong, and became Bug 9.** It was
+taken to be safe because "deleting a vertex, or moving one inward, can only
+shrink a convex hull, never newly enclose a waypoint". Zones are never
+convex-hulled anywhere in this codebase, and deleting a **reflex** vertex
+replaces two edges with a chord lying outside them — which enlarges the
+polygon. Part 7 restores the check.
 
 **Bug 3 — root cause confirmed and fix verified (not just root-caused).**
 [`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md)'s Bug 3 (a new/moved zone that blocks
 a bypass leg, rather than a mission's original straight-line segment, never
 triggers a reroute dialog) lives in this exact filter: `relevant =
 pending.proposals.filter((p) => p.involvedZoneIDs.includes(zoneID) ||
-bypassAffected.has(p.missionID))`. Reading `detectReroutesWithOverrides` in
-`exclusion-zone-router.ts:724-727` shows the detector already does the right
-comparison one layer down:
+bypassAffected.has(p.missionID))`. Reading `detectReroutesWithOverrides` in `exclusion-zone-router.ts` shows the
+detector already does the right comparison one layer down:
 
 ```ts
 if (!hasOverride) {
@@ -75,13 +80,15 @@ p) => s + p.bypassCount, 0)`) in favor of `pending.totalBypassCount`, which
 `markOverLimit` already computes correctly (feasible proposals only). This
 is in scope for this pass, not deferred.
 
-**Shrink/grow invariant, currently implicit — worth a comment once this is
-touched:** `stripStaleBypasses()` after the reroute check is only needed for
-zone-shape ops that can _shrink_ the hull (`handleMoveZoneVertex`,
-`handleDeleteZoneVertex`) — a mission might no longer cross any zone.
-`handleAddExclusionZone` and `handleAddZoneVertex` never call it, because a
-brand-new zone, or a convex hull re-computed with one more point, can only
-grow or stay the same size, never remove a crossing.
+**Shrink/grow invariant, as far as it goes:** `stripStaleBypasses()` after
+the reroute check is only needed for zone-shape ops that can free space —
+a mission might no longer cross any zone. `handleAddExclusionZone` and
+`handleAddZoneVertex` never call it, because a new zone or an extra vertex
+can only grow the covered area, never remove a crossing. The converse does
+not hold, and assuming it did is what produced Bug 9: a vertex **deletion**
+can enlarge a concave zone, so it needs the grow-side checks too. Part 6 also
+shows the strip itself was unsound — absence from the proposal set does not
+mean a detour is obsolete (Bug 6).
 
 ## Part 2 — Split `PendingReroute`/`PendingWaypointRemoval` into detection result + revert context
 
@@ -145,9 +152,8 @@ never set these).
 a pure function of which zones blocked which removed waypoints, the same
 regardless of which handler triggered detection, and
 `handleLoadExclusionZones` reads it before staging the dialog to decide
-which zones to strip preemptively
-([exclusion-zone-handlers.ts:134-137](../../../context/handlers/exclusion-zone-handlers.ts#L134-L137)) —
-real business logic, unrelated to revert. It stays, moved onto
+which zones to strip preemptively — real business logic, unrelated to
+revert. It stays, moved onto
 `WaypointRemovalProposalSet` as a detection-result field, always computed.
 
 **Proposed types**, in `pending-route-data.ts`:
@@ -257,21 +263,61 @@ affected: `isZoneLoad`/`isMissionLoad`/`skippedZones`/`loadedZones`/
 
 The actual route-computation engine
 (`exclusion-zone-router.ts`/`exclusion-zone-detection.ts`'s A\*/routing
-logic) is a separate, already-queued investigation — understanding how
-routing itself works, not the dispatch/revert plumbing around it. Not part
-of this plan.
+logic) was reviewed separately. Four findings came out of it, all fixed: the
+buffer-winding correction used a vertex average that is not guaranteed to lie
+inside a concave zone (replaced with a signed-area test, covered by a
+crescent-zone regression test); A\*'s open-set minimum was a linear scan
+(replaced with a binary min-heap using lazy deletion); zone buffer geometry
+was rebuilt per mission and per waypoint instead of once per detection pass
+(`buildZoneGeoms`/`buildZoneBufferCache`); and three JSDoc comments claimed
+handlers "re-convex-hull" zones, which nothing in this codebase has ever done.
 
-**Flagged for that investigation:** `involvedZoneIDs` (`routeAroundExclusionZones`,
-`exclusion-zone-router.ts:548-592`) only counts zones blocking a mission's
-_original straight-line_ segment, not zones that only block a bypass leg —
-this is Bug 3's root cause (Part 1). `handleLoadExclusionZones` and
-`handleRestoreExclusionZoneSnapshot` ([exclusion-zone-handlers.ts:161-164](../../../context/handlers/exclusion-zone-handlers.ts#L161-L164)
-and the equivalent block at line 234) both build a `skippedZoneIDSet` from
-`involvedZoneIDs` on OVER*LIMIT/IMPOSSIBLE proposals to decide which zones to
-silently drop from a load. A zone that only makes a route infeasible via a
-bypass leg is exposed to the same narrowness, so it may not get flagged for
-skipping, and an unroutable zone could load anyway. Not fixed by Part 1 (that
-fix removes the \_filter's* dependency on `involvedZoneIDs`, it doesn't touch
-this skip-list computation) — a candidate fix for whenever the router
-investigation revisits `involvedZoneIDs`'s definition, localized to these two
-handlers' skip logic.
+**Still open, inherited from Bug 3's root cause:** `involvedZoneIDs`, built in
+`routeAroundExclusionZones`, only counts zones blocking a mission's _original
+straight-line_ segment, not zones that only block a bypass leg. Part 1 removed
+the `relevant` filter's dependence on it, but `applyZoneSetReplacement` still
+builds its `skippedZoneIDSet` from `involvedZoneIDs` on unroutable proposals
+to decide which zones to drop from a load. A zone that only makes a route
+infeasible via a bypass leg may therefore not be flagged, and could load
+anyway. Localized to that skip-list computation.
+
+## Part 6 — One shared sequence for the zone handlers, and the Bug 6 fix
+
+Seven handlers in `exclusion-zone-handlers.ts` each hand-rolled the same
+post-mutation sequence, three of them near-verbatim. Every zone bug in
+`07KNOWN_BUGS.md` turned out to be one of those handlers skipping a step, so
+the duplication was not merely untidy — it was what let the gaps hide.
+
+The sequence moved into two helpers in the same file, `applyZoneMutation` and
+`applyZoneSetReplacement`, with each caller declaring which steps apply. The
+extraction changed no behaviour; it was landed separately from the fixes so
+that the fixes are one-line diffs against a table rather than edits buried in
+a reshuffle. Characterization tests written first — and verified against the
+pre-extraction code — are what made that claim checkable.
+
+Bug 6 then became a single change in one place: `stripStaleBypasses` re-checks
+each candidate's clean route via `routeNeedsBypass` instead of treating
+absence from the proposal set as proof a detour is obsolete.
+
+## Part 7 — Detection gaps in the individual handlers
+
+With the steps visible as flags, three gaps were filled: `handleDeleteZoneVertex`
+gained waypoint-removal detection and the in-zone detour strip it had never run
+(Bug 9); `handleDeleteExclusionZone` gained reroute detection, so deleting a
+zone re-plans against the ones that remain instead of silently reverting a
+mission to a blocked route (Bug 4); and it then gained waypoint-removal
+detection too, because routing treats a waypoint already inside a zone as
+unroutable and confirm deletes missions classified that way (Bug 11).
+
+`handleClearExclusionZones` deliberately keeps both detection steps off: with
+no zones left, neither can find anything.
+
+## Part 8 — Dialog dismissal labels
+
+The dismissal button now takes its label from `pending.revert` rather than
+from which producer staged the dialog: "Cancel" when the list is empty and
+nothing will be undone, "Revert"/"Revert All" otherwise, with the dialog
+naming what reverting would undo. Keying off the revert list rather than
+`loadSummary` was necessary rather than cosmetic — Part 7's `handleDeleteExclusionZone`
+change introduced the first non-load producer that stages an empty revert,
+which the old origin-based rule would have mislabelled.
