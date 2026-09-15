@@ -15,6 +15,7 @@ import {
     handleCancelWaypointRemoval,
     handleConfirmMissionReroute,
 } from "../obstacle-avoidance-handlers";
+import { ProposalStatus } from "../../../data/obstacle_avoidance_data/pending-route-data";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
@@ -681,5 +682,56 @@ describe("deleting a vertex that enlarges a concave zone", () => {
             kind: "restoreWaypoints",
             missions: [{ missionID, waypoints: [start, detourWaypoint, end] }],
         });
+    });
+});
+
+describe("deleting a zone while a waypoint sits inside another", () => {
+    /**
+     * Declining a load leaves its zones in place, so a waypoint can legitimately end up
+     * inside one. Routing reports any leg starting or ending inside a zone as unroutable,
+     * so re-planning a mission in that state would classify it IMPOSSIBLE — which confirm
+     * resolves by deleting the mission. Removal has to be settled first.
+     */
+    function waypointLeftInsideALoadedZone() {
+        const missionID = addMission([
+            [41.0, -72.0],
+            [41.0, -71.99],
+        ]);
+
+        handleLoadExclusionZones(makeMutableState(), {
+            exclusionZones: [
+                squareZone(41.0, -72.0), // encloses the mission's first waypoint
+                squareZone(41.0, -71.995), // blocks the leg between the two waypoints
+                squareZone(41.01, -72.0), // clear of the mission entirely
+            ],
+        } as any);
+        expect(obstacleAvoidanceData.getPendingChange()?.type).toBe("waypointRemoval");
+
+        handleCancelWaypointRemoval(makeMutableState());
+        expect(zoneIDs()).toHaveLength(3);
+        expect(missionSet.getMission(missionID).getWaypoints()).toHaveLength(2);
+
+        return { missionID, unrelatedZoneID: zoneIDs()[2] };
+    }
+
+    test("asks about the enclosed waypoint instead of declaring the mission unroutable", () => {
+        const { missionID, unrelatedZoneID } = waypointLeftInsideALoadedZone();
+
+        handleDeleteExclusionZone(makeMutableState(), { zoneID: unrelatedZoneID } as any);
+
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("waypointRemoval");
+        expect(missionSet.getMission(missionID)).toBeDefined();
+    });
+
+    test("never reports a routable mission as impossible", () => {
+        const { unrelatedZoneID } = waypointLeftInsideALoadedZone();
+
+        handleDeleteExclusionZone(makeMutableState(), { zoneID: unrelatedZoneID } as any);
+
+        const pending = obstacleAvoidanceData.getPendingChange();
+        const rerouteStatuses =
+            pending?.type === "reroute" ? pending.data.proposals.map((p) => p.status) : [];
+        expect(rerouteStatuses).not.toContain(ProposalStatus.IMPOSSIBLE);
     });
 });
