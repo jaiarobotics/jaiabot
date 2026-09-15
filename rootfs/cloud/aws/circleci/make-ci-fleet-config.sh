@@ -14,6 +14,9 @@ Usage: $0 [options] <output path>
   --warp <n>            Simulator warp (default: 5)
   --authorized-key <s>  Public key to install on every node; repeatable. Defaults to
                         ~/.ssh/id_ed25519.pub, generating it if it does not exist.
+  --base-uri <s>        CloudHub auth base URI (default: fleet<n>.ci.invalid)
+  --admin-email <s>     CloudHub auth admin address (default: ci@jaia.invalid)
+  --smtp-address <s>    CloudHub auth SMTP relay (default: smtp://localhost:587)
 EOF
     exit 1
 }
@@ -25,6 +28,9 @@ BOTS=2
 WARP=5
 AUTHORIZED_KEYS=()
 OUTPUT=""
+BASE_URI=""
+ADMIN_EMAIL="ci@jaia.invalid"
+SMTP_ADDRESS="smtp://localhost:587"
 
 while (( $# > 0 )); do
     case "$1" in
@@ -32,6 +38,9 @@ while (( $# > 0 )); do
         --bots) BOTS="${2:-}"; shift 2 ;;
         --warp) WARP="${2:-}"; shift 2 ;;
         --authorized-key) AUTHORIZED_KEYS+=("${2:-}"); shift 2 ;;
+        --base-uri) BASE_URI="${2:-}"; shift 2 ;;
+        --admin-email) ADMIN_EMAIL="${2:-}"; shift 2 ;;
+        --smtp-address) SMTP_ADDRESS="${2:-}"; shift 2 ;;
         -h|--help) usage ;;
         -*) echo "Unknown option: $1" >&2; usage ;;
         *) [[ -z "$OUTPUT" ]] || usage; OUTPUT="$1"; shift ;;
@@ -39,6 +48,10 @@ while (( $# > 0 )); do
 done
 
 [[ -n "$OUTPUT" ]] || usage
+
+# A CI CloudHub is reached over the fleet VPN and never serves a public login, so these
+# default to the reserved .invalid domain rather than pretending to be a real host
+BASE_URI="${BASE_URI:-fleet${FLEET}.ci.invalid}"
 
 CLOUDHUB_ID=$(jaia_bounds --cloudhub_id)
 VIRTUALHUB_ID=1
@@ -69,6 +82,7 @@ generate_key "hub${CLOUDHUB_ID}"
 generate_key "vpn_tmp"
 
 {
+    echo "version: 2"
     echo "fleet: ${FLEET}"
     echo "hubs: [${VIRTUALHUB_ID}, ${CLOUDHUB_ID}]"
     echo "bots: [$(seq -s', ' 1 "${BOTS}")]"
@@ -88,17 +102,16 @@ generate_key "vpn_tmp"
     echo "    public_key: \"$(cat "${KEYDIR}/vpn_tmp.pub")\""
     echo "  }"
     echo "}"
+    echo "cloudhub_auth {"
+    echo "  base_uri: \"${BASE_URI}\""
+    echo "  admin_email: \"${ADMIN_EMAIL}\""
+    echo "  smtp_address: \"${SMTP_ADDRESS}\""
+    echo "}"
     echo "wlan_password: \"$(head -c 18 /dev/urandom | base64 | tr -d '/+=')\""
     echo "service_vpn_enabled: false"
-    echo "debconf {"
-    echo "  key: \"jaiabot-embedded/warp\""
-    echo "  type: SELECT"
-    echo "  value: \"${WARP}\""
-    echo "}"
-    echo "debconf {"
-    echo "  key: \"jaiabot-embedded/comms_links\""
-    echo "  type: MULTISELECT"
-    echo "  value: \"wifi\""
+    echo "settings {"
+    echo "  warp: ${WARP}"
+    echo "  comms_links: COMMS_LINK_WIFI"
     echo "}"
 } > "${OUTPUT}"
 
