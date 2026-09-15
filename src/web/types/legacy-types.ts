@@ -1,4 +1,4 @@
-import { Command } from "./protobuf-types";
+import { Command } from "../shared/proto/jaiabot/messages/jaia_dccl";
 
 export interface LegacyRunInterface {
     id: string;

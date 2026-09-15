@@ -1,4 +1,4 @@
-import { TaskPacket } from "./JAIAProtobuf";
+import { TaskPacket } from "./proto/jaiabot/messages/jaia_dccl";
 import { createMarker } from "./Marker";
 
 import VectorLayer from "ol/layer/Vector";
@@ -33,8 +33,8 @@ export function createDivePacketFeature(map: Map, task_packet: TaskPacket) {
         diveRate: Number(dive.dive_rate?.toFixed(2)), // (m/s)
         bottomDive: dive.bottom_dive,
         botId: task_packet.bot_id,
-        startTime: task_packet.start_time,
-        endTime: task_packet.end_time,
+        startTime: Number(task_packet.start_time),
+        endTime: Number(task_packet.end_time),
         startLocation: dive.start_location,
     });
     feature.setStyle(Styles.divePacketIconStyle(feature));
@@ -68,8 +68,8 @@ export function createDriftPacketFeature(map: Map, task_packet: TaskPacket) {
         driftDirection: Number(drift?.estimated_drift?.heading?.toFixed(2)),
         sigWaveHeight: Number(drift?.significant_wave_height?.toFixed(2)),
         botId: task_packet.bot_id,
-        startTime: task_packet.start_time,
-        endTime: task_packet.end_time,
+        startTime: Number(task_packet.start_time),
+        endTime: Number(task_packet.end_time),
         startLocation: drift?.start_location,
     });
     const style = Styles.driftPacketIconStyle(feature);

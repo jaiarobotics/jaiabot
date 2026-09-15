@@ -4,7 +4,8 @@ import { Coordinate } from "ol/coordinate";
 import { LineString, Point } from "ol/geom";
 import { fromLonLat } from "ol/proj";
 import { createMarker, createFlagMarker, createGPSMarker } from "./Marker";
-import { MissionPlan, TaskType, GeographicCoordinate } from "./JAIAProtobuf";
+import { GeographicCoordinate } from "./proto/jaiabot/messages/geographic_coordinate";
+import { MissionPlan, MissionTask_TaskType } from "./proto/jaiabot/messages/mission";
 import { transformTranslate, point } from "@turf/turf";
 import { PortalBotStatus } from "./PortalStatus";
 import { getMapCoordinate } from "./Utilities";
@@ -87,7 +88,7 @@ export function createMissionFeatures(
         var startCoordinate: Coordinate;
 
         const constantHeadingParameters =
-            task?.type == TaskType.CONSTANT_HEADING ? task.constant_heading : null;
+            task?.type == MissionTask_TaskType.CONSTANT_HEADING ? task.constant_heading : null;
         let distance =
             (constantHeadingParameters?.constant_heading_speed ?? CONSTANT_HEADING_DEFAULT_SPEED) *
             (constantHeadingParameters?.constant_heading_time ?? CONSTANT_HEADING_DEFAULT_TIME);

@@ -9,7 +9,11 @@ import { Button } from "@mui/material";
 import Bot from "../../../data/bots/bot";
 import { BotModes } from "../../../types/jaia-system-types";
 import { DialogActions } from "../../../types/context-types";
-import { Command, CommandType, MissionStart, MovementType } from "../../../types/protobuf-types";
+import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
+import {
+    MissionPlan_MissionStart,
+    MissionPlan_MovementType,
+} from "../../../shared/proto/jaiabot/messages/mission";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 
 import rcModeIcon from "../../../style/icons/controller.svg";
@@ -65,7 +69,7 @@ export default function RemoteControlButton(props: Props) {
 
         if (
             !isCommandAvailable(
-                CommandType.REMOTE_CONTROL_TASK,
+                Command_CommandType.REMOTE_CONTROL_TASK,
                 props.bot.getMissionStatus().missionState,
             )
         ) {
@@ -153,10 +157,10 @@ function getEnterRCCommand(bot: Bot) {
 
     const enterRCCommand: Command = {
         bot_id: bot.getBotID(),
-        type: CommandType.MISSION_PLAN,
+        type: Command_CommandType.MISSION_PLAN,
         plan: {
-            start: MissionStart.START_IMMEDIATELY,
-            movement: MovementType.REMOTE_CONTROL,
+            start: MissionPlan_MissionStart.START_IMMEDIATELY,
+            movement: MissionPlan_MovementType.REMOTE_CONTROL,
             recovery: {
                 recover_at_final_goal: false,
                 location: location,
@@ -176,7 +180,7 @@ function getEnterRCCommand(bot: Bot) {
 function getExitRCCommand(bot: Bot) {
     const stopCommand: Command = {
         bot_id: bot.getBotID(),
-        type: CommandType.STOP,
+        type: Command_CommandType.STOP,
     };
     return stopCommand;
 }

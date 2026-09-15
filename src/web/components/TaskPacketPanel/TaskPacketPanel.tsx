@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { TaskPackets } from "../../data/task_packets/task-packets";
-import { TaskPacket } from "../../types/protobuf-types";
+import { TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
 import { PanelActions, TaskPacketVisibility } from "../../types/context-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { SelectedTaskPacket } from "../../types/jaia-system-types";
@@ -50,7 +50,7 @@ export default function TaskPacketPanel(props: Props) {
      * @returns {string} "botid_startTimeSeconds"
      */
     const getTaskPacketID = (taskPacket: TaskPacket) => {
-        const startTimeSeconds = Math.round(taskPacket.start_time / 1e6);
+        const startTimeSeconds = Math.round(Number(taskPacket.start_time) / 1e6);
         return `${taskPacket.bot_id}_${startTimeSeconds}`;
     };
 
@@ -79,8 +79,8 @@ export default function TaskPacketPanel(props: Props) {
         });
     };
 
-    const startTime = formatDate(taskPacket.start_time);
-    const endTime = formatDate(taskPacket.end_time);
+    const startTime = formatDate(Number(taskPacket.start_time));
+    const endTime = formatDate(Number(taskPacket.end_time));
 
     // We use the guards because props.selectedTaskPacket is one step
     // ahead of the taskPacket variable when a task icon is clicked

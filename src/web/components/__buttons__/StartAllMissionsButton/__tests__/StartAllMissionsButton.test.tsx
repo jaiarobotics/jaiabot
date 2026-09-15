@@ -9,7 +9,7 @@ import { bots } from "../../../../data/bots/bots";
 import { missionSet } from "../../../../data/mission_set/mission-set";
 
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
-import { MissionState } from "../../../../types/protobuf-types";
+import { MissionState } from "../../../../shared/proto/jaiabot/messages/mission";
 import { missionsManager } from "../../../../data/missions_manager/missions-manager";
 
 // Place user in control by default

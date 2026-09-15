@@ -11,7 +11,7 @@ import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
-import { Metadata, Version } from "../types/protobuf-types";
+import { DeviceMetadata, DeviceMetadata_Version } from "../shared/proto/jaiabot/messages/metadata";
 import SoundEffects from "../style/audio/sound-effects";
 
 const MAX_REQUEST_TIME = 10000; // ms;
@@ -128,7 +128,7 @@ export async function pollMetadata() {
         if (!res.ok) {
             console.error(`Metadata response status: ${res.status}`);
         } else {
-            const metadata: Metadata = await res.json();
+            const metadata: DeviceMetadata = await res.json();
             const isUpgradeAvailable = compareVersions(
                 metadata.jaiabot_version,
                 jaiaGlobal.getGitHubVersion(),
@@ -299,10 +299,10 @@ function handleBotSoundEffects(wasCommsDropped: boolean, isCommsDropped: boolean
  * Converts the tag from a string to a Version object
  *
  * @param {string} tagName Tag from GitHub (ex: 2.6.0)
- * @returns {Version} Tag broken into major, minor, and patch
+ * @returns {DeviceMetadata_Version} Tag broken into major, minor, and patch
  */
 function deconstructTagName(tagName: string) {
-    const gitHubVersion: Version = {
+    const gitHubVersion: DeviceMetadata_Version = {
         major: "",
         minor: "",
         patch: "",
@@ -321,11 +321,14 @@ function deconstructTagName(tagName: string) {
 /**
  * Determines if the GitHub tag is newer than the version on the Hub
  *
- * @param {Version} currentVersion Version fetched from Hub
- * @param {Version} gitHubVersion Version fetched from jaiabot repo
+ * @param {DeviceMetadata_Version} currentVersion Version fetched from Hub
+ * @param {DeviceMetadata_Version} gitHubVersion Version fetched from jaiabot repo
  * @returns {boolean} True if there is a new version, False otherwise
  */
-function compareVersions(currentVersion: Version, gitHubVersion: Version) {
+function compareVersions(
+    currentVersion: DeviceMetadata_Version,
+    gitHubVersion: DeviceMetadata_Version,
+) {
     if (!currentVersion) {
         return false;
     }

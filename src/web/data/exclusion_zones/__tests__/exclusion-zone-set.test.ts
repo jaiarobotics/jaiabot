@@ -1,5 +1,5 @@
 import { ExclusionZone, ExclusionZoneSet } from "../exclusion-zone-set";
-import { GeographicCoordinate } from "../../../types/protobuf-types";
+import { GeographicCoordinate } from "../../../shared/proto/jaiabot/messages/geographic_coordinate";
 
 function coord(lat: number, lon: number): GeographicCoordinate {
     return { lat, lon };

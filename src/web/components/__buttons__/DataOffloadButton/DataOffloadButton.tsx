@@ -10,7 +10,8 @@ import { mdiDownload } from "@mdi/js";
 
 import Bot from "../../../data/bots/bot";
 import { DialogActions } from "../../../types/context-types";
-import { Command, CommandType, MissionState } from "../../../types/protobuf-types";
+import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
+import { MissionState } from "../../../shared/proto/jaiabot/messages/mission";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 
@@ -54,8 +55,8 @@ export default function DataOffloadButton(props: Props) {
 
         if (
             !(
-                isCommandAvailable(CommandType.RECOVERED, missionState) ||
-                isCommandAvailable(CommandType.RETRY_DATA_OFFLOAD, missionState)
+                isCommandAvailable(Command_CommandType.RECOVERED, missionState) ||
+                isCommandAvailable(Command_CommandType.RETRY_DATA_OFFLOAD, missionState)
             )
         ) {
             return DisabledCodes.MISSION_STATE;
@@ -95,9 +96,9 @@ export default function DataOffloadButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
 
-        let commandType = CommandType.RECOVERED;
+        let commandType = Command_CommandType.RECOVERED;
         if (props.bot.getMissionStatus().missionState === MissionState.POST_DEPLOYMENT__FAILED) {
-            commandType = CommandType.RETRY_DATA_OFFLOAD;
+            commandType = Command_CommandType.RETRY_DATA_OFFLOAD;
         }
 
         if (dialogAction === DialogActions.CONFIRMED) {

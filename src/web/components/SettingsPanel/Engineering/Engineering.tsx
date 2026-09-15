@@ -3,7 +3,12 @@ import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material"
 import { JaiaContext } from "../../../context/JaiaContext";
 import { jaiaAPI } from "../../../utils/jaia-api";
 import { success } from "../../../utils/notifications";
-import { BotStatusRate, Engineering, PIDControl, PIDSettings } from "../../../types/protobuf-types";
+import {
+    BotStatusRate,
+    Engineering,
+    PIDControl,
+    PIDControl_PIDSettings,
+} from "../../../shared/proto/jaiabot/messages/engineering";
 import "../../../style/stylesheets/engineering.less";
 
 interface Props {
@@ -31,7 +36,7 @@ const pidTypes: (keyof PIDControl)[] = [
     "heading_constant",
 ];
 
-const pidGains: (keyof PIDSettings)[] = ["Kp", "Ki", "Kd"];
+const pidGains: (keyof PIDControl_PIDSettings)[] = ["Kp", "Ki", "Kd"];
 
 /**
  * Produces the engineering section in the JCC Settings to update low-level controls
@@ -148,12 +153,12 @@ export default function Engineering() {
     const packagePIDValues = () => {
         const pidControl: PIDControl = {};
         for (const pidType of pidTypes) {
-            const pidSettings: PIDSettings = {};
+            const pidSettings: PIDControl_PIDSettings = {};
             for (const pidGain of pidGains) {
                 const input = document.getElementById(`${pidType}-${pidGain}`) as HTMLInputElement;
                 pidSettings[pidGain] = Number(input.value);
             }
-            (pidControl[pidType] as PIDSettings) = pidSettings;
+            (pidControl[pidType] as PIDControl_PIDSettings) = pidSettings;
         }
         return pidControl;
     };
@@ -436,7 +441,7 @@ function PIDGainsTable(props: Props) {
                                 const pidTypeGain = pidType + "-" + pidGain;
                                 const pidSettings = props.engineering.pid_control?.[
                                     pidType
-                                ] as PIDSettings;
+                                ] as PIDControl_PIDSettings;
                                 return (
                                     <td key={pidGain}>
                                         <input

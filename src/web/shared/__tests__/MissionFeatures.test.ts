@@ -2,7 +2,7 @@ import { LineString } from "ol/geom";
 import { Map } from "ol";
 import { toLonLat } from "ol/proj";
 import { createMissionFeatures } from "../MissionFeatures";
-import { MissionPlan, TaskType } from "../JAIAProtobuf";
+import { MissionPlan, MissionTask_TaskType } from "../proto/jaiabot/messages/mission";
 import { PortalBotStatus } from "../PortalStatus";
 
 const map = {
@@ -26,7 +26,7 @@ describe("createMissionFeatures constant heading defaults", () => {
                 {
                     location: { lon: -71.0, lat: 42.0 },
                     task: {
-                        type: TaskType.CONSTANT_HEADING,
+                        type: MissionTask_TaskType.CONSTANT_HEADING,
                         constant_heading: {
                             constant_heading: 90,
                         },
@@ -53,7 +53,7 @@ describe("createMissionFeatures constant heading defaults", () => {
                 {
                     location: { lon: -71.0, lat: 42.0 },
                     task: {
-                        type: TaskType.CONSTANT_HEADING,
+                        type: MissionTask_TaskType.CONSTANT_HEADING,
                         constant_heading: {
                             constant_heading: 90,
                             constant_heading_speed: 2,
@@ -94,7 +94,7 @@ describe("createMissionFeatures constant heading defaults", () => {
                 {
                     location: { lon: -71.0, lat: 42.0 },
                     task: {
-                        type: TaskType.CONSTANT_HEADING,
+                        type: MissionTask_TaskType.CONSTANT_HEADING,
                         constant_heading: {
                             constant_heading: Number.NaN,
                             constant_heading_speed: 2,

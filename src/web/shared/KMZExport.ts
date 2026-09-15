@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 
 import { LogTaskPacket } from "./LogMessages";
-import { DriftPacket, TaskPacket } from "./JAIAProtobuf";
+import { DriftPacket, TaskPacket } from "./proto/jaiabot/messages/jaia_dccl";
 import * as Styles from "./Styles";
 
 /**
@@ -24,7 +24,7 @@ async function taskPacketToKMLPlacemarks(taskPacket: TaskPacket | LogTaskPacket)
 
     let startTimeString = "Unknown";
     if (taskPacket.start_time !== undefined) {
-        const startTime = new Date(taskPacket.start_time / 1e3);
+        const startTime = new Date(Number(taskPacket.start_time) / 1e3);
         startTimeString = formatter.format(startTime);
     }
 

@@ -15,7 +15,7 @@ import Mission from "../../../data/mission_set/mission";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 
-import { Command, CommandType } from "../../../types/protobuf-types";
+import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
 import { ButtonNames, ButtonTypes, DialogActions } from "../../../types/context-types";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";
@@ -54,7 +54,10 @@ export default function StartAllMissionsButton(props: Props) {
             if (bot.isCommsDropped()) {
                 updatedBotReadyStates.get(DisabledCodes.NO_COMMS).push(botID);
             } else if (
-                !isCommandAvailable(CommandType.START_MISSION, bot.getMissionStatus().missionState)
+                !isCommandAvailable(
+                    Command_CommandType.START_MISSION,
+                    bot.getMissionStatus().missionState,
+                )
             ) {
                 updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
             } else if (isMissionUnassigned(botID)) {
@@ -116,7 +119,7 @@ export default function StartAllMissionsButton(props: Props) {
 
                 const startMissionCommand: Command = {
                     bot_id: botID,
-                    type: CommandType.MISSION_PLAN,
+                    type: Command_CommandType.MISSION_PLAN,
                     plan: missionPlan,
                 };
                 const res = await sendBotCommand(startMissionCommand);

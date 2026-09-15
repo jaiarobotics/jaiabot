@@ -12,7 +12,8 @@ import Bot from "../../../data/bots/bot";
 
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { Command, CommandType, MissionState } from "../../../types/protobuf-types";
+import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
+import { MissionState } from "../../../shared/proto/jaiabot/messages/mission";
 import { DialogActions } from "../../../types/context-types";
 
 interface Props {
@@ -50,7 +51,10 @@ export default function ActivateAllButton(props: Props) {
             ) {
                 updatedBotReadyStates.get(DisabledCodes.STARTING_UP).push(botID);
             } else if (
-                !isCommandAvailable(CommandType.ACTIVATE, bot.getMissionStatus().missionState)
+                !isCommandAvailable(
+                    Command_CommandType.ACTIVATE,
+                    bot.getMissionStatus().missionState,
+                )
             ) {
                 updatedBotReadyStates.get(DisabledCodes.MISSION_STATE).push(botID);
             } else {
@@ -94,7 +98,7 @@ export default function ActivateAllButton(props: Props) {
             for (const botID of botReadyStates.get(DisabledCodes.NONE)) {
                 const activateCommand: Command = {
                     bot_id: botID,
-                    type: CommandType.ACTIVATE,
+                    type: Command_CommandType.ACTIVATE,
                 };
                 sendBotCommand(activateCommand);
             }

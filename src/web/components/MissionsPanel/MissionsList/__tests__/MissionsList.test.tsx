@@ -8,7 +8,7 @@ import { missionSet } from "../../../../data/mission_set/mission-set";
 import Mission from "../../../../data/mission_set/mission";
 import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
 import Task from "../../../../data/tasks/task";
-import { TaskType } from "../../../../types/protobuf-types";
+import { MissionTask_TaskType } from "../../../../shared/proto/jaiabot/messages/mission";
 
 test.skip("Exercise Duplicate Mission Button", async () => {
     // Pre-seed data model with original mission
@@ -18,7 +18,7 @@ test.skip("Exercise Duplicate Mission Button", async () => {
 
     let waypoint1 = originalMission.getWaypoint(1);
     let task1 = new Task();
-    task1.setType(TaskType.DIVE);
+    task1.setType(MissionTask_TaskType.DIVE);
     waypoint1.setTask(task1);
 
     // Render the missions list

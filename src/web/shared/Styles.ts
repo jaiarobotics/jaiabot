@@ -1,6 +1,8 @@
 import Stroke from "ol/style/Stroke";
 import { Feature } from "ol";
-import { Goal, HubStatus, TaskType, ContactStatus } from "./JAIAProtobuf";
+import { HubStatus } from "./proto/jaiabot/messages/hub";
+import { ContactUpdate } from "./proto/jaiabot/messages/jaia_dccl";
+import { MissionPlan_Goal, MissionTask_TaskType } from "./proto/jaiabot/messages/mission";
 import { LineString, Point, Circle } from "ol/geom";
 import { fromLonLat } from "ol/proj";
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from "ol/style";
@@ -210,7 +212,7 @@ export function contactMarker(feature: Feature): Style[] {
         return { x: Math.cos(Math.PI / 2 - angle), y: -Math.sin(Math.PI / 2 - angle) };
     }
 
-    const contactStatus = feature.get("contact") as ContactStatus;
+    const contactStatus = feature.get("contact") as ContactUpdate;
 
     const heading = (contactStatus?.heading_or_cog ?? 0.0) * DEG;
 
@@ -347,12 +349,12 @@ export function desiredHeadingArrow(feature: Feature): Style {
 }
 
 /**
- * Gets the icon src corresponding to a TaskType
+ * Gets the icon src corresponding to a MissionTask_TaskType
  *
- * @param {(TaskType | null)} taskType A task type
+ * @param {(MissionTask_TaskType | null)} taskType A task type
  * @returns {string} Icon src for the given task type
  */
-function getGoalSrc(taskType: TaskType | null, pamStart: boolean | null | undefined) {
+function getGoalSrc(taskType: MissionTask_TaskType | null, pamStart: boolean | null | undefined) {
     const srcMap: { [key: string]: string } = {
         DIVE: pamStart ? taskDivePam : taskDive,
         STATION_KEEP: taskStationKeep,
@@ -388,7 +390,7 @@ function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boole
 /**
  * Returns the icon style for a goal, given its task type and current state
  *
- * @param {(TaskType | null | undefined)} taskType Task type for this goal
+ * @param {(MissionTask_TaskType | null | undefined)} taskType Task type for this goal
  * @param {boolean} isActiveGoal Is this goal the active goal for its bot?
  * @param {boolean} isSelected Is this goal selected by the user?
  * @param {boolean} canEdit Is this goal in an editable state?
@@ -396,13 +398,13 @@ function getGoalColor(isActiveGoal: boolean, isSelected: boolean, canEdit: boole
  * @returns {Icon} The Icon style for this goal
  */
 export function createGoalIcon(
-    taskType: TaskType | null | undefined,
+    taskType: MissionTask_TaskType | null | undefined,
     isActiveGoal: boolean,
     isSelected: boolean,
     canEdit: boolean,
     pamStart: boolean | null | undefined,
 ) {
-    taskType = taskType ?? TaskType.NONE;
+    taskType = taskType ?? MissionTask_TaskType.NONE;
     const src = getGoalSrc(taskType, pamStart);
     const color = getGoalColor(isActiveGoal, isSelected, canEdit);
 
@@ -416,14 +418,14 @@ export function createGoalIcon(
 /**
  * Returns the flag icon style, given a possible task type and current state
  *
- * @param {(TaskType | null | undefined)} taskType Task type for this flag (if any)
+ * @param {(MissionTask_TaskType | null | undefined)} taskType Task type for this flag (if any)
  * @param {boolean} isSelected Is this goal selected by the user?
  * @param {number} runNumber Number of this run
  * @param {boolean} canEdit Is this goal in an editable state?
  * @returns {Icon} The icon style for this flag
  */
 function createFlagIcon(
-    taskType: TaskType | null | undefined,
+    taskType: MissionTask_TaskType | null | undefined,
     isSelected: boolean,
     runNumber: number,
     canEdit: boolean,
@@ -465,20 +467,14 @@ function createRallyIcon() {
  * @returns {Style} Style(s) for the feature
  */
 export function getGoalStyle(feature: Feature<Point>) {
-    const goal = feature.get("goal") as Goal;
+    const goal = feature.get("goal") as MissionPlan_Goal;
     const isActive = feature.get("isActive") as boolean;
     const isSelected = feature.get("isSelected") as boolean;
     const canEdit = feature.get("canEdit") as boolean;
     const goalIndex = feature.get("goalIndex") as number;
     const zIndex = feature.get("zIndex") as number;
 
-    let icon = createGoalIcon(
-        goal.task?.type,
-        isActive,
-        isSelected,
-        canEdit,
-        goal.task?.start_pam,
-    );
+    let icon = createGoalIcon(goal.task?.type, isActive, isSelected, canEdit, goal.task?.start_pam);
 
     const markerStyle = new Style({
         image: icon,
@@ -507,7 +503,7 @@ export function getGoalStyle(feature: Feature<Point>) {
  * @returns {Style[]} The styles for the waypoint circle feature
  */
 export function getWaypointCircleStyle(feature: Feature<Point>) {
-    const goal = feature.get("goal") as Goal;
+    const goal = feature.get("goal") as MissionPlan_Goal;
     const isActive = feature.get("isActive") as boolean;
     const isSelected = feature.get("isSelected") as boolean;
     const canEdit = feature.get("canEdit") as boolean;
@@ -585,7 +581,7 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
 /**
  * Gets the flag style from a goal
  *
- * @param {Goal} goal The goal
+ * @param {MissionPlan_Goal} goal The goal
  * @param {boolean} isSelected Is this goal selected by the user?
  * @param {number} runNumber Number of this run
  * @param {number} zIndex z-index to place the flag
@@ -596,7 +592,7 @@ export function getWaypointCircleStyle(feature: Feature<Point>) {
  *        Further refactoring once Runs are eliminated from the data
  */
 export function getFlagStyle(
-    goal: Goal,
+    goal: MissionPlan_Goal,
     isSelected: boolean,
     runNumber: string,
     zIndex: number,

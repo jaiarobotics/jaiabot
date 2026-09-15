@@ -16,7 +16,7 @@ import { getZoneBufferVertices } from "../../../data/exclusion_zones/exclusion-z
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
-import { GeographicCoordinate } from "../../../shared/JAIAProtobuf";
+import { GeographicCoordinate } from "../../../shared/proto/jaiabot/messages/geographic_coordinate";
 
 const ZONE_FILL = "rgba(220, 0, 0, 0.15)";
 const ZONE_STROKE = "rgba(220, 0, 0, 0.85)";

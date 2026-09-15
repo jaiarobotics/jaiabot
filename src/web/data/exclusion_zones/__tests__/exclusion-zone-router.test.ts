@@ -1,4 +1,5 @@
-import { GeographicCoordinate, MissionPlan } from "../../../types/protobuf-types";
+import { GeographicCoordinate } from "../../../shared/proto/jaiabot/messages/geographic_coordinate";
+import { MissionPlan } from "../../../shared/proto/jaiabot/messages/mission";
 import { exclusionZoneSet, ExclusionZone } from "../exclusion-zone-set";
 import { missionSet } from "../../mission_set/mission-set";
 import Mission from "../../mission_set/mission";

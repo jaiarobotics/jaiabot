@@ -8,7 +8,10 @@ import {
     TaskParameters,
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
-import { Metadata, Version } from "../../types/protobuf-types";
+import {
+    DeviceMetadata,
+    DeviceMetadata_Version,
+} from "../../shared/proto/jaiabot/messages/metadata";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 export interface SelectedZoneVertex {
@@ -62,8 +65,8 @@ export class JaiaGlobal {
     private defaultTaskParameters: TaskParameters;
     private controllingClientID: string;
     private coordinateSystem: CoordinateSystem;
-    private metadata: Metadata;
-    private gitHubVersion: Version;
+    private metadata: DeviceMetadata;
+    private gitHubVersion: DeviceMetadata_Version;
     private isUpgradeAvailable: boolean;
     private isConnectedToInternet: boolean;
 
@@ -161,7 +164,7 @@ export class JaiaGlobal {
         return this.metadata;
     }
 
-    setMetadata(metadata: Metadata) {
+    setMetadata(metadata: DeviceMetadata) {
         this.metadata = metadata;
     }
 
@@ -169,7 +172,7 @@ export class JaiaGlobal {
         return this.gitHubVersion;
     }
 
-    setGitHubVersion(version: Version) {
+    setGitHubVersion(version: DeviceMetadata_Version) {
         this.gitHubVersion = version;
     }
 

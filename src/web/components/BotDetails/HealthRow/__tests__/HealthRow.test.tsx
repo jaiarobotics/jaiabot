@@ -6,7 +6,8 @@ import { JaiaContextProvider } from "../../../../context/JaiaContext";
 import { bots } from "../../../../data/bots/bots";
 import { jaiaGlobal } from "../../../../data/jaia_global/jaia-global";
 
-import { Error, HealthState, Warning } from "../../../../types/protobuf-types";
+import { HealthState } from "../../../../shared/proto/goby/middleware/protobuf/coroner";
+import { Error, Warning } from "../../../../shared/proto/jaiabot/messages/health";
 import { NodeTypes } from "../../../../types/jaia-system-types";
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
 
@@ -24,7 +25,7 @@ const botStatusMock2: PortalBotStatus = {
 const botStatusMock3: PortalBotStatus = {
     bot_id: 3,
     health_state: HealthState.HEALTH__FAILED,
-    error: [Error.ERROR__VEHICLE__CRITICALLY_LOW_BATTERY, Error.ERROR__PROCESS_DIED],
+    error: [Error.ERROR__VEHICLE__CRITICALLY_LOW_BATTERY, Error.ERROR__FAILED__JAIABOT_HEALTH],
     warning: [Warning.WARNING__MISSION__DATA_OFFLOAD_FAILED],
 };
 
@@ -68,6 +69,6 @@ test("Render HealthRow for Bot with HEALTH__FAILED", () => {
 
     expect(screen.getByText("HEALTH__FAILED")).toBeInTheDocument();
     expect(screen.getByText("ERROR__VEHICLE__CRITICALLY_LOW_BATTERY")).toBeInTheDocument();
-    expect(screen.getByText("ERROR__PROCESS_DIED")).toBeInTheDocument();
+    expect(screen.getByText("ERROR__FAILED__JAIABOT_HEALTH")).toBeInTheDocument();
     expect(screen.getByText("WARNING__MISSION__DATA_OFFLOAD_FAILED")).toBeInTheDocument();
 });

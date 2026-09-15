@@ -1,5 +1,6 @@
 import { GeoJSON } from "ol/format";
-import { Command, Engineering, CommandForHub, TaskPacket } from "../types/protobuf-types";
+import { Engineering } from "../shared/proto/jaiabot/messages/engineering";
+import { Command, CommandForHub, TaskPacket } from "../shared/proto/jaiabot/messages/jaia_dccl";
 import { randomBase57, convertHTMLStrDateToISO } from "../shared/Utilities";
 import { FeatureCollection, Geometry } from "geojson";
 

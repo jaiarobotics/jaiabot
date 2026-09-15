@@ -3,7 +3,8 @@ import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { BotModes } from "../../types/jaia-system-types";
 import { JaiaContextType, JaiaAction } from "../../types/context-types";
-import { Command, CommandType, MovementType } from "../../types/protobuf-types";
+import { Command, Command_CommandType } from "../../shared/proto/jaiabot/messages/jaia_dccl";
+import { MissionPlan_MovementType } from "../../shared/proto/jaiabot/messages/mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { ghostMissionLayer } from "../../openlayers/layers/vector/mission-layer";
 
@@ -18,10 +19,10 @@ export function handleSentCommand(mutableState: JaiaContextType, action: JaiaAct
     const bot = bots.getBot(action.command.bot_id);
 
     switch (action.command.type) {
-        case CommandType.MISSION_PLAN:
+        case Command_CommandType.MISSION_PLAN:
             handleSentMissionPlanCommand(mutableState, action.command);
             break;
-        case CommandType.REMOTE_CONTROL_TASK:
+        case Command_CommandType.REMOTE_CONTROL_TASK:
             bot.setMode(BotModes.REMOTE_CONTROL);
             break;
         default:
@@ -40,9 +41,9 @@ export function handleSentCommand(mutableState: JaiaContextType, action: JaiaAct
 function handleSentMissionPlanCommand(mutableState: JaiaContextType, command: Command) {
     const bot = bots.getBot(command.bot_id);
     const movement = command.plan.movement;
-    if (movement === MovementType.TRANSIT) {
+    if (movement === MissionPlan_MovementType.TRANSIT) {
         bot.setMode(BotModes.MISSION);
-    } else if (movement === MovementType.REMOTE_CONTROL) {
+    } else if (movement === MissionPlan_MovementType.REMOTE_CONTROL) {
         bot.setMode(BotModes.REMOTE_CONTROL);
     }
 

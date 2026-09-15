@@ -1,6 +1,6 @@
 import { PortalBotStatus } from "../../shared/PortalStatus";
 import { MissionStatus } from "../../types/jaia-system-types";
-import { BotType } from "../../types/protobuf-types";
+import { BotStatus_BotType } from "../../shared/proto/jaiabot/messages/jaia_dccl";
 
 import Bot from "./bot";
 
@@ -212,7 +212,7 @@ export class Bots {
 
     includesPAM() {
         for (const [botID, bot] of this.bots) {
-            if (bot.getBotType() === BotType.PAM) {
+            if (bot.getBotType() === BotStatus_BotType.PAM) {
                 return true;
             }
         }

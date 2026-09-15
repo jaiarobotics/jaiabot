@@ -1,12 +1,8 @@
-import {
-    HubStatus,
-    BotStatus,
-    MissionPlan,
-    Engineering,
-    MissionState,
-    ContactStatus,
-    Link,
-} from "./JAIAProtobuf";
+import { Engineering } from "./proto/jaiabot/messages/engineering";
+import { HubStatus } from "./proto/jaiabot/messages/hub";
+import { BotStatus, ContactUpdate } from "./proto/jaiabot/messages/jaia_dccl";
+import { Link } from "./proto/jaiabot/messages/link";
+import { MissionPlan, MissionState } from "./proto/jaiabot/messages/mission";
 
 export interface LinkStatusAges {
     [link: string]: number;
@@ -28,7 +24,7 @@ export interface PortalHubStatus extends HubStatus {
 export interface PodStatus {
     hubs: { [key: string]: PortalHubStatus };
     bots: { [key: string]: PortalBotStatus };
-    contacts: { [key: string]: ContactStatus };
+    contacts: { [key: string]: ContactUpdate };
     controllingClientId: string;
 }
 

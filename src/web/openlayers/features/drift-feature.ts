@@ -8,7 +8,7 @@ import { point, midpoint } from "@turf/turf";
 import { view } from "../views/view";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { DriftPacket, TaskPacket } from "../../types/protobuf-types";
+import { DriftPacket, TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
 import { degreesToRadians } from "../../utils/conversions";
 import { DRIFT_INTENSITY_INTERVAL, MAX_DRIFT_INTENSITY } from "../../utils/constants";
 import { OpenLayersColors } from "../../style/openlayers/colors";
@@ -38,7 +38,7 @@ export function generateDriftFeature(taskPacket: TaskPacket) {
     feature.setStyle(generateDriftStyle(taskPacket));
     feature.set("type", MapFeatureTypes.DRIFT);
     feature.set("botID", taskPacket.bot_id);
-    feature.set("startTime", taskPacket.start_time);
+    feature.set("startTime", Number(taskPacket.start_time));
     return feature;
 }
 
@@ -102,7 +102,7 @@ function getColor(taskPacket: TaskPacket) {
 
     if (
         selectedTaskPacket.botID === taskPacket.bot_id &&
-        selectedTaskPacket.startTime === taskPacket.start_time &&
+        selectedTaskPacket.startTime === Number(taskPacket.start_time) &&
         selectedTaskPacket.type === MapFeatureTypes.DRIFT
     ) {
         return OpenLayersColors.TARGET;

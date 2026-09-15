@@ -1,4 +1,4 @@
-import { TaskPacket } from "../../types/protobuf-types";
+import { TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
 import { timestampToISOString } from "../conversions";
 
 /**
@@ -10,7 +10,7 @@ import { timestampToISOString } from "../conversions";
  */
 export function getCSVFilename(taskPackets: TaskPacket[]) {
     const timestamp = taskPackets[0]?.start_time;
-    const fileDate = timestamp ? timestampToISOString(timestamp) : new Date().toISOString();
+    const fileDate = timestamp ? timestampToISOString(Number(timestamp)) : new Date().toISOString();
     return `task-packets-${fileDate}.csv`;
 }
 
@@ -33,7 +33,7 @@ export async function getCSV(taskPackets: TaskPacket[]) {
             taskPacket.type.toString() ?? "",
             startLocation.lat?.toString() ?? "",
             startLocation.lon?.toString() ?? "",
-            timestampToISOString(taskPacket.start_time),
+            timestampToISOString(Number(taskPacket.start_time)),
             String(taskPacket.dive?.bottom_dive ?? false),
             taskPacket.dive?.depth_achieved?.toFixed(3) ?? "",
             taskPacket.drift?.estimated_drift?.speed?.toFixed(3) ?? "",
