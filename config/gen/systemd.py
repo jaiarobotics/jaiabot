@@ -967,7 +967,8 @@ for app in jaiabot_apps:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
 
         macros['service'] = service
-        macros['app_name'] = goby_app_name(macros['exe'])
+        if 'exe' in macros:
+            macros['app_name'] = goby_app_name(macros['exe'])
 
         with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:
             out=Template(file.read()).substitute(macros)
