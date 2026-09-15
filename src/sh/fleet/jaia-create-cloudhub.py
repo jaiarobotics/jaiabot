@@ -133,6 +133,26 @@ def is_git_repo_subprocess(path):
         return False
 
 
+def resolve_jaiabot_dir(args, script_dir, logger):
+    """The checkout holding rootfs/cloud/aws, which is not necessarily where this script
+    lives: installed from a package it runs from /usr/bin, against a checkout elsewhere."""
+    if args.jaiabot_dir:
+        jaiabot_dir = os.path.abspath(args.jaiabot_dir)
+    elif is_git_repo_subprocess(script_dir):
+        jaiabot_dir = subprocess.run(
+            ["git", '-C', script_dir, "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, check=True).stdout.strip()
+    else:
+        logger.error("ERROR: run this from a JaiaBot checkout, or pass --jaiabot-dir")
+        exit(1)
+
+    if not (pathlib.Path(jaiabot_dir) / 'rootfs/cloud/aws/create_vpc.sh').exists():
+        logger.error(f"ERROR: {jaiabot_dir} is not a JaiaBot checkout "
+                     "(no rootfs/cloud/aws/create_vpc.sh)")
+        exit(1)
+    return jaiabot_dir
+
+
 def main():
     parser = argparse.ArgumentParser(description="Jaia Fleet CloudHub creation (including VPC)")
     parser.add_argument('fleetcfg',  help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")
@@ -146,6 +166,7 @@ def main():
     parser.add_argument('--virtualfleet-instance-type', type=str, help=f"AWS instance type the VirtualFleet will be created with, which constrains the availability zone chosen (default: {DEFAULT_VIRTUALFLEET_INSTANCE_TYPE})", default=DEFAULT_VIRTUALFLEET_INSTANCE_TYPE)
     parser.add_argument('--aws-profile', type=str, help="AWS profile to authenticate with (default: $AWS_PROFILE, otherwise a per-region default). Pass an empty string to use credentials from the environment instead.")
     parser.add_argument('--output-json', type=str, help="Write the IDs of the created AWS resources to this path as JSON")
+    parser.add_argument('--jaiabot-dir', type=str, help="Path to the JaiaBot checkout holding rootfs/cloud/aws (default: the checkout this script is in)")
     parser.add_argument('--permissions-boundary', type=str, help="Name of an IAM policy to attach to the CloudHub's role as its permissions boundary")
     parser.add_argument('--govcloud', help=f"Shorthand for --region {GOVCLOUD_REGION}", action="store_true")
     parser.add_argument('--repo', help="Jaiabot Repo", default="release", choices=["release", "beta", "continuous", "test"])
@@ -167,14 +188,8 @@ def main():
     logger.addHandler(handler)
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    if not is_git_repo_subprocess(script_dir):
-        logger.error("ERROR: This action can only currently only be performed in the Git checkout of JaiaBot")
-        exit(1)
+    jaiabot_dir = resolve_jaiabot_dir(args, script_dir, logger)
 
-    jaiabot_dir = subprocess.run(
-        ["git", '-C',  script_dir, "rev-parse", "--show-toplevel"],
-        capture_output=True, text=True, check=True).stdout.strip()
-    
     aws_cloud_script_dir = pathlib.Path(jaiabot_dir) / 'rootfs/cloud/aws'
     fleet_cfg = read_fleet_from_textproto(args.fleetcfg)
 

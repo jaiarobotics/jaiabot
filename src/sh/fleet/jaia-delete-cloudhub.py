@@ -54,6 +54,26 @@ def is_git_repo_subprocess(path):
         return False
 
 
+def resolve_jaiabot_dir(args, script_dir, logger):
+    """The checkout holding rootfs/cloud/aws, which is not necessarily where this script
+    lives: installed from a package it runs from /usr/bin, against a checkout elsewhere."""
+    if args.jaiabot_dir:
+        jaiabot_dir = os.path.abspath(args.jaiabot_dir)
+    elif is_git_repo_subprocess(script_dir):
+        jaiabot_dir = subprocess.run(
+            ["git", '-C', script_dir, "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, check=True).stdout.strip()
+    else:
+        logger.error("ERROR: run this from a JaiaBot checkout, or pass --jaiabot-dir")
+        exit(1)
+
+    if not (pathlib.Path(jaiabot_dir) / 'rootfs/cloud/aws/create_vpc.sh').exists():
+        logger.error(f"ERROR: {jaiabot_dir} is not a JaiaBot checkout "
+                     "(no rootfs/cloud/aws/create_vpc.sh)")
+        exit(1)
+    return jaiabot_dir
+
+
 def main():
     parser = argparse.ArgumentParser(description="Jaia Fleet CloudHub deletion (including VPC)")
     parser.add_argument('fleetid',  help="Fleet ID")
@@ -64,19 +84,14 @@ def main():
     parser.add_argument('--yes', '-y', help="Do not ask for confirmation", action="store_true")
     parser.add_argument('--delete-bucket', help="Also delete the CloudHub data bucket and everything in it", action="store_true")
     parser.add_argument('--keep-iam', help="Leave the CloudHub's IAM role and instance profile in place", action="store_true")
+    parser.add_argument('--jaiabot-dir', type=str, help="Path to the JaiaBot checkout holding rootfs/cloud/aws (default: the checkout this script is in)")
     args = parser.parse_args()
 
     logging.basicConfig(format="%(levelname)-8s %(message)s", level=logging.INFO)
     logger = logging.getLogger()
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    if not is_git_repo_subprocess(script_dir):
-        logger.error("ERROR: This action can only currently only be performed in the Git checkout of JaiaBot")
-        exit(1)
-
-    jaiabot_dir = subprocess.run(
-        ["git", '-C',  script_dir, "rev-parse", "--show-toplevel"],
-        capture_output=True, text=True, check=True).stdout.strip()
+    jaiabot_dir = resolve_jaiabot_dir(args, script_dir, logger)
     aws_cloud_script_dir = pathlib.Path(jaiabot_dir) / 'rootfs/cloud/aws'
 
     region = resolve_region(args)
