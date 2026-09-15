@@ -140,7 +140,12 @@ static bool adc_read_channel(ADC_HandleTypeDef *hadc, uint32_t channel, uint32_t
 #define ADC_TO_VOLTS(raw) ((raw) / 4095.0f * 3.3f)
 // VCC_V_SENSE uses the same battery-sense divider calibration as the former
 // Arduino implementation: analogRead(VccVoltage) * 0.0306.
+// It saturates the sense op-amp (3.3V supply) above ~20.9V battery, which is
+// within normal pack voltage, so it is kept only as a raw diagnostic value.
 #define ADC_TO_BATTERY_VOLTS(raw) ((raw) * 0.00503f)
+// VCC_MID_SENSE reads the pack center tap through a divider ratio of
+// R117/(R116+R117) = 100k/430k, so battery volts = raw/4095*3.3 * (2*430/100).
+#define ADC_TO_BATTERY_VOLTS_FROM_MID(raw) ((raw) * 0.00693f)
 
 static void power_board_build_telemetry(PowerBoardResponse *response)
 {
@@ -151,11 +156,22 @@ static void power_board_build_telemetry(PowerBoardResponse *response)
   // HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
   HAL_Delay(10);
   uint32_t vcc_raw = 0U;
-  response->has_vccvoltage = true;
   adc_read_channel(&hadc1, ADC_CHANNEL_1, &vcc_raw);
-  response->vccvoltage = ADC_TO_BATTERY_VOLTS(vcc_raw);
+  response->has_vcc_direct_sense_raw = true;
+  response->vcc_direct_sense_raw = vcc_raw;
+
+  uint32_t vcc_mid_raw = 0U;
+  adc_read_channel(&hadc1, ADC_CHANNEL_9, &vcc_mid_raw);
+  response->has_vcc_mid_sense_raw = true;
+  response->vcc_mid_sense_raw = vcc_mid_raw;
+
+  // VCC_V_SENSE saturates at any normal pack voltage (see ADC_TO_BATTERY_VOLTS
+  // comment above), so derive the reported battery voltage from the center
+  // tap instead, which has headroom across the full pack voltage range.
+  response->has_vccvoltage = true;
+  response->vccvoltage = ADC_TO_BATTERY_VOLTS_FROM_MID(vcc_mid_raw);
   response->has_vccvoltage_raw = true;
-  response->vccvoltage_raw = vcc_raw;
+  response->vccvoltage_raw = vcc_mid_raw;
   response->has_vcccurrent = true;
   uint32_t vcc_current_raw = 0U;
   adc_read_channel(&hadc1, ADC_CHANNEL_2, &vcc_current_raw);
