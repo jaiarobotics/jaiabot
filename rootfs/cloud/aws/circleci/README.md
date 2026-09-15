@@ -23,6 +23,28 @@ aws iam attach-role-policy --role-name JaiaCircleCI \
     --policy-arn arn:aws:iam::<account>:policy/JaiaCircleCISeaTrial
 ```
 
+## Running the trial
+
+The trial runs as the `sea-trial-virtualfleet` job, from two places:
+
+- **On every release and beta tag**, in the `commit` workflow, after `aws-sync` has
+  built and copied that tag's AMI.
+- **Nightly**, from a scheduled pipeline. CircleCI's in-config `triggers: schedule` is
+  retired, so the schedule lives in the project's settings rather than here: add a
+  scheduled pipeline on `3.y` that sets the pipeline parameter `run-sea-trial` to
+  `true`. That parameter selects the `sea-trial` workflow and deselects `commit`, so a
+  nightly does not rebuild the world first.
+
+The other parameters - `sea-trial-bots`, `sea-trial-goals`, `sea-trial-warp` and
+`sea-trial-keep-fleet` - can be set on the scheduled pipeline, or passed when
+triggering a pipeline by hand to reproduce a failure. `sea-trial-keep-fleet` leaves
+the fleet up for inspection; the reaper still clears it on the next run.
+
+The job installs `jaiabot-apps` and `jaiabot-python` from packages.jaia.tech for the
+repo and version this commit built, because `jaia admin fleet create_cloudhub`
+dispatches to the copy in `/usr/bin`: tooling from another commit writes answers the
+image's packages no longer accept.
+
 ## The fleet config
 
 `jaia admin fleet create` is interactive, and a config checked into the repository would
