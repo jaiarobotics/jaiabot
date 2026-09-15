@@ -30,6 +30,17 @@ A mission plan holds at most ten goals: `MissionPlan.goal` carries
 `--warp` divides the mission and offload timeouts, so the same invocation works at any
 warp without hand-tuning seconds.
 
+## Activation
+
+A bot self-tests as soon as its apps are up, and the test passes exactly when its health
+is not `HEALTH__FAILED`. Activating it before then puts it in `PRE_DEPLOYMENT__FAILED`,
+so the driver waits for the bot to report healthy first.
+
+That state is not fatal - it reacts to `ACTIVATE` by running the self test again, which
+is how a fault that clears on its own (a GPS fix arriving) is meant to be picked up - so
+the driver keeps re-sending. A bot that reaches it still fails the trial: coming up
+unhealthy is the kind of thing these runs exist to catch.
+
 ## Tiers
 
 Checks are grouped so that a failure names the layer at fault rather than just the run.

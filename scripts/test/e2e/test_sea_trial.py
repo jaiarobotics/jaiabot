@@ -85,6 +85,48 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(summary['first_failing_tier'], checks.LIVENESS)
 
+    def test_a_bot_that_failed_its_self_test_is_retried_but_still_fails_the_trial(self):
+        # PRE_DEPLOYMENT__FAILED reacts to ACTIVATE by re-running the self test, so a
+        # fault that clears is retried rather than waited out - and the run still goes
+        # red, because a bot that failed its self test is exactly what a trial is for
+        class FailsSelfTestTwice(fake_hub.FakeHub):
+            activations = 0
+
+            def _apply(self, bot, payload):
+                if payload.get('type') == 'ACTIVATE':
+                    FailsSelfTestTwice.activations += 1
+                    if FailsSelfTestTwice.activations <= 2:
+                        bot.states = ['PRE_DEPLOYMENT__FAILED']
+                        return
+                super()._apply(bot, payload)
+
+        FailsSelfTestTwice.activations = 0
+        code, summary, _ = self.run_trial(
+            FailsSelfTestTwice(bots=1, dives_to_run=10, idle_until_activated=True),
+            extra=['--activate-retry-interval', '0'])
+        self.assertGreaterEqual(FailsSelfTestTwice.activations, 3)
+        self.assertEqual(code, 1)
+        self.assertEqual(summary['first_failing_tier'], checks.EXECUTION)
+        names = [f['name'] for f in summary['tiers'][checks.EXECUTION]['failures']]
+        self.assertIn('bot 1 entered no failed state', names)
+        # it still got far enough to dive and offload, so the run is diagnosable
+        self.assertEqual(summary['tiers'][checks.CONTENT]['failed'], 0)
+        self.assertEqual(summary['tiers'][checks.OFFLOAD]['failed'], 0)
+
+    def test_a_bot_stuck_failing_its_self_test_fails_the_trial(self):
+        class AlwaysFailsSelfTest(fake_hub.FakeHub):
+            def _apply(self, bot, payload):
+                if payload.get('type') == 'ACTIVATE':
+                    bot.states = ['PRE_DEPLOYMENT__FAILED']
+                    return
+                super()._apply(bot, payload)
+
+        code, summary, _ = self.run_trial(
+            AlwaysFailsSelfTest(bots=1, dives_to_run=10, idle_until_activated=True),
+            extra=['--activate-retry-interval', '0', '--api-timeout', '3'])
+        self.assertEqual(code, 1)
+        self.assertIn('self test', summary['failure'])
+
     def test_a_failed_offload_fails_the_offload_tier(self):
         class NeverOffloads(fake_hub.FakeHub):
             def _apply(self, bot, payload):

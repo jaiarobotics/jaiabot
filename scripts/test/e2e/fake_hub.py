@@ -9,19 +9,24 @@ import threading
 
 from jaia_e2e import checks
 
+# a healthy bot self-tests straight through to waiting for a plan; one left in IDLE
+# needs an ACTIVATE, which is the path that exercises the self test from the outside
 PRE_DEPLOYMENT = ['PRE_DEPLOYMENT__STARTING_UP', 'PRE_DEPLOYMENT__SELF_TEST',
                   'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN']
+PRE_DEPLOYMENT_IDLE = ['PRE_DEPLOYMENT__STARTING_UP', 'PRE_DEPLOYMENT__SELF_TEST',
+                       'PRE_DEPLOYMENT__IDLE']
 POST_MISSION = ['POST_DEPLOYMENT__RECOVERED', checks.DATA_OFFLOAD, checks.POST_IDLE]
 
 
 class FakeBot:
-    def __init__(self, bot_id, lat, lon, goals, dives_to_run, depth_error=0.0):
+    def __init__(self, bot_id, lat, lon, goals, dives_to_run, depth_error=0.0,
+                 idle_until_activated=False):
         self.bot_id = bot_id
         self.depth_error = depth_error
         self.lat, self.lon = lat, lon
         self.goals = goals
         self.dives_to_run = dives_to_run
-        self.states = list(PRE_DEPLOYMENT)
+        self.states = list(PRE_DEPLOYMENT_IDLE if idle_until_activated else PRE_DEPLOYMENT)
         self.underway = []
         self.dives_done = 0
         self.recovered = False
@@ -66,9 +71,10 @@ class FakeBot:
 
 class FakeHub:
     def __init__(self, bots=2, dives_to_run=10, lat=41.6618, lon=-71.2731, api_key='',
-                 depth_error=0.0):
+                 depth_error=0.0, idle_until_activated=False):
         self.api_key = api_key
-        self.bots = {i: FakeBot(i, lat, lon - 0.01 * i, [], dives_to_run, depth_error)
+        self.bots = {i: FakeBot(i, lat, lon - 0.01 * i, [], dives_to_run, depth_error,
+                                idle_until_activated)
                      for i in range(1, bots + 1)}
         self.hub_location = None
         self.commands = []

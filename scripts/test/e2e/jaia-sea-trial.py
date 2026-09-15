@@ -83,23 +83,43 @@ class SeaTrial:
             faults = ', '.join(errors or warnings)
             return bot.get('mission_state', '?') + (f' [{faults}]' if faults else '')
 
-        def commandable():
-            commandable.state = (api.bot_status(self.poll(), bot_id) or {}).get('mission_state', '')
-            return commandable.state in ACTIVATABLE
-        commandable.state = ''
-        wait_for(commandable, self.args.api_timeout,
-                 f'bot {bot_id} to accept commands', self.args.poll_interval,
+        # The self test passes exactly when health is not HEALTH__FAILED, so waiting for
+        # that before activating is what keeps a bot out of PRE_DEPLOYMENT__FAILED: its
+        # apps are still coming up for a while after it first reports status.
+        def ready_to_activate():
+            bot = api.bot_status(self.poll(), bot_id) or {}
+            return (bot.get('mission_state', '') in ACTIVATABLE
+                    and bot.get('health_state') != 'HEALTH__FAILED')
+
+        wait_for(ready_to_activate, self.args.api_timeout,
+                 f'bot {bot_id} to report healthy', self.args.poll_interval,
                  progress=lambda: describe(bot_id))
 
         start = api.bot_status(self.last_status, bot_id)
         if not start or 'location' not in start:
             raise TrialFailure(f'bot {bot_id} reports no location: {start}')
-        if start.get('mission_state') != WAIT_FOR_PLAN:
-            self.hub.command(bot_id, {'type': 'ACTIVATE'})
-            wait_for(lambda: (api.bot_status(self.poll(), bot_id) or {})
-                     .get('mission_state') == WAIT_FOR_PLAN,
-                     self.args.api_timeout, f'bot {bot_id} to finish its self test',
-                     self.args.poll_interval, progress=lambda: describe(bot_id))
+        if start.get('mission_state') == WAIT_FOR_PLAN:
+            return start
+
+        # PRE_DEPLOYMENT__FAILED reacts to ACTIVATE by running the self test again, and
+        # the test is re-judged on each health report, so a bot whose error clears - a
+        # GPS fix arriving, an app finishing its startup - needs another ACTIVATE to
+        # pick that up. One that is really broken just fails the test again and this
+        # times out, which is the answer we want from a trial.
+        def passed_self_test():
+            state = (api.bot_status(self.poll(), bot_id) or {}).get('mission_state', '')
+            if state == WAIT_FOR_PLAN:
+                return True
+            if state in ACTIVATABLE and time.time() >= passed_self_test.next_attempt:
+                self.hub.command(bot_id, {'type': 'ACTIVATE'})
+                passed_self_test.next_attempt = (time.time()
+                                                 + self.args.activate_retry_interval)
+            return False
+
+        passed_self_test.next_attempt = 0.0
+        wait_for(passed_self_test, self.args.api_timeout,
+                 f'bot {bot_id} to pass its self test', self.args.poll_interval,
+                 progress=lambda: describe(bot_id))
         return start
 
     def send_missions(self, bots):
@@ -240,6 +260,9 @@ def parse_args(argv):
     parser.add_argument('--drift-tolerance', type=float, default=10.0, metavar='S')
     parser.add_argument('--poll-interval', type=float, default=5.0, metavar='S',
                         help='seconds between status polls (default: %(default)s)')
+    parser.add_argument('--activate-retry-interval', type=float, default=30.0, metavar='S',
+                        help='how often to re-send ACTIVATE to a bot that failed its '
+                             'self test (default: %(default)s)')
     parser.add_argument('--api-timeout', type=float, default=300.0, metavar='S')
     parser.add_argument('--mission-timeout', type=float, default=3600.0, metavar='S')
     parser.add_argument('--offload-timeout', type=float, default=1200.0, metavar='S')
