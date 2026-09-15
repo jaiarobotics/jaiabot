@@ -24,7 +24,13 @@ def resolve_region(args):
     return args.region or DEFAULT_REGION
 
 
-def aws_profile_for_region(region):
+def resolve_aws_profile(args, region):
+    """The caller's own profile wins, so CI can authenticate with its OIDC profile, or
+    with credentials in the environment by passing an empty --aws-profile."""
+    if args.aws_profile is not None:
+        return args.aws_profile
+    if 'AWS_PROFILE' in os.environ:
+        return os.environ['AWS_PROFILE']
     return 'jaiagovcloudcreatevpc' if is_govcloud(region) else 'jaiacreatevpc'
 
 
@@ -54,8 +60,14 @@ def main():
     parser.add_argument('--binary', type=str, help="Name of binary")
     parser.add_argument('--region', type=str, help=f"AWS region the CloudHub was created in (default: {DEFAULT_REGION})")
     parser.add_argument('--govcloud', help=f"Shorthand for --region {GOVCLOUD_REGION}", action="store_true")
-
+    parser.add_argument('--aws-profile', type=str, help="AWS profile to authenticate with (default: $AWS_PROFILE, otherwise a per-region default). Pass an empty string to use credentials from the environment instead.")
+    parser.add_argument('--yes', '-y', help="Do not ask for confirmation", action="store_true")
+    parser.add_argument('--delete-bucket', help="Also delete the CloudHub data bucket and everything in it", action="store_true")
+    parser.add_argument('--keep-iam', help="Leave the CloudHub's IAM role and instance profile in place", action="store_true")
     args = parser.parse_args()
+
+    logging.basicConfig(format="%(levelname)-8s %(message)s", level=logging.INFO)
+    logger = logging.getLogger()
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     if not is_git_repo_subprocess(script_dir):
@@ -68,16 +80,26 @@ def main():
     aws_cloud_script_dir = pathlib.Path(jaiabot_dir) / 'rootfs/cloud/aws'
 
     region = resolve_region(args)
-    aws_profile = aws_profile_for_region(region)
+    aws_profile = resolve_aws_profile(args, region)
 
     env = os.environ.copy()
-    env |= {"AWS_DEFAULT_REGION": region, "AWS_PROFILE": f"{aws_profile}"}
-    subprocess.run(
-        f'./delete_vpc.sh {args.fleetid}',
-        cwd=aws_cloud_script_dir,
-        env=env,
-        shell=True,
-        capture_output=False)
+    env['AWS_DEFAULT_REGION'] = region
+    if aws_profile:
+        env['AWS_PROFILE'] = aws_profile
+    else:
+        env.pop('AWS_PROFILE', None)
+
+    command = ['./delete_vpc.sh']
+    if args.yes:
+        command.append('--yes')
+    if args.delete_bucket:
+        command.append('--delete-bucket')
+    if args.keep_iam:
+        command.append('--keep-iam')
+    command.append(str(args.fleetid))
+
+    # a teardown that failed halfway must not report success, or its leak goes unnoticed
+    sys.exit(subprocess.run(command, cwd=aws_cloud_script_dir, env=env).returncode)
 
 if __name__ == "__main__":
     main()
