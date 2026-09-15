@@ -103,6 +103,21 @@ Teardown is scoped the same way. `delete_vpc.sh --customer` refuses a fleet whos
 `jaia_customer` tag says it belongs to another run, so a job that fails before creating
 anything cannot tear down the fleet a concurrent one is still using.
 
+## Collecting the fleet's logs
+
+A bot's debug logs are text, and `jaiabot-predataoffload.sh` excludes `*.txt*` from the
+offload, so nothing a bot says about its own health ever leaves it by that route. Only
+the CloudHub reaches the VirtualFleet, so the journals are pulled from there:
+
+```
+./collect-fleet-logs.sh --fleet 9 --bots 2 /tmp/sea-trial/fleet-logs
+```
+
+It resolves each node with `jaia_ip` and dumps the units that decide a bot's health -
+`goby_coroner` judges whether every app is alive, `jaiabot_health` turns that into the
+report `jaiabot_mission_manager` self-tests against. CI runs it before teardown, under
+`when: always`, so a failed run still yields them.
+
 ## Deleting the bucket
 
 `delete_vpc.sh` never deletes a CloudHub's data bucket: a fleet's logs normally outlive

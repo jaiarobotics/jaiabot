@@ -765,6 +765,14 @@ jobs:
           command: |
             mkdir -p /tmp/sea-trial
             CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
+            # the VirtualFleet is only reachable from the CloudHub, and a bot's own
+            # debug logs are text, which the offload excludes, so they come from here
+            rsync -a -e "ssh -o StrictHostKeyChecking=no" \
+              rootfs/cloud/aws/circleci/collect-fleet-logs.sh jaia@${CLOUDHUB}:/tmp/ || true
+            ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
+              "/tmp/collect-fleet-logs.sh --fleet ${JAIA_CI_FLEET} \
+                 --bots << pipeline.parameters.sea-trial-bots >> \
+                 /tmp/sea-trial/fleet-logs" || true
             rsync -a -e "ssh -o StrictHostKeyChecking=no" \
               jaia@${CLOUDHUB}:/tmp/sea-trial/ /tmp/sea-trial/ || true
             ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
