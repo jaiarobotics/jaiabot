@@ -47,12 +47,27 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
         self.assertEqual(set(summary['tiers']),
                          {checks.LIVENESS, checks.EXECUTION, checks.OFFLOAD, checks.CONTENT})
 
-    def test_a_short_run_fails_the_execution_tier_first(self):
+    def test_a_good_run_exports_the_dives_for_charting(self):
+        _, _, directory = self.run_trial(fake_hub.FakeHub(bots=1, dives_to_run=10))
+        for name in ('task_packets.kmz', 'task_packets.csv'):
+            path = os.path.join(directory, name)
+            self.assertTrue(os.path.exists(path), f'{name} was not written')
+            self.assertGreater(os.path.getsize(path), 0, f'{name} is empty')
+
+    def test_a_failed_run_still_exports_what_there_is(self):
+        _, summary, directory = self.run_trial(fake_hub.FakeHub(bots=1, dives_to_run=3))
+        self.assertEqual(summary['first_failing_tier'], checks.CONTENT)
+        self.assertTrue(os.path.exists(os.path.join(directory, 'task_packets.kmz')))
+
+    def test_a_short_run_is_caught_by_the_packets_not_the_poll_trace(self):
+        # the bot dived through every state, just not often enough, so the count has to
+        # come from the task packets rather than from how often polling caught a state
         code, summary, _ = self.run_trial(fake_hub.FakeHub(bots=1, dives_to_run=3))
         self.assertEqual(code, 1)
-        self.assertEqual(summary['first_failing_tier'], checks.EXECUTION)
-        detail = summary['tiers'][checks.EXECUTION]['failures'][0]['detail']
-        self.assertIn('saw 3', detail)
+        self.assertEqual(summary['first_failing_tier'], checks.CONTENT)
+        self.assertEqual(summary['tiers'][checks.EXECUTION]['failed'], 0)
+        detail = summary['tiers'][checks.CONTENT]['failures'][0]['detail']
+        self.assertIn('3 packets', detail)
 
     def test_a_shallow_dive_fails_only_the_content_tier(self):
         code, summary, _ = self.run_trial(

@@ -44,6 +44,15 @@ Checks are grouped so that a failure names the layer at fault rather than just t
 `summary.json` reports `first_failing_tier`, which is the fastest way to tell "AWS was
 slow" from "the dive controller regressed".
 
+How many dives happened is asserted from the task packets, not from the poll trace. The
+trace is a sample: a state the bot passes through quickly - a powered descent under warp
+- is often not caught, so counting samples would fail a run that dived perfectly well.
+Execution therefore asserts that each dive state was reached at all, and content counts
+the dives.
+
+Alongside `junit.xml` the driver writes `task_packets.kmz` and `task_packets.csv`, so a
+bad run can be opened on a chart rather than read as a stack trace.
+
 The tiers are disjoint on purpose: a post-deployment failure is an `offload` fault and
 must not also redden `execution`, or one fault reddens two tiers and neither names it.
 

@@ -108,6 +108,9 @@ class FakeHub:
             target = path.rsplit('/', 1)[1]
             packets = ([p for bot in self.bots.values() for p in bot.packets]
                        if target == 'all' else self.bots[int(target.lstrip('b'))].packets)
+            fmt = payload.get('format', 'JSON')
+            if fmt != 'JSON':
+                return f'{fmt} export of {len(packets)} packets'.encode()
             return {'task_packets': {'packets': packets}}
 
         if path.startswith('/missions/'):
@@ -134,10 +137,12 @@ class _Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers.get('Content-Length', 0))
         payload = json.loads(self.rfile.read(length) or b'{}')
-        body = json.dumps(self.server.hub.handle(
-            self.path.split('/jaia/v1', 1)[1], payload)).encode()
+        result = self.server.hub.handle(self.path.split('/jaia/v1', 1)[1], payload)
+        binary = isinstance(result, bytes)
+        body = result if binary else json.dumps(result).encode()
         self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Type',
+                         'application/octet-stream' if binary else 'application/json')
         self.send_header('Content-Length', str(len(body)))
         self.end_headers()
         self.wfile.write(body)

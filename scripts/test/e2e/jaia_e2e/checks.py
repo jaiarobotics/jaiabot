@@ -18,7 +18,10 @@ DIVE_STATES = (
     'IN_MISSION__UNDERWAY__TASK__DIVE__SURFACE_DRIFT',
 )
 READY = 'PRE_DEPLOYMENT__READY'
-RECOVERY_STOPPED = 'IN_MISSION__UNDERWAY__RECOVERY__STOPPED'
+# recover_at_final_goal leaves a bot station-keeping at the recovery point; it only
+# stops once told to, so any recovery state means it finished its goals
+RECOVERY = 'IN_MISSION__UNDERWAY__RECOVERY'
+RECOVERY_STOPPED = RECOVERY + '__STOPPED'
 DATA_OFFLOAD = 'POST_DEPLOYMENT__DATA_OFFLOAD'
 POST_IDLE = 'POST_DEPLOYMENT__IDLE'
 POST_FAILED = 'POST_DEPLOYMENT__FAILED'
@@ -69,6 +72,9 @@ class Observations:
     def saw(self, bot_id, state):
         return self.states[bot_id][state] > 0
 
+    def reached_recovery(self, bot_id):
+        return any(s.startswith(RECOVERY) for s in self.states[bot_id])
+
 
 def liveness_checks(status, metadata, expected_bots, expected_version=None):
     checks = []
@@ -96,12 +102,17 @@ def execution_checks(observations, expected_bots, expected_dives, goals_by_bot,
                      position_tolerance_m):
     checks = []
     for bot_id in expected_bots:
-        cycles = observations.dive_cycles(bot_id)
-        checks.append(Check(EXECUTION, f'bot {bot_id} completed {expected_dives} dive cycles',
-                            cycles >= expected_dives,
-                            f'saw {cycles}; ' + ', '.join(
-                                f'{state.rsplit("__", 1)[-1]}={observations.states[bot_id][state]}'
-                                for state in DIVE_STATES)))
+        # How many dives happened is asserted from the task packets in the content tier.
+        # This is a poll trace, so a state the bot passes through quickly - a powered
+        # descent under warp - is often not sampled, and counting samples would fail a
+        # run that dived perfectly well.
+        unseen = [s for s in DIVE_STATES if not observations.saw(bot_id, s)]
+        seen = ', '.join(f'{s.rsplit("__", 1)[-1]}={observations.states[bot_id][s]}'
+                         for s in DIVE_STATES)
+        checks.append(Check(EXECUTION, f'bot {bot_id} dived through every state',
+                            not unseen,
+                            f'never observed {", ".join(s.rsplit("__", 1)[-1] for s in unseen)}'
+                            f' ({seen})' if unseen else seen))
         checks.append(Check(EXECUTION, f'bot {bot_id} never aborted',
                             not observations.saw(bot_id, ABORT),
                             'entered ABORT' if observations.saw(bot_id, ABORT) else 'no abort'))
@@ -112,8 +123,8 @@ def execution_checks(observations, expected_bots, expected_dives, goals_by_bot,
         checks.append(Check(EXECUTION, f'bot {bot_id} entered no failed state', not failed,
                             ', '.join(failed) if failed else 'none'))
         checks.append(Check(EXECUTION, f'bot {bot_id} reached recovery',
-                            observations.saw(bot_id, RECOVERY_STOPPED),
-                            'stopped at recovery' if observations.saw(bot_id, RECOVERY_STOPPED)
+                            observations.reached_recovery(bot_id),
+                            'recovered' if observations.reached_recovery(bot_id)
                             else f'last state {observations.transitions[bot_id][-1:]}'))
         final_goal = goals_by_bot.get(bot_id, [])[-1:]
         here = observations.last_location.get(bot_id)

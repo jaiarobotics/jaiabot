@@ -92,6 +92,28 @@ class HubApi:
             return None
         return response.get('task_packets', {}).get('packets', [])
 
+    def download(self, path, payload=None):
+        """Raw bytes from an endpoint, for the formats that are not JSON."""
+        body = dict(payload or {})
+        if self.api_key:
+            body['api_key'] = self.api_key
+        request = urllib.request.Request(
+            self.base + path, data=json.dumps(body).encode(),
+            headers={'Content-Type': 'application/json'})
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                return response.read()
+        except (urllib.error.HTTPError, urllib.error.URLError, OSError) as e:
+            raise ApiError(f'{path}: {e}')
+
+    def export_task_packets(self, fmt, target='all', start_time=None, end_time=None):
+        query = {'format': fmt}
+        if start_time is not None:
+            query['start_time'] = int(start_time)
+        if end_time is not None:
+            query['end_time'] = int(end_time)
+        return self.download(f'/task_packets/{target}', query)
+
     def missions(self, start_time=None, end_time=None):
         query = {}
         if start_time is not None:

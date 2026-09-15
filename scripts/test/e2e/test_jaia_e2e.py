@@ -177,15 +177,30 @@ class CheckTest(unittest.TestCase):
         result = checks.liveness_checks(status, {}, [1])
         self.assertFalse([c for c in result if 'health' in c.name][0].passed)
 
-    def test_execution_flags_too_few_dives(self):
+    def test_execution_passes_when_every_dive_state_was_seen_once(self):
+        # a poll trace under-samples short states, so passing through each one is what
+        # execution can honestly assert; the number of dives comes from the packets
         observations = checks.Observations()
         for state in checks.DIVE_STATES:
             observations.ingest({'bots': [bot(1, state)]})
         observations.ingest({'bots': [bot(1, checks.RECOVERY_STOPPED)]})
         result = checks.execution_checks(observations, [1], 10, {1: [(41.66, -71.27)]}, 25)
-        dives = [c for c in result if 'dive cycles' in c.name][0]
-        self.assertFalse(dives.passed)
-        self.assertIn('saw 1', dives.detail)
+        self.assertTrue([c for c in result if 'dived through every state' in c.name][0].passed)
+
+    def test_execution_flags_a_dive_state_never_reached(self):
+        observations = checks.Observations()
+        for state in checks.DIVE_STATES[:-1]:
+            observations.ingest({'bots': [bot(1, state)]})
+        result = checks.execution_checks(observations, [1], 10, {}, 25)
+        check = [c for c in result if 'dived through every state' in c.name][0]
+        self.assertFalse(check.passed)
+        self.assertIn('SURFACE_DRIFT', check.detail)
+
+    def test_station_keeping_at_the_recovery_point_counts_as_recovered(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP')]})
+        result = checks.execution_checks(observations, [1], 0, {}, 25)
+        self.assertTrue([c for c in result if 'reached recovery' in c.name][0].passed)
 
     def test_execution_flags_an_abort(self):
         observations = checks.Observations()

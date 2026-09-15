@@ -125,8 +125,8 @@ class SeaTrial:
     def run_mission(self, bots):
         def recovered():
             status = self.poll()
-            return all((api.bot_status(status, b) or {}).get('mission_state')
-                       == checks.RECOVERY_STOPPED for b in bots)
+            return all((api.bot_status(status, b) or {}).get('mission_state', '')
+                       .startswith(checks.RECOVERY) for b in bots)
 
         wait_for(recovered, self.args.mission_timeout,
                  'every bot to work its goals and reach recovery', self.args.poll_interval,
@@ -154,6 +154,24 @@ class SeaTrial:
         except TrialFailure as e:
             # the offload tier reports this; a timeout here should not hide the content tier
             log(f'offload did not settle: {e}')
+
+    def export(self):
+        """The dives in formats that open on a chart, so a bad run can be looked at."""
+        os.makedirs(self.args.output_dir, exist_ok=True)
+        since = int(self.started_at * 1e6) if self.started_at else None
+        for fmt, suffix in (('KMZ', 'kmz'), ('CSV', 'csv')):
+            path = os.path.join(self.args.output_dir, f'task_packets.{suffix}')
+            try:
+                data = self.hub.export_task_packets(fmt, start_time=since)
+            except api.ApiError as e:
+                log(f'{fmt} export unavailable: {e}')
+                continue
+            if not data:
+                log(f'{fmt} export was empty')
+                continue
+            with open(path, 'wb') as f:
+                f.write(data)
+            log(f'wrote {path} ({len(data)} bytes)')
 
     def collect(self, bots):
         packets = {}
@@ -244,11 +262,13 @@ def main(argv):
         trial.run_mission(bots)
         trial.offload(bots)
         results = trial.evaluate(bots, trial.collect(bots))
+        trial.export()
     except (TrialFailure, api.ApiError) as e:
         failure = str(e)
         log(f'TRIAL FAILED: {failure}')
         if bots:
             results = trial.evaluate(bots, trial.collect(bots))
+            trial.export()
         results.append(checks.Check(checks.TRIAL, 'the trial ran to completion', False, failure))
 
     os.makedirs(args.output_dir, exist_ok=True)
