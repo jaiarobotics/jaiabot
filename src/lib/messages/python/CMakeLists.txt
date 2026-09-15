@@ -10,6 +10,7 @@ file(GLOB_RECURSE GOBY_PROTOS
 
 set(PYTHON_PROTOS
   ${JAIABOT_PROTOS}
+  jaiabot/messages/python_driver_config.proto
   nanopb.proto
   dccl/option_extensions.proto
   google/protobuf/descriptor.proto

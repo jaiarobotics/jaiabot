@@ -58,7 +58,6 @@ set(JAIABOT_PROTOS
   link_config.proto
   comms.proto
   ctd.proto
-  udp_gateway.proto
   ppk.proto
 )
 
@@ -73,6 +72,14 @@ add_jaiabot_library(TARGET jaiabot_messages
   OUT_VAR PROTOS_CPP
   PROTOS ${CXX_PROTOS}
   LINK_LIBRARIES protobuf::libprotobuf goby)
+
+# Configuration for the Python drivers. Kept out of jaiabot_messages because it imports the
+# Goby interprocess config, and a jaiabot_messages that pulled in goby_zeromq could no longer
+# be dlopen'd by the DCCL hash check below.
+add_jaiabot_library(TARGET jaiabot_python_driver_config
+  TARGET_TYPE LIB
+  PROTOS jaiabot/messages/python_driver_config.proto
+  LINK_LIBRARIES protobuf::libprotobuf jaiabot_messages goby goby_zeromq)
 
 add_subdirectory(nanopb)
 add_subdirectory(python)
@@ -155,9 +162,9 @@ if(NOT CMAKE_CROSSCOMPILING)
   # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0xb380068f487992ac")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x96fb7678564694d9")
   check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x870bcec1ecbe676f")
   check_dccl_md5_hash("jaiabot.protobuf.Command" "0x678f05b5f029f611")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0xf45c34ab1ae8b077")
-  check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0x5f5f10dac9792b19")
+  check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0xb76d65d20d661533")
 endif()

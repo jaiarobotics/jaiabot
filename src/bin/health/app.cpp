@@ -73,11 +73,12 @@ class Health : public ApplicationBase
         // Restart jaiabot applications and apache which is hosting JCC
         system("systemctl restart apache2 jaiabot");
     }
-    void restart_imu_py() { system("systemctl restart jaiabot_imu_py"); }
-    void restart_pam_py() { system("systemctl restart jaiabot_pam_py"); }
+    void restart_imu_py() { system("systemctl restart jaiabot_driver_imu_py"); }
+    void restart_pam_py() { system("systemctl restart jaiabot_driver_pam_py"); }
     void reboot_bno085_imu() { system("systemctl start jaia_firm_bno085_reset_gpio_pin_py"); }
     void reboot_pam() { system("systemctl start jaia_firm_pam_reset_gpio_pin_py"); }
     void process_coroner_report(const goby::middleware::protobuf::VehicleHealth& vehicle_health);
+    void collect_reported_errors(const goby::middleware::protobuf::ThreadHealth& thread_health);
     void flash_arduino();
 
   private:
@@ -114,7 +115,8 @@ jaiabot::apps::Health::Health()
 
     // handle restart/reboot/shutdown commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
-        [this](const protobuf::Command& command) {
+        [this](const protobuf::Command& command)
+        {
             switch (command.type())
             {
                 // most commands handled by jaiabot_mission_manager
@@ -169,7 +171,8 @@ jaiabot::apps::Health::Health()
 
     // handle rf disable commands since we run this app as root
     interprocess().subscribe<jaiabot::groups::powerstate_command>(
-        [this](const jaiabot::protobuf::Engineering& power_rf) {
+        [this](const jaiabot::protobuf::Engineering& power_rf)
+        {
             if (power_rf.has_rf_disable_options())
             {
                 if (power_rf.rf_disable_options().has_rf_disable())
@@ -196,7 +199,8 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<jaiabot::groups::imu>(
-        [this](const jaiabot::protobuf::IMUIssue& imu_issue) {
+        [this](const jaiabot::protobuf::IMUIssue& imu_issue)
+        {
             glog.is_debug2() && glog << "Received IMU Issue " << imu_issue.ShortDebugString()
                                      << std::endl;
 
@@ -251,7 +255,8 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<jaiabot::groups::pam>(
-        [this](const jaiabot::protobuf::PamIssue& pam_issue) {
+        [this](const jaiabot::protobuf::PamIssue& pam_issue)
+        {
             glog.is_debug2() && glog << "Received PAM Issue " << pam_issue.ShortDebugString()
                                      << std::endl;
 
@@ -269,7 +274,7 @@ jaiabot::apps::Health::Health()
                     If we experiece a PAM issue (like an unseated SD), we will see the IMU constantly restarting.
                     Since we do not see PAM issues with the PAM stack anymore - only with the SD card coming unseated -
                     we will remove the reboot PAM call. 
-                    */                    
+                    */
                     restart_pam_py();
                     break;
                 default:
@@ -312,12 +317,12 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<goby::middleware::groups::health_report>(
-        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health) {
-            process_coroner_report(vehicle_health);
-        });
+        [this](const goby::middleware::protobuf::VehicleHealth& vehicle_health)
+        { process_coroner_report(vehicle_health); });
 
     interprocess().subscribe<jaiabot::groups::systemd_report>(
-        [this](const protobuf::SystemdStartReport& start_report) {
+        [this](const protobuf::SystemdStartReport& start_report)
+        {
             glog.is_debug1() && glog << "Received start report: " << start_report.ShortDebugString()
                                      << std::endl;
             failed_services_.erase(start_report.clear_error());
@@ -327,7 +332,8 @@ jaiabot::apps::Health::Health()
         });
 
     interprocess().subscribe<jaiabot::groups::systemd_report>(
-        [this](const protobuf::SystemdStopReport& stop_report) {
+        [this](const protobuf::SystemdStopReport& stop_report)
+        {
             glog.is_debug1() && glog << "Received stop report: " << stop_report.ShortDebugString()
                                      << std::endl;
             if (stop_report.has_error())
@@ -350,11 +356,31 @@ jaiabot::apps::Health::Health()
         }
     }
 
+    // Watches the sensor groups rather than the hardware, so it runs in simulation too
+    launch_thread<SensorWatchdogThread>(cfg().sensor_watchdog());
+
     // Only run these on the bot
     if (cfg().check_helm_ivp_status())
     {
         launch_thread<HelmIVPStatusThread>(cfg().helm());
     }
+}
+
+// An app's errors and warnings arrive nested: the process reports its own, and a
+// MultiThreadApplication reports each of its threads as a child.
+void jaiabot::apps::Health::collect_reported_errors(
+    const goby::middleware::protobuf::ThreadHealth& thread_health)
+{
+    if (thread_health.HasExtension(jaiabot::protobuf::jaiabot_thread))
+    {
+        const auto& reported = thread_health.GetExtension(jaiabot::protobuf::jaiabot_thread);
+        auto* ours = last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread);
+        for (auto error : reported.error()) ours->add_error(static_cast<protobuf::Error>(error));
+        for (auto warning : reported.warning())
+            ours->add_warning(static_cast<protobuf::Warning>(warning));
+    }
+
+    for (const auto& child : thread_health.child()) collect_reported_errors(child);
 }
 
 void jaiabot::apps::Health::process_coroner_report(
@@ -396,6 +422,12 @@ void jaiabot::apps::Health::process_coroner_report(
                 last_health_.MutableExtension(jaiabot::protobuf::jaiabot_thread)
                     ->add_error(protobuf::ERROR__NOT_RESPONDING__UNKNOWN_APP);
             }
+        }
+        else
+        {
+            // An app that is running but unwell reports what is wrong with it in its own
+            // health(), which is the only place a driver's device failure is visible.
+            collect_reported_errors(proc.main());
         }
     }
 }

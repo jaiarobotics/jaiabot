@@ -33,6 +33,9 @@ namespace groups
 {
 constexpr goby::middleware::Group example{"jaiabot::example"};
 
+// ground truth from jaiabot_simulator, for simulated sensor backends
+constexpr goby::middleware::Group sim_environment{"jaiabot::sim_environment"};
+
 // sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};

@@ -1,1 +1,0 @@
--t $pressure_sensor_type -p $udp_gateway_port

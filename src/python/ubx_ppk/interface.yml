@@ -1,0 +1,12 @@
+application:
+  name: JaiabotPPKLogger
+  cpp_type: goby::zeromq::SingleThreadApplication
+  config:
+    scheme: PROTOBUF
+    type: jaiabot.config.PPKDriver
+
+interprocess:
+  publishes:
+    - group: jaiabot::groups::ppk
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.UBXChunk

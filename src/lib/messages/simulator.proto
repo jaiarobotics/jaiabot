@@ -48,3 +48,22 @@ message SimulatorCommand
         StopForwardProgress stop_forward_progress = 2;
     }
 }
+
+// Ground truth the simulator computes from the vehicle's state, for the Python drivers to
+// convert into sensor readings the way they convert real ones in the field.
+message SimEnvironment
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    optional double depth = 1 [(dccl.field) = { units { derived_dimensions: "length" } }];
+    optional double temperature = 2 [(dccl.field) = {
+        units { derived_dimensions: "temperature" system: "celsius" }
+    }];
+    optional double salinity = 3;
+    optional double pressure = 4
+        [(dccl.field) = { units { prefix: "deci" unit: "metric::bar" } }];
+    optional double pitch = 5 [(dccl.field) = { units { derived_dimensions: "plane_angle" } }];
+    optional double roll = 6 [(dccl.field) = { units { derived_dimensions: "plane_angle" } }];
+}
