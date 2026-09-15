@@ -57,8 +57,9 @@ while true; do
     sleep "${POLL_SECONDS}"
 done
 
-# Two runs released at once would both see it free and race into create_vpc.sh, where
-# one of them loses. A short random pause makes that far less likely to matter.
+# Two runs released at once would both see it free. create_vpc.sh claims the fleet in the
+# same call that creates the VPC, so the window is now a describe catching up rather than
+# a whole create, and a short random pause is enough to stagger them out of it.
 sleep $(( RANDOM % 15 ))
 
 holder=$(fleet_holder)

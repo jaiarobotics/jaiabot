@@ -153,10 +153,28 @@ else
     on_rollback aws s3api delete-bucket --bucket "$CLOUDHUB_DATA_BUCKET"
 fi
 
-# Create a VPC
-VPC_ID=$(run ".Vpc.VpcId" aws ec2 create-vpc --cidr-block "$VPC_CIDR_BLOCK" --amazon-provided-ipv6-cidr-block)
+# Create a VPC, claiming the fleet in the same call: the check above reads these tags,
+# so anything that applies them later leaves the fleet unclaimed for the whole create
+CREATED_UNIXTIME=$(date -u +%s)
+VPC_ID=$(run ".Vpc.VpcId" aws ec2 create-vpc --cidr-block "$VPC_CIDR_BLOCK" --amazon-provided-ipv6-cidr-block \
+             --tag-specifications "ResourceType=vpc,Tags=[\
+{Key=jaia_fleet,Value=${FLEET_ID}},\
+{Key=jaia_customer,Value=${JAIA_CUSTOMER_NAME}},\
+{Key=jaia_created_unixtime,Value=${CREATED_UNIXTIME}}]")
 on_rollback aws ec2 delete-vpc --vpc-id $VPC_ID
 echo ">>>>>> Created VPC with ID: $VPC_ID"
+
+# Two runs can still both have passed the check above before either had tagged anything.
+# Oldest tag wins the fleet, ties broken on ID, and the loser undoes itself rather than
+# building a second fleet nobody can safely tear down.
+winner=$(run '[.Vpcs[] | {id: .VpcId, t: ([.Tags[]? | select(.Key=="jaia_created_unixtime") | .Value][0] // "0" | tonumber)}] | sort_by(.t, .id) | .[0].id // ""' \
+             aws ec2 describe-vpcs --filters "Name=tag:jaia_fleet,Values=${FLEET_ID}")
+if [[ -n "$winner" && "$winner" != "$VPC_ID" ]]; then
+    echo ">>>>>> Fleet ${FLEET_ID} was claimed by ${winner} at the same moment; standing down" >&2
+    # The bucket is the fleet's rather than this run's, so the winner keeps it
+    ROLLBACK_CMDS=("aws ec2 delete-vpc --vpc-id $VPC_ID")
+    exit 1
+fi
 
 VPC_IPV6_BLOCK=$(run ".Vpcs[].Ipv6CidrBlockAssociationSet[].Ipv6CidrBlock" aws ec2 describe-vpcs --vpc-id ${VPC_ID})
 echo ">>>>>> Created VPC IPV6 block: $VPC_IPV6_BLOCK"
@@ -418,7 +436,7 @@ run "" aws ec2 create-tags --resources "$VPC_ID" \
     --tags \
     "Key=jaia_customer,Value=${JAIA_CUSTOMER_NAME}" \
     "Key=jaia_fleet,Value=${FLEET_ID}" \
-    "Key=jaia_created_unixtime,Value=$(date -u +%s)" \
+    "Key=jaia_created_unixtime,Value=${CREATED_UNIXTIME}" \
     "Key=jaiabot-rootfs-gen_repository,Value=${REPO}" \
     "Key=jaiabot-rootfs-gen_repository_version,Value=${REPO_VERSION}"
 
