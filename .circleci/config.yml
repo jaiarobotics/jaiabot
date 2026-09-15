@@ -670,10 +670,10 @@ jobs:
           name: Raise the VirtualFleet from the same AMI
           command: |
             CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
-            # the playbooks are not packaged, so they come from this checkout
-            rsync -a -e "ssh -o StrictHostKeyChecking=no" config/ansible/ jaia@${CLOUDHUB}:/tmp/ansible/
+            # the playbooks ship with jaiabot-config, so they are already the ones
+            # belonging to the image under test
             ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
-              "cd /tmp/ansible && ansible-playbook cloud/create-virtualfleet.yml \
+              "cd /usr/share/jaiabot/config/ansible && ansible-playbook cloud/create-virtualfleet.yml \
                  -e n_bots=<< pipeline.parameters.sea-trial-bots >> \
                  -e warp=<< pipeline.parameters.sea-trial-warp >>"
           no_output_timeout: 30m

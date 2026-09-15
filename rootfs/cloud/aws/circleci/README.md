@@ -45,6 +45,10 @@ repo and version this commit built, because `jaia admin fleet create_cloudhub`
 dispatches to the copy in `/usr/bin`: tooling from another commit writes answers the
 image's packages no longer accept.
 
+The VirtualFleet playbooks are not copied up: `jaiabot-config` puts them in
+`/usr/share/jaiabot/config/ansible` on the CloudHub, so the ones that run are the
+image's own.
+
 ## The fleet config
 
 `jaia admin fleet create` is interactive, and a config checked into the repository would
