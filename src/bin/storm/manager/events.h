@@ -33,6 +33,7 @@
 // Jaiabot
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/messages/mission.pb.h"
+#include "jaiabot/messages/power_board/power_board.pb.h"
 #include "jaiabot/units/conductivity.h"
 
 namespace jaiabot
@@ -113,6 +114,12 @@ struct EvMCUResponse : boost::statechart::event<EvMCUResponse>
 {
     EvMCUResponse(const jaiabot::protobuf::StormMCUResponse& resp) : resp(resp) {}
     jaiabot::protobuf::StormMCUResponse resp;
+};
+
+struct EvPowerBoardResponse : boost::statechart::event<EvPowerBoardResponse>
+{
+    EvPowerBoardResponse(const jaiabot::protobuf::PowerBoardResponse& resp) : resp(resp) {}
+    jaiabot::protobuf::PowerBoardResponse resp;
 };
 
 #undef STATECHART_EVENT

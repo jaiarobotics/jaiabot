@@ -37,6 +37,7 @@ namespace middleware = goby::middleware;
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
+#include "jaiabot/messages/power_board/power_board.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/storm_mcu.pb.h"
@@ -165,6 +166,12 @@ jaiabot::apps::StormManager::StormManager()
     // receive dynamic update command
     interprocess().subscribe<jaiabot::groups::hub_command>([this](const protobuf::Command& command)
                                                            { handle_command(command); });
+
+    // receive responses (e.g. ACK to our low_power_request) from the actual power board,
+    // which is a separate device/serial link from the STORM payload MCU above
+    interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
+        [this](const protobuf::PowerBoardResponse& response)
+        { machine_->process_event(statechart::EvPowerBoardResponse(response)); });
 
     // keep track of our own position so we can dive in place
     interprocess().subscribe<jaiabot::groups::bot_status>(

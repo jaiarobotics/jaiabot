@@ -44,23 +44,28 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 
     void try_send_to_mcu()
     {
-        protobuf::StormMCURequest request;
-        request.set_type(protobuf::StormMCURequest::SLEEP_REQUEST);
-        request.set_sleep_for_minutes_with_units(
-            this->machine().mission().sleep_for_minutes_with_units());
-        this->app().send_to_mcu(request);
+        // Actually putting the vehicle to sleep is the power board's job: it enters STOP2
+        // mode and cuts power to the Raspberry Pi for the requested duration. This is a
+        // different device/protocol than the STORM payload MCU (StormMCURequest) used
+        // elsewhere in this app, so publish directly to the power board driver instead.
+        protobuf::PowerBoardRequest request;
+        request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+        request.mutable_low_power_request()->set_duration_seconds(
+            this->machine().mission().sleep_for_minutes() * 60);
+        this->interprocess().template publish<::jaiabot::groups::power_board_command>(request);
     }
 
-    void mcu_response(const EvMCUResponse& ev)
+    void power_board_response(const EvPowerBoardResponse& ev)
     {
-        if (ev.resp.sleep_initiated())
+        if (ev.resp.status_code() == protobuf::POWER_BOARD_ACK)
             post_event(EvSleepReady());
     }
 
-    using reactions = boost::mpl::list<
-        boost::statechart::termination<EvSleepReady>,
-        boost::statechart::in_state_reaction<EvMCUResponse, Wrapup, &Wrapup::mcu_response>,
-        boost::statechart::in_state_reaction<EvLoop, Wrapup, &Wrapup::loop>>;
+    using reactions =
+        boost::mpl::list<boost::statechart::termination<EvSleepReady>,
+                         boost::statechart::in_state_reaction<EvPowerBoardResponse, Wrapup,
+                                                              &Wrapup::power_board_response>,
+                         boost::statechart::in_state_reaction<EvLoop, Wrapup, &Wrapup::loop>>;
 
   private:
     goby::time::SteadyClock::time_point next_mcu_send_time_{goby::time::SteadyClock::now()};
