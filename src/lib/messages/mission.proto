@@ -360,7 +360,10 @@ message MissionPlan
             [(jaia.field).rest_api.presence = GUARANTEED];
         optional MissionTask task = 3
             [(jaia.field).rest_api.presence = GUARANTEED];
-        optional bool moveWptMode = 4;
+        // if false, transit/recovery to this goal uses the vehicle's current GPS fix
+        // instead of this goal's (potentially stale, e.g. pre-dive) location - i.e. the
+        // task is completed wherever the vehicle currently is
+        optional bool moveWptMode = 4 [default = true];
     }
 
     repeated Goal goal = 3 [
