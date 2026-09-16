@@ -19,7 +19,6 @@ import shutil
 import subprocess
 import sys
 import time
-import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -29,6 +28,7 @@ IMPORT_VMS_DIR = os.path.join(JAIA_ROOT, 'rootfs', 'scripts')
 sys.path.insert(0, os.path.join(JAIA_ROOT, 'scripts', 'test', 'e2e'))
 from jaia_e2e import api as jaia_api
 from jaia_e2e import mission as jaia_mission
+from jaia_e2e import wait as jaia_wait
 from jaia_e2e.api import bot_ids, bot_status
 from jaia_e2e.mission import EARTH_RADIUS_M, distance_m, offset_latlon
 
@@ -670,15 +670,21 @@ def stage_web(args, nodes):
             continue
         for label, path, needles in checks:
             url = f'http://{node.hostonly_ip}{path}'
-            wait_for(lambda u=url: http_get(u)[0] == 200, args.web_timeout,
-                     f'{label} on {node.name} ({url})')
-            code, body = http_get(url)
-            lowered = body.lower()
+
+            def served(u=url):
+                served.status, served.body = jaia_api.fetch_page(u)
+                return served.status == 200
+
+            served.status, served.body = 0, ''
+            wait_for(served, args.web_timeout, f'{label} on {node.name} ({url})',
+                     progress=lambda: f'HTTP {served.status}: {served.body[:100]}')
+            lowered = served.body.lower()
             if not any(n.lower() in lowered for n in needles):
                 raise TestFailure(
-                    f'{label} on {node.name} returned {code} but the body does not '
-                    f'look like a web app: {body[:200]!r}')
-            log(f'{node.name}: {label} OK at {url} ({code}, {len(body)} bytes)')
+                    f'{label} on {node.name} returned {served.status} but the body does '
+                    f'not look like a web app: {served.body[:200]!r}')
+            log(f'{node.name}: {label} OK at {url} '
+                f'({served.status}, {len(served.body)} bytes)')
 
 
 def stage_shutdown(args, nodes):
@@ -706,25 +712,8 @@ def stage_shutdown(args, nodes):
 # ---------------------------------------------------------------------------
 
 def wait_for(predicate, timeout, what, interval=5, progress=None):
-    deadline = time.time() + timeout
-    last_report = 0.0
-    while True:
-        try:
-            if predicate():
-                return
-        except TestFailure:
-            raise
-        except Exception:
-            pass
-        now = time.time()
-        if now > deadline:
-            raise TestFailure(f'timed out after {timeout}s waiting for {what}')
-        if now - last_report >= 30:
-            extra = f' ({progress()})' if progress else ''
-            log(f'  ... waiting for {what}{extra}, '
-                f'{int(deadline - now)}s left')
-            last_report = now
-        time.sleep(interval)
+    jaia_wait.wait_for(predicate, timeout, what, interval, progress, log=log,
+                       report_every=30, failure=TestFailure)
 
 
 def ssh_args(args, node):

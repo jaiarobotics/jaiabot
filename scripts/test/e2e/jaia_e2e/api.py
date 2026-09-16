@@ -23,6 +23,11 @@ def urllib_transport(url, payload, timeout):
         return 0, str(e)
 
 
+def fetch_page(url, timeout=10):
+    """Returns (http status, body) for a page a hub serves beside its API."""
+    return urllib_transport(url, None, timeout)
+
+
 class HubApi:
     def __init__(self, url, api_key='', timeout=10, transport=urllib_transport):
         base = url.rstrip('/')
