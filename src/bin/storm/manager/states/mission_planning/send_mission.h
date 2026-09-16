@@ -68,6 +68,9 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
 
         auto& goal = *mission_plan.add_goal();
         *goal.mutable_location() = this->machine().latest_location();
+        // Storm bots are rudderless and cannot navigate back to this pre-dive location
+        // snapshot (it may drift underwater) - recover wherever the vehicle currently is
+        goal.set_movewptmode(false);
 
         const bool skip_dive = this->skip_dive();
         auto& task = *goal.mutable_task();
@@ -79,12 +82,10 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         {
             task.set_type(protobuf::MissionTask::DIVE);
             *task.mutable_dive() = this->machine().mission().dive();
-
-            auto& drift_goal = *mission_plan.add_goal();
-            *drift_goal.mutable_location() = this->machine().latest_location();
-            auto& drift_task = *drift_goal.mutable_task();
-            drift_task.set_type(protobuf::MissionTask::SURFACE_DRIFT);
-            drift_task.mutable_surface_drift()->set_drift_time(
+            // perform the surface drift as part of this same dive task (starting from the
+            // GPS fix reacquired right after ascent) instead of a separate goal, so we never
+            // have to actively transit anywhere between the dive and the drift
+            task.mutable_surface_drift()->set_drift_time(
                 this->machine().mission().surface_drift_time());
         }
 
