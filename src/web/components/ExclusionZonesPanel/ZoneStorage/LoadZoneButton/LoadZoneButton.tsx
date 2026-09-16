@@ -57,8 +57,8 @@ export default function LoadZoneButton(props: Props) {
                         exclusionZoneSetName: props.saveName.trim(),
                     });
                     jaiaDispatch({
-                        type: JaiaActions.RESTORE_EXCLUSION_ZONE_SNAPSHOT,
-                        exclusionZoneSnapshot: snapshot,
+                        type: JaiaActions.LOAD_EXCLUSION_ZONE_SET,
+                        exclusionZoneSetSnapshot: snapshot,
                     });
                     props.onClose();
                 }

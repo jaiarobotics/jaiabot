@@ -169,40 +169,6 @@ export function handleClearExclusionZones(mutableState: JaiaContextType) {
 }
 
 /**
- * Replaces the current zone set with a loaded set and detects any resulting waypoint
- * removals or reroutes. Every zone in the set is loaded: one that leaves a mission
- * unroutable is reported through the dialog rather than withheld, since withholding it
- * would silently discard part of a zone set the operator saved.
- *
- * A load clears the existing zones first, which invalidates every detour in every
- * mission at once — each was computed against a zone that no longer exists. All of them
- * are removed and the routes recomputed against the loaded set from clean waypoints,
- * rather than some being carried across because they happen to still fit.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action Provides the array of exclusion zones to load
- * @returns {JaiaContextType} Updated mutable state object
- */
-export function handleLoadExclusionZones(mutableState: JaiaContextType, action: JaiaAction) {
-    if (!action.exclusionZones) return mutableState;
-    obstacleAvoidanceData.getExclusionZoneSet().clearZones();
-    stripAllBypasses();
-    for (const zone of action.exclusionZones) {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(zone);
-    }
-    exclusionZoneLayer.updateFeatures();
-    missionLayer.updateFeatures();
-
-    applyZoneMutation(mutableState, {
-        revert: [],
-        detectRemovals: true,
-        detectReroutes: true,
-        stripStale: false,
-    });
-    return mutableState;
-}
-
-/**
  * Toggles the map between exclusion zone drawing mode and default mode.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
@@ -215,20 +181,28 @@ export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) 
 }
 
 /**
- * Restores the zone set from a snapshot and detects resulting waypoint removals or
- * reroutes. Used to re-apply a saved zone set state; behaves exactly as a load does,
- * including removing every existing detour before recomputing.
+ * Replaces the whole zone set with a loaded one and detects the resulting waypoint
+ * removals or reroutes. Reached from both the Load and Import buttons, which each ask
+ * the operator to confirm before dispatching.
+ *
+ * Every zone in the set is loaded: one that leaves a mission unroutable is reported
+ * through the dialog rather than withheld, since withholding it would silently discard
+ * part of a zone set the operator saved.
+ *
+ * Replacing the set invalidates every detour in every mission at once — each was
+ * computed against a zone that no longer exists. All of them are removed and the routes
+ * recomputed against the loaded set from clean waypoints, rather than some being carried
+ * across because they happen to still fit.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {JaiaAction} action Provides the exclusion zone snapshot to restore
+ * @param {JaiaAction} action Provides the exclusion zone set snapshot to load
  * @returns {JaiaContextType} Updated mutable state object
  */
-export function handleRestoreExclusionZoneSnapshot(
-    mutableState: JaiaContextType,
-    action: JaiaAction,
-) {
-    if (!action.exclusionZoneSnapshot) return mutableState;
-    obstacleAvoidanceData.getExclusionZoneSet().restoreFromSnapshot(action.exclusionZoneSnapshot);
+export function handleLoadExclusionZoneSet(mutableState: JaiaContextType, action: JaiaAction) {
+    if (!action.exclusionZoneSetSnapshot) return mutableState;
+    obstacleAvoidanceData
+        .getExclusionZoneSet()
+        .restoreFromSnapshot(action.exclusionZoneSetSnapshot);
     stripAllBypasses();
     exclusionZoneLayer.updateFeatures();
     missionLayer.updateFeatures();

@@ -7,8 +7,7 @@ import {
     handleDeleteZoneVertex,
     handleDeleteExclusionZone,
     handleClearExclusionZones,
-    handleLoadExclusionZones,
-    handleRestoreExclusionZoneSnapshot,
+    handleLoadExclusionZoneSet,
 } from "../exclusion-zone-handlers";
 import {
     handleCancelMissionReroute,
@@ -21,7 +20,10 @@ import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obs
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import Mission from "../../../data/mission_set/mission";
 import Waypoint from "../../../data/waypoints/waypoint";
-import { ExclusionZone } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
+import {
+    ExclusionZone,
+    ExclusionZoneSetSnapshot,
+} from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
 import { detectMissionReroutes } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
 import { routeNeedsBypass } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 import { ButtonNames } from "../../../types/context-types";
@@ -92,6 +94,14 @@ function notchedZone(): ExclusionZone {
 
 const NOTCH_INTERIOR: [number, number] = [41.0 + 4 * STEP, -72.0 + 5 * STEP];
 const BELOW_ZONE: [number, number] = [41.0 - 5 * STEP, -72.0 + 5 * STEP];
+
+/** Wraps bare zones in the snapshot shape the load handler receives from storage. */
+function zoneSetSnapshot(zones: ExclusionZone[]): ExclusionZoneSetSnapshot {
+    return {
+        zones: zones.map((zone, index): [number, ExclusionZone] => [index + 1, zone]),
+        nextZoneID: zones.length + 1,
+    };
+}
 
 function addMission(waypoints: [number, number][]): number {
     const mission = new Mission();
@@ -373,7 +383,7 @@ describe("handleClearExclusionZones", () => {
     });
 });
 
-describe("handleLoadExclusionZones", () => {
+describe("handleLoadExclusionZoneSet", () => {
     test("replaces the existing zone set and stages a reroute with no revert", () => {
         obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.5, -72.5));
         addMission([
@@ -381,8 +391,8 @@ describe("handleLoadExclusionZones", () => {
             [41.0, -71.995],
         ]);
 
-        handleLoadExclusionZones(makeMutableState(), {
-            exclusionZones: [squareZone(41.0, -72.0)],
+        handleLoadExclusionZoneSet(makeMutableState(), {
+            exclusionZoneSetSnapshot: zoneSetSnapshot([squareZone(41.0, -72.0)]),
         } as any);
 
         // The pre-existing zone is gone: a load replaces the set rather than merging.
@@ -402,8 +412,8 @@ describe("handleLoadExclusionZones", () => {
         obstacleAvoidanceData.setPendingChange(null);
 
         // A load clears the existing zones, so the detour's reason is gone.
-        handleLoadExclusionZones(makeMutableState(), {
-            exclusionZones: [squareZone(41.5, -72.5)],
+        handleLoadExclusionZoneSet(makeMutableState(), {
+            exclusionZoneSetSnapshot: zoneSetSnapshot([squareZone(41.5, -72.5)]),
         } as any);
 
         expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
@@ -424,8 +434,8 @@ describe("handleLoadExclusionZones", () => {
 
         // The loaded set contains a zone in the same place, so a detour is still needed —
         // but it is recomputed against the loaded zones rather than carried across.
-        handleLoadExclusionZones(makeMutableState(), {
-            exclusionZones: [squareZone(41.0, -72.0)],
+        handleLoadExclusionZoneSet(makeMutableState(), {
+            exclusionZoneSetSnapshot: zoneSetSnapshot([squareZone(41.0, -72.0)]),
         } as any);
 
         expect(bypassCount(missionID)).toBe(0);
@@ -447,8 +457,8 @@ describe("handleLoadExclusionZones", () => {
             [41.0, -71.99],
         ]);
 
-        handleLoadExclusionZones(makeMutableState(), {
-            exclusionZones: [squareZone(41.0, -72.0)],
+        handleLoadExclusionZoneSet(makeMutableState(), {
+            exclusionZoneSetSnapshot: zoneSetSnapshot([squareZone(41.0, -72.0)]),
         } as any);
 
         const pending = obstacleAvoidanceData.getPendingChange();
@@ -459,9 +469,12 @@ describe("handleLoadExclusionZones", () => {
     test("loads a zone that leaves a mission unroutable, reporting it rather than dropping it", () => {
         addLineMission(MAX_WAYPOINTS);
 
-        handleLoadExclusionZones(makeMutableState(), {
+        handleLoadExclusionZoneSet(makeMutableState(), {
             // The first zone blocks the line between two waypoints; the second is clear of it.
-            exclusionZones: [gapZone(-72.0605), squareZone(41.002, -72.0595, 0.0003)],
+            exclusionZoneSetSnapshot: zoneSetSnapshot([
+                gapZone(-72.0605),
+                squareZone(41.002, -72.0595, 0.0003),
+            ]),
         } as any);
 
         // Both zones are loaded. Withholding one would silently discard part of a zone set
@@ -477,52 +490,14 @@ describe("handleLoadExclusionZones", () => {
     test("loads a zone that encloses a waypoint it then cannot re-route around", () => {
         addLineMission(MAX_WAYPOINTS + 1);
 
-        handleLoadExclusionZones(makeMutableState(), {
-            exclusionZones: [gapZone(-72.06)],
+        handleLoadExclusionZoneSet(makeMutableState(), {
+            exclusionZoneSetSnapshot: zoneSetSnapshot([gapZone(-72.06)]),
         } as any);
 
         // The zone stays loaded and the enclosed waypoint is raised for removal; that the
         // follow-up reroute would not fit is reported, not acted on.
         expect(zoneIDs()).toHaveLength(1);
         expect(obstacleAvoidanceData.getPendingChange()?.type).toBe("waypointRemoval");
-    });
-});
-
-describe("handleRestoreExclusionZoneSnapshot", () => {
-    test("stages a reroute carrying a zoneLoad summary and no revert", () => {
-        addMission([
-            [41.0, -72.005],
-            [41.0, -71.995],
-        ]);
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
-        const snapshot = obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot();
-        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
-
-        handleRestoreExclusionZoneSnapshot(makeMutableState(), {
-            exclusionZoneSnapshot: snapshot,
-        } as any);
-
-        expect(zoneIDs()).toHaveLength(1);
-        const pending = obstacleAvoidanceData.getPendingChange();
-        expect(pending?.type).toBe("reroute");
-        expect(pending!.type === "reroute" && pending.data.revert).toEqual([]);
-    });
-
-    test("keeps a restored zone whose enclosed-waypoint removal would leave the mission over the limit, as a load now does too", () => {
-        addLineMission(MAX_WAYPOINTS + 1);
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(gapZone(-72.06));
-        const snapshot = obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot();
-        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
-
-        handleRestoreExclusionZoneSnapshot(makeMutableState(), {
-            exclusionZoneSnapshot: snapshot,
-        } as any);
-
-        // Unlike a load, a restore keeps the zone and stages the removal dialog.
-        expect(zoneIDs()).toHaveLength(1);
-        const pending = obstacleAvoidanceData.getPendingChange();
-        expect(pending?.type).toBe("waypointRemoval");
-        expect(pending!.type === "waypointRemoval" && pending.data.revert).toEqual([]);
     });
 });
 
@@ -736,12 +711,12 @@ describe("deleting a zone while a waypoint sits inside another", () => {
             [41.0, -71.99],
         ]);
 
-        handleLoadExclusionZones(makeMutableState(), {
-            exclusionZones: [
+        handleLoadExclusionZoneSet(makeMutableState(), {
+            exclusionZoneSetSnapshot: zoneSetSnapshot([
                 squareZone(41.0, -72.0), // encloses the mission's first waypoint
                 squareZone(41.0, -71.995), // blocks the leg between the two waypoints
                 squareZone(41.01, -72.0), // clear of the mission entirely
-            ],
+            ]),
         } as any);
         expect(obstacleAvoidanceData.getPendingChange()?.type).toBe("waypointRemoval");
 

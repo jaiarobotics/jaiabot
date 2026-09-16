@@ -105,8 +105,7 @@ export interface JaiaAction {
 
     command?: Command;
     exclusionZone?: ExclusionZone;
-    exclusionZones?: ExclusionZone[];
-    exclusionZoneSnapshot?: ExclusionZoneSetSnapshot;
+    exclusionZoneSetSnapshot?: ExclusionZoneSetSnapshot;
     missionSpeeds?: Speeds;
     missionRepeats?: number;
     missionSetName?: string;

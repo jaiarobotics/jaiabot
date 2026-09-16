@@ -62,8 +62,7 @@ import {
     handleAddExclusionZone,
     handleDeleteExclusionZone,
     handleClearExclusionZones,
-    handleLoadExclusionZones,
-    handleRestoreExclusionZoneSnapshot,
+    handleLoadExclusionZoneSet,
     handleToggleExclusionZoneDrawing,
     handleSelectZoneVertex,
     handleAddZoneVertex,
@@ -208,11 +207,7 @@ export const actionConfigs: Map<JaiaActions, ActionConfig> = new Map([
     [JaiaActions.ADD_EXCLUSION_ZONE, { handler: handleAddExclusionZone, tracked: true }],
     [JaiaActions.DELETE_EXCLUSION_ZONE, { handler: handleDeleteExclusionZone, tracked: true }],
     [JaiaActions.CLEAR_EXCLUSION_ZONES, { handler: handleClearExclusionZones, tracked: true }],
-    [JaiaActions.LOAD_EXCLUSION_ZONES, { handler: handleLoadExclusionZones, tracked: true }],
-    [
-        JaiaActions.RESTORE_EXCLUSION_ZONE_SNAPSHOT,
-        { handler: handleRestoreExclusionZoneSnapshot, tracked: false },
-    ],
+    [JaiaActions.LOAD_EXCLUSION_ZONE_SET, { handler: handleLoadExclusionZoneSet, tracked: true }],
     [
         JaiaActions.TOGGLE_EXCLUSION_ZONE_DRAWING,
         { handler: handleToggleExclusionZoneDrawing, tracked: false },
