@@ -36,7 +36,9 @@
 
 namespace jaiabot
 {
-inline protobuf::DeviceMetadata metadata()
+namespace detail
+{
+inline protobuf::DeviceMetadata read_metadata()
 {
     protobuf::DeviceMetadata metadata;
 
@@ -173,6 +175,17 @@ inline protobuf::DeviceMetadata metadata()
     }
 
     return metadata;
+}
+} // namespace detail
+
+// Reading this shells out to apt-cache twice and to rpi-eeprom-update, which blocks the
+// calling app well past the window goby_coroner allows for a health response, and it is
+// then reported as a died process. None of it changes while the process runs, since a
+// package upgrade restarts the apps.
+inline protobuf::DeviceMetadata metadata()
+{
+    static const protobuf::DeviceMetadata cached = detail::read_metadata();
+    return cached;
 }
 
 } // namespace jaiabot
