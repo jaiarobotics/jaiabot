@@ -21,7 +21,7 @@ import {
     ProposalStatus,
     RevertContext,
 } from "../../data/obstacle_avoidance_data/pending-route-data";
-import { syncTaskLayers } from "./handler-utils";
+import { stripStaleBypasses, syncTaskLayers } from "./handler-utils";
 import cloneDeep from "lodash/cloneDeep";
 
 /**
@@ -168,6 +168,11 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
             },
         });
     }
+
+    // Deleting a waypoint can remove the need for a detour the mission is still
+    // carrying. Detection reports nothing in that case — the freshly computed clean
+    // route needs no bypass — so the obsolete waypoints have to be cleared here.
+    stripStaleBypasses(new Set(pending?.proposals.map((p) => p.missionID) ?? []));
 
     return mutableState;
 }

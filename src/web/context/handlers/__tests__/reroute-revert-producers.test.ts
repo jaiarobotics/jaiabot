@@ -217,6 +217,46 @@ describe("handleDeleteWaypoint — reroute-on-delete revert-list construction", 
     });
 });
 
+describe("handleDeleteWaypoint — obsolete detour cleanup", () => {
+    test("clears bypass waypoints the deletion made unnecessary", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        // The middle waypoint is the only reason the route crosses the zone: without it
+        // the remaining legs run clear of it.
+        const missionID = addMission([
+            [40.99, -72.0],
+            [41.01, -72.0],
+            [40.99, -71.99],
+        ]);
+
+        const initial = detectMissionReroutes();
+        expect(initial).not.toBeNull();
+        missionSet.getMission(missionID).setWaypoints(initial!.proposals[0].newWaypoints);
+        const bypassCount = () =>
+            missionSet
+                .getMission(missionID)
+                .getWaypoints()
+                .filter((wp) => wp.getIsBypass()).length;
+        expect(bypassCount()).toBeGreaterThan(0);
+        obstacleAvoidanceData.setPendingChange(null);
+
+        // waypointNum is 1-based over the full list, bypass waypoints included.
+        const waypointNum =
+            missionSet
+                .getMission(missionID)
+                .getWaypoints()
+                .findIndex((wp) => wp.getLocation()?.lat === 41.01) + 1;
+        jaiaGlobal.setSelectedWaypoint({ missionID, waypointNum, isMoveable: false });
+
+        handleDeleteWaypoint(makeMutableState());
+
+        // Nothing is proposed — the clean route no longer crosses the zone — so the
+        // detour has to be cleared here or it stays in the mission forever.
+        expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
+        expect(bypassCount()).toBe(0);
+        expect(missionSet.getMission(missionID).getWaypoints()).toHaveLength(2);
+    });
+});
+
 describe("handleChangeGridPlanningState(APPROVED) — revert-list construction", () => {
     test("approving a grid plan whose route crosses a zone stages a restoreMissionSnapshot revert; cancel restores the prior mission set", () => {
         obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
