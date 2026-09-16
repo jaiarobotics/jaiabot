@@ -14,10 +14,7 @@ import {
     detectWaypointRemovals,
     detectMissionReroutes,
 } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
-import {
-    ProposalStatus,
-    RevertContext,
-} from "../../data/obstacle_avoidance_data/pending-route-data";
+import { RevertContext } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Makes a call to add a new, default mission to the data model
@@ -218,28 +215,13 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
         return mutableState;
     }
 
+    // Every mission in the file is loaded; those that cannot be routed around the zones
+    // are reported as conflicts in the dialog rather than withheld from the load.
     const pending = detectMissionReroutes();
     if (pending) {
-        // Missions whose reroute is unroutable are flagged (OVER_LIMIT/IMPOSSIBLE), not deleted
-        // upfront — they stay loaded until the operator confirms or cancels, same as any other
-        // reroute trigger. handleConfirmMissionReroute deletes them only if confirmed.
-        const skippedMissionIDSet = new Set(
-            pending.proposals
-                .filter((p) => p.status !== ProposalStatus.FEASIBLE)
-                .map((p) => p.missionID),
-        );
-        const allLoadedIDs = Array.from(missionSet.getMissions().keys());
-        const loadedMissionIDs = allLoadedIDs.filter((id) => !skippedMissionIDSet.has(id));
-        const skippedMissionIDs = Array.from(skippedMissionIDSet);
-
         mutableState.obstacleAvoidanceData.setPendingChange({
             type: "reroute",
-            data: {
-                proposals: pending.proposals,
-                totalBypassCount: pending.totalBypassCount,
-                revert: [],
-                loadSummary: { kind: "missionLoad", loadedMissionIDs, skippedMissionIDs },
-            },
+            data: { ...pending, revert: [] },
         });
     }
 

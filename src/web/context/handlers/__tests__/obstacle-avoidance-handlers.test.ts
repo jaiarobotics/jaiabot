@@ -7,12 +7,13 @@ import {
     handleCancelWaypointRemoval,
     handleClearPlacementError,
 } from "../obstacle-avoidance-handlers";
+import { handleLoadMissionSet } from "../mission-handlers";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
 import Mission from "../../../data/mission_set/mission";
 import Waypoint from "../../../data/waypoints/waypoint";
-import { UNASSIGNED_ID } from "../../../utils/constants";
+import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../../utils/constants";
 import {
     PendingRerouteProposal,
     PendingWaypointRemovalProposal,
@@ -58,11 +59,12 @@ describe("handleConfirmMissionReroute", () => {
     test.each([
         ["OVER_LIMIT", ProposalStatus.OVER_LIMIT],
         ["IMPOSSIBLE", ProposalStatus.IMPOSSIBLE],
-    ])("deletes the mission for a(n) %s proposal", (_label, status) => {
+    ])("keeps the mission and its route for a(n) %s proposal", (_label, status) => {
         const missionID = addMission([
             [41.0, -72.005],
             [41.0, -71.995],
         ]);
+        const priorWaypoints = cloneDeep(missionSet.getMission(missionID).getWaypoints());
         const proposal: PendingRerouteProposal = {
             missionID,
             newWaypoints: [],
@@ -77,13 +79,13 @@ describe("handleConfirmMissionReroute", () => {
 
         handleConfirmMissionReroute(makeMutableState());
 
-        expect(missionSet.getMission(missionID)).toBeUndefined();
+        // Flying a route that crosses a zone is the operator's decision; the proposal's
+        // waypoints are not an improvement, so nothing is applied.
+        expect(missionSet.getMission(missionID)).toBeDefined();
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(priorWaypoints);
     });
 
-    // Regression test for docs/07KNOWN_BUGS.md Bug 5 (fixed): deleting an unroutable
-    // mission must also clear its bot assignment, or the bot is left pointing at a
-    // mission ID that no longer exists and autoAssign() will skip it forever.
-    test("clears the bot assignment when deleting an unroutable mission (Bug 5)", () => {
+    test("keeps the bot assignment of an unroutable mission", () => {
         const missionID = addMission([
             [41.0, -72.005],
             [41.0, -71.995],
@@ -106,10 +108,9 @@ describe("handleConfirmMissionReroute", () => {
 
         handleConfirmMissionReroute(makeMutableState());
 
-        expect(missionSet.getMission(missionID)).toBeUndefined();
-        // removeAssignment() frees the bot side of the mapping — the bot is no longer
-        // tied up waiting on a mission that's gone, so autoAssign() can reuse it.
-        expect(missionsManager.getMissionID(botID)).toBe(UNASSIGNED_ID);
+        expect(missionSet.getMission(missionID)).toBeDefined();
+        expect(missionsManager.getBotID(missionID)).toBe(botID);
+        expect(missionsManager.getMissionID(botID)).toBe(missionID);
     });
 
     test("is a no-op when the pending change is not a reroute", () => {
@@ -261,6 +262,35 @@ describe("handleCancelMissionReroute / applyRevert", () => {
 });
 
 describe("handleConfirmWaypointRemoval", () => {
+    test("leaves a mission whose every waypoint falls inside a zone untouched", () => {
+        const missionID = addMission([
+            [41.0, -72.0],
+            [41.0, -71.999],
+        ]);
+        const priorWaypoints = cloneDeep(missionSet.getMission(missionID).getWaypoints());
+        const proposal: PendingWaypointRemovalProposal = {
+            missionID,
+            newWaypoints: [],
+            removedCount: 2,
+            isGutted: true,
+        };
+        obstacleAvoidanceData.setPendingChange({
+            type: "waypointRemoval",
+            data: {
+                proposals: [proposal],
+                totalRemovedCount: 2,
+                offendingZoneIDs: [],
+                revert: [],
+            },
+        });
+
+        handleConfirmWaypointRemoval(makeMutableState());
+
+        // Emptying the mission would leave it indistinguishable from a newly created one,
+        // silently discarding the operator's route.
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(priorWaypoints);
+    });
+
     test("applies each proposal's newWaypoints to its mission", () => {
         const missionID = addMission([
             [41.0, -72.0],
@@ -332,9 +362,7 @@ describe("handleConfirmWaypointRemoval", () => {
         expect(missionSet.getMission(rerouteMissionID).getWaypoints()).toEqual(rerouteWaypoints);
     });
 
-    // Regression test for docs/07KNOWN_BUGS.md Bug 5 (fixed) — the same
-    // delete-without-unassign gap also existed in this follow-up-reroute branch.
-    test("deletes missions whose follow-up reroute is unroutable, and clears their bot assignment", () => {
+    test("keeps missions whose follow-up reroute is unroutable, along with their bot assignment", () => {
         const missionID = addMission([[41.0, -72.0]]);
         const botID = 5;
         missionsManager.assign(botID, missionID);
@@ -358,8 +386,8 @@ describe("handleConfirmWaypointRemoval", () => {
 
         handleConfirmWaypointRemoval(makeMutableState());
 
-        expect(missionSet.getMission(missionID)).toBeUndefined();
-        expect(missionsManager.getMissionID(botID)).toBe(UNASSIGNED_ID);
+        expect(missionSet.getMission(missionID)).toBeDefined();
+        expect(missionsManager.getMissionID(botID)).toBe(missionID);
     });
 
     test("is a no-op when the pending change is not a waypointRemoval", () => {
@@ -400,5 +428,64 @@ describe("handleClearPlacementError", () => {
         obstacleAvoidanceData.setPendingChange({ type: "placementError", message: "x" });
         handleClearPlacementError(makeMutableState());
         expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
+    });
+});
+
+describe("loading a mission set that conflicts with the zones", () => {
+    /** Captures the current mission set, then clears it, so it can be loaded back. */
+    function snapshotAndClear() {
+        const snapshot = missionSet.captureSnapshot();
+        missionSet.deleteAllMissions();
+        return snapshot;
+    }
+
+    test("keeps every mission when a zone covers all of their waypoints", () => {
+        const missionID = addMission([
+            [41.0, -72.0005],
+            [41.0, -71.9995],
+        ]);
+        const priorWaypoints = cloneDeep(missionSet.getMission(missionID).getWaypoints());
+        const snapshot = snapshotAndClear();
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.002));
+
+        handleLoadMissionSet(makeMutableState(), { missionSetSnapshot: snapshot } as any);
+
+        expect(obstacleAvoidanceData.getPendingChange()?.type).toBe("waypointRemoval");
+        expect(missionSet.getMissions().size).toBe(1);
+
+        handleConfirmWaypointRemoval(makeMutableState());
+
+        // The load is never withheld and confirming never empties the mission — the
+        // operator decides what to do about the conflict.
+        const loaded = Array.from(missionSet.getMissions().values())[0];
+        expect(loaded.getWaypoints().map((wp) => wp.getLocation())).toEqual(
+            priorWaypoints.map((wp) => wp.getLocation()),
+        );
+    });
+
+    test("reports an unroutable mission without withholding it from the load", () => {
+        // A full-length line of waypoints: any detour pushes it past MAX_WAYPOINTS, so the
+        // mission is reported unroutable rather than merely needing a detour.
+        const waypoints: [number, number][] = [];
+        for (let i = 0; i < MAX_WAYPOINTS; i++) waypoints.push([41.0, -72.1 + i * 0.001]);
+        const missionID = addMission(waypoints);
+        const priorCount = missionSet.getMission(missionID).getWaypoints().length;
+        const snapshot = snapshotAndClear();
+        // Sits in the gap between two consecutive waypoints, blocking that leg only.
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0605, 0.0002));
+
+        handleLoadMissionSet(makeMutableState(), { missionSetSnapshot: snapshot } as any);
+
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("reroute");
+        expect(
+            pending?.type === "reroute" && pending.data.proposals.map((p) => p.status),
+        ).toContain(ProposalStatus.OVER_LIMIT);
+        expect(missionSet.getMissions().size).toBe(1);
+
+        handleConfirmMissionReroute(makeMutableState());
+
+        const loaded = Array.from(missionSet.getMissions().values())[0];
+        expect(loaded.getWaypoints()).toHaveLength(priorCount);
     });
 });

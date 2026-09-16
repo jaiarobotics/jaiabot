@@ -71,14 +71,17 @@ export type RevertContext =
     | { kind: "restoreZoneSetSnapshot"; zoneSet: ExclusionZoneSetSnapshot };
 
 /**
- * Producer-supplied context for a zone/mission load, used for dialog display
- * (skipped/loaded counts, button gating) and by confirm to avoid re-deleting
- * missions already stripped upfront. Not revert data — reverting a load is
- * always a `restoreZoneSetSnapshot`/`restoreMissionSnapshot` action instead.
+ * Producer-supplied context for a zone load, used for dialog display (skipped and
+ * loaded counts, button gating). Not revert data: an obstacle-avoidance dialog is
+ * raised only after a load has already completed, so cancelling it declines the
+ * proposed route change and nothing else. Whether to load at all is decided in the
+ * dialog that precedes the load, which is where that decision can be cancelled.
  */
-export type LoadSummary =
-    | { kind: "zoneLoad"; loadedZoneIDs: number[]; skippedZoneIDs: number[] }
-    | { kind: "missionLoad"; loadedMissionIDs: number[]; skippedMissionIDs: number[] };
+export type LoadSummary = {
+    kind: "zoneLoad";
+    loadedZoneIDs: number[];
+    skippedZoneIDs: number[];
+};
 
 export interface PendingReroute extends RerouteProposalSet {
     revert: RevertContext[];

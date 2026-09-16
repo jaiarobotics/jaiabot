@@ -162,7 +162,25 @@ describe("WaypointRemovalDialog dismissal button", () => {
         expect(screen.queryByText(/Reverting will/)).not.toBeInTheDocument();
     });
 
-    test("says Revert All when the follow-up reroute leaves nothing to confirm", () => {
+    test("says Revert All when nothing can be applied", () => {
+        renderWithDispatch(
+            <WaypointRemovalDialog
+                pending={removal([RESTORE_SHAPE], {
+                    // Every waypoint is inside a zone, so there is no removal to apply —
+                    // the mission is left alone and the dismissal is the only action.
+                    proposals: [
+                        { missionID: 1, newWaypoints: [], removedCount: 2, isGutted: true },
+                    ],
+                    totalRemovedCount: 2,
+                })}
+            />,
+        );
+
+        expect(screen.getByRole("button", { name: "Revert All" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
+    });
+
+    test("still offers Confirm when a removal applies even though the follow-up is unroutable", () => {
         renderWithDispatch(
             <WaypointRemovalDialog
                 pending={removal([RESTORE_SHAPE], {
@@ -182,8 +200,9 @@ describe("WaypointRemovalDialog dismissal button", () => {
             />,
         );
 
-        expect(screen.getByRole("button", { name: "Revert All" })).toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
+        // The removal is still worth applying; the unroutable mission is simply left alone.
+        expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Revert" })).toBeInTheDocument();
     });
 
     test("dispatches the cancel action when clicked", async () => {

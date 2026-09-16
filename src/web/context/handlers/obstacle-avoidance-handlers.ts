@@ -52,15 +52,12 @@ export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
     if (pendingState?.type !== "reroute") return mutableState;
     const pending = pendingState.data;
     for (const proposal of pending.proposals) {
-        if (
-            proposal.status === ProposalStatus.OVER_LIMIT ||
-            proposal.status === ProposalStatus.IMPOSSIBLE
-        ) {
-            // Unroutable proposals must not remain loaded in a zone-crossing state.
-            missionSet.deleteMission(proposal.missionID);
-            missionsManager.removeAssignment(proposal.missionID);
-            continue;
-        }
+        // A mission that cannot be routed around the zones keeps the route it has.
+        // Whether to fly a route that crosses a zone is the operator's call, and the
+        // proposal's waypoints are not an improvement: an impossible one carries the
+        // route stripped of its detour, an over-limit one a route beyond the waypoint
+        // limit.
+        if (proposal.status !== ProposalStatus.FEASIBLE) continue;
         const mission = missionSet.getMission(proposal.missionID);
         if (mission) mission.setWaypoints(proposal.newWaypoints);
     }
@@ -101,20 +98,19 @@ export function handleConfirmWaypointRemoval(mutableState: JaiaContextType) {
     const pending = pendingState.data;
 
     for (const proposal of pending.proposals) {
+        // Removing every waypoint would leave an empty mission, indistinguishable from
+        // one the operator just created — so a mission entirely inside a zone keeps its
+        // route and is reported as a conflict instead.
+        if (proposal.isGutted) continue;
         const mission = missionSet.getMission(proposal.missionID);
         if (mission) mission.setWaypoints(proposal.newWaypoints);
     }
 
-    // Apply feasible follow-up reroutes in the same operation.
-    // Missions that are still unroutable after removal must not remain loaded
-    // in a zone-crossing state.
+    // Apply feasible follow-up reroutes in the same operation; missions still unroutable
+    // after removal keep the route they have.
     if (pending.followUpReroute) {
         for (const proposal of pending.followUpReroute.proposals) {
-            if (proposal.status !== ProposalStatus.FEASIBLE) {
-                missionSet.deleteMission(proposal.missionID);
-                missionsManager.removeAssignment(proposal.missionID);
-                continue;
-            }
+            if (proposal.status !== ProposalStatus.FEASIBLE) continue;
             const mission = missionSet.getMission(proposal.missionID);
             if (mission) mission.setWaypoints(proposal.newWaypoints);
         }

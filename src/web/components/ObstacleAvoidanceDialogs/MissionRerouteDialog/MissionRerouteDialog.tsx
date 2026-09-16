@@ -15,7 +15,6 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
 
     const loadSummary = pending.loadSummary;
     const isZoneLoad = loadSummary?.kind === "zoneLoad";
-    const isMissionLoad = loadSummary?.kind === "missionLoad";
 
     const feasible = pending.proposals.filter((p) => p.status === ProposalStatus.FEASIBLE);
     const overLimit = pending.proposals.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
@@ -24,15 +23,8 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
 
     const skippedZones = loadSummary?.kind === "zoneLoad" ? loadSummary.skippedZoneIDs : [];
     const loadedZones = loadSummary?.kind === "zoneLoad" ? loadSummary.loadedZoneIDs : [];
-    const skippedMissions =
-        loadSummary?.kind === "missionLoad" ? loadSummary.skippedMissionIDs : [];
-    const loadedMissions = loadSummary?.kind === "missionLoad" ? loadSummary.loadedMissionIDs : [];
 
-    const canProceed = isZoneLoad
-        ? loadedZones.length > 0
-        : isMissionLoad
-          ? loadedMissions.length > 0
-          : true;
+    const canProceed = isZoneLoad ? loadedZones.length > 0 : true;
 
     const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_MISSION_REROUTE });
     const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_MISSION_REROUTE });
@@ -83,39 +75,8 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
             )}
 
             {/* Mission load */}
-            {isMissionLoad && loadedMissions.length > 0 && (
-                <p>
-                    <strong>{loadedMissions.length}</strong> mission
-                    {loadedMissions.length !== 1 ? "s" : ""} loaded
-                    {pending.totalBypassCount > 0 && (
-                        <>
-                            {" "}
-                            — confirming will add <strong>{pending.totalBypassCount}</strong> bypass
-                            waypoint
-                            {pending.totalBypassCount !== 1 ? "s" : ""}
-                        </>
-                    )}
-                    .
-                </p>
-            )}
-            {isMissionLoad && skippedMissions.length > 0 && (
-                <>
-                    <p className="dialog-warn">
-                        <strong>{skippedMissions.length}</strong> mission
-                        {skippedMissions.length !== 1 ? "s" : ""} could not be loaded — routing
-                        around existing zones is impossible or would exceed the {MAX_WAYPOINTS}
-                        -waypoint limit:
-                    </p>
-                    <ul className="dialog-warn-list">
-                        {skippedMissions.map((id) => (
-                            <li key={id}>Mission {id}</li>
-                        ))}
-                    </ul>
-                </>
-            )}
-
             {/* Non-load: reroute summary */}
-            {!isZoneLoad && !isMissionLoad && feasible.length > 0 && (
+            {!isZoneLoad && feasible.length > 0 && (
                 <p>
                     Confirming will reroute the mission{feasible.length !== 1 ? "s" : ""} to include{" "}
                     <strong>{pending.totalBypassCount}</strong> bypass waypoint
@@ -123,7 +84,7 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
                 </p>
             )}
 
-            {!isZoneLoad && !isMissionLoad && feasible.length === 0 && (
+            {!isZoneLoad && feasible.length === 0 && (
                 <p className="dialog-warn">None of the missions can be rerouted.</p>
             )}
 
@@ -131,10 +92,8 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
 
             <RerouteSummary
                 proposals={pending.proposals}
-                overLimitMessage={`The following mission${overLimit.length !== 1 ? "s" : ""} will be removed from the plan — adding bypass waypoints would exceed the ${MAX_WAYPOINTS}-waypoint limit:`}
+                overLimitMessage={`The following mission${overLimit.length !== 1 ? "s" : ""} cannot be routed around the zones — the detour would exceed the ${MAX_WAYPOINTS}-waypoint limit. They are left as they are:`}
                 impossibleMessage={`The following mission${impossible.length !== 1 ? "s" : ""} have no clear route around the zone — move the conflicting waypoints further away or resize the zone:`}
-                showOverLimit={!isMissionLoad}
-                showImpossible={!isMissionLoad}
             />
         </ObstacleAvoidanceBaseDialog>
     );

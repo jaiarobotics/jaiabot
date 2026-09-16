@@ -19,6 +19,8 @@ export default function WaypointRemovalDialog({ pending }: { pending: PendingWay
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
     const gutted = pending.proposals.filter((p) => p.isGutted);
+    const removals = pending.proposals.filter((p) => !p.isGutted);
+    const removedCount = removals.reduce((sum, p) => sum + p.removedCount, 0);
     const reroute = pending.followUpReroute;
     const rerouteFeasible =
         reroute?.proposals.filter((p) => p.status === ProposalStatus.FEASIBLE) ?? [];
@@ -32,38 +34,44 @@ export default function WaypointRemovalDialog({ pending }: { pending: PendingWay
     const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_WAYPOINT_REMOVAL });
     const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_WAYPOINT_REMOVAL });
 
+    // Confirm is only offered when it would actually change something: gutted missions
+    // are left alone, so a dialog reporting nothing but those has nothing to apply.
+    const hasChangesToApply = removals.length > 0 || hasFeasibleFollowUp;
     const revertDescription = describeRevert(pending.revert);
     const buttons = [
         {
-            label: dismissButtonLabel(pending.revert, hasFollowUpReroute && !hasFeasibleFollowUp),
+            label: dismissButtonLabel(pending.revert, !hasChangesToApply),
             onClick: handleCancel,
         },
     ];
-    if (!hasFollowUpReroute || hasFeasibleFollowUp) {
+    if (hasChangesToApply) {
         buttons.push({ label: "Confirm", onClick: handleConfirm });
     }
 
     return (
         <ObstacleAvoidanceBaseDialog title="Mission Plan Update Required" buttons={buttons}>
-            <p>
-                <strong>{pending.totalRemovedCount}</strong> waypoint
-                {pending.totalRemovedCount !== 1 ? "s" : ""} inside an exclusion zone will be
-                removed:
-            </p>
-            <ul className="dialog-list">
-                {pending.proposals.map((p) => (
-                    <li key={p.missionID}>
-                        Mission {p.missionID}: <strong>{p.removedCount}</strong> waypoint
-                        {p.removedCount !== 1 ? "s" : ""} removed
-                    </li>
-                ))}
-            </ul>
+            {removals.length > 0 && (
+                <>
+                    <p>
+                        <strong>{removedCount}</strong> waypoint
+                        {removedCount !== 1 ? "s" : ""} inside an exclusion zone will be removed:
+                    </p>
+                    <ul className="dialog-list">
+                        {removals.map((p) => (
+                            <li key={p.missionID}>
+                                Mission {p.missionID}: <strong>{p.removedCount}</strong> waypoint
+                                {p.removedCount !== 1 ? "s" : ""} removed
+                            </li>
+                        ))}
+                    </ul>
+                </>
+            )}
 
             {gutted.length > 0 && (
                 <>
                     <p className="dialog-warn">
-                        The following mission{gutted.length !== 1 ? "s" : ""} will be left with{" "}
-                        <strong>no waypoints</strong> — its entire route falls inside the zone:
+                        The following mission{gutted.length !== 1 ? "s" : ""} cannot be made clear
+                        of the zones — every waypoint falls inside one. They are left as they are:
                     </p>
                     <ul className="dialog-warn-list">
                         {gutted.map((p) => (
