@@ -150,6 +150,48 @@ function segmentIntersectsPolygon(A: XYPt, B: XYPt, poly: XYPt[]): boolean {
     return false;
 }
 
+interface Bounds {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+}
+
+/**
+ * Bounding box of the given points, expanded by `padding` on every side.
+ *
+ * @param {XYPt[]} pts Points to bound
+ * @param {number} padding Metres to expand the box by on each side
+ * @returns {Bounds} The padded bounding box
+ */
+function boundsOf(pts: XYPt[], padding: number): Bounds {
+    return {
+        minX: Math.min(...pts.map((p) => p.x)) - padding,
+        minY: Math.min(...pts.map((p) => p.y)) - padding,
+        maxX: Math.max(...pts.map((p) => p.x)) + padding,
+        maxY: Math.max(...pts.map((p) => p.y)) + padding,
+    };
+}
+
+/**
+ * Whether any part of the polygon falls within the bounds, tested by bounding box.
+ * Conservative: a polygon whose box overlaps but whose shape does not is kept, which
+ * costs a little work and can never drop a polygon that matters.
+ *
+ * @param {XYPt[]} poly Polygon to test
+ * @param {Bounds} bounds Region to test against
+ * @returns {boolean} Whether the polygon could intersect the region
+ */
+function polygonWithinBounds(poly: XYPt[], bounds: Bounds): boolean {
+    const box = boundsOf(poly, 0);
+    return (
+        box.minX <= bounds.maxX &&
+        box.maxX >= bounds.minX &&
+        box.minY <= bounds.maxY &&
+        box.maxY >= bounds.minY
+    );
+}
+
 /**
  * Returns the squared Euclidean distance between two XY points.
  *
@@ -277,6 +319,16 @@ function buildZoneGeoms(
 // ── A* grid pathfinding ────────────────────────────────────────────────────────
 
 const GRID_CELL_SIZE = 5; // metres per grid cell
+/**
+ * Ceiling on grid cells for one bypass search. A search needing more than this is
+ * abandoned and the segment reported unroutable, rather than allocating an array that
+ * size and scanning it twice.
+ *
+ * A backstop against a pathological zone, not a performance target: cells are a fixed
+ * size, so search cost grows with the area searched, and a search well under this
+ * ceiling can still take seconds.
+ */
+const MAX_GRID_CELLS = 4_000_000;
 const DEFAULT_SAFETY_MARGIN_METERS = 5;
 const MIN_BYPASS_SPACING = GRID_CELL_SIZE * 1.5;
 const BACKTRACK_TOLERANCE = GRID_CELL_SIZE * 1.5;
@@ -357,7 +409,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
                 : zoneGeoms.map((zg) => zg.expanded);
 
         // Check if direct path is clear.
-        const directBlocked = collisionPolys.some(
+        const blockingPolys = collisionPolys.filter(
             (poly) =>
                 segmentIntersectsPolygon(A, B, poly) ||
                 pointInPolygon(A, poly) ||
@@ -367,17 +419,24 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
         const aInRaw = zoneGeoms.some((zg) => pointInPolygon(A, zg.raw));
         const bInRaw = zoneGeoms.some((zg) => pointInPolygon(B, zg.raw));
         if (aInRaw || bInRaw) return [];
-        if (!directBlocked) return [];
+        if (blockingPolys.length === 0) return [];
 
-        // Build grid over the bounding box of A, B, and all zone extents.
-        const allPts = [A, B, ...collisionPolys.flat()];
-        const minX = Math.min(...allPts.map((p) => p.x)) - GRID_PADDING;
-        const minY = Math.min(...allPts.map((p) => p.y)) - GRID_PADDING;
-        const maxX = Math.max(...allPts.map((p) => p.x)) + GRID_PADDING;
-        const maxY = Math.max(...allPts.map((p) => p.y)) + GRID_PADDING;
+        // Size the grid from the endpoints and the zones actually blocking this segment.
+        // Sizing it from every zone in the set would scale the search area with the
+        // distance between unrelated zones — two zones tens of kilometres apart would
+        // produce a grid of tens of millions of cells for a detour around either one.
+        const { minX, minY, maxX, maxY } = boundsOf([A, B, ...blockingPolys.flat()], GRID_PADDING);
 
         const cols = Math.ceil((maxX - minX) / GRID_CELL_SIZE) + 1;
         const rows = Math.ceil((maxY - minY) / GRID_CELL_SIZE) + 1;
+        if (cols * rows > MAX_GRID_CELLS) return [];
+
+        // Every zone reaching into the grid still blocks cells, not just the ones
+        // blocking the direct line, so a detour cannot be routed through a zone it
+        // merely passes near. Zones outside the grid contain none of its cells.
+        const gridPolys = collisionPolys.filter((poly) =>
+            polygonWithinBounds(poly, { minX, minY, maxX, maxY }),
+        );
 
         // Mark blocked cells — any cell whose centre is inside an expanded polygon.
         const blocked = new Uint8Array(cols * rows);
@@ -385,7 +444,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
             for (let col = 0; col < cols; col++) {
                 const cx = minX + col * GRID_CELL_SIZE;
                 const cy = minY + row * GRID_CELL_SIZE;
-                if (collisionPolys.some((poly) => pointInPolygon({ x: cx, y: cy }, poly))) {
+                if (gridPolys.some((poly) => pointInPolygon({ x: cx, y: cy }, poly))) {
                     blocked[row * cols + col] = 1;
                 }
             }

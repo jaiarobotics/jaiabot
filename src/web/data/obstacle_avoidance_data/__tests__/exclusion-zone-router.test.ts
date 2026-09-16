@@ -674,3 +674,75 @@ describe("routeNeedsBypass", () => {
         }
     });
 });
+
+// ── Grid bounding ──────────────────────────────────────────────────────────────
+
+describe("bypass grid bounding", () => {
+    beforeEach(() => {
+        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
+    });
+
+    /** A rectangle given by its lat/lon extents, wound like squareZone(). */
+    function rectZone(
+        minLat: number,
+        maxLat: number,
+        minLon: number,
+        maxLon: number,
+    ): ExclusionZone {
+        return {
+            vertices: [
+                coord(minLat, minLon),
+                coord(minLat, maxLon),
+                coord(maxLat, maxLon),
+                coord(maxLat, minLon),
+            ],
+        };
+    }
+
+    const BLOCKED_ROUTE = plan(goal(41.0, -72.005), goal(41.0, -71.995));
+
+    test("a distant zone does not change the detour computed around a nearby one", () => {
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
+        const withoutDistantZone = routeAroundExclusionZones(BLOCKED_ROUTE);
+
+        // Roughly 30 km east — far enough that sizing the grid from every zone rather
+        // than the blocking one would need tens of millions of cells.
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -71.65, 0.0005));
+        const withDistantZone = routeAroundExclusionZones(BLOCKED_ROUTE);
+
+        expect(withDistantZone.bypassCount).toBe(withoutDistantZone.bypassCount);
+        expect(withDistantZone.plan.goal!.map((g) => g.location)).toEqual(
+            withoutDistantZone.plan.goal!.map((g) => g.location),
+        );
+    });
+
+    test("a zone that does not block the direct line still blocks the detour", () => {
+        // The route runs east-west through X. Y sits north of X and is far wider, so a
+        // detour to the north would have to pass through it — but Y does not touch the
+        // direct line, so it is not one of the blocking zones the grid is sized from.
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0, 0.0005));
+        const northZone = rectZone(41.0006, 41.0018, -72.004, -71.996);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(northZone);
+
+        const result = routeAroundExclusionZones(BLOCKED_ROUTE);
+
+        expect(result.bypassCount).toBeGreaterThan(0);
+        const locations = result.plan.goal!.map((g) => g.location!);
+        for (let i = 0; i < locations.length - 1; i++) {
+            expect(segmentCrossesHull(locations[i], locations[i + 1], northZone.vertices!)).toBe(
+                false,
+            );
+        }
+    });
+
+    test("abandons a search whose grid would exceed the cell ceiling", () => {
+        // A single zone spanning ~40 km: the detour around it cannot be searched within
+        // the cell ceiling, so it is reported unroutable instead of allocating the grid.
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(rectZone(40.8, 41.2, -72.2, -71.8));
+
+        const result = routeAroundExclusionZones(plan(goal(41.0, -72.5), goal(41.0, -71.5)));
+
+        expect(result.bypassCount).toBe(0);
+        expect(result.isRoutingImpossible).toBe(true);
+    });
+});

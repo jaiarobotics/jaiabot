@@ -6,7 +6,7 @@ confirmed and, for the fixed ones, what the fix was and what covers it.
 
 **Fixed:** Bugs 2, 3, 4, 5, 6, 7, 9, 11.
 **Open:** Bug 1 (enhancement), Bug 8 (low priority), Bug 10 (accepted
-behaviour — see its entry).
+behaviour — see its entry), Bug 12 (performance, needs its own change).
 
 Bugs 1-8 pre-date this branch: each was confirmed against the pre-refactor
 baseline `d04564bd` rather than introduced by the refactors that surfaced
@@ -620,6 +620,63 @@ and no proposal is classified `IMPOSSIBLE`.
 every producer ran `detectWaypointRemovals()` first. That was accurate when
 written; `handleDeleteExclusionZone` gaining reroute detection is what made
 it reachable.
+
+## Bug 12 — bypass routing cost grows with the area searched, freezing the UI
+
+_Open. Found while fixing the grid-sizing half of this, which is fixed — see below._
+
+**Symptom:** drawing or loading a large exclusion zone that a mission's route crosses
+locks the interface for seconds while the detour is computed. The work is synchronous
+on the UI thread, runs once per blocked leg per mission, and runs twice per leg
+because `findBypassPath` makes two clearance attempts.
+
+**Root cause:** `GRID_CELL_SIZE` is a fixed 5 m, so the number of cells A\* must
+allocate and scan grows with the _area_ of the region being searched. Doubling a
+zone's width quadruples the work.
+
+**Measured**, one blocking zone, one leg, on a development machine — an operator
+tablet will be several times slower:
+
+| Square zone | Time   |
+| ----------- | ------ |
+| 1 km        | 291 ms |
+| 2 km        | 532 ms |
+| 4 km        | 1.1 s  |
+| 6 km        | 2.1 s  |
+
+Bots currently have a range of about 15 km, and a longer-range version is targeting
+roughly 32 km, so zones of several kilometres are ordinary rather than extreme. The
+lag is reachable well inside normal operations.
+
+**What is already fixed.** Two related problems were resolved when this was found, and
+neither is this one:
+
+- The search grid used to be sized from the bounding box of _every_ zone in the set
+  rather than the zones blocking the leg. A zone 30 km away turned a 2-waypoint detour
+  around an unrelated zone into a 21-waypoint one, and a single 40 km zone took 64.8 s
+  to route. The grid is now sized from the endpoints and the blocking zones only, with
+  every zone reaching into that grid still marking cells, so a detour cannot be routed
+  through a zone it merely passes near.
+- `MAX_GRID_CELLS` now abandons a search that would exceed the ceiling, reporting the
+  leg unroutable instead of freezing. That is a backstop against a pathological zone,
+  not a fix: every search below the ceiling costs exactly what it always did.
+
+**Candidate fix (not implemented): scale the cell size with the area.** Choose
+`GRID_CELL_SIZE` so the cell count stays within a budget, so a 20 km search runs at
+20-40 m cells instead of 5 m. Cost becomes bounded at any scale, and the loss of path
+precision is proportionally the same as 5 m cells are at 5 km.
+
+**That fix needs a safety change alongside it.** A cell is marked blocked when its
+_centre_ falls inside a zone polygon, so a zone narrower than the cell can slip between
+centres and mark nothing — at which point a route could be planned straight through it.
+Path simplification checks segments against the real polygons, but consecutive grid
+steps can survive unchecked, so coarser cells must be paired with an exact check of
+every segment in the final path against every collision polygon, rejecting the path if
+any segment intersects one. That turns a possible silent zone violation into an honest
+"unroutable".
+
+Moving the search off the UI thread is the other direction worth considering, and is
+independent of cell size.
 
 ## Where the coverage lives
 
