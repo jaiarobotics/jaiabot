@@ -577,9 +577,24 @@ jobs:
               --bots 1 --goals 2 --warp 10 \
               --output-dir /tmp/sea-trial-sim
       - run:
+          # docker logs carries only goby_launch's supervisor output; every app writes
+          # to a screen session inside the container, which is where a bot that dies
+          # says why
           name: Simulator log
           when: always
-          command: docker logs jaia-sim 2>&1 | tail -200
+          command: |
+            mkdir -p /tmp/sea-trial-sim/sim
+            docker logs jaia-sim > /tmp/sea-trial-sim/sim/launcher.txt 2>&1 || true
+            tail -200 /tmp/sea-trial-sim/sim/launcher.txt || true
+            docker exec jaia-sim bash -c 'tar cf - /tmp/goby_launch_screen* 2>/dev/null' \
+              | tar xf - -C /tmp/sea-trial-sim/sim --strip-components=1 || true
+            docker exec jaia-sim bash -c 'tar cf - ~/jaia-logs 2>/dev/null' \
+              | tar xf - -C /tmp/sea-trial-sim/sim || true
+            # a bot killed for memory leaves no message of its own
+            docker inspect jaia-sim \
+              --format 'OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}' || true
+            free -m || true
+            sudo dmesg 2>/dev/null | grep -iE 'killed process|out of memory' | tail -20 || true
       - store_test_results:
           path: /tmp/sea-trial-sim
       - store_artifacts:
