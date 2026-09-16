@@ -23,7 +23,7 @@ export default function ExportZoneButton(props: Props) {
      * @returns {DisabledCodes} The applicable disabled code based on the zone set conditions.
      */
     const getDisabledCode = () => {
-        if (jaiaContext?.obstacleAvoidanceData.getExclusionZoneSet().getZones().size === 0)
+        if (jaiaContext!.obstacleAvoidanceData.getExclusionZoneSet().getZones().size === 0)
             return DisabledCodes.NO_ZONES;
         if (!props.saveName.trim()) return DisabledCodes.NO_NAME;
         return DisabledCodes.NONE;
