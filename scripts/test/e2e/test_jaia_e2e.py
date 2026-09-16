@@ -230,6 +230,28 @@ class CheckTest(unittest.TestCase):
         result = checks.execution_checks(observations, [1], 0, {}, 25)
         self.assertFalse([c for c in result if 'no failed state' in c.name][0].passed)
 
+    def test_a_failed_state_is_named_with_the_fault_seen_while_in_it(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, 'PRE_DEPLOYMENT__FAILED',
+                                          errors=['ERROR__NOT_RESPONDING__UNKNOWN_APP'])]})
+        # a warning from later in the run belongs to the dive, not to the self test
+        observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__TASK__DIVE__REACQUIRE_GPS',
+                                          warnings=['WARNING__MISSION__DATA__GPS_FIX_DEGRADED'])]})
+        result = checks.execution_checks(observations, [1], 0, {}, 25)
+        check = [c for c in result if 'no failed state' in c.name][0]
+        self.assertFalse(check.passed)
+        self.assertIn('ERROR__NOT_RESPONDING__UNKNOWN_APP', check.detail)
+        self.assertNotIn('GPS_FIX_DEGRADED', check.detail)
+
+    def test_a_failed_state_with_no_fault_says_so(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, 'PRE_DEPLOYMENT__FAILED')]})
+        observations.ingest({'bots': [bot(1, checks.READY,
+                                          warnings=['WARNING__MISSION__DATA__GPS_FIX_DEGRADED'])]})
+        result = checks.execution_checks(observations, [1], 0, {}, 25)
+        check = [c for c in result if 'no failed state' in c.name][0]
+        self.assertIn('no fault reported while in it', check.detail)
+
     def test_offload_flags_a_bot_whose_logs_never_arrived(self):
         observations = checks.Observations()
         observations.ingest({'bots': [bot(1, checks.POST_IDLE)]})

@@ -46,6 +46,10 @@ class Observations:
         self.health = collections.defaultdict(set)
         self.errors = collections.defaultdict(set)
         self.warnings = collections.defaultdict(set)
+        # keyed by state as well, since a fault named beside a state the bot has left
+        # is as likely to be from somewhere else in the run
+        self.faults_in_state = collections.defaultdict(
+            lambda: collections.defaultdict(set))
         self.hub_offload_percentage = {}
 
     def ingest(self, status):
@@ -65,6 +69,8 @@ class Observations:
             errors, warnings = api.bot_faults(bot)
             self.errors[bot_id].update(errors)
             self.warnings[bot_id].update(warnings)
+            if state:
+                self.faults_in_state[bot_id][state].update(errors or warnings)
         for hub in api.hub_statuses(status):
             percentage = hub.get('bot_offload', {}).get('data_offload_percentage')
             if percentage is not None:
@@ -120,11 +126,13 @@ def execution_checks(observations, expected_bots, expected_dives, goals_by_bot,
         # redden two tiers for one fault and hide which layer actually broke
         failed = sorted(s for s in observations.states[bot_id]
                         if s.endswith('__FAILED') and not s.startswith('POST_DEPLOYMENT__'))
-        # a state name alone does not say what went wrong, and that is the first thing
-        # anyone reading a red run wants to know
-        faults = sorted(observations.errors[bot_id]) or sorted(observations.warnings[bot_id])
+        # only what the bot reported while it was in the state being named: the run-wide
+        # set would pin an unrelated mid-mission warning on a startup failure
+        faults = sorted({fault for state in failed
+                         for fault in observations.faults_in_state[bot_id][state]})
         checks.append(Check(EXECUTION, f'bot {bot_id} entered no failed state', not failed,
-                            f'{", ".join(failed)} ({", ".join(faults) or "no fault reported"})'
+                            f'{", ".join(failed)} '
+                            f'({", ".join(faults) or "no fault reported while in it"})'
                             if failed else 'none'))
         checks.append(Check(EXECUTION, f'bot {bot_id} reached recovery',
                             observations.reached_recovery(bot_id),
