@@ -4,13 +4,22 @@ import { useContext, useEffect } from "react";
 // Jaia
 import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
 import { JaiaActions } from "../../../context/jaia-actions";
+import { DisabledCodes } from "../../__buttons__/disabled-codes";
+import {
+    isCritiallyLowBattery,
+    isInsufficientPredictedBattery,
+} from "../../__buttons__/button-utils";
 import MissionAssignMenu from "../MissionAssignMenu/MissionAssignMenu";
 import DeleteMissionButton from "../../../components/__buttons__/DeleteMissionButton/DeleteMissionButton";
+import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
-import { MDI_BUTTON_SIZE, UNASSIGNED_ID } from "../../../utils/constants";
+import {
+    BatteryPrediction,
+    clampBatteryPercentForDisplay,
+} from "../../../data/battery_predictions/battery-prediction-calculator";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
-import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
+import { MDI_BUTTON_SIZE, UNASSIGNED_ID } from "../../../utils/constants";
 
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -27,10 +36,30 @@ import {
 
 import "./MissionsList.less";
 
-interface Props {
+// Shared prop for components that only need to identify a mission by ID
+interface MissionAccordionTitleProps {
     missionID: number;
 }
 
+interface MissionAccordionProps {
+    missionID: number;
+    isExpanded: boolean;
+    isInEditMode: boolean;
+    repeats: number;
+    onAccordionChange: (missionID: number, isExpanded: boolean) => void;
+    onRepeatsChange: (repeats: string, missionID: number) => void;
+    onDuplicateClick: (missionID: number) => void;
+    onToggleEditClick: (missionID: number) => void;
+}
+
+interface MissionStatsProps {
+    prediction: BatteryPrediction | null;
+    unavailableBotType?: string;
+}
+
+/**
+ * Renders the list of mission accordions for the operator to manage
+ */
 export default function MissionsList() {
     const jaiaContext = useContext(JaiaContext);
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -43,7 +72,7 @@ export default function MissionsList() {
      * Triggered when the expand/collapse state is changed on the Accordion component
      *
      * @param {number} missionID Signals which mission accordion the operator clicked
-     * @param  {boolean} isExpanded Expanded state of the accordion after the click
+     * @param {boolean} isExpanded Expanded state of the accordion after the click
      * @returns {void}
      */
     const handleAccordionChange = (missionID: number, isExpanded: boolean) => {
@@ -58,7 +87,7 @@ export default function MissionsList() {
      * Provides the expand/collapse state of the mission accordion when the component renders
      *
      * @param {number} missionID Determines which mission accordion state to check
-     * @returns {void}
+     * @returns {boolean} True if the accordion is expanded
      */
     const isMissionAccordionExpanded = (missionID: number) => {
         if (missionID in jaiaContext.missionAccordionStates) {
@@ -118,82 +147,157 @@ export default function MissionsList() {
 
     return (
         <div id="missions-list" data-testid="missions-list">
-            {Array.from(jaiaContext.missionSet.getMissions().values()).map((mission) => {
-                return (
-                    <ThemeProvider theme={accordionTheme} key={mission.getMissionID()}>
-                        <Accordion
-                            className="mission-accordion"
-                            expanded={isMissionAccordionExpanded(mission.getMissionID())}
-                            onChange={(event, expanded) =>
-                                handleAccordionChange(mission.getMissionID(), expanded)
-                            }
-                        >
-                            <AccordionSummary
-                                className="mission-accordion-summary"
-                                expandIcon={<ExpandMoreIcon />}
-                            >
-                                <MissionAccordionTitle missionID={mission.getMissionID()} />
-                            </AccordionSummary>
-                            <AccordionDetails className="mission-accordion-details">
-                                <div className="mission-accordion-row">
-                                    <MissionAssignMenu missionID={mission.getMissionID()} />
-                                    <TextField
-                                        label="Repeats"
-                                        size="small"
-                                        className="mission-repeats"
-                                        autoComplete="off"
-                                        value={mission.getRepeats()}
-                                        onChange={(event) =>
-                                            handleRepeatsChange(
-                                                event.target.value,
-                                                mission.getMissionID(),
-                                            )
-                                        }
-                                    />
-                                </div>
-                                <div className="mission-accordion-row">
-                                    <Button
-                                        className="jaia-button"
-                                        aria-label="duplicate-mission"
-                                        data-testid={`duplicate-mission-${mission.getMissionID()}`}
-                                        onClick={() =>
-                                            handleDuplicateMissionClick(mission.getMissionID())
-                                        }
-                                    >
-                                        <Icon
-                                            path={mdiContentDuplicate}
-                                            size={MDI_BUTTON_SIZE}
-                                            title="Duplicate Mission"
-                                        />
-                                    </Button>
-                                    <DeleteMissionButton
-                                        deleteAll={false}
-                                        missionID={mission.getMissionID()}
-                                    />
-                                    <JaiaToggle
-                                        checked={() =>
-                                            jaiaContext.missionSet.getMissionIDInEditMode() ===
-                                            mission.getMissionID()
-                                        }
-                                        onClick={() =>
-                                            handleToggleEditClick(mission.getMissionID())
-                                        }
-                                        label="Edit"
-                                        title="ToggleEditMode"
-                                        testLabel={`Edit Mission ${mission.getMissionID()}`}
-                                    />
-                                </div>
-                            </AccordionDetails>
-                        </Accordion>
-                    </ThemeProvider>
-                );
-            })}
+            {Array.from(jaiaContext.missionSet.getMissions().values()).map((mission) => (
+                <MissionAccordion
+                    key={mission.getMissionID()}
+                    missionID={mission.getMissionID()}
+                    isExpanded={isMissionAccordionExpanded(mission.getMissionID())}
+                    onAccordionChange={handleAccordionChange}
+                    onRepeatsChange={handleRepeatsChange}
+                    onDuplicateClick={handleDuplicateMissionClick}
+                    onToggleEditClick={handleToggleEditClick}
+                    isInEditMode={
+                        jaiaContext.missionSet.getMissionIDInEditMode() === mission.getMissionID()
+                    }
+                    repeats={mission.getRepeats()}
+                />
+            ))}
         </div>
     );
 }
 
-function MissionAccordionTitle(props: Props) {
-    const assignedBotID = missionsManager.getBotID(props.missionID) ?? -1;
+/**
+ * Renders a single mission accordion with a color-coded title bar indicating mission health.
+ * Grey when no bot is assigned or no battery prediction is available, green when assigned with
+ * no issues, red when assigned with an issue.
+ * Reads its battery prediction from the shared batteryPredictions data model, which is kept
+ * current by the periodic refresh in polling.ts.
+ */
+function MissionAccordion(props: MissionAccordionProps) {
+    const jaiaContext = useContext(JaiaContext);
+
+    const assignedBotID = missionsManager.getBotID(props.missionID);
+    const bot = assignedBotID !== UNASSIGNED_ID ? jaiaContext.bots.getBot(assignedBotID) : null;
+    const batteryStatus = jaiaContext.batteryPredictions.getStatus(props.missionID);
+    const prediction = batteryStatus?.prediction ?? null;
+    const isUnsupportedBotType = batteryStatus?.isUnsupportedBotType ?? false;
+
+    /**
+     * Determines the disabled code that applies to this mission's assigned Bot
+     *
+     * @returns {DisabledCodes} The applicable disabled code based on the Bot and prediction state
+     */
+    const getDisabledCode = () => {
+        if (!bot) return DisabledCodes.NO_MISSION;
+        if (isCritiallyLowBattery(bot.getBatteryPercent())) return DisabledCodes.LOW_BATTERY;
+        if (isInsufficientPredictedBattery(prediction)) return DisabledCodes.INSUFFICIENT_BATTERY;
+        return DisabledCodes.NONE;
+    };
+    const disabledCode = getDisabledCode();
+
+    // Bot is otherwise healthy, but no battery prediction could be obtained for it
+    // (e.g. unsupported bot type).
+    const noPredictionAvailable = disabledCode === DisabledCodes.NONE && prediction === null;
+
+    /**
+     * Determines the CSS class for the accordion summary based on the mission's disabled code
+     *
+     * @returns {string} CSS class name reflecting the mission's health state
+     */
+    const getSummaryClass = () => {
+        if (disabledCode === DisabledCodes.NO_MISSION || noPredictionAvailable) {
+            return "mission-accordion-summary unassigned";
+        }
+        if (disabledCode !== DisabledCodes.NONE) {
+            return "mission-accordion-summary warning";
+        }
+        return "mission-accordion-summary good";
+    };
+
+    return (
+        <ThemeProvider theme={accordionTheme}>
+            <Accordion
+                className="mission-accordion"
+                expanded={props.isExpanded}
+                onChange={(_event, expanded) => props.onAccordionChange(props.missionID, expanded)}
+            >
+                <AccordionSummary className={getSummaryClass()} expandIcon={<ExpandMoreIcon />}>
+                    <MissionAccordionTitle missionID={props.missionID} />
+                </AccordionSummary>
+                <AccordionDetails className="mission-accordion-details">
+                    <div className="mission-accordion-row">
+                        <MissionAssignMenu missionID={props.missionID} />
+                        <TextField
+                            label="Repeats"
+                            size="small"
+                            className="mission-repeats"
+                            autoComplete="off"
+                            value={props.repeats}
+                            onChange={(event) =>
+                                props.onRepeatsChange(event.target.value, props.missionID)
+                            }
+                        />
+                    </div>
+                    <div className="mission-accordion-row">
+                        <Button
+                            className="jaia-button"
+                            aria-label="duplicate-mission"
+                            data-testid={`duplicate-mission-${props.missionID}`}
+                            onClick={() => props.onDuplicateClick(props.missionID)}
+                        >
+                            <Icon
+                                path={mdiContentDuplicate}
+                                size={MDI_BUTTON_SIZE}
+                                title="Duplicate Mission"
+                            />
+                        </Button>
+                        <DeleteMissionButton deleteAll={false} missionID={props.missionID} />
+                        <JaiaToggle
+                            checked={() => props.isInEditMode}
+                            onClick={() => props.onToggleEditClick(props.missionID)}
+                            label="Edit"
+                            title="ToggleEditMode"
+                            testLabel={`Edit Mission ${props.missionID}`}
+                        />
+                    </div>
+                    <MissionStats
+                        prediction={prediction}
+                        unavailableBotType={isUnsupportedBotType ? bot?.getBotType() : undefined}
+                    />
+                </AccordionDetails>
+            </Accordion>
+        </ThemeProvider>
+    );
+}
+
+/**
+ * Renders a label-value stats block for a mission.
+ * Values show "--" when not yet available (e.g. no bot assigned).
+ */
+function MissionStats(props: MissionStatsProps) {
+    const batteryAfter = props.prediction
+        ? `${clampBatteryPercentForDisplay(props.prediction.predicted_final_pct).toFixed(1)}%`
+        : props.unavailableBotType
+          ? `Prediction unavailable for bot type ${props.unavailableBotType}`
+          : "--";
+
+    return (
+        <table className="mission-stats">
+            <tbody>
+                <tr>
+                    <td className="mission-stats-label">Battery After</td>
+                    <td className="mission-stats-value">{batteryAfter}</td>
+                </tr>
+            </tbody>
+        </table>
+    );
+}
+
+/**
+ * Renders the title bar content for a mission accordion
+ */
+function MissionAccordionTitle(props: MissionAccordionTitleProps) {
+    const assignedBotID = missionsManager.getBotID(props.missionID);
     return (
         <div className="mission-accordion-title">
             <p>{`Mission-${props.missionID}`}</p>

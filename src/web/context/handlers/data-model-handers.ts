@@ -15,6 +15,7 @@ import { gridPlan } from "../../data/survey_planner/grid-plan";
 import { rallyPoints } from "../../data/rally_points/rally-points";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { exclusionZoneSet } from "../../data/exclusion_zones/exclusion-zone-set";
+import { batteryPredictions } from "../../data/battery_predictions/battery-predictions";
 import { NodeTypes } from "../../types/jaia-system-types";
 import { saveHistory } from "./history-handlers";
 import { syncOpenLayers } from "./handler-utils";
@@ -71,6 +72,7 @@ export function handleInit(mutableState: JaiaContextType) {
         missionsManager: missionsManager,
         taskPackets: taskPackets,
         exclusionZoneSet: exclusionZoneSet,
+        batteryPredictions: batteryPredictions,
         pendingReroute: null,
         pendingWaypointRemoval: null,
         placementError: "",

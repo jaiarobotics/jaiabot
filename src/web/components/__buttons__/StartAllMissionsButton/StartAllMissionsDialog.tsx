@@ -102,6 +102,9 @@ export function StartAllMissionsDialog(props: DialogProps) {
             case DisabledCodes.LOW_BATTERY:
                 subMessage += `because ${botIDs.length > 1 ? "they have a critically low battery." : "it has a critically low battery."}`;
                 break;
+            case DisabledCodes.INSUFFICIENT_BATTERY:
+                subMessage += `because ${botIDs.length > 1 ? "their batteries are predicted to fall below the safe minimum after the mission." : "its battery is predicted to fall below the safe minimum after the mission."}`;
+                break;
         }
 
         return subMessage;

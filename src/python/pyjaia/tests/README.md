@@ -93,6 +93,7 @@ pytest tests/ --cov=pyjaia --cov-report=html
 - `test_logtools.py` - Tests for log reading and processing
 - `test_contours.py` - Tests for contour generation
 - `test_task_packet_database.py` - Tests for task packet database operations
+- `test_battery_prediction_endpoint.py` - Tests for the /jaia/v0/battery-prediction Flask endpoint
 
 ## Deactivating Virtual Environment
 

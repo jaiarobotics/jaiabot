@@ -15,6 +15,10 @@ from http import HTTPStatus
 from flask import Flask, send_from_directory, Response, request, send_file
 
 # Internal Imports
+from pyjaia.battery_prediction import predict_drain as battery_predict_drain
+from pyjaia.battery_prediction.inference import UnsupportedBotTypeError, get_supported_bot_types
+from pyjaia.battery_prediction.calibration import load_calibration
+
 import jaia_portal
 import missions
 from map_tile_server import MapTileServer
@@ -549,6 +553,54 @@ def get_ctd_profiles():
         download_name=zip_name,
         mimetype="application/zip",
     )
+
+@app.route('/jaia/v0/battery-calibration', methods=['GET'])
+def battery_calibration():
+    """Returns the calibrated wattage/energy constants used to turn a mission
+    plan into the features the battery drain model expects, plus the bot type
+    names the model was trained on."""
+    return JSONResponse(obj={
+        **load_calibration(),
+        'supported_bot_types': [
+            jaia_portal.BotStatus.BotType.Name(t) for t in get_supported_bot_types()
+        ],
+    })
+
+
+@app.route('/jaia/v0/battery-prediction', methods=['POST'])
+def battery_prediction():
+    """Predicts the battery drain for a mission from its extracted features."""
+    body = request.get_json()
+    required = [
+        'bot_type', 'transit_energy_wh', 'transit_time_s',
+        'turn_density_deg_per_km',
+        'hotel_energy_wh', 'dive_energy_wh',
+        'starting_battery_pct',
+    ]
+    missing = [k for k in required if k not in body]
+    if missing:
+        return ErrorResponse(HTTPStatus.BAD_REQUEST, f"Missing fields: {missing}", 1)
+
+    try:
+        drain = battery_predict_drain(
+            bot_type=jaia_portal.BotStatus.BotType.Value(body['bot_type']),
+            transit_energy_wh=float(body['transit_energy_wh']),
+            transit_time_s=float(body['transit_time_s']),
+            turn_density_deg_per_km=float(body['turn_density_deg_per_km']),
+            hotel_energy_wh=float(body['hotel_energy_wh']),
+            dive_energy_wh=float(body['dive_energy_wh']),
+            starting_battery_pct=float(body['starting_battery_pct']),
+        )
+        starting = float(body['starting_battery_pct'])
+        return JSONResponse(obj={
+            'predicted_drain_pct': round(drain, 1),
+            'predicted_final_pct': round(starting - drain, 1),
+        })
+    except (UnsupportedBotTypeError, ValueError) as e:
+        return ErrorResponse(HTTPStatus.UNPROCESSABLE_ENTITY, str(e), 1)
+    except Exception as e:
+        return ErrorResponse(HTTPStatus.INTERNAL_SERVER_ERROR, str(e), 1)
+
 
 if __name__ == '__main__':
     print(f"JCC: connect to http://127.0.0.1:{args.web_port}")

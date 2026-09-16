@@ -2,6 +2,16 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
+import { missionSet } from "../data/mission_set/mission-set";
+import { missionsManager } from "../data/missions_manager/missions-manager";
+import {
+    batteryPredictions,
+    MissionBatteryStatus,
+} from "../data/battery_predictions/battery-predictions";
+import {
+    fetchBatteryPrediction,
+    isBotTypeSupported,
+} from "../data/battery_predictions/battery-prediction-calculator";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
@@ -13,6 +23,7 @@ import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
 import { Metadata, Version } from "../types/protobuf-types";
 import SoundEffects from "../style/audio/sound-effects";
+import { UNASSIGNED_ID } from "../utils/constants";
 
 const MAX_REQUEST_TIME = 10000; // ms;
 const VERSION_LENGTH = 3;
@@ -30,6 +41,7 @@ const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/l
 let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
 let metadataRequestInFlight = false;
+let batteryPredictionRequestInFlight = false;
 
 let statusRequestStartTime = new Date().getTime();
 
@@ -143,6 +155,25 @@ export async function pollMetadata() {
 }
 
 /**
+ * Recomputes the battery prediction for every mission with an assigned Bot and
+ * updates the client-side data model with the results
+ *
+ * @returns {void}
+ */
+export async function pollBatteryPredictions() {
+    if (batteryPredictionRequestInFlight) {
+        return;
+    }
+    try {
+        batteryPredictionRequestInFlight = true;
+        await updateBatteryPredictions();
+    } catch (error) {
+        console.error(error);
+    }
+    batteryPredictionRequestInFlight = false;
+}
+
+/**
  * Hits the jaiabot GitHub repo for the latest version and
  * updates the data model with information from the response
  *
@@ -188,6 +219,33 @@ export async function pollInternet() {
     } catch {
         jaiaGlobal.setIsConnectedToInternet(false);
     }
+}
+
+/**
+ * Recomputes the battery prediction for every mission with an assigned Bot and
+ * moves the results into the client-side data model
+ *
+ * @returns {void}
+ */
+async function updateBatteryPredictions() {
+    const statuses = new Map<number, MissionBatteryStatus>();
+
+    await Promise.all(
+        Array.from(missionSet.getMissions()).map(async ([missionID, mission]) => {
+            const botID = missionsManager.getBotID(missionID);
+            if (botID === UNASSIGNED_ID) return;
+            const bot = bots.getBot(botID);
+            if (!bot) return;
+
+            const [prediction, isSupported] = await Promise.all([
+                fetchBatteryPrediction(mission, bot),
+                isBotTypeSupported(bot.getBotType()),
+            ]);
+            statuses.set(missionID, { prediction, isUnsupportedBotType: !isSupported });
+        }),
+    );
+
+    batteryPredictions.setStatuses(statuses);
 }
 
 /**

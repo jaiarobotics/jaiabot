@@ -1,0 +1,70 @@
+{
+  "battery_capacity_wh": 132.0,
+  "loads_w": {
+    "transit": {
+      "median_w": 73.91248212332542,
+      "mean_w": 83.87015115420732,
+      "p25_w": 60.891729326321155,
+      "p75_w": 99.88355077713678,
+      "n_windows": 989
+    },
+    "task_surface_drift": {
+      "median_w": 50.166790903991846,
+      "mean_w": 50.166790903991846,
+      "p25_w": 50.166790903991846,
+      "p75_w": 50.166790903991846,
+      "n_windows": 1
+    },
+    "task_station_keep": null,
+    "dive_hold": {
+      "median_w": 62.82456277627524,
+      "mean_w": 64.1741048403458,
+      "p25_w": 53.8864005925618,
+      "p75_w": 68.51028330926599,
+      "n_windows": 30
+    },
+    "post_dive_drift": {
+      "median_w": 0.8756661971560622,
+      "mean_w": 1.000527566994354,
+      "p25_w": 0.49440038740817976,
+      "p75_w": 1.391435489548115,
+      "n_windows": 505
+    },
+    "recovery_station_keep": {
+      "median_w": 7.214963118748287,
+      "mean_w": 11.238709084043206,
+      "p25_w": 3.6526810889750276,
+      "p75_w": 14.958595706029792,
+      "n_windows": 82
+    }
+  },
+  "transit_power_curve": {
+    "speeds_m_s": [
+      1.0,
+      2.0,
+      2.5,
+      3.0
+    ],
+    "watts": [
+      71.97041839948444,
+      73.205370149349,
+      109.08939366261048,
+      149.8432371546194
+    ],
+    "per_bin_n": [
+      23,
+      104,
+      46,
+      99
+    ],
+    "source": "data",
+    "n_samples": 272
+  },
+  "dive_energy": {
+    "fit": "linear",
+    "intercept_wh": 0.7088489988330804,
+    "per_meter_wh": 0.021073740637257147,
+    "n_samples": 1154
+  },
+  "dataset_source": "/home/ubuntu/battery_prediction_dataset"
+}
