@@ -247,7 +247,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/goby-native-python"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -273,7 +272,6 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/goby-native-python"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -283,7 +281,6 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "task/3.y/goby-native-python"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
