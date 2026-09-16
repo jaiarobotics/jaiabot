@@ -23,12 +23,6 @@ def hub2hub_udp_port(hub_id):
         return 32000
     
 
-def udp_gateway_port(node_id):
-    if is_simulation():
-        return 20400 + node_id
-    else:
-        return 20000
-
 def contact_gpsd_port(contact_id):
     return 33000 + contact_id
 

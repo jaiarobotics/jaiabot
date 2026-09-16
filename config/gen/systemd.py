@@ -350,7 +350,6 @@ if dc('pressure_sensor_type') == 'bar02':
 else:
     jaia_pressure_sensor_type = PRESSURE_SENSOR_TYPE.BAR30
 
-UDP_GATEWAY_PORT = 20000
 
 class Mode(Enum):
     SIMULATION = 'simulation'
@@ -464,6 +463,7 @@ common_macros=dict()
 common_macros['environment'] = systemd_environment_block(service_environment)
 common_macros['jaiabot_bin_dir'] = args.jaiabot_bin_dir
 common_macros['jaiabot_share_dir'] = args.jaiabot_share_dir
+common_macros['jaiabot_lib_dir'] = jaia_lib_dir
 common_macros['ansible_dir'] = args.ansible_dir
 common_macros['goby_bin_dir'] = args.goby_bin_dir
 common_macros['moos_bin_dir'] = args.moos_bin_dir
@@ -711,37 +711,31 @@ jaiabot_apps = [
 
     ## Bot Types: HYDRO, PAM, NONE Services
 
-    {'exe': 'jaiabot_pressure_sensor.py',
+    {'exe': 'jaiabot_driver_pressure.py',
      'description': 'JaiaBot Pressure Sensor Python Driver',
-     'template': 'py-app.service.in',
+     'template': 'goby-py-app.service.in',
      'subdir': 'pressure_sensor',
-     'args': f'-t {jaia_pressure_sensor_type.value} -p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PRESSURE_SENSOR',
      'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.PAM],
-     'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
-    {'exe': 'jaiabot_as-ezo-ec.py',
+    {'exe': 'jaiabot_driver_salinity.py',
      'description': 'JaiaBot Salinity Sensor Python Driver',
-     'template': 'py-app.service.in',
+     'template': 'goby-py-app.service.in',
      'subdir': 'atlas_scientific_ezo_ec',
-     'args': f'-p {UDP_GATEWAY_PORT}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_AS_EZO_EC',
      'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.PAM],
-     'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
 
     ## PAM Services ##
 
-    {'exe': 'jaiabot_pam.py',
+    {'exe': 'jaiabot_driver_pam.py',
      'description': 'JaiaBot MAI PAM Python Driver',
-     'template': 'py-app.service.in',
+     'template': 'goby-py-app.service.in',
      'subdir': 'pam',
-     'args': f'-p {UDP_GATEWAY_PORT} -d {jaia_pam_connection_type.value}',
      'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_PAM',
      'runs_on': [BOT_TYPE.PAM],
-     'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
 
@@ -755,30 +749,18 @@ jaiabot_apps = [
      'runs_on': [BOT_TYPE.BIO],
      'wanted_by': 'jaiabot_health.service'},
 
-     ## UDP Gateway Services ##
-    {'exe': 'jaiabot_udp_gateway',
-    'description': 'JaiaBot UDP Gateway',
-    'template': 'goby-app.service.in',
-    'error_on_fail': 'ERROR__FAILED__JAIABOT_UDP_GATEWAY',
-    'runs_on': [Type.BOT],
-    'wanted_by': 'jaiabot_health.service'},
-
 ]
 
 if jaia_imu_type == IMU_TYPE.BNO085:
-    jaiabot_apps_imu = [
-        {'exe': 'jaiabot_imu.py',
-        'description': 'JaiaBot BNO085 IMU Python Driver',
-        'template': 'py-app.service.in',
-        'subdir': 'adafruit',
-        'args': f'-t {IMU_TYPE.BNO085.value} -p {UDP_GATEWAY_PORT}',
-        'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
-        'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
-        'wanted_by': 'jaiabot_health.service',
-        'restart': 'on-failure'},
-    ] 
-    jaiabot_apps.extend(jaiabot_apps_imu)
+    jaiabot_apps.append(
+        {'exe': 'jaiabot_driver_imu.py',
+         'description': 'JaiaBot BNO085 IMU Python Driver',
+         'template': 'goby-py-app.service.in',
+         'subdir': 'adafruit',
+         'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_IMU',
+         'runs_on': [Type.BOT],
+         'wanted_by': 'jaiabot_health.service',
+         'restart': 'on-failure'})
 
 if jaia_motor_harness_type.value == 'RPM_AND_THERMISTOR':
     jaiabot_apps_motor_harness_type = [
@@ -834,14 +816,12 @@ if 'aml' in jaia_additional_sensors:
     jaiabot_apps.extend(jaiabot_aml_sensor)
 if 'ppk' in jaia_additional_sensors:
     jaiabot_ubx_ppk = {
-        'exe': 'jaiabot_ubx_ppk.py',
+        'exe': 'jaiabot_ppk_logger.py',
         'description': 'JaiaBot UBX PPK Logger',
-        'template': 'py-app.service.in',
+        'template': 'goby-py-app.service.in',
         'subdir': 'ubx_ppk',
-        'args': f'-p {UDP_GATEWAY_PORT}',
         'error_on_fail': 'ERROR__FAILED__JAIABOT_PPK',
         'runs_on': [Type.BOT],
-        'runs_when': Mode.RUNTIME,
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'
     }
@@ -850,14 +830,12 @@ if 'ppk' in jaia_additional_sensors:
 
 if jaia_temperature_sensor_type.value == 'tsys01':
     jaiabot_apps_tsys01 = [
-        {'exe': 'jaiabot_tsys01.py',
+        {'exe': 'jaiabot_driver_tsys01.py',
          'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
-         'template': 'py-app.service.in',
+         'template': 'goby-py-app.service.in',
          'subdir': 'tsys01_temperature_sensor',
-         'args': f'-p {UDP_GATEWAY_PORT}',
          'error_on_fail': 'ERROR__FAILED__PYTHON_JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER',
          'runs_on': [Type.BOT],
-         'runs_when': Mode.RUNTIME, 
          'wanted_by': 'jaiabot_health.service',
          'restart': 'on-failure'},
     ]
@@ -943,10 +921,18 @@ def is_app_run(app):
     macros={**common_macros, **app}
     return (Type.BOTH in macros['runs_on'] or jaia_type in macros['runs_on'] or jaia_bot_type in macros['runs_on']) and (macros['runs_when'] == Mode.BOTH or macros['runs_when'] == jaia_mode) and (not is_cloudhub or macros['runs_on_cloudhub'])
 
+def goby_app_name(exe: str) -> str:
+    """A Python app is a .py file on disk but is named like any other Goby app in its
+    configuration, in the coroner's report and in bot.py's dispatch."""
+    return exe[:-3] if exe.endswith('.py') else exe
+
+
 for app in jaiabot_apps:
     if is_app_run(app):
         if app['template'] == 'goby-app.service.in':
             all_goby_apps.append(app['exe'])
+        elif app['template'] == 'goby-py-app.service.in':
+            all_goby_apps.append(goby_app_name(app['exe']))
         
 # Units are enabled in a single pass at the end, after every unit file has been
 # written. Many carry WantedBy=jaiabot_health.service (or _gobyd/_moosdb), and
@@ -981,6 +967,8 @@ for app in jaiabot_apps:
                 macros['bin_dir'] = macros['jaiabot_bin_dir']
 
         macros['service'] = service
+        if 'exe' in macros:
+            macros['app_name'] = goby_app_name(macros['exe'])
 
         with open(script_dir + '/../templates/systemd/' + app['template'], 'r') as file:
             out=Template(file.read()).substitute(macros)

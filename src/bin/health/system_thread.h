@@ -348,6 +348,32 @@ class MotorStatusThread : public HealthMonitorThread<jaiabot::config::MotorStatu
         {13.95, 351}};
 };
 
+// Watches the IMU and PAM groups for silence so it can trigger their recoveries. goby_coroner
+// reports whether each driver application is running, and each driver reports its own device
+// through health(), so this thread exists for what neither can do: publish the IMUIssue and
+// PamIssue that drive an automated recovery.
+class SensorWatchdogThread : public HealthMonitorThread<jaiabot::config::SensorWatchdogConfig>
+{
+  public:
+    SensorWatchdogThread(const jaiabot::config::SensorWatchdogConfig& cfg);
+    ~SensorWatchdogThread() {}
+
+  private:
+    void health(goby::middleware::protobuf::ThreadHealth& health) override;
+
+    // true when nothing has arrived on the group for timeout_seconds
+    bool timed_out(const goby::time::SteadyClock::time_point& last, int timeout_seconds) const;
+
+  private:
+    goby::time::SteadyClock::time_point last_imu_data_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_pam_data_time_{std::chrono::seconds(0)};
+
+    goby::time::SteadyClock::time_point last_imu_trigger_issue_time_{
+        goby::time::SteadyClock::now()};
+    goby::time::SteadyClock::time_point last_pam_trigger_issue_time_{
+        goby::time::SteadyClock::now()};
+};
+
 } // namespace apps
 } // namespace jaiabot
 

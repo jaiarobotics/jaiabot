@@ -58,7 +58,6 @@ set(JAIABOT_PROTOS
   link_config.proto
   comms.proto
   ctd.proto
-  udp_gateway.proto
   ppk.proto
 )
 
@@ -74,8 +73,74 @@ add_jaiabot_library(TARGET jaiabot_messages
   PROTOS ${CXX_PROTOS}
   LINK_LIBRARIES protobuf::libprotobuf goby)
 
+# Configuration for the Python drivers. Kept out of jaiabot_messages because it imports the
+# Goby interprocess config, and a jaiabot_messages that pulled in goby_zeromq could no longer
+# be dlopen'd by the DCCL hash check below.
+add_jaiabot_library(TARGET jaiabot_python_driver_config
+  TARGET_TYPE LIB
+  PROTOS jaiabot/messages/python_driver_config.proto
+  LINK_LIBRARIES protobuf::libprotobuf jaiabot_messages goby goby_zeromq)
+
 add_subdirectory(nanopb)
 add_subdirectory(python)
+
+# Fleet config contract: fleet_config.proto (with the debconf questions it declares) must
+# match the committed snapshot for the version it declares, so that a change existing
+# fleet configs can't satisfy is caught here rather than during a major upgrade. The
+# debconf templates/config are generated from the same proto. See "Fleet configuration
+# versioning" in src/doc/markdown/page091_major_upgrade.md
+find_program(PYTHON3_EXECUTABLE python3 REQUIRED)
+set(FLEET_CONFIG_TOOL ${project_SH_DIR}/fleet/jaia-fleet-config.py)
+set(FLEET_CONFIG_CONTRACT_SCRIPT ${CMAKE_SOURCE_DIR}/scripts/build/fleet-config-contract.py)
+set(FLEET_CONFIG_DEBCONF_SCRIPT ${CMAKE_SOURCE_DIR}/scripts/build/fleet-config-debconf-gen.py)
+set(FLEET_CONFIG_CONTRACT_SNAPSHOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/fleet_config/contract)
+set(FLEET_CONFIG_SHARE_DIR ${project_SHARE_DIR}/jaiabot/fleet_config)
+set(FLEET_CONFIG_DESCRIPTOR_SET ${FLEET_CONFIG_SHARE_DIR}/fleet_config.desc)
+file(GLOB_RECURSE FLEET_CONFIG_CONTRACT_SNAPSHOTS ${FLEET_CONFIG_CONTRACT_SNAPSHOT_DIR}/v*/*)
+
+# The schema the fleet config tool reads at runtime (no generated bindings needed)
+add_custom_command(
+  OUTPUT ${FLEET_CONFIG_DESCRIPTOR_SET}
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${FLEET_CONFIG_SHARE_DIR}
+  COMMAND protobuf::protoc --descriptor_set_out=${FLEET_CONFIG_DESCRIPTOR_SET} --include_imports
+          -I ${project_INC_DIR} jaiabot/messages/fleet_config.proto
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fleet_config.proto ${CMAKE_CURRENT_SOURCE_DIR}/option_extensions.proto
+  COMMENT "Generating fleet config descriptor set"
+  VERBATIM
+)
+
+# Written into the source tree: dh_installdebconf reads them from debian/, and they are
+# committed so a proto change shows its debconf effect in review (the fleet_config unit
+# tests fail if the committed copy is stale)
+set(FLEET_CONFIG_DEBCONF_TEMPLATES ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.templates)
+set(FLEET_CONFIG_DEBCONF_CONFIG ${CMAKE_SOURCE_DIR}/debian/jaiabot-embedded.config)
+add_custom_command(
+  OUTPUT ${FLEET_CONFIG_DEBCONF_TEMPLATES} ${FLEET_CONFIG_DEBCONF_CONFIG}
+  COMMAND ${PYTHON3_EXECUTABLE} ${FLEET_CONFIG_DEBCONF_SCRIPT}
+          --descriptor-set ${FLEET_CONFIG_DESCRIPTOR_SET}
+          --templates ${FLEET_CONFIG_DEBCONF_TEMPLATES} --config ${FLEET_CONFIG_DEBCONF_CONFIG} --write
+  DEPENDS ${FLEET_CONFIG_DESCRIPTOR_SET} ${FLEET_CONFIG_TOOL} ${FLEET_CONFIG_DEBCONF_SCRIPT}
+  COMMENT "Generating jaiabot-embedded debconf templates and config from fleet_config.proto"
+  VERBATIM
+)
+
+set(FLEET_CONFIG_CONTRACT_STAMP ${CMAKE_CURRENT_BINARY_DIR}/fleet_config_contract.stamp)
+add_custom_command(
+  OUTPUT ${FLEET_CONFIG_CONTRACT_STAMP}
+  COMMAND ${PYTHON3_EXECUTABLE} ${FLEET_CONFIG_CONTRACT_SCRIPT}
+          --proto ${CMAKE_CURRENT_SOURCE_DIR}/fleet_config.proto
+          --templates ${FLEET_CONFIG_DEBCONF_TEMPLATES}
+          -I ${project_INC_DIR} --protoc $<TARGET_FILE:protobuf::protoc>
+          --snapshot-dir ${FLEET_CONFIG_CONTRACT_SNAPSHOT_DIR} check
+  COMMAND ${CMAKE_COMMAND} -E touch ${FLEET_CONFIG_CONTRACT_STAMP}
+  DEPENDS ${FLEET_CONFIG_DESCRIPTOR_SET} ${CMAKE_CURRENT_SOURCE_DIR}/fleet_config.proto
+          ${FLEET_CONFIG_DEBCONF_TEMPLATES} ${FLEET_CONFIG_DEBCONF_CONFIG}
+          ${FLEET_CONFIG_TOOL} ${FLEET_CONFIG_CONTRACT_SCRIPT} ${FLEET_CONFIG_CONTRACT_SNAPSHOTS}
+  COMMENT "Checking fleet config contract (version ${PROJECT_FLEET_CONFIG_VERSION})"
+  VERBATIM
+)
+
+add_custom_target(fleet_config_contract ALL DEPENDS ${FLEET_CONFIG_CONTRACT_STAMP})
 
 function(check_dccl_md5_hash DCCL_NAME EXPECTED_HASH)
   add_custom_command(
@@ -97,9 +162,9 @@ if(NOT CMAKE_CROSSCOMPILING)
   # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
   # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
-  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0xb15f9a518cbe5207")
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x57c896af7e8e6d80")
   check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x870bcec1ecbe676f")
   check_dccl_md5_hash("jaiabot.protobuf.Command" "0x678f05b5f029f611")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0xf45c34ab1ae8b077")
-  check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0xd5f2341c748179b7")
+  check_dccl_md5_hash("jaiabot.protobuf.Hub2HubData" "0x5a6f4aa0c62f71a6")
 endif()

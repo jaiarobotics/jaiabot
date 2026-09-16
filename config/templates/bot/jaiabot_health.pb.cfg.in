@@ -41,3 +41,7 @@ arduino_recovery {
     max_attempts: 3
     flash_script: "jaia-firm-arduino-flash.sh"
 }
+
+sensor_watchdog {
+    pam_enabled: $pam_enabled
+}

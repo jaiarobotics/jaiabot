@@ -91,7 +91,7 @@ job-template-amd64: &job-template-amd64
         command: |
           apt-get update &&
           apt-get dist-upgrade -y &&
-          apt-get install -y ccache python3-venv
+          apt-get install -y ccache python3-venv python3-goby3 pybind11-dev libpython3-dev:${TARGET_ARCH}
           [[ "${TARGET_ARCH}" == "amd64" && ( "${JAIABOT_APT_REPO}" != "test" || "${BUILD_DOC_FOR_TEST_REPO}" == "true" ) ]] && apt-get install -y goby3-clang-tool || true
     - run: &run-zero-ccache-stats
         name: Reset ccache statistics
@@ -247,8 +247,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        - "claude/circleci-debian-build-optimization-uwuryg"
-        - "claude/fleet-ipv4-ipv6-split-amk5n9"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -256,7 +254,6 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "3.y"
-        - "claude/circleci-debian-build-optimization-uwuryg"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -275,7 +272,6 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "claude/fleet-ipv4-ipv6-split-amk5n9"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -285,7 +281,6 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "3.y"
-        - "claude/fleet-ipv4-ipv6-split-amk5n9"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -301,6 +296,28 @@ version: 2.1
 orbs:
   aws-cli: circleci/aws-cli@4.0
   aws-s3: circleci/aws-s3@4.0
+
+parameters:
+  sea-trial-bots:
+    type: integer
+    default: 2
+  sea-trial-goals:
+    type: integer
+    default: 10
+  sea-trial-warp:
+    type: integer
+    default: 5
+  # Which image to trial. Empty follows the branch or tag, which is what a normal run
+  # wants; set it to trial a published image from a branch whose own packages were
+  # never published, such as a feature branch.
+  sea-trial-repo:
+    type: string
+    default: ""
+  # Leaves the fleet up for inspection after a failure. The reaper still clears it.
+  sea-trial-keep-fleet:
+    type: boolean
+    default: false
+
 workflows:
   version: 2
   commit:
@@ -402,12 +419,27 @@ workflows:
             - arm64-docker-sim
             - amd64-docker-sim
 
+      # fast feedback on the mission driver itself, on every commit that builds the sim
+      - docker-sim-e2e:
+          <<: *filter-template-docker-sim-builds
+          requires:
+            - amd64-docker-sim
+
+      # every image that reaches an AMI gets trialled, on the same filter that built it
+      - sea-trial-virtualfleet:
+          <<: *filter-template-aws-rootfs-builds
+          requires:
+            - aws-sync
 
 commands:
   aws-sync-command:
     parameters:
       role_arn:
         type: string
+      # space separated regions, within the same partition as the job's AWS_DEFAULT_REGION
+      ami_copy_regions:
+        type: string
+        default: ""
     steps:
       - checkout
       - attach_workspace:
@@ -497,9 +529,240 @@ commands:
               "Key=jaiabot-rootfs-gen_build-unixtime,Value=$(date -u +%s)" \
               "Key=jaiabot_version_when_built,Value=${JAIABOT_VERSION}" \
               "Key=goby_version_when_built,Value=${GOBY_VERSION}"
+      - run:
+          name: Copy new AMI to additional regions
+          command: |
+            ami_copy_regions="<< parameters.ami_copy_regions >>"
+            if [ -z "${ami_copy_regions}" ]; then
+              echo "No additional AMI regions configured"
+              exit 0
+            fi
+            rootfs/cloud/aws/copy_ami_to_regions.sh "${JAIABOT_AMI_NAME}" "${JAIABOT_ROOTFS_GEN_REPO}" "${JAIABOT_ROOTFS_GEN_REPO_VERSION}" ${ami_copy_regions}
 
-            
+
 jobs:
+  docker-sim-e2e:
+    machine:
+      image: ubuntu-2604:current
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Set environmental variables for which packages.jaia.tech repo to use
+          command: |
+            repo=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
+            version=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
+            echo "export JAIABOT_APT_REPO=${repo}" >> $BASH_ENV
+            echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
+      - run:
+          name: Test the mission driver itself
+          command: cd scripts/test/e2e && python3 -m unittest discover -p 'test_*.py' -v
+      - run:
+          name: Start the simulator
+          command: |
+            if [[ "$JAIABOT_APT_REPO" = "release" ]]; then
+              TAG="$CIRCLE_TAG"
+            else
+              TAG="${JAIABOT_APT_VERSION}-${JAIABOT_APT_REPO}"
+            fi
+            echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+            docker run -d --name jaia-sim -p 9092:9092 \
+              -e JAIA_SIM_BOTS=1 -e JAIA_SIM_WARP=10 -e JAIA_SIM_FLEET=30 \
+              gobysoft/jaiabot-sim:${TAG}-amd64
+      - run:
+          name: Run a short dive mission against the simulator
+          command: |
+            scripts/test/e2e/jaia-sea-trial.py \
+              --hub-url http://localhost:9092 --api-key simulation \
+              --bots 1 --goals 2 --warp 10 \
+              --output-dir /tmp/sea-trial-sim
+      - run:
+          # docker logs carries only goby_launch's supervisor output; every app writes
+          # to a screen session inside the container, which is where a bot that dies
+          # says why
+          name: Simulator log
+          when: always
+          command: |
+            mkdir -p /tmp/sea-trial-sim/sim
+            docker logs jaia-sim > /tmp/sea-trial-sim/sim/launcher.txt 2>&1 || true
+            tail -200 /tmp/sea-trial-sim/sim/launcher.txt || true
+            docker exec jaia-sim bash -c 'tar cf - /tmp/goby_launch_screen* 2>/dev/null' \
+              | tar xf - -C /tmp/sea-trial-sim/sim --strip-components=1 || true
+            docker exec jaia-sim bash -c 'tar cf - ~/jaia-logs 2>/dev/null' \
+              | tar xf - -C /tmp/sea-trial-sim/sim || true
+            # a bot killed for memory leaves no message of its own
+            docker inspect jaia-sim \
+              --format 'OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}' || true
+            free -m || true
+            sudo dmesg 2>/dev/null | grep -iE 'killed process|out of memory' | tail -20 || true
+      - store_test_results:
+          path: /tmp/sea-trial-sim
+      - store_artifacts:
+          path: /tmp/sea-trial-sim
+
+  sea-trial-virtualfleet:
+    # 26.04 so the jaiabot packages install natively, and a machine executor so the
+    # fleet VPN can be brought up the way an operator's machine does
+    machine:
+      image: ubuntu-2604:current
+    resource_class: medium
+    environment:
+      AWS_DEFAULT_REGION: ca-central-1
+      JAIA_CI_FLEET: 9
+    steps:
+      - checkout
+      - run:
+          name: Set environmental variables for which packages.jaia.tech repo to use
+          command: |
+            repo=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "repo")
+            version=$(.circleci/deb_repo.sh "$CIRCLE_BRANCH" "$CIRCLE_TAG" "version")
+            echo "export JAIABOT_APT_REPO=${repo}" >> $BASH_ENV
+            echo "export JAIABOT_APT_VERSION=${version}" >> $BASH_ENV
+            echo "export JAIA_CI_CUSTOMER=jaia-ci-${CIRCLE_WORKFLOW_ID}" >> $BASH_ENV
+            trial_repo="<< pipeline.parameters.sea-trial-repo >>"
+            echo "export JAIA_CI_REPO=${trial_repo:-$repo}" >> $BASH_ENV
+      - aws-cli/setup:
+          profile_name: OIDC-User
+          role_arn: arn:aws:iam::120512385734:role/JaiaCircleCI
+      - run:
+          # only once the orb has written it: setting it any earlier and the orb's own
+          # aws calls fail looking for a profile that does not exist yet
+          name: Use the profile the orb just wrote
+          command: echo "export AWS_PROFILE=OIDC-User" >> $BASH_ENV
+      - run:
+          name: Install the jaiabot tooling this commit built
+          command: |
+            sudo install -d -m 0755 /etc/apt/keyrings
+            curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x19478082E2F8D3FE" \
+              | sudo gpg --dearmor -o /etc/apt/keyrings/gobysoft.gpg
+            curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x954A004CD5D8CF32" \
+              | sudo gpg --dearmor -o /etc/apt/keyrings/jaiabot.gpg
+            codename=$(lsb_release -c -s)
+            # the same repo the image comes from: tooling from a different one writes
+            # answers the image's packages no longer accept, or lacks flags entirely
+            echo "deb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/${JAIA_CI_REPO}/${JAIABOT_APT_VERSION} ${codename}/" \
+              | sudo tee /etc/apt/sources.list.d/gobysoft.list
+            echo "deb [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/${JAIA_CI_REPO}/${JAIABOT_APT_VERSION} ${codename}/" \
+              | sudo tee /etc/apt/sources.list.d/jaiabot.list
+            sudo apt-get update
+            # jaiabot-python's postinst pip-installs pyjaia, so this step needs PyPI
+            sudo apt-get install -y jaiabot-apps jaiabot-python wireguard wireguard-tools \
+              cloud-init ansible jq rsync
+            # the images point python3 at pyenv, which cannot see the protobuf bindings
+            # these packages install for the system interpreter
+            if command -v pyenv > /dev/null; then pyenv global system; fi
+            python3 -c "import sys; from google.protobuf import text_format; print('protobuf bindings visible to', sys.executable)"
+            echo "installed jaiabot: $(jaia version 2>&1 | sed -n 2p)"
+            # a one-line failure here beats an argparse dump from inside the create step
+            if ! jaia admin fleet create_cloudhub --help | grep -q -- --permissions-boundary; then
+              echo "ERROR: installed tooling predates this checkout; it cannot drive this trial" >&2
+              exit 1
+            fi
+      - run:
+          name: Reap any CI fleet a killed build left behind
+          command: rootfs/cloud/aws/reap_ci_fleets.sh --max-age-hours 4
+      - run:
+          # a CI fleet is one reserved id, so overlapping runs queue rather than the
+          # later one failing outright; the reaper above has already taken any fleet
+          # whose run is long gone. A trial holds the fleet for about a quarter hour,
+          # and a day's merges can reach aws-sync together, so the wait outlasts a
+          # few of them queued ahead.
+          name: Wait for the fleet to be free
+          command: |
+            rootfs/cloud/aws/circleci/wait-for-free-fleet.sh \
+              --timeout-minutes 60 "${JAIA_CI_FLEET}"
+          no_output_timeout: 65m
+      - run:
+          name: Create the CloudHub
+          command: |
+            mkdir -p /tmp/sea-trial
+            rootfs/cloud/aws/circleci/make-ci-fleet-config.sh \
+              --fleet "${JAIA_CI_FLEET}" \
+              --bots << pipeline.parameters.sea-trial-bots >> \
+              --warp << pipeline.parameters.sea-trial-warp >> \
+              /tmp/sea-trial/fleet.cfg
+            jaia admin fleet create_cloudhub /tmp/sea-trial/fleet.cfg "${JAIA_CI_CUSTOMER}" \
+              --region "${AWS_DEFAULT_REGION}" \
+              --repo "${JAIA_CI_REPO}" \
+              --permissions-boundary JaiaCloudHubBoundary \
+              --virtualfleet-instance-type t3a.small \
+              --output-json /tmp/sea-trial/cloudhub.json \
+              --jaiabot-dir "${PWD}" \
+              --aws-profile OIDC-User
+          no_output_timeout: 30m
+      - run:
+          name: Raise the VirtualFleet from the same AMI
+          command: |
+            CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
+            # the playbooks ship with jaiabot-config, so they are already the ones
+            # belonging to the image under test
+            ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
+              "cd /usr/share/jaiabot/config/ansible && ansible-playbook cloud/create-virtualfleet.yml \
+                 -e n_bots=<< pipeline.parameters.sea-trial-bots >> \
+                 -e warp=<< pipeline.parameters.sea-trial-warp >>"
+          no_output_timeout: 30m
+      - run:
+          name: Send the fleet on its dive mission
+          command: |
+            CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
+            # driven from the CloudHub, which is what reaches the VirtualFleet; the
+            # offloaded logs stay on the VirtualHub that pulled them, so the offload
+            # check reads that directory over ssh rather than this machine's own
+            rsync -a -e "ssh -o StrictHostKeyChecking=no" scripts/test/e2e/ jaia@${CLOUDHUB}:/tmp/e2e/
+            # the CloudHub's ssh config keys the VirtualFleet identity off the VPN
+            # address range, so the offload check has to address the hub by address
+            HUB_ADDR=$(ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
+              "jaia_ip --query_type addr --node_type hub --ip_net vfleet_vpn \
+                 --fleet_id ${JAIA_CI_FLEET} --node_id 1")
+            echo "VirtualHub 1 is at ${HUB_ADDR}"
+            ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
+              "python3 /tmp/e2e/jaia-sea-trial.py \
+                 --hub-url http://hub1-virtualfleet${JAIA_CI_FLEET} \
+                 --bots << pipeline.parameters.sea-trial-bots >> \
+                 --goals << pipeline.parameters.sea-trial-goals >> \
+                 --warp << pipeline.parameters.sea-trial-warp >> \
+                 --offload-host jaia@${HUB_ADDR} \
+                 --offload-dir /var/log/jaiabot/bot_offload \
+                 --output-dir /tmp/sea-trial"
+          no_output_timeout: 60m
+      - run:
+          name: Collect results
+          when: always
+          command: |
+            mkdir -p /tmp/sea-trial
+            CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
+            # the VirtualFleet is only reachable from the CloudHub, and a bot's own
+            # debug logs are text, which the offload excludes, so they come from here
+            rsync -a -e "ssh -o StrictHostKeyChecking=no" \
+              rootfs/cloud/aws/circleci/collect-fleet-logs.sh jaia@${CLOUDHUB}:/tmp/ || true
+            ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
+              "/tmp/collect-fleet-logs.sh --fleet ${JAIA_CI_FLEET} \
+                 --bots << pipeline.parameters.sea-trial-bots >> \
+                 /tmp/sea-trial/fleet-logs" || true
+            rsync -a -e "ssh -o StrictHostKeyChecking=no" \
+              jaia@${CLOUDHUB}:/tmp/sea-trial/ /tmp/sea-trial/ || true
+            ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
+              "sudo journalctl -n 2000 --no-pager" > /tmp/sea-trial/cloudhub-journal.txt || true
+      - run:
+          name: Tear down
+          when: always
+          command: |
+            if [ "<< pipeline.parameters.sea-trial-keep-fleet >>" = "true" ]; then
+              echo "sea-trial-keep-fleet is set; leaving fleet ${JAIA_CI_FLEET} up for the reaper"
+              exit 0
+            fi
+            # only this run's fleet: a concurrent trial reuses the same fleet id, and
+            # this step runs under when: always, including when create never got there
+            jaia admin fleet delete_cloudhub --region "${AWS_DEFAULT_REGION}" \
+              --aws-profile OIDC-User --jaiabot-dir "${PWD}" --yes \
+              --customer "${JAIA_CI_CUSTOMER}" "${JAIA_CI_FLEET}"
+            rootfs/cloud/aws/circleci/delete-ci-bucket.sh "${JAIA_CI_FLEET}"
+          no_output_timeout: 30m
+      - store_test_results:
+          path: /tmp/sea-trial
+      - store_artifacts:
+          path: /tmp/sea-trial
+
   get-orig-source:
     <<: *job-template-deb-amd64
     docker: *docker-base-light
@@ -588,10 +851,14 @@ jobs:
       - checkout
       - run: git submodule sync
       - run: git submodule update --init
+      # build_venv.sh configures the whole project to generate the protobuf modules, so this
+      # job needs the Goby Python bindings like every other build does
+      - run: *run-set-deb-rep-and-version
+      - run: *run-add-jaia-packages-list
       - run:
           name: Build Python venv to ensure it builds successfully (for later use when jaiabot-python is installed)
           command: |
-            apt-get update && apt-get -y install rsync python3-venv python3-dev
+            apt-get update && apt-get -y install rsync python3-venv python3-dev python3-goby3 pybind11-dev
             cd src/python
             unset CC CXX
             ./build_venv.sh /tmp/jaiabot-python-test
@@ -732,6 +999,8 @@ jobs:
             major_upgrade_arch=${TARGET_ARCH}
             major_upgrade_rootfs_checksum=sha256:$(sha256sum build/bundle/major_upgrade/${rootfs_version}.rootfs.tar.gz | cut -d ' ' -f 1)
             major_upgrade_bootfs_checksum=sha256:$(sha256sum build/bundle/major_upgrade/${rootfs_version}.boot.tar.gz | cut -d ' ' -f 1)
+            major_upgrade_previous_major=$(( $(echo ${JAIABOT_APT_VERSION} | cut -d '.' -f 1) - 1 ))
+            major_upgrade_fleet_config_version=$(sed -n 's/^option (jaia.file).fleet_config_version = \([0-9]*\);.*/\1/p' src/lib/messages/fleet_config.proto)
             EOF
             
             
@@ -815,6 +1084,7 @@ jobs:
     steps:
       - aws-sync-command:
           role_arn: arn:aws:iam::120512385734:role/JaiaCircleCI
+          ami_copy_regions: "ca-central-1"
 
   aws-sync-govcloud:
     docker:
@@ -824,8 +1094,9 @@ jobs:
       DISTRO_RELEASE_CODENAME: "resolute"
     resource_class: medium
     steps:
+      # no ami_copy_regions: GovCloud is a separate partition, so AMIs cannot be copied to or from commercial regions
       - aws-sync-command:
-          role_arn: arn:aws-us-gov:iam::497433381399:role/JaiaCircleCI        
+          role_arn: arn:aws-us-gov:iam::497433381399:role/JaiaCircleCI
 
   arm64-docker-sim:
     environment:

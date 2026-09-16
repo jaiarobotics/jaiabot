@@ -51,7 +51,6 @@
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/simulator.pb.h"
-#include "jaiabot/messages/udp_gateway.pb.h"
 #include <goby/middleware/gpsd/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 
@@ -70,9 +69,6 @@ namespace apps
 {
 constexpr goby::middleware::Group gps_udp_in{"gps_udp_in"};
 constexpr goby::middleware::Group gps_udp_out{"gps_udp_out"};
-
-constexpr goby::middleware::Group gateway_udp_in{"gateway_udp_in"};
-constexpr goby::middleware::Group gateway_udp_out{"gateway_udp_out"};
 
 class SimulatorTranslation : public goby::moos::Translator
 {
@@ -140,10 +136,6 @@ jaiabot::apps::Simulator::Simulator()
         if (cfg().enable_gps())
             launch_thread<GPSUDPThread>(cfg().gps_udp_config());
 
-        using GatewayUDPThread =
-            goby::middleware::io::UDPPointToPointThread<gateway_udp_in, gateway_udp_out>;
-        launch_thread<GatewayUDPThread>(cfg().udp_gateway_config());
-
         launch_thread<ArduinoSimThread>(cfg().arduino_config());
     }
 
@@ -194,7 +186,8 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         // Subscribe to engineering commands for:
         // * bounds config changes, so we can bounce the new config back to jaiabot_engineering
         interprocess().subscribe<jaiabot::groups::engineering_command>(
-            [this](const jaiabot::protobuf::Engineering& engineering) {
+            [this](const jaiabot::protobuf::Engineering& engineering)
+            {
                 if (engineering.has_bounds())
                 {
                     auto bounds = engineering.bounds();
@@ -245,7 +238,8 @@ jaiabot::apps::SimulatorTranslation::SimulatorTranslation(
         // Subscribe to engineering commands for:
         // * hub_location
         interprocess().subscribe<jaiabot::groups::hub_command_full>(
-            [this](const jaiabot::protobuf::CommandForHub& hub_command) {
+            [this](const jaiabot::protobuf::CommandForHub& hub_command)
+            {
                 glog.is_warn() && glog << "Received hub_command: " << hub_command.ShortDebugString()
                                        << std::endl;
 
@@ -386,66 +380,29 @@ void jaiabot::apps::SimulatorTranslation::process_nav(const CMOOSMsg& msg)
         sky_last_updated_ = goby::time::SteadyClock::now();
     }
 
-    // publish pressure as UDP message for bar30 driver
+    // The Python sensor drivers convert this into readings, as they convert real ones in the
+    // field, so the conversion under test is the one that runs on the bot.
     {
         auto pressure = goby::util::seawater::pressure(depth, latlon.lat);
 
-        // interpolate temperature value from table
         double temperature = goby::util::linear_interpolate(depth, temperature_degC_profile_);
-        // randomize temperature
         temperature += temperature_distribution_(generator_);
 
-        using goby::util::seawater::bar;
-
-        // convert pressure from decibars to millibars to mimic output of BARXX sensor
-        auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
-        auto pressure_temperature_data = envelope.mutable_pressure_temperature_data();
-        pressure_temperature_data->set_pressure_raw(
-            quantity<decltype(si::milli * bar)>(pressure).value());
-        pressure_temperature_data->set_temperature_with_units(temperature * boost::units::absolute<boost::units::celsius::temperature>()); // I tried, but could not get boost.units to work with Celsius here.
-        pressure_temperature_data->set_sensor_type(jaiabot::protobuf::PressureSensorType::BAR30);
-
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(envelope.SerializeAsString());
-        interthread().publish<gateway_udp_out>(io_data);
-    }
-
-    // publish salinity as UDP message for atlas scientific ezo-ec driver
-    {
-        std::stringstream ss;
-        // interpolate salinity value from table
         double salinity = goby::util::linear_interpolate(depth, salinity_profile_);
-        // randomize salinity
         salinity += salinity_distribution_(generator_);
 
-        auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
-        auto salinity_data = envelope.mutable_salinity_data();
-        // We only set the raw values here, because the derived values are calculated elsewhere, after the data comes in from the sensor.
-        salinity_data->set_conductivity_raw(45000.0);
-        salinity_data->set_salinity_raw(salinity);
-        salinity_data->set_total_dissolved_solids(0.0);
-
-        auto io_data = std::make_shared<goby::middleware::protobuf::IOData>();
-        io_data->set_data(envelope.SerializeAsString());
-        interthread().publish<gateway_udp_out>(io_data);
-    }
-
-    // publish IMUData
-    {
-        jaiabot::protobuf::IMUData imu_data;
         auto pitch = moos_buffer["NAV_PITCH"].GetDouble() * si::radians;
         if (!making_forward_progress_)
             pitch = sim_cfg_.pitch_at_rest_with_units<decltype(pitch)>();
 
-        imu_data.mutable_euler_angles()->set_pitch_with_units(pitch);
-        imu_data.mutable_euler_angles()->set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() *
-                                                             si::radians);
-
-        auto accuracies = imu_data.mutable_accuracies();
-        accuracies->set_accelerometer(3);
-        accuracies->set_gyroscope(3);
-        accuracies->set_magnetometer(3);
-        interprocess().publish<groups::imu>(imu_data);
+        jaiabot::protobuf::SimEnvironment env;
+        env.set_depth_with_units(depth);
+        env.set_pressure_with_units(pressure);
+        env.set_temperature(temperature);
+        env.set_salinity(salinity);
+        env.set_pitch_with_units(pitch);
+        env.set_roll_with_units(moos_buffer["NAV_ROLL"].GetDouble() * si::radians);
+        interprocess().publish<groups::sim_environment>(env);
     }
 
     last_nav_process_time_ = now;
