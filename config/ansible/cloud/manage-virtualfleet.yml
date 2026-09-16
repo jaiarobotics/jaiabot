@@ -1,6 +1,6 @@
 ---
 - name: Start/Stop VirtualFleet EC2 instances
-  hosts: localhost
+  hosts: all
   gather_facts: yes
 
   tasks:

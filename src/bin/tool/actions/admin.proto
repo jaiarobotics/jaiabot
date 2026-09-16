@@ -64,6 +64,13 @@ message AdminTool
                            "\n"
                            "This action runs the standalone 'jaia_bounds' tool, which can be called directly (as 'jaia_bounds') from non-interactive scripts to avoid the startup cost of the 'jaia' tool. Run 'jaia_bounds --help' for the full list of options.\n"
         }];
+        vpn = 5 [(goby.ev).cfg = {
+            short_help_msg: "VPN configuration",
+            external_command: "jaia-vpn-gen.sh",
+            full_help_msg: "VPN configuration tool.\n"
+                           "Usage: \"jaia admin vpn cloudhub_vpn|vfleet_vpn|fleet_vpn bot|hub|desktop node_id [fleet_id]\"\n"
+                           "       \"jaia admin vpn server_init fleet_id initial_client_pubkey\""
+        }];
     }
     optional Action action = 2 [
         default = help,
