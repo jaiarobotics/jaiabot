@@ -377,6 +377,7 @@ elif common.app == 'jaiabot_mission_manager':
                                      delegated_states=delegated_states,
                                      send_task_packets_to_hub=send_task_packets_to_hub,
                                      allow_gps_error_during_pre_deployment_startup=allow_gps_error_during_pre_deployment_startup))
+
 elif common.app == 'jaiabot_sensors':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_sensors.pb.cfg.in',
                                      app_block=app_common,

@@ -28,8 +28,8 @@ set(POWER_BOARD_PROTOS
 # All messages used by microcontrollers (C code)
 set(MCU_PROTOS
   ${SENSOR_PROTOS}
-  ${POWER_BOARD_PROTOS}
   storm_mcu.proto
+  ${POWER_BOARD_PROTOS}
   arduino.proto
   feather.proto
 )
@@ -107,7 +107,8 @@ if(NOT CMAKE_CROSSCOMPILING)
   # When updating a DCCL message, just make sure to increment PROJECT_INTERVEHICLE_API_VERSION in jaiabot/cmake/JaiaVersions.cmake
   # and update the hash here (dccl -f src/lib/messages/jaia_dccl.proto -I build/amd64/include -I /usr/include -a -m jaiabot.protobuf.BotStatus -H)
 
-  # When adding a new DCCL message (for intervehicle comms), make sure to add it to this l  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x86b0d75c52b774e3")
+  # When adding a new DCCL message (for intervehicle comms), make sure to add it to this list
+  check_dccl_md5_hash("jaiabot.protobuf.BotStatus" "0x86b0d75c52b774e3")
   check_dccl_md5_hash("jaiabot.protobuf.TaskPacket" "0x4924b4b3812c7881")
   check_dccl_md5_hash("jaiabot.protobuf.Command" "0x8fbb3c7874d6ce83")
   check_dccl_md5_hash("jaiabot.protobuf.Engineering" "0x353435896a1ea1a0")
