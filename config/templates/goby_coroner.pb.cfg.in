@@ -1,2 +1,8 @@
 $app_block
 $interprocess_block
+
+# Goby time, so simulator warp shrinks these; scaled by the warp to keep the wall-clock
+# meaning. An app busy with its own startup misses a request it would otherwise answer,
+# and one missed response is reported as a died process.
+request_interval: $coroner_request_interval
+response_timeout: $coroner_response_timeout
