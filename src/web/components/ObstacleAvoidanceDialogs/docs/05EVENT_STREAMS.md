@@ -75,9 +75,8 @@ then — for the two revert handlers — loops over `pending.data.revert:
 RevertContext[]` via a shared `applyRevert` helper and `switch`es on each
 action's `kind`: `deleteZone`, `restoreZoneShape`, `restoreWaypoints`,
 `restoreMissionSnapshot`, or `restoreZoneSetSnapshot`. That list, plus an
-optional `loadSummary` on `PendingReroute` (producer context for the
-load-flow dialog UI and `handleConfirmMissionReroute`'s
-already-deleted-missions guard — never read by the cancel handlers), is the
+optional `loadSummary` on `PendingReroute` (zone-load context for the dialog's
+skipped/loaded counts and button gating — never read by any handler), is the
 entire contract between the two streams.
 
 `revert` is frequently `[]`. Detection
@@ -153,24 +152,23 @@ call site.
 
 All five, plus the shared `applyRevert` helper they both call, live in
 `obstacle-avoidance-handlers.ts`. Only these functions ever mutate a
-mission based on a _proposal_ (insert bypass waypoints, delete an
-unroutable mission, or revert).
+mission based on a _proposal_ (insert bypass waypoints, remove waypoints that
+fall inside a zone, or revert). None of them deletes a mission or empties one:
+obstacle avoidance proposes and reports, and the operator decides.
 
-| Function                       | On the wire from           | Does                                                                                                         |
-| ------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `applyRevert` (helper)         | —                          | loops `RevertContext[]`, `switch`es on `kind`; called by both cancel handlers below                          |
-| `handleConfirmMissionReroute`  | `CONFIRM_MISSION_REROUTE`  | writes `proposal.newWaypoints` into each mission; deletes `OVER_LIMIT`/`IMPOSSIBLE` missions unconditionally |
-| `handleCancelMissionReroute`   | `CANCEL_MISSION_REROUTE`   | `applyRevert(pending.revert)` — a no-op whenever `revert` is empty                                           |
-| `handleConfirmWaypointRemoval` | `CONFIRM_WAYPOINT_REMOVAL` | applies the removal proposal, plus any feasible follow-up reroute, in one operation                          |
-| `handleCancelWaypointRemoval`  | `CANCEL_WAYPOINT_REMOVAL`  | `applyRevert(pending.revert)`, scoped to the removal's staged data                                           |
-| `handleClearPlacementError`    | dismiss                    | clears the dialog only — the producer already self-reverted                                                  |
+| Function                       | On the wire from           | Does                                                                                                                                         |
+| ------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `applyRevert` (helper)         | —                          | loops `RevertContext[]`, `switch`es on `kind`; called by both cancel handlers below                                                          |
+| `handleConfirmMissionReroute`  | `CONFIRM_MISSION_REROUTE`  | writes `proposal.newWaypoints` into each feasible mission; leaves unroutable ones exactly as they are                                        |
+| `handleCancelMissionReroute`   | `CANCEL_MISSION_REROUTE`   | `applyRevert(pending.revert)` — a no-op whenever `revert` is empty                                                                           |
+| `handleConfirmWaypointRemoval` | `CONFIRM_WAYPOINT_REMOVAL` | applies the removal proposal, plus any feasible follow-up reroute, in one operation; skips missions whose every waypoint falls inside a zone |
+| `handleCancelWaypointRemoval`  | `CANCEL_WAYPOINT_REMOVAL`  | `applyRevert(pending.revert)`, scoped to the removal's staged data                                                                           |
+| `handleClearPlacementError`    | dismiss                    | clears the dialog only — the producer already self-reverted                                                                                  |
 
-`handleConfirmMissionReroute` deleting unroutable missions is why it matters
-that no mission reaches reroute detection with a waypoint already inside a
-zone: routing reports any leg touching such a waypoint as impossible, and
-confirm would then delete a mission that was never actually unroutable. Every
-zone producer runs waypoint-removal detection first to keep that from
-happening (Bug 11).
+No mission should reach reroute detection with a waypoint already inside a zone:
+routing reports any leg touching such a waypoint as unroutable, so a perfectly
+routable mission would be reported as impossible. Every zone producer runs
+waypoint-removal detection first to keep that from happening (Bug 11).
 
 ## 4. Stream 1 in detail — one producer, worked example
 

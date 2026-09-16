@@ -4,7 +4,7 @@ Bugs found while smoke-testing and reviewing the exclusion-zone work on this
 branch, in discovery order. Each entry records where the behaviour was
 confirmed and, for the fixed ones, what the fix was and what covers it.
 
-**Fixed:** Bugs 2, 3, 4, 5, 6, 7, 9, 11.
+**Fixed:** Bugs 2, 3, 4, 5, 6, 7, 9, 11, 13, 14, 15.
 **Open:** Bug 1 (enhancement), Bug 8 (low priority), Bug 10 (accepted
 behaviour — see its entry), Bug 12 (performance, needs its own change).
 
@@ -68,12 +68,10 @@ gained an `isGutted: boolean` field, set by `detectWaypointRemovals()` when
 zone). `WaypointRemovalDialog.tsx` now renders a `dialog-warn` block listing
 any gutted missions by ID before the operator can confirm, using the same
 list styling as the existing over-limit/impossible warnings in
-`RerouteSummary`. Deliberately left alone: the confirm handler still applies
-the removal as-is (the mission ends up with zero waypoints, same as before)
-— the fix only stops the removal from looking like an ordinary, unremarkable
-change. Whether a gutted mission should instead be auto-deleted on confirm
-(mirroring how `handleConfirmMissionReroute` deletes OVER_LIMIT/IMPOSSIBLE
-missions) is a separate product decision, not part of this fix.
+`RerouteSummary`. At the time the confirm handler still applied the removal
+as-is, leaving the mission with zero waypoints, and this entry left open
+whether a gutted mission should instead be deleted. Bug 13 settled it: neither.
+The mission keeps its route and the conflict is reported.
 
 **Test coverage:**
 `data/obstacle_avoidance_data/__tests__/exclusion-zone-detection.test.ts`
@@ -264,6 +262,12 @@ alongside `missionSet.deleteMission(proposal.missionID)` in both branches —
 `handleConfirmMissionReroute`'s OVER_LIMIT/IMPOSSIBLE case, and
 `handleConfirmWaypointRemoval`'s follow-up-reroute non-FEASIBLE case.
 
+**Since superseded by Bug 13.** Neither branch deletes a mission any more, so
+both the deletion and the assignment cleanup it needed are gone. The entry is
+kept because the reasoning still applies to any future code that deletes a
+mission: the bot side of `botsToMissions` has to be cleared too, or
+`autoAssign()` skips that bot forever.
+
 **Test coverage:** `context/handlers/__tests__/obstacle-avoidance-handlers.test.ts`
 covers both call sites — staging an OVER_LIMIT proposal via each of
 `handleConfirmMissionReroute` and `handleConfirmWaypointRemoval`'s
@@ -353,6 +357,15 @@ proposal — which is the whole premise of the bug.
 ## Bug 7 — cancelling a load-triggered dialog reverted the entire load, not just the proposed route change
 
 _Fixed._
+
+**Why it was wrong, in one sentence: a load raises two dialogs, and the code
+treated them as one.** Every load path asks first — "The mission set panel will
+be cleared prior to importing", "The obstacle zone panel will be cleared prior
+to loading" — with Confirm and Cancel. That is the dialog that triggers the
+load, and cancelling there correctly means "do not load". The load then
+completes, and only afterwards does an obstacle-avoidance dialog appear about a
+different question entirely. Cancelling the second one was reversing the
+decision made in the first.
 
 **Symptom:** load a mission set (or a zone set) that needs rerouting or
 waypoint removal around existing/loaded zones. The dialog appears as
@@ -577,10 +590,13 @@ out to be common in the field.
 _Fixed._
 
 **Symptom:** a mission whose route is perfectly routable is reported as
-`IMPOSSIBLE` in the reroute dialog. Confirming that dialog **deletes the
-mission**, since `handleConfirmMissionReroute` treats `IMPOSSIBLE` and
-`OVER_LIMIT` proposals as missions that must not remain in a zone-crossing
-state.
+`IMPOSSIBLE` in the reroute dialog.
+
+When this was found, confirming that dialog **deleted the mission** —
+`handleConfirmMissionReroute` treated unroutable proposals as missions that must
+not remain in a zone-crossing state. Bug 13 removed that, so the cost today is a
+false report rather than lost work. The fix below stands regardless: a mission
+that can be routed should not be told it cannot.
 
 **Root cause:** `findBypassPath` refuses to route a leg whose start or end
 point lies inside _any_ zone's raw hull, scanning the whole zone set rather
@@ -678,16 +694,131 @@ any segment intersects one. That turns a possible silent zone violation into an 
 Moving the search off the UI thread is the other direction worth considering, and is
 independent of cell size.
 
+## Bug 13 — obstacle avoidance destroyed mission data instead of reporting a conflict
+
+_Fixed. Raised in review of this branch, and found independently while smoke-testing
+a mission-set load into a zone covering every waypoint._
+
+**Symptom:** confirming an obstacle-avoidance dialog could silently take the
+operator's work away, in three different shapes for what is one situation — a
+mission that conflicts with the zones:
+
+| Situation                              | What confirming did                          |
+| -------------------------------------- | -------------------------------------------- |
+| Some waypoints inside a zone           | removed those, kept the mission — reasonable |
+| **Every** waypoint inside a zone       | **emptied the mission**                      |
+| Detour would exceed the waypoint limit | **deleted the mission**                      |
+| No route around the zone               | **deleted the mission**                      |
+
+Emptying is the worst of them. Because a mission with no waypoints is a normal
+state — operators routinely create a mission and add waypoints afterwards — an
+emptied mission is indistinguishable from a new one. A deleted mission is at
+least noticed; an emptied one looks like something you have not finished yet,
+and the route is simply gone.
+
+**The decision.** Whether to run a route that crosses an exclusion zone is the
+operator's call. They were warned; they may reshape the zones, or decide the
+conflict does not matter and launch anyway. Obstacle avoidance proposes and
+reports — it never destroys mission data. That leaves two behaviours instead of
+four:
+
+- **The mission can be salvaged** — some waypoints conflict and removing them
+  leaves a real route. Propose it; the operator confirms.
+- **The mission cannot be salvaged** — every waypoint inside a zone, or no route
+  around it. Leave it exactly as it is and report the conflict.
+
+**Fix:** `handleConfirmMissionReroute` skips proposals that are not `FEASIBLE`
+rather than deleting their missions, and `handleConfirmWaypointRemoval` does the
+same in its follow-up-reroute branch and skips `isGutted` proposals in its main
+one. Applying those proposals would not have been an improvement either: an
+impossible proposal carries the route stripped of its existing detour, and an
+over-limit one a route beyond the waypoint limit.
+
+Two pieces of dialog wording described deletions that no longer happen, and one
+of them had already been false since Bug 7: "N missions could not be loaded"
+described missions that were in fact loaded. Removing that claim removed the
+whole notion of a _skipped_ mission, and with it `LoadSummary`'s `missionLoad`
+variant, `handleLoadMissionSet`'s skipped-ID computation, and `RerouteSummary`'s
+`showOverLimit`/`showImpossible` props, which existed only to stop the two
+mission-load lists contradicting each other.
+
+**Test coverage:** `context/handlers/__tests__/obstacle-avoidance-handlers.test.ts`
+covers both confirm handlers leaving unroutable and gutted missions untouched
+along with their bot assignments, and drives the load end to end: a mission set
+loaded into a zone covering every waypoint keeps its route, and an unroutable
+mission is reported without being withheld from the load.
+
+## Bug 14 — deleting a waypoint left an obsolete detour in the mission forever
+
+_Fixed. Raised in review of this branch._
+
+**Symptom:** delete the waypoint that was the only reason a mission's route
+crossed a zone. The remaining route is clear, so no dialog appears — and the
+bypass waypoints from the old detour stay in the mission permanently, with
+nothing on screen to explain them. A three-waypoint mission was left carrying
+**26** of them.
+
+**Root cause:** `handleDeleteWaypoint` ran `detectMissionReroutes()` and acted
+only on what came back. Detection computes from clean waypoints, so when the
+remaining route needs no detour it correctly proposes nothing — and nothing then
+cleared the detour the mission was still carrying.
+
+**Fix:** `stripStaleBypasses()` at the end of the handler, after the early
+returns so a rejected deletion is not stripped. This is only safe because of
+Bug 6's fix: before it, `stripStaleBypasses` discarded any mission absent from
+the proposal set, so adding this call would have introduced Bug 6 into a third
+handler.
+
+**Test coverage:** `context/handlers/__tests__/reroute-revert-producers.test.ts`.
+
+## Bug 15 — waypoint edits that could not be routed were refused outright
+
+_Fixed. Follows from Bug 13 — the same principle, applied to the edits that
+create the conflict rather than the dialog that reports it._
+
+**Symptom:** adding, moving or deleting a waypoint such that the mission could
+no longer be routed around the zones was rejected. The edit was undone and a
+blocking error shown; the operator had no way to say "I know, do it anyway".
+
+**Why it had to change:** Bug 13 made confirming a reroute dialog leave an
+unroutable mission alone. Without this, the same condition had opposite
+outcomes depending on how it arose — tolerated when reported by a dialog,
+refused when caused by an edit.
+
+**Fix:** the six `OVER_LIMIT`/`IMPOSSIBLE` branches across `handleAddWaypoint`,
+`handleMoveWaypoint` and `handleDeleteWaypoint` are gone. Each handler falls
+through to the reroute dialog it already staged, so **Confirm keeps the edit**
+and **Revert undoes it**.
+
+That exposed a gap in the dialogs: Confirm was only offered when there was a
+feasible reroute to apply, so an operator facing an unroutable edit still had
+only a revert button — the same refusal wearing a different coat. Both dialogs
+now share one rule, `shouldOfferConfirm`: offer Confirm when confirming leads
+somewhere different from dismissing, which is whenever something would be
+applied or the dismissal would undo the operator's edit. "Revert All" was the
+label for "nothing can be confirmed, so this is your only option", a state that
+rule makes impossible, so it is gone.
+
+Three rejections deliberately remain, because they are not routing judgements:
+placing a waypoint inside a zone or its safety buffer (add and move), and
+reaching the waypoint limit on add.
+
+**Test coverage:** `context/handlers/__tests__/reroute-revert-producers.test.ts`
+covers all three handlers keeping the edit and reporting the conflict, plus
+confirm and revert; `components/ObstacleAvoidanceDialogs/__tests__/dialog-buttons.test.tsx`
+covers the gating rule, including the case where confirming and dismissing would
+do the same thing and only one button is shown.
+
 ## Where the coverage lives
 
-| Layer          | File                                                                      | Covers                          |
-| -------------- | ------------------------------------------------------------------------- | ------------------------------- |
-| Pure functions | `data/obstacle_avoidance_data/__tests__/exclusion-zone-detection.test.ts` | Bug 2                           |
-|                | `data/obstacle_avoidance_data/__tests__/exclusion-zone-router.test.ts`    | Bugs 3, 6                       |
-| Handlers       | `context/handlers/__tests__/zone-mutation-handlers.test.ts`               | Bugs 4, 6, 9, 11                |
-|                | `context/handlers/__tests__/obstacle-avoidance-handlers.test.ts`          | Bug 5                           |
-|                | `context/handlers/__tests__/reroute-revert-producers.test.ts`             | Bug 7                           |
-| Components     | `components/ObstacleAvoidanceDialogs/__tests__/dialog-buttons.test.tsx`   | dialog labels (Bug 7 follow-up) |
+| Layer          | File                                                                      | Covers                                        |
+| -------------- | ------------------------------------------------------------------------- | --------------------------------------------- |
+| Pure functions | `data/obstacle_avoidance_data/__tests__/exclusion-zone-detection.test.ts` | Bug 2, conflict detection                     |
+|                | `data/obstacle_avoidance_data/__tests__/exclusion-zone-router.test.ts`    | Bugs 3, 6, and Bug 12's fixed half            |
+| Handlers       | `context/handlers/__tests__/zone-mutation-handlers.test.ts`               | Bugs 4, 6, 9, 11                              |
+|                | `context/handlers/__tests__/obstacle-avoidance-handlers.test.ts`          | Bugs 5, 13                                    |
+|                | `context/handlers/__tests__/reroute-revert-producers.test.ts`             | Bugs 7, 14, 15                                |
+| Components     | `components/ObstacleAvoidanceDialogs/__tests__/dialog-buttons.test.tsx`   | dialog labels and confirm gating (Bugs 7, 15) |
 
 `context/handlers/__tests__/` exists now, so a handler-level test is an
 ordinary addition rather than new infrastructure. Several earlier entries in
@@ -705,6 +836,28 @@ caught a test that would otherwise have passed for the wrong reason:
   pathfinding grid. Running the route nearer one edge makes the computed
   detour stable.
 
+### Producing an unroutable route
+
+Both unroutable statuses are hard to create on purpose, which is worth knowing
+before spending time on it.
+
+**`IMPOSSIBLE`: build a closed box out of four rectangular zones and put a
+waypoint inside it.** The interior belongs to no zone, so waypoint-removal
+detection does not fire, but the walls seal it in and no route reaches it. This
+is the only construction found that works, in the browser or in tests.
+
+Things that do not work: two walls with a sealed gap — the router goes around
+them, even at a 4 m gap; a horseshoe pocket — the waypoint lands inside the
+zone's safety buffer, so the removal dialog fires first; any single convex zone.
+The search grid is always sized to cover the blocking zones plus padding, so
+going around one is essentially always possible.
+
+**`OVER_LIMIT` is easier:** survey missions are sized against the same
+80-waypoint budget, so approving a survey and then drawing a zone across it
+trips the limit. Expect it to arrive through the removal dialog's follow-up
+reroute rather than the reroute dialog directly, since a zone large enough to
+matter on a survey grid usually covers some waypoints too.
+
 ## Testing caveat: Clipper is mocked
 
 `clipper2-ts` is replaced by a stub in tests
@@ -721,3 +874,50 @@ Clipper behaviour — how a self-crossing ring is resolved, how buffers merge �
 cannot be reproduced under Jest at all; Bug 10's analysis needed a standalone
 script run against the real library. Treat green buffer tests as evidence
 about the router's own logic, not about the geometry library underneath it.
+
+## Follow-on work
+
+Recorded here so the reasoning behind each is not re-derived.
+
+**Flag conflicting missions in the UI.** `getMissionsInConflict()` in
+`exclusion-zone-detection.ts` already reports which missions are not clear of
+the zones — derived on call, so it cannot go stale. Nothing consumes it yet.
+Two places want it: the mission list and the map.
+
+Do it consistently with PR #1554, which colours the mission accordion by
+predicted battery: two independent per-mission health signals arriving in the
+same place should share one affordance, and the review of that PR asked for a
+coloured icon rather than a tinted header. Whichever ships first sets the
+pattern.
+
+Note the difference in how the two get their data, because "be consistent with
+#1554" could be misread as "store it in a singleton too". A battery prediction
+comes from an async server call, so it has to be stored; a zone conflict is a
+synchronous pure function over data already in memory. Deriving it at render is
+what makes the staleness bug found in #1554 — a value computed when a panel
+opened and never updated — impossible here by construction.
+
+**Let the operator acknowledge a conflict.** "I have seen this and I am
+launching anyway, stop flagging it" is not derivable — it is a decision, and it
+would be stored. It belongs on `ObstacleAvoidanceData` as a `Set<number>` of
+mission IDs, deliberately **not** as a field on `Mission`: `MissionSet.captureSnapshot()`
+clones whole missions, so a field there would be written into saved files and
+exports, and an acknowledgement is only meaningful against the zone set it was
+made under. `ObstacleAvoidanceData` is in neither the mission-set snapshot nor
+the undo snapshot, so a set there is session-scoped by construction rather than
+by discipline.
+
+**Make zone loading symmetric with mission loading.** Bug 13 established that a
+mission is never withheld from a load for conflicting with the zones.
+`applyZoneSetReplacement` still does the opposite for zones: one that would
+leave a mission unroutable is dropped from the load. That asymmetry was a
+deliberate call when Bug 7 was fixed, but it predates Bug 13's principle and is
+worth revisiting.
+
+**Let the router take its zone set as a parameter.** `exclusion-zone-router.ts`
+reads the `obstacleAvoidanceData` singleton, which is why `getMissionsInConflict()`
+is a free function rather than a method on that class — a method would close an
+import cycle. Threading the zone set through `buildZoneGeoms`,
+`buildZoneBufferCache`, `getBlockingZoneIDs`, `buildSharedZoneGeoms` and
+`detectReroutesWithOverrides` would break the dependency, allow the accessor,
+and make the router far easier to test in isolation.

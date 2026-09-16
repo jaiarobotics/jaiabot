@@ -1,8 +1,9 @@
 # Restructure exclusion-zone handlers and the `PendingChange` revert-context types
 
-_Status: Parts 1-5 implemented and smoke-tested; Parts 6-8 below cover the
-follow-up pass that unified the zone handlers and fixed the bugs this one
-surfaced. See [`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md) for the full list._
+_Status: all parts implemented and smoke-tested. Parts 1-5 are the original
+pass; Parts 6-8 unified the zone handlers and fixed the bugs that surfaced;
+Parts 9-11 answer the review of this branch. See
+[`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md) for the full list._
 
 ## Context
 
@@ -321,3 +322,52 @@ naming what reverting would undo. Keying off the revert list rather than
 `loadSummary` was necessary rather than cosmetic — Part 7's `handleDeleteExclusionZone`
 change introduced the first non-load producer that stages an empty revert,
 which the old origin-based rule would have mislabelled.
+
+## Part 9 — Obstacle avoidance stops destroying mission data
+
+The largest behavioural change in this work, and the one the rest of Parts 9-11
+follow from: whether to run a route that crosses an exclusion zone is the
+operator's decision, so obstacle avoidance proposes and reports rather than
+deleting missions or emptying them. Bug 13 has the reasoning and the four
+inconsistent outcomes it replaced.
+
+The cascade is worth noting, because most of the diff is consequence rather
+than decision. Removing the false claim that unroutable missions "could not be
+loaded" removed the concept of a _skipped_ mission, and with it `LoadSummary`'s
+`missionLoad` variant, `handleLoadMissionSet`'s skipped-ID computation,
+`MissionRerouteDialog`'s mission-load branch, and `RerouteSummary`'s
+`showOverLimit`/`showImpossible` props — the last of which existed only to stop
+two mission-load lists contradicting each other.
+
+## Part 10 — Detecting a conflict without storing one
+
+`getMissionsInConflict()` reports which missions are not clear of the current
+zones. It is derived on call rather than stored, because a conflict is a
+property of a mission _and_ the zone set: the same mission conflicts or does
+not depending on which zones exist at the time, so there is nothing stable to
+persist and nothing to keep in sync.
+
+It needs two checks, not one. A waypoint inside a zone's buffer has to be tested
+separately from a blocked leg, because routing treats a leg touching such a
+waypoint as unroutable rather than blocked — so a mission sitting entirely
+inside a zone registers no blocked leg at all.
+
+It is a free function rather than a method on `ObstacleAvoidanceData`, which is
+where it would naturally belong. A method there would import the detection
+module, which imports the router, which imports `obstacleAvoidanceData` — the
+codebase's first import cycle. See the follow-on note in
+[`07KNOWN_BUGS.md`](./07KNOWN_BUGS.md) for the refactor that would allow it.
+
+Nothing consumes it yet; the UI flags are follow-on work, deliberately left
+until the affordance can match the one arriving in PR #1554.
+
+## Part 11 — Waypoint edits report conflicts instead of refusing them
+
+Part 9 made a dialog tolerate an unroutable mission; this makes the edits that
+create one behave the same way, rather than being rejected outright (Bug 15).
+Confirm keeps the edit, Revert undoes it.
+
+Both dialogs now share one rule for whether to offer Confirm at all —
+`shouldOfferConfirm` — which asks whether confirming leads anywhere different
+from dismissing. That subsumed the "Revert All" label, which named a state the
+rule makes unreachable.
