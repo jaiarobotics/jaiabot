@@ -200,9 +200,7 @@ elif common.app == 'goby_opencpn_interface':
 elif common.app == 'goby_coroner':    
     print(config.template_substitute(templates_dir+'/goby_coroner.pb.cfg.in',
                                      app_block=app_common,
-                                     interprocess_block = interprocess_common,
-                                     coroner_request_interval=common.sim.warp * common.CORONER_REQUEST_INTERVAL,
-                                     coroner_response_timeout=common.sim.warp * common.CORONER_RESPONSE_TIMEOUT))
+                                     interprocess_block = interprocess_common))
 elif common.app == 'jaiabot_health':
     ignore_powerstate_changes=is_simulation() and not common.is_vfleet
     print(config.template_substitute(templates_dir+'/hub/jaiabot_health.pb.cfg.in',
