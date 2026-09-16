@@ -8,8 +8,11 @@ import { ExclusionZone, ExclusionZoneSetSnapshot } from "./exclusion_zones/exclu
 // because they are entirely about exclusion-zone routing state.
 
 export enum ProposalStatus {
+    /** The rerouted plan can be applied as-is. */
     FEASIBLE = 1,
+    /** The detour would take the mission past MAX_WAYPOINTS, so it is reported, not applied. */
     OVER_LIMIT = 2,
+    /** A* found no path around the blocking zone(s), so the route is reported, not changed. */
     IMPOSSIBLE = 3,
 }
 
@@ -17,14 +20,6 @@ export interface PendingRerouteProposal {
     missionID: number;
     newWaypoints: Waypoint[];
     bypassCount: number;
-    /** Zone IDs whose buffers the original (clean) route crossed. */
-    involvedZoneIDs: number[];
-    /**
-     * FEASIBLE: can be applied as-is.
-     * OVER_LIMIT: newWaypoints.length > MAX_WAYPOINTS — the operator must reduce mission waypoints first.
-     * IMPOSSIBLE: A* could not find any path around the blocking zone(s) — the operator must move the
-     * conflicting waypoints or resize the zone.
-     */
     status: ProposalStatus;
 }
 

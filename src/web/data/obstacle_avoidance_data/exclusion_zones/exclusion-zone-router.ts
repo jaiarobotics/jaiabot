@@ -650,7 +650,6 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
 interface RouteResult {
     plan: MissionPlan;
     bypassCount: number;
-    involvedZoneIDs: number[];
     /** True when a zone blocks a segment but A* cannot find any path around it. */
     isRoutingImpossible?: boolean;
 }
@@ -674,11 +673,11 @@ export function routeAroundExclusionZones(
     zoneGeomsOverride?: Array<ZoneGeom & { zoneID: number }>,
 ): RouteResult {
     const goals = plan.goal ?? [];
-    if (goals.length < 2) return { plan, bypassCount: 0, involvedZoneIDs: [] };
+    if (goals.length < 2) return { plan, bypassCount: 0 };
 
     const origin = originOverride ?? goals[0].location!;
     const zoneGeoms = zoneGeomsOverride ?? buildZoneGeoms(origin, safetyMargin);
-    if (zoneGeoms.length === 0) return { plan, bypassCount: 0, involvedZoneIDs: [] };
+    if (zoneGeoms.length === 0) return { plan, bypassCount: 0 };
 
     interface WorkingGoal {
         xy: XYPt;
@@ -694,7 +693,6 @@ export function routeAroundExclusionZones(
 
     let totalInserted = 0;
     let routingImpossible = false;
-    const involved = new Set<number>();
     const result: WorkingGoal[] = [];
 
     for (let i = 0; i < working.length - 1; i++) {
@@ -713,34 +711,21 @@ export function routeAroundExclusionZones(
                 result.push({ xy: pt, goal: { name: "route_bypass" }, isBypass: true });
                 totalInserted++;
             }
-            for (const zg of blockingZones) involved.add(zg.zoneID);
         } else {
             // Zone blocks this segment but no clear path exists around it.
             routingImpossible = true;
-            for (const zg of blockingZones) involved.add(zg.zoneID);
         }
     }
     result.push(working[working.length - 1]);
 
-    if (totalInserted === 0 && !routingImpossible)
-        return { plan, bypassCount: 0, involvedZoneIDs: [] };
-    if (routingImpossible)
-        return {
-            plan,
-            bypassCount: 0,
-            involvedZoneIDs: Array.from(involved),
-            isRoutingImpossible: true,
-        };
+    if (totalInserted === 0 && !routingImpossible) return { plan, bypassCount: 0 };
+    if (routingImpossible) return { plan, bypassCount: 0, isRoutingImpossible: true };
 
     const finalGoals: Goal[] = result.map((w) =>
         w.isBypass ? { location: toLatLon(origin, w.xy), name: "route_bypass" } : w.goal,
     );
 
-    return {
-        plan: { ...plan, goal: finalGoals },
-        bypassCount: totalInserted,
-        involvedZoneIDs: Array.from(involved),
-    };
+    return { plan: { ...plan, goal: finalGoals }, bypassCount: totalInserted };
 }
 
 /**
@@ -949,7 +934,6 @@ export function detectReroutesWithOverrides(
                 missionID,
                 newWaypoints: cleanWaypoints,
                 bypassCount: 0,
-                involvedZoneIDs: result.involvedZoneIDs,
                 status: ProposalStatus.IMPOSSIBLE,
             });
             continue;
@@ -980,7 +964,6 @@ export function detectReroutesWithOverrides(
             missionID,
             newWaypoints,
             bypassCount: result.bypassCount,
-            involvedZoneIDs: result.involvedZoneIDs,
             status: ProposalStatus.FEASIBLE,
         });
     }

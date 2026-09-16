@@ -42,7 +42,6 @@ describe("handleConfirmMissionReroute", () => {
             missionID,
             newWaypoints,
             bypassCount: 1,
-            involvedZoneIDs: [],
             status: ProposalStatus.FEASIBLE,
         };
         obstacleAvoidanceData.setPendingChange({
@@ -69,7 +68,6 @@ describe("handleConfirmMissionReroute", () => {
             missionID,
             newWaypoints: [],
             bypassCount: 0,
-            involvedZoneIDs: [],
             status: status as ProposalStatus,
         };
         obstacleAvoidanceData.setPendingChange({
@@ -98,7 +96,6 @@ describe("handleConfirmMissionReroute", () => {
             missionID,
             newWaypoints: [],
             bypassCount: 0,
-            involvedZoneIDs: [],
             status: ProposalStatus.OVER_LIMIT,
         };
         obstacleAvoidanceData.setPendingChange({
@@ -339,7 +336,6 @@ describe("handleConfirmWaypointRemoval", () => {
             missionID: rerouteMissionID,
             newWaypoints: rerouteWaypoints,
             bypassCount: 1,
-            involvedZoneIDs: [],
             status: ProposalStatus.FEASIBLE,
         };
         obstacleAvoidanceData.setPendingChange({
@@ -370,7 +366,6 @@ describe("handleConfirmWaypointRemoval", () => {
             missionID,
             newWaypoints: [],
             bypassCount: 0,
-            involvedZoneIDs: [],
             status: ProposalStatus.IMPOSSIBLE,
         };
         obstacleAvoidanceData.setPendingChange({

@@ -324,7 +324,6 @@ describe("routeAroundExclusionZones", () => {
 
         expect(result.bypassCount).toBeGreaterThan(0);
         expect(result.plan.goal!.length).toBeGreaterThan(2);
-        expect(result.involvedZoneIDs.length).toBeGreaterThan(0);
 
         const bypasses = result.plan.goal!.filter((g) => g.name === "route_bypass");
         expect(bypasses.length).toBe(result.bypassCount);
@@ -389,13 +388,22 @@ describe("routeAroundExclusionZones", () => {
     // ── Multiple zones ─────────────────────────────────────────────────────────
 
     test("routes around multiple zones", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.001, 0.0004));
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -71.999, 0.0004));
+        const west = squareZone(41.0, -72.001, 0.0004);
+        const east = squareZone(41.0, -71.999, 0.0004);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(west);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(east);
         const p = plan(goal(41.0, -72.006), goal(41.0, -71.994));
         const result = routeAroundExclusionZones(p, 15);
 
         expect(result.bypassCount).toBeGreaterThan(0);
-        expect(result.involvedZoneIDs.length).toBeGreaterThanOrEqual(1);
+
+        // The routed path has to clear both zones, not just whichever it met first.
+        const locations = result.plan.goal!.map((g) => g.location!);
+        for (let i = 0; i < locations.length - 1; i++) {
+            for (const hull of [west.vertices!, east.vertices!]) {
+                expect(segmentCrossesHull(locations[i], locations[i + 1], hull)).toBe(false);
+            }
+        }
     });
 
     test("routes around overlapping zones", () => {

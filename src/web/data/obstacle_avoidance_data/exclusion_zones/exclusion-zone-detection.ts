@@ -16,8 +16,8 @@ import { MAX_WAYPOINTS } from "../../../utils/constants";
 
 /**
  * Marks proposals whose rerouted plan would exceed MAX_WAYPOINTS as OVER_LIMIT.
- * Over-limit proposals are kept so their involvedZoneIDs are available for
- * per-zone filtering. totalBypassCount reflects feasible proposals only.
+ * Over-limit proposals are kept rather than dropped so the dialog can report the
+ * missions they belong to. totalBypassCount reflects feasible proposals only.
  *
  * @param {RerouteProposalSet} reroute Reroute proposal set whose proposals need over-limit classification
  * @returns {RerouteProposalSet} Updated reroute proposal set with status set to OVER_LIMIT on proposals that exceed the waypoint limit
