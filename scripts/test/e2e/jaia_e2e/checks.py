@@ -1,6 +1,7 @@
 """Tiered assertions, so a failure names the layer that broke rather than just the run."""
 
 import collections
+import itertools
 
 from . import api, mission
 
@@ -10,6 +11,7 @@ LIVENESS, EXECUTION, OFFLOAD, CONTENT = 'liveness', 'execution', 'offload', 'con
 TRIAL = 'trial'
 TIERS = (LIVENESS, EXECUTION, OFFLOAD, CONTENT, TRIAL)
 
+DIVE = 'IN_MISSION__UNDERWAY__TASK__DIVE__'
 DIVE_STATES = (
     'IN_MISSION__UNDERWAY__TASK__DIVE__POWERED_DESCENT',
     'IN_MISSION__UNDERWAY__TASK__DIVE__HOLD',
@@ -78,6 +80,16 @@ class Observations:
 
     def saw(self, bot_id, state):
         return self.states[bot_id][state] > 0
+
+    def dive_cycles(self, bot_id):
+        """Dives the trace entered, counting each unbroken run of DIVE substates once.
+
+        The hub only holds a dive's task packet once the bot offloads, so this is what
+        a running mission can be counted by. A cycle short enough to fall entirely
+        between two polls is missed, which undercounts rather than inventing a dive.
+        """
+        return sum(1 for in_dive, _ in itertools.groupby(
+            self.transitions[bot_id], lambda state: state.startswith(DIVE)) if in_dive)
 
     def reached_recovery(self, bot_id):
         return any(s.startswith(RECOVERY) for s in self.states[bot_id])

@@ -238,6 +238,38 @@ class CheckTest(unittest.TestCase):
         result = checks.execution_checks(observations, [1], 10, {1: [(41.66, -71.27)]}, 25)
         self.assertTrue(all(c.passed for c in result), [c for c in result if not c.passed])
 
+    def test_dive_cycles_counts_a_run_of_dive_states_once(self):
+        observations = checks.Observations()
+        # two polls in the same substate, and several substates, are still one dive
+        for state in ('IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT',) + checks.DIVE_STATES:
+            observations.ingest({'bots': [bot(1, state)]})
+            observations.ingest({'bots': [bot(1, state)]})
+        self.assertEqual(observations.dive_cycles(1), 1)
+
+    def test_dive_cycles_counts_each_dive_the_bot_surfaced_between(self):
+        observations = checks.Observations()
+        for _ in range(3):
+            observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT')]})
+            for state in checks.DIVE_STATES:
+                observations.ingest({'bots': [bot(1, state)]})
+        self.assertEqual(observations.dive_cycles(1), 3)
+
+    def test_dive_cycles_counts_a_substate_polling_did_not_catch(self):
+        # DIVE_PREP is not in DIVE_STATES, and a fast warp routinely skips most of a
+        # dive; whatever substate is caught still marks the cycle
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT')]})
+        observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP')]})
+        observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT')]})
+        observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__TASK__DIVE__HOLD')]})
+        self.assertEqual(observations.dive_cycles(1), 2)
+
+    def test_dive_cycles_is_zero_before_a_bot_dives(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, checks.READY)]})
+        self.assertEqual(observations.dive_cycles(1), 0)
+        self.assertEqual(observations.dive_cycles(99), 0)
+
     def test_station_keeping_at_the_recovery_point_counts_as_recovered(self):
         observations = checks.Observations()
         observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__RECOVERY__STATION_KEEP')]})
