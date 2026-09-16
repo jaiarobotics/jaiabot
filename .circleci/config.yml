@@ -247,9 +247,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
-        # TEMPORARY: packages for the docker sim this branch needs to test itself.
-        # Delete with the entry in filter-template-docker-sim-builds.
-        - "docker-sim-diagnostics"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -293,10 +290,6 @@ filter-template-docker-sim-builds: &filter-template-docker-sim-builds
     branches:
       only:
         - "3.y"
-        # TEMPORARY: docker-sim-e2e is the job being changed here and only runs where
-        # the sim image is built, so it cannot be tested before merge otherwise.
-        # Delete this and the filter-template-debian-builds entry before merging.
-        - "docker-sim-diagnostics"
 
 ## Begin actual config
 version: 2.1
