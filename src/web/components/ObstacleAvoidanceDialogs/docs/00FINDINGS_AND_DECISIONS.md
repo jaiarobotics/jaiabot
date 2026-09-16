@@ -1,21 +1,28 @@
-# Known bugs — obstacle-avoidance dialogs
+# Findings and decisions — obstacle avoidance
 
-Bugs found while smoke-testing and reviewing the exclusion-zone work on this
-branch, in discovery order. Each entry records where the behaviour was
-confirmed and, for the fixed ones, what the fix was and what covers it.
+Everything found while smoke-testing and reviewing the exclusion-zone work on
+this branch, in discovery order. Roughly half are defects; the rest are
+deliberate changes of behaviour, where the code did what it was designed to do
+and the design was wrong. Each entry records how the behaviour was confirmed
+and, for the settled ones, what changed and what covers it.
 
-**Fixed:** Bugs 2, 3, 4, 5, 6, 7, 9, 11, 13, 14, 15.
-**Open:** Bug 1 (enhancement), Bug 8 (low priority), Bug 10 (accepted
-behaviour — see its entry), Bug 12 (performance, needs its own change).
+The durable parts of this file — how the feature works, the decisions behind it,
+and the rules that are easy to break — are published in
+`src/doc/markdown/page113_obstacle_avoidance.md`. This file is the working
+record behind them.
 
-Bugs 1-8 pre-date this branch: each was confirmed against the pre-refactor
+**Fixed:** Findings 2, 3, 4, 5, 6, 7, 9, 11, 13, 14, 15, 16, 17.
+**Open:** Finding 1 (enhancement), Finding 8 (low priority), Finding 10 (accepted
+behaviour — see its entry), Finding 12 (performance, needs its own change).
+
+Findings 1-8 pre-date this branch: each was confirmed against the pre-refactor
 baseline `d04564bd` rather than introduced by the refactors that surfaced
 them. That is provenance, not a reason to defer — the exclusion-zone panel
 was disabled pending exactly this class of problem, and this branch re-enables
-it. Bug 11 is the exception: it was created by this branch's own Bug 4 fix and
+it. Finding 11 is the exception: it was created by this branch's own Finding 4 fix and
 caught before merge.
 
-## Bug 1 — deleting a zone doesn't restore waypoints it removed
+## Finding 1 — deleting a zone doesn't restore waypoints it removed
 
 _Low priority — enhancement, not a fix._
 
@@ -43,7 +50,7 @@ the waypoint is still missing. `context/handlers/__tests__/` now provides
 that setup, so the cost is an ordinary test rather than new infrastructure —
 but the verdict stands that this is an enhancement, not a defect.
 
-## Bug 2 — a zone that guts an entire mission gives no "impossible" warning
+## Finding 2 — a zone that guts an entire mission gives no "impossible" warning
 
 _Fixed._
 
@@ -70,7 +77,7 @@ any gutted missions by ID before the operator can confirm, using the same
 list styling as the existing over-limit/impossible warnings in
 `RerouteSummary`. At the time the confirm handler still applied the removal
 as-is, leaving the mission with zero waypoints, and this entry left open
-whether a gutted mission should instead be deleted. Bug 13 settled it: neither.
+whether a gutted mission should instead be deleted. Finding 13 settled it: neither.
 The mission keeps its route and the conflict is reported.
 
 **Test coverage:**
@@ -78,7 +85,7 @@ The mission keeps its route and the conflict is reported.
 covers both the ordinary partial-removal case (`isGutted: false`) and a zone
 that swallows every waypoint in a mission (`isGutted: true`).
 
-## Bug 3 — new/moved zone can silently fail to trigger any reroute check
+## Finding 3 — new/moved zone can silently fail to trigger any reroute check
 
 _Fixed — see Part 1 of [`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)._
 
@@ -127,29 +134,32 @@ and crosses it.
 the `relevant` filter line and the router's `involvedZoneIDs` construction
 are byte-for-byte unchanged.
 
+**`involvedZoneIDs` has since been deleted.** Removing the `relevant` filter left it
+with one consumer — the list deciding which zones to withhold from a load — and Finding 16
+removed that too, so nothing read it. It was kept for a while as plausible diagnostic
+data ("which zone does this mission conflict with?"), but it could never answer that
+correctly: it named the zones blocking the direct line and omitted any the detour itself
+had to work around, which is this bug. `getBlockingZoneIDs` answers that question
+without the gap, should the need arise.
+
 **Fix:** the `relevant` filter was deleted from every handler that had it.
 `detectMissionReroutes()` already compares each freshly-computed route
 against the mission's current one and omits anything unchanged, so its
 output is the relevant set — attributing relevance a second time by zone ID
 could only ever discard correct proposals.
 
-**Testing this:** moderate. The root cause (`involvedZoneIDs` only tracking
-zones that block the direct original line) lives in `routeAroundExclusionZones`,
-another pure function already covered by
-`data/obstacle_avoidance_data/__tests__/exclusion-zone-router.test.ts`,
-which already has helpers for this kind of geometry (`squareZone`,
-`segmentCrossesHull`, bypass-forcing setups). The test needs one zone that
-forces a bypass, then a second zone positioned to block only the bypass
-leg — geometrically fiddly to construct but uses building blocks already in
-that file. This proves the root cause at the data layer (the second zone's
-ID missing from `involvedZoneIDs`); it does **not** reproduce the
-user-visible symptom ("no dialog appears"), since that's the `relevant`
-filter inside `handleAddExclusionZone` — covering that end-to-end would
-need the same new handler-test setup described under Bug 1.
+**Testing this:** the fix removed both the filter and, eventually, the field it
+depended on, so there is nothing left to assert about either. What matters now is the
+behaviour they used to break — that a zone blocking only a detour leg still produces a
+proposal — and that is covered by the reroute tests in
+`data/obstacle_avoidance_data/__tests__/exclusion-zone-router.test.ts` and the
+handler-level tests in `context/handlers/__tests__/zone-mutation-handlers.test.ts`,
+which drive zone edits and assert on the staged dialog rather than on how relevance was
+computed.
 
-## Bug 4 — deleting a zone doesn't re-route missions against the remaining zones
+## Finding 4 — deleting a zone doesn't re-route missions against the remaining zones
 
-_Fixed. Found while smoke-testing the Part 1 Bug 3 fix in
+_Fixed. Found while smoke-testing the Part 1 Finding 3 fix in
 [`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)._
 
 **Symptom:** a mission has been rerouted around zone A (has bypass
@@ -183,12 +193,12 @@ gets them stripped unconditionally, regardless of whether it still needs
 them for a different, still-existing zone. `handleClearExclusionZones` has
 the identical bare-call pattern and is presumably exposed to the same gap.
 
-**Related to Bug 1, not the same bug.** Bug 1 is about a _removed waypoint_
+**Related to Finding 1, not the same bug.** Finding 1 is about a _removed waypoint_
 not being restored when the zone that removed it is deleted. This is about
 a _rerouted_ mission's bypass waypoints being blindly wiped with no
 re-detection, silently leaving the route crossing an unrelated zone —
-arguably worse than Bug 1 since it leaves the mission in a
-visibly-broken state with zero warning, closer in spirit to Bug 3.
+arguably worse than Finding 1 since it leaves the mission in a
+visibly-broken state with zero warning, closer in spirit to Finding 3.
 
 **Repro:** create a mission whose route crosses zone A → confirm the
 reroute (mission gets bypass waypoints around A). Draw zone B elsewhere
@@ -207,7 +217,7 @@ every other zone-editing handler. A mission whose clean route still crosses a
 remaining zone is offered a fresh detour instead of being silently reverted to
 a blocked route; one that no longer needs a detour has its bypass waypoints
 stripped exactly as before. Cancelling the dialog declines the proposed route
-only — the deletion itself stands, following Bug 7's rule that Cancel never
+only — the deletion itself stands, following Finding 7's rule that Cancel never
 undoes the operator's own deliberate action.
 
 `handleClearExclusionZones` needs no equivalent change: with no zones left,
@@ -215,7 +225,7 @@ nothing can require a detour, so stripping every mission's bypasses
 unconditionally is correct there.
 
 Enabling reroute detection here had a consequence that took a second fix —
-see Bug 11.
+see Finding 11.
 
 **Test coverage:** `context/handlers/__tests__/zone-mutation-handlers.test.ts`
 covers a mission detoured around two zones: deleting one stages a reroute
@@ -223,7 +233,7 @@ carrying an empty revert list, confirming leaves a route clear of the zone
 that remains and no longer bulging over the deleted one, and declining leaves
 the existing route untouched.
 
-## Bug 5 — confirming an over-limit/impossible reroute doesn't clean up the mission's bot assignment
+## Finding 5 — confirming an over-limit/impossible reroute doesn't clean up the mission's bot assignment
 
 _Fixed._
 
@@ -262,7 +272,7 @@ alongside `missionSet.deleteMission(proposal.missionID)` in both branches —
 `handleConfirmMissionReroute`'s OVER_LIMIT/IMPOSSIBLE case, and
 `handleConfirmWaypointRemoval`'s follow-up-reroute non-FEASIBLE case.
 
-**Since superseded by Bug 13.** Neither branch deletes a mission any more, so
+**Since superseded by Finding 13.** Neither branch deletes a mission any more, so
 both the deletion and the assignment cleanup it needed are gone. The entry is
 kept because the reasoning still applies to any future code that deletes a
 mission: the bot side of `botsToMissions` has to be cleared too, or
@@ -275,9 +285,9 @@ follow-up reroute, and asserting `missionsManager`'s assignment for the
 deleted mission ID (and the bot's own assignment) is cleared back to
 `UNASSIGNED_ID`.
 
-## Bug 6 — editing one zone's vertices can silently strip a different mission's valid bypass waypoints
+## Finding 6 — editing one zone's vertices can silently strip a different mission's valid bypass waypoints
 
-_Fixed. Found while designing the Bug 4 fix for
+_Fixed. Found while designing the Finding 4 fix for
 [`04EXCLUSION_ZONE_HANDLERS_PLAN.md`](./04EXCLUSION_ZONE_HANDLERS_PLAN.md)._
 
 **Symptom:** mission A has an established, correct bypass route around
@@ -325,7 +335,7 @@ now crosses X directly.
 
 **Confirmed pre-existing:** the `activeMissionIDs`/`stripStaleBypasses`
 block in both handlers is unchanged by the Part 1-5 handler refactor —
-Part 1 only removed the earlier `relevant` filter (Bug 3's fix), which sat
+Part 1 only removed the earlier `relevant` filter (Finding 3's fix), which sat
 higher up in each function; this trailing block already used the
 unfiltered `pending.proposals` in the original code too.
 
@@ -354,7 +364,7 @@ unrelated zone is moved or deleted. Both tests assert that no proposal was
 staged, so they cannot pass by the mission simply being protected as an active
 proposal — which is the whole premise of the bug.
 
-## Bug 7 — cancelling a load-triggered dialog reverted the entire load, not just the proposed route change
+## Finding 7 — cancelling a load-triggered dialog reverted the entire load, not just the proposed route change
 
 _Fixed._
 
@@ -397,18 +407,14 @@ faithfully until this fix.
 **Fix:**
 
 - `handleLoadMissionSet` no longer deletes over-limit/impossible missions
-  upfront — they stay loaded (flagged via the proposal's `status`, same as
-  any non-load reroute) until the operator confirms or cancels.
-  `handleConfirmMissionReroute` deletes them only if confirmed, using the
-  same logic it already applies to every other reroute trigger — the
-  special-cased `isMissionLoad` skip is gone.
-- `handleLoadExclusionZones`/`handleRestoreExclusionZoneSnapshot` keep
-  their existing upfront skip-and-delete behavior for zones that would
-  make some mission's route unroutable — deliberately _not_ symmetric with
-  the mission case, per product decision: an operator loading zones is
-  expected to prune/delete unwanted zones manually or via Undo, not have
-  them silently restored on Cancel.
-- All four load/restore producers now stage `revert: []` for their
+  upfront — they stay loaded, flagged via the proposal's `status`, the same as
+  any non-load reroute. At the time `handleConfirmMissionReroute` still deleted
+  them on confirm; Finding 13 removed that too, so they are now simply left alone.
+- The zone-load path kept its upfront skip-and-delete for zones that would make
+  some mission's route unroutable — deliberately _not_ symmetric with the
+  mission case, as a product decision at the time. Finding 16 reversed that: zones
+  are never withheld from a load either.
+- All load/restore producers now stage `revert: []` for their
   reroute/waypoint-removal dialogs — there's nothing left to undo, since
   nothing is mutated until confirm and the load itself is intentionally
   out of scope for Cancel.
@@ -425,7 +431,7 @@ faithfully until this fix.
   (no longer pre-deleted), and would otherwise double-render alongside the
   load-specific "N missions could not be loaded" list.
 
-## Bug 8 — a mission set with a missing waypoint location can crash the app instead of failing gracefully
+## Finding 8 — a mission set with a missing waypoint location can crash the app instead of failing gracefully
 
 _Confirmed real gap, not fixed. Low priority — reachable only through file
 import, not through anything the operator can do in the app._
@@ -514,7 +520,7 @@ instead of producing a broken `Waypoint`. Verifying `handleLoadMissionSet`
 end-to-end (rejected file leaves the current mission set untouched) is an
 ordinary addition to `context/handlers/__tests__/`.
 
-## Bug 9 — deleting a vertex could enlarge a zone without any detection running
+## Finding 9 — deleting a vertex could enlarge a zone without any detection running
 
 _Fixed. Found while comparing the zone handlers during the shared-sequence
 extraction._
@@ -548,7 +554,7 @@ discarded and captured for revert. The first asserts that adding the zone
 flagged nothing beforehand, so the enclosure is genuinely caused by the
 deletion.
 
-## Bug 10 — adding a vertex can produce a self-crossing zone
+## Finding 10 — adding a vertex can produce a self-crossing zone
 
 _Open, accepted. Found during browser smoke-testing._
 
@@ -585,7 +591,7 @@ originally drew the zone. That trades a predictable oddity for an
 unpredictable one. Worth revisiting if editing vertices on existing zones turns
 out to be common in the field.
 
-## Bug 11 — a waypoint left inside a zone can turn a routable mission into an "unroutable" one
+## Finding 11 — a waypoint left inside a zone can turn a routable mission into an "unroutable" one
 
 _Fixed._
 
@@ -594,7 +600,7 @@ _Fixed._
 
 When this was found, confirming that dialog **deleted the mission** —
 `handleConfirmMissionReroute` treated unroutable proposals as missions that must
-not remain in a zone-crossing state. Bug 13 removed that, so the cost today is a
+not remain in a zone-crossing state. Finding 13 removed that, so the cost today is a
 false report rather than lost work. The fix below stands regardless: a mission
 that can be routed should not be told it cannot.
 
@@ -615,7 +621,7 @@ waypoint. True, but beside the point: the check is also the precondition for
 routing at all.
 
 **Reachable through ordinary use.** Declining a zone-load dialog leaves the
-loaded zones in place by design (see Bug 7) — including any that enclose a
+loaded zones in place by design (see Finding 7) — including any that enclose a
 waypoint. From that state, deleting an unrelated zone was enough to produce
 the false `IMPOSSIBLE`.
 
@@ -637,7 +643,7 @@ every producer ran `detectWaypointRemovals()` first. That was accurate when
 written; `handleDeleteExclusionZone` gaining reroute detection is what made
 it reachable.
 
-## Bug 12 — bypass routing cost grows with the area searched, freezing the UI
+## Finding 12 — bypass routing cost grows with the area searched, freezing the UI
 
 _Open. Found while fixing the grid-sizing half of this, which is fixed — see below._
 
@@ -694,7 +700,7 @@ any segment intersects one. That turns a possible silent zone violation into an 
 Moving the search off the UI thread is the other direction worth considering, and is
 independent of cell size.
 
-## Bug 13 — obstacle avoidance destroyed mission data instead of reporting a conflict
+## Finding 13 — obstacle avoidance destroyed mission data instead of reporting a conflict
 
 _Fixed. Raised in review of this branch, and found independently while smoke-testing
 a mission-set load into a zone covering every waypoint._
@@ -735,7 +741,7 @@ impossible proposal carries the route stripped of its existing detour, and an
 over-limit one a route beyond the waypoint limit.
 
 Two pieces of dialog wording described deletions that no longer happen, and one
-of them had already been false since Bug 7: "N missions could not be loaded"
+of them had already been false since Finding 7: "N missions could not be loaded"
 described missions that were in fact loaded. Removing that claim removed the
 whole notion of a _skipped_ mission, and with it `LoadSummary`'s `missionLoad`
 variant, `handleLoadMissionSet`'s skipped-ID computation, and `RerouteSummary`'s
@@ -748,7 +754,7 @@ along with their bot assignments, and drives the load end to end: a mission set
 loaded into a zone covering every waypoint keeps its route, and an unroutable
 mission is reported without being withheld from the load.
 
-## Bug 14 — deleting a waypoint left an obsolete detour in the mission forever
+## Finding 14 — deleting a waypoint left an obsolete detour in the mission forever
 
 _Fixed. Raised in review of this branch._
 
@@ -765,22 +771,22 @@ cleared the detour the mission was still carrying.
 
 **Fix:** `stripStaleBypasses()` at the end of the handler, after the early
 returns so a rejected deletion is not stripped. This is only safe because of
-Bug 6's fix: before it, `stripStaleBypasses` discarded any mission absent from
-the proposal set, so adding this call would have introduced Bug 6 into a third
+Finding 6's fix: before it, `stripStaleBypasses` discarded any mission absent from
+the proposal set, so adding this call would have introduced Finding 6 into a third
 handler.
 
 **Test coverage:** `context/handlers/__tests__/reroute-revert-producers.test.ts`.
 
-## Bug 15 — waypoint edits that could not be routed were refused outright
+## Finding 15 — waypoint edits that could not be routed were refused outright
 
-_Fixed. Follows from Bug 13 — the same principle, applied to the edits that
+_Fixed. Follows from Finding 13 — the same principle, applied to the edits that
 create the conflict rather than the dialog that reports it._
 
 **Symptom:** adding, moving or deleting a waypoint such that the mission could
 no longer be routed around the zones was rejected. The edit was undone and a
 blocking error shown; the operator had no way to say "I know, do it anyway".
 
-**Why it had to change:** Bug 13 made confirming a reroute dialog leave an
+**Why it had to change:** Finding 13 made confirming a reroute dialog leave an
 unroutable mission alone. Without this, the same condition had opposite
 outcomes depending on how it arose — tolerated when reported by a dialog,
 refused when caused by an edit.
@@ -809,16 +815,98 @@ confirm and revert; `components/ObstacleAvoidanceDialogs/__tests__/dialog-button
 covers the gating rule, including the case where confirming and dismissing would
 do the same thing and only one button is shown.
 
+## Finding 16 — zones were silently dropped from a load, and stale detours survived it
+
+_Fixed._
+
+**Symptom, two halves of one load path.** Loading or importing a zone set replaces the
+whole set: every existing zone is deleted and the saved ones added. Two things went
+wrong in that step.
+
+A zone that would leave some mission unroutable was **discarded from the load** and
+never appeared in the panel. That is the objection behind Finding 13 applied to the other
+data type: the operator saved a zone set, and loading it silently returned less than
+they saved.
+
+Meanwhile every mission kept the detour waypoints it was carrying, **computed against
+zones that had just been deleted**. Since a load clears the set first, no detour has a
+surviving justification unless the loaded set happens to contain a zone in the same
+place — so the common outcome was a route bending around nothing, with no zone on
+screen to explain it.
+
+**Fix, first half:** every zone in the set is loaded. One that leaves a mission
+unroutable is reported through the dialog like any other conflict.
+
+**Fix, second half:** every detour is removed before the loaded zones are detected
+against, and the routes are recomputed from the waypoints the operator placed.
+
+Removing _all_ of them rather than only the obsolete ones is the deliberate choice. The
+alternative — keeping a detour when the loaded set happens to require an identical one
+— makes a mission's route depend on a zone set that no longer exists, to save a single
+dialog. And it buys nothing: reloading the same zone set makes the router propose the
+same detour, and confirming restores byte-for-byte the route the mission had. There is
+no information to preserve, only state to carry.
+
+The operator is told before it happens. Both confirmation dialogs now read "The
+obstacle zone panel will be cleared **and all bypass waypoints removed** prior to
+loading / importing", and cancelling there still does nothing at all — the dispatch
+only fires on confirm.
+
+**A consequence worth knowing:** an operator who cancels the _reroute_ dialog after a
+load is left with clean routes, some crossing the newly loaded zones, where previously
+they would have kept their old detours. That is the honest state — their own waypoints,
+unmodified, with the conflicts reported and declined.
+
+**Test coverage:** `context/handlers/__tests__/zone-mutation-handlers.test.ts` covers a
+detour discarded when its zone is absent from the loaded set, the same detour proposed
+afresh and restored exactly when the loaded set still requires one, and zones that
+leave a mission unroutable being loaded rather than dropped.
+
+## Finding 17 — the zone-set load could not be undone, and half of it was unreachable
+
+_Fixed._
+
+**Symptom:** `Ctrl+Z` did nothing after loading a zone set. Every other zone action —
+delete, clear, add, vertex edits — is tracked for undo; the load was registered
+`tracked: false`, making the most destructive operation in the feature the only one
+that could not be undone. That mattered more once a load began removing every detour
+too.
+
+**Alongside it, a second load path that nothing could reach.** `LOAD_EXCLUSION_ZONES`
+and `handleLoadExclusionZones` were declared, registered with the reducer, and never
+dispatched by anything — confirmed across the full history of `src/web/components`.
+They took a bare `ExclusionZone[]`, the shape that predates the snapshot concept, while
+both the Load and Import buttons dispatch a snapshot. The unreachable pair carried
+`tracked: true` and the live one did not, which is the likely origin of the undo bug:
+the flag was set on the copy that never ran.
+
+**Fix:** the unreachable action, handler and `exclusionZones` action field are deleted,
+and the live path is registered `tracked: true`. It is also renamed to read like its
+counterpart, since the two do the same job:
+
+| Mission set            | Zone set                     |
+| ---------------------- | ---------------------------- |
+| `LOAD_MISSION_SET`     | `LOAD_EXCLUSION_ZONE_SET`    |
+| `handleLoadMissionSet` | `handleLoadExclusionZoneSet` |
+| `missionSetSnapshot`   | `exclusionZoneSetSnapshot`   |
+
+The old name, `RESTORE_EXCLUSION_ZONE_SNAPSHOT`, read as undo machinery, which undo
+does not use — `handleClickedUndo` restores the zone set directly through
+`restoreSnapshot()`, never through a handler.
+
+**Test coverage:** the thorough coverage had been written against the unreachable
+handler and was moved onto the live one rather than deleted.
+
 ## Where the coverage lives
 
-| Layer          | File                                                                      | Covers                                        |
-| -------------- | ------------------------------------------------------------------------- | --------------------------------------------- |
-| Pure functions | `data/obstacle_avoidance_data/__tests__/exclusion-zone-detection.test.ts` | Bug 2, conflict detection                     |
-|                | `data/obstacle_avoidance_data/__tests__/exclusion-zone-router.test.ts`    | Bugs 3, 6, and Bug 12's fixed half            |
-| Handlers       | `context/handlers/__tests__/zone-mutation-handlers.test.ts`               | Bugs 4, 6, 9, 11                              |
-|                | `context/handlers/__tests__/obstacle-avoidance-handlers.test.ts`          | Bugs 5, 13                                    |
-|                | `context/handlers/__tests__/reroute-revert-producers.test.ts`             | Bugs 7, 14, 15                                |
-| Components     | `components/ObstacleAvoidanceDialogs/__tests__/dialog-buttons.test.tsx`   | dialog labels and confirm gating (Bugs 7, 15) |
+| Layer          | File                                                                      | Covers                                            |
+| -------------- | ------------------------------------------------------------------------- | ------------------------------------------------- |
+| Pure functions | `data/obstacle_avoidance_data/__tests__/exclusion-zone-detection.test.ts` | Finding 2, conflict detection                     |
+|                | `data/obstacle_avoidance_data/__tests__/exclusion-zone-router.test.ts`    | Findings 3, 6, and Finding 12's fixed half        |
+| Handlers       | `context/handlers/__tests__/zone-mutation-handlers.test.ts`               | Findings 4, 6, 9, 11, 16, 17                      |
+|                | `context/handlers/__tests__/obstacle-avoidance-handlers.test.ts`          | Findings 5, 13                                    |
+|                | `context/handlers/__tests__/reroute-revert-producers.test.ts`             | Findings 7, 14, 15                                |
+| Components     | `components/ObstacleAvoidanceDialogs/__tests__/dialog-buttons.test.tsx`   | dialog labels and confirm gating (Findings 7, 15) |
 
 `context/handlers/__tests__/` exists now, so a handler-level test is an
 ordinary addition rather than new infrastructure. Several earlier entries in
@@ -871,7 +959,7 @@ stub, not Clipper — and the stub's outward scaling is the very approach
 `expandPolygon` was changed away from, because a vertex average is not
 guaranteed to lie inside a concave polygon. Anything that depends on real
 Clipper behaviour — how a self-crossing ring is resolved, how buffers merge —
-cannot be reproduced under Jest at all; Bug 10's analysis needed a standalone
+cannot be reproduced under Jest at all; Finding 10's analysis needed a standalone
 script run against the real library. Treat green buffer tests as evidence
 about the router's own logic, not about the geometry library underneath it.
 
@@ -906,13 +994,6 @@ exports, and an acknowledgement is only meaningful against the zone set it was
 made under. `ObstacleAvoidanceData` is in neither the mission-set snapshot nor
 the undo snapshot, so a set there is session-scoped by construction rather than
 by discipline.
-
-**Make zone loading symmetric with mission loading.** Bug 13 established that a
-mission is never withheld from a load for conflicting with the zones.
-`applyZoneSetReplacement` still does the opposite for zones: one that would
-leave a mission unroutable is dropped from the load. That asymmetry was a
-deliberate call when Bug 7 was fixed, but it predates Bug 13's principle and is
-worth revisiting.
 
 **Let the router take its zone set as a parameter.** `exclusion-zone-router.ts`
 reads the `obstacleAvoidanceData` singleton, which is why `getMissionsInConflict()`
