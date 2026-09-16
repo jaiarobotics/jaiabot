@@ -1,13 +1,14 @@
 from scipy import signal
 import numpy as np
 
-import plotly.graph_objs as go
-
 from pyjaia.series import Series
 from datetime import *
 
 
 def htmlForSpectrogram(series: Series, fftWindowSeconds: float=40.0) -> str:
+    # plotly is only needed to render, and pulls in a lot
+    import plotly.graph_objs as go
+
     if series.duration().seconds == 0:
         return '<p>Spectrogram:  duration is 0</p>'
 
