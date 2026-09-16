@@ -100,10 +100,12 @@ if [ -n "$CUSTOMER" ]; then
             echo "❌ Fleet $FLEET_TAG_VALUE carries resources from more than one run:" >&2
             echo "$owners" | sed 's/^/     /' >&2
             echo "   Two runs raced for it. Refusing to delete it; clean it up by hand." >&2
-        else
-            echo "❌ Fleet $FLEET_TAG_VALUE belongs to $(echo "$others" | head -1), not $CUSTOMER. Refusing to delete it." >&2
+            exit 1
         fi
-        exit 1
+        # Nothing here carries our tag, so this run created nothing to tear down. The
+        # fleet is someone else's and staying; that is a finished job, not a failure.
+        echo ">>>>>> Fleet $FLEET_TAG_VALUE belongs to $(echo "$others" | head -1); nothing of $CUSTOMER's to delete"
+        exit 0
     fi
 fi
 
