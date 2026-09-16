@@ -1,86 +1,173 @@
 #!/bin/bash
 
-# Check for required argument
-if [ -z "$1" ]; then
-    echo "Usage: $0 <fleet ID>"
+# Deletes the AWS resources created by create_vpc.sh for one fleet.
+
+usage() {
+    cat <<EOF
+Usage: $0 [options] <fleet ID>
+
+  --yes                 Do not ask for confirmation (for unattended use)
+  --keep-iam            Leave the CloudHub's IAM role and instance profile in place
+  --customer <name>     Only delete this fleet if it carries this jaia_customer tag.
+                        A fleet ID is reused, so an unattended teardown that names the
+                        fleet alone will happily delete whatever is using it now.
+
+The CloudHub's data bucket is never deleted: its logs outlive the fleet that wrote
+them. Remove one deliberately with 'aws s3 rb --force' when that is really wanted.
+EOF
     exit 1
-fi
+}
 
-set -e -u
+set -u
 
+ASSUME_YES=false
+KEEP_IAM=false
+CUSTOMER=""
+FLEET_TAG_VALUE=""
 
-FLEET_TAG_VALUE="$1"
+while (( $# > 0 )); do
+    case "$1" in
+        --yes) ASSUME_YES=true; shift ;;
+        --keep-iam) KEEP_IAM=true; shift ;;
+        --customer) CUSTOMER="${2:-}"; shift 2 ;;
+        -h|--help) usage ;;
+        -*) echo "Unknown option: $1"; usage ;;
+        *) [[ -z "$FLEET_TAG_VALUE" ]] || usage; FLEET_TAG_VALUE="$1"; shift ;;
+    esac
+done
+
+[[ -n "$FLEET_TAG_VALUE" ]] || usage
+
+# Partial creates leave some resources and not others, so a step that finds nothing to
+# do must not stop the ones after it; failures are collected and reported at the end
+FAILED=()
+
+# Absence is the expected outcome after a partial create; anything else (a denial,
+# most likely) is a real failure and must not read as a clean teardown
+function exists() {
+    # $1: resource description, ${@:2}: a command that fails with NoSuchEntity/404 when absent
+    local what=$1 err
+    if err=$("${@:2}" 2>&1 >/dev/null); then
+        return 0
+    fi
+    if [[ "$err" == *NoSuchEntity* || "$err" == *"Not Found"* || "$err" == *404* ]]; then
+        echo "No ${what} found."
+        return 1
+    fi
+    echo "⚠️  Could not check ${what}: ${err}"
+    FAILED+=("check ${what}")
+    return 1
+}
+
+function attempt() {
+    # $1: what is being done, ${@:2}: the command
+    local what=$1
+    if ! "${@:2}"; then
+        echo "⚠️  Failed to ${what}"
+        FAILED+=("$what")
+        return 1
+    fi
+}
 
 echo -e "⚠️  WARNING: This script will permanently delete all AWS resources tagged as 'jaia_fleet=$FLEET_TAG_VALUE' in region \033[1m$AWS_DEFAULT_REGION.\033[0m"
 echo "This includes:"
 echo "  - Terminating all EC2 instances"
 echo "  - Disassociating and releasing Elastic IPs"
 echo "  - Deleting VPC and all associated resources (subnets, route tables, security groups, internet gateways)"
+if [ "$KEEP_IAM" = "false" ]; then
+    echo "  - Deleting the CloudHub IAM role and instance profile for fleet $FLEET_TAG_VALUE"
+fi
 echo "This action is irreversible!"
 
-# Require user confirmation
-read -p "To continue, re-enter the fleet number: " CONFIRM_FLEET
-if [ "$CONFIRM_FLEET" != "$FLEET_TAG_VALUE" ]; then
-    echo "❌ Fleet number mismatch. Aborting."
-    exit 1
+if [ "$ASSUME_YES" = "false" ]; then
+    read -p "To continue, re-enter the fleet number: " CONFIRM_FLEET
+    if [ "$CONFIRM_FLEET" != "$FLEET_TAG_VALUE" ]; then
+        echo "❌ Fleet number mismatch. Aborting."
+        exit 1
+    fi
 fi
 
-echo "✅ Fleet number confirmed. Proceeding with cleanup of jaia_fleet=$FLEET_TAG_VALUE..."
+if [ -n "$CUSTOMER" ]; then
+    owners=$( { aws ec2 describe-vpcs --filters "Name=tag:jaia_fleet,Values=$FLEET_TAG_VALUE" \
+                    --query "Vpcs[].Tags[?Key=='jaia_customer'].Value" --output text
+                aws ec2 describe-instances --filters "Name=tag:jaia_fleet,Values=$FLEET_TAG_VALUE" \
+                    "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+                    --query "Reservations[].Instances[].Tags[?Key=='jaia_customer'].Value" --output text
+              } | tr '\t' '\n' | sort -u | grep -v '^$' || true)
+    others=$(echo "$owners" | grep -vx "$CUSTOMER" || true)
+    if [ -n "$others" ]; then
+        if echo "$owners" | grep -qx "$CUSTOMER"; then
+            echo "❌ Fleet $FLEET_TAG_VALUE carries resources from more than one run:" >&2
+            echo "$owners" | sed 's/^/     /' >&2
+            echo "   Two runs raced for it. Refusing to delete it; clean it up by hand." >&2
+            exit 1
+        fi
+        # Nothing here carries our tag, so this run created nothing to tear down. The
+        # fleet is someone else's and staying; that is a finished job, not a failure.
+        echo ">>>>>> Fleet $FLEET_TAG_VALUE belongs to $(echo "$others" | head -1); nothing of $CUSTOMER's to delete"
+        exit 0
+    fi
+fi
 
+echo "✅ Proceeding with cleanup of jaia_fleet=$FLEET_TAG_VALUE..."
 
 TAG_FILTER="Name=tag:jaia_fleet,Values=$FLEET_TAG_VALUE"
 
 echo "Finding resources with jaia_fleet=$FLEET_TAG_VALUE..."
 
 # Get EC2 instance IDs
-INSTANCE_IDS=$(aws ec2 describe-instances --filters "$TAG_FILTER" --query "Reservations[].Instances[].InstanceId" --output text)
+INSTANCE_IDS=$(aws ec2 describe-instances --filters "$TAG_FILTER" "Name=instance-state-name,Values=pending,running,stopping,stopped" --query "Reservations[].Instances[].InstanceId" --output text)
 
 if [ -n "$INSTANCE_IDS" ] && [ "$INSTANCE_IDS" != "None" ]; then
     echo "Found instances: $INSTANCE_IDS"
-    
+
     # Get and disassociate Elastic IPs
     ALLOC_IDS=$(aws ec2 describe-addresses --filters "$TAG_FILTER" --query "Addresses[].AllocationId" --output text)
     if [ -n "$ALLOC_IDS" ] && [ "$ALLOC_IDS" != "None" ]; then
         echo "Disassociating and releasing Elastic IPs: $ALLOC_IDS"
-        
 
         for ALLOC_ID in $ALLOC_IDS; do
             ASSOC_ID=$(aws ec2 describe-addresses --allocation-ids "$ALLOC_ID" --query "Addresses[].AssociationId" --output text)
             if [ -n "$ASSOC_ID" ] && [ "$ASSOC_ID" != "None" ]; then
-                aws ec2 disassociate-address --association-id "$ASSOC_ID"
+                attempt "disassociate Elastic IP $ALLOC_ID" aws ec2 disassociate-address --association-id "$ASSOC_ID"
             fi
-            aws ec2 release-address --allocation-id "$ALLOC_ID"
+            attempt "release Elastic IP $ALLOC_ID" aws ec2 release-address --allocation-id "$ALLOC_ID"
         done
     fi
-    
-    # Terminate instances
-    echo "Terminating instances: $INSTANCE_IDS"    
-    aws ec2 terminate-instances --no-cli-pager --instance-ids $INSTANCE_IDS 
 
-    # Wait for termination
+    # Terminate instances
+    echo "Terminating instances: $INSTANCE_IDS"
+    attempt "terminate instances" aws ec2 terminate-instances --no-cli-pager --instance-ids $INSTANCE_IDS
+
+    # Wait for termination: the ENIs they hold block the subnets and security groups below
     echo "Waiting for instances to terminate..."
-    aws ec2 wait instance-terminated --instance-ids $INSTANCE_IDS
+    attempt "wait for instances to terminate" aws ec2 wait instance-terminated --instance-ids $INSTANCE_IDS
 else
     echo "No instances found."
 fi
 
-# Get VPC ID associated with the fleet
-VPC_ID=$(aws ec2 describe-vpcs --filters "$TAG_FILTER" --query "Vpcs[].VpcId" --output text)
+# Two runs that raced for the same fleet leave a VPC each, so this is a list
+VPC_IDS=$(aws ec2 describe-vpcs --filters "$TAG_FILTER" --query "Vpcs[].VpcId" --output text)
 
-if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
+if [ -z "$VPC_IDS" ] || [ "$VPC_IDS" = "None" ]; then
+    echo "No VPC found."
+fi
+
+for VPC_ID in $VPC_IDS; do
+    [ "$VPC_ID" != "None" ] || continue
     echo "Found VPC: $VPC_ID"
 
     # Delete dependent resources before deleting the VPC
     echo "Deleting dependent resources in VPC $VPC_ID..."
 
     # Delete Internet Gateways
-    IGW_IDS=$(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$VPC_ID" --query "InternetGateways[].InternetGatewayId" --output text)    
+    IGW_IDS=$(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$VPC_ID" --query "InternetGateways[].InternetGatewayId" --output text)
 
     echo "Found InternetGateways: $IGW_IDS"
     if [ -n "$IGW_IDS" ] && [ "$IGW_IDS" != "None" ]; then
         for IGW_ID in $IGW_IDS; do
-            aws ec2 detach-internet-gateway --internet-gateway-id "$IGW_ID" --vpc-id "$VPC_ID"
-            aws ec2 delete-internet-gateway --internet-gateway-id "$IGW_ID"
+            attempt "detach internet gateway $IGW_ID" aws ec2 detach-internet-gateway --internet-gateway-id "$IGW_ID" --vpc-id "$VPC_ID" \
+                && attempt "delete internet gateway $IGW_ID" aws ec2 delete-internet-gateway --internet-gateway-id "$IGW_ID"
         done
     fi
 
@@ -89,7 +176,7 @@ if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
     echo "Found Subnets: $SUBNET_IDS"
     if [ -n "$SUBNET_IDS" ] && [ "$SUBNET_IDS" != "None" ]; then
         for SUBNET_ID in $SUBNET_IDS; do
-            aws ec2 delete-subnet --subnet-id "$SUBNET_ID"
+            attempt "delete subnet $SUBNET_ID" aws ec2 delete-subnet --subnet-id "$SUBNET_ID"
         done
     fi
 
@@ -98,7 +185,7 @@ if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
     echo "Found RouteTables: $RTB_IDS"
     if [ -n "$RTB_IDS" ] && [ "$RTB_IDS" != "None" ]; then
         for RTB_ID in $RTB_IDS; do
-            aws ec2 delete-route-table --route-table-id "$RTB_ID"
+            attempt "delete route table $RTB_ID" aws ec2 delete-route-table --route-table-id "$RTB_ID"
         done
     fi
 
@@ -107,15 +194,37 @@ if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
     echo "Found SecurityGroups: $SG_IDS"
     if [ -n "$SG_IDS" ] && [ "$SG_IDS" != "None" ]; then
         for SG_ID in $SG_IDS; do
-            aws ec2 delete-security-group --group-id "$SG_ID"
+            attempt "delete security group $SG_ID" aws ec2 delete-security-group --group-id "$SG_ID"
         done
     fi
 
     # Finally, delete the VPC
     echo "Deleting VPC $VPC_ID..."
-    aws ec2 delete-vpc --vpc-id "$VPC_ID"
-else
-    echo "No VPC found."
+    attempt "delete VPC $VPC_ID" aws ec2 delete-vpc --vpc-id "$VPC_ID"
+done
+
+if [ "$KEEP_IAM" = "false" ]; then
+    role_name="JaiaCloudHubFleet${FLEET_TAG_VALUE}__Role"
+    policy_name="JaiaCloudHubFleet${FLEET_TAG_VALUE}__Policy"
+    instance_profile_name="JaiaCloudHubFleet${FLEET_TAG_VALUE}__InstanceProfile"
+
+    if exists "instance profile $instance_profile_name" aws iam get-instance-profile --instance-profile-name "$instance_profile_name"; then
+        echo "Deleting instance profile $instance_profile_name..."
+        aws iam remove-role-from-instance-profile --instance-profile-name "$instance_profile_name" --role-name "$role_name" > /dev/null 2>&1
+        attempt "delete instance profile $instance_profile_name" aws iam delete-instance-profile --instance-profile-name "$instance_profile_name"
+    fi
+
+    if exists "role $role_name" aws iam get-role --role-name "$role_name"; then
+        echo "Deleting role $role_name..."
+        aws iam delete-role-policy --role-name "$role_name" --policy-name "$policy_name" > /dev/null 2>&1
+        attempt "delete role $role_name" aws iam delete-role --role-name "$role_name"
+    fi
+fi
+
+if (( ${#FAILED[@]} > 0 )); then
+    echo "❌ Cleanup of jaia_fleet=$FLEET_TAG_VALUE did not complete. Check these manually:" >&2
+    printf '\t%s\n' "${FAILED[@]}" >&2
+    exit 1
 fi
 
 echo "Cleanup completed for jaia_fleet=$FLEET_TAG_VALUE."

@@ -5,6 +5,14 @@ fleet imported from it actually works: the VMs boot, the hubs are reachable from
 the host, the REST API runs a bot through a dive mission, and JCC, JCU and JDV
 are served.
 
+## Shared with the sea trial
+
+The REST client, the dive-mission plan and the geodesy come from `jaia_e2e` in
+`scripts/test/e2e`, which the sea trial uses against the Docker simulator and a
+VirtualFleet. Only the VirtualBox-specific stages live here. `test_shared_with_vbox.py`
+in that directory holds this suite's side of the contract, so a change made for one
+does not quietly break the other.
+
 ## Requirements
 
 - VirtualBox, with `vboximg-mount` (part of the VirtualBox package).

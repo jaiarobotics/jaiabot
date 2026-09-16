@@ -1,0 +1,119 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "DescribeForVpcAndZoneSelection",
+			"Effect": "Allow",
+			"Action": [
+				"ec2:DescribeAddresses",
+				"ec2:DescribeAvailabilityZones",
+				"ec2:DescribeInstanceTypeOfferings",
+				"ec2:DescribeInternetGateways",
+				"ec2:DescribeNetworkInterfaces",
+				"ec2:DescribeRouteTables",
+				"ec2:DescribeVpcs"
+			],
+			"Resource": "*",
+			"Condition": {
+				"StringEquals": {
+					"aws:RequestedRegion": "{{REGION}}"
+				}
+			}
+		},
+		{
+			"Sid": "CreateAndDeleteFleetNetworking",
+			"Effect": "Allow",
+			"Action": [
+				"ec2:AllocateAddress",
+				"ec2:AssociateAddress",
+				"ec2:AttachInternetGateway",
+				"ec2:CreateInternetGateway",
+				"ec2:CreateRoute",
+				"ec2:CreateSubnet",
+				"ec2:CreateVpc",
+				"ec2:DeleteInternetGateway",
+				"ec2:DeleteRouteTable",
+				"ec2:DeleteSubnet",
+				"ec2:DeleteVpc",
+				"ec2:DetachInternetGateway",
+				"ec2:DisassociateAddress",
+				"ec2:ModifySubnetAttribute",
+				"ec2:ReleaseAddress",
+				"ec2:RevokeSecurityGroupIngress"
+			],
+			"Resource": "*",
+			"Condition": {
+				"StringEquals": {
+					"aws:RequestedRegion": "{{REGION}}"
+				}
+			}
+		},
+		{
+			"Sid": "CloudHubDataBucket",
+			"Effect": "Allow",
+			"Action": [
+				"s3:CreateBucket",
+				"s3:DeleteBucket",
+				"s3:DeleteObject",
+				"s3:GetBucketLocation",
+				"s3:GetBucketTagging",
+				"s3:GetObject",
+				"s3:ListBucket",
+				"s3:PutBucketTagging",
+				"s3:PutObject"
+			],
+			"Resource": [
+				"{{ARN_PREFIX}}:s3:::jaia--cloudhub-data--fleet{{FLEET_ID}}",
+				"{{ARN_PREFIX}}:s3:::jaia--cloudhub-data--fleet{{FLEET_ID}}/*"
+			]
+		},
+		{
+			"Sid": "ManageCloudHubRoleWithinBoundary",
+			"Effect": "Allow",
+			"Action": [
+				"iam:CreateRole",
+				"iam:PutRolePolicy"
+			],
+			"Resource": "{{ARN_PREFIX}}:iam::{{ACCOUNT_ID}}:role/JaiaCloudHubFleet{{FLEET_ID}}__Role",
+			"Condition": {
+				"StringEquals": {
+					"iam:PermissionsBoundary": "{{ARN_PREFIX}}:iam::{{ACCOUNT_ID}}:policy/JaiaCloudHubBoundary"
+				}
+			}
+		},
+		{
+			"Sid": "ReadAndRetireCloudHubRole",
+			"Effect": "Allow",
+			"Action": [
+				"iam:DeleteRole",
+				"iam:DeleteRolePolicy",
+				"iam:GetRole",
+				"iam:TagRole"
+			],
+			"Resource": "{{ARN_PREFIX}}:iam::{{ACCOUNT_ID}}:role/JaiaCloudHubFleet{{FLEET_ID}}__Role"
+		},
+		{
+			"Sid": "ManageCloudHubInstanceProfile",
+			"Effect": "Allow",
+			"Action": [
+				"iam:AddRoleToInstanceProfile",
+				"iam:CreateInstanceProfile",
+				"iam:DeleteInstanceProfile",
+				"iam:GetInstanceProfile",
+				"iam:RemoveRoleFromInstanceProfile"
+			],
+			"Resource": "{{ARN_PREFIX}}:iam::{{ACCOUNT_ID}}:instance-profile/JaiaCloudHubFleet{{FLEET_ID}}__InstanceProfile"
+		},
+		{
+			"Sid": "PassCloudHubRoleToEc2Only",
+			"Effect": "Allow",
+			"Action": "iam:PassRole",
+			"Resource": "{{ARN_PREFIX}}:iam::{{ACCOUNT_ID}}:role/JaiaCloudHubFleet{{FLEET_ID}}__Role",
+			"Condition": {
+				"StringEquals": {
+					"iam:PassedToService": "ec2.amazonaws.com"
+				}
+			}
+		}
+	]
+}

@@ -76,6 +76,11 @@ except:
     config.fail('Must set jaia_comms_mode environmental variable to one or more (comma-delimited) of these options: ' + ", ".join(e.value for e in CommsMode))
 
 
+# goby_coroner's own defaults, which the generators scale by the simulator warp
+CORONER_REQUEST_INTERVAL = 10
+CORONER_RESPONSE_TIMEOUT = 5
+
+
 def app_block(verbosities, debug_log_file_dir, omit_debug_log=False):
     # placeholder for non-Goby apps to avoid having to define in verbosities when not used.
     default_verbosities = {'runtime': {'tty': 'MUST_SET_IN_BOT/HUB.PY', 'log': 'MUST_SET_IN_BOT/HUB.PY'}, 'simulation': {'tty': 'MUST_SET_IN_BOT/HUB.PY', 'log': 'MUST_SET_IN_BOT/HUB.PY'}}
