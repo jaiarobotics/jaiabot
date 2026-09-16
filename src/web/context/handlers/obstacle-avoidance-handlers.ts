@@ -53,7 +53,7 @@ export function handleConfirmMissionReroute(mutableState: JaiaContextType) {
     const pending = pendingState.data;
     for (const proposal of pending.proposals) {
         // A mission that cannot be routed around the zones keeps the route it has.
-        // Whether to fly a route that crosses a zone is the operator's call, and the
+        // Whether to run a route that crosses a zone is the operator's call, and the
         // proposal's waypoints are not an improvement: an impossible one carries the
         // route stripped of its detour, an over-limit one a route beyond the waypoint
         // limit.

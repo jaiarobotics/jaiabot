@@ -555,7 +555,7 @@ bow-tie zones as expected.
 
 **Why it still matters:** the enforced region is not the one the operator meant
 to draw. In particular the gap between the two lobes is _not_ excluded, so a
-boat may legitimately pass through ground the operator believes is closed.
+bot may legitimately pass through water the operator believes is closed.
 
 **Why it is accepted rather than fixed.** Appending is deliberate: the team
 chose against mid-sequence insertion throughout the app — waypoints are added

@@ -212,6 +212,12 @@ function expandPolygon(poly: XYPt[], margin: number): XYPt[] {
 
 // ── Zone geometry ──────────────────────────────────────────────────────────────
 
+/** A projected zone set sharing one origin, reusable across many routes. */
+export interface SharedZoneGeoms {
+    origin: GeographicCoordinate;
+    zoneGeoms: Array<ZoneGeom & { zoneID: number }>;
+}
+
 interface ZoneGeom {
     /** Raw user-drawn vertices (possibly concave). */
     raw: XYPt[];
@@ -754,23 +760,48 @@ export function getBlockingZoneIDs(
 }
 
 /**
+ * Projects every zone once, relative to a single shared origin, for callers that test
+ * many routes against the same zone set instead of letting each test rebuild the same
+ * geometry.
+ *
+ * The origin is the first vertex of the first zone with usable geometry. The specific
+ * choice does not affect results — it is only the local-projection reference point, and
+ * every route tested against these geoms is projected from the same one. Returns
+ * undefined when no zone has usable geometry, in which case nothing can be blocked.
+ *
+ * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
+ * @returns {SharedZoneGeoms | undefined} Shared projection origin and projected zones, or undefined if there are none
+ */
+export function buildSharedZoneGeoms(
+    safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
+): SharedZoneGeoms | undefined {
+    const origin = Array.from(obstacleAvoidanceData.getExclusionZoneSet().getZones().values()).find(
+        (z) => z.vertices && z.vertices.length >= 3,
+    )?.vertices?.[0];
+    if (!origin) return undefined;
+    return { origin, zoneGeoms: buildZoneGeoms(origin, safetyMargin) };
+}
+
+/**
  * Reports whether a route still requires a detour around the current zone set,
  * without computing the detour itself. Uses the same blocking test as
  * `routeAroundExclusionZones`, so the two can never disagree, but skips the A*
  * search — callers that only need the yes/no answer should prefer this.
  *
- * @param {GeographicCoordinate[]} route Ordered locations of the route's clean (non-bypass) waypoints
+ * @param {GeographicCoordinate[]} route Ordered locations of the route's waypoints
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
+ * @param {SharedZoneGeoms} [sharedGeoms] Precomputed geometry (see `buildSharedZoneGeoms`), for callers testing many routes against the same zone set
  * @returns {boolean} Whether any leg of the route is blocked by a zone
  */
 export function routeNeedsBypass(
     route: GeographicCoordinate[],
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
+    sharedGeoms?: SharedZoneGeoms,
 ): boolean {
     if (route.length < 2) return false;
 
-    const origin = route[0];
-    const zoneGeoms = buildZoneGeoms(origin, safetyMargin);
+    const origin = sharedGeoms?.origin ?? route[0];
+    const zoneGeoms = sharedGeoms?.zoneGeoms ?? buildZoneGeoms(origin, safetyMargin);
     if (zoneGeoms.length === 0) return false;
 
     const xy = route.map((location) => toXY(origin, location));
@@ -829,12 +860,9 @@ export function detectReroutesWithOverrides(
     // (any valid zone's first vertex — the specific choice doesn't affect
     // results, it's just the local-projection reference point), instead of
     // letting each mission's routeAroundExclusionZones() call rebuild it.
-    const sharedOrigin = Array.from(
-        obstacleAvoidanceData.getExclusionZoneSet().getZones().values(),
-    ).find((z) => z.vertices && z.vertices.length >= 3)?.vertices?.[0];
-    const sharedZoneGeoms = sharedOrigin
-        ? buildZoneGeoms(sharedOrigin, DEFAULT_SAFETY_MARGIN_METERS)
-        : undefined;
+    const shared = buildSharedZoneGeoms();
+    const sharedOrigin = shared?.origin;
+    const sharedZoneGeoms = shared?.zoneGeoms;
 
     for (const [missionID, mission] of missionSet.getMissions()) {
         const hasOverride = overrides.has(missionID);
