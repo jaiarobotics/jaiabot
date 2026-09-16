@@ -3,8 +3,6 @@ import statistics
 from typing import *
 from math import *
 import numpy
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 from .drift import Drift
 from .processing import *
@@ -40,6 +38,9 @@ def htmlForWaves(sortedWaveHeights: List[float]):
 
 
 def htmlForFilterGraph(filterFunc: Callable[[float], float]):
+    # plotly is only needed to render, and pulls in a lot
+    import plotly.graph_objects as go
+
     # Band pass filter graph
     fig = go.Figure()
     periods = numpy.arange(0.1, 40.0, 0.1)
@@ -57,6 +58,9 @@ def htmlForFilterGraph(filterFunc: Callable[[float], float]):
 
 
 def htmlForChart(charts: List[Series]) -> str:
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
     htmlString = ''
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])

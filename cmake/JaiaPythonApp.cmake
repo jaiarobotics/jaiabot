@@ -1,0 +1,62 @@
+# Add a jaiabot application written in Python against the Goby3 Python bindings.
+#
+# add_jaiabot_python_app(TARGET jaiabot_driver_tsys01
+#                        SUBDIR tsys01_temperature_sensor
+#                        INTERFACE_YML <file>  (default: interface.yml beside the CMakeLists)
+#                        INCLUDES header1.h;header2.h)
+#
+# Wraps goby_add_python_app with the conventions this project needs:
+#   - the extension module and its generated Python module land in lib/jaiabot/python, which is
+#     packaged separately from the pure-Python half because they are architecture-dependent
+#   - protobuf Python modules come from the pyjaiaprotobuf target rather than being regenerated
+#   - JAIA_PYTHON_APP_PYTHONPATH accumulates what every driver needs on its PYTHONPATH
+
+# GobyPython.cmake ships in libgoby3-dev, but only since the Goby Python bindings were added.
+# Without this check an older Goby fails twice over, on a missing include and then on an
+# undefined command, neither of which names the package that is actually behind.
+include(GobyPython OPTIONAL RESULT_VARIABLE GOBY_PYTHON_CMAKE)
+if(NOT GOBY_PYTHON_CMAKE)
+  message(FATAL_ERROR
+    "This project's Python applications need the Goby3 Python bindings, but the installed "
+    "Goby has no GobyPython.cmake. Install a libgoby3-dev that provides it, along with "
+    "python3-goby3 and pybind11-dev.")
+endif()
+
+set(JAIA_PYTHON_APP_DIR "${project_LIB_DIR}/jaiabot/python"
+  CACHE INTERNAL "Where generated Goby Python extension modules are written")
+
+function(add_jaiabot_python_app)
+  cmake_parse_arguments(args "" "TARGET;SUBDIR;INTERFACE_YML" "INCLUDES;LINK_LIBRARIES" ${ARGN})
+
+  if(NOT args_TARGET)
+    message(FATAL_ERROR "You must provide a TARGET")
+  endif()
+  if(NOT args_SUBDIR)
+    message(FATAL_ERROR "You must provide a SUBDIR")
+  endif()
+
+  if(NOT args_INTERFACE_YML)
+    set(args_INTERFACE_YML ${CMAKE_CURRENT_SOURCE_DIR}/interface.yml)
+  endif()
+
+  goby_add_python_app(
+    TARGET ${args_TARGET}
+    INTERFACE_YML ${args_INTERFACE_YML}
+    OUTPUT_DIRECTORY ${JAIA_PYTHON_APP_DIR}
+    INCLUDES goby/zeromq/application/single_thread.h
+             jaiabot/groups.h
+             jaiabot/messages/python_driver_config.pb.h
+             jaiabot/messages/simulator.pb.h
+             ${args_INCLUDES}
+    PROTO_MODULES jaiabot.messages.python_driver_config_pb2
+    LINK_LIBRARIES goby goby_zeromq jaiabot_messages jaiabot_python_driver_config ${args_LINK_LIBRARIES})
+
+  # the configuration and message types are resolved by name at startup, so the modules
+  # pyjaiaprotobuf generates have to exist before the app can run
+  add_dependencies(${args_TARGET} pyjaiaprotobuf)
+  target_include_directories(${args_TARGET} PRIVATE ${project_INC_DIR})
+
+  # so jaiabot_health can map this app's coroner report name to its ERROR__NOT_RESPONDING enum
+  list(APPEND PROJECT_APP_LIST ${args_TARGET})
+  set(PROJECT_APP_LIST ${PROJECT_APP_LIST} CACHE INTERNAL "project_app_list")
+endfunction()

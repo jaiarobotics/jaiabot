@@ -171,6 +171,8 @@ jaia ip chf15
 - jaiabot-rootfs-gen_build-date: Fri 08 Dec 2023 02:20:27 UTC
 - jaiabot-rootfs-gen_build-unixtime: 1702002064
 
+CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for GovCloud), then copies it, with these tags, to each region listed in the `ami_copy_regions` parameter of the `aws-sync` job — currently `ca-central-1`. Since lookups are by tag rather than by AMI ID, `create_vpc.sh` and `create-virtualfleet.yml` resolve the image the same way in every region. To add a region, add it to that parameter; AMIs cannot be copied between the commercial and GovCloud partitions, so each partition needs its own build.
+
 ### VPC components (including Instances)
 - Name: jaia__COMPONENT__CUSTOMER_NAME: COMPONENT is VPC, Subnet, SecurityGroup, etc.
 - jaia_customer: CUSTOMER_NAME

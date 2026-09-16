@@ -1,0 +1,173 @@
+# CircleCI permissions for the VirtualFleet sea trial
+
+The `JaiaCircleCI` role builds and publishes images. Standing up a CloudHub and
+VirtualFleet needs a different set of permissions again: VPC networking, an
+Elastic IP, a data bucket, and the CloudHub's own IAM role and instance profile.
+
+`sea-trial-policy.json.in` is that additional set, as a managed policy to attach
+alongside the existing four. It does not replace or narrow any of them — the
+image-build and `import-image` paths that `2.y` and `3.y` share are untouched.
+
+Render the placeholders before creating the policy:
+
+```
+sed -e 's/{{REGION}}/ca-central-1/g' \
+    -e 's/{{ACCOUNT_ID}}/<account>/g' \
+    -e 's/{{ARN_PREFIX}}/arn:aws/g' \
+    -e 's/{{FLEET_ID}}/9/g' \
+    sea-trial-policy.json.in > /tmp/sea-trial-policy.json
+
+aws iam create-policy --policy-name JaiaCircleCISeaTrial \
+    --policy-document file:///tmp/sea-trial-policy.json
+aws iam attach-role-policy --role-name JaiaCircleCI \
+    --policy-arn arn:aws:iam::<account>:policy/JaiaCircleCISeaTrial
+```
+
+## Running the trial
+
+The trial runs as the `sea-trial-virtualfleet` job in the `commit` workflow, on the
+same filter as `aws-sync` - every `3.y` commit and every tag - and requires it, since
+that is what builds and copies the AMI being trialled. Every image that reaches an AMI
+is therefore trialled, on the build that produced it.
+
+A CI fleet is one reserved id, so trials queue rather than collide. A trial holds the
+fleet for about a quarter of an hour and a day's merges can reach `aws-sync` together,
+so the wait tolerates a few queued ahead before giving up.
+
+The parameters - `sea-trial-bots`, `sea-trial-goals`, `sea-trial-warp`,
+`sea-trial-repo` and `sea-trial-keep-fleet` - are for triggering a pipeline by hand to
+reproduce a failure. `sea-trial-keep-fleet` leaves the fleet up for inspection; the
+reaper still clears it on the next run.
+
+### Running it by hand
+
+From the CircleCI UI, use *Trigger Pipeline* on the project, or over the API:
+
+```
+curl -X POST https://circleci.com/api/v2/project/gh/jaiarobotics/jaiabot/pipeline \
+     -H "Circle-Token: $CIRCLECI_TOKEN" -H 'Content-Type: application/json' \
+     -d '{"branch": "3.y", "parameters": {"sea-trial-warp": 5}}'
+```
+
+A pipeline only accepts parameters the config *on that branch* declares, so a branch
+that predates these has to be triggered without them.
+
+Trialling from a feature branch needs `sea-trial-repo`: the repo a branch maps to is
+`test`, and no `test` AMI is published, so the run would stop at the image lookup.
+Name a published one instead:
+
+```
+     -d '{"branch": "my-branch",
+          "parameters": {"sea-trial-repo": "continuous"}}'
+```
+
+That trials the newest `continuous` image with this branch's scripts, which is what
+you want when changing the trial itself rather than the image.
+
+The job installs `jaiabot-apps` and `jaiabot-python` from packages.jaia.tech for the
+repo and version this commit built, because `jaia admin fleet create_cloudhub`
+dispatches to the copy in `/usr/bin`: tooling from another commit writes answers the
+image's packages no longer accept.
+
+The VirtualFleet playbooks are not copied up: `jaiabot-config` puts them in
+`/usr/share/jaiabot/config/ansible` on the CloudHub, so the ones that run are the
+image's own.
+
+## The fleet config
+
+`jaia admin fleet create` is interactive, and a config checked into the repository would
+mean private keys checked into the repository, so CI writes one per run:
+
+```
+./make-ci-fleet-config.sh --fleet 9 --bots 2 --warp 5 /tmp/ci-fleet9.cfg
+```
+
+It generates the hub keys and, unless given `--authorized-key`, the runner's own key, so
+the fleet is reachable only by the run that created it and the keys go away with it.
+
+## Sharing one fleet
+
+A CI fleet is a single reserved ID, and `create_vpc.sh` will not build a second VPC for
+a fleet that already has one. Overlapping runs therefore queue: the job waits up to
+thirty minutes for the fleet to be released before giving up, naming whoever holds it
+while it waits.
+
+```
+./wait-for-free-fleet.sh --timeout-minutes 30 9
+```
+
+Teardown is scoped the same way. `delete_vpc.sh --customer` refuses a fleet whose
+`jaia_customer` tag says it belongs to another run, so a job that fails before creating
+anything cannot tear down the fleet a concurrent one is still using.
+
+## Collecting the fleet's logs
+
+A bot's debug logs are text, and `jaiabot-predataoffload.sh` excludes `*.txt*` from the
+offload, so nothing a bot says about its own health ever leaves it by that route. Only
+the CloudHub reaches the VirtualFleet, so the journals are pulled from there:
+
+```
+./collect-fleet-logs.sh --fleet 9 --bots 2 /tmp/sea-trial/fleet-logs
+```
+
+It resolves each node with `jaia_ip` and dumps the units that decide a bot's health -
+`goby_coroner` judges whether every app is alive, `jaiabot_health` turns that into the
+report `jaiabot_mission_manager` self-tests against.
+
+The journals only carry what those apps chose to print at `WARN`. The report itself is
+logged as a message, so it can be read back in full:
+
+```
+goby log convert --input_file bot1_fleet9_20260915T230500.goby \
+    --output_file bot1-health.txt --format DEBUG_TEXT --type_regex '.*VehicleHealth'
+```
+
+That is what recovers a fault which has already cleared by the time anything polls
+`BotStatus`. A bot keeps its own log until the offload moves it to the hub, so the
+script tries the bot first and falls back to the hub's `bot_offload` copy.
+
+CI runs all of this before teardown, under `when: always`, so a failed run still yields it.
+
+## Deleting the bucket
+
+`delete_vpc.sh` never deletes a CloudHub's data bucket: a fleet's logs normally outlive
+the fleet that wrote them. A CI fleet's do not, so its teardown deletes the bucket in a
+separate step:
+
+```
+./delete-ci-bucket.sh 9
+```
+
+It refuses any bucket whose `jaia_customer` tag does not mark it as CI's, so the same
+command pointed at a customer fleet's number does nothing.
+
+## Why it is scoped the way it is
+
+Sea trials share an account with customer fleets, so the region is the boundary:
+every EC2 statement carries an `aws:RequestedRegion` condition, and a bug that
+reaches for a VPC or Elastic IP outside that region is denied rather than
+destructive. The bucket and IAM statements name the reserved fleet directly,
+since neither S3 nor IAM has a region to condition on.
+
+## The permissions boundary
+
+`create_vpc.sh` creates the CloudHub's role and writes its inline policy. Granting
+that as `iam:CreateRole` + `iam:PutRolePolicy` + `iam:PassRole` would let anything
+holding the CircleCI role mint a role with permissions of its choosing and hand it
+to an EC2 instance — an escalation out of the region boundary above.
+
+`cloudhub-boundary-policy.json` closes that: create it as `JaiaCloudHubBoundary`,
+and the sea-trial policy then permits role creation *only* when that boundary is
+attached. The boundary allows EC2 and the fleet data buckets and nothing else, so
+a CloudHub role cannot be given IAM permissions whatever its inline policy says.
+
+`create_vpc.sh` attaches it when `CLOUDHUB_PERMISSIONS_BOUNDARY` names a policy, so
+the CI fleet config sets `CLOUDHUB_PERMISSIONS_BOUNDARY=JaiaCloudHubBoundary`, or
+`jaia admin fleet create_cloudhub --permissions-boundary JaiaCloudHubBoundary`.
+Create the boundary before attaching the sea-trial policy: with the policy attached
+and no boundary named, every `CreateRole` call is denied.
+
+```
+aws iam create-policy --policy-name JaiaCloudHubBoundary \
+    --policy-document file://cloudhub-boundary-policy.json
+```

@@ -1,1 +1,0 @@
--t $imu_type -p $udp_gateway_port

@@ -9,4 +9,4 @@ $environment
 ExecStart=/bin/bash -c "exec /usr/sbin/gpsd $$($gen gpsd)"
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=jaiabot_health.service

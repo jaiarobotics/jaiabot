@@ -1,0 +1,16 @@
+application:
+  name: JaiabotDriverPam
+  cpp_type: goby::zeromq::SingleThreadApplication
+  config:
+    scheme: PROTOBUF
+    type: jaiabot.config.PamDriver
+
+interprocess:
+  publishes:
+    - group: jaiabot::groups::pam
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.PamData
+  subscribes:
+    - group: jaiabot::groups::pam
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.PamCommand

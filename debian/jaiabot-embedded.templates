@@ -1,11 +1,11 @@
 Template: jaiabot-embedded/debconf_state_common
 Type: select
-Choices: type, fleet_id, led_type, electronics_stack, comms_links, mode, warp, rf_encryption_password, dccl_encryption_password, NEXT
+Choices: type, fleet_id, led_type, electronics_stack, rf_encryption_password, dccl_encryption_password, comms_links, mode, warp, NEXT
 Description: Choose a common option to edit
 
 Template: jaiabot-embedded/debconf_state_bot
 Type: select
-Choices: BACK, bot_id, bot_vin, arduino_type, tail_serial_number, pam_connection_type, imu_type, bot_type, data_offload_ignore_type, imu_install_type, temperature_sensor_type, pressure_sensor_type, motor_harness_type, camera_positions, additional_sensors, EXIT
+Choices: BACK, bot_id, bot_vin, arduino_type, tail_serial_number, bot_type, pam_connection_type, imu_type, data_offload_ignore_type, imu_install_type, temperature_sensor_type, pressure_sensor_type, motor_harness_type, camera_positions, additional_sensors, EXIT
 Description: Choose a bot option to edit
 
 Template: jaiabot-embedded/debconf_state_hub
@@ -18,6 +18,49 @@ Type: select
 Choices: bot, hub
 Description: Is this a bot or a hub?
   This choice will determine which applications will be configured to launch with systemd.
+
+Template: jaiabot-embedded/fleet_id
+Type: string
+Default: 0
+Description: Fleet identification number
+  This is used to set the correct value in the jaiabot configuration.
+  Valid fleet ids are 0 to 4000, as reported by "jaia admin bounds --fleet_id";
+  those above 250 are addressed with IPv6 rather than IPv4.
+  To change in the future, run "sudo dpkg-reconfigure jaiabot-embedded"
+
+Template: jaiabot-embedded/fleet_id_invalid
+Type: error
+Description: Invalid fleet identification number
+  The fleet_id must be a whole number in the range reported by
+  "jaia admin bounds --fleet_id". Please enter one in that range.
+
+Template: jaiabot-embedded/led_type
+Type: select
+Choices: hub_led, none
+Default: none
+Description: What type of leds does your system have?
+
+Template: jaiabot-embedded/electronics_stack
+Type: select
+Choices: 0, 1, 2
+Default: 0
+Description: What type of electronics stack do you have?
+
+Template: jaiabot-embedded/rf_encryption_password
+Type: string
+Default:
+Description: Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex
+
+Template: jaiabot-embedded/dccl_encryption_password
+Type: string
+Default:
+Description: Encryption passphrase for DCCL (intervehicle) messages: can be any string.
+
+Template: jaiabot-embedded/comms_links
+Type: multiselect
+Choices: xbee, wifi, iridium
+Default: xbee
+Description: Which comms links to activate?
 
 Template: jaiabot-embedded/mode
 Type: select
@@ -54,6 +97,77 @@ Description: Bot Vehicle Identification Number (VIN)
   Unique identifier for this physical bot.
   To change in the future, run "sudo dpkg-reconfigure jaiabot-embedded"
 
+Template: jaiabot-embedded/arduino_type
+Type: select
+Choices: spi, usb, none
+Default: none
+Description: What type of Arduino connection does this bot have?
+
+Template: jaiabot-embedded/tail_serial_number
+Type: string
+Default:
+Description: What is the serial number of this bot's tail unit?
+
+Template: jaiabot-embedded/bot_type
+Type: select
+Choices: hydro, pam, bio, none
+Default: hydro
+Description: What type of bot is your system?
+
+Template: jaiabot-embedded/pam_connection_type
+Type: select
+Choices: uart, usb, none
+Default: none
+Description: What type of PAM connection does this bot have?
+
+Template: jaiabot-embedded/imu_type
+Type: select
+Choices: bno085, none
+Default: bno085
+Description: What type of imu does your system have?
+
+Template: jaiabot-embedded/data_offload_ignore_type
+Type: select
+Choices: goby, taskpacket, none
+Default: none
+Description: What data types to ignore when sending data to the hub?
+
+Template: jaiabot-embedded/imu_install_type
+Type: select
+Choices: embedded, retrofit, none
+Default: embedded
+Description: What type of imu installation does your system have?
+
+Template: jaiabot-embedded/temperature_sensor_type
+Type: select
+Choices: bar02, bar30, tsys01, none
+Default: bar30
+Description: What temperature sensor do you want to use?
+
+Template: jaiabot-embedded/pressure_sensor_type
+Type: select
+Choices: bar02, bar30, none
+Default: bar30
+Description: What pressure sensor do you have?
+
+Template: jaiabot-embedded/motor_harness_type
+Type: select
+Choices: rpm_and_thermistor, none
+Default: none
+Description: What type of motor harness does your bot have?
+
+Template: jaiabot-embedded/camera_positions
+Type: multiselect
+Choices: aft, fore, outward, none
+Default: none
+Description: Which camera positions?
+
+Template: jaiabot-embedded/additional_sensors
+Type: multiselect
+Choices: turner_c_flour, aml, ppk, none
+Default: none
+Description: Which additional sensors?
+
 Template: jaiabot-embedded/hub_id
 Type: string
 Default: 0
@@ -68,122 +182,8 @@ Description: Invalid hub identification number
   The hub_id must be a whole number in the range reported by
   "jaia admin bounds --hub_id". Please enter one in that range.
 
-Template: jaiabot-embedded/fleet_id
-Type: string
-Default: 0
-Description: Fleet identification number
-  This is used to set the correct value in the jaiabot configuration.
-  Valid fleet ids are 0 to 4000, as reported by "jaia admin bounds --fleet_id";
-  those above 250 are addressed with IPv6 rather than IPv4.
-  To change in the future, run "sudo dpkg-reconfigure jaiabot-embedded"
-
-Template: jaiabot-embedded/fleet_id_invalid
-Type: error
-Description: Invalid fleet identification number
-  The fleet id must be a whole number in the range reported by
-  "jaia admin bounds --fleet_id". Please enter one in that range.
-
-Template: jaiabot-embedded/arduino_type
-Type: select
-Default: none
-Choices: spi, usb, none
-Description: What type of Arduino connection does this bot have?
-
-Template: jaiabot-embedded/pam_connection_type
-Type: select
-Default: none
-Choices: uart, usb, none
-Description: What type of PAM connection does this bot have?
-
-Template: jaiabot-embedded/led_type
-Type: select
-Choices: hub_led, none
-Default: none
-Description: What type of leds does your system have?
-
-Template: jaiabot-embedded/electronics_stack
-Type: select
-Choices: 0, 1, 2
-Default: 0
-Description: What type of electronics stack do you have?
-
 Template: jaiabot-embedded/user_role
 Type: select
 Choices: user, advanced, developer
 Default: user
 Description: The user role to be set in the Upgrade UI (this sets which Ansible playbooks are visible to the user).
-
-Template: jaiabot-embedded/imu_type
-Type: select
-Choices: bno085, none
-Default: bno085
-Description: What type of imu does your system have?
-
-Template: jaiabot-embedded/bot_type
-Type: select
-Choices: hydro, pam, bio, none
-Default: hydro
-Description: What type of bot is your system?
-
-Template: jaiabot-embedded/data_offload_ignore_type
-Type: select
-Choices: goby, taskpacket, none
-Default: none
-Description: What data types to ignore when sending data to the hub?
-
-Template: jaiabot-embedded/imu_install_type
-Type: select
-Choices: embedded, retrofit, none
-Default: embedded
-Description: What type of imu installation does your system have?
-
-Template: jaiabot-embedded/motor_harness_type
-Type: select
-Choices: rpm_and_thermistor, none
-Default: none
-Description: What type of motor harness does your bot have?
-
-Template: jaiabot-embedded/temperature_sensor_type
-Type: select
-Choices: bar02, bar30, tsys01, none
-Default: bar30
-Description: What temperature sensor do you want to use?
-
-Template: jaiabot-embedded/pressure_sensor_type
-Type: select
-Choices: bar02, bar30, none
-Default: bar30
-Description: What pressure sensor do you have?
-
-Template: jaiabot-embedded/rf_encryption_password
-Type: string
-Default:
-Description: Encryption key for XBee radio: 128-bit value (up to 16 bytes) as hex
-
-Template: jaiabot-embedded/comms_links
-Type: multiselect
-Choices: xbee, wifi, iridium
-Default: xbee
-Description: Which comms links to activate?
-
-Template: jaiabot-embedded/camera_positions
-Type: multiselect
-Choices: aft, fore, outward, none
-Default: none
-Description: Which camera positions?
-
-Template: jaiabot-embedded/dccl_encryption_password
-Type: string
-Default:
-Description: Encryption passphrase for DCCL (intervehicle) messages: can be any string.
-
-Template: jaiabot-embedded/additional_sensors
-Type: multiselect
-Choices: turner_c_flour, aml, ppk, none
-Default: none
-Description: Which additional sensors?
-
-Template: jaiabot-embedded/tail_serial_number
-Type: string
-Default: 
-Description: What is the serial number of this bot's tail unit?

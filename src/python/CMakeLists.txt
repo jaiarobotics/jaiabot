@@ -1,3 +1,5 @@
+include(JaiaPythonApp)
+
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/adafruit DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/arduino DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/camera DESTINATION ${project_SHARE_DIR}/jaiabot/python/)
@@ -76,9 +78,20 @@ endif()
 #  DEPENDS ${pyjaiaprotobuf_outdir}/src/jaiabot/messages/jaia_dccl_pb2.py
 #  )
 
+add_subdirectory(tsys01_temperature_sensor)
+add_subdirectory(atlas_scientific_ezo_ec)
+add_subdirectory(pressure_sensor)
+add_subdirectory(ubx_ppk)
+add_subdirectory(adafruit)
+add_subdirectory(pam)
+
 # venv is excluded because pip hardcodes this machine's absolute paths into the console
 # scripts it generates, so a packaged venv would be broken on the target. Instead,
 # jaiabot-python.postinst builds the venv when the package is installed.
 install(DIRECTORY ${project_SHARE_DIR}/jaiabot/python DESTINATION share/jaiabot USE_SOURCE_PERMISSIONS
   PATTERN "venv" EXCLUDE
   )
+
+# architecture-dependent, so packaged apart from the pure-Python half above
+install(DIRECTORY ${JAIA_PYTHON_APP_DIR} DESTINATION lib/jaiabot USE_SOURCE_PERMISSIONS
+  PATTERN "*.cpp" EXCLUDE)

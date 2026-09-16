@@ -383,6 +383,11 @@ OUTPUT_METADATA=$(echo $OUTPUT_IMAGE_PATH | sed "s/\.img$/\.metadata\.txt/")
 # Copy the cloud init info to the boot partition where it is more easily modified on a Windows machine
 sudo mkdir -p "$BOOT_PARTITION"/jaiabot/init
 sudo cp "$ROOTFS_PARTITION"/etc/jaiabot/init/first-boot.preseed.yml.j2 "$BOOT_PARTITION"/jaiabot/init
+# The fleet config tool of this release, so that a major upgrade from an older
+# release generates the first boot files with matching template, schema and migrations
+sudo mkdir -p "$BOOT_PARTITION"/jaiabot/init/fleet_config
+sudo cp "$ROOTFS_PARTITION"/usr/bin/jaia-fleet-config.py "$BOOT_PARTITION"/jaiabot/init/fleet_config
+sudo cp "$ROOTFS_PARTITION"/usr/share/jaiabot/fleet_config/fleet_config.desc "$BOOT_PARTITION"/jaiabot/init/fleet_config
 
 # Write metadata
 echo "export JAIABOT_ROOTFS_GEN_TAG='$ROOTFS_BUILD_TAG'" > ${OUTPUT_METADATA}

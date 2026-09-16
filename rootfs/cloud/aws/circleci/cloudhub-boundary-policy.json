@@ -1,0 +1,20 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "CloudHubCeilingEc2",
+			"Effect": "Allow",
+			"Action": "ec2:*",
+			"Resource": "*"
+		},
+		{
+			"Sid": "CloudHubCeilingData",
+			"Effect": "Allow",
+			"Action": "s3:*",
+			"Resource": [
+				"arn:aws:s3:::jaia--cloudhub-data--fleet*",
+				"arn:aws:s3:::jaia--cloudhub-data--fleet*/*"
+			]
+		}
+	]
+}

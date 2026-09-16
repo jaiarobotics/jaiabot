@@ -5,7 +5,6 @@ from scipy.fft import dct, idct
 from numpy import std
 import numpy
 from vector3 import Vector3
-import plotly.express as px
 from imu import *
 from threading import Thread, Lock
 from time import sleep

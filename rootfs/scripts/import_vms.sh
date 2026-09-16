@@ -168,6 +168,7 @@ ALL_BOTS=(${BOTS[@]} ${EXISTING_BOTS[@]})
 ALL_HUBS=(${HUBS[@]} ${EXISTING_HUBS[@]})
 
 cat <<EOF > ${tmp_dir}/fleet.cfg
+version: $(jaia admin fleet version)
 fleet: ${FLEET}
 hubs: [$(IFS=,; echo "${ALL_HUBS[*]}")]
 bots: [$(IFS=,; echo "${ALL_BOTS[*]}")]
@@ -189,25 +190,10 @@ done)
 wlan_password: "dummy"
 service_vpn_enabled: false
 
-debconf {
-  key: "jaiabot-embedded/mode"
-  type: SELECT
-  value: "simulation"
-}
-debconf {
-  key: "jaiabot-embedded/warp"
-  type: SELECT
-  value: "10"
-}
-debconf {
-  key: "jaiabot-embedded/user_role"
-  type: SELECT
-  value: "developer"
-}
-debconf {
-  key: "jaiabot-embedded/comms_links"
-  type: MULTISELECT
-  value: "wifi"
+settings {
+  warp: 10
+  user_role: USER_ROLE_DEVELOPER
+  comms_links: COMMS_LINK_WIFI
 }
 
 EOF
