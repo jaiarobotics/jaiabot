@@ -400,9 +400,19 @@ systemctl enable lldap
 systemctl start lldap
 
 if ! $jaia_auth_lldap_bootstrap_completed; then
-    # Run the bootstrap script
-    until docker compose -f /etc/lldap/docker-compose.yaml exec lldap /app/bootstrap.sh; do sleep 1; done
-    echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
+    # -T because cloud-init gives this no TTY, and bounded because a first boot that
+    # never returns leaves the machine without the reboot that mounts overlayroot
+    for attempt in $(seq 1 120); do
+        if docker compose -f /etc/lldap/docker-compose.yaml exec -T lldap /app/bootstrap.sh; then
+            echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
+            break
+        fi
+        if (( attempt == 120 )); then
+            echo "ERROR: LLDAP bootstrap did not succeed after ${attempt} attempts" >&2
+            exit 1
+        fi
+        sleep 1
+    done
 fi
 
 mkdir -p /etc/systemd/system/authelia.service.d
@@ -412,12 +422,13 @@ Requires=lldap.service
 After=lldap.service
 
 [Service]
-ExecStartPre=-/bin/sh -c 'until nc -z localhost $lldap_ldap_port; do sleep 1; done'
+ExecStartPre=-/bin/bash -c 'for i in {1..110}; do (exec 3<>/dev/tcp/127.0.0.1/$lldap_ldap_port) 2>/dev/null && exit 0; sleep 1; done; exit 1'
 TimeoutStartSec=120
 Restart=on-failure
 RestartSec=10s
 EOF
 
+systemctl daemon-reload
 systemctl start authelia
 
 
