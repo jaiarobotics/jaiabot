@@ -6,7 +6,6 @@ one. Run with --help for the options.
 """
 
 import argparse
-import collections
 import glob
 import json
 import os
@@ -17,7 +16,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from jaia_e2e import api, checks, junit, mission
+from jaia_e2e import api, checks, junit, mission, wait
 
 ACTIVATABLE = ('PRE_DEPLOYMENT__IDLE', 'PRE_DEPLOYMENT__FAILED',
                'PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN', 'PRE_DEPLOYMENT__READY')
@@ -33,15 +32,8 @@ def log(message):
 
 
 def wait_for(predicate, timeout, what, interval, progress=None):
-    deadline = time.time() + timeout
-    while True:
-        if predicate():
-            return
-        if time.time() >= deadline:
-            detail = f': {progress()}' if progress else ''
-            raise TrialFailure(f'timed out after {timeout:.0f}s waiting for {what}{detail}')
-        log(f'  waiting for {what}' + (f' ({progress()})' if progress else ''))
-        time.sleep(interval)
+    wait.wait_for(predicate, timeout, what, interval, progress, log=log,
+                  failure=TrialFailure)
 
 
 class SeaTrial:
@@ -152,20 +144,10 @@ class SeaTrial:
                  self.args.poll_interval)
         log(f'bots {bots} underway')
 
-    def dives_so_far(self):
-        """Dives counted from the packets the hub holds; short states fall between polls."""
-        packets = self.hub.task_packets('all', start_time=self.started_at and
-                                        int(self.started_at * 1e6))
-        if packets is None:
-            return None
-        return collections.Counter(p.get('bot_id') for p in packets
-                                   if p.get('type') == 'DIVE')
-
     def mission_progress(self, bots):
-        dives = self.dives_so_far()
         return '; '.join(
             f'bot {b} {(api.bot_status(self.last_status, b) or {}).get("mission_state", "?")}'
-            f' [{"?" if dives is None else dives[b]} dives]' for b in bots)
+            f' [{self.observations.dive_cycles(b)} dives]' for b in bots)
 
     def run_mission(self, bots):
         def recovered():

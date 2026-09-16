@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from jaia_e2e import api, checks, junit, mission
+from jaia_e2e import api, checks, junit, mission, wait
 
 
 class FakeTransport:
@@ -139,6 +139,45 @@ class HubApiTest(unittest.TestCase):
         self.assertEqual(len(hub.task_packets('b1')), 1)
 
 
+class WaitForTest(unittest.TestCase):
+    quiet = staticmethod(lambda *args: None)
+
+    def test_returns_as_soon_as_the_predicate_holds(self):
+        polls = []
+        wait.wait_for(lambda: polls.append(1) or len(polls) == 3, 5, 'three polls',
+                      interval=0, log=self.quiet)
+        self.assertEqual(len(polls), 3)
+
+    def test_timeout_raises_the_callers_failure_and_says_what_it_saw(self):
+        class Boom(Exception):
+            pass
+
+        with self.assertRaises(Boom) as raised:
+            wait.wait_for(lambda: False, 0.05, 'bot 1 to dive', interval=0.01,
+                          progress=lambda: 'still idle', log=self.quiet, failure=Boom)
+        self.assertIn('bot 1 to dive', str(raised.exception))
+        self.assertIn('still idle', str(raised.exception))
+
+    def test_timeout_without_a_caller_failure_is_a_WaitTimeout(self):
+        with self.assertRaises(wait.WaitTimeout):
+            wait.wait_for(lambda: False, 0.02, 'nothing', interval=0.01, log=self.quiet)
+
+    def test_a_broken_check_comes_straight_back_out(self):
+        def predicate():
+            raise NameError("name 'http_get' is not defined")
+
+        with self.assertRaises(NameError):
+            wait.wait_for(predicate, 300, 'a check that cannot pass', interval=0.01,
+                          log=self.quiet)
+
+
+class FetchPageTest(unittest.TestCase):
+    def test_no_answer_is_status_zero(self):
+        status, body = api.fetch_page('http://127.0.0.1:1/', timeout=1)
+        self.assertEqual(status, 0)
+        self.assertTrue(body)
+
+
 class ObservationsTest(unittest.TestCase):
     def test_transitions_collapse_repeats(self):
         observations = checks.Observations()
@@ -198,6 +237,38 @@ class CheckTest(unittest.TestCase):
         observations.ingest({'bots': [bot(1, checks.RECOVERY_STOPPED)]})
         result = checks.execution_checks(observations, [1], 10, {1: [(41.66, -71.27)]}, 25)
         self.assertTrue(all(c.passed for c in result), [c for c in result if not c.passed])
+
+    def test_dive_cycles_counts_a_run_of_dive_states_once(self):
+        observations = checks.Observations()
+        # two polls in the same substate, and several substates, are still one dive
+        for state in ('IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT',) + checks.DIVE_STATES:
+            observations.ingest({'bots': [bot(1, state)]})
+            observations.ingest({'bots': [bot(1, state)]})
+        self.assertEqual(observations.dive_cycles(1), 1)
+
+    def test_dive_cycles_counts_each_dive_the_bot_surfaced_between(self):
+        observations = checks.Observations()
+        for _ in range(3):
+            observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT')]})
+            for state in checks.DIVE_STATES:
+                observations.ingest({'bots': [bot(1, state)]})
+        self.assertEqual(observations.dive_cycles(1), 3)
+
+    def test_dive_cycles_counts_a_substate_polling_did_not_catch(self):
+        # DIVE_PREP is not in DIVE_STATES, and a fast warp routinely skips most of a
+        # dive; whatever substate is caught still marks the cycle
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT')]})
+        observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__TASK__DIVE__DIVE_PREP')]})
+        observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__MOVEMENT__TRANSIT')]})
+        observations.ingest({'bots': [bot(1, 'IN_MISSION__UNDERWAY__TASK__DIVE__HOLD')]})
+        self.assertEqual(observations.dive_cycles(1), 2)
+
+    def test_dive_cycles_is_zero_before_a_bot_dives(self):
+        observations = checks.Observations()
+        observations.ingest({'bots': [bot(1, checks.READY)]})
+        self.assertEqual(observations.dive_cycles(1), 0)
+        self.assertEqual(observations.dive_cycles(99), 0)
 
     def test_station_keeping_at_the_recovery_point_counts_as_recovered(self):
         observations = checks.Observations()

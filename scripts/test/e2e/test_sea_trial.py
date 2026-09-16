@@ -56,7 +56,7 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
             self.assertTrue(os.path.exists(path), f'{name} was not written')
             self.assertGreater(os.path.getsize(path), 0, f'{name} is empty')
 
-    def test_the_progress_line_counts_the_dives_the_hub_has(self):
+    def test_the_progress_line_counts_the_dives_seen_so_far(self):
         hub_state = fake_hub.FakeHub(bots=2, dives_to_run=4)
         url, shutdown = fake_hub.serve(hub_state)
         try:
@@ -66,12 +66,16 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
             bots = trial.wait_for_fleet()
             trial.set_hub_location()
             trial.send_missions(bots)
+            # counted from the trace, so the first dive shows while the bot is in it;
+            # on a real hub no task packet exists for it until the offload
+            self.assertIn('[1 dives]', trial.mission_progress(bots))
+            trial.run_mission(bots)
             line = trial.mission_progress(bots)
             self.assertIn('bot 1 IN_MISSION', line)
+            # the count rises with the mission rather than waiting on the offload
             self.assertEqual(line.count('[4 dives]'), 2)
         finally:
             shutdown()
-        self.assertIn('[? dives]', trial.mission_progress(bots))
 
     def test_a_failed_run_still_exports_what_there_is(self):
         _, summary, directory = self.run_trial(fake_hub.FakeHub(bots=1, dives_to_run=3))

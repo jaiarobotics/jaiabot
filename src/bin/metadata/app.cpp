@@ -64,6 +64,9 @@ class Metadata : public ApplicationBase
 
 int main(int argc, char* argv[])
 {
+    // pay for the first read here, where nothing is yet waiting on a health response
+    jaiabot::metadata();
+
     return goby::run<jaiabot::apps::Metadata>(
         goby::middleware::ProtobufConfigurator<jaiabot::config::Metadata>(argc, argv));
 }
