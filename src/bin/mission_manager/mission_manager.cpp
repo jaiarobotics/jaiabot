@@ -228,14 +228,20 @@ jaiabot::apps::MissionManager::MissionManager()
         {
             if (health_considered_ok(vehicle_health))
             {
+                consecutive_failed_health_reports_ = 0;
+
                 // consider the system started when it reports a non-failed health report (as at least all the expected apps have responded)
                 machine_->process_event(statechart::EvStarted());
 
                 // TODO make SelfTest include more information?
                 machine_->process_event(statechart::EvSelfTestSuccessful());
             }
-            else
+            else if (++consecutive_failed_health_reports_ >=
+                     cfg().self_test_failed_health_reports())
             {
+                glog.is_warn() && glog << group("statechart") << "Self test failed on "
+                                       << consecutive_failed_health_reports_
+                                       << " consecutive health reports" << std::endl;
                 machine_->process_event(statechart::EvSelfTestFails());
             }
         });
