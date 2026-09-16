@@ -248,14 +248,30 @@ systemctl enable authelia
 ###########
 ## Caddy ##
 ###########
+
+# RFC 2606 and RFC 6761 reserve these names, so no public CA can ever issue for them and
+# Caddy would retry ACME forever. Its own CA serves them immediately instead, which is what
+# a CI CloudHub and a bench setup need: HTTPS that works without a real domain.
+case "$base_uri" in
+    *.invalid|*.test|*.example|*.localhost|localhost)
+        caddy_tls="tls internal"
+        echo "Serving $base_uri with Caddy's internal CA (reserved domain, no public certificate possible)"
+        ;;
+    *)
+        caddy_tls=""
+        ;;
+esac
+
 cat <<EOF > /etc/caddy/Caddyfile
 # Redirect base URL to runtime JCC
 $base_uri {
+        $caddy_tls
         redir https://run.$base_uri{uri} permanent
 }
 
 # Authelia Portal.
 auth.$base_uri {
+        $caddy_tls
         reverse_proxy localhost:$authelia_port
 }
 
@@ -268,18 +284,21 @@ auth.$base_uri {
 }
 
 users.$base_uri {
+        $caddy_tls
         import authelia_forward_auth
         reverse_proxy :$lldap_web_port
 }
 
 # Runtime JCC
 run.$base_uri {
+        $caddy_tls
         import authelia_forward_auth
         reverse_proxy [$ch_ip]:$jcc_port
 }
 
 # VirtualFleet JCC
 sim.$base_uri {
+        $caddy_tls
         import authelia_forward_auth
         reverse_proxy [$vh1_ip]:80
 }
