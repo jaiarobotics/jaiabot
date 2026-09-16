@@ -247,6 +247,7 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "3.y"
+        - "feature/3.y/authelia-ci-local-tls/sw-2333"
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
@@ -254,6 +255,7 @@ filter-template-normal-builds: &filter-template-normal-builds
     branches:
       ignore:
         - "3.y"
+        - "feature/3.y/authelia-ci-local-tls/sw-2333"
 
 # which branches to run the pi-zero filesystem builds
 filter-template-pi0-rootfs-builds: &filter-template-pi0-rootfs-builds
@@ -272,6 +274,7 @@ filter-template-rootfs-builds: &filter-template-rootfs-builds
     branches:
       only:
         - "3.y"
+        - "feature/3.y/authelia-ci-local-tls/sw-2333"
 
 # which branches to run the AWS virtual machine conversion (must be same as or subset of filter-template-rootfs-builds)
 filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
@@ -281,6 +284,7 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
     branches:
       only:
         - "3.y"
+        - "feature/3.y/authelia-ci-local-tls/sw-2333"
 
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
@@ -685,11 +689,46 @@ jobs:
               --region "${AWS_DEFAULT_REGION}" \
               --repo "${JAIA_CI_REPO}" \
               --permissions-boundary JaiaCloudHubBoundary \
+              --instance-type t3a.small \
               --virtualfleet-instance-type t3a.small \
               --output-json /tmp/sea-trial/cloudhub.json \
               --jaiabot-dir "${PWD}" \
               --aws-profile OIDC-User
           no_output_timeout: 30m
+      - run:
+          name: Check the CloudHub auth front end is serving
+          command: |
+            CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
+            BASE_URI=fleet${JAIA_CI_FLEET}.ci.invalid
+            # A reserved domain resolves nowhere and Caddy signs it with its own CA, so
+            # curl is pointed at the loopback with the right Host and told not to verify.
+            # First boot is still settling when this runs, hence the retries.
+            check() {
+              ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
+                "curl -sS -k -o /dev/null -w '%{http_code}' --max-time 10 \
+                   --resolve $1.${BASE_URI}:443:127.0.0.1 https://$1.${BASE_URI}/"
+            }
+            for attempt in $(seq 1 30); do
+              portal=$(check auth || true)
+              [ "${portal}" = "200" ] && break
+              echo "attempt ${attempt}: auth portal returned '${portal}', waiting"
+              sleep 10
+            done
+            protected=$(check run || true)
+            echo "auth portal: ${portal}, protected JCC: ${protected}" \
+              | tee /tmp/sea-trial/auth-check.txt
+            if [ "${portal}" != "200" ]; then
+              echo "ERROR: Authelia portal did not come up behind Caddy" >&2
+              exit 1
+            fi
+            # Unauthenticated JCC must not be served: forward_auth turns Authelia's
+            # refusal into a redirect to the portal, or passes the 401 through
+            case "${protected}" in
+              200) echo "ERROR: JCC served without authentication" >&2; exit 1 ;;
+              30[0-9]|401) echo "JCC is protected (${protected})" ;;
+              *) echo "ERROR: unexpected status ${protected} from protected JCC" >&2; exit 1 ;;
+            esac
+
       - run:
           name: Raise the VirtualFleet from the same AMI
           command: |
