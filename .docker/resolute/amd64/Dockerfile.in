@@ -41,6 +41,9 @@ RUN apt-get update && \
             libgoby3-moos:amd64 \
             libgoby3-gui-dev:amd64 \
             goby3-interfaces:amd64 \
+            python3-goby3 \
+            pybind11-dev \
+            libpython3-dev:amd64 \
             libnanopb-dev:amd64 \
             nanopb:amd64 \
             python3-protobuf:amd64 \

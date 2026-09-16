@@ -4,15 +4,10 @@
 from io import BufferedReader
 import socket
 import logging
-import argparse
-import time
 
-from jaiabot.messages.udp_gateway_pb2 import UDPGatewayEnvelope
-from jaiabot.messages.ppk_pb2 import UBXChunk
 
 
 lg = logging.getLogger(__name__)
-logging.basicConfig(format='%(levelname)7s %(message)s', level=logging.WARNING)
 
 
 def verify_checksum(packet: bytes) -> bool:
@@ -97,12 +92,16 @@ class GPSDClient:
         f.write(b'?WATCH={"enable":true,"raw": 2}\n')
         lg.debug("watch response: %s", f.readline().strip())
 
+        self.sock.setblocking(False)
         self.extractor = UBXMessageExtractor()
 
 
     def read_messages(self) -> list[bytes]:
-        """Read from GPSD and extract complete UBX messages."""
-        chunk = self.sock.recv(1024)
+        """Read whatever GPSD has ready and extract complete UBX messages."""
+        try:
+            chunk = self.sock.recv(1024)
+        except BlockingIOError:
+            return []
         if not chunk:
             raise ConnectionError("GPSD connection closed")
 
@@ -114,15 +113,12 @@ class GPSDClientSimulator:
     """Simulate GPSD by reading from a local file."""
     extractor: UBXMessageExtractor
     file: BufferedReader
-    delay: float
 
-    def __init__(self, file_path, delay=1.0):
+    def __init__(self, file_path):
         self.extractor = UBXMessageExtractor()
         self.file = open(file_path, "rb")
-        self.delay = delay
 
     def read_messages(self) -> list[bytes]:
-        time.sleep(self.delay)
         chunk = self.file.read(1024)
         if not chunk:
             lg.info("End of file reached")
@@ -132,64 +128,3 @@ class GPSDClientSimulator:
     
     def __del__(self):
         self.file.close()
-
-
-def main():
-    parser = argparse.ArgumentParser(description="UBX PPK GPSD Client")
-    parser.add_argument("-host", "--udp_host", type=str, default="localhost", help="The hostname of the jaiabot_udp_gateway to send UBX messages to")
-    parser.add_argument("-p", "--udp_port", type=int, help="The port of the jaiabot_udp_gateway to send UBX messages to")
-
-    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
-    parser.add_argument("-o", "--output", type=str, help="Output file for raw UBX messages")
-    parser.add_argument("-i", "--input", type=str, help="Simulate GPSD by reading from a local file instead of connecting to GPSD")
-
-    args = parser.parse_args()
-
-    if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    if args.output:
-        output_file = open(args.output, "wb")
-        lg.info(f"Writing raw UBX messages to {args.output}")
-    else:
-        output_file = None
-
-
-    if args.udp_port:
-        lg.debug(f"Connecting to UDP gateway at {args.udp_host}:{args.udp_port}")
-        udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_dest = (args.udp_host, args.udp_port)
-    else:
-        udp_sock = None
-        udp_dest = None
-
-
-    if args.input:
-        gpsd_client = GPSDClientSimulator(args.input)
-    else:
-        gpsd_client = GPSDClient()
-
-
-    while True:
-        try:
-            messages = gpsd_client.read_messages()
-        except EOFError:
-            lg.info("End of input reached, exiting")
-            break
-
-        for msg in messages:
-            lg.debug(f"Received complete UBX message of length {len(msg)}: {msg[:4].hex()}")
-
-            if output_file:
-                output_file.write(msg)
-                output_file.flush()
-
-            if udp_sock and udp_dest:
-                lg.debug(f"Sending UBX message of length {len(msg)} to UDP gateway")
-                envelope = UDPGatewayEnvelope(ubx_chunk=UBXChunk(data=msg))
-                udp_sock.sendto(envelope.SerializeToString(), udp_dest)
-
-
-if __name__ == "__main__":
-    main()
-

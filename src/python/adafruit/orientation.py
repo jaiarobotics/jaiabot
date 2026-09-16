@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Orientation:
-    heading: float
+    heading: float | None
     pitch: float
     roll: float
 

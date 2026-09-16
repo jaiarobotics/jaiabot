@@ -1,0 +1,6 @@
+$app_block
+$interprocess_block
+
+simulate: $simulate
+status_frequency: $status_frequency
+serial_device: "$serial_device"

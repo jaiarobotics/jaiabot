@@ -1,0 +1,16 @@
+application:
+  name: JaiabotDriverPressure
+  cpp_type: goby::zeromq::SingleThreadApplication
+  config:
+    scheme: PROTOBUF
+    type: jaiabot.config.PressureDriver
+
+interprocess:
+  publishes:
+    - group: jaiabot::groups::pressure_temperature
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.PressureTemperatureData
+  subscribes:
+    - group: jaiabot::groups::sim_environment
+      scheme: PROTOBUF
+      type: jaiabot.protobuf.SimEnvironment

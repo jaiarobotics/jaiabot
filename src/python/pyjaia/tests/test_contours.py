@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import pyjaia
+import pyjaia.contours
 from pprint import *
 
 

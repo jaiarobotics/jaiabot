@@ -257,4 +257,9 @@ message MissionManager
         
     optional int32 min_subsurface_current_vector_hold_time = 95 [default = 10];
     optional int32 min_subsurface_current_vector_drift_time = 96 [default = 15];
+
+    // Consecutive failed health reports before the self test fails. An app busy with
+    // its own startup can miss a single coroner request and be reported as died, which
+    // is not grounds for failing a bot that has to be activated again to clear.
+    optional uint32 self_test_failed_health_reports = 97 [default = 2];
 }

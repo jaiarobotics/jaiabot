@@ -1,13 +1,15 @@
-To test the sensor, you can run:
+To test the sensor, run the driver against a running `gobyd`:
 
    ```bash
-   ./jaiabot_pressure_sensor.py
+   jaiabot_driver_pressure.py -C 'jaia dev gen bot.py jaiabot_driver_pressure'
    ```
 
-This publishes `PressureTemperatureData` to the `jaiabot_udp_gateway` UDP port (default 20000). To watch the output without the gateway running, listen on that port with:
+It publishes `PressureTemperatureData` on the `jaiabot::pressure_temperature` group. To watch
+the output, subscribe to that group with `goby_liaison`, or raise the driver's own verbosity:
 
    ```bash
-   nc -u -l 20000
+   jaiabot_driver_pressure.py -C '...' --app 'glog_config { tty_verbosity: DEBUG1 }'
    ```
 
-Use `-p`/`--udp_gateway_port` to send to a different port, and `-l DEBUG` for more verbose logging. See `./jaiabot_pressure_sensor.py --help` for all options.
+Set `simulate: true` in the configuration to take readings from `jaiabot_simulator`'s water
+column instead of hardware. See `jaiabot_driver_pressure.py --help` for all options.

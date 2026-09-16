@@ -44,7 +44,8 @@ class IMUReading:
         """
         imu_data = IMUData()
         if self.orientation is not None:
-            imu_data.euler_angles.heading = self.orientation.heading
+            if self.orientation.heading is not None:
+                imu_data.euler_angles.heading = self.orientation.heading
             imu_data.euler_angles.pitch = self.orientation.pitch
             imu_data.euler_angles.roll = self.orientation.roll
             # check if the bot rolled over
