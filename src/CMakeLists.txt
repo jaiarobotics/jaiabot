@@ -30,6 +30,11 @@ if(build_arduino)
   add_subdirectory(arduino)
 endif()
 
+if(build_stm32)
+  include(STM32Compile)
+  add_subdirectory(stm32)
+endif()
+
 if(build_web)
   add_subdirectory(web)
 endif()

@@ -464,7 +464,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
             //takes data from one message to the next (clarified by different names)
             if (arduino_response.has_vccvoltage())
             {

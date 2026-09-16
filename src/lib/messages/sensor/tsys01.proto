@@ -1,0 +1,8 @@
+syntax = "proto2";
+
+package jaiabot.sensor.protobuf;
+
+message TSYS01
+{
+    optional double temperature = 1; // degC
+}

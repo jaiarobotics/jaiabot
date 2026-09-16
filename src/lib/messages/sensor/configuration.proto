@@ -22,4 +22,5 @@ message Configuration
         required string value = 2 [(nanopb).max_size = 64];
     }
     repeated Cfg cfg = 3 [(nanopb).max_count = 16];
+    optional SensorInstance instance = 4 [default = INSTANCE_1];
 }

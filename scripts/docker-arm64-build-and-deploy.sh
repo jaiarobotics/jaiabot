@@ -86,6 +86,10 @@ else
         # Sync all directories
         rsync -za --force --relative --delete --exclude node_modules/ --exclude venv/ ./${build_dir}/bin ./${build_dir}/include ./${build_dir}/share/ ./${build_dir}/lib ./config ./scripts ${botuser}@"$remote":/home/${botuser}/jaiabot/
 
+        # STM32 build artifacts (hex + upload.sh per sketch/nickname) are installed by
+        # CMake under ./${build_dir}/share/jaiabot/stm32/<sketchname>/<nickname>/ and are
+        # already synced above as part of ./${build_dir}/share/
+
         # Login to the target, and deploy the software
         ssh ${botuser}@"${remote}" "jaiabot_systemd_type=${jaiabot_systemd_type} jaiabot_machine_type=${jaiabot_machine_type} docker_libgoby_version=${docker_libgoby_version} docker_libdccl_version=${docker_libdccl_version} bash -c \"./jaiabot/scripts/arm64-deploy.sh ${build_dir}\""
 

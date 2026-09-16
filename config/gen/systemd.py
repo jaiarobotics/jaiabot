@@ -68,7 +68,7 @@ parser.add_argument('--rf_encryption_password', default ='', help='Encryption ke
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--additional_sensors', choices=['turner_c_fluor', 'turner_c_flour', 'turner_c_fluor_2', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 parser.add_argument('--tail_serial_number', default='unknown_serial_number', help='Tail serial number to use for this bot (defaults to "unknown_serial_number")')
 
 args=parser.parse_args()
@@ -276,6 +276,12 @@ elif cloudhub_type == CloudHubType.SECONDARY:
 
 camera_positions_in_use = args.camera_positions
 jaia_additional_sensors = args.additional_sensors
+
+# a second fluorometer implies the first: the channels are numbered, not independent, so
+# selecting only turner_c_fluor_2 would otherwise leave the base fluorometer unconfigured
+if 'turner_c_fluor_2' in jaia_additional_sensors and \
+   not ('turner_c_fluor' in jaia_additional_sensors or 'turner_c_flour' in jaia_additional_sensors):
+    jaia_additional_sensors = jaia_additional_sensors + ['turner_c_fluor']
     
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
@@ -539,8 +545,7 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__MOOS_SIM_MOOSDB',
      'runs_on': [Type.BOT],
      'runs_when': Mode.SIMULATION,
-     'service': 'jaiabot_moosdb_sim' # override default service name to avoid conflict with jaiabot_moosdb
-    },
+     'service': 'jaiabot_moosdb_sim'}, # override default service name to avoid conflict with jaiabot_moosdb
     {'exe': 'uSimMarine',
      'description': 'uSimMarine marine vehicle simulator',
      'template': 'moos-app-sim.service.in',
@@ -673,7 +678,10 @@ if 'none' not in camera_positions_in_use:
     ]
     jaiabot_apps.extend(jaiabot_apps_camera)
 
-if 'turner_c_flour' in jaia_additional_sensors:
+# on BIO bots the fluorometers are read through the payload board by jaiabot_sensors, so this
+# standalone analog driver would publish a second, indistinguishable stream on the same group
+if ('turner_c_fluor' in jaia_additional_sensors or 'turner_c_flour' in jaia_additional_sensors) \
+   and jaia_bot_type != BOT_TYPE.BIO:
     jaiabot_turner_c_fluor = [
         {'exe': 'jaiabot_turner_c_fluor_sensor_driver',
         'description': 'JaiaBot Turner C Fluor Sensor Driver',
@@ -696,6 +704,7 @@ if 'aml' in jaia_additional_sensors:
         'wanted_by': 'jaiabot_health.service'},
     ]
     jaiabot_apps.extend(jaiabot_aml_sensor)
+    
 if 'ppk' in jaia_additional_sensors:
     jaiabot_ubx_ppk = {
         'exe': 'jaiabot_ubx_ppk.py',
@@ -712,7 +721,14 @@ if 'ppk' in jaia_additional_sensors:
 
     jaiabot_apps.append(jaiabot_ubx_ppk)
 
-if jaia_temperature_sensor_type.value == 'tsys01':
+# A BIO bot reads its TSYS01 through the bio payload board instead: the STM32
+# celsius_tsys01 driver reports it over the MCU serial link to jaiabot_sensors, which
+# publishes the same TSYS01Data the UDP gateway would have -- running the Python driver
+# there too would double-publish on the jaiabot::tsys01 group. The BIO test belongs here
+# rather than in 'runs_on': that is a flat OR, so it cannot express "is a bot AND is not
+# BIO", and a hub reports BOT_TYPE.NONE as well, so any bot-type list permissive enough
+# to keep unconfigured bots would also pull this service onto hubs.
+if jaia_temperature_sensor_type.value == 'tsys01' and jaia_bot_type != BOT_TYPE.BIO:
     jaiabot_apps_tsys01 = [
         {'exe': 'jaiabot_tsys01.py',
          'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',
