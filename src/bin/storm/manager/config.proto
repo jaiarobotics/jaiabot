@@ -34,4 +34,7 @@ message StormManager
 
     optional goby.middleware.protobuf.SerialConfig mcu_serial = 30;
 
+    // caps the number of TaskPackets (Iridium messages) used to offload the ICAS parachute
+    // peripheral's air-descent data; the buffered samples are downsampled to fit this budget
+    optional int32 icas_air_descent_max_task_packets = 31 [default = 3];
 }

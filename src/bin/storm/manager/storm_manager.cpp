@@ -146,6 +146,17 @@ jaiabot::apps::StormManager::StormManager()
                 raw_pressure_.mean(), raw_pressure_.median(), raw_pressure_.stddev()));
         });
 
+    // ICAS parachute peripheral (BLE, via jaiabot_icas.py -> jaiabot_udp_gateway); buffered
+    // here for the whole mission since the peripheral's ring-buffer replay can arrive before
+    // the air_descent_data_offload self-test state is reached
+    interprocess().subscribe<jaiabot::groups::icas>(
+        [this](const jaiabot::protobuf::ICASData& data)
+        {
+            icas_samples_.push_back({goby::time::SystemClock::now<goby::time::MicroTime>(), data});
+            if (icas_samples_.size() > kMaxICASSamples)
+                icas_samples_.pop_front();
+        });
+
     // receive data from MCU
     interthread().subscribe<mcu_serial_in>([this](const goby::middleware::protobuf::IOData& io_msg)
                                            { receive_from_mcu(io_msg); });

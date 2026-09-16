@@ -1,0 +1,98 @@
+// Copyright 2026:
+//   JaiaRobotics LLC
+//
+//
+// This file is part of the JaiaBot Project Libraries
+// ("The Jaia Libraries").
+//
+// The Jaia Libraries are free software: you can redistribute them and/or modify
+// them under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 2.1 of the License, or
+// (at your option) any later version.
+//
+// The Jaia Libraries are distributed in the hope that they will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the Jaia Libraries.  If not, see <http://www.gnu.org/licenses/>.
+
+syntax = "proto2";
+
+import "dccl/option_extensions.proto";
+
+package jaiabot.protobuf;
+
+// Mirrors the JAIA-ICAS peripheral's DATA characteristic packet (18 bytes)
+message ICASData
+{
+    optional uint32 seq = 1;         // monotonic sequence id from the peripheral
+    optional int64 t_us = 2;         // peripheral system uptime (microseconds)
+    optional double temperature_celsius = 3;
+    optional double relative_humidity_percent = 4;
+    optional uint32 flags = 5;       // bitfield (0x01 = RH cropped)
+}
+
+// Mirrors the JAIA-ICAS peripheral's ADC characteristic packet (2 bytes)
+message ICASAdcData
+{
+    optional uint32 raw_value = 1; // 12-bit raw ADC counts (0-4095)
+}
+
+// Mirrors the JAIA-ICAS peripheral's STATUS characteristic packet (31+ bytes)
+message ICASStatus
+{
+    optional uint32 version = 1;
+    optional uint32 ring_buffer_count = 2;      // samples currently in the ring buffer (0-2048)
+    optional uint64 ring_buffer_overwrites = 3; // drops due to ring buffer wrap
+    optional uint32 period_ms = 4;              // measurement interval
+    optional uint32 samples_ok = 5;
+    optional uint32 samples_err = 6;
+    optional uint32 i2c_fails = 7;
+    optional bool streaming = 8;
+    optional bool dump_mode = 9;                // true while draining historical (ring buffer) data
+    optional uint64 sent_count = 10;             // total DATA notifications sent
+}
+
+// Read once from the peripheral's standard Device Information Service on connection
+message ICASMetadata
+{
+    optional string manufacturer = 1;
+    optional string model = 2;
+    optional string firmware_rev = 3;
+    optional string hardware_rev = 4;
+    optional string serial_num = 5;
+}
+
+// Downsampled chunk of ICAS air-descent samples, embedded in a TaskPacket for Iridium
+// offload during the STORM self-test air_descent_data_offload state. Mirrors
+// StormAirDescentData (storm_mcu.proto), but for the ICAS BLE peripheral's readings
+// rather than the STORM MCU's own onboard sensor.
+message StormAirDescentICASData
+{
+    option (dccl.msg) = {
+        unit_system: "si"
+    };
+
+    message Sample
+    {
+        optional float temperature = 1 [(dccl.field) = {
+            units { derived_dimensions: "temperature" system: "celsius" }
+            min: -70
+            max: 130
+            precision: 1
+        }];
+
+        optional float relative_humidity = 2 [(dccl.field) = {
+            min: 0
+            max: 100
+            precision: 1
+        }];
+    }
+
+    required uint32 packet_index = 1 [(dccl.field) = { min: 0 max: 99 }];
+
+    repeated Sample sample = 2 [(dccl.field) = { max_repeat: 50 }];
+}
+

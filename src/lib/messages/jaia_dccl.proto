@@ -13,6 +13,7 @@ import "jaiabot/messages/storm.proto";
 import "jaiabot/messages/storm_mcu.proto";
 import "jaiabot/messages/node.proto";
 import "jaiabot/messages/hub.proto";
+import "jaiabot/messages/icas.proto";
 
 package jaiabot.protobuf;
 
@@ -668,6 +669,7 @@ message TaskPacket
     {
         DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
         StormAirDescentData storm_air_descent = 12;
+        StormAirDescentICASData icas_air_descent = 13;
     }
 
     optional DriftPacket drift = 11

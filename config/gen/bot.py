@@ -76,6 +76,9 @@ salinity_enabled=(bot_type != "BIO")
 bar30_enabled=(bot_type != "BIO")
 storm_enabled=(bot_type == "STORM")
 
+jaia_additional_sensors = os.environ.get('jaia_additional_sensors', default='none').split(',')
+icas_enabled = 'icas' in jaia_additional_sensors
+
 allow_gps_error_during_pre_deployment_startup=""
 if storm_enabled:
     allow_gps_error_during_pre_deployment_startup="allow_gps_error_during_pre_deployment_startup: true"
@@ -334,7 +337,8 @@ elif common.app == 'jaiabot_udp_gateway':
                                      echo_enabled=str(echo_enabled).lower(),
                                      salinity_enabled=str(salinity_enabled).lower(),
                                      bar30_enabled=str(bar30_enabled).lower(),
-                                     tsys01_enabled=str(tsys01_enabled).lower()))
+                                     tsys01_enabled=str(tsys01_enabled).lower(),
+                                     icas_enabled=str(icas_enabled).lower()))
 elif common.app == 'jaiabot_fusion':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_fusion.pb.cfg.in',
                                      app_block=app_common,

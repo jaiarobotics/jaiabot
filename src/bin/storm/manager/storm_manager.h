@@ -23,6 +23,7 @@
 #ifndef JAIABOT_BIN_STORM_MANAGER_STORM_MANAGER_H
 #define JAIABOT_BIN_STORM_MANAGER_STORM_MANAGER_H
 
+#include <deque>
 #include <filesystem>
 
 #include <goby/middleware/marshalling/protobuf.h>
@@ -32,6 +33,7 @@
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
+#include "jaiabot/messages/icas.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
 #include "jaiabot/units/conductivity.h"
 #include "jaiabot/utils/stats.h"
@@ -52,6 +54,17 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     void send_to_mcu(const protobuf::StormMCURequest& request);
     void enqueue_task_packet(protobuf::TaskPacket task_packet);
     void acknowledge_task_packet(const protobuf::TaskPacket& task_packet);
+
+    // ICAS parachute peripheral samples accumulated over the mission (via jaiabot_icas.py ->
+    // jaiabot_udp_gateway), for offload during the air_descent_data_offload self-test state.
+    // ICASData::t_us is the peripheral's own uptime clock, not wall-clock time, so we pair each
+    // sample with the local receipt time for use in TaskPacket start/end times.
+    struct ICASSample
+    {
+        goby::time::MicroTime received_time;
+        protobuf::ICASData data;
+    };
+    const std::deque<ICASSample>& icas_air_descent_samples() const { return icas_samples_; }
 
   private:
     void initialize() override;
@@ -79,6 +92,11 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     utils::RollingStatsAccumulator<boost::units::quantity<boost::units::si::pressure>>
         raw_pressure_;
     utils::RollingStatsAccumulator<boost::units::quantity<boost::units::si::length>> gps_altitude_;
+
+    // bounded so a long mission without an air-descent offload can't grow this unboundedly;
+    // generously larger than the ICAS peripheral's own 2048-sample ring buffer
+    static constexpr std::size_t kMaxICASSamples{4096};
+    std::deque<ICASSample> icas_samples_;
 };
 
 } // namespace apps

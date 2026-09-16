@@ -86,6 +86,9 @@ class UDPGateway
     // TSYS01 data tracking
     goby::time::SteadyClock::time_point last_tsys01_data_time_{std::chrono::seconds(0)};
 
+    // ICAS data tracking
+    goby::time::SteadyClock::time_point last_icas_data_time_{std::chrono::seconds(0)};
+
     // Echo data tracking
     jaiabot::protobuf::EchoData latest_echo_data_;
     goby::time::SteadyClock::time_point last_echo_data_time_{std::chrono::seconds(0)};
@@ -219,6 +222,32 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             glog.is_debug1() && glog << "Received UBXChunk" << endl;
             break;
         }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kIcasData:
+        {
+            interprocess().publish<groups::icas>(envelope.icas_data());
+            last_icas_data_time_ = goby::time::SteadyClock::now();
+            glog.is_debug1() && glog << "Received ICASData" << endl;
+            break;
+        }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kIcasAdcData:
+        {
+            interprocess().publish<groups::icas_adc>(envelope.icas_adc_data());
+            glog.is_debug2() && glog << "Received ICASAdcData" << endl;
+            break;
+        }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kIcasStatus:
+        {
+            interprocess().publish<groups::icas_status>(envelope.icas_status());
+            glog.is_debug1() && glog << "Received ICASStatus" << endl;
+            break;
+        }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kIcasMetadata:
+        {
+            interprocess().publish<groups::icas_metadata>(envelope.icas_metadata());
+            glog.is_verbose() && glog << "Received ICASMetadata: "
+                                     << envelope.icas_metadata().ShortDebugString() << endl;
+            break;
+        }
         default:
         {
             glog.is_warn() && glog << "Received unknown payload in UDPGatewayEnvelope"
@@ -343,6 +372,17 @@ void jaiabot::apps::UDPGateway::check_last_report(
         health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
             ->add_warning(
                 protobuf::WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER);
+    }
+
+    // ICAS data timeout check
+    if (cfg().icas_enabled() && last_icas_data_time_ +
+        std::chrono::seconds(cfg().icas_data_report_timeout_seconds()) <
+        goby::time::SteadyClock::now())
+    {
+        glog.is_warn() && glog << "Timeout on ICAS data" << std::endl;
+        health_state = goby::middleware::protobuf::HEALTH__DEGRADED;
+        health.MutableExtension(jaiabot::protobuf::jaiabot_thread)
+            ->add_warning(protobuf::WARNING__NOT_RESPONDING__JAIABOT_ICAS_DRIVER);
     }
 
     // Echo data timeout check

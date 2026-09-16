@@ -64,5 +64,9 @@ message UDPGateway
     // Bar30
     optional bool bar30_enabled = 23 [default = true];
 
+    // ICAS parachute sensor peripheral
+    optional bool icas_enabled = 24 [default = false];
+    optional int32 icas_data_report_timeout_seconds = 25 [default = 60];
+
     optional bool in_simulation = 11 [default = true];
 }

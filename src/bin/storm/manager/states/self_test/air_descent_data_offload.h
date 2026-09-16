@@ -40,6 +40,7 @@ struct AirDescentDataOffload
     void loop(const EvLoop& ev);
     void try_send_to_mcu();
     void convert_air_descent_data_to_task_packets();
+    void convert_icas_data_to_task_packets();
 
   public:
     using reactions =
