@@ -282,15 +282,6 @@ filter-template-aws-rootfs-builds: &filter-template-aws-rootfs-builds
       only:
         - "3.y"
 
-# a sea trial on every release/beta tag, since that is the image customers get;
-# the nightly run comes from a scheduled pipeline instead, not from a branch filter
-filter-template-sea-trial-tags: &filter-template-sea-trial-tags
-  filters:
-    tags:
-      only: /.*/
-    branches:
-      ignore: /.*/
-
 # which branches to build Docker simulator
 filter-template-docker-sim-builds: &filter-template-docker-sim-builds
   filters:
@@ -307,11 +298,6 @@ orbs:
   aws-s3: circleci/aws-s3@4.0
 
 parameters:
-  # Set by the scheduled pipeline that runs the nightly sea trial. It selects the
-  # sea-trial workflow instead of the commit one, so a nightly does not rebuild.
-  run-sea-trial:
-    type: boolean
-    default: false
   sea-trial-bots:
     type: integer
     default: 2
@@ -321,9 +307,9 @@ parameters:
   sea-trial-warp:
     type: integer
     default: 5
-  # Which image to trial. Empty follows the branch or tag, which is what the nightly
-  # and the tag runs want; set it to trial a published image from a branch whose own
-  # packages were never published, such as a feature branch.
+  # Which image to trial. Empty follows the branch or tag, which is what a normal run
+  # wants; set it to trial a published image from a branch whose own packages were
+  # never published, such as a feature branch.
   sea-trial-repo:
     type: string
     default: ""
@@ -335,8 +321,6 @@ parameters:
 workflows:
   version: 2
   commit:
-    when:
-      not: << pipeline.parameters.run-sea-trial >>
     jobs:
       - amd64-resolute-build:
           <<: *filter-template-normal-builds
@@ -441,18 +425,11 @@ workflows:
           requires:
             - amd64-docker-sim
 
-      # a tag is an image customers get, so trial it as soon as its AMI exists
+      # every image that reaches an AMI gets trialled, on the same filter that built it
       - sea-trial-virtualfleet:
-          <<: *filter-template-sea-trial-tags
+          <<: *filter-template-aws-rootfs-builds
           requires:
             - aws-sync
-
-  # Driven by a scheduled pipeline that sets run-sea-trial, rather than by a branch
-  # filter, so the nightly does not rebuild everything first.
-  sea-trial:
-    when: << pipeline.parameters.run-sea-trial >>
-    jobs:
-      - sea-trial-virtualfleet
 
 commands:
   aws-sync-command:
@@ -672,12 +649,14 @@ jobs:
       - run:
           # a CI fleet is one reserved id, so overlapping runs queue rather than the
           # later one failing outright; the reaper above has already taken any fleet
-          # whose run is long gone
+          # whose run is long gone. A trial holds the fleet for about a quarter hour,
+          # and a day's merges can reach aws-sync together, so the wait outlasts a
+          # few of them queued ahead.
           name: Wait for the fleet to be free
           command: |
             rootfs/cloud/aws/circleci/wait-for-free-fleet.sh \
-              --timeout-minutes 30 "${JAIA_CI_FLEET}"
-          no_output_timeout: 35m
+              --timeout-minutes 60 "${JAIA_CI_FLEET}"
+          no_output_timeout: 65m
       - run:
           name: Create the CloudHub
           command: |
