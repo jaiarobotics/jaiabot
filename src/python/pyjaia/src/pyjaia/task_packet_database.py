@@ -126,17 +126,29 @@ class TaskPacketDatabase:
         processed_path = self.database_path + '/processed/'
         os.makedirs(processed_path, exist_ok=True)
 
+        quarantine_path = self.database_path + '/quarantine/'
+
         for taskpacket_fullpath in glob.glob(self.taskpacket_files_path + '*.taskpacket'):
             l.info(f'Loading modified taskpacket file: {taskpacket_fullpath}')
-            for line in open(taskpacket_fullpath):
-                try:
-                    taskPacket: Dict = json.loads(line)
-                    self._add_task_packet(taskPacket)
-                except json.JSONDecodeError as e:
-                    l.warning(f"Error decoding JSON line: {line} because {e}")
+            taskpacket_filename = os.path.basename(taskpacket_fullpath)
+
+            try:
+                for line in open(taskpacket_fullpath, encoding='utf-8'):
+                    try:
+                        taskPacket: Dict = json.loads(line)
+                        self._add_task_packet(taskPacket)
+                    except json.JSONDecodeError as e:
+                        l.warning(f"Error decoding JSON line: {line} because {e}")
+            except (UnicodeDecodeError, OSError) as e:
+                # Not a valid text/JSON taskpacket file (e.g. truncated during an offload) - quarantine it
+                # instead of letting it crash every future _update() call.
+                l.error(f"Quarantining unreadable taskpacket file {taskpacket_fullpath}: {e}")
+                os.makedirs(quarantine_path, exist_ok=True)
+                shutil.move(taskpacket_fullpath, quarantine_path + taskpacket_filename)
+                self.task_packets_version += 1
+                continue
 
             # Move file to prevent us from finding it again next time (speeds things up significantly)
-            taskpacket_filename = os.path.basename(taskpacket_fullpath)
             shutil.move(taskpacket_fullpath, processed_path + taskpacket_filename)
             self.task_packets_version += 1
         
