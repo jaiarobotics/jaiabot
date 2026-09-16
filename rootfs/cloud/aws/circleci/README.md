@@ -25,31 +25,28 @@ aws iam attach-role-policy --role-name JaiaCircleCI \
 
 ## Running the trial
 
-The trial runs as the `sea-trial-virtualfleet` job, from two places:
+The trial runs as the `sea-trial-virtualfleet` job in the `commit` workflow, on the
+same filter as `aws-sync` - every `3.y` commit and every tag - and requires it, since
+that is what builds and copies the AMI being trialled. Every image that reaches an AMI
+is therefore trialled, on the build that produced it.
 
-- **On every release and beta tag**, in the `commit` workflow, after `aws-sync` has
-  built and copied that tag's AMI.
-- **Nightly**, from a scheduled pipeline. CircleCI's in-config `triggers: schedule` is
-  retired, so the schedule lives in the project's settings rather than here: add a
-  scheduled pipeline on `3.y` that sets the pipeline parameter `run-sea-trial` to
-  `true`. That parameter selects the `sea-trial` workflow and deselects `commit`, so a
-  nightly does not rebuild the world first.
+A CI fleet is one reserved id, so trials queue rather than collide. A trial holds the
+fleet for about a quarter of an hour and a day's merges can reach `aws-sync` together,
+so the wait tolerates a few queued ahead before giving up.
 
-The other parameters - `sea-trial-bots`, `sea-trial-goals`, `sea-trial-warp`,
-`sea-trial-repo` and `sea-trial-keep-fleet` - can be set on the scheduled pipeline, or
-passed when triggering a pipeline by hand to reproduce a failure.
-`sea-trial-keep-fleet` leaves the fleet up for inspection; the reaper still clears it
-on the next run.
+The parameters - `sea-trial-bots`, `sea-trial-goals`, `sea-trial-warp`,
+`sea-trial-repo` and `sea-trial-keep-fleet` - are for triggering a pipeline by hand to
+reproduce a failure. `sea-trial-keep-fleet` leaves the fleet up for inspection; the
+reaper still clears it on the next run.
 
 ### Running it by hand
 
-From the CircleCI UI, use *Trigger Pipeline* on the project and add the parameter
-`run-sea-trial` = `true`. Or over the API:
+From the CircleCI UI, use *Trigger Pipeline* on the project, or over the API:
 
 ```
 curl -X POST https://circleci.com/api/v2/project/gh/jaiarobotics/jaiabot/pipeline \
      -H "Circle-Token: $CIRCLECI_TOKEN" -H 'Content-Type: application/json' \
-     -d '{"branch": "3.y", "parameters": {"run-sea-trial": true}}'
+     -d '{"branch": "3.y", "parameters": {"sea-trial-warp": 5}}'
 ```
 
 A pipeline only accepts parameters the config *on that branch* declares, so a branch
@@ -61,7 +58,7 @@ Name a published one instead:
 
 ```
      -d '{"branch": "my-branch",
-          "parameters": {"run-sea-trial": true, "sea-trial-repo": "continuous"}}'
+          "parameters": {"sea-trial-repo": "continuous"}}'
 ```
 
 That trials the newest `continuous` image with this branch's scripts, which is what
