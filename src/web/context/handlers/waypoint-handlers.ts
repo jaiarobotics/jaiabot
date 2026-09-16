@@ -17,10 +17,7 @@ import { jaiaAPI } from "../../utils/jaia-api";
 import { MAX_WAYPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { isLocationBlockedByZone } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-router";
 import { detectMissionReroutes } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
-import {
-    ProposalStatus,
-    RevertContext,
-} from "../../data/obstacle_avoidance_data/pending-route-data";
+import { RevertContext } from "../../data/obstacle_avoidance_data/pending-route-data";
 import { stripStaleBypasses, syncTaskLayers } from "./handler-utils";
 import cloneDeep from "lodash/cloneDeep";
 
@@ -60,28 +57,6 @@ export function handleAddWaypoint(mutableState: JaiaContextType, action: JaiaAct
     missionLayer.updateFeatures();
 
     const pending = detectMissionReroutes();
-    const currentProposal = pending?.proposals.find((p) => p.missionID === missionIDInEditMode);
-    if (currentProposal?.status === ProposalStatus.OVER_LIMIT) {
-        const mission = missionSet.getMission(missionIDInEditMode);
-        if (mission) mission.deleteWaypoint(mission.getWaypoints().length);
-        missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "placementError",
-            message: `Adding this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce the mission waypoints first.`,
-        });
-        return mutableState;
-    }
-    if (currentProposal?.status === ProposalStatus.IMPOSSIBLE) {
-        const mission = missionSet.getMission(missionIDInEditMode);
-        if (mission) mission.deleteWaypoint(mission.getWaypoints().length);
-        missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "placementError",
-            message:
-                "No clear path exists around the exclusion zone from this position. Move the waypoint further from the zone or reshape the zone.",
-        });
-        return mutableState;
-    }
     if (pending) {
         const revert: RevertContext[] =
             missionIDInEditMode !== UNASSIGNED_ID && priorMissionWaypoints
@@ -127,28 +102,6 @@ export function handleDeleteWaypoint(mutableState: JaiaContextType) {
     missionLayer.updateFeatures();
 
     const pending = detectMissionReroutes();
-    const currentProposal = pending?.proposals.find(
-        (p) => p.missionID === selectedWaypoint.missionID,
-    );
-    if (currentProposal?.status === ProposalStatus.OVER_LIMIT) {
-        mission.setWaypoints(priorMissionWaypoints);
-        missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "placementError",
-            message: `Removing this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce mission waypoints first.`,
-        });
-        return mutableState;
-    }
-    if (currentProposal?.status === ProposalStatus.IMPOSSIBLE) {
-        mission.setWaypoints(priorMissionWaypoints);
-        missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "placementError",
-            message:
-                "This waypoint can't be removed — without it there's no clear path around the exclusion zone. Move nearby waypoints or reshape the zone first.",
-        });
-        return mutableState;
-    }
     if (pending) {
         mutableState.obstacleAvoidanceData.setPendingChange({
             type: "reroute",
@@ -210,35 +163,10 @@ export function handleMoveWaypoint(mutableState: JaiaContextType, action: JaiaAc
     }
     const waypointNum = jaiaGlobal.getSelectedWaypoint().waypointNum;
 
-    // Snapshot prior location so we can revert if the reroute is over-limit.
-    const priorLocation = mission.getWaypoint(waypointNum)?.getLocation();
-
     mission.moveWaypoint(waypointNum, action.location);
     missionLayer.updateFeatures();
 
     const pending = detectMissionReroutes();
-    const currentProposal = pending?.proposals.find(
-        (p) => p.missionID === selectedWaypoint.missionID,
-    );
-    if (currentProposal?.status === ProposalStatus.OVER_LIMIT && priorLocation) {
-        mission.moveWaypoint(waypointNum, priorLocation);
-        missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "placementError",
-            message: `Moving this waypoint would require bypass waypoints that exceed the ${MAX_WAYPOINTS}-waypoint limit. Reduce mission waypoints first.`,
-        });
-        return mutableState;
-    }
-    if (currentProposal?.status === ProposalStatus.IMPOSSIBLE && priorLocation) {
-        mission.moveWaypoint(waypointNum, priorLocation);
-        missionLayer.updateFeatures();
-        mutableState.obstacleAvoidanceData.setPendingChange({
-            type: "placementError",
-            message:
-                "No clear path exists around the exclusion zone from this position. Move the waypoint further from the zone or reshape the zone.",
-        });
-        return mutableState;
-    }
 
     if (pending) {
         mutableState.obstacleAvoidanceData.setPendingChange({

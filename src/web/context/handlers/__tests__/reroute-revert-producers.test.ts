@@ -7,6 +7,7 @@ import { handleChangeGridPlanningState } from "../survey-handlers";
 import {
     handleCancelMissionReroute,
     handleCancelWaypointRemoval,
+    handleConfirmMissionReroute,
 } from "../obstacle-avoidance-handlers";
 import { missionSet } from "../../../data/mission_set/mission-set";
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
@@ -14,9 +15,12 @@ import { obstacleAvoidanceData } from "../../../data/obstacle_avoidance_data/obs
 import { gridPlan } from "../../../data/survey_planner/grid-plan";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import Mission from "../../../data/mission_set/mission";
+import { ExclusionZone } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
 import { GridPlanningStates } from "../../../data/survey_planner/grid-plan";
 import { detectMissionReroutes } from "../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
 import { makeMutableState, resetHandlerSingletons, coord, squareZone } from "./handler-test-utils";
+import { MAX_WAYPOINTS } from "../../../utils/constants";
+import { ProposalStatus } from "../../../data/obstacle_avoidance_data/pending-route-data";
 
 function addMission(waypoints: [number, number][]): number {
     const mission = new Mission();
@@ -282,5 +286,136 @@ describe("handleChangeGridPlanningState(APPROVED) — revert-list construction",
         handleCancelMissionReroute(makeMutableState());
 
         expect(missionSet.getMissions().size).toBe(0);
+    });
+});
+
+describe("waypoint edits that cannot be routed around a zone", () => {
+    /**
+     * A line of waypoints far from any zone, long enough that any inserted detour takes
+     * the mission past MAX_WAYPOINTS.
+     */
+    function fillerRoute(count: number): [number, number][] {
+        const waypoints: [number, number][] = [];
+        for (let i = 0; i < count; i++) waypoints.push([40.9, -72.1 + i * 0.001]);
+        return waypoints;
+    }
+
+    function stagedProposal() {
+        const pending = obstacleAvoidanceData.getPendingChange();
+        return pending?.type === "reroute" ? pending.data.proposals[0] : undefined;
+    }
+
+    test("adding a waypoint keeps it and reports the conflict, rather than refusing", () => {
+        const missionID = addMission([
+            ...fillerRoute(MAX_WAYPOINTS - 3),
+            [41.0, -72.005],
+            [41.0, -71.995],
+        ]);
+        missionSet.setMissionIDInEditMode(missionID);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const countBefore = missionSet.getMission(missionID).getWaypoints().length;
+
+        handleAddWaypoint(makeMutableState(), { location: coord(41.0, -71.985) } as any);
+
+        // Previously this was rejected outright with a placement error and the waypoint
+        // removed again; the operator decides instead.
+        expect(stagedProposal()?.status).toBe(ProposalStatus.OVER_LIMIT);
+        expect(missionSet.getMission(missionID).getWaypoints()).toHaveLength(countBefore + 1);
+    });
+
+    test("confirming leaves the added waypoint and the crossing route in place", () => {
+        const missionID = addMission([
+            ...fillerRoute(MAX_WAYPOINTS - 3),
+            [41.0, -72.005],
+            [41.0, -71.995],
+        ]);
+        missionSet.setMissionIDInEditMode(missionID);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+
+        handleAddWaypoint(makeMutableState(), { location: coord(41.0, -71.985) } as any);
+        const afterAdd = cloneDeep(missionSet.getMission(missionID).getWaypoints());
+        handleConfirmMissionReroute(makeMutableState());
+
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(afterAdd);
+        expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
+    });
+
+    test("declining removes the added waypoint again", () => {
+        const missionID = addMission([
+            ...fillerRoute(MAX_WAYPOINTS - 3),
+            [41.0, -72.005],
+            [41.0, -71.995],
+        ]);
+        missionSet.setMissionIDInEditMode(missionID);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const priorWaypoints = cloneDeep(missionSet.getMission(missionID).getWaypoints());
+
+        handleAddWaypoint(makeMutableState(), { location: coord(41.0, -71.985) } as any);
+        // Without this the test would also pass against a handler that simply refused the
+        // edit, since that left the same waypoints behind.
+        expect(obstacleAvoidanceData.getPendingChange()?.type).toBe("reroute");
+        handleCancelMissionReroute(makeMutableState());
+
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(priorWaypoints);
+    });
+
+    /**
+     * Four rectangles butted together into a closed box. The interior belongs to no
+     * zone, so a waypoint placed there is not flagged for removal, but the walls seal
+     * it in and no route can reach it — the one construction that reliably produces
+     * IMPOSSIBLE rather than a detour.
+     */
+    function boxOfZones(): ExclusionZone[] {
+        const inner = 0.001;
+        const thickness = 0.0004;
+        const rect = (minLat: number, maxLat: number, minLon: number, maxLon: number) => ({
+            vertices: [
+                coord(minLat, minLon),
+                coord(minLat, maxLon),
+                coord(maxLat, maxLon),
+                coord(maxLat, minLon),
+            ],
+        });
+        const outer = inner + thickness;
+        return [
+            rect(41.0 + inner, 41.0 + outer, -72.0 - outer, -72.0 + outer),
+            rect(41.0 - outer, 41.0 - inner, -72.0 - outer, -72.0 + outer),
+            rect(41.0 - outer, 41.0 + outer, -72.0 - outer, -72.0 - inner),
+            rect(41.0 - outer, 41.0 + outer, -72.0 + inner, -72.0 + outer),
+        ];
+    }
+
+    test("adding a waypoint somewhere unreachable keeps it and reports it as unroutable", () => {
+        const missionID = addMission([[41.0, -71.99]]);
+        missionSet.setMissionIDInEditMode(missionID);
+        for (const zone of boxOfZones()) {
+            obstacleAvoidanceData.getExclusionZoneSet().addZone(zone);
+        }
+
+        // The centre of the box is open water as far as the zones are concerned, so this
+        // is a legal placement — there is simply no way to route to it.
+        handleAddWaypoint(makeMutableState(), { location: coord(41.0, -72.0) } as any);
+
+        expect(stagedProposal()?.status).toBe(ProposalStatus.IMPOSSIBLE);
+        expect(missionSet.getMission(missionID).getWaypoints()).toHaveLength(2);
+    });
+
+    test("moving a waypoint keeps the move and reports the conflict", () => {
+        const missionID = addMission([
+            ...fillerRoute(MAX_WAYPOINTS - 2),
+            [41.0, -72.005],
+            [41.02, -71.995],
+        ]);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const movedNum = missionSet.getMission(missionID).getWaypoints().length;
+        jaiaGlobal.setSelectedWaypoint({ missionID, waypointNum: movedNum, isMoveable: false });
+
+        // Drag the last waypoint so the final leg runs straight through the zone.
+        handleMoveWaypoint(makeMutableState(), { location: coord(41.0, -71.995) } as any);
+
+        expect(stagedProposal()?.status).toBe(ProposalStatus.OVER_LIMIT);
+        expect(missionSet.getMission(missionID).getWaypoints()[movedNum - 1].getLocation()).toEqual(
+            coord(41.0, -71.995),
+        );
     });
 });

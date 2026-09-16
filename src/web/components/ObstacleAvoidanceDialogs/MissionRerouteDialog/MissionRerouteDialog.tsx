@@ -8,7 +8,7 @@ import {
 } from "../../../data/obstacle_avoidance_data/pending-route-data";
 import ObstacleAvoidanceBaseDialog from "../Common/ObstacleAvoidanceBaseDialog";
 import RerouteSummary from "../Common/RerouteSummary";
-import { describeRevert, dismissButtonLabel } from "../Common/revert-messaging";
+import { describeRevert, dismissButtonLabel, shouldOfferConfirm } from "../Common/revert-messaging";
 
 export default function MissionRerouteDialog({ pending }: { pending: PendingReroute }) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
@@ -32,11 +32,11 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
     const revertDescription = describeRevert(pending.revert);
     const buttons = [
         {
-            label: dismissButtonLabel(pending.revert, !hasFeasibleReroute),
+            label: dismissButtonLabel(pending.revert),
             onClick: handleCancel,
         },
     ];
-    if (canProceed && hasFeasibleReroute) {
+    if (canProceed && shouldOfferConfirm(pending.revert, hasFeasibleReroute)) {
         buttons.push({ label: "Confirm", onClick: handleConfirm });
     }
 

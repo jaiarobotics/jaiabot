@@ -14,12 +14,25 @@ const REVERT_DESCRIPTIONS: Record<RevertContext["kind"], string> = {
  * the proposal is being declined, so the button cancels rather than reverts.
  *
  * @param {RevertContext[]} revert Revert actions the dismissal button will apply
- * @param {boolean} revertsEverything Whether no part of the proposal can be confirmed, leaving the button as the only action
  * @returns {string} Label for the dismissal button
  */
-export function dismissButtonLabel(revert: RevertContext[], revertsEverything: boolean): string {
-    if (revert.length === 0) return "Cancel";
-    return revertsEverything ? "Revert All" : "Revert";
+export function dismissButtonLabel(revert: RevertContext[]): string {
+    return revert.length === 0 ? "Cancel" : "Revert";
+}
+
+/**
+ * Whether confirming leads anywhere different from dismissing, which is the only
+ * reason to offer both. Confirming applies whatever the proposal can apply and leaves
+ * the operator's own edit standing; dismissing applies the revert list instead. With
+ * nothing to apply and nothing to revert the two are the same action, and offering
+ * both only invites the operator to wonder which one they wanted.
+ *
+ * @param {RevertContext[]} revert Revert actions the dismissal button will apply
+ * @param {boolean} hasChangesToApply Whether confirming would change any mission
+ * @returns {boolean} Whether a confirm button should be offered alongside the dismissal
+ */
+export function shouldOfferConfirm(revert: RevertContext[], hasChangesToApply: boolean): boolean {
+    return hasChangesToApply || revert.length > 0;
 }
 
 /**

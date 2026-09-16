@@ -83,7 +83,7 @@ describe("MissionRerouteDialog dismissal button", () => {
         expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     });
 
-    test("says Revert All when nothing can be confirmed and a change must be undone", () => {
+    test("offers Confirm even when no mission can be rerouted, so the edit can stand", () => {
         renderWithDispatch(
             <MissionRerouteDialog
                 pending={reroute([DELETE_ZONE], {
@@ -101,7 +101,32 @@ describe("MissionRerouteDialog dismissal button", () => {
             />,
         );
 
-        expect(screen.getByRole("button", { name: "Revert All" })).toBeInTheDocument();
+        // Nothing can be applied, but confirming still means "keep the zone I drew and
+        // accept that the mission crosses it" — a different outcome from reverting.
+        expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Revert" })).toBeInTheDocument();
+    });
+
+    test("offers only the dismissal when confirming would do the same thing", () => {
+        renderWithDispatch(
+            <MissionRerouteDialog
+                pending={reroute([], {
+                    proposals: [
+                        {
+                            missionID: 1,
+                            newWaypoints: [],
+                            bypassCount: 0,
+                            involvedZoneIDs: [7],
+                            status: ProposalStatus.IMPOSSIBLE,
+                        },
+                    ],
+                    totalBypassCount: 0,
+                })}
+            />,
+        );
+
+        // Nothing to apply and nothing to revert: the two buttons would be one button.
+        expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
     });
 
@@ -162,7 +187,7 @@ describe("WaypointRemovalDialog dismissal button", () => {
         expect(screen.queryByText(/Reverting will/)).not.toBeInTheDocument();
     });
 
-    test("says Revert All when nothing can be applied", () => {
+    test("offers Confirm when nothing is removed, so the zone edit can stand", () => {
         renderWithDispatch(
             <WaypointRemovalDialog
                 pending={removal([RESTORE_SHAPE], {
@@ -176,8 +201,8 @@ describe("WaypointRemovalDialog dismissal button", () => {
             />,
         );
 
-        expect(screen.getByRole("button", { name: "Revert All" })).toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Confirm" })).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Revert" })).toBeInTheDocument();
     });
 
     test("still offers Confirm when a removal applies even though the follow-up is unroutable", () => {

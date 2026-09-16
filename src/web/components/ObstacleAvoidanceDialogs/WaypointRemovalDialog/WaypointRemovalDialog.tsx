@@ -8,7 +8,7 @@ import {
 } from "../../../data/obstacle_avoidance_data/pending-route-data";
 import ObstacleAvoidanceBaseDialog from "../Common/ObstacleAvoidanceBaseDialog";
 import RerouteSummary from "../Common/RerouteSummary";
-import { describeRevert, dismissButtonLabel } from "../Common/revert-messaging";
+import { describeRevert, dismissButtonLabel, shouldOfferConfirm } from "../Common/revert-messaging";
 
 /**
  * Shown when waypoints fall inside an exclusion zone. If the post-removal
@@ -34,17 +34,15 @@ export default function WaypointRemovalDialog({ pending }: { pending: PendingWay
     const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_WAYPOINT_REMOVAL });
     const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_WAYPOINT_REMOVAL });
 
-    // Confirm is only offered when it would actually change something: gutted missions
-    // are left alone, so a dialog reporting nothing but those has nothing to apply.
     const hasChangesToApply = removals.length > 0 || hasFeasibleFollowUp;
     const revertDescription = describeRevert(pending.revert);
     const buttons = [
         {
-            label: dismissButtonLabel(pending.revert, !hasChangesToApply),
+            label: dismissButtonLabel(pending.revert),
             onClick: handleCancel,
         },
     ];
-    if (hasChangesToApply) {
+    if (shouldOfferConfirm(pending.revert, hasChangesToApply)) {
         buttons.push({ label: "Confirm", onClick: handleConfirm });
     }
 
