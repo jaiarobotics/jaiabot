@@ -374,7 +374,7 @@ describe("handleClearExclusionZones", () => {
 });
 
 describe("handleLoadExclusionZones", () => {
-    test("replaces the existing zone set and stages a reroute carrying a zoneLoad summary and no revert", () => {
+    test("replaces the existing zone set and stages a reroute with no revert", () => {
         obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.5, -72.5));
         addMission([
             [41.0, -72.005],
@@ -390,11 +390,55 @@ describe("handleLoadExclusionZones", () => {
         const pending = obstacleAvoidanceData.getPendingChange();
         expect(pending?.type).toBe("reroute");
         expect(pending!.type === "reroute" && pending.data.revert).toEqual([]);
-        expect(pending!.type === "reroute" && pending.data.loadSummary).toEqual({
-            kind: "zoneLoad",
-            loadedZoneIDs: zoneIDs(),
-            skippedZoneIDs: [],
-        });
+    });
+
+    test("discards a detour whose zone is not in the loaded set", () => {
+        const missionID = addMission([
+            [41.0, -72.005],
+            [41.0, -71.995],
+        ]);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const reroutedWaypoints = confirmReroute(missionID);
+        obstacleAvoidanceData.setPendingChange(null);
+
+        // A load clears the existing zones, so the detour's reason is gone.
+        handleLoadExclusionZones(makeMutableState(), {
+            exclusionZones: [squareZone(41.5, -72.5)],
+        } as any);
+
+        expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
+        expect(bypassCount(missionID)).toBe(0);
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(
+            reroutedWaypoints.filter((wp) => !wp.getIsBypass()),
+        );
+    });
+
+    test("proposes the detour afresh when the loaded set still requires one", () => {
+        const missionID = addMission([
+            [41.0, -72.005],
+            [41.0, -71.995],
+        ]);
+        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
+        const reroutedWaypoints = confirmReroute(missionID);
+        obstacleAvoidanceData.setPendingChange(null);
+
+        // The loaded set contains a zone in the same place, so a detour is still needed —
+        // but it is recomputed against the loaded zones rather than carried across.
+        handleLoadExclusionZones(makeMutableState(), {
+            exclusionZones: [squareZone(41.0, -72.0)],
+        } as any);
+
+        expect(bypassCount(missionID)).toBe(0);
+        const pending = obstacleAvoidanceData.getPendingChange();
+        expect(pending?.type).toBe("reroute");
+        expect(pending?.type === "reroute" && pending.data.proposals[0].newWaypoints).toEqual(
+            reroutedWaypoints,
+        );
+
+        handleConfirmMissionReroute(makeMutableState());
+
+        // Confirming restores exactly the route the mission had before the load.
+        expect(missionSet.getMission(missionID).getWaypoints()).toEqual(reroutedWaypoints);
     });
 
     test("stages a waypoint removal with no revert when a loaded zone encloses a waypoint", () => {
@@ -412,7 +456,7 @@ describe("handleLoadExclusionZones", () => {
         expect(pending!.type === "waypointRemoval" && pending.data.revert).toEqual([]);
     });
 
-    test("drops a loaded zone that would push a rerouted mission over the waypoint limit", () => {
+    test("loads a zone that leaves a mission unroutable, reporting it rather than dropping it", () => {
         addLineMission(MAX_WAYPOINTS);
 
         handleLoadExclusionZones(makeMutableState(), {
@@ -420,28 +464,27 @@ describe("handleLoadExclusionZones", () => {
             exclusionZones: [gapZone(-72.0605), squareZone(41.002, -72.0595, 0.0003)],
         } as any);
 
-        const surviving = zoneIDs();
-        expect(surviving).toHaveLength(1);
+        // Both zones are loaded. Withholding one would silently discard part of a zone set
+        // the operator saved — the same objection that stopped missions being deleted.
+        expect(zoneIDs()).toHaveLength(2);
         const pending = obstacleAvoidanceData.getPendingChange();
         expect(pending?.type).toBe("reroute");
-        expect(pending!.type === "reroute" && pending.data.loadSummary).toEqual({
-            kind: "zoneLoad",
-            loadedZoneIDs: surviving,
-            skippedZoneIDs: [expect.any(Number)],
-        });
+        expect(
+            pending?.type === "reroute" && pending.data.proposals.map((p) => p.status),
+        ).toContain(ProposalStatus.OVER_LIMIT);
     });
 
-    test("drops a loaded zone whose enclosed-waypoint removal would leave the mission over the limit", () => {
+    test("loads a zone that encloses a waypoint it then cannot re-route around", () => {
         addLineMission(MAX_WAYPOINTS + 1);
 
         handleLoadExclusionZones(makeMutableState(), {
             exclusionZones: [gapZone(-72.06)],
         } as any);
 
-        // Removing the enclosed waypoint leaves a route that still needs a detour around
-        // the same zone, which no longer fits — so the zone is dropped and nothing is staged.
-        expect(zoneIDs()).toHaveLength(0);
-        expect(obstacleAvoidanceData.getPendingChange()).toBeNull();
+        // The zone stays loaded and the enclosed waypoint is raised for removal; that the
+        // follow-up reroute would not fit is reported, not acted on.
+        expect(zoneIDs()).toHaveLength(1);
+        expect(obstacleAvoidanceData.getPendingChange()?.type).toBe("waypointRemoval");
     });
 });
 
@@ -463,14 +506,9 @@ describe("handleRestoreExclusionZoneSnapshot", () => {
         const pending = obstacleAvoidanceData.getPendingChange();
         expect(pending?.type).toBe("reroute");
         expect(pending!.type === "reroute" && pending.data.revert).toEqual([]);
-        expect(pending!.type === "reroute" && pending.data.loadSummary).toEqual({
-            kind: "zoneLoad",
-            loadedZoneIDs: zoneIDs(),
-            skippedZoneIDs: [],
-        });
     });
 
-    test("keeps a restored zone whose enclosed-waypoint removal would leave the mission over the limit", () => {
+    test("keeps a restored zone whose enclosed-waypoint removal would leave the mission over the limit, as a load now does too", () => {
         addLineMission(MAX_WAYPOINTS + 1);
         obstacleAvoidanceData.getExclusionZoneSet().addZone(gapZone(-72.06));
         const snapshot = obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot();

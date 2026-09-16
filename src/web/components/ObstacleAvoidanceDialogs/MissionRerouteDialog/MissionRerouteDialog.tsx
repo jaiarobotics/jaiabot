@@ -13,18 +13,10 @@ import { describeRevert, dismissButtonLabel, shouldOfferConfirm } from "../Commo
 export default function MissionRerouteDialog({ pending }: { pending: PendingReroute }) {
     const jaiaDispatch = useContext(JaiaDispatchContext);
 
-    const loadSummary = pending.loadSummary;
-    const isZoneLoad = loadSummary?.kind === "zoneLoad";
-
     const feasible = pending.proposals.filter((p) => p.status === ProposalStatus.FEASIBLE);
     const overLimit = pending.proposals.filter((p) => p.status === ProposalStatus.OVER_LIMIT);
     const impossible = pending.proposals.filter((p) => p.status === ProposalStatus.IMPOSSIBLE);
     const hasFeasibleReroute = feasible.length > 0;
-
-    const skippedZones = loadSummary?.kind === "zoneLoad" ? loadSummary.skippedZoneIDs : [];
-    const loadedZones = loadSummary?.kind === "zoneLoad" ? loadSummary.loadedZoneIDs : [];
-
-    const canProceed = isZoneLoad ? loadedZones.length > 0 : true;
 
     const handleCancel = () => jaiaDispatch({ type: JaiaActions.CANCEL_MISSION_REROUTE });
     const handleConfirm = () => jaiaDispatch({ type: JaiaActions.CONFIRM_MISSION_REROUTE });
@@ -36,47 +28,13 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
             onClick: handleCancel,
         },
     ];
-    if (canProceed && shouldOfferConfirm(pending.revert, hasFeasibleReroute)) {
+    if (shouldOfferConfirm(pending.revert, hasFeasibleReroute)) {
         buttons.push({ label: "Confirm", onClick: handleConfirm });
     }
 
     return (
         <ObstacleAvoidanceBaseDialog title="Route Update Required" buttons={buttons}>
-            {/* Zone load */}
-            {isZoneLoad && loadedZones.length > 0 && (
-                <p>
-                    <strong>{loadedZones.length}</strong> zone
-                    {loadedZones.length !== 1 ? "s" : ""} loaded
-                    {pending.totalBypassCount > 0 && (
-                        <>
-                            {" "}
-                            — confirming will add <strong>{pending.totalBypassCount}</strong> bypass
-                            waypoint
-                            {pending.totalBypassCount !== 1 ? "s" : ""}
-                        </>
-                    )}
-                    .
-                </p>
-            )}
-            {isZoneLoad && skippedZones.length > 0 && (
-                <>
-                    <p className="dialog-warn">
-                        <strong>{skippedZones.length}</strong> zone
-                        {skippedZones.length !== 1 ? "s" : ""} could not be loaded — routing around{" "}
-                        {skippedZones.length !== 1 ? "them" : "it"} is impossible or would exceed
-                        the {MAX_WAYPOINTS}-waypoint limit:
-                    </p>
-                    <ul className="dialog-warn-list">
-                        {skippedZones.map((id) => (
-                            <li key={id}>Zone {id}</li>
-                        ))}
-                    </ul>
-                </>
-            )}
-
-            {/* Mission load */}
-            {/* Non-load: reroute summary */}
-            {!isZoneLoad && feasible.length > 0 && (
+            {feasible.length > 0 && (
                 <p>
                     Confirming will reroute the mission{feasible.length !== 1 ? "s" : ""} to include{" "}
                     <strong>{pending.totalBypassCount}</strong> bypass waypoint
@@ -84,7 +42,7 @@ export default function MissionRerouteDialog({ pending }: { pending: PendingRero
                 </p>
             )}
 
-            {!isZoneLoad && feasible.length === 0 && (
+            {feasible.length === 0 && (
                 <p className="dialog-warn">None of the missions can be rerouted.</p>
             )}
 

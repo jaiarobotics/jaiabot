@@ -4,17 +4,18 @@ import { handleMapModeChange, setExclusionZoneDrawActive } from "../../openlayer
 import { JaiaContextType, JaiaAction, ButtonNames } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
 import { UNASSIGNED_ID } from "../../utils/constants";
-import { stripStaleBypasses, stripBypassesInsideZoneWithSnapshot } from "./handler-utils";
+import {
+    stripAllBypasses,
+    stripStaleBypasses,
+    stripBypassesInsideZoneWithSnapshot,
+} from "./handler-utils";
 import { exclusionZoneLayer } from "../../openlayers/layers/vector/exclusion-zone-layer";
 import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import {
     detectMissionReroutes,
     detectWaypointRemovals,
 } from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
-import {
-    ProposalStatus,
-    RevertContext,
-} from "../../data/obstacle_avoidance_data/pending-route-data";
+import { RevertContext } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Options describing how one zone-set mutation should be followed up.
@@ -168,100 +169,15 @@ export function handleClearExclusionZones(mutableState: JaiaContextType) {
 }
 
 /**
- * Options describing how a wholesale replacement of the zone set should be followed up.
- */
-interface ZoneSetReplacementOptions {
-    /**
-     * Whether zones enclosing a waypoint are dropped when removing that waypoint would
-     * leave the mission unroutable. A load drops them; a snapshot restore keeps them and
-     * shows the removal dialog instead, leaving the operator to prune or undo.
-     */
-    skipUnroutableRemovals: boolean;
-}
-
-/**
- * Runs detection after the whole zone set has been replaced, dropping zones that leave
- * some mission unroutable and reporting what survived through the dialog's load summary.
+ * Replaces the current zone set with a loaded set and detects any resulting waypoint
+ * removals or reroutes. Every zone in the set is loaded: one that leaves a mission
+ * unroutable is reported through the dialog rather than withheld, since withholding it
+ * would silently discard part of a zone set the operator saved.
  *
- * Cancel on these dialogs just declines the proposal — the replacement itself, including
- * zones dropped here for being unroutable, stays. Nothing is captured for revert.
- *
- * @param {JaiaContextType} mutableState State object ref for making modifications
- * @param {ZoneSetReplacementOptions} options Which zones this replacement is allowed to drop
- * @returns {void}
- */
-function applyZoneSetReplacement(
-    mutableState: JaiaContextType,
-    options: ZoneSetReplacementOptions,
-) {
-    const pendingRemoval = detectWaypointRemovals();
-    if (pendingRemoval) {
-        // If the follow-up reroute (after removing enclosed waypoints) would be unroutable,
-        // exclude those offending zones from the replacement entirely instead of showing
-        // the dialog.
-        const unroutableFollowUp = options.skipUnroutableRemovals
-            ? pendingRemoval.followUpReroute?.proposals.filter(
-                  (p) => p.status !== ProposalStatus.FEASIBLE,
-              )
-            : undefined;
-
-        if (unroutableFollowUp?.length && pendingRemoval.offendingZoneIDs.length) {
-            for (const id of pendingRemoval.offendingZoneIDs)
-                obstacleAvoidanceData.getExclusionZoneSet().deleteZone(id);
-            exclusionZoneLayer.updateFeatures();
-            // Re-detect with the remaining zones.
-            const retriedRemoval = detectWaypointRemovals();
-            if (retriedRemoval) {
-                mutableState.obstacleAvoidanceData.setPendingChange({
-                    type: "waypointRemoval",
-                    data: { ...retriedRemoval, revert: [] },
-                });
-                return;
-            }
-        } else {
-            mutableState.obstacleAvoidanceData.setPendingChange({
-                type: "waypointRemoval",
-                data: { ...pendingRemoval, revert: [] },
-            });
-            return;
-        }
-    }
-
-    const rawPending = detectMissionReroutes();
-    if (!rawPending) return;
-
-    const skippedZoneIDSet = new Set<number>();
-    rawPending.proposals
-        .filter((p) => p.status !== ProposalStatus.FEASIBLE)
-        .forEach((p) => p.involvedZoneIDs.forEach((id) => skippedZoneIDSet.add(id)));
-
-    if (skippedZoneIDSet.size > 0) {
-        for (const id of skippedZoneIDSet)
-            obstacleAvoidanceData.getExclusionZoneSet().deleteZone(id);
-        exclusionZoneLayer.updateFeatures();
-    }
-
-    const cleanPending = detectMissionReroutes();
-    mutableState.obstacleAvoidanceData.setPendingChange({
-        type: "reroute",
-        data: {
-            proposals: cleanPending?.proposals ?? [],
-            totalBypassCount: cleanPending?.totalBypassCount ?? 0,
-            revert: [],
-            loadSummary: {
-                kind: "zoneLoad",
-                loadedZoneIDs: Array.from(
-                    obstacleAvoidanceData.getExclusionZoneSet().getZones().keys(),
-                ),
-                skippedZoneIDs: Array.from(skippedZoneIDSet),
-            },
-        },
-    });
-}
-
-/**
- * Replaces the current zone set with a loaded set and detects any resulting waypoint removals or reroutes.
- * Zones that cause unresolvable routing conflicts are silently skipped from the load.
+ * A load clears the existing zones first, which invalidates every detour in every
+ * mission at once — each was computed against a zone that no longer exists. All of them
+ * are removed and the routes recomputed against the loaded set from clean waypoints,
+ * rather than some being carried across because they happen to still fit.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the array of exclusion zones to load
@@ -270,12 +186,19 @@ function applyZoneSetReplacement(
 export function handleLoadExclusionZones(mutableState: JaiaContextType, action: JaiaAction) {
     if (!action.exclusionZones) return mutableState;
     obstacleAvoidanceData.getExclusionZoneSet().clearZones();
+    stripAllBypasses();
     for (const zone of action.exclusionZones) {
         obstacleAvoidanceData.getExclusionZoneSet().addZone(zone);
     }
     exclusionZoneLayer.updateFeatures();
+    missionLayer.updateFeatures();
 
-    applyZoneSetReplacement(mutableState, { skipUnroutableRemovals: true });
+    applyZoneMutation(mutableState, {
+        revert: [],
+        detectRemovals: true,
+        detectReroutes: true,
+        stripStale: false,
+    });
     return mutableState;
 }
 
@@ -292,8 +215,9 @@ export function handleToggleExclusionZoneDrawing(mutableState: JaiaContextType) 
 }
 
 /**
- * Restores the zone set from a snapshot and detects resulting waypoint removals or reroutes.
- * Used to re-apply a saved zone set state, e.g. during undo or a load-and-confirm flow.
+ * Restores the zone set from a snapshot and detects resulting waypoint removals or
+ * reroutes. Used to re-apply a saved zone set state; behaves exactly as a load does,
+ * including removing every existing detour before recomputing.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @param {JaiaAction} action Provides the exclusion zone snapshot to restore
@@ -305,9 +229,16 @@ export function handleRestoreExclusionZoneSnapshot(
 ) {
     if (!action.exclusionZoneSnapshot) return mutableState;
     obstacleAvoidanceData.getExclusionZoneSet().restoreFromSnapshot(action.exclusionZoneSnapshot);
+    stripAllBypasses();
     exclusionZoneLayer.updateFeatures();
+    missionLayer.updateFeatures();
 
-    applyZoneSetReplacement(mutableState, { skipUnroutableRemovals: false });
+    applyZoneMutation(mutableState, {
+        revert: [],
+        detectRemovals: true,
+        detectReroutes: true,
+        stripStale: false,
+    });
     return mutableState;
 }
 

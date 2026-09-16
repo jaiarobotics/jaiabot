@@ -80,6 +80,22 @@ export function stripBypassesInsideZoneWithSnapshot(zoneID: number): {
 }
 
 /**
+ * Strips every bypass waypoint from every mission, leaving only the waypoints the
+ * operator placed. Used when the whole zone set is replaced: each detour was computed
+ * against zones that no longer exist, so all of them are recomputed from clean rather
+ * than some being carried across.
+ *
+ * @returns {void}
+ */
+export function stripAllBypasses() {
+    for (const [, mission] of missionSet.getMissions()) {
+        const all = mission.getWaypoints();
+        const clean = all.filter((wp) => !wp.getIsBypass());
+        if (clean.length !== all.length) mission.setWaypoints(clean);
+    }
+}
+
+/**
  * Strips bypass waypoints from missions whose routes no longer need a detour.
  * Call this after zone changes that may have eliminated previously necessary detours.
  * Missions with active proposals keep their current waypoints until the operator confirms.

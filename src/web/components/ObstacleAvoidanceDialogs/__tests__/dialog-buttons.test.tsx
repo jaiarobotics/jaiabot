@@ -71,18 +71,6 @@ describe("MissionRerouteDialog dismissal button", () => {
         expect(screen.queryByRole("button", { name: /Revert/ })).not.toBeInTheDocument();
     });
 
-    test("says Cancel for a zone load, whose zones stay loaded either way", () => {
-        renderWithDispatch(
-            <MissionRerouteDialog
-                pending={reroute([], {
-                    loadSummary: { kind: "zoneLoad", loadedZoneIDs: [7], skippedZoneIDs: [] },
-                })}
-            />,
-        );
-
-        expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
-    });
-
     test("offers Confirm even when no mission can be rerouted, so the edit can stand", () => {
         renderWithDispatch(
             <MissionRerouteDialog
