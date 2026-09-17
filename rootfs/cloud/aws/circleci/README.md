@@ -73,6 +73,23 @@ The VirtualFleet playbooks are not copied up: `jaiabot-config` puts them in
 `/usr/share/jaiabot/config/ansible` on the CloudHub, so the ones that run are the
 image's own.
 
+### The steps
+
+Each step of the job is one script in this directory, so a trial can be reproduced by
+hand from a checkout in the same order the job runs them:
+
+```
+./install-jaiabot-tooling.sh                 # needs JAIA_CI_REPO, JAIABOT_APT_VERSION
+./create-ci-cloudhub.sh --bots 2 --warp 5    # needs JAIA_CI_CUSTOMER, AWS_DEFAULT_REGION
+./check-cloudhub-auth.sh
+./raise-ci-virtualfleet.sh --bots 2 --warp 5
+./run-ci-sea-trial.sh --bots 2 --goals 2 --warp 5
+./collect-ci-results.sh --bots 2
+./teardown-ci-fleet.sh
+```
+
+All of them take `--fleet`, defaulting to `JAIA_CI_FLEET` and then to 9.
+
 ## The fleet config
 
 `jaia admin fleet create` is interactive, and a config checked into the repository would
