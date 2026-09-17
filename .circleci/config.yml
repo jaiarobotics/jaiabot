@@ -706,10 +706,14 @@ jobs:
           name: Raise the VirtualFleet from the same AMI
           command: |
             CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
+            THIS_HUB=hub$(jaia_bounds --cloudhub_id)-fleet${JAIA_CI_FLEET}
             # the playbooks ship with jaiabot-config, so they are already the ones
-            # belonging to the image under test
+            # belonging to the image under test. They target `all`, so without the
+            # inventory and limit the prelaunch liaison passes they match nothing and
+            # the play is skipped with a zero exit
             ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
               "cd /usr/share/jaiabot/config/ansible && ansible-playbook cloud/create-virtualfleet.yml \
+                 -i /etc/jaiabot/inventory.yml --limit ${THIS_HUB} \
                  -e n_bots=<< pipeline.parameters.sea-trial-bots >> \
                  -e warp=<< pipeline.parameters.sea-trial-warp >>"
           no_output_timeout: 30m
