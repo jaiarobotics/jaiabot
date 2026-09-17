@@ -174,7 +174,7 @@ function boundsOf(pts: XYPt[], padding: number): Bounds {
 }
 
 /**
- * Whether any part of the polygon falls within the bounds, tested by bounding box.
+ * Whether any part of the polygon overlaps the bounds, tested by bounding box.
  * Conservative: a polygon whose box overlaps but whose shape does not is kept, which
  * costs a little work and can never drop a polygon that matters.
  *
@@ -182,7 +182,7 @@ function boundsOf(pts: XYPt[], padding: number): Bounds {
  * @param {Bounds} bounds Region to test against
  * @returns {boolean} Whether the polygon could intersect the region
  */
-function polygonWithinBounds(poly: XYPt[], bounds: Bounds): boolean {
+function polygonOverlapsBounds(poly: XYPt[], bounds: Bounds): boolean {
     const box = boundsOf(poly, 0);
     return (
         box.minX <= bounds.maxX &&
@@ -435,7 +435,7 @@ function findBypassPath(A: XYPt, B: XYPt, zoneGeoms: ZoneGeom[], safetyMargin: n
         // blocking the direct line, so a detour cannot be routed through a zone it
         // merely passes near. Zones outside the grid contain none of its cells.
         const gridPolys = collisionPolys.filter((poly) =>
-            polygonWithinBounds(poly, { minX, minY, maxX, maxY }),
+            polygonOverlapsBounds(poly, { minX, minY, maxX, maxY }),
         );
 
         // Mark blocked cells — any cell whose centre is inside an expanded polygon.
