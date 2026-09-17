@@ -28,11 +28,12 @@ struct StartingUp : boost::statechart::state<StartingUp, PreDeployment>,
     StartingUp(typename StateBase::my_context c)
     : StateBase(c)
     {
-        goby::time::SteadyClock::time_point timeout_start = goby::time::SteadyClock::now();
+        // wall clock, not goby's: the apps take as long to start as they take, so warping
+        // the allowance would give a faster simulation less real time to come up
+        auto timeout_start = std::chrono::steady_clock::now();
 
         int timeout_seconds = cfg().startup_timeout_with_units<goby::time::SITime>().value();
-        goby::time::SteadyClock::duration timeout_duration = std::chrono::seconds(timeout_seconds);
-        timeout_stop_ = timeout_start + timeout_duration;
+        timeout_stop_ = timeout_start + std::chrono::seconds(timeout_seconds);
 
         // update which files are excluded from data offload
         switch (cfg().data_offload_exclude())
@@ -52,7 +53,7 @@ struct StartingUp : boost::statechart::state<StartingUp, PreDeployment>,
 
     void loop(const EvLoop&)
     {
-        goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
+        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
         if (now >= timeout_stop_)
             post_event(EvStartupTimeout());
     }
@@ -63,6 +64,6 @@ struct StartingUp : boost::statechart::state<StartingUp, PreDeployment>,
         boost::statechart::in_state_reaction<EvLoop, StartingUp, &StartingUp::loop>>;
 
   private:
-    goby::time::SteadyClock::time_point timeout_stop_;
+    std::chrono::steady_clock::time_point timeout_stop_;
 };
 

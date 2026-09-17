@@ -106,7 +106,7 @@ export class Hubs {
         }
 
         if (hubStatus.time) {
-            hub.setSystemTime(hubStatus.time);
+            hub.setSystemTime(Number(hubStatus.time));
         }
 
         // HubSensors

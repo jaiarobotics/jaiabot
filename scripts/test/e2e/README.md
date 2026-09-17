@@ -82,8 +82,13 @@ must not also redden `execution`, or one fault reddens two tiers and neither nam
 ## Shared code
 
 `jaia_e2e` is also what `scripts/test/virtualbox-e2e` drives its hubs through, so the
-REST client, the dive-mission plan and the geodesy have one implementation rather than
-two that drift. Changing them means running that suite's contract test here too.
+REST client, the dive-mission plan, the geodesy and the polling in `wait.py` have one
+implementation rather than two that drift. Changing them means running that suite's
+contract test here too.
+
+`wait_for` hands back whatever a predicate raises instead of retrying it, so a check that
+cannot pass fails at once rather than waiting out its timeout; each runner supplies its
+own failure type and logging cadence.
 
 ## Tests
 

@@ -18,6 +18,13 @@ PRE_DEPLOYMENT_IDLE = ['PRE_DEPLOYMENT__STARTING_UP', 'PRE_DEPLOYMENT__SELF_TEST
                        'PRE_DEPLOYMENT__IDLE']
 POST_MISSION = ['POST_DEPLOYMENT__RECOVERED', checks.DATA_OFFLOAD, checks.POST_IDLE]
 
+# enough of what each web app puts in front of a client for a page check to know it
+WEB_APPS = {
+    '/': '<html><head><title>Jaia Command &amp; Control</title></head></html>',
+    '/jcu/': '<html><body><script>window.wtd="abc123";</script></body></html>',
+    '/jdv/': '<html><head><title>JDV - JaiaBot Data Vision</title></head></html>',
+}
+
 
 class FakeBot:
     def __init__(self, bot_id, lat, lon, goals, dives_to_run, depth_error=0.0,
@@ -72,8 +79,10 @@ class FakeBot:
 
 class FakeHub:
     def __init__(self, bots=2, dives_to_run=10, lat=41.6618, lon=-71.2731, api_key='',
-                 depth_error=0.0, idle_until_activated=False, offload_dir=None):
+                 depth_error=0.0, idle_until_activated=False, offload_dir=None,
+                 pages=None):
         self.offload_dir = offload_dir
+        self.pages = dict(WEB_APPS if pages is None else pages)
         self.api_key = api_key
         self.bots = {i: FakeBot(i, lat, lon - 0.01 * i, [], dives_to_run, depth_error,
                                 idle_until_activated)
@@ -148,6 +157,8 @@ class FakeHub:
 
 class _Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
+        if '/jaia/v1' not in self.path:
+            return self._serve_page()
         length = int(self.headers.get('Content-Length', 0))
         payload = json.loads(self.rfile.read(length) or b'{}')
         result = self.server.hub.handle(self.path.split('/jaia/v1', 1)[1], payload)
@@ -162,6 +173,15 @@ class _Handler(http.server.BaseHTTPRequestHandler):
 
     do_GET = do_POST
 
+    def _serve_page(self):
+        page = self.server.hub.pages.get(self.path)
+        body = (page or f'no app at {self.path}').encode()
+        self.send_response(200 if page else 404)
+        self.send_header('Content-Type', 'text/html')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def log_message(self, *args):
         pass
 
@@ -171,4 +191,9 @@ def serve(hub):
     server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), _Handler)
     server.hub = hub
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    return f'http://127.0.0.1:{server.server_address[1]}', server.shutdown
+
+    def stop():
+        server.shutdown()
+        server.server_close()
+
+    return f'http://127.0.0.1:{server.server_address[1]}', stop

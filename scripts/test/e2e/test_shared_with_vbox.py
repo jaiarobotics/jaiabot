@@ -7,6 +7,7 @@ import os
 import sys
 import types
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -68,6 +69,46 @@ class VboxWrappersOverSharedApi(unittest.TestCase):
         from jaia_e2e import mission
         self.assertIs(vbox.offset_latlon, mission.offset_latlon)
         self.assertIs(vbox.distance_m, mission.distance_m)
+
+
+class VboxWebStage(unittest.TestCase):
+    def setUp(self):
+        self.hub_state = fake_hub.FakeHub(bots=1)
+        url, shutdown = fake_hub.serve(self.hub_state)
+        self.addCleanup(shutdown)
+        quiet = mock.patch.object(vbox, 'log', lambda *args: None)
+        quiet.start()
+        self.addCleanup(quiet.stop)
+        self.args = types.SimpleNamespace(web_timeout=5)
+        self.nodes = [
+            types.SimpleNamespace(type='hub', name='hub1',
+                                  hostonly_ip=url.replace('http://', '')),
+            types.SimpleNamespace(type='bot', name='bot1', hostonly_ip='127.0.0.1:1'),
+        ]
+
+    def test_passes_when_every_app_answers_with_its_own_page(self):
+        vbox.stage_web(self.args, self.nodes)
+
+    def test_fails_when_an_app_serves_something_that_is_not_the_app(self):
+        self.hub_state.pages['/jdv/'] = '<html><body>It works!</body></html>'
+        with self.assertRaises(vbox.TestFailure) as raised:
+            vbox.stage_web(self.args, self.nodes)
+        self.assertIn('JDV', str(raised.exception))
+
+    def test_times_out_reporting_what_the_app_returned(self):
+        self.hub_state.pages.pop('/jcu/')
+        args = types.SimpleNamespace(web_timeout=0.1)
+        with self.assertRaises(vbox.TestFailure) as raised:
+            vbox.stage_web(args, self.nodes)
+        self.assertIn('JCU', str(raised.exception))
+        self.assertIn('HTTP 404', str(raised.exception))
+
+    def test_a_broken_check_fails_at_once_rather_than_waiting_out_the_timeout(self):
+        def predicate():
+            raise NameError("name 'http_get' is not defined")
+
+        with self.assertRaises(NameError):
+            vbox.wait_for(predicate, 300, 'a check that cannot pass', interval=0.01)
 
 
 if __name__ == '__main__':
