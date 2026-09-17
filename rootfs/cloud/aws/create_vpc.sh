@@ -295,10 +295,11 @@ USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/e
 USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
 
 cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
-jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID} --action hub_ssh_keys --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_auth
-USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
+jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID} --action hub_ssh_keys --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_env
 
-set -a; source "${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_auth.sh"; set +a
+# The closing summary reports the DNS and SMTP entries the operator still has to make
+set -a; source <(grep '^AUTH_' ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_env.sh); set +a
+USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
 
 USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/cloud-init-user-data.sh.in"
 USER_DATA_SCRIPT="${TMPDIR}/cloud-init-user-data.sh"
@@ -307,23 +308,8 @@ USER_DATA_SCRIPT="${TMPDIR}/cloud-init-user-data.sh"
 cp ${USER_DATA_SCRIPT_IN} ${USER_DATA_SCRIPT}
 
 declare -A replacements=(
-    ["{{ACCOUNT_ID}}"]="$ACCOUNT_ID"
     ["{{CLIENT_VPN_WIREGUARD_PUBKEY}}"]="$CLIENT_VPN_WIREGUARD_PUBKEY"
-    ["{{CLOUDHUB_DATA_BUCKET}}"]="$CLOUDHUB_DATA_BUCKET"
-    ["{{CLOUDHUB_ID}}"]="$CLOUDHUB_ID"
     ["{{FLEET_ID}}"]="$FLEET_ID"
-    ["{{JAIA_CUSTOMER_NAME}}"]="$JAIA_CUSTOMER_NAME"
-    ["{{PUBLIC_IPV4_ADDRESS}}"]="$PUBLIC_IPV4_ADDRESS"
-    ["{{REGION}}"]="$REGION"
-    ["{{REPO}}"]="$REPO"
-    ["{{REPO_VERSION}}"]="$REPO_VERSION"
-    ["{{SUBNET_CLOUDHUB_ID}}"]="$SUBNET_CLOUDHUB_ID"
-    ["{{SUBNET_VIRTUALFLEET_WLAN_ID}}"]="$SUBNET_VIRTUALFLEET_WLAN_ID"
-    ["{{VPC_ID}}"]="$VPC_ID"
-    ["{{VIRTUALFLEET_SECURITY_GROUP_ID}}"]="$VIRTUALFLEET_SECURITY_GROUP_ID"
-    ["{{AUTH_BASE_URI}}"]="$AUTH_BASE_URI"
-    ["{{AUTH_ADMIN_EMAIL}}"]="$AUTH_ADMIN_EMAIL"
-    ["{{AUTH_SMTP_ADDRESS}}"]="$AUTH_SMTP_ADDRESS"
 )
 
 for placeholder in "${!replacements[@]}"; do
@@ -342,6 +328,11 @@ EOF
 
 cat <<EOF > \${PRESEED_DIR}/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub
 $(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/hub${CLOUDHUB_ID}_fleet${FLEET_ID}.pub)
+EOF
+
+## Values for cloud.env that AWS cannot be asked for
+cat <<EOF > \${PRESEED_DIR}/cloudhub_env.sh
+$(cat ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_env.sh)
 EOF
 EOFF
 
