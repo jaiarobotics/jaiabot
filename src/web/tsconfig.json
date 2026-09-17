@@ -9,6 +9,8 @@
         "moduleResolution": "node",
         "outDir": "dist",
         "rootDir": ".",
+        "baseUrl": ".",
+        "paths": { "@proto/*": ["types/proto/*"] },
         "jsx": "react-jsx",
         "target": "ES2024",
         "esModuleInterop": true,

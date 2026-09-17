@@ -9,6 +9,8 @@
         "moduleResolution": "node",
         "outDir": "typescript/",
         "rootDir": "../../",
+        "baseUrl": ".",
+        "paths": { "@proto/*": ["../../types/proto/*"] },
         "jsx": "react",
         "target": "ES2024",
         "lib": ["ES2024", "dom"],
