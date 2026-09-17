@@ -754,7 +754,7 @@ def cmd_generate(schema, args):
         if "write_cloudhub_env" in actions:
             if not cfg.HasField("cloudhub"):
                 raise FleetConfigError("cloudhub is not set in {}".format(args.fleetcfg))
-            # Everything jaia_write_cloud_env.sh cannot ask AWS for. It reads this at
+            # Everything jaia_configure_cloudhub.sh cannot ask AWS for. It reads this at
             # first boot and again after a major upgrade, so the two produce the same
             # cloud.env from the same source.
             cloudhub_env_sh = os.path.join(init_dir, "cloudhub_env.sh")
