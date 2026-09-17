@@ -25,7 +25,10 @@ module.exports = (env, argv) => {
                 { test: /\.tsx?$/, exclude: [/node_modules/], use: ["ts-loader"] },
             ],
         },
-        resolve: { extensions: ["*", ".js", ".ts", ".tsx", ".css", ".gif"] },
+        resolve: {
+            extensions: ["*", ".js", ".ts", ".tsx", ".css", ".gif"],
+            alias: { "@proto": path.resolve(__dirname, "../../types/proto") },
+        },
         plugins: [
             new HtmlWebpackPlugin({
                 template: path.resolve(__dirname, "dist/index.html"),
