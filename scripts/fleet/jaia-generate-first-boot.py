@@ -87,7 +87,7 @@ def main():
     parser.add_argument('--debug',  help="Output debugging information", action="store_true")
     parser.add_argument('--hub-ssh-keys-only',  help="Only output the hub SSH keys (skip all other actions). Same as --action=hub_ssh_keys.", action="store_true")
     parser.add_argument('--mode', default="runtime", choices=["runtime", "simulation"], help="Whether this is a real (runtime) or virtual (simulation) system")
-    parser.add_argument('--action', action='append', choices=["hub_ssh_keys", "vpn_key", "first_boot", "store_fleet_cfg", "new_hub_script", "write_cloudhub_auth"], help="Actions to take (default is ['hub_ssh_keys', 'vpn_key', 'first_boot', 'store_fleet_cfg'])")
+    parser.add_argument('--action', action='append', choices=["hub_ssh_keys", "vpn_key", "first_boot", "store_fleet_cfg", "new_hub_script", "write_cloudhub_env"], help="Actions to take (default is ['hub_ssh_keys', 'vpn_key', 'first_boot', 'store_fleet_cfg'])")
     parser.add_argument('type', choices=["bot", "hub", "rpicam"], help="Type of system to generate for")
     parser.add_argument('id', type=int, help="ID of bot or hub") 
     args = parser.parse_args()
@@ -204,18 +204,24 @@ def main():
             with open(args.fleetcfg, "rb") as src, open(bootdir + f'/jaiabot/init/fleet{fleet_cfg_json["fleet"]}.cfg', "wb") as dst:
                 dst.write(src.read())
 
-        if 'write_cloudhub_auth' in actions:
-            cloudhub_auth_sh = bootdir + '/jaiabot/init/cloudhub_auth.sh'
+        if 'write_cloudhub_env' in actions:
+            # 3.y's first boot reads this to rebuild cloud.env, so a major upgrade
+            # staged from a 2.y machine has to produce the same file it does
+            cloudhub_env_sh = bootdir + '/jaiabot/init/cloudhub_env.sh'
 
             if not 'cloudhub' in fleet_cfg_json:
                 # defaults
                 fleet_cfg_json.update({"cloudhub" : {"baseUri": f"fleet{fleet_cfg_json['fleet']}.jaia.tech", "adminEmail" : "matt.ferro@jaia.tech", "smtpAddress": "smtp://smtp-relay.gmail.com:587"}})
-            
-            with open(cloudhub_auth_sh, "w") as sh:
-                sh.write(f"AUTH_BASE_URI={fleet_cfg_json['cloudhub']['baseUri']}\n")
-                sh.write(f"AUTH_ADMIN_EMAIL={fleet_cfg_json['cloudhub']['adminEmail']}\n")
-                sh.write(f"AUTH_SMTP_ADDRESS={fleet_cfg_json['cloudhub']['smtpAddress']}\n")
-            print(f"Wrote cloudhub auth variables to: {cloudhub_auth_sh}")
+
+            cloudhub = fleet_cfg_json['cloudhub']
+            data_bucket = cloudhub.get('dataBucket') or f"jaia--cloudhub-data--fleet{fleet_cfg_json['fleet']}"
+
+            with open(cloudhub_env_sh, "w") as sh:
+                sh.write(f"AUTH_BASE_URI={cloudhub['baseUri']}\n")
+                sh.write(f"AUTH_ADMIN_EMAIL={cloudhub['adminEmail']}\n")
+                sh.write(f"AUTH_SMTP_ADDRESS={cloudhub['smtpAddress']}\n")
+                sh.write(f"CLOUDHUB_DATA_BUCKET={data_bucket}\n")
+            print(f"Wrote cloudhub variables to: {cloudhub_env_sh}")
 
 
     if args.debug:

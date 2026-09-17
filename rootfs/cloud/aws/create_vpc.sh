@@ -182,10 +182,10 @@ USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/e
 USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
 
 cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
-jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID} --action hub_ssh_keys --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_auth
+jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID} --action hub_ssh_keys --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_env
 USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
 
-set -a; source "${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_auth.sh"; set +a
+set -a; source <(grep '^AUTH_' "${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_env.sh"); set +a
 
 USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/cloud-init-user-data.sh.in"
 USER_DATA_SCRIPT="/tmp/cloud-init-user-data.sh"
