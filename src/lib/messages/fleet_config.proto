@@ -458,8 +458,7 @@ message FleetConfig
     }
     optional Communications comms = 9;
 
-    // Value of the jaia_customer tag on every AWS resource the fleet owns
-    optional string customer = 14 [default = "jaia"];
+    // 10 is version, at the top of the message
 
     // What a CloudHub needs that cannot be asked of AWS afterwards. Region, VPC,
     // subnets, security groups, account and the Elastic IP are all discoverable from
@@ -476,4 +475,7 @@ message FleetConfig
         optional string data_bucket = 4;
     }
     optional CloudHub cloudhub = 11;
+
+    // Value of the jaia_customer tag on every AWS resource the fleet owns
+    optional string customer = 14 [default = "jaia"];
 }
