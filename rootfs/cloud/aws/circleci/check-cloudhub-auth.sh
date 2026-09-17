@@ -94,7 +94,7 @@ done
 protected=$(status_of run || true)
 result="auth portal: ${portal}, protected JCC: ${protected}"
 echo "${result}"
-[ -n "${RESULT_FILE}" ] && echo "${result}" > "${RESULT_FILE}"
+if [ -n "${RESULT_FILE}" ]; then echo "${result}" > "${RESULT_FILE}"; fi
 
 if [ "${portal}" != "200" ]; then
     diagnostics
