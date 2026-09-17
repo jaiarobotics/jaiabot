@@ -100,6 +100,29 @@ apt-get update && apt-get install -y authelia=$authelia_version caddy docker-com
 ## Authelia ##
 ##############
 
+# RFC 2606 and RFC 6761 reserve these names, so this is a CI or bench CloudHub rather than
+# one anybody reaches: no public CA can issue for it and there is no mail relay behind it
+case "$base_uri" in
+    *.invalid|*.test|*.example|*.localhost|localhost)
+        throwaway_deployment=true
+        echo "$base_uri is a reserved domain: serving TLS from Caddy's own CA and not dialling SMTP at startup"
+        ;;
+    *)
+        throwaway_deployment=false
+        ;;
+esac
+
+if $throwaway_deployment; then
+    caddy_tls="tls internal"
+    # Authelia dials the relay at startup and exits fatally when it cannot connect, which
+    # with Restart=on-failure is an endless restart loop and a 502 from Caddy for good
+    notifier_startup_check="disable_startup_check: true"
+else
+    caddy_tls=""
+    notifier_startup_check="disable_startup_check: false"
+fi
+
+
 
 if [ ! -d "$authelia_persistent_dir" ]; then
     mkdir -p $authelia_persistent_dir
@@ -234,6 +257,7 @@ storage:
   local:
     path: '$authelia_persistent_dir/db.sqlite3'
 notifier:
+  $notifier_startup_check
   smtp:
     address: '$smtp_address'
     sender: 'Jaia <noreply@auth.$base_uri>'
@@ -248,19 +272,6 @@ systemctl enable authelia
 ###########
 ## Caddy ##
 ###########
-
-# RFC 2606 and RFC 6761 reserve these names, so no public CA can ever issue for them and
-# Caddy would retry ACME forever. Its own CA serves them immediately instead, which is what
-# a CI CloudHub and a bench setup need: HTTPS that works without a real domain.
-case "$base_uri" in
-    *.invalid|*.test|*.example|*.localhost|localhost)
-        caddy_tls="tls internal"
-        echo "Serving $base_uri with Caddy's internal CA (reserved domain, no public certificate possible)"
-        ;;
-    *)
-        caddy_tls=""
-        ;;
-esac
 
 cat <<EOF > /etc/caddy/Caddyfile
 # Redirect base URL to runtime JCC
