@@ -728,8 +728,11 @@ jobs:
             for attempt in $(seq 1 60); do
               portal=$(check auth || true)
               [ "${portal}" = "200" ] && break
-              if [ "$(on_cloudhub 'systemctl is-failed authelia' 2>/dev/null || true)" = "failed" ]; then
-                echo "attempt ${attempt}: authelia is in a failed state; not waiting out the window"
+              # Restart=on-failure keeps the unit in activating, never failed, so a crash
+              # loop only shows up in the restart count
+              restarts=$(on_cloudhub "systemctl show authelia -p NRestarts --value" 2>/dev/null || echo 0)
+              if [ "${restarts:-0}" -gt 5 ] 2>/dev/null; then
+                echo "attempt ${attempt}: authelia has restarted ${restarts} times; not waiting out the window"
                 break
               fi
               echo "attempt ${attempt}: auth portal returned '${portal}', waiting"
