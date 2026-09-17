@@ -458,30 +458,22 @@ message FleetConfig
     }
     optional Communications comms = 9;
 
-    message CloudHubAuth
+    // Value of the jaia_customer tag on every AWS resource the fleet owns
+    optional string customer = 14 [default = "jaia"];
+
+    // What a CloudHub needs that cannot be asked of AWS afterwards. Region, VPC,
+    // subnets, security groups, account and the Elastic IP are all discoverable from
+    // the instance, so they are deliberately absent: a major upgrade rebuilds them
+    // rather than carrying cloud.env across the rootfs swap.
+    message CloudHub
     {
+        // Authentication front end: Authelia behind Caddy
         required string base_uri = 1;
         required string admin_email = 2;
         required string smtp_address = 3;
-    }
-    optional CloudHubAuth cloudhub_auth = 11;
-
-    // What creating a CloudHub needs that cannot be asked of AWS afterwards.
-    // Region, VPC, subnets, security groups, account and the Elastic IP are all
-    // discoverable from the instance, so they are deliberately absent: a major
-    // upgrade rebuilds them rather than carrying cloud.env across the rootfs swap.
-    message CloudHub
-    {
-        // Value of the jaia_customer tag on every resource the fleet owns
-        optional string customer = 1 [default = "jaia"];
-
-        // jaiabot-rootfs-gen repository the VirtualFleet AMI is taken from. The
-        // version is not stored: it is the release branch of whatever is installed,
-        // which is what makes a VirtualFleet raised after a major upgrade match it.
-        optional string virtualfleet_repository = 2 [default = "release"];
 
         // S3 bucket holding the bot offload; unset means jaia--cloudhub-data--fleet<fleet>
-        optional string data_bucket = 3;
+        optional string data_bucket = 4;
     }
-    optional CloudHub cloudhub = 14;
+    optional CloudHub cloudhub = 11;
 }

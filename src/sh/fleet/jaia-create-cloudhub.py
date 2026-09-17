@@ -159,7 +159,7 @@ def resolve_jaiabot_dir(args, script_dir, logger):
 def main():
     parser = argparse.ArgumentParser(description="Jaia Fleet CloudHub creation (including VPC)")
     parser.add_argument('fleetcfg',  help="Path to fleet configuration file (protobuf TextFormat version of FleetConfig)")
-    parser.add_argument('customer', nargs='?', help="Customer name for AWS tagging (default: cloudhub.customer from the fleet config)")
+    parser.add_argument('customer', nargs='?', help="Customer name for AWS tagging (default: customer from the fleet config)")
     parser.add_argument('--quiet', '-q',  help="Do not output debugging information", action="store_true")
     parser.add_argument("--loglevel", help="Set logging level", choices=LOG_LEVELS.keys(), default='info')
     parser.add_argument('--binary', type=str, help="Name of binary")
@@ -172,7 +172,7 @@ def main():
     parser.add_argument('--jaiabot-dir', type=str, help="Path to the JaiaBot checkout holding rootfs/cloud/aws (default: the checkout this script is in)")
     parser.add_argument('--permissions-boundary', type=str, help="Name of an IAM policy to attach to the CloudHub's role as its permissions boundary")
     parser.add_argument('--govcloud', help=f"Shorthand for --region {GOVCLOUD_REGION}", action="store_true")
-    parser.add_argument('--repo', help="Jaiabot Repo (default: cloudhub.virtualfleet_repository from the fleet config)", choices=["release", "beta", "continuous", "test"])
+    parser.add_argument('--repo', help="Jaiabot Repo", default="release", choices=["release", "beta", "continuous", "test"])
     parser.add_argument('--disk-size-gb', help="CloudHub disk size in GB", default=32, type=int)
     parser.add_argument('--no-enable-client-vpn', help="If set, do not create a client vpn configuration on this machine", action="store_true")
     parser.add_argument('--no-update-client-etc-hosts', help="If set, do not add a local entry for the new CloudHub in this machine's /etc/hosts", action="store_true")    
@@ -206,10 +206,9 @@ def main():
     
     logger.info(f"Creating CloudHub (Hub {cloudhub_id}) for Fleet {fleet_id}")
 
-    customer = args.customer or fleet_cfg.cloudhub.customer
-    repo = args.repo or fleet_cfg.cloudhub.virtualfleet_repository
+    customer = args.customer or fleet_cfg.customer
     data_bucket = fleet_cfg.cloudhub.data_bucket or default_data_bucket(fleet_id)
-    logger.info(f"Customer {customer}, VirtualFleet repo {repo}, data bucket {data_bucket}")
+    logger.info(f"Customer {customer}, data bucket {data_bucket}")
 
     vpc_conffile = aws_cloud_script_dir / f'vpc.conf.fleet{fleet_id}'
     logger.info(f"Generating config file for create_vpc.sh: {vpc_conffile}")
@@ -231,7 +230,7 @@ def main():
         f.write(f'FLEET_ID={fleet_id}\n')
         f.write(f'REGION={region}\n')
         f.write(f'AVAILABILITY_ZONE={a_zone}\n')
-        f.write(f'REPO={repo}\n')
+        f.write(f'REPO={args.repo}\n')
         f.write(f'DISK_SIZE_GB={args.disk_size_gb}\n')
         f.write(f'CLOUDHUB_DATA_BUCKET="{data_bucket}"\n')
         f.write(f'FLEET_CONFIG={fleet_cfg_full_path}\n')

@@ -499,22 +499,20 @@ def validate(schema, cfg):
         if hub not in hub_keys:
             problems.append("ssh: no hub key for hub {}".format(hub))
     if CLOUDHUB_ID in cfg.hubs:
-        if not cfg.HasField("cloudhub_auth"):
-            problems.append("cloudhub_auth: required when hub {} (CloudHub) is in the fleet".format(CLOUDHUB_ID))
+        if not cfg.HasField("cloudhub"):
+            problems.append("cloudhub: required when hub {} (CloudHub) is in the fleet".format(CLOUDHUB_ID))
         else:
             for name in ("base_uri", "admin_email", "smtp_address"):
-                if not getattr(cfg.cloudhub_auth, name):
-                    problems.append("cloudhub_auth.{}: must be set".format(name))
-        # Every cloudhub field defaults, so an absent message is fine; a present one
-        # that blanks a value is not, since create_vpc.sh would tag or fetch on ""
-        for name in ("customer", "virtualfleet_repository"):
-            if cfg.cloudhub.HasField(name) and not getattr(cfg.cloudhub, name):
-                problems.append("cloudhub.{}: must not be empty".format(name))
-        if cfg.cloudhub.HasField("data_bucket") and not cfg.cloudhub.data_bucket:
-            problems.append("cloudhub.data_bucket: must not be empty; omit it to use the default")
+                if not getattr(cfg.cloudhub, name):
+                    problems.append("cloudhub.{}: must be set".format(name))
+            # An empty bucket name would mount nothing, where an absent one defaults
+            if cfg.cloudhub.HasField("data_bucket") and not cfg.cloudhub.data_bucket:
+                problems.append("cloudhub.data_bucket: must not be empty; omit it to use the default")
     elif cfg.HasField("cloudhub"):
         problems.append(
             "cloudhub: set, but hub {} (CloudHub) is not in the fleet".format(CLOUDHUB_ID))
+    if cfg.HasField("customer") and not cfg.customer:
+        problems.append("customer: must not be empty; omit it to use the default")
     return problems
 
 
@@ -754,13 +752,13 @@ def cmd_generate(schema, args):
             print("Wrote fleet config: {}".format(stored))
 
         if "write_cloudhub_auth" in actions:
-            if not cfg.HasField("cloudhub_auth"):
-                raise FleetConfigError("cloudhub_auth is not set in {}".format(args.fleetcfg))
+            if not cfg.HasField("cloudhub"):
+                raise FleetConfigError("cloudhub is not set in {}".format(args.fleetcfg))
             cloudhub_auth_sh = os.path.join(init_dir, "cloudhub_auth.sh")
             with open(cloudhub_auth_sh, "w") as sh:
-                sh.write("AUTH_BASE_URI={}\n".format(cfg.cloudhub_auth.base_uri))
-                sh.write("AUTH_ADMIN_EMAIL={}\n".format(cfg.cloudhub_auth.admin_email))
-                sh.write("AUTH_SMTP_ADDRESS={}\n".format(cfg.cloudhub_auth.smtp_address))
+                sh.write("AUTH_BASE_URI={}\n".format(cfg.cloudhub.base_uri))
+                sh.write("AUTH_ADMIN_EMAIL={}\n".format(cfg.cloudhub.admin_email))
+                sh.write("AUTH_SMTP_ADDRESS={}\n".format(cfg.cloudhub.smtp_address))
             print("Wrote cloudhub auth variables to: {}".format(cloudhub_auth_sh))
 
     if args.debug:
@@ -1235,7 +1233,7 @@ def create(schema, ui, banner=None, existing=None):
                                            default="yes" if cfg.service_vpn_enabled else "no")
 
     def cloudhub_auth():
-        auth = cfg.cloudhub_auth
+        auth = cfg.cloudhub
 
         def base_uri():
             proposed = "fleet{}.jaia.tech".format(cfg.fleet)
@@ -1385,7 +1383,7 @@ def create(schema, ui, banner=None, existing=None):
         Step("Wifi password", wlan_password),
         Step("Service Wireguard VPN", service_vpn),
         Step("CloudHub authentication", cloudhub_auth, enabled=lambda: state["cloudhub"],
-             clear=lambda: cfg.ClearField("cloudhub_auth")),
+             clear=lambda: cfg.ClearField("cloudhub")),
         Step("Common jaiabot-embedded settings", common_settings),
         Step("Overrides (settings that differ from the common ones)", overrides),
         Step("Settings that are different on every node", node_settings,
