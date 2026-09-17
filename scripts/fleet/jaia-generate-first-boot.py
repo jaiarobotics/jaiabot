@@ -207,14 +207,14 @@ def main():
         if 'write_cloudhub_auth' in actions:
             cloudhub_auth_sh = bootdir + '/jaiabot/init/cloudhub_auth.sh'
 
-            if not 'cloudhubAuth' in fleet_cfg_json:
+            if not 'cloudhub' in fleet_cfg_json:
                 # defaults
-                fleet_cfg_json.update({"cloudhubAuth" : {"baseUri": f"fleet{fleet_cfg_json['fleet']}.jaia.tech", "adminEmail" : "matt.ferro@jaia.tech", "smtpAddress": "smtp://smtp-relay.gmail.com:587"}})
+                fleet_cfg_json.update({"cloudhub" : {"baseUri": f"fleet{fleet_cfg_json['fleet']}.jaia.tech", "adminEmail" : "matt.ferro@jaia.tech", "smtpAddress": "smtp://smtp-relay.gmail.com:587"}})
             
             with open(cloudhub_auth_sh, "w") as sh:
-                sh.write(f"AUTH_BASE_URI={fleet_cfg_json['cloudhubAuth']['baseUri']}\n")
-                sh.write(f"AUTH_ADMIN_EMAIL={fleet_cfg_json['cloudhubAuth']['adminEmail']}\n")
-                sh.write(f"AUTH_SMTP_ADDRESS={fleet_cfg_json['cloudhubAuth']['smtpAddress']}\n")
+                sh.write(f"AUTH_BASE_URI={fleet_cfg_json['cloudhub']['baseUri']}\n")
+                sh.write(f"AUTH_ADMIN_EMAIL={fleet_cfg_json['cloudhub']['adminEmail']}\n")
+                sh.write(f"AUTH_SMTP_ADDRESS={fleet_cfg_json['cloudhub']['smtpAddress']}\n")
             print(f"Wrote cloudhub auth variables to: {cloudhub_auth_sh}")
 
 

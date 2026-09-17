@@ -424,7 +424,7 @@ if $HAS_CLOUDHUB; then
     echo "## CloudHub Authentication configuration            ##"
     echo "######################################################"
     
-    echo "cloudhub_auth {" >> $out
+    echo "cloudhub {" >> $out
     BASE_URI="fleet${FLEET_ID}.jaia.tech"
     run_wt_inputbox "Fleet Configuration" "Enter CloudHub base URI (or leave blank for default of $BASE_URI)"
     if [ ! "${WT_TEXT}" = "" ]; then
