@@ -265,8 +265,8 @@ class CheckCommandTest(unittest.TestCase):
         self.assertIn("increment (jaia.file).fleet_config_version", result.stderr)
 
     def test_reports_compatible_change_with_refresh_instructions(self):
-        self.edit(self.proto, "    optional CloudHubAuth cloudhub_auth = 11;",
-                  "    optional CloudHubAuth cloudhub_auth = 11;\n    optional string notes = 14;")
+        self.edit(self.proto, "    optional CloudHub cloudhub = 11;",
+                  "    optional CloudHub cloudhub = 11;\n    optional string notes = 900;")
         result = self.check()
         self.assertEqual(result.returncode, 1)
         self.assertIn("[compatible] optional field jaiabot.protobuf.FleetConfig.notes added", result.stderr)

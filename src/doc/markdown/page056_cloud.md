@@ -190,6 +190,44 @@ CircleCI builds the AMI in `us-east-1` (and separately in `us-gov-east-1` for Go
 	+ jaia_node_id: Bot ID or Hub ID
 	+ jaia_node_type: "bot" or "hub"
 
+## CloudHub settings
+
+A CloudHub keeps its creation-time settings in `/etc/jaiabot/cloud.env`, written by
+cloud-init on first boot. That file lives on the rootfs, so a major upgrade discards
+it along with everything else outside the reuse set. Rather than carry it across, the
+settings are split by where they can be obtained again:
+
+**In the fleet config**, because AWS cannot be asked for them:
+
+| Field | Default |
+|---|---|
+| `customer` (top level) | `jaia` — the value of the `jaia_customer` tag on every AWS resource the fleet owns |
+| `cloudhub.base_uri` | required — the name the authentication front end is served under |
+| `cloudhub.admin_email` | required — address of the `jaia_admin` user created on first boot |
+| `cloudhub.smtp_address` | required — the relay Authelia sends enrolment and reset mail through |
+| `cloudhub.data_bucket` | `jaia--cloudhub-data--fleet<fleet>` — the bucket mounted at the bot offload directory |
+
+`customer` is a property of the fleet rather than of its CloudHub, so it sits at the top
+level; the rest are meaningless without hub 30 and `validate` requires the `cloudhub`
+message exactly when hub 30 is in the fleet. `jaia admin fleet create_cloudhub` renders
+them into `vpc.conf` for `create_vpc.sh`, and its `customer` argument overrides the
+config, which is how CI gives each run its own customer name.
+
+**Discoverable from AWS**, so deliberately not stored: the region, VPC, subnets,
+security groups, account ID and Elastic IP. Each is available from instance metadata
+or from a tag lookup within the fleet's VPC.
+
+**Carried across the upgrade**: `/etc/wireguard`. The CloudHub's VPN private key cannot
+be regenerated without every client peer, including the login server, having to be
+reissued.
+
+**Neither stored nor carried**: which repository the VirtualFleet AMI comes from, and its
+version. `create_cloudhub --repo` picks the repository at creation, defaulting to
+`release`, and the JCU's "Change JaiaBot repository and update all packages" playbook
+changes it afterwards. The version is the release branch of whatever jaiabot is
+installed, read from `common-versions.env`, so a VirtualFleet raised after a major
+upgrade matches the upgraded CloudHub rather than the release it came from.
+
 ## Usage
 
 Once connected to the appropriate VPN and hosts are configured in `/etc/hosts`, one can open a web-browser as usual to JCC, etc.
