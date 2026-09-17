@@ -22,9 +22,6 @@ function applyRevert(revert: RevertContext[]) {
                 missionSet.restoreFromSnapshot(action.missionSet);
                 missionsManager.restoreFromSnapshot(action.missionsManager);
                 break;
-            case "restoreZoneSetSnapshot":
-                obstacleAvoidanceData.getExclusionZoneSet().restoreFromSnapshot(action.zoneSet);
-                break;
             case "restoreWaypoints":
                 for (const { missionID, waypoints } of action.missions) {
                     missionSet.getMission(missionID)?.setWaypoints(waypoints);

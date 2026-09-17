@@ -52,10 +52,8 @@ export default function LoadZoneButton(props: Props) {
         if (dialogAction === DialogActions.CONFIRMED) {
             loadSnapshotFromHub(props.saveName.trim()).then((snapshot) => {
                 if (snapshot) {
-                    jaiaDispatch({
-                        type: JaiaActions.CHANGE_EXCLUSION_ZONE_SET_NAME,
-                        exclusionZoneSetName: props.saveName.trim(),
-                    });
+                    // One tracked dispatch, so undo cannot land between the name and the
+                    // zones. The snapshot carries the name it was saved under.
                     jaiaDispatch({
                         type: JaiaActions.LOAD_EXCLUSION_ZONE_SET,
                         exclusionZoneSetSnapshot: snapshot,

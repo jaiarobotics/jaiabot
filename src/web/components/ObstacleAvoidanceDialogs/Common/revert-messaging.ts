@@ -5,7 +5,6 @@ const REVERT_DESCRIPTIONS: Record<RevertContext["kind"], string> = {
     restoreZoneShape: "restore the zone's previous shape",
     restoreWaypoints: "restore the previous route",
     restoreMissionSnapshot: "restore the previous missions",
-    restoreZoneSetSnapshot: "restore the previous zones",
 };
 
 /**

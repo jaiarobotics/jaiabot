@@ -211,28 +211,6 @@ describe("handleCancelMissionReroute / applyRevert", () => {
         expect(missionsManager.getBotID(missionID)).toBe(3);
     });
 
-    test("restoreZoneSetSnapshot revert restores the entire zone set", () => {
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(41.0, -72.0));
-        const zoneSetSnapshot = obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot();
-
-        obstacleAvoidanceData.getExclusionZoneSet().addZone(squareZone(50.0, -80.0));
-        expect(obstacleAvoidanceData.getExclusionZoneSet().getZones().size).toBe(2);
-
-        const revert: RevertContext[] = [
-            { kind: "restoreZoneSetSnapshot", zoneSet: zoneSetSnapshot },
-        ];
-        obstacleAvoidanceData.setPendingChange({
-            type: "reroute",
-            data: { proposals: [], totalBypassCount: 0, revert },
-        });
-
-        handleCancelMissionReroute(makeMutableState());
-
-        expect(obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot()).toEqual(
-            zoneSetSnapshot,
-        );
-    });
-
     test("applies multiple revert actions in order (restoreWaypoints then deleteZone)", () => {
         const missionID = addMission([
             [41.0, -72.005],

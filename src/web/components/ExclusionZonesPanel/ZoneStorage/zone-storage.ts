@@ -39,10 +39,9 @@ export async function listSavedZoneSetsFromHub(): Promise<string[]> {
  * @returns {Promise<void>}
  */
 export async function saveToHub(name: string): Promise<void> {
-    await jaiaAPI.saveExclusionZone(
-        name,
-        obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot(),
-    );
+    const zoneSet = obstacleAvoidanceData.getExclusionZoneSet();
+    zoneSet.setName(name);
+    await jaiaAPI.saveExclusionZone(name, zoneSet.captureSnapshot());
 }
 
 /**
@@ -52,7 +51,11 @@ export async function saveToHub(name: string): Promise<void> {
  * @returns {Promise<ExclusionZoneSetSnapshot | null>} The loaded snapshot, or null if not found
  */
 export async function loadSnapshotFromHub(name: string): Promise<ExclusionZoneSetSnapshot | null> {
-    return jaiaAPI.loadExclusionZone(name) as Promise<ExclusionZoneSetSnapshot | null>;
+    const snapshot = (await jaiaAPI.loadExclusionZone(name)) as ExclusionZoneSetSnapshot | null;
+    if (!snapshot) return null;
+    // The name a set is stored under is the one it carries, even for an entry saved
+    // before the name was part of the snapshot.
+    return { ...snapshot, name: snapshot.name ?? name };
 }
 
 /**
@@ -74,9 +77,11 @@ export async function deleteFromHub(name: string): Promise<void> {
  * @returns {void}
  */
 export function exportZonesToFile(name: string) {
+    const zoneSet = obstacleAvoidanceData.getExclusionZoneSet();
+    zoneSet.setName(name);
     const data = JSON.stringify({
         version: EXCLUSION_ZONE_SET_VERSION,
-        snapshot: obstacleAvoidanceData.getExclusionZoneSet().captureSnapshot(),
+        snapshot: zoneSet.captureSnapshot(),
     } as ExclusionZoneFile);
 
     const blob = new Blob([data], { type: "application/json" });

@@ -1,7 +1,7 @@
 import { MissionSetSnapshot } from "../mission_set/mission-set";
 import { MissionsManagerSnapshot } from "../missions_manager/missions-manager";
 import Waypoint from "../waypoints/waypoint";
-import { ExclusionZone, ExclusionZoneSetSnapshot } from "./exclusion_zones/exclusion-zone-set";
+import { ExclusionZone } from "./exclusion_zones/exclusion-zone-set";
 
 // ── Pending reroute / waypoint-removal types ──────────────────────────────────
 // These live here (next to ExclusionZoneSet) rather than in context-types.ts
@@ -62,8 +62,7 @@ export type RevertContext =
           kind: "restoreMissionSnapshot";
           missionSet: MissionSetSnapshot;
           missionsManager: MissionsManagerSnapshot;
-      }
-    | { kind: "restoreZoneSetSnapshot"; zoneSet: ExclusionZoneSetSnapshot };
+      };
 
 export interface PendingReroute extends RerouteProposalSet {
     revert: RevertContext[];

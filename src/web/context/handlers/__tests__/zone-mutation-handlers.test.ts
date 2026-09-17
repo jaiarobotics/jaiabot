@@ -96,10 +96,11 @@ const NOTCH_INTERIOR: [number, number] = [41.0 + 4 * STEP, -72.0 + 5 * STEP];
 const BELOW_ZONE: [number, number] = [41.0 - 5 * STEP, -72.0 + 5 * STEP];
 
 /** Wraps bare zones in the snapshot shape the load handler receives from storage. */
-function zoneSetSnapshot(zones: ExclusionZone[]): ExclusionZoneSetSnapshot {
+function zoneSetSnapshot(zones: ExclusionZone[], name = "loaded-set"): ExclusionZoneSetSnapshot {
     return {
         zones: zones.map((zone, index): [number, ExclusionZone] => [index + 1, zone]),
         nextZoneID: zones.length + 1,
+        name,
     };
 }
 

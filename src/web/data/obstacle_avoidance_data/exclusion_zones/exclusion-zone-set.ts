@@ -11,6 +11,7 @@ export const EXCLUSION_ZONE_SET_VERSION = "1.0";
 export interface ExclusionZoneSetSnapshot {
     zones: [number, ExclusionZone][];
     nextZoneID: number;
+    name: string;
 }
 
 /**
@@ -148,12 +149,17 @@ export class ExclusionZoneSet {
     /**
      * Captures a deep-clone snapshot of the current zone set state
      *
-     * @returns {ExclusionZoneSetSnapshot} A deep copy of the zones and nextZoneID
+     * The name is part of the snapshot so it can never drift from the zones it belongs
+     * to: a snapshot is both what undo restores and what is written to the hub or a
+     * file, and a set restored without its name could be saved over a different one.
+     *
+     * @returns {ExclusionZoneSetSnapshot} A deep copy of the zones, nextZoneID and name
      */
     captureSnapshot(): ExclusionZoneSetSnapshot {
         return cloneDeep({
             zones: Array.from(this.zones.entries()),
             nextZoneID: this.nextZoneID,
+            name: this.name,
         });
     }
 
@@ -170,5 +176,6 @@ export class ExclusionZoneSet {
             restored.zones.forEach(([id, zone]) => this.zones.set(id, zone));
         }
         this.nextZoneID = restored.nextZoneID ?? 1;
+        this.name = restored.name ?? "";
     }
 }
