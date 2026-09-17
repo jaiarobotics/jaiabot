@@ -77,6 +77,7 @@ It accepts GET requests for the subset of requests that only have singular (non-
 
 It also accepts POST for all requests, using JSON (which is required for the more complicated messages).
 
+The API has no key of its own. On a CloudHub it is reached through the authentication front end, which grants a client in the `rest_api_read` group the read-only actions (`status`, `metadata`, `task_packets`, `missions`) and one in `rest_api_all` everything under `/jaia`. Both are one-factor, so a password is enough for an unattended client; see "Coming from `api_key`" in `src/web/rest_api/README.md`.
 
 There are 2 variants of the API:
 

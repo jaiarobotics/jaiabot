@@ -110,12 +110,54 @@ streaming_endpoint {
     hostname: "localhost"
     port: 40000
 }
-
-key {
-    private_key: "your-secret-key-here"
-    permission: [ALL]
-}
 ```
+
+## Authentication
+
+The API has no key of its own. On a CloudHub it sits behind Caddy, which asks
+Authelia about every request (`forward_auth`), so authenticating means holding an
+Authelia session.
+
+### Coming from `api_key`
+
+An `api_key` sent as a query parameter or a JSON field is now ignored rather than
+rejected, so an existing script keeps working — but it is no longer authenticated by
+it, and on a CloudHub Caddy turns it away before it reaches the API. Replace the key
+with a login:
+
+1. **Create a user** for the client at `https://users.<base_uri>` (LLDAP; you need
+   `lldap_admin` or `super_admin` to get in).
+
+2. **Put it in one group.** The group decides how much of the API it reaches:
+
+   | Group | Reaches |
+   |---|---|
+   | `rest_api_read` | `status`, `metadata`, `task_packets`, `missions` |
+   | `rest_api_all` | everything under `/jaia` |
+
+3. **Log in once and keep the session cookie.** Both groups are matched with a
+   `one_factor` policy, so the password alone is enough — no TOTP, no WebAuthn —
+   which is what makes unattended access possible at all:
+
+   ```bash
+   curl -c jar.txt -X POST https://auth.<base_uri>/api/firstfactor \
+     -H 'Content-Type: application/json' \
+     -d '{"username": "reporting-client", "password": "..."}'
+
+   curl -b jar.txt "https://run.<base_uri>/jaia/v1/status/all"
+   ```
+
+   The cookie is issued for `<base_uri>`, so the one obtained from `auth.<base_uri>`
+   is sent to `run.<base_uri>` as well. It expires, and Authelia answers an expired
+   session with a redirect to the portal rather than a 401 — so a long-running client
+   should treat an HTML response where it expected JSON as "log in again".
+
+One factor buys less than a person gets, deliberately. Every other rule on
+`run.<base_uri>` — JCC, JCU, JDV — requires `two_factor`, so a client holding only a
+password cannot reach them even with a valid session.
+
+Nothing stands in front of the API when it is run directly: `./run.sh`, the Docker
+simulator, or a hub reached over the fleet VPN are all unauthenticated.
 
 ## Running Tests
 
