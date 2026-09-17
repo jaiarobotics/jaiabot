@@ -100,6 +100,29 @@ apt-get update && apt-get install -y authelia=$authelia_version caddy docker-com
 ## Authelia ##
 ##############
 
+# RFC 2606 and RFC 6761 reserve these names, so this is a CI or bench CloudHub rather than
+# one anybody reaches: no public CA can issue for it and there is no mail relay behind it
+case "$base_uri" in
+    *.invalid|*.test|*.example|*.localhost|localhost)
+        throwaway_deployment=true
+        echo "$base_uri is a reserved domain: serving TLS from Caddy's own CA and not dialling SMTP at startup"
+        ;;
+    *)
+        throwaway_deployment=false
+        ;;
+esac
+
+if $throwaway_deployment; then
+    caddy_tls="tls internal"
+    # Authelia dials the relay at startup and exits fatally when it cannot connect, which
+    # with Restart=on-failure is an endless restart loop and a 502 from Caddy for good
+    notifier_startup_check="disable_startup_check: true"
+else
+    caddy_tls=""
+    notifier_startup_check="disable_startup_check: false"
+fi
+
+
 
 if [ ! -d "$authelia_persistent_dir" ]; then
     mkdir -p $authelia_persistent_dir
@@ -234,6 +257,7 @@ storage:
   local:
     path: '$authelia_persistent_dir/db.sqlite3'
 notifier:
+  $notifier_startup_check
   smtp:
     address: '$smtp_address'
     sender: 'Jaia <noreply@auth.$base_uri>'
@@ -248,14 +272,17 @@ systemctl enable authelia
 ###########
 ## Caddy ##
 ###########
+
 cat <<EOF > /etc/caddy/Caddyfile
 # Redirect base URL to runtime JCC
 $base_uri {
+        $caddy_tls
         redir https://run.$base_uri{uri} permanent
 }
 
 # Authelia Portal.
 auth.$base_uri {
+        $caddy_tls
         reverse_proxy localhost:$authelia_port
 }
 
@@ -268,18 +295,21 @@ auth.$base_uri {
 }
 
 users.$base_uri {
+        $caddy_tls
         import authelia_forward_auth
         reverse_proxy :$lldap_web_port
 }
 
 # Runtime JCC
 run.$base_uri {
+        $caddy_tls
         import authelia_forward_auth
         reverse_proxy [$ch_ip]:$jcc_port
 }
 
 # VirtualFleet JCC
 sim.$base_uri {
+        $caddy_tls
         import authelia_forward_auth
         reverse_proxy [$vh1_ip]:80
 }
@@ -381,9 +411,19 @@ systemctl enable lldap
 systemctl start lldap
 
 if ! $jaia_auth_lldap_bootstrap_completed; then
-    # Run the bootstrap script
-    until docker compose -f /etc/lldap/docker-compose.yaml exec lldap /app/bootstrap.sh; do sleep 1; done
-    echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
+    # -T because cloud-init gives this no TTY, and bounded because a first boot that
+    # never returns leaves the machine without the reboot that mounts overlayroot
+    for attempt in $(seq 1 120); do
+        if docker compose -f /etc/lldap/docker-compose.yaml exec -T lldap /app/bootstrap.sh; then
+            echo "jaia_auth_lldap_bootstrap_completed=true" >> /etc/jaiabot/cloud.env
+            break
+        fi
+        if (( attempt == 120 )); then
+            echo "ERROR: LLDAP bootstrap did not succeed after ${attempt} attempts" >&2
+            exit 1
+        fi
+        sleep 1
+    done
 fi
 
 mkdir -p /etc/systemd/system/authelia.service.d
@@ -393,12 +433,13 @@ Requires=lldap.service
 After=lldap.service
 
 [Service]
-ExecStartPre=-/bin/sh -c 'until nc -z localhost $lldap_ldap_port; do sleep 1; done'
+ExecStartPre=-/bin/bash -c 'for i in {1..110}; do (exec 3<>/dev/tcp/127.0.0.1/$lldap_ldap_port) 2>/dev/null && exit 0; sleep 1; done; exit 1'
 TimeoutStartSec=120
 Restart=on-failure
 RestartSec=10s
 EOF
 
+systemctl daemon-reload
 systemctl start authelia
 
 
