@@ -505,6 +505,16 @@ def validate(schema, cfg):
             for name in ("base_uri", "admin_email", "smtp_address"):
                 if not getattr(cfg.cloudhub_auth, name):
                     problems.append("cloudhub_auth.{}: must be set".format(name))
+        # Every cloudhub field defaults, so an absent message is fine; a present one
+        # that blanks a value is not, since create_vpc.sh would tag or fetch on ""
+        for name in ("customer", "virtualfleet_repository"):
+            if cfg.cloudhub.HasField(name) and not getattr(cfg.cloudhub, name):
+                problems.append("cloudhub.{}: must not be empty".format(name))
+        if cfg.cloudhub.HasField("data_bucket") and not cfg.cloudhub.data_bucket:
+            problems.append("cloudhub.data_bucket: must not be empty; omit it to use the default")
+    elif cfg.HasField("cloudhub"):
+        problems.append(
+            "cloudhub: set, but hub {} (CloudHub) is not in the fleet".format(CLOUDHUB_ID))
     return problems
 
 

@@ -205,6 +205,50 @@ class MigrationFailureTest(unittest.TestCase):
         problems = fc.validate(SCHEMA, cfg)
         self.assertIn("cloudhub_auth: required when hub 30 (CloudHub) is in the fleet", problems)
 
+    def cloudhub_cfg(self, cloudhub_block):
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_cloudhub_no_auth.cfg"))
+        fc.migrate(SCHEMA, cfg)
+        cfg.cloudhub_auth.base_uri = "fleet9.example"
+        cfg.cloudhub_auth.admin_email = "a@example"
+        cfg.cloudhub_auth.smtp_address = "smtp://localhost:587"
+        fc.text_format.Merge(cloudhub_block, cfg)
+        return cfg
+
+    def test_cloudhub_settings_are_optional(self):
+        cfg = self.cloudhub_cfg("")
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        # the defaults are what create_cloudhub falls back to
+        self.assertEqual(cfg.cloudhub.customer, "jaia")
+        self.assertEqual(cfg.cloudhub.virtualfleet_repository, "release")
+        self.assertFalse(cfg.cloudhub.HasField("data_bucket"))
+
+    def test_cloudhub_settings_are_carried(self):
+        cfg = self.cloudhub_cfg('cloudhub { customer: "acme" virtualfleet_repository: "beta" '
+                                'data_bucket: "acme-fleet9" }')
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        self.assertEqual(cfg.cloudhub.customer, "acme")
+        self.assertEqual(cfg.cloudhub.virtualfleet_repository, "beta")
+        self.assertEqual(cfg.cloudhub.data_bucket, "acme-fleet9")
+
+    def test_cloudhub_settings_refuse_blanks(self):
+        cfg = self.cloudhub_cfg('cloudhub { customer: "" virtualfleet_repository: "" data_bucket: "" }')
+        problems = fc.validate(SCHEMA, cfg)
+        self.assertIn("cloudhub.customer: must not be empty", problems)
+        self.assertIn("cloudhub.virtualfleet_repository: must not be empty", problems)
+        self.assertIn("cloudhub.data_bucket: must not be empty; omit it to use the default", problems)
+
+    def test_cloudhub_settings_without_a_cloudhub_are_refused(self):
+        cfg = SCHEMA.FleetConfig()
+        fc.text_format.Merge(
+            'fleet: 7\n'
+            'hubs: [1]\n'
+            'ssh { hub { id: 1 private_key: "k\\n" public_key: "ssh-ed25519 AAAA hub1_fleet7" } }\n'
+            'wlan_password: "x"\n'
+            'service_vpn_enabled: false\n'
+            'cloudhub { customer: "acme" }\n', cfg)
+        self.assertIn("cloudhub: set, but hub 30 (CloudHub) is not in the fleet",
+                      fc.validate(SCHEMA, cfg))
+
     def test_newer_than_tool_is_refused(self):
         with tempfile.NamedTemporaryFile("w", suffix=".cfg", delete=False) as f:
             f.write("version: 99\nfleet: 1\nssh {}\nwlan_password: \"x\"\nservice_vpn_enabled: false\n")
