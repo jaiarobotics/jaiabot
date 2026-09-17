@@ -20,6 +20,7 @@ const baseConfig = {
         extensions: [".*", ".js", ".jsx", ".ts", ".tsx"],
         alias: {
             geotiff: path.resolve(__dirname, "node_modules/geotiff/dist-module/geotiff.js"),
+            "@proto": path.resolve(__dirname, "types/proto"),
         },
     },
     module: {
