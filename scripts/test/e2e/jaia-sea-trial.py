@@ -279,8 +279,6 @@ def parse_args(argv):
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--hub-url', default='http://localhost:9092',
                         help='base URL of the hub REST API (default: %(default)s)')
-    parser.add_argument('--api-key', default=os.environ.get('JAIA_REST_API_PRIVATE_KEY', ''),
-                        help='defaults to $JAIA_REST_API_PRIVATE_KEY')
     parser.add_argument('--hub-id', type=int, default=1)
     parser.add_argument('--bots', type=int, default=2, help='number of bots to command')
     parser.add_argument('--goals', type=int, default=mission.MAX_GOALS,
@@ -334,7 +332,7 @@ def parse_args(argv):
 
 def main(argv):
     args = parse_args(argv)
-    hub = api.HubApi(args.hub_url, args.api_key)
+    hub = api.HubApi(args.hub_url)
     trial = SeaTrial(hub, args)
     started = time.time()
     failure = None

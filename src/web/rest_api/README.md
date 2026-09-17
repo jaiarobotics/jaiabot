@@ -28,7 +28,6 @@ curl -X POST http://localhost:9092/jaia/v1 \
 - 📝 **Retrieve metadata** - Fetch hub metadata (versions, configuration, etc.)
 - 📦 **Get task packets** - Pull historical task data for analysis
 - 🎮 **Send commands** - Control bots (start, stop, etc.) and hubs
-- 🔐 **API key auth** - Secure your API with optional authentication
 
 ## Directory Layout
 
@@ -38,7 +37,6 @@ Here's what's in this directory:
 rest_api/
 ├── app.py                    # 🚀 Main Flask app - routes and request handling
 ├── run.sh                    # 🎬 Start script - use this for development!
-├── gen_api_key.py           # 🔑 Generate API keys
 │
 ├── v1/                       # Version 1 API implementation
 │   └── api.py               # 💡 THIS is where you add new endpoints!
@@ -112,47 +110,54 @@ streaming_endpoint {
     hostname: "localhost"
     port: 40000
 }
-
-# For production - require API keys
-no_key_required: false
-
-key {
-    private_key: "your-secret-key-here"
-    permission: [ALL]
-}
 ```
 
-### API Keys
+## Authentication
 
-**Development (no auth):**
+The API has no key of its own. On a CloudHub it sits behind Caddy, which asks
+Authelia about every request (`forward_auth`), so authenticating means holding an
+Authelia session.
 
-```bash
-export JAIA_REST_API_PRIVATE_KEY=""
-./run.sh
-```
+### Coming from `api_key`
 
-**Production (secure):**
+An `api_key` sent as a query parameter or a JSON field is now ignored rather than
+rejected, so an existing script keeps working — but it is no longer authenticated by
+it, and on a CloudHub Caddy turns it away before it reaches the API. Replace the key
+with a login:
 
-```bash
-# Generate a random key
-./gen_api_key.py
+1. **Create a user** for the client at `https://users.<base_uri>` (LLDAP; you need
+   `lldap_admin` or `super_admin` to get in).
 
-# This outputs something like:
-# key {
-#     private_key: "abc123xyz..."
-#     permission: [ALL]
-# }
+2. **Put it in one group.** The group decides how much of the API it reaches:
 
-# Add it to /etc/jaiabot/rest_api.pb.cfg
-```
+   | Group | Reaches |
+   |---|---|
+   | `rest_api_read` | `status`, `metadata`, `task_packets`, `missions` |
+   | `rest_api_all` | everything under `/jaia` |
 
-Then use the key in your requests:
+3. **Log in once and keep the session cookie.** Both groups are matched with a
+   `one_factor` policy, so the password alone is enough — no TOTP, no WebAuthn —
+   which is what makes unattended access possible at all:
 
-```bash
-curl -X POST http://localhost:9092/jaia/v1 \
-  -H "Content-Type: application/json" \
-  -d '{"target": {"all": true}, "status": true, "api_key": "abc123xyz..."}'
-```
+   ```bash
+   curl -c jar.txt -X POST https://auth.<base_uri>/api/firstfactor \
+     -H 'Content-Type: application/json' \
+     -d '{"username": "reporting-client", "password": "..."}'
+
+   curl -b jar.txt "https://run.<base_uri>/jaia/v1/status/all"
+   ```
+
+   The cookie is issued for `<base_uri>`, so the one obtained from `auth.<base_uri>`
+   is sent to `run.<base_uri>` as well. It expires, and Authelia answers an expired
+   session with a redirect to the portal rather than a 401 — so a long-running client
+   should treat an HTML response where it expected JSON as "log in again".
+
+One factor buys less than a person gets, deliberately. Every other rule on
+`run.<base_uri>` — JCC, JCU, JDV — requires `two_factor`, so a client holding only a
+password cannot reach them even with a valid session.
+
+Nothing stands in front of the API when it is run directly: `./run.sh`, the Docker
+simulator, or a hub reached over the fleet VPN are all unauthenticated.
 
 ## Running Tests
 
@@ -237,7 +242,7 @@ message APIRequest {
             presence: GUARANTEED,
             doc: "Reboot a specific bot."
             example {
-                request: '{"target": {"bots": [1]}, "reboot_bot": {"force": true}, "api_key": "..."}'
+                request: '{"target": {"bots": [1]}, "reboot_bot": {"force": true}}'
                 response: '{"reboot_bot_result": {"success": true, "message": "Reboot command sent"}}'
             }
         }];
@@ -379,7 +384,7 @@ Add a test to `test/short_api_test.py`:
 
 print("Testing reboot_bot...")
 run_request(
-    {"target": {"bots": [1]}, "reboot_bot": {"force": True}, "api_key": api_key},
+    {"target": {"bots": [1]}, "reboot_bot": {"force": True}},
     expected_response_subset={
         "request": {"reboot_bot": {"force": True}},
         "reboot_bot_result": {"success": True}
@@ -405,7 +410,7 @@ run_request(
 ```python
 # Success case
 run_request(
-    {"target": {"bots": [1]}, "reboot_bot": {}, "api_key": api_key},
+    {"target": {"bots": [1]}, "reboot_bot": {}},
     expected_response_subset={"reboot_bot_result": {"success": True}}
 )
 
@@ -447,33 +452,6 @@ curl -X POST http://localhost:9092/jaia/v1/reboot_bot/b1 \
 curl "http://localhost:9092/jaia/v1/reboot_bot/b1?force=true"
 ```
 
-### Optional: Add API Permissions
-
-If you want to control who can use this action, update the permissions in `rest_api.proto`:
-
-```protobuf
-message APIConfig {
-    message APIKey {
-        enum Permission {
-            ALL = 0 [(jaia.ev).rest_api = {
-                permitted_action: [
-                    'status', 'metadata', 'task_packets',
-                    'command', 'command_for_hub',
-                    'reboot_bot'  // ← Add your action here
-                ]
-            }];
-
-            // Or create a specific permission
-            REBOOT_BOT = 8 [(jaia.ev).rest_api = {
-                permitted_action: ['reboot_bot']
-            }];
-        }
-    }
-}
-```
-
----
-
 ### 📚 Learn by Example
 
 The best way to learn? Look at existing endpoints in `v1/api.py`:
@@ -504,8 +482,7 @@ curl -X POST http://localhost:9092/jaia/v1 \
   -H "Content-Type: application/json" \
   -d '{
     "target": {"bots": [1, 2]},
-    "command": {"type": "STOP"},
-    "api_key": "your-key-if-needed"
+    "command": {"type": "STOP"}
   }'
 ```
 
@@ -545,7 +522,7 @@ curl -X POST http://localhost:9092/jaia/v1/command/b1,b2 \
   -d '{"type": "STOP"}'
 
 # GET with query params (for simple types)
-curl "http://localhost:9092/jaia/v1/status/all?api_key=abc123"
+curl "http://localhost:9092/jaia/v1/status/all?bot=1"
 ```
 
 **Target Syntax:**
@@ -579,7 +556,7 @@ curl "http://localhost:9092/jaia/v1/status/all?api_key=abc123"
 ```
 1. HTTP Request → Flask (app.py)
 2. Parse JSON → Protobuf (APIRequest)
-3. Validate & check API key
+3. Validate the request
 4. Forward to handler (v1/api.py)
 5. Handler does the work:
    - Read from shared_data, OR
@@ -628,17 +605,6 @@ nc -zv localhost 40000
 ./app.py -l DEBUG
 ```
 
-### API key errors (403 Forbidden)
-
-```bash
-# For development, disable auth entirely
-export JAIA_REST_API_PRIVATE_KEY=""
-./run.sh
-
-# Or check your config file
-cat /etc/jaiabot/rest_api.pb.cfg
-```
-
 ### Tests fail
 
 ```bash
@@ -647,9 +613,6 @@ cat /etc/jaiabot/rest_api.pb.cfg
 
 # In another terminal
 cd test && ./test.sh
-
-# If still failing, check you're using the right API key
-echo $JAIA_REST_API_PRIVATE_KEY
 ```
 
 ### "ImportError: No module named jaiabot.messages"
@@ -682,9 +645,6 @@ Enable debug logging to see what's happening:
 ```bash
 # See all requests/responses in real-time
 ./app.py -l DEBUG
-
-# Test without authentication
-export JAIA_REST_API_PRIVATE_KEY=""
 
 # Pretty-print JSON responses
 curl ... | python3 -m json.tool
