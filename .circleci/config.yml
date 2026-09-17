@@ -698,61 +698,9 @@ jobs:
       - run:
           name: Check the CloudHub auth front end is serving
           command: |
-            CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
-            BASE_URI=fleet${JAIA_CI_FLEET}.ci.invalid
-            on_cloudhub() { ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} "$@"; }
-            # A reserved domain resolves nowhere and Caddy signs it with its own CA, so
-            # curl is pointed at the loopback with the right Host and told not to verify.
-            # First boot is still settling when this runs, hence the retries.
-            check() {
-              on_cloudhub "curl -sS -k -o /dev/null -w '%{http_code}' --max-time 10 \
-                   --resolve $1.${BASE_URI}:443:127.0.0.1 https://$1.${BASE_URI}/"
-            }
-            # Printed, not just archived: a redirect into /tmp/sea-trial reached the
-            # artifacts empty twice, while the step log came through both times
-            diagnostics() {
-              for unit in authelia lldap caddy docker; do
-                echo "===== systemctl status ${unit} ====="
-                on_cloudhub "systemctl status --no-pager -l ${unit}" 2>&1 || true
-                echo "===== journal ${unit} ====="
-                on_cloudhub "sudo journalctl -u ${unit} --no-pager -n 150" 2>&1 || true
-              done
-              echo "===== docker ====="
-              on_cloudhub "sudo docker ps -a; sudo docker info 2>&1 | head -30" 2>&1 || true
-              echo "===== listening ====="
-              on_cloudhub "sudo ss -lntp" 2>&1 || true
-              echo "===== cloud-init ====="
-              on_cloudhub "sudo journalctl -u cloud-final --no-pager -n 300" 2>&1 || true
-            }
-            # first boot includes a reboot, so give it longer than the create step took
-            for attempt in $(seq 1 60); do
-              portal=$(check auth || true)
-              [ "${portal}" = "200" ] && break
-              # Restart=on-failure keeps the unit in activating, never failed, so a crash
-              # loop only shows up in the restart count
-              restarts=$(on_cloudhub "systemctl show authelia -p NRestarts --value" 2>/dev/null || echo 0)
-              if [ "${restarts:-0}" -gt 5 ] 2>/dev/null; then
-                echo "attempt ${attempt}: authelia has restarted ${restarts} times; not waiting out the window"
-                break
-              fi
-              echo "attempt ${attempt}: auth portal returned '${portal}', waiting"
-              sleep 10
-            done
-            protected=$(check run || true)
-            echo "auth portal: ${portal}, protected JCC: ${protected}" \
-              | tee /tmp/sea-trial/auth-check.txt
-            if [ "${portal}" != "200" ]; then
-              diagnostics
-              echo "ERROR: Authelia portal did not come up behind Caddy" >&2
-              exit 1
-            fi
-            # Unauthenticated JCC must not be served: forward_auth turns Authelia's
-            # refusal into a redirect to the portal, or passes the 401 through
-            case "${protected}" in
-              200) diagnostics; echo "ERROR: JCC served without authentication" >&2; exit 1 ;;
-              30[0-9]|401) echo "JCC is protected (${protected})" ;;
-              *) diagnostics; echo "ERROR: unexpected status ${protected} from protected JCC" >&2; exit 1 ;;
-            esac
+            rootfs/cloud/aws/circleci/check-cloudhub-auth.sh \
+              --fleet "${JAIA_CI_FLEET}" \
+              --result-file /tmp/sea-trial/auth-check.txt
 
       - run:
           name: Raise the VirtualFleet from the same AMI
