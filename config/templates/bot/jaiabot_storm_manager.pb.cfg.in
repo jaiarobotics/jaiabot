@@ -5,7 +5,7 @@ bot_id: $bot_id
 
 initial_mission { 
   dive { 
-    max_depth: 5 
+    max_depth: 2
     depth_interval: inf
     hold_time: 0
     bottom_dive: false
