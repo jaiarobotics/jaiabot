@@ -94,6 +94,7 @@ const config = {
             "<rootDir>/tests/__mocks__/file-mock.ts",
         "\\.(css|less)$": "<rootDir>/tests/__mocks__/style-mock.ts",
         "^clipper2-ts$": "<rootDir>/tests/__mocks__/clipper2-ts.ts",
+        "^@proto/(.*)$": "<rootDir>/types/proto/$1",
     },
 
     // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader

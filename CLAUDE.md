@@ -9,3 +9,7 @@ Guidance for Claude when working in this repository.
 - When a comment is warranted, keep it short — a single line beats a paragraph.
 - Don't explain *what* the code does, restate the diff, or reference the current task/fix/caller (e.g. "used by X", "added for the Y flow"). That belongs in the commit message or PR description, not the code.
 - Don't overly emphasis historical reasons for the change, assume the current state of the code speaks for itself.
+
+## Github PR
+
+- When replying to Github PRs, prefix each comment with `# Claude` so the other users can clearly see it is your text.
