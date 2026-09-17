@@ -375,6 +375,9 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+  /* Debug attach sets these; they survive everything except POR and keep clocks running through STOP2 (adds 1-5 mA). Make units immune. */
+  // CLEAR_BIT(DBGMCU->CR, DBGMCU_CR_DBG_SLEEP | DBGMCU_CR_DBG_STOP | DBGMCU_CR_DBG_STANDBY);
+
 
   /* USER CODE END 1 */
 
@@ -385,17 +388,23 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
+  /* === CURRENT PROBE A: GPIO only, IWDG never started, sleeps forever === */
+  HAL_SuspendTick();
+  while (1) {
+    HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+  }
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+
   MX_ADC1_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
