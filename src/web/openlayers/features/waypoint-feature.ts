@@ -14,8 +14,8 @@ import { missionsManager } from "../../data/missions_manager/missions-manager";
 
 import { NodeTypes } from "../../types/jaia-system-types";
 import { LineType, MapFeatureTypes } from "../../types/openlayers-types";
-import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
-import { MissionState, MissionTask_TaskType } from "../../shared/proto/jaiabot/messages/mission";
+import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
+import { MissionState, MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 import { OpenLayersColors } from "../../style/openlayers/colors";

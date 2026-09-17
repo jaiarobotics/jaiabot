@@ -7,7 +7,7 @@ import { Fill, Icon, Stroke, Style, Text } from "ol/style";
 import { view } from "../views/view";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { DivePacket, TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
+import { DivePacket, TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
 import { OpenLayersColors } from "../../style/openlayers/colors";
 
 import diveMarker from "../../style/icons/dive-marker.svg";

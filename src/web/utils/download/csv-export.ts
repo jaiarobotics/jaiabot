@@ -1,4 +1,4 @@
-import { TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
+import { TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
 import { timestampToISOString } from "../conversions";
 
 /**

@@ -2,10 +2,7 @@ import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { handleMapModeChange } from "../../openlayers/maps/map";
 import { JaiaAction, JaiaContextType } from "../../types/context-types";
 import { MapModes } from "../../types/openlayers-types";
-import {
-    CommandForHub,
-    CommandForHub_HubCommandType,
-} from "../../shared/proto/jaiabot/messages/jaia_dccl";
+import { CommandForHub, CommandForHub_HubCommandType } from "@proto/jaiabot/messages/jaia_dccl";
 import { jaiaAPI } from "../../utils/jaia-api";
 
 /**

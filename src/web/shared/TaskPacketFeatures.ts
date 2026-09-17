@@ -1,4 +1,4 @@
-import { TaskPacket } from "./proto/jaiabot/messages/jaia_dccl";
+import { TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
 import { createMarker } from "./Marker";
 
 import VectorLayer from "ol/layer/Vector";

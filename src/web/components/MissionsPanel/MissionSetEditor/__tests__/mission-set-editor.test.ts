@@ -1,6 +1,6 @@
 import Mission from "../../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../../data/mission_set/mission-set";
-import { BottomDepthSafetyParams } from "../../../../shared/proto/jaiabot/messages/mission";
+import { BottomDepthSafetyParams } from "@proto/jaiabot/messages/mission";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../../utils/constants";
 import { getMaxWaypointsPerOutputMission, combineMissionSets } from "../mission-set-editor";
 import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";

@@ -25,7 +25,7 @@ add_custom_target(npm_dependencies
 
 ###############################################################################
 # Generate the TypeScript protobuf types into the intermediate tree. They are not checked in;
-# outside of CMake, run.sh and "npm run gen:proto" generate them into src/web/shared/proto.
+# outside of CMake, run.sh and "npm run gen:proto" generate them into src/web/types/proto.
 
 set(web_proto_include_dirs ${GOBY_INCLUDE_DIR} ${DCCL_INCLUDE_DIR} ${Protobuf_INCLUDE_DIRS})
 list(REMOVE_DUPLICATES web_proto_include_dirs)
@@ -38,7 +38,7 @@ add_custom_command(OUTPUT ${web_protobuf_types_stamp}
   COMMAND ${CMAKE_COMMAND} -E env
     "PATH=${intermediate_web_dir}/node_modules/.bin:$ENV{PATH}"
     "JAIA_PROTO_INCLUDE_DIRS=${web_proto_include_path}"
-    ${CMAKE_CURRENT_SOURCE_DIR}/gen_protobuf_types.sh ${intermediate_web_dir}/shared/proto
+    ${CMAKE_CURRENT_SOURCE_DIR}/gen_protobuf_types.sh ${intermediate_web_dir}/types/proto
   COMMAND ${CMAKE_COMMAND} -E touch ${web_protobuf_types_stamp}
   DEPENDS npm_dependencies ${web_proto_files}
   COMMENT "Generating TypeScript protobuf types for web apps"
@@ -71,7 +71,7 @@ file(COPY ${src_files} DESTINATION ${intermediate_web_dir})
 
 # A developer's working tree may hold types generated from older protos; drop that copy and
 # clear the stamp so the intermediate tree only ever holds freshly generated ones
-file(REMOVE_RECURSE ${intermediate_web_dir}/shared/proto)
+file(REMOVE_RECURSE ${intermediate_web_dir}/types/proto)
 file(REMOVE ${web_protobuf_types_stamp})
 
 set(web_out_dir ${project_SHARE_DIR}/jaiabot/web)

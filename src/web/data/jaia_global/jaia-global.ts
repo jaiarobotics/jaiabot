@@ -8,10 +8,7 @@ import {
     TaskParameters,
 } from "../../types/jaia-system-types";
 import { MapFeatureTypes, MapModes } from "../../types/openlayers-types";
-import {
-    DeviceMetadata,
-    DeviceMetadata_Version,
-} from "../../shared/proto/jaiabot/messages/metadata";
+import { DeviceMetadata, DeviceMetadata_Version } from "@proto/jaiabot/messages/metadata";
 import { UNASSIGNED_ID } from "../../utils/constants";
 
 export interface SelectedZoneVertex {

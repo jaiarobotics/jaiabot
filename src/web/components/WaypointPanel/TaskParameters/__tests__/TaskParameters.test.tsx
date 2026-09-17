@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import TaskParameters from "../TaskParameters";
 import Task from "../../../../data/tasks/task";
-import { MissionTask_TaskType } from "../../../../shared/proto/jaiabot/messages/mission";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { jaiaGlobal } from "../../../../data/jaia_global/jaia-global";
 import { TaskParameterKeys } from "../../../../types/jaia-system-types";
 

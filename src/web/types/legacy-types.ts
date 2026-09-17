@@ -1,4 +1,4 @@
-import { Command } from "../shared/proto/jaiabot/messages/jaia_dccl";
+import { Command } from "@proto/jaiabot/messages/jaia_dccl";
 
 export interface LegacyRunInterface {
     id: string;

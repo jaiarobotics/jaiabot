@@ -2,7 +2,7 @@ import cloneDeep from "lodash/cloneDeep";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet, MissionSetSnapshot } from "../../../data/mission_set/mission-set";
 import { UNASSIGNED_ID } from "../../../utils/constants";
-import { MissionPlan_Segment } from "../../../shared/proto/jaiabot/messages/mission";
+import { MissionPlan_Segment } from "@proto/jaiabot/messages/mission";
 
 /**
  * Returns the largest mission count across the named sets in the snapshot cache.

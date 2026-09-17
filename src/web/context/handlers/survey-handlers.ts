@@ -9,7 +9,7 @@ import { missionLayer } from "../../openlayers/layers/vector/mission-layer";
 import { handleMapModeChange, map } from "../../openlayers/maps/map";
 import { DEFAULT_MISSION_SET_NAME, MISSION_ENDPOINTS, UNASSIGNED_ID } from "../../utils/constants";
 import { MapModes } from "../../types/openlayers-types";
-import { MissionTask_TaskType } from "../../shared/proto/jaiabot/messages/mission";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-types";
 import {
     detectMissionReroutes,

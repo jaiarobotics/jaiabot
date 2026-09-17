@@ -7,8 +7,8 @@
  */
 
 import { Clipper, JoinType, EndType, FillRule } from "clipper2-ts";
-import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
-import { MissionPlan, MissionPlan_Goal } from "../../shared/proto/jaiabot/messages/mission";
+import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
+import { MissionPlan, MissionPlan_Goal } from "@proto/jaiabot/messages/mission";
 import { METERS_PER_DEG } from "../../utils/constants";
 import {
     ExclusionZone,

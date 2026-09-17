@@ -2,7 +2,7 @@ import Mission from "../mission";
 import { locationA, locationB, locationC, locationD } from "../../tests/__mocks__/waypoint-mock";
 import { missionSet } from "../mission-set";
 import Task from "../../tasks/task";
-import { MissionTask_TaskType } from "../../../shared/proto/jaiabot/messages/mission";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { TaskParameterKeys } from "../../../types/jaia-system-types";
 import cloneDeep from "lodash/cloneDeep";
 

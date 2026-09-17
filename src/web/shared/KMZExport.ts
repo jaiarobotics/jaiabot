@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 
 import { LogTaskPacket } from "./LogMessages";
-import { DriftPacket, TaskPacket } from "./proto/jaiabot/messages/jaia_dccl";
+import { DriftPacket, TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
 import * as Styles from "./Styles";
 
 /**

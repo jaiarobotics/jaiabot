@@ -9,11 +9,11 @@ import { Button } from "@mui/material";
 import Bot from "../../../data/bots/bot";
 import { BotModes } from "../../../types/jaia-system-types";
 import { DialogActions } from "../../../types/context-types";
-import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
+import { Command, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
 import {
     MissionPlan_MissionStart,
     MissionPlan_MovementType,
-} from "../../../shared/proto/jaiabot/messages/mission";
+} from "@proto/jaiabot/messages/mission";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 
 import rcModeIcon from "../../../style/icons/controller.svg";

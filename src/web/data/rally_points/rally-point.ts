@@ -1,4 +1,4 @@
-import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
+import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
 
 export default class RallyPoint {
     private location: GeographicCoordinate;

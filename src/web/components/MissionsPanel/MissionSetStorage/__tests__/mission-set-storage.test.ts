@@ -8,7 +8,7 @@ import {
     locationD,
 } from "../../../../data/tests/__mocks__/waypoint-mock";
 import Task from "../../../../data/tasks/task";
-import { MissionTask_TaskType } from "../../../../shared/proto/jaiabot/messages/mission";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { TaskParameterKeys } from "../../../../types/jaia-system-types";
 import {
     saveToHub,

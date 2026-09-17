@@ -8,7 +8,7 @@ import { point, midpoint } from "@turf/turf";
 import { view } from "../views/view";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { MapFeatureTypes } from "../../types/openlayers-types";
-import { DriftPacket, TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
+import { DriftPacket, TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
 import { degreesToRadians } from "../../utils/conversions";
 import { DRIFT_INTENSITY_INTERVAL, MAX_DRIFT_INTENSITY } from "../../utils/constants";
 import { OpenLayersColors } from "../../style/openlayers/colors";

@@ -8,7 +8,7 @@ import {
     Engineering,
     PIDControl,
     PIDControl_PIDSettings,
-} from "../../../shared/proto/jaiabot/messages/engineering";
+} from "@proto/jaiabot/messages/engineering";
 import "../../../style/stylesheets/engineering.less";
 
 interface Props {

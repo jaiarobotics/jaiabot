@@ -6,8 +6,8 @@ import { JaiaContextProvider } from "../../../../context/JaiaContext";
 import { bots } from "../../../../data/bots/bots";
 import { jaiaGlobal } from "../../../../data/jaia_global/jaia-global";
 
-import { HealthState } from "../../../../shared/proto/goby/middleware/protobuf/coroner";
-import { Error, Warning } from "../../../../shared/proto/jaiabot/messages/health";
+import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
+import { Error, Warning } from "@proto/jaiabot/messages/health";
 import { NodeTypes } from "../../../../types/jaia-system-types";
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
 

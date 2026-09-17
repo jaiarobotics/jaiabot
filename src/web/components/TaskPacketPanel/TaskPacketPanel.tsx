@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 import { TaskPackets } from "../../data/task_packets/task-packets";
-import { TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
+import { TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
 import { PanelActions, TaskPacketVisibility } from "../../types/context-types";
 import { MapFeatureTypes } from "../../types/openlayers-types";
 import { SelectedTaskPacket } from "../../types/jaia-system-types";

@@ -1,7 +1,7 @@
-import { HealthState } from "../../shared/proto/goby/middleware/protobuf/coroner";
-import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
-import { Error, LinuxHardwareStatus, Warning } from "../../shared/proto/jaiabot/messages/health";
-import { HubStatus_BotOffloadData } from "../../shared/proto/jaiabot/messages/hub";
+import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
+import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
+import { Error, LinuxHardwareStatus, Warning } from "@proto/jaiabot/messages/health";
+import { HubStatus_BotOffloadData } from "@proto/jaiabot/messages/hub";
 import { NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import { timestampToLocaleTimeString } from "../../utils/conversions";

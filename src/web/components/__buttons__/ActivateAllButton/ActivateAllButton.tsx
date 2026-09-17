@@ -12,8 +12,8 @@ import Bot from "../../../data/bots/bot";
 
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
-import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
-import { MissionState } from "../../../shared/proto/jaiabot/messages/mission";
+import { Command, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
+import { MissionState } from "@proto/jaiabot/messages/mission";
 import { DialogActions } from "../../../types/context-types";
 
 interface Props {

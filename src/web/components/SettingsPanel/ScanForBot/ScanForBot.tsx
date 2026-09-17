@@ -2,10 +2,7 @@ import { useContext, useState } from "react";
 import { FormControl, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { JaiaContext } from "../../../context/JaiaContext";
 import { sendHubCommand } from "../../../utils/commands";
-import {
-    CommandForHub,
-    CommandForHub_HubCommandType,
-} from "../../../shared/proto/jaiabot/messages/jaia_dccl";
+import { CommandForHub, CommandForHub_HubCommandType } from "@proto/jaiabot/messages/jaia_dccl";
 import { success } from "../../../utils/notifications";
 import "../../../style/stylesheets/engineering.less";
 

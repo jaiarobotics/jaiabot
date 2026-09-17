@@ -1,7 +1,7 @@
 import JaiaVectorLayer from "./jaia-vector-layer";
 import Mission from "../../../data/mission_set/mission";
 import { missionSet } from "../../../data/mission_set/mission-set";
-import { MissionTask_TaskType } from "../../../shared/proto/jaiabot/messages/mission";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { LayerTitles, LineType } from "../../../types/openlayers-types";
 import { constantHeadingParamsToLocation } from "../../../utils/conversions";
 import { layersZIndexes } from "../zindex";

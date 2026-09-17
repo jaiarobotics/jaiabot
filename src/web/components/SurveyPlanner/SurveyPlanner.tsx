@@ -16,7 +16,7 @@ import { gridPlan, GridPlanDetails, GridPlanningStates } from "../../data/survey
 import { formatNumericalInput, snakeCaseToTitleCase } from "../../utils/input";
 import { selectTheme } from "../../utils/style";
 import { DEFAULT_LANES, UNASSIGNED_ID } from "../../utils/constants";
-import { MissionTask_TaskType } from "../../shared/proto/jaiabot/messages/mission";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 
 import "./SurveyPlanner.less";
 

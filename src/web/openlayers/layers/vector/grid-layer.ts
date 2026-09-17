@@ -22,8 +22,8 @@ import {
     generateSurveyEndpoint,
     generateSurveyEndpointCircle,
 } from "../../features/survey/survey-endpoints";
-import { GeographicCoordinate } from "../../../shared/proto/jaiabot/messages/geographic_coordinate";
-import { MissionTask_TaskType } from "../../../shared/proto/jaiabot/messages/mission";
+import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { LayerTitles, LineType, SurveyEndpoints } from "../../../types/openlayers-types";
 import { constantHeadingParamsToLocation } from "../../../utils/conversions";
 

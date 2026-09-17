@@ -11,7 +11,7 @@ import { driftLayer } from "../openlayers/layers/vector/drift-layer";
 import { contourLayer } from "../openlayers/layers/vector/contour-layer";
 import { hubCommsLayer } from "../openlayers/layers/vector/hub-comms-layer";
 import { excludedTaskPacketsLayer } from "../openlayers/layers/vector/excluded-task-packets-layer";
-import { DeviceMetadata, DeviceMetadata_Version } from "../shared/proto/jaiabot/messages/metadata";
+import { DeviceMetadata, DeviceMetadata_Version } from "@proto/jaiabot/messages/metadata";
 import SoundEffects from "../style/audio/sound-effects";
 
 const MAX_REQUEST_TIME = 10000; // ms;

@@ -3,7 +3,7 @@ import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
 import { JaiaActions } from "../../context/jaia-actions";
 
 import NotificationDot from "../NotificationDot/NotificationDot";
-import { DeviceMetadata_Version } from "../../shared/proto/jaiabot/messages/metadata";
+import { DeviceMetadata_Version } from "@proto/jaiabot/messages/metadata";
 
 import Icon from "@mdi/react";
 import { mdiClose } from "@mdi/js";

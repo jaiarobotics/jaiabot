@@ -23,7 +23,7 @@ import {
     MGRSComponents,
 } from "../../types/jaia-system-types";
 import { PanelActions, WaypointSections } from "../../types/context-types";
-import { MissionTask_TaskType } from "../../shared/proto/jaiabot/messages/mission";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { MapModes } from "../../types/openlayers-types";
 
 import Icon from "@mdi/react";

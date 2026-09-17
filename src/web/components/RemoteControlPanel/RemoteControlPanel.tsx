@@ -11,13 +11,13 @@ import { Dashboard } from "./Dashboard/Dashboard";
 import { DiveCommand, DiveInputs, RCDiveParameters } from "./DiveControls/DiveControls";
 import { OverdriveWarningDialog } from "./OverdriveWarning/OverdriveWarningDialog";
 
-import { Engineering } from "../../shared/proto/jaiabot/messages/engineering";
-import { Command_CommandType } from "../../shared/proto/jaiabot/messages/jaia_dccl";
+import { Engineering } from "@proto/jaiabot/messages/engineering";
+import { Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
 import {
     MissionTask_DiveParameters,
     MissionTask_DriftParameters,
     MissionTask_TaskType,
-} from "../../shared/proto/jaiabot/messages/mission";
+} from "@proto/jaiabot/messages/mission";
 import { sendBotCommand, sendEngineeringCommand } from "../../utils/commands";
 import { error, success } from "../../utils/notifications";
 import { DialogActions } from "../../types/context-types";

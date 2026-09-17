@@ -2,11 +2,8 @@ import cloneDeep from "lodash/cloneDeep";
 import Task from "../tasks/task";
 import Mission from "../mission_set/mission";
 import { UNASSIGNED_ID, MAX_WAYPOINTS } from "../../utils/constants";
-import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
-import {
-    BottomDepthSafetyParams,
-    MissionPlan_Segment,
-} from "../../shared/proto/jaiabot/messages/mission";
+import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
+import { BottomDepthSafetyParams, MissionPlan_Segment } from "@proto/jaiabot/messages/mission";
 
 export enum GridPlanningStates {
     ACCEPTING_MISSION_START_LOCATION = 1,

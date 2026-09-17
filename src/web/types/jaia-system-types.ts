@@ -5,7 +5,7 @@ import {
     MissionTask_DiveParameters,
     MissionTask_DriftParameters,
     MissionTask_StationKeepParameters,
-} from "../shared/proto/jaiabot/messages/mission";
+} from "@proto/jaiabot/messages/mission";
 
 export enum NodeTypes {
     NONE = "NONE",

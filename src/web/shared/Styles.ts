@@ -1,8 +1,8 @@
 import Stroke from "ol/style/Stroke";
 import { Feature } from "ol";
-import { HubStatus } from "./proto/jaiabot/messages/hub";
-import { ContactUpdate } from "./proto/jaiabot/messages/jaia_dccl";
-import { MissionPlan_Goal, MissionTask_TaskType } from "./proto/jaiabot/messages/mission";
+import { HubStatus } from "@proto/jaiabot/messages/hub";
+import { ContactUpdate } from "@proto/jaiabot/messages/jaia_dccl";
+import { MissionPlan_Goal, MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { LineString, Point, Circle } from "ol/geom";
 import { fromLonLat } from "ol/proj";
 import { Circle as CircleStyle, Fill, Icon, Style, Text } from "ol/style";

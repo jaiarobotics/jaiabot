@@ -8,7 +8,7 @@ import { missionSet } from "../../../../data/mission_set/mission-set";
 import Mission from "../../../../data/mission_set/mission";
 import { locationA } from "../../../../data/tests/__mocks__/waypoint-mock";
 import Task from "../../../../data/tasks/task";
-import { MissionTask_TaskType } from "../../../../shared/proto/jaiabot/messages/mission";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 
 test.skip("Exercise Duplicate Mission Button", async () => {
     // Pre-seed data model with original mission

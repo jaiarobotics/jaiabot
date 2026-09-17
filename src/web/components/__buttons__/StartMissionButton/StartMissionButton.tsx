@@ -12,8 +12,8 @@ import { Button } from "@mui/material";
 import Bot from "../../../data/bots/bot";
 import Mission from "../../../data/mission_set/mission";
 
-import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
-import { MissionPlan } from "../../../shared/proto/jaiabot/messages/mission";
+import { Command, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
+import { MissionPlan } from "@proto/jaiabot/messages/mission";
 import { DialogActions } from "../../../types/context-types";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 

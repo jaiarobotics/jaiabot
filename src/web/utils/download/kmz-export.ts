@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 
-import { DriftPacket, TaskPacket } from "../../shared/proto/jaiabot/messages/jaia_dccl";
+import { DriftPacket, TaskPacket } from "@proto/jaiabot/messages/jaia_dccl";
 import { timestampToISOString } from "../conversions";
 import { DRIFT_INTENSITY_INTERVAL, MAX_DRIFT_INTENSITY } from "../constants";
 

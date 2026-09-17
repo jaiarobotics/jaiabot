@@ -1,14 +1,11 @@
 import { BotModes } from "../../types/jaia-system-types";
 import { MissionStatus } from "../../types/jaia-system-types";
-import { HealthState } from "../../shared/proto/goby/middleware/protobuf/coroner";
-import { Engineering } from "../../shared/proto/jaiabot/messages/engineering";
-import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
-import { Error, Warning } from "../../shared/proto/jaiabot/messages/health";
-import {
-    BotStatus_ActiveLink,
-    BotStatus_BotType,
-} from "../../shared/proto/jaiabot/messages/jaia_dccl";
-import { Link } from "../../shared/proto/jaiabot/messages/link";
+import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
+import { Engineering } from "@proto/jaiabot/messages/engineering";
+import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
+import { Error, Warning } from "@proto/jaiabot/messages/health";
+import { BotStatus_ActiveLink, BotStatus_BotType } from "@proto/jaiabot/messages/jaia_dccl";
+import { Link } from "@proto/jaiabot/messages/link";
 import { IRIDIUM_NO_COMMS_STATUS_AGE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import BotSensors from "./bot-sensors";

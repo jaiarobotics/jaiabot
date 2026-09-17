@@ -15,7 +15,7 @@ import { SystemButtonTypes } from "../../../types/jaia-system-types";
 import {
     CommandForHub_HubCommandType,
     Command_CommandType,
-} from "../../../shared/proto/jaiabot/messages/jaia_dccl";
+} from "@proto/jaiabot/messages/jaia_dccl";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 import {
     isCommandAvailable,

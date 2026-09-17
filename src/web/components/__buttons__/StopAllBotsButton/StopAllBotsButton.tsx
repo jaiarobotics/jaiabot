@@ -13,7 +13,7 @@ import { mdiStop } from "@mdi/js";
 import Bot from "../../../data/bots/bot";
 
 import { DialogActions } from "../../../types/context-types";
-import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
+import { Command, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 import { MDI_BUTTON_SIZE } from "../../../utils/constants";
 

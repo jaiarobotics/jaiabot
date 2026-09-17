@@ -2,7 +2,7 @@ import { LineString } from "ol/geom";
 import { Map } from "ol";
 import { toLonLat } from "ol/proj";
 import { createMissionFeatures } from "../MissionFeatures";
-import { MissionPlan, MissionTask_TaskType } from "../proto/jaiabot/messages/mission";
+import { MissionPlan, MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { PortalBotStatus } from "../PortalStatus";
 
 const map = {

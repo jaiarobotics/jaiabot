@@ -6,7 +6,7 @@ import StopAllBotsButton from "../StopAllBotsButton";
 import { bots } from "../../../../data/bots/bots";
 
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
-import { MissionState } from "../../../../shared/proto/jaiabot/messages/mission";
+import { MissionState } from "@proto/jaiabot/messages/mission";
 
 // Place user in control by default
 jest.mock("../../../../utils/commands", () => {

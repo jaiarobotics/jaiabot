@@ -5,7 +5,7 @@ import SystemButton from "../SystemButton";
 
 import { bots } from "../../../../data/bots/bots";
 import { PortalBotStatus } from "../../../../shared/PortalStatus";
-import { MissionState } from "../../../../shared/proto/jaiabot/messages/mission";
+import { MissionState } from "@proto/jaiabot/messages/mission";
 import { SystemButtonTypes } from "../../../../types/jaia-system-types";
 
 const originalModule = jest.requireActual("../../../../utils/jaia-api");

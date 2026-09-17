@@ -9,7 +9,7 @@ import { bots } from "../../../data/bots/bots";
 import { gridPlan, GridPlanningStates } from "../../../data/survey_planner/grid-plan";
 
 import { TaskParameterKeys } from "../../../types/jaia-system-types";
-import { MissionTask_TaskType } from "../../../shared/proto/jaiabot/messages/mission";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { MapModes } from "../../../types/openlayers-types";
 import { formatNumericalInput } from "../../../utils/input";
 

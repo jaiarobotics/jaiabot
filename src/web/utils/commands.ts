@@ -1,11 +1,7 @@
 import { jaiaAPI } from "./jaia-api";
-import { Engineering } from "../shared/proto/jaiabot/messages/engineering";
-import {
-    Command,
-    CommandForHub,
-    Command_CommandType,
-} from "../shared/proto/jaiabot/messages/jaia_dccl";
-import { MissionState } from "../shared/proto/jaiabot/messages/mission";
+import { Engineering } from "@proto/jaiabot/messages/engineering";
+import { Command, CommandForHub, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
+import { MissionState } from "@proto/jaiabot/messages/mission";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 
 /**

@@ -3,8 +3,8 @@ import { missionSet } from "../../data/mission_set/mission-set";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
 import { BotModes } from "../../types/jaia-system-types";
 import { JaiaContextType, JaiaAction } from "../../types/context-types";
-import { Command, Command_CommandType } from "../../shared/proto/jaiabot/messages/jaia_dccl";
-import { MissionPlan_MovementType } from "../../shared/proto/jaiabot/messages/mission";
+import { Command, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
+import { MissionPlan_MovementType } from "@proto/jaiabot/messages/mission";
 import { UNASSIGNED_ID } from "../../utils/constants";
 import { ghostMissionLayer } from "../../openlayers/layers/vector/mission-layer";
 

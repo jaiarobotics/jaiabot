@@ -1,8 +1,8 @@
-import { Engineering } from "./proto/jaiabot/messages/engineering";
-import { HubStatus } from "./proto/jaiabot/messages/hub";
-import { BotStatus, ContactUpdate } from "./proto/jaiabot/messages/jaia_dccl";
-import { Link } from "./proto/jaiabot/messages/link";
-import { MissionPlan, MissionState } from "./proto/jaiabot/messages/mission";
+import { Engineering } from "@proto/jaiabot/messages/engineering";
+import { HubStatus } from "@proto/jaiabot/messages/hub";
+import { BotStatus, ContactUpdate } from "@proto/jaiabot/messages/jaia_dccl";
+import { Link } from "@proto/jaiabot/messages/link";
+import { MissionPlan, MissionState } from "@proto/jaiabot/messages/mission";
 
 export interface LinkStatusAges {
     [link: string]: number;

@@ -1,7 +1,7 @@
 import * as mgrs from "mgrs";
 import Task from "../tasks/task";
-import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
-import { MissionPlan_Goal } from "../../shared/proto/jaiabot/messages/mission";
+import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
+import { MissionPlan_Goal } from "@proto/jaiabot/messages/mission";
 import { MGRS } from "../../types/jaia-system-types";
 import { validateCoordinate } from "../../utils/input";
 import { MGRS_PLACEHOLDER } from "../../utils/constants";

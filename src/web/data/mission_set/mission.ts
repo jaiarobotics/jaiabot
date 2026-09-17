@@ -1,4 +1,4 @@
-import { GeographicCoordinate } from "../../shared/proto/jaiabot/messages/geographic_coordinate";
+import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
 import {
     BottomDepthSafetyParams,
     MissionPlan,
@@ -6,7 +6,7 @@ import {
     MissionPlan_MissionStart,
     MissionPlan_MovementType,
     MissionPlan_Segment,
-} from "../../shared/proto/jaiabot/messages/mission";
+} from "@proto/jaiabot/messages/mission";
 import Waypoint from "../waypoints/waypoint";
 import Task from "../tasks/task";
 import { GhostParameters } from "../../types/jaia-system-types";

@@ -15,7 +15,7 @@ import Mission from "../../../data/mission_set/mission";
 
 import { missionsManager } from "../../../data/missions_manager/missions-manager";
 
-import { Command, Command_CommandType } from "../../../shared/proto/jaiabot/messages/jaia_dccl";
+import { Command, Command_CommandType } from "@proto/jaiabot/messages/jaia_dccl";
 import { ButtonNames, ButtonTypes, DialogActions } from "../../../types/context-types";
 import { isCommandAvailable, isControllingClient, sendBotCommand } from "../../../utils/commands";
 import { MDI_BUTTON_SIZE, MIN_BATTERY_PERCENT, UNASSIGNED_ID } from "../../../utils/constants";

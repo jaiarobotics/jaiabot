@@ -6,7 +6,7 @@ import {
 } from "../../../data/mission_set/mission-set";
 import Waypoint from "../../../data/waypoints/waypoint";
 import Task from "../../../data/tasks/task";
-import { MissionTask_TaskType } from "../../../shared/proto/jaiabot/messages/mission";
+import { MissionTask_TaskType } from "@proto/jaiabot/messages/mission";
 import { LegacyMissionInterface, LegacyRunInterface } from "../../../types/legacy-types";
 import { DEFAULT_SPEED, UNASSIGNED_ID } from "../../../utils/constants";
 import { jaiaAPI } from "../../../utils/jaia-api";

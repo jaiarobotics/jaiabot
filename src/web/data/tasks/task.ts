@@ -17,7 +17,7 @@ import {
     MissionTask_DriftParameters,
     MissionTask_StationKeepParameters,
     MissionTask_TaskType,
-} from "../../shared/proto/jaiabot/messages/mission";
+} from "@proto/jaiabot/messages/mission";
 
 export default class Task {
     private type: MissionTask_TaskType;

@@ -1,6 +1,6 @@
 import { PortalBotStatus } from "../../shared/PortalStatus";
 import { MissionStatus } from "../../types/jaia-system-types";
-import { BotStatus_BotType } from "../../shared/proto/jaiabot/messages/jaia_dccl";
+import { BotStatus_BotType } from "@proto/jaiabot/messages/jaia_dccl";
 
 import Bot from "./bot";
 
