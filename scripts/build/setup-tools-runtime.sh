@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "Removing timesyncd (conflicts with ntp)"
 sudo apt remove systemd-timesyncd
-echo "Installing apt packages"
-sudo apt-get install -y goby3-apps goby3-gui goby3-moos dccl5-apps parallel moos-ivp-apps moos-ivp-gui libmoos-ivp opencpn i2c-tools libgoby3-moos libgoby3-moos-dev libxcb-xinerama0 ntpsec screen python3-dateutil python3-plotly python3-pyqt5 python3-h5py python3-geopandas python3-matplotlib python3-flask python3-networkx socat python3-dataclasses-json python3-rasterio python3-venv gpsd
+
+# read from debian/control rather than duplicated here, where the list had drifted
+echo "Installing the jaiabot packages' runtime dependencies"
+${script_dir}/install-runtime-deps.sh jaiabot-python jaiabot-web jaiabot-embedded
+
+# useful on a development machine but not dependencies of any jaiabot package
+echo "Installing development tools"
+sudo apt-get install -y dccl5-apps i2c-tools libgoby3-moos libgoby3-moos-dev libxcb-xinerama0 \
+     moos-ivp-gui opencpn parallel python3-dateutil python3-pyqt5 screen socat
 echo "Creating /etc/jaiabot directory"
 sudo install -d -m 0755 -o $USER /etc/jaiabot
 echo "Creating /var/log/jaiabot directory"

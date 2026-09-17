@@ -34,17 +34,32 @@ jaiabot/src/web$ webpack --mode development --env OUTPUT_DIR=${HOME}/temp
 
 The `webpack.config.js` file contains five different webpack configuration objects:
 
--   `baseConfig`, which contains the configuration options to be used for all apps, in both build modes (`development` and `production`)
--   `developmentConfig`, which contains development options
--   `productionConfig`, which contains production options
--   `jedConfig`, which contains build options specific to JED
--   `jccConfig`, which contains build options specific to JCC
+- `baseConfig`, which contains the configuration options to be used for all apps, in both build modes (`development` and `production`)
+- `developmentConfig`, which contains development options
+- `productionConfig`, which contains production options
+- `jedConfig`, which contains build options specific to JED
+- `jccConfig`, which contains build options specific to JCC
 
 When invoked, the correct options are chosen depending on the build mode provided, and both `JCC` and `JED` are built.
 
 ### TypeScript
 
 Most code is written in the TypeScript language, which is essentially JavaScript with type hints. The `ts-loader` module for webpack is used to transpile .tsx and .ts files into JavaScript. Options for this transpilation can be found in the `src/web/tsconfig.json` file.
+
+### Protobuf types
+
+The TypeScript definitions for the Protobuf messages are generated from the `.proto` files in
+`src/lib/messages` by `gen_protobuf_types.sh`, and are not checked in. `run.sh` and the CMake
+build both generate them, so most of the time this happens on its own. On a fresh clone, run
+them once by hand before invoking `tsc` or `jest` directly:
+
+```
+jaiabot/src/web$ npm install && npm run gen:proto
+```
+
+This needs `protoc` and the goby and DCCL `.proto` files, which `jaia dev setup` installs (or
+`source init.sh` on a fresh machine). Set `JAIA_PROTO_INCLUDE_DIRS` if they are not under
+`/usr/include`. No C++ build is required — the web targets do not depend on the C++ graph.
 
 ### Babel
 
@@ -58,8 +73,8 @@ For all JavaScript and JSX files (`.js` and `.jsx`), Babel is used to transpile 
 
 Tests are written using the `jest` module. Options for `jest` are found in the `src/web/jest.config.js` file.
 
--   The `ts_jest` module is used to transpile `.tsx` and `.ts` files into JavaScript for `jest`.
--   The `babel_jest` module is used to transpile `.jsx` and `.js` files.
+- The `ts_jest` module is used to transpile `.tsx` and `.ts` files into JavaScript for `jest`.
+- The `babel_jest` module is used to transpile `.jsx` and `.js` files.
 
 To run all of the tests:
 

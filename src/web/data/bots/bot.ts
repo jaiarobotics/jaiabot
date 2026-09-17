@@ -1,22 +1,18 @@
 import { BotModes } from "../../types/jaia-system-types";
 import { MissionStatus } from "../../types/jaia-system-types";
-import {
-    BotType,
-    Engineering,
-    Error,
-    GeographicCoordinate,
-    HealthState,
-    Warning,
-    ActiveLink,
-    Link,
-} from "../../types/protobuf-types";
+import { HealthState } from "@proto/goby/middleware/protobuf/coroner";
+import { Engineering } from "@proto/jaiabot/messages/engineering";
+import { GeographicCoordinate } from "@proto/jaiabot/messages/geographic_coordinate";
+import { Error, Warning } from "@proto/jaiabot/messages/health";
+import { BotStatus_ActiveLink, BotStatus_BotType } from "@proto/jaiabot/messages/jaia_dccl";
+import { Link } from "@proto/jaiabot/messages/link";
 import { IRIDIUM_NO_COMMS_STATUS_AGE, NO_COMMS_STATUS_AGE } from "../../utils/constants";
 import { microsecondsToSeconds } from "../../utils/conversions";
 import BotSensors from "./bot-sensors";
 
 export default class Bot {
     private botID: number;
-    private botType: BotType;
+    private botType: BotStatus_BotType;
     private healthState: HealthState;
     private errors: Error[];
     private warnings: Warning[];
@@ -27,7 +23,7 @@ export default class Bot {
     private wifiLinkQuality: number;
     private statusAge: number;
     private link: Link;
-    private activeLinks: ActiveLink[];
+    private activeLinks: BotStatus_ActiveLink[];
     private activeLinkStatusAges: { [link: string]: number };
     private engineering: Engineering;
     private mode: BotModes;
@@ -49,7 +45,7 @@ export default class Bot {
         return this.botType;
     }
 
-    setBotType(botType: BotType) {
+    setBotType(botType: BotStatus_BotType) {
         this.botType = botType;
         this.initializeSensors();
     }
@@ -132,11 +128,11 @@ export default class Bot {
         this.link = link;
     }
 
-    getActiveLinks(): ActiveLink[] {
+    getActiveLinks(): BotStatus_ActiveLink[] {
         return this.activeLinks ?? [];
     }
 
-    setActiveLinks(activeLinks: ActiveLink[]) {
+    setActiveLinks(activeLinks: BotStatus_ActiveLink[]) {
         this.activeLinks = activeLinks;
     }
 
@@ -180,7 +176,7 @@ export default class Bot {
 
     private initializeSensors() {
         switch (this.getBotType()) {
-            case BotType.PAM:
+            case BotStatus_BotType.PAM:
                 this.getBotSensors().initPAMSensors();
                 break;
             default:
