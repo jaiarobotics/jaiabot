@@ -609,6 +609,33 @@ describe("detectReroutesWithOverrides", () => {
             expect(segmentCrossesHull(a, b, hull)).toBe(false);
         }
     });
+
+    test("does not re-propose a settled route when an unrelated zone is deleted", () => {
+        const zones = obstacleAvoidanceData.getExclusionZoneSet();
+        // The first zone with usable geometry supplies the projection origin for the
+        // whole pass, so deleting it is what moves the frame the surviving zone's
+        // bypass waypoints were computed in.
+        const originZoneID = zones.addZone(squareZone(41.02, -72.04, 0.0005));
+        zones.addZone(squareZone(41.0, -72.0, 0.0005));
+
+        const m = new Mission();
+        m.addWaypoint(coord(41.0, -72.005));
+        m.addWaypoint(coord(41.0, -71.995));
+        const missionID = missionSet.addMission(m);
+
+        const proposed = detectReroutesWithOverrides(new Map());
+        expect(proposed!.proposals[0].missionID).toBe(missionID);
+
+        // The operator confirms, so the mission now carries that bypass.
+        missionSet.getMission(missionID)!.setWaypoints(proposed!.proposals[0].newWaypoints);
+        expect(detectReroutesWithOverrides(new Map())).toBeNull();
+
+        zones.deleteZone(originZoneID);
+
+        // The mission's route is unchanged and still clears the remaining zone, so
+        // there is nothing to propose and no dialog to raise.
+        expect(detectReroutesWithOverrides(new Map())).toBeNull();
+    });
 });
 
 // ── routeNeedsBypass ───────────────────────────────────────────────────────────

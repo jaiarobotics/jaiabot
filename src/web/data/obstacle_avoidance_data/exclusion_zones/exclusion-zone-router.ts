@@ -804,14 +804,54 @@ export function getBlockingZoneIDs(
 }
 
 /**
+ * Distance from the projection origin beyond which it is re-anchored. The
+ * equirectangular projection holds to <0.1% within this range, so a zone set in a
+ * different operating area gets a fresh origin rather than an increasingly skewed one.
+ */
+const MAX_ORIGIN_DISTANCE_METERS = 50_000;
+
+let projectionOrigin: GeographicCoordinate | undefined;
+
+/**
+ * Returns the reference point every projection in a detection pass is measured from.
+ *
+ * The origin is kept across zone edits rather than re-derived each pass. Bypass
+ * waypoints are computed in this frame but stored as lat/lon, so an origin that moved
+ * whenever the first zone in the set changed would make a stored route disagree with
+ * the one freshly computed for it — the same route, quantized from a different
+ * reference point — and every untouched mission would be reported as needing a reroute.
+ *
+ * It is re-anchored only when no zone has usable geometry, or when the zones have moved
+ * far enough away that the projection would lose accuracy.
+ *
+ * @returns {GeographicCoordinate | undefined} Shared projection origin, or undefined when no zone has usable geometry
+ */
+function getProjectionOrigin(): GeographicCoordinate | undefined {
+    const candidate = Array.from(
+        obstacleAvoidanceData.getExclusionZoneSet().getZones().values(),
+    ).find((z) => z.vertices && z.vertices.length >= 3)?.vertices?.[0];
+
+    if (!candidate) {
+        projectionOrigin = undefined;
+        return undefined;
+    }
+
+    if (projectionOrigin) {
+        const { x, y } = toXY(projectionOrigin, candidate);
+        if (Math.hypot(x, y) <= MAX_ORIGIN_DISTANCE_METERS) return projectionOrigin;
+    }
+
+    projectionOrigin = candidate;
+    return projectionOrigin;
+}
+
+/**
  * Projects every zone once, relative to a single shared origin, for callers that test
  * many routes against the same zone set instead of letting each test rebuild the same
  * geometry.
  *
- * The origin is the first vertex of the first zone with usable geometry. The specific
- * choice does not affect results — it is only the local-projection reference point, and
- * every route tested against these geoms is projected from the same one. Returns
- * undefined when no zone has usable geometry, in which case nothing can be blocked.
+ * Returns undefined when no zone has usable geometry, in which case nothing can be
+ * blocked.
  *
  * @param {number} [safetyMargin] Safety buffer distance in metres around each zone
  * @returns {SharedZoneGeoms | undefined} Shared projection origin and projected zones, or undefined if there are none
@@ -819,9 +859,7 @@ export function getBlockingZoneIDs(
 export function buildSharedZoneGeoms(
     safetyMargin = DEFAULT_SAFETY_MARGIN_METERS,
 ): SharedZoneGeoms | undefined {
-    const origin = Array.from(obstacleAvoidanceData.getExclusionZoneSet().getZones().values()).find(
-        (z) => z.vertices && z.vertices.length >= 3,
-    )?.vertices?.[0];
+    const origin = getProjectionOrigin();
     if (!origin) return undefined;
     return { origin, zoneGeoms: buildZoneGeoms(origin, safetyMargin) };
 }
@@ -871,18 +909,38 @@ export function isLocationBlockedByZone(
 }
 
 /**
- * Returns true if two waypoint lists are identical (same locations in same order).
+ * Tolerance for calling two routes the same. Bypass waypoints are stored as lat/lon and
+ * recomputed later from a possibly different projection origin, so an identical route
+ * can come back differing by a fraction of a metre. That is well below anything an
+ * operator would see, and well below the grid cell the search works in, so treating it
+ * as a change would raise a dialog about a route that did not move.
+ */
+const ROUTE_MATCH_TOLERANCE_METERS = 1;
+
+/**
+ * Returns true if two waypoint lists describe the same route — the same number of
+ * waypoints, each within `ROUTE_MATCH_TOLERANCE_METERS` of its counterpart.
+ *
+ * Both lists are projected through the same origin so the comparison measures a real
+ * distance rather than the residue of two different projections.
  *
  * @param {Waypoint[]} a First waypoint list to compare
  * @param {Waypoint[]} b Second waypoint list to compare
- * @returns {boolean} Whether both lists contain the same locations in the same order
+ * @param {GeographicCoordinate} origin Reference point both lists are projected through
+ * @returns {boolean} Whether both lists describe the same route in the same order
  */
-function waypointListsMatch(a: Waypoint[], b: Waypoint[]): boolean {
+function waypointListsMatch(a: Waypoint[], b: Waypoint[], origin: GeographicCoordinate): boolean {
     if (a.length !== b.length) return false;
     for (let i = 0; i < a.length; i++) {
         const la = a[i].getLocation();
         const lb = b[i].getLocation();
-        if (la?.lat !== lb?.lat || la?.lon !== lb?.lon) return false;
+        if (!la || !lb) {
+            if (la !== lb) return false;
+            continue;
+        }
+        const pa = toXY(origin, la);
+        const pb = toXY(origin, lb);
+        if (Math.hypot(pa.x - pb.x, pa.y - pb.y) > ROUTE_MATCH_TOLERANCE_METERS) return false;
     }
     return true;
 }
@@ -900,10 +958,9 @@ export function detectReroutesWithOverrides(
 ): RerouteProposalSet | null {
     const proposals: PendingRerouteProposal[] = [];
 
-    // Build the zone geometry once per pass, relative to a shared origin
-    // (any valid zone's first vertex — the specific choice doesn't affect
-    // results, it's just the local-projection reference point), instead of
-    // letting each mission's routeAroundExclusionZones() call rebuild it.
+    // Build the zone geometry once per pass, relative to the shared projection
+    // origin, instead of letting each mission's routeAroundExclusionZones() call
+    // rebuild it.
     const shared = buildSharedZoneGeoms();
     const sharedOrigin = shared?.origin;
     const sharedZoneGeoms = shared?.zoneGeoms;
@@ -955,9 +1012,10 @@ export function detectReroutesWithOverrides(
             }
         }
 
-        if (!hasOverride) {
-            if (waypointListsMatch(newWaypoints, currentWaypoints)) continue;
-            if (waypointListsMatch(newWaypoints, cleanWaypoints)) continue;
+        const matchOrigin = sharedOrigin ?? cleanWaypoints[0].getLocation();
+        if (!hasOverride && matchOrigin) {
+            if (waypointListsMatch(newWaypoints, currentWaypoints, matchOrigin)) continue;
+            if (waypointListsMatch(newWaypoints, cleanWaypoints, matchOrigin)) continue;
         }
 
         proposals.push({
