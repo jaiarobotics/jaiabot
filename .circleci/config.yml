@@ -708,30 +708,30 @@ jobs:
               on_cloudhub "curl -sS -k -o /dev/null -w '%{http_code}' --max-time 10 \
                    --resolve $1.${BASE_URI}:443:127.0.0.1 https://$1.${BASE_URI}/"
             }
-            # Whatever the verdict, leave behind enough to tell why without a live fleet
+            # Printed, not just archived: a redirect into /tmp/sea-trial reached the
+            # artifacts empty twice, while the step log came through both times
             diagnostics() {
-              {
-                echo "===== systemctl ====="
-                on_cloudhub "systemctl status --no-pager -l authelia lldap caddy" 2>&1
-                echo "===== journal: authelia ====="
-                on_cloudhub "sudo journalctl -u authelia --no-pager -n 200" 2>&1
-                echo "===== journal: lldap ====="
-                on_cloudhub "sudo journalctl -u lldap --no-pager -n 200" 2>&1
-                echo "===== journal: caddy ====="
-                on_cloudhub "sudo journalctl -u caddy --no-pager -n 100" 2>&1
-                echo "===== docker ====="
-                on_cloudhub "sudo docker ps -a" 2>&1
-                echo "===== listening ====="
-                on_cloudhub "sudo ss -lntp" 2>&1
-                echo "===== cloud-init ====="
-                on_cloudhub "sudo journalctl -u cloud-final --no-pager -n 300" 2>&1
-              } > /tmp/sea-trial/cloudhub-auth-diagnostics.txt 2>&1 || true
-              echo "wrote /tmp/sea-trial/cloudhub-auth-diagnostics.txt"
+              for unit in authelia lldap caddy docker; do
+                echo "===== systemctl status ${unit} ====="
+                on_cloudhub "systemctl status --no-pager -l ${unit}" 2>&1 || true
+                echo "===== journal ${unit} ====="
+                on_cloudhub "sudo journalctl -u ${unit} --no-pager -n 150" 2>&1 || true
+              done
+              echo "===== docker ====="
+              on_cloudhub "sudo docker ps -a; sudo docker info 2>&1 | head -30" 2>&1 || true
+              echo "===== listening ====="
+              on_cloudhub "sudo ss -lntp" 2>&1 || true
+              echo "===== cloud-init ====="
+              on_cloudhub "sudo journalctl -u cloud-final --no-pager -n 300" 2>&1 || true
             }
             # first boot includes a reboot, so give it longer than the create step took
             for attempt in $(seq 1 60); do
               portal=$(check auth || true)
               [ "${portal}" = "200" ] && break
+              if [ "$(on_cloudhub 'systemctl is-failed authelia' 2>/dev/null || true)" = "failed" ]; then
+                echo "attempt ${attempt}: authelia is in a failed state; not waiting out the window"
+                break
+              fi
               echo "attempt ${attempt}: auth portal returned '${portal}', waiting"
               sleep 10
             done
