@@ -24,7 +24,15 @@
       when: jaiabot_embedded_hub_id | int != hub_id | int
 
   tasks:
+    - include_tasks: tasks/hub-detect-cloudhub.yml
+
+    - name: Take the image from S3 when there is no updates disk to take it from
+      include_tasks: tasks/hub-fetch-iso.yml
+      when: is_cloudhub | bool or major_upgrade_iso is defined
+
     - include_tasks: tasks/hub-mount-updates-disk.yml
+      when: not (is_cloudhub | bool or major_upgrade_iso is defined)
+
     - include_tasks: tasks/set-fleet-config-facts.yml
     - include_tasks: tasks/hub-stage-fleet-config.yml
     - include_tasks: tasks/hub-check-fleet-config.yml
@@ -39,13 +47,21 @@
     - vars/disk-space.yml
     - vars/staging.yml
   vars:
-    - upgrade_dir_base: '/var/log/jaiabot/major_upgrade'
-    - do_backup: yes
+    upgrade_dir_base: '/var/log/jaiabot/major_upgrade'
+    do_backup: yes
+    # VirtualFleet machines run the AMI of the release being left behind and nothing
+    # upgrades them, so they go with it unless asked otherwise
+    delete_virtualfleet: yes
 
   pre_tasks:
     - include_tasks: tasks/set-error-fact.yml
     - include_tasks: tasks/check-hub-id.yml
     - include_tasks: ../tasks/read-debconf.yml
+    - include_tasks: tasks/hub-detect-cloudhub.yml
+
+    - name: Clear the VirtualFleet this CloudHub owns
+      include_tasks: tasks/hub-delete-virtualfleet.yml
+      when: is_cloudhub | bool and delete_virtualfleet | bool
 
     - name: Create the upgrade base working directory
       file:

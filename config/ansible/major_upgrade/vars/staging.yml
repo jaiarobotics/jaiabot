@@ -1,1 +1,2 @@
 hub_staging_dir: "/tmp/jaiabot/major_upgrade/staging"
+major_upgrade_iso_bucket: jaia-disk-images

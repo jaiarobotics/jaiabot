@@ -65,12 +65,28 @@
     error_message: "{{ previous_major_check_result.stdout }}"
   when: previous_major_check_result is not skipped and previous_major_check_result.failed
 
+- name: Look for a Raspberry Pi
+  stat:
+    path: /proc/device-tree/model
+  register: device_tree_model
+
+- name: Read the model
+  slurp:
+    src: /proc/device-tree/model
+  register: model_contents
+  when: device_tree_model.stat.exists
+
+- name: Set the Raspberry Pi fact
+  set_fact:
+    is_raspberry_pi: "{{ device_tree_model.stat.exists and 'Raspberry Pi' in (model_contents.content | b64decode) }}"
+
 - name: Install rpi-eeprom package
   apt:
     name: rpi-eeprom
     state: present
   ignore_errors: yes
   register: rpi_eeprom_install_result
+  when: is_raspberry_pi
 
 - name: Check Raspberry Pi 4 EEPROM version
   shell: |
@@ -87,12 +103,13 @@
     fi
   register: eeprom_version_check_result
   ignore_errors: yes
-  when: rpi_eeprom_install_result is not failed
+  when: is_raspberry_pi and rpi_eeprom_install_result is not failed
 
 - name: Handle EEPROM version check failure
   include_tasks: handle_failure.yml
   vars:
     error_message: "{{ eeprom_version_check_result.stdout }}"
   when: >
-    (rpi_eeprom_install_result is failed) or
-    (eeprom_version_check_result is not skipped and eeprom_version_check_result.failed)
+    is_raspberry_pi and
+    ((rpi_eeprom_install_result is failed) or
+     (eeprom_version_check_result is not skipped and eeprom_version_check_result.failed))

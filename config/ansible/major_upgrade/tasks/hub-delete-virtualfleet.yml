@@ -1,0 +1,32 @@
+# Before the rootfs is touched, while the tooling, credentials and cloud.env this needs
+# are all still present. VirtualFleet machines run the AMI of the release being left
+# behind and nothing upgrades them, so they go rather than linger against a hub that has
+# moved on. Their volumes are delete_on_termination, so anything wanted off them has to
+# have been taken already.
+- name: Read cloud.env for the region and fleet
+  include_tasks: ../cloud/tasks/read-env.yml
+
+- name: Find the VirtualFleet
+  amazon.aws.ec2_instance_info:
+    region: "{{ cloud_env_vars.jaia_aws_region }}"
+    filters:
+      "tag:jaia_instance_type": "virtualfleet"
+      "tag:jaia_fleet": "{{ cloud_env_vars.jaia_fleet_id }}"
+      "tag:jaia_customer": "{{ jaia_customer_no_quotes }}"
+  register: vfleet_info
+
+- name: List the instances still to terminate
+  set_fact:
+    vfleet_instance_ids: "{{ vfleet_info.instances | rejectattr('state.name', 'equalto', 'terminated') | map(attribute='instance_id') | list }}"
+
+- name: Show what will be terminated
+  debug:
+    var: vfleet_instance_ids
+
+- name: Terminate the VirtualFleet
+  amazon.aws.ec2_instance:
+    instance_ids: "{{ vfleet_instance_ids }}"
+    region: "{{ cloud_env_vars.jaia_aws_region }}"
+    state: terminated
+    wait: false
+  when: vfleet_instance_ids | length > 0

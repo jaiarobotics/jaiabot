@@ -1,10 +1,11 @@
 - name: Get IP address for Hub
   shell: "jaia_ip h{{ hub_id }}f{{ jaiabot_embedded_fleet_id }}"
   register: hub_ip_result
-  
+  when: jaiabot_embedded_hub_id | int != hub_id | int
+
 - name: Set hub IP
   set_fact:
-    hub_ip: '{{ hub_ip_result.stdout}}'
+    hub_ip: "{{ '127.0.0.1' if jaiabot_embedded_hub_id | int == hub_id | int else hub_ip_result.stdout }}"
     
 - name: Check if version.txt exists
   uri:

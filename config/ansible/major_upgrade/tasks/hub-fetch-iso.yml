@@ -1,0 +1,77 @@
+# A CloudHub has no updates disk. CircleCI publishes the same ISO to S3, so it is
+# fetched and loop-mounted where the rest of the playbook already looks for it.
+- name: Set ISO facts
+  set_fact:
+    iso_mountpoint: /var/www/html/updates
+    iso_dir: "{{ upgrade_dir_base }}/iso"
+    iso_repo: "{{ major_upgrade_iso_repo | default('release') }}"
+
+- name: Create the ISO directory
+  file:
+    path: '{{ iso_dir }}'
+    state: directory
+
+- name: Work out which release to upgrade to
+  shell: |
+    installed=$(apt-cache policy jaiabot-embedded | awk '/Installed:/ {print $2}')
+    echo "$(( ${installed%%.*} + 1 )).y"
+  register: next_major_result
+  changed_when: false
+  when: major_upgrade_iso_version is not defined
+
+- name: Set the target release
+  set_fact:
+    iso_version: "{{ major_upgrade_iso_version | default(next_major_result.stdout | trim) }}"
+
+- name: Fetch the image from S3
+  when: major_upgrade_iso is not defined
+  block:
+    # amd64 images are published under vbox/, which is what a CloudHub runs
+    - name: Set the S3 prefix
+      set_fact:
+        iso_prefix: "s3://{{ major_upgrade_iso_bucket }}/{{ iso_repo }}/{{ iso_version }}/vbox"
+
+    - name: Read the published version.txt
+      shell: "aws s3 cp '{{ iso_prefix }}/version.txt' -"
+      register: iso_index
+      changed_when: false
+
+    - name: Take the ISO name from it
+      set_fact:
+        iso_name: "{{ iso_index.stdout | regex_search('^iso_name=(.+)$', '\\1', multiline=True) | first | trim }}"
+
+    - name: Fetch the ISO
+      shell: "aws s3 cp '{{ iso_prefix }}/{{ iso_name }}' '{{ iso_dir }}/{{ iso_name }}'"
+      args:
+        creates: "{{ iso_dir }}/{{ iso_name }}"
+
+    - name: Use the fetched ISO
+      set_fact:
+        major_upgrade_iso: "{{ iso_dir }}/{{ iso_name }}"
+
+- name: Check the ISO is there
+  stat:
+    path: "{{ major_upgrade_iso }}"
+  register: iso_file
+
+- name: Handle a missing ISO
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "Could not obtain a major upgrade ISO at {{ major_upgrade_iso }}. Pass one with -e major_upgrade_iso=/path, or name the release with -e major_upgrade_iso_version=N.y."
+  when: not iso_file.stat.exists
+
+- name: Loop-mount the ISO where the updates disk would be
+  mount:
+    path: "{{ iso_mountpoint }}"
+    src: "{{ major_upgrade_iso }}"
+    opts: loop,ro
+    state: mounted
+    fstype: auto
+  register: mount_iso_result
+  ignore_errors: yes
+
+- name: Handle loop-mount failure
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "Mounting the major upgrade ISO at {{ iso_mountpoint }} failed: {{ mount_iso_result.msg | default('') }}"
+  when: mount_iso_result.failed

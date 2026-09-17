@@ -165,18 +165,26 @@ if [ -e /boot/grub/grub.cfg ]; then
     fi
 
     # update grub
-    if ! which cloud-init || [ "$(cloud-init query cloud_id)" = "nocloud" ] || [ "$(cloud-init query cloud_id)" = "" ]; then
-        # VirtualBox cloud init source
-        sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
-    elif [ "$(cloud-init query cloud_id)" = "aws" ]; then       
+    if [ "$(cloud-init query cloud_id)" = "aws" ]; then
         # Enable serial console for AWS debugging
         sed -i 's/GRUB_CMDLINE_LINUX="\(.*\)"/GRUB_CMDLINE_LINUX="\1 console=ttyS0"/' /etc/default/grub
+    fi
+
+    # Without this the EC2 datasource wins after the swap and replays the user data this
+    # machine was created with, regenerating the VPN server key every peer was issued
+    # against. A VirtualBox VM has always pinned it; a CloudHub needs it for the same reason.
+    if [ "{{ 'true' if is_cloudhub | default(false) | bool else 'false' }}" = "true" ] \
+       || ! which cloud-init || [ "$(cloud-init query cloud_id)" = "nocloud" ] \
+       || [ "$(cloud-init query cloud_id)" = "" ]; then
+        sed -i 's|\(GRUB_CMDLINE_LINUX_DEFAULT=".*\)"|\1 ds=nocloud\\;s=file:///etc/jaiabot/init/ network-config=disabled"|' /etc/default/grub
     fi
        
     update-grub
 fi
 
+sync
+
 if [ "{{ upgrade_type }}" = "embedded" ]; then
-    systemctl reboot --force
+    systemctl reboot --force || systemctl reboot --force --force
 fi
 
