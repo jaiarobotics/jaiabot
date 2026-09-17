@@ -202,6 +202,15 @@ tens of millions of cells for a detour around either one. Narrowing _collision_ 
 blocking zones instead would be worse — a detour could then be routed straight through a
 zone it merely passes near.
 
+**The projection origin must not move with the zone set.** Detection projects every zone
+once per pass, relative to the first zone in the set with usable geometry, and bypass
+waypoints are computed in that frame but stored as lat/lon. Deriving the origin afresh
+each pass means deleting a zone re-projects every stored route through a different
+reference point, which returns the same route with different digits — so untouched
+missions get reported as needing a reroute. For the same reason routes are compared
+within a metre rather than by exact lat/lon: a saved mission set carries waypoints
+computed in a frame that no longer exists.
+
 **A conflict is a property of a mission _and_ the current zone set**, so it is computed
 on demand by `getMissionsInConflict()` rather than stored. The same mission conflicts or
 does not depending on which zones exist at the time, so there is nothing stable to

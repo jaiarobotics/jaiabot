@@ -897,6 +897,49 @@ does not use — `handleClickedUndo` restores the zone set directly through
 **Test coverage:** the thorough coverage had been written against the unreachable
 handler and was moved onto the live one rather than deleted.
 
+## Finding 18 — untouched missions were reported as needing a reroute
+
+_Fixed. Raised in review of this branch._
+
+**Symptom:** delete a zone, and missions with nothing to do with it raise the reroute
+dialog. Confirming changes their routes by centimetres; the operator is asked to approve
+a detour that did not move.
+
+**Root cause, two halves that only bite together.** Reroute detection projects every zone
+once per pass, relative to a shared origin taken from the first zone in the set with
+usable geometry. Zones iterate in insertion order, so deleting a zone — or loading a set
+with a different first zone — changes which coordinate that is.
+
+The projection is equirectangular about that origin, so both the offset and the `cosLat`
+scale depend on it. Bypass waypoints, though, are computed in that frame and then stored
+as lat/lon. Re-projecting a stored route through a _different_ origin and back returns
+the same route with different low-order digits — up to decimetres where the two origins
+differ in latitude. `waypointListsMatch` compared lat/lon for exact equality, so the
+stored route no longer matched the freshly computed one and the mission was proposed as
+`FEASIBLE`.
+
+**Why it survived so long.** The shared origin arrived with the fix for redundant
+zone-geometry rebuilding (Finding 12's neighbour, `cb274e555`), whose docstring recorded
+that "the specific choice does not affect results — it is only the local-projection
+reference point." That is true for a blocking test, where everything is projected once
+and compared within the pass. It stopped being true once coordinates computed in that
+frame were persisted and compared against a later pass's output.
+
+**Fix, first half:** the origin is held across zone edits rather than re-derived each
+pass, and re-anchored only when no zone has usable geometry or the zones have moved more
+than 50 km — the distance beyond which the equirectangular projection leaves its <0.1%
+accuracy band.
+
+**Fix, second half:** `waypointListsMatch` projects both lists through one origin and
+compares within a metre. This is the half that holds in general: a saved mission set
+carries bypass waypoints computed in a frame that no longer exists anywhere, so no
+origin policy can make a later exact comparison meaningful. A metre is far above the
+float and scale residue and far below the 5 m grid the search works in.
+
+**Test coverage:** `exclusion-zone-router.test.ts` — "does not re-propose a settled route
+when an unrelated zone is deleted". It asserts null both before and after the unrelated
+delete, so a failure distinguishes a moved origin from detection that is simply noisy.
+
 ## Where the coverage lives
 
 | Layer          | File                                                                      | Covers                                            |
