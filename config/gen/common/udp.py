@@ -26,6 +26,14 @@ def hub2hub_udp_port(hub_id):
 def contact_gpsd_port(contact_id):
     return 33000 + contact_id
 
+# in runtime this is fed by the SPI/I2C GPS driver, which defaults to the same
+# port
+def gpsd_udp_port(node_id):
+    if is_simulation():
+        return 32100 + node_id
+    else:
+        return 32100
+
 def motor_cpp_udp_port():
     return 0
 
