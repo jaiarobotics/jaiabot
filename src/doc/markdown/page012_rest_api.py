@@ -89,7 +89,7 @@ There are 2 variants of the API:
 The URL expected for the simple variant of the API is:
 
 ```
-https://fleet<N>.jaia.tech/jaia/v1/<action>/<target>?api_key=<API_KEY_STRING>&var1=val1&var2=val2
+https://fleet<N>.jaia.tech/jaia/v1/<action>/<target>?var1=val1&var2=val2
 ```
 
 Where:
@@ -98,7 +98,6 @@ Where:
 - `<target>` is the target bots and or hubs in the following format:
     - 'all' for all known bots and the hub (if relevant)
     - comma separated list of 'bN' and/or 'hN' where N is the bot/hub ID, e.g., 'b1,b2,b3' would target bots 1-3, or 'h1,b3' would target hub 1  and bot 3
-- api_key is the private shared key to use the API
 - var1 and var2 are variables affecting the action (see action documentation below)
 - val1 and val2 are the values for var1 and var2, respectively.
 """
@@ -118,13 +117,12 @@ All data are expected to be sent as a POST request using the JSON formatted vers
 #!/usr/bin/env python3
 import requests
 
-jaia_request={"target": {"all": True}, "status": True, "api_key": "4vS6s2jnulxVjrKSB-__tQ"}
+jaia_request={"target": {"all": True}, "status": True}
 
 res = requests.post(f'https://fleet0.jaia.tech/jaia/v1', json=jaia_request)
 ```
 
 Key for placeholders: 
- - `<API_KEY_STRING>`: API Key string field
  - `<STRING>`: String field
  - `False`: Boolean field
  - `{float_dummy}`: Floating point field
@@ -274,8 +272,6 @@ def generate_simple_variant(action, parent):
     section = Section(title=f"Simple API Syntax (GET) [{parent}]")
 
     get_vars=dict()
-    get_vars["api_key"]="<API_KEY_STRING>"
-    
     action_field_desc = jaiabot.messages.rest_api_pb2.APIRequest.DESCRIPTOR.fields_by_name[action]
     jaia_request = jaiabot.messages.rest_api_pb2.APIRequest()
 
@@ -352,7 +348,6 @@ def generate_full_variant(action, parent):
 
         enums = introspect_and_populate(jaia_request, action, oneof_selection)
         
-        jaia_request.api_key="<API_KEY_STRING>"
         del jaia_request.target.hubs[:]
         jaia_request.target.hubs.append(1)
         del jaia_request.target.bots[:]

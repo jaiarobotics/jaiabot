@@ -6,10 +6,6 @@ import json
 import datetime
 import argparse
 
-try: 
-    api_key=os.environ['JAIA_REST_API_PRIVATE_KEY']
-except KeyError:
-    api_key=""
 
 
 parser = argparse.ArgumentParser(description="Parse API host and port from command line.")
@@ -78,50 +74,50 @@ DAY = 1e6 * 60 * 60 * 24 # microseconds in a day
 
 
 run_request('/status/all',
-            get_vars=f'?api_key={api_key}',
-            post_json={"api_key": api_key},
+            get_vars='',
+            post_json={},
             expected_response_subset={"request": {"status": True, "target": {"all": True}}, "status": {}})
 
 run_request('/metadata/all',
-            get_vars=f'?api_key={api_key}',
-            post_json={"api_key": api_key},
+            get_vars='',
+            post_json={},
             expected_response_subset={"request": {"metadata": True, "target": {"all": True}}, "metadata": {}})
 
 now_micros = int(datetime.datetime.now().timestamp() * 1e6)
 DAY = 1e6 * 60 * 60 * 24 # microseconds in a day
 
 run_request('/task_packets/b2',
-            f'?api_key={api_key}&start_time={int(now_micros - DAY)}&end_time={int(now_micros +  DAY)}',
-            post_json={"start_time": now_micros - DAY, "end_time": now_micros + DAY, "api_key": api_key},
+            f'?start_time={int(now_micros - DAY)}&end_time={int(now_micros +  DAY)}',
+            post_json={"start_time": now_micros - DAY, "end_time": now_micros + DAY},
             expected_response_subset={"request": {"task_packets": {}, "target": {"bots": [2]}}, "task_packets": {}})
 
 
 run_request('/command/b1',
-            get_vars=f'?api_key={api_key}&type=STOP',
-            post_json={"type": "STOP", "api_key": api_key},
+            get_vars=f'?type=STOP',
+            post_json={"type": "STOP"},
             expected_response_subset={"request": {"command": {"type": "STOP"}, "target": {"bots": [1]}}, "command_result": { "command_sent": True}})
 
 run_request('/command/b1',
-            post_json={"api_key": api_key, "type":"MISSION_PLAN","plan":{"goal":[{"location":{"lat":41.661849,"lon":-71.273131},"task":{"type":"DIVE","dive":{"max_depth":2},"surface_drift":{"drift_time":15}}}],"speeds":{"transit":2.5,"stationkeep_outer":0.5}}},
+            post_json={"type":"MISSION_PLAN","plan":{"goal":[{"location":{"lat":41.661849,"lon":-71.273131},"task":{"type":"DIVE","dive":{"max_depth":2},"surface_drift":{"drift_time":15}}}],"speeds":{"transit":2.5,"stationkeep_outer":0.5}}},
             expected_response_subset={"request": {"command": {"type": "MISSION_PLAN"}, "target": {"bots": [1]}}, "command_result": { "command_sent": True}})
 
 run_request('/command_for_hub/h1' ,
-            post_json={"type": "SET_HUB_LOCATION", "hub_location": { "lat": 41.7, "lon": -70.3 }, "api_key": api_key},
+            post_json={"type": "SET_HUB_LOCATION", "hub_location": { "lat": 41.7, "lon": -70.3 }},
             expected_response_subset={"request": {"command_for_hub": {"type": "SET_HUB_LOCATION"}, "target": {"hubs": [1]}}, "command_result": { "command_sent": True}})
 
 
 # invalid enum: API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON
 run_request('/command/b1',
-            get_vars=f'?api_key={api_key}&type=FOO',
-            post_json={"type": "FOO", "api_key": api_key},
+            get_vars=f'?type=FOO',
+            post_json={"type": "FOO"},
             expected_response_subset={"error": {"code": "API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON"}})
 
 # invalid int type: API_ERROR__INVALID_TYPE
 run_request('/task_packets/b2',
-            get_vars=f'?api_key={api_key}&start_time={float(now_micros - DAY)}&end_time={float(now_micros +  DAY)}',
+            get_vars=f'?start_time={float(now_micros - DAY)}&end_time={float(now_micros +  DAY)}',
             expected_response_subset={"error": {"code": "API_ERROR__INVALID_TYPE"}})
 
 # invalid target string: API_ERROR__INVALID_TARGET
 run_request('/task_packets/abcd',
-            get_vars=f'?api_key={api_key}',
+            get_vars='',
             expected_response_subset={"error": {"code": "API_ERROR__INVALID_TARGET"}})

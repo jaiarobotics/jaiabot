@@ -29,18 +29,15 @@ def fetch_page(url, timeout=10):
 
 
 class HubApi:
-    def __init__(self, url, api_key='', timeout=10, transport=urllib_transport):
+    def __init__(self, url, timeout=10, transport=urllib_transport):
         base = url.rstrip('/')
         self.base = base if base.endswith('/jaia/v1') else base + '/jaia/v1'
-        self.api_key = api_key
         self.timeout = timeout
         self.transport = transport
         self.last_error = ''
 
     def _call(self, path, payload=None):
         body = dict(payload or {})
-        if self.api_key:
-            body['api_key'] = self.api_key
         status, text = self.transport(self.base + path, body, self.timeout)
         if status != 200:
             self.last_error = f'HTTP {status}' if status else f'no answer ({text[:120]})'
@@ -100,8 +97,6 @@ class HubApi:
     def download(self, path, payload=None):
         """Raw bytes from an endpoint, for the formats that are not JSON."""
         body = dict(payload or {})
-        if self.api_key:
-            body['api_key'] = self.api_key
         request = urllib.request.Request(
             self.base + path, data=json.dumps(body).encode(),
             headers={'Content-Type': 'application/json'})

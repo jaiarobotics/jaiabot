@@ -28,7 +28,6 @@ curl -X POST http://localhost:9092/jaia/v1 \
 - 📝 **Retrieve metadata** - Fetch hub metadata (versions, configuration, etc.)
 - 📦 **Get task packets** - Pull historical task data for analysis
 - 🎮 **Send commands** - Control bots (start, stop, etc.) and hubs
-- 🔐 **API key auth** - Secure your API with optional authentication
 
 ## Directory Layout
 
@@ -38,7 +37,6 @@ Here's what's in this directory:
 rest_api/
 ├── app.py                    # 🚀 Main Flask app - routes and request handling
 ├── run.sh                    # 🎬 Start script - use this for development!
-├── gen_api_key.py           # 🔑 Generate API keys
 │
 ├── v1/                       # Version 1 API implementation
 │   └── api.py               # 💡 THIS is where you add new endpoints!
@@ -113,45 +111,10 @@ streaming_endpoint {
     port: 40000
 }
 
-# For production - require API keys
-no_key_required: false
-
 key {
     private_key: "your-secret-key-here"
     permission: [ALL]
 }
-```
-
-### API Keys
-
-**Development (no auth):**
-
-```bash
-export JAIA_REST_API_PRIVATE_KEY=""
-./run.sh
-```
-
-**Production (secure):**
-
-```bash
-# Generate a random key
-./gen_api_key.py
-
-# This outputs something like:
-# key {
-#     private_key: "abc123xyz..."
-#     permission: [ALL]
-# }
-
-# Add it to /etc/jaiabot/rest_api.pb.cfg
-```
-
-Then use the key in your requests:
-
-```bash
-curl -X POST http://localhost:9092/jaia/v1 \
-  -H "Content-Type: application/json" \
-  -d '{"target": {"all": true}, "status": true, "api_key": "abc123xyz..."}'
 ```
 
 ## Running Tests
@@ -237,7 +200,7 @@ message APIRequest {
             presence: GUARANTEED,
             doc: "Reboot a specific bot."
             example {
-                request: '{"target": {"bots": [1]}, "reboot_bot": {"force": true}, "api_key": "..."}'
+                request: '{"target": {"bots": [1]}, "reboot_bot": {"force": true}}'
                 response: '{"reboot_bot_result": {"success": true, "message": "Reboot command sent"}}'
             }
         }];
@@ -379,7 +342,7 @@ Add a test to `test/short_api_test.py`:
 
 print("Testing reboot_bot...")
 run_request(
-    {"target": {"bots": [1]}, "reboot_bot": {"force": True}, "api_key": api_key},
+    {"target": {"bots": [1]}, "reboot_bot": {"force": True}},
     expected_response_subset={
         "request": {"reboot_bot": {"force": True}},
         "reboot_bot_result": {"success": True}
@@ -405,7 +368,7 @@ run_request(
 ```python
 # Success case
 run_request(
-    {"target": {"bots": [1]}, "reboot_bot": {}, "api_key": api_key},
+    {"target": {"bots": [1]}, "reboot_bot": {}},
     expected_response_subset={"reboot_bot_result": {"success": True}}
 )
 
@@ -447,33 +410,6 @@ curl -X POST http://localhost:9092/jaia/v1/reboot_bot/b1 \
 curl "http://localhost:9092/jaia/v1/reboot_bot/b1?force=true"
 ```
 
-### Optional: Add API Permissions
-
-If you want to control who can use this action, update the permissions in `rest_api.proto`:
-
-```protobuf
-message APIConfig {
-    message APIKey {
-        enum Permission {
-            ALL = 0 [(jaia.ev).rest_api = {
-                permitted_action: [
-                    'status', 'metadata', 'task_packets',
-                    'command', 'command_for_hub',
-                    'reboot_bot'  // ← Add your action here
-                ]
-            }];
-
-            // Or create a specific permission
-            REBOOT_BOT = 8 [(jaia.ev).rest_api = {
-                permitted_action: ['reboot_bot']
-            }];
-        }
-    }
-}
-```
-
----
-
 ### 📚 Learn by Example
 
 The best way to learn? Look at existing endpoints in `v1/api.py`:
@@ -504,8 +440,7 @@ curl -X POST http://localhost:9092/jaia/v1 \
   -H "Content-Type: application/json" \
   -d '{
     "target": {"bots": [1, 2]},
-    "command": {"type": "STOP"},
-    "api_key": "your-key-if-needed"
+    "command": {"type": "STOP"}
   }'
 ```
 
@@ -545,7 +480,7 @@ curl -X POST http://localhost:9092/jaia/v1/command/b1,b2 \
   -d '{"type": "STOP"}'
 
 # GET with query params (for simple types)
-curl "http://localhost:9092/jaia/v1/status/all?api_key=abc123"
+curl "http://localhost:9092/jaia/v1/status/all?bot=1"
 ```
 
 **Target Syntax:**
@@ -579,7 +514,7 @@ curl "http://localhost:9092/jaia/v1/status/all?api_key=abc123"
 ```
 1. HTTP Request → Flask (app.py)
 2. Parse JSON → Protobuf (APIRequest)
-3. Validate & check API key
+3. Validate the request
 4. Forward to handler (v1/api.py)
 5. Handler does the work:
    - Read from shared_data, OR
@@ -628,17 +563,6 @@ nc -zv localhost 40000
 ./app.py -l DEBUG
 ```
 
-### API key errors (403 Forbidden)
-
-```bash
-# For development, disable auth entirely
-export JAIA_REST_API_PRIVATE_KEY=""
-./run.sh
-
-# Or check your config file
-cat /etc/jaiabot/rest_api.pb.cfg
-```
-
 ### Tests fail
 
 ```bash
@@ -647,9 +571,6 @@ cat /etc/jaiabot/rest_api.pb.cfg
 
 # In another terminal
 cd test && ./test.sh
-
-# If still failing, check you're using the right API key
-echo $JAIA_REST_API_PRIVATE_KEY
 ```
 
 ### "ImportError: No module named jaiabot.messages"
@@ -682,9 +603,6 @@ Enable debug logging to see what's happening:
 ```bash
 # See all requests/responses in real-time
 ./app.py -l DEBUG
-
-# Test without authentication
-export JAIA_REST_API_PRIVATE_KEY=""
 
 # Pretty-print JSON responses
 curl ... | python3 -m json.tool
