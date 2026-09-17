@@ -148,6 +148,7 @@ class LiaisonUpgrade : public goby::zeromq::LiaisonContainer
     std::map<std::string, SectionWidgets> sections;
 
     const protobuf::UpgradeConfig& cfg_;
+    protobuf::UpgradeConfig::Role role_;
     std::vector<AnsiblePlaybookConfig> playbooks_;
     Wt::WTimer timer_;
     static const std::vector<std::string> running_;

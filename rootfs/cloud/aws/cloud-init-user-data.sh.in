@@ -2,69 +2,9 @@
 
 ## Set up VPNs
 (umask 077; wg genkey | tee /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey)
-SERVER_VPN_PRIVATEKEY=$(cat /etc/wireguard/privatekey)
 SERVER_VPN_PUBKEY=$(cat /etc/wireguard/publickey)
 
-cat <<EOF > /etc/sysctl.d/wg.conf
-net.ipv4.ip_forward = 1
-net.ipv6.conf.all.forwarding = 1
-net.ipv6.conf.eth0.accept_ra = 2
-EOF
-
-cat <<EOF > /etc/wireguard/wg_virtualfleet.conf
-##########################
-#### VirtualFleet #########
-###########################
-
-[Interface]
-
-# VPN Address for server
-Address = {{VIRTUALFLEET_VPN_SERVER_IPV6}}/64
-
-# VPN Server Port
-ListenPort = 51820
-
-# PrivateKey (contents of /etc/wireguard/privatekey)
-PrivateKey = ${SERVER_VPN_PRIVATEKEY}
-
-PostUp = iptables -w 60 -A FORWARD -i wg_virtualfleet -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_virtualfleet -j ACCEPT; ip6tables -A FORWARD -i wg_virtualfleet -j ACCEPT;
-PostDown = iptables -w 60 -D FORWARD -i wg_virtualfleet -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE;ip6tables -D FORWARD -i eth0 -o wg_virtualfleet -j ACCEPT; ip6tables -D FORWARD -i wg_virtualfleet -j ACCEPT;
-
-[Peer]
-# Initial Setup Client
-PublicKey = {{CLIENT_VPN_WIREGUARD_PUBKEY}}
-AllowedIPs = {{VIRTUALFLEET_VPN_CLIENT_IPV6}}/128
-EOF
-
-systemctl enable wg-quick@wg_virtualfleet
-
-cat <<EOF > /etc/wireguard/wg_cloudhub.conf
-##########################
-#### CloudHub VPN #########
-###########################
-
-[Interface]
-
-# VPN Address for server
-Address = {{CLOUDHUB_VPN_SERVER_IPV6}}/64
-
-# VPN Server Port
-ListenPort = 51821
-
-# PrivateKey (contents of /etc/wireguard/privatekey)
-PrivateKey = ${SERVER_VPN_PRIVATEKEY}
-
-PostUp = iptables -w 60 -A FORWARD -i wg_cloudhub -j ACCEPT; iptables -w 60 -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -A FORWARD -i eth0 -o wg_cloudhub -j ACCEPT; ip6tables -A FORWARD -i wg_cloudhub -j ACCEPT;
-PostDown = iptables -w 60 -D FORWARD -i wg_cloudhub -j ACCEPT; iptables -w 60 -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -D FORWARD -i eth0 -o wg_cloudhub -j ACCEPT; ip6tables -D FORWARD -i wg_cloudhub -j ACCEPT;
-
-
-[Peer]
-# Initial Setup Client
-PublicKey = {{CLIENT_VPN_WIREGUARD_PUBKEY}}
-AllowedIPs = {{CLOUDHUB_VPN_CLIENT_IPV6}}/128
-EOF
-
-systemctl enable wg-quick@wg_cloudhub
+jaia admin vpn server_init {{FLEET_ID}} {{CLIENT_VPN_WIREGUARD_PUBKEY}}
 
 ## Set network interfaces file
 cat <<EOF > /etc/network/interfaces
@@ -77,8 +17,7 @@ EOF
 ## Restore default hostname
 hostnamectl set-hostname "jaia-unnamed"
 
-## Store useful data for VirtualFleet
-
+## Store useful data for CloudHub
 cat <<EOF > /etc/jaiabot/cloud.env
 jaia_fleet_index={{FLEET_ID}}
 jaia_cloudhub_wg_pubkey=${SERVER_VPN_PUBKEY}
@@ -93,6 +32,9 @@ jaia_aws_virtualfleet_security_group={{VIRTUALFLEET_SECURITY_GROUP_ID}}
 jaia_aws_virtualfleet_repository={{REPO}}
 jaia_aws_virtualfleet_repository_version={{REPO_VERSION}}
 jaia_jcc_hub_ip={{JCC_HUB_IP}}
+jaia_auth_base_uri={{AUTH_BASE_URI}}
+jaia_auth_admin_email={{AUTH_ADMIN_EMAIL}}
+jaia_auth_smtp_address={{AUTH_SMTP_ADDRESS}}
 EOF
 
 ## Ansible jobs for VFleet need boto3
@@ -108,3 +50,17 @@ unzip -q awscliv2.zip
 cat <<EOF >> /etc/fstab
 {{CLOUDHUB_DATA_BUCKET}} /var/log/jaiabot/bot_offload/ fuse.s3fs _netdev,allow_other,use_path_request_style,iam_role=auto,url=https://s3.{{REGION}}.amazonaws.com,dbglevel=warn,endpoint={{REGION}} 0 0
 EOF
+
+## Enable automatic security upgrades
+cat <<EOF > /etc/apt/apt.conf.d/50unattended-upgrades
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}-security";
+};
+Unattended-Upgrade::Package-Blacklist {
+    "^linux-.*";
+};
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+EOF
+
+

@@ -113,4 +113,12 @@ message FleetConfig
     }
     optional Communications comms = 9;
 
+    message CloudHub
+    {
+        // Authentication front end: Authelia behind Caddy
+        required string base_uri = 1;
+        required string admin_email = 2;
+        required string smtp_address = 3;
+    }
+    optional CloudHub cloudhub = 11;
 }

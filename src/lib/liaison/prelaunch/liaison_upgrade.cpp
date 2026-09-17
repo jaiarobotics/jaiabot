@@ -8,6 +8,7 @@
 #include <Wt/WTable.h>
 #include <Wt/WText.h>
 #include <chrono>
+#include <sstream>
 
 #include <boost/process.hpp>
 #include <boost/process/async.hpp>
@@ -48,6 +49,39 @@ jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::Liai
 {
     boost::filesystem::create_directories(cfg_.ansible_log_dir());
 
+    // Determine role: if running behind Caddy/Authelia, use the Remote-Groups header;
+    // otherwise fall back to the role from the configuration file.
+    // Remote-Groups contains a comma-separated list of LLDAP group names.
+    const std::string remote_groups = wApp->environment().headerValue("Remote-Groups");
+    if (!remote_groups.empty())
+    {
+        // Parse the comma-separated group list and assign the highest matching role.
+        role_ = protobuf::UpgradeConfig::USER;
+        std::istringstream ss(remote_groups);
+        std::string group;
+        while (std::getline(ss, group, ','))
+        {
+            // trim whitespace
+            const auto start = group.find_first_not_of(' ');
+            const auto end = group.find_last_not_of(' ');
+            if (start == std::string::npos)
+                continue;
+            group = group.substr(start, end - start + 1);
+
+            if (group == "jcu_developer" || group == "super_admin")
+                role_ = protobuf::UpgradeConfig::DEVELOPER;
+            else if (group == "jcu_advanced" && role_ < protobuf::UpgradeConfig::ADVANCED)
+                role_ = protobuf::UpgradeConfig::ADVANCED;
+        }
+        glog.is_debug1() && glog << "Using role from Authelia Remote-Groups header ('"
+                                 << remote_groups << "'): " << role_ << std::endl;
+    }
+    else
+    {
+        role_ = cfg_.role();
+        glog.is_debug1() && glog << "Using role from config: " << role_ << std::endl;
+    }
+
     set_name("Fleet Upgrade");
     const auto update_freq = cfg_.check_freq();
     timer_.setInterval(std::chrono::milliseconds(static_cast<long>(1.0 / update_freq * 1.0e3)));
@@ -55,7 +89,7 @@ jaiabot::LiaisonUpgrade::LiaisonUpgrade(const goby::apps::zeromq::protobuf::Liai
 
     for (const auto& playbook : cfg_.ansible_playbook())
     {
-        if (cfg_.role() < playbook.role())
+        if (role_ < playbook.role())
             continue;
 
         if (!sections.count(playbook.section()))

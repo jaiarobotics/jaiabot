@@ -221,6 +221,7 @@ set(scripts_to_install
   system/jaia_update_ufw_rules.sh
   system/jaia_update_network.sh
   system/jaia_iridium_tunnel.sh
+  system/jaia_configure_authelia.sh
   # Fleet config
   fleet/jaia-create-fleet-config.sh
   fleet/jaia-generate-first-boot.py
