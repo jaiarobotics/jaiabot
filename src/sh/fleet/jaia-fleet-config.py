@@ -751,15 +751,20 @@ def cmd_generate(schema, args):
                 f.write(fleet_config_text(cfg))
             print("Wrote fleet config: {}".format(stored))
 
-        if "write_cloudhub_auth" in actions:
+        if "write_cloudhub_env" in actions:
             if not cfg.HasField("cloudhub"):
                 raise FleetConfigError("cloudhub is not set in {}".format(args.fleetcfg))
-            cloudhub_auth_sh = os.path.join(init_dir, "cloudhub_auth.sh")
-            with open(cloudhub_auth_sh, "w") as sh:
+            # Everything jaia_write_cloud_env.sh cannot ask AWS for. It reads this at
+            # first boot and again after a major upgrade, so the two produce the same
+            # cloud.env from the same source.
+            cloudhub_env_sh = os.path.join(init_dir, "cloudhub_env.sh")
+            with open(cloudhub_env_sh, "w") as sh:
                 sh.write("AUTH_BASE_URI={}\n".format(cfg.cloudhub.base_uri))
                 sh.write("AUTH_ADMIN_EMAIL={}\n".format(cfg.cloudhub.admin_email))
                 sh.write("AUTH_SMTP_ADDRESS={}\n".format(cfg.cloudhub.smtp_address))
-            print("Wrote cloudhub auth variables to: {}".format(cloudhub_auth_sh))
+                sh.write("CLOUDHUB_DATA_BUCKET={}\n".format(
+                    cfg.cloudhub.data_bucket or "jaia--cloudhub-data--fleet{}".format(cfg.fleet)))
+            print("Wrote cloudhub variables to: {}".format(cloudhub_env_sh))
 
     if args.debug:
         print("Rendered context: {}".format(json.dumps(redacted(context), indent=2)))
@@ -1461,7 +1466,7 @@ def build_parser():
     p.add_argument("--hub-ssh-keys-only", help="Only output the hub SSH keys (skip all other actions). Same as --action=hub_ssh_keys.", action="store_true")
     p.add_argument("--mode", default="runtime", choices=["runtime", "simulation"], help="Whether this is a real (runtime) or virtual (simulation) system")
     p.add_argument("--action", action="append",
-                   choices=["hub_ssh_keys", "vpn_key", "first_boot", "store_fleet_cfg", "new_hub_script", "write_cloudhub_auth"],
+                   choices=["hub_ssh_keys", "vpn_key", "first_boot", "store_fleet_cfg", "new_hub_script", "write_cloudhub_env"],
                    help="Actions to take (default is ['hub_ssh_keys', 'vpn_key', 'first_boot', 'store_fleet_cfg'])")
     p.add_argument("type", choices=["bot", "hub", "rpicam"], help="Type of system to generate for")
     p.add_argument("id", type=int, help="ID of bot or hub")
