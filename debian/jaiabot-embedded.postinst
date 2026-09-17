@@ -11,12 +11,18 @@ set -e
 db_get jaiabot-embedded/type
 JAIA_TYPE=$RET
 
+IS_CLOUDHUB=false
+
 if [ "$JAIA_TYPE" = "bot" ]; then
     db_get jaiabot-embedded/bot_id
     BOT_OR_HUB_INDEX=$RET
 elif [ "$JAIA_TYPE" = "hub" ]; then
     db_get jaiabot-embedded/hub_id
     BOT_OR_HUB_INDEX=$RET
+
+    if [ "${BOT_OR_HUB_INDEX}" = "$(/usr/bin/jaia_bounds --cloudhub_id)" ]; then
+        IS_CLOUDHUB=true
+    fi
 fi
 
 db_get jaiabot-embedded/fleet_id
@@ -204,10 +210,13 @@ rm -f /etc/jaiabot/runtime.env /etc/jaiabot/runtime.env.~*~
 
 echo "jaiabot-embedded version: $(dpkg-query --show --showformat='${Version}' jaiabot-embedded)" > /etc/jaiabot/software_version
 
-if [ ! -f /etc/apt/apt.conf.d/99disable-auto-upgrades ]; then
-    echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/99disable-auto-upgrades
-    echo 'APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99disable-auto-upgrades
-    systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
+# The CloudHub is internet-facing and always on, so it keeps taking security updates
+if [ "${IS_CLOUDHUB}" = "false" ]; then
+    if [ ! -f /etc/apt/apt.conf.d/99disable-auto-upgrades ]; then
+        echo 'APT::Periodic::Update-Package-Lists "0";' > /etc/apt/apt.conf.d/99disable-auto-upgrades
+        echo 'APT::Periodic::Unattended-Upgrade "0";' >> /etc/apt/apt.conf.d/99disable-auto-upgrades
+        systemctl disable --now apt-daily.timer apt-daily-upgrade.timer
+    fi
 fi
 
 #DEBHELPER#
