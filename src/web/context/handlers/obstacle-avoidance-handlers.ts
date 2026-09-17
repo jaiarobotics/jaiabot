@@ -42,7 +42,7 @@ function applyRevert(revert: RevertContext[]) {
 
 /**
  * Applies pending reroute proposals to their missions, replacing old waypoints with rerouted ones.
- * Over-limit and impossible proposals result in the affected missions being deleted.
+ * Over-limit and impossible proposals are left alone: those missions keep the route they have.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
@@ -87,7 +87,8 @@ export function handleCancelMissionReroute(mutableState: JaiaContextType) {
 
 /**
  * Applies pending waypoint removal proposals and any feasible follow-up reroutes in one operation.
- * Missions that are still unroutable after removal are deleted to prevent zone-crossing state.
+ * Missions still unroutable after removal keep the route they have, as does a mission whose
+ * waypoints all fall inside a zone.
  *
  * @param {JaiaContextType} mutableState State object ref for making modifications
  * @returns {JaiaContextType} Updated mutable state object
