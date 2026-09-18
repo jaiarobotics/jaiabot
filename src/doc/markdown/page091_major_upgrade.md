@@ -87,6 +87,8 @@ Keep the updates disk attached to the staging hub for as long as the fleet is mi
 
 A failure on one node does not stop the others, which is what makes upgrading in passes possible. It also means a node that genuinely failed is easy to miss in a long run, so check the `PLAY RECAP` for `failed=` against each host before treating a fleet as fully upgraded.
 
+An error that stops Ansible from loading the play at all ends the run without printing a `PLAY RECAP`, so the absence of one is not the same as nothing having happened: the run may already have stopped `jaiabot` across the fleet. Start it again with `sudo systemctl start jaiabot` on each node once the error is fixed.
+
 A node held back by a failed check keeps its old filesystems and is left with `jaiabot` stopped; start it again with `sudo systemctl start jaiabot` once the cause is understood.
 
 A bot missing from the fleet configuration is held back this way, since the new release's tool will not write a first boot preseed for a bot it has not been told about. Correct the fleet configuration before catching that bot up: the hubs upgraded in the same pass carry the configuration they were given, so a bot left out of it is also absent from the inventory they generate, and a later run would not target it at all.
