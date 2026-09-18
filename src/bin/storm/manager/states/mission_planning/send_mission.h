@@ -109,21 +109,21 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
 
         const bool low_battery =
             machine.latest_battery_percent() < machine.mission().min_battery_percentage();
-        const bool too_much_undelivered_data =
-            machine.task_packet_queue().size() >= machine.mission().min_stored_datasets();
+        const bool max_stored_datasets_reached =
+            machine.task_packet_queue().size() >= machine.mission().max_stored_datasets();
         const bool no_gps = !machine.gps_connected();
 
-        if (low_battery && (too_much_undelivered_data || no_gps))
+        if (low_battery && (max_stored_datasets_reached || no_gps))
         {
             if (goby::glog.is_warn())
             {
                 goby::glog << group("statechart") << "Skipping dive: battery at "
                            << machine.latest_battery_percent() << "% is below minimum of "
                            << machine.mission().min_battery_percentage() << "%";
-                if (too_much_undelivered_data)
+                if (max_stored_datasets_reached)
                     goby::glog << "; " << machine.task_packet_queue().size()
-                               << " TaskPacket(s) remain un-offloaded (minimum "
-                               << machine.mission().min_stored_datasets() << ")";
+                               << " TaskPacket(s) remain un-offloaded (maximum "
+                               << machine.mission().max_stored_datasets() << ")";
                 if (no_gps)
                     goby::glog << "; GPS is unavailable";
                 goby::glog << std::endl;
