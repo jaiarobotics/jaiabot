@@ -2,8 +2,8 @@
   args:
     executable: /bin/bash
   shell: |
-    # the block ends in an rm, whose status would otherwise be the task's, hiding a
-    # generator that refused to write a preseed
+    # the block ends in an rm, whose status would otherwise become the task status and
+    # hide a generator that refused to write a preseed
     set -e -o pipefail
     mkdir -p {{ upgrade_boot_dir }}
     tar -xz -f {{ upgrade_dir }}/{{ major_upgrade_rootfs_version }}.boot.tar.gz -C {{ upgrade_boot_dir }}
