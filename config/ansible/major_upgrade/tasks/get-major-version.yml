@@ -1,5 +1,7 @@
+# "jaia ip", not "jaia_ip": this runs on nodes still on the release being left behind,
+# which has no jaia_ip binary. The subcommand spelling works on both.
 - name: Get IP address for Hub
-  shell: "jaia_ip h{{ hub_id }}f{{ jaiabot_embedded_fleet_id }}"
+  shell: "jaia ip h{{ hub_id }}f{{ jaiabot_embedded_fleet_id }}"
   register: hub_ip_result
   when: jaiabot_embedded_hub_id | int != hub_id | int
 
