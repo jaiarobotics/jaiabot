@@ -1,3 +1,6 @@
 - name: Set facts for the staged fleet configuration
   set_fact:
     staged_fleet_cfg: "{{ hub_staging_dir }}/fleet{{ jaiabot_embedded_fleet_id }}.cfg"
+    # Only the hub holding the image stages and migrates the config, so it travels to the
+    # other nodes by way of the controller, wherever ansible happens to be running.
+    controller_fleet_cfg: "/tmp/jaiabot_major_upgrade/fleet{{ jaiabot_embedded_fleet_id }}.cfg"

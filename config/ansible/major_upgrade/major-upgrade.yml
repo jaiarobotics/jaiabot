@@ -38,6 +38,20 @@
     - include_tasks: tasks/hub-check-fleet-config.yml
     - include_tasks: tasks/hub-check-ssh-key.yml
 
+    # after the migration above, so the other nodes get the config the new release wrote
+    - name: Fetch the migrated fleet config to the controller
+      fetch:
+        src: '{{ staged_fleet_cfg }}'
+        dest: '{{ controller_fleet_cfg }}'
+        flat: yes
+
+    - name: Keep the fetched fleet config private
+      file:
+        path: '{{ controller_fleet_cfg }}'
+        mode: '0600'
+      delegate_to: localhost
+      become: no
+
 # Tasks for all bots and hub
 - name: Jaiabot major upgrade - Upgrade all
   hosts: all
