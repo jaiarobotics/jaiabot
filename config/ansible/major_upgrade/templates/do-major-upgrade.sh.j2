@@ -144,10 +144,16 @@ if [ -e /boot/grub/grub.cfg ]; then
 
     for i in dev proc sys run boot/firmware var/log; do mount --move /oldroot/$i /$i; done
 
-    # move any mounts under /oldmount as well
+    # move any mounts under /oldmount as well. Container mounts (a CloudHub runs LLDAP
+    # under Docker) have no directory to land on in the new rootfs and nothing to carry
+    # over, so they are left behind rather than failing the upgrade.
     mount | awk '{print $3}' | grep "^/oldroot/" | sort -r | while read -r mountpoint; do
         new_mount="${mountpoint//oldroot\//}"
-        mount --move "$mountpoint" "$new_mount"
+        if [ -d "$new_mount" ]; then
+            mount --move "$mountpoint" "$new_mount" || umount -l "$mountpoint" || true
+        else
+            umount -l "$mountpoint" || true
+        fi
     done
 
     # install grub
