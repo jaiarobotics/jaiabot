@@ -264,4 +264,11 @@ message MissionManager
     optional bool send_task_packets_to_hub = 98 [default = true];
 
     optional bool allow_gps_error_during_pre_deployment_startup = 99 [default = false];
+
+    // time to wait in IN_MISSION__PAUSE__REACQUIRE_GPS before giving up and
+    // resuming the mission (diving in place) without a GPS fix. 0 disables the
+    // timeout. Intended for STORM bots, which are rudderless and so cannot
+    // improve a degraded fix by maneuvering.
+    optional int32 reacquire_gps_timeout = 100
+        [default = 0, (dccl.field).units = { base_dimensions: "T" }];
 }

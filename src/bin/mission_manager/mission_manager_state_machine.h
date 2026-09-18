@@ -219,6 +219,10 @@ struct MissionManagerStateMachine
     }
     const uint32_t& after_dive_gps_fix_checks() { return after_dive_gps_fix_checks_; }
 
+    // set when ReacquireGPS gives up, so the dive is recorded with an unknown location
+    void set_dive_without_gps(bool dive_without_gps) { dive_without_gps_ = dive_without_gps; }
+    bool dive_without_gps() const { return dive_without_gps_; }
+
     void
     set_bottom_depth_safety_constant_heading(const double& bottom_depth_safety_constant_heading)
     {
@@ -359,6 +363,7 @@ struct MissionManagerStateMachine
     uint32_t transit_gps_fix_checks_{cfg().total_gps_fix_checks()};
     uint32_t transit_gps_degraded_fix_checks_{cfg().total_gps_degraded_fix_checks()};
     uint32_t after_dive_gps_fix_checks_{cfg().total_after_dive_gps_fix_checks()};
+    bool dive_without_gps_{false};
     double start_of_dive_pressure_{0};
     double start_of_dive_depth_{0};
     double current_pressure_{0};
