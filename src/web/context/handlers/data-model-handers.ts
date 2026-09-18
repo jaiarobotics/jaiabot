@@ -36,6 +36,7 @@ const defaultBotAccordionStates: BotAccordionStates = {
     gps: false,
     imu: false,
     sensor: false,
+    storm: false,
 };
 
 const defaultMapLayerAccordionStates = {

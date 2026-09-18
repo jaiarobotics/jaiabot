@@ -91,6 +91,62 @@ export function getRepeatProgress(repeats: number, missionStatus: MissionStatus)
 }
 
 /**
+ * Summarizes the bot's mission state into a simplified Storm readiness status
+ *
+ * @param {MissionState} missionState Contains the state of the Bot
+ * @returns {string} "Initializing", "Ready to Deploy", "Broken", or "Deployed"
+ */
+export function getStormReadinessStatus(missionState: MissionState, isCommsDropped = false) {
+    if (isCommsDropped) {
+        return "Disconnected";
+    }
+
+    if (!missionState) {
+        return "N/A";
+    }
+
+    if (missionState.includes("FAILED")) {
+        return "Startup Failed";
+    }
+
+    if (missionState === MissionState.PRE_DEPLOYMENT__STARTING_UP) {
+        return "Initializing";
+    }
+
+    if (missionState === MissionState.PRE_DEPLOYMENT__IDLE) {
+        return "Awaiting Activation";
+    }
+
+    if (
+        missionState === MissionState.PRE_DEPLOYMENT__SELF_TEST ||
+        missionState === MissionState.PRE_DEPLOYMENT__WAIT_FOR_MISSION_PLAN ||
+        missionState === MissionState.PRE_DEPLOYMENT__READY
+    ) {
+        return "Ready to Deploy";
+    }
+
+    return "Deployed";
+}
+
+export function getStormReadinessStatusClassName(
+    missionState: MissionState,
+    isCommsDropped = false,
+) {
+    switch (getStormReadinessStatus(missionState, isCommsDropped)) {
+        case "Initializing":
+        case "Awaiting Activation":
+            return "storm-status-initializing";
+        case "Ready to Deploy":
+        case "Deployed":
+            return "storm-status-ready";
+        case "Startup Failed":
+        case "Disconnected":
+        case "N/A":
+            return "storm-status-failed";
+    }
+}
+
+/**
  * Checks if Bot is logging
  *
  * @param {MissionState} missionState Contains the state of the Bot
