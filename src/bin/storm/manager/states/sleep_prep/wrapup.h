@@ -51,7 +51,7 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
         protobuf::PowerBoardRequest request;
         request.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
         request.mutable_low_power_request()->set_duration_seconds(
-            this->machine().mission().sleep_for_minutes() * 60);
+            this->machine().sleep_duration_seconds());
         this->interprocess().template publish<::jaiabot::groups::power_board_command>(request);
     }
 
