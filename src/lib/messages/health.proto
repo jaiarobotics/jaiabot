@@ -88,7 +88,10 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__FAILED__JAIABOT_UDP_GATEWAY = 43
         [(jaia.ev).rest_api.presence = GUARANTEED];
-    ERROR__FAILED__JAIABOT_PPK = 44 [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_PPK = 44 
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__FAILED__JAIABOT_POWER_BOARD = 45
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from goby_coroner
     // must be "ERROR__NOT_RESPONDING__" + uppercase(application name)
@@ -151,6 +154,8 @@ enum Error
     ERROR__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER = 130
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__NOT_RESPONDING__JAIABOT_CTD_MANAGER = 131
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__NOT_RESPONDING__JAIABOT_POWER_BOARD = 132
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
@@ -245,6 +250,8 @@ enum Error
         [(jaia.ev).rest_api.presence = GUARANTEED];
     ERROR__MISSING_DATA__BLUEROBOTICS_BAR30_DATA = 801
         [(jaia.ev).rest_api.presence = GUARANTEED];
+    ERROR__MISSING_DATA__POWER_BOARD_REPORT = 802
+        [(jaia.ev).rest_api.presence = GUARANTEED];
 }
 
 enum Warning
@@ -269,6 +276,8 @@ enum Warning
     WARNING__NOT_RESPONDING__JAIABOT_TSYS01_TEMPERATURE_SENSOR_DRIVER = 106
         [(jaia.ev).rest_api.presence = GUARANTEED];
     WARNING__NOT_RESPONDING__JAIABOT_AML_SENSOR_DRIVER = 107
+        [(jaia.ev).rest_api.presence = GUARANTEED];
+    WARNING__NOT_RESPONDING__JAIABOT_POWER_BOARD = 108
         [(jaia.ev).rest_api.presence = GUARANTEED];
 
     // from jaiabot_fusion
