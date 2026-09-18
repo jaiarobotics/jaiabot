@@ -1,11 +1,30 @@
+# A major upgrade runs against the release being left behind, whose jaia has no
+# debconf action, so fall back to reading the database directly. That jaia also
+# exits 0 on an unknown action, so the output is what decides, not the status.
+# The guards live in the loop expressions because a loop is templated even when
+# the task's when is false.
 - name: Capture debconf settings
   ansible.builtin.command: jaia admin debconf get --format json
   register: debconf_raw
   changed_when: False
+  failed_when: False
+
+- name: Capture debconf settings from the database
+  ansible.builtin.command: debconf-show jaiabot-embedded
+  register: debconf_show
+  changed_when: False
+  when: debconf_raw.stdout is not match('\s*\{')
 
 - name: Parse debconf settings into variables (such as jaiabot_embedded_type == hub)
   ansible.builtin.set_fact:
     "jaiabot_embedded_{{ item.key }}": "{{ item.value if item.value is not none else '' }}"
-  loop: "{{ debconf_raw.stdout | from_json | dict2items }}"
+  loop: "{{ (debconf_raw.stdout | from_json | dict2items) if debconf_raw.stdout is match('\\s*\\{') else [] }}"
   loop_control:
     label: "{{ item.key }}"
+
+- name: Parse debconf settings from the database
+  ansible.builtin.set_fact:
+    "{{ item.split(': ')[0] | regex_replace('^\\*?\\s*', '') | regex_replace('[/-]','_') | regex_replace(':','') | trim }}": "{{ item.split(': ')[1] | default('') | trim }}"
+  loop: "{{ debconf_show.stdout_lines | default([]) | select('search', ':') | list }}"
+  loop_control:
+    label: "{{ item.split(': ')[0] | trim }}"

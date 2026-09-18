@@ -188,7 +188,39 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-hostnamectl set-hostname "jaia-unnamed"
+# jaiabot-embedded's postinst names the host once debconf carries a fleet and id. After a
+# major upgrade that name is already set and nothing re-runs the postinst, so keep it.
+if ! hostname | grep -qE '^(hub|bot)[0-9]+-fleet[0-9]+$'; then
+    hostnamectl set-hostname "jaia-unnamed"
+fi
+
+# A major upgrade carries /etc/wireguard across so the private key every peer was issued
+# against survives, which also carries the addressing of the release being left behind.
+# Add the address this release computes alongside it rather than replacing it: peers route
+# to the whole /64 and host entries still name the old one, so both keep working.
+if cloudhub_id=$(jaia_bounds --cloudhub_id); then
+    for vpn in cloudhub:c virtualfleet:v; do
+        conf=/etc/wireguard/wg_${vpn%%:*}.conf
+        [ -f "$conf" ] || continue
+
+        if addr=$(jaia_ip "h${cloudhub_id}${vpn##*:}f${jaia_fleet_id}"); then
+            grep -q "^Address *=.*\b${addr}/" "$conf" || sed -i "0,/^Address *=/s|^Address *=.*|&\nAddress = ${addr}/64|" "$conf"
+        else
+            echo "WARNING: could not work out this release's address for ${conf}"
+        fi
+    done
+else
+    echo "WARNING: could not determine the CloudHub id; VPN addressing left as it was"
+fi
+
+# The unit enablement lives on the rootfs that is replaced, so without this the peers keep
+# their keys and find nothing listening.
+for conf in /etc/wireguard/wg_cloudhub.conf /etc/wireguard/wg_virtualfleet.conf; do
+    [ -f "$conf" ] || continue
+    unit="wg-quick@$(basename "$conf" .conf)"
+    systemctl enable "$unit" || echo "WARNING: could not enable ${unit}"
+    systemctl restart "$unit" || echo "WARNING: could not start ${unit}"
+done
 
 offload_mount=/var/log/jaiabot/bot_offload/
 if ! grep -q " ${offload_mount} " /etc/fstab; then
@@ -196,6 +228,11 @@ if ! grep -q " ${offload_mount} " /etc/fstab; then
 ${CLOUDHUB_DATA_BUCKET} ${offload_mount} fuse.s3fs _netdev,allow_other,use_path_request_style,iam_role=auto,url=https://s3.${region}.amazonaws.com,dbglevel=warn,endpoint=${region} 0 0
 EOF
 fi
+
+# fstab was read before this script wrote to it, so mount now rather than leaving the
+# offload unavailable until the next boot
+mkdir -p "${offload_mount}"
+mountpoint -q "${offload_mount}" || mount "${offload_mount}" || echo "WARNING: could not mount ${offload_mount}"
 
 # The CloudHub is internet-facing and always on, so unlike a bot it keeps taking
 # security updates
