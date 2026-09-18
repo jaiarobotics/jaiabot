@@ -167,6 +167,20 @@ jaiabot::apps::StormManager::StormManager()
         {
             if (status.has_location())
                 machine_->set_latest_location(status.location());
+
+            bool gps_connected = true;
+            for (auto error : status.error())
+            {
+                switch (static_cast<protobuf::Error>(error))
+                {
+                    case protobuf::ERROR__MISSING_DATA__GPS_FIX:
+                    case protobuf::ERROR__MISSING_DATA__GPS_POSITION:
+                    case protobuf::ERROR__NOT_RESPONDING__GOBY_GPS: gps_connected = false; break;
+                    default: break;
+                }
+            }
+            machine_->set_gps_connected(gps_connected);
+
             if (status.has_battery_percent())
                 machine_->set_latest_battery_percent(status.battery_percent());
         });

@@ -80,6 +80,9 @@ struct StormManagerStateMachine
     const protobuf::GeographicCoordinate& latest_location() { return latest_location_; }
     bool has_latest_location() const { return has_latest_location_; }
 
+    void set_gps_connected(bool connected) { gps_connected_ = connected; }
+    bool gps_connected() const { return gps_connected_; }
+
     void set_latest_battery_percent(double percent)
     {
         latest_battery_percent_ = percent;
@@ -122,6 +125,7 @@ struct StormManagerStateMachine
     jaiabot::protobuf::StormMission mission_;
     protobuf::GeographicCoordinate latest_location_;
     bool has_latest_location_{false};
+    bool gps_connected_{false};
 
     double latest_battery_percent_{0};
     bool has_latest_battery_percent_{false};

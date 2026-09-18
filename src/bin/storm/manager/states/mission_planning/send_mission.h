@@ -100,8 +100,7 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         sent_ = true;
     }
 
-    // do not risk the dive if we're low on battery and already holding several datasets
-    // of storm data that haven't been acknowledged over Iridium
+    // do not risk the dive if we're low on battery and cannot offload or locate the bot
     bool skip_dive()
     {
         auto& machine = this->machine();
@@ -112,16 +111,23 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
             machine.latest_battery_percent() < machine.mission().min_battery_percentage();
         const bool too_much_undelivered_data =
             machine.task_packet_queue().size() >= machine.mission().min_stored_datasets();
+        const bool no_gps = !machine.gps_connected();
 
-        if (low_battery && too_much_undelivered_data)
+        if (low_battery && (too_much_undelivered_data || no_gps))
         {
-            goby::glog.is_warn() &&
+            if (goby::glog.is_warn())
+            {
                 goby::glog << group("statechart") << "Skipping dive: battery at "
                            << machine.latest_battery_percent() << "% is below minimum of "
-                           << machine.mission().min_battery_percentage() << "% and "
-                           << machine.task_packet_queue().size()
-                           << " TaskPacket(s) remain un-offloaded (minimum "
-                           << machine.mission().min_stored_datasets() << ")" << std::endl;
+                           << machine.mission().min_battery_percentage() << "%";
+                if (too_much_undelivered_data)
+                    goby::glog << "; " << machine.task_packet_queue().size()
+                               << " TaskPacket(s) remain un-offloaded (minimum "
+                               << machine.mission().min_stored_datasets() << ")";
+                if (no_gps)
+                    goby::glog << "; GPS is unavailable";
+                goby::glog << std::endl;
+            }
             machine.insert_warning(
                 protobuf::WARNING__STORM_MISSION_PLANNING__DIVE_SKIPPED_LOW_BATTERY);
             return true;
