@@ -188,7 +188,19 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-hostnamectl set-hostname "jaia-unnamed"
+# jaiabot-embedded's postinst names the host once debconf carries a fleet and id. After a
+# major upgrade that name is already set and nothing re-runs the postinst, so keep it.
+if ! hostname | grep -qE '^(hub|bot)[0-9]+-fleet[0-9]+$'; then
+    hostnamectl set-hostname "jaia-unnamed"
+fi
+
+# /etc/wireguard comes across a major upgrade but the unit enablement lives on the rootfs
+# that is replaced, so without this the peers keep their keys and find nothing listening.
+for conf in /etc/wireguard/wg_cloudhub.conf /etc/wireguard/wg_virtualfleet.conf; do
+    [ -f "$conf" ] || continue
+    unit="wg-quick@$(basename "$conf" .conf)"
+    systemctl enable --now "$unit" || echo "WARNING: could not enable ${unit}"
+done
 
 offload_mount=/var/log/jaiabot/bot_offload/
 if ! grep -q " ${offload_mount} " /etc/fstab; then
@@ -196,6 +208,11 @@ if ! grep -q " ${offload_mount} " /etc/fstab; then
 ${CLOUDHUB_DATA_BUCKET} ${offload_mount} fuse.s3fs _netdev,allow_other,use_path_request_style,iam_role=auto,url=https://s3.${region}.amazonaws.com,dbglevel=warn,endpoint=${region} 0 0
 EOF
 fi
+
+# fstab was read before this script wrote to it, so mount now rather than leaving the
+# offload unavailable until the next boot
+mkdir -p "${offload_mount}"
+mountpoint -q "${offload_mount}" || mount "${offload_mount}" || echo "WARNING: could not mount ${offload_mount}"
 
 # The CloudHub is internet-facing and always on, so unlike a bot it keeps taking
 # security updates

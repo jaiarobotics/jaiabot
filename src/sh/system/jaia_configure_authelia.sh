@@ -127,7 +127,9 @@ fi
 if [ ! -d "$authelia_persistent_dir" ]; then
     mkdir -p $authelia_persistent_dir
 fi
-chown authelia:authelia $authelia_persistent_dir
+# recursive: this directory outlives the rootfs, and the authelia uid a new image
+# allocates need not be the one that wrote the database before a major upgrade
+chown -R authelia:authelia $authelia_persistent_dir
 
 # Update docker to use fuse-overlayfs (required to use overlayfs as backing filesystem for docker as overlayfs-on-overlayfs isn't supported)
 if [ ! -f /etc/docker/daemon.json ]; then
