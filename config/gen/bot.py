@@ -358,7 +358,7 @@ elif common.app == 'jaiabot_mission_manager':
         delegated_states='delegated_states: [IN_MISSION__UNDERWAY__SLEEP__PREP, PRE_DEPLOYMENT__SELF_TEST]'
         # TaskPacket intervehicle publish is handled by jaiabot_storm_manager
         send_task_packets_to_hub="false"
-        reacquire_gps_timeout=120
+        reacquire_gps_timeout=300
         
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
