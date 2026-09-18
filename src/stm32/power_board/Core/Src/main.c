@@ -350,6 +350,9 @@ static void power_board_disable_external_power(void)
   HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_RESET);
+
+  // NextTest3
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
 }
 
 static void power_board_enable_external_power(void)
@@ -362,7 +365,24 @@ static void power_board_enable_external_power(void)
   HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
   
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET); // Needs to be RESET to enable the op-amp
+  // NextTest3
+  // HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET); // Needs to be RESET to enable the op-amp
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET); // Needs to be RESET to enable the op-amp
+}
+
+
+  // NextTest5
+static void gpio_sleep_analog(void)
+{
+  GPIO_InitTypeDef a = {0};
+  a.Mode = GPIO_MODE_ANALOG;
+  a.Pull = GPIO_NOPULL;
+
+  a.Pin = GPIO_PIN_All & ~(GPIO_PIN_13 | GPIO_PIN_14); HAL_GPIO_Init(GPIOA, &a); // keep SWDIO/SWCLK
+  a.Pin = GPIO_PIN_All & ~GPIO_PIN_3;                  HAL_GPIO_Init(GPIOB, &a); // keep SWO marker
+  a.Pin = GPIO_PIN_All & ~GPIO_PIN_13;                 HAL_GPIO_Init(GPIOC, &a); // keep reed EXTI (PC13)
+  a.Pin = GPIO_PIN_All & ~BLE_RSTn_Pin;                HAL_GPIO_Init(GPIOD, &a); // keep NINA in reset
+  a.Pin = GPIO_PIN_All & ~(RS232_EN_Pin|RS232_FOFF_Pin);HAL_GPIO_Init(GPIOE, &a);// keep RS232 forced off
 }
 
 /* USER CODE END 0 */
@@ -388,11 +408,27 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
-  /* === CURRENT PROBE A: GPIO only, IWDG never started, sleeps forever === */
+  /* PROBE A + marker on SWO (PB3, debug header pin 6) */
+  GPIO_InitTypeDef g = {0};
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+  g.Pin = GPIO_PIN_3; g.Mode = GPIO_MODE_OUTPUT_PP;
+  g.Pull = GPIO_NOPULL; g.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &g);
+
   HAL_SuspendTick();
+
+  // NextTest5
+  gpio_sleep_analog();
+  // /NextTest5
   while (1) {
+    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);            // edges ONLY if WFI keeps returning
     HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
   }
+  // /* === CURRENT PROBE A: GPIO only, IWDG never started, sleeps forever === */
+  // HAL_SuspendTick();
+  // while (1) {
+  //   HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+  // }
 
   /* USER CODE END Init */
 
@@ -1231,8 +1267,15 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, RS232_EN_Pin|RS232_FOFF_Pin|UVOV_EN_Pin|VS_OP_EN_Pin
+
+  // NextTest3
+  // HAL_GPIO_WritePin(GPIOE, RS232_EN_Pin|RS232_FOFF_Pin|UVOV_EN_Pin|VS_OP_EN_Pin
+  //                         |VS_VBATT_EN_Pin|EN_5V_REG_Pin|WC_EN_Pin|EXT_LED_CTRL_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOE, RS232_EN_Pin|RS232_FOFF_Pin|UVOV_EN_Pin
                           |VS_VBATT_EN_Pin|EN_5V_REG_Pin|WC_EN_Pin|EXT_LED_CTRL_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
+
+
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, BLE_RSTn_Pin|LED_B_Pin|LED_G_Pin|EN_12V_REG_Pin
