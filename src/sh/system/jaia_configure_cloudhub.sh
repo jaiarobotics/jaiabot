@@ -194,12 +194,29 @@ if ! hostname | grep -qE '^(hub|bot)[0-9]+-fleet[0-9]+$'; then
     hostnamectl set-hostname "jaia-unnamed"
 fi
 
-# /etc/wireguard comes across a major upgrade but the unit enablement lives on the rootfs
-# that is replaced, so without this the peers keep their keys and find nothing listening.
+# A major upgrade carries /etc/wireguard across so the private key every peer was issued
+# against survives, which also carries the addressing of the release being left behind.
+# Add the address this release computes alongside it rather than replacing it: peers route
+# to the whole /64 and host entries still name the old one, so both keep working.
+cloudhub_id=$(jaia_bounds --cloudhub_id)
+for vpn in cloudhub:c virtualfleet:v; do
+    conf=/etc/wireguard/wg_${vpn%%:*}.conf
+    [ -f "$conf" ] || continue
+
+    if addr=$(jaia_ip "h${cloudhub_id}${vpn##*:}f${jaia_fleet_id}"); then
+        grep -q "^Address *=.*\b${addr}/" "$conf" || sed -i "0,/^Address *=/s|^Address *=.*|&\nAddress = ${addr}/64|" "$conf"
+    else
+        echo "WARNING: could not work out this release's address for ${conf}"
+    fi
+done
+
+# The unit enablement lives on the rootfs that is replaced, so without this the peers keep
+# their keys and find nothing listening.
 for conf in /etc/wireguard/wg_cloudhub.conf /etc/wireguard/wg_virtualfleet.conf; do
     [ -f "$conf" ] || continue
     unit="wg-quick@$(basename "$conf" .conf)"
-    systemctl enable --now "$unit" || echo "WARNING: could not enable ${unit}"
+    systemctl enable "$unit" || echo "WARNING: could not enable ${unit}"
+    systemctl restart "$unit" || echo "WARNING: could not start ${unit}"
 done
 
 offload_mount=/var/log/jaiabot/bot_offload/
