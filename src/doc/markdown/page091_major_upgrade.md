@@ -87,6 +87,10 @@ Keep the updates disk attached to the staging hub for as long as the fleet is mi
 
 A failure on one node does not stop the others, which is what makes upgrading in passes possible. It also means a node that genuinely failed is easy to miss in a long run, so check the `PLAY RECAP` for `failed=` against each host before treating a fleet as fully upgraded.
 
+A node held back by a failed check keeps its old filesystems and is left with `jaiabot` stopped; start it again with `sudo systemctl start jaiabot` once the cause is understood.
+
+A bot missing from the fleet configuration is held back this way, since the new release's tool will not write a first boot preseed for a bot it has not been told about. Correct the fleet configuration before catching that bot up: the hubs upgraded in the same pass carry the configuration they were given, so a bot left out of it is also absent from the inventory they generate, and a later run would not target it at all.
+
 ## Major upgrade design
 
 The major upgrade extracts a new filesystem image and configures it, much like a generating a new bot or hub as described in the [Embedded Board Deployment](page025_embedded_setup.md) document. This means that the state of the previous installation filesystem is largely irrelevant.
