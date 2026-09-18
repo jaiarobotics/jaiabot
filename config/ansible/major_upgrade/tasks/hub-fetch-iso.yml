@@ -21,7 +21,7 @@
 
 - name: Set the target release
   set_fact:
-    iso_version: "{{ major_upgrade_iso_version | default(next_major_result.stdout | trim) }}"
+    iso_version: "{{ major_upgrade_iso_version if major_upgrade_iso_version is defined else next_major_result.stdout | trim }}"
 
 - name: Fetch the image from S3
   when: major_upgrade_iso is not defined

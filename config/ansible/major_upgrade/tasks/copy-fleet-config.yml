@@ -2,3 +2,4 @@
   copy:
     src: "{{ staged_fleet_cfg }}"
     dest: "{{ upgrade_dir }}"
+    remote_src: yes

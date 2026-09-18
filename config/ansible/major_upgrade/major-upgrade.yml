@@ -47,7 +47,6 @@
     - vars/disk-space.yml
     - vars/staging.yml
   vars:
-    upgrade_dir_base: '/var/log/jaiabot/major_upgrade'
     do_backup: yes
     # VirtualFleet machines run the AMI of the release being left behind and nothing
     # upgrades them, so they go with it unless asked otherwise

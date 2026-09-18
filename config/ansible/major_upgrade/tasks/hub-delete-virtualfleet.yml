@@ -3,15 +3,17 @@
 # behind and nothing upgrades them, so they go rather than linger against a hub that has
 # moved on. Their volumes are delete_on_termination, so anything wanted off them has to
 # have been taken already.
-- name: Read cloud.env for the region and fleet
+- name: Read cloud.env for the region and customer
   include_tasks: ../cloud/tasks/read-env.yml
 
+# the fleet comes from debconf: this runs against the release being left behind, which
+# names the fleet differently in cloud.env
 - name: Find the VirtualFleet
   amazon.aws.ec2_instance_info:
     region: "{{ cloud_env_vars.jaia_aws_region }}"
     filters:
       "tag:jaia_instance_type": "virtualfleet"
-      "tag:jaia_fleet": "{{ cloud_env_vars.jaia_fleet_id }}"
+      "tag:jaia_fleet": "{{ jaiabot_embedded_fleet_id }}"
       "tag:jaia_customer": "{{ jaia_customer_no_quotes }}"
   register: vfleet_info
 
