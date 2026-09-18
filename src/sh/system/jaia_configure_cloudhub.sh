@@ -198,17 +198,20 @@ fi
 # against survives, which also carries the addressing of the release being left behind.
 # Add the address this release computes alongside it rather than replacing it: peers route
 # to the whole /64 and host entries still name the old one, so both keep working.
-cloudhub_id=$(jaia_bounds --cloudhub_id)
-for vpn in cloudhub:c virtualfleet:v; do
-    conf=/etc/wireguard/wg_${vpn%%:*}.conf
-    [ -f "$conf" ] || continue
+if cloudhub_id=$(jaia_bounds --cloudhub_id); then
+    for vpn in cloudhub:c virtualfleet:v; do
+        conf=/etc/wireguard/wg_${vpn%%:*}.conf
+        [ -f "$conf" ] || continue
 
-    if addr=$(jaia_ip "h${cloudhub_id}${vpn##*:}f${jaia_fleet_id}"); then
-        grep -q "^Address *=.*\b${addr}/" "$conf" || sed -i "0,/^Address *=/s|^Address *=.*|&\nAddress = ${addr}/64|" "$conf"
-    else
-        echo "WARNING: could not work out this release's address for ${conf}"
-    fi
-done
+        if addr=$(jaia_ip "h${cloudhub_id}${vpn##*:}f${jaia_fleet_id}"); then
+            grep -q "^Address *=.*\b${addr}/" "$conf" || sed -i "0,/^Address *=/s|^Address *=.*|&\nAddress = ${addr}/64|" "$conf"
+        else
+            echo "WARNING: could not work out this release's address for ${conf}"
+        fi
+    done
+else
+    echo "WARNING: could not determine the CloudHub id; VPN addressing left as it was"
+fi
 
 # The unit enablement lives on the rootfs that is replaced, so without this the peers keep
 # their keys and find nothing listening.
