@@ -4,6 +4,8 @@ $interprocess_block
 fleet_id: $fleet_id
 bot_id: $bot_id
 
+$startup_timeout
+
 command_sub_cfg {
     intervehicle
     {

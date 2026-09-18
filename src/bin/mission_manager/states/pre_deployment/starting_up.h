@@ -34,8 +34,13 @@ struct StartingUp : boost::statechart::state<StartingUp, PreDeployment>,
         goby::time::SteadyClock::time_point timeout_start = goby::time::SteadyClock::now();
 
         int timeout_seconds = cfg().startup_timeout_with_units<goby::time::SITime>().value();
-        goby::time::SteadyClock::duration timeout_duration = std::chrono::seconds(timeout_seconds);
-        timeout_stop_ = timeout_start + timeout_duration;
+        startup_timeout_enabled_ = timeout_seconds > 0;
+        if (startup_timeout_enabled_)
+        {
+            goby::time::SteadyClock::duration timeout_duration =
+                std::chrono::seconds(timeout_seconds);
+            timeout_stop_ = timeout_start + timeout_duration;
+        }
 
         // update which files are excluded from data offload
         switch (cfg().data_offload_exclude())
@@ -56,7 +61,7 @@ struct StartingUp : boost::statechart::state<StartingUp, PreDeployment>,
     void loop(const EvLoop&)
     {
         goby::time::SteadyClock::time_point now = goby::time::SteadyClock::now();
-        if (now >= timeout_stop_)
+        if (startup_timeout_enabled_ && now >= timeout_stop_)
             post_event(EvStartupTimeout());
     }
 
@@ -66,6 +71,7 @@ struct StartingUp : boost::statechart::state<StartingUp, PreDeployment>,
         boost::statechart::in_state_reaction<EvLoop, StartingUp, &StartingUp::loop>>;
 
   private:
+    bool startup_timeout_enabled_{false};
     goby::time::SteadyClock::time_point timeout_stop_;
 };
 #endif

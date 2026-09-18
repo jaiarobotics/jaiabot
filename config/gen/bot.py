@@ -350,6 +350,7 @@ elif common.app == 'jaiabot_mission_manager':
 
     delegated_states=''
     send_task_packets_to_hub="true"
+    startup_timeout=''
     # STORM bots are rudderless, so they cannot maneuver to improve a degraded fix;
     # give up after 2 minutes and dive in place. Other bot types keep waiting.
     reacquire_gps_timeout=0
@@ -358,6 +359,7 @@ elif common.app == 'jaiabot_mission_manager':
         delegated_states='delegated_states: [IN_MISSION__UNDERWAY__SLEEP__PREP, PRE_DEPLOYMENT__SELF_TEST]'
         # TaskPacket intervehicle publish is handled by jaiabot_storm_manager
         send_task_packets_to_hub="false"
+        startup_timeout='startup_timeout: 0 # disabled so STORM can recover health after waking'
         reacquire_gps_timeout=300
         
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
@@ -369,6 +371,7 @@ elif common.app == 'jaiabot_mission_manager':
                                      bot_log_archive_dir=common.bot_log_archive_dir,
                                      mission_manager_in_simulation=is_simulation(),
                                      total_after_dive_gps_fix_checks=total_after_dive_gps_fix_checks,
+                                     startup_timeout=startup_timeout,
                                      reacquire_gps_timeout=reacquire_gps_timeout,
                                      fleet_id=fleet_index,
                                      jaia_data_offload_ignore_type=jaia_data_offload_ignore_type,

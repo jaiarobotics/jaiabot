@@ -302,12 +302,27 @@ void jaiabot::apps::StormManager::publish_mission_report(protobuf::StormMissionS
     interprocess().publish<jaiabot::groups::storm::mission_report>(report);
 }
 
+void jaiabot::apps::StormManager::send_activate_command()
+{
+    protobuf::Command command;
+    command.set_bot_id(cfg().bot_id());
+    command.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());
+    command.set_type(protobuf::Command::ACTIVATE);
+    goby::glog.is_verbose() && goby::glog << group("statechart")
+                                          << "Sending command: " << command.ShortDebugString()
+                                          << std::endl;
+    interprocess().publish<jaiabot::groups::self_command>(command);
+}
+
 void jaiabot::apps::StormManager::process_mission_manager_state(protobuf::MissionState state)
 {
     switch (state)
     {
         case protobuf::PRE_DEPLOYMENT__IDLE:
-            machine_->process_event(statechart::EvStarted());
+            if (machine_->state() == protobuf::STARTING_UP)
+                machine_->process_event(statechart::EvStarted());
+            else
+                send_activate_command();
             break;
 
         case protobuf::PRE_DEPLOYMENT__SELF_TEST:

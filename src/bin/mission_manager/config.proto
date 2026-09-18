@@ -25,7 +25,7 @@ message MissionManager
         13;
     optional goby.middleware.protobuf.TransporterConfig bot_status_sub_cfg = 14;
 
-    // timeout to allow all applications to report HEALTH__OK
+    // timeout to allow all applications to report HEALTH__OK; 0 disables the timeout
     optional double startup_timeout = 12
         [default = 120, (dccl.field).units = { base_dimensions: "T" }];
 

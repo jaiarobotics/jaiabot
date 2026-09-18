@@ -50,6 +50,7 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
 
     // so states can send directly to MCU
     void send_to_mcu(const protobuf::StormMCURequest& request);
+    void send_activate_command();
     void enqueue_task_packet(protobuf::TaskPacket task_packet);
     void acknowledge_task_packet(const protobuf::TaskPacket& task_packet);
 
