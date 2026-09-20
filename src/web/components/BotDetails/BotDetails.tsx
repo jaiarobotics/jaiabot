@@ -21,12 +21,15 @@ import { DETAILS_DECIMALS, UNASSIGNED_ID } from "../../utils/constants";
 
 import BotSensors from "../../data/bots/bot-sensors";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
+import SleepDuration from "./SleepDuration/SleepDuration";
 import {
     getDistanceToHub,
     getStatusAgeClassName,
     getBotOffloadPercent,
     getRepeatProgress,
     getDistToWaypoint,
+    getStormReadinessStatus,
+    getStormReadinessStatusClassName,
     isBotLogging,
     searchGhostMissions,
 } from "./bot-details";
@@ -131,6 +134,51 @@ export default function BotDetails() {
                     </div>
                 </div>
                 <div className="accordions-container" id="bot-details-accordions-container">
+                    <ThemeProvider theme={accordionTheme}>
+                        <Accordion
+                            expanded={jaiaContext.botAccordionStates.storm}
+                            onChange={() => {
+                                handleAccordionClick(BotAccordionNames.STORM);
+                            }}
+                            className="accordion-container"
+                        >
+                            <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                className="accordion-summary"
+                            >
+                                <Typography>Storm</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <table>
+                                    <tbody>
+                                        <tr>
+                                            <td>Status</td>
+                                            <td
+                                                className={getStormReadinessStatusClassName(
+                                                    missionStatus?.missionState,
+                                                    bot.isCommsDropped(),
+                                                )}
+                                            >
+                                                {getStormReadinessStatus(
+                                                    missionStatus?.missionState,
+                                                    bot.isCommsDropped(),
+                                                )}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style={{ verticalAlign: "middle" }}>
+                                                Sleep Duration
+                                            </td>
+                                            <td style={{ verticalAlign: "middle" }}>
+                                                <SleepDuration bot={bot} />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </AccordionDetails>
+                        </Accordion>
+                    </ThemeProvider>
+
                     <ThemeProvider theme={accordionTheme}>
                         <Accordion
                             expanded={jaiaContext.botAccordionStates.quickLook}
