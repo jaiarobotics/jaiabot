@@ -7,6 +7,7 @@ package jaiabot.protobuf;
 enum PressureSensorType {
     BAR02 = 1;
     BAR30 = 2;
+    BARXT = 3;
 }
 
 message PressureTemperatureData
