@@ -18,10 +18,18 @@ set(SENSOR_PROTOS
   sensor/aml.proto
 )
 
+# Power Board messages
+set(POWER_BOARD_PROTOS
+  power_board/power_board.proto
+  power_board/metadata.proto
+  control_surfaces.proto
+)
+
 # All messages used by microcontrollers (C code)
 set(MCU_PROTOS
   ${SENSOR_PROTOS}
   storm_mcu.proto
+  ${POWER_BOARD_PROTOS}
   arduino.proto
   feather.proto
 )
