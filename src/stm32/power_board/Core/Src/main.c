@@ -350,9 +350,6 @@ static void power_board_disable_external_power(void)
   HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(UVOV_EN_GPIO_Port, UVOV_EN_Pin, GPIO_PIN_RESET);
-
-  // NextTest3
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
 }
 
 static void power_board_enable_external_power(void)
@@ -364,25 +361,33 @@ static void power_board_enable_external_power(void)
   HAL_GPIO_WritePin(EN_5V_REG_GPIO_Port, EN_5V_REG_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(EN_3V3_REG_GPIO_Port, EN_3V3_REG_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(VS_VBATT_EN_GPIO_Port, VS_VBATT_EN_Pin, GPIO_PIN_SET);
-  
-  // NextTest3
-  // HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET); // Needs to be RESET to enable the op-amp
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET); // Needs to be RESET to enable the op-amp
+
+  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_RESET); // Needs to be RESET to enable the op-amp
 }
 
-
-  // NextTest5
-static void gpio_sleep_analog(void)
+// Peripherals that are only needed once the reed switch has closed and
+// external power is enabled. Deferring their init keeps REED_WAIT_STATE
+// idle current near the ~0.6 mA measured with these clocks off, instead of
+// the ~4 mA drawn when they run unconditionally from boot.
+static void power_board_init_runtime_peripherals(void)
 {
-  GPIO_InitTypeDef a = {0};
-  a.Mode = GPIO_MODE_ANALOG;
-  a.Pull = GPIO_NOPULL;
+  MX_ADC1_Init();
+  MX_I2C1_Init();
+  MX_I2C2_Init();
+  MX_LPUART1_UART_Init();
+  MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
+  MX_QUADSPI_Init();
+  MX_RTC_Init();
+  MX_SPI1_Init();
+  MX_TIM2_Init();
+  MX_TIM15_Init();
+  MX_TIM16_Init();
+  MX_FATFS_Init();
+  MX_USB_DEVICE_Init();
 
-  a.Pin = GPIO_PIN_All & ~(GPIO_PIN_13 | GPIO_PIN_14); HAL_GPIO_Init(GPIOA, &a); // keep SWDIO/SWCLK
-  a.Pin = GPIO_PIN_All & ~GPIO_PIN_3;                  HAL_GPIO_Init(GPIOB, &a); // keep SWO marker
-  a.Pin = GPIO_PIN_All & ~GPIO_PIN_13;                 HAL_GPIO_Init(GPIOC, &a); // keep reed EXTI (PC13)
-  a.Pin = GPIO_PIN_All & ~BLE_RSTn_Pin;                HAL_GPIO_Init(GPIOD, &a); // keep NINA in reset
-  a.Pin = GPIO_PIN_All & ~(RS232_EN_Pin|RS232_FOFF_Pin);HAL_GPIO_Init(GPIOE, &a);// keep RS232 forced off
+  /* Allow USB host time to enumerate the CDC device before the first TX. */
+  HAL_Delay(2000);
 }
 
 /* USER CODE END 0 */
@@ -395,9 +400,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  /* Debug attach sets these; they survive everything except POR and keep clocks running through STOP2 (adds 1-5 mA). Make units immune. */
-  // CLEAR_BIT(DBGMCU->CR, DBGMCU_CR_DBG_SLEEP | DBGMCU_CR_DBG_STOP | DBGMCU_CR_DBG_STANDBY);
-
 
   /* USER CODE END 1 */
 
@@ -408,63 +410,24 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
-  /* PROBE A + marker on SWO (PB3, debug header pin 6) */
-  GPIO_InitTypeDef g = {0};
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  g.Pin = GPIO_PIN_3; g.Mode = GPIO_MODE_OUTPUT_PP;
-  g.Pull = GPIO_NOPULL; g.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &g);
-
-  HAL_SuspendTick();
-
-  // NextTest5
-  gpio_sleep_analog();
-  // /NextTest5
-  while (1) {
-    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);            // edges ONLY if WFI keeps returning
-    HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
-  }
-  // /* === CURRENT PROBE A: GPIO only, IWDG never started, sleeps forever === */
-  // HAL_SuspendTick();
-  // while (1) {
-  //   HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
-  // }
-
   /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
+  /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+  // Only GPIO/IWDG/LPTIM1 are needed to wait on the reed switch; the rest
+  // are brought up in power_board_init_runtime_peripherals() once it closes.
   MX_GPIO_Init();
-
-  MX_ADC1_Init();
-  MX_I2C1_Init();
-  MX_I2C2_Init();
   MX_IWDG_Init();
-  MX_LPUART1_UART_Init();
-  MX_USART1_UART_Init();
-  MX_USART2_UART_Init();
-  MX_QUADSPI_Init();
-  MX_RTC_Init();
-  MX_SPI1_Init();
-  MX_TIM2_Init();
-  MX_TIM15_Init();
-  MX_TIM16_Init();
-  MX_FATFS_Init();
-  MX_USB_DEVICE_Init();
   MX_LPTIM1_Init();
   /* USER CODE BEGIN 2 */
 
-  // HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);   /* DEEP SLEEP for current measurement */
-
   power_board_disable_external_power();
-
-  /* Allow USB host time to enumerate the CDC device before the first TX. */
-  HAL_Delay(2000);
 
   init_crc32_table();
   /* USER CODE END 2 */
@@ -481,15 +444,21 @@ int main(void)
 
     HAL_IWDG_Refresh(&hiwdg);
 
-    // Dispatch complete USB commands while the board is awake.
-    power_board_command_process();
-
-    // Always service the motor ramp/timeout, regardless of state, so it
-    // keeps stepping toward target_motor_ (e.g. ramping down to neutral)
-    controls_periodic_update();
-    if (controls_take_timeout_event())
+    // USB/motor peripherals aren't initialized yet while waiting on the reed
+    // switch, so skip servicing them until power_board_init_runtime_peripherals()
+    // has run.
+    if (current_state != REED_WAIT_STATE)
     {
-      power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_TIMEOUT);
+      // Dispatch complete USB commands while the board is awake.
+      power_board_command_process();
+
+      // Always service the motor ramp/timeout, regardless of state, so it
+      // keeps stepping toward target_motor_ (e.g. ramping down to neutral)
+      controls_periodic_update();
+      if (controls_take_timeout_event())
+      {
+        power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_TIMEOUT);
+      }
     }
 
     // State loop: short command-service window while awake, then sleep.
@@ -505,6 +474,7 @@ int main(void)
             ++reed_active_samples;
             if (reed_active_samples >= 3U) 
             {
+              power_board_init_runtime_peripherals();
               power_board_enable_external_power();
               current_state = INIT_STATE;
             }
@@ -1267,15 +1237,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-
-  // NextTest3
-  // HAL_GPIO_WritePin(GPIOE, RS232_EN_Pin|RS232_FOFF_Pin|UVOV_EN_Pin|VS_OP_EN_Pin
-  //                         |VS_VBATT_EN_Pin|EN_5V_REG_Pin|WC_EN_Pin|EXT_LED_CTRL_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(GPIOE, RS232_EN_Pin|RS232_FOFF_Pin|UVOV_EN_Pin
+  HAL_GPIO_WritePin(GPIOE, RS232_EN_Pin|RS232_FOFF_Pin|UVOV_EN_Pin|VS_OP_EN_Pin
                           |VS_VBATT_EN_Pin|EN_5V_REG_Pin|WC_EN_Pin|EXT_LED_CTRL_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(VS_OP_EN_GPIO_Port, VS_OP_EN_Pin, GPIO_PIN_SET);
-
-
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, BLE_RSTn_Pin|LED_B_Pin|LED_G_Pin|EN_12V_REG_Pin

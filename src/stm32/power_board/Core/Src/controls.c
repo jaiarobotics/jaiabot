@@ -58,6 +58,13 @@ static void ensure_esc_pwm_started(void)
         return;
     }
 
+    // TIM16 is initialized lazily (only after the reed switch closes), so
+    // this can be called before htim16 is set up; skip until it is ready.
+    if (htim16.Instance == NULL)
+    {
+        return;
+    }
+
     if (HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1) == HAL_OK)
     {
         esc_pwm_started = true;
@@ -67,6 +74,12 @@ static void ensure_esc_pwm_started(void)
 static void apply_motor_output_us(int pulse_us)
 {
     ensure_esc_pwm_started();
+
+    if (htim16.Instance == NULL)
+    {
+        return;
+    }
+
     __HAL_TIM_SET_COMPARE(&htim16, TIM_CHANNEL_1, clamp_u32((uint32_t)pulse_us, 1000U, 2000U));
 }
 
