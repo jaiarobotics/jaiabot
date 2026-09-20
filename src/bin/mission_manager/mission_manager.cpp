@@ -60,7 +60,6 @@ namespace middleware = goby::middleware;
 void jaiabot::apps::MissionManager::initialize()
 {
     machine_.reset(new statechart::MissionManagerStateMachine(*this));
-    machine_->set_sleep_duration_seconds(load_sleep_duration_seconds());
     machine_->initiate();
 }
 
@@ -1020,8 +1019,7 @@ void jaiabot::apps::MissionManager::handle_command(const protobuf::Command& comm
         case protobuf::Command::RESUME: machine_->process_event(statechart::EvResume()); break;
 
         case protobuf::Command::SET_SLEEP_DURATION:
-            machine_->set_sleep_duration_seconds(command.sleep_duration_seconds());
-            save_sleep_duration_seconds(command.sleep_duration_seconds());
+            // owned by jaiabot_storm_manager, which commands the power board sleep
             break;
 
         case protobuf::Command::RECOVERED:
@@ -1268,32 +1266,6 @@ void jaiabot::apps::MissionManager::set_hub_id(int hub_id)
 
     // set environmental variable for dataoffload
     setenv("jaia_dataoffload_hub_id", std::to_string(hub_id).c_str(), 1 /*overwrite*/);
-}
-
-uint32_t jaiabot::apps::MissionManager::load_sleep_duration_seconds()
-{
-    std::ifstream sleep_file(cfg().log_dir() + "/sleep_duration_seconds");
-    uint32_t sleep_duration_seconds = 10800;
-    if (sleep_file >> sleep_duration_seconds)
-    {
-        glog.is_debug1() && glog << "Loaded persisted sleep_duration_seconds: "
-                                 << sleep_duration_seconds << std::endl;
-    }
-    return sleep_duration_seconds;
-}
-
-void jaiabot::apps::MissionManager::save_sleep_duration_seconds(uint32_t sleep_duration_seconds)
-{
-    std::ofstream sleep_file(cfg().log_dir() + "/sleep_duration_seconds");
-    if (sleep_file)
-    {
-        sleep_file << sleep_duration_seconds;
-    }
-    else
-    {
-        glog.is_warn() && glog << "Failed to persist sleep_duration_seconds to " << cfg().log_dir()
-                               << "/sleep_duration_seconds" << std::endl;
-    }
 }
 
 bool jaiabot::apps::MissionManager::health_considered_ok(

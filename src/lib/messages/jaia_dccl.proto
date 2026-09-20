@@ -117,7 +117,7 @@ message Command
         StormMissionUpdate storm = 40;
 
         // required for type == SET_SLEEP_DURATION
-        uint32 sleep_duration_seconds = 41 [(dccl.field) = { min: 10800 max: 172800 }];
+        uint32 sleep_duration_seconds = 41 [(dccl.field) = { min: 60 max: 172800 }];
     }
 }
 

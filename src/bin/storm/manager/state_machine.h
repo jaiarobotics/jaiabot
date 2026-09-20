@@ -72,6 +72,17 @@ struct StormManagerStateMachine
     void set_mission(const jaiabot::protobuf::StormMission& mission) { mission_ = mission; };
     const jaiabot::protobuf::StormMission& mission() { return mission_; }
 
+    // operator override from Command::SET_SLEEP_DURATION; 0 means use the configured mission value
+    void set_sleep_duration_override_seconds(uint32_t seconds)
+    {
+        sleep_duration_override_seconds_ = seconds;
+    }
+    uint32_t sleep_duration_seconds() const
+    {
+        return sleep_duration_override_seconds_ > 0 ? sleep_duration_override_seconds_
+                                                    : mission_.sleep_for_minutes() * 60;
+    }
+
     void set_latest_location(const protobuf::GeographicCoordinate& loc)
     {
         latest_location_ = loc;
@@ -123,6 +134,7 @@ struct StormManagerStateMachine
     std::set<jaiabot::protobuf::Warning> warnings_;
 
     jaiabot::protobuf::StormMission mission_;
+    uint32_t sleep_duration_override_seconds_{0};
     protobuf::GeographicCoordinate latest_location_;
     bool has_latest_location_{false};
     bool gps_connected_{false};
