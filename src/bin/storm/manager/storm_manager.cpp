@@ -132,7 +132,7 @@ jaiabot::apps::StormManager::StormManager()
 
     // conductivity - currently comes in two different messages
     // TODO - replace with _with_units
-    interprocess().subscribe<jaiabot::groups::raw_salinity>(
+    interprocess().subscribe<jaiabot::groups::salinity>(
         [this, post_conductivity_event](const jaiabot::protobuf::SalinityData& sal)
         { post_conductivity_event(sal.conductivity_raw() * jaiabot::units::microsiemens_per_cm); });
     interprocess().subscribe<jaiabot::groups::raw_salinity>(
