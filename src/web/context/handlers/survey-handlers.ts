@@ -14,7 +14,8 @@ import { ButtonNames, JaiaAction, JaiaContextType } from "../../types/context-ty
 import {
     detectMissionReroutes,
     detectWaypointRemovals,
-} from "../../data/exclusion_zones/exclusion-zone-detection";
+} from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
+import { RevertContext } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Makes map and grid plan changes based on survey state change
@@ -98,21 +99,26 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             mutableState.visiblePanel = ButtonNames.NONE;
             missionLayer.updateFeatures();
 
+            const revert: RevertContext[] = [
+                {
+                    kind: "restoreMissionSnapshot",
+                    missionSet: priorMissionSetSnapshot,
+                    missionsManager: priorMissionsManagerSnapshot,
+                },
+            ];
             const pendingRemoval = detectWaypointRemovals();
             if (pendingRemoval) {
-                mutableState.pendingWaypointRemoval = {
-                    ...pendingRemoval,
-                    priorMissionSetSnapshot,
-                    priorMissionsManagerSnapshot,
-                };
+                mutableState.obstacleAvoidanceData.setPendingChange({
+                    type: "waypointRemoval",
+                    data: { ...pendingRemoval, revert },
+                });
             } else {
                 const pending = detectMissionReroutes();
                 if (pending) {
-                    mutableState.pendingReroute = {
-                        ...pending,
-                        priorMissionSetSnapshot,
-                        priorMissionsManagerSnapshot,
-                    };
+                    mutableState.obstacleAvoidanceData.setPendingChange({
+                        type: "reroute",
+                        data: { ...pending, revert },
+                    });
                 }
             }
             break;

@@ -1,7 +1,5 @@
-import {
-    exclusionZoneSet,
-    ExclusionZoneSetSnapshot,
-} from "../../../../data/exclusion_zones/exclusion-zone-set";
+import { ExclusionZoneSetSnapshot } from "../../../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-set";
+import { obstacleAvoidanceData } from "../../../../data/obstacle_avoidance_data/obstacle-avoidance-data";
 import {
     listSavedZoneSetsFromHub,
     saveToHub,
@@ -24,7 +22,7 @@ const mockJaiaAPI = jaiaAPI as jest.Mocked<typeof jaiaAPI>;
 
 describe("Zone hub storage", () => {
     beforeEach(() => {
-        exclusionZoneSet.clearZones();
+        obstacleAvoidanceData.getExclusionZoneSet().clearZones();
         jest.clearAllMocks();
     });
 
@@ -36,7 +34,7 @@ describe("Zone hub storage", () => {
     });
 
     test("saveToHub calls the API with the current zone set snapshot", async () => {
-        exclusionZoneSet.addZone({
+        obstacleAvoidanceData.getExclusionZoneSet().addZone({
             vertices: [
                 { lat: 41.0, lon: -72.0 },
                 { lat: 41.001, lon: -72.0 },
@@ -53,8 +51,33 @@ describe("Zone hub storage", () => {
         expect(snapshot.zones.length).toBe(1);
     });
 
+    test("saveToHub stores the set under the name the snapshot carries", async () => {
+        const zoneSet = obstacleAvoidanceData.getExclusionZoneSet();
+        zoneSet.setName("old-name");
+        mockJaiaAPI.saveExclusionZone.mockResolvedValue(undefined);
+
+        await saveToHub("new-name");
+
+        const [name, snapshot] = mockJaiaAPI.saveExclusionZone.mock.calls[0];
+        expect(name).toBe("new-name");
+        expect(snapshot.name).toBe("new-name");
+        expect(zoneSet.getName()).toBe("new-name");
+    });
+
+    test("loadSnapshotFromHub falls back to the requested name for an entry saved without one", async () => {
+        mockJaiaAPI.loadExclusionZone.mockResolvedValue({ zones: [], nextZoneID: 1 });
+
+        const result = await loadSnapshotFromHub("my-zones");
+
+        expect(result!.name).toBe("my-zones");
+    });
+
     test("loadSnapshotFromHub returns a snapshot from the hub", async () => {
-        const fakeSnapshot: ExclusionZoneSetSnapshot = { zones: [], nextZoneID: 1 };
+        const fakeSnapshot: ExclusionZoneSetSnapshot = {
+            zones: [],
+            nextZoneID: 1,
+            name: "my-zones",
+        };
         mockJaiaAPI.loadExclusionZone.mockResolvedValue(fakeSnapshot);
 
         const result = await loadSnapshotFromHub("my-zones");

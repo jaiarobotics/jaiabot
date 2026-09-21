@@ -13,7 +13,8 @@ import { syncOpenLayers } from "./handler-utils";
 import {
     detectWaypointRemovals,
     detectMissionReroutes,
-} from "../../data/exclusion_zones/exclusion-zone-detection";
+} from "../../data/obstacle_avoidance_data/exclusion_zones/exclusion-zone-detection";
+import { RevertContext } from "../../data/obstacle_avoidance_data/pending-route-data";
 
 /**
  * Makes a call to add a new, default mission to the data model
@@ -61,6 +62,13 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     jaiaGlobal.setSelectedNode({ type: NodeTypes.NONE, id: UNASSIGNED_ID });
     const priorMissionSetSnapshot = missionSet.captureSnapshot();
     const priorMissionsManagerSnapshot = missionsManager.captureSnapshot();
+    const revert: RevertContext[] = [
+        {
+            kind: "restoreMissionSnapshot",
+            missionSet: priorMissionSetSnapshot,
+            missionsManager: priorMissionsManagerSnapshot,
+        },
+    ];
 
     // Create a complete clone of the existing mission
     const missionCopy = cloneDeep(missionSet.getMission(action.missionID));
@@ -73,19 +81,17 @@ export function handleDuplicateMission(mutableState: JaiaContextType, action: Ja
     // Check whether the duplicated mission's waypoints conflict with existing exclusion zones.
     const pendingRemoval = detectWaypointRemovals();
     if (pendingRemoval) {
-        mutableState.pendingWaypointRemoval = {
-            ...pendingRemoval,
-            priorMissionSetSnapshot,
-            priorMissionsManagerSnapshot,
-        };
+        mutableState.obstacleAvoidanceData.setPendingChange({
+            type: "waypointRemoval",
+            data: { ...pendingRemoval, revert },
+        });
     } else {
         const pendingReroute = detectMissionReroutes();
         if (pendingReroute) {
-            mutableState.pendingReroute = {
-                ...pendingReroute,
-                priorMissionSetSnapshot,
-                priorMissionsManagerSnapshot,
-            };
+            mutableState.obstacleAvoidanceData.setPendingChange({
+                type: "reroute",
+                data: { ...pendingReroute, revert },
+            });
         }
     }
 
@@ -179,8 +185,6 @@ export function handleChangeMissionSetName(mutableState: JaiaContextType, action
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleLoadMissionSet(mutableState: JaiaContextType, action: JaiaAction) {
-    const priorMissionSetSnapshot = missionSet.captureSnapshot();
-    const priorMissionsManagerSnapshot = missionsManager.captureSnapshot();
     missionSet.deleteAllMissions();
     missionsManager.clear();
 
@@ -200,43 +204,25 @@ export function handleLoadMissionSet(mutableState: JaiaContextType, action: Jaia
     missionsManager.autoAssign();
     missionLayer.updateFeatures();
 
+    // Nothing here mutates missionSet — detection only computes proposals — so there's
+    // nothing to revert on cancel beyond closing the dialog. The load itself stays.
     const pendingRemoval = detectWaypointRemovals();
     if (pendingRemoval) {
-        mutableState.pendingWaypointRemoval = {
-            ...pendingRemoval,
-            priorMissionSetSnapshot,
-            priorMissionsManagerSnapshot,
-        };
+        mutableState.obstacleAvoidanceData.setPendingChange({
+            type: "waypointRemoval",
+            data: { ...pendingRemoval, revert: [] },
+        });
         return mutableState;
     }
 
-    const rawPending = detectMissionReroutes();
-    if (rawPending) {
-        // Missions whose reroute is unroutable are removed upfront — never presented as loaded.
-        const skippedMissionIDSet = new Set<number>();
-        rawPending.proposals
-            .filter((p) => p.isOverLimit || p.isImpossible)
-            .forEach((p) => skippedMissionIDSet.add(p.missionID));
-
-        const allLoadedIDs = Array.from(missionSet.getMissions().keys());
-
-        if (skippedMissionIDSet.size > 0) {
-            for (const id of skippedMissionIDSet) missionSet.deleteMission(id);
-            missionLayer.updateFeatures();
-        }
-
-        const loadedMissionIDs = allLoadedIDs.filter((id) => !skippedMissionIDSet.has(id));
-        const skippedMissionIDs = Array.from(skippedMissionIDSet);
-
-        const cleanPending = detectMissionReroutes();
-        mutableState.pendingReroute = {
-            proposals: cleanPending?.proposals ?? [],
-            totalBypassCount: cleanPending?.totalBypassCount ?? 0,
-            loadedMissionIDs,
-            skippedMissionIDs,
-            priorMissionSetSnapshot,
-            priorMissionsManagerSnapshot,
-        };
+    // Every mission in the file is loaded; those that cannot be routed around the zones
+    // are reported as conflicts in the dialog rather than withheld from the load.
+    const pending = detectMissionReroutes();
+    if (pending) {
+        mutableState.obstacleAvoidanceData.setPendingChange({
+            type: "reroute",
+            data: { ...pending, revert: [] },
+        });
     }
 
     return mutableState;
