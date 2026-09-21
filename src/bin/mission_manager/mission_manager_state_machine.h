@@ -264,6 +264,27 @@ struct MissionManagerStateMachine
         return transit_speed_;
     }
 
+    void set_bottom_depth_safety_params(const jaiabot::protobuf::BottomDepthSafetyParams& params)
+    {
+        set_bottom_depth_safety_constant_heading(params.constant_heading());
+        set_bottom_depth_safety_constant_heading_speed(params.constant_heading_speed());
+        set_bottom_depth_safety_constant_heading_time(params.constant_heading_time());
+        set_bottom_safety_depth(params.safety_depth());
+    }
+
+    // Plan-level transit speed and bottom depth safety params, which segment params override.
+    // Bottom depth safety params fall back to their defaults when the plan omits them.
+    void apply_plan_baseline_params(const jaiabot::protobuf::MissionPlan& plan)
+    {
+        if (plan.has_bottom_depth_safety_params())
+            set_bottom_depth_safety_params(plan.bottom_depth_safety_params());
+        else
+            set_bottom_depth_safety_params(jaiabot::protobuf::BottomDepthSafetyParams());
+
+        if (plan.has_speeds())
+            set_transit_speed(plan.speeds().transit_with_units());
+    }
+
     void set_latest_lat(const boost::units::quantity<boost::units::degree::plane_angle>& latest_lat)
     {
         latest_lat_ = latest_lat;
