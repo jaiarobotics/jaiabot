@@ -37,6 +37,7 @@ namespace middleware = goby::middleware;
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/health/health.h"
 #include "jaiabot/intervehicle.h"
+#include "jaiabot/messages/mission.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/salinity.pb.h"
 #include "jaiabot/messages/storm_mcu.pb.h"
@@ -110,6 +111,12 @@ jaiabot::apps::StormManager::StormManager()
             if (change.direction() == jaiabot::protobuf::MissionStateChange::ENTERED)
                 process_mission_manager_state(change.state());
         });
+
+    // Mission reports are published continuously, so they cover the case where the mission
+    // manager entered Idle before this application subscribed to its state-change event.
+    interprocess().subscribe<jaiabot::groups::mission_report>(
+        [this](const jaiabot::protobuf::MissionReport& report)
+        { process_mission_manager_state(report.state()); });
 
     // GPS TPV
     interprocess().subscribe<goby::middleware::groups::gpsd::tpv>(
