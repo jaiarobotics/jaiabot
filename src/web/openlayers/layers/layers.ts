@@ -1,5 +1,6 @@
 import { Layer } from "ol/layer";
 // Tile layers
+import { NaturalEarthLayer } from "./tile/natural-earth-layer";
 import { OSMLayer } from "./tile/osm-layer";
 import { arcGISSatelliteLayer } from "./tile/arc-gis-sattelite-layer";
 import { noaaENCLayer } from "./tile/noaa-enc-layer";
@@ -24,6 +25,7 @@ class Layers {
     constructor() {
         this.layers = new Map<LayerTitles, Layer>();
         // Tile layers
+        this.layers.set(LayerTitles.NATURAL_EARTH_LAYER, NaturalEarthLayer);
         this.layers.set(LayerTitles.OSM_LAYER, OSMLayer);
         this.layers.set(LayerTitles.ARC_GIS_SATELLITE_LAYER, arcGISSatelliteLayer);
         this.layers.set(LayerTitles.NOAA_ENC_LAYER, noaaENCLayer);
@@ -44,6 +46,9 @@ class Layers {
         this.layers.set(LayerTitles.EXCLUSION_ZONE_LAYER, exclusionZoneLayer.getVectorLayer());
         this.layers.set(LayerTitles.MEASURE_LAYER, measureLayer.getVectorLayer());
         this.layers.set(LayerTitles.HUB_COMMS_LAYER, hubCommsLayer.getVectorLayer());
+
+        console.log("Layers: ");
+        console.log(this.layers);
     }
 
     getLayers() {
