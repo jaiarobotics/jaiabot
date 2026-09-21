@@ -940,6 +940,42 @@ float and scale residue and far below the 5 m grid the search works in.
 when an unrelated zone is deleted". It asserts null both before and after the unrelated
 delete, so a failure distinguishes a moved origin from detection that is simply noisy.
 
+## Finding 19 — the transit leg to the first waypoint is no longer checked
+
+_Open, accepted. Raised in review of this branch; the decision to accept was agreed
+with the project lead._
+
+**What changed.** On `2.y`, `Map.tsx`'s `handleAddWaypointClick` took the assigned
+bot's current position as the start of the segment when a mission had no waypoints yet,
+and offered a detour through `ZoneCrossingDialog` if that segment crossed a zone. That
+code went when add and move were unified onto the reducer-driven path
+(`50fe94d27`, see `03ADD_MOVE_WAYPOINT_CONSISTENCY.md`), which is silent about it — it
+was collateral, not a decision. Reroute detection computes from `mission.getWaypoints()`
+and skips any mission with fewer than two, so a mission's first waypoint is never
+tested against anything.
+
+**What was lost is narrower than it looks.** The check ran once, at the moment the
+first waypoint of an empty mission was placed, and only when a bot was already assigned
+— `autoAssign()` does not run on mission creation. It never re-ran. Drawing a zone
+afterwards, moving that waypoint, assigning the bot later, or the bot drifting all
+produced nothing, on `2.y` as much as here. `Map.tsx:485-486` was the only place in the
+entire base branch that read a bot's location for routing.
+
+**Why it is accepted.** Routing the transit leg is not worth doing: a detour computed
+during planning is stale by launch, because the bot moves. Operators in the field pick
+a first waypoint that is safe and easy to reach, or stage through a rally point. The
+path to a rally point has never been checked either — transit is not routed anywhere in
+this system.
+
+**What would close it properly,** if it is ever wanted: report the leg rather than
+route it. `getMissionsInConflict()` already answers "is any leg of this route blocked"
+without running A\*, and `missions-manager.ts` already imports `bots`, so a
+`getStartLocation(missionID)` there and one more leg in that predicate is the whole data
+side. It is deferred because nothing consumes `getMissionsInConflict()` yet — the
+conflict indicator under Follow-on work is what would display it, and it should carry
+the cost of doing so. Note that predicate rebuilds every zone's Clipper buffer twice per
+call, which needs memoizing before anything calls it at telemetry rates.
+
 ## Where the coverage lives
 
 | Layer          | File                                                                      | Covers                                            |
@@ -1014,6 +1050,10 @@ Recorded here so the reasoning behind each is not re-derived.
 `exclusion-zone-detection.ts` already reports which missions are not clear of
 the zones — derived on call, so it cannot go stale. Nothing consumes it yet.
 Two places want it: the mission list and the map.
+
+It is also where the transit leg from Finding 19 would surface: include the assigned
+bot's position as one more leg in that predicate, and the conflict it reports covers
+getting to the mission as well as running it.
 
 Do it consistently with PR #1554, which colours the mission accordion by
 predicted battery: two independent per-mission health signals arriving in the

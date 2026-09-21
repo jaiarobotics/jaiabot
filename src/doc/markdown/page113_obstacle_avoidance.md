@@ -162,6 +162,16 @@ raises a dialog, not a rejection: confirm keeps the edit, revert undoes it. Two
 rejections remain, because neither is a routing judgement — placing a waypoint inside a
 zone or its safety buffer, and reaching the waypoint limit.
 
+**Only the route the operator drew is checked.** Obstacle avoidance covers the legs
+between a mission's waypoints. It does not check the transit from a bot's current
+position to the first waypoint, so a bot can be sent through a zone on its way to the
+start of an otherwise clear mission. Reporting that leg is possible — it is one more
+leg on the route — but routing around it is not useful: a detour computed while
+planning is stale by launch, since the bot moves. In practice operators choose a first
+waypoint that is safe and easy to reach, or stage through a rally point. The same is
+true of the path to a rally point, which is checked for where it sits, not for how a
+bot gets there.
+
 **A load never withholds anything.** Every mission in a mission set and every zone in a
 zone set is loaded, and conflicts are reported afterwards. Loading a zone set also
 clears every existing detour, since the zones that justified them have just been
