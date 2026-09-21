@@ -235,6 +235,20 @@ static uint64_t lptim_counts_from_ms(uint32_t duration_ms)
   return (counts == 0U) ? 1U : counts;
 }
 
+
+static void gpio_sleep_analog(void)
+{
+  GPIO_InitTypeDef a = {0};
+  a.Mode = GPIO_MODE_ANALOG;
+  a.Pull = GPIO_NOPULL;
+
+  a.Pin = GPIO_PIN_All & ~(GPIO_PIN_13 | GPIO_PIN_14);  HAL_GPIO_Init(GPIOA, &a); // keep SWDIO/SWCLK
+  a.Pin = GPIO_PIN_All;                                 HAL_GPIO_Init(GPIOB, &a);
+  a.Pin = GPIO_PIN_All & ~GPIO_PIN_13;                  HAL_GPIO_Init(GPIOC, &a); // keep reed EXTI (PC13)
+  a.Pin = GPIO_PIN_All & ~BLE_RSTn_Pin;                 HAL_GPIO_Init(GPIOD, &a); // keep NINA in reset
+  a.Pin = GPIO_PIN_All & ~(RS232_EN_Pin|RS232_FOFF_Pin);HAL_GPIO_Init(GPIOE, &a); // keep RS232 forced off
+}
+
 static void wait_for_reed_wake(void)
 {
   const uint16_t period = (uint16_t)(lptim_counts_from_ms(SLEEP_INTERVAL_MS) - 1U);
@@ -247,11 +261,13 @@ static void wait_for_reed_wake(void)
   }
 
   HAL_SuspendTick();
+  gpio_sleep_analog();                 // drop driven-pin leakage during the sleep
   while (reed_wake_flag == 0U && lptim_wake_flag == 0U)
   {
-    HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
-    SystemClock_Config();
+  HAL_PWREx_EnterSTOP2Mode(PWR_STOPENTRY_WFI);
+  SystemClock_Config();
   }
+  MX_GPIO_Init();                      // restore pin config after wake
   HAL_ResumeTick();
 
   HAL_LPTIM_Counter_Stop_IT(&hlptim1);
