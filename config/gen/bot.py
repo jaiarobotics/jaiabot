@@ -357,7 +357,7 @@ elif common.app == 'jaiabot_mission_manager':
     send_task_packets_to_hub="true"
     startup_timeout=''
     # STORM bots are rudderless, so they cannot maneuver to improve a degraded fix;
-    # give up after 2 minutes and dive in place. Other bot types keep waiting.
+    # give up after a short timeout and dive in place. Other bot types keep waiting.
     reacquire_gps_timeout=0
     if storm_enabled:
         # delegated to jaiabot_storm_manager
@@ -365,7 +365,7 @@ elif common.app == 'jaiabot_mission_manager':
         # TaskPacket intervehicle publish is handled by jaiabot_storm_manager
         send_task_packets_to_hub="false"
         startup_timeout='startup_timeout: 0 # disabled so STORM can recover health after waking'
-        reacquire_gps_timeout=300
+        reacquire_gps_timeout=10
         
     print(config.template_substitute(templates_dir+'/bot/jaiabot_mission_manager.pb.cfg.in',
                                      app_block=app_common,
