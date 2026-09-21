@@ -443,6 +443,9 @@ int main(void)
   MX_LPTIM1_Init();
   /* USER CODE BEGIN 2 */
 
+  /* Hold NINA-B112 in reset during sleep */
+  HAL_GPIO_WritePin(BLE_RSTn_GPIO_Port, BLE_RSTn_Pin, GPIO_PIN_RESET);
+
   power_board_disable_external_power();
 
   init_crc32_table();
