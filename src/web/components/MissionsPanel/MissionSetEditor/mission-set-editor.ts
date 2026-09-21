@@ -54,11 +54,14 @@ export function getMaxWaypointsPerOutputMission(
 
 /**
  * Appends one source mission's waypoints and offset segments to the combined output mission.
- * Requires combined to have its segments pre-initialized before the first call.
+ * A source mission with no waypoints is skipped, since its segments would share a start index
+ * with the next source's and the bot advances at most one segment per goal.
  * @param {Mission} sourceMission Source mission to append
  * @param {Mission} combined Output mission being built (mutated)
  */
 function applySourceMission(sourceMission: Mission, combined: Mission): void {
+    if (sourceMission.getWaypoints().length === 0) return;
+
     const waypointOffset = combined.getWaypoints().length;
     combined.addWaypoints(cloneDeep(sourceMission.getWaypoints()));
     const combinedSegments = combined.getSegments();
@@ -106,11 +109,16 @@ export function combineMissionSets(
     const outputMissions: [number, Mission][] = [];
     for (let i = 0; i < missionCount; i++) {
         const combined = new Mission();
-        combined.setSegments([{ start_goal_index: 1, speed: missionSetSpeeds.transit }]);
+        // Segments come only from the source missions, so the first source's segment is the
+        // first entry and no DCCL segment slot is spent on a placeholder
+        combined.setSegments([]);
         for (const missions of missionArrays) {
             if (missions.length === 0) continue;
             const sourceMission = missions[i % missions.length];
             applySourceMission(sourceMission, combined);
+        }
+        if (combined.getSegments().length === 0) {
+            combined.setSegments([{ start_goal_index: 0, speed: missionSetSpeeds.transit }]);
         }
         combined.setStationkeepSpeed(missionSetSpeeds.stationkeep_outer);
         outputMissions.push([i + 1, combined]);
