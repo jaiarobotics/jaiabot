@@ -51,6 +51,13 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             start.set_lat_with_units(pos.lat_with_units());
             start.set_lon_with_units(pos.lon_with_units());
         }
+        else
+        {
+            gps_unavailable_ = true;
+            auto& start = *drift_packet().mutable_start_location();
+            start.set_lat(0);
+            start.set_lon(0);
+        }
 
         goby::glog.is_debug1() &&
             goby::glog << group("task") << "SurfaceDriftTaskCommon Starting Wave Height Sampling"
@@ -83,10 +90,18 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
             end.set_lat_with_units(pos.lat_with_units());
             end.set_lon_with_units(pos.lon_with_units());
         }
+        else
+        {
+            gps_unavailable_ = true;
+            auto& end = *drift_packet().mutable_end_location();
+            end.set_lat(0);
+            end.set_lon(0);
+        }
 
         // compute estimated drift if possible
-        if (drift_packet().has_start_location() && drift_packet().has_end_location() &&
-            drift_packet().has_drift_duration() && drift_packet().drift_duration() > 0)
+        if (!gps_unavailable_ && drift_packet().has_start_location() &&
+            drift_packet().has_end_location() && drift_packet().has_drift_duration() &&
+            drift_packet().drift_duration() > 0)
         {
             auto start = drift_packet().start_location(), end = drift_packet().end_location();
             auto start_xy = this->machine().geodesy().convert(
@@ -158,4 +173,5 @@ struct SurfaceDriftTaskCommon : boost::statechart::state<Derived, Parent>,
 
   private:
     goby::time::SteadyClock::time_point drift_time_stop_;
+    bool gps_unavailable_{false};
 };

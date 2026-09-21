@@ -34,6 +34,11 @@ struct ReacquireGPS
     // Dive::ReacquireGPS
     ReacquireGPS(typename StateBase::my_context c) : StateBase(c)
     {
+        const int timeout_seconds = this->cfg().reacquire_gps_timeout();
+        has_timeout_ = timeout_seconds > 0;
+        if (has_timeout_)
+            timeout_ = goby::time::SteadyClock::now() + std::chrono::seconds(timeout_seconds);
+
         if (this->app().is_test_mode(config::MissionManager::ENGINEERING_TEST__INDOOR_MODE__NO_GPS))
         {
             // in indoor mode, simply post that we've received a fix
@@ -51,6 +56,19 @@ struct ReacquireGPS
         end_time_ = goby::time::SystemClock::now<goby::time::MicroTime>();
         context<Dive>().dive_packet().set_duration_to_acquire_gps_with_units(end_time_ - start_time_);
         this->machine().erase_warning(WARNING__MISSION__DATA__GPS_FIX_DEGRADED);
+    }
+
+    void loop(const EvLoop&)
+    {
+        if (!has_timeout_ || goby::time::SteadyClock::now() < timeout_)
+            return;
+
+        goby::glog.is_verbose() &&
+            goby::glog << "Post-dive GPS reacquisition timed out after "
+                       << this->cfg().reacquire_gps_timeout()
+                       << " seconds; continuing to surface drift without a GPS fix" << std::endl;
+
+        this->post_event(statechart::EvGPSTimeout());
     }
 
     void gps(const EvVehicleGPS& ev)
@@ -104,6 +122,8 @@ struct ReacquireGPS
 
     using reactions = boost::mpl::list<
         boost::statechart::in_state_reaction<EvVehicleGPS, ReacquireGPS, &ReacquireGPS::gps>,
+        boost::statechart::transition<EvGPSTimeout, SurfaceDrift>,
+        boost::statechart::in_state_reaction<EvLoop, ReacquireGPS, &ReacquireGPS::loop>,
         boost::statechart::transition<EvBottomDepthAbort, ConstantHeading>,
         boost::statechart::transition<EvGPSFix, SurfaceDrift>>;
 
@@ -111,6 +131,8 @@ struct ReacquireGPS
     goby::time::MicroTime start_time_{goby::time::SystemClock::now<goby::time::MicroTime>()},
         end_time_;
     int gps_fix_check_incr_{0};
+    bool has_timeout_{false};
+    goby::time::SteadyClock::time_point timeout_;
 };
 #endif
 
