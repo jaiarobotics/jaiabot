@@ -48,6 +48,8 @@
 #include "jaiabot/utils/derived_salinity.h"
 #include "jaiabot/utils/specific_conductivity.h"
 
+#include "jaiabot/messages/power_board/power_board.pb.h"
+
 #include "wmm/WMM.h"
 #include <cmath>
 #include <math.h>
@@ -463,22 +465,32 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
             }
         });
 
+    // the STM32 power board and the (older) Arduino driver publish equivalent
+    // response messages on different groups; only one of the two drivers runs
+    // on a given bot, so we subscribe to both to support either configuration
+    auto handle_battery_response = [this](const auto& response)
+    {
+        if (response.has_vccvoltage())
+        {
+            //TODO ADD FUNCTION / CODE TO REPORT BATTERY PERCENTAGE
+            std::map<float, float> voltage_to_battery_percent_{
+                {16.5, 0.0},   {19.5, 13.5}, {20.15, 20.0},
+                {23.49, 80.0}, {24.0, 95.0}, {24.5, 100.0}}; // map of voltage to battery %
+
+            float battery_percentage =
+                goby::util::linear_interpolate(response.vccvoltage(), voltage_to_battery_percent_);
+
+            latest_bot_status_.set_battery_percent(battery_percentage);
+        }
+    };
+
+    interprocess().subscribe<jaiabot::groups::power_board_pb_data_in>(
+        [handle_battery_response](const jaiabot::protobuf::PowerBoardResponse& power_board_response)
+        { handle_battery_response(power_board_response); });
+
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
-            //takes data from one message to the next (clarified by different names)
-            if (arduino_response.has_vccvoltage())
-            {
-                //TODO ADD FUNCTION / CODE TO REPORT BATTERY PERCENTAGE
-                std::map<float, float> voltage_to_battery_percent_{
-                    {16.5, 0.0},   {19.5, 13.5}, {20.15, 20.0},
-                    {23.49, 80.0}, {24.0, 95.0}, {24.5, 100.0}}; // map of voltage to battery %
-
-                float battery_percentage = goby::util::linear_interpolate(
-                    arduino_response.vccvoltage(), voltage_to_battery_percent_);
-
-                latest_bot_status_.set_battery_percent(battery_percentage);
-            }
-        });
+        [handle_battery_response](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        { handle_battery_response(arduino_response); });
 
     interprocess().subscribe<jaiabot::groups::mission_report>(
         [this](const protobuf::MissionReport& report) {
