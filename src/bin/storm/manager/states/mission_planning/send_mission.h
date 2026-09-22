@@ -31,7 +31,16 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
 {
     using StateBase = boost::statechart::state<SendMission, MissionPlanning>;
 
-    SendMission(typename StateBase::my_context c) : StateBase(c) { try_send_mission(); }
+    SendMission(typename StateBase::my_context c) : StateBase(c)
+    {
+        const auto timeout_seconds = this->cfg().gps_fix_wait_timeout_seconds();
+        gps_fix_timeout_enabled_ = timeout_seconds > 0;
+        if (gps_fix_timeout_enabled_)
+            gps_fix_timeout_ =
+                goby::time::SteadyClock::now() + std::chrono::seconds(timeout_seconds);
+
+        try_send_mission();
+    }
     ~SendMission() {}
 
     void loop(const EvLoop& ev) { try_send_mission(); }
@@ -46,15 +55,23 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         if (sent_)
             return;
 
-        // wait for a real GPS fix before commanding a mission; latest_location()
-        // defaults to (0, 0) until set_latest_location() is called
-        if (!this->machine().has_latest_location())
+        const bool has_location = this->machine().has_latest_location();
+        const bool gps_fix_timed_out =
+            gps_fix_timeout_enabled_ && goby::time::SteadyClock::now() >= gps_fix_timeout_;
+
+        if (!has_location && !gps_fix_timed_out)
         {
             goby::glog.is_warn() &&
                 goby::glog << group("statechart")
                            << "Waiting for a valid location before sending mission" << std::endl;
             return;
         }
+
+        if (!has_location)
+            goby::glog.is_warn() &&
+                goby::glog << group("statechart") << "GPS fix wait timed out after "
+                           << this->cfg().gps_fix_wait_timeout_seconds()
+                           << " seconds; starting mission with location (0, 0)" << std::endl;
 
         // create a regular mission and send it over to jaiabot_mission_manager
         protobuf::Command command;
@@ -67,7 +84,15 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
         mission_plan.set_movement(protobuf::MissionPlan::TRANSIT);
 
         auto& goal = *mission_plan.add_goal();
-        *goal.mutable_location() = this->machine().latest_location();
+        if (has_location)
+        {
+            *goal.mutable_location() = this->machine().latest_location();
+        }
+        else
+        {
+            goal.mutable_location()->set_lat(0);
+            goal.mutable_location()->set_lon(0);
+        }
         // Storm bots are rudderless and cannot navigate back to this pre-dive location
         // snapshot (it may drift underwater) - recover wherever the vehicle currently is
         goal.set_movewptmode(false);
@@ -136,5 +161,7 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
     }
 
     bool sent_{false};
+    bool gps_fix_timeout_enabled_{false};
+    goby::time::SteadyClock::time_point gps_fix_timeout_;
 };
 #endif
