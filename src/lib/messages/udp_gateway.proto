@@ -5,30 +5,33 @@ import "jaiabot/messages/sensor/pressure_temperature.proto";
 import "jaiabot/messages/tsys01.proto";
 import "jaiabot/messages/echo.proto";
 import "jaiabot/messages/ppk.proto";
+import "jaiabot/messages/jaia_dccl.proto";
 
 package jaiabot.protobuf;
 
 
 message UDPGatewayEnvelope
 {
+    enum SubscribeCommand {
+        BOT_STATUS = 0;
+    };
+
     oneof payload
     {
+        // UDP Gateway to client messages
         IMUCommand imu_command = 1;
-        IMUData imu_data = 2;
-
-        SalinityData salinity_data = 3;
-
-        PressureTemperatureData pressure_temperature_data = 4;
-
-        TSYS01Data tsys01_data = 5;
-
         EchoCommand echo_command = 6;
-        EchoData echo_data = 7;
+        BotStatus bot_status = 10;
 
+        // Client to UDP Gateway messages
+        SubscribeCommand subscribe_command = 9;
+
+        IMUData imu_data = 2;
+        SalinityData salinity_data = 3;
+        PressureTemperatureData pressure_temperature_data = 4;
+        TSYS01Data tsys01_data = 5;
+        EchoData echo_data = 7;
         // jaiabot_ubx_ppk.py
         UBXChunk ubx_chunk = 8;
-
     }
-
 }
-
