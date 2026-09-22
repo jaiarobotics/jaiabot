@@ -114,6 +114,8 @@ void power_board_command_process(void)
     }
 
     bool request_handled = false;
+    jaiabot_protobuf_PowerBoardStatusCode ack_status =
+        jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_ACK;
 
     if (request.has_power_board_mcu_command)
     {
@@ -149,11 +151,12 @@ void power_board_command_process(void)
     if (request.has_low_power_request)
     {
         power_board_request_low_power_mode_seconds(request.low_power_request.duration_seconds);
+        ack_status = jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_LOW_POWER_ACK;
         request_handled = true;
     }
 
     if (request_handled)
     {
-        power_board_send_status(jaiabot_protobuf_PowerBoardStatusCode_POWER_BOARD_ACK);
+        power_board_send_status(ack_status);
     }
 }

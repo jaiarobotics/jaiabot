@@ -57,7 +57,7 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 
     void power_board_response(const EvPowerBoardResponse& ev)
     {
-        if (ev.resp.status_code() == protobuf::POWER_BOARD_ACK)
+        if (ev.resp.status_code() == protobuf::POWER_BOARD_LOW_POWER_ACK)
             post_event(EvSleepReady());
     }
 
