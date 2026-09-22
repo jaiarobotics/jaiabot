@@ -56,7 +56,11 @@ struct Transit
 
             protobuf::GeographicCoordinate location = goal->location();
             if (!goal->movewptmode())
-                location = this->machine().gps_tpv().location();
+            {
+                const auto& pos = this->machine().gps_tpv().location();
+                location.set_lat_with_units(pos.lat_with_units());
+                location.set_lon_with_units(pos.lon_with_units());
+            }
 
             auto update =
                 create_transit_update(location, this->machine().transit_speed_with_units(),
