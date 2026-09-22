@@ -40,12 +40,26 @@ struct Transit
 
         if (goal)
         {
+            if (!goal->movewptmode() && !this->machine().gps_tpv().has_location())
+            {
+                glog.is_debug1() && glog << "Goal has moveWptMode == false and no GPS fix; "
+                                            "skipping transit"
+                                         << std::endl;
+                post_event(EvWaypointReached());
+                return;
+            }
+
             if (goal.get().has_task())
             {
                 slip_radius = cfg().waypoint_with_task_slip_radius();
             }
+
+            protobuf::GeographicCoordinate location = goal->location();
+            if (!goal->movewptmode())
+                location = this->machine().gps_tpv().location();
+
             auto update =
-                create_transit_update(goal->location(), this->machine().transit_speed_with_units(),
+                create_transit_update(location, this->machine().transit_speed_with_units(),
                                       this->machine().geodesy(), slip_radius);
             this->interprocess().publish<groups::mission_ivp_behavior_update>(update);
         }

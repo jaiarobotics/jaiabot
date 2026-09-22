@@ -2,6 +2,7 @@ $app_block
 $interprocess_block
 
 bot_id: $bot_id
+gps_fix_wait_timeout_seconds: 300
 
 initial_mission { 
   dive { 

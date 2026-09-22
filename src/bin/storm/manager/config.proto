@@ -34,4 +34,9 @@ message StormManager
 
     optional goby.middleware.protobuf.SerialConfig mcu_serial = 30;
 
+    // time to wait for the first GPS fix before starting a mission in place
+    // with an unknown (0, 0) location; 0 disables the timeout
+    optional uint32 gps_fix_wait_timeout_seconds = 40
+        [default = 0, (dccl.field).units = { base_dimensions: "T" }];
+
 }
