@@ -53,6 +53,38 @@ export function getMaxWaypointsPerOutputMission(
 }
 
 /**
+ * Returns the maximum segment count across all output missions that would result from combining the given sets.
+ * Used to validate against MAX_SEGMENTS before saving.
+ * @param {string[]} names Ordered list of saved mission set names
+ * @param {Map<string, MissionSetSnapshot>} missionSetSnapshotCache Cache of loaded snapshots
+ * @returns {number} Maximum segments in any single output mission
+ */
+export function getMaxSegmentsPerOutputMission(
+    names: string[],
+    missionSetSnapshotCache: Map<string, MissionSetSnapshot>,
+): number {
+    const missionCount = getMaxMissionCount(names, missionSetSnapshotCache);
+    if (names.length === 0 || missionCount < 1) return 0;
+
+    let maxSegments = 0;
+    for (let i = 0; i < missionCount; i++) {
+        let missionSegmentCount = 0;
+        for (const name of names) {
+            const missionSetSnapshot = missionSetSnapshotCache.get(name);
+            if (!missionSetSnapshot || missionSetSnapshot.missions.length === 0) continue;
+            const missions = missionSetSnapshot.missions.map(([_, m]) => m);
+            const sourceMission = missions[i % missions.length];
+            // A source with no waypoints is skipped when combining, so it contributes no segments
+            if (sourceMission.getWaypoints().length === 0) continue;
+            missionSegmentCount += sourceMission.getSegments().length;
+        }
+        // An output mission that no source contributes to still falls back to one segment
+        maxSegments = Math.max(maxSegments, missionSegmentCount || 1);
+    }
+    return maxSegments;
+}
+
+/**
  * Appends one source mission's waypoints and offset segments to the combined output mission.
  * A source mission with no waypoints is skipped, since its segments would share a start index
  * with the next source's and the bot advances at most one segment per goal.
