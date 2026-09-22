@@ -114,7 +114,9 @@ struct InMission
             else
             {
                 // Do next repeat, starting with first goal and segment. Restore the plan's
-                // baseline first so fields the first segment omits match the first pass
+                // baseline first so fields the first segment omits match the first pass.
+                // Values set mid-mission by an engineering command are replaced here by
+                // design: mission parameters take precedence whenever a segment begins.
                 goal_index_ = 0;
                 active_seg_index_ = 0;
                 this->machine().apply_plan_baseline_params(this->machine().mission_plan());
