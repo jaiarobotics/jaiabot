@@ -39,6 +39,10 @@ export function handleChangeGridPlanningState(mutableState: JaiaContextType, act
             map.removeInteraction(gridLayer.getDraw());
             map.removeInteraction(gridLayer.getDragPan());
             gridPlan.setSurveyTask(new Task(true));
+            // The lane missions built here are what fitLanesToBots later distributes, so the
+            // lane count has to satisfy MAX_LANES_PER_BOT before the grid is finalized rather
+            // than after, when shrinking it would orphan the extra lane missions
+            gridPlan.clampNumOfLanesToBots();
             gridLayer.finalizeGrid(true);
             break;
 
