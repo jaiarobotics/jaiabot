@@ -61,6 +61,6 @@ struct AirDescentDataOffload
     goby::time::SteadyClock::time_point offload_timeout_{
         goby::time::SteadyClock::now() +
         goby::time::convert_duration<goby::time::SteadyClock::duration>(
-            this->machine().mission().data_offload_timeout_minutes_with_units())};
+            this->machine().mission().air_descent_data_offload_timeout_minutes_with_units())};
 };
 #endif
