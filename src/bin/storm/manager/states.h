@@ -29,6 +29,12 @@
 #include <boost/statechart/termination.hpp>
 #include <boost/statechart/transition.hpp>
 
+#include <unistd.h> // sync()
+
+// Goby
+#include <goby/middleware/log/groups.h>
+#include <goby/middleware/protobuf/logger.pb.h>
+
 // Protobuf
 #include <google/protobuf/util/json_util.h>
 

@@ -39,4 +39,13 @@ message StormManager
     optional uint32 gps_fix_wait_timeout_seconds = 40
         [default = 0, (dccl.field).units = { base_dimensions: "T" }];
 
+    // Separate from the mission's data_offload_timeout_minutes, which sleep prep needs in
+    // the tens of minutes for Iridium. Not in StormMission: that would change the wire hash.
+    optional uint32 air_descent_data_offload_timeout_seconds = 41
+        [default = 60, (dccl.field).units = { base_dimensions: "T" }];
+
+    // Skip SELF_TEST__AIR_DESCENT_DATA_OFFLOAD on revisions with no air descent data,
+    // rather than waiting out the timeout and raising warning 904 every wake.
+    optional bool skip_air_descent_data_offload = 42 [default = false];
+
 }

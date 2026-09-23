@@ -28,7 +28,15 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 {
     using StateBase = boost::statechart::state<Wrapup, SleepPrep>;
 
-    Wrapup(typename StateBase::my_context c) : StateBase(c) {}
+    Wrapup(typename StateBase::my_context c) : StateBase(c)
+    {
+        // Close the log before anything is asked to sleep: power is cut without waiting
+        // for a shutdown, so nothing written after the sleep request survives.
+        goby::middleware::protobuf::LoggerRequest request;
+        request.set_requested_state(goby::middleware::protobuf::LoggerRequest::STOP_LOGGING);
+        request.set_close_log(true);
+        this->interprocess().template publish<goby::middleware::groups::logger_request>(request);
+    }
     ~Wrapup() {}
 
     void loop(const EvLoop& ev)
@@ -37,6 +45,13 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 
         if (now >= next_mcu_send_time_)
         {
+            if (!flushed_)
+            {
+                // an interval after STOP_LOGGING, so goby_logger has closed the file first
+                ::sync();
+                flushed_ = true;
+            }
+
             try_send_to_mcu();
             next_mcu_send_time_ = now + this->machine().mcu_send_interval();
         }
@@ -63,6 +78,9 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
         boost::statechart::in_state_reaction<EvLoop, Wrapup, &Wrapup::loop>>;
 
   private:
-    goby::time::SteadyClock::time_point next_mcu_send_time_{goby::time::SteadyClock::now()};
+    // first request deliberately one interval out, to give the logger time to close
+    goby::time::SteadyClock::time_point next_mcu_send_time_{
+        goby::time::SteadyClock::now() + StormManagerStateMachine::mcu_send_interval()};
+    bool flushed_{false};
 };
 #endif
