@@ -118,6 +118,15 @@ struct StormManagerStateMachine
     // by the first stay in Goby's DynamicBuffer (ttl 3000 s) well after it exits. Per
     // state sets would let the second publish the same storm_ids again, roughly doubling
     // SBD usage for a backlog.
+    //
+    // Known gap: entries leave the set only via an ack or an expire callback. If
+    // goby_intervehicle_portal restarts mid-wake the packets it held are gone and neither
+    // fires, so those storm_ids stay in flight for the rest of this process and are not
+    // republished until the next wake. Deliberately not swept on a timer: nothing
+    // distinguishes "the portal lost it" from "Goby is still retransmitting on a bad
+    // link", where a packet can legitimately sit unacked until the hub-side ttl of
+    // 3000 s, and any shorter threshold reintroduces duplicate publishes. The failure is
+    // bounded - one wasted offload window, with the packets still safe in the outbox.
     std::set<int>& task_packets_in_flight() { return task_packets_in_flight_; }
     std::map<int, goby::time::SteadyClock::time_point>& task_packets_deferred_until()
     {
