@@ -20,6 +20,8 @@
 // You should have received a copy of the GNU General Public License
 // along with the Jaia Binaries.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <unistd.h> // sync()
+
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
 #include <goby/middleware/io/udp_point_to_point.h>
@@ -134,7 +136,12 @@ jaiabot::apps::Health::Health()
                 case protobuf::Command::SHUTDOWN_COMPUTER:
                     glog.is_verbose() && glog << "Commanded to shutdown computer. " << std::endl;
                     if (!cfg().ignore_powerstate_changes())
+                    {
+                        // flush first: STORM's MCU may cut power before poweroff
+                        // finishes, taking ~30 s of unwritten log with it
+                        ::sync();
                         system("systemctl poweroff");
+                    }
                     break;
             }
         });

@@ -30,9 +30,9 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 
     Wrapup(typename StateBase::my_context c) : StateBase(c)
     {
-        // durable marker: if the log tail is lost to a power cut, this still proves we
-        // got here rather than dying earlier in DataOffload
-        this->app().record_last_state(protobuf::SLEEP_PREP__WRAPUP);
+        // Flush before the MCU is told to sleep; after sleep_initiated its power-cut
+        // countdown is likely already running.
+        ::sync();
     }
     ~Wrapup() {}
 
@@ -59,7 +59,11 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
     void mcu_response(const EvMCUResponse& ev)
     {
         if (ev.resp.sleep_initiated())
+        {
+            // distinguishes "reached Wrapup" from "the MCU acknowledged the sleep"
+            this->app().record_last_state(protobuf::SLEEP_PREP__WRAPUP, "sleep_initiated");
             post_event(EvSleepReady());
+        }
     }
 
     using reactions = boost::mpl::list<

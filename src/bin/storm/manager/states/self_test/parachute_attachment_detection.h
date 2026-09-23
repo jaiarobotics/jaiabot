@@ -53,6 +53,9 @@ struct ParachuteAttachmentDetection
                     WARNING__STORM_SELF_TEST__PARACHUTE_BELIEVED_ATTACHED__RECOVERY_SUCCESSFUL);
         }
 
+        if (this->cfg().skip_air_descent_data_offload())
+            return transit<Wrapup>();
+
         return transit<AirDescentDataOffload>();
     }
 

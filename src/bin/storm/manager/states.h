@@ -30,6 +30,8 @@
 #include <boost/statechart/transition.hpp>
 
 // Protobuf
+#include <unistd.h> // sync()
+
 #include <google/protobuf/util/json_util.h>
 
 // Jaiabot
