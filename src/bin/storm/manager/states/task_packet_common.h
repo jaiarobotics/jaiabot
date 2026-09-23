@@ -162,6 +162,12 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
         goby::middleware::Publisher<protobuf::TaskPacket> task_packet_publisher(
             {}, dummy_group_func, acked_func, expired_func);
 
+        // Logged so that duplicate publications can be counted per storm_id from the
+        // glog alone, without having to decode modem_data_out from the binary log.
+        goby::glog.is_verbose() && goby::glog << group("statechart")
+                                              << "[iridium] Publishing TaskPacket with id: "
+                                              << task_packet.storm_id() << std::endl;
+
         self->machine().task_packets_in_flight().insert(task_packet.storm_id());
         self->machine().task_packets_deferred_until().erase(task_packet.storm_id());
 

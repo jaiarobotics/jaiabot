@@ -4,6 +4,7 @@ n_bots=4
 n_hubs=1
 warp=5
 comms_mode="w"
+bot_type="HYDRO"
 
 script_dir=$(dirname $0)
 preseedfile=${script_dir}/preseed.goby
@@ -11,7 +12,8 @@ launchfile=${script_dir}/all.launch
 warpfile=${script_dir}/../../gen/common/sim.py
 
 if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-    echo "Usage: generate_all_launch.sh [n_bots, default ${n_bots}] [warp, default ${warp}] [(x)bee or (w)ifi comms, default ${comms_mode}] [n_hubs, default ${n_hubs}]"
+    echo "Usage: generate_all_launch.sh [n_bots, default ${n_bots}] [warp, default ${warp}] [(x)bee or (w)ifi comms, default ${comms_mode}] [n_hubs, default ${n_hubs}] [bot_type, default ${bot_type}]"
+    echo "  bot_type: HYDRO, ECHO, BIO or STORM (see jaia_bot_type in config/gen/bot.py)"
     exit;
 fi
 
@@ -28,6 +30,15 @@ fi
 if [ ! -z "$4" ]; then
     n_hubs="$4"
 fi
+
+if [ ! -z "$5" ]; then
+    bot_type=$(echo "$5" | tr '[:lower:]' '[:upper:]')
+fi
+
+case "${bot_type}" in
+    HYDRO|ECHO|BIO|STORM) ;;
+    *) echo "Invalid bot_type: ${bot_type} (expected HYDRO, ECHO, BIO or STORM)"; exit 1 ;;
+esac
 
 cat <<EOF > ${launchfile}
 #!/usr/bin/env -S goby_launch -s -P -k30 -pall -d500 -L
@@ -62,11 +73,11 @@ for i in `seq 1 $((n_hubs))`; do
 done
 
 for i in `seq 1 $((n_bots))`; do
-    echo "[env=jaia_bot_index=${i},env=jaia_warp=${warp},env=jaia_electronics_stack=2,env=jaia_bot_type=HYDRO] goby_launch -P -d${launchdelay} bot.launch" >> ${launchfile}
+    echo "[env=jaia_bot_index=${i},env=jaia_warp=${warp},env=jaia_electronics_stack=2,env=jaia_bot_type=${bot_type}] goby_launch -P -d${launchdelay} bot.launch" >> ${launchfile}
 done
 
 echo "Setting excutable permissions for all.launch"
 
 chmod 755 ${launchfile}
 
-echo "Generated all.launch with $((n_bots)) bots and $((n_hubs)) hubs @ warp ${warp}x using comms: $jaia_comms_mode"
+echo "Generated all.launch with $((n_bots)) ${bot_type} bots and $((n_hubs)) hubs @ warp ${warp}x using comms: $jaia_comms_mode"
