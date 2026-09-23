@@ -12,26 +12,10 @@ template <typename F> void if_alive(const std::weak_ptr<lifetime_token>& weak, F
 
 template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacketCommon
 {
-    // Publish several TaskPackets at once and let Goby's DynamicBuffer handle
-    // retransmission, rather than sending one and waiting for its ack. A single Iridium
-    // round trip has been measured at 33-176 s, so a serial send cannot drain a backlog
-    // within data_offload_timeout_minutes.
-    //
-    // Held well below the hub-side task_packet_buffer max_queue (42) so our publications
-    // cannot overflow it; an overflow expires the packet immediately and retrying on
-    // that just churns.
-    constexpr static std::size_t max_in_flight() { return 8; }
-
-    // Retry delay for packets Goby could not buffer at all.
-    constexpr static goby::time::SteadyClock::duration retry_interval()
-    {
-        return std::chrono::seconds(30);
-    }
-
     void try_send_to_shore()
     {
         auto self = static_cast<Derived*>(this);
-        if (self->machine().task_packet_queue().empty())
+        if (!task_packets_outstanding())
         {
             goby::glog.is_verbose() && goby::glog << group("statechart")
                                                   << "[iridium] No TaskPackets to send"
@@ -43,9 +27,28 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
         fill_pipeline();
     }
 
+    // Are any of the packets this state is waiting on still queued?
+    //
+    // owned_task_packet_ids_ empty means "the whole queue" - that is DataOffload, which
+    // drains everything before sleep. AirDescentDataOffload populates it so that self
+    // test finishes once its own packets are ack'd, rather than blocking the mission on a
+    // backlog replayed from a previous wake. It still helps send that backlog; it just
+    // does not wait for it.
+    bool task_packets_outstanding()
+    {
+        const auto& queue = static_cast<Derived*>(this)->machine().task_packet_queue();
+        if (owned_task_packet_ids_.empty())
+            return !queue.empty();
+
+        return std::any_of(queue.begin(), queue.end(),
+                           [this](const protobuf::TaskPacket& task_packet)
+                           { return owned_task_packet_ids_.count(task_packet.storm_id()) > 0; });
+    }
+
     // Drives deferred retries; call from each state's EvLoop reaction. Unlike
-    // try_send_to_shore() this never posts the completion event, so it is safe to call
-    // before the state is otherwise ready to finish.
+    // try_send_to_shore() this never posts the completion event - each state checks for
+    // completion itself, so that it does not depend on which state's ack callback happens
+    // to see the queue drain.
     void retry_pending_task_packets()
     {
         if (static_cast<Derived*>(this)->machine().task_packet_queue().empty())
@@ -57,18 +60,21 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
     void fill_pipeline()
     {
         auto self = static_cast<Derived*>(this);
+        auto& machine = self->machine();
+        auto& in_flight = machine.task_packets_in_flight();
+        auto& deferred_until = machine.task_packets_deferred_until();
         const auto now = goby::time::SteadyClock::now();
 
         std::vector<protobuf::TaskPacket> to_send;
-        for (const auto& task_packet : self->machine().task_packet_queue())
+        for (const auto& task_packet : machine.task_packet_queue())
         {
-            if (in_flight_.size() + to_send.size() >= max_in_flight())
+            if (in_flight.size() + to_send.size() >= machine.max_task_packets_in_flight())
                 break;
-            if (in_flight_.count(task_packet.storm_id()))
+            if (in_flight.count(task_packet.storm_id()))
                 continue;
 
-            auto deferred_it = deferred_until_.find(task_packet.storm_id());
-            if (deferred_it != deferred_until_.end() && now < deferred_it->second)
+            auto deferred_it = deferred_until.find(task_packet.storm_id());
+            if (deferred_it != deferred_until.end() && now < deferred_it->second)
                 continue;
 
             to_send.push_back(task_packet);
@@ -103,10 +109,7 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
             if_alive(weak_lifetime,
                      [&]
                      {
-                         self->in_flight_.erase(msg.storm_id());
-                         self->deferred_until_.erase(msg.storm_id());
-
-                         if (self->machine().task_packet_queue().empty())
+                         if (!self->task_packets_outstanding())
                          {
                              goby::glog.is_verbose() &&
                                  goby::glog << group("statechart")
@@ -123,7 +126,7 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
                      });
         };
 
-        auto expired_func = [self, weak_lifetime](
+        auto expired_func = [self, app, weak_lifetime](
                                 const protobuf::TaskPacket& msg,
                                 const goby::middleware::intervehicle::protobuf::ExpireData& expire)
         {
@@ -136,34 +139,19 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
                            expire.reason())
                     << std::endl;
 
+            // Also outside if_alive: a packet that expires after its state has exited must
+            // still be cleared from the in-flight set, or nothing republishes it for the
+            // rest of this wake.
+            app->task_packet_expired(msg, expire.reason());
+
             // only run if we're still in this state (and "self" is valid)
             if_alive(weak_lifetime,
                      [&]
                      {
-                         self->in_flight_.erase(msg.storm_id());
-
-                         switch (expire.reason())
-                         {
-                             case goby::middleware::intervehicle::protobuf::ExpireData::
-                                 EXPIRED_TIME_TO_LIVE_EXCEEDED:
-                                 // it was buffered but never ack'd in time - resend now
-                                 self->fill_pipeline();
-                                 break;
-
-                             case goby::middleware::intervehicle::protobuf::ExpireData::
-                                 EXPIRED_NO_SUBSCRIBERS:
-                             case goby::middleware::intervehicle::protobuf::ExpireData::
-                                 EXPIRED_BUFFER_OVERFLOW:
-                                 // Goby could not buffer this at all and expires it with zero
-                                 // latency. Republishing from here would re-expire on the next
-                                 // poll and spin for as long as the condition lasts - which for
-                                 // EXPIRED_NO_SUBSCRIBERS is the whole window after each wake,
-                                 // while the hub's Iridium subscription is still coming up.
-                                 // Let the EvLoop retry pick it up instead.
-                                 self->deferred_until_[msg.storm_id()] =
-                                     goby::time::SteadyClock::now() + retry_interval();
-                                 break;
-                         }
+                         // deferred reasons are picked up by the EvLoop retry instead
+                         if (expire.reason() == goby::middleware::intervehicle::protobuf::
+                                                    ExpireData::EXPIRED_TIME_TO_LIVE_EXCEEDED)
+                             self->fill_pipeline();
                      });
         };
 
@@ -172,8 +160,8 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
         goby::middleware::Publisher<protobuf::TaskPacket> task_packet_publisher(
             {}, dummy_group_func, acked_func, expired_func);
 
-        in_flight_.insert(task_packet.storm_id());
-        deferred_until_.erase(task_packet.storm_id());
+        self->machine().task_packets_in_flight().insert(task_packet.storm_id());
+        self->machine().task_packets_deferred_until().erase(task_packet.storm_id());
 
         self->intervehicle().template publish<groups::task_packet>(task_packet,
                                                                    task_packet_publisher);
@@ -183,8 +171,7 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
     // after we've left the state due to timeout
     std::shared_ptr<lifetime_token> lifetime_{std::make_shared<lifetime_token>()};
 
-    // storm_id of packets published to Goby and neither ack'd nor expired yet
-    std::set<int> in_flight_;
-    // storm_id -> earliest time to republish, for packets Goby could not buffer
-    std::map<int, goby::time::SteadyClock::time_point> deferred_until_;
+    // storm_ids this state waits on; empty means the whole queue (see
+    // task_packets_outstanding())
+    std::set<int> owned_task_packet_ids_;
 };

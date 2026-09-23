@@ -219,9 +219,11 @@ jaiabot::apps::StormManager::task_packet_path(const protobuf::TaskPacket& task_p
     return outbox_dir() / (std::to_string(task_packet.storm_id()) + ".taskpacket");
 }
 
-void jaiabot::apps::StormManager::enqueue_task_packet(protobuf::TaskPacket task_packet)
+std::optional<int>
+jaiabot::apps::StormManager::enqueue_task_packet(protobuf::TaskPacket task_packet)
 {
     machine_->add_id(task_packet);
+    const int storm_id = task_packet.storm_id();
 
     try
     {
@@ -241,7 +243,10 @@ void jaiabot::apps::StormManager::enqueue_task_packet(protobuf::TaskPacket task_
     {
         glog.is_warn() && glog << "[iridium] Failed to persist TaskPacket: " << exception.what()
                                << std::endl;
+        return std::nullopt;
     }
+
+    return storm_id;
 }
 
 void jaiabot::apps::StormManager::acknowledge_task_packet(const protobuf::TaskPacket& task_packet)
@@ -261,7 +266,39 @@ void jaiabot::apps::StormManager::complete_task_packet(const protobuf::TaskPacke
     // late ack still dequeues correctly. Without this the packet is replayed from the
     // outbox on every subsequent wake and heads the queue forever.
     if (machine_)
+    {
         std::erase(machine_->task_packet_queue(), task_packet);
+        machine_->task_packets_in_flight().erase(task_packet.storm_id());
+        machine_->task_packets_deferred_until().erase(task_packet.storm_id());
+    }
+}
+
+void jaiabot::apps::StormManager::task_packet_expired(
+    const protobuf::TaskPacket& task_packet,
+    goby::middleware::intervehicle::protobuf::ExpireData::ExpireReason reason)
+{
+    if (!machine_)
+        return;
+
+    machine_->task_packets_in_flight().erase(task_packet.storm_id());
+
+    switch (reason)
+    {
+        case goby::middleware::intervehicle::protobuf::ExpireData::EXPIRED_TIME_TO_LIVE_EXCEEDED:
+            // it was buffered but never ack'd in time - eligible to resend immediately
+            break;
+
+        case goby::middleware::intervehicle::protobuf::ExpireData::EXPIRED_NO_SUBSCRIBERS:
+        case goby::middleware::intervehicle::protobuf::ExpireData::EXPIRED_BUFFER_OVERFLOW:
+            // Goby could not buffer this at all and expires it with zero latency.
+            // Republishing straight away would re-expire on the next poll and spin for as
+            // long as the condition lasts - which for EXPIRED_NO_SUBSCRIBERS is the whole
+            // window after each wake, while the hub's Iridium subscription is coming up.
+            machine_->task_packets_deferred_until()[task_packet.storm_id()] =
+                goby::time::SteadyClock::now() +
+                statechart::StormManagerStateMachine::task_packet_retry_interval();
+            break;
+    }
 }
 
 std::size_t jaiabot::apps::StormManager::task_packet_queue_depth() const

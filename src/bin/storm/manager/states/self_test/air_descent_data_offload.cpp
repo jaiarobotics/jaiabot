@@ -86,6 +86,12 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::loop(const EvLoop& e
             next_mcu_send_time_ = now + this->machine().mcu_send_interval();
         }
     }
+    else if (!task_packets_outstanding())
+    {
+        // see the equivalent check in sleep_prep::DataOffload::loop()
+        post_event(EvAirDescentDataTransmitted());
+        return;
+    }
     else
     {
         retry_pending_task_packets();
@@ -160,6 +166,11 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::
         auto end_time = start_time + this_packet_duration;
         task_packet.set_start_time_with_units(start_time);
         task_packet.set_end_time_with_units(end_time);
-        this->app().enqueue_task_packet(task_packet);
+
+        // Only wait on the packets we just created. The queue can also hold a backlog
+        // replayed from the outbox on a previous wake; we help send that, but blocking
+        // self test on it would delay the mission. SleepPrep::DataOffload drains it.
+        if (auto storm_id = this->app().enqueue_task_packet(task_packet))
+            owned_task_packet_ids_.insert(*storm_id);
     }
 }

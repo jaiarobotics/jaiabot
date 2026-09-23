@@ -51,6 +51,16 @@ struct DataOffload : boost::statechart::state<DataOffload, SleepPrep>,
             return;
         }
 
+        // Checked here rather than relying on an ack callback: the queue may well be
+        // drained by acks for packets published by SelfTest::AirDescentDataOffload, whose
+        // lifetime token is long gone, so no callback of ours would ever post completion
+        // and we would sit here until the timeout with nothing left to send.
+        if (!this->task_packets_outstanding())
+        {
+            post_event(EvDataOffloadComplete());
+            return;
+        }
+
         this->retry_pending_task_packets();
     }
 

@@ -23,6 +23,8 @@
 #pragma once
 
 #include <algorithm>
+#include <map>
+#include <set>
 
 // Boost
 #include <boost/statechart/state_machine.hpp>
@@ -111,11 +113,35 @@ struct StormManagerStateMachine
     }
     std::deque<protobuf::TaskPacket>& task_packet_queue() { return task_packet_queue_; }
 
+    // Tracked on the machine rather than per state: a wake runs both
+    // SelfTest::AirDescentDataOffload and SleepPrep::DataOffload, and packets published
+    // by the first stay in Goby's DynamicBuffer (ttl 3000 s) well after it exits. Per
+    // state sets would let the second publish the same storm_ids again, roughly doubling
+    // SBD usage for a backlog.
+    std::set<int>& task_packets_in_flight() { return task_packets_in_flight_; }
+    std::map<int, goby::time::SteadyClock::time_point>& task_packets_deferred_until()
+    {
+        return task_packets_deferred_until_;
+    }
+
     // how often to send requests to the MCU
     constexpr static goby::time::SteadyClock::duration mcu_send_interval()
     {
         return std::chrono::seconds(1);
     }
+
+    // how long to wait before republishing a TaskPacket that Goby could not buffer
+    constexpr static goby::time::SteadyClock::duration task_packet_retry_interval()
+    {
+        return std::chrono::seconds(30);
+    }
+
+    // Publish several TaskPackets at once and let Goby's DynamicBuffer handle
+    // retransmission, rather than sending one and waiting for its ack. A single Iridium
+    // round trip has been measured at 33-176 s, so a serial send cannot drain a backlog
+    // within data_offload_timeout_minutes. Held below the hub-side task_packet_buffer
+    // max_queue of 42 so our publications cannot overflow it.
+    constexpr static std::size_t max_task_packets_in_flight() { return 8; }
 
   private:
     apps::StormManager& app_;
@@ -134,6 +160,8 @@ struct StormManagerStateMachine
     bool parachute_attachment_recovery_attempted_{false};
     int task_packet_id_{0};
     std::deque<protobuf::TaskPacket> task_packet_queue_;
+    std::set<int> task_packets_in_flight_;
+    std::map<int, goby::time::SteadyClock::time_point> task_packets_deferred_until_;
 };
 
 } // namespace statechart
