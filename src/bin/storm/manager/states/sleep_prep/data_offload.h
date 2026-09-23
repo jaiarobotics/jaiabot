@@ -40,7 +40,18 @@ struct DataOffload : boost::statechart::state<DataOffload, SleepPrep>,
     {
         auto now = goby::time::SteadyClock::now();
         if (now >= offload_timeout_)
+        {
+            goby::glog.is_warn() &&
+                goby::glog << group("statechart") << "[iridium] Data offload timed out with "
+                           << this->machine().task_packet_queue().size()
+                           << " TaskPacket(s) outstanding; they stay in the outbox and are "
+                              "retried on the next wake"
+                           << std::endl;
             post_event(EvDataOffloadTimeout());
+            return;
+        }
+
+        this->retry_pending_task_packets();
     }
 
   public:

@@ -53,6 +53,11 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     void send_activate_command();
     void enqueue_task_packet(protobuf::TaskPacket task_packet);
     void acknowledge_task_packet(const protobuf::TaskPacket& task_packet);
+    // Removes the persisted copy and dequeues the packet. Safe to call from an
+    // intervehicle ack callback after the originating state has exited, which is
+    // routine as acks can arrive long after data_offload_timeout_minutes.
+    void complete_task_packet(const protobuf::TaskPacket& task_packet);
+    std::size_t task_packet_queue_depth() const;
 
   private:
     void initialize() override;

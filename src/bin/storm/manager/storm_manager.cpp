@@ -253,6 +253,22 @@ void jaiabot::apps::StormManager::acknowledge_task_packet(const protobuf::TaskPa
                                << error.message() << std::endl;
 }
 
+void jaiabot::apps::StormManager::complete_task_packet(const protobuf::TaskPacket& task_packet)
+{
+    acknowledge_task_packet(task_packet);
+
+    // The queue lives in the state machine, which outlives any individual state, so a
+    // late ack still dequeues correctly. Without this the packet is replayed from the
+    // outbox on every subsequent wake and heads the queue forever.
+    if (machine_)
+        std::erase(machine_->task_packet_queue(), task_packet);
+}
+
+std::size_t jaiabot::apps::StormManager::task_packet_queue_depth() const
+{
+    return machine_ ? machine_->task_packet_queue().size() : 0;
+}
+
 void jaiabot::apps::StormManager::load_pending_task_packets()
 {
     const auto outbox_dir = this->outbox_dir();
@@ -319,6 +335,7 @@ void jaiabot::apps::StormManager::publish_mission_report(protobuf::StormMissionS
     auto current_time = goby::time::SteadyClock::now();
     protobuf::StormMissionReport report;
     report.set_state(state);
+    report.set_task_packet_queue_depth(task_packet_queue_depth());
 
     interprocess().publish<jaiabot::groups::storm::mission_report>(report);
 }

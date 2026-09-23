@@ -86,9 +86,19 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::loop(const EvLoop& e
             next_mcu_send_time_ = now + this->machine().mcu_send_interval();
         }
     }
+    else
+    {
+        retry_pending_task_packets();
+    }
 
     if (now >= offload_timeout_)
     {
+        glog.is_warn() && glog << group("statechart")
+                               << "[iridium] Air descent data offload timed out with "
+                               << this->machine().task_packet_queue().size()
+                               << " TaskPacket(s) outstanding; they stay in the outbox and are "
+                                  "retried on the next wake"
+                               << std::endl;
         this->machine().insert_warning(
             protobuf::WARNING__STORM_SELF_TEST__AIR_DESCENT_DATA_OFFLOAD_TIMEOUT);
         post_event(EvAirDescentDataTimeout());
@@ -130,6 +140,13 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::
                                                      .max_repeat();
 
         // use the overall start/end time to determine start/end time for each packet
+        //
+        // NB: jaiabot_hub_manager deduplicates TaskPackets on (bot_id, start_time) alone,
+        // and start_time is encoded with dccl.time2 (~1 s resolution). At the current
+        // bounds - max_repeat 100 samples, sample_rate max 100 Hz - consecutive packets
+        // are 1.0 s apart, which survives with no margin. If either bound changes (higher
+        // sample_rate, or fewer samples per packet) the hub will start silently dropping
+        // air descent packets as repeats.
         goby::time::MicroTime full_packet_duration(static_cast<float>(samples_per_packet) /
                                                    air_descent_metadata_->sample_rate_with_units());
         auto start_time = air_descent_metadata_->start_time_with_units() +
