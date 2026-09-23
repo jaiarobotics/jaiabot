@@ -68,19 +68,38 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
         const auto now = goby::time::SteadyClock::now();
 
         std::vector<protobuf::TaskPacket> to_send;
-        for (const auto& task_packet : machine.task_packet_queue())
+
+        auto consider = [&](const protobuf::TaskPacket& task_packet)
         {
             if (in_flight.size() + to_send.size() >= machine.max_task_packets_in_flight())
-                break;
+                return;
             if (in_flight.count(task_packet.storm_id()))
-                continue;
+                return;
 
             auto deferred_it = deferred_until.find(task_packet.storm_id());
             if (deferred_it != deferred_until.end() && now < deferred_it->second)
-                continue;
+                return;
 
             to_send.push_back(task_packet);
-        }
+        };
+
+        auto is_owned = [this](const protobuf::TaskPacket& task_packet)
+        { return owned_task_packet_ids_->count(task_packet.storm_id()) > 0; };
+
+        // Our own packets claim pipeline slots first. The in-flight cap is shared, and a
+        // backlog replayed from the outbox sits ahead of them in the queue, so without
+        // this pass self test would still block on backlog round trips - 33-176 s each
+        // over Iridium - which is precisely what scoping the completion check was meant
+        // to avoid. Scoped completion only helps if the owned packets are also sent first.
+        if (owned_task_packet_ids_)
+            for (const auto& task_packet : machine.task_packet_queue())
+                if (is_owned(task_packet))
+                    consider(task_packet);
+
+        // then fill any slots left over with the rest of the queue, oldest first
+        for (const auto& task_packet : machine.task_packet_queue())
+            if (!owned_task_packet_ids_ || !is_owned(task_packet))
+                consider(task_packet);
 
         for (const auto& task_packet : to_send) publish_task_packet(task_packet);
     }
