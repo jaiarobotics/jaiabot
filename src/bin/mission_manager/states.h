@@ -31,8 +31,6 @@
 #include <boost/statechart/custom_reaction.hpp>
 
 // Protobuf
-#include <unistd.h> // sync()
-
 #include <google/protobuf/util/json_util.h>
 
 // Jaiabot
