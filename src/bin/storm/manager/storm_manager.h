@@ -30,6 +30,8 @@
 #include <goby/middleware/io/cobs/serial.h>
 #include <goby/zeromq/application/multi_thread.h>
 
+#include <optional>
+
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
@@ -51,8 +53,19 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     // so states can send directly to MCU
     void send_to_mcu(const protobuf::StormMCURequest& request);
     void send_activate_command();
-    void enqueue_task_packet(protobuf::TaskPacket task_packet);
+    // Returns the assigned storm_id, or nothing if it could not be persisted (and so
+    // was not queued).
+    std::optional<int> enqueue_task_packet(protobuf::TaskPacket task_packet);
     void acknowledge_task_packet(const protobuf::TaskPacket& task_packet);
+    // Removes the persisted copy and dequeues; safe to call after the originating state
+    // has exited. True if this call dequeued, false for Goby's repeat acks.
+    bool complete_task_packet(const protobuf::TaskPacket& task_packet);
+    // Clears in-flight bookkeeping and schedules a retry where Goby couldn't buffer the
+    // packet. Also safe after the originating state has exited.
+    void
+    task_packet_expired(const protobuf::TaskPacket& task_packet,
+                        goby::middleware::intervehicle::protobuf::ExpireData::ExpireReason reason);
+    std::size_t task_packet_queue_depth() const;
 
   private:
     void initialize() override;

@@ -86,9 +86,25 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::loop(const EvLoop& e
             next_mcu_send_time_ = now + this->machine().mcu_send_interval();
         }
     }
+    else if (!task_packets_outstanding())
+    {
+        // see the equivalent check in sleep_prep::DataOffload::loop()
+        post_event(EvAirDescentDataTransmitted());
+        return;
+    }
+    else
+    {
+        retry_pending_task_packets();
+    }
 
     if (now >= offload_timeout_)
     {
+        glog.is_warn() && glog << group("statechart")
+                               << "[iridium] Air descent data offload timed out with "
+                               << this->machine().task_packet_queue().size()
+                               << " TaskPacket(s) outstanding; they stay in the outbox and are "
+                                  "retried on the next wake"
+                               << std::endl;
         this->machine().insert_warning(
             protobuf::WARNING__STORM_SELF_TEST__AIR_DESCENT_DATA_OFFLOAD_TIMEOUT);
         post_event(EvAirDescentDataTimeout());
@@ -116,6 +132,10 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::try_send_to_mcu()
 void jaiabot::statechart::self_test::AirDescentDataOffload::
     convert_air_descent_data_to_task_packets()
 {
+    // Set before enqueuing, so a run where every enqueue fails still means "nothing of
+    // mine outstanding" rather than falling back to the whole queue.
+    owned_task_packet_ids_.emplace();
+
     for (const auto& [id, air_data] : air_descent_data_)
     {
         protobuf::TaskPacket task_packet;
@@ -129,7 +149,8 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::
                                                      .GetExtension(dccl::field)
                                                      .max_repeat();
 
-        // use the overall start/end time to determine start/end time for each packet
+        // derive each packet's start/end from the overall start/end. NB: the hub dedupes on
+        // (bot_id, start_time); at these bounds packets are 1.0 s apart - no margin.
         goby::time::MicroTime full_packet_duration(static_cast<float>(samples_per_packet) /
                                                    air_descent_metadata_->sample_rate_with_units());
         auto start_time = air_descent_metadata_->start_time_with_units() +
@@ -143,6 +164,10 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::
         auto end_time = start_time + this_packet_duration;
         task_packet.set_start_time_with_units(start_time);
         task_packet.set_end_time_with_units(end_time);
-        this->app().enqueue_task_packet(task_packet);
+
+        // Only wait on the packets we just created; SleepPrep::DataOffload drains any
+        // backlog replayed from the outbox.
+        if (auto storm_id = this->app().enqueue_task_packet(task_packet))
+            owned_task_packet_ids_->insert(*storm_id);
     }
 }

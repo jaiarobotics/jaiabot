@@ -219,9 +219,11 @@ jaiabot::apps::StormManager::task_packet_path(const protobuf::TaskPacket& task_p
     return outbox_dir() / (std::to_string(task_packet.storm_id()) + ".taskpacket");
 }
 
-void jaiabot::apps::StormManager::enqueue_task_packet(protobuf::TaskPacket task_packet)
+std::optional<int>
+jaiabot::apps::StormManager::enqueue_task_packet(protobuf::TaskPacket task_packet)
 {
     machine_->add_id(task_packet);
+    const int storm_id = task_packet.storm_id();
 
     try
     {
@@ -241,7 +243,10 @@ void jaiabot::apps::StormManager::enqueue_task_packet(protobuf::TaskPacket task_
     {
         glog.is_warn() && glog << "[iridium] Failed to persist TaskPacket: " << exception.what()
                                << std::endl;
+        return std::nullopt;
     }
+
+    return storm_id;
 }
 
 void jaiabot::apps::StormManager::acknowledge_task_packet(const protobuf::TaskPacket& task_packet)
@@ -251,6 +256,53 @@ void jaiabot::apps::StormManager::acknowledge_task_packet(const protobuf::TaskPa
     if (error)
         glog.is_warn() && glog << "[iridium] Failed to remove acknowledged TaskPacket: "
                                << error.message() << std::endl;
+}
+
+bool jaiabot::apps::StormManager::complete_task_packet(const protobuf::TaskPacket& task_packet)
+{
+    acknowledge_task_packet(task_packet);
+
+    // The machine outlives any individual state, so a late ack still dequeues correctly
+    if (!machine_)
+        return false;
+
+    // Goby acks each retransmitted copy, so this runs several times per storm_id; the
+    // repeats are no-ops. Report which call did the work so the caller can log just that.
+    const bool dequeued = std::erase(machine_->task_packet_queue(), task_packet) > 0;
+    machine_->task_packets_in_flight().erase(task_packet.storm_id());
+    machine_->task_packets_deferred_until().erase(task_packet.storm_id());
+    return dequeued;
+}
+
+void jaiabot::apps::StormManager::task_packet_expired(
+    const protobuf::TaskPacket& task_packet,
+    goby::middleware::intervehicle::protobuf::ExpireData::ExpireReason reason)
+{
+    if (!machine_)
+        return;
+
+    machine_->task_packets_in_flight().erase(task_packet.storm_id());
+
+    switch (reason)
+    {
+        case goby::middleware::intervehicle::protobuf::ExpireData::EXPIRED_TIME_TO_LIVE_EXCEEDED:
+            // it was buffered but never ack'd in time - eligible to resend immediately
+            break;
+
+        case goby::middleware::intervehicle::protobuf::ExpireData::EXPIRED_NO_SUBSCRIBERS:
+        case goby::middleware::intervehicle::protobuf::ExpireData::EXPIRED_BUFFER_OVERFLOW:
+            // Zero-latency expiry: republishing straight away would re-expire every
+            // poll for as long as the condition lasts, so let the EvLoop retry take it.
+            machine_->task_packets_deferred_until()[task_packet.storm_id()] =
+                goby::time::SteadyClock::now() +
+                statechart::StormManagerStateMachine::task_packet_retry_interval();
+            break;
+    }
+}
+
+std::size_t jaiabot::apps::StormManager::task_packet_queue_depth() const
+{
+    return machine_ ? machine_->task_packet_queue().size() : 0;
 }
 
 void jaiabot::apps::StormManager::load_pending_task_packets()
@@ -319,6 +371,7 @@ void jaiabot::apps::StormManager::publish_mission_report(protobuf::StormMissionS
     auto current_time = goby::time::SteadyClock::now();
     protobuf::StormMissionReport report;
     report.set_state(state);
+    report.set_task_packet_queue_depth(task_packet_queue_depth());
 
     interprocess().publish<jaiabot::groups::storm::mission_report>(report);
 }
