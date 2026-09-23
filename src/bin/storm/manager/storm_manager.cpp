@@ -23,9 +23,7 @@
 #include <boost/units/systems/si/frequency.hpp>
 #include <algorithm>
 #include <cstdlib>
-#include <fcntl.h>
 #include <fstream>
-#include <unistd.h>
 namespace si = boost::units::si;
 using boost::units::quantity;
 
@@ -57,7 +55,6 @@ constexpr goby::middleware::Group mcu_serial_out{"jaiabot::storm::mcu_serial_out
 void jaiabot::apps::StormManager::initialize()
 {
     machine_.reset(new statechart::StormManagerStateMachine(*this, cfg().initial_mission()));
-    report_previous_wake_state();
     load_pending_task_packets();
 
     machine_->initiate();
@@ -92,7 +89,6 @@ jaiabot::apps::StormManager::StormManager()
 
                 // publish the mission report on each state change
                 publish_mission_report(state_change.state());
-                record_last_state(state_change.state());
             }
             else
                 glog.is_verbose() && glog << group("statechart") << "Exited: " << state_name
@@ -215,92 +211,6 @@ jaiabot::apps::StormManager::outbox_dir() const
     const std::filesystem::path root = log_dir ? log_dir : "/var/log/jaiabot";
     const std::string bot = bot_index ? bot_index : std::to_string(cfg().bot_id());
     return root / "bot" / bot / "storm_outbox";
-}
-
-std::filesystem::path jaiabot::apps::StormManager::last_state_path() const
-{
-    return outbox_dir().parent_path() / "storm_last_state";
-}
-
-std::string jaiabot::apps::StormManager::boot_id() const
-{
-    std::ifstream file("/proc/sys/kernel/random/boot_id");
-    std::string id;
-    if (file)
-        std::getline(file, id);
-    return id.empty() ? "unknown" : id;
-}
-
-void jaiabot::apps::StormManager::record_last_state(protobuf::StormMissionState state,
-                                                    const std::string& note)
-{
-    // Every state entry, not just Wrapup: a Wrapup-only marker would report the previous
-    // wake's state for a bot that died earlier. The boot id makes a stale marker visible.
-    const auto path = last_state_path();
-    const auto temporary_path = std::filesystem::path(path.string() + ".tmp");
-    const std::string contents = protobuf::StormMissionState_Name(state) +
-                                 (note.empty() ? "" : " (" + note + ")") + " at " +
-                                 goby::time::str() + " boot " + boot_id() + "\n";
-
-    std::error_code error;
-    std::filesystem::create_directories(path.parent_path(), error);
-
-    // temp + fsync + rename + fsync(dir): a cut mid-write leaves the old marker intact,
-    // and the directory fsync is what makes the new name durable.
-    int fd = ::open(temporary_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd < 0)
-    {
-        glog.is_warn() && glog << "Failed to open " << temporary_path << " to record last state"
-                               << std::endl;
-        return;
-    }
-
-    const bool written =
-        ::write(fd, contents.data(), contents.size()) == static_cast<ssize_t>(contents.size()) &&
-        ::fsync(fd) == 0;
-    ::close(fd);
-
-    if (!written)
-    {
-        glog.is_warn() && glog << "Failed to write last state to " << temporary_path << std::endl;
-        std::filesystem::remove(temporary_path, error);
-        return;
-    }
-
-    std::filesystem::rename(temporary_path, path, error);
-    if (error)
-    {
-        glog.is_warn() && glog << "Failed to install last state marker: " << error.message()
-                               << std::endl;
-        return;
-    }
-
-    int dir_fd = ::open(path.parent_path().c_str(), O_RDONLY | O_DIRECTORY);
-    if (dir_fd >= 0)
-    {
-        ::fsync(dir_fd);
-        ::close(dir_fd);
-    }
-
-    glog.is_debug1() && glog << "Recorded last state: " << contents;
-}
-
-void jaiabot::apps::StormManager::report_previous_wake_state()
-{
-    std::ifstream file(last_state_path());
-    std::string contents;
-    if (!file || !std::getline(file, contents) || contents.empty())
-    {
-        glog.is_verbose() && glog << "No record of how the previous wake ended" << std::endl;
-        return;
-    }
-
-    // written since we booted, so it says nothing about the previous wake
-    if (contents.find(boot_id()) != std::string::npos)
-        glog.is_warn() && glog << "Last state marker is from this boot, not the previous wake: "
-                               << contents << std::endl;
-    else
-        glog.is_verbose() && glog << "Previous wake ended in " << contents << std::endl;
 }
 
 std::filesystem::path

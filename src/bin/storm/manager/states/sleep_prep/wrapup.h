@@ -69,11 +69,7 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
     void mcu_response(const EvMCUResponse& ev)
     {
         if (ev.resp.sleep_initiated())
-        {
-            // distinguishes "reached Wrapup" from "the MCU acknowledged the sleep"
-            this->app().record_last_state(protobuf::SLEEP_PREP__WRAPUP, "sleep_initiated");
             post_event(EvSleepReady());
-        }
     }
 
     using reactions = boost::mpl::list<
