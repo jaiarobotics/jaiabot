@@ -29,9 +29,17 @@ struct ShuttingDown : boost::statechart::state<ShuttingDown, PostDeployment>,
 {
     using StateBase = boost::statechart::state<ShuttingDown, PostDeployment>;
 
-    ShuttingDown(typename StateBase::my_context c) 
-    : StateBase(c)
+    ShuttingDown(typename StateBase::my_context c) : StateBase(c)
     {
+        // Close the goby log before poweroff, then sync: close_log only flushes into the
+        // page cache, which is lost if power is cut mid-shutdown (as STORM's MCU may do).
+        glog.is_verbose() && glog << "Stop Logging (closing log before shutdown)" << std::endl;
+        goby::middleware::protobuf::LoggerRequest logger_request;
+        logger_request.set_requested_state(goby::middleware::protobuf::LoggerRequest::STOP_LOGGING);
+        logger_request.set_close_log(true);
+        interprocess().publish<goby::middleware::groups::logger_request>(logger_request);
+        ::sync();
+
         protobuf::Command shutdown;
         shutdown.set_bot_id(cfg().bot_id());
         shutdown.set_time_with_units(goby::time::SystemClock::now<goby::time::MicroTime>());

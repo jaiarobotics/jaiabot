@@ -50,6 +50,9 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
 
     // so states can send directly to MCU
     void send_to_mcu(const protobuf::StormMCURequest& request);
+    // fsync'd record of the state a wake ended in, so a lost log tail can't hide whether
+    // we reached Wrapup
+    void record_last_state(protobuf::StormMissionState state);
     void send_activate_command();
     void enqueue_task_packet(protobuf::TaskPacket task_packet);
     void acknowledge_task_packet(const protobuf::TaskPacket& task_packet);
@@ -67,7 +70,9 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     void handle_command(const protobuf::Command& command);
     void handle_storm_mission_update(const protobuf::StormMissionUpdate& storm_mission_update);
     void load_pending_task_packets();
+    void report_previous_wake_state();
     std::filesystem::path outbox_dir() const;
+    std::filesystem::path last_state_path() const;
     std::filesystem::path task_packet_path(const protobuf::TaskPacket& task_packet) const;
 
     template <typename Derived> friend class statechart::AppMethodsAccess;

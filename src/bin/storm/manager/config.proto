@@ -39,4 +39,11 @@ message StormManager
     optional uint32 gps_fix_wait_timeout_seconds = 40
         [default = 0, (dccl.field).units = { base_dimensions: "T" }];
 
+    // Separate from the mission's data_offload_timeout_minutes, which sleep prep needs to
+    // be tens of minutes for Iridium; this wait is pure delay on a bot with no air
+    // descent data. Kept here rather than in StormMission, which rides inside the DCCL
+    // Command where a new field changes the wire hash.
+    optional uint32 air_descent_data_offload_timeout_seconds = 41
+        [default = 60, (dccl.field).units = { base_dimensions: "T" }];
+
 }

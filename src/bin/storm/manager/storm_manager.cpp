@@ -23,7 +23,9 @@
 #include <boost/units/systems/si/frequency.hpp>
 #include <algorithm>
 #include <cstdlib>
+#include <fcntl.h>
 #include <fstream>
+#include <unistd.h>
 namespace si = boost::units::si;
 using boost::units::quantity;
 
@@ -55,6 +57,7 @@ constexpr goby::middleware::Group mcu_serial_out{"jaiabot::storm::mcu_serial_out
 void jaiabot::apps::StormManager::initialize()
 {
     machine_.reset(new statechart::StormManagerStateMachine(*this, cfg().initial_mission()));
+    report_previous_wake_state();
     load_pending_task_packets();
 
     machine_->initiate();
@@ -211,6 +214,50 @@ jaiabot::apps::StormManager::outbox_dir() const
     const std::filesystem::path root = log_dir ? log_dir : "/var/log/jaiabot";
     const std::string bot = bot_index ? bot_index : std::to_string(cfg().bot_id());
     return root / "bot" / bot / "storm_outbox";
+}
+
+std::filesystem::path jaiabot::apps::StormManager::last_state_path() const
+{
+    return outbox_dir().parent_path() / "storm_last_state";
+}
+
+void jaiabot::apps::StormManager::record_last_state(protobuf::StormMissionState state)
+{
+    // Written with fsync rather than ofstream: a plain close only reaches the page cache,
+    // which is lost in the abrupt power cut this record exists to survive.
+    const auto path = last_state_path();
+    const std::string contents =
+        protobuf::StormMissionState_Name(state) + " at " + goby::time::str() + "\n";
+
+    std::error_code error;
+    std::filesystem::create_directories(path.parent_path(), error);
+
+    int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0)
+    {
+        glog.is_warn() && glog << "Failed to open " << path << " to record last state" << std::endl;
+        return;
+    }
+
+    const bool written =
+        ::write(fd, contents.data(), contents.size()) == static_cast<ssize_t>(contents.size()) &&
+        ::fsync(fd) == 0;
+    ::close(fd);
+
+    if (!written)
+        glog.is_warn() && glog << "Failed to write last state to " << path << std::endl;
+    else
+        glog.is_verbose() && glog << "Recorded last state: " << contents;
+}
+
+void jaiabot::apps::StormManager::report_previous_wake_state()
+{
+    std::ifstream file(last_state_path());
+    std::string contents;
+    if (file && std::getline(file, contents) && !contents.empty())
+        glog.is_verbose() && glog << "Previous wake ended in " << contents << std::endl;
+    else
+        glog.is_verbose() && glog << "No record of how the previous wake ended" << std::endl;
 }
 
 std::filesystem::path

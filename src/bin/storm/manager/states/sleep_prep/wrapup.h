@@ -28,7 +28,12 @@ struct Wrapup : boost::statechart::state<Wrapup, SleepPrep>,
 {
     using StateBase = boost::statechart::state<Wrapup, SleepPrep>;
 
-    Wrapup(typename StateBase::my_context c) : StateBase(c) {}
+    Wrapup(typename StateBase::my_context c) : StateBase(c)
+    {
+        // durable marker: if the log tail is lost to a power cut, this still proves we
+        // got here rather than dying earlier in DataOffload
+        this->app().record_last_state(protobuf::SLEEP_PREP__WRAPUP);
+    }
     ~Wrapup() {}
 
     void loop(const EvLoop& ev)
