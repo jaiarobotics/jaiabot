@@ -27,15 +27,8 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
         fill_pipeline();
     }
 
-    // Are any of the packets this state is waiting on still queued?
-    //
-    // An unset owned_task_packet_ids_ means "the whole queue" - that is DataOffload,
-    // which drains everything before sleep. AirDescentDataOffload sets it so that self
-    // test finishes once its own packets are ack'd, rather than blocking the mission on a
-    // backlog replayed from a previous wake. It still helps send that backlog; it just
-    // does not wait for it. Set-but-empty is meaningful: that is what we get when every
-    // enqueue_task_packet() failed to persist, and it must not fall back to waiting on
-    // the whole queue.
+    // Unset means wait on the whole queue (DataOffload); a set means only those ids, so
+    // self test isn't blocked on a backlog replayed from a previous wake.
     bool task_packets_outstanding()
     {
         const auto& queue = static_cast<Derived*>(this)->machine().task_packet_queue();
@@ -47,10 +40,8 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
                            { return owned_task_packet_ids_->count(task_packet.storm_id()) > 0; });
     }
 
-    // Drives deferred retries; call from each state's EvLoop reaction. Unlike
-    // try_send_to_shore() this never posts the completion event - each state checks for
-    // completion itself, so that it does not depend on which state's ack callback happens
-    // to see the queue drain.
+    // Drives deferred retries from each state's EvLoop reaction. Never posts the
+    // completion event; each state checks that itself.
     void retry_pending_task_packets()
     {
         if (static_cast<Derived*>(this)->machine().task_packet_queue().empty())
@@ -86,11 +77,8 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
         auto is_owned = [this](const protobuf::TaskPacket& task_packet)
         { return owned_task_packet_ids_->count(task_packet.storm_id()) > 0; };
 
-        // Our own packets claim pipeline slots first. The in-flight cap is shared, and a
-        // backlog replayed from the outbox sits ahead of them in the queue, so without
-        // this pass self test would still block on backlog round trips - 33-176 s each
-        // over Iridium - which is precisely what scoping the completion check was meant
-        // to avoid. Scoped completion only helps if the owned packets are also sent first.
+        // Own packets claim slots first: the cap is shared and a replayed backlog sits
+        // ahead of them, so otherwise self test still waits on backlog round trips.
         if (owned_task_packet_ids_)
             for (const auto& task_packet : machine.task_packet_queue())
                 if (is_owned(task_packet))
@@ -115,15 +103,11 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
             [self, app, weak_lifetime](const protobuf::TaskPacket& msg,
                                        const goby::middleware::intervehicle::protobuf::AckData& ack)
         {
-            // Deliberately outside if_alive: acks routinely arrive after we have left this
-            // state, since an Iridium round trip can exceed data_offload_timeout_minutes.
-            // Skipping this leaves the outbox file behind, so the same packet heads the
-            // queue on every subsequent wake and starves everything behind it.
+            // Outside if_alive: acks often arrive after we've left the state, and skipping
+            // this leaves the outbox file to head the queue on every subsequent wake.
             const bool dequeued = app->complete_task_packet(msg);
 
-            // Goby delivers an ack per retransmitted copy, so repeats are expected and
-            // harmless - keep them out of the verbose log where they would swamp the one
-            // ack that actually completed the packet.
+            // Goby acks each retransmitted copy, so keep repeats out of the verbose log.
             if (dequeued)
                 goby::glog.is_verbose() && goby::glog
                                                << group("statechart")
@@ -151,8 +135,7 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
                          }
                          else
                          {
-                             // acks can arrive in any order with several in flight; just
-                             // top the pipeline back up
+                             // acks can arrive in any order; just top the pipeline back up
                              self->fill_pipeline();
                          }
                      });
@@ -171,9 +154,8 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
                            expire.reason())
                     << std::endl;
 
-            // Also outside if_alive: a packet that expires after its state has exited must
-            // still be cleared from the in-flight set, or nothing republishes it for the
-            // rest of this wake.
+            // Also outside if_alive, or a packet expiring after its state exits stays
+            // marked in flight and is never republished this wake.
             app->task_packet_expired(msg, expire.reason());
 
             // only run if we're still in this state (and "self" is valid)
@@ -192,8 +174,7 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
         goby::middleware::Publisher<protobuf::TaskPacket> task_packet_publisher(
             {}, dummy_group_func, acked_func, expired_func);
 
-        // Logged so that duplicate publications can be counted per storm_id from the
-        // glog alone, without having to decode modem_data_out from the binary log.
+        // lets duplicate publications be counted per storm_id from the glog alone
         goby::glog.is_verbose() && goby::glog << group("statechart")
                                               << "[iridium] Publishing TaskPacket with id: "
                                               << task_packet.storm_id() << std::endl;
@@ -209,7 +190,6 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
     // after we've left the state due to timeout
     std::shared_ptr<lifetime_token> lifetime_{std::make_shared<lifetime_token>()};
 
-    // storm_ids this state waits on; unset means the whole queue (see
-    // task_packets_outstanding())
+    // storm_ids this state waits on; unset means the whole queue
     std::optional<std::set<int>> owned_task_packet_ids_;
 };

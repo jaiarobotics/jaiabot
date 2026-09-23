@@ -237,9 +237,8 @@ message StormMissionReport
 
     required StormMissionState state = 10;
 
-    // Number of TaskPackets still waiting to be sent/acknowledged over Iridium.
-    // Interprocess only (this message is not transmitted), so adding fields here
-    // does not affect any over-the-wire DCCL hash.
+    // TaskPackets still waiting to be sent/acknowledged. Interprocess only, so fields
+    // here do not affect any over-the-wire DCCL hash.
     optional uint32 task_packet_queue_depth = 20;
 }
 

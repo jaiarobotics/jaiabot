@@ -132,9 +132,8 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::try_send_to_mcu()
 void jaiabot::statechart::self_test::AirDescentDataOffload::
     convert_air_descent_data_to_task_packets()
 {
-    // Mark that we track our own packets before enqueuing any, so that a run where every
-    // enqueue fails to persist still means "nothing of mine outstanding" rather than
-    // falling back to waiting on the whole queue.
+    // Set before enqueuing, so a run where every enqueue fails still means "nothing of
+    // mine outstanding" rather than falling back to the whole queue.
     owned_task_packet_ids_.emplace();
 
     for (const auto& [id, air_data] : air_descent_data_)
@@ -150,14 +149,8 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::
                                                      .GetExtension(dccl::field)
                                                      .max_repeat();
 
-        // use the overall start/end time to determine start/end time for each packet
-        //
-        // NB: jaiabot_hub_manager deduplicates TaskPackets on (bot_id, start_time) alone,
-        // and start_time is encoded with dccl.time2 (~1 s resolution). At the current
-        // bounds - max_repeat 100 samples, sample_rate max 100 Hz - consecutive packets
-        // are 1.0 s apart, which survives with no margin. If either bound changes (higher
-        // sample_rate, or fewer samples per packet) the hub will start silently dropping
-        // air descent packets as repeats.
+        // derive each packet's start/end from the overall start/end. NB: the hub dedupes on
+        // (bot_id, start_time); at these bounds packets are 1.0 s apart - no margin.
         goby::time::MicroTime full_packet_duration(static_cast<float>(samples_per_packet) /
                                                    air_descent_metadata_->sample_rate_with_units());
         auto start_time = air_descent_metadata_->start_time_with_units() +
@@ -172,9 +165,8 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::
         task_packet.set_start_time_with_units(start_time);
         task_packet.set_end_time_with_units(end_time);
 
-        // Only wait on the packets we just created. The queue can also hold a backlog
-        // replayed from the outbox on a previous wake; we help send that, but blocking
-        // self test on it would delay the mission. SleepPrep::DataOffload drains it.
+        // Only wait on the packets we just created; SleepPrep::DataOffload drains any
+        // backlog replayed from the outbox.
         if (auto storm_id = this->app().enqueue_task_packet(task_packet))
             owned_task_packet_ids_->insert(*storm_id);
     }

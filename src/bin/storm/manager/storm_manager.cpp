@@ -262,17 +262,12 @@ bool jaiabot::apps::StormManager::complete_task_packet(const protobuf::TaskPacke
 {
     acknowledge_task_packet(task_packet);
 
-    // The queue lives in the state machine, which outlives any individual state, so a
-    // late ack still dequeues correctly. Without this the packet is replayed from the
-    // outbox on every subsequent wake and heads the queue forever.
+    // The machine outlives any individual state, so a late ack still dequeues correctly
     if (!machine_)
         return false;
 
-    // Goby retransmits an unacked packet every ack_timeout and delivers an ack callback
-    // for each copy the subscriber receives, so this runs several times per storm_id as a
-    // matter of course. Removing an already-removed file and erasing an absent queue
-    // entry are both no-ops, so repeats are harmless; report which call did the work so
-    // the caller can keep the repeats out of the verbose log.
+    // Goby acks each retransmitted copy, so this runs several times per storm_id; the
+    // repeats are no-ops. Report which call did the work so the caller can log just that.
     const bool dequeued = std::erase(machine_->task_packet_queue(), task_packet) > 0;
     machine_->task_packets_in_flight().erase(task_packet.storm_id());
     machine_->task_packets_deferred_until().erase(task_packet.storm_id());
@@ -296,10 +291,8 @@ void jaiabot::apps::StormManager::task_packet_expired(
 
         case goby::middleware::intervehicle::protobuf::ExpireData::EXPIRED_NO_SUBSCRIBERS:
         case goby::middleware::intervehicle::protobuf::ExpireData::EXPIRED_BUFFER_OVERFLOW:
-            // Goby could not buffer this at all and expires it with zero latency.
-            // Republishing straight away would re-expire on the next poll and spin for as
-            // long as the condition lasts - which for EXPIRED_NO_SUBSCRIBERS is the whole
-            // window after each wake, while the hub's Iridium subscription is coming up.
+            // Zero-latency expiry: republishing straight away would re-expire every
+            // poll for as long as the condition lasts, so let the EvLoop retry take it.
             machine_->task_packets_deferred_until()[task_packet.storm_id()] =
                 goby::time::SteadyClock::now() +
                 statechart::StormManagerStateMachine::task_packet_retry_interval();

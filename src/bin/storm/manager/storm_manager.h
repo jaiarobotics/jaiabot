@@ -53,19 +53,15 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     // so states can send directly to MCU
     void send_to_mcu(const protobuf::StormMCURequest& request);
     void send_activate_command();
-    // Returns the assigned storm_id, or nothing if the packet could not be persisted
-    // (in which case it is not queued and will never be sent).
+    // Returns the assigned storm_id, or nothing if it could not be persisted (and so
+    // was not queued).
     std::optional<int> enqueue_task_packet(protobuf::TaskPacket task_packet);
     void acknowledge_task_packet(const protobuf::TaskPacket& task_packet);
-    // Removes the persisted copy and dequeues the packet. Safe to call from an
-    // intervehicle ack callback after the originating state has exited, which is
-    // routine as acks can arrive long after data_offload_timeout_minutes.
-    // Returns true if this call is the one that dequeued the packet, false for the
-    // repeat acks Goby delivers for its own retransmissions.
+    // Removes the persisted copy and dequeues; safe to call after the originating state
+    // has exited. True if this call dequeued, false for Goby's repeat acks.
     bool complete_task_packet(const protobuf::TaskPacket& task_packet);
-    // Clears in-flight bookkeeping and, where Goby could not buffer the packet at all,
-    // schedules a retry. Also safe to call after the originating state has exited -
-    // otherwise the packet stays marked in flight and is never republished this wake.
+    // Clears in-flight bookkeeping and schedules a retry where Goby couldn't buffer the
+    // packet. Also safe after the originating state has exited.
     void
     task_packet_expired(const protobuf::TaskPacket& task_packet,
                         goby::middleware::intervehicle::protobuf::ExpireData::ExpireReason reason);

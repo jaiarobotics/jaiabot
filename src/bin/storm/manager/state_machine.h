@@ -113,20 +113,8 @@ struct StormManagerStateMachine
     }
     std::deque<protobuf::TaskPacket>& task_packet_queue() { return task_packet_queue_; }
 
-    // Tracked on the machine rather than per state: a wake runs both
-    // SelfTest::AirDescentDataOffload and SleepPrep::DataOffload, and packets published
-    // by the first stay in Goby's DynamicBuffer (ttl 3000 s) well after it exits. Per
-    // state sets would let the second publish the same storm_ids again, roughly doubling
-    // SBD usage for a backlog.
-    //
-    // Known gap: entries leave the set only via an ack or an expire callback. If
-    // goby_intervehicle_portal restarts mid-wake the packets it held are gone and neither
-    // fires, so those storm_ids stay in flight for the rest of this process and are not
-    // republished until the next wake. Deliberately not swept on a timer: nothing
-    // distinguishes "the portal lost it" from "Goby is still retransmitting on a bad
-    // link", where a packet can legitimately sit unacked until the hub-side ttl of
-    // 3000 s, and any shorter threshold reintroduces duplicate publishes. The failure is
-    // bounded - one wasted offload window, with the packets still safe in the outbox.
+    // On the machine, not per state, or the second offload state republishes the first's
+    // packets. Not swept on a timer: a portal restart is indistinguishable from a retry.
     std::set<int>& task_packets_in_flight() { return task_packets_in_flight_; }
     std::map<int, goby::time::SteadyClock::time_point>& task_packets_deferred_until()
     {
@@ -145,11 +133,8 @@ struct StormManagerStateMachine
         return std::chrono::seconds(30);
     }
 
-    // Publish several TaskPackets at once and let Goby's DynamicBuffer handle
-    // retransmission, rather than sending one and waiting for its ack. A single Iridium
-    // round trip has been measured at 33-176 s, so a serial send cannot drain a backlog
-    // within data_offload_timeout_minutes. Held below the hub-side task_packet_buffer
-    // max_queue of 42 so our publications cannot overflow it.
+    // Pipeline depth: a serial send can't drain a backlog within
+    // data_offload_timeout_minutes. Below the hub-side task_packet_buffer max_queue of 42.
     constexpr static std::size_t max_task_packets_in_flight() { return 8; }
 
   private:
