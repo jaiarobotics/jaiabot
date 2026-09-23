@@ -258,19 +258,25 @@ void jaiabot::apps::StormManager::acknowledge_task_packet(const protobuf::TaskPa
                                << error.message() << std::endl;
 }
 
-void jaiabot::apps::StormManager::complete_task_packet(const protobuf::TaskPacket& task_packet)
+bool jaiabot::apps::StormManager::complete_task_packet(const protobuf::TaskPacket& task_packet)
 {
     acknowledge_task_packet(task_packet);
 
     // The queue lives in the state machine, which outlives any individual state, so a
     // late ack still dequeues correctly. Without this the packet is replayed from the
     // outbox on every subsequent wake and heads the queue forever.
-    if (machine_)
-    {
-        std::erase(machine_->task_packet_queue(), task_packet);
-        machine_->task_packets_in_flight().erase(task_packet.storm_id());
-        machine_->task_packets_deferred_until().erase(task_packet.storm_id());
-    }
+    if (!machine_)
+        return false;
+
+    // Goby retransmits an unacked packet every ack_timeout and delivers an ack callback
+    // for each copy the subscriber receives, so this runs several times per storm_id as a
+    // matter of course. Removing an already-removed file and erasing an absent queue
+    // entry are both no-ops, so repeats are harmless; report which call did the work so
+    // the caller can keep the repeats out of the verbose log.
+    const bool dequeued = std::erase(machine_->task_packet_queue(), task_packet) > 0;
+    machine_->task_packets_in_flight().erase(task_packet.storm_id());
+    machine_->task_packets_deferred_until().erase(task_packet.storm_id());
+    return dequeued;
 }
 
 void jaiabot::apps::StormManager::task_packet_expired(

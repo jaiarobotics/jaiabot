@@ -60,7 +60,9 @@ class StormManager : public goby::zeromq::MultiThreadApplication<config::StormMa
     // Removes the persisted copy and dequeues the packet. Safe to call from an
     // intervehicle ack callback after the originating state has exited, which is
     // routine as acks can arrive long after data_offload_timeout_minutes.
-    void complete_task_packet(const protobuf::TaskPacket& task_packet);
+    // Returns true if this call is the one that dequeued the packet, false for the
+    // repeat acks Goby delivers for its own retransmissions.
+    bool complete_task_packet(const protobuf::TaskPacket& task_packet);
     // Clears in-flight bookkeeping and, where Goby could not buffer the packet at all,
     // schedules a retry. Also safe to call after the originating state has exited -
     // otherwise the packet stays marked in flight and is never republished this wake.

@@ -115,16 +115,27 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
             [self, app, weak_lifetime](const protobuf::TaskPacket& msg,
                                        const goby::middleware::intervehicle::protobuf::AckData& ack)
         {
-            goby::glog.is_verbose() &&
-                goby::glog << group("statechart")
-                           << "[iridium] Ack received for TaskPacket with id: " << msg.storm_id()
-                           << ", ack: " << ack.ShortDebugString() << std::endl;
-
             // Deliberately outside if_alive: acks routinely arrive after we have left this
             // state, since an Iridium round trip can exceed data_offload_timeout_minutes.
             // Skipping this leaves the outbox file behind, so the same packet heads the
             // queue on every subsequent wake and starves everything behind it.
-            app->complete_task_packet(msg);
+            const bool dequeued = app->complete_task_packet(msg);
+
+            // Goby delivers an ack per retransmitted copy, so repeats are expected and
+            // harmless - keep them out of the verbose log where they would swamp the one
+            // ack that actually completed the packet.
+            if (dequeued)
+                goby::glog.is_verbose() && goby::glog
+                                               << group("statechart")
+                                               << "[iridium] Ack received for TaskPacket with id: "
+                                               << msg.storm_id()
+                                               << ", ack: " << ack.ShortDebugString() << std::endl;
+            else
+                goby::glog.is_debug2() &&
+                    goby::glog << group("statechart")
+                               << "[iridium] Repeat ack for already-completed TaskPacket "
+                                  "with id: "
+                               << msg.storm_id() << std::endl;
 
             // only run if we're still in this state (and "self" is valid)
             if_alive(weak_lifetime,
