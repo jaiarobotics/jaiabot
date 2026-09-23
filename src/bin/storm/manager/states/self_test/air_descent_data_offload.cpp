@@ -132,6 +132,11 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::try_send_to_mcu()
 void jaiabot::statechart::self_test::AirDescentDataOffload::
     convert_air_descent_data_to_task_packets()
 {
+    // Mark that we track our own packets before enqueuing any, so that a run where every
+    // enqueue fails to persist still means "nothing of mine outstanding" rather than
+    // falling back to waiting on the whole queue.
+    owned_task_packet_ids_.emplace();
+
     for (const auto& [id, air_data] : air_descent_data_)
     {
         protobuf::TaskPacket task_packet;
@@ -171,6 +176,6 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::
         // replayed from the outbox on a previous wake; we help send that, but blocking
         // self test on it would delay the mission. SleepPrep::DataOffload drains it.
         if (auto storm_id = this->app().enqueue_task_packet(task_packet))
-            owned_task_packet_ids_.insert(*storm_id);
+            owned_task_packet_ids_->insert(*storm_id);
     }
 }

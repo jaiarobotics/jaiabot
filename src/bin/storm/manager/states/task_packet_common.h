@@ -29,20 +29,22 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
 
     // Are any of the packets this state is waiting on still queued?
     //
-    // owned_task_packet_ids_ empty means "the whole queue" - that is DataOffload, which
-    // drains everything before sleep. AirDescentDataOffload populates it so that self
+    // An unset owned_task_packet_ids_ means "the whole queue" - that is DataOffload,
+    // which drains everything before sleep. AirDescentDataOffload sets it so that self
     // test finishes once its own packets are ack'd, rather than blocking the mission on a
     // backlog replayed from a previous wake. It still helps send that backlog; it just
-    // does not wait for it.
+    // does not wait for it. Set-but-empty is meaningful: that is what we get when every
+    // enqueue_task_packet() failed to persist, and it must not fall back to waiting on
+    // the whole queue.
     bool task_packets_outstanding()
     {
         const auto& queue = static_cast<Derived*>(this)->machine().task_packet_queue();
-        if (owned_task_packet_ids_.empty())
+        if (!owned_task_packet_ids_)
             return !queue.empty();
 
         return std::any_of(queue.begin(), queue.end(),
                            [this](const protobuf::TaskPacket& task_packet)
-                           { return owned_task_packet_ids_.count(task_packet.storm_id()) > 0; });
+                           { return owned_task_packet_ids_->count(task_packet.storm_id()) > 0; });
     }
 
     // Drives deferred retries; call from each state's EvLoop reaction. Unlike
@@ -171,7 +173,7 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
     // after we've left the state due to timeout
     std::shared_ptr<lifetime_token> lifetime_{std::make_shared<lifetime_token>()};
 
-    // storm_ids this state waits on; empty means the whole queue (see
+    // storm_ids this state waits on; unset means the whole queue (see
     // task_packets_outstanding())
-    std::set<int> owned_task_packet_ids_;
+    std::optional<std::set<int>> owned_task_packet_ids_;
 };
