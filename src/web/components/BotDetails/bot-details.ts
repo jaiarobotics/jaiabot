@@ -125,6 +125,19 @@ export function getDistToWaypoint(missionStatus: MissionStatus) {
 }
 
 /**
+ * Constructs a string to display the time left in the Bot's constant heading task
+ *
+ * @param {MissionStatus} missionStatus Contains the time remaining in the constant heading task
+ * @returns {string} Time remaining in seconds or N/A
+ */
+export function getConstantHeadingTimeRemaining(missionStatus: MissionStatus) {
+    if (missionStatus.constantHeadingTimeRemaining === undefined) {
+        return "N/A";
+    }
+    return missionStatus.constantHeadingTimeRemaining + " s";
+}
+
+/**
  * Loops through the ghost missions to check if a Bot is carrying out a mission
  *
  * @param {number} botID Bot of interest

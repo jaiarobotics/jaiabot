@@ -1030,6 +1030,7 @@ export interface BotStatus {
     distance_to_active_goal?: number;
     active_goal_timeout?: number;
     repeat_index?: number;
+    constant_heading_time_remaining?: number;
     salinity?: number;
     temperature?: number;
     battery_percent?: number;

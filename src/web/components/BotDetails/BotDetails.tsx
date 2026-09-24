@@ -29,6 +29,7 @@ import {
     getDistToWaypoint,
     isBotLogging,
     searchGhostMissions,
+    getConstantHeadingTimeRemaining,
 } from "./bot-details";
 
 import { accordionTheme, addDropdownListener } from "../../utils/style";
@@ -200,6 +201,15 @@ export default function BotDetails() {
                                                 {getDistToWaypoint(missionStatus)}
                                             </td>
                                         </tr>
+                                        {missionStatus?.missionState ===
+                                            "IN_MISSION__UNDERWAY__TASK__CONSTANT_HEADING" && (
+                                            <tr>
+                                                <td>Constant Heading Time</td>
+                                                <td>
+                                                    {getConstantHeadingTimeRemaining(missionStatus)}
+                                                </td>
+                                            </tr>
+                                        )}
                                         <tr>
                                             <td>Hub Distance</td>
                                             <td>

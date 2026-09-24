@@ -249,6 +249,16 @@ struct MissionManagerStateMachine
         return bottom_depth_safety_constant_heading_time_;
     }
 
+    void set_constant_heading_stop(const goby::time::SteadyClock::time_point& constant_heading_stop)
+    {
+        constant_heading_stop_ = constant_heading_stop;
+    }
+    void clear_constant_heading_stop() { constant_heading_stop_.reset(); }
+    const boost::optional<goby::time::SteadyClock::time_point>& constant_heading_stop()
+    {
+        return constant_heading_stop_;
+    }
+
     void set_bottom_safety_depth(const double& bottom_safety_depth)
     {
         bottom_safety_depth_ = bottom_safety_depth;
@@ -376,6 +386,7 @@ struct MissionManagerStateMachine
     double bottom_depth_safety_constant_heading_{0};
     double bottom_depth_safety_constant_heading_speed_{0};
     double bottom_depth_safety_constant_heading_time_{0};
+    boost::optional<goby::time::SteadyClock::time_point> constant_heading_stop_;
     double bottom_safety_depth_{cfg().min_depth_safety()};
     boost::units::quantity<boost::units::si::velocity> transit_speed_{
         2.0 * boost::units::si::meters_per_second};
