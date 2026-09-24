@@ -37,8 +37,10 @@
 
 #include <goby/zeromq/application/multi_thread.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <sstream>
 
 #include "config.pb.h"
@@ -95,6 +97,7 @@ class HubManager : public ApplicationBase
                         bool from_other_hub = false);
     void handle_task_packet(const jaiabot::protobuf::TaskPacket& task_packet,
                             bool from_other_hub = false);
+    void handle_ctd_profile_part(int bot_id, const jaiabot::protobuf::StormCTDProfile& part);
     void handle_command_for_hub(const jaiabot::protobuf::CommandForHub& input_command_for_hub);
     void
     handle_hardware_status(const jaiabot::protobuf::LinuxHardwareStatus& linux_hardware_status);
@@ -154,6 +157,9 @@ class HubManager : public ApplicationBase
 
     // Map bot id to previouse task packet timestamp to ignore duplicates
     std::map<uint16_t, std::set<uint64_t>> task_packet_id_to_prev_timestamps_;
+    // CTD profile parts received so far: (bot id, profile_time) -> part_index -> part
+    std::map<std::pair<int, uint64_t>, std::map<int, jaiabot::protobuf::StormCTDProfile>>
+        ctd_profile_parts_;
     // Map bot id to previouse bot status timestamp to ignore duplicates
     std::map<uint16_t, std::set<uint64_t>> bot_status_id_to_prev_timestamps_;
     // Map bot id to previouse eng status timestamp to ignore duplicates
@@ -1083,7 +1089,22 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     if (task_packet.type() == protobuf::MissionTask::STORM_CTD_PROFILE &&
         task_packet.has_storm_ctd_profile())
     {
-        std::istringstream profile(task_packet.storm_ctd_profile());
+        const auto& profile = task_packet.storm_ctd_profile();
+        if (profile.sample_size() > 0)
+        {
+            handle_ctd_profile_part(task_packet.bot_id(), profile);
+        }
+        else
+        {
+            glog.is_warn() && glog << group("task_packet")
+                                   << "Ignoring empty CTD profile" << std::endl;
+        }
+    }
+
+    if (task_packet.type() == protobuf::MissionTask::STORM_CTD_PROFILE &&
+        task_packet.has_legacy_storm_ctd_profile())
+    {
+        std::istringstream profile(task_packet.legacy_storm_ctd_profile());
         std::string version;
         std::string timestamp;
         std::getline(profile, version);
@@ -1091,7 +1112,7 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
 
         const bool valid_timestamp = !timestamp.empty() &&
                                      timestamp.find_first_not_of(
-                                         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.") ==
+                                         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-." ) ==
                                          std::string::npos;
         if (valid_timestamp)
         {
@@ -1100,12 +1121,13 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
             const auto file = offload_dir / ("bot" + std::to_string(task_packet.bot_id()) + "_" +
                                              timestamp + ".unb");
             std::ofstream out(file);
-            out << task_packet.storm_ctd_profile() << '\n';
+            out << task_packet.legacy_storm_ctd_profile() << '\n';
         }
         else
         {
             glog.is_warn() && glog << group("task_packet")
-                                   << "Ignoring CTD profile with invalid timestamp" << std::endl;
+                                   << "Ignoring legacy CTD profile with invalid timestamp"
+                                   << std::endl;
         }
     }
 
@@ -1121,6 +1143,72 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
 
     // Publish interprocess for other goby apps
     interprocess().publish<jaiabot::groups::task_packet>(task_packet_copy);
+}
+
+void jaiabot::apps::HubManager::handle_ctd_profile_part(
+    int bot_id, const jaiabot::protobuf::StormCTDProfile& part)
+{
+    const auto key = std::make_pair(bot_id, part.profile_time());
+    auto& parts = ctd_profile_parts_[key];
+    parts[part.part_index()] = part;
+    const std::size_t parts_received = parts.size();
+
+    // rewrite the whole .unb each time a part arrives, so a part that never arrives still
+    // leaves a partial profile on disk
+    const auto timestamp = goby::time::file_str(part.profile_time_with_units());
+    const std::filesystem::path offload_dir(cfg().log_offload_dir());
+    std::filesystem::create_directories(offload_dir);
+    const auto file =
+        offload_dir / ("bot" + std::to_string(bot_id) + "_" + timestamp + ".unb");
+    std::ofstream out(file);
+    if (!out)
+    {
+        glog.is_warn() && glog << group("task_packet") << "Unable to create CTD profile: " << file
+                               << std::endl;
+    }
+    else
+    {
+        out << "2\n"
+            << timestamp << "\n"
+            << "0000 000 00:00:00\n"
+            << std::fixed << std::setprecision(6) << part.location().lat() << " "
+            << part.location().lon() << "\n"
+            << "0.000000 0.000000\n";
+        int sample_index = 0;
+        for (const auto& [part_index, received_part] : parts)
+        {
+            for (const auto& sample : received_part.sample())
+            {
+                out << sample_index++ << " " << sample.depth() << " 0.000 "
+                    << sample.temperature() << " " << sample.salinity() << "\n";
+            }
+        }
+        if (!out)
+            glog.is_warn() && glog << group("task_packet") << "Error writing CTD profile: " << file
+                                   << std::endl;
+    }
+
+    glog.is_verbose() && glog << group("task_packet") << "CTD profile " << file << ": "
+                              << parts_received << "/" << part.num_parts()
+                              << " parts received" << std::endl;
+
+    if (parts_received >= part.num_parts())
+    {
+        ctd_profile_parts_.erase(key);
+    }
+    else
+    {
+        // bound memory if some parts never arrive: forget the oldest incomplete profiles
+        // (a late part for a forgotten profile would rewrite its .unb with only that part)
+        constexpr std::size_t max_incomplete_profiles = 100;
+        while (ctd_profile_parts_.size() > max_incomplete_profiles)
+        {
+            auto oldest = std::min_element(ctd_profile_parts_.begin(), ctd_profile_parts_.end(),
+                                           [](const auto& a, const auto& b)
+                                           { return a.first.second < b.first.second; });
+            ctd_profile_parts_.erase(oldest);
+        }
+    }
 }
 
 void jaiabot::apps::HubManager::handle_command_for_hub(

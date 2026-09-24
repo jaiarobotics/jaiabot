@@ -29,6 +29,8 @@ using boost::units::quantity;
 
 #include <goby/middleware/application/multi_thread.h>
 #include <goby/middleware/gpsd/groups.h>
+#include <goby/middleware/protobuf/intervehicle.pb.h>
+#include <goby/middleware/transport/intervehicle/groups.h>
 #include <goby/middleware/protobuf/gpsd.pb.h>
 #include <goby/util/seawater.h>
 using goby::glog;
@@ -206,6 +208,20 @@ jaiabot::apps::StormManager::StormManager()
         {
             if (!task_packet.has_storm_id()) // reject our own publications
                 enqueue_task_packet(task_packet);
+        });
+
+    // track which intervehicle links have a TaskPacket subscriber (the hub), so an offload
+    // expired for lack of subscribers is only retried when no link is still delivering it
+    interprocess().subscribe<goby::middleware::intervehicle::groups::subscription_report>(
+        [this](const goby::middleware::intervehicle::protobuf::SubscriptionReport& report)
+        {
+            const auto task_packet_dccl_id =
+                protobuf::TaskPacket::descriptor()->options().GetExtension(dccl::msg).id();
+            const bool subscribed =
+                std::any_of(report.subscription().begin(), report.subscription().end(),
+                            [&](const auto& subscription)
+                            { return subscription.dccl_id() == task_packet_dccl_id; });
+            machine_->set_task_packet_subscribed(report.link_modem_id(), subscribed);
         });
 }
 

@@ -11,18 +11,19 @@ rolling_stats_sample_count {
 
 initial_mission { 
   dive { 
-    max_depth: 5 
+    max_depth: 2
     depth_interval: inf
     hold_time: 0
     bottom_dive: false
   }
   
-  sleep_for_minutes: 1
+  sleep_for_minutes: 180
   min_battery_percentage: 10 
   max_stored_datasets: 2
   surface_drift_time: 10
-  remote_mission_wait_minutes: 1 
-  data_offload_timeout_minutes: 1
+  remote_mission_wait_minutes: 0
+  data_offload_timeout_minutes: 30
+  air_descent_data_offload_timeout_minutes: 0
   in_water {
     # in-water if conductivity is definitely seawater and pressure is definitely sea level or greater
     threshold { 
@@ -47,7 +48,7 @@ initial_mission {
       check { 
         condition: GREATER_THAN 
         stat: MEAN
-        pressure: inf # dBar
+        pressure: 20 # dBar
         hold_time: 0 # sec
       }
      }
@@ -56,8 +57,8 @@ initial_mission {
       check { 
         condition: LESS_THAN 
         stat: MEAN
-        pressure: inf # dBar
-        hold_time: 1 # sec
+        pressure: 3 # dBar
+        hold_time: 10 # sec
       }
     }
     

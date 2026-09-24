@@ -41,6 +41,8 @@ struct DataOffload : boost::statechart::state<DataOffload, SleepPrep>,
         auto now = goby::time::SteadyClock::now();
         if (now >= offload_timeout_)
             post_event(EvDataOffloadTimeout());
+        else
+            this->retry_send_if_due();
     }
 
   public:

@@ -625,6 +625,45 @@ message DivePacket
         [(jaia.field).rest_api.presence = GUARANTEED];
 }
 
+message StormCTDProfile
+{
+    option (dccl.msg) = { unit_system: "si" };
+
+    required uint64 profile_time = 1 [(dccl.field) = {
+        codec: "dccl.time2"
+        units { prefix: "micro" derived_dimensions: "time" }
+    }];
+
+    required GeographicCoordinate location = 2;
+
+    message Sample
+    {
+        required double depth = 1 [(dccl.field) = {
+            min: 0
+            max: 100
+            precision: 2
+            units { derived_dimensions: "length" }
+        }];
+
+        required double temperature = 2 [(dccl.field) = {
+            min: -10
+            max: 50
+            precision: 2
+            units { derived_dimensions: "temperature" system: "celsius" }
+        }];
+
+        required double salinity = 3
+            [(dccl.field) = { min: 0 max: 60 precision: 2 }];
+    }
+
+    repeated Sample sample = 3 [(dccl.field).max_repeat = 30];
+
+    // a profile too large for one TaskPacket is split into num_parts TaskPackets, all
+    // sharing the same profile_time; the hub reassembles them in part_index order
+    required uint32 part_index = 4 [(dccl.field) = { min: 0 max: 9 }];
+    required uint32 num_parts = 5 [(dccl.field) = { min: 1 max: 10 }];
+}
+
 message TaskPacket
 {
     /*
@@ -674,7 +713,9 @@ message TaskPacket
     {
         DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
         StormAirDescentData storm_air_descent = 12;
-        string storm_ctd_profile = 13 [(dccl.field).max_length = 180];
+        string legacy_storm_ctd_profile = 13
+            [deprecated = true, (dccl.field).max_length = 180];
+        StormCTDProfile storm_ctd_profile = 14;
     }
 
     optional DriftPacket drift = 11

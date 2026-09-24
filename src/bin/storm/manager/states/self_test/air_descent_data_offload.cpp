@@ -93,6 +93,10 @@ void jaiabot::statechart::self_test::AirDescentDataOffload::loop(const EvLoop& e
             protobuf::WARNING__STORM_SELF_TEST__AIR_DESCENT_DATA_OFFLOAD_TIMEOUT);
         post_event(EvAirDescentDataTimeout());
     }
+    else
+    {
+        this->retry_send_if_due();
+    }
 }
 
 void jaiabot::statechart::self_test::AirDescentDataOffload::try_send_to_mcu()

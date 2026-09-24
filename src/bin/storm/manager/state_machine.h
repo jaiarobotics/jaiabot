@@ -23,6 +23,7 @@
 #pragma once
 
 #include <algorithm>
+#include <map>
 
 // Boost
 #include <boost/statechart/state_machine.hpp>
@@ -122,6 +123,17 @@ struct StormManagerStateMachine
     }
     std::deque<protobuf::TaskPacket>& task_packet_queue() { return task_packet_queue_; }
 
+    // local intervehicle link (modem id) -> whether a TaskPacket subscriber is known on it,
+    // from goby's subscription reports; a link is absent until its first report
+    void set_task_packet_subscribed(int link_modem_id, bool subscribed)
+    {
+        task_packet_subscribed_links_[link_modem_id] = subscribed;
+    }
+    const std::map<int, bool>& task_packet_subscribed_links() const
+    {
+        return task_packet_subscribed_links_;
+    }
+
     // how often to send requests to the MCU
     constexpr static goby::time::SteadyClock::duration mcu_send_interval()
     {
@@ -146,6 +158,7 @@ struct StormManagerStateMachine
     bool parachute_attachment_recovery_attempted_{false};
     int task_packet_id_{0};
     std::deque<protobuf::TaskPacket> task_packet_queue_;
+    std::map<int, bool> task_packet_subscribed_links_;
 };
 
 } // namespace statechart

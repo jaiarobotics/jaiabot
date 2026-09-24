@@ -22,6 +22,7 @@
 
 #include <goby/middleware/marshalling/protobuf.h>
 // this space intentionally left blank
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -29,7 +30,6 @@
 #include <fstream>
 #include <goby/zeromq/application/single_thread.h>
 #include <google/protobuf/util/json_util.h>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -58,7 +58,6 @@ class CTDManager : public ApplicationBase
     std::vector<std::string> convert_proto_to_unb(const jaiabot::protobuf::CTDProfile& ctd_profile,
                                                   std::filesystem::path file, std::string time);
     const double ascent_epsilon{0.5};
-    static constexpr std::size_t iridium_profile_max_bytes{180};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -76,10 +75,12 @@ jaiabot::apps::CTDManager::CTDManager() : ApplicationBase()
 void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDProfile& ctd_profile)
 {
     std::string time;
+    goby::time::MicroTime profile_time;
 
     if (ctd_profile.snapshot_size() > 0)
     {
-        time = goby::time::file_str();
+        profile_time = goby::time::SystemClock::now<goby::time::MicroTime>();
+        time = goby::time::file_str(profile_time);
     }
     else
     {
@@ -101,29 +102,67 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
     std::filesystem::path base = std::filesystem::path(cfg().log_dir());
     std::filesystem::path file =
         base / ("bot" + std::to_string(ctd_profile.bot_id()) + "_" + time + ".unb");
-    const auto unb_lines = convert_proto_to_unb(ctd_profile, file, time);
+    convert_proto_to_unb(ctd_profile, file, time);
 
     if (cfg().iridium_offload())
     {
-        const auto downsampled_lines = jaiabot::utils::downsampleDatasetToMaxBytes(
-            unb_lines, iridium_profile_max_bytes, 4, [](const std::vector<double>& values)
-            { return values[0]; }, [](const std::vector<double>& values) { return values[3]; });
+        const auto* profile_desc = jaiabot::protobuf::StormCTDProfile::descriptor();
+        const std::size_t samples_per_part = profile_desc->FindFieldByName("sample")
+                                                 ->options()
+                                                 .GetExtension(dccl::field)
+                                                 .max_repeat();
+        const std::size_t max_parts = static_cast<std::size_t>(
+            profile_desc->FindFieldByName("num_parts")->options().GetExtension(dccl::field).max());
+        const std::size_t max_samples = std::clamp<std::size_t>(cfg().iridium_offload_max_samples(),
+                                                                2, samples_per_part * max_parts);
 
-        std::ostringstream serialized_profile;
-        for (std::size_t i = 0; i < downsampled_lines.size(); ++i)
+        std::vector<jaiabot::utils::Point> profile_points;
+        profile_points.reserve(ctd_profile.snapshot_size());
+        for (const auto& snapshot : ctd_profile.snapshot())
         {
-            if (i > 0)
-                serialized_profile << '\n';
-            serialized_profile << downsampled_lines[i];
+            profile_points.push_back({snapshot.depth(), snapshot.salinity()});
         }
 
-        jaiabot::protobuf::TaskPacket task_packet;
-        task_packet.set_bot_id(ctd_profile.bot_id());
-        task_packet.set_start_time(ctd_profile.snapshot(0).time());
-        task_packet.set_end_time(ctd_profile.snapshot(ctd_profile.snapshot_size() - 1).time());
-        task_packet.set_type(jaiabot::protobuf::MissionTask::STORM_CTD_PROFILE);
-        task_packet.set_storm_ctd_profile(serialized_profile.str());
-        interprocess().publish<jaiabot::groups::task_packet>(task_packet);
+        const auto selected_indices =
+            jaiabot::utils::downsampleIndices(profile_points, max_samples);
+        const std::size_t num_parts =
+            (selected_indices.size() + samples_per_part - 1) / samples_per_part;
+
+        const auto bounded_value = [](double value, double minimum, double maximum)
+        {
+            if (!std::isfinite(value))
+                return minimum;
+            return std::clamp(value, minimum, maximum);
+        };
+
+        for (std::size_t part = 0; part < num_parts; ++part)
+        {
+            const auto begin = selected_indices.begin() + part * samples_per_part;
+            const auto end = selected_indices.begin() +
+                             std::min(selected_indices.size(), (part + 1) * samples_per_part);
+
+            jaiabot::protobuf::TaskPacket task_packet;
+            task_packet.set_bot_id(ctd_profile.bot_id());
+            // each part needs its own start_time: the hub discards TaskPackets whose
+            // start_time it has already seen for this bot
+            task_packet.set_start_time(ctd_profile.snapshot(*begin).time());
+            task_packet.set_end_time(ctd_profile.snapshot(*(end - 1)).time());
+            task_packet.set_type(jaiabot::protobuf::MissionTask::STORM_CTD_PROFILE);
+            auto* storm_ctd_profile = task_packet.mutable_storm_ctd_profile();
+            storm_ctd_profile->set_profile_time_with_units(profile_time);
+            storm_ctd_profile->mutable_location()->CopyFrom(ctd_profile.location());
+            storm_ctd_profile->set_part_index(part);
+            storm_ctd_profile->set_num_parts(num_parts);
+            for (auto it = begin; it != end; ++it)
+            {
+                const auto& snapshot = ctd_profile.snapshot(*it);
+                auto* sample = storm_ctd_profile->add_sample();
+                sample->set_depth(bounded_value(snapshot.depth(), 0, 100));
+                sample->set_temperature(bounded_value(snapshot.temperature(), -10, 50));
+                sample->set_salinity(bounded_value(snapshot.salinity(), 0, 60));
+            }
+            interprocess().publish<jaiabot::groups::task_packet>(task_packet);
+        }
     }
 }
 
