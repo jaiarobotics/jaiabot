@@ -146,13 +146,14 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
         }
     };
 
+    // the minimized view hides the dashboard, so the gamepad must not drive the bot from it
     useGamepadAxis((axisName, value) => {
         if (axisName === "LeftStickY") {
             handleAxisInput(value, AnalogStickTypes.LEFT);
         } else if (axisName === "RightStickX") {
             handleAxisInput(value, AnalogStickTypes.RIGHT);
         }
-    });
+    }, !isMinimizedView);
 
     /**
      * Updates state with the selected analog stick layout (single vs dual)

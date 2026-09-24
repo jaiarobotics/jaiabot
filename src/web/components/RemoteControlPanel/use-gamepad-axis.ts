@@ -17,13 +17,21 @@ function axisNameOf(layoutEntry: string) {
  * Polls the connected gamepad and reports analog stick movement
  *
  * @param {Function} onAxisChange Called with the axis name and its value whenever the value changes
+ * @param {boolean} enabled Whether to poll; while false the gamepad cannot drive the controls
  * @returns {void}
  */
-export function useGamepadAxis(onAxisChange: (axisName: GamepadAxisName, value: number) => void) {
+export function useGamepadAxis(
+    onAxisChange: (axisName: GamepadAxisName, value: number) => void,
+    enabled: boolean,
+) {
     const onAxisChangeRef = useRef(onAxisChange);
     onAxisChangeRef.current = onAxisChange;
 
     useEffect(() => {
+        if (!enabled) {
+            return;
+        }
+
         // seeded at rest so a freshly connected pad does not report every axis as a change
         const axisValues = new Map<GamepadAxisName, number>(
             AXIS_LAYOUT.map((entry) => [axisNameOf(entry), 0]),
@@ -58,5 +66,5 @@ export function useGamepadAxis(onAxisChange: (axisName: GamepadAxisName, value: 
 
         animationFrame = requestAnimationFrame(poll);
         return () => cancelAnimationFrame(animationFrame);
-    }, []);
+    }, [enabled]);
 }

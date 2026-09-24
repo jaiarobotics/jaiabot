@@ -9,7 +9,7 @@ type AxisReport = [GamepadAxisName, number];
  * callback rather than schedule it, so each test steps the loop exactly as many times as it
  * needs to.
  */
-function pollWith(axisFrames: number[][]) {
+function pollWith(axisFrames: number[][], enabled = true) {
     const reported: AxisReport[] = [];
     let pending: FrameRequestCallback | null = null;
     let frame = 0;
@@ -30,8 +30,10 @@ function pollWith(axisFrames: number[][]) {
         value: () => [{ axes: current }] as unknown as (Gamepad | null)[],
     });
 
-    const view = renderHook(() =>
-        useGamepadAxis((axisName, value) => reported.push([axisName, value])),
+    const view = renderHook(
+        ({ enabled }) =>
+            useGamepadAxis((axisName, value) => reported.push([axisName, value]), enabled),
+        { initialProps: { enabled } },
     );
 
     for (const axes of axisFrames) {
@@ -41,7 +43,14 @@ function pollWith(axisFrames: number[][]) {
         callback?.(0);
     }
 
-    return { reported, view };
+    const step = (axes: number[]) => {
+        current = axes;
+        const callback = pending;
+        pending = null;
+        callback?.(0);
+    };
+
+    return { reported, view, step };
 }
 
 afterEach(() => {
@@ -90,6 +99,22 @@ describe("useGamepadAxis", () => {
         const { reported } = pollWith([[0, 0, 0, 0, 0.9, 0.9]]);
 
         expect(reported).toEqual([]);
+    });
+
+    test("does not poll while disabled, so a minimized panel cannot be driven", () => {
+        const { reported } = pollWith([[0, -1, 0.9, 0]], false);
+
+        expect(reported).toEqual([]);
+    });
+
+    test("resyncs to the stick position when re-enabled", () => {
+        const { reported, view, step } = pollWith([[0, 0, 0, 0]], false);
+        expect(reported).toEqual([]);
+
+        view.rerender({ enabled: true });
+        step([0, -1, 0, 0]);
+
+        expect(reported).toContainEqual(["LeftStickY", 1]);
     });
 
     test("stops polling when unmounted", () => {
