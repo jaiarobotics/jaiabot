@@ -22,12 +22,9 @@
         "reset-css": "^5.0.2"
     },
     "devDependencies": {
-        "@babel/core": "^7.29.0",
-        "@babel/plugin-transform-class-properties": "^7.28.6",
-        "@babel/plugin-transform-nullish-coalescing-operator": "^7.28.6",
-        "@babel/plugin-transform-optional-chaining": "^7.28.6",
-        "@babel/preset-env": "^7.29.0",
-        "@babel/preset-react": "^7.28.5",
+        "@babel/core": "^8.0.6",
+        "@babel/preset-env": "^8.0.6",
+        "@babel/preset-react": "^8.0.1",
         "@jest/globals": "^30.5.2",
         "@testing-library/jest-dom": "^7.0.1",
         "@testing-library/dom": "^10.4.2",
