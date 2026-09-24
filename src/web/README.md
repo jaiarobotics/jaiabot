@@ -109,6 +109,11 @@ The `webpack` and `webpack-cli` versions are substituted from `scripts/common-ve
 rather than written in `package.json.in`, because `setup-tools-build.sh` installs those same
 versions globally. Changing them means changing that file and re-running the setup script.
 
+The `jaia_version_nodejs` and `jaia_version_npm` pins in that same file set the Node and npm
+versions `setup-tools-build.sh` installs through nvm. `build.sh` only sources nvm, so it keeps
+using whatever version is already aliased — changing those pins means re-running the setup
+script.
+
 #### Install scripts
 
 A package can declare a script that npm runs automatically during `npm install`. Those scripts
