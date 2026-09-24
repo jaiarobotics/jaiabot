@@ -108,3 +108,28 @@ and commit it alongside the `package.json.in` change.
 The `webpack` and `webpack-cli` versions are substituted from `scripts/common-versions.env`
 rather than written in `package.json.in`, because `setup-tools-build.sh` installs those same
 versions globally. Changing them means changing that file and re-running the setup script.
+
+#### Install scripts
+
+A package can declare a script that npm runs automatically during `npm install`. Those scripts
+run with your permissions and can read anything you can read, which makes them the most direct
+way to attack a developer machine: a single compromised package anywhere in the dependency tree
+gets code execution on every machine that installs it. npm therefore refuses to run them unless
+the package is listed in the `allowScripts` field.
+
+That field lives in `package.json.in` like everything else — npm's own `npm install-scripts`
+command writes to the generated `package.json`, where the next build overwrites it.
+
+Deny by default. Only allow a package when something demonstrably breaks without its script,
+and say in the commit message what broke. If `npm install` reports a package whose script was
+skipped, add it as `false`:
+
+```json
+"allowScripts": {
+    "@parcel/watcher": false,
+    "unrs-resolver": false
+}
+```
+
+> NOTE: Do not silence the warning with `npm install-scripts approve --all`. That allows every
+> install script in the tree, which is the outcome the check exists to prevent.
