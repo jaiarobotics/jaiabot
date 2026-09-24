@@ -36,4 +36,5 @@ message CTDManager
 
     // any specific configuration parameters for your application
     optional string log_dir = 3;
+    optional bool iridium_offload = 4 [default = false];
 }

@@ -37,6 +37,10 @@
 
 #include <goby/zeromq/application/multi_thread.h>
 
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+
 #include "config.pb.h"
 #include "jaiabot/comms/comms.h"
 #include "jaiabot/groups.h"
@@ -1075,6 +1079,35 @@ void jaiabot::apps::HubManager::handle_task_packet(const jaiabot::protobuf::Task
     while (prev_times.size() >= history_max_count_) prev_times.erase(prev_times.begin());
 
     prev_times.insert(task_packet.start_time());
+
+    if (task_packet.type() == protobuf::MissionTask::STORM_CTD_PROFILE &&
+        task_packet.has_storm_ctd_profile())
+    {
+        std::istringstream profile(task_packet.storm_ctd_profile());
+        std::string version;
+        std::string timestamp;
+        std::getline(profile, version);
+        std::getline(profile, timestamp);
+
+        const bool valid_timestamp = !timestamp.empty() &&
+                                     timestamp.find_first_not_of(
+                                         "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.") ==
+                                         std::string::npos;
+        if (valid_timestamp)
+        {
+            const std::filesystem::path offload_dir(cfg().log_offload_dir());
+            std::filesystem::create_directories(offload_dir);
+            const auto file = offload_dir / ("bot" + std::to_string(task_packet.bot_id()) + "_" +
+                                             timestamp + ".unb");
+            std::ofstream out(file);
+            out << task_packet.storm_ctd_profile() << '\n';
+        }
+        else
+        {
+            glog.is_warn() && glog << group("task_packet")
+                                   << "Ignoring CTD profile with invalid timestamp" << std::endl;
+        }
+    }
 
     // Set the mission_name of the task packet based on the current mission id to name mapping for logging purposes
     jaiabot::protobuf::TaskPacket task_packet_copy = task_packet;

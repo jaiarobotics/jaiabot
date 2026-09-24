@@ -29,12 +29,15 @@
 #include <fstream>
 #include <goby/zeromq/application/single_thread.h>
 #include <google/protobuf/util/json_util.h>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "config.pb.h"
 #include "jaiabot/groups.h"
 #include "jaiabot/messages/ctd.pb.h"
 #include "jaiabot/messages/jaia_dccl.pb.h"
+#include "jaiabot/utils/downsample.h"
 
 using goby::glog;
 namespace si = boost::units::si;
@@ -52,9 +55,10 @@ class CTDManager : public ApplicationBase
   private:
     void handle_ctd_profile(const jaiabot::protobuf::CTDProfile& ctd_profile);
     void handle_ctd_offload_command(const jaiabot::protobuf::Command& command);
-    void convert_proto_to_unb(const jaiabot::protobuf::CTDProfile& ctd_profile,
-                              std::filesystem::path file, std::string time);
+    std::vector<std::string> convert_proto_to_unb(const jaiabot::protobuf::CTDProfile& ctd_profile,
+                                                  std::filesystem::path file, std::string time);
     const double ascent_epsilon{0.5};
+    static constexpr std::size_t iridium_profile_max_bytes{180};
 };
 } // namespace apps
 } // namespace jaiabot
@@ -97,11 +101,35 @@ void jaiabot::apps::CTDManager::handle_ctd_profile(const jaiabot::protobuf::CTDP
     std::filesystem::path base = std::filesystem::path(cfg().log_dir());
     std::filesystem::path file =
         base / ("bot" + std::to_string(ctd_profile.bot_id()) + "_" + time + ".unb");
-    convert_proto_to_unb(ctd_profile, file, time);
+    const auto unb_lines = convert_proto_to_unb(ctd_profile, file, time);
+
+    if (cfg().iridium_offload())
+    {
+        const auto downsampled_lines = jaiabot::utils::downsampleDatasetToMaxBytes(
+            unb_lines, iridium_profile_max_bytes, 4, [](const std::vector<double>& values)
+            { return values[0]; }, [](const std::vector<double>& values) { return values[3]; });
+
+        std::ostringstream serialized_profile;
+        for (std::size_t i = 0; i < downsampled_lines.size(); ++i)
+        {
+            if (i > 0)
+                serialized_profile << '\n';
+            serialized_profile << downsampled_lines[i];
+        }
+
+        jaiabot::protobuf::TaskPacket task_packet;
+        task_packet.set_bot_id(ctd_profile.bot_id());
+        task_packet.set_start_time(ctd_profile.snapshot(0).time());
+        task_packet.set_end_time(ctd_profile.snapshot(ctd_profile.snapshot_size() - 1).time());
+        task_packet.set_type(jaiabot::protobuf::MissionTask::STORM_CTD_PROFILE);
+        task_packet.set_storm_ctd_profile(serialized_profile.str());
+        interprocess().publish<jaiabot::groups::task_packet>(task_packet);
+    }
 }
 
-void jaiabot::apps::CTDManager::convert_proto_to_unb(
-    const jaiabot::protobuf::CTDProfile& ctd_profile, std::filesystem::path file, std::string time)
+std::vector<std::string>
+jaiabot::apps::CTDManager::convert_proto_to_unb(const jaiabot::protobuf::CTDProfile& ctd_profile,
+                                                std::filesystem::path file, std::string time)
 {
     glog.is_debug1() && glog << "Starting .proto to .unb conversion" << std::endl;
     const int unb_version = 2;
@@ -109,24 +137,28 @@ void jaiabot::apps::CTDManager::convert_proto_to_unb(
     const std::string ship_location = "0.000000 0.000000";
     const int num_obs = ctd_profile.snapshot().size();
 
-    std::ofstream out(file);
-    out << unb_version << '\n'
-        << time << '\n'
-        << date_logging << '\n'
-        << ctd_profile.location().lat() << " " << ctd_profile.location().lon() << '\n'
-        << ship_location << '\n';
+    std::vector<std::string> lines;
+    lines.reserve(5 + num_obs);
+    lines.push_back(std::to_string(unb_version));
+    lines.push_back(time);
+    lines.push_back(date_logging);
+    lines.push_back(std::to_string(ctd_profile.location().lat()) + " " +
+                    std::to_string(ctd_profile.location().lon()));
+    lines.push_back(ship_location);
 
     for (int i = 0; i < ctd_profile.snapshot().size(); i++)
     {
         const jaiabot::protobuf::CTDSnapshot& snapshot = ctd_profile.snapshot()[i];
-        const std::string line = std::to_string(i) + " " + std::to_string(snapshot.depth()) + " " +
-                                 "0.000 " + std::to_string(snapshot.temperature()) + " " +
-                                 std::to_string(snapshot.salinity());
-        out << line << '\n';
+        lines.push_back(std::to_string(i) + " " + std::to_string(snapshot.depth()) + " " +
+                        "0.000 " + std::to_string(snapshot.temperature()) + " " +
+                        std::to_string(snapshot.salinity()));
     }
 
+    std::ofstream out(file);
+    for (const auto& line : lines) out << line << '\n';
     out.close();
     glog.is_debug1() && glog << "Completed .proto to .unb conversion" << std::endl;
+    return lines;
 }
 
 int main(int argc, char* argv[])

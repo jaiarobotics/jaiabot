@@ -628,10 +628,10 @@ message DivePacket
 message TaskPacket
 {
     /*
-    Actual maximum size of message: 220 bytes / 1760 bits
+        Actual maximum size of message: 224 bytes / 1792 bits
             dccl.id head..........................16
             user head..............................0
-            body................................1744
+            body................................1776
             padding to full byte...................0
     Allowed maximum size of message: 250 bytes / 2000 bits
     */
@@ -674,6 +674,7 @@ message TaskPacket
     {
         DivePacket dive = 10 [(jaia.field).rest_api.presence = GUARANTEED];
         StormAirDescentData storm_air_descent = 12;
+        string storm_ctd_profile = 13 [(dccl.field).max_length = 180];
     }
 
     optional DriftPacket drift = 11

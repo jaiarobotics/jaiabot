@@ -1,3 +1,4 @@
 $app_block
 $interprocess_block
 log_dir: "$log_dir"
+iridium_offload: $iridium_offload
