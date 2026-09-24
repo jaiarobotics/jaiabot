@@ -82,5 +82,6 @@ message Sensors
     optional AtlasOEMPHThreadConfig ph = 30;
     optional AtlasOEMDOThreadConfig dissolved_oxygen = 40;
     optional TurnerCFluorThreadConfig fluorometer = 50;  
+    optional TurnerCFluorThreadConfig fluorometer_2 = 51;
     optional AMLThreadConfig aml = 60;
 }

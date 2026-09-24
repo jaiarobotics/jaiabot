@@ -77,6 +77,9 @@ jaiabot::apps::TurnerCFluorSensorDriver::TurnerCFluorSensorDriver()
 
         jaiabot::sensor::protobuf::TurnerCFluor turner_c_fluor_msg;
 
+        // this driver reads a single fluorometer off the Arduino analog pin
+        turner_c_fluor_msg.set_instance(jaiabot::sensor::protobuf::INSTANCE_1);
+
         if (arduino_response.has_generic_gpio_voltage())
         {
             turner_c_fluor_msg.set_concentration_voltage(arduino_response.generic_gpio_voltage());
@@ -87,6 +90,11 @@ jaiabot::apps::TurnerCFluorSensorDriver::TurnerCFluorSensorDriver()
                 fcoefficients_ = cfg().fluorometer_coefficients();
                 double concentration = (turner_c_fluor_msg.concentration_voltage() - fcoefficients_.offset()) * fcoefficients_.coefficient();
                 turner_c_fluor_msg.set_concentration(concentration);
+
+                if (fcoefficients_.has_analyte_name())
+                {
+                    turner_c_fluor_msg.set_analyte_name(fcoefficients_.analyte_name());
+                }
             }
         }
 

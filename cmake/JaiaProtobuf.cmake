@@ -82,6 +82,10 @@ function(jaiabot_protobuf_make_symlinks)
     if("${lnk}" STREQUAL "NANOPB")
       set(NANOPB_PROTO /usr/lib/python3/dist-packages/proto/nanopb.proto)
       file(CREATE_LINK "${NANOPB_PROTO}" "${CMAKE_CURRENT_SOURCE_DIR}/nanopb.proto" SYMBOLIC)
+      # the sensor messages shared with the payload board MCU import nanopb.proto, so any
+      # application importing them needs protoc to resolve it from the shared include dir too
+      file(MAKE_DIRECTORY "${project_INC_DIR}")
+      file(CREATE_LINK "${NANOPB_PROTO}" "${project_INC_DIR}/nanopb.proto" SYMBOLIC)
     elseif("${lnk}" STREQUAL "DCCL")
       file(CREATE_LINK "${DCCL_INCLUDE_DIR}/dccl" "${CMAKE_CURRENT_SOURCE_DIR}/dccl" SYMBOLIC)
     elseif("${lnk}" STREQUAL "GOOGLE")
