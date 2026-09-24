@@ -11,6 +11,15 @@ import {
 } from "@mdi/js";
 import Icon from "@mdi/react";
 
+import type {
+    Data,
+    Datum,
+    PlotDatum,
+    PlotHoverEvent,
+    PlotRelayoutEvent,
+    PlotlyHTMLElement,
+} from "plotly.js-dist";
+
 const Plotly = require("plotly.js-dist");
 
 import { downloadCSV } from "../tools/DownloadCSV";
@@ -32,6 +41,13 @@ import { DataTable } from "./DataTable";
 import { CustomAlert } from "../shared/CustomAlert";
 
 import "./Plots.css";
+
+// Each trace this component builds carries a customdata array of utimes, one per point,
+// which the Data union type does not model
+function pointUtime(point: PlotDatum) {
+    const customdata = (point.data as { customdata: Datum[] }).customdata;
+    return Number(customdata[point.pointIndex]);
+}
 
 export interface PlotsDelegate {
     setPlots: (plots: Plot[]) => void;
@@ -158,7 +174,7 @@ export function Plots(props: PlotsProps) {
 
     const createPlots = () => {
         const { visibleTimeRange, plots } = props;
-        const plot_div_element = document.getElementById("plot") as Plotly.PlotlyHTMLElement;
+        const plot_div_element = document.getElementById("plot") as PlotlyHTMLElement;
         const plot_time_range = visibleTimeRange;
 
         if (plots.length == 0) {
@@ -167,7 +183,7 @@ export function Plots(props: PlotsProps) {
             return;
         }
 
-        var data: Plotly.Data[] = [];
+        var data: Data[] = [];
         var layout: any = { showlegend: false };
 
         for (let [plot_index, series] of plots.entries()) {
@@ -183,7 +199,7 @@ export function Plots(props: PlotsProps) {
 
             const traceColor = PLOTLY_COLORS[plot_index % PLOTLY_COLORS.length];
 
-            let trace: Plotly.Data = {
+            let trace: Data = {
                 name: series.title,
                 x: [new Date()],
                 y: [0.0],
@@ -210,7 +226,7 @@ export function Plots(props: PlotsProps) {
                 line: { dash: "dash", color: MEAN_LINE_COLOR, width: 1.5 },
                 hoverinfo: "skip",
                 visible: showMean,
-            } as Plotly.Data);
+            } as Data);
 
             // Mean + std line trace
             data.push({
@@ -224,7 +240,7 @@ export function Plots(props: PlotsProps) {
                 line: { dash: "dot", color: STD_LINE_COLOR, width: 1.5 },
                 hoverinfo: "skip",
                 visible: showStd,
-            } as Plotly.Data);
+            } as Data);
 
             // Mean - std line trace
             data.push({
@@ -238,7 +254,7 @@ export function Plots(props: PlotsProps) {
                 line: { dash: "dot", color: STD_LINE_COLOR, width: 1.5 },
                 hoverinfo: "skip",
                 visible: showStd,
-            } as Plotly.Data);
+            } as Data);
         }
 
         layout.grid = { rows: plots.length, columns: 1, pattern: "coupled", ygap: 0.12 };
@@ -257,20 +273,16 @@ export function Plots(props: PlotsProps) {
             refreshPlotData();
 
             // Setup the triggers
-            plot_div_element.on("plotly_hover", function (data: Plotly.PlotHoverEvent) {
-                let pointIndex = data.points[0].pointIndex;
-                let timestamp_utime = Number(data.points[0].data.customdata[pointIndex]);
-                props.delegate.setTime(timestamp_utime);
+            plot_div_element.on("plotly_hover", function (data: PlotHoverEvent) {
+                props.delegate.setTime(pointUtime(data.points[0]));
             });
 
             plot_div_element.on("plotly_click", function (data) {
-                let pointIndex = data.points[0].pointIndex;
-                let timestamp_utime = Number(data.points[0].data.customdata[pointIndex]);
-                props.delegate.setTime(timestamp_utime);
+                props.delegate.setTime(pointUtime(data.points[0]));
             });
 
             // Zooming into plots
-            plot_div_element.on("plotly_relayout", function (eventdata: Plotly.PlotRelayoutEvent) {
+            plot_div_element.on("plotly_relayout", function (eventdata: PlotRelayoutEvent) {
                 console.debug("Relayout event:", eventdata);
 
                 // When autorange, zoom out to the whole set of points

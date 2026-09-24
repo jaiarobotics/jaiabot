@@ -15,7 +15,7 @@
         "target": "ES2024",
         "esModuleInterop": true,
         "lib": ["ES2024", "dom"],
-        "types": ["@testing-library/jest-dom", "@types/plotly.js", "@types/webpack-env", "node"],
+        "types": ["@testing-library/jest-dom", "@types/webpack-env", "node"],
         "resolveJsonModule": true
     },
     "exclude": ["node_modules", "dist", "coverage", "webpack.*.js", "*.config.js", "*.test.ts*"]
