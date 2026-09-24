@@ -2,6 +2,7 @@ import JaiaVectorLayer from "./jaia-vector-layer";
 import { LayerTitles } from "../../../types/openlayers-types";
 import { layersZIndexes } from "../zindex";
 import { taskPackets } from "../../../data/task_packets/task-packets";
+import { taskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { generateDiveFeature } from "../../features/dive-feature";
 import { generateDriftFeature } from "../../features/drift-feature";
 
@@ -25,7 +26,7 @@ class ExcludedTaskPacketsLayer extends JaiaVectorLayer {
     override updateFeatures() {
         let source = this.getVectorLayer().getSource();
         source.clear();
-        for (const taskPacket of taskPackets.getExcludedTaskPackets()) {
+        for (const taskPacket of taskPacketFilter.filter(taskPackets.getExcludedTaskPackets())) {
             if (taskPacket.dive) {
                 const diveFeature = generateDiveFeature(taskPacket);
                 source.addFeature(diveFeature);

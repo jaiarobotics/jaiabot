@@ -1,5 +1,6 @@
 import colors from "./colors.json";
 import { taskPackets } from "../../data/task_packets/task-packets";
+import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
 import { DEPTH_MAP_3D_NAME } from "../../utils/constants";
 import "./DepthMap3D.less";
 
@@ -25,9 +26,9 @@ export async function buildDepthMap() {
         return false;
     }
 
-    const bottomDivePackets = taskPackets
-        .getIncludedTaskPackets()
-        .map((taskPackets) => taskPackets.dive)
+    const bottomDivePackets = taskPacketFilter
+        .filter(taskPackets.getIncludedTaskPackets())
+        .map((taskPacket) => taskPacket.dive)
         .filter((dive) => dive?.bottom_dive);
 
     if (bottomDivePackets.length === 0) {

@@ -6,6 +6,7 @@ import { JaiaActions } from "./jaia-actions";
 import { actionConfigs } from "./action-configs";
 import { saveHistory } from "./handlers/history-handlers";
 import { bots } from "../data/bots/bots";
+import { taskPackets } from "../data/task_packets/task-packets";
 
 interface JaiaContextProviderProps {
     children: ReactNode;
@@ -29,16 +30,20 @@ function jaiaReducer(state: JaiaContextType, action: JaiaAction) {
         return state;
     }
 
-    // Do not allow polling to cause a re-render
-    // if we have not received a new status message
+    // Do not allow polling to cause a re-render if neither a new status message nor a
+    // new set of task packets has arrived since the last render.
     if (action.type === JaiaActions.POLL_DATA_MODEL) {
-        if (bots.getTick() === state.previousTick) {
+        const isBotDataUnchanged = bots.getTick() === state.previousTick;
+        const isTaskPacketDataUnchanged =
+            taskPackets.getRevision() === state.previousTaskPacketRevision;
+        if (isBotDataUnchanged && isTaskPacketDataUnchanged) {
             return state;
         }
     }
 
     let mutableState = { ...state };
     mutableState.previousTick = bots.getTick();
+    mutableState.previousTaskPacketRevision = taskPackets.getRevision();
 
     // Call the handler
     mutableState = config.handler(mutableState, action);

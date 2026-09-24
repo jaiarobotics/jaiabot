@@ -2,6 +2,8 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
+import { taskPacketFilter } from "../data/task_packets/task-packet-filter";
+import { getHTMLDateString, getHTMLTimeString, convertHTMLStrDateToISO } from "../shared/Utilities";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
@@ -30,6 +32,9 @@ const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/l
 let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
 let metadataRequestInFlight = false;
+
+// Date window last fetched; lets the poll force a refetch when the filter window changes
+let lastFetchedWindowKey = "";
 
 let statusRequestStartTime = new Date().getTime();
 
@@ -92,24 +97,77 @@ export async function pollTaskPackets() {
     }
     try {
         taskPacketRequestInFlight = true;
+
+        // Refetch when the filter window changes, even if the server version is unchanged
+        const windowKey = getTaskPacketWindowKey();
+        let forceFetch = false;
+        if (windowKey !== lastFetchedWindowKey) {
+            forceFetch = true;
+        }
+
         const versionRes = await fetch(TASK_PACKET_VERSION_URL);
         if (!versionRes.ok) {
             console.error(`Task packet response status: ${versionRes.status}`);
         } else {
             const version = await versionRes.json();
-            if (version !== taskPackets.getVersion()) {
-                const taskPacketRes = await fetch(TASK_PACKET_URL);
-                const json = await taskPacketRes.json();
+            if (forceFetch || version !== taskPackets.getVersion()) {
+                const json = await fetchTaskPacketsForWindow();
                 taskPackets.setIncludedTaskPackets(json.result.included);
                 taskPackets.setExcludedTaskPackets(json.result.excluded);
                 updateTaskLayers();
                 taskPackets.setVersion(version);
+                lastFetchedWindowKey = windowKey;
             }
         }
     } catch (error) {
         console.error(error);
     }
     taskPacketRequestInFlight = false;
+}
+
+/**
+ * Formats a Date as the "yyyy-mm-dd hh:mm" string that convertHTMLStrDateToISO expects
+ *
+ * @param {Date} date Date to format
+ * @returns {string} Query string in the form "yyyy-mm-dd hh:mm"
+ */
+function toTaskPacketQueryString(date: Date) {
+    return `${getHTMLDateString(date)} ${getHTMLTimeString(date)}`;
+}
+
+/**
+ * Returns a key identifying the requested task packet window.
+ *
+ * @returns {string} Window identity key
+ */
+function getTaskPacketWindowKey() {
+    if (!taskPacketFilter.isActive()) {
+        return "";
+    }
+    const start = taskPacketFilter.getStartDate();
+    const end = taskPacketFilter.getEndDate();
+    return `${start ? start.getTime() : ""}|${end ? end.getTime() : ""}`;
+}
+
+/**
+ * Fetches task packets for the active filter window (or the server default when no filter
+ * is active).
+ *
+ * @returns {Promise<{ result: { included: TaskPacket[]; excluded: TaskPacket[] } }>} Response
+ */
+export async function fetchTaskPacketsForWindow() {
+    const startDate = taskPacketFilter.getStartDate();
+    const endDate = taskPacketFilter.getEndDate();
+    if (taskPacketFilter.isActive() && startDate && endDate) {
+        const startDateISO = convertHTMLStrDateToISO(toTaskPacketQueryString(startDate));
+        const endDateISO = convertHTMLStrDateToISO(toTaskPacketQueryString(endDate));
+        const res = await fetch(
+            `${TASK_PACKET_URL}?startDate=${startDateISO}&endDate=${endDateISO}`,
+        );
+        return res.json();
+    }
+    const taskPacketRes = await fetch(TASK_PACKET_URL);
+    return taskPacketRes.json();
 }
 
 /**

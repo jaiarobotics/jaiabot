@@ -206,6 +206,22 @@ export class JaiaAPI {
     }
 
     /**
+     * Gets a depth-contour color map computed from a set of task packets. Used
+     * by the task packet filter so the contour matches the packets shown on the map.
+     *
+     * @param {TaskPacket[]} taskPackets Task packets to contour
+     * @returns {Promise<FeatureCollection<Geometry>>} The depth contour feature set
+     */
+    async getDepthContoursForTaskPackets(
+        taskPackets: TaskPacket[],
+    ): Promise<FeatureCollection<Geometry>> {
+        return (await this.post(
+            "jaia/v0/depth-contours",
+            taskPackets,
+        )) as FeatureCollection<Geometry>;
+    }
+
+    /**
      * Gets a GeoJSON object with interpolated drift features
      *
      * @param {string} startDate (optional) Set a lower bound on drift packets used for interpolation

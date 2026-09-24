@@ -11,6 +11,7 @@ import { hubs } from "../../data/hubs/hubs";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import { missionSet } from "../../data/mission_set/mission-set";
 import { taskPackets } from "../../data/task_packets/task-packets";
+import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
 import { gridPlan } from "../../data/survey_planner/grid-plan";
 import { rallyPoints } from "../../data/rally_points/rally-points";
 import { missionsManager } from "../../data/missions_manager/missions-manager";
@@ -70,6 +71,7 @@ export function handleInit(mutableState: JaiaContextType) {
         jaiaGlobal: jaiaGlobal,
         missionsManager: missionsManager,
         taskPackets: taskPackets,
+        taskPacketFilter: taskPacketFilter,
         exclusionZoneSet: exclusionZoneSet,
         pendingReroute: null,
         pendingWaypointRemoval: null,
@@ -82,6 +84,7 @@ export function handleInit(mutableState: JaiaContextType) {
         mapLayerAccordionStates: defaultMapLayerAccordionStates,
         missionAccordionStates: {},
         previousTick: bots.getTick(),
+        previousTaskPacketRevision: taskPackets.getRevision(),
     };
 
     saveHistory(completeInit, JaiaActions.INIT);
