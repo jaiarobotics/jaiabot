@@ -91,3 +91,20 @@ npm test <path to test file>
 ```
 npm test jcc/client/components/CommandControl/__tests__/CommandControl.test.tsx
 ```
+
+### Dependencies
+
+`package.json` is **generated** and is not checked in. The source is `package.json.in`, which
+CMake expands into `package.json`:
+
+```
+jaiabot$ cmake -P cmake/ConfigurePackageJSON.cmake
+```
+
+Edit `package.json.in` and regenerate — edits made directly to `package.json` are lost the next
+time anything builds. `package-lock.json` _is_ checked in, so regenerate it with `npm install`
+and commit it alongside the `package.json.in` change.
+
+The `webpack` and `webpack-cli` versions are substituted from `scripts/common-versions.env`
+rather than written in `package.json.in`, because `setup-tools-build.sh` installs those same
+versions globally. Changing them means changing that file and re-running the setup script.
