@@ -56,21 +56,13 @@ template <typename Derived, typename DataOffloadCompletedEvent> struct TaskPacke
                      });
         };
 
-        auto expired_func = [self, weak_lifetime](
-                                const protobuf::TaskPacket& msg,
-                                const goby::middleware::intervehicle::protobuf::ExpireData& expire)
+        auto expired_func = [](const protobuf::TaskPacket& msg,
+                               const goby::middleware::intervehicle::protobuf::ExpireData& expire)
         {
             goby::glog.is_warn() &&
                 goby::glog << group("statechart")
                            << "[iridium] Expiry received for TaskPacket with id: " << msg.storm_id()
                            << std::endl;
-
-            // only run if we're still in this state (and "self" is valid)
-            if_alive(weak_lifetime,
-                     [&]
-                     {
-                         self->try_send_to_shore(); // don't give up - retry
-                     });
         };
 
         // see comment in src/lib/intervehicle.h
