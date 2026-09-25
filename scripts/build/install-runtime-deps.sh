@@ -65,11 +65,20 @@ if [ -z "${depends}" ]; then
     exit 1
 fi
 
+# dpkg-query matches literal names only, so a dependency met by a provider needs these too
+provided=$(dpkg-query -W -f='${Status}|${Provides}\n' 2>/dev/null |
+    sed -n 's/^install ok installed|//p' | tr ',' '\n' |
+    sed -e 's/([^)]*)//g' -e 's/[[:space:]]//g' | grep -v '^$' | sort -u)
+
 missing=()
 for pkg in ${depends}; do
-    if ! dpkg-query -W -f='${Status}' "${pkg}" 2>/dev/null | grep -q "^install ok installed$"; then
-        missing+=("${pkg}")
+    if dpkg-query -W -f='${Status}' "${pkg}" 2>/dev/null | grep -q "^install ok installed$"; then
+        continue
     fi
+    if printf '%s\n' "${provided}" | grep -qxF "${pkg}"; then
+        continue
+    fi
+    missing+=("${pkg}")
 done
 
 if [ ${#missing[@]} -eq 0 ]; then
