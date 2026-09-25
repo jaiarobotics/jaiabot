@@ -129,6 +129,18 @@ struct SendMission : boost::statechart::state<SendMission, MissionPlanning>,
     bool skip_dive()
     {
         auto& machine = this->machine();
+
+        // a non-positive max_depth disables diving (e.g. for testing): a DIVE task with a 0 m
+        // target would still run powered descent at the surface
+        if (machine.mission().dive().max_depth() <= 0)
+        {
+            goby::glog.is_warn() && goby::glog << group("statechart")
+                                               << "Skipping dive: max_depth is "
+                                               << machine.mission().dive().max_depth()
+                                               << " (diving disabled)" << std::endl;
+            return true;
+        }
+
         if (!machine.has_latest_battery_percent())
             return false;
 
