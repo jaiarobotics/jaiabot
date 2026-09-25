@@ -38,28 +38,36 @@ export function useGamepadAxis(
         );
         let animationFrame = 0;
 
+        const report = (axisName: GamepadAxisName, value: number) => {
+            if (axisValues.get(axisName) !== value) {
+                axisValues.set(axisName, value);
+                onAxisChangeRef.current(axisName, value);
+            }
+        };
+
         const poll = () => {
             const gamepad = navigator.getGamepads?.()[GAMEPAD_INDEX];
 
-            gamepad?.axes.forEach((reportedValue, index) => {
-                const layoutEntry = AXIS_LAYOUT[index];
-                if (layoutEntry === undefined) {
-                    return;
-                }
+            if (gamepad) {
+                gamepad.axes.forEach((reportedValue, index) => {
+                    const layoutEntry = AXIS_LAYOUT[index];
+                    if (layoutEntry === undefined) {
+                        return;
+                    }
 
-                const inverted = layoutEntry.startsWith("-");
-                const axisName = axisNameOf(layoutEntry);
+                    const inverted = layoutEntry.startsWith("-");
 
-                let value = inverted ? -reportedValue : reportedValue;
-                if (Math.abs(value) < DEAD_ZONE) {
-                    value = 0;
-                }
+                    let value = inverted ? -reportedValue : reportedValue;
+                    if (Math.abs(value) < DEAD_ZONE) {
+                        value = 0;
+                    }
 
-                if (axisValues.get(axisName) !== value) {
-                    axisValues.set(axisName, value);
-                    onAxisChangeRef.current(axisName, value);
-                }
-            });
+                    report(axisNameOf(layoutEntry), value);
+                });
+            } else {
+                // a dropped pad must not leave the last stick position driving the bot
+                axisValues.forEach((_, axisName) => report(axisName, 0));
+            }
 
             animationFrame = requestAnimationFrame(poll);
         };

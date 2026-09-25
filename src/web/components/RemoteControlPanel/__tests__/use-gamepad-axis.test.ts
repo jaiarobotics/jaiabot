@@ -4,12 +4,15 @@ import { GamepadAxisName, useGamepadAxis } from "../use-gamepad-axis";
 
 type AxisReport = [GamepadAxisName, number];
 
+// null stands in for a disconnected pad: the browser reports the slot as empty
+type AxisFrame = number[] | null;
+
 /**
  * Drives the hook's polling loop by hand: requestAnimationFrame is stubbed to record the
  * callback rather than schedule it, so each test steps the loop exactly as many times as it
  * needs to.
  */
-function pollWith(axisFrames: number[][], enabled = true) {
+function pollWith(axisFrames: AxisFrame[], enabled = true) {
     const reported: AxisReport[] = [];
     let pending: FrameRequestCallback | null = null;
     let frame = 0;
@@ -23,11 +26,11 @@ function pollWith(axisFrames: number[][], enabled = true) {
     });
 
     // jsdom does not implement the Gamepad API, so define it rather than spy on it
-    let current: number[] = axisFrames[0];
+    let current: AxisFrame = axisFrames[0];
     Object.defineProperty(navigator, "getGamepads", {
         configurable: true,
         writable: true,
-        value: () => [{ axes: current }] as unknown as (Gamepad | null)[],
+        value: () => [current && { axes: current }] as unknown as (Gamepad | null)[],
     });
 
     const view = renderHook(
@@ -43,7 +46,7 @@ function pollWith(axisFrames: number[][], enabled = true) {
         callback?.(0);
     }
 
-    const step = (axes: number[]) => {
+    const step = (axes: AxisFrame) => {
         current = axes;
         const callback = pending;
         pending = null;
@@ -115,6 +118,30 @@ describe("useGamepadAxis", () => {
         step([0, -1, 0, 0]);
 
         expect(reported).toContainEqual(["LeftStickY", 1]);
+    });
+
+    test("zeroes the axes when the pad disconnects mid-drive, so the bot does not keep going", () => {
+        const { reported, step } = pollWith([[0, -1, 0.9, 0]]);
+        expect(reported).toContainEqual(["LeftStickY", 1]);
+
+        step(null);
+
+        expect(reported.slice(-2)).toEqual(
+            expect.arrayContaining([
+                ["LeftStickY", 0],
+                ["RightStickX", 0],
+            ]),
+        );
+    });
+
+    test("zeroes the axes only once while the pad stays disconnected", () => {
+        const { reported, step } = pollWith([[0, -1, 0, 0]]);
+
+        step(null);
+        const afterFirstDisconnectPoll = reported.length;
+        step(null);
+
+        expect(reported).toHaveLength(afterFirstDisconnectPoll);
     });
 
     test("stops polling when unmounted", () => {
