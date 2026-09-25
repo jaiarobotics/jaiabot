@@ -91,3 +91,50 @@ npm test <path to test file>
 ```
 npm test jcc/client/components/CommandControl/__tests__/CommandControl.test.tsx
 ```
+
+### Dependencies
+
+`package.json` is **generated** and is not checked in. The source is `package.json.in`, which
+CMake expands into `package.json`:
+
+```
+jaiabot$ cmake -P cmake/ConfigurePackageJSON.cmake
+```
+
+Edit `package.json.in` and regenerate — edits made directly to `package.json` are lost the next
+time anything builds. `package-lock.json` _is_ checked in, so regenerate it with `npm install`
+and commit it alongside the `package.json.in` change.
+
+The `webpack` and `webpack-cli` versions are substituted from `scripts/common-versions.env`
+rather than written in `package.json.in`, because `setup-tools-build.sh` installs those same
+versions globally. Changing them means changing that file and re-running the setup script.
+
+The `jaia_version_nodejs` and `jaia_version_npm` pins in that same file set the Node and npm
+versions `setup-tools-build.sh` installs through nvm. `build.sh` only sources nvm, so it keeps
+using whatever version is already aliased — changing those pins means re-running the setup
+script.
+
+#### Install scripts
+
+A package can declare a script that npm runs automatically during `npm install`. Those scripts
+run with your permissions and can read anything you can read, which makes them the most direct
+way to attack a developer machine: a single compromised package anywhere in the dependency tree
+gets code execution on every machine that installs it. npm therefore refuses to run them unless
+the package is listed in the `allowScripts` field.
+
+That field lives in `package.json.in` like everything else — npm's own `npm install-scripts`
+command writes to the generated `package.json`, where the next build overwrites it.
+
+Deny by default. Only allow a package when something demonstrably breaks without its script,
+and say in the commit message what broke. If `npm install` reports a package whose script was
+skipped, add it as `false`:
+
+```json
+"allowScripts": {
+    "@parcel/watcher": false,
+    "unrs-resolver": false
+}
+```
+
+> NOTE: Do not silence the warning with `npm install-scripts approve --all`. That allows every
+> install script in the tree, which is the outcome the check exists to prevent.

@@ -1,6 +1,5 @@
 import { LogCommand, LogTaskPacket } from "../shared/LogMessages";
 import { Log } from "./Log";
-import download from "downloadjs";
 import { Plot } from "./Plot";
 import { GeoJSONFeatureCollection } from "ol/format/GeoJSON";
 import { SeriesDescriptor } from "./SeriesDescriptor";
@@ -50,7 +49,13 @@ function downloadURL(url: string, filename: string | null = null, mimeType: stri
             return res.blob();
         })
         .then((blob) => {
-            download(blob, filename, mimeType);
+            const objectURL = URL.createObjectURL(new Blob([blob], { type: mimeType }));
+            const link = document.createElement("a");
+            link.href = objectURL;
+            link.download = filename;
+            link.click();
+            // revoking synchronously can cancel the download before the browser reads the URL
+            setTimeout(() => URL.revokeObjectURL(objectURL), 0);
         });
 }
 
