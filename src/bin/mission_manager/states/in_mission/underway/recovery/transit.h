@@ -41,29 +41,18 @@ struct Transit
         {
             auto final_goal = context<InMission>().final_goal();
 
-            if (!final_goal.movewptmode() && !this->machine().gps_tpv().has_location())
+            // the final goal is "wherever the vehicle is" (rudderless STORM bots, which cannot
+            // steer to a waypoint): recover in place, never engage the helm transit
+            if (!final_goal.movewptmode())
             {
-                // this goal has no fixed waypoint to fall back on (it's wherever the
-                // vehicle currently is) and we don't have a fresh fix to use instead -
-                // don't risk transiting toward the stale pre-dive location, just consider
-                // the goal already reached
-                glog.is_debug1() && glog << "Final goal has moveWptMode == false and no GPS "
-                                            "fix available, skipping recovery transit"
+                glog.is_debug1() && glog << "Final goal has moveWptMode == false; recovering "
+                                            "in place without transiting"
                                          << std::endl;
                 post_event(EvWaypointReached());
                 return;
             }
 
             protobuf::GeographicCoordinate location = final_goal.location();
-            if (!final_goal.movewptmode())
-            {
-                // final goal represents "wherever the vehicle currently is" rather than a
-                // fixed waypoint - use the latest GPS fix instead of the (potentially
-                // stale) location captured in the mission plan
-                const auto& pos = this->machine().gps_tpv().location();
-                location.set_lat_with_units(pos.lat_with_units());
-                location.set_lon_with_units(pos.lon_with_units());
-            }
 
             update = create_transit_update(
                 location, this->machine().mission_plan().speeds().transit_with_units(),

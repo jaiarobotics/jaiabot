@@ -40,10 +40,14 @@ struct Transit
 
         if (goal)
         {
-            if (!goal->movewptmode() && !this->machine().gps_tpv().has_location())
+            // moveWptMode == false means "the goal is wherever the vehicle is" (used by
+            // rudderless STORM bots, which cannot steer to a waypoint): never engage the
+            // helm transit, since a drifting bot that slips outside the capture radius
+            // would just drive in whatever direction it happens to be pointing
+            if (!goal->movewptmode())
             {
-                glog.is_debug1() && glog << "Goal has moveWptMode == false and no GPS fix; "
-                                            "skipping transit"
+                glog.is_debug1() && glog << "Goal has moveWptMode == false; performing task "
+                                            "in place without transiting"
                                          << std::endl;
                 post_event(EvWaypointReached());
                 return;
@@ -55,12 +59,6 @@ struct Transit
             }
 
             protobuf::GeographicCoordinate location = goal->location();
-            if (!goal->movewptmode())
-            {
-                const auto& pos = this->machine().gps_tpv().location();
-                location.set_lat_with_units(pos.lat_with_units());
-                location.set_lon_with_units(pos.lon_with_units());
-            }
 
             auto update =
                 create_transit_update(location, this->machine().transit_speed_with_units(),

@@ -19,7 +19,7 @@ initial_mission {
   
   sleep_for_minutes: 180
   min_battery_percentage: 10 
-  max_stored_datasets: 2
+  max_stored_datasets: 10
   surface_drift_time: 10
   remote_mission_wait_minutes: 0
   data_offload_timeout_minutes: 30
