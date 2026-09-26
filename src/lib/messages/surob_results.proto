@@ -1,0 +1,94 @@
+syntax = "proto2";
+
+package jaiabot.protobuf;
+
+message ValueUncertUnits {
+    optional double value = 1;
+    optional double uncert = 2;
+    optional string units = 3;
+}
+
+message ValueUncertUnitsCF {
+    optional double value = 1;
+    optional double uncert = 2;
+    optional string units = 3;
+    optional string cf_standard_name = 4;
+}
+
+message LittoralCurrent {
+    optional double value = 1;
+    optional double uncert = 2;
+    optional string units = 3 [default="knots"];
+    optional string flank = 4;
+}
+
+message Surob {
+    optional ValueUncertUnits sig_breaker_height = 1;
+    optional ValueUncertUnits breaker_period = 2;
+    optional LittoralCurrent littoral_current_local = 3;
+}
+
+message MetaLocation {
+    optional double latitude = 1;
+    optional double longitude = 2;
+}
+
+message Meta {
+    optional MetaLocation location = 1;
+}
+
+message Report {
+    optional string time = 1;
+    optional Meta meta = 2;
+    optional Surob surob = 3;
+}
+
+message CurrentMeasurement {
+    optional ValueUncertUnits current_speed = 1;
+    optional ValueUncertUnitsCF current_direction = 2;
+}
+
+message WaveMeasurement {
+    optional ValueUncertUnitsCF wave_height = 1;
+    optional ValueUncertUnitsCF wave_period = 2;
+}
+
+message Properties {
+    optional string units = 1 [default="degrees"];
+    optional string type = 2;
+    optional string description = 3;
+    optional int32 id = 4;
+    optional string vertical_location = 5;
+    optional string h_datum = 6 [default="wgs84"];
+    optional WaveMeasurement wave_measurement = 7;
+    optional CurrentMeasurement current_measurement = 8;
+    optional ValueUncertUnitsCF depth_measurement = 9;
+}
+
+message PointGeometry {
+    optional string type = 1 [default="Point"];
+    repeated double coordinates = 2;
+}
+
+message Feature {
+    optional string type = 1 [default="feature"];
+    optional Properties properties = 2;
+    optional PointGeometry geometry = 3;
+}
+
+message FeatureCollection {
+    optional string type = 1 [default="FeatureCollection"];
+    repeated Feature features = 2;
+}
+
+message Msg {
+    repeated Report reports = 1;
+    optional FeatureCollection geojson = 2;
+}
+
+message JaiaSurobMessage {
+    optional string topic = 1 [default="is2ops"];
+    optional string subtopic = 2 [default="surob"];
+    optional string source = 3 [default="jaia"];
+    optional Msg msg = 4;
+}

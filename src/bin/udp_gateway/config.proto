@@ -64,5 +64,9 @@ message UDPGateway
     // Bar30
     optional bool bar30_enabled = 23 [default = true];
 
+    // Currents and Waves Estimation
+    optional bool currents_and_waves_estimation_enabled = 24 [default = true];
+    optional int32 currents_and_waves_estimation_heartbeat_report_timeout_seconds = 25 [default = 20];
+
     optional bool in_simulation = 11 [default = true];
 }

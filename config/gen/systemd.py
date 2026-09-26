@@ -581,6 +581,16 @@ jaiabot_apps = [
      'runs_when': Mode.RUNTIME,
      'wanted_by': 'jaiabot_health.service',
      'restart': 'on-failure'},
+     {'exe': 'jaiabot_currents_and_waves_estimator.py',
+     'description': 'Currents and Signficant Wave Estimation Process',
+     'template': 'py-app.service.in',
+     'subdir': 'currents_and_waves_estimation',
+     'args': f'-p {UDP_GATEWAY_PORT} -b {args.bot_index}',
+     'error_on_fail': 'ERROR__FAILED__JAIABOT_CURRENTS_AND_WAVE_ESTIMATOR',
+     'runs_on': [BOT_TYPE.HYDRO, BOT_TYPE.ECHO],
+     'runs_when': Mode.RUNTIME,
+     'wanted_by': 'jaiabot_health.service',
+     'restart': 'on-failure'},
 
     ## ECHO Services ##
 
