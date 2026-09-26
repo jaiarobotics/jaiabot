@@ -11,18 +11,18 @@ rolling_stats_sample_count {
 
 initial_mission { 
   dive { 
-    max_depth: 0
+    max_depth: 10
     depth_interval: inf
     hold_time: 0
     bottom_dive: false
   }
   
-  sleep_for_minutes: 180
+  sleep_for_minutes: 1
   min_battery_percentage: 40 
   max_stored_datasets: 10
-  surface_drift_time: 600
+  surface_drift_time: 30
   remote_mission_wait_minutes: 0
-  data_offload_timeout_minutes: 45
+  data_offload_timeout_minutes: 15
   air_descent_data_offload_timeout_minutes: 0
   in_water {
     # in-water if conductivity is definitely seawater and pressure is definitely sea level or greater
