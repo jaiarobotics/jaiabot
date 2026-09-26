@@ -35,15 +35,25 @@ struct ParachuteAttachmentRecovery
         start_next_action();
     }
 
-    ~ParachuteAttachmentRecovery() { send_motor_command(0, 0); }
+    ~ParachuteAttachmentRecovery() { send_motor_command(0, 0); send_setpoint(0); }
 
     void loop(const EvLoop&)
     {
-        if (goby::time::SteadyClock::now() < action_end_time_)
+        const auto now = goby::time::SteadyClock::now();
+        if (now < action_end_time_)
+        {
+            send_setpoint(pausing_ ? 0 : thrust_percentage_);
             return;
+        }
 
         send_motor_command(0, 0);
-        start_next_action();
+        send_setpoint(0);
+
+        pausing_ = !pausing_;
+        if (pausing_)
+            action_end_time_ = now + std::chrono::seconds(2);
+        else
+            start_next_action();
     }
 
     using reactions = boost::mpl::list<
@@ -76,7 +86,8 @@ struct ParachuteAttachmentRecovery
         const auto duration = action.thrust_duration_with_units<goby::time::SITime>();
         const auto action_duration =
             goby::time::convert_duration<goby::time::SteadyClock::duration>(duration);
-        send_motor_command(action.thrust_percentage(), static_cast<int>(duration.value()) + 1);
+        thrust_percentage_ = action.thrust_percentage();
+        send_setpoint(thrust_percentage_);
         action_end_time_ = goby::time::SteadyClock::now() + action_duration;
     }
 
@@ -98,7 +109,18 @@ struct ParachuteAttachmentRecovery
         this->interprocess().publish<::jaiabot::groups::low_control>(command);
     }
 
+    void send_setpoint(int thrust_percentage)
+    {
+        protobuf::DesiredSetpoints setpoint_msg;
+        setpoint_msg.set_type(thrust_percentage == 0 ? protobuf::SETPOINT_STOP
+                                                     : protobuf::SETPOINT_POWERED_ASCENT);
+        setpoint_msg.set_throttle(thrust_percentage);
+        this->interprocess().publish<::jaiabot::groups::desired_setpoints>(setpoint_msg);
+    }
+
     int action_index_{0};
+    int thrust_percentage_{0};
+    bool pausing_{false};
     int action_repeat_{0};
     uint32_t command_id_{0};
     goby::time::SteadyClock::time_point action_end_time_{goby::time::SteadyClock::now()};
