@@ -35,7 +35,11 @@ struct ParachuteAttachmentRecovery
         start_next_action();
     }
 
-    ~ParachuteAttachmentRecovery() { send_motor_command(0, 0); send_setpoint(0); }
+    ~ParachuteAttachmentRecovery()
+    {
+        send_motor_command(0, 0);
+        send_setpoint(0);
+    }
 
     void loop(const EvLoop&)
     {

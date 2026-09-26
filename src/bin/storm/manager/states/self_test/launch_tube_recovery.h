@@ -35,7 +35,11 @@ struct LaunchTubeRecovery : boost::statechart::state<LaunchTubeRecovery, SelfTes
     }
 
     // Send 0 command to motor on exit
-    ~LaunchTubeRecovery() { send_motor_command(0, 0); send_setpoint(0); }
+    ~LaunchTubeRecovery()
+    {
+        send_motor_command(0, 0);
+        send_setpoint(0);
+    }
 
     void loop(const EvLoop&)
     {
