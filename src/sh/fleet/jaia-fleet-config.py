@@ -88,7 +88,7 @@ class Question:
         self.per_node = d.per_node
         self.enum_values = enum_values  # for enum fields, in declaration order
 
-        self.repeated = field.label == FieldDescriptor.LABEL_REPEATED
+        self.repeated = field.is_repeated
         if field.type == FieldDescriptor.TYPE_ENUM:
             self.type = "multiselect" if self.repeated else "select"
             self.choices = [v.value for v in enum_values if not v.deprecated]
@@ -328,7 +328,7 @@ def node_type_name(schema, cfg_node_type):
 def apply_settings(merged, settings):
     """Fields set in settings replace those in merged (repeated ones wholesale)."""
     for field, value in settings.ListFields():
-        if field.label == FieldDescriptor.LABEL_REPEATED:
+        if field.is_repeated:
             merged.ClearField(field.name)
             getattr(merged, field.name).extend(value)
         else:
@@ -773,7 +773,7 @@ def json_context(msg):
 
 def add_empty_repeated(msg, obj):
     for field in msg.DESCRIPTOR.fields:
-        if field.label == FieldDescriptor.LABEL_REPEATED:
+        if field.is_repeated:
             obj.setdefault(field.json_name, [])
             if field.type == FieldDescriptor.TYPE_MESSAGE:
                 for sub, sub_obj in zip(getattr(msg, field.name), obj[field.json_name]):
