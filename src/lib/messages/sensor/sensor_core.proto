@@ -9,6 +9,7 @@ import "jaiabot/messages/sensor/atlas_scientific__oem_ph.proto";
 import "jaiabot/messages/sensor/turner__c_fluor.proto";
 import "jaiabot/messages/sensor/blue_robotics__bar30.proto";
 import "jaiabot/messages/sensor/aml.proto";
+import "jaiabot/messages/sensor/tsys01.proto";
 import "jaiabot/messages/sensor/catalog.proto";
 
 package jaiabot.sensor.protobuf;
@@ -91,6 +92,7 @@ message SensorData
         AtlasScientificOEMDO oem_do = 15;
         TurnerCFluor c_fluor = 16;
         AML aml = 17;
+        TSYS01 tsys01 = 18;
     }
 }
 
