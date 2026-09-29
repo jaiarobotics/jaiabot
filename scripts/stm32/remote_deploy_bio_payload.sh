@@ -1,17 +1,7 @@
 #!/bin/bash
 
-# Build the bio payload STM32 firmware locally and flash it onto one or more bots
-# over SSH, without needing an ARM toolchain (or a checkout) on the Pi.
-#
-# The existing scripts/stm32/deploy_bio_payload.sh runs *on* the Pi and installs
-# gcc-arm-none-eabi/binutils-arm-none-eabi there just to run objcopy on the ELF.
-# The CubeMX Makefile already emits bio_payload.bin next to the ELF, so that step
-# can happen here instead and the Pi never needs the cross toolchain.
-#
-# stm32flash still has to run on the Pi -- it drives the STM32 UART bootloader over
-# the physical /dev/bio-payload port -- so it is compiled there once and cached in
-# the staging directory for subsequent deploys. That needs only gcc/make, which the
-# bot image already carries.
+# Build the bio payload firmware locally and flash it onto bots over SSH, so the Pi
+# needs no ARM toolchain; stm32flash is compiled once on the Pi and cached there.
 #
 # Usage:
 #   ./scripts/stm32/remote_deploy_bio_payload.sh 172.20.11.102 [more hosts ...]
@@ -159,10 +149,8 @@ if [ "${REBUILD_TOOL}" = "true" ] || [ ! -x stm32flash-0.7/stm32flash ]; then
     make -C stm32flash-0.7 >/dev/null
 fi
 
-# The STM32 has no BOOT0 strap wired out, so the only way into the system
-# bootloader is the firmware's own jumpToBootloader(). That command is relayed by
-# jaiabot_sensors, which therefore has to still be running at this point -- the
-# service is stopped immediately afterwards so it cannot talk over the flash.
+# With no BOOT0 strap, the bootloader is entered via a command relayed by jaiabot_sensors,
+# so it must be running here; it is stopped right after so it can't talk over the flash.
 if ! systemctl is-active --quiet jaiabot_sensors; then
     echo "❌ jaiabot_sensors is not running." >&2
     echo "   It relays ENTER_BOOTLOADER_MODE to the payload board, so it must be up" >&2

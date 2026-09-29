@@ -135,9 +135,8 @@ float pressure_zero_mbar = 0.0f;
 
 static uint32_t uart1_last_rx_tick = 0;
 
-// UART2 TX buffers must be static: HAL_UART_Transmit_IT() returns immediately
-// while the USART2 interrupt handler keeps reading from this buffer until the
-// transfer completes, so it cannot live on transmit_sensor_data()'s stack.
+// Static because HAL_UART_Transmit_IT() keeps reading these from the ISR after
+// transmit_sensor_data() returns.
 static uint8_t uart2_tx_buffer[MAX_MSG_SIZE] = {0};
 static uint8_t uart2_tx_buffer_cobs[MAX_MSG_SIZE] = {0};
 static volatile bool uart2_tx_busy = false;
@@ -290,9 +289,8 @@ int main(void)
     // Refresh watchdog
     HAL_IWDG_Refresh(&hiwdg);
 
-    // Run at 500 Hz. Now that sensor transmits are non-blocking, this delay
-    // only bounds how promptly a due sensor/command gets serviced, not the
-    // achievable transmission rate.
+    // Run at 500 Hz. Transmits are non-blocking, so this only bounds how promptly
+    // a due sensor/command is serviced, not the transmission rate.
     HAL_Delay(2);
 
     // Check if a sensor came unplugged from UART 1 (user changing AML sensors)
@@ -436,10 +434,8 @@ void init_celsius_tsys01()
   }
   else
   {
-    // Unlike the Bar30 and the Atlas boards, the Celsius is an optional add-on: this same
-    // firmware runs on BIO bots built without one. Leaving it UNINITIALIZED (rather than
-    // FAILED) keeps it out of transmit_metadata(), so jaiabot_sensors neither launches a
-    // TSYS01 driver nor raises WARNING__INIT_FAILED__TSYS01 for a sensor that isn't fitted.
+    // The Celsius is optional, so leave it UNINITIALIZED (not FAILED) to keep it out of
+    // transmit_metadata() and avoid an init-failed warning on bots without one.
     Sensors[jaiabot_sensor_protobuf_Sensor_TSYS01__SENSOR] = UNINITIALIZED;
   }
 }
@@ -649,10 +645,8 @@ void stopCalibration()
 
 void transmit_sensor_data(SensorData *sensor_data)
 {
-  // Multiple sensors are often due in the same loop iteration, so the
-  // previous one's transfer (a few ms at 115200 baud) may still be in
-  // flight. Wait for it rather than dropping the sample outright, bounded
-  // so a genuinely stuck UART can't hang the main loop.
+  // The previous transfer may still be in flight when several sensors are due at once;
+  // wait for it (bounded, so a stuck UART can't hang the loop) rather than drop the sample.
   uint32_t wait_start_tick = HAL_GetTick();
   while (uart2_tx_busy)
   {
@@ -688,12 +682,8 @@ void transmit_sensor_data(SensorData *sensor_data)
     counter++;
   }
 
-  // COBSStuffData() never writes an explicit terminating zero; the length
-  // scan below finds the message's end by relying on the destination buffer
-  // already being zero past that point. buffer_cobs is now static (reused
-  // across calls for the non-blocking IT transfer), so it must be re-zeroed
-  // here or a shorter message would pick up stale trailing bytes from
-  // whatever longer message was sent before it.
+  // COBSStuffData() writes no terminator and the length scan below relies on trailing
+  // zeros, so re-zero the reused static buffer to clear bytes from a longer prior message.
   memset(buffer_cobs, 0, MAX_MSG_SIZE);
   COBSStuffData(buffer, message_length + bytes_in_crc32, buffer_cobs);
 
@@ -721,9 +711,8 @@ void transmit_metadata()
 {
   for (int sensor_index = 1; sensor_index < _jaiabot_sensor_protobuf_Sensor_ARRAYSIZE; sensor_index++)
   {
-    // The fluorometer is the only sensor the board can carry more than one of, so it is
-    // announced once for each one. The board cannot tell how many are plugged in, so it
-    // always reports both and leaves it to the Pi to decide which to use
+    // The board can't tell how many fluorometers are plugged in, so it announces every
+    // instance and leaves the Pi to decide which to use.
     int instance_count = (sensor_index == jaiabot_sensor_protobuf_Sensor_TURNER__C_FLUOR) ? CFLUOR_INSTANCE_COUNT : 1;
 
     for (int instance = 0; instance < instance_count; instance++)
@@ -1750,9 +1739,8 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     {
       uartrxbuff[Size] = '\0';
 
-      // Producer side of the single-producer/single-consumer queue: only this
-      // ISR touches wIndex, and rIndex is read but never written here, so no
-      // critical section is needed against process_cmd() in the main loop.
+      // SPSC producer: only this ISR writes wIndex and rIndex is only read here,
+      // so no critical section is needed against process_cmd().
       uint8_t write_index = uQueue.wIndex;
       uint8_t next_index = UART_QUEUE_NEXT(write_index);
 

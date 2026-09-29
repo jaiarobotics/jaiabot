@@ -11,12 +11,8 @@ include(ConfigurePackageJSON)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/package.json ${intermediate_web_dir}/package.json COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json ${intermediate_web_dir}/package-lock.json COPYONLY)
 
-# Use a stamp file rather than the node_modules directory as the output. A
-# directory exists as soon as npm starts writing into it, so if the install
-# dies partway (OOM, Ctrl-C, network) make would consider the target satisfied
-# forever and every later build would run webpack against a half-installed
-# tree. The stamp is only written after install_dependencies.sh succeeds, so a
-# failed install is retried on the next build instead of being cached.
+# Output a stamp written only after a successful install, not node_modules itself,
+# so an interrupted npm install is retried instead of treated as up to date.
 set(npm_dependencies_stamp ${intermediate_web_dir}/npm_dependencies.stamp)
 
 add_custom_command(OUTPUT ${npm_dependencies_stamp}

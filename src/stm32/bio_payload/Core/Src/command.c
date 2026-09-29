@@ -42,17 +42,12 @@ SensorRequest process_cmd(void)
           COBSUnStuffData((const unsigned char*)uQueue.msgQueue[read_index],
                           strlen((char*)uQueue.msgQueue[read_index]), decoded_msg);
 
-      // The slot has been copied out, so hand it back to the ISR. This happens
-      // before the validity checks below so that a malformed message consumes its
-      // slot instead of stalling the queue.
+      // Release the slot before validating, so a malformed message can't stall the queue.
       UART_QUEUE_BARRIER();
       uQueue.rIndex = UART_QUEUE_NEXT(read_index);
 
-      // Ensure the decoded message fits the buffer and has enough bytes for CRC32
-      // verification. The length comes from the decoder itself rather than from
-      // scanning back for the last non-zero byte: the CRC32 occupies the final
-      // four bytes, so a message whose CRC ends in 0x00 would otherwise be
-      // truncated and fail verification.
+      // Check the length fits and covers the CRC32. Use the decoder's length, not a scan for
+      // the last non-zero byte, which would truncate a CRC ending in 0x00.
       if (decoded_length < CRC32_SIZE || decoded_length > DECODED_MSG_SIZE)
       {
           return message;

@@ -85,9 +85,8 @@ bar30_enabled=(bot_type != "BIO")
 # Only enable TSYS01 driver if the Bot is not a BIO and the TSYS01 is the selected temperature sensor type
 tsys01_enabled=(jaia_temperature_sensor_type == 'tsys01' and bot_type != 'BIO')
 
-# The mirror of the above: on a BIO bot the TSYS01 is the payload board's job, so tell
-# jaiabot_sensors it is expected. That stanza's presence (has_tsys01) is what lets the
-# app warn when a bot configured for a TSYS01 never receives any TSYS01 data.
+# On a BIO bot the payload board reads the TSYS01; this stanza (has_tsys01) lets
+# jaiabot_sensors warn if a configured TSYS01 never reports.
 if jaia_temperature_sensor_type == 'tsys01' and bot_type == 'BIO':
     tsys01_config = ('tsys01 {\n'
                      '    sample_rate: 10\n'
@@ -182,11 +181,8 @@ def read_fluorometer_coefficients(*paths):
 fluorometer_coefficients = read_fluorometer_coefficients('/etc/jaiabot/fluorometer_coefficients.pb.cfg')
 fluorometer_coefficients_2 = read_fluorometer_coefficients('/etc/jaiabot/fluorometer_coefficients_2.pb.cfg')
 
-# The payload board announces two fluorometer channels whether or not a second sensor is
-# wired, and an unconnected channel reads as a valid zero rather than failing, so the
-# firmware cannot tell us which bots actually have one. The presence of this stanza
-# (has_fluorometer_2) is what lets jaiabot_sensors launch the second driver thread; without
-# it the phantom instance is ignored instead of reported as data.
+# The payload board always announces two fluorometers (an unwired one reads zero), so
+# this stanza (has_fluorometer_2) is what enables the second driver in jaiabot_sensors.
 if 'turner_c_fluor_2' in jaia_additional_sensors:
     fluorometer_2_config = ('fluorometer_2 {\n'
                             '    sample_rate: 10\n'

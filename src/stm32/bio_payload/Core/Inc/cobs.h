@@ -59,10 +59,8 @@ static inline unsigned long COBSUnStuffData(const unsigned char* ptr, unsigned l
         }
         if (code < 0xFF)
         {
-            // Every block shorter than 0xFF stands for a zero byte in the
-            // original data. That zero counts toward the decoded length, except
-            // for the one produced by the final block: there it represents the
-            // frame delimiter the encoder implies rather than data.
+            // Each block shorter than 0xFF implies a zero byte, which counts toward the
+            // length except after the final block, where it is the implied frame delimiter.
             *dst++ = 0;
             len++;
             trailing_zero = 1;

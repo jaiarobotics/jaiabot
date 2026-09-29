@@ -165,11 +165,8 @@ void jaiabot::apps::Sensors::health(goby::middleware::protobuf::ThreadHealth& he
         }
     }
 
-    // A TSYS01 that never initializes is reported by the payload board as absent rather
-    // than failed, since the same firmware runs on BIO bots built without one. That is
-    // silent by design -- but if this bot was configured for a TSYS01, silence means the
-    // sensor we were told to expect never showed up, and no driver thread exists to time
-    // out and report it. Warn on its behalf.
+    // The payload board reports a missing TSYS01 as absent, not failed, so warn here if
+    // this bot was configured for one (no driver thread exists to time out and report it).
     if (cfg().has_tsys01() &&
         !drivers_launched_.count(SensorKey{jaiabot::sensor::protobuf::TSYS01__SENSOR,
                                            jaiabot::sensor::protobuf::INSTANCE_1}) &&
@@ -314,11 +311,8 @@ void jaiabot::apps::Sensors::receive_metadata_from_mcu(const sensor::protobuf::M
 
         // launched with an index so that a second fluorometer gets its own thread
         case sensor::protobuf::TURNER__C_FLUOR:
-            // The payload board announces both fluorometer channels whether or not a second
-            // sensor is wired, and an unconnected channel reads back as a valid zero rather
-            // than failing or timing out. Only a bot configured for a second fluorometer
-            // gets a driver for it; otherwise the phantom instance is dropped here so it is
-            // never reported as data.
+            // The board always announces both fluorometers (an unwired one reads zero), so
+            // drop the second instance unless this bot is configured for it.
             if (metadata.instance() == sensor::protobuf::INSTANCE_2 && !cfg().has_fluorometer_2())
             {
                 glog.is_verbose() && glog << "Payload board reported a second fluorometer but "

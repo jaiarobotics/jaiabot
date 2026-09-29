@@ -38,11 +38,8 @@ if ! command -v nanopb_generator.py &>/dev/null; then
 fi
 
 # --- Change detection ---
-# Hash all source files that affect the STM32 build:
-# - STM32 C source/headers
-# - .ioc file
-# - .proto and .options files (changing these changes generated nanopb output)
-# - nanopb runtime files
+# Hash everything that affects the build: STM32 C sources/headers, the .ioc,
+# .proto/.options files (they change the nanopb output) and the nanopb runtime.
 CURRENT_HASH=$(find \
     "${STM32_SRC_DIR}" \
     "${MESSAGES_DIR}" \
@@ -79,9 +76,8 @@ fi
 mkdir -p "${STM32_BUILD_DIR}"
 
 # --- Stubs for non-embedded dependencies ---
-# DCCL option annotations are Linux-side only; nanopb doesn't use them on STM32.
-# The generated pb.h files include dccl/option_extensions.pb.h, so we provide
-# an empty stub. JAIABOT_INC=${STM32_BUILD_DIR} puts this on the include path.
+# Generated pb.h files include dccl/option_extensions.pb.h, which nanopb doesn't need,
+# so provide an empty stub (on the include path via JAIABOT_INC=${STM32_BUILD_DIR}).
 mkdir -p "${STM32_BUILD_DIR}/dccl"
 cat > "${STM32_BUILD_DIR}/dccl/option_extensions.pb.h" << 'EOF'
 /* Stub: DCCL option extensions are not used in nanopb embedded builds */
@@ -128,11 +124,8 @@ generate_nanopb \
     -I "${PROTO_STAGING}" \
     "${MESSAGES_DIR}"/*.proto
 
-# Sensor messages — pass via staging symlink so protoc sees them as
-# "jaiabot/messages/sensor/..." (matching the fully-qualified imports in the protos).
-# Use NANOPB_OUT (not NANOPB_SENSOR_DIR) as --output-dir: nanopb appends the proto's
-# path relative to the -I root (jaiabot/messages/sensor/) automatically, so using
-# NANOPB_SENSOR_DIR would produce a doubly-nested output path.
+# Sensor messages go via the staging symlink so imports resolve as "jaiabot/messages/sensor/...";
+# output to NANOPB_OUT since nanopb appends that relative path itself (avoids double nesting).
 generate_nanopb \
     --output-dir="${NANOPB_OUT}" \
     --options-path="${MESSAGES_DIR}/sensor" \
@@ -140,9 +133,8 @@ generate_nanopb \
     "${PROTO_STAGING}/jaiabot/messages/sensor"/*.proto
 
 # --- Build ---
-# NANOPB_INC: root of jaiabot/messages/ tree → NANOPB_SENSOR_GEN_DIR = $(NANOPB_INC)/jaiabot/messages/sensor
-# JAIABOT_INC: parent of nanopb/ → resolves #include "nanopb/jaiabot/messages/sensor/..."
-# NANOPB_SYS_INC: sensor dir → resolves bare sibling includes inside sensor pb.h files
+# NANOPB_INC: root of the generated messages tree; JAIABOT_INC: parent of nanopb/;
+# NANOPB_SYS_INC: sensor dir, for bare sibling includes inside the sensor pb.h files
 echo "[STM32] Building bio_payload (STM32L433) firmware..."
 make -C "${STM32_BOARD_DIR}" \
     -j"$(nproc)" \

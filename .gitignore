@@ -6,6 +6,8 @@ config/launch/simulation/preseed.goby
 __pycache__
 .vscode
 *.egg-info/
+
+# Need to know what can actually be left out of the STM32 directory
 src/stm32/Debug
 src/stm32/Drivers
 src/stm32/jaiabot

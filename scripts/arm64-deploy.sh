@@ -35,16 +35,12 @@ if [[ "$jaia_mode" == "simulation" ]]; then
     jaia_simulation="--simulation --warp ${jaia_warp}"
 fi
 
-# systemd.py writes jaia_temperature_sensor_type into runtime.env from its own --temperature_sensor_type
-# argument, so the value only survives a redeploy if it is passed back in below. Without that round trip
-# it silently resets to "none" on every deploy, which drops the TSYS01 stanza from jaiabot_sensors and
-# unregisters the jaiabot_tsys01.py service. Default for bots provisioned before this var was recorded.
+# Pass jaia_temperature_sensor_type back to systemd.py so it survives a redeploy instead of
+# resetting to "none"; the default covers bots provisioned before this var was recorded.
 jaia_temperature_sensor_type=${jaia_temperature_sensor_type:-none}
 
-# systemd.py writes the multi-value settings into runtime.env as comma-separated lists
-# (e.g. jaia_comms_mode=xbee,iridium), but its --comms_links/--camera_positions/--additional_sensors
-# arguments are nargs="+" and only accept space-separated words. Translate here, the same way the
-# .deb postinst translates the comma-separated debconf multiselect answers.
+# runtime.env stores multi-value settings comma-separated (e.g. xbee,iridium), but systemd.py's
+# nargs="+" arguments expect space-separated words, so translate (as the .deb postinst does).
 jaia_comms_links_args=${jaia_comms_mode,,}
 jaia_comms_links_args=${jaia_comms_links_args//,/ }
 jaia_camera_positions_args=${jaia_camera_positions,,}
