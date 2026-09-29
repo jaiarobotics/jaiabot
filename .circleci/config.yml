@@ -185,8 +185,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "2.y"
-        # TEMPORARY: test the STM32 toolchain fix; remove before merging into 2.y
-        - "bug/stm32-circleci-build-failed"
         
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
