@@ -473,6 +473,7 @@ elif common.app == 'jaiabot_ctd_manager':
                                      interprocess_block = interprocess_common,
                                      fleet_id=fleet_index,
                                      use_localhost_for_data_offload=(common.comms.wifi_ip_addr(node_id, node_id, fleet_index) == '127.0.0.1'),
+                                     iridium_offload=str(storm_enabled).lower(),
                                      log_dir=log_file_dir))
 elif common.app == 'jaiabot_storm_manager':
     print(config.template_substitute(templates_dir+'/bot/jaiabot_storm_manager.pb.cfg.in',
