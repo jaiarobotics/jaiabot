@@ -16,7 +16,9 @@ Build-Depends-Indep:
                python3-protobuf,
                goby3-clang-tool [amd64],
                goby3-interfaces [amd64],
-               dccl4-apps [amd64]
+               dccl4-apps [amd64],
+               gcc-arm-none-eabi [amd64],
+               libnewlib-arm-none-eabi [amd64]
 Standards-Version: 3.9.6
 Section: libs
 Homepage: https://github.com/jaiarobotics/jaiabot
