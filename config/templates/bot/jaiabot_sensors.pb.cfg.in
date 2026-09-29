@@ -7,8 +7,7 @@ mcu_serial {
 
 # The first fluorometer is always present on BIO bots, so its stanza lives here. The tsys01
 # and fluorometer_2 stanzas are optional and jaiabot_sensors uses their presence to enable
-# them, so bot.py generates them whole (or as an empty string). Keep their timing values
-# in sync with this block.
+# them, so bot.py generates them whole (or as an empty string).
 fluorometer {
     sample_rate: 10
     report_timeout_seconds: 20
