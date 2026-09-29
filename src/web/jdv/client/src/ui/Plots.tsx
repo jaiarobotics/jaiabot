@@ -49,10 +49,81 @@ export interface PlotsProps {
     seriesDescriptors: SeriesDescriptor[];
 }
 
+// Colors used for stat lines — kept as constants so they are consistent
+// across the plot traces, annotations, and the info dialog legend.
+const MEAN_LINE_COLOR = "red";
+const STD_LINE_COLOR = "orange";
+
+// Plotly's default color cycle — used to explicitly assign data trace colors
+// so that the extra stat traces don't shift the color assignments.
+const PLOTLY_COLORS = [
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf",
+];
+
+function wrapLines(text: string, maxLength = 30, splitChars = ["/", " "]) {
+    var components: string[] = [];
+    var newComponent = true;
+
+    for (let characterIndex = 0; characterIndex < text.length; characterIndex++) {
+        if (newComponent) {
+            components.push("");
+        }
+
+        const c = text[characterIndex];
+        components[components.length - 1] = components[components.length - 1].concat(c);
+
+        if (splitChars.includes(c)) {
+            newComponent = true;
+        } else {
+            newComponent = false;
+        }
+    }
+
+    var lines: string[] = [];
+    var line = "";
+
+    for (const component of components) {
+        if (component.length > maxLength) {
+            if (line.length > 0) {
+                lines.push(line);
+            }
+            lines.push(component);
+            continue;
+        }
+
+        if (line.length + component.length > maxLength) {
+            lines.push(line);
+            line = component;
+            continue;
+        }
+
+        line = line.concat(component);
+    }
+
+    if (line.length > 0) {
+        lines.push(line);
+    }
+
+    return lines.join("<br>");
+}
+
 export function Plots(props: PlotsProps) {
     const [isPathSelectorDisplayed, setIsPathSelectorDisplayed] = React.useState(false);
     const [isOpenPlotSetDisplayed, setIsOpenPlotSetDisplayed] = React.useState(false);
     const [isPlotInfoDisplayed, setIsPlotInfoDisplayed] = React.useState(false);
+
+    // Toggles for mean and std. dev. overlay lines
+    const [showMean, setShowMean] = React.useState(false);
+    const [showStd, setShowStd] = React.useState(false);
 
     function deletePlotClicked(plotIndex: number) {
         let { plots } = props;
@@ -100,56 +171,6 @@ export function Plots(props: PlotsProps) {
         var layout: any = { showlegend: false };
 
         for (let [plot_index, series] of plots.entries()) {
-            // Set the y-axis for this plot
-            function wrapLines(text: string, maxLength = 30, splitChars = ["/", " "]) {
-                // Get components that include the splitChars
-                var components: string[] = [];
-                var newComponent = true;
-
-                for (let characterIndex = 0; characterIndex < text.length; characterIndex++) {
-                    if (newComponent) {
-                        components.push("");
-                    }
-
-                    const c = text[characterIndex];
-                    components[components.length - 1] = components[components.length - 1].concat(c);
-
-                    if (splitChars.includes(c)) {
-                        newComponent = true;
-                    } else {
-                        newComponent = false;
-                    }
-                }
-
-                // Concat the components, with <br> if necessary
-                var lines: string[] = [];
-                var line = "";
-
-                for (const component of components) {
-                    if (component.length > maxLength) {
-                        if (line.length > 0) {
-                            lines.push(line);
-                        }
-                        lines.push(component);
-                        continue;
-                    }
-
-                    if (line.length + component.length > maxLength) {
-                        lines.push(line);
-                        line = component;
-                        continue;
-                    }
-
-                    line = line.concat(component);
-                }
-
-                if (line.length > 0) {
-                    lines.push(line);
-                }
-
-                return lines.join("<br>");
-            }
-
             const y_axis_title = wrapLines(series.y_axis_title.replaceAll("\n", "<br>"));
             const yaxisLayoutKey = plot_index === 0 ? "yaxis" : "yaxis" + (plot_index + 1);
             layout[yaxisLayoutKey] = {
@@ -160,6 +181,8 @@ export function Plots(props: PlotsProps) {
             // Add to the data array
             let yaxis = "y" + (plot_index + 1);
 
+            const traceColor = PLOTLY_COLORS[plot_index % PLOTLY_COLORS.length];
+
             let trace: Plotly.Data = {
                 name: series.title,
                 x: [new Date()],
@@ -169,14 +192,60 @@ export function Plots(props: PlotsProps) {
                 hovertext: [],
                 type: "scattergl",
                 mode: "lines+markers",
+                marker: { color: traceColor },
+                line: { color: traceColor },
             };
 
             data.push(trace);
+
+            // Mean line trace
+            data.push({
+                name: "Mean",
+                x: [],
+                y: [],
+                xaxis: "x",
+                yaxis: yaxis,
+                type: "scattergl",
+                mode: "lines",
+                line: { dash: "dash", color: MEAN_LINE_COLOR, width: 1.5 },
+                hoverinfo: "skip",
+                visible: showMean,
+            } as Plotly.Data);
+
+            // Mean + std line trace
+            data.push({
+                name: "+1 Std. Dev.",
+                x: [],
+                y: [],
+                xaxis: "x",
+                yaxis: yaxis,
+                type: "scattergl",
+                mode: "lines",
+                line: { dash: "dot", color: STD_LINE_COLOR, width: 1.5 },
+                hoverinfo: "skip",
+                visible: showStd,
+            } as Plotly.Data);
+
+            // Mean - std line trace
+            data.push({
+                name: "\u22121 Std. Dev.",
+                x: [],
+                y: [],
+                xaxis: "x",
+                yaxis: yaxis,
+                type: "scattergl",
+                mode: "lines",
+                line: { dash: "dot", color: STD_LINE_COLOR, width: 1.5 },
+                hoverinfo: "skip",
+                visible: showStd,
+            } as Plotly.Data);
         }
 
-        layout.grid = { rows: data.length, columns: 1, pattern: "coupled" };
+        layout.grid = { rows: plots.length, columns: 1, pattern: "coupled", ygap: 0.12 };
+        layout.margin = { l: 80, r: 20, t: 20, b: 80 };
+        layout.xaxis = { ...layout.xaxis, ticklabelstandoff: 20 };
 
-        layout.height = data.length * 300 + 1; // in pixels
+        layout.height = plots.length * 350 + 1; // in pixels
 
         // Preserve current x axis range
         const current_layout_xaxis = plot_div_element.layout?.xaxis;
@@ -224,6 +293,96 @@ export function Plots(props: PlotsProps) {
 
     useEffect(createPlots, [props.chosenLogs, props.plots]);
 
+    // When the user toggles showMean or showStd, update trace visibility without
+    // re-rendering the whole plot.
+    useEffect(() => {
+        const { plots } = props;
+        if (plots.length === 0) return;
+
+        // Each plot contributes 4 traces: [data, mean, mean+std, mean-std]
+        const traceCount = plots.length * 4;
+        const visibilityUpdate: boolean[] = [];
+        for (let i = 0; i < plots.length; i++) {
+            visibilityUpdate.push(true); // data trace — always visible
+            visibilityUpdate.push(showMean); // mean line
+            visibilityUpdate.push(showStd); // mean+std line
+            visibilityUpdate.push(showStd); // mean-std line
+        }
+
+        const traceIndices = Array.from({ length: traceCount }, (_, i) => i);
+        Plotly.restyle("plot", { visible: visibilityUpdate }, traceIndices);
+
+        // Update y-axis titles to show/hide stat values.
+        refreshSubplotTitles();
+    }, [showMean, showStd]);
+
+    // Build stat annotations as top-right overlays within each subplot.
+    const buildSubplotOverlays = (plots: Plot[], visibleTimeRange: number[] | null): any[] => {
+        const annotations: any[] = [];
+
+        for (let [plot_index, series] of plots.entries()) {
+            const yDomainRef = plot_index === 0 ? "y domain" : `y${plot_index + 1} domain`;
+
+            if (series._utime_.length > 0 && (showMean || showStd)) {
+                const t_start = visibleTimeRange ? visibleTimeRange[0] : Number.MIN_SAFE_INTEGER;
+                const t_end = visibleTimeRange ? visibleTimeRange[1] : Number.MAX_SAFE_INTEGER;
+
+                const start_index = bisect(series._utime_, (t) => t_start - t)?.index ?? 0;
+                const end_index =
+                    bisect(series._utime_, (t) => t_end - t)?.index ?? series._utime_.length;
+                const visible_y = series.series_y
+                    .slice(start_index, Math.min(end_index + 2, series._utime_.length))
+                    .filter((y): y is number => y !== null);
+
+                let mean = 0;
+                let std = 0;
+                if (visible_y.length > 0) {
+                    mean = visible_y.reduce((a, b) => a + b, 0) / visible_y.length;
+                    const variance =
+                        visible_y.reduce((sum, y) => sum + (y - mean) ** 2, 0) / visible_y.length;
+                    std = Math.sqrt(variance);
+                }
+
+                const parts: string[] = [];
+                if (showMean) {
+                    parts.push(
+                        `<b><span style="color:${MEAN_LINE_COLOR}">Mean: ${mean.toFixed(3)}</span></b>`,
+                    );
+                }
+                if (showStd) {
+                    parts.push(
+                        `<b><span style="color:${STD_LINE_COLOR}">σ: ${std.toFixed(3)}</span></b>`,
+                    );
+                }
+
+                annotations.push({
+                    xref: "paper",
+                    yref: yDomainRef,
+                    x: 0.98,
+                    y: 0.98,
+                    text: parts.join("&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;"),
+                    showarrow: false,
+                    font: { size: 12 },
+                    xanchor: "right",
+                    yanchor: "top",
+                    bgcolor: "rgba(255, 255, 255, 0.5)",
+                    bordercolor: "#ccc",
+                    borderwidth: 1,
+                    borderpad: 4,
+                });
+            }
+        }
+
+        return annotations;
+    };
+
+    const refreshSubplotTitles = () => {
+        const { plots, visibleTimeRange } = props;
+        if (plots.length === 0) return;
+        const annotations = buildSubplotOverlays(plots, visibleTimeRange);
+        Plotly.relayout("plot", { annotations });
+    };
+
     const refreshPlotData = () => {
         console.debug("Refreshing plot data");
 
@@ -244,21 +403,16 @@ export function Plots(props: PlotsProps) {
             customdata: [],
         };
 
-        const getIndexRange = (series: Plot, t_start: number, t_end: number) => {
-            const start_index = bisect(series._utime_, (t) => t_start - t)?.index ?? 0;
-            const end_index =
-                bisect(series._utime_, (t) => t_end - t)?.index ?? series._utime_.length;
-            return [start_index, Math.min(end_index + 2, series._utime_.length)];
-        };
-
         for (let [plot_index, series] of plots.entries()) {
             if (series._utime_.length == 0) {
-                // No data points
-                update.x.push([]);
-                update.y.push([]);
-                update.hovertext.push([]);
-                update.customdata.push([]);
-                update.mode.push("lines");
+                // No data points — push empty entries for main trace + 3 stat traces
+                for (let i = 0; i < 4; i++) {
+                    update.x.push([]);
+                    update.y.push([]);
+                    update.hovertext.push([]);
+                    update.customdata.push([]);
+                    update.mode.push("lines");
+                }
                 continue;
             }
 
@@ -274,6 +428,13 @@ export function Plots(props: PlotsProps) {
 
             // Use lines+markers for the full series, to indicate full resolution
             const auto_mode = plot_to_use.is_full_series ? "lines+markers" : "lines";
+
+            const getIndexRange = (series: Plot, t_start: number, t_end: number) => {
+                const start_index = bisect(series._utime_, (t) => t_start - t)?.index ?? 0;
+                const end_index =
+                    bisect(series._utime_, (t) => t_end - t)?.index ?? series._utime_.length;
+                return [start_index, Math.min(end_index + 2, series._utime_.length)];
+            };
 
             const [start_index, end_index] = getIndexRange(
                 plot_to_use,
@@ -336,8 +497,55 @@ export function Plots(props: PlotsProps) {
             update.hovertext.push(hovertext);
             update.customdata.push(customdata);
             update.mode.push(auto_mode);
+
+            // --- Mean / Std computation (full-resolution data, zoom window) ---
+            const t_start = visibleTimeRange ? visibleTimeRange[0] : Number.MIN_SAFE_INTEGER;
+            const t_end = visibleTimeRange ? visibleTimeRange[1] : Number.MAX_SAFE_INTEGER;
+
+            const [stat_start, stat_end] = getIndexRange(series, t_start, t_end);
+            const visible_y = series.series_y
+                .slice(stat_start, stat_end)
+                .filter((y): y is number => y !== null);
+
+            let mean = 0;
+            let std = 0;
+            if (visible_y.length > 0) {
+                mean = visible_y.reduce((a, b) => a + b, 0) / visible_y.length;
+                const variance =
+                    visible_y.reduce((sum, y) => sum + (y - mean) ** 2, 0) / visible_y.length;
+                std = Math.sqrt(variance);
+            }
+
+            // Span the stat lines across the full series extent so they remain
+            // visible even when panning (Plotly clips to the visible window).
+            const stat_x_start = microsToDate(series._utime_[0]);
+            const stat_x_end = microsToDate(series._utime_[series._utime_.length - 1]);
+
+            // Mean line
+            update.x.push([stat_x_start, stat_x_end]);
+            update.y.push([mean, mean]);
+            update.hovertext.push([]);
+            update.customdata.push([]);
+            update.mode.push("lines");
+
+            // Mean + std line
+            update.x.push([stat_x_start, stat_x_end]);
+            update.y.push([mean + std, mean + std]);
+            update.hovertext.push([]);
+            update.customdata.push([]);
+            update.mode.push("lines");
+
+            // Mean - std line
+            update.x.push([stat_x_start, stat_x_end]);
+            update.y.push([mean - std, mean - std]);
+            update.hovertext.push([]);
+            update.customdata.push([]);
+            update.mode.push("lines");
         }
+
         Plotly.restyle("plot", update);
+        const annotations = buildSubplotOverlays(plots, visibleTimeRange);
+        Plotly.relayout("plot", { annotations });
     };
 
     useEffect(refreshPlotData, [props.chosenLogs, props.plots, props.visibleTimeRange]);
@@ -354,7 +562,7 @@ export function Plots(props: PlotsProps) {
                         setIsPathSelectorDisplayed(true);
                     }}
                 >
-                    <Icon path={mdiPlus} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiPlus} size={1}></Icon>
                 </button>
                 <button
                     title="Load Plot Set"
@@ -363,10 +571,10 @@ export function Plots(props: PlotsProps) {
                         setIsOpenPlotSetDisplayed(true);
                     }}
                 >
-                    <Icon path={mdiFolderOpen} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiFolderOpen} size={1}></Icon>
                 </button>
                 <button title="Save Plot Set" className="plotButton" onClick={savePlotSetClicked}>
-                    <Icon path={mdiContentSave} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiContentSave} size={1}></Icon>
                 </button>
                 <button
                     title="Download CSV"
@@ -376,7 +584,7 @@ export function Plots(props: PlotsProps) {
                         downloadCSV(props.plots, props.visibleTimeRange);
                     }}
                 >
-                    <Icon path={mdiDownload} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiDownload} size={1}></Icon>
                     CSV
                 </button>
                 <button
@@ -386,7 +594,7 @@ export function Plots(props: PlotsProps) {
                         props.delegate.setPlots([]);
                     }}
                 >
-                    <Icon path={mdiTrashCan} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiTrashCan} size={1}></Icon>
                 </button>
                 <button
                     title="Plot Info"
@@ -395,8 +603,29 @@ export function Plots(props: PlotsProps) {
                         setIsPlotInfoDisplayed(!isPlotInfoDisplayed);
                     }}
                 >
-                    <Icon path={mdiInformation} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiInformation} size={1}></Icon>
                 </button>
+
+                {/* Stat line toggles */}
+                <span className="statToggleDivider" />
+                <label className="statToggleLabel" title="Show or hide the mean line on each plot">
+                    <input
+                        type="checkbox"
+                        checked={showMean}
+                        onChange={(e) => setShowMean(e.target.checked)}
+                    />
+                    <span className="statToggleSwatch statToggleSwatch--mean" />
+                    Mean
+                </label>
+                <label className="statToggleLabel" title="Show or hide the ±1 σ lines on each plot">
+                    <input
+                        type="checkbox"
+                        checked={showStd}
+                        onChange={(e) => setShowStd(e.target.checked)}
+                    />
+                    <span className="statToggleSwatch statToggleSwatch--std" />
+                    ±1 σ
+                </label>
             </div>
         );
     } else {
@@ -407,33 +636,78 @@ export function Plots(props: PlotsProps) {
     const plotInfo = isPlotInfoDisplayed ? (
         <div className="centered dialog" id="plotInfoDialog">
             <div className="horizontal flexbox" id="plotInfoDialogHeader">
-                <h3 style={{ flex: 1 }}>Notes</h3>
+                <h2>Information</h2>
                 <button className="plotButton" onClick={() => setIsPlotInfoDisplayed(false)}>
-                    <Icon path={mdiClose} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                    <Icon path={mdiClose} size={1}></Icon>
                 </button>
             </div>
-            <div className="text" style={{ bottom: "10pt" }}>
-                <h4>Plot Downsampling</h4>
+
+            <div className="text">
+                <h3>Line Legend</h3>
+                <div className="lineLegendRow">
+                    <span className="lineLegendSwatch lineLegendSwatch--solid lineLegendSwatch--left" />
+                    <b>
+                        <i>Data Series</i>
+                    </b>
+                    <span className="lineLegendSwatch lineLegendSwatch--solid lineLegendSwatch--right" />
+                </div>
+                <p>
+                    The raw sensor values over time. Shown as a solid line; when fully zoomed in to
+                    full resolution, individual data-point markers are also shown.
+                </p>
+
+                <div className="lineLegendRow">
+                    <span className="lineLegendSwatch lineLegendSwatch--dashed lineLegendSwatch--left" />
+                    <b>
+                        <i>Mean</i>
+                    </b>
+                    <span className="lineLegendSwatch lineLegendSwatch--dashed lineLegendSwatch--right" />
+                </div>
+                <p>
+                    A horizontal dashed line representing the arithmetic mean of all data points
+                    currently visible in the time window.
+                </p>
+
+                <div className="lineLegendRow">
+                    <span className="lineLegendSwatch lineLegendSwatch--dotted lineLegendSwatch--left" />
+                    <b>
+                        <i>Standard Deviation</i>
+                    </b>
+                    <span className="lineLegendSwatch lineLegendSwatch--dotted lineLegendSwatch--right" />
+                </div>
+                <p>
+                    Two horizontal dotted lines drawn one standard deviation (±1σ) above and below
+                    the mean, showing the spread of the <i>visible data</i>.
+                </p>
+
+                <p>
+                    Use the <strong>Mean</strong> and <strong>±1 σ</strong> checkboxes in the
+                    toolbar to toggle these overlay lines on or off independently. A colour-coded
+                    info box in the top-right corner of each plot displays the current numeric
+                    values of the mean (in <span className="textMeanColor">red</span>) and standard
+                    deviation (in <span className="textStdColor">orange</span>).
+                </p>
+                <h3>Plot Downsampling</h3>
                 <p>
                     The displayed plot data is recursively downsampled to improve performance when
                     viewing large datasets. When zoomed out, fewer data points are shown to provide
                     an overview of the data. As you zoom in, more data points are displayed to
                     reveal finer details.
                 </p>
-                <h4>Full-Resolution Display</h4>
+                <h3>Full-Resolution Display</h3>
                 <p>
                     When the plot is zoomed in far enough that all data points can be displayed
                     without downsampling, the plot will switch to showing the full-resolution data.
                     In this mode, both lines and markers are used to represent the data points,
                     providing a clear view of the exact values.
                 </p>
-                <h4>Peak Preservation</h4>
+                <h3>Peak Preservation</h3>
                 <p>
                     This downsampling process preserves significant features of the data, such as
                     peaks and valleys, ensuring that important trends remain visible at all zoom
                     levels. When downsampled, only lines are used to represent the data points.
                 </p>
-                <h4>Data Export</h4>
+                <h3>Data Export</h3>
                 <p>
                     The downsampling algorithm only affects the visual representation of the data
                     and does not modify the underlying dataset. When exporting data as CSV, for
@@ -476,7 +750,7 @@ export function Plots(props: PlotsProps) {
                 }}
                 key={plotIndex + "-deleteButton"}
             >
-                <Icon path={mdiClose} size={1} style={{ verticalAlign: "middle" }}></Icon>
+                <Icon path={mdiClose} size={1}></Icon>
             </button>
         );
     });
@@ -501,13 +775,8 @@ export function Plots(props: PlotsProps) {
                 No data series selected to plot yet.
                 <br />
                 To plot or export data as CSV, please select one or more series using the{" "}
-                <Icon
-                    path={mdiPlus}
-                    size={1}
-                    className="button"
-                    style={{ verticalAlign: "middle", backgroundColor: "lightgray" }}
-                ></Icon>{" "}
-                button above.
+                <Icon path={mdiPlus} size={1} className="button inlineIconButton"></Icon> button
+                above.
             </div>
         );
     }

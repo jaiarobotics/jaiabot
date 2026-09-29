@@ -11,6 +11,8 @@ add_home_tab: false
 add_scope_tab: false
 add_commander_tab: false
 
+upper_right_logo: "/jdv/favicon.png"
+upper_right_logo_link: "https://www.jaia.tech/"
 
 [jaiabot.protobuf.jaiabot_upgrade_config] { 
     role: $user_role

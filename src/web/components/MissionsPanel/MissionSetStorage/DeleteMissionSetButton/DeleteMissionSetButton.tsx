@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { DialogActions } from "../../../../types/context-types";
+import { deleteFromHub } from "../mission-set-storage";
 import { DisabledCodes } from "./delete-messages";
 import { DeleteMissionSetDialog } from "./DeleteMissionSetDialog";
-import { listSavedMissionSets } from "../mission-set-storage";
-import { deleteFromLocalStorage } from "../mission-set-storage";
 
 interface Props {
     saveName: string;
+    savedNames: string[];
     clearSaveName: () => void;
+    onDeleted: () => void;
 }
 
 /**
@@ -24,7 +25,7 @@ export default function DeleteMissionSetButton(props: Props) {
      */
     const getDisabledCode = () => {
         if (!props.saveName.trim()) return DisabledCodes.NO_NAME;
-        if (!listSavedMissionSets().includes(props.saveName)) return DisabledCodes.FILE_NOT_FOUND;
+        if (!props.savedNames.includes(props.saveName.trim())) return DisabledCodes.FILE_NOT_FOUND;
         return DisabledCodes.NONE;
     };
 
@@ -47,8 +48,10 @@ export default function DeleteMissionSetButton(props: Props) {
     const onDialogClose = (dialogAction: DialogActions) => {
         setIsDialogVisible(false);
         if (dialogAction === DialogActions.CONFIRMED) {
-            deleteFromLocalStorage(props.saveName);
-            props.clearSaveName();
+            deleteFromHub(props.saveName.trim()).then(() => {
+                props.clearSaveName();
+                props.onDeleted();
+            });
         }
     };
 

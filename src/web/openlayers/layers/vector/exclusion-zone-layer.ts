@@ -12,11 +12,11 @@ import { fromLonLat, toLonLat } from "ol/proj";
 import JaiaVectorLayer from "./jaia-vector-layer";
 import { layersZIndexes } from "../zindex";
 import { LayerTitles, MapFeatureTypes } from "../../../types/openlayers-types";
-import { JaiaActions } from "../../../context/jaia-actions";
 import { getZoneBufferVertices } from "../../../data/exclusion_zones/exclusion-zone-router";
 import { jaiaGlobal } from "../../../data/jaia_global/jaia-global";
 import { exclusionZoneSet } from "../../../data/exclusion_zones/exclusion-zone-set";
 import { OpenLayersColors } from "../../../style/openlayers/colors";
+import { GeographicCoordinate } from "../../../shared/JAIAProtobuf";
 
 const ZONE_FILL = "rgba(220, 0, 0, 0.15)";
 const ZONE_STROKE = "rgba(220, 0, 0, 0.85)";
@@ -28,8 +28,15 @@ const BUFFER_FILL = "rgba(255, 140, 0, 0.06)";
 
 class ExclusionZoneLayer extends JaiaVectorLayer {
     private draw: Draw | null = null;
-    private dispatch: ((action: { type: JaiaActions; [key: string]: unknown }) => void) | null =
-        null;
+    private isDrawing: boolean = false;
+
+    isDrawActive() {
+        return this.isDrawing;
+    }
+
+    setDrawActive(active: boolean) {
+        this.isDrawing = active;
+    }
 
     constructor() {
         super(
@@ -37,16 +44,6 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
             layersZIndexes.get(LayerTitles.EXCLUSION_ZONE_LAYER),
         );
         this.getVectorLayer().setStyle(this.getZoneStyle.bind(this));
-    }
-
-    /**
-     * Wires up the React dispatch so the draw interaction can fire actions
-     *
-     * @param {Function} dispatch The dispatch function from JaiaContext
-     * @returns {void}
-     */
-    setDispatch(dispatch: (action: { type: JaiaActions; [key: string]: unknown }) => void) {
-        this.dispatch = dispatch;
     }
 
     /**
@@ -59,8 +56,9 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
     }
 
     /**
-     * Creates a polygon Draw interaction. When the operator finishes drawing,
-     * dispatches ADD_EXCLUSION_ZONE with the polygon vertices in lat/lon.
+     * Creates and stores a polygon Draw interaction configured with the zone drawing style.
+     * The drawend event must be wired by the caller (Map.tsx) so dispatch stays inside
+     * the React boundary and is never stored on this singleton.
      *
      * @returns {Draw} The configured Draw interaction
      */
@@ -73,42 +71,35 @@ class ExclusionZoneLayer extends JaiaVectorLayer {
                 stroke: new Stroke({ color: DRAW_STROKE, width: 2, lineDash: [6, 4] }),
             }),
         });
-
-        this.draw.on("drawend", (event: DrawEvent) => {
-            const feature = event.feature as Feature<Polygon>;
-            const coords3857 = feature.getGeometry().getCoordinates()[0];
-
-            // OpenLayers closes the ring by repeating the first vertex — skip it.
-            // Also deduplicate consecutive identical vertices (double-click to finish
-            // registers the last vertex twice, causing false non-convex detection).
-            const allVertices = coords3857.slice(0, -1).map((coord) => {
-                const lonLat = toLonLat(coord);
-                return { lat: lonLat[1], lon: lonLat[0] };
-            });
-            const vertices = allVertices.filter((v, i) => {
-                if (i === 0) return true;
-                const prev = allVertices[i - 1];
-                return Math.abs(v.lat - prev.lat) > 1e-10 || Math.abs(v.lon - prev.lon) > 1e-10;
-            });
-
-            if (!this.dispatch || vertices.length < 3) return;
-
-            this.dispatch({
-                type: JaiaActions.ADD_EXCLUSION_ZONE,
-                exclusionZone: { vertices },
-            });
-        });
-
         return this.draw;
     }
 
     /**
-     * Clears the stored Draw interaction reference
+     * Captures the vertices of a drawn polygon
      *
-     * @returns {void}
+     * @param {DrawEvent} event Holds the coordinates of the drawn polygon
+     * @returns {GeographicCoordinate[]} The vertices of the drawn polygon
      */
-    clearDrawInteraction() {
-        this.draw = null;
+    configureDrawEnd(event: DrawEvent) {
+        const feature = event.feature as Feature<Polygon>;
+        const geometry = feature.getGeometry();
+        if (!geometry) return;
+        const coords3857 = geometry.getCoordinates()[0];
+        if (!coords3857) return;
+
+        // OpenLayers closes the ring by repeating the first vertex — skip it.
+        // Also deduplicate consecutive identical vertices (double-click to finish
+        // registers the last vertex twice, causing false non-convex detection).
+        const allVertices: GeographicCoordinate[] = coords3857.slice(0, -1).map((coord) => {
+            const lonLat = toLonLat(coord);
+            return { lat: lonLat[1], lon: lonLat[0] };
+        });
+        const vertices = allVertices.filter((v, i) => {
+            if (i === 0) return true;
+            const prev = allVertices[i - 1];
+            return Math.abs(v.lat - prev.lat) > 1e-10 || Math.abs(v.lon - prev.lon) > 1e-10;
+        });
+        return vertices;
     }
 
     /**

@@ -59,6 +59,7 @@ parser.add_argument('--imu_install_type', choices=['embedded', 'retrofit', 'none
 parser.add_argument('--arduino_type', choices=['spi', 'usb', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--pam_connection_type', choices=['uart', 'usb', 'none'], help='If set, configure services for PAM connection type')
 parser.add_argument('--bot_type', choices=['hydro', 'echo', 'bio', 'none'], help='If set, configure services for bot type')
+parser.add_argument('--bot_vin', default='unknown_vin', help='If set, configure services for bot vin (defaults to "unknown_vin")')
 parser.add_argument('--data_offload_ignore_type', choices=['goby', 'taskpacket', 'none'], help='If set, configure services for arduino type')
 parser.add_argument('--motor_harness_type', choices=['rpm_and_thermistor', 'none'], help='If set, configure services for motor harness type')
 parser.add_argument('--temperature_sensor_type', choices=['bar02', 'bar30', 'tsys01', 'none'], help='If set, configure services for temperature sensor')
@@ -67,7 +68,8 @@ parser.add_argument('--rf_encryption_password', default ='', help='Encryption ke
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--additional_sensors', choices=['turner_c_fluor', 'turner_c_fluor_2', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--tail_serial_number', default='unknown_serial_number', help='Tail serial number to use for this bot (defaults to "unknown_serial_number")')
 
 args=parser.parse_args()
 
@@ -280,6 +282,12 @@ elif cloudhub_type == CloudHubType.SECONDARY:
 camera_positions_in_use = args.camera_positions
 jaia_additional_sensors = args.additional_sensors
 
+# a second fluorometer implies the first: the channels are numbered, not independent, so
+# selecting only turner_c_fluor_2 would otherwise leave the base fluorometer unconfigured
+if 'turner_c_fluor_2' in jaia_additional_sensors and \
+   not ('turner_c_fluor' in jaia_additional_sensors):
+    jaia_additional_sensors = jaia_additional_sensors + ['turner_c_fluor']
+    
 # generate env file from preseed.goby
 print('Writing ' + args.env_file + ' from preseed.goby')
 
@@ -297,6 +305,7 @@ subprocess.run('bash -ic "' +
                'export jaia_arduino_type=' + str(jaia_arduino_type.value) + '; ' +
                'export jaia_pam_connection_type=' + str(jaia_pam_connection_type.value) + '; ' +
                'export jaia_bot_type=' + str(jaia_bot_type.value) + '; ' +
+               f'export jaia_bot_vin={args.bot_vin}; ' +
                'export jaia_data_offload_ignore_type=' + str(jaia_data_offload_ignore_type.value) + '; ' +
                'export jaia_motor_harness_type=' + str(jaia_motor_harness_type.value) + '; ' +
                'export jaia_temperature_sensor_type=' + str(jaia_temperature_sensor_type.value) + '; ' +
@@ -307,6 +316,7 @@ subprocess.run('bash -ic "' +
                'export jaia_camera_positions=' + ','.join(position for position in camera_positions_in_use) + '; ' +
                f'export jaia_dccl_encryption_password={args.dccl_encryption_password}; ' +
                'export jaia_additional_sensors=' + ','.join(position for position in jaia_additional_sensors) + '; ' +
+               'export jaia_tail_serial_number=' + str(args.tail_serial_number) + '; ' +
                'source ' + args.gen_dir + '/../preseed.goby; env | egrep \'^jaia|^LD_LIBRARY_PATH\' > /tmp/runtime.env; cp --backup=numbered /tmp/runtime.env ' + args.env_file + '; rm /tmp/runtime.env"',
                check=True, shell=True)
 
@@ -540,8 +550,7 @@ jaiabot_apps = [
      'error_on_fail': 'ERROR__FAILED__MOOS_SIM_MOOSDB',
      'runs_on': [Type.BOT],
      'runs_when': Mode.SIMULATION,
-     'service': 'jaiabot_moosdb_sim' # override default service name to avoid conflict with jaiabot_moosdb
-    },
+     'service': 'jaiabot_moosdb_sim'}, # override default service name to avoid conflict with jaiabot_moosdb
     {'exe': 'uSimMarine',
      'description': 'uSimMarine marine vehicle simulator',
      'template': 'moos-app-sim.service.in',
@@ -674,7 +683,9 @@ if 'none' not in camera_positions_in_use:
     ]
     jaiabot_apps.extend(jaiabot_apps_camera)
 
-if 'turner_c_flour' in jaia_additional_sensors:
+# on BIO bots the fluorometers are read through the payload board by jaiabot_sensors, so this
+# standalone analog driver would publish a second, indistinguishable stream on the same group
+if ('turner_c_fluor' in jaia_additional_sensors) and jaia_bot_type != BOT_TYPE.BIO:
     jaiabot_turner_c_fluor = [
         {'exe': 'jaiabot_turner_c_fluor_sensor_driver',
         'description': 'JaiaBot Turner C Fluor Sensor Driver',
@@ -697,6 +708,7 @@ if 'aml' in jaia_additional_sensors:
         'wanted_by': 'jaiabot_health.service'},
     ]
     jaiabot_apps.extend(jaiabot_aml_sensor)
+    
 if 'ppk' in jaia_additional_sensors:
     jaiabot_ubx_ppk = {
         'exe': 'jaiabot_ubx_ppk.py',
@@ -713,7 +725,9 @@ if 'ppk' in jaia_additional_sensors:
 
     jaiabot_apps.append(jaiabot_ubx_ppk)
 
-if jaia_temperature_sensor_type.value == 'tsys01':
+# BIO bots read the TSYS01 through the payload board, so skip the Python driver there to
+# avoid double-publishing (checked here since 'runs_on' can't express "bot AND not BIO").
+if jaia_temperature_sensor_type.value == 'tsys01' and jaia_bot_type != BOT_TYPE.BIO:
     jaiabot_apps_tsys01 = [
         {'exe': 'jaiabot_tsys01.py',
          'description': 'JaiaBot TSYS01 Temperature Sensor Python Driver',

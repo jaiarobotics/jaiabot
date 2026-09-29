@@ -464,7 +464,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::arduino_to_pi>(
-        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response) {
+        [this](const jaiabot::protobuf::ArduinoResponse& arduino_response)
+        {
             //takes data from one message to the next (clarified by different names)
             if (arduino_response.has_vccvoltage())
             {
@@ -647,7 +648,8 @@ jaiabot::apps::Fusion::Fusion() : ApplicationBase(5 * si::hertz)
         });
 
     interprocess().subscribe<jaiabot::groups::bot_comms_status>(
-        [this](const jaiabot::protobuf::ActiveLinks& active_links) {
+        [this](const jaiabot::protobuf::ActiveLinks& active_links)
+        {
             active_links_.clear();
             for (auto link : active_links.active_link())
                 active_links_.insert(static_cast<jaiabot::protobuf::Link>(link));

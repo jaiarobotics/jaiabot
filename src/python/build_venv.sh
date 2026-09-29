@@ -10,6 +10,13 @@ if [ -z "$TARGET_DIR" ]; then
 fi
 
 JAIA_DIR="$(pwd)/../../"
+STAMP_FILE="${TARGET_DIR}/venv/.build_stamp"
+
+# Compare the timestamp of the requirements.txt and pyjaia directory to the stamp file. If the requirements.txt or pyjaia directory is newer than the stamp file, then rebuild the venv.
+if [ -f "${STAMP_FILE}" ] && [ -z "$(find requirements.txt pyjaia pyjaiaprotobuf Adafruit_CircuitPython_BNO08x jaia_serial "${JAIA_DIR}/src/lib/messages" -newer "${STAMP_FILE}" -print -quit)" ]; then
+    echo "🟢 Python venv is already up to date, skipping rebuild"
+    exit 0
+fi
 
 # Build the venv
 echo 🟢 Building the python venv into ${TARGET_DIR}
@@ -28,4 +35,5 @@ echo 🟢 Building the python venv into ${TARGET_DIR}
         python3 -m venv venv --system-site-packages
         ./venv/bin/pip install -qU wheel
         ./venv/bin/pip install -r requirements.txt
+        touch "${STAMP_FILE}"
     popd > /dev/null

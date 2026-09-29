@@ -105,6 +105,10 @@ export class Hubs {
             hub.setBotOffload({ bot_id: UNASSIGNED_ID });
         }
 
+        if (hubStatus.time) {
+            hub.setSystemTime(hubStatus.time);
+        }
+
         // HubSensors
         // GPS
         if (hubStatus.location?.lat) {
