@@ -79,6 +79,10 @@ echo ">>>>> Updating hub0 address ... "
 sed -i "s/.*hub0/10.23.${FLEET_INDEX}.10 hub0/" /etc/hosts
 echo "<<<<< Updating hub0 address complete!"
 
+echo ">>>>> Enabling I2C bus 0 ... "
+/usr/bin/jaia_enable_i2c0.sh
+echo "<<<<< Enabling I2C bus 0 complete!"
+
 
 echo ">>>>> Installing and enabling systemd services ... "
 # Install systemd services and enable them

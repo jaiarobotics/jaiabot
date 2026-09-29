@@ -41,22 +41,42 @@ sudo mkdir -p /var/log/jaiabot/bot_offload && sudo chown -R ${USER}:${USER} /var
 if [ ! -z "$jaiabot_systemd_type" ]; then
     echo "🟢 Installing and enabling $jaiabot_systemd_type systemd services (you can safely ignore bash 'Inappropriate ioctl for device' and 'no job control in this shell' errors)"
 
+    # systemd.py rewrites /etc/jaiabot/runtime.env from its own command line, so the
+    # comms links revert to the xbee-only default unless we pass them back in. The
+    # flag is nargs="+" and needs a space-separated list, but runtime.env stores it
+    # comma-separated as jaia_comms_mode (sourced above).
+    jaia_comms_links_flag=
+    if [ -n "${jaia_comms_mode}" ]; then
+        jaia_comms_links_flag="--comms_links ${jaia_comms_mode//,/ }"
+    fi
+
+    # Likewise for the temperature sensor: without this systemd.py defaults it to
+    # "none" and skips generating jaiabot_tsys01_py.service altogether, leaving the
+    # stale copy from the deb install in place.
+    jaia_temp_sensor_flag=
+    if [ -n "${jaia_temperature_sensor_type}" ]; then
+        jaia_temp_sensor_flag="--temperature_sensor_type=${jaia_temperature_sensor_type,,}"
+    fi
+
     if [[ "$jaiabot_systemd_type" == *"bot"* ]]; then
         cd ${HOME}/jaiabot/config/gen
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} --pam_connection_type ${jaia_pam_connection_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,} --camera_positions ${jaia_camera_positions,,} --additional_sensors ${jaia_additional_sensors})
+        ./systemd-local.sh ${jaiabot_systemd_type} --bot_index $jaia_bot_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --imu_type $jaia_imu_type --imu_install_type $jaia_imu_install_type --arduino_type $jaia_arduino_type --bot_type ${jaia_bot_type,,} --pam_connection_type ${jaia_pam_connection_type,,} $jaia_simulation --enable --motor_harness_type ${jaia_motor_harness_type,,} --camera_positions ${jaia_camera_positions,,} --additional_sensors ${jaia_additional_sensors} $jaia_comms_links_flag $jaia_temp_sensor_flag)
 
     else
 
         cd ${HOME}/jaiabot/config/gen
         (set -x; export PATH=${HOME}/jaiabot/${build_dir}/bin:$PATH;
-         ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced)
+         ./systemd-local.sh ${jaiabot_systemd_type} --hub_index $jaia_hub_index --fleet_index $jaia_fleet_index --electronics_stack $jaia_electronics_stack --led_type hub_led $jaia_simulation --enable --user_role advanced $jaia_comms_links_flag)
 
         sudo chmod o+x ${HOME}
         sudo a2ensite jcc
     fi
 
 fi
+
+echo "🟢 Enabling I2C bus 0"
+sudo ${HOME}/jaiabot/${build_dir}/bin/jaia_enable_i2c0.sh
 
 sudo cp ${HOME}/jaiabot/scripts/75-jaiabot-status /etc/update-motd.d/
 # use symlink so this gets updated if the user re-installs the packaged version
