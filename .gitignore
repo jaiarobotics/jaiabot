@@ -6,6 +6,7 @@ config/launch/simulation/preseed.goby
 __pycache__
 .vscode
 *.egg-info/
+.$*.bkp
 .claude
 
 # === private files ===
