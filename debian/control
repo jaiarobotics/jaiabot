@@ -18,7 +18,8 @@ Build-Depends-Indep:
                goby3-interfaces [amd64],
                dccl4-apps [amd64],
                gcc-arm-none-eabi [amd64],
-               libnewlib-arm-none-eabi [amd64]
+               libnewlib-arm-none-eabi [amd64],
+               curl [amd64]
 Standards-Version: 3.9.6
 Section: libs
 Homepage: https://github.com/jaiarobotics/jaiabot
