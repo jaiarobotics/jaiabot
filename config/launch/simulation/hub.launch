@@ -25,4 +25,5 @@ jaiabot_comms_manager <(../../gen/hub.py jaiabot_comms_manager)
 goby_coroner <(../../gen/hub.py goby_coroner) --expected_name goby_liaison --expected_name jaiabot_hub_manager --expected_name jaiabot_web_portal --expected_name jaiabot_metadata --expected_name jaiabot_health
 jaiabot_health <(../../gen/hub.py jaiabot_health)
 
-#[kill=SIGTERM] ../../../build/amd64/share/jaiabot/web/server/app.py
+# The Jaia REST API v1 server
+[env=JAIA_REST_API_PRIVATE_KEY="";kill=SIGTERM] ${jaia_share_dir}/jaiabot/python/venv/bin/python3 ${jaia_share_dir}/jaiabot/web/rest_api/app.py
