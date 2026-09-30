@@ -257,6 +257,9 @@ set(scripts_to_install
   init/jaia-create-ansible-inventory.sh
   )
 
+# Sourced at runtime for the versions of third-party packages
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/common-versions.env DESTINATION share/jaiabot)
+
 # Iterate over each script to install and copy
 foreach(script ${scripts_to_install})
     install(PROGRAMS ${project_SCRIPTS_DIR}/${script} DESTINATION ${CMAKE_INSTALL_BINDIR})
