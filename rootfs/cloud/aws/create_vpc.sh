@@ -84,8 +84,6 @@ function abort_if_timed_out() {
 source ${SCRIPT_PATH}/../../../scripts/common-versions.env
 REPO_VERSION=${jaia_version_release_branch}
 
-JCC_HUB_IP=$(jaia_ip --query_type addr --node_type hub --ip_net cloudhub_vpn --fleet_id ${FLEET_ID} --node_id ${JCC_HUB_ID} --ip_version ipv6)
-
 FLEET_ID_HEX=$(printf '%x\n' ${FLEET_ID})
 VPC_CIDR_BLOCK=$(jaia_ip --query_type net --ip_net vpc --fleet_id ${FLEET_ID} --ip_version ipv4)
 # maps onto real fleet IP assignment
@@ -315,7 +313,6 @@ declare -A replacements=(
     ["{{CLOUDHUB_ID}}"]="$CLOUDHUB_ID"
     ["{{FLEET_ID}}"]="$FLEET_ID"
     ["{{JAIA_CUSTOMER_NAME}}"]="$JAIA_CUSTOMER_NAME"
-    ["{{JCC_HUB_IP}}"]="$JCC_HUB_IP"
     ["{{PUBLIC_IPV4_ADDRESS}}"]="$PUBLIC_IPV4_ADDRESS"
     ["{{REGION}}"]="$REGION"
     ["{{REPO}}"]="$REPO"

@@ -31,7 +31,6 @@ jaia_aws_account_id={{ACCOUNT_ID}}
 jaia_aws_virtualfleet_security_group={{VIRTUALFLEET_SECURITY_GROUP_ID}}
 jaia_aws_virtualfleet_repository={{REPO}}
 jaia_aws_virtualfleet_repository_version={{REPO_VERSION}}
-jaia_jcc_hub_ip={{JCC_HUB_IP}}
 jaia_auth_base_uri={{AUTH_BASE_URI}}
 jaia_auth_admin_email={{AUTH_ADMIN_EMAIL}}
 jaia_auth_smtp_address={{AUTH_SMTP_ADDRESS}}
