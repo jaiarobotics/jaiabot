@@ -113,8 +113,13 @@ struct InMission
             }
             else
             {
-                // Do next repeat, starting with first goal
+                // Do next repeat, starting with first goal and segment. Restore the plan's
+                // baseline first so fields the first segment omits match the first pass.
+                // Values set mid-mission by an engineering command are replaced here by
+                // design: mission parameters take precedence whenever a segment begins.
                 goal_index_ = 0;
+                active_seg_index_ = 0;
+                this->machine().apply_plan_baseline_params(this->machine().mission_plan());
             }
         }
 
@@ -205,15 +210,8 @@ struct InMission
             this->machine().set_transit_speed(active_seg->speed_with_units());
 
         if (active_seg->has_bottom_depth_safety_params())
-        {
-            const auto& bds = active_seg->bottom_depth_safety_params();
-            this->machine().set_bottom_depth_safety_constant_heading(bds.constant_heading());
-            this->machine().set_bottom_depth_safety_constant_heading_speed(
-                bds.constant_heading_speed());
-            this->machine().set_bottom_depth_safety_constant_heading_time(
-                bds.constant_heading_time());
-            this->machine().set_bottom_safety_depth(bds.safety_depth());
-        }
+            this->machine().set_bottom_depth_safety_params(
+                active_seg->bottom_depth_safety_params());
     }
 
     int goal_index_{0};
