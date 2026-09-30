@@ -1,0 +1,42 @@
+# Runs the fleet config tool of the release being installed (from its boot
+# tarball on the updates disk), so the schema, migrations and first-boot template
+# always match; the hub's installed jaia may be older than the fleet config
+- name: Set facts for the new release's fleet config tool
+  set_fact:
+    upgrade_boot_tar: "{{ lookup('fileglob', '/var/www/html/updates/major_upgrade/*.boot.tar.gz') }}"
+    fleet_config_tool_dir: "{{ hub_staging_dir }}/fleet_config"
+
+- name: Handle missing boot tarball
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "No boot image found on the updates disk: Ensure the correct jaiabot_updates ISO is installed in the hub."
+  when: upgrade_boot_tar == ''
+
+- name: Extract the fleet config tool from the new boot tarball
+  shell: |
+    rm -rf {{ fleet_config_tool_dir }}
+    mkdir -p {{ fleet_config_tool_dir }}
+    tar -xzf {{ upgrade_boot_tar }} -C {{ fleet_config_tool_dir }} --wildcards '*jaiabot/init/fleet_config/*'
+    tool=$(find {{ fleet_config_tool_dir }} -name jaia-fleet-config.py | head -1)
+    if [ -z "${tool}" ]; then
+      echo "The boot image carries no fleet config tool"
+      exit 1
+    fi
+    echo "${tool}"
+  register: fleet_config_tool_result
+
+- name: Set fleet config tool path
+  set_fact:
+    fleet_config_tool: "{{ fleet_config_tool_result.stdout_lines[-1] }}"
+
+- name: Migrate and validate the staged fleet config with the new release's tool
+  shell: |
+    python3 {{ fleet_config_tool }} migrate {{ staged_fleet_cfg }} -o {{ staged_fleet_cfg }}
+  register: fleet_config_migrate_result
+  ignore_errors: yes
+
+- name: Handle fleet config migration failure
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "Fleet configuration cannot be used with the new release: {{ fleet_config_migrate_result.stderr | default(fleet_config_migrate_result.stdout) }}"
+  when: fleet_config_migrate_result.failed
