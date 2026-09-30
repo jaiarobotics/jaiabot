@@ -20,7 +20,6 @@ set +a
 ## Versions
 # use whatever caddy Ubuntu ships with
 # caddy_version = ... # apt
-lldap_version=v0.6.3 # docker
 
 ## Ports
 lldap_ldap_port=3890
@@ -327,7 +326,8 @@ sim.$base_uri {
 
 EOF
 
-systemctl start caddy
+# Caddy starts with its stock Caddyfile when installed, so reload to apply ours (graceful if running)
+systemctl reload-or-restart caddy
 
 ###########
 ## LLDAP ##
@@ -371,7 +371,7 @@ EOF
 cat <<EOF > /etc/lldap/docker-compose.yaml
 services:
   lldap:
-    image: lldap/lldap:$lldap_version
+    image: lldap/lldap:$jaia_version_lldap
     volumes:
       - "$lldap_persistent_dir:/data"
       - "/etc/lldap/bootstrap:/bootstrap"
