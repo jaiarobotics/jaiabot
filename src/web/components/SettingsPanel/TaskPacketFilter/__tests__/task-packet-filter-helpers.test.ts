@@ -10,9 +10,12 @@ import {
     getInitialSelectedKeys,
     getInitialSliderWindow,
     getDefaultDateRange,
-} from "../task-packet-filter";
-import { MissionSetSummary, TaskPacketFilter } from "../../../data/task_packets/task-packet-filter";
-import { getHTMLDateString } from "../../../shared/Utilities";
+} from "../task-packet-filter-helpers";
+import {
+    MissionSetSummary,
+    TaskPacketFilter,
+} from "../../../../data/task_packets/task-packet-filter";
+import { getHTMLDateString } from "../../../../shared/Utilities";
 
 describe("formatUtime", () => {
     test("returns a placeholder for a falsy timestamp", () => {

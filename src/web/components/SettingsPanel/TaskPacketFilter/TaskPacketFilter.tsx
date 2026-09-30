@@ -1,13 +1,13 @@
 import { ChangeEvent, useContext, useEffect, useRef, useState } from "react";
 
-import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
-import { JaiaActions } from "../../context/jaia-actions";
+import { JaiaContext, JaiaDispatchContext } from "../../../context/JaiaContext";
+import { JaiaActions } from "../../../context/jaia-actions";
 import {
     buildMissionSetSummaries,
     MissionSetSummary,
-} from "../../data/task_packets/task-packet-filter";
-import { TaskPacket } from "../../types/protobuf-types";
-import { jaiaAPI } from "../../utils/jaia-api";
+} from "../../../data/task_packets/task-packet-filter";
+import { TaskPacket } from "../../../types/protobuf-types";
+import { jaiaAPI } from "../../../utils/jaia-api";
 import {
     formatUtime,
     formatUtimeRange,
@@ -20,7 +20,7 @@ import {
     getInitialSliderWindow,
     buildQueryStrings,
     computeBounds,
-} from "./task-packet-filter";
+} from "./task-packet-filter-helpers";
 
 import Checkbox from "@mui/material/Checkbox";
 import Slider from "@mui/material/Slider";
