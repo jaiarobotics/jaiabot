@@ -20,13 +20,22 @@
 #define UART_MAX_LEN 256
 
 typedef jaiabot_sensor_protobuf_SensorRequest SensorRequest;
+
+// Lock-free SPSC ring: only the USART2 RX ISR writes wIndex, only process_cmd() writes rIndex.
+// Empty when rIndex == wIndex; one slot is sacrificed to tell full from empty.
 typedef struct tUartQueue
 {
   uint8_t msgQueue[UART_QUEUE_SIZE][UART_MAX_LEN];        // {msg1,msg2,msg3...,msg128} length * width
-  uint16_t msgCount;
-  uint8_t wIndex;
-  int8_t rIndex;
+  volatile uint8_t wIndex;
+  volatile uint8_t rIndex;
 } UART_QUEUE;
+
+// Advance a ring index, wrapping at the end of the queue.
+#define UART_QUEUE_NEXT(index) (((index) + 1u) % UART_QUEUE_SIZE)
+
+// Compiler-only barrier (enough on single-core Cortex-M) so slot contents aren't
+// reordered across the index store/load that publishes them.
+#define UART_QUEUE_BARRIER() __asm volatile("" ::: "memory")
 
 extern UART_QUEUE uQueue;
 

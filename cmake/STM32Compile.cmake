@@ -20,9 +20,8 @@ function(stm32_sketch sketchname nickname device interface programmer baudrate)
   set(hex_name ${sketchname}.hex)
   set(hex_output ${outdir}/${hex_name})
 
-  # mirror the Arduino cmake symlink pattern — create a symlink to the
-  # nanopb include dir inside the sketch folder so the Makefile can find
-  # both the runtime headers and the generated .pb.h files
+  # Like the Arduino cmake: symlink the nanopb include dir into the sketch folder
+  # so the Makefile finds both the runtime headers and the generated .pb.h files
   add_custom_command(
     OUTPUT ${STM32_SOURCE_DIR}/nanopb
     DEPENDS ${project_INC_DIR}/nanopb
