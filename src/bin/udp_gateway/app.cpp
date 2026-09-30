@@ -74,7 +74,9 @@ class UDPGateway
 
     // IMU data tracking
     goby::time::SteadyClock::time_point last_imu_data_time_{std::chrono::seconds(0)};
+    goby::time::SteadyClock::time_point last_imu_test_data_time_{std::chrono::seconds(0)};
     goby::middleware::protobuf::UDPEndPoint imu_udp_src_;
+    goby::middleware::protobuf::UDPEndPoint imu_test_udp_src_;
 
     // Salinity data tracking
     goby::time::SteadyClock::time_point last_salinity_data_time_{std::chrono::seconds(0)};
@@ -165,6 +167,14 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             last_imu_data_time_ = goby::time::SteadyClock::now();
             imu_udp_src_ = udp_src;
             glog.is_debug1() && glog << "Received IMUData" << endl;
+            break;
+        }
+        case jaiabot::protobuf::UDPGatewayEnvelope::kImuTestData:
+        {
+            interprocess().publish<groups::imu_test>(envelope.imu_test_data());
+            last_imu_test_data_time_ = goby::time::SteadyClock::now();
+            imu_test_udp_src_ = udp_src;
+            glog.is_debug1() && glog << "Received IMUTestData" << endl;
             break;
         }
         case jaiabot::protobuf::UDPGatewayEnvelope::kSalinityData:

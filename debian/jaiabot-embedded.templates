@@ -94,7 +94,7 @@ Description: The user role to be set in the Upgrade UI (this sets which Ansible 
 Template: jaiabot-embedded/imu_type
 Type: select
 Choices: bno055, bno085, none
-Default: bno055
+Default: bno085
 Description: What type of imu does your system have?
 
 Template: jaiabot-embedded/bot_type
@@ -157,7 +157,7 @@ Description: Encryption passphrase for DCCL (intervehicle) messages: can be any 
 
 Template: jaiabot-embedded/additional_sensors
 Type: multiselect
-Choices: turner_c_flour, aml, ppk, none
+Choices: turner_c_flour, aml, ppk, lsm6dso32, none
 Default: none
 Description: Which additional sensors?
 

@@ -35,6 +35,7 @@ constexpr goby::middleware::Group example{"jaiabot::example"};
 
 // sensors
 constexpr goby::middleware::Group imu{"jaiabot::imu"};
+constexpr goby::middleware::Group imu_test{"jaiabot::imu_test"};
 constexpr goby::middleware::Group pressure_temperature{"jaiabot::pressure_temperature"};
 constexpr goby::middleware::Group pressure_adjusted{"jaiabot::pressure_adjusted"};
 

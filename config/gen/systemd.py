@@ -68,7 +68,7 @@ parser.add_argument('--rf_encryption_password', default ='', help='Encryption ke
 parser.add_argument('--comms_links', choices=['xbee', 'wifi', 'iridium'], nargs="+", default=['xbee'], help='Select one or more comms_links')
 parser.add_argument('--camera_positions', choices=['aft', 'fore', 'outward', 'none'], nargs="+", default=['none'], help='Select one or more camera_positions')
 parser.add_argument('--dccl_encryption_password', default ='', help='Encryption passphrase for DCCL (intervehicle) messages: can be any string')
-parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'ppk', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
+parser.add_argument('--additional_sensors', choices=['turner_c_flour', 'aml', 'ppk', 'lsm6dso32', 'none'], nargs="+", default=['none'], help='Select one or more additional sensors')
 parser.add_argument('--tail_serial_number', default='unknown_serial_number', help='Tail serial number to use for this bot (defaults to "unknown_serial_number")')
 
 args=parser.parse_args()
@@ -709,8 +709,22 @@ if 'ppk' in jaia_additional_sensors:
         'wanted_by': 'jaiabot_health.service',
         'restart': 'on-failure'
     }
-
     jaiabot_apps.append(jaiabot_ubx_ppk)
+
+if 'lsm6dso32' in jaia_additional_sensors:
+    jaiabot_lsm6dso32 = {
+        'exe': 'jaiabot_lsm6dso32.py',
+        'description': 'JaiaBot LSM6DSO32 IMU Python Driver',
+        'template': 'py-app.service.in',
+        'subdir': 'imu',
+        'args': f'-p {UDP_GATEWAY_PORT}',
+        'error_on_fail': 'ERROR__FAILED__JAIABOT_LSM6DSO32_IMU',
+        'runs_on': [Type.BOT],
+        'runs_when': Mode.RUNTIME,
+        'wanted_by': 'jaiabot_health.service',
+        'restart': 'on-failure'
+    }
+    jaiabot_apps.append(jaiabot_lsm6dso32)
 
 if jaia_temperature_sensor_type.value == 'tsys01':
     jaiabot_apps_tsys01 = [
