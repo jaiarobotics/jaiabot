@@ -4,10 +4,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <sstream>
 #include <string>
 #include <vector>
-
 
 // Usage example:
 //
@@ -30,7 +30,6 @@
 //         [](const std::vector<double>& values) { return values[0]; }, // X = value1
 //         [](const std::vector<double>& values) { return values[2]; }  // Y = value3
 //     );
-
 
 namespace jaiabot
 {
@@ -146,10 +145,35 @@ inline std::vector<size_t> downsampleIndices(const std::vector<Point>& data, siz
 }
 
 /**
+ * @brief Checks whether an entire token is a number, parsing it into @p value_out.
+ *
+ * Unlike stream extraction, which stops at the first non-numeric character, this rejects
+ * tokens such as "2026-09-30" or "12:00" that only begin with a number.
+ *
+ * @param token Whitespace-free token to parse.
+ * @param value_out Parsed value written on success.
+ * @param integer_only Reject tokens that are not base-10 integers.
+ * @return True when the whole token was consumed.
+ */
+inline bool parseNumericToken(const std::string& token, double& value_out, bool integer_only)
+{
+    if (token.empty())
+    {
+        return false;
+    }
+
+    char* end = nullptr;
+    value_out = integer_only ? static_cast<double>(std::strtoll(token.c_str(), &end, 10))
+                             : std::strtod(token.c_str(), &end);
+    return *end == '\0';
+}
+
+/**
  * @brief Parses a data row into its numeric columns after the integer row index.
  *
  * The row is expected to begin with an integer index followed by at least
- * @p min_value_count numeric values.
+ * @p min_value_count numeric values. Every token must be numeric, so metadata lines that
+ * merely start with a number (e.g. a timestamp) are not mistaken for data rows.
  *
  * @param line Input row to parse.
  * @param values_out Parsed numeric columns written on success.
@@ -161,43 +185,30 @@ inline bool parseDataRowValues(const std::string& line, std::vector<double>& val
 {
     // Expected row shape: "index value1 value2 ... valueN" where index is integer.
     std::istringstream iss(line);
-    long long row_index = 0;
-    if (!(iss >> row_index))
+    std::string token;
+    double row_index = 0.0;
+    if (!(iss >> token) || !parseNumericToken(token, row_index, true))
     {
         return false;
     }
 
     values_out.clear();
     double value = 0.0;
-    while (iss >> value) { values_out.push_back(value); }
+    while (iss >> token)
+    {
+        if (!parseNumericToken(token, value, false))
+        {
+            return false;
+        }
+        values_out.push_back(value);
+    }
 
-    // Never accept an empty row, so front()/back() stay in bounds.
+    // Never accept an empty row, even if the caller asks for zero columns.
     if (values_out.empty() || values_out.size() < min_value_count)
     {
         return false;
     }
 
-    return true;
-}
-
-/**
- * @brief Parses a data row into a point using the first and last numeric columns.
- *
- * @param line Input row to parse.
- * @param point_out Parsed point written on success.
- * @return True when the row matches the expected shape and contains enough numeric data.
- */
-inline bool parseDataRow(const std::string& line, Point& point_out)
-{
-    std::vector<double> values;
-    if (!parseDataRowValues(line, values))
-    {
-        return false;
-    }
-
-    // Use first and last numeric columns as the shape coordinates.
-    point_out.x = values.front();
-    point_out.y = values.back();
     return true;
 }
 
@@ -294,7 +305,8 @@ buildOutputWithSelectedRows(const std::vector<std::string>& input_lines,
  * @param min_value_count Minimum numeric columns a data row must contain.
  * @param x_selector Selects the x coordinate from parsed numeric columns.
  * @param y_selector Selects the y coordinate from parsed numeric columns.
- * @return A dataset constrained to the requested byte budget.
+ * @return A dataset within the requested byte budget, unless the metadata lines plus the
+ *         first and last data rows already exceed it; those are always returned regardless.
  */
 template <typename XSelector, typename YSelector>
 inline std::vector<std::string>
@@ -345,10 +357,7 @@ downsampleDatasetToMaxBytes(const std::vector<std::string>& input_lines, size_t 
         }
         else
         {
-            if (mid == 0)
-            {
-                break;
-            }
+            // mid >= low >= 2 throughout, so this cannot underflow
             high = mid - 1;
         }
     }
