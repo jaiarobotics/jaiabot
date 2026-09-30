@@ -68,7 +68,12 @@ if run "" aws s3api head-bucket --bucket "$CLOUDHUB_DATA_BUCKET"; then
 else
     echo ">>>>>> Bucket $CLOUDHUB_DATA_BUCKET does not exist, creating..."
 
-    run "" aws s3api create-bucket --bucket "$CLOUDHUB_DATA_BUCKET" --region "$REGION" --create-bucket-configuration LocationConstraint="$REGION"
+    # us-east-1 is the API's default and rejects being named as a location constraint
+    location_args=()
+    if [[ "$REGION" != "us-east-1" ]]; then
+        location_args=(--create-bucket-configuration LocationConstraint="$REGION")
+    fi
+    run "" aws s3api create-bucket --bucket "$CLOUDHUB_DATA_BUCKET" --region "$REGION" "${location_args[@]}"
 fi
 
 # Create a VPC
