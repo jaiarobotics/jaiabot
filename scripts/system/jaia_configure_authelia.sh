@@ -32,6 +32,9 @@ authelia_port=9991
 base_uri=$jaia_auth_base_uri
 admin_email=$jaia_auth_admin_email
 smtp_address=$jaia_auth_smtp_address
+smtp_sender=${jaia_auth_smtp_sender:-noreply@auth.jaia.tech}
+# Keep this default in sync with create_vpc.sh
+smtp_credentials_parameter=${jaia_auth_smtp_credentials_ssm_parameter:-/jaia/cloudhub/smtp_credentials}
 
 ch_ip=$(jaia-ip.py --net=cloudhub_vpn --fleet_id=${jaia_fleet_index} --node=hub --node_id=30 --ipv6 addr)
 vh1_ip=$(jaia-ip.py --net=vfleet_vpn --fleet_id=${jaia_fleet_index} --node=hub --node_id=1 --ipv6 addr)
@@ -135,6 +138,28 @@ EOF
 fi
 set -a; source "$authelia_secrets_file"; set +a;
 
+# An SSM parameter ARN names its own region, which may not be ours
+smtp_credentials_region=$jaia_aws_region
+if [[ "$smtp_credentials_parameter" == arn:* ]]; then
+    smtp_credentials_region=$(cut -d: -f4 <<< "$smtp_credentials_parameter")
+fi
+
+smtp_password_file=/etc/authelia/smtp_password
+smtp_username_line=""
+smtp_password_env=""
+if smtp_credentials=$(aws ssm get-parameter --region "$smtp_credentials_region" --name "$smtp_credentials_parameter" --with-decryption --query Parameter.Value --output text) \
+        && smtp_username=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["username"])' <<< "$smtp_credentials") \
+        && smtp_password=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["password"])' <<< "$smtp_credentials"); then
+    (umask 077; printf '%s' "$smtp_password" > "$smtp_password_file")
+    chown authelia:authelia "$smtp_password_file"
+    smtp_username_line="username: '$smtp_username'"
+    smtp_password_env="Environment=AUTHELIA_NOTIFIER_SMTP_PASSWORD_FILE=$smtp_password_file"
+else
+    # Not fatal: an IP-allowlisted relay (e.g. Google Workspace) needs no credentials
+    echo "WARNING: Could not read SMTP credentials from SSM parameter $smtp_credentials_parameter ($smtp_credentials_region). Authelia will send without authenticating." >&2
+    rm -f "$smtp_password_file"
+fi
+
 cat <<EOF > /etc/authelia/configuration.yml
 ---
 server:
@@ -236,7 +261,8 @@ storage:
 notifier:
   smtp:
     address: '$smtp_address'
-    sender: 'Jaia <noreply@auth.$base_uri>'
+    $smtp_username_line
+    sender: 'Jaia <$smtp_sender>'
     identifier: 'auth.$base_uri'
     subject: '[Jaia Cloud] {title}'
 ...
@@ -397,8 +423,11 @@ ExecStartPre=-/bin/sh -c 'until nc -z localhost $lldap_ldap_port; do sleep 1; do
 TimeoutStartSec=120
 Restart=on-failure
 RestartSec=10s
+$smtp_password_env
 EOF
 
+# Picks up the override without restarting anything already running
+systemctl daemon-reload
 systemctl start authelia
 
 

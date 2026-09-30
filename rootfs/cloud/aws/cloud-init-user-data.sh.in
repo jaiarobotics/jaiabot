@@ -35,6 +35,8 @@ jaia_jcc_hub_ip={{JCC_HUB_IP}}
 jaia_auth_base_uri={{AUTH_BASE_URI}}
 jaia_auth_admin_email={{AUTH_ADMIN_EMAIL}}
 jaia_auth_smtp_address={{AUTH_SMTP_ADDRESS}}
+jaia_auth_smtp_sender={{AUTH_SMTP_SENDER}}
+jaia_auth_smtp_credentials_ssm_parameter={{AUTH_SMTP_CREDENTIALS_SSM_PARAMETER}}
 EOF
 
 ## Ansible jobs for VFleet need boto3

@@ -211,7 +211,7 @@ def main():
 
             if not 'cloudhub' in fleet_cfg_json:
                 # defaults
-                fleet_cfg_json.update({"cloudhub" : {"baseUri": f"fleet{fleet_cfg_json['fleet']}.jaia.tech", "adminEmail" : "matt.ferro@jaia.tech", "smtpAddress": "smtp://smtp-relay.gmail.com:587"}})
+                fleet_cfg_json.update({"cloudhub" : {"baseUri": f"fleet{fleet_cfg_json['fleet']}.jaia.tech", "adminEmail" : "matt.ferro@jaia.tech", "smtpAddress": "submission://smtp.postmarkapp.com:587"}})
 
             cloudhub = fleet_cfg_json['cloudhub']
             data_bucket = cloudhub.get('dataBucket') or f"jaia--cloudhub-data--fleet{fleet_cfg_json['fleet']}"
@@ -221,6 +221,11 @@ def main():
                 sh.write(f"AUTH_ADMIN_EMAIL={cloudhub['adminEmail']}\n")
                 sh.write(f"AUTH_SMTP_ADDRESS={cloudhub['smtpAddress']}\n")
                 sh.write(f"CLOUDHUB_DATA_BUCKET={data_bucket}\n")
+                # Only when overridden, so configs without them still match 3.y's output
+                if 'smtpSender' in cloudhub:
+                    sh.write(f"AUTH_SMTP_SENDER={cloudhub['smtpSender']}\n")
+                if 'smtpCredentialsSsmParameter' in cloudhub:
+                    sh.write(f"AUTH_SMTP_CREDENTIALS_SSM_PARAMETER={cloudhub['smtpCredentialsSsmParameter']}\n")
             print(f"Wrote cloudhub variables to: {cloudhub_env_sh}")
 
 

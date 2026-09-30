@@ -435,9 +435,22 @@ if $HAS_CLOUDHUB; then
     ADMIN_EMAIL=$WT_TEXT
     echo "  admin_email: \"$ADMIN_EMAIL\"" >> $out    
 
-    run_wt_inputbox "Fleet Configuration" "Enter SMTP server address (e.g., smtp://smtp-relay.gmail.com:587)"
-    SMTP_ADDRESS=$WT_TEXT
-    echo "  smtp_address: \"$SMTP_ADDRESS\"" >> $out    
+    SMTP_ADDRESS="submission://smtp.postmarkapp.com:587"
+    run_wt_inputbox "Fleet Configuration" "Enter SMTP server address (or leave blank for default of $SMTP_ADDRESS)"
+    if [ ! "${WT_TEXT}" = "" ]; then
+        SMTP_ADDRESS="$WT_TEXT"
+    fi
+    echo "  smtp_address: \"$SMTP_ADDRESS\"" >> $out
+
+    run_wt_inputbox "Fleet Configuration" "Enter email sender address, verified with the SMTP provider (or leave blank for default of noreply@auth.jaia.tech)"
+    if [ ! "${WT_TEXT}" = "" ]; then
+        echo "  smtp_sender: \"$WT_TEXT\"" >> $out
+    fi
+
+    run_wt_inputbox "Fleet Configuration" "Enter AWS SSM parameter (name or ARN) holding the SMTP credentials (or leave blank for default of /jaia/cloudhub/smtp_credentials)"
+    if [ ! "${WT_TEXT}" = "" ]; then
+        echo "  smtp_credentials_ssm_parameter: \"$WT_TEXT\"" >> $out
+    fi
 
     echo "}" >> $out
 fi
