@@ -56,6 +56,8 @@ runcmd:
   - /etc/jaiabot/init/install-hub-ssh-keys.sh
   # Format overlay to btrfs (if not already)
   - mkfs.btrfs -f $(blkid -L overlay) -L overlay
+  # Everything a CloudHub needs that the image does not carry, cloud.env included
+  - if [ -f "/boot/firmware/jaiabot/init/cloudhub_env.sh" ]; then /usr/bin/jaia_configure_cloudhub.sh; fi
   # Disable apt timers to prevent lock contention and background updates
   - if [ ! -f "/etc/jaiabot/cloud.env" ]; then systemctl disable --now apt-daily.timer apt-daily-upgrade.timer; fi
   # Set up Authelia on CloudHubs
