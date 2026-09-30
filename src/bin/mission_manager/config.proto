@@ -23,6 +23,7 @@ message MissionManager
     required goby.middleware.protobuf.TransporterConfig command_sub_cfg = 11;
     optional goby.middleware.protobuf.TransporterConfig contact_update_sub_cfg =
         13;
+    optional goby.middleware.protobuf.TransporterConfig bot_status_sub_cfg = 14;
 
     // timeout to allow all applications to report HEALTH__OK
     optional double startup_timeout = 12

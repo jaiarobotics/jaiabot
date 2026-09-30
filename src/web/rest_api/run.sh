@@ -2,14 +2,11 @@
 
 set -e
 
-JAIA_DIR="$(pwd)/../../../"
-BUILD_DIR="${JAIA_DIR}/build/web_dev/"
+source "$(dirname "${BASH_SOURCE[0]}")/../../python/resolve_venv.sh"
+require_venv
 
-# Build the venv
-pushd ../../python > /dev/null
-    ./build_venv.sh ${BUILD_DIR}/python
-    source ${BUILD_DIR}/python/venv/bin/activate
-popd > /dev/null
+# Source the python venv built by CMake.
+source "${JAIA_VENV_DIR}/bin/activate"
 
 # Start server
 echo 🟢 Starting rest api

@@ -44,6 +44,7 @@ constexpr goby::middleware::Group salinity{"jaiabot::salinity"};
 constexpr goby::middleware::Group dissolved_oxygen{"jaiabot::dissolved_oxygen"};
 constexpr goby::middleware::Group ph{"jaiabot::ph"};
 constexpr goby::middleware::Group fluorometer{"jaiabot::fluorometer"};
+constexpr goby::middleware::Group fluorometer_2{"jaiabot::fluorometer_2"};
 constexpr goby::middleware::Group echo{"jaiabot::echo"};
 constexpr goby::middleware::Group tsys01{"jaiabot::tsys01"};
 constexpr goby::middleware::Group ctd{"jaiabot::ctd"};
@@ -77,6 +78,7 @@ constexpr goby::middleware::Group powerstate_command{"jaiabot::powerstate_comman
 constexpr goby::middleware::Group mission_dive{"jaiabot::mission_dive"};
 constexpr goby::middleware::Group self_command{"jaiabot::self_command"};
 constexpr goby::middleware::Group state_change{"jaiabot::state_change"};
+constexpr goby::middleware::Group bot2bot_data{"jaiabot::bot2bot_data"};
 
 // hub manager
 constexpr goby::middleware::Group hub_status{"jaiabot::hub_status"};
