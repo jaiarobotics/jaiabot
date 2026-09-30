@@ -12,6 +12,9 @@ endif()
 
 install(PROGRAMS ${project_SH_DIR}/system/75-jaiabot-status DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME jaiabot-status)
 
+# Sourced at runtime for the versions of third-party packages
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/common-versions.env DESTINATION share/jaiabot)
+
 set(scripts_to_install
   # data offload
   data-offload/jaiahub-dataoffload.sh
