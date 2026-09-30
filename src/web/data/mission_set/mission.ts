@@ -122,20 +122,51 @@ export default class Mission {
     }
 
     deleteWaypoint(waypointNum: number) {
-        // Remove last waypoint in constant time
-        if (waypointNum === this.waypoints.length) {
-            this.waypoints.pop();
+        const index = waypointNum - 1;
+        if (index < 0 || index >= this.waypoints.length) return;
+        this.waypoints.splice(index, 1);
+        this.reindexSegmentsAfterRemoval(index);
+    }
+
+    /**
+     * Keeps segment boundaries on the waypoints they were created for after a goal is removed.
+     * Indices past the removed goal shift back by one. Segments and lane starts left covering
+     * no goals are dropped, so waypoints appended later join the last remaining segment.
+     * At least one segment is always kept.
+     * @param {number} removedIndex 0-based goal index that was removed
+     */
+    private reindexSegmentsAfterRemoval(removedIndex: number) {
+        const shift = (goalIndex: number) => (goalIndex > removedIndex ? goalIndex - 1 : goalIndex);
+        const goalCount = this.waypoints.length;
+
+        const shifted = this.segments.map((segment) => ({
+            ...segment,
+            start_goal_index: shift(segment.start_goal_index),
+            ...(segment.lane_start_goal_indices && {
+                lane_start_goal_indices: segment.lane_start_goal_indices.map(shift),
+            }),
+        }));
+        const segmentEnd = (segments: Segment[], i: number) =>
+            i + 1 < segments.length ? segments[i + 1].start_goal_index : goalCount;
+
+        let remaining = shifted.filter(
+            (segment, i) => segment.start_goal_index < segmentEnd(shifted, i),
+        );
+        if (remaining.length === 0) {
+            remaining = [{ ...shifted[0], start_goal_index: 0 }];
         }
-        // Remove other waypoints in linear time
-        else {
-            this.setWaypoints(
-                this.waypoints.filter((waypoint, index) => {
-                    if (index + 1 !== waypointNum) {
-                        return waypoint;
-                    }
-                }),
-            );
-        }
+
+        // A lane start at or before its segment's start is never a resume target on the bot
+        this.segments = remaining.map((segment, i) => {
+            if (!segment.lane_start_goal_indices) return segment;
+            const end = segmentEnd(remaining, i);
+            return {
+                ...segment,
+                lane_start_goal_indices: segment.lane_start_goal_indices.filter(
+                    (laneStart) => laneStart > segment.start_goal_index && laneStart < end,
+                ),
+            };
+        });
     }
 
     moveWaypoint(waypointNum: number, location: GeographicCoordinate) {
