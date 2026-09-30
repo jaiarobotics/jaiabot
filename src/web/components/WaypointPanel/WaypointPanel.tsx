@@ -1,10 +1,10 @@
 import cloneDeep from "lodash/cloneDeep";
 import { ChangeEvent, useContext, useEffect, useState } from "react";
-import { error } from "toastr";
 
 import TaskParameters from "./TaskParameters/TaskParameters";
 
 import { JaiaContext, JaiaDispatchContext } from "../../context/JaiaContext";
+import { error } from "../../utils/notifications";
 import { JaiaActions } from "../../context/jaia-actions";
 import JaiaToggle from "../JaiaToggle/JaiaToggle";
 

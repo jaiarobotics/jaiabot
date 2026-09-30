@@ -1,4 +1,4 @@
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import Task from "../../data/tasks/task";
 import { missionSet } from "../../data/mission_set/mission-set";

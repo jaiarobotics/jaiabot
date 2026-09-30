@@ -1,4 +1,4 @@
-import { cloneDeep } from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import Mission from "../../data/mission_set/mission";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
