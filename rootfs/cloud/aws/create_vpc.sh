@@ -65,9 +65,7 @@ if (( "$#" != 1 )); then
     exit 1
 fi
 
-set -a
-source $1
-set +a
+set -a; source $1; set +a
 
 # Optional settings, absent from configs written before they existed
 OUTPUT_JSON=${OUTPUT_JSON:-}
@@ -97,8 +95,6 @@ CLOUDHUB_ID=30
 CLOUDHUB_ETH_IP_ADDRESS=$(jaia_ip --query_type addr --ip_net cloudhub_eth --fleet_id ${FLEET_ID} --node_type hub --node_id ${CLOUDHUB_ID} --ip_version ipv4)
 
 # IPv6 address to use for VirtualFleet VPN (fd6e:cf0d:aefa:FLEET_ID_HEX::/64)
-VIRTUALFLEET_VPN_NETWORK_IPV6=$(jaia_ip --query_type net --ip_net vfleet_vpn --fleet_id ${FLEET_ID} --ip_version ipv6)
-VIRTUALFLEET_VPN_CLIENT_IPV6=$(jaia_ip --query_type addr --ip_net vfleet_vpn --fleet_id ${FLEET_ID} --node_type desktop --node_id 1 --ip_version ipv6)
 VIRTUALFLEET_VPN_SERVER_IPV6=$(jaia_ip --query_type addr --ip_net vfleet_vpn --fleet_id ${FLEET_ID} --node_type hub --node_id ${CLOUDHUB_ID} --ip_version ipv6)
 # IPv6 address to use for CloudHub VPN (fd0f:77ac:4fdf:FLEET_ID_HEX::/64)
 CLOUDHUB_VPN_NETWORK_IPV6=$(jaia_ip --query_type net --ip_net cloudhub_vpn --fleet_id ${FLEET_ID} --ip_version ipv6)
@@ -264,6 +260,12 @@ echo ">>>>>> Allowed SSH (port 22) on Security Group"
 run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=udp,FromPort=51820,ToPort=51821,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
 echo ">>>>>> Allowed UDP ports 51820-51821 (Wireguard) on Security Group"
 
+run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
+echo ">>>>>> Allowed HTTP ports on Security Group"
+
+run "" aws ec2 authorize-security-group-ingress --group-id $CLOUDHUB_SECURITY_GROUP_ID --ip-permissions IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges='[{CidrIp=0.0.0.0/0}]',Ipv6Ranges='[{CidrIpv6=::/0}]'
+echo ">>>>>> Allowed HTTPS ports on Security Group"
+
 # Create a Security Group for VirtualFleet with no ingress rules allowed
 VIRTUALFLEET_SECURITY_GROUP_ID=$(run '.GroupId' aws ec2 create-security-group --group-name "jaia__SecurityGroup_VirtualFleet__${JAIA_CUSTOMER_NAME}" --description "jaia__${JAIA_CUSTOMER_NAME} VirtualFleet Security Group" --vpc-id $VPC_ID)
 on_rollback aws ec2 delete-security-group --group-id $VIRTUALFLEET_SECURITY_GROUP_ID
@@ -288,6 +290,18 @@ echo ">>>>>> Allocated Elastic IP Address with Allocation ID: $EIP_ALLOCATION_ID
 PUBLIC_IPV4_ADDRESS=$(run ".Addresses[0].PublicIp" aws ec2 describe-addresses --allocation-ids $EIP_ALLOCATION_ID)
 
 ## Launch the actual VM (CloudHub)
+USER_DATA_FIRST_BOOT_DIR=${TMPDIR}/bootdir
+mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
+
+USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
+USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
+
+cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
+jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID} --action hub_ssh_keys --action vpn_key --action first_boot --action store_fleet_cfg --action write_cloudhub_auth
+USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
+
+set -a; source "${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/cloudhub_auth.sh"; set +a
+
 USER_DATA_SCRIPT_IN="${SCRIPT_PATH}/cloud-init-user-data.sh.in"
 USER_DATA_SCRIPT="${TMPDIR}/cloud-init-user-data.sh"
 
@@ -299,8 +313,6 @@ declare -A replacements=(
     ["{{CLIENT_VPN_WIREGUARD_PUBKEY}}"]="$CLIENT_VPN_WIREGUARD_PUBKEY"
     ["{{CLOUDHUB_DATA_BUCKET}}"]="$CLOUDHUB_DATA_BUCKET"
     ["{{CLOUDHUB_ID}}"]="$CLOUDHUB_ID"
-    ["{{CLOUDHUB_VPN_CLIENT_IPV6}}"]="$CLOUDHUB_VPN_CLIENT_IPV6"
-    ["{{CLOUDHUB_VPN_SERVER_IPV6}}"]="$CLOUDHUB_VPN_SERVER_IPV6"
     ["{{FLEET_ID}}"]="$FLEET_ID"
     ["{{JAIA_CUSTOMER_NAME}}"]="$JAIA_CUSTOMER_NAME"
     ["{{JCC_HUB_IP}}"]="$JCC_HUB_IP"
@@ -312,25 +324,15 @@ declare -A replacements=(
     ["{{SUBNET_VIRTUALFLEET_WLAN_ID}}"]="$SUBNET_VIRTUALFLEET_WLAN_ID"
     ["{{VPC_ID}}"]="$VPC_ID"
     ["{{VIRTUALFLEET_SECURITY_GROUP_ID}}"]="$VIRTUALFLEET_SECURITY_GROUP_ID"
-    ["{{VIRTUALFLEET_VPN_CLIENT_IPV6}}"]="$VIRTUALFLEET_VPN_CLIENT_IPV6"
-    ["{{VIRTUALFLEET_VPN_SERVER_IPV6}}"]="$VIRTUALFLEET_VPN_SERVER_IPV6"
+    ["{{AUTH_BASE_URI}}"]="$AUTH_BASE_URI"
+    ["{{AUTH_ADMIN_EMAIL}}"]="$AUTH_ADMIN_EMAIL"
+    ["{{AUTH_SMTP_ADDRESS}}"]="$AUTH_SMTP_ADDRESS"
 )
 
 for placeholder in "${!replacements[@]}"; do
     value=${replacements[$placeholder]}
     sed -i "s|$placeholder|$value|g" "${USER_DATA_SCRIPT}"
 done
-
-USER_DATA_FIRST_BOOT_DIR=${TMPDIR}/bootdir
-mkdir -p ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
-
-USER_DATA_COMMON=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/common-first-boot.yml)
-USER_DATA_FIRST_BOOT_J2=$(realpath ${SCRIPT_PATH}/../../customization/includes.chroot/etc/jaiabot/init/first-boot.preseed.yml.j2)
-
-cp ${USER_DATA_FIRST_BOOT_J2} ${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init
-jaia admin fleet generate ${FLEET_CONFIG} --bootdir ${USER_DATA_FIRST_BOOT_DIR} hub ${CLOUDHUB_ID}
-USER_DATA_FIRST_BOOT=${USER_DATA_FIRST_BOOT_DIR}/jaiabot/init/first-boot.preseed.yml
-
 
 # Append SSH keys to user data script so they get installed
 cat <<EOFF >> ${USER_DATA_SCRIPT}
@@ -423,6 +425,8 @@ echo ">>>>>> Instance is running. Proceeding to associate Elastic IP Address."
 run "" aws ec2 associate-address --network-interface-id $ENI_ID_0 --allocation-id $EIP_ALLOCATION_ID
 echo ">>>>>> Associated Elastic IP Address with EC2 Instance"
 
+PUBLIC_IPV6_ADDRESS=$(run ".NetworkInterfaces[0].Ipv6Addresses[0].Ipv6Address" aws ec2 describe-network-interfaces --network-interface-ids "$ENI_ID_0")
+
 # Tag the Resources
 run "" aws ec2 create-tags --resources "$VPC_ID" \
     "$SUBNET_CLOUDHUB_ID" \
@@ -480,6 +484,9 @@ while ! ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "mount | grep -q overla
     sleep 5
 done
 
+AUTHELIA_ADMIN_PASSWORD=$(ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo grep lldap_admin_password /var/log/jaiabot/auth/authelia/secrets | cut -d = -f2")
+echo ">>>>>> Fetched Authelia initial admin password"
+
 ssh "${SSH_OPTS[@]}" jaia@${PUBLIC_IPV4_ADDRESS} "sudo ufw allow in on eth0 proto udp to any port 51820; sudo ufw allow in on eth0 proto udp to any port 51821; sudo ufw allow in on wg_cloudhub; sudo ufw --force enable"
 echo ">>>>>> Updated CloudHub ufw firewall rules to exclude connecting on VirtualFleet VPN"
 
@@ -519,31 +526,7 @@ if [[ -n "$OUTPUT_JSON" ]]; then
     echo ">>>>>> Wrote the created resource IDs to ${OUTPUT_JSON}"
 fi
 
-VFLEET_VPN=wg_jaia_vf${FLEET_ID}
 CLOUD_VPN=wg_jaia_ch${FLEET_ID}
-cat <<EOF > /tmp/${VFLEET_VPN}.conf
-[Interface]
-# from /etc/wireguard/privatekey on client
-PrivateKey = ...
-
-# this client's VPN IP address
-Address = ${VIRTUALFLEET_VPN_CLIENT_IPV6}/128
-
-[Peer]
-# Server public key (from /etc/wireguard/publickey on server)
-PublicKey = ${SERVER_WIREGUARD_PUBKEY}
-
-# Allowed private IPs
-AllowedIPs = ${VIRTUALFLEET_VPN_NETWORK_IPV6}
-
-# Server IP and port
-Endpoint = ${PUBLIC_IPV4_ADDRESS}:51820
-
-# Keep connection alive (required for behind NAT routers)
-PersistentKeepalive = 52
-
-EOF
-
 cat <<EOF > /tmp/${CLOUD_VPN}.conf
 [Interface]
 # from /etc/wireguard/privatekey on client
@@ -566,7 +549,6 @@ Endpoint = ${PUBLIC_IPV4_ADDRESS}:51821
 PersistentKeepalive = 52
 EOF
 
-sed -i "s|.*PrivateKey.*|PrivateKey = ${CLIENT_VPN_WIREGUARD_PRIVATEKEY}|" /tmp/${VFLEET_VPN}.conf
 sed -i "s|.*PrivateKey.*|PrivateKey = ${CLIENT_VPN_WIREGUARD_PRIVATEKEY}|" /tmp/${CLOUD_VPN}.conf
 
 echo ">>>>>> Started CloudHub in Fleet $FLEET_ID:"
@@ -574,17 +556,13 @@ echo ">>>>>> Public IPv4 address: ${PUBLIC_IPV4_ADDRESS}"
 
 
 if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
-    echo ">>>>>> Begin installing local VPNs to /etc/wireguard/${VFLEET_VPN}.conf and /etc/wireguard/${CLOUD_VPN}.conf"
+    echo ">>>>>> Begin installing local VPN to /etc/wireguard/${CLOUD_VPN}.conf"
 
-    sudo mv /tmp/${VFLEET_VPN}.conf /tmp/${CLOUD_VPN}.conf /etc/wireguard
-    sudo systemctl enable wg-quick@${VFLEET_VPN}
-    sudo systemctl restart wg-quick@${VFLEET_VPN}
-
+    sudo mv /tmp/${CLOUD_VPN}.conf /etc/wireguard
     sudo systemctl enable wg-quick@${CLOUD_VPN}
     sudo systemctl restart wg-quick@${CLOUD_VPN}
 
-    echo ">>>>>> Enabled VPNs:"
-    sudo wg show ${VFLEET_VPN}
+    echo ">>>>>> Enabled VPN:"
     sudo wg show ${CLOUD_VPN}
     deadline=$((SECONDS + WAIT_TIMEOUT_SECONDS))
     while ! ping6 -c 1 "${CLOUDHUB_VPN_SERVER_IPV6}" &> /dev/null
@@ -596,13 +574,12 @@ if [[ "$ENABLE_CLIENT_VPN" == "true" ]]; then
     echo ">>>>>> Ping successful!"   
     echo -e ">>>>>> Now you can log in with\n\tjaia ssh chf${FLEET_ID} (ssh jaia@${CLOUDHUB_VPN_SERVER_IPV6})"
 else
-    echo ">>>>>> Prototype config for VPNs in /tmp/${VFLEET_VPN}.conf and /tmp/${CLOUD_VPN}.conf. You will need to enable one or both VPNs to access the Cloudhub VM."
+    echo ">>>>>> Prototype config for VPNs in /tmp/${CLOUD_VPN}.conf. You will need to enable this VPN to access the Cloudhub VM."
 fi
 
 if [[ "$UPDATE_CLIENT_ETC_HOSTS" == "true" ]]; then
     # Define the host entries
     CLOUDHUB_HOST="cloudhub-fleet${FLEET_ID}"
-    VIRTUALFLEET_HOST="cloudhub-virtualfleet${FLEET_ID}"
 
     # Update or append cloudhub entry in /etc/hosts
     if grep -q "$CLOUDHUB_HOST" /etc/hosts; then
@@ -610,14 +587,21 @@ if [[ "$UPDATE_CLIENT_ETC_HOSTS" == "true" ]]; then
     else
         echo "$CLOUDHUB_VPN_SERVER_IPV6 $CLOUDHUB_HOST" | sudo tee -a /etc/hosts
     fi
-
-    # Update or append virtualfleet entry in /etc/hosts
-    if grep -q "$VIRTUALFLEET_HOST" /etc/hosts; then
-        sudo sed -i "s/.* $VIRTUALFLEET_HOST\$/$VIRTUALFLEET_VPN_SERVER_IPV6 $VIRTUALFLEET_HOST/" /etc/hosts
-    else
-        echo "$VIRTUALFLEET_VPN_SERVER_IPV6 $VIRTUALFLEET_HOST" | sudo tee -a /etc/hosts
-    fi
     echo -e ">>>>>> Updated /etc/hosts, so you can also log in with\n\tssh jaia@$CLOUDHUB_HOST"
 fi
 
+
 echo ">>>>>> SUCCESS"
+
+AUTH_BASE_URI_HOST="${AUTH_BASE_URI%%.*}"
+
+cat <<EOF
+>>>>>> You must still perform these steps!
+1. Add this server to your SMTP relay at (for $AUTH_SMTP_ADDRESS): $PUBLIC_IPV4_ADDRESS and $PUBLIC_IPV6_ADDRESS
+2. Add these DNS entries:
+	$AUTH_BASE_URI_HOST A $PUBLIC_IPV4_ADDRESS
+	$AUTH_BASE_URI_HOST AAAA $PUBLIC_IPV6_ADDRESS
+	*.$AUTH_BASE_URI_HOST CNAME $AUTH_BASE_URI
+EOF
+
+echo -e "Authelia login at https://$AUTH_BASE_URI\n\tuser: jaia_admin\n\tpass: $AUTHELIA_ADMIN_PASSWORD"
