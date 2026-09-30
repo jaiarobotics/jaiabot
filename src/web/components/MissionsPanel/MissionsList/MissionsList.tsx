@@ -11,6 +11,7 @@ import { missionsManager } from "../../../data/missions_manager/missions-manager
 import { MDI_BUTTON_SIZE, UNASSIGNED_ID } from "../../../utils/constants";
 import { accordionTheme, addDropdownListener, scrollMissionsList } from "../../../utils/style";
 import JaiaToggle from "../../../components/JaiaToggle/JaiaToggle";
+import { StepperButtons } from "../../../components/JaiaNumberInput/JaiaNumberInput";
 
 // MUI | MDI
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -76,7 +77,7 @@ export default function MissionsList() {
      */
     const handleRepeatsChange = (repeats: string, missionID: number) => {
         let numOfRepeats = Number(repeats);
-        if (isNaN(numOfRepeats)) {
+        if (repeats === "" || isNaN(numOfRepeats) || numOfRepeats < 1) {
             numOfRepeats = 1;
         }
         jaiaDispatch({
@@ -140,6 +141,25 @@ export default function MissionsList() {
                                     <TextField
                                         label="Repeats"
                                         size="small"
+                                        type="number"
+                                        slotProps={{
+                                            htmlInput: { min: 1 },
+                                            input: {
+                                                endAdornment: (
+                                                    <StepperButtons
+                                                        onStep={(direction) =>
+                                                            handleRepeatsChange(
+                                                                String(
+                                                                    Number(mission.getRepeats()) +
+                                                                        direction,
+                                                                ),
+                                                                mission.getMissionID(),
+                                                            )
+                                                        }
+                                                    />
+                                                ),
+                                            },
+                                        }}
                                         className="mission-repeats"
                                         autoComplete="off"
                                         value={mission.getRepeats()}
