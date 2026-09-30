@@ -14,10 +14,10 @@ jaia_auth_lldap_bootstrap_completed=false
 set -a
 source "/etc/jaiabot/jaia.env"
 source "/etc/jaiabot/cloud.env"
+source "/usr/share/jaiabot/common-versions.env"
 set +a
 
 ## Versions
-authelia_version=4.39.20-1 # apt
 # use whatever caddy Ubuntu ships with
 # caddy_version = ... # apt
 lldap_version=v0.6.3 # docker
@@ -93,7 +93,16 @@ if [ ! -f /usr/share/keyrings/authelia-security.gpg ]; then
     echo 'deb [arch='$(dpkg --print-architecture)' signed-by=/usr/share/keyrings/authelia-security.gpg] https://apt.authelia.com stable main' | tee /etc/apt/sources.list.d/authelia.list > /dev/null
 fi
 
-apt-get update && apt-get install -y authelia=$authelia_version caddy docker-compose-v2 fuse-overlayfs
+# A series, not an exact version: Authelia migrates its database forward and cannot read it
+# once a newer release has, so a node must never go back to an older one. Below 1000 so apt
+# never downgrades.
+cat <<EOF > /etc/apt/preferences.d/authelia
+Package: authelia
+Pin: version ${jaia_version_authelia_series}.*
+Pin-Priority: 990
+EOF
+
+apt-get update && apt-get install -y authelia caddy docker-compose-v2 fuse-overlayfs
 
 
 ##############
