@@ -312,7 +312,8 @@ sim.$base_uri {
 
 EOF
 
-systemctl start caddy
+# Caddy starts with its stock Caddyfile when installed, so reload to apply ours (graceful if running)
+systemctl reload-or-restart caddy
 
 ###########
 ## LLDAP ##
