@@ -101,6 +101,21 @@ export class TaskPacketFilter {
         this.active = true;
     }
 
+    /**
+     * Deactivates the filter and resets it to its initial state, so every packet passes.
+     *
+     * @returns {void}
+     */
+    clear() {
+        this.active = false;
+        this.startDate = null;
+        this.endDate = null;
+        this.selectedMissionSetKeys = new Set();
+        this.sliderLowerUtime = 0;
+        this.sliderUpperUtime = 0;
+        this.autoFollowUpper = true;
+    }
+
     getSelectedMissionSetKeys() {
         return this.selectedMissionSetKeys;
     }

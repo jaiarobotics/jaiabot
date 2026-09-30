@@ -1,5 +1,6 @@
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
+import { fetchTaskPacketsForWindow } from "../../jcc/polling";
 import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { syncTaskLayers, syncTaskPacketMarkerLayers } from "./handler-utils";
 
@@ -70,5 +71,22 @@ export function handleChangeTaskPacketSlider(mutableState: JaiaContextType, acti
  */
 export function handleCommitTaskPacketSlider(mutableState: JaiaContextType) {
     syncTaskLayers();
+    return mutableState;
+}
+
+/**
+ * Deactivates the filter and reloads the server's default task packet window so the map returns
+ * to the unfiltered live view, including mission sets that start after the filter was set.
+ *
+ * @param {JaiaContextType} mutableState State object ref for making modifications
+ * @returns {JaiaContextType} Updated mutable state object
+ */
+export function handleClearTaskPacketFilter(mutableState: JaiaContextType) {
+    taskPacketFilter.clear();
+    fetchTaskPacketsForWindow().then((response) => {
+        taskPackets.setIncludedTaskPackets(response.result.included);
+        taskPackets.setExcludedTaskPackets(response.result.excluded);
+        syncTaskLayers();
+    });
     return mutableState;
 }

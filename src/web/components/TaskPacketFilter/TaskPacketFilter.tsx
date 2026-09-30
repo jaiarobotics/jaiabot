@@ -46,8 +46,9 @@ export default function TaskPacketFilter() {
     const [isFilterEngaged, setIsFilterEngaged] = useState(
         getInitialFilterEngaged(taskPacketFilter),
     );
-    // Blanks the date inputs after Clear Filter until the user interacts with the panel again.
-    const [isDateRangeBlank, setIsDateRangeBlank] = useState(false);
+    // Blank date inputs mean no filter: the map shows the server's default window. They stay blank
+    // until the user interacts with the panel.
+    const [isDateRangeBlank, setIsDateRangeBlank] = useState(!taskPacketFilter.isActive());
 
     // Results / selection state
     const [missionSets, setMissionSets] = useState<MissionSetSummary[]>([]);
@@ -73,18 +74,10 @@ export default function TaskPacketFilter() {
     const taskPacketRevision = jaiaContext.taskPackets.getRevision();
     useEffect(() => followLatestTaskPackets(), [taskPacketRevision]);
 
-    // On first open with no active filter, show the full default date range (same as Clear) rather
-    // than the rolling live window. A reopened active filter is restored by the effect above.
-    useEffect(() => {
-        if (!taskPacketFilter.isActive()) {
-            applyDateRange(startDateStr, endDateStr);
-        }
-    }, []);
-
     /**
      * Schedules a debounced fetch for the current date range on a user date change. Skips the run on
-     * mount: the mount effect applies the default range on a fresh open, and the live-sync effect
-     * restores a reopened filter.
+     * mount: the live-sync effect mirrors the live map when no filter is active and restores a
+     * reopened filter.
      *
      * @returns {(() => void) | undefined} Cleanup that cancels the pending fetch, if scheduled
      */
@@ -102,8 +95,7 @@ export default function TaskPacketFilter() {
 
     /**
      * Fetches task packets for the given date range, rebuilds the mission set list, and applies the
-     * range to the map with every mission set in it selected. Used on a user-driven date change and
-     * by Clear Filter to return to the default range.
+     * range to the map with every mission set in it selected. Used on a user-driven date change.
      *
      * @param {string} startStr yyyy-mm-dd range start
      * @param {string} endStr yyyy-mm-dd range end
@@ -380,23 +372,23 @@ export default function TaskPacketFilter() {
     };
 
     /**
-     * Clears the filter.
+     * Clears the filter and returns the map to the unfiltered live view. The date inputs are blanked
+     * to show that the server's default window applies; the panel re-mirrors the map once the
+     * default window's packets arrive.
      *
      * @returns {void}
      */
     const handleClear = () => {
-        // Reset to the default date range with every mission set shown, so the map matches the date
-        // range the panel resets to (rather than the server's narrower rolling default). Blank the
-        // date inputs until the user interacts again.
         const defaultDateRange = getDefaultDateRange();
-        // We fetch the default range here, so skip the fetch the date effect would otherwise run.
+        // Resetting the dates must not trigger a fetch that would re-activate the filter.
         if (startDateStr !== defaultDateRange.start || endDateStr !== defaultDateRange.end) {
             isInitialFetchRef.current = true;
         }
         setIsDateRangeBlank(true);
+        setIsFilterEngaged(false);
         setStartDateStr(defaultDateRange.start);
         setEndDateStr(defaultDateRange.end);
-        applyDateRange(defaultDateRange.start, defaultDateRange.end);
+        jaiaDispatch({ type: JaiaActions.CLEAR_TASK_PACKET_FILTER });
     };
 
     const areAllMissionSetsSelected =
