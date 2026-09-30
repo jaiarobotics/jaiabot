@@ -469,11 +469,7 @@ export default function TaskPacketFilter() {
                         <div className="task-packet-filter-step-label">
                             Select mission sets to show on the map
                         </div>
-                        <Button
-                            size="small"
-                            onClick={handleToggleSelectAll}
-                            className="task-packet-filter-select-all-button"
-                        >
+                        <Button size="small" onClick={handleToggleSelectAll}>
                             {areAllMissionSetsSelected ? "Deselect all" : "Select all"}
                         </Button>
                     </div>
@@ -507,11 +503,7 @@ export default function TaskPacketFilter() {
                 </div>
             )}
 
-            <Button
-                variant="outlined"
-                onClick={handleClear}
-                className="task-packet-filter-clear-button"
-            >
+            <Button variant="outlined" onClick={handleClear}>
                 Clear Filter
             </Button>
         </div>

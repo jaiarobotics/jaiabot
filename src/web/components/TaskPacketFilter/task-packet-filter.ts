@@ -102,7 +102,7 @@ export function getInitialFilterEngaged(filter: TaskPacketFilter) {
  * @returns {Set<string>} Selected mission set keys
  */
 export function getInitialSelectedKeys(filter: TaskPacketFilter) {
-    return new Set(filter.getSelectedMissionSetKeys());
+    return filter.getSelectedMissionSetKeys();
 }
 
 /**

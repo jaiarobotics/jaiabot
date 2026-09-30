@@ -117,7 +117,7 @@ export class TaskPacketFilter {
     }
 
     getSelectedMissionSetKeys() {
-        return this.selectedMissionSetKeys;
+        return new Set(this.selectedMissionSetKeys);
     }
 
     setSelectedMissionSetKeys(keys: Set<string>) {

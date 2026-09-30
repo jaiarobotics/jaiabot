@@ -511,7 +511,7 @@ class Interface:
             task_packets (list[dict]): The task packet dictionaries to contour.
 
         Returns:
-            dict[str, any]: A GeoJSON dictionary representing a depth color map for the bottom dives.
+            dict[str, Any]: A GeoJSON dictionary representing a depth color map for the bottom dives.
         """
         return pyjaia.contours.taskPacketsToColorMap(task_packets)
 
