@@ -23,11 +23,13 @@ class ContourLayer extends JaiaVectorLayer {
             ? taskPacketFilter.filter(taskPackets.getIncludedTaskPackets())
             : taskPackets.getIncludedTaskPackets();
         // Too few bottom dives to contour -> clear the layer and skip the request so the
-        // backend isn't asked to contour a set it can't use on every poll.
+        // backend isn't asked to contour a set it can't use on every poll. Bump latestRequest
+        // so a response still in flight can't repaint the cleared layer.
         const bottomDiveCount = includedTaskPackets.filter(
             (taskPacket) => taskPacket.dive?.bottom_dive,
         ).length;
         if (bottomDiveCount < MIN_BOTTOM_DIVES) {
+            this.latestRequest += 1;
             this.getVectorLayer().getSource().clear();
             return;
         }
