@@ -76,7 +76,7 @@ install_build_deps() {
     apt_get build-dep jaiabot --install-recommends
     # (BUG) Need non-soversioned lib?
     # gmake[2]: *** No rule to make target '/usr/lib/x86_64-linux-gnu/libais.so', needed by 'lib/libjaiabot_messages.so.2.6.0+0+ge328122e'.  Stop.
-    apt_get install libais-dev ninja-build clang clang-tools
+    apt_get install libais-dev ninja-build clang clang-tools clang-format
 }
 
 install_arduino_cli() {
