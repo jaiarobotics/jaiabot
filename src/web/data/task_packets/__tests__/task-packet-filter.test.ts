@@ -2,12 +2,13 @@ import {
     missionSetKeyOf,
     buildMissionSetSummaries,
     UNNAMED_MISSION_SET_KEY,
+    TaskPacketFilter,
 } from "../task-packet-filter";
 import { TaskPacket } from "../../../types/protobuf-types";
 
 /**
- * Builds a minimal task packet for tests. Only the fields buildMissionSetSummaries reads
- * (start_time, mission_name) are set.
+ * Builds a minimal task packet for tests. Only the fields the filter code reads (start_time,
+ * mission_name) are set.
  *
  * @param {number} startTime start_time in microseconds
  * @param {string} [missionName] Optional mission name
@@ -129,5 +130,107 @@ describe("buildMissionSetSummaries", () => {
         );
 
         expect(summaries.map((missionSet) => missionSet.key)).toEqual(["Early", "Middle", "Late"]);
+    });
+});
+
+describe("TaskPacketFilter", () => {
+    const start = new Date("2026-06-01T00:00:00");
+    const end = new Date("2026-06-01T23:59:59");
+
+    /**
+     * Builds an active filter with the given mission sets selected.
+     *
+     * @param {string[]} keys Mission set keys to select
+     * @returns {TaskPacketFilter} An active filter
+     */
+    function makeActiveFilter(keys: string[]): TaskPacketFilter {
+        const filter = new TaskPacketFilter();
+        filter.setSearchWindow(start, end);
+        filter.setSelectedMissionSetKeys(new Set(keys));
+        return filter;
+    }
+
+    test("an inactive filter passes every packet", () => {
+        const filter = new TaskPacketFilter();
+        const packets = [makeTaskPacket(1000, "A"), makeTaskPacket(2000)];
+
+        expect(filter.isActive()).toBe(false);
+        expect(packets.every((packet) => filter.passes(packet))).toBe(true);
+        expect(filter.filter(packets)).toBe(packets);
+    });
+
+    test("setSearchWindow activates the filter and stores the window", () => {
+        const filter = new TaskPacketFilter();
+        filter.setSearchWindow(start, end);
+
+        expect(filter.isActive()).toBe(true);
+        expect(filter.getStartDate()).toBe(start);
+        expect(filter.getEndDate()).toBe(end);
+    });
+
+    test("an active filter with nothing selected passes no packets", () => {
+        const filter = makeActiveFilter([]);
+
+        expect(filter.filter([makeTaskPacket(1000, "A"), makeTaskPacket(2000)])).toEqual([]);
+    });
+
+    test("passes only packets from the selected mission sets", () => {
+        const filter = makeActiveFilter(["A", UNNAMED_MISSION_SET_KEY]);
+        const inA = makeTaskPacket(1000, "A");
+        const inB = makeTaskPacket(2000, "B");
+        const unnamed = makeTaskPacket(3000);
+
+        expect(filter.filter([inA, inB, unnamed])).toEqual([inA, unnamed]);
+    });
+
+    test("ignores the slider window while its upper bound is unset", () => {
+        const filter = makeActiveFilter(["A"]);
+        filter.setSliderWindow(5000, 0);
+
+        expect(filter.passes(makeTaskPacket(1000, "A"))).toBe(true);
+    });
+
+    test("applies the slider window inclusively at both bounds", () => {
+        const filter = makeActiveFilter(["A"]);
+        filter.setSliderWindow(2000, 4000);
+
+        expect(filter.passes(makeTaskPacket(1999, "A"))).toBe(false);
+        expect(filter.passes(makeTaskPacket(2000, "A"))).toBe(true);
+        expect(filter.passes(makeTaskPacket(3000, "A"))).toBe(true);
+        expect(filter.passes(makeTaskPacket(4000, "A"))).toBe(true);
+        expect(filter.passes(makeTaskPacket(4001, "A"))).toBe(false);
+    });
+
+    test("a packet in the slider window still needs a selected mission set", () => {
+        const filter = makeActiveFilter(["A"]);
+        filter.setSliderWindow(2000, 4000);
+
+        expect(filter.passes(makeTaskPacket(3000, "B"))).toBe(false);
+    });
+
+    test("setSelectedMissionSetKeys copies the given set", () => {
+        const filter = makeActiveFilter([]);
+        const keys = new Set(["A"]);
+        filter.setSelectedMissionSetKeys(keys);
+        keys.add("B");
+
+        expect(filter.passes(makeTaskPacket(1000, "B"))).toBe(false);
+    });
+
+    test("clear deactivates the filter and resets its state", () => {
+        const filter = makeActiveFilter(["A"]);
+        filter.setSliderWindow(2000, 4000);
+        filter.setAutoFollowUpper(false);
+
+        filter.clear();
+
+        expect(filter.isActive()).toBe(false);
+        expect(filter.getStartDate()).toBeNull();
+        expect(filter.getEndDate()).toBeNull();
+        expect(filter.getSelectedMissionSetKeys().size).toBe(0);
+        expect(filter.getSliderLowerUtime()).toBe(0);
+        expect(filter.getSliderUpperUtime()).toBe(0);
+        expect(filter.getAutoFollowUpper()).toBe(true);
+        expect(filter.passes(makeTaskPacket(1000, "B"))).toBe(true);
     });
 });
