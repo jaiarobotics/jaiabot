@@ -13,6 +13,7 @@
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/units/cmath.hpp>
 #include <boost/units/io.hpp>
 
 #include "system_thread.h"
@@ -387,7 +388,7 @@ void jaiabot::apps::ChronyStatusThread::health(goby::middleware::protobuf::Threa
         }
         else
         {
-            if (status_.selected_source().adjusted_offset_with_units() >
+            if (boost::units::abs(status_.selected_source().adjusted_offset_with_units()) >
                 cfg().high_offset_threshold_with_units())
             {
                 demote_health(health_state, goby::middleware::protobuf::HEALTH__DEGRADED);
