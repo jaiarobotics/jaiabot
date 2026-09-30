@@ -17,7 +17,9 @@ source "/etc/jaiabot/cloud.env"
 set +a
 
 ## Versions
-authelia_version=4.39.20-1 # apt
+# track the newest 4.39.x on both 2.y and 3.y (via the apt pin below), so a 2.y minor update
+# never leaves the database on a newer schema than the 3.y Authelia can read
+authelia_version_series=4.39 # apt
 # use whatever caddy Ubuntu ships with
 # caddy_version = ... # apt
 lldap_version=v0.6.3 # docker
@@ -96,7 +98,13 @@ if [ ! -f /usr/share/keyrings/authelia-security.gpg ]; then
     echo 'deb [arch='$(dpkg --print-architecture)' signed-by=/usr/share/keyrings/authelia-security.gpg] https://apt.authelia.com stable main' | tee /etc/apt/sources.list.d/authelia.list > /dev/null
 fi
 
-apt-get update && apt-get install -y authelia=$authelia_version caddy docker-compose-v2 fuse-overlayfs
+cat <<EOF > /etc/apt/preferences.d/authelia
+Package: authelia
+Pin: version ${authelia_version_series}.*
+Pin-Priority: 1001
+EOF
+
+apt-get update && apt-get install -y authelia caddy docker-compose-v2 fuse-overlayfs
 
 
 ##############
