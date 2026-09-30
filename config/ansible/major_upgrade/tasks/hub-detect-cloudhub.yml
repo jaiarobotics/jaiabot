@@ -1,0 +1,11 @@
+# A CloudHub has no removable media, no WLAN address of its own, and a VirtualFleet
+# that the upgrade has to clear up. cloud.env is what first boot writes on one and
+# nothing else, which makes it the cheapest reliable marker.
+- name: Look for cloud.env
+  stat:
+    path: /etc/jaiabot/cloud.env
+  register: cloud_env_file
+
+- name: Set the CloudHub fact
+  set_fact:
+    is_cloudhub: "{{ cloud_env_file.stat.exists }}"
