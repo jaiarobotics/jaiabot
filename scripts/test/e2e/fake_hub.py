@@ -78,12 +78,11 @@ class FakeBot:
 
 
 class FakeHub:
-    def __init__(self, bots=2, dives_to_run=10, lat=41.6618, lon=-71.2731, api_key='',
+    def __init__(self, bots=2, dives_to_run=10, lat=41.6618, lon=-71.2731,
                  depth_error=0.0, idle_until_activated=False, offload_dir=None,
                  pages=None):
         self.offload_dir = offload_dir
         self.pages = dict(WEB_APPS if pages is None else pages)
-        self.api_key = api_key
         self.bots = {i: FakeBot(i, lat, lon - 0.01 * i, [], dives_to_run, depth_error,
                                 idle_until_activated)
                      for i in range(1, bots + 1)}
@@ -91,9 +90,6 @@ class FakeHub:
         self.commands = []
 
     def handle(self, path, payload):
-        if self.api_key and payload.get('api_key') != self.api_key:
-            return {'error': {'code': 'BAD_KEY'}}
-
         if path.startswith('/status/'):
             statuses = [bot.status() for bot in self.bots.values()]
             for bot in self.bots.values():

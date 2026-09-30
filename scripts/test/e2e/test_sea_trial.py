@@ -239,18 +239,6 @@ class SeaTrialAgainstFakeHub(unittest.TestCase):
             summary = json.load(f)
         self.assertIn('timed out', summary['failure'])
 
-    def test_a_wrong_api_key_is_reported(self):
-        hub = fake_hub.FakeHub(bots=1, dives_to_run=1, api_key='right')
-        url, shutdown = fake_hub.serve(hub)
-        directory = tempfile.mkdtemp()
-        try:
-            code = sea_trial.main(['--hub-url', url, '--api-key', 'wrong', '--bots', '1',
-                                   '--poll-interval', '0', '--api-timeout', '1',
-                                   '--output-dir', directory])
-        finally:
-            shutdown()
-        self.assertEqual(code, 1)
-
     def test_warp_shortens_the_mission_timeout(self):
         args = sea_trial.parse_args(['--warp', '10', '--mission-timeout', '3600'])
         self.assertAlmostEqual(args.mission_timeout, 360.0)

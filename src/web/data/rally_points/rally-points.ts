@@ -1,4 +1,4 @@
-import cloneDeep from "lodash.clonedeep";
+import cloneDeep from "lodash/cloneDeep";
 import RallyPoint from "./rally-point";
 import { UNASSIGNED_ID } from "../../utils/constants";
 

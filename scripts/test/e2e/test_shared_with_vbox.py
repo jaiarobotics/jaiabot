@@ -22,16 +22,12 @@ _spec.loader.exec_module(vbox)
 
 class VboxWrappersOverSharedApi(unittest.TestCase):
     def setUp(self):
-        self.hub_state = fake_hub.FakeHub(bots=2, dives_to_run=1, api_key='k')
+        self.hub_state = fake_hub.FakeHub(bots=2, dives_to_run=1)
         url, self.shutdown = fake_hub.serve(self.hub_state)
         self.addCleanup(self.shutdown)
-        self.args = types.SimpleNamespace(api_key='k', dive_depth=5.0)
+        self.args = types.SimpleNamespace(dive_depth=5.0)
         self.hub = types.SimpleNamespace(hostonly_ip=url.replace('http://', ''), name='hub1')
         vbox.hub_api.clients.clear()
-
-    def bad_key_args(self):
-        vbox.hub_api.clients.clear()
-        return types.SimpleNamespace(api_key='wrong', dive_depth=5.0)
 
     def test_status_and_accessors(self):
         status = vbox.api_status(self.args, self.hub)
@@ -39,14 +35,6 @@ class VboxWrappersOverSharedApi(unittest.TestCase):
         self.assertEqual(vbox.api_status.last_error, '')
         self.assertIn('mission_state', vbox.bot_status(status, 1))
         self.assertIsNone(vbox.bot_status(status, 99))
-
-    def test_status_is_none_and_records_why_when_rejected(self):
-        self.assertIsNone(vbox.api_status(self.bad_key_args(), self.hub))
-        self.assertIn('BAD_KEY', vbox.api_status.last_error)
-
-    def test_command_reports_failure_as_TestFailure(self):
-        with self.assertRaises(vbox.TestFailure):
-            vbox.api_command(self.bad_key_args(), self.hub, 1, {'type': 'ACTIVATE'})
 
     def test_mission_plan_dives_to_the_requested_depth(self):
         vbox.api_command(self.args, self.hub, 1, {'type': 'ACTIVATE'})

@@ -8,18 +8,11 @@ import jaiabot.messages.rest_api_pb2 as rest_api
 import google.protobuf.json_format as json_format
 from jaiabot.messages.jaia_dccl_pb2 import TaskPacket
 
-try: 
-    api_key=os.environ['JAIA_REST_API_PRIVATE_KEY']
-except KeyError:
-    api_key=""
 
 url = "http://127.0.0.1:9092/jaia/v1"
 
 def run_request(request: rest_api.APIRequest) -> rest_api.APIResponse:
     print("#### REQUEST ####")
-    # Attach API key from environment, if available, to the request.
-    if api_key:
-        request.api_key = api_key
     request_json = json_format.MessageToDict(request)
     print(request_json)
 

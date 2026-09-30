@@ -101,10 +101,9 @@ class MissionPlanTest(unittest.TestCase):
 class HubApiTest(unittest.TestCase):
     def test_status_returns_payload(self):
         transport = FakeTransport({'/status/all': {'status': {'bots': [bot(1, 'X')]}}})
-        hub = api.HubApi('http://hub', api_key='k', transport=transport)
+        hub = api.HubApi('http://hub', transport=transport)
         self.assertEqual(api.bot_ids(hub.status()), [1])
         self.assertEqual(transport.calls[0][0], 'http://hub/jaia/v1/status/all')
-        self.assertEqual(transport.calls[0][1]['api_key'], 'k')
 
     def test_base_url_accepts_an_explicit_api_path(self):
         transport = FakeTransport({'/status/all': {'status': {}}})

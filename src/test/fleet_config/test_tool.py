@@ -203,7 +203,47 @@ class MigrationFailureTest(unittest.TestCase):
         cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_cloudhub_no_auth.cfg"))
         fc.migrate(SCHEMA, cfg)
         problems = fc.validate(SCHEMA, cfg)
-        self.assertIn("cloudhub_auth: required when hub 30 (CloudHub) is in the fleet", problems)
+        self.assertIn("cloudhub: required when hub 30 (CloudHub) is in the fleet", problems)
+
+    def cloudhub_cfg(self, extra=""):
+        cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_cloudhub_no_auth.cfg"))
+        fc.migrate(SCHEMA, cfg)
+        fc.text_format.Merge(
+            'cloudhub { base_uri: "fleet9.example" admin_email: "a@example" '
+            'smtp_address: "smtp://localhost:587" }\n' + extra, cfg)
+        return cfg
+
+    def test_cloudhub_defaults(self):
+        cfg = self.cloudhub_cfg()
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        # what create_cloudhub falls back to when the fleet config says nothing
+        self.assertEqual(cfg.customer, "jaia")
+        self.assertFalse(cfg.cloudhub.HasField("data_bucket"))
+
+    def test_cloudhub_settings_are_carried(self):
+        cfg = self.cloudhub_cfg('customer: "acme"\ncloudhub { data_bucket: "acme-fleet9" }\n')
+        self.assertEqual(fc.validate(SCHEMA, cfg), [])
+        self.assertEqual(cfg.customer, "acme")
+        self.assertEqual(cfg.cloudhub.data_bucket, "acme-fleet9")
+        self.assertEqual(cfg.cloudhub.base_uri, "fleet9.example")
+
+    def test_cloudhub_settings_refuse_blanks(self):
+        cfg = self.cloudhub_cfg('customer: ""\ncloudhub { data_bucket: "" }\n')
+        problems = fc.validate(SCHEMA, cfg)
+        self.assertIn("customer: must not be empty; omit it to use the default", problems)
+        self.assertIn("cloudhub.data_bucket: must not be empty; omit it to use the default", problems)
+
+    def test_cloudhub_without_a_cloudhub_hub_is_refused(self):
+        cfg = SCHEMA.FleetConfig()
+        fc.text_format.Merge(
+            'fleet: 7\n'
+            'hubs: [1]\n'
+            'ssh { hub { id: 1 private_key: "k\\n" public_key: "ssh-ed25519 AAAA hub1_fleet7" } }\n'
+            'wlan_password: "x"\n'
+            'service_vpn_enabled: false\n'
+            'cloudhub { base_uri: "a" admin_email: "b" smtp_address: "c" }\n', cfg)
+        self.assertIn("cloudhub: set, but hub 30 (CloudHub) is not in the fleet",
+                      fc.validate(SCHEMA, cfg))
 
     def test_newer_than_tool_is_refused(self):
         with tempfile.NamedTemporaryFile("w", suffix=".cfg", delete=False) as f:
@@ -427,7 +467,7 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(cfg.ssh.vpn_tmp.public_key, "ssh-ed25519 AAAAid_vpn_tmp id_vpn_tmp")
         self.assertEqual(list(cfg.ssh.permanent_authorized_keys), ["ssh-ed25519 AAAAperm me"])
         self.assertEqual((cfg.wlan_password, cfg.service_vpn_enabled), ("wifipass", True))
-        self.assertEqual([cfg.cloudhub_auth.base_uri, cfg.cloudhub_auth.admin_email, cfg.cloudhub_auth.smtp_address],
+        self.assertEqual([cfg.cloudhub.base_uri, cfg.cloudhub.admin_email, cfg.cloudhub.smtp_address],
                          ["fleet7.jaia.tech", "admin@example.com", "smtp://smtp-relay.gmail.com:587"])
 
         s = cfg.settings
@@ -474,7 +514,7 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         cfg = fc.parse_fleet_config(SCHEMA, out)
         self.assertEqual(list(cfg.hubs), [1])
-        self.assertFalse(cfg.HasField("cloudhub_auth"))
+        self.assertFalse(cfg.HasField("cloudhub"))
         self.assertFalse(cfg.HasField("comms"))
         # an override set whose answers all match the common ones writes nothing
         self.assertEqual(len(cfg.override), 0)
@@ -514,7 +554,7 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         cfg = fc.parse_fleet_config(SCHEMA, out)
         self.assertEqual(list(cfg.hubs), [1])
-        self.assertFalse(cfg.HasField("cloudhub_auth"))
+        self.assertFalse(cfg.HasField("cloudhub"))
 
     def test_back_out_of_the_first_question_writes_nothing(self):
         result, out = self.run_create([fc.SCRIPTED_BACK])

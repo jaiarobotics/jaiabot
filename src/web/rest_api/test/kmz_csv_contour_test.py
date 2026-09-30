@@ -10,12 +10,9 @@ import os
 
 """A pytest script to test the KMZ generation functionality of the REST API."""
 
-API_KEY = os.getenv('JAIA_REST_API_PRIVATE_KEY', "")
 URL = os.getenv("JAIA_REST_API_URL", "http://localhost:9092/jaia/v1")
 
 print(f'Testing KMZ generation with API URL: {URL}')
-masked_key = ("****" + API_KEY[-4:]) if API_KEY else "(none)"
-print(f'Using API key: {masked_key}')
 
 
 def utime_now():
@@ -32,7 +29,6 @@ def test_all(dump_files=False):
     api_request.task_packets.start_time = int(now - 7 * 24 * 60 * 60 * 1e6) # 7 days ago
     api_request.task_packets.end_time = int(now)
     api_request.task_packets.format = TaskPacketQuery.KMZ
-    api_request.api_key = API_KEY
 
     for output_format in ['kmz', 'csv', 'geojson']:
 

@@ -1,6 +1,6 @@
 ---
 - name: Check VirtualFleet state
-  hosts: localhost
+  hosts: all
   gather_facts: yes
 
   tasks:

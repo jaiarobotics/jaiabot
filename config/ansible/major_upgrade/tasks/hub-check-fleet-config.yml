@@ -1,9 +1,16 @@
 # Runs the fleet config tool of the release being installed (from its boot
 # tarball on the updates disk), so the schema, migrations and first-boot template
 # always match; the hub's installed jaia may be older than the fleet config
+# find rather than the fileglob lookup, which searches the controller instead of the hub
+- name: Look for the new release's boot tarball
+  find:
+    paths: /var/www/html/updates/major_upgrade
+    patterns: '*.boot.tar.gz'
+  register: upgrade_boot_tar_found
+
 - name: Set facts for the new release's fleet config tool
   set_fact:
-    upgrade_boot_tar: "{{ lookup('fileglob', '/var/www/html/updates/major_upgrade/*.boot.tar.gz') }}"
+    upgrade_boot_tar: "{{ upgrade_boot_tar_found.files | map(attribute='path') | first | default('') }}"
     fleet_config_tool_dir: "{{ hub_staging_dir }}/fleet_config"
 
 - name: Handle missing boot tarball

@@ -1,26 +1,57 @@
+# "jaia ip", not "jaia_ip": this runs on nodes still on the release being left behind,
+# which has no jaia_ip binary. The subcommand spelling works on both.
 - name: Get IP address for Hub
-  shell: "jaia_ip h{{ hub_id }}f{{ jaiabot_embedded_fleet_id }}"
+  shell: "jaia ip h{{ hub_id }}f{{ jaiabot_embedded_fleet_id }}"
   register: hub_ip_result
-  
-- name: Set hub IP
+  when: jaiabot_embedded_hub_id | int != hub_id | int
+
+# The hub holding the image reads it off its own disk rather than through its web server:
+# on a CloudHub port 80 belongs to the auth front end, which redirects to HTTPS.
+- name: Set the updates source
   set_fact:
-    hub_ip: '{{ hub_ip_result.stdout}}'
-    
+    updates_is_local: "{{ jaiabot_embedded_hub_id | int == hub_id | int }}"
+    updates_local_dir: /var/www/html/updates/major_upgrade
+
+- name: Set the updates base URL
+  set_fact:
+    updates_base_url: "{{ 'file://' ~ updates_local_dir if updates_is_local | bool else 'http://' ~ hub_ip_result.stdout ~ '/updates/major_upgrade' }}"
+
+- name: Check the mounted image has a version.txt
+  stat:
+    path: "{{ updates_local_dir }}/version.txt"
+  register: local_version_stat
+  when: updates_is_local | bool
+
+- name: Handle a missing image on this hub
+  include_tasks: handle_failure.yml
+  vars:
+    error_message: "No major upgrade image mounted at {{ updates_local_dir }} on this hub."
+  when: updates_is_local | bool and not (local_version_stat.stat.exists | default(false))
+
 - name: Check if version.txt exists
   uri:
-    url: "http://{{ hub_ip }}/updates/major_upgrade/version.txt"
+    url: "{{ updates_base_url }}/version.txt"
     method: HEAD
     return_content: no
     status_code: 200
   register: url_check
   failed_when: url_check.status != 200
   ignore_errors: no
+  when: not updates_is_local | bool
+
+- name: Copy version.txt from the mounted image
+  copy:
+    src: "{{ updates_local_dir }}/version.txt"
+    dest: "{{ upgrade_dir_base }}/version.txt"
+    remote_src: yes
+  when: updates_is_local | bool
 
 - name: Download version.txt
   get_url:
     force: true
-    url: "http://{{ hub_ip }}/updates/major_upgrade/version.txt"
+    url: "{{ updates_base_url }}/version.txt"
     dest: "{{ upgrade_dir_base }}/version.txt"
+  when: not updates_is_local | bool
 
 - name: Read version.txt from remote
   slurp:

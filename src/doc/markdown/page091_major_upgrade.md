@@ -57,7 +57,7 @@ Insert the flash drive into the fleet Hub or attach a USB CD drive with the CD i
 Use Ansible to run the major upgrade, either on the command line or via the JCU UI.
 
 ```
-# in /usr/share or local git clone
+# from a git checkout of the release being installed - see below
 cd jaiabot/config/ansible/major_upgrade
 ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1 -e do_backup=yes
 ```
@@ -66,7 +66,32 @@ where `hub_id` is the hub in use (the one with the upgrade USB flash key or CD c
 
 Each node downloads the new images from the hub one at a time, capped at 1.5 MB/s so the upgrade does not saturate the fleet's radio link. Fleets in simulation mode (VirtualBox fleets and VirtualFleets) download uncapped. Pass `-e major_upgrade_download_limit_rate=<rate>` (a curl `--limit-rate` value such as `500K`, or `0` for no cap) to override either.
 
-Run this once, from the hub with the USB flash key or CD connected: it upgrades every bot and every hub in the fleet. Only that hub stages the upgrade (mounts the updates disk and checks the fleet configuration and its SSH key); the other hubs skip staging and download the new images from it like the bots do.
+Only the hub named by `hub_id` stages the upgrade (mounts the updates disk and checks the fleet configuration and its SSH key); the other hubs skip staging and download the new images from it like the bots do.
+
+### Use the playbook from the release you are installing
+
+Run the playbook from a git checkout of the release being installed, not from the copy installed on the hub. A hub still running the old release has the old playbook under `/usr/share/jaiabot/config/ansible`, and that playbook builds the new boot filesystem with the old release's fleet config tool, which cannot write a preseed the new image can read. Nothing reports an error until after the root filesystem has already been swapped, so the node reboots into the new release unconfigured: no hostname, no network, no `jaiabot`, reachable only over a serial console.
+
+### Upgrading a fleet a few nodes at a time
+
+The fleet does not have to be upgraded in one pass. A hub that has already been upgraded can upgrade bots still running the old release, so bots that were out of the water, switched off or otherwise absent can be brought up to the new release whenever they next appear:
+
+```
+# later, with the remaining bots powered on and in the inventory
+ansible-playbook -i /etc/jaiabot/inventory.yml major-upgrade.yml -e hub_id=1 -e do_backup=yes
+```
+
+A node is upgraded when it runs the release immediately before the one being installed, and is left alone when it already runs the new one, so re-running is safe and only touches what is still behind. The hub reports `No major upgrade to perform: current Ubuntu version is same as new version` for itself on these later passes; that is the expected result for a hub that is already current, and the run continues for the bots that are not.
+
+Keep the updates disk attached to the staging hub for as long as the fleet is mixed, since that hub serves the images to every node that has yet to be upgraded.
+
+A failure on one node does not stop the others, which is what makes upgrading in passes possible. It also means a node that genuinely failed is easy to miss in a long run, so check the `PLAY RECAP` for `failed=` against each host before treating a fleet as fully upgraded.
+
+An error that stops Ansible from loading the play at all ends the run without printing a `PLAY RECAP`, so the absence of one is not the same as nothing having happened: the run may already have stopped `jaiabot` across the fleet. Start it again with `sudo systemctl start jaiabot` on each node once the error is fixed.
+
+A node held back by a failed check keeps its old filesystems and is left with `jaiabot` stopped; start it again with `sudo systemctl start jaiabot` once the cause is understood.
+
+A bot missing from the fleet configuration is held back this way, since the new release's tool will not write a first boot preseed for a bot it has not been told about. Correct the fleet configuration before catching that bot up: the hubs upgraded in the same pass carry the configuration they were given, so a bot left out of it is also absent from the inventory they generate, and a later run would not target it at all.
 
 ## Major upgrade design
 
