@@ -61,6 +61,8 @@ export default function TaskPacketFilter() {
     const selectedKeysRef = useRef(selectedKeys);
     const skipNextCommitRef = useRef(taskPacketFilter.isActive() && selectedKeys.size > 0);
     const isInitialFetchRef = useRef(true);
+    // Increments per date range fetch (and on Clear) so a superseded response is dropped.
+    const latestDateRangeRequestRef = useRef(0);
     missionSetsRef.current = missionSets;
     selectedKeysRef.current = selectedKeys;
 
@@ -86,8 +88,9 @@ export default function TaskPacketFilter() {
             isInitialFetchRef.current = false;
             return;
         }
+        const requestID = ++latestDateRangeRequestRef.current;
         const timeoutID = setTimeout(
-            () => applyDateRange(startDateStr, endDateStr),
+            () => applyDateRange(startDateStr, endDateStr, requestID),
             FETCH_DEBOUNCE_TIME,
         );
         return () => clearTimeout(timeoutID);
@@ -96,15 +99,20 @@ export default function TaskPacketFilter() {
     /**
      * Fetches task packets for the given date range, rebuilds the mission set list, and applies the
      * range to the map with every mission set in it selected. Used on a user-driven date change.
+     * The response is dropped if a newer date range fetch or a Clear has happened since.
      *
      * @param {string} startStr yyyy-mm-dd range start
      * @param {string} endStr yyyy-mm-dd range end
+     * @param {number} requestID Value of latestDateRangeRequestRef when this fetch was scheduled
      * @returns {Promise<void>}
      */
-    const applyDateRange = async (startStr: string, endStr: string) => {
+    const applyDateRange = async (startStr: string, endStr: string, requestID: number) => {
         const { startQuery, endQuery } = buildQueryStrings(startStr, endStr);
         try {
             const response = await jaiaAPI.getTaskPackets(startQuery, endQuery);
+            if (requestID !== latestDateRangeRequestRef.current) {
+                return;
+            }
             const included = response?.result?.included ?? [];
             const excluded = response?.result?.excluded ?? [];
             const summaries = buildMissionSetSummaries(included, excluded);
@@ -115,7 +123,9 @@ export default function TaskPacketFilter() {
             activateFilter(included, excluded, summaries, nextSelection, startStr, endStr);
         } catch (error) {
             console.error(error);
-            setMissionSets([]);
+            if (requestID === latestDateRangeRequestRef.current) {
+                setMissionSets([]);
+            }
         }
     };
 
@@ -379,6 +389,8 @@ export default function TaskPacketFilter() {
      * @returns {void}
      */
     const handleClear = () => {
+        // Drop any date range fetch still pending or in flight so it can't re-activate the filter.
+        latestDateRangeRequestRef.current += 1;
         const defaultDateRange = getDefaultDateRange();
         // Resetting the dates must not trigger a fetch that would re-activate the filter.
         if (startDateStr !== defaultDateRange.start || endDateStr !== defaultDateRange.end) {
