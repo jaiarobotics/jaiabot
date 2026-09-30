@@ -1,3 +1,5 @@
+import type { Data, Layout } from "plotly.js-dist";
+
 import colors from "./colors.json";
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { DEPTH_MAP_3D_NAME } from "../../utils/constants";
@@ -8,7 +10,7 @@ import "./DepthMap3D.less";
  *
  * @returns {number[]} Colors to be used in the depth map
  */
-export function getColorScale() {
+export function getColorScale(): [number, string][] {
     const n = Math.max(2, colors.length);
     return colors.map((rgb, index) => [index / (n - 1), `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`]);
 }
@@ -41,7 +43,7 @@ export async function buildDepthMap() {
     const intensity = depths.map((depth) => (depth - bottomDepth) / depthRange);
     const colorScale = getColorScale();
 
-    const data = [
+    const data: Data[] = [
         {
             opacity: 1.0,
             colorscale: colorScale,
@@ -59,7 +61,7 @@ export async function buildDepthMap() {
         },
     ];
 
-    const layout = {
+    const layout: Partial<Layout> = {
         title: {
             text: "Bottom Depth",
         },
@@ -78,12 +80,11 @@ export async function buildDepthMap() {
                 title: {
                     text: "Bottom Depth (m)",
                 },
-                range: [-60.0, 0.0],
+                range: [-60.0, 0.0] as [number, number],
             },
         },
     };
 
-    // @ts-ignore - plotly.js-dist has no type declarations
     const Plotly = (await import("plotly.js-dist")).default;
     Plotly.newPlot(root, data, layout);
     return true;

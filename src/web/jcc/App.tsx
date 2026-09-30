@@ -18,6 +18,7 @@ import HelpWindow from "../components/HelpWindow/HelpWindow";
 import RallyPanel from "../components/RallyPanel/RallyPanel";
 import DepthMap3D from "../components/DepthMap3D/DepthMap3D";
 import MeasurePanel from "../components/MeasurePanel/MeasurePanel";
+import NotificationHost from "../components/Notifications/NotificationHost";
 import MissionsPanel from "../components/MissionsPanel/MissionsPanel";
 import ExclusionZonesPanel from "../components/ExclusionZonesPanel/ExclusionZonesPanel";
 import MissionRerouteDialog from "../components/MissionRerouteDialog/MissionRerouteDialog";
@@ -83,6 +84,7 @@ export default function App() {
                 <MissionRerouteDialog />
                 <WaypointRemovalDialog />
                 <PlacementErrorDialog />
+                <NotificationHost />
             </JaiaContextProvider>
             <div id="connection-warning">Connection to Hub Dropped</div>
             <div id="congestion-warning">Slow Hub WiFi Speeds</div>
