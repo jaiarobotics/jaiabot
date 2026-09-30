@@ -36,6 +36,8 @@ runcmd:
   - mkdir -p /var/log/apache2
   # Set up I2C
   - /etc/jaiabot/init/setup-i2c.sh
+  # Set up SPI
+  - /etc/jaiabot/init/setup-spi.sh
   # Install jaiabot embedded for unprivileged jaia user
   - env USER=jaia DEBIAN_FRONTEND=noninteractive dpkg -i --force-confdef /opt/jaiabot-embedded*.deb
   # Append first boot date to version file

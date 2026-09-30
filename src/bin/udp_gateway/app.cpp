@@ -62,6 +62,7 @@ class UDPGateway
 
     void send_imu_command(const jaiabot::protobuf::IMUCommand& imu_command);
     void send_echo_command(const jaiabot::protobuf::EchoCommand& echo_command);
+    void send_imu_reference_data(const jaiabot::protobuf::IMUData& imu_data);
 
     void send_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_dst);
     void process_received_envelope(const jaiabot::protobuf::UDPGatewayEnvelope& envelope, const goby::middleware::protobuf::UDPEndPoint& udp_src);
@@ -167,6 +168,11 @@ void jaiabot::apps::UDPGateway::process_received_envelope(const jaiabot::protobu
             last_imu_data_time_ = goby::time::SteadyClock::now();
             imu_udp_src_ = udp_src;
             glog.is_debug1() && glog << "Received IMUData" << endl;
+
+            // Forward the primary IMU's heading to the test IMU driver (if it has reported in),
+            // which uses it as the yaw of its quaternion
+            if (envelope.imu_data().euler_angles().has_heading())
+                send_imu_reference_data(envelope.imu_data());
             break;
         }
         case jaiabot::protobuf::UDPGatewayEnvelope::kImuTestData:
@@ -263,6 +269,17 @@ void jaiabot::apps::UDPGateway::send_imu_command(const jaiabot::protobuf::IMUCom
     send_envelope(envelope, imu_udp_src_);
 }
 
+void jaiabot::apps::UDPGateway::send_imu_reference_data(const jaiabot::protobuf::IMUData& imu_data)
+{
+    // Test IMU driver hasn't sent any data yet, so we don't know where it is
+    if (!imu_test_udp_src_.has_addr() || !imu_test_udp_src_.has_port())
+        return;
+
+    auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
+    envelope.mutable_imu_reference_data()->mutable_euler_angles()->set_heading(
+        imu_data.euler_angles().heading());
+    send_envelope(envelope, imu_test_udp_src_);
+}
 
 void jaiabot::apps::UDPGateway::send_echo_command(const jaiabot::protobuf::EchoCommand& echo_command) {
     auto envelope = jaiabot::protobuf::UDPGatewayEnvelope();
