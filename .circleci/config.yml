@@ -573,7 +573,7 @@ jobs:
           name: Run a short dive mission against the simulator
           command: |
             scripts/test/e2e/jaia-sea-trial.py \
-              --hub-url http://localhost:9092 --api-key simulation \
+              --hub-url http://localhost:9092 \
               --bots 1 --goals 2 --warp 10 \
               --output-dir /tmp/sea-trial-sim
       - run:

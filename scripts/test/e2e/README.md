@@ -6,7 +6,7 @@ simulator, a VirtualFleet on AWS, or a real fleet.
 
 ```bash
 # against the Docker simulator (scripts/sim-docker)
-./jaia-sea-trial.py --hub-url http://localhost:9092 --api-key simulation \
+./jaia-sea-trial.py --hub-url http://localhost:9092 \
     --bots 2 --goals 10 --warp 2 --output-dir /tmp/trial
 
 # against a VirtualFleet, from the CloudHub

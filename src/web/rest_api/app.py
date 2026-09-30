@@ -72,29 +72,6 @@ if args.streaming_endpoint is not None:
         ep.hostname = endpoint[0]
         ep.port = endpoint[1]
 
-# Parse legacy JAIA_REST_API_PRIVATE_KEY environmental variable
-try: 
-    api_key=os.environ['JAIA_REST_API_PRIVATE_KEY']
-    if api_key == '':
-        # only consider an empty string to be no key required if no keys are explicitly set
-        if not cfg.HasField('no_key_required') and not cfg.key:
-            cfg.no_key_required = True
-    else:
-        k = cfg.key.add()
-        k.private_key = api_key
-        k.permission.append(APIConfig.APIKey.ALL)
-except KeyError:
-    pass
-
-if cfg.no_key_required == False and not cfg.key:
-    logging.warning('API Key required (no_key_required: false) but no keys provided. Please check configuration file or explicitly set environmental variable JAIA_REST_API_PRIVATE_KEY="" (to the empty string)')
-    exit(1)
-
-if cfg.no_key_required == True and cfg.key:
-    logging.warning('API Key not required (no_key_required: true) but keys are provided. Please remove keys from the configuration file.')
-    exit(1)
-
-    
 logging.info(f'Starting up with configuration: {cfg}')
     
 app = Flask(__name__)
@@ -120,9 +97,6 @@ def jaia_api_short(version):
         if jaia_request.WhichOneof("action") is None:
             raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__NO_ACTION_SPECIFIED, "An action must be specified. Valid actions are: " + ", ".join(str(a) for a in valid_actions.keys()))
         
-        if not check_api_key(jaia_request.api_key, jaia_request.WhichOneof("action")):
-            abort(403) # forbidden
-
         response = process_request(version, jaia_request)
 
         if isinstance(response, APIResponse):
@@ -157,14 +131,6 @@ def jaia_api_long(version, action, target_str):
             # auto fill boolean actions
             setattr(jaia_request, action_field_desc.name, True)
 
-            if request.method == 'POST':
-                json_request = request.json
-                if "api_key" in json_request:
-                    jaia_request.api_key = json_request["api_key"]
-            elif request.method == 'GET':
-                api_key_get = request.args.get("api_key")            
-                if api_key_get:
-                    jaia_request.api_key = api_key_get
         else:
             jaia_request_action = getattr(jaia_request, action_field_desc.name)
             # set to empty action message so we can catch uninitialized child fields
@@ -172,25 +138,17 @@ def jaia_api_long(version, action, target_str):
             # parse POST data as JSON for action
             if request.method == 'POST':
                 json_request = request.json
-                if "api_key" in json_request:
-                    jaia_request.api_key = json_request["api_key"]
-                    # remove so Protobuf parses correctly
-                    del json_request["api_key"]
-                
+                # discarded rather than refused, so a caller that still sends one works
+                json_request.pop("api_key", None)
+
                 try:
                     google.protobuf.json_format.ParseDict(json_request, jaia_request_action)
                 except google.protobuf.json_format.Error as e:
                     raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__COULD_NOT_PARSE_API_REQUEST_JSON, "Failed to parse POST JSON as a '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message: " + str(e))
             elif request.method == 'GET':
-                key, request_action = parse_get_args(jaia_request_action, action_field_desc)
-                jaia_request_action.CopyFrom(request_action)
-                if key:
-                    jaia_request.api_key = key
-                
-        check_initialized(jaia_request)
+                jaia_request_action.CopyFrom(parse_get_args(jaia_request_action, action_field_desc))
 
-        if not check_api_key(jaia_request.api_key, action):
-            abort(403) # forbidden
+        check_initialized(jaia_request)
 
         response = process_request(version, jaia_request)
 
@@ -208,9 +166,7 @@ def jaia_api_long(version, action, target_str):
     return finalize_response(jaia_response, jaia_request)
 
 
-def parse_get_args(jaia_request_action, action_field_desc):    
-    api_key_get = request.args.get("api_key")
-    
+def parse_get_args(jaia_request_action, action_field_desc):
     for field in jaia_request_action.DESCRIPTOR.fields:
         get_var = request.args.get(field.name)
         if get_var is not None:
@@ -248,7 +204,7 @@ def parse_get_args(jaia_request_action, action_field_desc):
             else:
                 raise APIException(jaiabot.messages.rest_api_pb2.API_ERROR__ACTION_REQUIRES_JSON_POST_DATA, "The type of field '" + field.name + "' is not supported via GET. Use POST to pass JSON according to the '" + jaia_request_action.DESCRIPTOR.full_name + "' Protobuf message")
                 
-    return (api_key_get, jaia_request_action)
+    return jaia_request_action
 
 
 def check_initialized(jaia_request):
@@ -287,24 +243,6 @@ def is_omitted(parts, descriptor):
             return True
         else:
             return is_omitted(parts[1:], field.message_type)
-
-def check_api_key(key, action):
-    if cfg.no_key_required:
-        return True
-    else:
-        for k in cfg.key:
-            if key == k.private_key:
-                for perm in k.permission:
-                    enum_descriptor = APIConfig.APIKey.Permission.DESCRIPTOR
-                    enum_val_descriptor = enum_descriptor.values_by_number[perm]
-                    permitted_actions = enum_val_descriptor.GetOptions().Extensions[jaiabot.messages.option_extensions_pb2.ev].rest_api.permitted_action
-                    for a in permitted_actions:
-                        if a == action:
-                            return True
-                logging.info(f'Key found, but no permission to use action {action}')
-                return False
-        logging.info('Key not found')
-        return False
 
 with shared_data.data_lock:
     shared_data.create_queues(cfg.streaming_endpoint)
