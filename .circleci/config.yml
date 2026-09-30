@@ -188,7 +188,6 @@ filter-template-debian-builds: &filter-template-debian-builds
     branches:
       only:
         - "1.y"
-        - "bug/1.y/packages-jaia-tech-host-key" # TEMPORARY: test upload to test/1.y, revert before merge
 
 # which branches to run the normal source build
 filter-template-normal-builds: &filter-template-normal-builds
