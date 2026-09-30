@@ -631,33 +631,7 @@ jobs:
           command: echo "export AWS_PROFILE=OIDC-User" >> $BASH_ENV
       - run:
           name: Install the jaiabot tooling this commit built
-          command: |
-            sudo install -d -m 0755 /etc/apt/keyrings
-            curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x19478082E2F8D3FE" \
-              | sudo gpg --dearmor -o /etc/apt/keyrings/gobysoft.gpg
-            curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x954A004CD5D8CF32" \
-              | sudo gpg --dearmor -o /etc/apt/keyrings/jaiabot.gpg
-            codename=$(lsb_release -c -s)
-            # the same repo the image comes from: tooling from a different one writes
-            # answers the image's packages no longer accept, or lacks flags entirely
-            echo "deb [signed-by=/etc/apt/keyrings/gobysoft.gpg] http://packages.jaia.tech/ubuntu/gobysoft/${JAIA_CI_REPO}/${JAIABOT_APT_VERSION} ${codename}/" \
-              | sudo tee /etc/apt/sources.list.d/gobysoft.list
-            echo "deb [signed-by=/etc/apt/keyrings/jaiabot.gpg] http://packages.jaia.tech/ubuntu/${JAIA_CI_REPO}/${JAIABOT_APT_VERSION} ${codename}/" \
-              | sudo tee /etc/apt/sources.list.d/jaiabot.list
-            sudo apt-get update
-            # jaiabot-python's postinst pip-installs pyjaia, so this step needs PyPI
-            sudo apt-get install -y jaiabot-apps jaiabot-python wireguard wireguard-tools \
-              cloud-init ansible jq rsync
-            # the images point python3 at pyenv, which cannot see the protobuf bindings
-            # these packages install for the system interpreter
-            if command -v pyenv > /dev/null; then pyenv global system; fi
-            python3 -c "import sys; from google.protobuf import text_format; print('protobuf bindings visible to', sys.executable)"
-            echo "installed jaiabot: $(jaia version 2>&1 | sed -n 2p)"
-            # a one-line failure here beats an argparse dump from inside the create step
-            if ! jaia admin fleet create_cloudhub --help | grep -q -- --permissions-boundary; then
-              echo "ERROR: installed tooling predates this checkout; it cannot drive this trial" >&2
-              exit 1
-            fi
+          command: rootfs/cloud/aws/circleci/install-jaiabot-tooling.sh
       - run:
           name: Reap any CI fleet a killed build left behind
           command: rootfs/cloud/aws/reap_ci_fleets.sh --max-age-hours 4
@@ -675,92 +649,44 @@ jobs:
       - run:
           name: Create the CloudHub
           command: |
-            mkdir -p /tmp/sea-trial
-            rootfs/cloud/aws/circleci/make-ci-fleet-config.sh \
-              --fleet "${JAIA_CI_FLEET}" \
+            rootfs/cloud/aws/circleci/create-ci-cloudhub.sh \
               --bots << pipeline.parameters.sea-trial-bots >> \
-              --warp << pipeline.parameters.sea-trial-warp >> \
-              /tmp/sea-trial/fleet.cfg
-            jaia admin fleet create_cloudhub /tmp/sea-trial/fleet.cfg "${JAIA_CI_CUSTOMER}" \
-              --region "${AWS_DEFAULT_REGION}" \
-              --repo "${JAIA_CI_REPO}" \
-              --permissions-boundary JaiaCloudHubBoundary \
-              --virtualfleet-instance-type t3a.small \
-              --output-json /tmp/sea-trial/cloudhub.json \
-              --jaiabot-dir "${PWD}" \
-              --aws-profile OIDC-User
+              --warp << pipeline.parameters.sea-trial-warp >>
           no_output_timeout: 30m
+      - run:
+          name: Check the CloudHub auth front end is serving
+          command: |
+            rootfs/cloud/aws/circleci/check-cloudhub-auth.sh \
+              --fleet "${JAIA_CI_FLEET}" \
+              --result-file /tmp/sea-trial/auth-check.txt
       - run:
           name: Raise the VirtualFleet from the same AMI
           command: |
-            CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
-            THIS_HUB=hub$(jaia_bounds --cloudhub_id)-fleet${JAIA_CI_FLEET}
-            # the playbooks ship with jaiabot-config, so they are already the ones
-            # belonging to the image under test. They target `all`, so without the
-            # inventory and limit the prelaunch liaison passes they match nothing and
-            # the play is skipped with a zero exit
-            ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
-              "cd /usr/share/jaiabot/config/ansible && ansible-playbook cloud/create-virtualfleet.yml \
-                 -i /etc/jaiabot/inventory.yml --limit ${THIS_HUB} \
-                 -e n_bots=<< pipeline.parameters.sea-trial-bots >> \
-                 -e warp=<< pipeline.parameters.sea-trial-warp >>"
+            rootfs/cloud/aws/circleci/raise-ci-virtualfleet.sh \
+              --bots << pipeline.parameters.sea-trial-bots >> \
+              --warp << pipeline.parameters.sea-trial-warp >>
           no_output_timeout: 30m
       - run:
           name: Send the fleet on its dive mission
           command: |
-            CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
-            # driven from the CloudHub, which is what reaches the VirtualFleet; the
-            # offloaded logs stay on the VirtualHub that pulled them, so the offload
-            # check reads that directory over ssh rather than this machine's own
-            rsync -a -e "ssh -o StrictHostKeyChecking=no" scripts/test/e2e/ jaia@${CLOUDHUB}:/tmp/e2e/
-            # the CloudHub's ssh config keys the VirtualFleet identity off the VPN
-            # address range, so the offload check has to address the hub by address
-            HUB_ADDR=$(ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
-              "jaia_ip --query_type addr --node_type hub --ip_net vfleet_vpn \
-                 --fleet_id ${JAIA_CI_FLEET} --node_id 1")
-            echo "VirtualHub 1 is at ${HUB_ADDR}"
-            ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
-              "python3 /tmp/e2e/jaia-sea-trial.py \
-                 --hub-url http://hub1-virtualfleet${JAIA_CI_FLEET} \
-                 --bots << pipeline.parameters.sea-trial-bots >> \
-                 --goals << pipeline.parameters.sea-trial-goals >> \
-                 --warp << pipeline.parameters.sea-trial-warp >> \
-                 --offload-host jaia@${HUB_ADDR} \
-                 --offload-dir /var/log/jaiabot/bot_offload \
-                 --output-dir /tmp/sea-trial"
+            rootfs/cloud/aws/circleci/run-ci-sea-trial.sh \
+              --bots << pipeline.parameters.sea-trial-bots >> \
+              --goals << pipeline.parameters.sea-trial-goals >> \
+              --warp << pipeline.parameters.sea-trial-warp >>
           no_output_timeout: 60m
       - run:
           name: Collect results
           when: always
           command: |
-            mkdir -p /tmp/sea-trial
-            CLOUDHUB=cloudhub-fleet${JAIA_CI_FLEET}
-            # the VirtualFleet is only reachable from the CloudHub, and a bot's own
-            # debug logs are text, which the offload excludes, so they come from here
-            rsync -a -e "ssh -o StrictHostKeyChecking=no" \
-              rootfs/cloud/aws/circleci/collect-fleet-logs.sh jaia@${CLOUDHUB}:/tmp/ || true
-            ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
-              "/tmp/collect-fleet-logs.sh --fleet ${JAIA_CI_FLEET} \
-                 --bots << pipeline.parameters.sea-trial-bots >> \
-                 /tmp/sea-trial/fleet-logs" || true
-            rsync -a -e "ssh -o StrictHostKeyChecking=no" \
-              jaia@${CLOUDHUB}:/tmp/sea-trial/ /tmp/sea-trial/ || true
-            ssh -o StrictHostKeyChecking=no jaia@${CLOUDHUB} \
-              "sudo journalctl -n 2000 --no-pager" > /tmp/sea-trial/cloudhub-journal.txt || true
+            rootfs/cloud/aws/circleci/collect-ci-results.sh \
+              --bots << pipeline.parameters.sea-trial-bots >>
       - run:
           name: Tear down
           when: always
           command: |
-            if [ "<< pipeline.parameters.sea-trial-keep-fleet >>" = "true" ]; then
-              echo "sea-trial-keep-fleet is set; leaving fleet ${JAIA_CI_FLEET} up for the reaper"
-              exit 0
-            fi
-            # only this run's fleet: a concurrent trial reuses the same fleet id, and
-            # this step runs under when: always, including when create never got there
-            jaia admin fleet delete_cloudhub --region "${AWS_DEFAULT_REGION}" \
-              --aws-profile OIDC-User --jaiabot-dir "${PWD}" --yes \
-              --customer "${JAIA_CI_CUSTOMER}" "${JAIA_CI_FLEET}"
-            rootfs/cloud/aws/circleci/delete-ci-bucket.sh "${JAIA_CI_FLEET}"
+            keep=""
+            if [ "<< pipeline.parameters.sea-trial-keep-fleet >>" = "true" ]; then keep="--keep"; fi
+            rootfs/cloud/aws/circleci/teardown-ci-fleet.sh ${keep}
           no_output_timeout: 30m
       - store_test_results:
           path: /tmp/sea-trial
