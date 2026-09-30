@@ -16,6 +16,8 @@ distro=${jaiabot_distro:-${jaia_version_ubuntu_codename}}
 
 if [[ "$jaiabot_machine_type" == "virtualbox" ]]; then
     docker build --build-arg distro=$distro --build-arg repo=$repo --build-arg version=$version --no-cache -t jaia_build_vbox_${distro}_${repo}_${version_lower} ${jaia_root}/.docker/${distro}/amd64  
+elif [[ "$jaiabot_machine_type" == "arm64-native" ]]; then
+    docker build --build-arg distro=$distro --build-arg repo=$repo --build-arg version=$version --no-cache -t jaia_build_native_${distro}_${repo}_${version_lower} ${jaia_root}/.docker/${distro}/arm64-native
 else
     docker build --build-arg distro=$distro --build-arg repo=$repo --build-arg version=$version --no-cache -t jaia_build_${distro}_${repo}_${version_lower} ${jaia_root}/.docker/${distro}/arm64
 fi
