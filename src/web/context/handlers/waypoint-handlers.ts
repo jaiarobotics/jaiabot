@@ -318,11 +318,13 @@ export function handleChangeTaskPacketVisibility(
 ) {
     const include = action.taskPacketVisibility === TaskPacketVisibility.INCLUDE;
     jaiaAPI.postTaskPacketInclude(action.taskPacketID, include).then(() => {
-        fetchTaskPacketsForWindow().then((response) => {
-            taskPackets.setIncludedTaskPackets(response.result.included);
-            taskPackets.setExcludedTaskPackets(response.result.excluded);
-            syncTaskLayers();
-        });
+        fetchTaskPacketsForWindow()
+            .then((response) => {
+                taskPackets.setIncludedTaskPackets(response.result.included);
+                taskPackets.setExcludedTaskPackets(response.result.excluded);
+                syncTaskLayers();
+            })
+            .catch((error) => console.error(error));
     });
     return mutableState;
 }

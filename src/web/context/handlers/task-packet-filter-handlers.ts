@@ -83,10 +83,12 @@ export function handleCommitTaskPacketSlider(mutableState: JaiaContextType) {
  */
 export function handleClearTaskPacketFilter(mutableState: JaiaContextType) {
     taskPacketFilter.clear();
-    fetchTaskPacketsForWindow().then((response) => {
-        taskPackets.setIncludedTaskPackets(response.result.included);
-        taskPackets.setExcludedTaskPackets(response.result.excluded);
-        syncTaskLayers();
-    });
+    fetchTaskPacketsForWindow()
+        .then((response) => {
+            taskPackets.setIncludedTaskPackets(response.result.included);
+            taskPackets.setExcludedTaskPackets(response.result.excluded);
+            syncTaskLayers();
+        })
+        .catch((error) => console.error(error));
     return mutableState;
 }
