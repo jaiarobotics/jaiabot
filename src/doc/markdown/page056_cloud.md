@@ -346,37 +346,7 @@ cloudhub {
 
 `create_vpc.sh` grants the CloudHub's IAM role `ssm:GetParameter` on this parameter (and `kms:Decrypt` through SSM, for parameters encrypted with a customer managed key), and `jaia_configure_authelia.sh` reads it at configuration time. If the parameter cannot be read, Authelia is configured to send without authenticating, which only works with a relay that allowlists the CloudHub's IP addresses (e.g. Google Workspace SMTP Relay). Postmark will refuse it, and Authelia will not start.
 
-#### Setting up Postmark
-
-This only needs to be done once for `auth.jaia.tech`. For a client-hosted CloudHub, repeat the Server and credentials steps (and the domain steps if the client uses their own sender).
-
-1. **Account**: Create a Postmark account and request account approval. Until Postmark approves it, the account can only send to addresses at its own verified domains, so test with a `jaia.tech` inbox first.
-2. **Server**: Create a Server (e.g. "Jaia CloudHub"). For client-hosted CloudHubs, create one Server per client: each Server has its own credentials, which can be revoked without affecting other fleets, and its own bounce and activity history.
-3. **Message Stream**: Use the Server's **Default Transactional Stream** (stream ID `outbound`). Authelia cannot set Postmark's `X-PM-Message-Stream` header, and SMTP messages without it go to this stream. Do not use a Broadcast stream: these are transactional messages. In the stream's settings:
-	+ Leave **Link tracking** off. It rewrites links through Postmark's tracking domain, which would include the password reset and device registration links.
-	+ Leave **Open tracking** off; it is not needed.
-4. **Sender domain**: Under **Sender Signatures**, add the domain `auth.jaia.tech` (or the client's domain, e.g. `auth.clientdomain.com`) and add the DNS records Postmark shows for it:
-	+ DKIM: a `TXT` record at `<selector>._domainkey.auth.jaia.tech`.
-	+ Return-Path: a `CNAME` of `pm-bounces.auth.jaia.tech` to `pm.mtasv.net`. This aligns SPF with the sender domain, so no separate SPF record is needed for Postmark.
-
-	Then click **Verify** for both. No MX record is needed, since nothing is received at this address.
-5. **SMTP credentials**: In the transactional stream's **Setup Instructions**, choose SMTP and generate an **SMTP Token**. Its Access Key is the username and its Secret Key is the password. The Server API Token also works, as both username and password, but an SMTP Token can only send mail and can be revoked on its own.
-6. **Store the credentials in SSM**, in each account and region that hosts a CloudHub:
-	```
-	aws --profile <profile> --region <region> ssm put-parameter \
-	    --name /jaia/cloudhub/smtp_credentials --type SecureString \
-	    --value '{"username": "<Access Key>", "password": "<Secret Key>"}'
-	```
-	Add `--overwrite` to rotate the credentials, then rerun `jaia_configure_authelia.sh` and restart Authelia on each CloudHub.
-7. **Test**: Log in to `https://auth.<base_uri>` and register a security key or request a password reset. The message should appear in the stream's **Activity** in Postmark. You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.
-
-#### Switching an existing CloudHub to Postmark
-
-CloudHubs created before this change need these steps once:
-
-1. Add the `SMTPCredentials` and `SMTPCredentialsDecrypt` statements from `rootfs/cloud/aws/cloudhub-iam-policy.json.in` to the inline policy `JaiaCloudHubFleetN__Policy` on the role `JaiaCloudHubFleetN__Role`.
-2. In `/etc/jaiabot/cloud.env` on the CloudHub, set `jaia_auth_smtp_address=submission://smtp.postmarkapp.com:587`. Optionally also set `jaia_auth_smtp_sender=` and `jaia_auth_smtp_credentials_ssm_parameter=`.
-3. Run `sudo jaia_configure_authelia.sh`, then `sudo systemctl restart authelia`. The script does not restart Authelia itself, so that it does not interrupt sessions running through it.
+You can use `https://www.mail-tester.com/` to check the likelihood that your emails will be caught in spam.
 
 ### Available services
 
