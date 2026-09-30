@@ -108,11 +108,6 @@ const config = {
 
     // A preset that is used as a base for Jest's configuration
     preset: "ts-jest",
-    globals: {
-        "ts-jest": {
-            tsconfig: "tsconfig.test.json",
-        },
-    },
 
     // Run tests from one or more projects
     // projects: undefined,
@@ -188,7 +183,7 @@ const config = {
 
     // A map from regular expressions to paths to transformers
     transform: {
-        "^.+\\.(ts|tsx)?$": "ts-jest",
+        "^.+\\.(ts|tsx)?$": ["ts-jest", { tsconfig: "tsconfig.test.json" }],
         "^.+\\.(js|jsx)$": "babel-jest",
     },
 

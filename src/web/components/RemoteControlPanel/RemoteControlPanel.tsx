@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { mdiChevronDown, mdiChevronUp } from "@mdi/js";
 import { jaiaGlobal } from "../../data/jaia_global/jaia-global";
 import Icon from "@mdi/react";
-import Gamepad from "react-gamepad";
 
 import JaiaToggle from "../JaiaToggle/JaiaToggle";
 import { AnalogStick, AnalogStickTypes } from "./AnalogStick/AnalogStick";
+import { useGamepadAxis } from "./use-gamepad-axis";
 import { SelectMenu, ControlTypes } from "./SelectMenu/SelectMenu";
 import { Dashboard } from "./Dashboard/Dashboard";
 import { DiveCommand, DiveInputs, RCDiveParameters } from "./DiveControls/DiveControls";
@@ -145,6 +145,15 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             }
         }
     };
+
+    // the minimized view hides the dashboard, so the gamepad must not drive the bot from it
+    useGamepadAxis((axisName, value) => {
+        if (axisName === "LeftStickY") {
+            handleAxisInput(value, AnalogStickTypes.LEFT);
+        } else if (axisName === "RightStickX") {
+            handleAxisInput(value, AnalogStickTypes.RIGHT);
+        }
+    }, !isMinimizedView);
 
     /**
      * Updates state with the selected analog stick layout (single vs dual)
@@ -333,19 +342,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             return (
                 <>
                     {overdriveWarningDialog}
-                    {/* Gamepad component listens for Xbox controller input in background */}
-                    <Gamepad
-                        onAxisChange={(axisName, value) => {
-                            if (axisName === "LeftStickY") {
-                                handleAxisInput(value, AnalogStickTypes.LEFT);
-                            } else if (axisName === "RightStickX") {
-                                handleAxisInput(value, AnalogStickTypes.RIGHT);
-                            }
-                        }}
-                    >
-                        {/* Empty div required by react-gamepad library */}
-                        <div></div>
-                    </Gamepad>
                     <div className="remote-control-panel">
                         {RCMinimizeArrow}
                         <AnalogStick
@@ -373,19 +369,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             return (
                 <>
                     {overdriveWarningDialog}
-                    {/* Gamepad component listens for Xbox controller input in background */}
-                    <Gamepad
-                        onAxisChange={(axisName, value) => {
-                            if (axisName === "LeftStickY") {
-                                handleAxisInput(value, AnalogStickTypes.LEFT);
-                            } else if (axisName === "RightStickX") {
-                                handleAxisInput(value, AnalogStickTypes.RIGHT);
-                            }
-                        }}
-                    >
-                        {/* Empty div required by react-gamepad library */}
-                        <div></div>
-                    </Gamepad>
                     <div className="remote-control-panel">
                         {RCMinimizeArrow}
                         <AnalogStick
@@ -418,19 +401,6 @@ export default function RemoteControlPanel(props: RemoteControlPanelProps) {
             }
             return (
                 <>
-                    {/* Gamepad component listens for Xbox controller input in background */}
-                    <Gamepad
-                        onAxisChange={(axisName, value) => {
-                            if (axisName === "LeftStickY") {
-                                handleAxisInput(value, AnalogStickTypes.LEFT);
-                            } else if (axisName === "RightStickX") {
-                                handleAxisInput(value, AnalogStickTypes.RIGHT);
-                            }
-                        }}
-                    >
-                        {/* Empty div required by react-gamepad library */}
-                        <div></div>
-                    </Gamepad>
                     <div className="remote-control-panel dive">
                         {RCMinimizeArrow}
                         <DiveInputs
