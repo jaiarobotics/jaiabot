@@ -11,16 +11,21 @@ include(ConfigurePackageJSON)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/package.json ${intermediate_web_dir}/package.json COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json ${intermediate_web_dir}/package-lock.json COPYONLY)
 
-add_custom_command(OUTPUT ${intermediate_web_dir}/node_modules
+# Output a stamp written only after a successful install, not node_modules itself,
+# so an interrupted npm install is retried instead of treated as up to date.
+set(npm_dependencies_stamp ${intermediate_web_dir}/npm_dependencies.stamp)
+
+add_custom_command(OUTPUT ${npm_dependencies_stamp}
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/install_dependencies.sh
   ARGS ${intermediate_web_dir}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package.json.in
+  COMMAND ${CMAKE_COMMAND} -E touch ${npm_dependencies_stamp}
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/package.json.in ${CMAKE_CURRENT_SOURCE_DIR}/package-lock.json
   COMMENT "Installing npm dependencies for web apps"
   )
 
 add_custom_target(npm_dependencies
   ALL
-  DEPENDS ${intermediate_web_dir}/package-lock.json ${intermediate_web_dir}/node_modules jaiabot_core
+  DEPENDS ${intermediate_web_dir}/package-lock.json ${npm_dependencies_stamp} jaiabot_core
   )
 
 ###############################################################################

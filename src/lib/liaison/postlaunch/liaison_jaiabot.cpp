@@ -27,7 +27,7 @@ system_clock::time_point jaiabot::LiaisonJaiabot::dive_expire_ = system_clock::n
 
 jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::LiaisonConfig& cfg,
                                         Wt::WContainerWidget* parent)
-    : goby::zeromq::LiaisonContainerWithComms<LiaisonJaiabot, CommsThread>(cfg), 
+    : goby::zeromq::LiaisonContainerWithComms<LiaisonJaiabot, CommsThread>(cfg),
       cfg_(cfg.GetExtension(protobuf::jaiabot_config))
 {
     auto hub_vehicle_panel = this->addNew<Wt::WPanel>();
@@ -76,7 +76,7 @@ jaiabot::LiaisonJaiabot::LiaisonJaiabot(const goby::apps::zeromq::protobuf::Liai
         bot_tpv_text_ = bot_tpv_box->addNew<WText>();
 
         bot_panel->setCentralWidget(std::move(bot_box));
-        
+
         auto chart_panel = this->addNew<Wt::WPanel>();
         chart_panel->setTitle("Charts");
         chart_panel->setCollapsible(true);
@@ -175,18 +175,18 @@ void jaiabot::LiaisonJaiabot::data_select(WString msg)
     chart_box->show();
     chart_box->setTitle(data_type);
 
-    auto it = std::find_if(chart_data_.begin(), chart_data_.end(), 
-        [&data_type](const ChartData& data) { return data.chart_type == data_type; });
+    auto it =
+        std::find_if(chart_data_.begin(), chart_data_.end(),
+                     [&data_type](const ChartData& data) { return data.chart_type == data_type; });
 
     // Early exit if there's no chart data for the selected data type
-    if (it == chart_data_.end()) 
+    if (it == chart_data_.end())
         return;
 
     if (current_data_type_ == data_type && chart_model_ && chart_)
     {
-        
         size_t num_points = it->data_points.size();
-        
+
         int current_rows = chart_model_->rowCount();
         int target_rows = static_cast<int>(num_points);
 
@@ -208,7 +208,7 @@ void jaiabot::LiaisonJaiabot::data_select(WString msg)
             row++;
         }
 
-        return; 
+        return;
     }
 
     current_data_type_ = data_type;
@@ -250,7 +250,7 @@ void jaiabot::LiaisonJaiabot::data_select(WString msg)
     new_chart->setMargin(15, Wt::Side::Top | Wt::Side::Right | Wt::Side::Left);
     new_chart->setMargin(5, Wt::Side::Bottom);
 
-    chart_ = new_chart.get(); 
+    chart_ = new_chart.get();
 
     data_stack_->clear();
     data_stack_->addWidget(std::move(new_chart));
@@ -265,10 +265,11 @@ Wt::WDateTime jaiabot::LiaisonJaiabot::get_date_time(goby::time::MicroTime mp)
 
 void jaiabot::LiaisonJaiabot::add_data_point(std::string data_type, double data_point)
 {
-    auto it = std::find_if(chart_data_.begin(), chart_data_.end(), 
-        [&data_type](const ChartData& data) { return data.chart_type == data_type;});
-    
-    if(it != chart_data_.end())
+    auto it =
+        std::find_if(chart_data_.begin(), chart_data_.end(),
+                     [&data_type](const ChartData& data) { return data.chart_type == data_type; });
+
+    if (it != chart_data_.end())
     {
         auto now = goby::time::SystemClock::now<goby::time::MicroTime>();
         it->data_points[now] = data_point;
@@ -336,7 +337,7 @@ void jaiabot::LiaisonJaiabot::loop()
                 std::string("s<br/><pre>") + ack.DebugString() + "</pre>");
         }
     }
-    if(!current_data_type_.empty())
+    if (!current_data_type_.empty())
     {
         // Refresh chart with new data points
         data_select(current_data_type_);
@@ -369,7 +370,8 @@ void jaiabot::LiaisonJaiabot::post_tpv(
 
 void jaiabot::LiaisonJaiabot::post_pt(const jaiabot::protobuf::PressureTemperatureData& pt)
 {
-    if (cfg_.mode() == protobuf::JaiabotConfig::BOT) {
+    if (cfg_.mode() == protobuf::JaiabotConfig::BOT)
+    {
         bot_pt_text_->setText("<pre>" + pt.DebugString() + "</pre>");
 
         // Add the data points to the chart data structure
