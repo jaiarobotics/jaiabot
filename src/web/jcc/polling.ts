@@ -2,6 +2,8 @@ import { bots } from "../data/bots/bots";
 import { hubs } from "../data/hubs/hubs";
 import { jaiaGlobal } from "../data/jaia_global/jaia-global";
 import { taskPackets } from "../data/task_packets/task-packets";
+import { taskPacketFilter } from "../data/task_packets/task-packet-filter";
+import { getHTMLDateString, getHTMLTimeString, convertHTMLStrDateToISO } from "../shared/Utilities";
 import { PortalBotStatus, PortalHubStatus } from "../shared/PortalStatus";
 import { botLayer } from "../openlayers/layers/vector/bot-layer";
 import { hubLayer } from "../openlayers/layers/vector/hub-layer";
@@ -30,6 +32,13 @@ const GITHUB_URL = "https://api.github.com/repos/jaiarobotics/jaiabot/releases/l
 let statusRequestInFlight = false;
 let taskPacketRequestInFlight = false;
 let metadataRequestInFlight = false;
+
+// Date window last fetched; lets the poll force a refetch when the filter window changes
+let lastFetchedWindowKey = "";
+
+// Increments per task packet fetch (and on a filter search) so a slower, superseded response
+// can't overwrite newer task packets in the data model.
+let latestTaskPacketRequest = 0;
 
 let statusRequestStartTime = new Date().getTime();
 
@@ -92,24 +101,102 @@ export async function pollTaskPackets() {
     }
     try {
         taskPacketRequestInFlight = true;
+
         const versionRes = await fetch(TASK_PACKET_VERSION_URL);
         if (!versionRes.ok) {
             console.error(`Task packet response status: ${versionRes.status}`);
         } else {
             const version = await versionRes.json();
-            if (version !== taskPackets.getVersion()) {
-                const taskPacketRes = await fetch(TASK_PACKET_URL);
-                const json = await taskPacketRes.json();
-                taskPackets.setIncludedTaskPackets(json.result.included);
-                taskPackets.setExcludedTaskPackets(json.result.excluded);
-                updateTaskLayers();
+            // Refetch when the filter window changes, even if the server version is unchanged.
+            // Read after the awaits above so the key matches the window the fetch below uses.
+            const windowKey = getTaskPacketWindowKey();
+            const forceFetch = windowKey !== lastFetchedWindowKey;
+            // A superseded fetch records nothing, so the next poll fetches again.
+            if (
+                (forceFetch || version !== taskPackets.getVersion()) &&
+                (await refreshTaskPacketsForWindow())
+            ) {
                 taskPackets.setVersion(version);
+                lastFetchedWindowKey = windowKey;
             }
         }
     } catch (error) {
         console.error(error);
     }
     taskPacketRequestInFlight = false;
+}
+
+/**
+ * Formats a Date as the "yyyy-mm-dd hh:mm" string that convertHTMLStrDateToISO expects
+ *
+ * @param {Date} date Date to format
+ * @returns {string} Query string in the form "yyyy-mm-dd hh:mm"
+ */
+function toTaskPacketQueryString(date: Date) {
+    return `${getHTMLDateString(date)} ${getHTMLTimeString(date)}`;
+}
+
+/**
+ * Returns a key identifying the requested task packet window.
+ *
+ * @returns {string} Window identity key
+ */
+function getTaskPacketWindowKey() {
+    if (!taskPacketFilter.isActive()) {
+        return "";
+    }
+    const start = taskPacketFilter.getStartDate();
+    const end = taskPacketFilter.getEndDate();
+    return `${start ? start.getTime() : ""}|${end ? end.getTime() : ""}`;
+}
+
+/**
+ * Fetches task packets for the current window and loads them into the data model, unless a newer
+ * fetch or filter search has started since. Every refetch of the task packets goes through here.
+ *
+ * @returns {Promise<boolean>} True if the response was applied, false if it was superseded
+ */
+export async function refreshTaskPacketsForWindow() {
+    const requestID = ++latestTaskPacketRequest;
+    const json = await fetchTaskPacketsForWindow();
+    if (requestID !== latestTaskPacketRequest) {
+        return false;
+    }
+    taskPackets.setIncludedTaskPackets(json.result.included);
+    taskPackets.setExcludedTaskPackets(json.result.excluded);
+    updateTaskLayers();
+    return true;
+}
+
+/**
+ * Drops any task packet fetch still in flight. Called when task packets are loaded into the data
+ * model by other means, so an older response can't overwrite them.
+ *
+ * @returns {void}
+ */
+export function invalidateTaskPacketRequests() {
+    latestTaskPacketRequest += 1;
+}
+
+/**
+ * Fetches task packets for the active filter window (or the server default when no filter
+ * is active).
+ *
+ * @returns {Promise<{ result: { included: TaskPacket[]; excluded: TaskPacket[] } }>} Response
+ */
+async function fetchTaskPacketsForWindow() {
+    const startDate = taskPacketFilter.getStartDate();
+    const endDate = taskPacketFilter.getEndDate();
+    if (taskPacketFilter.isActive() && startDate && endDate) {
+        const startDateISO = convertHTMLStrDateToISO(toTaskPacketQueryString(startDate));
+        const endDateISO = convertHTMLStrDateToISO(toTaskPacketQueryString(endDate));
+        const res = await fetch(
+            `${TASK_PACKET_URL}?startDate=${startDateISO}&endDate=${endDateISO}`,
+        );
+        return res.json();
+    }
+    const taskPacketRes = await fetch(TASK_PACKET_URL);
+    return taskPacketRes.json();
 }
 
 /**

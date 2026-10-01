@@ -401,6 +401,10 @@ def get_deth_contours():
     end_date = parseDate(request.args.get('endDate', ''))
     return JSONResponse(jaia_interface.get_depth_contours(start_date, end_date))
 
+@app.route('/jaia/v0/depth-contours', methods=['POST'])
+def post_depth_contours():
+    return JSONResponse(jaia_interface.get_depth_contours_for_task_packets(request.json))
+
 ######## Drift map
 
 @app.route('/jaia/v0/drift-map', methods=['GET'])
