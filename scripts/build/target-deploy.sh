@@ -106,5 +106,15 @@ if [ "${jaia_arduino_type}" != "none" ]; then
     sudo ${jaia_dir}/${build_dir}/share/jaiabot/arduino/jaiabot_runtime/${jaia_arduino_type}/upload.sh
 fi
 
+# not flashed automatically, since flashing takes the payload board offline
+for stm32_upload in ${jaia_dir}/${build_dir}/share/jaiabot/stm32/*/uart/upload.sh; do
+    if [ -f "${stm32_upload}" ]; then
+        echo "🟢 STM32 firmware deployment script found at:"
+        echo "   ${stm32_upload}"
+        echo "   Run it manually on the vehicle when ready to flash the STM32 board:"
+        echo "   cd $(dirname ${stm32_upload}) && bash upload.sh"
+    fi
+done
+
 jaiabot_version=$(cat ${jaia_dir}/${build_dir}/share/version.txt)
 sudo sh -c "echo 'Development version: ${jaiabot_version}, deployed $(date)' > /etc/jaiabot/software_version"

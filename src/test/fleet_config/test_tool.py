@@ -79,7 +79,8 @@ class Env:
 class SchemaTest(unittest.TestCase):
     def test_enum_value_strings_follow_the_prefix_convention(self):
         q = SCHEMA.questions_by_name["additional_sensors"]
-        self.assertEqual([v.value for v in q.enum_values], ["turner_c_flour", "aml", "ppk", "none"])
+        self.assertEqual([v.value for v in q.enum_values],
+                         ["turner_c_flour", "turner_c_fluor", "turner_c_fluor_2", "aml", "ppk", "none"])
         self.assertEqual(SCHEMA.questions_by_name["type"].choices, ["bot", "hub"])
 
     def test_identity_questions(self):
@@ -181,6 +182,27 @@ class MigrationTest(unittest.TestCase):
         fc.text_format.Parse(text, again)
         self.assertEqual(again, self.cfg)
         self.assertEqual(fc.migrate(SCHEMA, again), ([], []))
+
+
+class FluorometerMigrationTest(unittest.TestCase):
+    """2.y renamed turner_c_flour, so a v1 file may carry either spelling."""
+
+    def setUp(self):
+        self.cfg = fc.parse_fleet_config(SCHEMA, fixture("v1_fluorometers.cfg"))
+        self.notes, self.problems = fc.migrate(SCHEMA, self.cfg)
+
+    def test_both_spellings_migrate(self):
+        NS = SCHEMA.NodeSettings
+        self.assertEqual(self.problems, [])
+        self.assertEqual(list(self.cfg.settings.additional_sensors),
+                         [NS.ADDITIONAL_SENSOR_TURNER_C_FLUOR, NS.ADDITIONAL_SENSOR_AML])
+        self.assertEqual(list(self.cfg.override[0].settings.additional_sensors),
+                         [NS.ADDITIONAL_SENSOR_TURNER_C_FLUOR, NS.ADDITIONAL_SENSOR_TURNER_C_FLUOR_2])
+
+    def test_selections_use_the_new_spelling(self):
+        bot1 = fc.node_settings_for(SCHEMA, self.cfg, "bot", 1)
+        sel = {d["key"]: d for d in fc.debconf_selections(SCHEMA, bot1)}
+        self.assertEqual(sel["jaiabot-embedded/additional_sensors"]["value"], "turner_c_fluor, aml")
 
 
 class MigrationFailureTest(unittest.TestCase):

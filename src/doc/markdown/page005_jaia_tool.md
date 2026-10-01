@@ -196,7 +196,7 @@ A single question in JSON gives an object with just that entry (`jaia admin debc
 
 ```
 QUESTION                  TYPE         DEFAULT   CHOICES
-additional_sensors        multiselect  none      turner_c_flour, aml, ppk, none
+additional_sensors        multiselect  none      turner_c_fluor, turner_c_fluor_2, aml, ppk, none
 arduino_type              select       none      spi, usb, none
 bot_id                    string       0
 bot_type                  select       hydro     hydro, pam, bio, none

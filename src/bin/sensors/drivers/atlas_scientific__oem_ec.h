@@ -26,7 +26,6 @@
 #include "config.pb.h"
 #include "jaiabot/messages/health.pb.h"
 #include "jaiabot/messages/sensor/atlas_scientific__oem_ec.pb.h"
-#include "jaiabot/messages/sensor/atlas_scientific__oem_ph.pb.h"
 #include "jaiabot/messages/sensor/pressure_temperature.pb.h"
 #include "jaiabot/messages/sensor/sensor_core.pb.h"
 
@@ -54,7 +53,9 @@ class AtlasScientificOEMECDriver
     int32_t report_timeout_{20};
     int32_t resend_cfg_timeout_{20};
     // These are used for calculating the salinity from the conductivity
-    sensor::protobuf::AtlasScientificOEMpH last_ph_data_;
+    bool using_tsys01_{false};
+    sensor::protobuf::TSYS01 last_tsys01_data_;
+    sensor::protobuf::BlueRoboticsBar30 last_bar30_data_;
     jaiabot::protobuf::PressureAdjustedData last_pressure_adjusted_data_;
 };
 
