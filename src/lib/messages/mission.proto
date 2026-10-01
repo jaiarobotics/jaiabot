@@ -443,8 +443,10 @@ message MissionPlan
         repeated uint32 lane_start_goal_indices = 6
             [(dccl.field) = { max_repeat: 7, min: 1, max: 80 }];
 
-        // Per-segment transit speed override (m/s).
-        // Omit to use plan-level speeds.transit.
+        // Per-segment transit speed override (m/s). A segment that omits this
+        // keeps the speed already in effect: the previous segment's value, or
+        // MissionPlan.speeds.transit when the mission is received and at the
+        // start of each repeat.
         optional uint32 speed = 4 [
             default = 2,
             (dccl.field) = {
@@ -455,6 +457,10 @@ message MissionPlan
             }
         ];
 
+        // Per-segment safety return parameters. A segment that omits this keeps
+        // the params already in effect rather than clearing them, so it inherits
+        // the previous segment's. MissionPlan.bottom_depth_safety_params is
+        // applied when the mission is received and at the start of each repeat.
         optional BottomDepthSafetyParams bottom_depth_safety_params = 5;
     }
 
