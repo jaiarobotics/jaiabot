@@ -23,6 +23,7 @@
     path: /etc/jaiabot/cloud.env
   register: cloud_env_file
 
+# Not from the postinst: the script runs apt-get, which cannot take the dpkg lock there
 - name: Configure Authelia (CloudHub only)
   ansible.builtin.command: /usr/bin/jaia_configure_authelia.sh
   when: cloud_env_file.stat.exists
