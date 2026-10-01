@@ -248,6 +248,20 @@ class AddTest(PeersTest):
                                 "'{}' was accepted as a peer name".format(name))
         self.assertEqual(self.env.peer_files(), ["desktop1.conf"])
 
+    def test_applying_does_not_write_the_config_it_hands_to_wg(self):
+        """apply runs from the interface's PostUp. Staging the config on disk makes
+        bringing the interface up depend on a writable filesystem, and wg-quick
+        deletes the interface when a PostUp hook fails."""
+        self.assertEqual(self.env.run("apply", INTERFACE).returncode, 0)
+        synced = [c for c in self.env.recorded() if c.startswith("wg syncconf ")]
+        self.assertTrue(synced, "apply never reached wg syncconf")
+        for call in synced:
+            path = call.split()[-1]
+            self.assertFalse(
+                path.startswith(self.env.wg_dir),
+                "apply staged {} inside the wireguard directory; on a read-only "
+                "root that write fails and takes the interface with it".format(path))
+
     def test_a_peer_added_while_the_interface_is_down_is_applied_when_it_comes_up(self):
         down = Env(up=False)
         self.addCleanup(down.cleanup)

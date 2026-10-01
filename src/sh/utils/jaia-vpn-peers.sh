@@ -65,16 +65,14 @@ assemble()
 # directory when it comes up.
 cmd_apply()
 {
-    local iface=$1
+    local iface=$1 assembled
     wg show "$iface" >/dev/null 2>&1 || return 0
 
-    # Carries the interface's private key, so it is written beside the config it
-    # came from rather than anywhere more widely readable.
-    TMPFILE=$(mktemp "${WG_DIR}/.${iface}.syncconf.XXXXXX")
-    assemble "$iface" > "$TMPFILE"
-    wg syncconf "$iface" "$TMPFILE"
-    rm -f "$TMPFILE"
-    TMPFILE=""
+    # Kept in memory: this runs from the interface's PostUp, so writing it would
+    # make the interface depend on /etc being writable to come up at all, and the
+    # text carries the private key.
+    assembled=$(assemble "$iface")
+    wg syncconf "$iface" <(printf '%s\n' "${assembled}")
 }
 
 cmd_add()
