@@ -262,6 +262,10 @@
 
     function start() {
         document.body.appendChild(root);
+        // Apps that mount on <body> (LLDAP) clear it after this runs
+        new MutationObserver(function () {
+            if (!root.isConnected && document.body) document.body.appendChild(root);
+        }).observe(document.documentElement, { childList: true, subtree: true });
         applyToPage();
         loadIdentity();
     }
