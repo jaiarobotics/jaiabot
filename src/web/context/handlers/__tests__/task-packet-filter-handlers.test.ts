@@ -6,7 +6,7 @@ import {
     handleClearTaskPacketFilter,
 } from "../task-packet-filter-handlers";
 import { syncTaskLayers, syncTaskPacketMarkerLayers } from "../handler-utils";
-import { fetchTaskPacketsForWindow } from "../../../jcc/polling";
+import { invalidateTaskPacketRequests, refreshTaskPacketsForWindow } from "../../../jcc/polling";
 import { taskPackets } from "../../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../../data/task_packets/task-packet-filter";
 import { JaiaActions } from "../../jaia-actions";
@@ -21,7 +21,8 @@ jest.mock("../handler-utils", () => ({
 }));
 
 jest.mock("../../../jcc/polling", () => ({
-    fetchTaskPacketsForWindow: jest.fn(),
+    invalidateTaskPacketRequests: jest.fn(),
+    refreshTaskPacketsForWindow: jest.fn(),
 }));
 
 const mutableState = {} as JaiaContextType;
@@ -73,6 +74,8 @@ describe("handleRunTaskPacketSearch", () => {
         expect(taskPacketFilter.getSliderUpperUtime()).toBe(0);
         expect(taskPacketFilter.getAutoFollowUpper()).toBe(true);
         expect(syncTaskLayers).toHaveBeenCalledTimes(1);
+        // An in-flight refetch must not overwrite the searched packets.
+        expect(invalidateTaskPacketRequests).toHaveBeenCalledTimes(1);
     });
 
     test("leaves the filter inactive when no window dates are given", () => {
@@ -159,11 +162,11 @@ describe("handleCommitTaskPacketSlider", () => {
 });
 
 describe("handleClearTaskPacketFilter", () => {
-    test("deactivates the filter, reloads the default window, and repaints", async () => {
-        const included = [makeTaskPacket(1000, "A")];
-        const excluded = [makeTaskPacket(2000)];
-        (fetchTaskPacketsForWindow as jest.Mock).mockResolvedValue({
-            result: { included, excluded },
+    test("deactivates the filter, then refetches the default window", () => {
+        (refreshTaskPacketsForWindow as jest.Mock).mockImplementation(async () => {
+            // The filter must already be cleared so the refetch requests the default window.
+            expect(taskPacketFilter.isActive()).toBe(false);
+            return true;
         });
         taskPacketFilter.setSearchWindow(
             new Date("2026-06-01T00:00:00"),
@@ -173,14 +176,7 @@ describe("handleClearTaskPacketFilter", () => {
 
         handleClearTaskPacketFilter(mutableState);
 
-        // The filter is cleared before the fetch, so the fetch requests the default window.
         expect(taskPacketFilter.isActive()).toBe(false);
-        expect(fetchTaskPacketsForWindow).toHaveBeenCalledTimes(1);
-
-        await (fetchTaskPacketsForWindow as jest.Mock).mock.results[0].value;
-
-        expect(taskPackets.getIncludedTaskPackets()).toBe(included);
-        expect(taskPackets.getExcludedTaskPackets()).toBe(excluded);
-        expect(syncTaskLayers).toHaveBeenCalledTimes(1);
+        expect(refreshTaskPacketsForWindow).toHaveBeenCalledTimes(1);
     });
 });

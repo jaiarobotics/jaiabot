@@ -1,6 +1,6 @@
 import { taskPackets } from "../../data/task_packets/task-packets";
 import { taskPacketFilter } from "../../data/task_packets/task-packet-filter";
-import { fetchTaskPacketsForWindow } from "../../jcc/polling";
+import { invalidateTaskPacketRequests, refreshTaskPacketsForWindow } from "../../jcc/polling";
 import { JaiaContextType, JaiaAction } from "../../types/context-types";
 import { syncTaskLayers, syncTaskPacketMarkerLayers } from "./handler-utils";
 
@@ -14,6 +14,8 @@ import { syncTaskLayers, syncTaskPacketMarkerLayers } from "./handler-utils";
  * @returns {JaiaContextType} Updated mutable state object
  */
 export function handleRunTaskPacketSearch(mutableState: JaiaContextType, action: JaiaAction) {
+    // These packets replace whatever an in-flight refetch would load.
+    invalidateTaskPacketRequests();
     taskPackets.setIncludedTaskPackets(action.includedTaskPackets ?? []);
     taskPackets.setExcludedTaskPackets(action.excludedTaskPackets ?? []);
     if (action.filterStartDate && action.filterEndDate) {
@@ -83,12 +85,6 @@ export function handleCommitTaskPacketSlider(mutableState: JaiaContextType) {
  */
 export function handleClearTaskPacketFilter(mutableState: JaiaContextType) {
     taskPacketFilter.clear();
-    fetchTaskPacketsForWindow()
-        .then((response) => {
-            taskPackets.setIncludedTaskPackets(response.result.included);
-            taskPackets.setExcludedTaskPackets(response.result.excluded);
-            syncTaskLayers();
-        })
-        .catch((error) => console.error(error));
+    refreshTaskPacketsForWindow().catch((error) => console.error(error));
     return mutableState;
 }

@@ -36,6 +36,10 @@ let metadataRequestInFlight = false;
 // Date window last fetched; lets the poll force a refetch when the filter window changes
 let lastFetchedWindowKey = "";
 
+// Increments per task packet fetch (and on a filter search) so a slower, superseded response
+// can't overwrite newer task packets in the data model.
+let latestTaskPacketRequest = 0;
+
 let statusRequestStartTime = new Date().getTime();
 
 /**
@@ -110,11 +114,11 @@ export async function pollTaskPackets() {
             console.error(`Task packet response status: ${versionRes.status}`);
         } else {
             const version = await versionRes.json();
-            if (forceFetch || version !== taskPackets.getVersion()) {
-                const json = await fetchTaskPacketsForWindow();
-                taskPackets.setIncludedTaskPackets(json.result.included);
-                taskPackets.setExcludedTaskPackets(json.result.excluded);
-                updateTaskLayers();
+            // A superseded fetch records nothing, so the next poll fetches again.
+            if (
+                (forceFetch || version !== taskPackets.getVersion()) &&
+                (await refreshTaskPacketsForWindow())
+            ) {
                 taskPackets.setVersion(version);
                 lastFetchedWindowKey = windowKey;
             }
@@ -150,12 +154,40 @@ function getTaskPacketWindowKey() {
 }
 
 /**
+ * Fetches task packets for the current window and loads them into the data model, unless a newer
+ * fetch or filter search has started since. Every refetch of the task packets goes through here.
+ *
+ * @returns {Promise<boolean>} True if the response was applied, false if it was superseded
+ */
+export async function refreshTaskPacketsForWindow() {
+    const requestID = ++latestTaskPacketRequest;
+    const json = await fetchTaskPacketsForWindow();
+    if (requestID !== latestTaskPacketRequest) {
+        return false;
+    }
+    taskPackets.setIncludedTaskPackets(json.result.included);
+    taskPackets.setExcludedTaskPackets(json.result.excluded);
+    updateTaskLayers();
+    return true;
+}
+
+/**
+ * Drops any task packet fetch still in flight. Called when task packets are loaded into the data
+ * model by other means, so an older response can't overwrite them.
+ *
+ * @returns {void}
+ */
+export function invalidateTaskPacketRequests() {
+    latestTaskPacketRequest += 1;
+}
+
+/**
  * Fetches task packets for the active filter window (or the server default when no filter
  * is active).
  *
  * @returns {Promise<{ result: { included: TaskPacket[]; excluded: TaskPacket[] } }>} Response
  */
-export async function fetchTaskPacketsForWindow() {
+async function fetchTaskPacketsForWindow() {
     const startDate = taskPacketFilter.getStartDate();
     const endDate = taskPacketFilter.getEndDate();
     if (taskPacketFilter.isActive() && startDate && endDate) {
